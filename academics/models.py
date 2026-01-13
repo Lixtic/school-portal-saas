@@ -21,6 +21,10 @@ class SchoolInfo(models.Model):
     motto = models.CharField(max_length=200, default="Success, Our Concern")
     logo = models.ImageField(upload_to='school_logo/', null=True, blank=True)
     
+    # Customization
+    primary_color = models.CharField(max_length=7, default="#026e56", help_text="Main theme color (e.g. #026e56)")
+    secondary_color = models.CharField(max_length=7, default="#0f3b57", help_text="Sidebar/Dark color (e.g. #0f3b57)")
+    
     def save(self, *args, **kwargs):
         if not self.pk and SchoolInfo.objects.exists():
             # If valid, just update the first one instead of creating new
