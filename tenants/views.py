@@ -117,15 +117,23 @@ def _create_sample_data(tenant):
             defaults={'code': code}
         )
     
-    # School Info placeholder
+    # School Info placeholder (Essential for branding)
+    # Ensure this is created so the new tenant has their name on the dashboard immediately.
     if not SchoolInfo.objects.exists():
         SchoolInfo.objects.create(
             name=tenant.name,
             address="To be configured",
             phone="To be configured",
             email="info@school.edu",
-            motto="Excellence in Education"
+            motto="Excellence in Education",
+            primary_color="#026e56", # Default Teal
+            secondary_color="#0f3b57" # Default Dark Blue
         )
+    else:
+        # Update existing record if it was auto-created by migration (unlikely but safe)
+        info = SchoolInfo.objects.first()
+        info.name = tenant.name
+        info.save()
 
 
 @login_required
