@@ -42,9 +42,19 @@ try:
         
         print(">>> WSGI: Initialization Complete.")
     else:
-        print(">>> WSGI: Database seems initialized ('tenants_school' exists).")
-        
+        # Check for pending migrations
+        # Logic: We should technically run this on every deployment, but it is heavy.
+        # For now, let's force a migration run if we suspect new changes exist.
+        print(">>> WSGI: Checking for migrations...")
+        try:
+             # Run migrations for both shared and tenants to be safe
+             call_command('migrate_schemas', interactive=False)
+             print(">>> WSGI: Migrations applied successfully.")
+        except Exception as mig_e:
+             print(f">>> WSGI MIGRATION ERROR: {mig_e}")
+             
         # Double check if public tenant exists
+
         from tenants.models import School
         if not School.objects.filter(schema_name='public').exists():
              print(">>> WSGI: Public tenant missing! Running setup_tenants...")
