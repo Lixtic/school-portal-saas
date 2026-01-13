@@ -23,24 +23,34 @@ def school_signup(request):
                 # We separate the tenant creation from the inner data population to avoid
                 # long transactions if migrations take time.
                 print(f"DEBUG SIGNUP: Starting creation for {schema_name}")
-                with transaction.atomic():
-                    tenant = School(schema_name=schema_name, name=name, on_trial=True, is_active=True)
-                    # This .save() triggers migrate_schemas which can be SLOW
-                    tenant.save()
-                    print(f"DEBUG SIGNUP: Tenant saved and migrated")
-                    
-                    domain = Domain()
-                    domain.domain = f"{schema_name}.local" 
-                    domain.tenant = tenant
-                    domain.is_primary = True
-                    domain.save()
-                    print(f"DEBUG SIGNUP: Domain saved")
+                
+                # REMOVED outer transaction.atomic() here to allow Partial Success (Debugging Timeout)
+                # Ideally, we should rollback manually if it fails, but for now we want to see if the record persists.
+                
+                tenant = School(schema_name=schema_name, name=name, on_trial=True, is_active=True)
+                # Force auto_create_schema to False initially to save the DB record quickly
+                tenant.auto_create_schema = False 
+                tenant.save()
+                print(f"DEBUG SIGNUP: Tenant record saved (No Schema yet)")
+                
+                domain = Domain()
+                domain.domain = f"{schema_name}.local" 
+                domain.tenant = tenant
+                domain.is_primary = True
+                domain.save()
+                print(f"DEBUG SIGNUP: Domain saved")
+                
+                # Now Create Schema Manually (The slow part)
+                print(f"DEBUG SIGNUP: Starting Schema Creation (Migrate)...")
+                tenant.create_schema(check_if_exists=True, verbosity=1)
+                print(f"DEBUG SIGNUP: Schema Created & Migrated")
 
                 # 2. Switch to Tenant Context for Data Population
                 # We do this OUTSIDE the first atomic block if we want to risk partial failure
                 # but better to keep it atomic if possible. For now, let's keep robust logging.
                 
                 try:
+                    # Inner atomic is fine for data population
                     with transaction.atomic():
                         connection.set_tenant(tenant)
                         User = get_user_model()
@@ -58,11 +68,10 @@ def school_signup(request):
                         print(f"DEBUG SIGNUP: Sample data created")
                         
                 except Exception as inner_e:
-                    print(f"DEBUG SIGNUP ERROR (Inner): {inner_e}")
-                    # If data population fails, do we delete the tenant?
-                    # Ideally yes, but for diagnosing timeouts, maybe keeping the empty tenant is better?
-                    # For now, let's re-raise to trigger the outer rollback.
-                    raise inner_e
+                    print(f"DEBUG SIGNUP ERROR (Inner - Data Pop): {inner_e}")
+                    # Don't rollback the Tenant creation itself, just log the data failure
+                    # User will have an empty school but at least it exists
+                    messages.warning(request, f"School created but sample data failed: {inner_e}")
                 
                 # Switch back
                 print(f"DEBUG SIGNUP: Success. Switching back to Public.")
@@ -72,10 +81,14 @@ def school_signup(request):
                 return render(request, 'tenants/signup_success.html', {'schema_name': schema_name})
                     
             except Exception as e:
-                print(f"DEBUG SIGNUP FAILIURE: {e}")
+                print(f"DEBUG SIGNUP CRITICAL FAILURE: {e}")
                 connection.set_schema_to_public()
-                # Generic error message to user, detailed to logs
+                
+                # Try to clean up orphan tenant if schemas failed?
+                # For debugging: LEAVE IT.
+                
                 messages.error(request, f"Error creating school. Please try again or check logs. ({e})")
+
 
                 
     else:
