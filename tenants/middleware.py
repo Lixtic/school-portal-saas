@@ -86,9 +86,10 @@ class TenantPathMiddleware(TenantMainMiddleware):
             reserved_paths = [
                 'admin', 'static', 'media', 'signup', 'login', 'logout', 
                 'dashboard', 'favicon.ico', 'debug', 'accounts',
-                'password', 'reset'
+                'password', 'reset', ''
             ]
-            if possible_schema not in reserved_paths and possible_schema != 'public':
+            # Ensure we don't treat root path (empty string) as a missing tenant
+            if possible_schema and possible_schema not in reserved_paths and possible_schema != 'public':
                 print(f"DEBUG MIDDLEWARE: Tenant '{possible_schema}' not found and not reserved.")
                 raise Http404(f"School '{possible_schema}' does not exist.")
 
