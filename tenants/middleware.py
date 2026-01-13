@@ -24,21 +24,25 @@ class TenantPathMiddleware(TenantMainMiddleware):
         ]
         
         if possible_schema and possible_schema != 'public' and possible_schema not in reserved_paths:
+            print(f"DEBUG MIDDLEWARE: Checking tenant candidate: {possible_schema}")
             # Try to find the school
             try:
                 # Need to use the model class explicitly to avoid UnboundLocalError
                 from tenants.models import School
                 tenant = School.objects.filter(schema_name=possible_schema).first()
-            except Exception:
+            except Exception as e:
+                print(f"DEBUG MIDDLEWARE: DB Lookup Error: {e}")
                 tenant = None
             
             # If we are here, it means the URL starts with something like /kings/
             # If no tenant is found, it's a 404. We shouldn't fall back to Public
             # because 'kings' isn't a valid page on the public site either.
             if not tenant:
+                print(f"DEBUG MIDDLEWARE: Tenant '{possible_schema}' looked up but returned None.")
                 raise Http404(f"School '{possible_schema}' not found.")
         
         if tenant:
+
             # === TENANT FOUND ===
             print(f"DEBUG MIDDLEWARE: Tenant '{possible_schema}' found. Rewriting URLs.")
             print(f"DEBUG MIDDLEWARE: Original PATH_INFO: {request.path_info}")
@@ -84,13 +88,9 @@ class TenantPathMiddleware(TenantMainMiddleware):
                 'dashboard', 'favicon.ico', 'debug', 'accounts',
                 'password', 'reset'
             ]
-            if possible_schema not in reserved_paths:
+            if possible_schema not in reserved_paths and possible_schema != 'public':
                 print(f"DEBUG MIDDLEWARE: Tenant '{possible_schema}' not found and not reserved.")
                 raise Http404(f"School '{possible_schema}' does not exist.")
-
-            # === PUBLIC CONTEXT ===
-            connection.set_tenant(public_tenant)
-            request.tenant = public_tenant
 
             # === PUBLIC CONTEXT ===
             # No tenant found in path -> Serve Public Site
@@ -100,6 +100,7 @@ class TenantPathMiddleware(TenantMainMiddleware):
                 public_schema = getattr(settings, 'PUBLIC_SCHEMA_NAME', 'public')
                 request.tenant = School.objects.get(schema_name=public_schema)
             except Exception: # Catch both DoesNotExist and UnboundLocal if weird things happen
+
                 # Fallback if DB is empty / public tenant missing
                 # This should be handled by WSGI hook now, but just in case
                 from tenants.models import School
