@@ -86,9 +86,11 @@ class TenantPathMiddleware(TenantMainMiddleware):
             # === PUBLIC CONTEXT ===
             # No tenant found in path -> Serve Public Site
             try:
+                # Need to use the model class explicitly here too
+                from tenants.models import School
                 public_schema = getattr(settings, 'PUBLIC_SCHEMA_NAME', 'public')
                 request.tenant = School.objects.get(schema_name=public_schema)
-            except School.DoesNotExist:
+            except Exception: # Catch both DoesNotExist and UnboundLocal if weird things happen
                 # Fallback if DB is empty / public tenant missing
                 # This should be handled by WSGI hook now, but just in case
                 from tenants.models import School
