@@ -49,6 +49,7 @@ urlpatterns = [
     path('parents/', include('parents.urls')),
     path('academics/', include('academics.urls')),
     path('announcements/', include('announcements.urls')),
+    path('communication/', include('communication.urls')),
     path('finance/', include('finance.urls')),
     path('tenants/', include('tenants.urls')),
     # path('debug/migrate/', account_views.debug_migrate, name='debug_migrate'),

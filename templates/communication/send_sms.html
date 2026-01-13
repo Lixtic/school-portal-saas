@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Send SMS{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0">Compose SMS</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Recipient Type</label>
+                        {{ form.recipient_type }}
+                    </div>
+                    
+                    <div class="mb-3" id="class-select-wrapper" style="display:none;">
+                        <label class="form-label">Select Class</label>
+                        {{ form.target_class }}
+                    </div>
+                    
+                    <div class="mb-3" id="individual-wrapper" style="display:none;">
+                        <label class="form-label">Recipient Number</label>
+                        {{ form.recipient_number }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Message</label>
+                        {{ form.message_body }}
+                        <div class="form-text text-end">0/160 characters</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Send Message</button>
+                        <a href="{% url 'communication:dashboard' %}" class="btn btn-light">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const typeSelect = document.getElementById('id_recipient_type');
+        const classWrapper = document.getElementById('class-select-wrapper');
+        const indivWrapper = document.getElementById('individual-wrapper');
+        
+        function toggleFields() {
+            classWrapper.style.display = typeSelect.value === 'class' ? 'block' : 'none';
+            indivWrapper.style.display = typeSelect.value === 'individual' ? 'block' : 'none';
+        }
+        
+        typeSelect.addEventListener('change', toggleFields);
+        toggleFields(); // Init
+    });
+</script>
+{% endblock %}
