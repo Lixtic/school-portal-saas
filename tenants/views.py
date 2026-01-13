@@ -19,58 +19,64 @@ def school_signup(request):
             email = form.cleaned_data['email']
             
             try:
+                # 1. Create Tenant (Transaction on PUBLIC schema)
+                # We separate the tenant creation from the inner data population to avoid
+                # long transactions if migrations take time.
+                print(f"DEBUG SIGNUP: Starting creation for {schema_name}")
                 with transaction.atomic():
-                    # 1. Create Tenant
                     tenant = School(schema_name=schema_name, name=name, on_trial=True, is_active=True)
+                    # This .save() triggers migrate_schemas which can be SLOW
                     tenant.save()
-                    
-                    # 2. Create Domain (required for routing)
-                    # For path-strategy, we normally dummy this or reuse localhost with different schema? 
-                    # TenantSyncRouter usually needs a domain entry.
-                    # We will create a pseudo-domain 'school.localhost' just to satisfy the model constraints
-                    # even if we use path-routing.
+                    print(f"DEBUG SIGNUP: Tenant saved and migrated")
                     
                     domain = Domain()
-                    # In production we might not use this field for routing, but DB needs it
                     domain.domain = f"{schema_name}.local" 
                     domain.tenant = tenant
                     domain.is_primary = True
                     domain.save()
-                    
-                    # 3. Create Admin User (Switch to new schema)
-                    connection.set_tenant(tenant)
-                    User = get_user_model()
-                    
-                    # Check if user already exists
-                    if not User.objects.filter(username='admin').exists():
-                        user = User.objects.create_superuser(
-                            username='admin',
-                            email=email,
-                            password='admin', # Hardcoded for now, user should change
-                            user_type='admin'
-                        )
-                        print(f"DEBUG: Created admin user for {schema_name}")
-                    else:
-                        print(f"DEBUG: Admin user already exists for {schema_name}")
-                    
-                    # Auto-populate sample data
-                    _create_sample_data(tenant)
-                    
-                    # Switch back
-                    public_schema = getattr(settings, 'PUBLIC_SCHEMA_NAME', 'public')
-                    try:
-                        public = School.objects.get(schema_name=public_schema)
-                        connection.set_tenant(public)
-                    except:
-                        connection.set_schema_to_public()
+                    print(f"DEBUG SIGNUP: Domain saved")
 
-                    messages.success(request, f"School '{name}' created successfully! Your login URL is /{schema_name}/login/")
-                    return render(request, 'tenants/signup_success.html', {'schema_name': schema_name})
+                # 2. Switch to Tenant Context for Data Population
+                # We do this OUTSIDE the first atomic block if we want to risk partial failure
+                # but better to keep it atomic if possible. For now, let's keep robust logging.
+                
+                try:
+                    with transaction.atomic():
+                        connection.set_tenant(tenant)
+                        User = get_user_model()
+                        
+                        if not User.objects.filter(username='admin').exists():
+                            user = User.objects.create_superuser(
+                                username='admin',
+                                email=email,
+                                password='admin',
+                                user_type='admin'
+                            )
+                            print(f"DEBUG SIGNUP: Admin user created")
+                        
+                        _create_sample_data(tenant)
+                        print(f"DEBUG SIGNUP: Sample data created")
+                        
+                except Exception as inner_e:
+                    print(f"DEBUG SIGNUP ERROR (Inner): {inner_e}")
+                    # If data population fails, do we delete the tenant?
+                    # Ideally yes, but for diagnosing timeouts, maybe keeping the empty tenant is better?
+                    # For now, let's re-raise to trigger the outer rollback.
+                    raise inner_e
+                
+                # Switch back
+                print(f"DEBUG SIGNUP: Success. Switching back to Public.")
+                connection.set_schema_to_public()
+
+                messages.success(request, f"School '{name}' created successfully! Your login URL is /{schema_name}/login/")
+                return render(request, 'tenants/signup_success.html', {'schema_name': schema_name})
                     
             except Exception as e:
-                # Switch back on error
+                print(f"DEBUG SIGNUP FAILIURE: {e}")
                 connection.set_schema_to_public()
-                messages.error(request, f"Error creating school: {e}")
+                # Generic error message to user, detailed to logs
+                messages.error(request, f"Error creating school. Please try again or check logs. ({e})")
+
                 
     else:
         form = SchoolSignupForm()
