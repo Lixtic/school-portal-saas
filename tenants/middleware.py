@@ -19,7 +19,12 @@ class TenantPathMiddleware(TenantMainMiddleware):
         # 3. Check if the first segment matches a valid School schema (excluding 'public')
         if possible_schema and possible_schema != 'public' and possible_schema not in ['static', 'media', 'admin', 'accounts']:
             # Try to find the school
-            tenant = School.objects.filter(schema_name=possible_schema).first()
+            try:
+                # Need to use the model class explicitly to avoid UnboundLocalError
+                from tenants.models import School
+                tenant = School.objects.filter(schema_name=possible_schema).first()
+            except Exception:
+                tenant = None
         
         if tenant:
             # === TENANT FOUND ===
