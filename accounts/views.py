@@ -338,20 +338,59 @@ def dashboard(request):
 from django.core.management import call_command
 from django.http import HttpResponse
 from io import StringIO
+import sys
+import os
 
-def debug_migrate(request):
-    if not request.user.is_superuser:
-        return HttpResponse('Unauthorized', status=403)
+def debug_status(request):
+    """
+    Public debug view to check tenant status and force setup.
+    WARNING: Disable or protect this in real production!
+    """
+    from django.db import connection, transaction
+    from tenants.models import School, Domain
     
     out = StringIO()
+    print("=== DEBUG STATUS ===", file=out)
+    
+    # 1. List Tenants
+    print("\n[1] Existing Tenants:", file=out)
     try:
-        print('Running showmigrations...', file=out)
-        call_command('showmigrations', stdout=out)
-        print('\nRunning migrate...', file=out)
-        call_command('migrate', stdout=out)
+        schools = School.objects.all()
+        if not schools:
+            print("  (No tenants found)", file=out)
+        for s in schools:
+            print(f"  - {s.name} (Schema: {s.schema_name}, Active: {s.is_active})", file=out)
+            domains = Domain.objects.filter(tenant=s)
+            for d in domains:
+                print(f"    -> Domain: {d.domain} (Primary: {d.is_primary})", file=out)
     except Exception as e:
-        print(f'\nError: {e}', file=out)
+        print(f"  ERROR listing tenants: {e}", file=out)
+
+    # 2. Run Setup Tenants
+    print("\n[2] Running Setup Tenants Script:", file=out)
+    try:
+        # Add scripts to path
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if project_root not in sys.path:
+            sys.path.append(project_root)
+            
+        from scripts.setup_tenants import setup_tenants
         
+        # Redirect stdout to capture script output
+        # (This is a bit hacky for a view, but works for debug)
+        old_stdout = sys.stdout
+        sys.stdout = out
+        try:
+            setup_tenants()
+        finally:
+            sys.stdout = old_stdout
+            
+    except Exception as e:
+        print(f"  CRITICAL ERROR running setup_tenants: {e}", file=out)
+        import traceback
+        traceback.print_exc(file=out)
+
+    print("\n=== END DEBUG ===", file=out)
     return HttpResponse(out.getvalue(), content_type='text/plain')
 
 @login_required
