@@ -14,11 +14,11 @@ class AcademicYear(models.Model):
         ordering = ['-start_date']
 
 class SchoolInfo(models.Model):
-    name = models.CharField(max_length=200, default="Daboya Girls Model JHS")
-    address = models.TextField(default="P.O. Box 6, Daboya, North Gonja District")
-    phone = models.CharField(max_length=50, default="024-0852910")
-    email = models.EmailField(default="info@daboyagirlsmodel.edu.gh")
-    motto = models.CharField(max_length=200, default="Success, Our Concern")
+    name = models.CharField(max_length=200, default="School Name")
+    address = models.TextField(default="School Address")
+    phone = models.CharField(max_length=50, default="Phone Number")
+    email = models.EmailField(default="info@school.edu")
+    motto = models.CharField(max_length=200, default="Education for All")
     logo = models.ImageField(upload_to='school_logo/', null=True, blank=True)
     
     # Customization
