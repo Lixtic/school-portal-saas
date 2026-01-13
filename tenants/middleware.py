@@ -76,6 +76,22 @@ class TenantPathMiddleware(TenantMainMiddleware):
                  print(f"DEBUG MIDDLEWARE: Path '{request.path}' did not start with '/{possible_schema}'? Strange.")
 
         else:
+            # === TENANT NOT FOUND ===
+            # If it looks like a tenant path (not a reserved public path), raise 404 immediately
+            # identifying that the school itself doesn't exist.
+            reserved_paths = [
+                'admin', 'static', 'media', 'signup', 'login', 'logout', 
+                'dashboard', 'favicon.ico', 'debug', 'accounts',
+                'password', 'reset'
+            ]
+            if possible_schema not in reserved_paths:
+                print(f"DEBUG MIDDLEWARE: Tenant '{possible_schema}' not found and not reserved.")
+                raise Http404(f"School '{possible_schema}' does not exist.")
+
+            # === PUBLIC CONTEXT ===
+            connection.set_tenant(public_tenant)
+            request.tenant = public_tenant
+
             # === PUBLIC CONTEXT ===
             # No tenant found in path -> Serve Public Site
             try:
