@@ -567,7 +567,8 @@ function viewDetails(studentId) {
     const modal = new bootstrap.Modal(document.getElementById('studentDetailsModal'));
     modal.show();
     
-    fetch(`/students/details/${studentId}/`)
+    const urlPattern = "{% url 'students:student_details' 123456789 %}".replace('123456789', studentId);
+    fetch(urlPattern)
         .then(response => response.json())
         .then(data => {
             document.getElementById('studentDetailsContent').innerHTML = `

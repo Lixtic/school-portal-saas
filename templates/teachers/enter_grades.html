@@ -187,8 +187,14 @@ document.getElementById('loadStudents').addEventListener('click', function() {
     document.getElementById('loadingStudents').style.display = 'block';
     document.getElementById('studentList').style.display = 'none';
 
-    fetch(`/teachers/get-students/${classId}/?subject_id=${subjectId}&term=${term}`)
-        .then(response => response.json())
+    // Construct URL using Django reversematch to handle tenant prefix
+    const urlPattern = "{% url 'teachers:get_students' 0 %}".replace('/0/', '/' + classId + '/');
+    
+    fetch(`${urlPattern}?subject_id=${subjectId}&term=${term}`)
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.json();
+        })
         .then(students => {
              document.getElementById('loadingStudents').style.display = 'none';
              if(students.length === 0) {

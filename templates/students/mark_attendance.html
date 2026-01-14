@@ -321,7 +321,10 @@ document.getElementById('loadStudents').addEventListener('click', function() {
     document.getElementById('loadingAttendance').style.display = 'block';
     document.getElementById('studentList').style.display = 'none';
     
-    fetch(`/students/get-class-students/${classId}/?date=${dateVal}`)
+    // Construct URL using Django reversematch to handle tenant prefix
+    const urlPattern = "{% url 'students:get_class_students' 0 %}".replace('/0/', '/' + classId + '/');
+
+    fetch(`${urlPattern}?date=${dateVal}`)
         .then(response => {
             if (!response.ok) throw new Error('Network response was not ok');
             return response.json();
