@@ -12,7 +12,15 @@ from tenants.models import School
 from accounts.models import User
 
 def create_tenant_superuser():
-    schema_name = input("Enter schema Name (e.g. school1): ")
+    if len(sys.argv) == 5:
+        schema_name = sys.argv[1]
+        username = sys.argv[2]
+        email = sys.argv[3]
+        password = sys.argv[4]
+    else:
+        print("Usage: python scripts/create_tenant_superuser.py <schema_name> <username> <email> <password>")
+        print("Falling back to interactive mode...")
+        schema_name = input("Enter schema Name (e.g. school1): ")
     
     try:
         tenant = School.objects.get(schema_name=schema_name)
@@ -23,9 +31,10 @@ def create_tenant_superuser():
     connection.set_tenant(tenant)
     print(f"--- Switched to tenant: {tenant.name} ({schema_name}) ---")
     
-    username = input("Enter Username: ")
-    email = input("Enter Email: ")
-    password = input("Enter Password: ")
+    if len(sys.argv) != 5:
+        username = input("Enter Username: ")
+        email = input("Enter Email: ")
+        password = input("Enter Password: ")
     
     if User.objects.filter(username=username).exists():
         print("Error: User already exists.")

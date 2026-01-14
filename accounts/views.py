@@ -55,31 +55,65 @@ def homepage(request):
             {'title': 'Reading Marathon', 'date': today + datetime.timedelta(days=20), 'summary': 'Whole-school literacy sprint with parent volunteers and prizes.', 'tag': 'Academics'},
         ]
 
+    # Get School Info (for settings like homepage_template)
+    school_info = SchoolInfo.objects.first()
+    template_choice = school_info.homepage_template if school_info else 'default'
+
     highlights = [
         {
-            'title': 'Attendance at 98%',
-            'detail': 'Consistent daily check-ins across classes.',
-            'icon': 'bi-activity'
+            'title': 'Excellence',
+            'desc': 'Committed to academic rigor.',
+            'icon': 'fas fa-star'
         },
         {
-            'title': 'Clubs growing',
-            'detail': 'STEM, Debate, and Arts clubs expanded this term.',
-            'icon': 'bi-people'
+            'title': 'Community',
+            'desc': 'Strong parent-teacher partnerships.',
+            'icon': 'fas fa-users'
         },
         {
-            'title': 'Parent portal live',
-            'detail': 'Guardians follow homework and grades in real time.',
-            'icon': 'bi-shield-check'
-        },
+            'title': 'Innovation',
+            'desc': 'Technologically advanced learning.',
+            'icon': 'fas fa-desktop'
+        }
     ]
 
     hero_images = GalleryImage.objects.all().order_by('-created_at')[:3]
 
-    return render(request, 'home.html', {
+    context = {
         'activities': activities,
         'highlights': highlights,
         'hero_images': hero_images,
-    })
+        'school_info': school_info
+    }
+
+    # Route to selected template
+    if template_choice == 'modern':
+        return render(request, 'home/modern.html', context)
+    elif template_choice == 'classic':
+        return render(request, 'home/classic.html', context)
+    elif template_choice == 'minimal':
+        return render(request, 'home/minimal.html', context)
+    else:
+        # Default View (Restoring original highlights for default)
+        highlights = [
+            {
+                'title': 'Attendance at 98%',
+                'detail': 'Consistent daily check-ins across classes.',
+                'icon': 'bi-activity'
+            },
+            {
+                'title': 'Clubs growing',
+                'detail': 'STEM, Debate, and Arts clubs expanded this term.',
+                'icon': 'bi-people'
+            },
+            {
+                'title': 'Parent portal live',
+                'detail': 'Guardians follow homework and grades in real time.',
+                'icon': 'bi-shield-check'
+            },
+        ]
+        context['highlights'] = highlights
+        return render(request, 'home.html', context)
 
 def login_view(request):
     print(f"DEBUG: Login View. Method: {request.method}")

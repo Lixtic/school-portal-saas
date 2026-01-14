@@ -36,7 +36,7 @@ class GalleryImageForm(forms.ModelForm):
 class SchoolInfoForm(forms.ModelForm):
     class Meta:
         model = SchoolInfo
-        fields = ['name', 'address', 'phone', 'email', 'motto', 'logo', 'primary_color', 'secondary_color']
+        fields = ['name', 'address', 'phone', 'email', 'motto', 'logo', 'primary_color', 'secondary_color', 'homepage_template']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
@@ -46,4 +46,5 @@ class SchoolInfoForm(forms.ModelForm):
             'logo': forms.FileInput(attrs={'class': 'form-control'}),
             'primary_color': forms.TextInput(attrs={'class': 'form-control form-control-color', 'type': 'color', 'title': 'Choose Main Color'}),
             'secondary_color': forms.TextInput(attrs={'class': 'form-control form-control-color', 'type': 'color', 'title': 'Choose Sidebar Color'}),
+            'homepage_template': forms.Select(attrs={'class': 'form-select'}),
         }

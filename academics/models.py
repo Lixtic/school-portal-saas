@@ -29,6 +29,14 @@ class SchoolInfo(models.Model):
     primary_color = models.CharField(max_length=7, default="#026e56", help_text="Main theme color (e.g. #026e56)")
     secondary_color = models.CharField(max_length=7, default="#0f3b57", help_text="Sidebar/Dark color (e.g. #0f3b57)")
     
+    TEMPLATE_CHOICES = (
+        ('default', 'Default (Activity Feed)'),
+        ('modern', 'Modern (Hero + Highlights)'),
+        ('classic', 'Classic (Sidebar + Info)'),
+        ('minimal', 'Minimal (Centered Focus)'),
+    )
+    homepage_template = models.CharField(max_length=20, choices=TEMPLATE_CHOICES, default='default')
+    
     def save(self, *args, **kwargs):
         if not self.pk and SchoolInfo.objects.exists():
             # If valid, just update the first one instead of creating new
