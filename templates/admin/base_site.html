@@ -1,0 +1,51 @@
+{% extends "admin/base.html" %}
+
+{% block title %}
+    {% if request.tenant.schema_name != 'public' %}
+        {{ request.tenant.name }} Administration
+    {% else %}
+        {{ title }} | {{ site_title|default:_('Django site admin') }}
+    {% endif %}
+{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}">
+        {% if request.tenant.schema_name != 'public' %}
+            {{ request.tenant.name }} Administration
+        {% else %}
+            {{ site_header|default:_('Django administration') }}
+        {% endif %}
+    </a>
+</h1>
+{% endblock %}
+
+{% block nav-global %}
+    {% if request.tenant.schema_name != 'public' %}
+    <div style="float: right; padding: 10px; color: white;">
+        <strong>School Code:</strong> {{ request.tenant.schema_name }}
+    </div>
+    {% endif %}
+{% endblock %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <style>
+        /* Optional: Change header color based on tenant context to differentiate */
+        {% if request.tenant.schema_name != 'public' %}
+        :root {
+            --primary-500: #0f3b57; /* Dark Blue for School Admin */
+            --primary-600: #0a273a;
+        }
+        #header {
+            background: var(--primary-500);
+        }
+        .module h2, .module caption, .inline-group h2 {
+            background-color: var(--primary-500);
+        }
+        div.breadcrumbs {
+            background-color: var(--primary-600);
+        }
+        {% endif %}
+    </style>
+{% endblock %}
