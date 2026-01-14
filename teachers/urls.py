@@ -26,7 +26,4 @@ urlpatterns = [
     path('lesson-plans/<int:pk>/', views.lesson_plan_detail, name='lesson_plan_detail'),
     path('lesson-plans/<int:pk>/edit/', views.lesson_plan_edit, name='lesson_plan_edit'),
     path('lesson-plans/<int:pk>/delete/', views.lesson_plan_delete, name='lesson_plan_delete'),
-    # Homework
-    path('homework/', views.homework_list, name='homework_list'),
-    path('homework/add/', views.add_homework, name='add_homework'),
 ]

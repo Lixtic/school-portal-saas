@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Homework Assignments{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Homework & Assignments</h1>
+        {% if is_teacher %}
+        <a href="{% url 'homework_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-2"></i>Assign Homework
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Assignments List</h6>
+        </div>
+        <div class="card-body">
+            {% if homeworks %}
+            <div class="table-responsive">
+                <table class="table table-hover" id="homeworkTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th>Title</th>
+                            <th>Target Class</th>
+                            <th>Due Date</th>
+                            <th>Teacher</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for homework in homeworks %}
+                        <tr>
+                            <td><span class="badge bg-secondary">{{ homework.subject.name }}</span></td>
+                            <td>{{ homework.title }}</td>
+                            <td>{{ homework.target_class.name }}</td>
+                            <td>{{ homework.due_date|date:"M d, Y" }}</td>
+                            <td>{{ homework.teacher.user.get_full_name }}</td>
+                            <td>
+                                <a href="{% url 'homework_detail' pk=homework.pk %}" class="btn btn-info btn-sm">
+                                    <i class="bi bi-eye me-1"></i>View
+                                </a>
+                                {% if is_teacher and homework.teacher.user == request.user %}
+                                <a href="{% url 'homework_delete' pk=homework.pk %}" class="btn btn-danger btn-sm">
+                                    <i class="bi bi-trash me-1"></i>Delete
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <div class="mb-3">
+                    <i class="fas fa-book-open fa-3x text-gray-300"></i>
+                </div>
+                <h5 class="text-gray-600">No Assignments Found</h5>
+                <p class="text-gray-500 mb-0">There are no active homework assignments at the moment.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

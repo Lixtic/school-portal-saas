@@ -765,6 +765,7 @@
                 {% if user.user_type == 'teacher' %}
                     <li class="mobile-bubble-item"><a href="{% url 'teachers:my_classes' %}"><i class="bi bi-book"></i>My Classes</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'teachers:enter_grades' %}"><i class="bi bi-journal-plus"></i>Enter Grades</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'homework_list' %}"><i class="bi bi-journal-text"></i>Homework</a></li>
                 {% endif %}
                 {% if user.user_type == 'parent' %}
                 <li class="mobile-bubble-item"><a href="{% url 'parents:my_children' %}"><i class="bi bi-person-hearts"></i>My Children</a></li>
@@ -878,11 +879,12 @@
                 </a>
             </div>
             <div class="nav-item">
-                <a href="{% url 'teachers:homework_list' %}" class="nav-link {% if 'homework' in request.resolver_match.url_name %}active{% endif %}" title="Homework">
+                <a href="{% url 'homework_list' %}" class="nav-link {% if 'homework' in request.resolver_match.url_name %}active{% endif %}" title="Homework">
                     <i class="bi bi-journal-text"></i>
                     <span>Homework</span>
                 </a>
             </div>
+
             {% endif %}
             
             {% if user.user_type == 'parent' %}
@@ -891,6 +893,12 @@
                 <a href="{% url 'parents:my_children' %}" class="nav-link {% if request.resolver_match.url_name == 'my_children' %}active{% endif %}" title="My Children">
                     <i class="bi bi-person-hearts"></i>
                     <span>My Children</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{% url 'homework_list' %}" class="nav-link {% if 'homework' in request.resolver_match.url_name %}active{% endif %}" title="Homework">
+                    <i class="bi bi-journal-text"></i>
+                    <span>Homework</span>
                 </a>
             </div>
             {% endif %}

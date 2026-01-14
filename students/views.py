@@ -305,12 +305,13 @@ def student_dashboard_view(request):
     grades = Grade.objects.filter(student=student).select_related('subject').order_by('-created_at')
     
     # Get homework and resources
-    from parents.models import Homework
+    from homework.models import Homework
     from academics.models import Resource
     
     homework_list = Homework.objects.filter(
-        class_name=student.current_class
-    ).order_by('-assigned_date')[:5]
+        target_class=student.current_class
+    ).order_by('-created_at')[:5]
+
     
     resource_fields_available = False
     try:

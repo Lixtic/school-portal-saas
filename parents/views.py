@@ -1,9 +1,11 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from parents.models import Parent, Homework
+from parents.models import Parent
+from homework.models import Homework
 from .forms import ParentForm
 from accounts.models import User
+
 
 from students.models import Student, Attendance, Grade
 from finance.models import StudentFee
@@ -114,8 +116,9 @@ def child_details(request, student_id):
     
     # Get homework for the student's class
     homework = Homework.objects.filter(
-        class_name=student.current_class
-    ).order_by('-assigned_date')[:10]
+        target_class=student.current_class
+    ).order_by('-created_at')[:10]
+
     
     context = {
         'student': student,
