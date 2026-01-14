@@ -1,37 +1,194 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
 
-{% block title %}Register Your School{% endblock %}
+{% block title %}Start Your School's Journey{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-5">
-            <div class="card shadow-lg border-0 rounded-4">
-                <div class="card-body p-5">
-                    <div class="text-center mb-4">
-                        <div class="mb-3">
-                            <i class="bi bi-building-add text-primary display-4"></i>
-                        </div>
-                        <h2 class="fw-bold">Register School</h2>
-                        <p class="text-muted">Get your own dedicated portal in seconds.</p>
-                    </div>
+<style>
+    .signup-split-screen {
+        min-height: calc(100vh - 76px); /* Adjust for navbar */
+    }
+    .left-panel {
+        background: linear-gradient(135deg, #0f3b57, #026e56);
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+    .left-panel::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: url('https://source.unsplash.com/random/1920x1080/?school,architecture') center/cover;
+        opacity: 0.1;
+        z-index: 0;
+    }
+    .left-content {
+        position: relative;
+        z-index: 1;
+    }
+    .feature-list li {
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: start;
+        font-size: 1.1rem;
+    }
+    .feature-list i {
+        background: rgba(255,255,255,0.2);
+        width: 32px; height: 32px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        margin-right: 1rem;
+        flex-shrink: 0;
+    }
+    [data-bs-theme="dark"] .right-panel {
+        background-color: var(--surface-white);
+    }
+</style>
 
-                    <form method="post">
+<div class="row g-0 signup-split-screen">
+    <!-- Left Panel (Value Prop) -->
+    <div class="col-lg-5 left-panel d-none d-lg-flex flex-column justify-content-center p-5">
+        <div class="left-content">
+            <h1 class="display-4 fw-bold mb-4">Digitize Your School Today.</h1>
+            <p class="lead mb-5 opacity-75">Join dozens of forward-thinking schools managing their academics, finance, and people in one unified platform.</p>
+            
+            <ul class="list-unstyled feature-list">
+                <li>
+                    <i class="bi bi-check-lg"></i>
+                    <div>
+                        <strong>Instant Setup</strong>
+                        <div class="small opacity-75">Get started in less than 2 minutes. No credit card required.</div>
+                    </div>
+                </li>
+                <li>
+                    <i class="bi bi-mortarboard"></i>
+                    <div>
+                        <strong>Complete Academics</strong>
+                        <div class="small opacity-75">Report cards, transcripts, and automated grading out of the box.</div>
+                    </div>
+                </li>
+                <li>
+                    <i class="bi bi-shield-check"></i>
+                    <div>
+                        <strong>Secure & Isolated</strong>
+                        <div class="small opacity-75">Your data lives in its own dedicated database schema.</div>
+                    </div>
+                </li>
+            </ul>
+
+            <div class="mt-5 pt-4 border-top border-white border-opacity-10">
+                <blockquote class="blockquote mb-0 fs-6">
+                    "This platform transformed how we handle report cards. It used to take weeks, now it takes hours."
+                    <footer class="blockquote-footer text-white mt-2 opacity-75">Principal at Greenfield Academy</footer>
+                </blockquote>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Panel (Form) -->
+    <div class="col-lg-7 right-panel bg-light d-flex flex-column justify-content-center p-4 p-md-5">
+        <div class="mx-auto w-100" style="max-width: 500px;">
+            <div class="mb-4">
+                <a href="/" class="d-inline-flex align-items-center text-decoration-none text-muted mb-4 small">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Home
+                </a>
+                <h2 class="fw-bold">Create your school portal</h2>
+                <p class="text-muted">Enter your details to generate your unique domain.</p>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4 p-md-5">
+                    <form method="post" id="signupForm" novalidate>
                         {% csrf_token %}
-                        {{ form|crispy }}
                         
-                        <div class="d-grid mt-4">
-                            <button type="submit" class="btn btn-primary btn-lg fw-bold">Create Portal</button>
+                        <!-- Custom rendering for better control -->
+                        <div class="mb-3">
+                            {{ form.school_name|as_crispy_field }}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_schema_name" class="form-label requiredField">
+                                School URL
+                            </label>
+                            <div class="input-group">
+                                <input type="text" name="schema_name" id="id_schema_name" 
+                                       class="form-control {% if form.schema_name.errors %}is-invalid{% endif %}"
+                                       placeholder="schoolname"
+                                       value="{{ form.schema_name.value|default:'' }}"
+                                       required>
+                                <span class="input-group-text bg-white text-muted">.school-portal.com</span>
+                            </div>
+                            {% if form.schema_name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.schema_name.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">This will be your permanent web address. Lowercase letters and numbers only.</div>
+                        </div>
+
+                        <div class="mb-4">
+                            {{ form.email|as_crispy_field }}
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                                <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
+                                Get Started <i class="bi bi-arrow-right ms-2"></i>
+                            </button>
                         </div>
                     </form>
-                    
-                    <div class="text-center mt-4">
-                        <small class="text-muted">Already have a school? <a href="{% url 'login' %}">Sign In</a></small>
-                    </div>
                 </div>
+            </div>
+
+            <p class="text-center mt-4 text-muted small">
+                By signing up, you agree to our <a href="#" class="text-decoration-none">Terms of Service</a> and <a href="#" class="text-decoration-none">Privacy Policy</a>.
+            </p>
+            
+            <div class="text-center mt-3">
+                Already have an account? <a href="{% url 'login' %}" class="fw-bold">Login to existing school</a>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const nameInput = document.getElementById('id_school_name');
+        const schemaInput = document.getElementById('id_schema_name');
+        const form = document.getElementById('signupForm');
+        const submitBtn = document.getElementById('submitBtn');
+        let schemaManuallyChanged = false;
+
+        // Auto-generate schema name from school name
+        if (nameInput && schemaInput) {
+            nameInput.addEventListener('input', function() {
+                if (!schemaManuallyChanged) {
+                    const slug = this.value
+                        .toLowerCase()
+                        .replace(/[^\w\s-]/g, '') // remove non-word chars
+                        .replace(/[\s_-]+/g, '')   // remove spaces
+                        .replace(/^-+|-+$/g, '');
+                    
+                    schemaInput.value = slug;
+                }
+            });
+
+            schemaInput.addEventListener('input', function() {
+                if (this.value.trim() !== '') {
+                    schemaManuallyChanged = true;
+                }
+            });
+        }
+
+        // Form submission loading state
+        if (form) {
+            form.addEventListener('submit', function() {
+                if (form.checkValidity()) {
+                    submitBtn.classList.add('disabled');
+                    submitBtn.querySelector('.spinner-border').classList.remove('d-none');
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}
