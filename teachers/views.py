@@ -763,45 +763,13 @@ def add_teacher(request):
             teacher.save()
             form.save_m2m() # Save subjects
             messages.success(request, f"Teacher {user.get_full_name()} added successfully with Employee ID: {employee_id}")
-            return redirect('teachers:my_classes')
+            return redirect('teachers:teacher_list')
     else:
         form = TeacherCreateForm()
         
     return render(request, 'teachers/add_teacher.html', {'form': form})
 
 
-@login_required
-def edit_teacher(request, teacher_id):
-    if request.user.user_type != 'admin':
-        messages.error(request, 'Access denied')
-        return redirect('dashboard')
-        
-    teacher = get_object_or_404(Teacher, id=teacher_id)
-    
-    if request.method == 'POST':
-        form = TeacherCreateForm(request.POST, instance=teacher)
-        if form.is_valid():
-            # Update user fields
-            teacher.user.first_name = form.cleaned_data['first_name']
-            teacher.user.last_name = form.cleaned_data['last_name']
-            teacher.user.email = form.cleaned_data['email']
-            teacher.user.phone = form.cleaned_data.get('phone', '') # Update phone on user
-            teacher.user.save()
-            
-            form.save()
-            form.save_m2m() # Important for subjects
-            messages.success(request, f'Teacher {teacher.user.get_full_name()} updated successfully.')
-            return redirect('accounts:manage_users')
-    else:
-        # Populate form with user data
-        initial_data = {
-            'first_name': teacher.user.first_name,
-            'last_name': teacher.user.last_name,
-            'email': teacher.user.email,
-            'phone': teacher.user.phone,
-        }
-        form = TeacherCreateForm(instance=teacher, initial=initial_data)
-        
-    return render(request, 'teachers/edit_teacher.html', {'form': form, 'teacher': teacher})
+
 
 

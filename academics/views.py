@@ -22,7 +22,7 @@ def manage_classes(request):
     
     # Get all classes with counts
     classes = Class.objects.select_related('academic_year', 'class_teacher', 'class_teacher__user').annotate(
-        student_count=Count('student')
+        student_count=Count('student_set')
     ).order_by('-academic_year__start_date', 'name')
     
     context = {
