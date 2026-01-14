@@ -292,19 +292,106 @@ body {
         justify-content: center;
     }
 }
+
+/* Hide Base Header and Sidebar for Landing Page */
+.header, .sidebar, #mobileBubbleMenu, .header-action-btn { 
+    display: none !important; 
+}
+.main-content {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+.navbar-custom {
+    padding: 1rem 0;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+[data-bs-theme="dark"] .navbar-custom {
+    background: rgba(15, 23, 42, 0.9);
+    border-color: var(--border-color);
+}
 </style>
 
-<!-- Floating Toggle -->
-<button class="theme-toggle-fixed" id="themeToggle" title="Toggle Dark Mode">
+<!-- Public Navbar -->
+<nav class="navbar navbar-expand-lg navbar-custom fixed-top">
+    <div class="container">
+        <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="#">
+            <div class="d-flex align-items-center justify-content-center text-white rounded-2" 
+                 style="width: 32px; height: 32px; background: linear-gradient(135deg, var(--brand-teal), #0d9488);">
+                <i class="bi bi-building-fill" style="font-size: 0.9rem;"></i>
+            </div>
+            <span style="font-family: 'Manrope', sans-serif; letter-spacing: -0.5px;">SchoolPortal</span>
+        </a>
+        
+        <div class="d-flex gap-2 align-items-center order-lg-3">
+             <button class="btn btn-link text-muted p-2 d-lg-none" id="themeToggleMobile">
+                <i class="bi bi-moon-stars"></i>
+            </button>
+            <button class="navbar-toggler border-0 p-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        </div>
+
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto align-items-center gap-lg-4">
+                <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
+                <li class="nav-item"><a class="nav-link" href="#">Pricing</a></li>
+                <li class="nav-item"><a class="nav-link" href="#">Contact</a></li>
+                <li class="nav-item border-start ps-lg-4 ms-lg-2 d-none d-lg-block"></li>
+                <li class="nav-item"><a class="nav-link fw-semibold text-dark" href="{% url 'login' %}">Log in</a></li>
+                <li class="nav-item">
+                    <a href="{% url 'signup' %}" class="btn btn-brand-primary btn-sm px-4 rounded-pill">Get Started</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- Floating Toggle (Desktop Only) -->
+<button class="theme-toggle-fixed d-none d-lg-flex" id="themeToggle" title="Toggle Dark Mode">
     <i class="bi bi-moon-stars"></i>
 </button>
 
 <script>
+        // DOM Elements
         const toggleBtn = document.getElementById('themeToggle');
-        const icon = toggleBtn.querySelector('i');
+        const mobileToggleBtn = document.getElementById('themeToggleMobile');
+        const icon = toggleBtn ? toggleBtn.querySelector('i') : null;
+        const mobileIcon = mobileToggleBtn ? mobileToggleBtn.querySelector('i') : null;
         const html = document.documentElement;
         
-        // Scroll Animation Observer
+        // Function to toggle theme
+        const toggleTheme = () => {
+             const current = html.getAttribute('data-bs-theme');
+             const next = current === 'dark' ? 'light' : 'dark';
+             html.setAttribute('data-bs-theme', next);
+             localStorage.setItem('theme', next);
+             updateIcons(next);
+        }
+
+        // Add listeners
+        if(toggleBtn) toggleBtn.addEventListener('click', toggleTheme);
+        if(mobileToggleBtn) mobileToggleBtn.addEventListener('click', toggleTheme);
+
+        function updateIcons(theme) {
+            const isDark = theme === 'dark';
+            const clsAdd = isDark ? 'bi-sun' : 'bi-moon-stars';
+            const clsRem = isDark ? 'bi-moon-stars' : 'bi-sun';
+            
+            if(icon) { icon.classList.remove(clsRem); icon.classList.add(clsAdd); }
+            if(mobileIcon) { mobileIcon.classList.remove(clsRem); mobileIcon.classList.add(clsAdd); }
+        }
+
+        // Init
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        html.setAttribute('data-bs-theme', savedTheme);
+        updateIcons(savedTheme);
+
+        // Scroll Animation Observer (Existing)
         const observerOptions = {
             root: null,
             rootMargin: '0px',
@@ -315,7 +402,7 @@ body {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     entry.target.classList.add('visible');
-                    observer.unobserve(entry.target); // Only animate once
+                    observer.unobserve(entry.target); 
                 }
             });
         }, observerOptions);
@@ -323,33 +410,11 @@ body {
         document.querySelectorAll('.reveal').forEach(el => {
             observer.observe(el);
         });
-        
-        // Check local storage
-        const currentTheme = localStorage.getItem('theme') || 'light';
-        html.setAttribute('data-bs-theme', currentTheme);
-        updateIcon(currentTheme);
-
-        toggleBtn.addEventListener('click', () => {
-            const theme = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
-            html.setAttribute('data-bs-theme', theme);
-            localStorage.setItem('theme', theme);
-            updateIcon(theme);
-        });
-
-        function updateIcon(theme) {
-            if (theme === 'dark') {
-                icon.classList.remove('bi-moon-stars');
-                icon.classList.add('bi-sun');
-            } else {
-                icon.classList.remove('bi-sun');
-                icon.classList.add('bi-moon-stars');
-            }
-        }
     </script>
 </style>
 
 <!-- Hero -->
-<div class="hero-wrapper">
+<div class="hero-wrapper" style="margin-top: 60px;">
     <div class="container">
         <div class="row align-items-center g-5">
             <div class="col-lg-6 hero-content reveal">
