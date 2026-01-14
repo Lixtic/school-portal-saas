@@ -91,7 +91,7 @@ class StudentForm(forms.ModelForm):
         fields = ['admission_number', 'date_of_birth', 'gender', 'date_of_admission', 
                   'current_class', 'roll_number', 'blood_group', 'emergency_contact']
         widgets = {
-            'admission_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'admission_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Auto-generated if blank'}),
             'date_of_birth': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'gender': forms.Select(attrs={'class': 'form-select'}),
             'date_of_admission': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
@@ -100,4 +100,12 @@ class StudentForm(forms.ModelForm):
             'blood_group': forms.TextInput(attrs={'class': 'form-control'}),
             'emergency_contact': forms.TextInput(attrs={'class': 'form-control'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['admission_number'].required = False
+        self.fields['date_of_admission'].initial = date.today()
+        self.fields['roll_number'].required = False
+        self.fields['blood_group'].required = False
+        self.fields['emergency_contact'].required = False
 

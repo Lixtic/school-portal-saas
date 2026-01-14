@@ -607,7 +607,18 @@ def add_teacher(request):
     if request.method == 'POST':
         form = TeacherCreateForm(request.POST)
         if form.is_valid():
-            username = form.cleaned_data['employee_id']
+            employee_id = form.cleaned_data['employee_id']
+            if not employee_id:
+                # Auto-generate Employee ID (TCHR + 4 Digits)
+                import random
+                import string
+                while True:
+                    suffix = ''.join(random.choices(string.digits, k=4))
+                    employee_id = f"TCHR{suffix}"
+                    if not Teacher.objects.filter(employee_id=employee_id).exists() and not User.objects.filter(username=employee_id).exists():
+                        break
+
+            username = employee_id
             if User.objects.filter(username=username).exists():
                 messages.error(request, f"User {username} already exists")
                 return render(request, 'teachers/add_teacher.html', {'form': form})
@@ -624,9 +635,10 @@ def add_teacher(request):
             
             teacher = form.save(commit=False)
             teacher.user = user
+            teacher.employee_id = employee_id # Ensure it's set
             teacher.save()
             form.save_m2m() # Save subjects
-            messages.success(request, f"Teacher {user.get_full_name()} added successfully.")
+            messages.success(request, f"Teacher {user.get_full_name()} added successfully with Employee ID: {employee_id}")
             return redirect('teachers:my_classes')
     else:
         form = TeacherCreateForm()

@@ -133,11 +133,17 @@ class TeacherCreateForm(forms.ModelForm):
         model = Teacher
         fields = ['employee_id', 'date_of_birth', 'date_of_joining', 'qualification', 'subjects']
         widgets = {
-            'employee_id': forms.TextInput(attrs={'class': 'form-control'}),
+            'employee_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Auto-generated if blank'}),
             'date_of_birth': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'date_of_joining': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'qualification': forms.TextInput(attrs={'class': 'form-control'}),
             'subjects': forms.SelectMultiple(attrs={'class': 'form-select', 'size': '5'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['employee_id'].required = False
+        self.fields['date_of_joining'].initial = date.today()
+        self.fields['qualification'].required = False
 
 

@@ -583,7 +583,18 @@ def add_student(request):
     if request.method == 'POST':
         form = StudentForm(request.POST)
         if form.is_valid():
-            username = form.cleaned_data['admission_number']
+            admission_number = form.cleaned_data['admission_number']
+            if not admission_number:
+                # Auto-generate Admission Number (ADM + 4 Digits)
+                import random
+                import string
+                while True:
+                    suffix = ''.join(random.choices(string.digits, k=4))
+                    admission_number = f"ADM{suffix}"
+                    if not Student.objects.filter(admission_number=admission_number).exists() and not User.objects.filter(username=admission_number).exists():
+                        break
+            
+            username = admission_number
             if User.objects.filter(username=username).exists():
                 messages.error(request, f"User {username} already exists")
                 return render(request, 'students/add_student.html', {'form': form})
@@ -599,8 +610,9 @@ def add_student(request):
             
             student = form.save(commit=False)
             student.user = user
+            student.admission_number = admission_number # Ensure it's set
             student.save()
-            messages.success(request, f"Student {user.get_full_name()} added successfully.")
+            messages.success(request, f"Student {user.get_full_name()} added successfully with Admission No: {admission_number}")
             return redirect('students:student_list')
     else:
         form = StudentForm()
