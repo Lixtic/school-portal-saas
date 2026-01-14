@@ -43,8 +43,7 @@ try:
         print(">>> WSGI: Initialization Complete.")
     else:
         # Check for pending migrations
-        # Logic: We should technically run this on every deployment, but it is heavy.
-        # For now, let's force a migration run if we suspect new changes exist.
+        # ALWAYS RUN MIGRATIONS ON VERCEL INIT to catch new fields like 'homepage_template'
         print(">>> WSGI: Checking for migrations...")
         try:
              # Run migrations for both shared and tenants to be safe
