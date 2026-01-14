@@ -4,7 +4,7 @@ from django.contrib.auth.forms import SetPasswordForm
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
-from academics.models import Class, AcademicYear, ClassSubject, Activity, Timetable, GalleryImage, Resource
+from academics.models import Class, AcademicYear, ClassSubject, Activity, Timetable, GalleryImage, Resource, SchoolInfo
 from teachers.models import Teacher, DutyAssignment
 from students.models import Student, Attendance
 from announcements.models import Announcement
@@ -149,6 +149,18 @@ def dashboard(request):
         return render(request, 'tenants/dashboard_public.html', context)
 
     # === TENANT (SCHOOL) DASHBOARD ===
+    
+    # Check Onboarding Status for Admin
+    if user.user_type == 'admin':
+        try:
+            school_info = SchoolInfo.objects.first()
+            # If no info, or address is placeholder, send to wizard
+            if not school_info or school_info.address == "To be configured":
+                return redirect('tenants:setup_wizard')
+        except Exception:
+            # Fallback if table missing or other error, let them pass or handle gracefully
+            pass
+
     # Base query without slicing
     base_notices = Announcement.objects.filter(is_active=True).order_by('-created_at')
     
