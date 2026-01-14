@@ -2,35 +2,112 @@
 {% load static %}
 
 {% block content %}
+<style>
+    .hero-section {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        padding: 120px 0 160px;
+        clip-path: polygon(0 0, 100% 0, 100% 85%, 0 100%);
+        position: relative;
+        overflow: hidden;
+    }
+    .hero-pattern {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        opacity: 0.1;
+        background-image: radial-gradient(#ffffff 2px, transparent 2px);
+        background-size: 30px 30px;
+    }
+    .hover-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .hover-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 1rem 3rem rgba(0,0,0,.15)!important;
+    }
+    .hero-logo {
+        background: rgba(255,255,255,0.95);
+        backdrop-filter: blur(10px);
+        padding: 15px;
+        border-radius: 50%;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .activity-date-box {
+        background: var(--surface-light);
+        border-radius: 12px;
+        min-width: 80px;
+        text-align: center;
+        padding: 10px;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+</style>
+
 <div class="container-fluid p-0">
     <!-- Hero Section -->
-    <div class="position-relative text-center text-white mb-5" style="background-color: var(--primary-color); padding: 100px 0;">
-        <div class="container">
+    <div class="hero-section text-center text-white mb-5">
+        <div class="hero-pattern"></div>
+        <div class="container position-relative">
             {% if school_info.logo %}
-            <img src="{{ school_info.logo.url }}" alt="{{ school_info.name }}" class="mb-4" style="height: 120px; border-radius: 50%; background: white; padding: 10px;">
+            <img src="{{ school_info.logo.url }}" alt="{{ school_info.name }}" class="hero-logo mb-4" style="height: 140px; width: 140px; object-fit: contain;">
             {% endif %}
-            <h1 class="display-3 fw-bold">{{ school_info.name }}</h1>
-            <p class="lead mb-4">{{ school_info.motto }}</p>
-            {% if not user.is_authenticated %}
-            <a href="{% url 'login' %}" class="btn btn-light btn-lg px-5 text-primary fw-bold rounded-pill">Login to Tenant Portal</a>
-            {% else %}
-            <a href="{% url 'dashboard' %}" class="btn btn-light btn-lg px-5 text-primary fw-bold rounded-pill">Go to Dashboard</a>
-            {% endif %}
+            <h1 class="display-3 fw-bold mb-3" style="text-shadow: 0 2px 4px rgba(0,0,0,0.2);">{{ school_info.name }}</h1>
+            <p class="lead mb-5 opacity-75 fs-3">{{ school_info.motto }}</p>
+            
+            <div class="d-flex justify-content-center gap-3">
+                {% if not user.is_authenticated %}
+                <a href="{% url 'login' %}" class="btn btn-light btn-lg px-5 py-3 text-primary fw-bold shadow-lg rounded-pill hover-scale">
+                    <i class="fas fa-sign-in-alt me-2"></i> Tenant Portal
+                </a>
+                {% else %}
+                <a href="{% url 'dashboard' %}" class="btn btn-light btn-lg px-5 py-3 text-primary fw-bold shadow-lg rounded-pill hover-scale">
+                    <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                </a>
+                {% endif %}
+            </div>
         </div>
     </div>
 
     <!-- Highlights Grid -->
-    <div class="container mb-5">
-        <h2 class="text-center mb-5">School Highlights</h2>
-        <div class="row g-4">
+    <div class="container mb-5" style="margin-top: -80px; position: relative; z-index: 10;">
+        <div class="row g-4 justify-content-center">
             {% for highlight in highlights %}
             <div class="col-md-4">
-                <div class="card h-100 border-0 shadow-sm text-center p-4">
+                <div class="card h-100 border-0 shadow hover-card text-center p-4 rounded-4 bg-white">
                     <div class="text-primary mb-3 display-4">
                         <i class="{{ highlight.icon }}"></i>
                     </div>
-                    <h4>{{ highlight.title }}</h4>
+                    <h4 class="fw-bold">{{ highlight.title }}</h4>
                     <p class="text-muted">{{ highlight.desc }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Events Section -->
+    <div class="container my-5 py-5">
+        <div class="text-center mb-5">
+            <h6 class="text-uppercase text-primary fw-bold tracking-wider">What's Happening</h6>
+            <h2 class="display-6 fw-bold">Upcoming Events & Activities</h2>
+        </div>
+        
+        <div class="row g-4">
+            {% for activity in activities|slice:":3" %}
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden hover-card">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="activity-date-box me-3">
+                                <small class="d-block text-uppercase fw-bold text-muted" style="font-size: 0.7rem;">{{ activity.date|date:"M" }}</small>
+                                <span class="d-block fs-3 fw-bold text-dark">{{ activity.date|date:"d" }}</span>
+                            </div>
+                            <span class="badge bg-light text-primary border rounded-pill px-3">{{ activity.tag }}</span>
+                        </div>
+                        <h4 class="card-title fw-bold h5 mb-2">{{ activity.title }}</h4>
+                        <p class="card-text text-muted small">{{ activity.summary }}</p>
+                    </div>
+                    <div class="card-footer bg-transparent border-0 p-4 pt-0">
+                         <a href="#" class="btn btn-link text-decoration-none p-0 fw-bold">Read More <i class="fas fa-arrow-right ms-1"></i></a>
+                    </div>
                 </div>
             </div>
             {% endfor %}

@@ -2,59 +2,164 @@
 {% load static %}
 
 {% block content %}
-<div class="row">
-    <!-- Sidebar / Info Column -->
-    <div class="col-lg-3 mb-4">
-        <div class="card shadow-sm border-0 mb-3" style="border-top: 4px solid var(--primary-color) !important;">
-            <div class="card-body text-center">
+<style>
+    .classic-sidebar {
+        background: white;
+        border-right: 1px solid #e9ecef;
+        height: 100%;
+    }
+    .school-brand-card {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        position: relative;
+        overflow: hidden;
+    }
+    .school-brand-card::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 100px;
+        height: 100%;
+        background: rgba(255,255,255,0.1);
+        transform: skewX(-15deg) translateX(50px);
+    }
+    .timeline-item {
+        padding-left: 2rem;
+        border-left: 2px solid #e9ecef;
+        position: relative;
+        padding-bottom: 2rem;
+    }
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -9px;
+        top: 0;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: white;
+        border: 4px solid var(--primary-color);
+    }
+    .timeline-date {
+        font-size: 0.85rem;
+        color: #6c757d;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    .nav-classic .nav-link {
+        color: #495057;
+        font-weight: 500;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+    .nav-classic .nav-link:hover {
+        background: #f8f9fa;
+        color: var(--primary-color);
+        transform: translateX(5px);
+    }
+    .nav-classic .nav-link.active {
+        background: rgba(var(--primary-rgb), 0.1);
+        color: var(--primary-color);
+    }
+</style>
+
+<div class="row g-0 bg-white shadow-sm rounded-4 overflow-hidden" style="min-height: 80vh;">
+    <!-- Left Sidebar -->
+    <div class="col-lg-3 bg-light border-end">
+        <div class="p-4 h-100 d-flex flex-column">
+            <!-- School Brand -->
+            <div class="school-brand-card p-4 mb-4 text-center shadow-sm">
                 {% if school_info.logo %}
-                <img src="{{ school_info.logo.url }}" class="img-fluid mb-3" style="max-height: 100px;">
+                <div class="bg-white p-2 rounded-circle d-inline-block mb-3 shadow-sm">
+                    <img src="{{ school_info.logo.url }}" alt="{{ school_info.name }}" style="height: 64px; width: 64px; object-fit: contain;">
+                </div>
                 {% endif %}
-                <h5>{{ school_info.name }}</h5>
-                <p class="small text-muted mb-3">{{ school_info.motto }}</p>
-                <hr>
-                <div class="text-start small">
-                    <p><i class="fas fa-map-marker-alt text-primary me-2"></i> {{ school_info.address }}</p>
-                    <p><i class="fas fa-phone text-primary me-2"></i> {{ school_info.phone }}</p>
-                    <p><i class="fas fa-envelope text-primary me-2"></i> {{ school_info.email }}</p>
+                <h5 class="fw-bold mb-1">{{ school_info.name }}</h5>
+                <p class="small opacity-75 mb-0">{{ school_info.motto }}</p>
+            </div>
+
+            <!-- Quick Navigation -->
+            <div class="mb-4">
+                <h6 class="text-uppercase text-muted small fw-bold mb-3 px-2">Menu</h6>
+                <nav class="nav flex-column nav-classic gap-1">
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'dashboard' %}" class="nav-link">
+                        <i class="fas fa-th-large me-2"></i> Dashboard
+                    </a>
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-calendar-alt me-2"></i> Timetable
+                    </a>
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-book me-2"></i> Library
+                    </a>
+                    {% else %}
+                    <a href="{% url 'login' %}" class="nav-link active">
+                        <i class="fas fa-sign-in-alt me-2"></i> Login Area
+                    </a>
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-info-circle me-2"></i> About Us
+                    </a>
+                    {% endif %}
+                </nav>
+            </div>
+
+            <!-- Contact Info Bottom -->
+            <div class="mt-auto px-2">
+                <div class="p-3 bg-white rounded border">
+                    <p class="small mb-2"><i class="fas fa-phone text-primary me-2"></i> {{ school_info.phone }}</p>
+                    <p class="small mb-0"><i class="fas fa-envelope text-primary me-2"></i> {{ school_info.email }}</p>
                 </div>
             </div>
         </div>
-
-        {% if not user.is_authenticated %}
-        <div class="d-grid">
-            <a href="{% url 'login' %}" class="btn btn-primary">
-                <i class="fas fa-sign-in-alt me-2"></i> Portal Login
-            </a>
-        </div>
-        {% endif %}
     </div>
 
-    <!-- Main Content Column -->
-    <div class="col-lg-9">
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-white border-bottom-0 pt-4 px-4">
-                <h4 class="mb-0">Upcoming Events</h4>
+    <!-- Main Content -->
+    <div class="col-lg-9 p-5">
+        <div class="d-flex justify-content-between align-items-center mb-5">
+            <h2 class="fw-bold text-dark">Latest Updates</h2>
+            <div class="d-flex gap-2">
+                <span class="badge bg-primary rounded-pill px-3 py-2">News</span>
+                <span class="badge bg-light text-dark border rounded-pill px-3 py-2">Events</span>
             </div>
-            <div class="card-body px-4">
-                <div class="list-group list-group-flush">
-                    {% for activity in activities %}
-                    <div class="list-group-item px-0 py-3">
-                        <div class="d-flex w-100 justify-content-between align-items-center">
-                            <div>
-                                <h5 class="mb-1">{{ activity.title }}</h5>
-                                <p class="mb-1 text-muted">{{ activity.summary }}</p>
-                                <small class="badge bg-light text-dark border">{{ activity.tag }}</small>
-                            </div>
-                            <div class="text-center rounded p-2 bg-light border ms-3" style="min-width: 70px;">
-                                <small class="d-block text-uppercase fw-bold text-muted">{{ activity.date|date:"M" }}</small>
-                                <h4 class="m-0 fw-bold">{{ activity.date|date:"d" }}</h4>
-                            </div>
-                        </div>
+        </div>
+
+        <div class="timeline-container ps-2">
+            <!-- Timeline Item Example 1 -->
+            <div class="timeline-item">
+                <div class="timeline-date">TODAY</div>
+                <div class="card border-0 shadow-sm bg-light hover-shadow transition-all">
+                    <div class="card-body">
+                        <h5 class="card-title fw-bold text-primary">Admission Application Opened</h5>
+                        <p class="card-text text-muted">We are now accepting applications for the 2024/2025 academic session. Visit the admission portal to apply.</p>
+                        <a href="#" class="btn btn-sm btn-outline-primary rounded-pill px-4">Apply Now</a>
                     </div>
-                    {% endfor %}
                 </div>
             </div>
+
+            <!-- Timeline Item Dynamic -->
+             {% for activity in activities %}
+            <div class="timeline-item">
+                <div class="timeline-date">{{ activity.date|date:"F d, Y"|upper }}</div>
+                <div class="card border-0 shadow-sm hover-shadow transition-all">
+                    <div class="card-body">
+                        <h5 class="card-title fw-bold text-dark">{{ activity.title }}</h5>
+                         <span class="badge bg-secondary mb-2">{{ activity.tag }}</span>
+                        <p class="card-text text-muted">{{ activity.summary }}</p>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+             <div class="timeline-item border-0">
+                <div class="timeline-date">INFO</div>
+                <div class="p-4 bg-light rounded text-center border border-dashed">
+                    <p class="text-muted mb-0">No upcoming events scheduled at the moment.</p>
+                </div>
+            </div>
+            {% endfor %}
         </div>
     </div>
 </div>
