@@ -24,6 +24,7 @@ def dashboard(request):
 @login_required
 def send_sms(request):
     if request.user.user_type != 'admin':
+        messages.error(request, "Access Denied")
         return redirect('dashboard')
         
     if request.method == 'POST':
@@ -31,39 +32,67 @@ def send_sms(request):
         if form.is_valid():
             recipient_type = form.cleaned_data['recipient_type']
             target_class = form.cleaned_data['target_class']
-            body = form.cleaned_data['message_body']
+            message_body = form.cleaned_data['message_body']
             
-            # Logic to gather numbers
-            recipients = []
+            recipients = set() # Use set to dedup numbers
             
-            if recipient_type == 'individual':
-                number = form.cleaned_data['recipient_number']
-                if number:
-                    recipients.append(number)
-            
-            elif recipient_type == 'class' and target_class:
-                # Get parents of students in this class
-                students = Student.objects.filter(current_class=target_class).select_related('parent_user')
-                for student in students:
-                    # Assuming we check parent phone or student phone
-                    # For now using a dummy field or User attribute if it existed
-                    # We'll just mock it since User model modification is heavy
-                    pass 
-                    
-            # For MVP, we just create one record to show it working
-            # In real implementation, we would loop through recipients
-            
-            sms = form.save(commit=False)
-            sms.sent_by = request.user
-            sms.status = 'sent' # Mock success
-            sms.provider_response = 'Mock: Message sent successfully'
-            sms.save()
-            
-            messages.success(request, f"SMS sent successfully!")
-            return redirect('communication:dashboard')
+            try:
+                if recipient_type == 'individual':
+                    number = form.cleaned_data['recipient_number']
+                    if number:
+                        recipients.add(number)
+                
+                elif recipient_type == 'class':
+                    if target_class:
+                        # Get students in class
+                        students = Student.objects.filter(current_class=target_class).prefetch_related('parents__user')
+                        for student in students:
+                            for parent in student.parents.all():
+                                if parent.user.phone:
+                                    recipients.add(parent.user.phone)
+                    else:
+                        messages.error(request, "Please select a class")
+                        return render(request, 'communication/send_sms.html', {'form': form})
+
+                elif recipient_type == 'teachers':
+                    teachers = Teacher.objects.select_related('user').all()
+                    for teacher in teachers:
+                        if teacher.user.phone:
+                            recipients.add(teacher.user.phone)
+                            
+                elif recipient_type == 'staff':
+                    # Assuming staff are Admin + Teachers for now
+                    users = User.objects.filter(user_type__in=['admin', 'teacher'])
+                    for user in users:
+                        if user.phone:
+                            recipients.add(user.phone)
+
+                if not recipients:
+                    messages.warning(request, "No valid phone numbers found for the selected group.")
+                    return redirect('communication:send_sms')
+
+                # Mock Sending Process
+                success_count = 0
+                for phone in recipients:
+                    # Create Record
+                    SMSMessage.objects.create(
+                        recipient_number=phone,
+                        message_body=message_body,
+                        status='sent',
+                        provider_response='Mock Gateway: Delivered',
+                        sent_by=request.user
+                    )
+                    success_count += 1
+                
+                messages.success(request, f"SMS queued/sent to {success_count} recipients.")
+                return redirect('communication:dashboard')
+
+            except Exception as e:
+                messages.error(request, f"Error processing SMS: {str(e)}")
+                
     else:
         form = SMSForm()
-        
+
     return render(request, 'communication/send_sms.html', {'form': form})
 
 @login_required
