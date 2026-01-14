@@ -154,8 +154,8 @@ def dashboard(request):
     if user.user_type == 'admin':
         try:
             school_info = SchoolInfo.objects.first()
-            # If no info, or address is placeholder, send to wizard
-            if not school_info or school_info.address == "To be configured":
+            # If no info or setup not complete, send to wizard
+            if not school_info or not school_info.setup_complete:
                 return redirect('tenants:setup_wizard')
         except Exception:
             # Fallback if table missing or other error, let them pass or handle gracefully

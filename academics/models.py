@@ -18,6 +18,10 @@ class SchoolInfo(models.Model):
     address = models.TextField(default="School Address")
     phone = models.CharField(max_length=50, default="Phone Number")
     email = models.EmailField(default="info@school.edu")
+    
+    # Onboarding
+    setup_complete = models.BooleanField(default=False)
+    
     motto = models.CharField(max_length=200, default="Education for All")
     logo = models.ImageField(upload_to='school_logo/', null=True, blank=True)
     

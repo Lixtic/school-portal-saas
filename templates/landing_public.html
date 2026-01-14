@@ -1,91 +1,312 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}School Portal - Manage Your School{% endblock %}
+{% block title %}SchoolPortal - Modern School Management{% endblock %}
 
 {% block content %}
 <style>
 :root {
-    --primary-teal: #026e56;
-    --primary-dark: #0f3b57;
+    --brand-teal: #0f766e;
+    --brand-dark: #134e4a;
+    --brand-light: #ccfbf1;
+    --text-dark: #1e293b;
 }
 
-.hero-section {
-    background: linear-gradient(135deg, var(--primary-teal), var(--primary-dark));
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--text-dark);
+}
+
+/* Navbar overrides */
+.navbar {
+    padding: 1rem 0;
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Hero Section */
+.hero-wrapper {
+    background: radial-gradient(circle at top right, #f0fdfa, #fff);
+    overflow: hidden;
+    padding-top: 60px;
+    padding-bottom: 80px;
+}
+
+.hero-content h1 {
+    font-size: 3.5rem;
+    font-weight: 800;
+    line-height: 1.1;
+    background: linear-gradient(135deg, var(--brand-dark), var(--brand-teal));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.02em;
+    margin-bottom: 1.5rem;
+}
+
+.hero-content p {
+    font-size: 1.25rem;
+    color: #64748b;
+    margin-bottom: 2.5rem;
+    line-height: 1.6;
+}
+
+.btn-brand-primary {
+    background: var(--brand-teal);
     color: white;
-    padding: 120px 0 100px;
-    text-align: center;
+    padding: 12px 32px;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px -1px rgba(15, 118, 110, 0.2);
 }
 
-.feature-card {
-    border: none;
-    border-radius: 12px;
-    transition: transform 0.3s;
-    height: 100%;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+.btn-brand-primary:hover {
+    background: var(--brand-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(15, 118, 110, 0.3);
+    color: white;
 }
-.feature-card:hover {
+
+.hero-image-container {
+    position: relative;
+    border-radius: 20px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    background: white;
+    padding: 10px;
+    transform: perspective(1000px) rotateY(-5deg) rotateX(2deg);
+    transition: transform 0.5s ease;
+}
+
+.hero-image-container:hover {
+    transform: perspective(1000px) rotateY(0deg) rotateX(0deg);
+}
+
+.hero-image {
+    border-radius: 12px;
+    width: 100%;
+    height: auto;
+}
+
+/* Value Props */
+.feature-section {
+    padding: 100px 0;
+}
+
+.feature-box {
+    padding: 30px;
+    border-radius: 16px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.feature-box:hover {
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
+    border-color: var(--brand-light);
     transform: translateY(-5px);
 }
-.icon-box {
-    width: 60px; height: 60px;
-    background: rgba(2, 110, 86, 0.1);
-    color: var(--primary-teal);
+
+.feature-icon {
+    width: 50px;
+    height: 50px;
     border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
+    background: var(--brand-light);
+    color: var(--brand-teal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 1.5rem;
     margin-bottom: 20px;
 }
+
+/* Trust Section */
+.trust-section {
+    background: #f8fafc;
+    padding: 60px 0;
+    text-align: center;
+}
+
+.stat-item h3 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--brand-dark);
+}
+
 </style>
 
 <!-- Hero -->
-<section class="hero-section">
+<div class="hero-wrapper">
     <div class="container">
-        <h1 class="display-3 fw-bold mb-4">The Modern School OS</h1>
-        <p class="lead mb-5 opacity-75 mx-auto" style="max-width: 600px;">
-            A complete management system for schools of all sizes. 
-            Academics, Finance, Attendance, and Communicaton in one unified platform.
-        </p>
-        <div class="d-flex gap-3 justify-content-center">
-            <a href="{% url 'login' %}" class="btn btn-light btn-lg px-5 fw-bold text-primary">Sign In</a>
-            <a href="{% url 'signup' %}" class="btn btn-outline-light btn-lg px-5 fw-bold">Register School</a>
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6 hero-content">
+                <span class="badge bg-teal-soft text-teal mb-3 px-3 py-2 rounded-pill fw-semibold" style="background:#ccfbf1; color:#0f766e">New V2.0 Released</span>
+                <h1>Manage your school like a modern startup.</h1>
+                <p>
+                    Streamline admissions, academics, finance, and communication in one unified platform. 
+                    Built for Primary, JHS, and Senior High Schools in Ghana.
+                </p>
+                <div class="d-flex gap-3">
+                    <a href="{% url 'signup' %}" class="btn btn-brand-primary">Get Started Free <i class="bi bi-arrow-right ms-2"></i></a>
+                    <a href="#features" class="btn btn-outline-secondary rounded-pill px-4 py-3 fw-semibold">Learn more</a>
+                </div>
+                <div class="mt-4 pt-3 border-top d-flex gap-4 text-muted small feature-list">
+                    <span><i class="bi bi-check-circle-fill text-teal me-1" style="color:#0f766e"></i> Instant Setup</span>
+                    <span><i class="bi bi-check-circle-fill text-teal me-1" style="color:#0f766e"></i> Cancel Anytime</span>
+                    <span><i class="bi bi-check-circle-fill text-teal me-1" style="color:#0f766e"></i> 24/7 Support</span>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="hero-image-container">
+                     <!-- Accessing static image if available, else placeholder -->
+                    <img src="https://ui.shadcn.com/placeholder.svg" style="background: #e2e8f0; min-height: 400px;" alt="School Portal Dashboard" class="hero-image bg-light">
+                    <!-- Overlay Card -->
+                    <div class="position-absolute bottom-0 start-0 m-4 p-3 bg-white rounded-3 shadow-sm d-flex align-items-center gap-3" style="max-width: 260px;">
+                        <div class="rounded-circle bg-success bg-opacity-10 p-2 text-success">
+                            <i class="bi bi-graph-up-arrow fs-4"></i>
+                        </div>
+                        <div>
+                            <div class="small text-muted">Attendance Rate</div>
+                            <div class="fw-bold fs-5">98.5% <span class="text-success small ms-1">+2.4%</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-</section>
+</div>
+
+<!-- Trust Stats -->
+<div class="trust-section">
+    <div class="container">
+        <p class="text-muted text-uppercase fw-semibold letter-spacing-2 mb-4">Trusted by modern educators</p>
+        <div class="row g-4 justify-content-center">
+            <div class="col-md-3 stat-item">
+                <h3>50+</h3>
+                <p class="text-muted">Schools Onboarded</p>
+            </div>
+            <div class="col-md-3 stat-item">
+                <h3>10k+</h3>
+                <p class="text-muted">Students Managed</p>
+            </div>
+            <div class="col-md-3 stat-item">
+                <h3>99.9%</h3>
+                <p class="text-muted">Uptime Guarantee</p>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Features -->
-<section class="py-5 bg-light">
-    <div class="container py-5">
+<div class="feature-section" id="features">
+    <div class="container">
+        <div class="text-center mb-5" style="max-width: 700px; margin: 0 auto;">
+            <h2 class="fw-bold display-6 mb-3">Everything you need to run your school</h2>
+            <p class="text-muted lead">Replace messy spreadsheets and disconnected tools with one cohesive operating system.</p>
+        </div>
+
         <div class="row g-4">
+            <!-- Feature 1 -->
             <div class="col-md-4">
-                <div class="card feature-card p-4">
-                    <div class="icon-box"><i class="bi bi-mortarboard"></i></div>
-                    <h4>Academics</h4>
-                    <p class="text-muted">Comprehensive gradebooks, report cards, and transcript generation with term-based analysis.</p>
+                <div class="feature-box">
+                    <div class="feature-icon">
+                        <i class="bi bi-mortarboard"></i>
+                    </div>
+                    <h4 class="fw-bold mb-3">Academic Management</h4>
+                    <p class="text-muted">
+                        Automated grade calculations, report card generation, and transcript management. 
+                        Works for GES (Primary/JHS) and SHS curriculums.
+                    </p>
                 </div>
             </div>
+
+            <!-- Feature 2 -->
             <div class="col-md-4">
-                <div class="card feature-card p-4">
-                    <div class="icon-box"><i class="bi bi-wallet2"></i></div>
-                    <h4>Finance</h4>
-                    <p class="text-muted">Track fees, manage payments, and generate financial reports easily.</p>
+                <div class="feature-box">
+                    <div class="feature-icon">
+                        <i class="bi bi-wallet2"></i>
+                    </div>
+                    <h4 class="fw-bold mb-3">Smart Finance</h4>
+                    <p class="text-muted">
+                        Track school fees, generate bills, and manage expenses. 
+                        Parents can view balances and payment history instantly via the portal.
+                    </p>
                 </div>
             </div>
+
+            <!-- Feature 3 -->
             <div class="col-md-4">
-                <div class="card feature-card p-4">
-                    <div class="icon-box"><i class="bi bi-people"></i></div>
-                    <h4>Communication</h4>
-                    <p class="text-muted">Integrated SMS and portals for parents, students, and teachers.</p>
+                <div class="feature-box">
+                    <div class="feature-icon">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <h4 class="fw-bold mb-3">Staff & HR</h4>
+                    <p class="text-muted">
+                        Manage teacher profiles, duty rosters, and lesson plans. 
+                        Give your staff the tools they need to focus on teaching, not paperwork.
+                    </p>
+                </div>
+            </div>
+             <!-- Feature 4 -->
+             <div class="col-md-4">
+                <div class="feature-box">
+                    <div class="feature-icon">
+                        <i class="bi bi-chat-square-text"></i>
+                    </div>
+                    <h4 class="fw-bold mb-3">Communication</h4>
+                    <p class="text-muted">
+                        Send SMS and email announcements to parents and staff. 
+                        Keep everyone in the loop with a centralized notice board.
+                    </p>
+                </div>
+            </div>
+
+             <!-- Feature 5 -->
+             <div class="col-md-4">
+                <div class="feature-box">
+                    <div class="feature-icon">
+                        <i class="bi bi-clock-history"></i>
+                    </div>
+                    <h4 class="fw-bold mb-3">Timetable & Attendance</h4>
+                    <p class="text-muted">
+                        Drag-and-drop timetable builder. Track student and staff attendance daily 
+                        with detailed reporting and insights.
+                    </p>
+                </div>
+            </div>
+
+             <!-- Feature 6 -->
+             <div class="col-md-4">
+                <div class="feature-box">
+                    <div class="feature-icon">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <h4 class="fw-bold mb-3">Secure Access</h4>
+                    <p class="text-muted">
+                        Role-based access control for Admins, Teachers, Students, and Parents. 
+                        Your data is encrypted and backed up daily.
+                    </p>
                 </div>
             </div>
         </div>
     </div>
-</section>
+</div>
 
-<!-- Footer -->
-<footer class="bg-dark text-white py-4 mt-auto">
-    <div class="container text-center text-muted">
-        <p class="mb-0">&copy; 2026 School Portal. All rights reserved.</p>
+<!-- CTA -->
+<div class="container pb-5 mb-5">
+    <div class="bg-dark text-white rounded-4 p-5 text-center position-relative overflow-hidden" 
+         style="background: linear-gradient(135deg, #0f3b57, #026e56);">
+        <div class="position-relative z-1">
+            <h2 class="display-5 fw-bold mb-4">Ready to transform your school?</h2>
+            <p class="lead mb-4 opacity-75">Join the growing community of forward-thinking schools today.</p>
+            <a href="{% url 'signup' %}" class="btn btn-light btn-lg px-5 rounded-pill fw-bold text-teal">Start for Free</a>
+        </div>
+        
+        <!-- Decorative circles -->
+        <div class="position-absolute top-0 start-0 translate-middle rounded-circle bg-white opacity-10" style="width: 300px; height: 300px;"></div>
+        <div class="position-absolute bottom-0 end-0 translate-middle rounded-circle bg-white opacity-10" style="width: 400px; height: 400px;"></div>
     </div>
-</footer>
+</div>
+
 {% endblock %}

@@ -15,6 +15,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', account_views.homepage, name='home'),
     path('signup/', tenant_views.school_signup, name='signup'),
+    path('tenants/', include('tenants.urls', namespace='tenants')),
     path('login/', account_views.login_view, name='login'),
     # path('home/', account_views.homepage, name='home'), # Redirect old home
     path('logout/', account_views.logout_view, name='logout'),
