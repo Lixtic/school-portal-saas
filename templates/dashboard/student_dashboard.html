@@ -201,9 +201,17 @@
                                     <i class="bi bi-pencil-square"></i>
                                 </div>
                                 <div>
-                                    <h6 class="mb-1 fw-bold">{{ hw.subject.name }}</h6>
-                                    <p class="text-muted small mb-1">{{ hw.homework|truncatechars:60 }}</p>
-                                    <span class="badge bg-light text-secondary border">Week {{ hw.week_number }}</span>
+                                    <h6 class="mb-1 fw-bold">{{ hw.title }}</h6>
+                                    <p class="text-muted small mb-1">{{ hw.description|truncatechars:60 }}</p>
+                                    <div class="d-flex justify-content-between align-items-center mt-1 w-100 gap-2">
+                                        <span class="badge bg-light text-secondary border">{{ hw.subject.name }}</span>
+                                        <small class="text-danger fw-bold" style="font-size: 0.75em;">Due: {{ hw.due_date|date:"M d" }}</small>
+                                    </div>
+                                    {% if hw.attachment %}
+                                    <a href="{{ hw.attachment.url }}" class="d-block mt-1 small text-primary text-decoration-none">
+                                        <i class="bi bi-paperclip"></i> Attachment
+                                    </a>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>

@@ -6,6 +6,8 @@ from .forms import ParentForm
 from accounts.models import User
 
 from students.models import Student, Attendance, Grade
+from finance.models import StudentFee
+from django.db.models import Sum
 
 @login_required
 def parent_children(request):
@@ -34,9 +36,16 @@ def parent_children(request):
         
         # Get grade count
         grade_count = Grade.objects.filter(student=child).count()
+
+        # Calculate Fee Balance
+        fees = StudentFee.objects.filter(student=child)
+        total_payable = sum(fee.amount_payable for fee in fees)
+        total_paid = sum(fee.total_paid for fee in fees)
+        balance = total_payable - total_paid
         
         child.attendance_percentage = attendance_percentage
         child.grade_count = grade_count
+        child.fee_balance = balance
         children_data.append(child)
     
     return render(request, 'parents/my_children.html', {'children': children_data})
@@ -159,3 +168,45 @@ def add_parent(request):
         form = ParentForm()
         
     return render(request, 'parents/add_parent.html', {'form': form})
+
+@login_required
+def child_fees(request, student_id):
+    if request.user.user_type != 'parent':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+        
+    parent = get_object_or_404(Parent, user=request.user)
+    student = get_object_or_404(Student, id=student_id)
+    
+    # Verify this is the parent's child
+    if student not in parent.children.all():
+        messages.error(request, 'Access denied')
+        return redirect('parents:my_children')
+        
+    fees = StudentFee.objects.filter(student=student).select_related('fee_structure', 'fee_structure__head').order_by('-created_at')
+    
+    # Calculate totals
+    total_payable = sum(fee.amount_payable for fee in fees)
+    total_paid = sum(fee.total_paid for fee in fees)
+    total_balance = total_payable - total_paid
+    
+    fee_data = []
+    for fee in fees:
+        fee_data.append({
+            'head': fee.fee_structure.head.name,
+            'term': fee.fee_structure.get_term_display(),
+            'amount': fee.amount_payable,
+            'paid': fee.total_paid,
+            'balance': fee.balance,
+            'status': fee.get_status_display(),
+            'due_date': fee.fee_structure.due_date
+        })
+        
+    return render(request, 'parents/child_fees.html', {
+        'student': student,
+        'fees': fee_data,
+        'total_payable': total_payable,
+        'total_paid': total_paid,
+        'total_balance': total_balance
+    })
+

@@ -39,16 +39,24 @@
                     </div>
 
                     <div class="row text-center mb-3">
-                        <div class="col-6">
+                        <div class="col-4">
                             <div class="border rounded p-2">
                                 <h4 class="text-primary mb-0">{{ child.attendance_percentage }}%</h4>
                                 <small class="text-muted">Attendance</small>
                             </div>
                         </div>
-                        <div class="col-6">
+                        <div class="col-4">
                             <div class="border rounded p-2">
                                 <h4 class="text-success mb-0">{{ child.grade_count }}</h4>
                                 <small class="text-muted">Grades</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border rounded p-2">
+                                <h4 class="{% if child.fee_balance > 0 %}text-danger{% else %}text-success{% endif %} mb-0">
+                                    {{ child.fee_balance }}
+                                </h4>
+                                <small class="text-muted">Due</small>
                             </div>
                         </div>
                     </div>
@@ -56,6 +64,9 @@
                     <div class="d-grid gap-2">
                         <a href="{% url 'parents:child_details' child.id %}" class="btn btn-primary">
                             <i class="bi bi-eye"></i> View Details
+                        </a>
+                        <a href="{% url 'parents:child_fees' child.id %}" class="btn btn-outline-warning">
+                            <i class="bi bi-wallet2"></i> View Fees
                         </a>
                         <a href="{% url 'students:report_card' child.id %}" class="btn btn-outline-success" target="_blank">
                             <i class="bi bi-file-text"></i> Report Card
