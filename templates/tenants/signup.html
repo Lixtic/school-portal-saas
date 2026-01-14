@@ -9,7 +9,7 @@
         min-height: calc(100vh - 76px); /* Adjust for navbar */
     }
     .left-panel {
-        background: linear-gradient(135deg, #0f3b57, #026e56);
+        background: linear-gradient(135deg, var(--primary-brand), var(--primary-accent));
         color: white;
         position: relative;
         overflow: hidden;
@@ -18,59 +18,77 @@
         content: '';
         position: absolute;
         top: 0; left: 0; right: 0; bottom: 0;
-        background: url('https://source.unsplash.com/random/1920x1080/?school,architecture') center/cover;
-        opacity: 0.1;
+        background: url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=1500&auto=format&fit=crop') center/cover;
+        opacity: 0.15;
         z-index: 0;
+        mix-blend-mode: overlay;
     }
     .left-content {
         position: relative;
         z-index: 1;
     }
     .feature-list li {
-        margin-bottom: 1.5rem;
+        margin-bottom: 2rem;
         display: flex;
         align-items: start;
-        font-size: 1.1rem;
+        font-size: 1.05rem;
     }
     .feature-list i {
         background: rgba(255,255,255,0.2);
-        width: 32px; height: 32px;
-        border-radius: 50%;
+        width: 40px; height: 40px;
+        border-radius: 12px;
         display: flex; align-items: center; justify-content: center;
-        margin-right: 1rem;
+        margin-right: 1.25rem;
         flex-shrink: 0;
+        font-size: 1.2rem;
+        backdrop-filter: blur(5px);
     }
-    [data-bs-theme="dark"] .right-panel {
-        background-color: var(--surface-white);
+    
+    .right-panel {
+        background: var(--surface-bg);
+    }
+    
+    .register-card {
+        background: var(--surface-card);
+        border: 1px solid rgba(0,0,0,0.05);
+        border-radius: 24px;
+        box-shadow: var(--card-shadow);
+    }
+    
+    [data-bs-theme="dark"] .left-panel {
+        background: linear-gradient(135deg, #0f172a, #1e293b);
+    }
+    [data-bs-theme="dark"] .register-card {
+        border-color: rgba(255,255,255,0.05);
     }
 </style>
 
 <div class="row g-0 signup-split-screen">
     <!-- Left Panel (Value Prop) -->
     <div class="col-lg-5 left-panel d-none d-lg-flex flex-column justify-content-center p-5">
-        <div class="left-content">
+        <div class="left-content px-4">
             <h1 class="display-4 fw-bold mb-4">Digitize Your School Today.</h1>
-            <p class="lead mb-5 opacity-75">Join dozens of forward-thinking schools managing their academics, finance, and people in one unified platform.</p>
+            <p class="lead mb-5 opacity-90" style="font-weight: 400;">Join forward-thinking schools managing their academics, finance, and people in one unified platform.</p>
             
             <ul class="list-unstyled feature-list">
                 <li>
-                    <i class="bi bi-check-lg"></i>
+                    <i class="bi bi-rocket-takeoff-fill"></i>
                     <div>
-                        <strong>Instant Setup</strong>
+                        <strong class="d-block mb-1">Instant Setup</strong>
                         <div class="small opacity-75">Get started in less than 2 minutes. No credit card required.</div>
                     </div>
                 </li>
                 <li>
-                    <i class="bi bi-mortarboard"></i>
+                    <i class="bi bi-mortarboard-fill"></i>
                     <div>
-                        <strong>Complete Academics</strong>
+                        <strong class="d-block mb-1">Complete Academics</strong>
                         <div class="small opacity-75">Report cards, transcripts, and automated grading out of the box.</div>
                     </div>
                 </li>
                 <li>
-                    <i class="bi bi-shield-check"></i>
+                    <i class="bi bi-shield-lock-fill"></i>
                     <div>
-                        <strong>Secure & Isolated</strong>
+                        <strong class="d-block mb-1">Secure & Isolated</strong>
                         <div class="small opacity-75">Your data lives in its own dedicated database schema.</div>
                     </div>
                 </li>
@@ -78,25 +96,28 @@
 
             <div class="mt-5 pt-4 border-top border-white border-opacity-10">
                 <blockquote class="blockquote mb-0 fs-6">
-                    "This platform transformed how we handle report cards. It used to take weeks, now it takes hours."
-                    <footer class="blockquote-footer text-white mt-2 opacity-75">Principal at Greenfield Academy</footer>
+                    <p class="mb-3 fst-italic opacity-90">"This platform transformed how we handle report cards. It used to take weeks, now it takes hours."</p>
+                    <footer class="text-white opacity-75 d-flex align-items-center gap-2">
+                        <div class="rounded-circle bg-white opacity-25" style="width: 24px; height: 24px;"></div>
+                        <span>Principal at Greenfield Academy</span>
+                    </footer>
                 </blockquote>
             </div>
         </div>
     </div>
 
     <!-- Right Panel (Form) -->
-    <div class="col-lg-7 right-panel bg-light d-flex flex-column justify-content-center p-4 p-md-5">
-        <div class="mx-auto w-100" style="max-width: 500px;">
+    <div class="col-lg-7 right-panel d-flex flex-column justify-content-center p-4 p-md-5">
+        <div class="mx-auto w-100" style="max-width: 550px;">
             <div class="mb-4">
-                <a href="/" class="d-inline-flex align-items-center text-decoration-none text-muted mb-4 small">
-                    <i class="bi bi-arrow-left me-1"></i> Back to Home
+                <a href="/" class="d-inline-flex align-items-center text-decoration-none text-muted mb-4 fw-medium hover-primary transition">
+                    <i class="bi bi-arrow-left me-2"></i> Back to Home
                 </a>
-                <h2 class="fw-bold">Create your school portal</h2>
+                <h2 class="fw-bold mb-2 text-dark">Create your school portal</h2>
                 <p class="text-muted">Enter your details to generate your unique domain.</p>
             </div>
 
-            <div class="card shadow-sm border-0">
+            <div class="card register-card">
                 <div class="card-body p-4 p-md-5">
                     <form method="post" id="signupForm" novalidate>
                         {% csrf_token %}
@@ -106,24 +127,25 @@
                             {{ form.school_name|as_crispy_field }}
                         </div>
 
-                        <div class="mb-3">
-                            <label for="id_schema_name" class="form-label requiredField">
+                        <div class="mb-4">
+                            <label for="id_schema_name" class="form-label requiredField fw-bold small text-uppercase text-muted">
                                 School URL
                             </label>
                             <div class="input-group">
                                 <input type="text" name="schema_name" id="id_schema_name" 
-                                       class="form-control {% if form.schema_name.errors %}is-invalid{% endif %}"
+                                       class="form-control form-control-lg bg-light border-0 {% if form.schema_name.errors %}is-invalid{% endif %}"
                                        placeholder="schoolname"
                                        value="{{ form.schema_name.value|default:'' }}"
-                                       required>
-                                <span class="input-group-text bg-white text-muted">.school-portal.com</span>
+                                       required
+                                       style="font-weight: 600; color: var(--primary-brand);">
+                                <span class="input-group-text bg-light border-0 text-muted fw-medium">.school-portal.com</span>
                             </div>
                             {% if form.schema_name.errors %}
                                 <div class="invalid-feedback d-block">
                                     {{ form.schema_name.errors.0 }}
                                 </div>
                             {% endif %}
-                            <div class="form-text">This will be your permanent web address. Lowercase letters and numbers only.</div>
+                            <div class="form-text mt-2"><i class="bi bi-info-circle me-1"></i> This will be your permanent web address.</div>
                         </div>
 
                         <div class="mb-4">
@@ -147,8 +169,8 @@
                             {{ form.address|as_crispy_field }}
                         </div>
 
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                        <div class="d-grid mt-5">
+                            <button type="submit" class="btn btn-primary btn-lg py-3 rounded-pill fw-bold shadow-sm" id="submitBtn">
                                 <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
                                 Get Started <i class="bi bi-arrow-right ms-2"></i>
                             </button>
@@ -157,12 +179,12 @@
                 </div>
             </div>
 
-            <p class="text-center mt-4 text-muted small">
-                By signing up, you agree to our <a href="#" class="text-decoration-none">Terms of Service</a> and <a href="#" class="text-decoration-none">Privacy Policy</a>.
+            <p class="text-center mt-5 text-muted small">
+                By signing up, you agree to our <a href="#" class="text-decoration-none fw-semibold">Terms of Service</a> and <a href="#" class="text-decoration-none fw-semibold">Privacy Policy</a>.
             </p>
             
             <div class="text-center mt-3">
-                Already have an account? <a href="{% url 'login' %}" class="fw-bold">Login to existing school</a>
+                Already have an account? <a href="{% url 'login' %}" class="fw-bold text-primary text-decoration-none">Login to existing school</a>
             </div>
         </div>
     </div>
