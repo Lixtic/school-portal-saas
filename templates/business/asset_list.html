@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Asset Register{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6"><h2>Asset Register</h2></div>
+    <div class="col-md-6 text-end">
+        <button class="btn btn-primary">Add Asset</button>
+    </div>
+</div>
+
+<div class="row g-4">
+    {% for asset in assets %}
+    <div class="col-md-4 col-sm-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="badge bg-light text-dark border">{{ asset.category }}</span>
+                    <span class="badge 
+                        {% if asset.condition == 'good' or asset.condition == 'new' %}bg-success
+                        {% elif asset.condition == 'fair' %}bg-warning
+                        {% else %}bg-danger{% endif %}">
+                        {{ asset.get_condition_display }}
+                    </span>
+                </div>
+                <h5 class="card-title">{{ asset.name }}</h5>
+                <h6 class="text-muted small mb-3">#{{ asset.code }}</h6>
+                
+                <div class="d-flex justify-content-between small text-secondary">
+                    <span><i class="bi bi-geo-alt"></i> {{ asset.location }}</span>
+                    <span><i class="bi bi-tag"></i> {{ asset.currrent_value|default:"-" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 py-5 text-center text-muted">Inventory is empty</div>
+    {% endfor %}
+</div>
+{% endblock %}

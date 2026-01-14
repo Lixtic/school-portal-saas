@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Full Expense List{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2>Expense History</h2>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'business:add_expense' %}" class="btn btn-primary">Add New</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light">
+                <tr>
+                    <th class="ps-4">Date</th>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Vendor</th>
+                    <th>Amount</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for expense in expenses %}
+                <tr>
+                    <td class="ps-4">{{ expense.date }}</td>
+                    <td class="fw-medium">
+                        {{ expense.title }}
+                        {% if expense.description %}
+                        <div class="small text-muted text-truncate" style="max-width: 200px;">{{ expense.description }}</div>
+                        {% endif %}
+                    </td>
+                    <td><span class="badge bg-secondary bg-opacity-10 text-secondary">{{ expense.category.name }}</span></td>
+                    <td>{{ expense.vendor.name|default:"-" }}</td>
+                    <td class="fw-bold text-danger">{{ expense.amount|intcomma }}</td>
+                    <td>
+                        {% if expense.receipt_file %}
+                        <a href="{{ expense.receipt_file.url }}" target="_blank" class="btn btn-sm btn-link"><i class="bi bi-paperclip"></i></a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-5">No records found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

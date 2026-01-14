@@ -51,6 +51,7 @@ urlpatterns = [
     path('announcements/', include('announcements.urls')),
     path('communication/', include('communication.urls')),
     path('finance/', include('finance.urls')),
+    path('business/', include('business.urls')),
     path('tenants/', include('tenants.urls')),
     # path('debug/migrate/', account_views.debug_migrate, name='debug_migrate'),
     path('debug/status/', account_views.debug_status, name='debug_status'),
