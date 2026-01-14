@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ teacher.user.get_full_name }} - Teacher Profile{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Back Button and Actions -->
+    <div class="mb-4 d-flex justify-content-between align-items-center">
+        <a href="{% url 'teachers:teacher_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Back to Teachers List
+        </a>
+        {% if user.user_type == 'admin' %}
+        <a href="{% url 'teachers:edit_teacher' teacher.id %}" class="btn btn-primary">
+            <i class="bi bi-pencil-square me-2"></i>Edit Profile
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="row g-4">
+        <!-- Left Column: Profile Card -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 mb-4" style="background: var(--surface-card);">
+                <div class="card-body text-center p-4">
+                    <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 100px; height: 100px;">
+                        <i class="bi bi-person-fill text-primary" style="font-size: 3rem;"></i>
+                    </div>
+                    <h4 class="fw-bold mb-1" style="color: var(--text-primary);">{{ teacher.user.get_full_name }}</h4>
+                    <p class="mb-3" style="color: var(--text-secondary);">{{ teacher.qualification }}</p>
+                    <span class="badge bg-primary px-3 py-2">{{ teacher.employee_id }}</span>
+                </div>
+            </div>
+
+            <!-- Contact Info -->
+            <div class="card shadow-sm border-0 mb-4" style="background: var(--surface-card);">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3" style="color: var(--text-primary);">Contact Information</h6>
+                    <div class="mb-3">
+                        <small class="d-block mb-1" style="color: var(--text-secondary);">Email</small>
+                        <div style="color: var(--text-primary);">
+                            <i class="bi bi-envelope me-2 text-primary"></i>{{ teacher.user.email|default:"Not provided" }}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <small class="d-block mb-1" style="color: var(--text-secondary);">Phone</small>
+                        <div style="color: var(--text-primary);">
+                            <i class="bi bi-telephone me-2 text-primary"></i>{{ teacher.user.phone|default:"Not provided" }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Employment Info -->
+            <div class="card shadow-sm border-0" style="background: var(--surface-card);">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3" style="color: var(--text-primary);">Employment Details</h6>
+                    <div class="mb-3">
+                        <small class="d-block mb-1" style="color: var(--text-secondary);">Date of Birth</small>
+                        <div style="color: var(--text-primary);">{{ teacher.date_of_birth|date:"F d, Y" }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <small class="d-block mb-1" style="color: var(--text-secondary);">Date of Joining</small>
+                        <div style="color: var(--text-primary);">{{ teacher.date_of_joining|date:"F d, Y" }}</div>
+                    </div>
+                    <div>
+                        <small class="d-block mb-1" style="color: var(--text-secondary);">Subjects</small>
+                        <div>
+                            {% for subject in teacher.subjects.all %}
+                                <span class="badge bg-success me-1 mb-1">{{ subject.name }}</span>
+                            {% empty %}
+                                <span style="color: var(--text-secondary);">No subjects assigned</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Details -->
+        <div class="col-lg-8">
+            <!-- Action Buttons -->
+            <div class="mb-4">
+                <a href="{% url 'teachers:edit_teacher' teacher.id %}" class="btn btn-primary me-2">
+                    <i class="bi bi-pencil me-2"></i>Edit Profile
+                </a>
+                <a href="{% url 'accounts:admin_password_reset' teacher.user.id %}" class="btn btn-outline-danger">
+                    <i class="bi bi-key me-2"></i>Reset Password
+                </a>
+            </div>
+
+            <!-- Managed Classes -->
+            <div class="card shadow-sm border-0 mb-4" style="background: var(--surface-card);">
+                <div class="card-header border-0 py-3" style="background: var(--surface-elevated);">
+                    <h5 class="mb-0 fw-bold" style="color: var(--text-primary);">Class Teacher For</h5>
+                </div>
+                <div class="card-body">
+                    {% if managed_classes %}
+                        <div class="row g-3">
+                            {% for class in managed_classes %}
+                            <div class="col-md-6">
+                                <div class="p-3 rounded-3" style="background: var(--surface-elevated); border: 1px solid var(--border-color);">
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                                            <i class="bi bi-people-fill text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0 fw-bold" style="color: var(--text-primary);">{{ class.name }}</h6>
+                                            <small style="color: var(--text-secondary);">{{ class.academic_year.name }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="mb-0" style="color: var(--text-secondary);">Not assigned as a class teacher</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Subjects Taught -->
+            <div class="card shadow-sm border-0 mb-4" style="background: var(--surface-card);">
+                <div class="card-header border-0 py-3" style="background: var(--surface-elevated);">
+                    <h5 class="mb-0 fw-bold" style="color: var(--text-primary);">Teaching Assignments</h5>
+                </div>
+                <div class="card-body">
+                    {% if class_subjects %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th style="color: var(--text-primary);">Class</th>
+                                        <th style="color: var(--text-primary);">Subject</th>
+                                        <th style="color: var(--text-primary);">Academic Year</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for cs in class_subjects %}
+                                    <tr style="border-color: var(--border-color);">
+                                        <td style="color: var(--text-primary);">{{ cs.class_name.name }}</td>
+                                        <td><span class="badge bg-info">{{ cs.subject.name }}</span></td>
+                                        <td style="color: var(--text-secondary);">{{ cs.class_name.academic_year.name }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="mb-0" style="color: var(--text-secondary);">No teaching assignments yet</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Lesson Plans -->
+            <div class="card shadow-sm border-0" style="background: var(--surface-card);">
+                <div class="card-header border-0 py-3 d-flex justify-content-between align-items-center" style="background: var(--surface-elevated);">
+                    <h5 class="mb-0 fw-bold" style="color: var(--text-primary);">Recent Lesson Plans</h5>
+                    <a href="{% url 'teachers:lesson_plan_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if lesson_plans %}
+                        <div class="list-group list-group-flush">
+                            {% for plan in lesson_plans %}
+                            <div class="list-group-item px-0" style="background: transparent; border-color: var(--border-color);">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1 fw-bold" style="color: var(--text-primary);">{{ plan.topic }}</h6>
+                                        <small style="color: var(--text-secondary);">
+                                            <span class="badge bg-secondary me-1">Week {{ plan.week_number }}</span>
+                                            {{ plan.subject.name }} - {{ plan.school_class.name }}
+                                        </small>
+                                    </div>
+                                    <a href="{% url 'teachers:lesson_plan_detail' plan.id %}" class="btn btn-sm btn-outline-info">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="mb-0" style="color: var(--text-secondary);">No lesson plans created yet</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

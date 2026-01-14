@@ -5,6 +5,7 @@ app_name = 'academics'
 
 urlpatterns = [
     path('activities/manage/', views.manage_activities, name='manage_activities'),
+    path('classes/manage/', views.manage_classes, name='manage_classes'),
     path('gallery/', views.gallery_view, name='gallery'),
     path('gallery/upload/', views.upload_gallery_image, name='upload_gallery_image'),
     path('resources/manage/', views.manage_resources, name='manage_resources'),

@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block title %}Teachers - {{ school_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1" style="color: var(--text-primary);">Teachers</h1>
+            <p class="mb-0" style="color: var(--text-secondary);">Manage teacher profiles and assignments</p>
+        </div>
+        <a href="{% url 'teachers:add_teacher' %}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-2"></i>Add New Teacher
+        </a>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="card shadow-sm border-0 mb-4" style="background: var(--surface-card);">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-10">
+                    <input type="text" name="q" class="form-control" placeholder="Search by name, employee ID or email..." value="{{ query }}" style="background: var(--surface-elevated); color: var(--text-primary); border-color: var(--border-color);">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search me-2"></i>Search
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Teachers Table -->
+    <div class="card shadow-sm border-0" style="background: var(--surface-card);">
+        <div class="card-body p-0">
+            {% if teachers %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead style="background: var(--surface-elevated);">
+                        <tr>
+                            <th class="ps-4" style="color: var(--text-primary);">Employee ID</th>
+                            <th style="color: var(--text-primary);">Name</th>
+                            <th style="color: var(--text-primary);">Email</th>
+                            <th style="color: var(--text-primary);">Phone</th>
+                            <th style="color: var(--text-primary);">Classes</th>
+                            <th style="color: var(--text-primary);">Subjects</th>
+                            <th class="text-end pe-4" style="color: var(--text-primary);">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for teacher in teachers %}
+                        <tr style="border-color: var(--border-color);">
+                            <td class="ps-4">
+                                <span class="badge bg-primary">{{ teacher.employee_id }}</span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                        <i class="bi bi-person-fill text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold" style="color: var(--text-primary);">{{ teacher.user.get_full_name }}</div>
+                                        <small style="color: var(--text-secondary);">{{ teacher.qualification|truncatechars:30 }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td style="color: var(--text-primary);">{{ teacher.user.email|default:"-" }}</td>
+                            <td style="color: var(--text-primary);">{{ teacher.user.phone|default:"-" }}</td>
+                            <td>
+                                <span class="badge bg-info">{{ teacher.classes_count }} class{{ teacher.classes_count|pluralize:"es" }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-success">{{ teacher.subjects_count }} subject{{ teacher.subjects_count|pluralize }}</span>
+                            </td>
+                            <td class="text-end pe-4">
+                                <a href="{% url 'teachers:teacher_detail' teacher.id %}" class="btn btn-sm btn-outline-info me-1" title="View Details">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{% url 'teachers:edit_teacher' teacher.id %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-people fs-1 mb-3 d-block" style="color: var(--text-secondary); opacity: 0.3;"></i>
+                <h5 style="color: var(--text-secondary);">No Teachers Found</h5>
+                <p style="color: var(--text-secondary);">
+                    {% if query %}
+                        No teachers match your search criteria.
+                    {% else %}
+                        Get started by adding your first teacher.
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

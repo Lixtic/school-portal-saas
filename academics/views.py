@@ -5,11 +5,31 @@ from django.http import JsonResponse
 from django.urls import reverse
 import datetime
 from django.db import connection, ProgrammingError
-from django.db.models import Q
+from django.db.models import Q, Count
 from accounts.models import User
 from announcements.models import Announcement
-from .models import Activity, GalleryImage, SchoolInfo, Class, Timetable, ClassSubject, Resource
+from .models import Activity, GalleryImage, SchoolInfo, Class, Timetable, ClassSubject, Resource, AcademicYear
 from .forms import SchoolInfoForm, GalleryImageForm, ResourceForm
+
+@login_required
+def manage_classes(request):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    # Get current academic year
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    
+    # Get all classes with counts
+    classes = Class.objects.select_related('academic_year', 'class_teacher', 'class_teacher__user').annotate(
+        student_count=Count('student')
+    ).order_by('-academic_year__start_date', 'name')
+    
+    context = {
+        'classes': classes,
+        'current_year': current_year
+    }
+    return render(request, 'academics/manage_classes.html', context)
 
 @login_required
 def manage_resources(request):

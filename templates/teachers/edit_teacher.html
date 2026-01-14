@@ -1,53 +1,188 @@
 {% extends 'base.html' %}
+{% load static %}
 {% load crispy_forms_tags %}
 
-{% block title %}Edit Teacher{% endblock %}
+{% block title %}Edit Teacher - {{ teacher.user.get_full_name }}{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card shadow-sm border-0" style="background: var(--surface-card);">
-            <div class="card-header border-0 py-3" style="background: var(--surface-elevated);">
-                <h5 class="mb-0 fw-bold" style="color: var(--text-primary);">Edit Teacher: {{ teacher.user.get_full_name }}</h5>
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" style="color: var(--text-secondary);">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'teachers:teacher_list' %}" style="color: var(--text-secondary);">Teachers</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'teachers:teacher_detail' teacher.id %}" style="color: var(--text-secondary);">{{ teacher.user.get_full_name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Edit</li>
+                </ol>
+            </nav>
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1" style="color: var(--text-primary);">Edit Teacher Profile</h2>
+                    <p class="text-muted mb-0">Update information for {{ teacher.user.get_full_name }}</p>
+                </div>
+                <a href="{% url 'teachers:teacher_detail' teacher.id %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-lg me-2"></i>Cancel
+                </a>
             </div>
-            <div class="card-body p-4">
-                <form method="post">
-                    {% csrf_token %}
-                    
-                    <h6 class="mb-3 fw-semibold" style="color: var(--text-secondary);">Personal Information</h6>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">First Name</label>
-                            {{ form.first_name }}
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Last Name</label>
-                            {{ form.last_name }}
-                        </div>
-                    </div>
+        </div>
+    </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Email</label>
-                            {{ form.email }}
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Phone</label>
-                            {{ form.phone }}
-                        </div>
-                    </div>
+    {% if messages %}
+    <div class="row mb-3">
+        <div class="col-12">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 
-                    <div class="mb-3">
-                        <label class="form-label">Date of Birth</label>
-                        {{ form.date_of_birth }}
-                    </div>
-
-                    <h6 class="mb-3 mt-4 fw-semibold" style="color: var(--text-secondary);">Employment Details</h6>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Employee ID</label>
-                            {{ form.employee_id }}
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card" style="background-color: var(--surface-card); border: 1px solid var(--border-color);">
+                <div class="card-header border-bottom" style="background-color: var(--surface-elevated); border-color: var(--border-color) !important;">
+                    <h5 class="mb-0" style="color: var(--text-primary);">
+                        <i class="bi bi-person-badge me-2"></i>Teacher Information
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <!-- Personal Information -->
+                        <div class="mb-4">
+                            <h6 class="border-bottom pb-2 mb-3" style="color: var(--text-primary);">
+                                <i class="bi bi-person me-2"></i>Personal Information
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.first_name.id_for_label }}" class="form-label" style="color: var(--text-primary);">
+                                        First Name <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.first_name }}
+                                    {% if form.first_name.errors %}
+                                        <div class="text-danger small mt-1">{{ form.first_name.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.last_name.id_for_label }}" class="form-label" style="color: var(--text-primary);">
+                                        Last Name <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.last_name }}
+                                    {% if form.last_name.errors %}
+                                        <div class="text-danger small mt-1">{{ form.last_name.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.email.id_for_label }}" class="form-label" style="color: var(--text-primary);">
+                                        Email <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.email }}
+                                    {% if form.email.errors %}
+                                        <div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.phone.id_for_label }}" class="form-label" style="color: var(--text-primary);">
+                                        Phone Number
+                                    </label>
+                                    {{ form.phone }}
+                                    {% if form.phone.errors %}
+                                        <div class="text-danger small mt-1">{{ form.phone.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.date_of_birth.id_for_label }}" class="form-label" style="color: var(--text-primary);">
+                                        Date of Birth <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.date_of_birth }}
+                                    {% if form.date_of_birth.errors %}
+                                        <div class="text-danger small mt-1">{{ form.date_of_birth.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
                         </div>
+
+                        <!-- Employment Information -->
+                        <div class="mb-4">
+                            <h6 class="border-bottom pb-2 mb-3" style="color: var(--text-primary);">
+                                <i class="bi bi-briefcase me-2"></i>Employment Information
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.employee_id.id_for_label }}" class="form-label" style="color: var(--text-primary);">
+                                        Employee ID <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.employee_id }}
+                                    <small class="text-muted d-block mt-1">This field cannot be changed</small>
+                                    {% if form.employee_id.errors %}
+                                        <div class="text-danger small mt-1">{{ form.employee_id.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.date_of_joining.id_for_label }}" class="form-label" style="color: var(--text-primary);">
+                                        Date of Joining <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.date_of_joining }}
+                                    {% if form.date_of_joining.errors %}
+                                        <div class="text-danger small mt-1">{{ form.date_of_joining.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="{{ form.qualification.id_for_label }}" class="form-label" style="color: var(--text-primary);">
+                                    Qualification
+                                </label>
+                                {{ form.qualification }}
+                                <small class="text-muted d-block mt-1">e.g., B.Ed., M.A., Ph.D.</small>
+                                {% if form.qualification.errors %}
+                                    <div class="text-danger small mt-1">{{ form.qualification.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Teaching Subjects -->
+                        <div class="mb-4">
+                            <h6 class="border-bottom pb-2 mb-3" style="color: var(--text-primary);">
+                                <i class="bi bi-book me-2"></i>Teaching Subjects
+                            </h6>
+                            <div class="mb-3">
+                                <label for="{{ form.subjects.id_for_label }}" class="form-label" style="color: var(--text-primary);">
+                                    Subjects
+                                </label>
+                                {{ form.subjects }}
+                                <small class="text-muted d-block mt-1">Hold Ctrl (Windows) or Cmd (Mac) to select multiple subjects</small>
+                                {% if form.subjects.errors %}
+                                    <div class="text-danger small mt-1">{{ form.subjects.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                            <a href="{% url 'teachers:teacher_detail' teacher.id %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-lg me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg me-2"></i>Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Date of Joining</label>
                             {{ form.date_of_joining }}

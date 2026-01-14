@@ -149,4 +149,45 @@ class TeacherCreateForm(forms.ModelForm):
         self.fields['date_of_joining'].initial = date.today()
         self.fields['qualification'].required = False
 
+class TeacherEditForm(forms.ModelForm):
+    first_name = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    last_name = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'class': 'form-control'}))
+    phone = forms.CharField(max_length=20, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    
+    class Meta:
+        model = Teacher
+        fields = ['employee_id', 'date_of_birth', 'date_of_joining', 'qualification', 'subjects']
+        widgets = {
+            'employee_id': forms.TextInput(attrs={'class': 'form-control', 'readonly': 'readonly'}),
+            'date_of_birth': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'date_of_joining': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'qualification': forms.TextInput(attrs={'class': 'form-control'}),
+            'subjects': forms.SelectMultiple(attrs={'class': 'form-select', 'size': '5'}),
+        }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            # Pre-populate user fields
+            self.fields['first_name'].initial = self.instance.user.first_name
+            self.fields['last_name'].initial = self.instance.user.last_name
+            self.fields['email'].initial = self.instance.user.email
+            if hasattr(self.instance.user, 'profile'):
+                self.fields['phone'].initial = self.instance.user.profile.phone
+        self.fields['employee_id'].widget.attrs['readonly'] = True
+
+    def save(self, commit=True):
+        teacher = super().save(commit=False)
+        
+        # Update user fields
+        teacher.user.first_name = self.cleaned_data['first_name']
+        teacher.user.last_name = self.cleaned_data['last_name']
+        teacher.user.email = self.cleaned_data['email']
+        
+        if commit:
+            teacher.user.save()
+            teacher.save()
+            self.save_m2m()
+        
+        return teacher

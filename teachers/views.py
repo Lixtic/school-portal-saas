@@ -1,7 +1,7 @@
 from django import forms
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.db.utils import OperationalError, ProgrammingError
 import django
 from django.contrib.auth.decorators import login_required
@@ -9,7 +9,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from decimal import Decimal, InvalidOperation
 from teachers.models import Teacher, DutyWeek, LessonPlan
-from academics.models import ClassSubject, AcademicYear, Timetable, SchoolInfo, Resource
+from academics.models import ClassSubject, AcademicYear, Timetable, SchoolInfo, Resource, Class
 from students.models import Student, Grade, ClassExercise, StudentExerciseScore
 from students.utils import normalize_term
 from .forms import ResourceForm, LessonPlanForm, TeacherCreateForm #, HomeworkForm
@@ -18,6 +18,125 @@ from accounts.models import User
 
 
 # Homework views moved to 'homework' app
+
+
+@login_required
+def teacher_list(request):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+    
+    query = request.GET.get('q', '')
+    teachers = Teacher.objects.select_related('user').annotate(
+        classes_count=Count('managed_classes'),
+        subjects_count=Count('classsubject')
+    )
+    
+    if query:
+        teachers = teachers.filter(
+            Q(user__first_name__icontains=query) |
+            Q(user__last_name__icontains=query) |
+            Q(employee_id__icontains=query) |
+            Q(user__email__icontains=query)
+        )
+    
+    teachers = teachers.order_by('user__first_name', 'user__last_name')
+    
+    context = {
+        'teachers': teachers,
+        'query': query
+    }
+    return render(request, 'teachers/teacher_list.html', context)
+
+
+@login_required
+def teacher_detail(request, teacher_id):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+    
+    teacher = get_object_or_404(Teacher.objects.select_related('user'), id=teacher_id)
+    
+    # Get managed classes
+    managed_classes = teacher.managed_classes.select_related('academic_year')
+    
+    # Get subjects taught
+    class_subjects = ClassSubject.objects.filter(teacher=teacher).select_related(
+        'class_name', 'subject', 'class_name__academic_year'
+    )
+    
+    # Get lesson plans
+    lesson_plans = LessonPlan.objects.filter(teacher=teacher).select_related(
+        'subject', 'school_class'
+    ).order_by('-date_added')[:5]
+    
+    context = {
+        'teacher': teacher,
+        'managed_classes': managed_classes,
+        'class_subjects': class_subjects,
+        'lesson_plans': lesson_plans,
+    }
+    return render(request, 'teachers/teacher_detail.html', context)
+
+
+@login_required
+def assign_class_teacher(request, class_id):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+    
+    class_obj = get_object_or_404(Class, id=class_id)
+    
+    if request.method == 'POST':
+        teacher_id = request.POST.get('teacher_id')
+        if teacher_id:
+            try:
+                teacher = Teacher.objects.get(id=teacher_id)
+                class_obj.class_teacher = teacher
+                class_obj.save()
+                messages.success(request, f'{teacher.user.get_full_name()} assigned as class teacher for {class_obj.name}')
+            except Teacher.DoesNotExist:
+                messages.error(request, 'Invalid teacher selected')
+        else:
+            class_obj.class_teacher = None
+            class_obj.save()
+            messages.success(request, f'Class teacher removed from {class_obj.name}')
+        
+        return redirect('academics:manage_classes')
+    
+    teachers = Teacher.objects.select_related('user').order_by('user__first_name', 'user__last_name')
+    
+    context = {
+        'class_obj': class_obj,
+        'teachers': teachers
+    }
+    return render(request, 'teachers/assign_class_teacher.html', context)
+
+
+@login_required
+def edit_teacher(request, teacher_id):
+    from .forms import TeacherEditForm
+    
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    teacher = get_object_or_404(Teacher, id=teacher_id)
+    
+    if request.method == 'POST':
+        form = TeacherEditForm(request.POST, instance=teacher)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Teacher profile for {teacher.user.get_full_name()} updated successfully.')
+            return redirect('teachers:teacher_detail', teacher_id=teacher.id)
+    else:
+        form = TeacherEditForm(instance=teacher)
+    
+    context = {
+        'form': form,
+        'teacher': teacher
+    }
+    return render(request, 'teachers/edit_teacher.html', context)
 
 
 

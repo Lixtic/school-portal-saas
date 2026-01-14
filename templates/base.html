@@ -756,6 +756,8 @@
                     <li class="mobile-bubble-item"><a href="{% url 'academics:timetable' %}"><i class="bi bi-table"></i>Timetable</a></li>
                 {% endif %}
                 {% if user.user_type == 'admin' %}
+                    <li class="mobile-bubble-item"><a href="{% url 'teachers:teacher_list' %}"><i class="bi bi-person-lines-fill"></i>Teachers</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'academics:manage_classes' %}"><i class="bi bi-door-open"></i>Manage Classes</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'academics:manage_activities' %}"><i class="bi bi-calendar-event"></i>Activities</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'finance:dashboard' %}"><i class="bi bi-wallet2"></i>Finance</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'communication:dashboard' %}"><i class="bi bi-envelope"></i>Messages</a></li>
@@ -826,6 +828,18 @@
 
             {% if user.user_type == 'admin' %}
             <h4 class="mb-2 mt-4">Administration</h4>
+            <div class="nav-item">
+                <a href="{% url 'teachers:teacher_list' %}" class="nav-link {% if request.resolver_match.url_name == 'teacher_list' or request.resolver_match.url_name == 'teacher_detail' %}active{% endif %}" title="Teachers">
+                    <i class="bi bi-person-lines-fill"></i>
+                    <span>Teachers</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{% url 'academics:manage_classes' %}" class="nav-link {% if request.resolver_match.url_name == 'manage_classes' %}active{% endif %}" title="Manage Classes">
+                    <i class="bi bi-door-open"></i>
+                    <span>Manage Classes</span>
+                </a>
+            </div>
             <div class="nav-item">
                 <a href="{% url 'academics:manage_activities' %}" class="nav-link {% if request.resolver_match.url_name == 'manage_activities' %}active{% endif %}" title="Activities">
                     <i class="bi bi-calendar-event"></i>
