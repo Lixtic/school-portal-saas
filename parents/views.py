@@ -2,6 +2,9 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from parents.models import Parent, Homework
+from .forms import ParentForm
+from accounts.models import User
+
 from students.models import Student, Attendance, Grade
 
 @login_required
@@ -116,3 +119,43 @@ def child_details(request, student_id):
     }
     
     return render(request, 'parents/child_details.html', context)
+
+@login_required
+def add_parent(request):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+        
+    if request.method == 'POST':
+        form = ParentForm(request.POST)
+        if form.is_valid():
+            first_name = form.cleaned_data['first_name']
+            last_name = form.cleaned_data['last_name']
+            base_username = f"parent_{first_name.lower()}_{last_name.lower()}"
+            username = base_username
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}{counter}"
+                counter += 1
+                
+            user = User.objects.create_user(
+                username=username,
+                email=form.cleaned_data['email'],
+                password='password123', # Default password
+                first_name=first_name,
+                last_name=last_name,
+                user_type='parent',
+                phone=form.cleaned_data.get('phone', ''),
+                address=form.cleaned_data.get('address', '')
+            )
+            
+            parent = form.save(commit=False)
+            parent.user = user
+            parent.save()
+            form.save_m2m() # Save children
+            messages.success(request, f"Parent {user.get_full_name()} added successfully.")
+            return redirect('dashboard')
+    else:
+        form = ParentForm()
+        
+    return render(request, 'parents/add_parent.html', {'form': form})

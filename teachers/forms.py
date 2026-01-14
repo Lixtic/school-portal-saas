@@ -123,3 +123,21 @@ class LessonPlanForm(forms.ModelForm):
             if self.teacher.subjects.exists():
                 self.fields['subject'].queryset = self.teacher.subjects.all()
 
+class TeacherCreateForm(forms.ModelForm):
+    first_name = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    last_name = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'class': 'form-control'}))
+    phone = forms.CharField(max_length=20, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    
+    class Meta:
+        model = Teacher
+        fields = ['employee_id', 'date_of_birth', 'date_of_joining', 'qualification', 'subjects']
+        widgets = {
+            'employee_id': forms.TextInput(attrs={'class': 'form-control'}),
+            'date_of_birth': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'date_of_joining': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'qualification': forms.TextInput(attrs={'class': 'form-control'}),
+            'subjects': forms.SelectMultiple(attrs={'class': 'form-select', 'size': '5'}),
+        }
+
+

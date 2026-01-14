@@ -80,3 +80,24 @@ class StudentQuickAddForm(forms.Form):
     def save_m2m(self):
         # No many-to-many fields in quick add form, so this is a no-op
         pass
+
+class StudentForm(forms.ModelForm):
+    first_name = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    last_name = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    email = forms.EmailField(required=False, widget=forms.EmailInput(attrs={'class': 'form-control'}))
+    
+    class Meta:
+        model = Student
+        fields = ['admission_number', 'date_of_birth', 'gender', 'date_of_admission', 
+                  'current_class', 'roll_number', 'blood_group', 'emergency_contact']
+        widgets = {
+            'admission_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'date_of_birth': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'gender': forms.Select(attrs={'class': 'form-select'}),
+            'date_of_admission': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'current_class': forms.Select(attrs={'class': 'form-select'}),
+            'roll_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'blood_group': forms.TextInput(attrs={'class': 'form-control'}),
+            'emergency_contact': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+

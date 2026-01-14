@@ -12,7 +12,9 @@ from teachers.models import Teacher, DutyWeek, LessonPlan
 from academics.models import ClassSubject, AcademicYear, Timetable, SchoolInfo, Resource
 from students.models import Student, Grade, ClassExercise, StudentExerciseScore
 from students.utils import normalize_term
-from .forms import ResourceForm, LessonPlanForm
+from .forms import ResourceForm, LessonPlanForm, TeacherCreateForm
+from accounts.models import User
+
 
 @login_required
 def teacher_classes(request):
@@ -595,3 +597,39 @@ def lesson_plan_delete(request, pk):
         return redirect('teachers:lesson_plan_list')
         
     return render(request, 'teachers/lesson_plan_confirm_delete.html', {'lesson_plan': lesson_plan})
+
+@login_required
+def add_teacher(request):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+        
+    if request.method == 'POST':
+        form = TeacherCreateForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data['employee_id']
+            if User.objects.filter(username=username).exists():
+                messages.error(request, f"User {username} already exists")
+                return render(request, 'teachers/add_teacher.html', {'form': form})
+                
+            user = User.objects.create_user(
+                username=username,
+                email=form.cleaned_data['email'],
+                password=username,  # Default password is employee ID
+                first_name=form.cleaned_data['first_name'],
+                last_name=form.cleaned_data['last_name'],
+                user_type='teacher',
+                phone=form.cleaned_data.get('phone', '')
+            )
+            
+            teacher = form.save(commit=False)
+            teacher.user = user
+            teacher.save()
+            form.save_m2m() # Save subjects
+            messages.success(request, f"Teacher {user.get_full_name()} added successfully.")
+            return redirect('teachers:my_classes')
+    else:
+        form = TeacherCreateForm()
+        
+    return render(request, 'teachers/add_teacher.html', {'form': form})
+

@@ -6,6 +6,9 @@ from django.db.models import Q, Count, Avg
 from datetime import date, timedelta
 import csv
 from .models import Student, Attendance, Grade
+from .forms import StudentForm
+from accounts.models import User
+
 from .utils import calculate_class_position, normalize_term, term_filter_values
 from academics.models import Class, AcademicYear, Timetable
 from teachers.models import Teacher
@@ -570,3 +573,37 @@ def student_schedule(request):
         })
             
     return render(request, 'students/schedule.html', {'days': days_data, 'student_class': student.current_class})
+
+@login_required
+def add_student(request):
+    if request.user.user_type not in ['admin', 'teacher']:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+        
+    if request.method == 'POST':
+        form = StudentForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data['admission_number']
+            if User.objects.filter(username=username).exists():
+                messages.error(request, f"User {username} already exists")
+                return render(request, 'students/add_student.html', {'form': form})
+                
+            user = User.objects.create_user(
+                username=username,
+                email=form.cleaned_data['email'],
+                password=username,  # Default password is admission number
+                first_name=form.cleaned_data['first_name'],
+                last_name=form.cleaned_data['last_name'],
+                user_type='student'
+            )
+            
+            student = form.save(commit=False)
+            student.user = user
+            student.save()
+            messages.success(request, f"Student {user.get_full_name()} added successfully.")
+            return redirect('students:student_list')
+    else:
+        form = StudentForm()
+        
+    return render(request, 'students/add_student.html', {'form': form})
+

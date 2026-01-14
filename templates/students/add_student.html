@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Add Student{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0">Add New Student</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <h6 class="text-muted mb-3">Personal Information</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">First Name</label>
+                            {{ form.first_name }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Last Name</label>
+                            {{ form.last_name }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Email (Optional)</label>
+                        {{ form.email }}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Date of Birth</label>
+                            {{ form.date_of_birth }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Gender</label>
+                            {{ form.gender }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Blood Group</label>
+                        {{ form.blood_group }}
+                    </div>
+                    
+                    <h6 class="text-muted mb-3 mt-4">Academic Information</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Admission Number</label>
+                            {{ form.admission_number }}
+                            <div class="form-text">Used as username to login</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Date of Admission</label>
+                            {{ form.date_of_admission }}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Class</label>
+                            {{ form.current_class }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Roll Number</label>
+                            {{ form.roll_number }}
+                        </div>
+                    </div>
+
+                    <h6 class="text-muted mb-3 mt-4">Emergency Contact</h6>
+                    <div class="mb-3">
+                        <label class="form-label">Phone Number</label>
+                        {{ form.emergency_contact }}
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'students:student_list' %}" class="btn btn-light me-md-2">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4">Add Student</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
