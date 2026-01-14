@@ -619,3 +619,36 @@ def add_student(request):
         
     return render(request, 'students/add_student.html', {'form': form})
 
+
+@login_required
+def edit_student(request, student_id):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+        
+    student = get_object_or_404(Student, id=student_id)
+    
+    if request.method == 'POST':
+        form = StudentForm(request.POST, instance=student)
+        if form.is_valid():
+            # Update user fields
+            student.user.first_name = form.cleaned_data['first_name']
+            student.user.last_name = form.cleaned_data['last_name']
+            student.user.email = form.cleaned_data['email']
+            student.user.save()
+            
+            form.save()
+            messages.success(request, f'Student {student.user.get_full_name()} updated successfully.')
+            return redirect('students:student_list')
+    else:
+        # Populate form with user data
+        initial_data = {
+            'first_name': student.user.first_name,
+            'last_name': student.user.last_name,
+            'email': student.user.email,
+        }
+        form = StudentForm(instance=student, initial=initial_data)
+        
+    return render(request, 'students/edit_student.html', {'form': form, 'student': student})
+
+

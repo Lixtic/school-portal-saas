@@ -5,6 +5,7 @@ app_name = 'students'
 
 urlpatterns = [
     path('add/', views.add_student, name='add_student'),
+    path('edit/<int:student_id>/', views.edit_student, name='edit_student'),
     path('', views.student_list, name='student_list'),
     path('attendance/mark/', views.mark_attendance, name='mark_attendance'),
     path('get-class-students/<int:class_id>/', views.get_class_students, name='get_class_students'),

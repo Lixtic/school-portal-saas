@@ -77,6 +77,16 @@
                         </td>
                         <td>{{ user.email|default:"-" }}</td>
                         <td class="text-end pe-4">
+                            {% if user.user_type == 'student' %}
+                                <a href="{% url 'students:edit_student' user.student.id %}" class="btn btn-sm btn-outline-primary me-1">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </a>
+                            {% elif user.user_type == 'teacher' %}
+                                <a href="{% url 'teachers:edit_teacher' user.teacher.id %}" class="btn btn-sm btn-outline-primary me-1">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </a>
+                            {% endif %}
+                            
                             <a href="{% url 'accounts:admin_password_reset' user.id %}" class="btn btn-sm btn-outline-danger">
                                 <i class="bi bi-key"></i> Reset Password
                             </a>
