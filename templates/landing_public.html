@@ -10,11 +10,30 @@
     --brand-dark: #134e4a;
     --brand-light: #ccfbf1;
     --text-dark: #1e293b;
+    --bg-main: #ffffff;
+    --bg-secondary: #f8fafc;
+    --card-bg: #ffffff;
+    --border-color: #e2e8f0;
+}
+
+[data-bs-theme="dark"] {
+    --brand-teal: #2dd4bf;
+    --brand-dark: #ccfbf1;
+    --brand-light: rgba(15, 118, 110, 0.3);
+    --text-dark: #f1f5f9;
+    --bg-main: #0f172a;
+    --bg-secondary: #1e293b;
+    --card-bg: #1e293b;
+    --border-color: #334155;
+    
+    color-scheme: dark;
 }
 
 body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     color: var(--text-dark);
+    background-color: var(--bg-main);
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Navbar overrides */
@@ -22,11 +41,17 @@ body {
     padding: 1rem 0;
     backdrop-filter: blur(10px);
     background: rgba(255, 255, 255, 0.9) !important;
+    transition: background-color 0.3s ease;
+}
+
+[data-bs-theme="dark"] .navbar {
+    background: rgba(15, 23, 42, 0.9) !important;
+    border-bottom: 1px solid var(--border-color);
 }
 
 /* Hero Section */
 .hero-wrapper {
-    background: radial-gradient(circle at top right, #f0fdfa, #fff);
+    background: radial-gradient(circle at top right, var(--bg-secondary), var(--bg-main));
     overflow: hidden;
     padding-top: 60px;
     padding-bottom: 80px;
@@ -43,11 +68,21 @@ body {
     margin-bottom: 1.5rem;
 }
 
+[data-bs-theme="dark"] .hero-content h1 {
+    background: linear-gradient(135deg, #fff, var(--brand-teal));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
 .hero-content p {
     font-size: 1.25rem;
     color: #64748b;
     margin-bottom: 2.5rem;
     line-height: 1.6;
+}
+
+[data-bs-theme="dark"] .hero-content p {
+    color: #94a3b8;
 }
 
 .btn-brand-primary {
@@ -68,11 +103,20 @@ body {
     color: white;
 }
 
+[data-bs-theme="dark"] .btn-brand-primary {
+    background: #0f766e;
+    color: white;
+}
+[data-bs-theme="dark"] .btn-brand-primary:hover {
+    background: #115e59;
+}
+
+
 .hero-image-container {
     position: relative;
     border-radius: 20px;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
-    background: white;
+    background: var(--card-bg);
     padding: 10px;
     transform: perspective(1000px) rotateY(-5deg) rotateX(2deg);
     transition: transform 0.5s ease;
@@ -88,6 +132,12 @@ body {
     height: auto;
 }
 
+[data-bs-theme="dark"] .hero-image-container {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--border-color);
+}
+
+
 /* Value Props */
 .feature-section {
     padding: 100px 0;
@@ -96,8 +146,8 @@ body {
 .feature-box {
     padding: 30px;
     border-radius: 16px;
-    background: white;
-    border: 1px solid #e2e8f0;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
     transition: all 0.3s ease;
     height: 100%;
 }
@@ -106,6 +156,10 @@ body {
     box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
     border-color: var(--brand-light);
     transform: translateY(-5px);
+}
+
+[data-bs-theme="dark"] .feature-box:hover {
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
 }
 
 .feature-icon {
@@ -121,9 +175,13 @@ body {
     margin-bottom: 20px;
 }
 
+[data-bs-theme="dark"] .feature-icon {
+    background: rgba(45, 212, 191, 0.1);
+}
+
 /* Trust Section */
 .trust-section {
-    background: #f8fafc;
+    background: var(--bg-secondary);
     padding: 60px 0;
     text-align: center;
 }
@@ -133,6 +191,69 @@ body {
     font-weight: 700;
     color: var(--brand-dark);
 }
+
+[data-bs-theme="dark"] .stat-item h3 {
+    color: var(--text-dark);
+}
+
+/* Theme Toggle */
+.theme-toggle-fixed {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1000;
+    color: var(--text-dark);
+    font-size: 1.25rem;
+    transition: all 0.3s ease;
+}
+.theme-toggle-fixed:hover {
+    transform: scale(1.1);
+}
+
+</style>
+
+<!-- Floating Toggle -->
+<button class="theme-toggle-fixed" id="themeToggle" title="Toggle Dark Mode">
+    <i class="bi bi-moon-stars"></i>
+</button>
+
+<script>
+    const toggleBtn = document.getElementById('themeToggle');
+    const icon = toggleBtn.querySelector('i');
+    const html = document.documentElement;
+    
+    // Check local storage
+    const currentTheme = localStorage.getItem('theme') || 'light';
+    html.setAttribute('data-bs-theme', currentTheme);
+    updateIcon(currentTheme);
+
+    toggleBtn.addEventListener('click', () => {
+        const theme = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-bs-theme', theme);
+        localStorage.setItem('theme', theme);
+        updateIcon(theme);
+    });
+
+    function updateIcon(theme) {
+        if (theme === 'dark') {
+            icon.classList.remove('bi-moon-stars');
+            icon.classList.add('bi-sun');
+        } else {
+            icon.classList.remove('bi-sun');
+            icon.classList.add('bi-moon-stars');
+        }
+    }
+</script>
 
 </style>
 
