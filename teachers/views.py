@@ -12,8 +12,56 @@ from teachers.models import Teacher, DutyWeek, LessonPlan
 from academics.models import ClassSubject, AcademicYear, Timetable, SchoolInfo, Resource
 from students.models import Student, Grade, ClassExercise, StudentExerciseScore
 from students.utils import normalize_term
-from .forms import ResourceForm, LessonPlanForm, TeacherCreateForm
+from .forms import ResourceForm, LessonPlanForm, TeacherCreateForm, HomeworkForm
 from accounts.models import User
+from parents.models import Homework
+
+
+@login_required
+def homework_list(request):
+    if request.user.user_type != 'teacher':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+        
+    teacher = Teacher.objects.get(user=request.user)
+    homeworks = Homework.objects.filter(assigned_by=teacher).order_by('-assigned_date')
+    
+    return render(request, 'teachers/homework_list.html', {'homeworks': homeworks})
+
+@login_required
+def add_homework(request):
+    if request.user.user_type != 'teacher':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+        
+    teacher = Teacher.objects.get(user=request.user)
+    
+    if request.method == 'POST':
+        form = HomeworkForm(teacher, request.POST, request.FILES)
+        if form.is_valid():
+            homework = form.save(commit=False)
+            homework.assigned_by = teacher
+            homework.save()
+            messages.success(request, 'Homework assigned successfully')
+            return redirect('teachers:homework_list')
+    else:
+        form = HomeworkForm(teacher)
+        # Filter dropdowns to only show classes/subjects assigned to this teacher
+        # This logic should ideally be in the form __init__ but we can do it here or pass queryset
+        class_subjects = ClassSubject.objects.filter(teacher=teacher).select_related('class_name', 'subject')
+        
+        # We need to distinct classes and subjects or just use the choices trick?
+        # Actually ModelForm expects Model objects.
+        # Let's populate the querysets
+        form.fields['class_name'].queryset = models.QuerySet(model=form.fields['class_name'].queryset.model).filter(
+            id__in=[cs.class_name.id for cs in class_subjects]
+        ).distinct()
+        
+        form.fields['subject'].queryset = models.QuerySet(model=form.fields['subject'].queryset.model).filter(
+            id__in=[cs.subject.id for cs in class_subjects]
+        ).distinct()
+
+    return render(request, 'teachers/add_homework.html', {'form': form})
 
 
 @login_required
