@@ -749,7 +749,9 @@
 
             <ul class="mobile-bubble-list">
                 <li class="mobile-bubble-item"><a href="{% url 'dashboard' %}"><i class="bi bi-speedometer2"></i>Dashboard</a></li>
+                {% if user.user_type != 'teacher' %}
                 <li class="mobile-bubble-item"><a href="{% url 'home' %}"><i class="bi bi-house"></i>Home Page</a></li>
+                {% endif %}
                 {% if user.user_type == 'teacher' or user.user_type == 'admin' %}
                     <li class="mobile-bubble-item"><a href="{% url 'students:student_list' %}"><i class="bi bi-people"></i>Students</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'students:mark_attendance' %}"><i class="bi bi-calendar-check"></i>Attendance</a></li>
@@ -790,12 +792,14 @@
                 </a>
             </div>
 
+            {% if user.user_type != 'teacher' %}
             <div class="nav-item">
                 <a href="{% url 'home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" title="Home Page">
                     <i class="bi bi-house-door"></i>
                     <span>Home Page</span>
                 </a>
             </div>
+            {% endif %}
 
             <div class="nav-item">
                 <a href="{% url 'academics:gallery' %}" class="nav-link {% if request.resolver_match.url_name == 'gallery' %}active{% endif %}" title="Gallery">
