@@ -17,6 +17,7 @@ class SchoolSignupForm(forms.Form):
         ('other', 'Other / Tertiary'),
     )
     school_type = forms.ChoiceField(choices=SCHOOL_TYPES, widget=forms.Select(attrs={'class': 'form-select'}))
+    address = forms.CharField(label="School Address", required=False, widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'P.O. Box 123, Accra'}))
     phone = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Optional'}))
     country = forms.CharField(initial="Ghana", widget=forms.TextInput(attrs={'class': 'form-control'}))
     

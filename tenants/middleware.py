@@ -32,6 +32,9 @@ class TenantPathMiddleware(TenantMainMiddleware):
                 tenant = School.objects.filter(schema_name=possible_schema).first()
             except Exception as e:
                 print(f"DEBUG MIDDLEWARE: DB Lookup Error: {e}")
+                if settings.DEBUG:
+                     # Re-raise to see the actual database error (e.g. missing column)
+                     raise e
                 tenant = None
             
             # If we are here, it means the URL starts with something like /kings/
@@ -39,7 +42,11 @@ class TenantPathMiddleware(TenantMainMiddleware):
             # because 'kings' isn't a valid page on the public site either.
             if not tenant:
                 print(f"DEBUG MIDDLEWARE: Tenant '{possible_schema}' looked up but returned None.")
-                raise Http404(f"School '{possible_schema}' not found.")
+                if settings.DEBUG:
+                     # List available tenants to help user debug
+                     all_tenants = list(School.objects.values_list('schema_name', flat=True))
+                     raise Http404(f"School '{possible_schema}' not found. Available schools in DB: {all_tenants}")
+                raise Http404(f"School '{possible_schema}' not found in registry.")
         
         if tenant:
 
