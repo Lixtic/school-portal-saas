@@ -17,6 +17,10 @@ def school_signup(request):
             name = form.cleaned_data['school_name']
             schema_name = form.cleaned_data['schema_name']
             email = form.cleaned_data['email']
+            school_type = form.cleaned_data['school_type']
+            address = form.cleaned_data['address']
+            phone = form.cleaned_data['phone']
+            country = form.cleaned_data['country']
             
             try:
                 # 1. Create Tenant (Transaction on PUBLIC schema)
@@ -27,10 +31,20 @@ def school_signup(request):
                 # REMOVED outer transaction.atomic() here to allow Partial Success (Debugging Timeout)
                 # Ideally, we should rollback manually if it fails, but for now we want to see if the record persists.
                 
-                tenant = School(schema_name=schema_name, name=name, on_trial=True, is_active=True)
+                tenant = School(
+                    schema_name=schema_name, 
+                    name=name, 
+                    school_type=school_type,
+                    address=address,
+                    phone_number=phone,
+                    country=country,
+                    on_trial=True, 
+                    is_active=True
+                )
                 # Force auto_create_schema to False initially to save the DB record quickly
                 tenant.auto_create_schema = False 
                 tenant.save()
+                
                 print(f"DEBUG SIGNUP: Tenant record saved (No Schema yet)")
                 
                 domain = Domain()
@@ -64,7 +78,7 @@ def school_signup(request):
                             )
                             print(f"DEBUG SIGNUP: Admin user created")
                         
-                        _create_sample_data(tenant)
+                        _create_sample_data(tenant, school_type=school_type, phone=phone, address=address)
                         print(f"DEBUG SIGNUP: Sample data created")
                         
                 except Exception as inner_e:
@@ -97,7 +111,7 @@ def school_signup(request):
     return render(request, 'tenants/signup.html', {'form': form})
 
 
-def _create_sample_data(tenant):
+def _create_sample_data(tenant, school_type='basic', phone='', address=''):
     """Auto-populate new tenant with sample academic data"""
     # Academic Year
     current_year = timezone.now().year
@@ -110,8 +124,19 @@ def _create_sample_data(tenant):
         }
     )
     
-    # Sample Classes
-    classes = ['Basic 7', 'Basic 8', 'Basic 9']
+    # Sample Classes based on School Type
+    classes = []
+    if school_type == 'primary':
+        classes = [f'Class {i}' for i in range(1, 7)]
+    elif school_type == 'jhs':
+        classes = ['JHS 1', 'JHS 2', 'JHS 3']
+    elif school_type == 'shs':
+        classes = ['SHS 1', 'SHS 2', 'SHS 3']
+    elif school_type == 'basic':
+        classes = ['Kindergarten 1', 'Kindergarten 2'] + [f'Class {i}' for i in range(1, 7)] + ['JHS 1', 'JHS 2', 'JHS 3']
+    else:
+        classes = ['Class 1', 'Class 2', 'Class 3'] # Fallback
+        
     for class_name in classes:
         Class.objects.get_or_create(
             name=class_name,
@@ -136,22 +161,23 @@ def _create_sample_data(tenant):
             defaults={'code': code}
         )
     
-    # School Info placeholder (Essential for branding)
-    # Ensure this is created so the new tenant has their name on the dashboard immediately.
+    # School Info - Populate with data from Signup
     if not SchoolInfo.objects.exists():
         SchoolInfo.objects.create(
             name=tenant.name,
-            address="To be configured",
-            phone="To be configured",
+            address=address or "To be configured",
+            phone=phone or "To be configured",
             email="info@school.edu",
             motto="Excellence in Education",
-            primary_color="#026e56", # Default Teal
-            secondary_color="#0f3b57" # Default Dark Blue
+            primary_color="#026e56",
+            secondary_color="#0f3b57"
         )
     else:
-        # Update existing record if it was auto-created by migration (unlikely but safe)
+        # Update existing record
         info = SchoolInfo.objects.first()
         info.name = tenant.name
+        if address: info.address = address
+        if phone: info.phone = phone
         info.save()
 
 

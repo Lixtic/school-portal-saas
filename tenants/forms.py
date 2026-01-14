@@ -9,6 +9,17 @@ class SchoolSignupForm(forms.Form):
     schema_name = forms.CharField(label="School ID (Subdomain)", max_length=50, help_text="No spaces. e.g. 'kings'", widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'kings'}))
     email = forms.EmailField(label="Admin Email", widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'admin@kings.edu'}))
     
+    SCHOOL_TYPES = (
+        ('primary', 'Primary School (Class 1-6)'),
+        ('jhs', 'Junior High School (JHS 1-3)'),
+        ('shs', 'Senior High School'),
+        ('basic', 'Basic School (Kindergarten - JHS 3)'),
+        ('other', 'Other / Tertiary'),
+    )
+    school_type = forms.ChoiceField(choices=SCHOOL_TYPES, widget=forms.Select(attrs={'class': 'form-select'}))
+    phone = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Optional'}))
+    country = forms.CharField(initial="Ghana", widget=forms.TextInput(attrs={'class': 'form-control'}))
+    
     def clean_schema_name(self):
         data = self.cleaned_data['schema_name'].lower().strip()
         
