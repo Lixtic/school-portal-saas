@@ -36,6 +36,22 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Animations */
+.reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
+}
+
+.reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.stagger-1 { transition-delay: 100ms; }
+.stagger-2 { transition-delay: 200ms; }
+.stagger-3 { transition-delay: 300ms; }
+
 /* Navbar overrides */
 .navbar {
     padding: 1rem 0;
@@ -51,10 +67,14 @@ body {
 
 /* Hero Section */
 .hero-wrapper {
-    background: radial-gradient(circle at top right, var(--bg-secondary), var(--bg-main));
+    background: radial-gradient(circle at 10% 20%, rgb(240, 253, 250) 0%, rgb(255, 255, 255) 90%);
     overflow: hidden;
     padding-top: 60px;
     padding-bottom: 80px;
+}
+
+[data-bs-theme="dark"] .hero-wrapper {
+    background: radial-gradient(circle at top right, var(--bg-secondary), var(--bg-main));
 }
 
 .hero-content h1 {
@@ -220,6 +240,58 @@ body {
     transform: scale(1.1);
 }
 
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+    .hero-wrapper {
+        padding-top: 30px;
+        padding-bottom: 50px;
+        text-align: center; 
+    }
+    
+    .hero-content h1 {
+        font-size: 2.5rem;
+    }
+    
+    .hero-content p {
+        font-size: 1.1rem;
+    }
+    
+    /* Center aligning buttons for mobile */
+    .hero-content .d-flex.gap-3 {
+        justify-content: center;
+        flex-direction: column; 
+    }
+    
+    .hero-content .feature-list {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 1rem !important;
+    }
+
+    .hero-image-container {
+        transform: none; /* Remove 3D effect on mobile for better fit */
+        margin-top: 40px;
+    }
+    
+    .hero-image-container:hover {
+        transform: none;
+    }
+
+    .feature-section {
+        padding: 50px 0;
+    }
+    
+    /* Adjust floating bubble position */
+    .hero-image-container .position-absolute {
+        position: relative !important;
+        margin: 10px auto !important;
+        bottom: auto !important;
+        left: auto !important;
+        width: 100%;
+        max-width: none !important;
+        justify-content: center;
+    }
+}
 </style>
 
 <!-- Floating Toggle -->
@@ -228,40 +300,59 @@ body {
 </button>
 
 <script>
-    const toggleBtn = document.getElementById('themeToggle');
-    const icon = toggleBtn.querySelector('i');
-    const html = document.documentElement;
-    
-    // Check local storage
-    const currentTheme = localStorage.getItem('theme') || 'light';
-    html.setAttribute('data-bs-theme', currentTheme);
-    updateIcon(currentTheme);
+        const toggleBtn = document.getElementById('themeToggle');
+        const icon = toggleBtn.querySelector('i');
+        const html = document.documentElement;
+        
+        // Scroll Animation Observer
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+        };
 
-    toggleBtn.addEventListener('click', () => {
-        const theme = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
-        html.setAttribute('data-bs-theme', theme);
-        localStorage.setItem('theme', theme);
-        updateIcon(theme);
-    });
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target); // Only animate once
+                }
+            });
+        }, observerOptions);
 
-    function updateIcon(theme) {
-        if (theme === 'dark') {
-            icon.classList.remove('bi-moon-stars');
-            icon.classList.add('bi-sun');
-        } else {
-            icon.classList.remove('bi-sun');
-            icon.classList.add('bi-moon-stars');
+        document.querySelectorAll('.reveal').forEach(el => {
+            observer.observe(el);
+        });
+        
+        // Check local storage
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        html.setAttribute('data-bs-theme', currentTheme);
+        updateIcon(currentTheme);
+
+        toggleBtn.addEventListener('click', () => {
+            const theme = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-bs-theme', theme);
+            localStorage.setItem('theme', theme);
+            updateIcon(theme);
+        });
+
+        function updateIcon(theme) {
+            if (theme === 'dark') {
+                icon.classList.remove('bi-moon-stars');
+                icon.classList.add('bi-sun');
+            } else {
+                icon.classList.remove('bi-sun');
+                icon.classList.add('bi-moon-stars');
+            }
         }
-    }
-</script>
-
+    </script>
 </style>
 
 <!-- Hero -->
 <div class="hero-wrapper">
     <div class="container">
         <div class="row align-items-center g-5">
-            <div class="col-lg-6 hero-content">
+            <div class="col-lg-6 hero-content reveal">
                 <span class="badge bg-teal-soft text-teal mb-3 px-3 py-2 rounded-pill fw-semibold" style="background:#ccfbf1; color:#0f766e">New V2.0 Released</span>
                 <h1>Manage your school like a modern startup.</h1>
                 <p>
@@ -278,7 +369,7 @@ body {
                     <span><i class="bi bi-check-circle-fill text-teal me-1" style="color:#0f766e"></i> 24/7 Support</span>
                 </div>
             </div>
-            <div class="col-lg-6">
+            <div class="col-lg-6 reveal stagger-2">
                 <div class="hero-image-container">
                      <!-- Accessing static image if available, else placeholder -->
                     <img src="https://ui.shadcn.com/placeholder.svg" style="background: #e2e8f0; min-height: 400px;" alt="School Portal Dashboard" class="hero-image bg-light">
@@ -301,17 +392,17 @@ body {
 <!-- Trust Stats -->
 <div class="trust-section">
     <div class="container">
-        <p class="text-muted text-uppercase fw-semibold letter-spacing-2 mb-4">Trusted by modern educators</p>
+        <p class="text-muted text-uppercase fw-semibold letter-spacing-2 mb-4 reveal">Trusted by modern educators</p>
         <div class="row g-4 justify-content-center">
-            <div class="col-md-3 stat-item">
+            <div class="col-6 col-md-3 stat-item reveal stagger-1">
                 <h3>50+</h3>
                 <p class="text-muted">Schools Onboarded</p>
             </div>
-            <div class="col-md-3 stat-item">
+            <div class="col-6 col-md-3 stat-item reveal stagger-2">
                 <h3>10k+</h3>
                 <p class="text-muted">Students Managed</p>
             </div>
-            <div class="col-md-3 stat-item">
+            <div class="col-6 col-md-3 stat-item reveal stagger-3">
                 <h3>99.9%</h3>
                 <p class="text-muted">Uptime Guarantee</p>
             </div>
@@ -322,14 +413,14 @@ body {
 <!-- Features -->
 <div class="feature-section" id="features">
     <div class="container">
-        <div class="text-center mb-5" style="max-width: 700px; margin: 0 auto;">
+        <div class="text-center mb-5 reveal" style="max-width: 700px; margin: 0 auto;">
             <h2 class="fw-bold display-6 mb-3">Everything you need to run your school</h2>
             <p class="text-muted lead">Replace messy spreadsheets and disconnected tools with one cohesive operating system.</p>
         </div>
 
         <div class="row g-4">
             <!-- Feature 1 -->
-            <div class="col-md-4">
+            <div class="col-md-4 reveal stagger-1">
                 <div class="feature-box">
                     <div class="feature-icon">
                         <i class="bi bi-mortarboard"></i>
@@ -343,7 +434,7 @@ body {
             </div>
 
             <!-- Feature 2 -->
-            <div class="col-md-4">
+            <div class="col-md-4 reveal stagger-2">
                 <div class="feature-box">
                     <div class="feature-icon">
                         <i class="bi bi-wallet2"></i>
@@ -357,7 +448,7 @@ body {
             </div>
 
             <!-- Feature 3 -->
-            <div class="col-md-4">
+            <div class="col-md-4 reveal stagger-3">
                 <div class="feature-box">
                     <div class="feature-icon">
                         <i class="bi bi-people"></i>
@@ -370,7 +461,7 @@ body {
                 </div>
             </div>
              <!-- Feature 4 -->
-             <div class="col-md-4">
+             <div class="col-md-4 reveal stagger-1">
                 <div class="feature-box">
                     <div class="feature-icon">
                         <i class="bi bi-chat-square-text"></i>
@@ -384,7 +475,7 @@ body {
             </div>
 
              <!-- Feature 5 -->
-             <div class="col-md-4">
+             <div class="col-md-4 reveal stagger-2">
                 <div class="feature-box">
                     <div class="feature-icon">
                         <i class="bi bi-clock-history"></i>
@@ -398,7 +489,7 @@ body {
             </div>
 
              <!-- Feature 6 -->
-             <div class="col-md-4">
+             <div class="col-md-4 reveal stagger-3">
                 <div class="feature-box">
                     <div class="feature-icon">
                         <i class="bi bi-shield-check"></i>
@@ -415,8 +506,8 @@ body {
 </div>
 
 <!-- CTA -->
-<div class="container pb-5 mb-5">
-    <div class="bg-dark text-white rounded-4 p-5 text-center position-relative overflow-hidden" 
+<div class="container pb-5 mb-5 reveal">
+    <div class="bg-dark text-white rounded-4 p-4 p-md-5 text-center position-relative overflow-hidden" 
          style="background: linear-gradient(135deg, #0f3b57, #026e56);">
         <div class="position-relative z-1">
             <h2 class="display-5 fw-bold mb-4">Ready to transform your school?</h2>
