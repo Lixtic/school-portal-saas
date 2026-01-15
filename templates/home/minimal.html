@@ -65,6 +65,23 @@
         background: var(--text-main);
         color: white;
     }
+    .hover-scale {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        cursor: pointer;
+    }
+    .hover-scale:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
+    .tracking-wider {
+        letter-spacing: 0.1em;
+    }
+    .tracking-wide {
+        letter-spacing: 0.05em;
+    }
+    .cursor-pointer {
+        cursor: pointer;
+    }
 </style>
 
 <div class="d-flex align-items-center justify-content-center min-vh-100 py-5">
@@ -105,26 +122,26 @@
                 <div class="mt-5 text-center">
                      <p class="text-uppercase small fw-bold text-muted tracking-wider mb-4">Our Programs</p>
                      <div class="row g-3 justify-content-center">
-                        <div class="col-3">
-                            <div class="minimal-card p-3 h-100 hover-scale cursor-pointer" title="Early Years">
+                        <div class="col-6 col-sm-3">
+                            <div class="minimal-card p-3 h-100 hover-scale" title="Early Years">
                                 <span class="d-block fs-4 mb-2">🎈</span>
                                 <span class="d-block small fw-bold">Early Years</span>
                             </div>
                         </div>
-                        <div class="col-3">
-                            <div class="minimal-card p-3 h-100 hover-scale cursor-pointer" title="Primary">
+                        <div class="col-6 col-sm-3">
+                            <div class="minimal-card p-3 h-100 hover-scale" title="Primary">
                                 <span class="d-block fs-4 mb-2">📚</span>
                                 <span class="d-block small fw-bold">Primary</span>
                             </div>
                         </div>
-                        <div class="col-3">
-                            <div class="minimal-card p-3 h-100 hover-scale cursor-pointer" title="Middle School">
+                        <div class="col-6 col-sm-3">
+                            <div class="minimal-card p-3 h-100 hover-scale" title="Middle School">
                                 <span class="d-block fs-4 mb-2">🔬</span>
                                 <span class="d-block small fw-bold">JHS</span>
                             </div>
                         </div>
-                        <div class="col-3">
-                            <div class="minimal-card p-3 h-100 hover-scale cursor-pointer" title="High School">
+                        <div class="col-6 col-sm-3">
+                            <div class="minimal-card p-3 h-100 hover-scale" title="High School">
                                 <span class="d-block fs-4 mb-2">🎓</span>
                                 <span class="d-block small fw-bold">SHS</span>
                             </div>
@@ -141,19 +158,29 @@
                     <div class="row g-2">
                         {% for img in gallery_images|slice:":4" %}
                         <div class="col-6">
-                            <div class="rounded-4 overflow-hidden shadow-sm ratio ratio-16x9">
+                            <div class="rounded-4 overflow-hidden shadow-sm ratio ratio-16x9 hover-scale">
                                 <img src="{{ img.image.url }}" class="w-100 h-100 object-fit-cover" alt="{{ img.title }}">
                             </div>
                         </div>
                         {% empty %}
                         <div class="col-6">
                             <div class="rounded-4 overflow-hidden shadow-sm ratio ratio-16x9">
-                                <img src="https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=400&q=60" class="w-100 h-100 object-fit-cover">
+                                <img src="https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=400&q=60" class="w-100 h-100 object-fit-cover" alt="Campus">
                             </div>
                         </div>
                         <div class="col-6">
                             <div class="rounded-4 overflow-hidden shadow-sm ratio ratio-16x9">
-                                <img src="https://images.unsplash.com/photo-1544531838-3a272333d0d9?auto=format&fit=crop&w=400&q=60" class="w-100 h-100 object-fit-cover">
+                                <img src="https://images.unsplash.com/photo-1544531838-3a272333d0d9?auto=format&fit=crop&w=400&q=60" class="w-100 h-100 object-fit-cover" alt="Library">
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="rounded-4 overflow-hidden shadow-sm ratio ratio-16x9">
+                                <img src="https://images.unsplash.com/photo-1577896335142-152ba94b0c79?auto=format&fit=crop&w=400&q=60" class="w-100 h-100 object-fit-cover" alt="Sports">
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="rounded-4 overflow-hidden shadow-sm ratio ratio-16x9">
+                                <img src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=400&q=60" class="w-100 h-100 object-fit-cover" alt="Classroom">
                             </div>
                         </div>
                         {% endfor %}

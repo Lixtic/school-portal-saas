@@ -65,6 +65,15 @@
         background: rgba(var(--primary-rgb), 0.1);
         color: var(--primary-color);
     }
+    .hover-shadow {
+        transition: box-shadow 0.3s ease;
+    }
+    .hover-shadow:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15) !important;
+    }
+    .transition-all {
+        transition: all 0.3s ease;
+    }
 </style>
 
 <div class="row g-0 bg-white shadow-sm rounded-4 overflow-hidden" style="min-height: 80vh;">
@@ -203,22 +212,32 @@
                 <h5 class="fw-bold text-dark mb-0">Virtual Campus Tour</h5>
                 <a href="#" class="btn btn-sm btn-outline-secondary">View Gallery</a>
             </div>
-            <div class="row g-2">
+            <div class="row g-3">
                 {% for img in gallery_images|slice:":4" %}
                 <div class="col-md-3 col-6">
-                    <div class="ratio ratio-4x3">
-                        <img src="{{ img.image.url }}" class="w-100 h-100 object-fit-cover rounded border" alt="{{ img.title }}">
+                    <div class="ratio ratio-4x3 rounded overflow-hidden">
+                        <img src="{{ img.image.url }}" class="w-100 h-100 object-fit-cover border" alt="{{ img.title }}" style="transition: transform 0.3s ease;">
                     </div>
                 </div>
                 {% empty %}
                 <div class="col-md-3 col-6">
                      <div class="ratio ratio-4x3 bg-light rounded border d-flex align-items-center justify-content-center">
-                        <i class="fas fa-image text-muted"></i>
+                        <i class="fas fa-image text-muted fa-2x"></i>
                     </div>
                 </div>
                 <div class="col-md-3 col-6">
                      <div class="ratio ratio-4x3 bg-light rounded border d-flex align-items-center justify-content-center">
-                        <i class="fas fa-image text-muted"></i>
+                        <i class="fas fa-image text-muted fa-2x"></i>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                     <div class="ratio ratio-4x3 bg-light rounded border d-flex align-items-center justify-content-center">
+                        <i class="fas fa-image text-muted fa-2x"></i>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                     <div class="ratio ratio-4x3 bg-light rounded border d-flex align-items-center justify-content-center">
+                        <i class="fas fa-image text-muted fa-2x"></i>
                     </div>
                 </div>
                 {% endfor %}
