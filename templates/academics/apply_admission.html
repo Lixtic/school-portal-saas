@@ -3,28 +3,100 @@
 {% load crispy_forms_tags %}
 
 {% block content %}
+<style>
+    .theme-switch {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1200;
+    }
+    .theme-switch .btn {
+        border-radius: 999px;
+        padding: 10px 14px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    }
+    [data-bs-theme="dark"] .theme-switch .btn {
+        background: #1f2937;
+        color: #e2e8f0;
+        border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+    }
+    .muted-card {
+        background: var(--surface-card);
+        border: 1px solid rgba(0,0,0,0.06);
+    }
+    [data-bs-theme="dark"] .muted-card { border-color: rgba(255,255,255,0.08); }
+    .pill-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(var(--primary-rgb), 0.08);
+        color: var(--primary-color);
+        font-weight: 700;
+        letter-spacing: 0.04em;
+    }
+    [data-bs-theme="dark"] .pill-badge {
+        background: rgba(255,255,255,0.06);
+        color: #e2e8f0;
+    }
+    .info-banner {
+        background: rgba(var(--primary-rgb), 0.08);
+        border: 1px solid rgba(var(--primary-rgb), 0.12);
+        border-radius: 16px;
+    }
+    [data-bs-theme="dark"] .info-banner {
+        background: rgba(255,255,255,0.05);
+        border-color: rgba(255,255,255,0.08);
+    }
+    .form-control, .form-select, textarea {
+        background: var(--surface-card);
+        border-color: rgba(0,0,0,0.1);
+        color: var(--text-main);
+    }
+    [data-bs-theme="dark"] .form-control,
+    [data-bs-theme="dark"] .form-select,
+    [data-bs-theme="dark"] textarea {
+        background: #0f172a;
+        border-color: rgba(255,255,255,0.12);
+        color: #e2e8f0;
+    }
+    [data-bs-theme="dark"] .form-control:focus,
+    [data-bs-theme="dark"] .form-select:focus,
+    [data-bs-theme="dark"] textarea:focus {
+        box-shadow: 0 0 0 0.25rem rgba(76, 201, 240, 0.2);
+    }
+</style>
+
+<div class="theme-switch">
+    <button type="button" class="btn btn-light d-flex align-items-center gap-2" data-theme-toggle>
+        <i class="fas fa-moon theme-toggle-icon"></i>
+        <span class="small fw-semibold theme-toggle-text">Dark Mode</span>
+    </button>
+</div>
+
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <!-- Header -->
             <div class="text-center mb-5">
                 {% if school_info.logo %}
-                <img src="{{ school_info.logo.url }}" alt="{{ school_info.name }}" class="mb-4" style="max-height: 100px;">
+                <img src="{{ school_info.logo.url }}" alt="{{ school_info.name }}" class="mb-4" style="max-height: 100px; filter: drop-shadow(0 10px 30px rgba(0,0,0,0.12));">
                 {% endif %}
+                <div class="pill-badge mb-3"><i class="fas fa-file-alt"></i> Admission</div>
                 <h1 class="display-5 fw-bold mb-3">Apply for Admission</h1>
                 <p class="lead text-muted">Join {{ school_info.name }} and start your journey to excellence</p>
             </div>
 
             <!-- Application Form -->
-            <div class="card border-0 shadow-sm">
+            <div class="card border-0 shadow-sm muted-card">
                 <div class="card-body p-5">
-                    <div class="alert alert-info border-0 mb-4">
-                        <div class="d-flex align-items-start">
-                            <i class="fas fa-info-circle me-3 mt-1"></i>
-                            <div>
-                                <h6 class="fw-bold mb-2">Application Process</h6>
-                                <p class="small mb-0">Please fill out the form below to submit your admission application. Our admissions team will review your application and contact you within 3-5 business days.</p>
-                            </div>
+                    <div class="info-banner p-3 mb-4 d-flex align-items-start gap-3">
+                        <i class="fas fa-info-circle mt-1 text-primary"></i>
+                        <div>
+                            <h6 class="fw-bold mb-2">Application Process</h6>
+                            <p class="small mb-0">Please fill out the form below to submit your admission application. Our admissions team will review your application and contact you within 3-5 business days.</p>
                         </div>
                     </div>
 
