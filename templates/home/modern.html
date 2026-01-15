@@ -414,6 +414,7 @@
         input.value = '';
 
         try {
+            console.log('Sending request to:', '{% url "academics:admissions_assistant" %}');
             const res = await fetch('{% url "academics:admissions_assistant" %}', {
                 method: 'POST',
                 headers: {
@@ -422,9 +423,17 @@
                 },
                 body: JSON.stringify({ question }),
             });
+            
+            console.log('Response status:', res.status);
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
+            }
+            
             const data = await res.json();
-            appendBubble(data.answer || 'Sorry, I could not process that right now.', 'bot');
+            console.log('Response data:', data);
+            appendBubble(data.answer || data.error || 'Sorry, I could not process that right now.', 'bot');
         } catch (err) {
+            console.error('Chatbot error:', err);
             appendBubble('Network issue. Please try again.', 'bot');
         }
     });

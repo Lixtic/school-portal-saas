@@ -162,14 +162,25 @@ def admissions_assistant(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Invalid request'}, status=405)
 
-    data = request.POST or request.body
     try:
-        payload = request.POST.dict() if request.POST else json.loads(request.body.decode('utf-8'))
-    except Exception:
-        payload = {}
+        # Parse request body
+        if request.content_type == 'application/json':
+            payload = json.loads(request.body.decode('utf-8'))
+        else:
+            payload = request.POST.dict()
+    except Exception as e:
+        return JsonResponse({'error': 'Invalid payload', 'details': str(e)}, status=400)
 
-    question = (payload.get('question') or '').lower()
-    school_info = SchoolInfo.objects.first()
+    question = (payload.get('question') or '').lower().strip()
+    
+    if not question:
+        return JsonResponse({'answer': 'Please ask a question about admissions, fees, or term dates.'})
+
+    # Safely get school info
+    try:
+        school_info = SchoolInfo.objects.first()
+    except Exception:
+        school_info = None
 
     faq = [
         (('fee', 'tuition', 'fees', 'payment'), "Our fees vary by class. Please see the fee structure shared during enrollment or ask which class you're interested in."),
