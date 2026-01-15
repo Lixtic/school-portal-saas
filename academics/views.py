@@ -141,6 +141,20 @@ def gallery_view(request):
     return render(request, 'gallery.html', context)
 
 
+def activities_public(request):
+    activities = []
+    try:
+        activities = Activity.objects.filter(is_active=True).order_by('-date')
+    except ProgrammingError:
+        messages.warning(request, 'Activities are not available yet. Please run tenant migrations to enable this page.')
+
+    context = {
+        'activities': activities,
+        'school_info': SchoolInfo.objects.first(),
+    }
+    return render(request, 'academics/activities_public.html', context)
+
+
 
 @login_required
 def manage_activities(request):

@@ -4,6 +4,7 @@ from . import views
 app_name = 'academics'
 
 urlpatterns = [
+    path('activities/', views.activities_public, name='activities'),
     path('activities/manage/', views.manage_activities, name='manage_activities'),
     path('classes/manage/', views.manage_classes, name='manage_classes'),
     path('gallery/', views.gallery_view, name='gallery'),

@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    .theme-switch {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1200;
+    }
+    .theme-switch .btn {
+        border-radius: 999px;
+        padding: 10px 14px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    }
+    [data-bs-theme="dark"] .theme-switch .btn {
+        background: #1f2937;
+        color: #e2e8f0;
+        border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+    }
+    .pill-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(var(--primary-rgb), 0.08);
+        color: var(--primary-color);
+        font-weight: 700;
+        letter-spacing: 0.04em;
+    }
+    [data-bs-theme="dark"] .pill-badge {
+        background: rgba(255,255,255,0.06);
+        color: #e2e8f0;
+    }
+    .muted-card {
+        background: var(--surface-card);
+        border: 1px solid rgba(0,0,0,0.06);
+        border-radius: 18px;
+    }
+    [data-bs-theme="dark"] .muted-card { border-color: rgba(255,255,255,0.08); }
+    .activity-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(var(--primary-rgb), 0.08);
+        color: var(--primary-color);
+        font-weight: 600;
+    }
+    [data-bs-theme="dark"] .activity-chip { background: rgba(255,255,255,0.06); color: #e2e8f0; }
+    .timeline-dot {
+        width: 14px; height: 14px; border-radius: 50%;
+        background: var(--primary-color);
+        box-shadow: 0 0 0 6px rgba(var(--primary-rgb), 0.12);
+    }
+    .timeline-line { width: 2px; background: rgba(0,0,0,0.08); }
+    [data-bs-theme="dark"] .timeline-line { background: rgba(255,255,255,0.1); }
+    @media (max-width: 767.98px) {
+        .muted-card { border-radius: 16px; }
+        .pill-badge { width: 100%; justify-content: center; }
+        .activity-chip { width: 100%; justify-content: center; }
+    }
+</style>
+
+<div class="theme-switch">
+    <button type="button" class="btn btn-light d-flex align-items-center gap-2" data-theme-toggle>
+        <i class="fas fa-moon theme-toggle-icon"></i>
+        <span class="small fw-semibold theme-toggle-text">Dark Mode</span>
+    </button>
+</div>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <div class="text-center mb-5">
+                {% if school_info and school_info.logo %}
+                <img src="{{ school_info.logo.url }}" alt="{{ school_info.name }}" class="mb-4" style="max-height: 110px; filter: drop-shadow(0 10px 30px rgba(0,0,0,0.12));">
+                {% endif %}
+                <div class="pill-badge mb-3"><i class="fas fa-calendar-check"></i> Activities</div>
+                <h1 class="display-5 fw-bold mb-2">Campus Activities</h1>
+                <p class="lead text-muted">Stay up to date with what is happening around {{ school_info.name|default:"our school" }}.</p>
+            </div>
+
+            {% if activities %}
+            <div class="vstack gap-4">
+                {% for activity in activities %}
+                <div class="muted-card shadow-sm p-4">
+                    <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="timeline-dot"></div>
+                            <div>
+                                <p class="text-uppercase small fw-bold text-primary mb-1" style="letter-spacing: 0.08em;">{{ activity.date|date:"M d, Y" }}</p>
+                                <h4 class="fw-bold mb-1">{{ activity.title }}</h4>
+                                <p class="text-muted mb-2">{{ activity.summary }}</p>
+                                {% if activity.tag %}
+                                <span class="activity-chip"><i class="fas fa-tag"></i> {{ activity.tag }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="muted-card shadow-sm p-5 text-center">
+                <div class="mb-3"><i class="fas fa-calendar-times fa-2x text-muted"></i></div>
+                <h5 class="fw-bold mb-2">No activities yet</h5>
+                <p class="text-muted mb-0">Please check back soon for upcoming events.</p>
+            </div>
+            {% endif %}
+
+            <div class="text-center mt-5">
+                <a href="{% url 'home' %}" class="btn btn-outline-secondary rounded-pill px-4"><i class="fas fa-arrow-left me-2"></i> Back to Home</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
