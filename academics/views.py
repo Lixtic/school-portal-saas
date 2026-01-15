@@ -4,8 +4,10 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.urls import reverse
 import datetime
+import json
 from django.db import connection, ProgrammingError
 from django.db.models import Q, Count
+from django.views.decorators.csrf import csrf_exempt
 from accounts.models import User
 from announcements.models import Announcement
 from .models import Activity, GalleryImage, SchoolInfo, Class, Timetable, ClassSubject, Resource, AcademicYear
@@ -153,6 +155,38 @@ def activities_public(request):
         'school_info': SchoolInfo.objects.first(),
     }
     return render(request, 'academics/activities_public.html', context)
+
+
+@csrf_exempt
+def admissions_assistant(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request'}, status=405)
+
+    data = request.POST or request.body
+    try:
+        payload = request.POST.dict() if request.POST else json.loads(request.body.decode('utf-8'))
+    except Exception:
+        payload = {}
+
+    question = (payload.get('question') or '').lower()
+    school_info = SchoolInfo.objects.first()
+
+    faq = [
+        (('fee', 'tuition', 'fees', 'payment'), "Our fees vary by class. Please see the fee structure shared during enrollment or ask which class you're interested in."),
+        (('term', 'calendar', 'date', 'schedule'), "Terms follow a three-term calendar: First (Sept-Dec), Second (Jan-Apr), Third (May-Jul). Exact dates are in the school calendar."),
+        (('apply', 'enroll', 'admission', 'register'), "You can apply online via the Apply page. Submit student details, parent contact, and prior school info if available."),
+        (('document', 'requirements', 'forms'), "Commonly needed: birth certificate, prior report (if any), passport photo, and completed application form."),
+        (('scholarship', 'discount', 'financial aid'), "Limited scholarships/fee waivers may be available. Please indicate interest in your application or ask admin for current options."),
+        (('contact', 'phone', 'email'), f"You can reach us at {school_info.phone if school_info else 'the school office phone'} or {school_info.email if school_info else 'our email'} for more details."),
+    ]
+
+    answer = "I can help with admissions, fees, and term dates. What would you like to know?"
+    for keywords, response in faq:
+        if any(k in question for k in keywords):
+            answer = response
+            break
+
+    return JsonResponse({'answer': answer})
 
 
 

@@ -1,0 +1,318 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    :root {
+        --playful-yellow: #ffd447;
+        --playful-purple: #7048e8;
+        --playful-cyan: #36cfc9;
+        --playful-pink: #ff6f91;
+    }
+    .playful-hero {
+        position: relative;
+        padding: 80px 0 40px;
+        overflow: hidden;
+        background: #fff;
+    }
+    .shape-dot {
+        position: absolute;
+        width: 14px; height: 14px;
+        border-radius: 50%;
+        opacity: 0.3;
+    }
+    .shape-dot.yellow { background: var(--playful-yellow); }
+    .shape-dot.purple { background: var(--playful-purple); }
+    .shape-dot.cyan { background: var(--playful-cyan); }
+    .shape-dot.pink { background: var(--playful-pink); }
+    .tilt-card {
+        background: #fff;
+        border-radius: 20px;
+        box-shadow: 0 18px 50px rgba(0,0,0,0.1);
+        transform: rotate(-2deg);
+        overflow: hidden;
+        transition: transform 0.3s ease;
+    }
+    .tilt-card img { width: 100%; height: 100%; object-fit: cover; }
+    .tilt-card:hover { transform: rotate(0deg) translateY(-4px); }
+    .hero-title { font-size: 2.8rem; font-weight: 800; letter-spacing: -0.03em; }
+    .playful-button {
+        border: none;
+        border-radius: 999px;
+        padding: 12px 22px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .playful-button:hover { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(0,0,0,0.16); }
+    .cta-primary { background: var(--playful-purple); color: #fff; }
+    .cta-ghost { background: #fff; color: var(--playful-purple); border: 2px solid var(--playful-purple); }
+    .badge-pill { border-radius: 999px; padding: 8px 14px; font-weight: 700; letter-spacing: 0.05em; }
+    .info-card {
+        background: #fff;
+        border-radius: 18px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        padding: 24px;
+        height: 100%;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .info-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,0.12); }
+    .diagonal-section {
+        background: linear-gradient(135deg, #f8f7ff 0%, #fff 60%);
+        border-radius: 26px;
+        padding: 32px;
+        position: relative;
+        overflow: hidden;
+    }
+    .diagonal-section::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(112,72,232,0.08), rgba(54,207,201,0.08));
+        clip-path: polygon(0 0, 75% 0, 55% 100%, 0 100%);
+        opacity: 0.8;
+    }
+    .diagonal-section > * { position: relative; z-index: 1; }
+    .program-pill { display: inline-flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 999px; background: #fff; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+    .program-icon { width: 36px; height: 36px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #fff; }
+    .program-icon.yellow { background: var(--playful-yellow); }
+    .program-icon.purple { background: var(--playful-purple); }
+    .program-icon.cyan { background: var(--playful-cyan); }
+    .program-icon.pink { background: var(--playful-pink); }
+    .tile {
+        border-radius: 18px;
+        padding: 20px;
+        background: #fff;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .tile:hover { transform: translateY(-4px); box-shadow: 0 16px 38px rgba(0,0,0,0.12); }
+    .dot-row span { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    @media (max-width: 991.98px) {
+        .hero-title { font-size: 2.2rem; }
+        .tilt-card { margin-top: 24px; }
+        .diagonal-section { padding: 24px; }
+    }
+    @media (max-width: 767.98px) {
+        .hero-title { font-size: 1.9rem; }
+        .playful-button { width: 100%; text-align: center; }
+        .playful-hero { padding-top: 60px; }
+    }
+    /* Admissions assistant widget */
+    .assistant-launcher { position: fixed; bottom: 20px; right: 20px; z-index: 1200; }
+    .assistant-panel { position: fixed; bottom: 80px; right: 20px; width: 320px; max-width: 90vw; border-radius: 16px; box-shadow: 0 18px 40px rgba(0,0,0,0.18); background: var(--surface-card); border: 1px solid rgba(0,0,0,0.06); display: none; flex-direction: column; overflow: hidden; z-index: 1200; }
+    [data-bs-theme="dark"] .assistant-panel { border-color: rgba(255,255,255,0.08); }
+    .assistant-header { padding: 12px 14px; background: linear-gradient(135deg, var(--primary-brand), var(--secondary-brand)); color: #fff; }
+    .assistant-body { padding: 12px; max-height: 380px; overflow-y: auto; gap: 10px; display: flex; flex-direction: column; }
+    .assistant-bubble { padding: 10px 12px; border-radius: 12px; font-size: 0.95rem; line-height: 1.4; }
+    .assistant-bubble.user { background: rgba(var(--primary-rgb),0.1); align-self: flex-end; }
+    .assistant-bubble.bot { background: var(--surface-bg); border: 1px solid rgba(0,0,0,0.05); }
+    [data-bs-theme="dark"] .assistant-bubble.bot { border-color: rgba(255,255,255,0.08); }
+    .assistant-input { padding: 10px; border-top: 1px solid rgba(0,0,0,0.05); }
+    .assistant-input input { width: 100%; border-radius: 10px; border: 1px solid rgba(0,0,0,0.1); padding: 10px; }
+    [data-bs-theme="dark"] .assistant-input input { background: #0f172a; border-color: rgba(255,255,255,0.12); color: #e2e8f0; }
+</style>
+
+<div class="playful-hero">
+    <span class="shape-dot yellow" style="top: 12%; left: 6%;"></span>
+    <span class="shape-dot purple" style="top: 30%; left: 14%;"></span>
+    <span class="shape-dot cyan" style="top: 18%; right: 10%;"></span>
+    <span class="shape-dot pink" style="bottom: 10%; left: 12%;"></span>
+
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <div class="badge-pill mb-3" style="background: rgba(255,212,71,0.25); color: var(--playful-purple);">Play. Learn. Grow.</div>
+                <h1 class="hero-title mb-3">School of your time</h1>
+                <p class="text-muted lead mb-4">A colorful, joyful space where curiosity meets creativity. Explore programs, meet teachers, and start your journey.</p>
+                <div class="d-flex gap-3 flex-wrap">
+                    <a href="{% url 'academics:apply_admission' %}" class="playful-button cta-primary">Apply Now</a>
+                    <a href="{% url 'academics:about_us' %}" class="playful-button cta-ghost">About Us</a>
+                </div>
+                <div class="dot-row mt-4">
+                    <span style="background: var(--playful-purple);"></span>
+                    <span style="background: var(--playful-yellow);"></span>
+                    <span style="background: var(--playful-cyan);"></span>
+                    <span style="background: var(--playful-pink);"></span>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="tilt-card ratio ratio-4x3">
+                    <img src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=900&q=70" alt="Students" loading="lazy">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row g-4 align-items-center mb-5">
+        <div class="col-lg-6">
+            <div class="diagonal-section shadow-sm">
+                <h3 class="fw-bold mb-3">It is important for us</h3>
+                <p class="text-muted mb-4">Every learner deserves a vibrant, supportive environment. We focus on creativity, collaboration, and hands-on experiences.</p>
+                <div class="d-flex flex-wrap gap-3">
+                    <span class="program-pill"><span class="program-icon yellow"><i class="fas fa-lightbulb"></i></span> Innovation</span>
+                    <span class="program-pill"><span class="program-icon cyan"><i class="fas fa-flask"></i></span> STEM Labs</span>
+                    <span class="program-pill"><span class="program-icon purple"><i class="fas fa-music"></i></span> Arts & Music</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="tile h-100">
+                        <div class="program-icon purple mb-3"><i class="fas fa-user-graduate"></i></div>
+                        <h5 class="fw-bold">Great Teachers</h5>
+                        <p class="text-muted small mb-0">Dedicated mentors guiding every step.</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="tile h-100">
+                        <div class="program-icon yellow mb-3"><i class="fas fa-book"></i></div>
+                        <h5 class="fw-bold">Modern Curriculum</h5>
+                        <p class="text-muted small mb-0">Balanced academics with creative projects.</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="tile h-100">
+                        <div class="program-icon cyan mb-3"><i class="fas fa-hand-holding-heart"></i></div>
+                        <h5 class="fw-bold">Caring Community</h5>
+                        <p class="text-muted small mb-0">A safe space where everyone belongs.</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="tile h-100">
+                        <div class="program-icon pink mb-3"><i class="fas fa-bus"></i></div>
+                        <h5 class="fw-bold">Clubs & Trips</h5>
+                        <p class="text-muted small mb-0">After-school clubs and engaging excursions.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        {% for img in gallery_images|slice:":3" %}
+        <div class="col-md-4">
+            <div class="tile p-0 overflow-hidden">
+                <div class="ratio ratio-4x3">
+                    <img src="{{ img.image.url }}" alt="{{ img.title }}" class="w-100 h-100 object-fit-cover">
+                </div>
+                <div class="p-3">
+                    <h6 class="fw-bold mb-1">{{ img.title }}</h6>
+                    <small class="text-muted">{{ img.get_category_display }}</small>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-md-4">
+            <div class="tile p-0 overflow-hidden">
+                <div class="ratio ratio-4x3">
+                    <img src="https://images.unsplash.com/photo-1544531838-3a272333d0d9?auto=format&fit=crop&w=800&q=70" class="w-100 h-100 object-fit-cover" alt="Library">
+                </div>
+                <div class="p-3">
+                    <h6 class="fw-bold mb-1">Library</h6>
+                    <small class="text-muted">Academics</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="tile p-0 overflow-hidden">
+                <div class="ratio ratio-4x3">
+                    <img src="https://images.unsplash.com/photo-1577896335142-152ba94b0c79?auto=format&fit=crop&w=800&q=70" class="w-100 h-100 object-fit-cover" alt="Sports">
+                </div>
+                <div class="p-3">
+                    <h6 class="fw-bold mb-1">Sports Complex</h6>
+                    <small class="text-muted">Sports</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="tile p-0 overflow-hidden">
+                <div class="ratio ratio-4x3">
+                    <img src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=70" class="w-100 h-100 object-fit-cover" alt="Classroom">
+                </div>
+                <div class="p-3">
+                    <h6 class="fw-bold mb-1">Classroom</h6>
+                    <small class="text-muted">Campus</small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- AI Admissions Assistant -->
+<div class="assistant-launcher">
+    <button type="button" class="btn btn-primary d-flex align-items-center gap-2" id="assistantToggle">
+        <i class="fas fa-robot"></i><span>Admissions Assistant</span>
+    </button>
+</div>
+<div class="assistant-panel" id="assistantPanel" data-no-loader>
+    <div class="assistant-header d-flex justify-content-between align-items-center">
+        <span class="fw-bold">Admissions Assistant</span>
+        <button type="button" class="btn btn-sm btn-light" id="assistantClose">Close</button>
+    </div>
+    <div class="assistant-body" id="assistantBody">
+        <div class="assistant-bubble bot">Hi! I can help with admissions, fees, term dates, and requirements. Ask me anything.</div>
+    </div>
+    <div class="assistant-input">
+        <form id="assistantForm">
+            <input type="text" id="assistantQuestion" name="question" placeholder="Type your question..." required>
+        </form>
+    </div>
+</div>
+
+<script>
+// Admissions assistant frontend
+(function() {
+    const panel = document.getElementById('assistantPanel');
+    const toggle = document.getElementById('assistantToggle');
+    const closeBtn = document.getElementById('assistantClose');
+    const body = document.getElementById('assistantBody');
+    const form = document.getElementById('assistantForm');
+    const input = document.getElementById('assistantQuestion');
+
+    const csrftoken = (name => {
+        const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+        return match ? match[2] : '';
+    })('csrftoken');
+
+    function appendBubble(text, type) {
+        const div = document.createElement('div');
+        div.className = 'assistant-bubble ' + type;
+        div.textContent = text;
+        body.appendChild(div);
+        body.scrollTop = body.scrollHeight;
+    }
+
+    toggle.addEventListener('click', () => { panel.style.display = 'flex'; input.focus(); });
+    closeBtn.addEventListener('click', () => { panel.style.display = 'none'; });
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const question = input.value.trim();
+        if (!question) return;
+        appendBubble(question, 'user');
+        input.value = '';
+
+        try {
+            const res = await fetch('{% url "academics:admissions_assistant" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken,
+                },
+                body: JSON.stringify({ question }),
+            });
+            const data = await res.json();
+            appendBubble(data.answer || 'Sorry, I could not process that right now.', 'bot');
+        } catch (err) {
+            appendBubble('Network issue. Please try again.', 'bot');
+        }
+    });
+})();
+</script>
+{% endblock %}
