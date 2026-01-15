@@ -107,6 +107,21 @@ Public site: `http://localhost:8000/`
 - **`academics.context_processors.school_info`**: Injects `school_name`, `school_logo`, `school_motto`, etc. into all templates. Falls back to `request.tenant.name` if `SchoolInfo` object doesn't exist yet.
 - **`announcements.context_processors.user_notifications`**: Adds unread notifications for authenticated users.
 
+## Public Home Templates
+The system includes 5 professional home page templates in `templates/home/`:
+1. **classic.html** - Sidebar navigation with professional layout (with light mode enhancements)
+2. **modern.html** - Hero-centered design with bold typography
+3. **minimal.html** - Clean, centered-card minimalist approach
+4. **playful.html** - Colorful with decorative shapes and animations
+5. **elegant.html** - Navy/gold professional theme with stats section
+
+All templates include:
+- AI Admissions Assistant widget (24/7 chatbot for enrollment/fees/term dates)
+- Dark/light mode theme switcher
+- Mobile responsive design
+- Integration with `academics.context_processors.school_info`
+- CSRF-protected assistant endpoint at `academics:admissions_assistant`
+
 ## Forms & UI
 - **Crispy Forms**: All forms use `crispy_forms` with Bootstrap 5 theme (`CRISPY_TEMPLATE_PACK = 'bootstrap5'`)
 - **Example**:
