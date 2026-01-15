@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="text-center mb-5">
+                {% if school_info.logo %}
+                <img src="{{ school_info.logo.url }}" alt="{{ school_info.name }}" class="mb-4" style="max-height: 100px;">
+                {% endif %}
+                <h1 class="display-5 fw-bold mb-3">Apply for Admission</h1>
+                <p class="lead text-muted">Join {{ school_info.name }} and start your journey to excellence</p>
+            </div>
+
+            <!-- Application Form -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-5">
+                    <div class="alert alert-info border-0 mb-4">
+                        <div class="d-flex align-items-start">
+                            <i class="fas fa-info-circle me-3 mt-1"></i>
+                            <div>
+                                <h6 class="fw-bold mb-2">Application Process</h6>
+                                <p class="small mb-0">Please fill out the form below to submit your admission application. Our admissions team will review your application and contact you within 3-5 business days.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <!-- Student Information -->
+                        <h5 class="fw-bold mb-3">Student Information</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">First Name <span class="text-danger">*</span></label>
+                                <input type="text" name="first_name" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Last Name <span class="text-danger">*</span></label>
+                                <input type="text" name="last_name" class="form-control" required>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Date of Birth <span class="text-danger">*</span></label>
+                                <input type="date" name="date_of_birth" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Gender <span class="text-danger">*</span></label>
+                                <select name="gender" class="form-select" required>
+                                    <option value="">Choose...</option>
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Grade/Class Applying For <span class="text-danger">*</span></label>
+                            <select name="grade" class="form-select" required>
+                                <option value="">Choose...</option>
+                                <option value="nursery">Nursery</option>
+                                <option value="kindergarten">Kindergarten</option>
+                                <option value="grade1">Grade 1</option>
+                                <option value="grade2">Grade 2</option>
+                                <option value="grade3">Grade 3</option>
+                                <option value="grade4">Grade 4</option>
+                                <option value="grade5">Grade 5</option>
+                                <option value="grade6">Grade 6</option>
+                                <option value="jhs1">JHS 1</option>
+                                <option value="jhs2">JHS 2</option>
+                                <option value="jhs3">JHS 3</option>
+                            </select>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Parent/Guardian Information -->
+                        <h5 class="fw-bold mb-3">Parent/Guardian Information</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Parent/Guardian Name <span class="text-danger">*</span></label>
+                                <input type="text" name="parent_name" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Relationship <span class="text-danger">*</span></label>
+                                <select name="relationship" class="form-select" required>
+                                    <option value="">Choose...</option>
+                                    <option value="father">Father</option>
+                                    <option value="mother">Mother</option>
+                                    <option value="guardian">Guardian</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Phone Number <span class="text-danger">*</span></label>
+                                <input type="tel" name="phone" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Email Address <span class="text-danger">*</span></label>
+                                <input type="email" name="email" class="form-control" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Home Address <span class="text-danger">*</span></label>
+                            <textarea name="address" class="form-control" rows="2" required></textarea>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Additional Information -->
+                        <h5 class="fw-bold mb-3">Additional Information</h5>
+                        <div class="mb-3">
+                            <label class="form-label">Previous School (if any)</label>
+                            <input type="text" name="previous_school" class="form-control">
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Additional Comments or Special Requirements</label>
+                            <textarea name="comments" class="form-control" rows="3"></textarea>
+                        </div>
+
+                        <!-- Submit -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+                            <a href="{% url 'home' %}" class="btn btn-outline-secondary px-5">
+                                <i class="fas fa-arrow-left me-2"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary px-5">
+                                <i class="fas fa-paper-plane me-2"></i> Submit Application
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Contact Info -->
+            <div class="text-center mt-4">
+                <p class="text-muted">
+                    <i class="fas fa-question-circle me-2"></i>
+                    Questions? Contact us at <a href="tel:{{ school_info.phone }}">{{ school_info.phone }}</a> 
+                    or <a href="mailto:{{ school_info.email }}">{{ school_info.email }}</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -11,6 +11,31 @@ from announcements.models import Announcement
 from .models import Activity, GalleryImage, SchoolInfo, Class, Timetable, ClassSubject, Resource, AcademicYear
 from .forms import SchoolInfoForm, GalleryImageForm, ResourceForm
 
+def about_us(request):
+    """Public about us page"""
+    school_info = SchoolInfo.objects.first()
+    activities = Activity.objects.filter(is_active=True).order_by('-date')[:5]
+    
+    context = {
+        'school_info': school_info,
+        'recent_activities': activities,
+    }
+    return render(request, 'academics/about_us.html', context)
+
+def apply_admission(request):
+    """Public admission application page"""
+    school_info = SchoolInfo.objects.first()
+    
+    if request.method == 'POST':
+        # Handle admission form submission
+        messages.success(request, 'Thank you for your interest! We will contact you soon.')
+        return redirect('academics:apply_admission')
+    
+    context = {
+        'school_info': school_info,
+    }
+    return render(request, 'academics/apply_admission.html', context)
+
 @login_required
 def manage_classes(request):
     if request.user.user_type != 'admin':

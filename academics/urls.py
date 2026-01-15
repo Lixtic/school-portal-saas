@@ -14,4 +14,6 @@ urlpatterns = [
     path('timetable/', views.timetable_view, name='timetable'),
     path('timetable/edit/<int:class_id>/', views.edit_timetable, name='edit_timetable'),
     path('global-search/', views.global_search, name='global_search'),
+    path('about/', views.about_us, name='about_us'),
+    path('apply/', views.apply_admission, name='apply_admission'),
 ]
