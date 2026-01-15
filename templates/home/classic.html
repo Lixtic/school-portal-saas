@@ -3,244 +3,339 @@
 
 {% block content %}
 <style>
-    .classic-sidebar {
+    body {
+        background-color: #f5f6fa;
+    }
+    .classic-container {
         background: white;
+        min-height: 90vh;
+        margin: 2rem auto;
+        max-width: 1400px;
+    }
+    .classic-sidebar {
+        background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
         border-right: 1px solid #e9ecef;
-        height: 100%;
+        min-height: 90vh;
+        position: sticky;
+        top: 2rem;
     }
     .school-brand-card {
-        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
         color: white;
         border: none;
-        border-radius: 12px;
+        border-radius: 16px;
         position: relative;
         overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
     }
     .school-brand-card::after {
         content: '';
         position: absolute;
-        top: 0;
-        right: 0;
-        width: 100px;
-        height: 100%;
+        top: -50%;
+        right: -20%;
+        width: 200px;
+        height: 200px;
         background: rgba(255,255,255,0.1);
-        transform: skewX(-15deg) translateX(50px);
+        border-radius: 50%;
     }
     .timeline-item {
-        padding-left: 2rem;
-        border-left: 2px solid #e9ecef;
+        padding-left: 2.5rem;
+        border-left: 3px solid #e9ecef;
         position: relative;
-        padding-bottom: 2rem;
+        padding-bottom: 2.5rem;
+    }
+    .timeline-item:last-child {
+        border-left: none;
+        padding-bottom: 0;
     }
     .timeline-item::before {
         content: '';
         position: absolute;
-        left: -9px;
+        left: -10px;
         top: 0;
-        width: 16px;
-        height: 16px;
+        width: 18px;
+        height: 18px;
         border-radius: 50%;
         background: white;
         border: 4px solid var(--primary-color);
+        box-shadow: 0 0 0 4px white;
     }
     .timeline-date {
-        font-size: 0.85rem;
+        font-size: 0.75rem;
         color: #6c757d;
-        font-weight: 600;
-        margin-bottom: 0.5rem;
+        font-weight: 700;
+        margin-bottom: 0.75rem;
+        letter-spacing: 0.5px;
     }
     .nav-classic .nav-link {
         color: #495057;
         font-weight: 500;
-        padding: 0.75rem 1rem;
-        border-radius: 8px;
-        transition: all 0.2s;
+        padding: 0.85rem 1.25rem;
+        border-radius: 10px;
+        transition: all 0.2s ease;
+        margin-bottom: 0.25rem;
     }
     .nav-classic .nav-link:hover {
-        background: #f8f9fa;
+        background: rgba(var(--primary-rgb), 0.08);
         color: var(--primary-color);
-        transform: translateX(5px);
+        transform: translateX(8px);
     }
     .nav-classic .nav-link.active {
-        background: rgba(var(--primary-rgb), 0.1);
-        color: var(--primary-color);
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: white;
+        box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
     }
     .hover-shadow {
-        transition: box-shadow 0.3s ease;
+        transition: all 0.3s ease;
     }
     .hover-shadow:hover {
-        box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15) !important;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.12) !important;
+        transform: translateY(-3px);
     }
-    .transition-all {
+    .program-box {
         transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    .program-box:hover {
+        background: white !important;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+        transform: translateY(-5px);
+    }
+    .program-box:hover i {
+        transform: scale(1.15);
+        color: var(--primary-color);
+    }
+    .program-box i {
+        transition: all 0.3s ease;
+    }
+    .gallery-item-classic {
+        overflow: hidden;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+    .gallery-item-classic:hover {
+        transform: scale(1.05);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    .gallery-item-classic img {
+        transition: transform 0.4s ease;
+    }
+    .gallery-item-classic:hover img {
+        transform: scale(1.1);
     }
 </style>
 
-<div class="row g-0 bg-white shadow-sm rounded-4 overflow-hidden" style="min-height: 80vh;">
-    <!-- Left Sidebar -->
-    <div class="col-lg-3 bg-light border-end">
-        <div class="p-4 h-100 d-flex flex-column">
-            <!-- School Brand -->
-            <div class="school-brand-card p-4 mb-4 text-center shadow-sm">
-                {% if school_info.logo %}
-                <div class="bg-white p-2 rounded-circle d-inline-block mb-3 shadow-sm">
-                    <img src="{{ school_info.logo.url }}" alt="{{ school_info.name }}" style="height: 64px; width: 64px; object-fit: contain;">
-                </div>
-                {% endif %}
-                <h5 class="fw-bold mb-1">{{ school_info.name }}</h5>
-                <p class="small opacity-75 mb-0">{{ school_info.motto }}</p>
-            </div>
-
-            <!-- Quick Navigation -->
-            <div class="mb-4">
-                <h6 class="text-uppercase text-muted small fw-bold mb-3 px-2">Menu</h6>
-                <nav class="nav flex-column nav-classic gap-1">
-                    {% if user.is_authenticated %}
-                    <a href="{% url 'dashboard' %}" class="nav-link">
-                        <i class="fas fa-th-large me-2"></i> Dashboard
-                    </a>
-                    <a href="#" class="nav-link">
-                        <i class="fas fa-calendar-alt me-2"></i> Timetable
-                    </a>
-                    <a href="#" class="nav-link">
-                        <i class="fas fa-book me-2"></i> Library
-                    </a>
-                    {% else %}
-                    <a href="{% url 'login' %}" class="nav-link active">
-                        <i class="fas fa-sign-in-alt me-2"></i> Login Area
-                    </a>
-                    <a href="#" class="nav-link">
-                        <i class="fas fa-info-circle me-2"></i> About Us
-                    </a>
+<div class="classic-container shadow-lg rounded-4 overflow-hidden">
+    <div class="row g-0">
+        <!-- Left Sidebar -->
+        <div class="col-lg-3 classic-sidebar">
+            <div class="p-4 d-flex flex-column h-100">
+            <div class="p-4 d-flex flex-column h-100">
+                <!-- School Brand -->
+                <div class="school-brand-card p-4 mb-4 text-center">
+                    {% if school_info.logo %}
+                    <div class="bg-white p-3 rounded-circle d-inline-block mb-3 shadow-sm" style="position: relative; z-index: 2;">
+                        <img src="{{ school_info.logo.url }}" alt="{{ school_info.name }}" style="height: 70px; width: 70px; object-fit: contain;">
+                    </div>
                     {% endif %}
-                </nav>
-            </div>
+                    <h5 class="fw-bold mb-1" style="position: relative; z-index: 2;">{{ school_info.name }}</h5>
+                    <p class="small mb-0" style="opacity: 0.9; position: relative; z-index: 2;">{{ school_info.motto }}</p>
+                </div>
 
-            <!-- Contact Info Bottom -->
-            <div class="mt-auto px-2">
-                <div class="p-3 bg-white rounded border">
-                    <p class="small mb-2"><i class="fas fa-phone text-primary me-2"></i> {{ school_info.phone }}</p>
-                    <p class="small mb-0"><i class="fas fa-envelope text-primary me-2"></i> {{ school_info.email }}</p>
+                <!-- Quick Navigation -->
+                <div class="mb-4">
+                    <h6 class="text-uppercase text-muted small fw-bold mb-3 px-2" style="font-size: 0.7rem; letter-spacing: 1px;">Navigation</h6>
+                    <nav class="nav flex-column nav-classic">
+                        {% if user.is_authenticated %}
+                        <a href="{% url 'dashboard' %}" class="nav-link">
+                            <i class="fas fa-th-large me-2"></i> Dashboard
+                        </a>
+                        <a href="#" class="nav-link">
+                            <i class="fas fa-calendar-alt me-2"></i> Timetable
+                        </a>
+                        <a href="#" class="nav-link">
+                            <i class="fas fa-book me-2"></i> Library
+                        </a>
+                        <a href="#" class="nav-link">
+                            <i class="fas fa-users me-2"></i> Community
+                        </a>
+                        {% else %}
+                        <a href="{% url 'login' %}" class="nav-link active">
+                            <i class="fas fa-sign-in-alt me-2"></i> Portal Login
+                        </a>
+                        <a href="#" class="nav-link">
+                            <i class="fas fa-info-circle me-2"></i> About Us
+                        </a>
+                        <a href="#" class="nav-link">
+                            <i class="fas fa-phone-alt me-2"></i> Contact
+                        </a>
+                        {% endif %}
+                    </nav>
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Main Content -->
-    <div class="col-lg-9 p-5">
-        <!-- Academic Programs Quick View (Classic Style) -->
-        <div class="mb-5">
-            <h4 class="fw-bold text-dark mb-4">Academic Programs</h4>
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <div class="p-3 border rounded bg-light text-center h-100">
-                        <i class="fas fa-shapes fa-2x text-primary mb-2"></i>
-                        <h6 class="fw-bold mb-1">Early Years</h6>
-                        <small class="text-muted d-block">Nursery - KG</small>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="p-3 border rounded bg-light text-center h-100">
-                        <i class="fas fa-book-reader fa-2x text-primary mb-2"></i>
-                        <h6 class="fw-bold mb-1">Primary</h6>
-                        <small class="text-muted d-block">Grades 1 - 6</small>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="p-3 border rounded bg-light text-center h-100">
-                        <i class="fas fa-microscope fa-2x text-primary mb-2"></i>
-                        <h6 class="fw-bold mb-1">Middle School</h6>
-                        <small class="text-muted d-block">JHS 1 - 3</small>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="p-3 border rounded bg-light text-center h-100">
-                        <i class="fas fa-graduation-cap fa-2x text-primary mb-2"></i>
-                        <h6 class="fw-bold mb-1">High School</h6>
-                        <small class="text-muted d-block">Arts & Sciences</small>
+                <!-- Contact Info Bottom -->
+                <div class="mt-auto">
+                    <div class="p-3 bg-white rounded-3 border shadow-sm">
+                        <h6 class="text-uppercase small fw-bold mb-3 text-muted" style="font-size: 0.7rem; letter-spacing: 1px;">Contact Us</h6>
+                        <p class="small mb-2"><i class="fas fa-phone text-primary me-2"></i> {{ school_info.phone }}</p>
+                        <p class="small mb-2"><i class="fas fa-envelope text-primary me-2"></i> {{ school_info.email }}</p>
+                        <p class="small mb-0 text-muted"><i class="fas fa-map-marker-alt me-2"></i> {{ school_info.address|truncatewords:5 }}</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="d-flex justify-content-between align-items-center mb-5">
-            <h4 class="fw-bold text-dark mb-0">Latest Updates</h4>
-            <div class="d-flex gap-2">
-                <span class="badge bg-primary rounded-pill px-3 py-2">News</span>
-                <span class="badge bg-light text-dark border rounded-pill px-3 py-2">Events</span>
-            </div>
-        </div>
-
-        <div class="timeline-container ps-2">
-            <!-- Timeline Item Example 1 -->
-            <div class="timeline-item">
-                <div class="timeline-date">TODAY</div>
-                <div class="card border-0 shadow-sm bg-light hover-shadow transition-all">
-                    <div class="card-body">
-                        <h5 class="card-title fw-bold text-primary">Admission Application Opened</h5>
-                        <p class="card-text text-muted">We are now accepting applications for the 2024/2025 academic session. Visit the admission portal to apply.</p>
-                        <a href="#" class="btn btn-sm btn-outline-primary rounded-pill px-4">Apply Now</a>
+        <!-- Main Content -->
+        <div class="col-lg-9 p-5 bg-white">
+            <!-- Academic Programs Quick View -->
+            <div class="mb-5">
+                <div class="d-flex align-items-center mb-4">
+                    <div class="bg-primary rounded me-3" style="width: 5px; height: 36px;"></div>
+                    <h3 class="fw-bold text-dark mb-0">Academic Programs</h3>
+                </div>
+                <div class="row g-3">
+                    <div class="col-lg-3 col-md-6">
+                        <div class="program-box p-4 border rounded-3 bg-light text-center h-100">
+                            <i class="fas fa-shapes fa-3x text-primary mb-3"></i>
+                            <h6 class="fw-bold mb-1">Early Years</h6>
+                            <small class="text-muted d-block">Nursery - KG</small>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="program-box p-4 border rounded-3 bg-light text-center h-100">
+                            <i class="fas fa-book-reader fa-3x text-success mb-3"></i>
+                            <h6 class="fw-bold mb-1">Primary</h6>
+                            <small class="text-muted d-block">Grades 1 - 6</small>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="program-box p-4 border rounded-3 bg-light text-center h-100">
+                            <i class="fas fa-microscope fa-3x text-info mb-3"></i>
+                            <h6 class="fw-bold mb-1">Middle School</h6>
+                            <small class="text-muted d-block">JHS 1 - 3</small>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="program-box p-4 border rounded-3 bg-light text-center h-100">
+                            <i class="fas fa-graduation-cap fa-3x text-danger mb-3"></i>
+                            <h6 class="fw-bold mb-1">High School</h6>
+                            <small class="text-muted d-block">Arts & Sciences</small>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Timeline Item Dynamic -->
-             {% for activity in activities %}
-            <div class="timeline-item">
-                <div class="timeline-date">{{ activity.date|date:"F d, Y"|upper }}</div>
-                <div class="card border-0 shadow-sm hover-shadow transition-all">
-                    <div class="card-body">
-                        <h5 class="card-title fw-bold text-dark">{{ activity.title }}</h5>
-                         <span class="badge bg-secondary mb-2">{{ activity.tag }}</span>
-                        <p class="card-text text-muted">{{ activity.summary }}</p>
-                    </div>
-                </div>
-            </div>
-            {% empty %}
-             <div class="timeline-item border-0">
-                <div class="timeline-date">INFO</div>
-                <div class="p-4 bg-light rounded text-center border border-dashed">
-                    <p class="text-muted mb-0">No upcoming events scheduled at the moment.</p>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-
-        <!-- Virtual Campus Preview (Classic) -->
-        <div class="mt-5 pt-4 border-top">
+            <!-- Latest Updates Section -->
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h5 class="fw-bold text-dark mb-0">Virtual Campus Tour</h5>
-                <a href="#" class="btn btn-sm btn-outline-secondary">View Gallery</a>
+                <div class="d-flex align-items-center">
+                    <div class="bg-primary rounded me-3" style="width: 5px; height: 36px;"></div>
+                    <h3 class="fw-bold text-dark mb-0">Latest Updates</h3>
+                </div>
+                <div class="d-flex gap-2">
+                    <span class="badge bg-primary rounded-pill px-3 py-2">News</span>
+                    <span class="badge bg-light text-dark border rounded-pill px-3 py-2">Events</span>
+                </div>
             </div>
-            <div class="row g-3">
-                {% for img in gallery_images|slice:":4" %}
-                <div class="col-md-3 col-6">
-                    <div class="ratio ratio-4x3 rounded overflow-hidden">
-                        <img src="{{ img.image.url }}" class="w-100 h-100 object-fit-cover border" alt="{{ img.title }}" style="transition: transform 0.3s ease;">
+
+            <div class="timeline-container ps-3 mb-5">,
+            <div class="timeline-container ps-3 mb-5">
+                <!-- Timeline Item Example -->
+                <div class="timeline-item">
+                    <div class="timeline-date">TODAY</div>
+                    <div class="card border-0 shadow-sm hover-shadow">
+                        <div class="card-body p-4">
+                            <h5 class="card-title fw-bold text-primary mb-2">Admissions Now Open</h5>
+                            <p class="card-text text-muted mb-3">We are accepting applications for the 2025/2026 academic session. Join our community of excellence.</p>
+                            <a href="#" class="btn btn-sm btn-primary rounded-pill px-4 shadow-sm">Apply Now</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Timeline Items -->
+                {% for activity in activities %}
+                <div class="timeline-item">
+                    <div class="timeline-date">{{ activity.date|date:"F d, Y"|upper }}</div>
+                    <div class="card border-0 shadow-sm hover-shadow">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-start justify-content-between mb-2">
+                                <h5 class="card-title fw-bold text-dark mb-0">{{ activity.title }}</h5>
+                                <span class="badge bg-primary-subtle text-primary rounded-pill px-3">{{ activity.tag }}</span>
+                            </div>
+                            <p class="card-text text-muted mb-0">{{ activity.summary }}</p>
+                        </div>
                     </div>
                 </div>
                 {% empty %}
-                <div class="col-md-3 col-6">
-                     <div class="ratio ratio-4x3 bg-light rounded border d-flex align-items-center justify-content-center">
-                        <i class="fas fa-image text-muted fa-2x"></i>
-                    </div>
-                </div>
-                <div class="col-md-3 col-6">
-                     <div class="ratio ratio-4x3 bg-light rounded border d-flex align-items-center justify-content-center">
-                        <i class="fas fa-image text-muted fa-2x"></i>
-                    </div>
-                </div>
-                <div class="col-md-3 col-6">
-                     <div class="ratio ratio-4x3 bg-light rounded border d-flex align-items-center justify-content-center">
-                        <i class="fas fa-image text-muted fa-2x"></i>
-                    </div>
-                </div>
-                <div class="col-md-3 col-6">
-                     <div class="ratio ratio-4x3 bg-light rounded border d-flex align-items-center justify-content-center">
-                        <i class="fas fa-image text-muted fa-2x"></i>
+                <div class="timeline-item">
+                    <div class="timeline-date">INFO</div>
+                    <div class="p-4 bg-light rounded-3 text-center border">
+                        <i class="fas fa-calendar-times fa-2x text-muted mb-3"></i>
+                        <p class="text-muted mb-0">No upcoming events scheduled at the moment.</p>
                     </div>
                 </div>
                 {% endfor %}
+            </div>
+
+            <!-- Virtual Campus Preview -->
+            <div class="pt-4 border-top">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-primary rounded me-3" style="width: 5px; height: 36px;"></div>
+                        <h3 class="fw-bold text-dark mb-0">Virtual Campus Tour</h3>
+                    </div>
+                    <a href="#" class="btn btn-outline-primary rounded-pill px-4">View All <i class="fas fa-arrow-right ms-2"></i></a>
+                </div>
+                <div class="row g-3">
+                    {% for img in gallery_images|slice:":4" %}
+                    <div class="col-lg-3 col-md-4 col-6">
+                        <div class="gallery-item-classic ratio ratio-4x3 shadow-sm">
+                            <img src="{{ img.image.url }}" class="w-100 h-100 object-fit-cover" alt="{{ img.title }}">
+                        </div>
+                        <p class="small text-muted mt-2 mb-0 text-center fw-500">{{ img.title }}</p>
+                    </div>
+                    {% empty %}
+                    <div class="col-lg-3 col-md-4 col-6">
+                        <div class="gallery-item-classic ratio ratio-4x3 bg-gradient shadow-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <div class="d-flex align-items-center justify-content-center text-white">
+                                <div class="text-center">
+                                    <i class="fas fa-school fa-3x mb-2 opacity-75"></i>
+                                    <p class="small mb-0 fw-bold">Main Campus</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-4 col-6">
+                        <div class="gallery-item-classic ratio ratio-4x3 bg-gradient shadow-sm" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                            <div class="d-flex align-items-center justify-content-center text-white">
+                                <div class="text-center">
+                                    <i class="fas fa-book-open fa-3x mb-2 opacity-75"></i>
+                                    <p class="small mb-0 fw-bold">Library</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-4 col-6">
+                        <div class="gallery-item-classic ratio ratio-4x3 bg-gradient shadow-sm" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                            <div class="d-flex align-items-center justify-content-center text-white">
+                                <div class="text-center">
+                                    <i class="fas fa-futbol fa-3x mb-2 opacity-75"></i>
+                                    <p class="small mb-0 fw-bold">Sports Complex</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-4 col-6">
+                        <div class="gallery-item-classic ratio ratio-4x3 bg-gradient shadow-sm" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                            <div class="d-flex align-items-center justify-content-center text-white">
+                                <div class="text-center">
+                                    <i class="fas fa-flask fa-3x mb-2 opacity-75"></i>
+                                    <p class="small mb-0 fw-bold">Science Lab</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
         </div>
     </div>
