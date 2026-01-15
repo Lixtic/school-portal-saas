@@ -34,6 +34,8 @@ class SchoolInfo(models.Model):
         ('modern', 'Modern (Hero + Highlights)'),
         ('classic', 'Classic (Sidebar + Info)'),
         ('minimal', 'Minimal (Centered Focus)'),
+        ('playful', 'Playful (Colorful + Shapes)'),
+        ('elegant', 'Elegant (Navy + Gold)'),
     )
     homepage_template = models.CharField(max_length=20, choices=TEMPLATE_CHOICES, default='default')
     

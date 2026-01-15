@@ -95,6 +95,10 @@ def homepage(request):
         return render(request, 'home/classic.html', context)
     elif template_choice == 'minimal':
         return render(request, 'home/minimal.html', context)
+    elif template_choice == 'playful':
+        return render(request, 'home/playful.html', context)
+    elif template_choice == 'elegant':
+        return render(request, 'home/elegant.html', context)
     else:
         # Default View (Restoring original highlights for default)
         highlights = [
