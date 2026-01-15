@@ -78,11 +78,13 @@ def homepage(request):
     ]
 
     hero_images = GalleryImage.objects.all().order_by('-created_at')[:3]
+    gallery_images = GalleryImage.objects.all().order_by('?')[:6]  # Random 6 for the tour hub
 
     context = {
         'activities': activities,
         'highlights': highlights,
         'hero_images': hero_images,
+        'gallery_images': gallery_images,
         'school_info': school_info
     }
 
