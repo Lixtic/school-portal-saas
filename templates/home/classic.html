@@ -3,16 +3,36 @@
 
 {% block content %}
 <style>
+    .theme-switch {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1200;
+    }
+    .theme-switch .btn {
+        border-radius: 999px;
+        padding: 10px 14px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    }
+    [data-bs-theme="dark"] .theme-switch .btn {
+        background: #1f2937;
+        color: #e2e8f0;
+        border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+    }
     .classic-container {
-        background: #f8f9fa;
+        background: var(--surface-bg);
         min-height: 100vh;
     }
     .classic-sidebar {
-        background: white;
-        border-right: 1px solid #dee2e6;
+        background: var(--surface-card);
+        border-right: 1px solid rgba(0,0,0,0.06);
         min-height: 100vh;
         position: sticky;
         top: 0;
+    }
+    [data-bs-theme="dark"] .classic-sidebar {
+        border-color: rgba(255,255,255,0.08);
     }
     .school-brand-card {
         background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
@@ -45,7 +65,7 @@
         justify-content: center;
     }
     .nav-classic .nav-link {
-        color: #495057;
+        color: var(--text-main);
         font-weight: 500;
         padding: 0.875rem 1.25rem;
         border-radius: 10px;
@@ -67,10 +87,14 @@
         width: 20px;
     }
     .contact-card {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        border: 1px solid #dee2e6;
+        background: var(--surface-card);
+        border: 1px solid rgba(0,0,0,0.06);
         border-radius: 12px;
         padding: 1.25rem;
+        color: var(--text-main);
+    }
+    [data-bs-theme="dark"] .contact-card {
+        border-color: rgba(255,255,255,0.08);
     }
     .contact-card p {
         margin-bottom: 0.75rem;
@@ -79,8 +103,8 @@
         margin-bottom: 0;
     }
     .program-badge {
-        background: white;
-        border: 2px solid #e9ecef;
+        background: var(--surface-card);
+        border: 2px solid rgba(0,0,0,0.06);
         border-radius: 12px;
         padding: 1.5rem 1rem;
         text-align: center;
@@ -90,7 +114,7 @@
     }
     .program-badge:hover {
         border-color: var(--primary-color);
-        background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.05), white);
+        background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.06), var(--surface-card));
         transform: translateY(-5px);
         box-shadow: 0 8px 20px rgba(0,0,0,0.1);
     }
@@ -128,8 +152,8 @@
         text-transform: uppercase;
     }
     .timeline-card {
-        background: white;
-        border: 1px solid #e9ecef;
+        background: var(--surface-card);
+        border: 1px solid rgba(0,0,0,0.06);
         border-radius: 12px;
         transition: all 0.3s ease;
     }
@@ -144,11 +168,11 @@
     .section-title {
         font-size: 1.5rem;
         font-weight: 700;
-        color: #212529;
+        color: var(--text-main);
         margin-bottom: 0.5rem;
     }
     .section-subtitle {
-        color: #6c757d;
+        color: var(--text-muted);
         font-size: 0.95rem;
     }
     .gallery-item {
@@ -169,8 +193,8 @@
         transform: scale(1.1);
     }
     .gallery-placeholder {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        border: 2px dashed #dee2e6;
+        background: linear-gradient(135deg, var(--surface-bg) 0%, var(--surface-card) 100%);
+        border: 2px dashed rgba(0,0,0,0.08);
         border-radius: 12px;
         display: flex;
         align-items: center;
@@ -179,7 +203,7 @@
     }
     .gallery-placeholder:hover {
         border-color: var(--primary-color);
-        background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.05), #f8f9fa);
+        background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.06), var(--surface-card));
     }
     .badge-filter {
         cursor: pointer;
@@ -189,6 +213,13 @@
         transform: scale(1.05);
     }
 </style>
+
+<div class="theme-switch">
+    <button type="button" class="btn btn-light d-flex align-items-center gap-2" data-theme-toggle>
+        <i class="fas fa-moon theme-toggle-icon"></i>
+        <span class="small fw-semibold theme-toggle-text">Dark Mode</span>
+    </button>
+</div>
 
 <div class="classic-container">
     <div class="row g-0">

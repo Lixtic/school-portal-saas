@@ -1260,6 +1260,58 @@
             {% endfor %}
         {% endif %}
     </script>
+    <script>
+        // Global theme controller shared by all pages
+        (function() {
+            const root = document.documentElement;
+
+            const syncToggleLabels = (mode) => {
+                document.querySelectorAll('[data-theme-toggle]').forEach(btn => {
+                    const icon = btn.querySelector('.theme-toggle-icon');
+                    const text = btn.querySelector('.theme-toggle-text');
+                    if (icon) icon.className = mode === 'dark' ? 'fas fa-sun theme-toggle-icon' : 'fas fa-moon theme-toggle-icon';
+                    if (text) text.textContent = mode === 'dark' ? 'Light Mode' : 'Dark Mode';
+                });
+            };
+
+            const applyTheme = (mode) => {
+                const theme = mode === 'dark' ? 'dark' : 'light';
+                root.setAttribute('data-bs-theme', theme);
+                document.body.classList.toggle('dark-theme', theme === 'dark');
+                localStorage.setItem('theme', theme);
+                syncToggleLabels(theme);
+            };
+
+            const stored = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const initial = stored || (prefersDark ? 'dark' : 'light');
+            applyTheme(initial);
+
+            window.__setTheme = applyTheme;
+            window.__toggleTheme = () => {
+                const next = root.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+                applyTheme(next);
+                return next;
+            };
+
+            // Auto-sync with system preference when user has no explicit choice
+            if (window.matchMedia) {
+                window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                    const hasManualChoice = !!localStorage.getItem('theme');
+                    if (!hasManualChoice) {
+                        applyTheme(e.matches ? 'dark' : 'light');
+                    }
+                });
+            }
+
+            document.addEventListener('click', (e) => {
+                const toggle = e.target.closest('[data-theme-toggle]');
+                if (!toggle) return;
+                e.preventDefault();
+                window.__toggleTheme();
+            });
+        })();
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <script>
         // Global utility to initialize sortable containers

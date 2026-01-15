@@ -3,12 +3,32 @@
 
 {% block content %}
 <style>
+    .theme-switch {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1200;
+    }
+    .theme-switch .btn {
+        border-radius: 999px;
+        padding: 10px 14px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    }
+    [data-bs-theme="dark"] .theme-switch .btn {
+        background: #1f2937;
+        color: #e2e8f0;
+        border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+    }
     .hero-section {
         background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
         padding: 120px 0 160px;
         clip-path: polygon(0 0, 100% 0, 100% 85%, 0 100%);
         position: relative;
         overflow: hidden;
+    }
+    [data-bs-theme="dark"] .hero-section {
+        background: linear-gradient(135deg, #0f172a 0%, #1f2937 100%);
     }
     .hero-pattern {
         position: absolute;
@@ -32,12 +52,16 @@
         box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     }
     .activity-date-box {
-        background: var(--surface-light);
+        background: var(--surface-card);
         border-radius: 12px;
         min-width: 80px;
         text-align: center;
         padding: 10px;
-        border: 1px solid rgba(0,0,0,0.05);
+        border: 1px solid rgba(0,0,0,0.06);
+    }
+    [data-bs-theme="dark"] .activity-date-box {
+        background: rgba(255,255,255,0.04);
+        border-color: rgba(255,255,255,0.08);
     }
     /* Program Cards */
     .program-card {
@@ -81,6 +105,13 @@
         font-family: inherit;
     }
 </style>
+
+<div class="theme-switch">
+    <button type="button" class="btn btn-light d-flex align-items-center gap-2" data-theme-toggle>
+        <i class="fas fa-moon theme-toggle-icon"></i>
+        <span class="small fw-semibold theme-toggle-text">Dark Mode</span>
+    </button>
+</div>
 
 <div class="container-fluid p-0">
     <!-- Hero Section -->
@@ -293,7 +324,7 @@
                         <p class="card-text text-muted small">{{ activity.summary }}</p>
                     </div>
                     <div class="card-footer bg-transparent border-0 p-4 pt-0">
-                         <a href="{% url 'academics:activities' %}" class="btn btn-link text-decoration-none p-0 fw-bold">Read More <i class="fas fa-arrow-right ms-1"></i></a>
+                         <a href="{% url 'academics:about_us' %}" class="btn btn-link text-decoration-none p-0 fw-bold">Learn More <i class="fas fa-arrow-right ms-1"></i></a>
                     </div>
                 </div>
             </div>
