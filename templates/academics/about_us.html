@@ -2,20 +2,80 @@
 {% load static %}
 
 {% block content %}
+<style>
+    .theme-switch {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1200;
+    }
+    .theme-switch .btn {
+        border-radius: 999px;
+        padding: 10px 14px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    }
+    [data-bs-theme="dark"] .theme-switch .btn {
+        background: #1f2937;
+        color: #e2e8f0;
+        border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+    }
+    .about-hero img {
+        filter: drop-shadow(0 10px 30px rgba(0,0,0,0.12));
+    }
+    .pill-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(var(--primary-rgb), 0.08);
+        color: var(--primary-color);
+        font-weight: 700;
+        letter-spacing: 0.04em;
+    }
+    [data-bs-theme="dark"] .pill-badge {
+        background: rgba(255,255,255,0.06);
+        color: #e2e8f0;
+    }
+    .icon-bubble {
+        width: 80px; height: 80px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(var(--primary-rgb), 0.08);
+    }
+    [data-bs-theme="dark"] .icon-bubble { background: rgba(255,255,255,0.06); }
+    .muted-card {
+        background: var(--surface-card);
+        border: 1px solid rgba(0,0,0,0.06);
+    }
+    [data-bs-theme="dark"] .muted-card { border-color: rgba(255,255,255,0.08); }
+</style>
+
+<div class="theme-switch">
+    <button type="button" class="btn btn-light d-flex align-items-center gap-2" data-theme-toggle>
+        <i class="fas fa-moon theme-toggle-icon"></i>
+        <span class="small fw-semibold theme-toggle-text">Dark Mode</span>
+    </button>
+</div>
+
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-lg-10">
             <!-- Header -->
-            <div class="text-center mb-5">
+            <div class="text-center mb-5 about-hero">
                 {% if school_info.logo %}
                 <img src="{{ school_info.logo.url }}" alt="{{ school_info.name }}" class="mb-4" style="max-height: 120px;">
                 {% endif %}
+                <div class="pill-badge mb-3"><i class="fas fa-school"></i> About</div>
                 <h1 class="display-4 fw-bold mb-3">About {{ school_info.name }}</h1>
                 <p class="lead text-muted">{{ school_info.motto }}</p>
             </div>
 
             <!-- Mission Section -->
-            <div class="card border-0 shadow-sm mb-4">
+            <div class="card border-0 shadow-sm mb-4 muted-card">
                 <div class="card-body p-5">
                     <h2 class="h3 fw-bold mb-4">Our Mission</h2>
                     <p class="text-muted lead">
@@ -29,33 +89,27 @@
             <!-- Why Choose Us -->
             <div class="row g-4 mb-5">
                 <div class="col-md-4">
-                    <div class="card border-0 shadow-sm h-100">
+                    <div class="card border-0 shadow-sm h-100 muted-card">
                         <div class="card-body p-4 text-center">
-                            <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                                <i class="fas fa-chalkboard-teacher fa-2x text-primary"></i>
-                            </div>
+                            <div class="icon-bubble mb-3"><i class="fas fa-chalkboard-teacher fa-2x text-primary"></i></div>
                             <h5 class="fw-bold mb-3">Qualified Teachers</h5>
                             <p class="text-muted">Experienced and dedicated educators committed to student success.</p>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <div class="card border-0 shadow-sm h-100">
+                    <div class="card border-0 shadow-sm h-100 muted-card">
                         <div class="card-body p-4 text-center">
-                            <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                                <i class="fas fa-book-open fa-2x text-success"></i>
-                            </div>
+                            <div class="icon-bubble mb-3"><i class="fas fa-book-open fa-2x text-success"></i></div>
                             <h5 class="fw-bold mb-3">Modern Curriculum</h5>
                             <p class="text-muted">Up-to-date learning materials and teaching methodologies.</p>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <div class="card border-0 shadow-sm h-100">
+                    <div class="card border-0 shadow-sm h-100 muted-card">
                         <div class="card-body p-4 text-center">
-                            <div class="bg-info bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                                <i class="fas fa-graduation-cap fa-2x text-info"></i>
-                            </div>
+                            <div class="icon-bubble mb-3"><i class="fas fa-graduation-cap fa-2x text-info"></i></div>
                             <h5 class="fw-bold mb-3">Proven Results</h5>
                             <p class="text-muted">Track record of academic excellence and student achievement.</p>
                         </div>
@@ -65,7 +119,7 @@
 
             <!-- Recent Activities -->
             {% if recent_activities %}
-            <div class="card border-0 shadow-sm mb-5">
+            <div class="card border-0 shadow-sm mb-5 muted-card">
                 <div class="card-body p-5">
                     <h2 class="h3 fw-bold mb-4">Recent Activities</h2>
                     <div class="list-group list-group-flush">
@@ -86,7 +140,7 @@
             {% endif %}
 
             <!-- Contact Information -->
-            <div class="card border-0 shadow-sm bg-light">
+            <div class="card border-0 shadow-sm muted-card">
                 <div class="card-body p-5">
                     <h2 class="h3 fw-bold mb-4">Get In Touch</h2>
                     <div class="row">

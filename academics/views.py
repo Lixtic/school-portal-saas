@@ -119,19 +119,24 @@ def delete_resource(request, resource_id):
 
 
 def gallery_view(request):
-    images = GalleryImage.objects.all()
-    
-    # Filter by category if requested
     category = request.GET.get('category')
-    if category and category != 'all':
-        images = images.filter(category=category)
-        
     categories = GalleryImage.CATEGORY_CHOICES
-        
+    gallery_error = None
+
+    try:
+        images = GalleryImage.objects.all()
+        if category and category != 'all':
+            images = images.filter(category=category)
+    except ProgrammingError:
+        images = []
+        gallery_error = "Gallery tables are not ready. Please run tenant migrations to enable the gallery."
+        messages.warning(request, gallery_error)
+    
     context = {
         'images': images,
         'categories': categories,
-        'current_category': category
+        'current_category': category,
+        'gallery_error': gallery_error,
     }
     return render(request, 'gallery.html', context)
 
