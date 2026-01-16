@@ -184,18 +184,41 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    line-height: 1;
 }
 
 .metric-icon-wrapper {
     width: 56px;
     height: 56px;
-    border-radius: 18px;
+    border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.4rem;
+    font-size: 1.5rem;
     position: relative;
     overflow: hidden;
+    flex-shrink: 0;
+}
+
+.analytics-tile {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.analytics-tile:hover {
+    transform: translateY(-2px);
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 
 .metric-icon-wrapper::before {
@@ -414,19 +437,19 @@ code {
         font-size: 0.9rem;
     }
     
-    /* Reduce metric card padding */
+    /* Reduce metric card padding on mobile */
     .analytics-tile {
-        padding: 1rem !important;
+        padding: 1.25rem !important;
     }
     
     .metric-value {
-        font-size: 1.8rem;
+        font-size: 2rem;
     }
     
     .metric-icon-wrapper {
-        width: 44px;
-        height: 44px;
-        font-size: 1.1rem;
+        width: 48px;
+        height: 48px;
+        font-size: 1.25rem;
     }
     
     /* Simplify approval pipeline */
@@ -646,17 +669,17 @@ code {
     <!-- Predictive Analytics Tiles -->
     <div class="row g-3 mb-4 desktop-stats-cards">
         <div class="col-md-6 col-xl-3">
-            <div class="glass-card analytics-tile p-4 h-100">
+            <div class="glass-card analytics-tile p-4" style="min-height: 140px;">
                 <div class="d-flex align-items-start justify-content-between mb-3">
-                    <div>
-                        <p class="text-muted mb-1 text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px; font-weight: 600;">Total Schools</p>
+                    <div class="flex-grow-1">
+                        <p class="text-muted mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px; font-weight: 600;">Total Schools</p>
                         <h2 class="metric-value mb-0">{{ schools_count }}</h2>
                     </div>
                     <div class="metric-icon-wrapper" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.05));">
                         <i class="bi bi-building text-success"></i>
                     </div>
                 </div>
-                <div class="d-flex align-items-center gap-2 text-success">
+                <div class="d-flex align-items-center gap-2 text-success mt-auto">
                     <i class="bi bi-arrow-up-right"></i>
                     <small class="fw-semibold">All time</small>
                 </div>
@@ -664,17 +687,17 @@ code {
         </div>
         
         <div class="col-md-6 col-xl-3">
-            <div class="glass-card analytics-tile p-4 h-100">
+            <div class="glass-card analytics-tile p-4" style="min-height: 140px;">
                 <div class="d-flex align-items-start justify-content-between mb-3">
-                    <div>
-                        <p class="text-muted mb-1 text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px; font-weight: 600;">Active</p>
+                    <div class="flex-grow-1">
+                        <p class="text-muted mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px; font-weight: 600;">Active</p>
                         <h2 class="metric-value mb-0">{{ active_count }}</h2>
                     </div>
                     <div class="metric-icon-wrapper" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.05));">
                         <i class="bi bi-activity text-primary"></i>
                     </div>
                 </div>
-                <div class="d-flex align-items-center gap-2 text-primary">
+                <div class="d-flex align-items-center gap-2 text-primary mt-auto">
                     <span class="status-indicator bg-primary"></span>
                     <small class="fw-semibold">Live tenants</small>
                 </div>
@@ -682,17 +705,17 @@ code {
         </div>
         
         <div class="col-md-6 col-xl-3">
-            <div class="glass-card analytics-tile p-4 h-100">
+            <div class="glass-card analytics-tile p-4" style="min-height: 140px;">
                 <div class="d-flex align-items-start justify-content-between mb-3">
-                    <div>
-                        <p class="text-muted mb-1 text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px; font-weight: 600;">On Trial</p>
+                    <div class="flex-grow-1">
+                        <p class="text-muted mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px; font-weight: 600;">On Trial</p>
                         <h2 class="metric-value mb-0">{{ trial_count }}</h2>
                     </div>
                     <div class="metric-icon-wrapper" style="background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.05));">
                         <i class="bi bi-hourglass-split text-warning"></i>
                     </div>
                 </div>
-                <div class="d-flex align-items-center gap-2 text-warning">
+                <div class="d-flex align-items-center gap-2 text-warning mt-auto">
                     <i class="bi bi-clock-history"></i>
                     <small class="fw-semibold">Evaluation mode</small>
                 </div>
@@ -700,17 +723,17 @@ code {
         </div>
         
         <div class="col-md-6 col-xl-3">
-            <div class="glass-card analytics-tile p-4 h-100">
+            <div class="glass-card analytics-tile p-4" style="min-height: 140px;">
                 <div class="d-flex align-items-start justify-content-between mb-3">
-                    <div>
-                        <p class="text-muted mb-1 text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px; font-weight: 600;">Inactive</p>
+                    <div class="flex-grow-1">
+                        <p class="text-muted mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px; font-weight: 600;">Inactive</p>
                         <h2 class="metric-value mb-0">{{ inactive_count }}</h2>
                     </div>
                     <div class="metric-icon-wrapper" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.05));">
                         <i class="bi bi-slash-circle text-danger"></i>
                     </div>
                 </div>
-                <div class="d-flex align-items-center gap-2 text-danger">
+                <div class="d-flex align-items-center gap-2 text-danger mt-auto">
                     <i class="bi bi-pause-circle"></i>
                     <small class="fw-semibold">Paused</small>
                 </div>
