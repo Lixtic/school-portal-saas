@@ -11,6 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from accounts.models import User
 from announcements.models import Announcement
 from .models import Activity, GalleryImage, SchoolInfo, Class, Timetable, ClassSubject, Resource, AcademicYear
+from students.models import Student, Attendance, Grade
 from .forms import SchoolInfoForm, GalleryImageForm, ResourceForm
 
 def about_us(request):
@@ -296,6 +297,24 @@ def copilot_assistant(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Invalid request'}, status=405)
 
+    def violates_school_policy(text: str) -> bool:
+        if not text:
+            return False
+        lowered = text.lower()
+        banned_terms = [
+            # Violence / weapons
+            'kill', 'murder', 'suicide', 'bomb', 'shoot', 'stab', 'weapon',
+            # Sexual content
+            'sex', 'porn', 'explicit', 'nsfw', 'nude', 'onlyfans',
+            # Self-harm / harm
+            'self-harm', 'self harm', 'hurt myself', 'cutting',
+            # Hate / harassment
+            'hate crime', 'racial slur', 'racist', 'homophobic', 'transphobic',
+            # Drugs / illicit
+            'cocaine', 'heroin', 'meth', 'lsd', 'ecstasy', 'fentanyl', 'weed', 'marijuana', 'ganja', 'vape',
+        ]
+        return any(term in lowered for term in banned_terms)
+
     try:
         if request.content_type == 'application/json':
             payload = json.loads(request.body.decode('utf-8'))
@@ -313,6 +332,9 @@ def copilot_assistant(request):
 
     print(f"[COPILOT] Role: {user_role}, Question: {question}")
 
+    if violates_school_policy(question):
+        return HttpResponse('This assistant cannot discuss that topic. Please ask about schoolwork, schedules, grades, or fees.', content_type='text/plain; charset=utf-8', status=400)
+
     # Guardrail: require role before continuing
     try:
         school_info = SchoolInfo.objects.first()
@@ -325,6 +347,64 @@ def copilot_assistant(request):
 
     if not question:
         return HttpResponse('Ask me anything about your classes, calendar, grades, fees, or school updates.', content_type='text/plain; charset=utf-8')
+
+    def build_data_snapshot():
+        if not request.user.is_authenticated:
+            return ""
+
+        snapshot_lines = []
+
+        try:
+            if user_role == 'student':
+                student = Student.objects.select_related('current_class', 'user').filter(user=request.user).first()
+                if student:
+                    snapshot_lines.append(f"Student: {student.user.get_full_name()} ({student.admission_number})")
+                    snapshot_lines.append(f"Class: {student.current_class.name if student.current_class else 'Unassigned'}")
+
+                    recent_att = Attendance.objects.filter(student=student).order_by('-date')[:5]
+                    if recent_att:
+                        att_lines = [f"{a.date}: {a.status}" + (f" ({a.remarks})" if a.remarks else '') for a in recent_att]
+                        snapshot_lines.append("Recent Attendance: " + " | ".join(att_lines))
+
+                    current_year = AcademicYear.objects.filter(is_current=True).first()
+                    recent_grades = Grade.objects.filter(student=student)
+                    if current_year:
+                        recent_grades = recent_grades.filter(academic_year=current_year)
+                    recent_grades = recent_grades.select_related('subject').order_by('-updated_at')[:5]
+                    if recent_grades:
+                        grade_lines = [f"{g.subject.name} ({g.term}): {g.total_score} ({g.remarks})" for g in recent_grades]
+                        snapshot_lines.append("Recent Grades: " + " | ".join(grade_lines))
+
+            if user_role == 'parent':
+                from parents.models import Parent
+                parent = Parent.objects.select_related('user').prefetch_related('children').filter(user=request.user).first()
+                if parent:
+                    child_lines = []
+                    for child in parent.children.all():
+                        line = f"{child.user.get_full_name()} ({child.admission_number})"
+                        recent_att = Attendance.objects.filter(student=child).order_by('-date')[:3]
+                        if recent_att:
+                            att_bits = [f"{a.date}: {a.status}" for a in recent_att]
+                            line += " | Attendance: " + "; ".join(att_bits)
+                        recent_grades = Grade.objects.filter(student=child).select_related('subject').order_by('-updated_at')[:3]
+                        if recent_grades:
+                            grade_bits = [f"{g.subject.name} {g.term}: {g.total_score} ({g.remarks})" for g in recent_grades]
+                            line += " | Grades: " + "; ".join(grade_bits)
+                        child_lines.append(line)
+                    if child_lines:
+                        snapshot_lines.append("Children: " + " || ".join(child_lines))
+
+            if user_role in ['teacher', 'admin']:
+                # Provide minimal context without exposing other users' PII
+                current_year = AcademicYear.objects.filter(is_current=True).first()
+                if current_year:
+                    snapshot_lines.append(f"Current academic year: {current_year.name}")
+        except Exception as ctx_err:
+            print(f"[COPILOT] Data snapshot error: {ctx_err}")
+
+        return "\n".join(snapshot_lines)
+
+    data_snapshot = build_data_snapshot()
 
     school_context = f"""
 School Name: {school_info.name if school_info else 'Unknown School'}
@@ -355,10 +435,12 @@ Operational Guardrails:
 - Privacy: Never disclose one student’s data to another student or unauthorized parent. Keep answers scoped to the asking user.
 - Accuracy: If information is not in the known school context, say you do not know and offer to connect to staff.
 - Tone: Professional, encouraging, and supportive. Avoid robotic or overly formal language.
+- Safety: Decline and redirect any violent, sexual, self-harm, hate, or illicit-drug content; keep responses appropriate for K-12.
 
 Context Initialization:
 - The user role is {user_role}. If context is insufficient, ask for clarification briefly.
 - School context: {school_context}
+- Data snapshot (only for authorized users): {data_snapshot if data_snapshot else 'None'}
 """
 
     from django.conf import settings

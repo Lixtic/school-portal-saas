@@ -1119,7 +1119,11 @@
             <button type="button" class="btn btn-light btn-sm" id="copilotClose">Close</button>
         </div>
         <div class="copilot-body" id="copilotBody">
-            <div class="copilot-bubble bot">Hi! I’m your Omni-School Copilot. Ask me about classes, attendance, fees, events, or get role-based help.</div>
+            {% if request.user.is_authenticated %}
+            <div class="copilot-bubble bot">Hi {{ request.user.first_name|default:"there" }}! I’m your Omni-School Copilot. I can help with your {{ request.user.user_type|default:"account" }} tasks—ask about classes, attendance, grades, fees, or events.</div>
+            {% else %}
+            <div class="copilot-bubble bot">Hi! I’m your Omni-School Copilot. Ask me about admissions, programs, schedules, or fees.</div>
+            {% endif %}
         </div>
         <div class="copilot-input">
             <form id="copilotForm" data-no-loader>
