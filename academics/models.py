@@ -89,6 +89,49 @@ class SchoolInfo(models.Model):
             # If valid, just update the first one instead of creating new
             self.pk = SchoolInfo.objects.first().pk
         super().save(*args, **kwargs)
+    
+    def __getattribute__(self, name):
+        """Safely return attributes with defaults for new customization fields"""
+        try:
+            return super().__getattribute__(name)
+        except AttributeError:
+            # Provide defaults for fields that might not exist yet (pre-migration)
+            defaults = {
+                'hero_title': '',
+                'hero_subtitle': '',
+                'cta_primary_text': 'Portal Login',
+                'cta_primary_url': '/login/',
+                'cta_secondary_text': 'Apply Now',
+                'cta_secondary_url': '/academics/apply/',
+                'stat1_number': '25+',
+                'stat1_label': 'Years of Excellence',
+                'stat2_number': '1000+',
+                'stat2_label': 'Students Enrolled',
+                'stat3_number': '50+',
+                'stat3_label': 'Expert Teachers',
+                'stat4_number': '98%',
+                'stat4_label': 'Success Rate',
+                'feature1_title': 'Academic Excellence',
+                'feature1_description': 'Proven track record of outstanding academic performance.',
+                'feature1_icon': 'fa-award',
+                'feature2_title': 'Expert Faculty',
+                'feature2_description': 'Highly qualified and dedicated teachers.',
+                'feature2_icon': 'fa-users',
+                'feature3_title': 'Modern Facilities',
+                'feature3_description': 'State-of-the-art classrooms and laboratories.',
+                'feature3_icon': 'fa-building',
+                'about_title': 'Why Choose Us',
+                'about_description': 'We provide a comprehensive educational experience.',
+                'facebook_url': '',
+                'twitter_url': '',
+                'instagram_url': '',
+                'linkedin_url': '',
+                'youtube_url': '',
+                'show_stats_section': True,
+                'show_programs_section': True,
+                'show_gallery_preview': True,
+            }
+            return defaults.get(name, '')
 
     def __str__(self):
         return self.name

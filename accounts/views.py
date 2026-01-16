@@ -57,7 +57,12 @@ def homepage(request):
 
     # Get School Info (for settings like homepage_template)
     school_info = SchoolInfo.objects.first()
-    template_choice = school_info.homepage_template if school_info else 'default'
+    
+    # Safely get template choice with fallback
+    try:
+        template_choice = school_info.homepage_template if school_info else 'default'
+    except AttributeError:
+        template_choice = 'default'
 
     highlights = [
         {
