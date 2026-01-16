@@ -6,11 +6,11 @@ def create_initial_school_info(apps, schema_editor):
     SchoolInfo = apps.get_model('academics', 'SchoolInfo')
     if not SchoolInfo.objects.exists():
         SchoolInfo.objects.create(
-            name="DABOYA GIRLS MODEL JUNIOR HIGH SCHOOL",
-            address="P.O. Box 6, Daboya, North Gonja District",
-            phone="024-0852910",
-            email="info@daboyagirlsmodel.edu.gh",
-            motto="SUCCESS, OUR CONCERN"
+            name="School Name",
+            address="School Address",
+            phone="Phone Number",
+            email="info@school.edu",
+            motto="Education for All"
         )
 
 class Migration(migrations.Migration):

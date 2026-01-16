@@ -14,11 +14,11 @@ class Migration(migrations.Migration):
             name='SchoolInfo',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(default='Daboya Girls Model JHS', max_length=200)),
-                ('address', models.TextField(default='P.O. Box 6, Daboya, North Gonja District')),
-                ('phone', models.CharField(default='024-0852910', max_length=50)),
-                ('email', models.EmailField(default='info@daboyagirlsmodel.edu.gh', max_length=254)),
-                ('motto', models.CharField(default='Success, Our Concern', max_length=200)),
+                ('name', models.CharField(default='School Name', max_length=200)),
+                ('address', models.TextField(default='School Address')),
+                ('phone', models.CharField(default='Phone Number', max_length=50)),
+                ('email', models.EmailField(default='info@school.edu', max_length=254)),
+                ('motto', models.CharField(default='Education for All', max_length=200)),
                 ('logo', models.ImageField(blank=True, null=True, upload_to='school_logo/')),
             ],
             options={
