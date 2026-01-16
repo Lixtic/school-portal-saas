@@ -14,22 +14,26 @@ class DatabaseWrapper(TenantDatabaseWrapper):
     
     def _cursor(self, name=None):
         """
-        Override _cursor to catch InterfaceError and retry once with fresh connection.
+        Override _cursor to proactively ensure a live connection and retry once on stale sockets.
+        This helps prevent "connection already closed" errors on serverless platforms.
         """
         try:
+            # Proactively refresh if backend thinks connection is closed
+            if getattr(self, 'connection', None) is None or getattr(self.connection, 'closed', False):
+                self.close()
+            self.ensure_connection()
             return super()._cursor(name)
         except InterfaceError as e:
-            # Connection was closed, force reconnect and retry once
+            # Force reconnect then retry once
             if 'connection already closed' in str(e).lower() or 'closed' in str(e).lower():
-                # Close the stale connection
                 self.close()
-                # Retry - this will create a new connection
+                self.ensure_connection()
                 return super()._cursor(name)
-            # Re-raise if it's a different InterfaceError
             raise
         except OperationalError as e:
-            # Also catch some operational errors that indicate stale connection
-            if 'server closed the connection' in str(e).lower():
+            # Handle server-side disconnects
+            if 'server closed the connection' in str(e).lower() or 'terminating connection' in str(e).lower():
                 self.close()
+                self.ensure_connection()
                 return super()._cursor(name)
             raise
