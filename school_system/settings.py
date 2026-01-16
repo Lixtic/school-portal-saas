@@ -143,7 +143,7 @@ if DATABASE_URL:
     db_cfg = dj_database_url.parse(
         DATABASE_URL,
         conn_max_age=600,
-        engine='django_tenants.postgresql_backend',
+        engine='school_system.db_backend',  # Custom backend with retry logic
     )
     # On serverless (Vercel) keep connections short to avoid "connection already closed" reuse
     if os.environ.get('VERCEL') == '1':
