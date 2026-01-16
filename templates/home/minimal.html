@@ -546,7 +546,7 @@
         <div class="assistant-bubble bot">👋 Hi! I'm your AI admissions assistant. I can help with admissions, fees, term dates, and requirements. What would you like to know?</div>
     </div>
     <div class="assistant-input">
-        <form id="assistantForm">
+        <form id="assistantForm" data-no-loader>
             <input type="text" id="assistantQuestion" name="question" placeholder="Ask me anything..." required autocomplete="off">
         </form>
     </div>
@@ -616,8 +616,10 @@
             
             console.log('Response status:', res.status);
             
+            // Remove typing indicator
+            removeTypingIndicator();
+            
             if (!res.ok) {
-                removeTypingIndicator();
                 const errorText = await res.text();
                 console.error('HTTP Error:', res.status, errorText);
                 appendBubble('Sorry, there was an error processing your request. Please try again.', 'bot');
@@ -626,7 +628,6 @@
             
             const data = await res.json();
             console.log('Response data:', data);
-            removeTypingIndicator();
             appendBubble(data.answer || data.error || 'Sorry, I could not process that right now.', 'bot');
         } catch (err) {
             console.error('Chatbot error:', err);
