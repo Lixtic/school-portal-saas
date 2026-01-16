@@ -366,13 +366,6 @@ Context Initialization:
         return HttpResponse('Copilot is offline: missing OPENAI_API_KEY.', content_type='text/plain; charset=utf-8', status=503)
 
     try:
-        try:
-            from openai import OpenAI
-        except ImportError as ie:
-            # Older SDKs do not export OpenAI class
-            OpenAI = None
-            print(f"[COPILOT] OpenAI import fallback: {ie}")
-
         def normalize_delta(delta_content):
             if not delta_content:
                 return ""
@@ -389,7 +382,9 @@ Context Initialization:
             return str(delta_content)
 
         def stream_new_sdk():
-            client = OpenAI(api_key=settings.OPENAI_API_KEY, timeout=15.0)
+            import openai
+            # new client interface (>=1.0)
+            client = openai.OpenAI(api_key=settings.OPENAI_API_KEY, timeout=15.0)
             stream = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
@@ -424,18 +419,19 @@ Context Initialization:
                 if delta:
                     yield delta
 
-        # Prefer new SDK; fallback to legacy if unavailable
-        if OpenAI is not None:
-            try:
+        try:
+            # First try new SDK path
+            import openai
+            if hasattr(openai, 'OpenAI'):
                 return StreamingHttpResponse(stream_new_sdk(), content_type='text/plain; charset=utf-8')
-            except TypeError as te:
-                # Some environments inject unsupported kwargs; fall back
-                print(f"[COPILOT] New SDK TypeError, falling back to legacy: {te}")
-            except Exception as e_new:
-                print(f"[COPILOT] Streaming error (new SDK): {e_new}")
-                import traceback
-                traceback.print_exc()
+        except TypeError as te:
+            print(f"[COPILOT] New SDK TypeError, falling back to legacy: {te}")
+        except Exception as e_new:
+            print(f"[COPILOT] Streaming error (new SDK): {e_new}")
+            import traceback
+            traceback.print_exc()
 
+        # Fallback to legacy only when OpenAI class is absent or failed
         try:
             return StreamingHttpResponse(stream_old_sdk(), content_type='text/plain; charset=utf-8')
         except Exception as e_legacy:
