@@ -796,7 +796,8 @@
 
         <!-- Sidebar -->
         <nav class="sidebar" id="sidebar">
-            <h4 class="mb-2">Main Menu</h4>
+            <!-- OVERVIEW -->
+            <h4 class="mb-2"><i class="bi bi-grid me-2" style="font-size: 0.85rem;"></i>Overview</h4>
             
             <div class="nav-item">
                 <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" title="Dashboard">
@@ -822,7 +823,8 @@
             </div>
             
             {% if user.user_type == 'admin' or user.user_type == 'teacher' %}
-            <h4 class="mb-2 mt-4">Academic</h4>
+            <!-- ACADEMICS -->
+            <h4 class="mb-2 mt-4"><i class="bi bi-book me-2" style="font-size: 0.85rem;"></i>Academics</h4>
             <div class="nav-item">
                 <a href="{% url 'students:student_list' %}" class="nav-link {% if request.resolver_match.url_name == 'student_list' %}active{% endif %}" title="Students">
                     <i class="bi bi-people"></i>
@@ -844,7 +846,8 @@
             {% endif %}
 
             {% if user.user_type == 'admin' %}
-            <h4 class="mb-2 mt-4">Administration</h4>
+            <!-- MANAGEMENT -->
+            <h4 class="mb-2 mt-4"><i class="bi bi-sliders me-2" style="font-size: 0.85rem;"></i>Management</h4>
             <div class="nav-item">
                 <a href="{% url 'teachers:teacher_list' %}" class="nav-link {% if request.resolver_match.url_name == 'teacher_list' or request.resolver_match.url_name == 'teacher_detail' %}active{% endif %}" title="Teachers">
                     <i class="bi bi-person-lines-fill"></i>
@@ -863,12 +866,17 @@
                     <span>Activities</span>
                 </a>
             </div>
+            
+            <!-- FINANCE & COMMUNICATION -->
+            <h4 class="mb-2 mt-4"><i class="bi bi-wallet2 me-2" style="font-size: 0.85rem;"></i>Finance</h4>
             <div class="nav-item">
                 <a href="{% url 'finance:dashboard' %}" class="nav-link {% if 'finance' in request.resolver_match.app_names %}active{% endif %}" title="Finance">
-                    <i class="bi bi-wallet2"></i>
-                    <span>Finance</span>
+                    <i class="bi bi-cash-stack"></i>
+                    <span>Finance Dashboard</span>
                 </a>
             </div>
+            
+            <h4 class="mb-2 mt-4"><i class="bi bi-chat-dots me-2" style="font-size: 0.85rem;"></i>Communication</h4>
             <div class="nav-item">
                 <a href="{% url 'announcements:manage' %}" class="nav-link {% if 'announcements' in request.resolver_match.app_names %}active{% endif %}" title="Notices">
                     <i class="bi bi-megaphone"></i>
@@ -878,19 +886,23 @@
             <div class="nav-item">
                 <a href="{% url 'communication:dashboard' %}" class="nav-link {% if 'communication' in request.resolver_match.app_names %}active{% endif %}" title="Communication">
                     <i class="bi bi-envelope"></i>
-                    <span>Communication</span>
+                    <span>Messages</span>
                 </a>
             </div>
+            
+            <!-- SETTINGS -->
+            <h4 class="mb-2 mt-4"><i class="bi bi-gear me-2" style="font-size: 0.85rem;"></i>Settings</h4>
             <div class="nav-item">
                 <a href="{% url 'academics:school_settings' %}" class="nav-link {% if request.resolver_match.url_name == 'school_settings' %}active{% endif %}" title="Settings">
-                    <i class="bi bi-gear"></i>
-                    <span>Settings</span>
+                    <i class="bi bi-gear-fill"></i>
+                    <span>School Settings</span>
                 </a>
             </div>
             {% endif %}
             
             {% if user.user_type == 'teacher' %}
-            <h4 class="mb-2 mt-4">Teaching</h4>
+            <!-- TEACHING -->
+            <h4 class="mb-2 mt-4"><i class="bi bi-easel me-2" style="font-size: 0.85rem;"></i>Teaching</h4>
             <div class="nav-item">
                 <a href="{% url 'teachers:my_classes' %}" class="nav-link {% if request.resolver_match.url_name == 'my_classes' %}active{% endif %}" title="My Classes">
                     <i class="bi bi-book"></i>
@@ -919,7 +931,8 @@
             {% endif %}
             
             {% if user.user_type == 'parent' %}
-            <h4 class="mb-2 mt-4">Family</h4>
+            <!-- FAMILY -->
+            <h4 class="mb-2 mt-4"><i class="bi bi-person-hearts me-2" style="font-size: 0.85rem;"></i>Family</h4>
             <div class="nav-item">
                 <a href="{% url 'parents:my_children' %}" class="nav-link {% if request.resolver_match.url_name == 'my_children' %}active{% endif %}" title="My Children">
                     <i class="bi bi-person-hearts"></i>
