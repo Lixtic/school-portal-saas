@@ -5,8 +5,10 @@ from django.http import JsonResponse, HttpResponse
 from django.db.models import Q, Count, Avg
 from datetime import date, timedelta
 import csv
+import random
+import string
 from .models import Student, Attendance, Grade
-from .forms import StudentForm
+from .forms import StudentForm, CSVImportForm
 from accounts.models import User
 
 from .utils import calculate_class_position, normalize_term, term_filter_values
@@ -653,3 +655,142 @@ def edit_student(request, student_id):
     return render(request, 'students/edit_student.html', {'form': form, 'student': student})
 
 
+@login_required
+def import_students_csv(request):
+    """Import students from CSV file"""
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied. Only admins can import students.')
+        return redirect('students:student_list')
+    
+    if request.method == 'POST':
+        form = CSVImportForm(request.POST, request.FILES)
+        if form.is_valid():
+            csv_file = request.FILES['csv_file']
+            default_class = form.cleaned_data.get('default_class')
+            
+            # Validate file extension
+            if not csv_file.name.endswith('.csv'):
+                messages.error(request, 'Please upload a valid CSV file.')
+                return redirect('students:import_csv')
+            
+            # Read and process CSV
+            try:
+                decoded_file = csv_file.read().decode('utf-8').splitlines()
+                reader = csv.DictReader(decoded_file)
+                
+                imported_count = 0
+                skipped_count = 0
+                errors = []
+                
+                for row_num, row in enumerate(reader, start=2):  # Start at 2 (header is row 1)
+                    try:
+                        first_name = row.get('first_name', '').strip()
+                        last_name = row.get('last_name', '').strip()
+                        class_name = row.get('class_name', '').strip()
+                        age = row.get('age', '').strip()
+                        
+                        if not first_name or not last_name:
+                            errors.append(f"Row {row_num}: Missing first_name or last_name")
+                            skipped_count += 1
+                            continue
+                        
+                        # Determine class
+                        student_class = None
+                        if class_name:
+                            try:
+                                student_class = Class.objects.get(name__iexact=class_name)
+                            except Class.DoesNotExist:
+                                errors.append(f"Row {row_num}: Class '{class_name}' not found")
+                        
+                        if not student_class:
+                            student_class = default_class
+                        
+                        if not student_class:
+                            errors.append(f"Row {row_num}: No class specified and no default class selected")
+                            skipped_count += 1
+                            continue
+                        
+                        # Parse age
+                        try:
+                            student_age = int(age) if age else 10
+                        except ValueError:
+                            student_age = 10
+                        
+                        # Generate username
+                        base_username = f"{first_name.lower()}.{last_name.lower()}"
+                        username = base_username.replace(' ', '')
+                        counter = 1
+                        while User.objects.filter(username=username).exists():
+                            username = f"{base_username.replace(' ', '')}{counter}"
+                            counter += 1
+                        
+                        # Generate admission number
+                        prefix = 'ADM'
+                        admission_number = None
+                        for _ in range(100):  # Try up to 100 times
+                            suffix = ''.join(random.choices(string.digits, k=4))
+                            candidate = f"{prefix}{suffix}"
+                            if not Student.objects.filter(admission_number=candidate).exists():
+                                admission_number = candidate
+                                break
+                        
+                        if not admission_number:
+                            errors.append(f"Row {row_num}: Could not generate unique admission number")
+                            skipped_count += 1
+                            continue
+                        
+                        # Create user
+                        user = User.objects.create(
+                            username=username,
+                            first_name=first_name,
+                            last_name=last_name,
+                            email=f"{username}@school.local",
+                            user_type='student'
+                        )
+                        user.set_unusable_password()
+                        user.save()
+                        
+                        # Calculate date of birth
+                        dob_year = max(1900, date.today().year - student_age)
+                        date_of_birth = date(dob_year, 1, 1)
+                        
+                        # Create student
+                        Student.objects.create(
+                            user=user,
+                            admission_number=admission_number,
+                            date_of_birth=date_of_birth,
+                            gender='male',  # Default, can be updated later
+                            date_of_admission=date.today(),
+                            current_class=student_class,
+                            emergency_contact='N/A'
+                        )
+                        
+                        imported_count += 1
+                        
+                    except Exception as e:
+                        errors.append(f"Row {row_num}: {str(e)}")
+                        skipped_count += 1
+                        continue
+                
+                # Show results
+                if imported_count > 0:
+                    messages.success(request, f'Successfully imported {imported_count} student(s).')
+                
+                if skipped_count > 0:
+                    messages.warning(request, f'Skipped {skipped_count} row(s) due to errors.')
+                
+                if errors and len(errors) <= 10:
+                    for error in errors:
+                        messages.error(request, error)
+                elif errors:
+                    messages.error(request, f'{len(errors)} errors occurred. First 10: {", ".join(errors[:10])}')
+                
+                return redirect('students:student_list')
+                
+            except Exception as e:
+                messages.error(request, f'Error processing CSV file: {str(e)}')
+                return redirect('students:import_csv')
+    else:
+        form = CSVImportForm()
+    
+    return render(request, 'students/import_csv.html', {'form': form})

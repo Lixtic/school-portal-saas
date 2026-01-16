@@ -7,6 +7,7 @@ urlpatterns = [
     path('add/', views.add_student, name='add_student'),
     path('edit/<int:student_id>/', views.edit_student, name='edit_student'),
     path('', views.student_list, name='student_list'),
+    path('import-csv/', views.import_students_csv, name='import_csv'),
     path('attendance/mark/', views.mark_attendance, name='mark_attendance'),
     path('get-class-students/<int:class_id>/', views.get_class_students, name='get_class_students'),
     path('dashboard/', views.student_dashboard_view, name='student_dashboard'),

@@ -109,3 +109,17 @@ class StudentForm(forms.ModelForm):
         self.fields['blood_group'].required = False
         self.fields['emergency_contact'].required = False
 
+
+class CSVImportForm(forms.Form):
+    csv_file = forms.FileField(
+        label='CSV File',
+        help_text='Upload a CSV file with columns: first_name, last_name, class_name (optional), age (optional)',
+        widget=forms.FileInput(attrs={'class': 'form-control', 'accept': '.csv'})
+    )
+    default_class = forms.ModelChoiceField(
+        queryset=Class.objects.all(),
+        required=False,
+        label='Default Class',
+        help_text='If no class specified in CSV, assign to this class',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
