@@ -362,29 +362,62 @@ Context Initialization:
 """
 
     from django.conf import settings
-    if settings.OPENAI_API_KEY:
+    if not settings.OPENAI_API_KEY:
+        return HttpResponse('Copilot is offline: missing OPENAI_API_KEY.', content_type='text/plain; charset=utf-8', status=503)
+
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=settings.OPENAI_API_KEY, timeout=15.0)
+
+        def normalize_delta(delta_content):
+            if not delta_content:
+                return ""
+            if isinstance(delta_content, list):
+                parts = []
+                for item in delta_content:
+                    text_part = ''
+                    if isinstance(item, dict):
+                        text_part = item.get('text', '')
+                    else:
+                        text_part = getattr(item, 'text', '') or str(item)
+                    parts.append(text_part)
+                return ''.join(parts)
+            return str(delta_content)
+
+        def stream_chat_v1():
+            try:
+                stream = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": question}
+                    ],
+                    max_tokens=200,
+                    temperature=0.7,
+                    stream=True
+                )
+
+                for chunk in stream:
+                    delta = chunk.choices[0].delta.content
+                    text = normalize_delta(delta)
+                    if text:
+                        yield text
+            except Exception as e:
+                print(f"[COPILOT] Streaming error (v1 client): {e}")
+                import traceback
+                traceback.print_exc()
+
+        return StreamingHttpResponse(stream_chat_v1(), content_type='text/plain; charset=utf-8')
+    except TypeError as te:
+        # Fallback for older OpenAI SDKs that don't accept some kwargs
+        print(f"[COPILOT] Falling back to legacy OpenAI client due to TypeError: {te}")
         try:
-            from openai import OpenAI
-            client = OpenAI(api_key=settings.OPENAI_API_KEY, timeout=15.0)
+            import openai
+            openai.api_key = settings.OPENAI_API_KEY
 
-            def normalize_delta(delta_content):
-                if not delta_content:
-                    return ""
-                if isinstance(delta_content, list):
-                    parts = []
-                    for item in delta_content:
-                        text_part = ''
-                        if isinstance(item, dict):
-                            text_part = item.get('text', '')
-                        else:
-                            text_part = getattr(item, 'text', '') or str(item)
-                        parts.append(text_part)
-                    return ''.join(parts)
-                return str(delta_content)
-
-            def stream_chat():
+            def stream_chat_legacy():
                 try:
-                    stream = client.chat.completions.create(
+                    stream = openai.ChatCompletion.create(
                         model="gpt-4o-mini",
                         messages=[
                             {"role": "system", "content": system_prompt},
@@ -394,23 +427,28 @@ Context Initialization:
                         temperature=0.7,
                         stream=True
                     )
-
                     for chunk in stream:
-                        delta = chunk.choices[0].delta.content
-                        text = normalize_delta(delta)
-                        if text:
-                            yield text
+                        delta = chunk['choices'][0]['delta'].get('content')
+                        if delta:
+                            yield delta
                 except Exception as e:
-                    print(f"[COPILOT] Streaming error: {e}")
+                    print(f"[COPILOT] Streaming error (legacy): {e}")
                     import traceback
                     traceback.print_exc()
 
-            return StreamingHttpResponse(stream_chat(), content_type='text/plain; charset=utf-8')
-        except Exception as e:
-            print(f"[COPILOT] OpenAI error: {e}")
-
-    fallback = "I'm not available right now. Please contact school staff for assistance."
-    return HttpResponse(fallback, content_type='text/plain; charset=utf-8')
+            return StreamingHttpResponse(stream_chat_legacy(), content_type='text/plain; charset=utf-8')
+        except Exception as e2:
+            err_msg = f"Copilot error (legacy): {e2}"
+            print(err_msg)
+            import traceback
+            traceback.print_exc()
+            return HttpResponse(err_msg, content_type='text/plain; charset=utf-8', status=502)
+    except Exception as e:
+        err_msg = f"Copilot error: {e}"
+        print(err_msg)
+        import traceback
+        traceback.print_exc()
+        return HttpResponse(err_msg, content_type='text/plain; charset=utf-8', status=502)
 
 
 
