@@ -1,6 +1,6 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.db import transaction, connection, models
-from .forms import SchoolSignupForm, SchoolSetupForm
+from .forms import SchoolSignupForm, SchoolSetupForm, SchoolApprovalForm
 from .models import School, Domain
 from django.contrib.auth import get_user_model, login
 from django.contrib import messages
@@ -9,10 +9,11 @@ from django.contrib.auth.decorators import login_required
 from academics.models import SchoolInfo, AcademicYear, Class, Subject
 from django.utils import timezone
 from datetime import timedelta
+from .email_notifications import send_submission_confirmation, send_approval_notification
 
 def school_signup(request):
     if request.method == 'POST':
-        form = SchoolSignupForm(request.POST)
+        form = SchoolSignupForm(request.POST, request.FILES)
         if form.is_valid():
             name = form.cleaned_data['school_name']
             schema_name = form.cleaned_data['schema_name']
@@ -22,14 +23,18 @@ def school_signup(request):
             phone = form.cleaned_data['phone']
             country = form.cleaned_data['country']
             
+            # Onboarding fields
+            contact_person_name = form.cleaned_data.get('contact_person_name')
+            contact_person_title = form.cleaned_data.get('contact_person_title')
+            contact_person_email = form.cleaned_data.get('contact_person_email')
+            contact_person_phone = form.cleaned_data.get('contact_person_phone')
+            registration_certificate = form.cleaned_data.get('registration_certificate')
+            tax_id_document = form.cleaned_data.get('tax_id_document')
+            additional_documents = form.cleaned_data.get('additional_documents')
+            
             try:
-                # 1. Create Tenant (Transaction on PUBLIC schema)
-                # We separate the tenant creation from the inner data population to avoid
-                # long transactions if migrations take time.
+                # 1. Create Tenant in PENDING status (no schema yet)
                 print(f"DEBUG SIGNUP: Starting creation for {schema_name}")
-                
-                # REMOVED outer transaction.atomic() here to allow Partial Success (Debugging Timeout)
-                # Ideally, we should rollback manually if it fails, but for now we want to see if the record persists.
                 
                 tenant = School(
                     schema_name=schema_name, 
@@ -38,14 +43,23 @@ def school_signup(request):
                     address=address,
                     phone_number=phone,
                     country=country,
-                    on_trial=True, 
-                    is_active=True
+                    on_trial=False,  # Will be set by admin on approval
+                    is_active=False,  # Inactive until approved
+                    approval_status='pending',
+                    contact_person_name=contact_person_name,
+                    contact_person_title=contact_person_title,
+                    contact_person_email=contact_person_email,
+                    contact_person_phone=contact_person_phone,
+                    registration_certificate=registration_certificate,
+                    tax_id_document=tax_id_document,
+                    additional_documents=additional_documents,
+                    submitted_for_review_at=timezone.now()
                 )
-                # Force auto_create_schema to False initially to save the DB record quickly
+                # Don't create schema yet - wait for approval
                 tenant.auto_create_schema = False 
                 tenant.save()
                 
-                print(f"DEBUG SIGNUP: Tenant record saved (No Schema yet)")
+                print(f"DEBUG SIGNUP: Tenant record saved (Pending approval)")
                 
                 domain = Domain()
                 domain.domain = f"{schema_name}.local" 
@@ -54,45 +68,15 @@ def school_signup(request):
                 domain.save()
                 print(f"DEBUG SIGNUP: Domain saved")
                 
-                # Now Create Schema Manually (The slow part)
-                print(f"DEBUG SIGNUP: Starting Schema Creation (Migrate)...")
-                tenant.create_schema(check_if_exists=True, verbosity=1)
-                print(f"DEBUG SIGNUP: Schema Created & Migrated")
+                # Send submission confirmation email
+                send_submission_confirmation(tenant)
 
-                # 2. Switch to Tenant Context for Data Population
-                # We do this OUTSIDE the first atomic block if we want to risk partial failure
-                # but better to keep it atomic if possible. For now, let's keep robust logging.
-                
-                try:
-                    # Inner atomic is fine for data population
-                    with transaction.atomic():
-                        connection.set_tenant(tenant)
-                        User = get_user_model()
-                        
-                        if not User.objects.filter(username='admin').exists():
-                            user = User.objects.create_superuser(
-                                username='admin',
-                                email=email,
-                                password='admin',
-                                user_type='admin'
-                            )
-                            print(f"DEBUG SIGNUP: Admin user created")
-                        
-                        _create_sample_data(tenant, school_type=school_type, phone=phone, address=address)
-                        print(f"DEBUG SIGNUP: Sample data created")
-                        
-                except Exception as inner_e:
-                    print(f"DEBUG SIGNUP ERROR (Inner - Data Pop): {inner_e}")
-                    # Don't rollback the Tenant creation itself, just log the data failure
-                    # User will have an empty school but at least it exists
-                    messages.warning(request, f"School created but sample data failed: {inner_e}")
-                
-                # Switch back
-                print(f"DEBUG SIGNUP: Success. Switching back to Public.")
-                connection.set_schema_to_public()
-
-                messages.success(request, f"School '{name}' created successfully! Your login URL is /{schema_name}/login/")
-                return render(request, 'tenants/signup_success.html', {'schema_name': schema_name})
+                messages.success(request, f"Application submitted successfully! Your school '{name}' is pending admin approval. You will be notified at {contact_person_email} once approved.")
+                return render(request, 'tenants/signup_success.html', {
+                    'schema_name': schema_name,
+                    'pending_approval': True,
+                    'school_name': name
+                })
                     
             except Exception as e:
                 print(f"DEBUG SIGNUP CRITICAL FAILURE: {e}")
@@ -226,6 +210,12 @@ def landlord_dashboard(request):
     inactive_count = schools_count - active_count
     domains_count = Domain.objects.count()
     primary_domains = Domain.objects.filter(is_primary=True).count()
+    
+    # Approval stats
+    pending_count = School.objects.filter(approval_status='pending').count()
+    under_review_count = School.objects.filter(approval_status='under_review').count()
+    approved_count = School.objects.filter(approval_status='approved').count()
+    rejected_count = School.objects.filter(approval_status='rejected').count()
 
     by_type = (
         School.objects.values('school_type')
@@ -260,8 +250,119 @@ def landlord_dashboard(request):
         'inactive_count': inactive_count,
         'domains_count': domains_count,
         'primary_domains': primary_domains,
+        'pending_count': pending_count,
+        'under_review_count': under_review_count,
+        'approved_count': approved_count,
+        'rejected_count': rejected_count,
         'by_type': by_type,
         'recent_schools': recent_schools,
         'signups_chart': signups_chart,
     }
     return render(request, 'tenants/landlord_dashboard.html', context)
+
+
+@login_required
+def approval_queue(request):
+    """Admin view to see schools awaiting approval"""
+    if not request.user.is_staff:
+        messages.error(request, "Access denied. Staff only.")
+        return redirect('home')
+    
+    # Filter by status
+    status = request.GET.get('status', 'pending')
+    if status not in ['pending', 'under_review', 'approved', 'rejected', 'requires_info']:
+        status = 'pending'
+    
+    schools = School.objects.filter(approval_status=status).order_by('-submitted_for_review_at')
+    
+    context = {
+        'schools': schools,
+        'current_status': status,
+        'pending_count': School.objects.filter(approval_status='pending').count(),
+        'under_review_count': School.objects.filter(approval_status='under_review').count(),
+        'approved_count': School.objects.filter(approval_status='approved').count(),
+        'rejected_count': School.objects.filter(approval_status='rejected').count(),
+        'requires_info_count': School.objects.filter(approval_status='requires_info').count(),
+    }
+    return render(request, 'tenants/approval_queue.html', context)
+
+
+@login_required
+def review_school(request, school_id):
+    """Admin view to review a single school application"""
+    if not request.user.is_staff:
+        messages.error(request, "Access denied. Staff only.")
+        return redirect('home')
+    
+    school = get_object_or_404(School, id=school_id)
+    
+    if request.method == 'POST':
+        form = SchoolApprovalForm(request.POST, instance=school)
+        if form.is_valid():
+            old_status = school.approval_status  # Track old status for email logic
+            school = form.save(commit=False)
+            school.reviewed_by = request.user
+            school.reviewed_at = timezone.now()
+            
+            # If approved, create schema and setup
+            if school.approval_status == 'approved' and not school.is_active:
+                try:
+                    # Create schema
+                    school.auto_create_schema = True
+                    school.is_active = True
+                    school.save()
+                    school.create_schema(check_if_exists=True, verbosity=1)
+                    
+                    # Switch to tenant and create admin user + sample data
+                    connection.set_tenant(school)
+                    User = get_user_model()
+                    
+                    if not User.objects.filter(username='admin').exists():
+                        temp_email = school.contact_person_email or 'admin@example.com'
+                        admin_user = User.objects.create_superuser(
+                            username='admin',
+                            email=temp_email,
+                            password='admin',
+                            user_type='admin'
+                        )
+                    
+                    _create_sample_data(school, 
+                                       school_type=school.school_type,
+                                       phone=school.phone_number,
+                                       address=school.address)
+                    
+                    connection.set_schema_to_public()
+                    
+                    # Send approval email notification
+                    send_approval_notification(school, status_changed_by=request.user)
+                    
+                    messages.success(request, f"School '{school.name}' approved and activated! Schema created with sample data. Notification email sent.")
+                    
+                except Exception as e:
+                    connection.set_schema_to_public()
+                    messages.error(request, f"Approval saved but schema creation failed: {e}")
+                    school.approval_status = 'requires_info'
+                    school.admin_notes = f"Schema creation error: {e}"
+                    school.save()
+                    # Send requires_info notification
+                    send_approval_notification(school, status_changed_by=request.user)
+            else:
+                school.save()
+                
+                # Send status update email for other status changes
+                if old_status != school.approval_status:
+                    send_approval_notification(school, status_changed_by=request.user)
+                
+                status_msg = dict(School.APPROVAL_STATUS_CHOICES).get(school.approval_status, school.approval_status)
+                messages.success(request, f"School status updated to: {status_msg}. Notification email sent.")
+            
+            return redirect('tenants:approval_queue')
+    else:
+        form = SchoolApprovalForm(instance=school)
+    
+    context = {
+        'school': school,
+        'form': form,
+    }
+    return render(request, 'tenants/review_school.html', context)
+

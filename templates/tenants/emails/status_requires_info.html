@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 30px auto; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 30px 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .content { padding: 30px 20px; }
+        .status-badge { display: inline-block; padding: 8px 16px; border-radius: 20px; font-weight: bold; margin: 20px 0; background: #fef3c7; color: #92400e; }
+        .info-box { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .notes-box { background: #fef2f2; border: 2px dashed #f59e0b; padding: 15px; margin: 20px 0; border-radius: 8px; }
+        .footer { background: #f9fafb; padding: 20px; text-align: center; color: #6b7280; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Additional Information Needed</h1>
+        </div>
+        <div class="content">
+            <p>Dear {{ contact_name }},</p>
+            
+            <p>Thank you for your application for <strong>{{ school.name }}</strong>. We've reviewed your submission and need some additional information to proceed.</p>
+            
+            <div class="status-badge">
+                ⚠️ REQUIRES INFORMATION
+            </div>
+            
+            {% if school.admin_notes %}
+            <div class="notes-box">
+                <h3 style="margin-top: 0; color: #92400e;">📝 Reviewer Notes</h3>
+                <p style="margin-bottom: 0;">{{ school.admin_notes }}</p>
+            </div>
+            {% endif %}
+            
+            <div class="info-box">
+                <h3 style="margin-top: 0;">📋 Application Reference</h3>
+                <p style="margin-bottom: 0;">
+                    <strong>School Name:</strong> {{ school.name }}<br>
+                    <strong>Schema:</strong> <code>{{ school.schema_name }}</code><br>
+                    <strong>Submitted:</strong> {{ school.submitted_for_review_at|date:"F d, Y" }}
+                </p>
+            </div>
+            
+            <h3>Next Steps:</h3>
+            <ol>
+                <li>Review the feedback/requirements above</li>
+                <li>Gather the requested information or documents</li>
+                <li>Reply to this email with the additional materials</li>
+                <li>Or contact our support team for clarification</li>
+            </ol>
+            
+            <p>Once we receive the requested information, we'll complete our review and notify you of our decision.</p>
+            
+            <p style="margin-top: 30px; color: #6b7280; font-size: 14px;">
+                We appreciate your cooperation. Don't hesitate to reach out if you have any questions about what's needed.
+            </p>
+        </div>
+        <div class="footer">
+            <p>Questions? Reply to this email or contact our support team.</p>
+            <p style="margin-top: 10px; font-size: 12px; color: #9ca3af;">
+                This is an automated message. You may reply to provide additional information.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

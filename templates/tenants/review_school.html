@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Review {{ school.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold">
+            <i class="bi bi-building me-2"></i>Review School Application
+        </h2>
+        <a href="{% url 'tenants:approval_queue' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Back to Queue
+        </a>
+    </div>
+
+    <div class="row">
+        {# School Information Panel #}
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>School Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>School Name:</strong><br>
+                            {{ school.name }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Schema Name:</strong><br>
+                            <code>{{ school.schema_name }}</code>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>School Type:</strong><br>
+                            <span class="badge bg-info">{{ school.get_school_type_display }}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Country:</strong><br>
+                            {{ school.country }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <strong>Address:</strong><br>
+                            {{ school.address|default:"Not provided" }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Phone:</strong><br>
+                            {{ school.phone_number|default:"Not provided" }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Submitted:</strong><br>
+                            {{ school.submitted_for_review_at|date:"M d, Y H:i" }}<br>
+                            <small class="text-muted">{{ school.submitted_for_review_at|timesince }} ago</small>
+                        </div>
+                    </div>
+                    <hr>
+                    <h6 class="fw-bold mb-3">Contact Person</h6>
+                    <div class="row mb-2">
+                        <div class="col-md-6">
+                            <strong>Name:</strong><br>
+                            {{ school.contact_person_name|default:"Not provided" }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Title:</strong><br>
+                            {{ school.contact_person_title|default:"Not provided" }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Email:</strong><br>
+                            {% if school.contact_person_email %}
+                                <a href="mailto:{{ school.contact_person_email }}">{{ school.contact_person_email }}</a>
+                            {% else %}
+                                Not provided
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Phone:</strong><br>
+                            {{ school.contact_person_phone|default:"Not provided" }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Documents Panel #}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark-check me-2"></i>Submitted Documents</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Registration Certificate:</strong>
+                        {% if school.registration_certificate %}
+                            <br>
+                            <a href="{{ school.registration_certificate.url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                                <i class="bi bi-download me-1"></i>View/Download
+                            </a>
+                            <br><small class="text-muted">{{ school.registration_certificate.name }}</small>
+                        {% else %}
+                            <br><span class="text-danger">Not uploaded</span>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Tax ID Document:</strong>
+                        {% if school.tax_id_document %}
+                            <br>
+                            <a href="{{ school.tax_id_document.url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                                <i class="bi bi-download me-1"></i>View/Download
+                            </a>
+                            <br><small class="text-muted">{{ school.tax_id_document.name }}</small>
+                        {% else %}
+                            <br><span class="text-muted">Not uploaded</span>
+                        {% endif %}
+                    </div>
+                    <div class="mb-0">
+                        <strong>Additional Documents:</strong>
+                        {% if school.additional_documents %}
+                            <br>
+                            <a href="{{ school.additional_documents.url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                                <i class="bi bi-download me-1"></i>View/Download
+                            </a>
+                            <br><small class="text-muted">{{ school.additional_documents.name }}</small>
+                        {% else %}
+                            <br><span class="text-muted">Not uploaded</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {# Review History #}
+            {% if school.reviewed_at %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Review History</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">
+                        <strong>Last Reviewed:</strong> {{ school.reviewed_at|date:"M d, Y H:i" }}<br>
+                        <strong>Reviewed By:</strong> {{ school.reviewed_by.username }}
+                    </p>
+                    {% if school.admin_notes %}
+                    <p class="mb-2">
+                        <strong>Admin Notes:</strong><br>
+                        <span class="text-muted">{{ school.admin_notes }}</span>
+                    </p>
+                    {% endif %}
+                    {% if school.rejection_reason %}
+                    <div class="alert alert-danger mb-0">
+                        <strong>Rejection Reason:</strong><br>
+                        {{ school.rejection_reason }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        {# Approval Form Panel #}
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm sticky-top" style="top: 20px;">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Approval Decision</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {{ form|crispy }}
+                        
+                        <hr>
+                        
+                        <div class="alert alert-info small">
+                            <strong><i class="bi bi-info-circle me-1"></i>Note:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>Setting status to <strong>Approved</strong> will automatically create the school's database schema and admin account</li>
+                                <li><strong>Rejected</strong> schools can be reconsidered later</li>
+                                <li>Use <strong>Requires Info</strong> to request additional documents</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-check-circle me-2"></i>Save Decision
+                            </button>
+                            <a href="{% url 'tenants:approval_queue' %}" class="btn btn-outline-secondary">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

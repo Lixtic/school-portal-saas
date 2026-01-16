@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block title %}School Approval Queue{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold">
+            <i class="bi bi-clipboard-check me-2"></i>School Approval Queue
+        </h2>
+        <a href="{% url 'tenants:landlord_dashboard' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+        </a>
+    </div>
+
+    {# Status Tabs #}
+    <ul class="nav nav-pills mb-4">
+        <li class="nav-item">
+            <a class="nav-link {% if current_status == 'pending' %}active{% endif %}" 
+               href="?status=pending">
+                Pending 
+                <span class="badge bg-{% if current_status == 'pending' %}light text-dark{% else %}secondary{% endif %} ms-1">
+                    {{ pending_count }}
+                </span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if current_status == 'under_review' %}active{% endif %}" 
+               href="?status=under_review">
+                Under Review 
+                <span class="badge bg-{% if current_status == 'under_review' %}light text-dark{% else %}secondary{% endif %} ms-1">
+                    {{ under_review_count }}
+                </span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if current_status == 'approved' %}active{% endif %}" 
+               href="?status=approved">
+                Approved 
+                <span class="badge bg-{% if current_status == 'approved' %}light text-dark{% else %}secondary{% endif %} ms-1">
+                    {{ approved_count }}
+                </span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if current_status == 'rejected' %}active{% endif %}" 
+               href="?status=rejected">
+                Rejected 
+                <span class="badge bg-{% if current_status == 'rejected' %}light text-dark{% else %}secondary{% endif %} ms-1">
+                    {{ rejected_count }}
+                </span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if current_status == 'requires_info' %}active{% endif %}" 
+               href="?status=requires_info">
+                Requires Info 
+                <span class="badge bg-{% if current_status == 'requires_info' %}light text-dark{% else %}secondary{% endif %} ms-1">
+                    {{ requires_info_count }}
+                </span>
+            </a>
+        </li>
+    </ul>
+
+    {# Schools Table #}
+    {% if schools %}
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th>School Name</th>
+                        <th>Schema</th>
+                        <th>Type</th>
+                        <th>Contact Person</th>
+                        <th>Submitted</th>
+                        <th>Documents</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for school in schools %}
+                    <tr>
+                        <td>
+                            <strong>{{ school.name }}</strong><br>
+                            <small class="text-muted">{{ school.country }}</small>
+                        </td>
+                        <td><code>{{ school.schema_name }}</code></td>
+                        <td>
+                            <span class="badge bg-info">{{ school.get_school_type_display }}</span>
+                        </td>
+                        <td>
+                            {{ school.contact_person_name|default:"—" }}<br>
+                            <small class="text-muted">
+                                {{ school.contact_person_title|default:"" }}<br>
+                                {% if school.contact_person_email %}
+                                    <i class="bi bi-envelope me-1"></i>{{ school.contact_person_email }}<br>
+                                {% endif %}
+                                {% if school.contact_person_phone %}
+                                    <i class="bi bi-phone me-1"></i>{{ school.contact_person_phone }}
+                                {% endif %}
+                            </small>
+                        </td>
+                        <td>
+                            {{ school.submitted_for_review_at|date:"M d, Y" }}<br>
+                            <small class="text-muted">{{ school.submitted_for_review_at|timesince }} ago</small>
+                        </td>
+                        <td>
+                            {% if school.registration_certificate %}
+                                <i class="bi bi-file-earmark-check text-success" title="Registration Certificate"></i>
+                            {% endif %}
+                            {% if school.tax_id_document %}
+                                <i class="bi bi-file-earmark-text text-success" title="Tax ID"></i>
+                            {% endif %}
+                            {% if school.additional_documents %}
+                                <i class="bi bi-file-earmark-plus text-success" title="Additional Docs"></i>
+                            {% endif %}
+                            {% if not school.registration_certificate and not school.tax_id_document and not school.additional_documents %}
+                                <span class="text-muted">None</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if school.approval_status == 'pending' %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            {% elif school.approval_status == 'under_review' %}
+                                <span class="badge bg-primary">Under Review</span>
+                            {% elif school.approval_status == 'approved' %}
+                                <span class="badge bg-success">Approved</span>
+                            {% elif school.approval_status == 'rejected' %}
+                                <span class="badge bg-danger">Rejected</span>
+                            {% elif school.approval_status == 'requires_info' %}
+                                <span class="badge bg-secondary">Requires Info</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'tenants:review_school' school.id %}" 
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye me-1"></i>Review
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>No schools with status "{{ current_status }}" at this time.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

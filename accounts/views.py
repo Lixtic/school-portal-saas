@@ -185,6 +185,10 @@ def dashboard(request):
         is_public = (request.tenant.schema_name == 'public')
         
     if is_public:
+        # Redirect staff users to landlord dashboard
+        if user.is_staff:
+            return redirect('/tenants/landlord/')
+            
         # Avoid querying tenant-specific models (Student, Teacher, etc.) which don't exist in public schema
         if not user.is_superuser and not user.is_staff:
              # Basic public user? Maybe redirect to home or signup

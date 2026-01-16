@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 30px auto; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 30px 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .content { padding: 30px 20px; }
+        .status-badge { display: inline-block; padding: 8px 16px; border-radius: 20px; font-weight: bold; margin: 20px 0; background: #fee2e2; color: #991b1b; }
+        .reason-box { background: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .info-box { background: #f0f9ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .footer { background: #f9fafb; padding: 20px; text-align: center; color: #6b7280; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Application Decision</h1>
+        </div>
+        <div class="content">
+            <p>Dear {{ contact_name }},</p>
+            
+            <p>Thank you for your interest in our school management platform. After careful review, we regret to inform you that your application for <strong>{{ school.name }}</strong> has not been approved at this time.</p>
+            
+            <div class="status-badge">
+                REJECTED
+            </div>
+            
+            {% if school.rejection_reason %}
+            <div class="reason-box">
+                <h3 style="margin-top: 0; color: #991b1b;">Reason for Decision</h3>
+                <p style="margin-bottom: 0;">{{ school.rejection_reason }}</p>
+            </div>
+            {% endif %}
+            
+            <div class="info-box">
+                <h3 style="margin-top: 0;">📋 Application Reference</h3>
+                <p style="margin-bottom: 0;">
+                    <strong>School Name:</strong> {{ school.name }}<br>
+                    <strong>Schema:</strong> <code>{{ school.schema_name }}</code><br>
+                    <strong>Submitted:</strong> {{ school.submitted_for_review_at|date:"F d, Y" }}
+                </p>
+            </div>
+            
+            <h3>What You Can Do:</h3>
+            <ul>
+                <li>Review the feedback provided above</li>
+                <li>Address any concerns mentioned</li>
+                <li>Submit a new application in the future</li>
+                <li>Contact our support team if you have questions</li>
+            </ul>
+            
+            <p style="margin-top: 30px;">
+                We appreciate your interest and encourage you to reach out if you'd like to discuss this decision or reapply after addressing the concerns raised.
+            </p>
+        </div>
+        <div class="footer">
+            <p>Have questions? Contact our support team for more information.</p>
+            <p style="margin-top: 10px; font-size: 12px; color: #9ca3af;">
+                This is an automated message. Please do not reply to this email.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

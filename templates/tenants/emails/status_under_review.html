@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 30px auto; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 30px 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .content { padding: 30px 20px; }
+        .status-badge { display: inline-block; padding: 8px 16px; border-radius: 20px; font-weight: bold; margin: 20px 0; background: #dbeafe; color: #1e40af; }
+        .info-box { background: #f0f9ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .timeline { margin: 20px 0; padding-left: 20px; }
+        .timeline li { margin-bottom: 10px; }
+        .footer { background: #f9fafb; padding: 20px; text-align: center; color: #6b7280; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Application Update</h1>
+        </div>
+        <div class="content">
+            <p>Dear {{ contact_name }},</p>
+            
+            <p>We wanted to update you on the status of your school application for <strong>{{ school.name }}</strong>.</p>
+            
+            <div class="status-badge">
+                🔍 UNDER REVIEW
+            </div>
+            
+            <p>Your application is currently being reviewed by our team. We're carefully examining all submitted documents and information.</p>
+            
+            <div class="info-box">
+                <h3 style="margin-top: 0;">📋 Application Status</h3>
+                <p style="margin-bottom: 0;">
+                    <strong>School Name:</strong> {{ school.name }}<br>
+                    <strong>Submitted:</strong> {{ school.submitted_for_review_at|date:"F d, Y" }}<br>
+                    <strong>Current Status:</strong> Under Review
+                </p>
+            </div>
+            
+            <h3>Review Timeline:</h3>
+            <ol class="timeline">
+                <li>✅ Application Submitted</li>
+                <li>🔄 <strong>Documents Under Review (Current Stage)</strong></li>
+                <li>⏳ Final Decision & Activation</li>
+            </ol>
+            
+            <p>You'll receive another email once the review is complete with our final decision. This typically takes 2-3 business days from submission.</p>
+            
+            <p style="margin-top: 30px; color: #6b7280; font-size: 14px;">
+                Thank you for your patience. We'll notify you as soon as a decision has been made.
+            </p>
+        </div>
+        <div class="footer">
+            <p>Questions about your application? Contact our support team.</p>
+            <p style="margin-top: 10px; font-size: 12px; color: #9ca3af;">
+                This is an automated message. Please do not reply to this email.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

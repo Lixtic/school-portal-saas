@@ -1,47 +1,83 @@
 {% extends 'base.html' %}
 
-{% block title %}School Created!{% endblock %}
+{% block title %}{% if pending_approval %}Application Submitted{% else %}School Created!{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container py-5 text-center">
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="card shadow-lg border-0 rounded-4 p-5">
-                <div class="mb-4">
-                    <i class="bi bi-check-circle-fill text-success" style="font-size: 5rem;"></i>
-                </div>
-                <h1 class="display-5 fw-bold mb-3">You're All Set!</h1>
-                <p class="lead text-muted mb-4">
-                    Your school portal has been successfully created with sample data (classes, subjects, academic year).
-                </p>
-                
-                <div class="alert alert-success d-inline-block text-start px-4 py-3 mb-4">
-                    <h6 class="fw-bold mb-2"><i class="bi bi-lightbulb me-2"></i>What's been created for you:</h6>
-                    <ul class="mb-0 small">
-                        <li>Academic Year ({{ "now"|date:"Y" }}/{{ "now"|date:"Y"|add:"1" }})</li>
-                        <li>Sample Classes (Basic 7, 8, 9)</li>
-                        <li>Core Subjects (Mathematics, English, Science, etc.)</li>
-                        <li>Admin Account Ready</li>
-                    </ul>
-                </div>
-                
-                <div class="alert alert-warning d-inline-block text-start px-5 py-4 mb-4">
-                    <h5 class="fw-bold"><i class="bi bi-key me-2"></i> Default Credentials</h5>
-                    <div class="mt-2">
-                        <strong>Username:</strong> admin<br>
-                        <strong>Password:</strong> admin<br>
-                        <small class="text-muted">⚠️ Please change this password after first login</small>
+                {% if pending_approval %}
+                    {# Pending Approval State #}
+                    <div class="mb-4">
+                        <i class="bi bi-hourglass-split text-warning" style="font-size: 5rem;"></i>
                     </div>
-                </div>
-                
-                <div class="d-grid gap-3 col-md-6 mx-auto">
-                    <a href="/{{ schema_name }}/login/" class="btn btn-primary btn-lg fw-bold">
-                        Go to School Login <i class="bi bi-arrow-right ms-2"></i>
-                    </a>
-                    <a href="/{{ schema_name }}/tenants/setup/" class="btn btn-outline-primary btn-lg fw-bold">
-                        <i class="bi bi-gear me-2"></i>Configure School Settings
-                    </a>
-                </div>
+                    <h1 class="display-5 fw-bold mb-3">Application Submitted!</h1>
+                    <p class="lead text-muted mb-4">
+                        Your school registration for <strong>{{ school_name }}</strong> is now under review.
+                    </p>
+                    
+                    <div class="alert alert-info d-inline-block text-start px-4 py-3 mb-4">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-info-circle me-2"></i>What happens next?</h6>
+                        <ol class="mb-0 small">
+                            <li>Our team will review your submitted documents within 2-3 business days</li>
+                            <li>You'll receive an email notification once approved</li>
+                            <li>After approval, your school portal will be activated with login credentials</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="alert alert-warning d-inline-block text-start px-5 py-4 mb-4">
+                        <h5 class="fw-bold"><i class="bi bi-envelope me-2"></i> Reference Information</h5>
+                        <div class="mt-2">
+                            <strong>Schema Name:</strong> {{ schema_name }}<br>
+                            <strong>Status:</strong> <span class="badge bg-warning text-dark">Pending Approval</span><br>
+                            <small class="text-muted">📧 Updates will be sent to the contact email provided</small>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-3 col-md-6 mx-auto">
+                        <a href="/" class="btn btn-primary btn-lg fw-bold">
+                            <i class="bi bi-house-door me-2"></i>Return to Home
+                        </a>
+                    </div>
+                {% else %}
+                    {# Approved/Activated State (original flow) #}
+                    <div class="mb-4">
+                        <i class="bi bi-check-circle-fill text-success" style="font-size: 5rem;"></i>
+                    </div>
+                    <h1 class="display-5 fw-bold mb-3">You're All Set!</h1>
+                    <p class="lead text-muted mb-4">
+                        Your school portal has been successfully created with sample data (classes, subjects, academic year).
+                    </p>
+                    
+                    <div class="alert alert-success d-inline-block text-start px-4 py-3 mb-4">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-lightbulb me-2"></i>What's been created for you:</h6>
+                        <ul class="mb-0 small">
+                            <li>Academic Year ({{ "now"|date:"Y" }}/{{ "now"|date:"Y"|add:"1" }})</li>
+                            <li>Sample Classes (Basic 7, 8, 9)</li>
+                            <li>Core Subjects (Mathematics, English, Science, etc.)</li>
+                            <li>Admin Account Ready</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="alert alert-warning d-inline-block text-start px-5 py-4 mb-4">
+                        <h5 class="fw-bold"><i class="bi bi-key me-2"></i> Default Credentials</h5>
+                        <div class="mt-2">
+                            <strong>Username:</strong> admin<br>
+                            <strong>Password:</strong> admin<br>
+                            <small class="text-muted">⚠️ Please change this password after first login</small>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-3 col-md-6 mx-auto">
+                        <a href="/{{ schema_name }}/login/" class="btn btn-primary btn-lg fw-bold">
+                            Go to School Login <i class="bi bi-arrow-right ms-2"></i>
+                        </a>
+                        <a href="/{{ schema_name }}/tenants/setup/" class="btn btn-outline-primary btn-lg fw-bold">
+                            <i class="bi bi-gear me-2"></i>Configure School Settings
+                        </a>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>

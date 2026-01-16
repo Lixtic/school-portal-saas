@@ -21,6 +21,32 @@ class SchoolSignupForm(forms.Form):
     phone = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Optional'}))
     country = forms.CharField(initial="Ghana", widget=forms.TextInput(attrs={'class': 'form-control'}))
     
+    # Contact Person (Onboarding)
+    contact_person_name = forms.CharField(label="Contact Person Name", max_length=100, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'John Doe'}))
+    contact_person_title = forms.CharField(label="Title/Position", max_length=100, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Principal / Headmaster'}))
+    contact_person_email = forms.EmailField(label="Contact Email", widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'john.doe@school.edu'}))
+    contact_person_phone = forms.CharField(label="Contact Phone", max_length=20, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+233 XX XXX XXXX'}))
+    
+    # Verification Documents
+    registration_certificate = forms.FileField(
+        label="School Registration Certificate",
+        required=True,
+        help_text="Upload official registration/license document (PDF, JPG, PNG)",
+        widget=forms.FileInput(attrs={'class': 'form-control', 'accept': '.pdf,.jpg,.jpeg,.png'})
+    )
+    tax_id_document = forms.FileField(
+        label="Tax Identification Document",
+        required=False,
+        help_text="Tax ID or business registration (optional)",
+        widget=forms.FileInput(attrs={'class': 'form-control', 'accept': '.pdf,.jpg,.jpeg,.png'})
+    )
+    additional_documents = forms.FileField(
+        label="Additional Documents",
+        required=False,
+        help_text="Any other verification documents (optional)",
+        widget=forms.FileInput(attrs={'class': 'form-control', 'accept': '.pdf,.jpg,.jpeg,.png'})
+    )
+    
     def clean_schema_name(self):
         data = self.cleaned_data['schema_name'].lower().strip()
         
@@ -36,6 +62,30 @@ class SchoolSignupForm(forms.Form):
             raise ValidationError(f"The School ID '{data}' is already taken.")
             
         return data
+    
+    def clean_registration_certificate(self):
+        file = self.cleaned_data.get('registration_certificate')
+        if file:
+            if file.size > 10 * 1024 * 1024:  # 10MB limit
+                raise ValidationError("File size must be under 10MB")
+            allowed_extensions = ['.pdf', '.jpg', '.jpeg', '.png']
+            import os
+            ext = os.path.splitext(file.name)[1].lower()
+            if ext not in allowed_extensions:
+                raise ValidationError(f"Only PDF and image files are allowed")
+        return file
+
+
+class SchoolApprovalForm(forms.ModelForm):
+    """Form for system admins to approve/reject schools"""
+    class Meta:
+        model = School
+        fields = ['approval_status', 'admin_notes', 'rejection_reason', 'is_active', 'on_trial']
+        widgets = {
+            'approval_status': forms.Select(attrs={'class': 'form-select'}),
+            'admin_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Internal notes about this review...'}),
+            'rejection_reason': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Provide reason if rejecting...'}),
+        }
 
 
 class SchoolSetupForm(forms.ModelForm):

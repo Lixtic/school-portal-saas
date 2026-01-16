@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 30px auto; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .content { padding: 30px 20px; }
+        .status-badge { display: inline-block; padding: 8px 16px; border-radius: 20px; font-weight: bold; margin: 20px 0; }
+        .status-success { background: #d1fae5; color: #065f46; }
+        .info-box { background: #f0f9ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .credentials { background: #fef3c7; border: 2px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 8px; }
+        .credentials h3 { margin-top: 0; color: #92400e; }
+        .btn { display: inline-block; padding: 12px 30px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: bold; }
+        .footer { background: #f9fafb; padding: 20px; text-align: center; color: #6b7280; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎉 School Approved!</h1>
+        </div>
+        <div class="content">
+            <p>Dear {{ contact_name }},</p>
+            
+            <p>Congratulations! Your school application for <strong>{{ school.name }}</strong> has been <strong>approved</strong> and your portal is now active.</p>
+            
+            <div class="status-badge status-success">
+                ✓ APPROVED & ACTIVATED
+            </div>
+            
+            <div class="info-box">
+                <h3 style="margin-top: 0;">📋 School Details</h3>
+                <p>
+                    <strong>School Name:</strong> {{ school.name }}<br>
+                    <strong>Schema:</strong> <code>{{ school.schema_name }}</code><br>
+                    <strong>Type:</strong> {{ school.get_school_type_display }}<br>
+                    <strong>Country:</strong> {{ school.country }}
+                </p>
+            </div>
+            
+            <div class="credentials">
+                <h3>🔑 Default Login Credentials</h3>
+                <p>
+                    <strong>Username:</strong> admin<br>
+                    <strong>Password:</strong> admin<br>
+                    <strong>Login URL:</strong> <a href="{{ login_url }}">{{ login_url }}</a>
+                </p>
+                <p style="margin-bottom: 0; color: #92400e; font-size: 14px;">
+                    ⚠️ <strong>Important:</strong> Please change this password immediately after your first login for security.
+                </p>
+            </div>
+            
+            <h3>🚀 What's Next?</h3>
+            <ol>
+                <li>Log in to your portal using the credentials above</li>
+                <li>Change the default admin password</li>
+                <li>Configure your school settings (logo, motto, contact info)</li>
+                <li>Set up academic years and classes</li>
+                <li>Start adding students and teachers</li>
+            </ol>
+            
+            <div style="text-align: center;">
+                <a href="{{ login_url }}" class="btn">Access Your Portal →</a>
+            </div>
+            
+            <p style="margin-top: 30px; color: #6b7280; font-size: 14px;">
+                Your school portal comes pre-configured with sample data to help you get started. You can customize or delete this data as needed.
+            </p>
+        </div>
+        <div class="footer">
+            <p>Need help? Contact our support team or visit the documentation.</p>
+            <p style="margin-top: 10px; font-size: 12px; color: #9ca3af;">
+                This is an automated message. Please do not reply to this email.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
