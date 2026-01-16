@@ -364,6 +364,126 @@ code {
     background: rgba(139, 92, 246, 0.2);
     color: #c4b5fd;
 }
+
+/* ========== Mobile Optimizations ========== */
+@media (max-width: 768px) {
+    /* Simplify command bar */
+    .ai-command-bar {
+        padding: 6px 16px;
+        gap: 8px;
+    }
+    
+    .ai-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+    }
+    
+    .ai-input {
+        font-size: 0.9rem;
+    }
+    
+    .ai-input::placeholder {
+        font-size: 0.85rem;
+    }
+    
+    .ai-badge {
+        display: none; /* Hide on mobile */
+    }
+    
+    /* Simplify hero section */
+    .section-icon {
+        width: 28px;
+        height: 28px;
+        font-size: 0.85rem;
+    }
+    
+    .section-title {
+        font-size: 1.1rem;
+    }
+    
+    /* Stack action buttons */
+    .glass-card .d-flex.flex-wrap.gap-2 {
+        flex-direction: column !important;
+    }
+    
+    .glass-btn {
+        width: 100%;
+        text-align: center;
+        padding: 12px 16px;
+        font-size: 0.9rem;
+    }
+    
+    /* Reduce metric card padding */
+    .analytics-tile {
+        padding: 1rem !important;
+    }
+    
+    .metric-value {
+        font-size: 1.8rem;
+    }
+    
+    .metric-icon-wrapper {
+        width: 44px;
+        height: 44px;
+        font-size: 1.1rem;
+    }
+    
+    /* Simplify approval pipeline */
+    .glass-card h6 {
+        font-size: 0.7rem;
+    }
+    
+    /* Hide less critical elements on mobile */
+    .ai-command-bar button {
+        display: none;
+    }
+    
+    /* Simplify trend bars */
+    .trend-bar {
+        height: 24px;
+    }
+    
+    /* Compact table styling */
+    .glass-table {
+        font-size: 0.85rem;
+    }
+    
+    .glass-table th,
+    .glass-table td {
+        padding: 0.5rem 0.25rem;
+    }
+    
+    /* Hide non-essential table columns on mobile */
+    .glass-table tbody tr td:last-child {
+        padding-right: 0.5rem;
+    }
+    
+    /* Reduce card margins */
+    .glass-card {
+        margin-bottom: 0.75rem !important;
+    }
+    
+    .row.g-3 {
+        gap: 0.75rem !important;
+    }
+    
+    /* Simplify section headers */
+    .section-header {
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+    
+    /* Stack small text */
+    small {
+        font-size: 0.75rem;
+    }
+    
+    code {
+        font-size: 0.75em;
+        padding: 2px 6px;
+    }
+}
 </style>
 
 <div class="glass-bg"></div>
@@ -375,9 +495,9 @@ code {
             <div class="ai-icon">
                 <i class="bi bi-stars"></i>
             </div>
-            <input type="text" class="ai-input" placeholder="Ask me anything... 'Show me schools with declining attendance' or 'Which tenants are on trial?'" />
-            <span class="ai-badge">AI Powered</span>
-            <button class="btn btn-link text-muted p-0">
+            <input type="text" class="ai-input" placeholder="Ask me anything about your platform..." />
+            <span class="ai-badge d-none d-md-inline">AI Powered</span>
+            <button class="btn btn-link text-muted p-0 d-none d-md-block">
                 <i class="bi bi-mic-fill fs-5"></i>
             </button>
         </div>
@@ -392,27 +512,28 @@ code {
                         <i class="bi bi-grid-3x3-gap"></i>
                     </div>
                     <div>
-                        <h1 class="section-title mb-0">Platform Command Center</h1>
-                        <small class="text-muted">Real-time analytics • Public schema</small>
+                        <h1 class="section-title mb-0">Command Center</h1>
+                        <small class="text-muted d-none d-md-inline">Real-time analytics • Public schema</small>
+                        <small class="text-muted d-md-none">Real-time analytics</small>
                     </div>
                 </div>
-                <p class="mb-0 text-muted">Monitor all tenants, domains, and growth trends with AI-powered insights.</p>
+                <p class="mb-0 text-muted d-none d-md-block">Monitor all tenants, domains, and growth trends with AI-powered insights.</p>
             </div>
-            <div class="d-flex flex-wrap gap-2">
+            <div class="d-flex flex-column flex-md-row flex-wrap gap-2 w-100 w-lg-auto">
                 <a class="glass-btn glass-btn-primary" href="{% url 'tenants:revenue_analytics' %}">
-                    <i class="bi bi-graph-up-arrow me-2"></i>Revenue Analytics
+                    <i class="bi bi-graph-up-arrow me-2"></i>Revenue
                 </a>
                 <a class="glass-btn glass-btn-primary" href="{% url 'tenants:approval_queue' %}">
-                    <i class="bi bi-clipboard-check me-2"></i>Approval Queue
+                    <i class="bi bi-clipboard-check me-2"></i><span class="d-none d-sm-inline">Approval Queue</span><span class="d-sm-none">Approvals</span>
                     {% if pending_count > 0 %}
                         <span class="badge bg-danger ms-1">{{ pending_count }}</span>
                     {% endif %}
                 </a>
-                <a class="glass-btn" href="/admin/" target="_blank">
-                    <i class="bi bi-gear me-2"></i>Django Admin
+                <a class="glass-btn d-none d-md-inline-flex" href="/admin/" target="_blank">
+                    <i class="bi bi-gear me-2"></i>Admin
                 </a>
-                <a class="glass-btn" href="{% url 'signup' %}">
-                    <i class="bi bi-plus-circle me-2"></i>Create Tenant
+                <a class="glass-btn d-none d-md-inline-flex" href="{% url 'signup' %}">
+                    <i class="bi bi-plus-circle me-2"></i>New Tenant
                 </a>
             </div>
         </div>
@@ -498,13 +619,14 @@ code {
         <div class="col-12">
             <div class="glass-card p-3">
                 <h6 class="text-muted text-uppercase mb-3" style="font-size: 0.75rem; letter-spacing: 1px; font-weight: 600;">
-                    <i class="bi bi-clipboard-check me-2"></i>School Onboarding Pipeline
+                    <i class="bi bi-clipboard-check me-2"></i><span class="d-none d-sm-inline">School Onboarding Pipeline</span><span class="d-sm-none">Onboarding</span>
                 </h6>
                 <div class="row g-2">
                     <div class="col-6 col-md">
                         <a href="{% url 'tenants:approval_queue' %}?status=pending" class="text-decoration-none">
                             <div class="glass-card p-3 text-center h-100 analytics-tile">
-                                <i class="bi bi-hourglass text-warning fs-2 mb-2"></i>
+                                <i class="bi bi-hourglass text-warning fs-2 mb-2 d-none d-md-block"></i>
+                                <i class="bi bi-hourglass text-warning fs-4 mb-1 d-md-none"></i>
                                 <h4 class="metric-value mb-1">{{ pending_count }}</h4>
                                 <small class="text-muted">Pending</small>
                             </div>
@@ -513,16 +635,19 @@ code {
                     <div class="col-6 col-md">
                         <a href="{% url 'tenants:approval_queue' %}?status=under_review" class="text-decoration-none">
                             <div class="glass-card p-3 text-center h-100 analytics-tile">
-                                <i class="bi bi-eye text-primary fs-2 mb-2"></i>
+                                <i class="bi bi-eye text-primary fs-2 mb-2 d-none d-md-block"></i>
+                                <i class="bi bi-eye text-primary fs-4 mb-1 d-md-none"></i>
                                 <h4 class="metric-value mb-1">{{ under_review_count }}</h4>
-                                <small class="text-muted">Under Review</small>
+                                <small class="text-muted d-none d-sm-inline">Under Review</small>
+                                <small class="text-muted d-sm-none">Review</small>
                             </div>
                         </a>
                     </div>
                     <div class="col-6 col-md">
                         <a href="{% url 'tenants:approval_queue' %}?status=approved" class="text-decoration-none">
                             <div class="glass-card p-3 text-center h-100 analytics-tile">
-                                <i class="bi bi-check-circle text-success fs-2 mb-2"></i>
+                                <i class="bi bi-check-circle text-success fs-2 mb-2 d-none d-md-block"></i>
+                                <i class="bi bi-check-circle text-success fs-4 mb-1 d-md-none"></i>
                                 <h4 class="metric-value mb-1">{{ approved_count }}</h4>
                                 <small class="text-muted">Approved</small>
                             </div>
@@ -531,13 +656,14 @@ code {
                     <div class="col-6 col-md">
                         <a href="{% url 'tenants:approval_queue' %}?status=rejected" class="text-decoration-none">
                             <div class="glass-card p-3 text-center h-100 analytics-tile">
-                                <i class="bi bi-x-circle text-danger fs-2 mb-2"></i>
+                                <i class="bi bi-x-circle text-danger fs-2 mb-2 d-none d-md-block"></i>
+                                <i class="bi bi-x-circle text-danger fs-4 mb-1 d-md-none"></i>
                                 <h4 class="metric-value mb-1">{{ rejected_count }}</h4>
                                 <small class="text-muted">Rejected</small>
                             </div>
                         </a>
                     </div>
-                    <div class="col-12 col-md">
+                    <div class="col-12 col-md d-none d-md-block">
                         <a href="{% url 'tenants:approval_queue' %}?status=requires_info" class="text-decoration-none">
                             <div class="glass-card p-3 text-center h-100 analytics-tile">
                                 <i class="bi bi-info-circle text-secondary fs-2 mb-2"></i>
@@ -561,7 +687,8 @@ code {
                     </div>
                     <div class="flex-grow-1">
                         <h3 class="section-title">Signup Trend</h3>
-                        <small class="text-muted">Last 30 days • AI predictions enabled</small>
+                        <small class="text-muted d-none d-md-inline">Last 30 days • AI predictions enabled</small>
+                        <small class="text-muted d-md-none">Last 30 days</small>
                     </div>
                 </div>
                 <div class="d-flex flex-column gap-3 mt-3">
@@ -569,8 +696,8 @@ code {
                         {% for day in signups_chart %}
                             <div>
                                 <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <small class="text-muted fw-semibold" style="min-width: 90px;">{{ day.date|date:"M d" }}</small>
-                                    <span class="badge rounded-pill" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">{{ day.total }} signup{{ day.total|pluralize }}</span>
+                                    <small class="text-muted fw-semibold" style="min-width: 70px;">{{ day.date|date:"M d" }}</small>
+                                    <span class="badge rounded-pill" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">{{ day.total }}</span>
                                 </div>
                                 <div class="trend-bar">
                                     <div class="trend-fill" style="width: {{ day.pct }}%;"></div>
@@ -595,7 +722,7 @@ code {
                     </div>
                     <div class="flex-grow-1">
                         <h3 class="section-title">Domains</h3>
-                        <small class="text-muted">DNS management</small>
+                        <small class="text-muted d-none d-md-inline">DNS management</small>
                     </div>
                 </div>
                 <div class="mt-4">
@@ -607,9 +734,9 @@ code {
                         <span class="text-muted">Primary domains</span>
                         <span class="badge rounded-pill bg-success">{{ primary_domains }}</span>
                     </div>
-                    <p class="text-muted small mb-3">Monitor custom domains and SSL status.</p>
+                    <p class="text-muted small mb-3 d-none d-md-block">Monitor custom domains and SSL status.</p>
                     <a class="glass-btn w-100 text-center" href="/admin/tenants/domain/" target="_blank">
-                        <i class="bi bi-box-arrow-up-right me-2"></i>Manage Domains
+                        <i class="bi bi-box-arrow-up-right me-2"></i>Manage
                     </a>
                 </div>
             </div>
@@ -674,7 +801,7 @@ code {
                     <thead>
                         <tr>
                             <th>School</th>
-                            <th>Status</th>
+                            <th class="d-none d-sm-table-cell">Status</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -684,14 +811,17 @@ code {
                             <td>
                                 <div>
                                     <div class="fw-bold">{{ school.name }}</div>
-                                    <small class="text-muted">
+                                    <small class="text-muted d-none d-md-inline">
                                         <code>{{ school.schema_name }}</code>
                                         <span class="mx-1">•</span>
                                         {{ school.created_on|date:"M d, Y" }}
                                     </small>
+                                    <small class="text-muted d-md-none">
+                                        {{ school.created_on|date:"M d" }}
+                                    </small>
                                 </div>
                             </td>
-                            <td>
+                            <td class="d-none d-sm-table-cell">
                                 {% if school.is_active %}
                                 <span class="badge rounded-pill bg-success">
                                     <span class="status-indicator bg-white"></span>
@@ -725,28 +855,28 @@ code {
             <h3 class="section-title">Quick Operations</h3>
         </div>
         <div class="d-flex flex-wrap gap-2 mt-3">
-            <a class="glass-btn" href="/admin/tenants/school/" target="_blank">
+            <a class="glass-btn d-none d-md-inline-flex" href="/admin/tenants/school/" target="_blank">
                 <i class="bi bi-list-check me-2"></i>Manage Tenants
             </a>
             <a class="glass-btn" href="{% url 'tenants:revenue_analytics' %}">
-                <i class="bi bi-graph-up me-2"></i>Revenue Analytics
+                <i class="bi bi-graph-up me-2"></i>Revenue
             </a>
             <a class="glass-btn" href="{% url 'tenants:system_health' %}">
-                <i class="bi bi-activity me-2"></i>System Health
+                <i class="bi bi-activity me-2"></i>Health
             </a>
             <a class="glass-btn" href="{% url 'tenants:support_tickets' %}">
-                <i class="bi bi-headset me-2"></i>Support Desk
+                <i class="bi bi-headset me-2"></i>Support
             </a>
-            <a class="glass-btn" href="{% url 'tenants:database_backups' %}">
+            <a class="glass-btn d-none d-md-inline-flex" href="{% url 'tenants:database_backups' %}">
                 <i class="bi bi-shield-check me-2"></i>Backups
             </a>
-            <a class="glass-btn" href="/admin/auth/user/" target="_blank">
-                <i class="bi bi-people me-2"></i>User Management
+            <a class="glass-btn d-none d-md-inline-flex" href="/admin/auth/user/" target="_blank">
+                <i class="bi bi-people me-2"></i>Users
             </a>
             <a class="glass-btn glass-btn-primary" href="{% url 'signup' %}">
                 <i class="bi bi-plus-circle me-2"></i>New Tenant
             </a>
-            <a class="glass-btn" href="/admin/" target="_blank">
+            <a class="glass-btn d-none d-md-inline-flex" href="/admin/" target="_blank">
                 <i class="bi bi-shield-check me-2"></i>Full Admin
             </a>
         </div>
