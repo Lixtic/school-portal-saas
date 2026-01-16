@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.db import connection
+from django.db import connection, close_old_connections
 from django.http import Http404
 from django.urls import set_urlconf, set_script_prefix
 from django_tenants.middleware.main import TenantMainMiddleware
@@ -7,6 +7,9 @@ from tenants.models import School
 
 class TenantPathMiddleware(TenantMainMiddleware):
     def process_request(self, request):
+        # 0. Force close stale connections on serverless/Vercel before processing
+        close_old_connections()
+        
         # 1. Start with Public context to be safe
         connection.set_schema_to_public()
         
