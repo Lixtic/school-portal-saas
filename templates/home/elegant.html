@@ -288,17 +288,17 @@
             <img src="{{ school_info.logo.url }}" alt="{{ school_info.name }}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
         </div>
         {% endif %}
-        <h1 class="elegant-title">{{ school_info.name }}</h1>
+        <h1 class="elegant-title">{{ school_info.hero_title|default:school_info.name }}</h1>
         <div class="elegant-divider"></div>
-        <p class="elegant-subtitle">{{ school_info.motto }}</p>
+        <p class="elegant-subtitle">{{ school_info.hero_subtitle|default:school_info.motto }}</p>
         
         <div class="d-flex justify-content-center gap-3 flex-wrap">
             {% if not user.is_authenticated %}
-            <a href="{% url 'login' %}" class="elegant-btn elegant-btn-primary">
-                <i class="fas fa-sign-in-alt me-2"></i> Portal Login
+            <a href="{{ school_info.cta_primary_url }}" class="elegant-btn elegant-btn-primary">
+                <i class="fas fa-sign-in-alt me-2"></i> {{ school_info.cta_primary_text }}
             </a>
-            <a href="{% url 'academics:apply_admission' %}" class="elegant-btn elegant-btn-outline">
-                <i class="fas fa-file-alt me-2"></i> Apply Now
+            <a href="{{ school_info.cta_secondary_url }}" class="elegant-btn elegant-btn-outline">
+                <i class="fas fa-file-alt me-2"></i> {{ school_info.cta_secondary_text }}
             </a>
             {% else %}
             <a href="{% url 'dashboard' %}" class="elegant-btn elegant-btn-primary">
@@ -313,10 +313,9 @@
 <div class="container py-5 my-5">
     <div class="text-center mb-5">
         <div class="section-label">Excellence in Education</div>
-        <h2 class="section-heading">Why Choose Us</h2>
+        <h2 class="section-heading">{{ school_info.about_title }}</h2>
         <p class="section-description mx-auto" style="max-width: 600px;">
-            We provide a comprehensive educational experience that nurtures academic excellence, 
-            character development, and leadership skills.
+            {{ school_info.about_description }}
         </p>
     </div>
     
@@ -324,66 +323,69 @@
         <div class="col-md-4">
             <div class="elegant-card">
                 <div class="elegant-icon">
-                    <i class="fas fa-award fa-2x"></i>
+                    <i class="fas {{ school_info.feature1_icon }} fa-2x"></i>
                 </div>
-                <h4 class="fw-bold mb-3">Academic Excellence</h4>
-                <p class="text-muted mb-0">Proven track record of outstanding academic performance and university placements.</p>
+                <h4 class="fw-bold mb-3">{{ school_info.feature1_title }}</h4>
+                <p class="text-muted mb-0">{{ school_info.feature1_description }}</p>
             </div>
         </div>
         <div class="col-md-4">
             <div class="elegant-card">
                 <div class="elegant-icon">
-                    <i class="fas fa-users fa-2x"></i>
+                    <i class="fas {{ school_info.feature2_icon }} fa-2x"></i>
                 </div>
-                <h4 class="fw-bold mb-3">Expert Faculty</h4>
-                <p class="text-muted mb-0">Highly qualified and dedicated teachers committed to student success.</p>
+                <h4 class="fw-bold mb-3">{{ school_info.feature2_title }}</h4>
+                <p class="text-muted mb-0">{{ school_info.feature2_description }}</p>
             </div>
         </div>
         <div class="col-md-4">
             <div class="elegant-card">
                 <div class="elegant-icon">
-                    <i class="fas fa-building fa-2x"></i>
+                    <i class="fas {{ school_info.feature3_icon }} fa-2x"></i>
                 </div>
-                <h4 class="fw-bold mb-3">Modern Facilities</h4>
-                <p class="text-muted mb-0">State-of-the-art classrooms, laboratories, and sports facilities.</p>
+                <h4 class="fw-bold mb-3">{{ school_info.feature3_title }}</h4>
+                <p class="text-muted mb-0">{{ school_info.feature3_description }}</p>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Stats Section -->
+{% if school_info.show_stats_section %}
 <div class="stats-section">
     <div class="container">
         <div class="row">
             <div class="col-md-3 col-6 mb-4 mb-md-0">
                 <div class="stat-item">
-                    <div class="stat-number">25+</div>
-                    <div class="stat-label">Years of Excellence</div>
+                    <div class="stat-number">{{ school_info.stat1_number }}</div>
+                    <div class="stat-label">{{ school_info.stat1_label }}</div>
                 </div>
             </div>
             <div class="col-md-3 col-6 mb-4 mb-md-0">
                 <div class="stat-item">
-                    <div class="stat-number">1000+</div>
-                    <div class="stat-label">Students Enrolled</div>
+                    <div class="stat-number">{{ school_info.stat2_number }}</div>
+                    <div class="stat-label">{{ school_info.stat2_label }}</div>
                 </div>
             </div>
             <div class="col-md-3 col-6">
                 <div class="stat-item">
-                    <div class="stat-number">50+</div>
-                    <div class="stat-label">Expert Teachers</div>
+                    <div class="stat-number">{{ school_info.stat3_number }}</div>
+                    <div class="stat-label">{{ school_info.stat3_label }}</div>
                 </div>
             </div>
             <div class="col-md-3 col-6">
                 <div class="stat-item">
-                    <div class="stat-number">98%</div>
-                    <div class="stat-label">Success Rate</div>
+                    <div class="stat-number">{{ school_info.stat4_number }}</div>
+                    <div class="stat-label">{{ school_info.stat4_label }}</div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endif %}
 
 <!-- Academic Programs -->
+{% if school_info.show_programs_section %}
 <div class="container py-5 my-5">
     <div class="text-center mb-5">
         <div class="section-label">Academic Programs</div>
@@ -445,8 +447,10 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 <!-- Campus Gallery Preview -->
+{% if school_info.show_gallery_preview %}
 <div class="container-fluid py-5 my-5" style="background: var(--surface-bg);">
     <div class="container">
         <div class="text-center mb-5">
@@ -492,6 +496,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 <!-- AI Admissions Assistant -->
 <div class="assistant-launcher">

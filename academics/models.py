@@ -39,6 +39,51 @@ class SchoolInfo(models.Model):
     )
     homepage_template = models.CharField(max_length=20, choices=TEMPLATE_CHOICES, default='default')
     
+    # Hero Section Customization
+    hero_title = models.CharField(max_length=200, blank=True, default='', help_text="Main hero heading (leave empty to use school name)")
+    hero_subtitle = models.CharField(max_length=300, blank=True, default='', help_text="Hero subtitle/description")
+    cta_primary_text = models.CharField(max_length=50, default='Portal Login', help_text="Primary call-to-action button text")
+    cta_primary_url = models.CharField(max_length=200, default='/login/', help_text="Primary CTA URL")
+    cta_secondary_text = models.CharField(max_length=50, default='Apply Now', help_text="Secondary call-to-action button text")
+    cta_secondary_url = models.CharField(max_length=200, default='/academics/apply/', help_text="Secondary CTA URL")
+    
+    # Stats Section
+    stat1_number = models.CharField(max_length=20, default='25+', help_text="First statistic number")
+    stat1_label = models.CharField(max_length=50, default='Years of Excellence', help_text="First statistic label")
+    stat2_number = models.CharField(max_length=20, default='1000+', help_text="Second statistic number")
+    stat2_label = models.CharField(max_length=50, default='Students Enrolled', help_text="Second statistic label")
+    stat3_number = models.CharField(max_length=20, default='50+', help_text="Third statistic number")
+    stat3_label = models.CharField(max_length=50, default='Expert Teachers', help_text="Third statistic label")
+    stat4_number = models.CharField(max_length=20, default='98%', help_text="Fourth statistic number")
+    stat4_label = models.CharField(max_length=50, default='Success Rate', help_text="Fourth statistic label")
+    
+    # Features/Highlights
+    feature1_title = models.CharField(max_length=100, default='Academic Excellence', help_text="First feature title")
+    feature1_description = models.TextField(default='Proven track record of outstanding academic performance and university placements.')
+    feature1_icon = models.CharField(max_length=50, default='fa-award', help_text="FontAwesome icon class (e.g., fa-award)")
+    feature2_title = models.CharField(max_length=100, default='Expert Faculty', help_text="Second feature title")
+    feature2_description = models.TextField(default='Highly qualified and dedicated teachers committed to student success.')
+    feature2_icon = models.CharField(max_length=50, default='fa-users', help_text="FontAwesome icon class")
+    feature3_title = models.CharField(max_length=100, default='Modern Facilities', help_text="Third feature title")
+    feature3_description = models.TextField(default='State-of-the-art classrooms, laboratories, and sports facilities.')
+    feature3_icon = models.CharField(max_length=50, default='fa-building', help_text="FontAwesome icon class")
+    
+    # About Section
+    about_title = models.CharField(max_length=100, default='Why Choose Us', help_text="About/Why Choose section title")
+    about_description = models.TextField(blank=True, default='We provide a comprehensive educational experience that nurtures academic excellence, character development, and leadership skills.')
+    
+    # Social Media
+    facebook_url = models.URLField(blank=True, default='', help_text="Facebook page URL")
+    twitter_url = models.URLField(blank=True, default='', help_text="Twitter/X profile URL")
+    instagram_url = models.URLField(blank=True, default='', help_text="Instagram profile URL")
+    linkedin_url = models.URLField(blank=True, default='', help_text="LinkedIn page URL")
+    youtube_url = models.URLField(blank=True, default='', help_text="YouTube channel URL")
+    
+    # Section Visibility
+    show_stats_section = models.BooleanField(default=True, help_text="Display statistics section on homepage")
+    show_programs_section = models.BooleanField(default=True, help_text="Display academic programs section")
+    show_gallery_preview = models.BooleanField(default=True, help_text="Display gallery preview section")
+    
     def save(self, *args, **kwargs):
         if not self.pk and SchoolInfo.objects.exists():
             # If valid, just update the first one instead of creating new

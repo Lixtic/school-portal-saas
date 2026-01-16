@@ -271,7 +271,7 @@ def school_settings_view(request):
     else:
         form = SchoolInfoForm(instance=info)
         
-    return render(request, 'academics/school_settings.html', {'form': form})
+    return render(request, 'academics/school_settings_new.html', {'form': form})
 
 
 @login_required

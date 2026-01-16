@@ -1,0 +1,460 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    [data-bs-theme="dark"] .card {
+        background-color: var(--surface-white);
+        border-color: rgba(255,255,255,0.05);
+        color: var(--text-main);
+    }
+    [data-bs-theme="dark"] .form-label {
+        color: var(--text-main);
+    }
+    [data-bs-theme="dark"] input[type="file"], [data-bs-theme="dark"] .form-control, [data-bs-theme="dark"] .form-select {
+        color: var(--text-main);
+        background-color: var(--surface-bg);
+        border-color: rgba(255,255,255,0.1);
+    }
+    .nav-pills .nav-link {
+        border-radius: 8px;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+    .nav-pills .nav-link.active {
+        background-color: var(--primary-brand);
+    }
+    .form-section {
+        background: var(--surface-card);
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border: 1px solid rgba(0,0,0,0.06);
+    }
+    [data-bs-theme="dark"] .form-section {
+        border-color: rgba(255,255,255,0.08);
+    }
+    .section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 16px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid var(--primary-brand);
+    }
+    .help-text-small {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0">School Configuration</h2>
+                <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-body">
+                    <h6 class="card-title mb-3">Settings Sections</h6>
+                    <ul class="nav nav-pills flex-column" id="settingsTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active w-100 text-start mb-2" id="basic-tab" data-bs-toggle="pill" data-bs-target="#basic" type="button" role="tab">
+                                <i class="fas fa-school me-2"></i>Basic Info
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link w-100 text-start mb-2" id="theme-tab" data-bs-toggle="pill" data-bs-target="#theme" type="button" role="tab">
+                                <i class="fas fa-palette me-2"></i>Theme & Template
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link w-100 text-start mb-2" id="hero-tab" data-bs-toggle="pill" data-bs-target="#hero" type="button" role="tab">
+                                <i class="fas fa-star me-2"></i>Hero Section
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link w-100 text-start mb-2" id="features-tab" data-bs-toggle="pill" data-bs-target="#features" type="button" role="tab">
+                                <i class="fas fa-th-large me-2"></i>Features
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link w-100 text-start mb-2" id="stats-tab" data-bs-toggle="pill" data-bs-target="#stats" type="button" role="tab">
+                                <i class="fas fa-chart-line me-2"></i>Statistics
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link w-100 text-start mb-2" id="social-tab" data-bs-toggle="pill" data-bs-target="#social" type="button" role="tab">
+                                <i class="fas fa-share-alt me-2"></i>Social Media
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link w-100 text-start" id="sections-tab" data-bs-toggle="pill" data-bs-target="#sections" type="button" role="tab">
+                                <i class="fas fa-toggle-on me-2"></i>Section Visibility
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="tab-content" id="settingsTabContent">
+                    <!-- Basic Info Tab -->
+                    <div class="tab-pane fade show active" id="basic" role="tabpanel">
+                        <div class="form-section">
+                            <div class="section-title">Basic Information</div>
+                            
+                            {% if form.instance.logo %}
+                            <div class="text-center mb-4">
+                                <img src="{{ form.instance.logo.url }}" alt="School Logo" style="height: 120px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                                <p class="text-muted small mt-2">Current Logo</p>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">School Name</label>
+                                    {{ form.name }}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">School Motto</label>
+                                    {{ form.motto }}
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Address</label>
+                                {{ form.address }}
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Phone Number</label>
+                                    {{ form.phone }}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Email Address</label>
+                                    {{ form.email }}
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">School Logo</label>
+                                {{ form.logo }}
+                                <div class="help-text-small">Upload a square logo (recommended: 500x500px)</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Theme & Template Tab -->
+                    <div class="tab-pane fade" id="theme" role="tabpanel">
+                        <div class="form-section">
+                            <div class="section-title">Theme Customization</div>
+                            
+                            <div class="mb-4">
+                                <label class="form-label">Homepage Template</label>
+                                {{ form.homepage_template }}
+                                <div class="help-text-small">Choose the layout style for your public homepage</div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Primary Color</label>
+                                    {{ form.primary_color }}
+                                    <div class="help-text-small">Main brand color for buttons and accents</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Secondary Color</label>
+                                    {{ form.secondary_color }}
+                                    <div class="help-text-small">Sidebar and secondary elements color</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hero Section Tab -->
+                    <div class="tab-pane fade" id="hero" role="tabpanel">
+                        <div class="form-section">
+                            <div class="section-title">Hero Section Content</div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Hero Title</label>
+                                {{ form.hero_title }}
+                                <div class="help-text-small">Leave empty to use school name. Main heading on homepage.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Hero Subtitle</label>
+                                {{ form.hero_subtitle }}
+                                <div class="help-text-small">Leave empty to use school motto. Brief description under hero title.</div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <div class="section-title">Call-to-Action Buttons</div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Primary Button Text</label>
+                                    {{ form.cta_primary_text }}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Primary Button URL</label>
+                                    {{ form.cta_primary_url }}
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Secondary Button Text</label>
+                                    {{ form.cta_secondary_text }}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Secondary Button URL</label>
+                                    {{ form.cta_secondary_url }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <div class="section-title">About Section</div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Section Title</label>
+                                {{ form.about_title }}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">About Description</label>
+                                {{ form.about_description }}
+                                <div class="help-text-small">Brief description about why families should choose your school</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Features Tab -->
+                    <div class="tab-pane fade" id="features" role="tabpanel">
+                        <div class="form-section">
+                            <div class="section-title">Feature 1</div>
+                            
+                            <div class="row">
+                                <div class="col-md-8 mb-3">
+                                    <label class="form-label">Title</label>
+                                    {{ form.feature1_title }}
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Icon</label>
+                                    {{ form.feature1_icon }}
+                                    <div class="help-text-small"><a href="https://fontawesome.com/icons" target="_blank">Browse icons</a></div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                {{ form.feature1_description }}
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <div class="section-title">Feature 2</div>
+                            
+                            <div class="row">
+                                <div class="col-md-8 mb-3">
+                                    <label class="form-label">Title</label>
+                                    {{ form.feature2_title }}
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Icon</label>
+                                    {{ form.feature2_icon }}
+                                    <div class="help-text-small"><a href="https://fontawesome.com/icons" target="_blank">Browse icons</a></div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                {{ form.feature2_description }}
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <div class="section-title">Feature 3</div>
+                            
+                            <div class="row">
+                                <div class="col-md-8 mb-3">
+                                    <label class="form-label">Title</label>
+                                    {{ form.feature3_title }}
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Icon</label>
+                                    {{ form.feature3_icon }}
+                                    <div class="help-text-small"><a href="https://fontawesome.com/icons" target="_blank">Browse icons</a></div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                {{ form.feature3_description }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Statistics Tab -->
+                    <div class="tab-pane fade" id="stats" role="tabpanel">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>These statistics will be displayed prominently on your homepage to showcase your school's achievements.
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-section">
+                                    <div class="section-title">Statistic 1</div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Number</label>
+                                        {{ form.stat1_number }}
+                                        <div class="help-text-small">Example: 25+, 1000+, 98%</div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Label</label>
+                                        {{ form.stat1_label }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-section">
+                                    <div class="section-title">Statistic 2</div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Number</label>
+                                        {{ form.stat2_number }}
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Label</label>
+                                        {{ form.stat2_label }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-section">
+                                    <div class="section-title">Statistic 3</div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Number</label>
+                                        {{ form.stat3_number }}
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Label</label>
+                                        {{ form.stat3_label }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-section">
+                                    <div class="section-title">Statistic 4</div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Number</label>
+                                        {{ form.stat4_number }}
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Label</label>
+                                        {{ form.stat4_label }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Social Media Tab -->
+                    <div class="tab-pane fade" id="social" role="tabpanel">
+                        <div class="form-section">
+                            <div class="section-title">Social Media Links</div>
+                            <p class="text-muted mb-4">Add your school's social media profiles. Leave blank to hide.</p>
+                            
+                            <div class="mb-3">
+                                <label class="form-label"><i class="fab fa-facebook text-primary me-2"></i>Facebook</label>
+                                {{ form.facebook_url }}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label"><i class="fab fa-twitter text-info me-2"></i>Twitter / X</label>
+                                {{ form.twitter_url }}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label"><i class="fab fa-instagram text-danger me-2"></i>Instagram</label>
+                                {{ form.instagram_url }}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label"><i class="fab fa-linkedin text-primary me-2"></i>LinkedIn</label>
+                                {{ form.linkedin_url }}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label"><i class="fab fa-youtube text-danger me-2"></i>YouTube</label>
+                                {{ form.youtube_url }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section Visibility Tab -->
+                    <div class="tab-pane fade" id="sections" role="tabpanel">
+                        <div class="form-section">
+                            <div class="section-title">Homepage Section Visibility</div>
+                            <p class="text-muted mb-4">Toggle which sections appear on your public homepage</p>
+                            
+                            <div class="form-check form-switch mb-3">
+                                {{ form.show_stats_section }}
+                                <label class="form-check-label ms-2" for="{{ form.show_stats_section.id_for_label }}">
+                                    Show Statistics Section
+                                    <div class="help-text-small">Display achievement statistics (years, students, teachers, success rate)</div>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check form-switch mb-3">
+                                {{ form.show_programs_section }}
+                                <label class="form-check-label ms-2" for="{{ form.show_programs_section.id_for_label }}">
+                                    Show Academic Programs Section
+                                    <div class="help-text-small">Display program cards (Early Years, Primary, JHS, SHS)</div>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check form-switch mb-3">
+                                {{ form.show_gallery_preview }}
+                                <label class="form-check-label ms-2" for="{{ form.show_gallery_preview.id_for_label }}">
+                                    Show Campus Gallery Preview
+                                    <div class="help-text-small">Display campus photos from gallery</div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Save Changes</strong>
+                            <p class="text-muted mb-0 small">Update your school configuration</p>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-save me-2"></i>Save Configuration
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
