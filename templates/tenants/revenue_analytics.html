@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+
+{% block title %}Revenue Analytics{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold">
+            <i class="bi bi-graph-up-arrow me-2"></i>Revenue Analytics Dashboard
+        </h2>
+        <a href="{% url 'tenants:landlord_dashboard' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+        </a>
+    </div>
+
+    {# MRR Metrics #}
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-success text-white">
+                <div class="card-body">
+                    <h6 class="text-uppercase mb-2">Total MRR</h6>
+                    <h2 class="mb-0">${{ total_mrr|floatformat:2 }}</h2>
+                    <small>Monthly Recurring Revenue</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-uppercase text-muted mb-2">Paid MRR</h6>
+                    <h2 class="mb-0">${{ paid_mrr|floatformat:2 }}</h2>
+                    <small class="text-muted">Active subscriptions</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-uppercase text-muted mb-2">Trial MRR</h6>
+                    <h2 class="mb-0">${{ trial_mrr|floatformat:2 }}</h2>
+                    <small class="text-muted">Trial accounts</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-uppercase text-muted mb-2">ARPA</h6>
+                    <h2 class="mb-0">${{ arpa|floatformat:2 }}</h2>
+                    <small class="text-muted">Average Revenue Per Account</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Churn & LTV #}
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm {% if churn_rate > 10 %}bg-danger text-white{% endif %}">
+                <div class="card-body">
+                    <h6 class="text-uppercase mb-2">Churn Rate (30d)</h6>
+                    <h2 class="mb-0">{{ churn_rate }}%</h2>
+                    <small>{{ churn_count }} schools cancelled</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-uppercase text-muted mb-2">Avg LTV</h6>
+                    <h2 class="mb-0">${{ avg_ltv|floatformat:2 }}</h2>
+                    <small class="text-muted">Lifetime Value</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-uppercase text-muted mb-2">Avg Subscription</h6>
+                    <h2 class="mb-0">{{ avg_subscription_months }} months</h2>
+                    <small class="text-muted">Before churn</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-uppercase text-muted mb-2">Revenue Collected</h6>
+                    <h2 class="mb-0">${{ total_revenue_collected|floatformat:2 }}</h2>
+                    <small class="text-muted">All-time paid invoices</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        {# Plan Distribution #}
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Plan Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Plan</th>
+                                <th class="text-end">Schools</th>
+                                <th class="text-end">MRR</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for plan in plan_distribution %}
+                            <tr>
+                                <td>{{ plan.plan__name }}</td>
+                                <td class="text-end">{{ plan.count }}</td>
+                                <td class="text-end">${{ plan.revenue|floatformat:2 }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-muted">No data</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {# Churn Reasons #}
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Churn Reasons (30d)</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Reason</th>
+                                <th class="text-end">Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reason in churn_reasons %}
+                            <tr>
+                                <td>{{ reason.reason|capfirst }}</td>
+                                <td class="text-end">{{ reason.count }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="2" class="text-muted">No churn data</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Upcoming Renewals #}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-warning">
+            <h5 class="mb-0"><i class="bi bi-calendar-check me-2"></i>Upcoming Renewals (Next 30 Days) - ${{ renewal_revenue|floatformat:2 }}</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>School</th>
+                        <th>Plan</th>
+                        <th>MRR</th>
+                        <th>Renewal Date</th>
+                        <th>Days Until</th>
+                        <th>Auto-Renew</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sub in upcoming_renewals %}
+                    <tr>
+                        <td>{{ sub.school.name }}</td>
+                        <td><span class="badge bg-info">{{ sub.plan.name }}</span></td>
+                        <td>${{ sub.mrr|floatformat:2 }}</td>
+                        <td>{{ sub.current_period_end|date:"M d, Y" }}</td>
+                        <td>{{ sub.days_until_renewal }} days</td>
+                        <td>
+                            {% if sub.auto_renew %}
+                                <i class="bi bi-check-circle text-success"></i> Yes
+                            {% else %}
+                                <i class="bi bi-x-circle text-danger"></i> No
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="text-muted">No renewals in next 30 days</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {# Invoices #}
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="bi bi-file-earmark-text fs-1 text-primary"></i>
+                    <h3 class="mt-2">{{ pending_invoices }}</h3>
+                    <p class="text-muted mb-0">Pending Invoices</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="bi bi-exclamation-circle fs-1 text-danger"></i>
+                    <h3 class="mt-2">{{ overdue_invoices }}</h3>
+                    <p class="text-muted mb-0">Overdue Invoices</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="bi bi-cash-stack fs-1 text-success"></i>
+                    <h3 class="mt-2">${{ total_revenue_collected|floatformat:0 }}</h3>
+                    <p class="text-muted mb-0">Total Collected</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

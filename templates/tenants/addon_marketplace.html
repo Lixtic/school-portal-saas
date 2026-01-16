@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Add-on Marketplace{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="text-center mb-5">
+        <h1 class="fw-bold">🚀 Add-on Marketplace</h1>
+        <p class="lead text-muted">Enhance your school management system with powerful add-ons</p>
+        <div class="alert alert-info d-inline-block">
+            <strong>Current Plan:</strong> {{ subscription.plan.name }} | 
+            <strong>Total Add-on Cost:</strong> ${{ total_addon_cost|floatformat:2 }}/mo
+        </div>
+    </div>
+
+    {% for category, addons in addons_by_category.items %}
+    <div class="mb-5">
+        <h3 class="mb-4">
+            <i class="bi bi-folder me-2"></i>{{ category }}
+        </h3>
+        <div class="row g-4">
+            {% for addon in addons %}
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm {% if addon.is_purchased %}border-success{% endif %}">
+                    {% if addon.is_purchased %}
+                        <div class="position-absolute top-0 end-0 m-2">
+                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Active</span>
+                        </div>
+                    {% endif %}
+                    <div class="card-body">
+                        <div class="text-center mb-3">
+                            <i class="{{ addon.icon }} fs-1 text-primary"></i>
+                        </div>
+                        <h5 class="card-title text-center">{{ addon.name }}</h5>
+                        <p class="card-text text-muted small">{{ addon.description }}</p>
+                        
+                        <div class="text-center my-3">
+                            <h3 class="text-primary mb-0">
+                                ${{ addon.monthly_price|floatformat:2 }}
+                                {% if not addon.is_one_time %}<small class="text-muted">/mo</small>{% endif %}
+                            </h3>
+                            {% if addon.is_one_time %}
+                                <small class="text-muted">One-time purchase</small>
+                            {% endif %}
+                        </div>
+
+                        {% if addon.is_purchased %}
+                            <form method="post" action="{% url 'tenants:cancel_addon' addon.id %}" class="d-grid">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Cancel this add-on?')">
+                                    <i class="bi bi-x-circle me-1"></i>Cancel
+                                </button>
+                            </form>
+                        {% else %}
+                            <form method="post" action="{% url 'tenants:purchase_addon' addon.id %}" class="d-grid">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-cart-plus me-1"></i>Purchase
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% empty %}
+    <div class="alert alert-warning text-center">
+        <i class="bi bi-info-circle me-2"></i>No add-ons available for your current plan.
+    </div>
+    {% endfor %}
+
+    <div class="text-center mt-5">
+        <a href="{% url 'dashboard' %}" class="btn btn-lg btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -368,3 +368,264 @@ def review_school(request, school_id):
     }
     return render(request, 'tenants/review_school.html', context)
 
+
+@login_required
+def revenue_analytics(request):
+    """Revenue analytics dashboard for platform admins"""
+    if not request.user.is_staff:
+        messages.error(request, "Access denied. Staff only.")
+        return redirect('home')
+    
+    from .models import SchoolSubscription, ChurnEvent, Invoice
+    from django.db.models import Sum, Avg, Count, Q
+    from django.db.models.functions import TruncMonth
+    
+    # === MRR Metrics ===
+    active_subscriptions = SchoolSubscription.objects.filter(
+        status__in=['active', 'trial']
+    )
+    
+    total_mrr = active_subscriptions.aggregate(
+        mrr=Sum('mrr')
+    )['mrr'] or 0
+    
+    trial_mrr = active_subscriptions.filter(status='trial').aggregate(
+        mrr=Sum('mrr')
+    )['mrr'] or 0
+    
+    paid_mrr = total_mrr - trial_mrr
+    
+    # Average revenue per account
+    arpa = active_subscriptions.aggregate(
+        avg=Avg('mrr')
+    )['avg'] or 0
+    
+    # === Churn Metrics ===
+    # Churn in last 30 days
+    thirty_days_ago = timezone.now() - timedelta(days=30)
+    recent_churns = ChurnEvent.objects.filter(cancelled_at__gte=thirty_days_ago)
+    churn_count = recent_churns.count()
+    
+    # Churn rate calculation
+    total_schools_30d_ago = School.objects.filter(
+        created_on__lt=thirty_days_ago
+    ).count()
+    churn_rate = (churn_count / total_schools_30d_ago * 100) if total_schools_30d_ago > 0 else 0
+    
+    # Churn reasons breakdown
+    churn_reasons = recent_churns.values('reason').annotate(
+        count=Count('id')
+    ).order_by('-count')
+    
+    # === Revenue Growth (Last 6 Months) ===
+    six_months_ago = timezone.now() - timedelta(days=180)
+    monthly_mrr = (
+        SchoolSubscription.objects
+        .filter(created_at__gte=six_months_ago, status__in=['active', 'trial'])
+        .annotate(month=TruncMonth('created_at'))
+        .values('month')
+        .annotate(mrr_sum=Sum('mrr'))
+        .order_by('month')
+    )
+    
+    # === Subscription Distribution ===
+    plan_distribution = (
+        active_subscriptions
+        .values('plan__name')
+        .annotate(count=Count('id'), revenue=Sum('mrr'))
+        .order_by('-revenue')
+    )
+    
+    billing_cycle_dist = (
+        active_subscriptions
+        .values('billing_cycle')
+        .annotate(count=Count('id'), revenue=Sum('mrr'))
+    )
+    
+    # === Renewals (Next 30 Days) ===
+    next_30_days = timezone.now() + timedelta(days=30)
+    upcoming_renewals = active_subscriptions.filter(
+        current_period_end__lte=next_30_days,
+        current_period_end__gte=timezone.now()
+    ).order_by('current_period_end')[:10]
+    
+    renewal_revenue = upcoming_renewals.aggregate(
+        total=Sum('mrr')
+    )['total'] or 0
+    
+    # === Lifetime Value ===
+    avg_ltv = ChurnEvent.objects.aggregate(
+        avg=Avg('lifetime_value')
+    )['avg'] or 0
+    
+    avg_subscription_months = ChurnEvent.objects.aggregate(
+        avg=Avg('months_subscribed')
+    )['avg'] or 0
+    
+    # === Invoice Stats ===
+    pending_invoices = Invoice.objects.filter(status='pending').count()
+    overdue_invoices = Invoice.objects.filter(
+        status='pending',
+        due_at__lt=timezone.now()
+    ).count()
+    
+    total_revenue_collected = Invoice.objects.filter(
+        status='paid'
+    ).aggregate(total=Sum('total'))['total'] or 0
+    
+    context = {
+        # MRR
+        'total_mrr': total_mrr,
+        'paid_mrr': paid_mrr,
+        'trial_mrr': trial_mrr,
+        'arpa': arpa,
+        
+        # Churn
+        'churn_count': churn_count,
+        'churn_rate': round(churn_rate, 2),
+        'churn_reasons': churn_reasons,
+        
+        # Growth
+        'monthly_mrr': list(monthly_mrr),
+        
+        # Distribution
+        'plan_distribution': plan_distribution,
+        'billing_cycle_dist': billing_cycle_dist,
+        
+        # Renewals
+        'upcoming_renewals': upcoming_renewals,
+        'renewal_revenue': renewal_revenue,
+        
+        # LTV
+        'avg_ltv': avg_ltv,
+        'avg_subscription_months': round(avg_subscription_months, 1),
+        
+        # Invoices
+        'pending_invoices': pending_invoices,
+        'overdue_invoices': overdue_invoices,
+        'total_revenue_collected': total_revenue_collected,
+    }
+    
+    return render(request, 'tenants/revenue_analytics.html', context)
+
+
+@login_required
+def addon_marketplace(request):
+    """Add-on marketplace for school admins"""
+    from .models import AddOn, SchoolSubscription, SchoolAddOn
+    
+    # Get school's subscription
+    try:
+        if hasattr(request, 'tenant') and request.tenant.schema_name != 'public':
+            subscription = SchoolSubscription.objects.get(school=request.tenant)
+        else:
+            messages.error(request, "Marketplace only available for school tenants")
+            return redirect('home')
+    except SchoolSubscription.DoesNotExist:
+        messages.error(request, "No active subscription found")
+        return redirect('dashboard')
+    
+    # Get available add-ons for this plan
+    available_addons = AddOn.objects.filter(
+        is_active=True,
+        available_for_plans__contains=[subscription.plan.plan_type]
+    )
+    
+    # Get already purchased add-ons
+    purchased_addon_ids = SchoolAddOn.objects.filter(
+        subscription=subscription,
+        is_active=True
+    ).values_list('addon_id', flat=True)
+    
+    # Categorize add-ons
+    addons_by_category = {}
+    for addon in available_addons:
+        category = addon.get_category_display()
+        if category not in addons_by_category:
+            addons_by_category[category] = []
+        
+        addon.is_purchased = addon.id in purchased_addon_ids
+        addons_by_category[category].append(addon)
+    
+    context = {
+        'subscription': subscription,
+        'addons_by_category': addons_by_category,
+        'total_addon_cost': sum(
+            addon.monthly_price 
+            for addon in available_addons 
+            if addon.id in purchased_addon_ids and not addon.is_one_time
+        ),
+    }
+    
+    return render(request, 'tenants/addon_marketplace.html', context)
+
+
+@login_required
+def purchase_addon(request, addon_id):
+    """Purchase an add-on"""
+    from .models import AddOn, SchoolSubscription, SchoolAddOn
+    
+    if request.method != 'POST':
+        return redirect('tenants:addon_marketplace')
+    
+    # Get subscription
+    try:
+        subscription = SchoolSubscription.objects.get(school=request.tenant)
+    except SchoolSubscription.DoesNotExist:
+        messages.error(request, "No active subscription found")
+        return redirect('dashboard')
+    
+    # Get add-on
+    addon = get_object_or_404(AddOn, id=addon_id, is_active=True)
+    
+    # Check if already purchased
+    if SchoolAddOn.objects.filter(subscription=subscription, addon=addon, is_active=True).exists():
+        messages.warning(request, f"You already have {addon.name}")
+        return redirect('tenants:addon_marketplace')
+    
+    # Create purchase
+    school_addon = SchoolAddOn.objects.create(
+        subscription=subscription,
+        addon=addon,
+        is_active=True
+    )
+    
+    # Recalculate MRR
+    subscription.calculate_mrr()
+    
+    messages.success(request, f"Successfully purchased {addon.name}! Your billing has been updated.")
+    return redirect('tenants:addon_marketplace')
+
+
+@login_required
+def cancel_addon(request, addon_id):
+    """Cancel an add-on subscription"""
+    from .models import SchoolSubscription, SchoolAddOn
+    
+    if request.method != 'POST':
+        return redirect('tenants:addon_marketplace')
+    
+    # Get subscription
+    try:
+        subscription = SchoolSubscription.objects.get(school=request.tenant)
+    except SchoolSubscription.DoesNotExist:
+        messages.error(request, "No active subscription found")
+        return redirect('dashboard')
+    
+    # Get school add-on
+    school_addon = get_object_or_404(
+        SchoolAddOn, 
+        subscription=subscription, 
+        addon_id=addon_id,
+        is_active=True
+    )
+    
+    # Deactivate
+    school_addon.is_active = False
+    school_addon.save()
+    
+    # Recalculate MRR
+    subscription.calculate_mrr()
+    
+    messages.success(request, f"Cancelled {school_addon.addon.name}. Changes will apply at next billing cycle.")
+    return redirect('tenants:addon_marketplace')

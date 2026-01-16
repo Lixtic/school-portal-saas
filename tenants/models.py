@@ -84,3 +84,10 @@ class School(TenantMixin):
 
 class Domain(DomainMixin):
     pass
+
+
+# Import subscription models
+from .subscription_models import (
+    SubscriptionPlan, AddOn, SchoolSubscription, 
+    SchoolAddOn, Invoice, ChurnEvent
+)
