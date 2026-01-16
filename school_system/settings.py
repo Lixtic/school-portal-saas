@@ -118,6 +118,7 @@ TEMPLATES = [
                 'academics.context_processors.school_info',
                 'announcements.context_processors.user_notifications',
             ],
+            'string_if_invalid': '',  # Return empty string instead of raising errors for undefined variables
         },
     },
 ]
