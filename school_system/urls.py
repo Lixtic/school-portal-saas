@@ -15,7 +15,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', account_views.homepage, name='home'),
     path('signup/', tenant_views.school_signup, name='signup'),
-    path('tenants/', include('tenants.urls', namespace='tenants')),
     path('login/', account_views.login_view, name='login'),
     # path('home/', account_views.homepage, name='home'), # Redirect old home
     path('logout/', account_views.logout_view, name='logout'),
@@ -53,7 +52,6 @@ urlpatterns = [
     path('announcements/', include('announcements.urls')),
     path('communication/', include('communication.urls')),
     path('finance/', include('finance.urls')),
-    path('tenants/', include('tenants.urls')),
     # path('debug/migrate/', account_views.debug_migrate, name='debug_migrate'),
     path('debug/status/', account_views.debug_status, name='debug_status'),
 ]

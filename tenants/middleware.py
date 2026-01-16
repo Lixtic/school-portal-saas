@@ -20,7 +20,7 @@ class TenantPathMiddleware(TenantMainMiddleware):
         # Add common global paths to exclude from tenant lookup
         reserved_paths = [
             'static', 'media', 'admin', 'accounts', 
-            'signup', 'login', 'logout', 'debug', 'favicon.ico'
+            'signup', 'login', 'logout', 'debug', 'favicon.ico', 'dashboard'
         ]
         
         if possible_schema and possible_schema != 'public' and possible_schema not in reserved_paths:

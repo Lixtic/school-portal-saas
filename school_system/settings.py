@@ -140,13 +140,16 @@ DATABASE_URL = os.environ.get('DATABASE_URL')
 
 if DATABASE_URL:
     # Production / Neon Database
-    DATABASES = {
-        'default': dj_database_url.parse(
-            DATABASE_URL,
-            conn_max_age=600,
-            engine='django_tenants.postgresql_backend',
-        )
-    }
+    db_cfg = dj_database_url.parse(
+        DATABASE_URL,
+        conn_max_age=600,
+        engine='django_tenants.postgresql_backend',
+    )
+    # On serverless (Vercel) keep connections short to avoid "connection already closed" reuse
+    if os.environ.get('VERCEL') == '1':
+        db_cfg['CONN_MAX_AGE'] = 0
+        db_cfg['CONN_HEALTH_CHECKS'] = True
+    DATABASES = {'default': db_cfg}
 else:
     # Local development: Must use PostgreSQL for django-tenants
     # SQLite is NOT supported
