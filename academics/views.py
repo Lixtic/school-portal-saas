@@ -171,7 +171,7 @@ def admissions_assistant(request):
     except Exception as e:
         return JsonResponse({'error': 'Invalid payload', 'details': str(e)}, status=400)
 
-    question = (payload.get('question') or '').lower().strip()
+    question = (payload.get('question') or '').strip()
     
     if not question:
         return JsonResponse({'answer': 'Please ask a question about admissions, fees, or term dates.'})
@@ -182,6 +182,52 @@ def admissions_assistant(request):
     except Exception:
         school_info = None
 
+    # Try OpenAI API first
+    from django.conf import settings
+    if settings.OPENAI_API_KEY:
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=settings.OPENAI_API_KEY)
+            
+            # Build context from school info
+            school_context = f"""
+You are a helpful admissions assistant for {school_info.name if school_info else 'our school'}.
+
+School Information:
+- Name: {school_info.name if school_info else 'N/A'}
+- Phone: {school_info.phone if school_info else 'Contact admin'}
+- Email: {school_info.email if school_info else 'Contact admin'}
+- Address: {school_info.address if school_info else 'Contact admin'}
+- Motto: {school_info.motto if school_info else 'Excellence in Education'}
+
+General Information:
+- Academic Calendar: Three terms - First (Sept-Dec), Second (Jan-Apr), Third (May-Jul)
+- Admission Process: Apply online via our Apply page with student details, parent contact, and prior school info
+- Required Documents: Birth certificate, prior report card (if any), passport photo, completed application form
+- Scholarships: Limited scholarships and fee waivers may be available - indicate interest in application
+- Fee Structure: Varies by class level - details provided during enrollment process
+
+Please provide helpful, concise answers about admissions, fees, term dates, and enrollment processes.
+"""
+            
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": school_context},
+                    {"role": "user", "content": question}
+                ],
+                max_tokens=200,
+                temperature=0.7
+            )
+            
+            answer = response.choices[0].message.content.strip()
+            return JsonResponse({'answer': answer})
+            
+        except Exception as e:
+            # Fall back to FAQ if OpenAI fails
+            print(f"OpenAI API error: {str(e)}")
+    
+    # Fallback FAQ system
     faq = [
         (('fee', 'tuition', 'fees', 'payment'), "Our fees vary by class. Please see the fee structure shared during enrollment or ask which class you're interested in."),
         (('term', 'calendar', 'date', 'schedule'), "Terms follow a three-term calendar: First (Sept-Dec), Second (Jan-Apr), Third (May-Jul). Exact dates are in the school calendar."),
@@ -192,8 +238,9 @@ def admissions_assistant(request):
     ]
 
     answer = "I can help with admissions, fees, and term dates. What would you like to know?"
+    question_lower = question.lower()
     for keywords, response in faq:
-        if any(k in question for k in keywords):
+        if any(k in question_lower for k in keywords):
             answer = response
             break
 

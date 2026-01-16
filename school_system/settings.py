@@ -16,6 +16,9 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-your-secret-key-here-
 # Default to True for local development, set to False in production
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
+# OpenAI Configuration
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
+
 # =====================
 # ALLOWED HOSTS & CSRF
 # =====================
