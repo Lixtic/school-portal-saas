@@ -311,12 +311,22 @@ def preview_homepage(request):
     # Create a temporary object with preview data (don't save to DB)
     class PreviewSchoolInfo:
         def __init__(self, base_obj, preview_data):
-            # Copy all attributes from base object
-            for field in base_obj._meta.fields:
-                setattr(self, field.name, getattr(base_obj, field.name))
+            # Copy all attributes from base object safely
+            try:
+                for field in base_obj._meta.fields:
+                    try:
+                        setattr(self, field.name, getattr(base_obj, field.name, ''))
+                    except:
+                        setattr(self, field.name, '')
+            except:
+                pass
             # Override with preview data
             for key, value in preview_data.items():
                 setattr(self, key, value)
+        
+        def __getattr__(self, name):
+            # Return empty string for any missing attributes
+            return ''
     
     preview_info = PreviewSchoolInfo(info, preview_data.get('form_data', {}))
     template_choice = preview_data.get('template', 'default')
@@ -330,19 +340,19 @@ def preview_homepage(request):
     # Build highlights from preview features
     highlights = [
         {
-            'title': preview_info.feature1_title,
-            'desc': preview_info.feature1_description,
-            'icon': f'fas {preview_info.feature1_icon}'
+            'title': getattr(preview_info, 'feature1_title', ''),
+            'desc': getattr(preview_info, 'feature1_description', ''),
+            'icon': f'fas {getattr(preview_info, "feature1_icon", "fa-star")}'
         },
         {
-            'title': preview_info.feature2_title,
-            'desc': preview_info.feature2_description,
-            'icon': f'fas {preview_info.feature2_icon}'
+            'title': getattr(preview_info, 'feature2_title', ''),
+            'desc': getattr(preview_info, 'feature2_description', ''),
+            'icon': f'fas {getattr(preview_info, "feature2_icon", "fa-book")}'
         },
         {
-            'title': preview_info.feature3_title,
-            'desc': preview_info.feature3_description,
-            'icon': f'fas {preview_info.feature3_icon}'
+            'title': getattr(preview_info, 'feature3_title', ''),
+            'desc': getattr(preview_info, 'feature3_description', ''),
+            'icon': f'fas {getattr(preview_info, "feature3_icon", "fa-users")}'
         }
     ]
     
