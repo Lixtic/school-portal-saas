@@ -147,17 +147,29 @@
             {% if school_info.logo %}
             <img src="{{ school_info.logo.url }}" alt="{{ school_info.name }}" class="hero-logo mb-4" style="height: 140px; width: 140px; object-fit: contain;">
             {% endif %}
-            <h1 class="display-3 fw-bold mb-3" style="text-shadow: 0 2px 4px rgba(0,0,0,0.2);">{{ school_info.name }}</h1>
-            <p class="lead mb-5 opacity-75 fs-3">{{ school_info.motto }}</p>
+            <h1 class="display-3 fw-bold mb-3" style="text-shadow: 0 2px 4px rgba(0,0,0,0.2);">{{ school_info.hero_title|default:school_info.name }}</h1>
+            <p class="lead mb-5 opacity-75 fs-3">{{ school_info.hero_subtitle|default:school_info.motto }}</p>
             
             <div class="d-flex justify-content-center gap-3">
                 {% if not user.is_authenticated %}
+                {% if school_info.cta_primary_text and school_info.cta_primary_url %}
+                <a href="{{ school_info.cta_primary_url }}" class="btn btn-light btn-lg px-5 py-3 text-primary fw-bold shadow-lg rounded-pill hover-scale">
+                    <i class="fas fa-sign-in-alt me-2"></i> {{ school_info.cta_primary_text }}
+                </a>
+                {% else %}
                 <a href="{% url 'login' %}" class="btn btn-light btn-lg px-5 py-3 text-primary fw-bold shadow-lg rounded-pill hover-scale">
                     <i class="fas fa-sign-in-alt me-2"></i> Tenant Portal
                 </a>
+                {% endif %}
+                {% if school_info.cta_secondary_text and school_info.cta_secondary_url %}
+                <a href="{{ school_info.cta_secondary_url }}" class="btn btn-outline-light btn-lg px-5 py-3 fw-bold shadow-lg rounded-pill hover-scale">
+                    <i class="fas fa-graduation-cap me-2"></i> {{ school_info.cta_secondary_text }}
+                </a>
+                {% else %}
                 <a href="{% url 'academics:apply_admission' %}" class="btn btn-outline-light btn-lg px-5 py-3 fw-bold shadow-lg rounded-pill hover-scale">
                     <i class="fas fa-graduation-cap me-2"></i> Admissions
                 </a>
+                {% endif %}
                 {% else %}
                 <a href="{% url 'dashboard' %}" class="btn btn-light btn-lg px-5 py-3 text-primary fw-bold shadow-lg rounded-pill hover-scale">
                     <i class="fas fa-tachometer-alt me-2"></i> Dashboard
@@ -170,21 +182,44 @@
     <!-- Highlights Grid -->
     <div class="container mb-5" style="margin-top: -80px; position: relative; z-index: 10;">
         <div class="row g-4 justify-content-center">
-            {% for highlight in highlights %}
+            {% if school_info.feature1_title %}
             <div class="col-md-4">
                 <div class="card h-100 border-0 shadow hover-card text-center p-4 rounded-4 bg-white">
                     <div class="text-primary mb-3 display-4">
-                        <i class="{{ highlight.icon }}"></i>
+                        <i class="{{ school_info.feature1_icon|default:'fas fa-star' }}"></i>
                     </div>
-                    <h4 class="fw-bold">{{ highlight.title }}</h4>
-                    <p class="text-muted">{{ highlight.desc }}</p>
+                    <h4 class="fw-bold">{{ school_info.feature1_title }}</h4>
+                    <p class="text-muted">{{ school_info.feature1_description }}</p>
                 </div>
             </div>
-            {% endfor %}
+            {% endif %}
+            {% if school_info.feature2_title %}
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow hover-card text-center p-4 rounded-4 bg-white">
+                    <div class="text-primary mb-3 display-4">
+                        <i class="{{ school_info.feature2_icon|default:'fas fa-graduation-cap' }}"></i>
+                    </div>
+                    <h4 class="fw-bold">{{ school_info.feature2_title }}</h4>
+                    <p class="text-muted">{{ school_info.feature2_description }}</p>
+                </div>
+            </div>
+            {% endif %}
+            {% if school_info.feature3_title %}
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow hover-card text-center p-4 rounded-4 bg-white">
+                    <div class="text-primary mb-3 display-4">
+                        <i class="{{ school_info.feature3_icon|default:'fas fa-users' }}"></i>
+                    </div>
+                    <h4 class="fw-bold">{{ school_info.feature3_title }}</h4>
+                    <p class="text-muted">{{ school_info.feature3_description }}</p>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 
     <!-- Academic Programs (Ross School Model) -->
+    {% if school_info.show_programs_section %}
     <div class="container-fluid bg-light py-5 my-5">
         <div class="container">
             <div class="text-center mb-5">
@@ -265,8 +300,10 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     <!-- Virtual Campus Tour Hub -->
+    {% if school_info.show_gallery_preview %}
     <div class="container my-5 py-5">
          <div class="row align-items-end mb-5">
             <div class="col-md-8">
@@ -326,6 +363,7 @@
             {% endfor %}
         </div>
     </div>
+    {% endif %}
 
     <!-- Events Section -->
     <div class="container my-5 py-5">

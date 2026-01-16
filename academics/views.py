@@ -263,15 +263,109 @@ def school_settings_view(request):
         info = SchoolInfo()
         
     if request.method == 'POST':
-        form = SchoolInfoForm(request.POST, request.FILES, instance=info)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'School settings updated successfully')
-            return redirect('academics:school_settings')
+        # Check if it's a preview request
+        if 'preview' in request.POST:
+            # Don't save, just pass form data to preview
+            form = SchoolInfoForm(request.POST, request.FILES, instance=info)
+            if form.is_valid():
+                # Get template choice from form
+                template_choice = form.cleaned_data.get('homepage_template', 'default')
+                # Store form data in session for preview
+                request.session['preview_data'] = {
+                    'template': template_choice,
+                    'form_data': {k: v for k, v in form.cleaned_data.items() if k != 'logo'}
+                }
+                # Redirect to preview
+                return redirect('academics:preview_homepage')
+        else:
+            # Regular save
+            form = SchoolInfoForm(request.POST, request.FILES, instance=info)
+            if form.is_valid():
+                form.save()
+                messages.success(request, 'School settings updated successfully')
+                return redirect('academics:school_settings')
     else:
         form = SchoolInfoForm(instance=info)
         
     return render(request, 'academics/school_settings_new.html', {'form': form})
+
+
+@login_required
+def preview_homepage(request):
+    \"\"\"Preview homepage with unsaved customization changes\"\"\"
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+    
+    # Get preview data from session
+    preview_data = request.session.get('preview_data', {})
+    if not preview_data:
+        messages.warning(request, 'No preview data found. Please try again.')
+        return redirect('academics:school_settings')
+    
+    # Get current school info as base
+    info = SchoolInfo.objects.first()
+    if not info:
+        info = SchoolInfo()
+    
+    # Create a temporary object with preview data (don't save to DB)
+    class PreviewSchoolInfo:
+        def __init__(self, base_obj, preview_data):
+            # Copy all attributes from base object
+            for field in base_obj._meta.fields:
+                setattr(self, field.name, getattr(base_obj, field.name))
+            # Override with preview data
+            for key, value in preview_data.items():
+                setattr(self, key, value)
+    
+    preview_info = PreviewSchoolInfo(info, preview_data.get('form_data', {}))
+    template_choice = preview_data.get('template', 'default')
+    
+    # Prepare context similar to homepage view
+    from academics.models import Activity, GalleryImage
+    activities = Activity.objects.all().order_by('-date')[:5]
+    gallery_images = GalleryImage.objects.all().order_by('?')[:6]
+    hero_images = GalleryImage.objects.all().order_by('-created_at')[:3]
+    
+    # Build highlights from preview features
+    highlights = [
+        {
+            'title': preview_info.feature1_title,
+            'desc': preview_info.feature1_description,
+            'icon': f'fas {preview_info.feature1_icon}'
+        },
+        {
+            'title': preview_info.feature2_title,
+            'desc': preview_info.feature2_description,
+            'icon': f'fas {preview_info.feature2_icon}'
+        },
+        {
+            'title': preview_info.feature3_title,
+            'desc': preview_info.feature3_description,
+            'icon': f'fas {preview_info.feature3_icon}'
+        }
+    ]
+    
+    context = {
+        'activities': activities,
+        'highlights': highlights,
+        'hero_images': hero_images,
+        'gallery_images': gallery_images,
+        'school_info': preview_info,
+        'is_preview': True  # Flag to show preview banner
+    }
+    
+    # Route to selected template
+    template_map = {
+        'modern': 'home/modern.html',
+        'classic': 'home/classic.html',
+        'minimal': 'home/minimal.html',
+        'playful': 'home/playful.html',
+        'elegant': 'home/elegant.html',
+    }
+    
+    template = template_map.get(template_choice, 'home/modern.html')
+    return render(request, template, context)
 
 
 @login_required

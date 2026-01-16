@@ -124,11 +124,19 @@
         <div class="row align-items-center">
             <div class="col-lg-6">
                 <div class="badge-pill mb-3" style="background: rgba(255,212,71,0.25); color: var(--playful-purple);">Play. Learn. Grow.</div>
-                <h1 class="hero-title mb-3">School of your time</h1>
-                <p class="text-muted lead mb-4">A colorful, joyful space where curiosity meets creativity. Explore programs, meet teachers, and start your journey.</p>
+                <h1 class="hero-title mb-3">{{ school_info.hero_title|default:'School of your time' }}</h1>
+                <p class="text-muted lead mb-4">{{ school_info.hero_subtitle|default:'A colorful, joyful space where curiosity meets creativity. Explore programs, meet teachers, and start your journey.' }}</p>
                 <div class="d-flex gap-3 flex-wrap">
+                    {% if school_info.cta_primary_text and school_info.cta_primary_url %}
+                    <a href="{{ school_info.cta_primary_url }}" class="playful-button cta-primary">{{ school_info.cta_primary_text }}</a>
+                    {% else %}
                     <a href="{% url 'academics:apply_admission' %}" class="playful-button cta-primary">Apply Now</a>
+                    {% endif %}
+                    {% if school_info.cta_secondary_text and school_info.cta_secondary_url %}
+                    <a href="{{ school_info.cta_secondary_url }}" class="playful-button cta-ghost">{{ school_info.cta_secondary_text }}</a>
+                    {% else %}
                     <a href="{% url 'academics:about_us' %}" class="playful-button cta-ghost">About Us</a>
+                    {% endif %}
                 </div>
                 <div class="dot-row mt-4">
                     <span style="background: var(--playful-purple);"></span>
@@ -147,6 +155,7 @@
 </div>
 
 <div class="container py-5">
+    {% if school_info.show_gallery_preview %}
     <div class="row g-4 align-items-center mb-5">
         <div class="col-lg-6">
             <div class="diagonal-section shadow-sm">
@@ -242,6 +251,7 @@
         </div>
         {% endfor %}
     </div>
+    {% endif %}
 </div>
 
 <!-- AI Admissions Assistant -->

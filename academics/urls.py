@@ -13,6 +13,7 @@ urlpatterns = [
     path('resources/manage/', views.manage_resources, name='manage_resources'),
     path('resources/delete/<int:resource_id>/', views.delete_resource, name='delete_resource'),
     path('settings/', views.school_settings_view, name='school_settings'),
+    path('settings/preview/', views.preview_homepage, name='preview_homepage'),
     path('timetable/', views.timetable_view, name='timetable'),
     path('timetable/edit/<int:class_id>/', views.edit_timetable, name='edit_timetable'),
     path('global-search/', views.global_search, name='global_search'),

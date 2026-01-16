@@ -340,8 +340,8 @@
                         <img src="{{ school_info.logo.url }}" alt="{{ school_info.name }}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
                     </div>
                     {% endif %}
-                    <h5 class="fw-bold mb-2 position-relative">{{ school_info.name }}</h5>
-                    <p class="small opacity-90 mb-0 position-relative">{{ school_info.motto }}</p>
+                    <h5 class="fw-bold mb-2 position-relative">{{ school_info.hero_title|default:school_info.name }}</h5>
+                    <p class="small opacity-90 mb-0 position-relative">{{ school_info.hero_subtitle|default:school_info.motto }}</p>
                 </div>
 
                 <!-- Quick Navigation -->
@@ -398,6 +398,19 @@
         <div class="col-lg-9 p-4 p-md-5">
             <!-- Quick Actions -->
             <div class="row g-3 mb-4">
+                {% if school_info.cta_primary_text and school_info.cta_primary_url %}
+                <div class="col-md-4 col-12">
+                    <a class="text-decoration-none text-dark" href="{{ school_info.cta_primary_url }}">
+                        <div class="quick-action h-100">
+                            <i class="fas fa-file-alt"></i>
+                            <div>
+                                <div class="fw-bold">{{ school_info.cta_primary_text }}</div>
+                                <small class="text-muted">Start your admission in a few taps</small>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% else %}
                 <div class="col-md-4 col-12">
                     <a class="text-decoration-none text-dark" href="{% url 'academics:apply_admission' %}">
                         <div class="quick-action h-100">
@@ -409,6 +422,20 @@
                         </div>
                     </a>
                 </div>
+                {% endif %}
+                {% if school_info.cta_secondary_text and school_info.cta_secondary_url %}
+                <div class="col-md-4 col-12">
+                    <a class="text-decoration-none text-dark" href="{{ school_info.cta_secondary_url }}">
+                        <div class="quick-action h-100">
+                            <i class="fas fa-info-circle"></i>
+                            <div>
+                                <div class="fw-bold">{{ school_info.cta_secondary_text }}</div>
+                                <small class="text-muted">See our mission and story</small>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% else %}
                 <div class="col-md-4 col-12">
                     <a class="text-decoration-none text-dark" href="{% url 'academics:about_us' %}">
                         <div class="quick-action h-100">
@@ -420,6 +447,7 @@
                         </div>
                     </a>
                 </div>
+                {% endif %}
                 <div class="col-md-4 col-12">
                     <a class="text-decoration-none text-dark" href="{% url 'academics:gallery' %}">
                         <div class="quick-action h-100">
@@ -434,6 +462,7 @@
             </div>
 
             <!-- Academic Programs Section -->
+            {% if school_info.show_programs_section %}
             <section id="programs" class="mb-5">
                 <div class="section-header">
                     <h2 class="section-title">Academic Programs</h2>
@@ -470,6 +499,7 @@
                     </div>
                 </div>
             </section>
+            {% endif %}
 
             <!-- Latest Updates Section -->
             <section id="events" class="mb-5">
@@ -531,6 +561,7 @@
             </section>
 
             <!-- Virtual Campus Tour Section -->
+            {% if school_info.show_gallery_preview %}
             <section id="gallery" class="mb-5">
                 <div class="d-flex justify-content-between align-items-end mb-4">
                     <div>
@@ -572,6 +603,7 @@
                     {% endfor %}
                 </div>
             </section>
+            {% endif %}
         </div>
     </div>
 </div>
