@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}System Health Monitor{% endblock %}
+
+{% block content %}
+<style>
+    .metric-card { border: 1px solid #e5e7eb; border-radius: 12px; }
+    .status-healthy { color: #10b981; }
+    .status-warning { color: #f59e0b; }
+    .status-critical { color: #ef4444; }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold mb-0">System Health Monitor</h2>
+        <a href="{% url 'tenants:landlord_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="metric-card p-3 text-center">
+                <i class="bi bi-building fs-2 text-primary"></i>
+                <h3 class="mt-2">{{ total_schools }}</h3>
+                <p class="text-muted mb-0">Total Schools</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card p-3 text-center">
+                <i class="bi bi-check-circle fs-2 text-success"></i>
+                <h3 class="mt-2">{{ active_schools }}</h3>
+                <p class="text-muted mb-0">Active</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card p-3 text-center">
+                <i class="bi bi-clock-history fs-2 text-info"></i>
+                <h3 class="mt-2">{{ trial_schools }}</h3>
+                <p class="text-muted mb-0">On Trial</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card p-3 text-center">
+                <i class="bi bi-activity fs-2 text-warning"></i>
+                <h3 class="mt-2">{{ alerts.count }}</h3>
+                <p class="text-muted mb-0">Active Alerts</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        {% for metric_type, metric in latest_metrics.items %}
+        <div class="col-md-4">
+            <div class="metric-card p-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0">{{ metric.get_metric_type_display }}</h6>
+                    <span class="badge status-{{ metric.status }}">{{ metric.get_status_display }}</span>
+                </div>
+                <h2 class="mb-1">{{ metric.value|floatformat:2 }}{% if metric_type == 'cpu' or metric_type == 'memory' or metric_type == 'disk' %}%{% elif metric_type == 'db_latency' %}ms{% endif %}</h2>
+                <small class="text-muted">Last updated: {{ metric.recorded_at|timesince }} ago</small>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if alerts %}
+    <div class="metric-card p-3 mb-4">
+        <h5 class="mb-3"><i class="bi bi-exclamation-triangle me-2"></i>Recent Alerts</h5>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                        <th>Status</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alert in alerts %}
+                    <tr>
+                        <td>{{ alert.get_metric_type_display }}</td>
+                        <td>{{ alert.value|floatformat:2 }}</td>
+                        <td><span class="badge status-{{ alert.status }}">{{ alert.get_status_display }}</span></td>
+                        <td>{{ alert.recorded_at|timesince }} ago</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

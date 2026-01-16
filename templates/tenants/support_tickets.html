@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Support Tickets{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold mb-0">Support Desk</h2>
+        <div>
+            <a href="{% url 'tenants:create_support_ticket' %}" class="btn btn-primary btn-sm me-2">
+                <i class="bi bi-plus-circle me-1"></i>New Ticket
+            </a>
+            <a href="{% url 'tenants:landlord_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>Back
+            </a>
+        </div>
+    </div>
+
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <a class="nav-link {% if status_filter == 'all' %}active{% endif %}" href="?status=all">
+                All ({{ status_counts.all }})
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if status_filter == 'open' %}active{% endif %}" href="?status=open">
+                Open ({{ status_counts.open }})
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if status_filter == 'in_progress' %}active{% endif %}" href="?status=in_progress">
+                In Progress ({{ status_counts.in_progress }})
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if status_filter == 'resolved' %}active{% endif %}" href="?status=resolved">
+                Resolved ({{ status_counts.resolved }})
+            </a>
+        </li>
+    </ul>
+
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th>Ticket #</th>
+                        <th>School</th>
+                        <th>Subject</th>
+                        <th>Category</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Assigned To</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ticket in tickets %}
+                    <tr onclick="window.location='{% url 'tenants:support_ticket_detail' ticket.id %}'" style="cursor: pointer;">
+                        <td><strong>{{ ticket.ticket_number }}</strong></td>
+                        <td>{{ ticket.school.name }}</td>
+                        <td>{{ ticket.subject|truncatewords:10 }}</td>
+                        <td><span class="badge bg-secondary">{{ ticket.get_category_display }}</span></td>
+                        <td>
+                            <span class="badge 
+                                {% if ticket.priority == 'urgent' %}bg-danger
+                                {% elif ticket.priority == 'high' %}bg-warning
+                                {% else %}bg-info{% endif %}">
+                                {{ ticket.get_priority_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge 
+                                {% if ticket.status == 'open' %}bg-primary
+                                {% elif ticket.status == 'in_progress' %}bg-warning
+                                {% elif ticket.status == 'resolved' %}bg-success
+                                {% else %}bg-secondary{% endif %}">
+                                {{ ticket.get_status_display }}
+                            </span>
+                        </td>
+                        <td>{{ ticket.assigned_to.get_full_name|default:"Unassigned" }}</td>
+                        <td>{{ ticket.created_at|timesince }} ago</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">No tickets found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

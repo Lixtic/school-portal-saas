@@ -1,5 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db import transaction, connection, models
+from django.db.models import Sum, Avg, Count
+from django.contrib.auth.decorators import user_passes_test
 from .forms import SchoolSignupForm, SchoolSetupForm, SchoolApprovalForm
 from .models import School, Domain
 from django.contrib.auth import get_user_model, login
@@ -629,3 +631,244 @@ def cancel_addon(request, addon_id):
     
     messages.success(request, f"Cancelled {school_addon.addon.name}. Changes will apply at next billing cycle.")
     return redirect('tenants:addon_marketplace')
+
+
+# =====================
+# SYSTEM HEALTH & SUPPORT
+# =====================
+
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+def system_health_dashboard(request):
+    """Real-time system health monitoring dashboard"""
+    from .models import SystemHealthMetric, School
+    from django.db.models import Avg, Count
+    from datetime import timedelta
+    
+    now = timezone.now()
+    last_hour = now - timedelta(hours=1)
+    
+    # Get latest metrics for each type
+    latest_metrics = {}
+    for metric_type, _ in SystemHealthMetric.METRIC_TYPES:
+        metric = SystemHealthMetric.objects.filter(
+            metric_type=metric_type
+        ).order_by('-recorded_at').first()
+        if metric:
+            latest_metrics[metric_type] = metric
+    
+    # Get hourly averages
+    hourly_stats = SystemHealthMetric.objects.filter(
+        recorded_at__gte=last_hour
+    ).values('metric_type').annotate(
+        avg_value=Avg('value'),
+        count=Count('id')
+    )
+    
+    # Get critical/warning metrics
+    alerts = SystemHealthMetric.objects.filter(
+        recorded_at__gte=last_hour,
+        status__in=['warning', 'critical']
+    ).order_by('-recorded_at')[:10]
+    
+    # School stats
+    total_schools = School.objects.count()
+    active_schools = School.objects.filter(is_active=True).count()
+    trial_schools = School.objects.filter(on_trial=True).count()
+    
+    context = {
+        'latest_metrics': latest_metrics,
+        'hourly_stats': hourly_stats,
+        'alerts': alerts,
+        'total_schools': total_schools,
+        'active_schools': active_schools,
+        'trial_schools': trial_schools,
+    }
+    
+    return render(request, 'tenants/system_health.html', context)
+
+
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+def support_ticket_list(request):
+    """List all support tickets"""
+    from .models import SupportTicket
+    
+    status_filter = request.GET.get('status', 'open')
+    category_filter = request.GET.get('category', '')
+    
+    tickets = SupportTicket.objects.select_related('school', 'created_by', 'assigned_to')
+    
+    if status_filter and status_filter != 'all':
+        tickets = tickets.filter(status=status_filter)
+    
+    if category_filter:
+        tickets = tickets.filter(category=category_filter)
+    
+    # Count by status
+    status_counts = {
+        'all': SupportTicket.objects.count(),
+        'open': SupportTicket.objects.filter(status='open').count(),
+        'in_progress': SupportTicket.objects.filter(status='in_progress').count(),
+        'resolved': SupportTicket.objects.filter(status='resolved').count(),
+    }
+    
+    context = {
+        'tickets': tickets[:50],  # Limit to 50 for performance
+        'status_filter': status_filter,
+        'category_filter': category_filter,
+        'status_counts': status_counts,
+    }
+    
+    return render(request, 'tenants/support_tickets.html', context)
+
+
+@login_required
+def support_ticket_detail(request, ticket_id):
+    """View and manage a support ticket"""
+    from .models import SupportTicket, TicketComment
+    
+    ticket = get_object_or_404(SupportTicket, id=ticket_id)
+    
+    # Check permissions
+    if not request.user.is_staff and ticket.school != request.tenant:
+        messages.error(request, "Access denied")
+        return redirect('dashboard')
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'add_comment':
+            message = request.POST.get('message', '').strip()
+            is_internal = request.POST.get('is_internal') == 'on'
+            
+            if message:
+                TicketComment.objects.create(
+                    ticket=ticket,
+                    user=request.user,
+                    message=message,
+                    is_staff_reply=request.user.is_staff,
+                    is_internal=is_internal
+                )
+                messages.success(request, "Comment added")
+        
+        elif action == 'update_status' and request.user.is_staff:
+            new_status = request.POST.get('status')
+            ticket.status = new_status
+            ticket.save()
+            messages.success(request, f"Ticket status updated to {ticket.get_status_display()}")
+        
+        elif action == 'assign' and request.user.is_staff:
+            assigned_to_id = request.POST.get('assigned_to')
+            if assigned_to_id:
+                ticket.assigned_to_id = assigned_to_id
+                ticket.save()
+                messages.success(request, "Ticket assigned")
+        
+        return redirect('tenants:support_ticket_detail', ticket_id=ticket.id)
+    
+    comments = ticket.comments.select_related('user').all()
+    
+    # Get staff users for assignment
+    staff_users = get_user_model().objects.filter(is_staff=True) if request.user.is_staff else []
+    
+    context = {
+        'ticket': ticket,
+        'comments': comments,
+        'staff_users': staff_users,
+    }
+    
+    return render(request, 'tenants/support_ticket_detail.html', context)
+
+
+@login_required
+def create_support_ticket(request):
+    """Create a new support ticket"""
+    from .models import SupportTicket
+    
+    if request.method == 'POST':
+        subject = request.POST.get('subject', '').strip()
+        description = request.POST.get('description', '').strip()
+        category = request.POST.get('category', 'technical')
+        priority = request.POST.get('priority', 'medium')
+        
+        if not subject or not description:
+            messages.error(request, "Subject and description are required")
+            return redirect('tenants:create_support_ticket')
+        
+        # Get school from tenant context
+        school = request.tenant if hasattr(request, 'tenant') else None
+        
+        ticket = SupportTicket.objects.create(
+            school=school,
+            created_by=request.user,
+            subject=subject,
+            description=description,
+            category=category,
+            priority=priority,
+        )
+        
+        messages.success(request, f"Ticket {ticket.ticket_number} created successfully")
+        return redirect('tenants:support_ticket_detail', ticket_id=ticket.id)
+    
+    context = {
+        'categories': SupportTicket.CATEGORY_CHOICES,
+        'priorities': SupportTicket.PRIORITY_CHOICES,
+    }
+    
+    return render(request, 'tenants/create_support_ticket.html', context)
+
+
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+def database_backups(request):
+    """Manage database backups"""
+    from .models import DatabaseBackup, School
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'trigger_backup':
+            school_id = request.POST.get('school_id')
+            backup_type = request.POST.get('backup_type', 'full')
+            
+            school = None
+            if school_id:
+                school = School.objects.get(id=school_id)
+            
+            backup = DatabaseBackup.objects.create(
+                school=school,
+                backup_type=backup_type,
+                status='pending',
+            )
+            
+            # TODO: Trigger actual backup process (Celery task, Cloud Function, etc.)
+            
+            messages.success(request, f"Backup initiated: {backup.id}")
+            return redirect('tenants:database_backups')
+    
+    # Get recent backups
+    backups = DatabaseBackup.objects.select_related('school').order_by('-started_at')[:50]
+    
+    # Get schools for backup selection
+    schools = School.objects.filter(is_active=True).order_by('name')
+    
+    # Stats
+    total_backups = DatabaseBackup.objects.count()
+    completed_backups = DatabaseBackup.objects.filter(status='completed').count()
+    failed_backups = DatabaseBackup.objects.filter(status='failed').count()
+    total_size_gb = DatabaseBackup.objects.filter(
+        status='completed'
+    ).aggregate(total=Sum('file_size_mb'))['total'] or 0
+    total_size_gb = total_size_gb / 1024
+    
+    context = {
+        'backups': backups,
+        'schools': schools,
+        'total_backups': total_backups,
+        'completed_backups': completed_backups,
+        'failed_backups': failed_backups,
+        'total_size_gb': round(total_size_gb, 2),
+    }
+    
+    return render(request, 'tenants/database_backups.html', context)

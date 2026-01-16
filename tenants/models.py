@@ -91,3 +91,7 @@ from .subscription_models import (
     SubscriptionPlan, AddOn, SchoolSubscription, 
     SchoolAddOn, Invoice, ChurnEvent
 )
+
+from .health_models import (
+    SystemHealthMetric, SupportTicket, TicketComment, DatabaseBackup
+)

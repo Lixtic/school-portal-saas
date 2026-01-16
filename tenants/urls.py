@@ -12,4 +12,11 @@ urlpatterns = [
     path('marketplace/', views.addon_marketplace, name='addon_marketplace'),
     path('marketplace/purchase/<int:addon_id>/', views.purchase_addon, name='purchase_addon'),
     path('marketplace/cancel/<int:addon_id>/', views.cancel_addon, name='cancel_addon'),
+    
+    # System Health & Support
+    path('system-health/', views.system_health_dashboard, name='system_health'),
+    path('support/', views.support_ticket_list, name='support_tickets'),
+    path('support/<int:ticket_id>/', views.support_ticket_detail, name='support_ticket_detail'),
+    path('support/create/', views.create_support_ticket, name='create_support_ticket'),
+    path('backups/', views.database_backups, name='database_backups'),
 ]

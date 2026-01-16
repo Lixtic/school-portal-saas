@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}Database Backups{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold mb-0">Database Backup & Restore</h2>
+        <a href="{% url 'tenants:landlord_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3 text-center">
+                <i class="bi bi-archive fs-2 text-primary"></i>
+                <h3 class="mt-2">{{ total_backups }}</h3>
+                <p class="text-muted mb-0">Total Backups</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3 text-center">
+                <i class="bi bi-check-circle fs-2 text-success"></i>
+                <h3 class="mt-2">{{ completed_backups }}</h3>
+                <p class="text-muted mb-0">Completed</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3 text-center">
+                <i class="bi bi-x-circle fs-2 text-danger"></i>
+                <h3 class="mt-2">{{ failed_backups }}</h3>
+                <p class="text-muted mb-0">Failed</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3 text-center">
+                <i class="bi bi-hdd fs-2 text-info"></i>
+                <h3 class="mt-2">{{ total_size_gb }} GB</h3>
+                <p class="text-muted mb-0">Total Size</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Trigger New Backup</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" class="row g-3">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="trigger_backup">
+                
+                <div class="col-md-4">
+                    <label for="school" class="form-label">School</label>
+                    <select class="form-select" id="school" name="school_id">
+                        <option value="">All Schools (System-wide)</option>
+                        {% for school in schools %}
+                        <option value="{{ school.id }}">{{ school.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="backupType" class="form-label">Backup Type</label>
+                    <select class="form-select" id="backupType" name="backup_type">
+                        <option value="full">Full Backup</option>
+                        <option value="incremental">Incremental</option>
+                        <option value="schema_only">Schema Only</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-cloud-upload me-1"></i>Start Backup
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0">Recent Backups</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th>School</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Size</th>
+                        <th>Started</th>
+                        <th>Completed</th>
+                        <th>Expires</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for backup in backups %}
+                    <tr>
+                        <td>{{ backup.school.name|default:"System-wide" }}</td>
+                        <td><span class="badge bg-secondary">{{ backup.get_backup_type_display }}</span></td>
+                        <td>
+                            <span class="badge 
+                                {% if backup.status == 'completed' %}bg-success
+                                {% elif backup.status == 'failed' %}bg-danger
+                                {% elif backup.status == 'in_progress' %}bg-warning
+                                {% else %}bg-secondary{% endif %}">
+                                {{ backup.get_status_display }}
+                            </span>
+                        </td>
+                        <td>{{ backup.file_size_mb|floatformat:2 }} MB</td>
+                        <td>{{ backup.started_at|date:"M d, Y H:i" }}</td>
+                        <td>{{ backup.completed_at|date:"M d, Y H:i"|default:"—" }}</td>
+                        <td>{{ backup.expires_at|date:"M d, Y"|default:"—" }}</td>
+                        <td>
+                            {% if backup.status == 'completed' %}
+                            <button class="btn btn-sm btn-outline-primary" disabled>
+                                <i class="bi bi-download"></i> Download
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning" disabled>
+                                <i class="bi bi-arrow-clockwise"></i> Restore
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">No backups found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
