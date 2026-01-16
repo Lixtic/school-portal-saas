@@ -69,6 +69,7 @@ class AddOn(models.Model):
         ('communication', 'Communication'),
         ('integration', 'Integrations'),
         ('storage', 'Storage & Resources'),
+        ('hardware', 'Hardware & Devices'),
         ('feature', 'Premium Features'),
     ]
     

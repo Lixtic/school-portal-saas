@@ -171,6 +171,26 @@ addons_data = [
         'is_one_time': False,
         'available_for_plans': ['basic', 'pro', 'enterprise'],
     },
+    {
+        'name': 'Biometric Attendance Kit',
+        'slug': 'biometric-hardware',
+        'category': 'hardware',
+        'description': 'Plug-and-play biometric scanner integration for secure attendance with on-site support',
+        'icon': 'bi-fingerprint',
+        'monthly_price': Decimal('199.00'),
+        'is_one_time': True,
+        'available_for_plans': ['pro', 'enterprise'],
+    },
+    {
+        'name': 'RFID Gate Integration',
+        'slug': 'rfid-gate',
+        'category': 'hardware',
+        'description': 'RFID turnstile integration with live entry logs and alerts to parents',
+        'icon': 'bi-broadcast',
+        'monthly_price': Decimal('129.00'),
+        'is_one_time': False,
+        'available_for_plans': ['pro', 'enterprise'],
+    },
 ]
 
 for addon_data in addons_data:

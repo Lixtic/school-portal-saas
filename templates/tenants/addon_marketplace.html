@@ -33,15 +33,18 @@
                         </div>
                         <h5 class="card-title text-center">{{ addon.name }}</h5>
                         <p class="card-text text-muted small">{{ addon.description }}</p>
+                        <div class="d-flex flex-wrap gap-1 mb-2">
+                            {% for plan_code in addon.available_for_plans %}
+                                <span class="badge bg-light text-dark border">{{ plan_code|title }}</span>
+                            {% endfor %}
+                        </div>
                         
                         <div class="text-center my-3">
                             <h3 class="text-primary mb-0">
                                 ${{ addon.monthly_price|floatformat:2 }}
                                 {% if not addon.is_one_time %}<small class="text-muted">/mo</small>{% endif %}
                             </h3>
-                            {% if addon.is_one_time %}
-                                <small class="text-muted">One-time purchase</small>
-                            {% endif %}
+                            <small class="text-muted">{% if addon.is_one_time %}One-time setup{% else %}Recurring add-on{% endif %}</small>
                         </div>
 
                         {% if addon.is_purchased %}
