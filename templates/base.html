@@ -1289,7 +1289,7 @@
         });
 
         // Omni-School Copilot interactions
-        (function() {
+        document.addEventListener('DOMContentLoaded', function() {
             const panel = document.getElementById('copilotPanel');
             if (!panel) return;
             const toggle = document.getElementById('copilotToggle');
@@ -1337,16 +1337,28 @@
                 }
             }
 
-            toggle?.addEventListener('click', () => {
+            function openPanel() {
                 panel.classList.add('open');
+                panel.style.display = 'flex';
                 setTimeout(() => input?.focus(), 50);
-            });
+            }
 
-            closeBtn?.addEventListener('click', () => {
+            function closePanel() {
                 panel.classList.remove('open');
+                panel.style.display = 'none';
+            }
+
+            toggle && toggle.addEventListener('click', (e) => {
+                e.preventDefault();
+                openPanel();
             });
 
-            form?.addEventListener('submit', async (e) => {
+            closeBtn && closeBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                closePanel();
+            });
+
+            form && form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const question = (input?.value || '').trim();
                 if (!question) return;
@@ -1382,7 +1394,7 @@
                     appendBubble('Network issue. Please try again.', 'bot');
                 }
             });
-        })();
+        });
 
         // Toast helper
         function showToast(message, type = 'info') {
