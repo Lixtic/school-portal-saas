@@ -593,6 +593,9 @@ with open(r'd:/school_management/templates/base.html', 'w', encoding='utf-8') as
             const forms = document.querySelectorAll('form');
             forms.forEach(form => {
                 form.addEventListener('submit', function(e) {
+                    // Skip forms that explicitly opt out
+                    if (form.hasAttribute('data-no-loader')) return;
+
                     const submitBtn = form.querySelector('button[type="submit"]');
                     if (submitBtn && !submitBtn.classList.contains('no-loader')) {
                         submitBtn.classList.add('btn-loading');

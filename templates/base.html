@@ -1245,7 +1245,8 @@
             document.body.addEventListener('submit', function(e) {
                 const form = e.target;
                 
-                if (!form.dataset.noLoader) {
+                // Only show the global loader for forms that do NOT opt out
+                if (!form.hasAttribute('data-no-loader')) {
                     // Visual feedback on submit button
                     const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
                     if (submitBtn && !submitBtn.classList.contains('no-loader')) {
