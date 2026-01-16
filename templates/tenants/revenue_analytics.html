@@ -286,25 +286,22 @@
     <!-- Simple Chart -->
     <div class="chart-container">
         <div class="chart-label">
-            <span class="chart-month">{{ current_month|default:"Current" }}</span>
+            <span class="chart-month">{{ current_month }}</span>
             <span class="chart-change">
-                {% if total_mrr > 0 %}
-                    <i class="bi bi-arrow-up"></i>{{ growth_rate|default:"10" }}%
+                {% if growth_rate != 0 %}
+                    <i class="bi bi-arrow-{% if growth_rate > 0 %}up{% else %}down{% endif %}"></i>{{ growth_rate|floatformat:1 }}%
                 {% endif %}
             </span>
         </div>
         <div class="simple-chart">
-            {% for i in "123456" %}
-            <div class="chart-bar" style="height: {% cycle '45' '60' '50' '75' '65' '80' %}%"></div>
+            {% for height in chart_heights %}
+            <div class="chart-bar" style="height: {{ height }}%"></div>
             {% endfor %}
         </div>
         <div class="chart-month-label">
-            <span class="month-label">Jan</span>
-            <span class="month-label">Feb</span>
-            <span class="month-label">Mar</span>
-            <span class="month-label">Apr</span>
-            <span class="month-label">May</span>
-            <span class="month-label">Jun</span>
+            {% for label in chart_labels %}
+            <span class="month-label">{{ label }}</span>
+            {% endfor %}
         </div>
     </div>
 

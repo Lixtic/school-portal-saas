@@ -426,7 +426,7 @@ def revenue_analytics(request):
     
     # === Revenue Growth (Last 6 Months) ===
     six_months_ago = timezone.now() - timedelta(days=180)
-    monthly_mrr = (
+    monthly_mrr_raw = (
         SchoolSubscription.objects
         .filter(created_at__gte=six_months_ago, status__in=['active', 'trial'])
         .annotate(month=TruncMonth('created_at'))
@@ -434,6 +434,38 @@ def revenue_analytics(request):
         .annotate(mrr_sum=Sum('mrr'))
         .order_by('month')
     )
+    
+    # Format for chart (last 6 months with labels)
+    from datetime import datetime
+    import calendar
+    
+    monthly_mrr = []
+    chart_labels = []
+    now = timezone.now()
+    
+    for i in range(5, -1, -1):  # 6 months ago to now
+        month_date = now - timedelta(days=i*30)
+        month_label = month_date.strftime('%b')
+        chart_labels.append(month_label)
+        
+        # Find MRR for this month
+        month_mrr = 0
+        for entry in monthly_mrr_raw:
+            if entry['month'] and entry['month'].month == month_date.month:
+                month_mrr = float(entry['mrr_sum'])
+                break
+        monthly_mrr.append(month_mrr)
+    
+    # Calculate max MRR for chart scaling
+    max_mrr = max(monthly_mrr) if monthly_mrr else 1
+    chart_heights = [int((mrr / max_mrr * 80) if max_mrr > 0 else 0) for mrr in monthly_mrr]
+    
+    # Calculate growth rate (last month vs previous month)
+    growth_rate = 0
+    if len(monthly_mrr) >= 2 and monthly_mrr[-2] > 0:
+        growth_rate = ((monthly_mrr[-1] - monthly_mrr[-2]) / monthly_mrr[-2]) * 100
+    
+    current_month = now.strftime('%B %Y')
     
     # === Subscription Distribution ===
     plan_distribution = (
@@ -498,7 +530,11 @@ def revenue_analytics(request):
         'churn_reasons': churn_reasons,
         
         # Growth
-        'monthly_mrr': list(monthly_mrr),
+        'monthly_mrr': monthly_mrr,
+        'chart_heights': chart_heights,
+        'chart_labels': chart_labels,
+        'current_month': current_month,
+        'growth_rate': round(growth_rate, 1),
         
         # Distribution
         'plan_distribution': plan_distribution,
