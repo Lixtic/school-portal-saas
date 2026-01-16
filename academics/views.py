@@ -1015,3 +1015,197 @@ def global_search(request):
 
     return JsonResponse({'results': results})
 
+
+# =====================
+# AI TUTOR ASSISTANT
+# =====================
+
+@login_required
+def ai_tutor(request):
+    """AI Tutor chat interface for students"""
+    from students.models import Student
+    from tenants.models import SchoolSubscription, SchoolAddOn, AddOn
+    
+    # Check if user is a student
+    if request.user.user_type != 'student':
+        messages.error(request, "AI Tutor is only available for students")
+        return redirect('dashboard')
+    
+    # Check if school has AI Tutor add-on
+    try:
+        student = Student.objects.get(user=request.user)
+        subscription = SchoolSubscription.objects.get(school=request.tenant)
+        ai_tutor_addon = AddOn.objects.get(slug='ai-tutor')
+        
+        has_addon = SchoolAddOn.objects.filter(
+            subscription=subscription,
+            addon=ai_tutor_addon,
+            is_active=True
+        ).exists()
+        
+        if not has_addon:
+            messages.warning(request, "AI Tutor is not available. Please contact your administrator.")
+            return redirect('dashboard')
+    except Exception as e:
+        messages.error(request, "Unable to access AI Tutor")
+        return redirect('dashboard')
+    
+    # Get student's subjects
+    subjects = []
+    if student.current_class:
+        subjects = student.current_class.subjects.all()
+    
+    # Get recent sessions
+    from .models import TutorSession
+    recent_sessions = TutorSession.objects.filter(student=student).order_by('-started_at')[:5]
+    
+    context = {
+        'student': student,
+        'subjects': subjects,
+        'recent_sessions': recent_sessions,
+    }
+    
+    return render(request, 'academics/ai_tutor.html', context)
+
+
+@login_required
+def ai_tutor_chat(request):
+    """Stream AI tutor responses"""
+    from students.models import Student
+    from .ai_tutor import stream_tutor_response
+    from .models import TutorSession, TutorMessage, Subject
+    
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid method'}, status=400)
+    
+    try:
+        student = Student.objects.get(user=request.user)
+        data = json.loads(request.body)
+        messages_list = data.get('messages', [])
+        subject_id = data.get('subject_id')
+        session_id = data.get('session_id')
+        
+        # Get or create session
+        if session_id:
+            session = TutorSession.objects.get(id=session_id, student=student)
+        else:
+            session = TutorSession.objects.create(
+                student=student,
+                subject_id=subject_id if subject_id else None
+            )
+        
+        # Save user message
+        if messages_list and messages_list[-1]['role'] == 'user':
+            TutorMessage.objects.create(
+                session=session,
+                role='user',
+                content=messages_list[-1]['content']
+            )
+            session.message_count += 1
+            session.save()
+        
+        # Get subject context
+        subject = Subject.objects.get(id=subject_id) if subject_id else None
+        
+        # Stream response
+        response = StreamingHttpResponse(
+            stream_tutor_response(messages_list, student, subject),
+            content_type='text/event-stream'
+        )
+        response['Cache-Control'] = 'no-cache'
+        response['X-Accel-Buffering'] = 'no'
+        response['session_id'] = session.id
+        
+        return response
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def generate_practice(request):
+    """Generate practice questions"""
+    from students.models import Student
+    from .ai_tutor import generate_practice_questions
+    from .models import Subject, PracticeQuestionSet
+    
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid method'}, status=400)
+    
+    try:
+        student = Student.objects.get(user=request.user)
+        data = json.loads(request.body)
+        
+        subject_id = data.get('subject_id')
+        topic = data.get('topic', '')
+        difficulty = data.get('difficulty', 'medium')
+        count = data.get('count', 5)
+        
+        subject = Subject.objects.get(id=subject_id)
+        
+        # Generate questions
+        result = generate_practice_questions(subject, topic, difficulty, count)
+        
+        if 'error' not in result:
+            # Save question set
+            practice_set = PracticeQuestionSet.objects.create(
+                student=student,
+                subject=subject,
+                topic=topic,
+                difficulty=difficulty,
+                questions=result
+            )
+            result['practice_set_id'] = practice_set.id
+        
+        return JsonResponse(result)
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def explain_concept(request):
+    """Get AI explanation of a concept"""
+    from students.models import Student
+    from .ai_tutor import explain_concept as get_explanation
+    from .models import Subject
+    
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid method'}, status=400)
+    
+    try:
+        student = Student.objects.get(user=request.user)
+        data = json.loads(request.body)
+        
+        subject_id = data.get('subject_id')
+        concept = data.get('concept', '')
+        
+        subject = Subject.objects.get(id=subject_id)
+        explanation = get_explanation(subject, concept)
+        
+        return JsonResponse({'explanation': explanation})
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def tutor_sessions(request):
+    """View all tutor sessions"""
+    from students.models import Student
+    from .models import TutorSession
+    
+    try:
+        student = Student.objects.get(user=request.user)
+        sessions = TutorSession.objects.filter(student=student).select_related('subject')
+        
+        context = {
+            'sessions': sessions,
+        }
+        
+        return render(request, 'academics/tutor_sessions.html', context)
+        
+    except Student.DoesNotExist:
+        messages.error(request, "Student profile not found")
+        return redirect('dashboard')
+

@@ -176,3 +176,33 @@ class TimetableAdmin(admin.ModelAdmin):
 
             self.message_user(request, f"Force-deleted timetable #{object_id} (fallback)", level="WARNING")
             return HttpResponseRedirect(reverse('admin:academics_timetable_changelist'))
+
+
+# AI Tutor Admin
+from .models import TutorSession, TutorMessage, PracticeQuestionSet
+
+@admin.register(TutorSession)
+class TutorSessionAdmin(admin.ModelAdmin):
+    list_display = ('student', 'subject', 'started_at', 'message_count')
+    list_filter = ('subject', 'started_at')
+    search_fields = ('student__user__first_name', 'student__user__last_name')
+    readonly_fields = ('started_at', 'ended_at')
+
+
+@admin.register(TutorMessage)
+class TutorMessageAdmin(admin.ModelAdmin):
+    list_display = ('session', 'role', 'created_at', 'content_preview')
+    list_filter = ('role', 'created_at')
+    search_fields = ('content',)
+    
+    def content_preview(self, obj):
+        return obj.content[:100] + '...' if len(obj.content) > 100 else obj.content
+    content_preview.short_description = 'Content'
+
+
+@admin.register(PracticeQuestionSet)
+class PracticeQuestionSetAdmin(admin.ModelAdmin):
+    list_display = ('student', 'subject', 'topic', 'difficulty', 'generated_at', 'score')
+    list_filter = ('subject', 'difficulty', 'generated_at')
+    search_fields = ('student__user__first_name', 'student__user__last_name', 'topic')
+    readonly_fields = ('generated_at',)

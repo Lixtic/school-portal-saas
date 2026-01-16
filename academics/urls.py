@@ -20,4 +20,11 @@ urlpatterns = [
     path('global-search/', views.global_search, name='global_search'),
     path('about/', views.about_us, name='about_us'),
     path('apply/', views.apply_admission, name='apply_admission'),
+    
+    # AI Tutor
+    path('ai-tutor/', views.ai_tutor, name='ai_tutor'),
+    path('ai-tutor/chat/', views.ai_tutor_chat, name='ai_tutor_chat'),
+    path('ai-tutor/practice/', views.generate_practice, name='generate_practice'),
+    path('ai-tutor/explain/', views.explain_concept, name='explain_concept'),
+    path('ai-tutor/sessions/', views.tutor_sessions, name='tutor_sessions'),
 ]

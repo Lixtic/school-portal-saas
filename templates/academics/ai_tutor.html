@@ -1,0 +1,361 @@
+{% extends 'base.html' %}
+
+{% block title %}AI Tutor Assistant{% endblock %}
+
+{% block content %}
+<style>
+    .chat-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        height: calc(100vh - 200px);
+        display: flex;
+        flex-direction: column;
+    }
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 12px;
+        margin-bottom: 20px;
+    }
+    .message {
+        margin-bottom: 16px;
+        display: flex;
+        gap: 12px;
+    }
+    .message.user {
+        flex-direction: row-reverse;
+    }
+    .message-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+    .message.user .message-avatar {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+    }
+    .message.assistant .message-avatar {
+        background: linear-gradient(135deg, #f093fb, #f5576c);
+        color: white;
+    }
+    .message-content {
+        max-width: 70%;
+        padding: 12px 16px;
+        border-radius: 12px;
+        line-height: 1.5;
+    }
+    .message.user .message-content {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+    }
+    .message.assistant .message-content {
+        background: white;
+        border: 1px solid #e5e7eb;
+        color: #1f2937;
+    }
+    .chat-input-area {
+        display: flex;
+        gap: 12px;
+        align-items: flex-end;
+    }
+    .chat-input {
+        flex: 1;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 12px 16px;
+        resize: none;
+        font-family: inherit;
+    }
+    .chat-input:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+    .send-btn {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: transform 0.2s;
+    }
+    .send-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+    }
+    .send-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    .quick-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+    }
+    .quick-action-btn {
+        padding: 8px 16px;
+        border: 1px solid #e5e7eb;
+        background: white;
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+    }
+    .quick-action-btn:hover {
+        background: #f3f4f6;
+        border-color: #667eea;
+    }
+    .typing-indicator {
+        display: none;
+        padding: 12px;
+        background: white;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        max-width: fit-content;
+    }
+    .typing-indicator.show {
+        display: block;
+    }
+    .typing-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #9ca3af;
+        margin: 0 2px;
+        animation: typing 1.4s infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typing {
+        0%, 60%, 100% { transform: translateY(0); }
+        30% { transform: translateY(-10px); }
+    }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">
+                <i class="bi bi-robot me-2"></i>AI Tutor Assistant
+            </h2>
+            <p class="text-muted mb-0">Your personal learning companion</p>
+        </div>
+        <div>
+            <select id="subjectSelect" class="form-select">
+                <option value="">All Subjects</option>
+                {% for subject in subjects %}
+                <option value="{{ subject.id }}">{{ subject.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <div class="chat-container">
+        <div class="quick-actions">
+            <button class="quick-action-btn" onclick="quickAction('Explain this concept to me')">
+                <i class="bi bi-lightbulb me-1"></i>Explain Concept
+            </button>
+            <button class="quick-action-btn" onclick="quickAction('Generate practice questions')">
+                <i class="bi bi-question-circle me-1"></i>Practice Questions
+            </button>
+            <button class="quick-action-btn" onclick="quickAction('Help me with homework')">
+                <i class="bi bi-book me-1"></i>Homework Help
+            </button>
+            <button class="quick-action-btn" onclick="quickAction('What should I study today?')">
+                <i class="bi bi-calendar-check me-1"></i>Study Plan
+            </button>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="message assistant">
+                <div class="message-avatar">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <div class="message-content">
+                    <strong>Hi {{ student.user.get_full_name }}! 👋</strong><br>
+                    I'm your AI tutor. I'm here to help you learn, answer questions, and practice concepts. 
+                    What would you like to work on today?
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input-area">
+            <textarea 
+                id="messageInput" 
+                class="chat-input" 
+                placeholder="Ask me anything about your subjects..."
+                rows="2"
+            ></textarea>
+            <button id="sendBtn" class="send-btn" onclick="sendMessage()">
+                <i class="bi bi-send me-1"></i>Send
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let messages = [];
+let sessionId = null;
+
+function quickAction(text) {
+    document.getElementById('messageInput').value = text;
+    document.getElementById('messageInput').focus();
+}
+
+function addMessage(role, content) {
+    const messagesDiv = document.getElementById('chatMessages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${role}`;
+    
+    const avatar = document.createElement('div');
+    avatar.className = 'message-avatar';
+    avatar.innerHTML = role === 'user' ? '<i class="bi bi-person-fill"></i>' : '<i class="bi bi-robot"></i>';
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content';
+    contentDiv.innerHTML = content.replace(/\n/g, '<br>');
+    
+    messageDiv.appendChild(avatar);
+    messageDiv.appendChild(contentDiv);
+    messagesDiv.appendChild(messageDiv);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    
+    messages.push({ role, content });
+}
+
+function showTyping() {
+    const messagesDiv = document.getElementById('chatMessages');
+    const typingDiv = document.createElement('div');
+    typingDiv.id = 'typingIndicator';
+    typingDiv.className = 'message assistant';
+    typingDiv.innerHTML = `
+        <div class="message-avatar"><i class="bi bi-robot"></i></div>
+        <div class="typing-indicator show">
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+        </div>
+    `;
+    messagesDiv.appendChild(typingDiv);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+function hideTyping() {
+    const typing = document.getElementById('typingIndicator');
+    if (typing) typing.remove();
+}
+
+async function sendMessage() {
+    const input = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const userMessage = input.value.trim();
+    
+    if (!userMessage) return;
+    
+    // Disable input
+    input.disabled = true;
+    sendBtn.disabled = true;
+    input.value = '';
+    
+    // Add user message
+    addMessage('user', userMessage);
+    showTyping();
+    
+    try {
+        const subjectId = document.getElementById('subjectSelect').value;
+        
+        const response = await fetch('{% url "academics:ai_tutor_chat" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                messages: messages,
+                subject_id: subjectId || null,
+                session_id: sessionId
+            })
+        });
+        
+        if (response.headers.get('session_id')) {
+            sessionId = response.headers.get('session_id');
+        }
+        
+        hideTyping();
+        
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let assistantMessage = '';
+        let messageDiv = null;
+        
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const data = line.slice(6);
+                    if (data === '[DONE]') continue;
+                    
+                    try {
+                        const parsed = JSON.parse(data);
+                        if (parsed.content) {
+                            assistantMessage += parsed.content;
+                            
+                            if (!messageDiv) {
+                                const messagesDiv = document.getElementById('chatMessages');
+                                messageDiv = document.createElement('div');
+                                messageDiv.className = 'message assistant';
+                                messageDiv.innerHTML = `
+                                    <div class="message-avatar"><i class="bi bi-robot"></i></div>
+                                    <div class="message-content"></div>
+                                `;
+                                messagesDiv.appendChild(messageDiv);
+                            }
+                            
+                            messageDiv.querySelector('.message-content').innerHTML = 
+                                assistantMessage.replace(/\n/g, '<br>');
+                            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                        }
+                    } catch (e) {}
+                }
+            }
+        }
+        
+        if (assistantMessage) {
+            messages.push({ role: 'assistant', content: assistantMessage });
+        }
+        
+    } catch (error) {
+        hideTyping();
+        addMessage('assistant', 'Sorry, I encountered an error. Please try again.');
+        console.error(error);
+    }
+    
+    // Re-enable input
+    input.disabled = false;
+    sendBtn.disabled = false;
+    input.focus();
+}
+
+// Enter to send
+document.getElementById('messageInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
+});
+</script>
+{% endblock %}
