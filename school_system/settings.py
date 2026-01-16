@@ -153,6 +153,16 @@ if DATABASE_URL:
         # Fallback for other prod hosts: prefer short-lived connections to avoid stale sockets
         db_cfg['CONN_MAX_AGE'] = 0
         db_cfg['CONN_HEALTH_CHECKS'] = True
+
+    # Neon-friendly keepalive / timeouts to avoid stale connections on serverless
+    db_cfg.setdefault('OPTIONS', {})
+    db_cfg['OPTIONS'].update({
+        'connect_timeout': 10,
+        'keepalives': 1,
+        'keepalives_idle': 20,
+        'keepalives_interval': 20,
+        'keepalives_count': 3,
+    })
     DATABASES = {'default': db_cfg}
 else:
     # Local development: Must use PostgreSQL for django-tenants
