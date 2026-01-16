@@ -355,7 +355,7 @@ def review_school(request, school_id):
                 if old_status != school.approval_status:
                     send_approval_notification(school, status_changed_by=request.user)
                 
-                status_msg = dict(School.APPROVAL_STATUS_CHOICES).get(school.approval_status, school.approval_status)
+                status_msg = dict(School.APPROVAL_STATUS).get(school.approval_status, school.approval_status)
                 messages.success(request, f"School status updated to: {status_msg}. Notification email sent.")
             
             return redirect('tenants:approval_queue')
