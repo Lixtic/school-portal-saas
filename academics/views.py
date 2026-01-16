@@ -292,7 +292,7 @@ def school_settings_view(request):
 
 @login_required
 def preview_homepage(request):
-    \"\"\"Preview homepage with unsaved customization changes\"\"\"
+    """Preview homepage with unsaved customization changes"""
     if request.user.user_type != 'admin':
         messages.error(request, 'Access denied')
         return redirect('dashboard')
