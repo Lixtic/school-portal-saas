@@ -216,6 +216,7 @@ def landlord_dashboard(request):
     under_review_count = School.objects.filter(approval_status='under_review').count()
     approved_count = School.objects.filter(approval_status='approved').count()
     rejected_count = School.objects.filter(approval_status='rejected').count()
+    requires_info_count = School.objects.filter(approval_status='requires_info').count()
 
     by_type = (
         School.objects.values('school_type')
@@ -254,6 +255,7 @@ def landlord_dashboard(request):
         'under_review_count': under_review_count,
         'approved_count': approved_count,
         'rejected_count': rejected_count,
+        'requires_info_count': requires_info_count,
         'by_type': by_type,
         'recent_schools': recent_schools,
         'signups_chart': signups_chart,
