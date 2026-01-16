@@ -427,7 +427,7 @@
                         {% if school_info.cta_secondary_text and school_info.cta_secondary_url %}
                         <a href="{{ school_info.cta_secondary_url }}" class="btn btn-minimal-outline">{{ school_info.cta_secondary_text }}</a>
                         {% else %}
-                        <a href="{% url 'academics:apply_admission' %}" class="btn btn-minimal-outline">Apply Now</a>
+                        <a href="{% if request.tenant and request.tenant.schema_name != 'public' %}/{{ request.tenant.schema_name }}/academics/apply/{% else %}{% url 'academics:apply_admission' %}{% endif %}" class="btn btn-minimal-outline">Apply Now</a>
                         {% endif %}
                         {% else %}
                         <a href="{% url 'dashboard' %}" class="btn btn-minimal w-100">Enter Dashboard</a>
@@ -580,6 +580,21 @@
         body.scrollTop = body.scrollHeight;
         return div;
     }
+
+    async function streamResponse(targetBubble, response) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullText = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
+            fullText += chunk;
+            targetBubble.textContent = fullText;
+            body.scrollTop = body.scrollHeight;
+        }
+    }
     
     function removeTypingIndicator() {
         const indicator = document.getElementById('typingIndicator');
@@ -615,20 +630,19 @@
             });
             
             console.log('Response status:', res.status);
-            
-            // Remove typing indicator
-            removeTypingIndicator();
-            
-            if (!res.ok) {
+
+            if (!res.ok || !res.body) {
+                removeTypingIndicator();
                 const errorText = await res.text();
                 console.error('HTTP Error:', res.status, errorText);
                 appendBubble('Sorry, there was an error processing your request. Please try again.', 'bot');
                 return;
             }
-            
-            const data = await res.json();
-            console.log('Response data:', data);
-            appendBubble(data.answer || data.error || 'Sorry, I could not process that right now.', 'bot');
+
+            // Remove typing indicator and stream bot reply
+            removeTypingIndicator();
+            const botBubble = appendBubble('', 'bot');
+            await streamResponse(botBubble, res);
         } catch (err) {
             console.error('Chatbot error:', err);
             removeTypingIndicator();

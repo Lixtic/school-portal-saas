@@ -82,8 +82,13 @@ def homepage(request):
         }
     ]
 
-    hero_images = GalleryImage.objects.all().order_by('-created_at')[:3]
-    gallery_images = GalleryImage.objects.all().order_by('?')[:6]  # Random 6 for the tour hub
+    try:
+        hero_images = GalleryImage.objects.all().order_by('-created_at')[:3]
+        gallery_images = GalleryImage.objects.all().order_by('?')[:6]  # Random 6 for the tour hub
+    except (ProgrammingError, OperationalError):
+        # Table may be missing on fresh tenants before migrations
+        hero_images = []
+        gallery_images = []
 
     context = {
         'activities': activities,

@@ -681,7 +681,7 @@
                 </div>
                 {% else %}
                 <div class="col-md-4 col-12">
-                    <a class="text-decoration-none text-dark" href="{% url 'academics:apply_admission' %}">
+                    <a class="text-decoration-none text-dark" href="{% if request.tenant and request.tenant.schema_name != 'public' %}/{{ request.tenant.schema_name }}/academics/apply/{% else %}{% url 'academics:apply_admission' %}{% endif %}">
                         <div class="quick-action h-100">
                             <i class="fas fa-file-alt"></i>
                             <div>
@@ -797,7 +797,7 @@
                                 <div class="flex-grow-1">
                                     <h5 class="fw-bold text-primary mb-2">Admission Applications Now Open</h5>
                                     <p class="text-muted mb-3">We are now accepting applications for the 2025/2026 academic session. Join our community of learners and discover excellence in education.</p>
-                                    <a href="{% url 'academics:apply_admission' %}" class="btn btn-sm btn-primary rounded-pill px-4">
+                                    <a href="{% if request.tenant and request.tenant.schema_name != 'public' %}/{{ request.tenant.schema_name }}/academics/apply/{% else %}{% url 'academics:apply_admission' %}{% endif %}" class="btn btn-sm btn-primary rounded-pill px-4">
                                         <i class="fas fa-arrow-right me-2"></i>Apply Now
                                     </a>
                                 </div>
@@ -964,6 +964,21 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    async function streamResponse(res, bubble) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let done = false;
+        while (!done) {
+            const chunk = await reader.read();
+            done = chunk.done;
+            const text = decoder.decode(chunk.value || new Uint8Array(), { stream: !done });
+            if (text) {
+                bubble.textContent += text;
+                body.scrollTop = body.scrollHeight;
+            }
+        }
+    }
+
     toggle.addEventListener('click', () => { panel.style.display = 'flex'; input.focus(); });
     closeBtn.addEventListener('click', () => { panel.style.display = 'none'; });
 
@@ -995,16 +1010,16 @@ document.addEventListener('DOMContentLoaded', function() {
             // Remove typing indicator
             removeTypingIndicator();
             
-            if (!res.ok) {
+            if (!res.ok || !res.body) {
                 const errorText = await res.text();
                 console.error('HTTP Error:', res.status, errorText);
                 appendBubble('Sorry, there was an error processing your request. Please try again.', 'bot');
                 return;
             }
-            
-            const data = await res.json();
-            console.log('Response data:', data);
-            appendBubble(data.answer || data.error || 'Sorry, I could not process that right now.', 'bot');
+
+            // Stream the response into a live bot bubble
+            const botBubble = appendBubble('', 'bot');
+            await streamResponse(res, botBubble);
         } catch (err) {
             console.error('Chatbot error:', err);
             removeTypingIndicator();

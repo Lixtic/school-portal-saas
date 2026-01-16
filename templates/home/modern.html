@@ -434,7 +434,7 @@
                     <i class="fas fa-graduation-cap me-2"></i> {{ school_info.cta_secondary_text }}
                 </a>
                 {% else %}
-                <a href="{% url 'academics:apply_admission' %}" class="btn btn-outline-light btn-lg px-5 py-3 fw-bold shadow-lg rounded-pill hover-scale">
+                <a href="{% if request.tenant and request.tenant.schema_name != 'public' %}/{{ request.tenant.schema_name }}/academics/apply/{% else %}{% url 'academics:apply_admission' %}{% endif %}" class="btn btn-outline-light btn-lg px-5 py-3 fw-bold shadow-lg rounded-pill hover-scale">
                     <i class="fas fa-graduation-cap me-2"></i> Admissions
                 </a>
                 {% endif %}
@@ -722,6 +722,21 @@
         }
     }
 
+    async function streamResponse(res, bubble) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let done = false;
+        while (!done) {
+            const chunk = await reader.read();
+            done = chunk.done;
+            const text = decoder.decode(chunk.value || new Uint8Array(), { stream: !done });
+            if (text) {
+                bubble.textContent += text;
+                body.scrollTop = body.scrollHeight;
+            }
+        }
+    }
+
     toggle.addEventListener('click', () => { panel.style.display = 'flex'; input.focus(); });
     closeBtn.addEventListener('click', () => { panel.style.display = 'none'; });
 
@@ -753,16 +768,15 @@
             // Remove typing indicator
             removeTypingIndicator();
             
-            if (!res.ok) {
+            if (!res.ok || !res.body) {
                 const errorText = await res.text();
                 console.error('HTTP Error:', res.status, errorText);
                 appendBubble('Sorry, there was an error processing your request. Please try again.', 'bot');
                 return;
             }
-            
-            const data = await res.json();
-            console.log('Response data:', data);
-            appendBubble(data.answer || data.error || 'Sorry, I could not process that right now.', 'bot');
+
+            const botBubble = appendBubble('', 'bot');
+            await streamResponse(res, botBubble);
         } catch (err) {
             console.error('Chatbot error:', err);
             removeTypingIndicator();
