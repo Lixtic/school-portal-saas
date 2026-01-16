@@ -1,94 +1,329 @@
 {% extends 'base.html' %}
 
-{% block title %}Support Tickets{% endblock %}
+{% block title %}Support Desk{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold mb-0">Support Desk</h2>
-        <div>
-            <a href="{% url 'tenants:create_support_ticket' %}" class="btn btn-primary btn-sm me-2">
-                <i class="bi bi-plus-circle me-1"></i>New Ticket
-            </a>
-            <a href="{% url 'tenants:landlord_dashboard' %}" class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-arrow-left me-1"></i>Back
-            </a>
-        </div>
+<style>
+    :root {
+        --card-bg: #ffffff;
+        --text-primary: #1a1a1a;
+        --text-secondary: #6b7280;
+        --text-muted: #9ca3af;
+        --border-color: #f0f0f0;
+        --bar-bg: #f3f4f6;
+    }
+    
+    [data-bs-theme="dark"] {
+        --card-bg: #1e293b;
+        --text-primary: #f1f5f9;
+        --text-secondary: #cbd5e1;
+        --text-muted: #94a3b8;
+        --border-color: #334155;
+        --bar-bg: #334155;
+    }
+    
+    .support-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 1.5rem;
+        background: var(--card-bg);
+        min-height: 100vh;
+    }
+    
+    .support-header {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 2rem;
+    }
+    
+    .filter-tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 2rem;
+        padding: 0.25rem;
+        background: var(--bar-bg);
+        border-radius: 12px;
+        overflow-x: auto;
+    }
+    
+    .filter-tab {
+        flex: 1;
+        text-align: center;
+        padding: 0.625rem 1rem;
+        border-radius: 10px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+        text-decoration: none;
+        white-space: nowrap;
+        transition: all 0.2s;
+    }
+    
+    .filter-tab:hover {
+        color: var(--text-primary);
+    }
+    
+    .filter-tab.active {
+        background: var(--card-bg);
+        color: var(--text-primary);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .tab-count {
+        font-size: 0.75rem;
+        opacity: 0.7;
+    }
+    
+    .ticket-item {
+        display: block;
+        padding: 1rem;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 0.75rem;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    
+    .ticket-item:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+        border-color: var(--text-muted);
+    }
+    
+    .ticket-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 0.5rem;
+    }
+    
+    .ticket-title {
+        font-size: 0.9375rem;
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+    }
+    
+    .ticket-number {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    .ticket-badges {
+        display: flex;
+        gap: 0.375rem;
+        flex-shrink: 0;
+    }
+    
+    .ticket-badge {
+        padding: 0.25rem 0.625rem;
+        border-radius: 8px;
+        font-size: 0.6875rem;
+        font-weight: 600;
+    }
+    
+    .badge-urgent {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+    }
+    
+    .badge-high {
+        background: rgba(245, 158, 11, 0.15);
+        color: #f59e0b;
+    }
+    
+    .badge-normal {
+        background: rgba(59, 130, 246, 0.15);
+        color: #3b82f6;
+    }
+    
+    .badge-open {
+        background: rgba(59, 130, 246, 0.15);
+        color: #3b82f6;
+    }
+    
+    .badge-progress {
+        background: rgba(245, 158, 11, 0.15);
+        color: #f59e0b;
+    }
+    
+    .badge-resolved {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
+    }
+    
+    [data-bs-theme="dark"] .badge-urgent {
+        background: rgba(239, 68, 68, 0.2);
+        color: #fca5a5;
+    }
+    
+    [data-bs-theme="dark"] .badge-high {
+        background: rgba(245, 158, 11, 0.2);
+        color: #fbbf24;
+    }
+    
+    [data-bs-theme="dark"] .badge-normal {
+        background: rgba(59, 130, 246, 0.2);
+        color: #60a5fa;
+    }
+    
+    [data-bs-theme="dark"] .badge-open {
+        background: rgba(59, 130, 246, 0.2);
+        color: #60a5fa;
+    }
+    
+    [data-bs-theme="dark"] .badge-progress {
+        background: rgba(245, 158, 11, 0.2);
+        color: #fbbf24;
+    }
+    
+    [data-bs-theme="dark"] .badge-resolved {
+        background: rgba(16, 185, 129, 0.2);
+        color: #34d399;
+    }
+    
+    .ticket-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    .ticket-school {
+        font-weight: 500;
+        color: var(--text-secondary);
+    }
+    
+    .new-ticket-btn {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: #3b82f6;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .new-ticket-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.5);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1.5rem;
+    }
+    
+    .empty-icon {
+        font-size: 3rem;
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+    }
+    
+    .empty-text {
+        font-size: 0.9375rem;
+        color: var(--text-secondary);
+    }
+    
+    @media (max-width: 576px) {
+        .support-container {
+            padding: 1rem;
+        }
+        
+        .filter-tabs {
+            gap: 0.375rem;
+            padding: 0.25rem;
+        }
+        
+        .filter-tab {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8125rem;
+        }
+        
+        .new-ticket-btn {
+            bottom: 1.5rem;
+            right: 1.5rem;
+        }
+    }
+</style>
+
+<div class="support-container">
+    <!-- Header -->
+    <div class="support-header">
+        Support Desk
+        <a href="{% url 'tenants:landlord_dashboard' %}" class="btn btn-link float-end p-0">
+            <i class="bi bi-arrow-left"></i>
+        </a>
     </div>
 
-    <ul class="nav nav-tabs mb-3">
-        <li class="nav-item">
-            <a class="nav-link {% if status_filter == 'all' %}active{% endif %}" href="?status=all">
-                All ({{ status_counts.all }})
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {% if status_filter == 'open' %}active{% endif %}" href="?status=open">
-                Open ({{ status_counts.open }})
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {% if status_filter == 'in_progress' %}active{% endif %}" href="?status=in_progress">
-                In Progress ({{ status_counts.in_progress }})
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {% if status_filter == 'resolved' %}active{% endif %}" href="?status=resolved">
-                Resolved ({{ status_counts.resolved }})
-            </a>
-        </li>
-    </ul>
-
-    <div class="card border-0 shadow-sm">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light">
-                    <tr>
-                        <th>Ticket #</th>
-                        <th>School</th>
-                        <th>Subject</th>
-                        <th>Category</th>
-                        <th>Priority</th>
-                        <th>Status</th>
-                        <th>Assigned To</th>
-                        <th>Created</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for ticket in tickets %}
-                    <tr onclick="window.location='{% url 'tenants:support_ticket_detail' ticket.id %}'" style="cursor: pointer;">
-                        <td><strong>{{ ticket.ticket_number }}</strong></td>
-                        <td>{{ ticket.school.name }}</td>
-                        <td>{{ ticket.subject|truncatewords:10 }}</td>
-                        <td><span class="badge bg-secondary">{{ ticket.get_category_display }}</span></td>
-                        <td>
-                            <span class="badge 
-                                {% if ticket.priority == 'urgent' %}bg-danger
-                                {% elif ticket.priority == 'high' %}bg-warning
-                                {% else %}bg-info{% endif %}">
-                                {{ ticket.get_priority_display }}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="badge 
-                                {% if ticket.status == 'open' %}bg-primary
-                                {% elif ticket.status == 'in_progress' %}bg-warning
-                                {% elif ticket.status == 'resolved' %}bg-success
-                                {% else %}bg-secondary{% endif %}">
-                                {{ ticket.get_status_display }}
-                            </span>
-                        </td>
-                        <td>{{ ticket.assigned_to.get_full_name|default:"Unassigned" }}</td>
-                        <td>{{ ticket.created_at|timesince }} ago</td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="8" class="text-center text-muted py-4">No tickets found</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <!-- Filter Tabs -->
+    <div class="filter-tabs">
+        <a class="filter-tab {% if status_filter == 'all' %}active{% endif %}" href="?status=all">
+            All <span class="tab-count">({{ status_counts.all }})</span>
+        </a>
+        <a class="filter-tab {% if status_filter == 'open' %}active{% endif %}" href="?status=open">
+            Open <span class="tab-count">({{ status_counts.open }})</span>
+        </a>
+        <a class="filter-tab {% if status_filter == 'in_progress' %}active{% endif %}" href="?status=in_progress">
+            Active <span class="tab-count">({{ status_counts.in_progress }})</span>
+        </a>
+        <a class="filter-tab {% if status_filter == 'resolved' %}active{% endif %}" href="?status=resolved">
+            Done <span class="tab-count">({{ status_counts.resolved }})</span>
+        </a>
     </div>
+
+    <!-- Ticket List -->
+    {% for ticket in tickets %}
+    <a href="{% url 'tenants:support_ticket_detail' ticket.id %}" class="ticket-item">
+        <div class="ticket-header">
+            <div style="flex: 1; min-width: 0;">
+                <div class="ticket-title">{{ ticket.subject|truncatewords:8 }}</div>
+                <div class="ticket-number">{{ ticket.ticket_number }}</div>
+            </div>
+            <div class="ticket-badges">
+                <span class="ticket-badge 
+                    {% if ticket.priority == 'urgent' %}badge-urgent
+                    {% elif ticket.priority == 'high' %}badge-high
+                    {% else %}badge-normal{% endif %}">
+                    {{ ticket.get_priority_display }}
+                </span>
+                <span class="ticket-badge 
+                    {% if ticket.status == 'open' %}badge-open
+                    {% elif ticket.status == 'in_progress' %}badge-progress
+                    {% elif ticket.status == 'resolved' %}badge-resolved
+                    {% else %}badge-normal{% endif %}">
+                    {{ ticket.get_status_display }}
+                </span>
+            </div>
+        </div>
+        <div class="ticket-meta">
+            <span class="ticket-school">{{ ticket.school.name }}</span>
+            <span>{{ ticket.created_at|timesince }} ago</span>
+        </div>
+    </a>
+    {% empty %}
+    <div class="empty-state">
+        <div class="empty-icon">
+            <i class="bi bi-inbox"></i>
+        </div>
+        <div class="empty-text">No tickets found</div>
+    </div>
+    {% endfor %}
+
+    <!-- New Ticket Button -->
+    <a href="{% url 'tenants:create_support_ticket' %}" class="new-ticket-btn" title="New Ticket">
+        <i class="bi bi-plus-lg"></i>
+    </a>
 </div>
 {% endblock %}
