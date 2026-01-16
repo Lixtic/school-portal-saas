@@ -387,6 +387,11 @@ def revenue_analytics(request):
         status__in=['active', 'trial']
     )
     
+    # School counts
+    schools_count = active_subscriptions.count()
+    active_count = active_subscriptions.filter(status='active').count()
+    trial_count = active_subscriptions.filter(status='trial').count()
+    
     total_mrr = active_subscriptions.aggregate(
         mrr=Sum('mrr')
     )['mrr'] or 0
@@ -481,6 +486,11 @@ def revenue_analytics(request):
         'paid_mrr': paid_mrr,
         'trial_mrr': trial_mrr,
         'arpa': arpa,
+        
+        # School counts
+        'schools_count': schools_count,
+        'active_count': active_count,
+        'trial_count': trial_count,
         
         # Churn
         'churn_count': churn_count,
