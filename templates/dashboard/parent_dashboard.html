@@ -4,55 +4,125 @@
 
 {% block content %}
 <style>
-    .welcome-banner {
-        background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
-        color: white;
+    .stat-card {
+        padding: 1.5rem;
         border-radius: 12px;
-        padding: 2rem;
+        border: 1px solid #e5e7eb;
+        background: #fff;
+        transition: all 0.2s;
+    }
+    .stat-card:hover {
+        border-color: #d1d5db;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .stat-label {
+        font-size: 0.75rem;
+        color: #6b7280;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+    }
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 600;
+        color: #111827;
+    }
+    .welcome-banner {
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        background: #fff;
         margin-bottom: 1.5rem;
     }
     .child-card {
-        border: none;
+        padding: 1rem;
         border-radius: 12px;
-        transition: transform 0.2s, box-shadow 0.2s;
-        overflow: hidden;
+        border: 1px solid #e5e7eb;
+        background: #fff;
+        transition: all 0.2s;
     }
     .child-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        border-color: #d1d5db;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
     .child-avatar {
         width: 60px;
         height: 60px;
-        background-color: #e9ecef;
+        background-color: #f3f4f6;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 1.5rem;
-        color: #6c757d;
+        color: #6b7280;
         object-fit: cover;
     }
     .notice-card {
-        border-left: 4px solid #0d6efd;
-        background-color: #f8f9fa;
-        transition: background-color 0.2s;
+        padding: 1rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        background: #fff;
+        margin-bottom: 0.75rem;
+        transition: all 0.2s;
     }
     .notice-card:hover {
-        background-color: #fff;
+        border-color: #3b82f6;
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08);
+    }
+    .btn-icon {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #e5e7eb;
+        background: #fff;
+        color: #6b7280;
+        transition: all 0.15s;
+    }
+    .btn-icon:hover {
+        border-color: #3b82f6;
+        color: #3b82f6;
+        background: #eff6ff;
+    }
+    
+    [data-bs-theme="dark"] .stat-card,
+    [data-bs-theme="dark"] .welcome-banner,
+    [data-bs-theme="dark"] .child-card,
+    [data-bs-theme="dark"] .notice-card {
+        background: var(--surface-card);
+        border-color: rgba(255,255,255,0.08);
+    }
+    [data-bs-theme="dark"] .stat-value {
+        color: #f3f4f6;
+    }
+    [data-bs-theme="dark"] .stat-label {
+        color: #9ca3af;
+    }
+    [data-bs-theme="dark"] .child-avatar {
+        background: rgba(255,255,255,0.05);
+        color: #d1d5db;
+    }
+    [data-bs-theme="dark"] .btn-icon {
+        background: rgba(255,255,255,0.05);
+        border-color: rgba(255,255,255,0.08);
+        color: #9ca3af;
     }
 </style>
 
 <div class="container-fluid">
     <!-- Welcome Header -->
-    <div class="welcome-banner shadow-sm">
+    <div class="welcome-banner">
         <div class="d-flex justify-content-between align-items-center">
             <div>
                 <h2 class="fw-bold mb-1">Welcome, {{ user.get_full_name }}! 👋</h2>
-                <p class="mb-0 opacity-75">Here is today's overview for your wards.</p>
+                <p class="mb-0 text-muted">Here is today's overview for your wards.</p>
             </div>
             <div class="d-none d-md-block text-end">
-                <div class="h5 mb-0">{% now "l, F j, Y" %}</div>
+                <div class="h5 mb-0 text-muted">{% now "l, F j, Y" %}</div>
             </div>
         </div>
     </div>
@@ -60,62 +130,58 @@
     <div class="row g-4 mb-4">
         <!-- Finance Status -->
         <div class="col-md-5">
-            <div class="card h-100 shadow-sm border-0">
-                <div class="card-header bg-white border-bottom-0 pt-4 px-4">
-                    <h5 class="fw-bold text-dark mb-0"><i class="bi bi-wallet2 text-success me-2"></i>Financial Status</h5>
+            <div class="stat-card h-100">
+                <div class="mb-3">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-wallet2 me-2" style="color: #22c55e;"></i>Financial Status</h5>
                 </div>
-                <div class="card-body px-4 pb-4">
-                    <div class="d-flex flex-column gap-3">
-                        <div class="p-3 rounded-3 {% if finance_stats.outstanding > 0 %}bg-danger bg-opacity-10 border border-danger border-opacity-25{% else %}bg-success bg-opacity-10 border border-success border-opacity-25{% endif %}">
-                            <h6 class="text-uppercase small fw-bold mb-1 opacity-75">Total Outstanding</h6>
-                            {% if finance_stats.outstanding > 0 %}
-                                <h2 class="text-danger fw-bold mb-0">₵ {{ finance_stats.outstanding|floatformat:2|intcomma }}</h2>
-                                <small class="text-danger">Action required</small>
-                            {% else %}
-                                <h2 class="text-success fw-bold mb-0">Cleared</h2>
-                                <small class="text-success"><i class="bi bi-check-circle-fill"></i> You are up to date!</small>
-                            {% endif %}
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center px-1">
-                            <span class="text-muted">Total Paid (YTD)</span>
-                            <span class="fw-bold text-dark">₵ {{ finance_stats.paid|floatformat:2|intcomma }}</span>
-                        </div>
-                        <a href="#" class="btn btn-outline-primary w-100 mt-2">View Payment History</a>
+                <div class="d-flex flex-column gap-3">
+                    <div class="p-3 rounded-3 {% if finance_stats.outstanding > 0 %}bg-danger bg-opacity-10 border border-danger border-opacity-25{% else %}bg-success bg-opacity-10 border border-success border-opacity-25{% endif %}">
+                        <div class="stat-label">Total Outstanding</div>
+                        {% if finance_stats.outstanding > 0 %}
+                            <div class="stat-value text-danger">₵ {{ finance_stats.outstanding|floatformat:2|intcomma }}</div>
+                            <small class="text-danger">Action required</small>
+                        {% else %}
+                            <div class="stat-value text-success">Cleared</div>
+                            <small class="text-success"><i class="bi bi-check-circle-fill"></i> You are up to date!</small>
+                        {% endif %}
                     </div>
+                    <div class="d-flex justify-content-between align-items-center px-1">
+                        <span class="text-muted">Total Paid (YTD)</span>
+                        <span class="fw-bold">₵ {{ finance_stats.paid|floatformat:2|intcomma }}</span>
+                    </div>
+                    <a href="#" class="btn btn-outline-primary w-100 mt-2">View Payment History</a>
                 </div>
             </div>
         </div>
 
         <!-- My Children -->
         <div class="col-md-7">
-            <h5 class="fw-bold text-secondary mb-3">My Wards</h5>
+            <h5 class="fw-bold mb-3" style="color: #6b7280;">My Wards</h5>
             <div class="row g-3">
                 {% for child in children %}
                 <div class="col-sm-6">
-                    <div class="card child-card shadow-sm h-100">
-                        <div class="card-body p-3">
-                            <div class="d-flex align-items-center gap-3 mb-3">
-                                {% if child.passport_photo %}
-                                    <img src="{{ child.passport_photo.url }}" alt="{{ child.get_full_name }}" class="child-avatar border">
-                                {% else %}
-                                    <div class="child-avatar">
-                                        {{ child.first_name|first }}{{ child.last_name|first }}
-                                    </div>
-                                {% endif %}
-                                <div>
-                                    <h6 class="fw-bold mb-0 text-truncate" style="max-width: 150px;">{{ child.get_full_name }}</h6>
-                                    <span class="badge bg-primary rounded-pill">{{ child.current_class.name|default:"No Class" }}</span>
+                    <div class="child-card h-100">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            {% if child.passport_photo %}
+                                <img src="{{ child.passport_photo.url }}" alt="{{ child.get_full_name }}" class="child-avatar border">
+                            {% else %}
+                                <div class="child-avatar">
+                                    {{ child.first_name|first }}{{ child.last_name|first }}
                                 </div>
+                            {% endif %}
+                            <div>
+                                <h6 class="fw-bold mb-0 text-truncate" style="max-width: 150px;">{{ child.get_full_name }}</h6>
+                                <span class="badge" style="background: #eff6ff; color: #3b82f6; padding: 0.25rem 0.625rem; font-size: 0.75rem; font-weight: 500; border-radius: 6px;">{{ child.current_class.name|default:"No Class" }}</span>
                             </div>
-                            <div class="d-grid gap-2">
-                                <a href="{% url 'parents:child_details' child.id %}" class="btn btn-sm btn-outline-secondary text-start">
-                                    <i class="bi bi-person me-2"></i> Profile & Grades
-                                </a>
-                                <!-- Since there is no dedicated attendance detail view, we link back to the profile which should contain attendance summary -->
-                                <a href="{% url 'parents:child_details' child.id %}" class="btn btn-sm btn-outline-secondary text-start">
-                                    <i class="bi bi-calendar-check me-2"></i> Attendance
-                                </a>
-                            </div>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'parents:child_details' child.id %}" class="btn btn-sm btn-outline-secondary text-start">
+                                <i class="bi bi-person me-2"></i> Profile & Grades
+                            </a>
+                            <!-- Since there is no dedicated attendance detail view, we link back to the profile which should contain attendance summary -->
+                            <a href="{% url 'parents:child_details' child.id %}" class="btn btn-sm btn-outline-secondary text-start">
+                                <i class="bi bi-calendar-check me-2"></i> Attendance
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -133,21 +199,20 @@
     <!-- School Notices -->
     <div class="row g-4">
         <div class="col-12">
-            <h5 class="fw-bold text-secondary mb-3">Announcements & Notices</h5>
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-0">
-                    <div class="list-group list-group-flush rounded-3">
-                        {% for notice in notices %}
-                        <div class="list-group-item notice-card p-3 mb-2 mx-3 mt-3 rounded border-0 shadow-sm">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; min-width: 48px;">
-                                    <i class="bi bi-bell-fill fs-5"></i>
+            <h5 class="fw-bold mb-3" style="color: #6b7280;">Announcements & Notices</h5>
+            <div class="stat-card">
+                <div class="p-0">
+                    {% for notice in notices %}
+                    <div class="notice-card">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; min-width: 48px; background: #eff6ff; color: #3b82f6; border-radius: 10px;">
+                                <i class="bi bi-bell-fill fs-5"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <h6 class="mb-0 fw-bold">{{ notice.title }}</h6>
+                                    <small class="text-muted px-2 py-1 rounded" style="background: #f3f4f6; font-size: 0.7rem;">{{ notice.created_at|timesince }} ago</small>
                                 </div>
-                                <div class="flex-grow-1">
-                                    <div class="d-flex justify-content-between align-items-start mb-1">
-                                        <h6 class="mb-0 fw-bold text-dark">{{ notice.title }}</h6>
-                                        <small class="text-muted bg-light px-2 py-1 rounded">{{ notice.created_at|timesince }} ago</small>
-                                    </div>
                                     <p class="mb-0 text-muted small" style="line-height: 1.5;">{{ notice.content|truncatechars:180 }}</p>
                                 </div>
                             </div>
