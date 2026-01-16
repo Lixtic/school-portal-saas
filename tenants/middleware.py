@@ -95,7 +95,7 @@ class TenantPathMiddleware(TenantMainMiddleware):
             # identifying that the school itself doesn't exist.
             reserved_paths = [
                 'admin', 'static', 'media', 'signup', 'login', 'logout', 
-                'dashboard', 'favicon.ico', 'debug', 'accounts',
+                'dashboard', 'favicon.ico', 'debug', 'accounts', 'tenants',
                 'password', 'reset', ''
             ]
             # Ensure we don't treat root path (empty string) as a missing tenant
