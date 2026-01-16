@@ -796,6 +796,92 @@
 
         <!-- Sidebar -->
         <nav class="sidebar" id="sidebar">
+            
+            {% if user.is_staff and request.path == '/tenants/dashboard/' %}
+            <!-- LANDLORD DASHBOARD -->
+            <h4 class="mb-2"><i class="bi bi-shield-check me-2" style="font-size: 0.85rem;"></i>Platform Admin</h4>
+            
+            <div class="nav-item">
+                <a href="{% url 'tenants:landlord_dashboard' %}" class="nav-link active" title="Command Center">
+                    <i class="bi bi-grid-3x3-gap"></i>
+                    <span>Command Center</span>
+                </a>
+            </div>
+            
+            <div class="nav-item">
+                <a href="{% url 'tenants:revenue_analytics' %}" class="nav-link" title="Revenue Analytics">
+                    <i class="bi bi-graph-up-arrow"></i>
+                    <span>Revenue Analytics</span>
+                </a>
+            </div>
+            
+            <div class="nav-item">
+                <a href="{% url 'tenants:approval_queue' %}" class="nav-link" title="Approval Queue">
+                    <i class="bi bi-clipboard-check"></i>
+                    <span>Approval Queue</span>
+                </a>
+            </div>
+            
+            <div class="nav-item">
+                <a href="{% url 'tenants:system_health' %}" class="nav-link" title="System Health">
+                    <i class="bi bi-activity"></i>
+                    <span>System Health</span>
+                </a>
+            </div>
+            
+            <div class="nav-item">
+                <a href="{% url 'tenants:support_tickets' %}" class="nav-link" title="Support Desk">
+                    <i class="bi bi-headset"></i>
+                    <span>Support Desk</span>
+                </a>
+            </div>
+            
+            <div class="nav-item">
+                <a href="{% url 'tenants:database_backups' %}" class="nav-link" title="Database Backups">
+                    <i class="bi bi-shield-check"></i>
+                    <span>Database Backups</span>
+                </a>
+            </div>
+            
+            <h4 class="mb-2 mt-4"><i class="bi bi-gear me-2" style="font-size: 0.85rem;"></i>Management</h4>
+            
+            <div class="nav-item">
+                <a href="/admin/tenants/school/" target="_blank" class="nav-link" title="Manage Tenants">
+                    <i class="bi bi-building"></i>
+                    <span>Manage Tenants</span>
+                </a>
+            </div>
+            
+            <div class="nav-item">
+                <a href="/admin/tenants/domain/" target="_blank" class="nav-link" title="Manage Domains">
+                    <i class="bi bi-globe"></i>
+                    <span>Manage Domains</span>
+                </a>
+            </div>
+            
+            <div class="nav-item">
+                <a href="/admin/auth/user/" target="_blank" class="nav-link" title="User Management">
+                    <i class="bi bi-people"></i>
+                    <span>User Management</span>
+                </a>
+            </div>
+            
+            <div class="nav-item">
+                <a href="{% url 'signup' %}" class="nav-link" title="Create New Tenant">
+                    <i class="bi bi-plus-circle"></i>
+                    <span>New Tenant</span>
+                </a>
+            </div>
+            
+            <div class="nav-item">
+                <a href="/admin/" target="_blank" class="nav-link" title="Django Admin">
+                    <i class="bi bi-gear-fill"></i>
+                    <span>Django Admin</span>
+                </a>
+            </div>
+            
+            {% else %}
+            <!-- REGULAR TENANT SIDEBAR -->
             <!-- OVERVIEW -->
             <h4 class="mb-2"><i class="bi bi-grid me-2" style="font-size: 0.85rem;"></i>Overview</h4>
             
@@ -946,6 +1032,8 @@
                 </a>
             </div>
             {% endif %}
+            
+            {% endif %} {# End of landlord vs regular tenant conditional #}
             
             <div class="mt-auto p-3 border-top" style="border-color: rgba(255,255,255,0.1) !important;">
                 <a href="{% url 'logout' %}" class="nav-link" style="color: #ffa8a8 !important;" title="Sign Out">
