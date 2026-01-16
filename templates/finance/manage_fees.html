@@ -2,69 +2,98 @@
 {% load crispy_forms_tags %}
 
 {% block content %}
-<div class="container-fluid">
+<style>
+    .fee-card {
+        padding: 1rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        background: #fff;
+        margin-bottom: 0.75rem;
+        transition: all 0.2s;
+    }
+    .fee-card:hover {
+        border-color: #d1d5db;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .badge-minimal {
+        padding: 0.25rem 0.625rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        border-radius: 6px;
+        background: #f3f4f6;
+        color: #4b5563;
+        border: none;
+    }
+    .form-card {
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        background: #fff;
+    }
+    
+    [data-bs-theme="dark"] .fee-card,
+    [data-bs-theme="dark"] .form-card {
+        background: var(--surface-white);
+        border-color: rgba(255,255,255,0.08);
+    }
+    [data-bs-theme="dark"] .badge-minimal {
+        background: rgba(255,255,255,0.05);
+        color: #d1d5db;
+    }
+</style>
+
+<div class="container-fluid px-3 px-md-4 py-3">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="page-title">Manage Fees</h2>
-        <a href="{% url 'finance:create_fee_structure' %}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Create Fee Structure</a>
+        <h4 class="mb-0 fw-semibold">Manage Fees</h4>
+        <a href="{% url 'finance:create_fee_structure' %}" class="btn btn-primary btn-sm px-3">
+            <i class="bi bi-plus-circle me-1"></i> Create Fee Structure
+        </a>
     </div>
 
     <div class="row">
         <!-- List of Fee Structures -->
         <div class="col-md-8">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">Active Fee Structures</h5>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="bg-light">
-                            <tr>
-                                <th>Fee Type</th>
-                                <th>Class</th>
-                                <th>Term/Year</th>
-                                <th>Amount</th>
-                                <th>Due Date</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for fee in structures %}
-                            <tr>
-                                <td>{{ fee.head.name }}</td>
-                                <td><span class="badge bg-info">{{ fee.class_level.name }}</span></td>
-                                <td>{{ fee.get_term_display }} / {{ fee.academic_year }}</td>
-                                <td class="fw-bold">₵ {{ fee.amount }}</td>
-                                <td>{{ fee.due_date|default:"-" }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr><td colspan="5" class="text-center text-muted">No fee structures found.</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+            <h6 class="mb-3 fw-semibold">Active Fee Structures</h6>
+            {% for fee in structures %}
+            <div class="fee-card">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold mb-1">{{ fee.head.name }}</div>
+                        <div class="small text-muted">
+                            {{ fee.get_term_display }} · {{ fee.academic_year }} · Due: {{ fee.due_date|default:"-" }}
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="badge-minimal">{{ fee.class_level.name }}</span>
+                        <div class="fw-semibold text-primary">₵ {{ fee.amount }}</div>
+                    </div>
                 </div>
             </div>
+            {% empty %}
+            <div class="text-center py-5">
+                <i class="bi bi-cash-stack display-4 text-muted opacity-25"></i>
+                <p class="mt-3 text-muted">No fee structures found</p>
+            </div>
+            {% endfor %}
         </div>
 
         <!-- Create New Fee Head -->
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0">Add Fee Category</h5>
-                </div>
-                <div class="card-body">
-                    <form method="post">
-                        {% csrf_token %}
-                        {{ head_form|crispy }}
-                        <button type="submit" class="btn btn-success w-100 mt-3">Save Category</button>
-                    </form>
-                    
-                    <hr class="my-4">
-                    
-                    <h6>Existing Categories:</h6>
-                    <div class="d-flex flex-wrap gap-2">
-                        {% for head in heads %}
-                        <span class="badge bg-secondary">{{ head.name }}</span>
-                        {% endfor %}
-                    </div>
+            <div class="form-card mb-3">
+                <h6 class="mb-3 fw-semibold">Add Fee Category</h6>
+                <form method="post">
+                    {% csrf_token %}
+                    {{ head_form|crispy }}
+                    <button type="submit" class="btn btn-primary w-100 mt-3">Save Category</button>
+                </form>
+            </div>
+            
+            <div class="form-card">
+                <h6 class="mb-3 fw-semibold">Existing Categories</h6>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for head in heads %}
+                    <span class="badge-minimal">{{ head.name }}</span>
+                    {% endfor %}
                 </div>
             </div>
         </div>
