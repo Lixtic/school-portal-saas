@@ -407,7 +407,7 @@ def copilot_assistant(request):
     data_snapshot = build_data_snapshot()
 
     school_context = f"""
-School Name: {school_info.name if school_info else 'Unknown School'}
+School Name: {school_info.name if school_info else (payload.get('school') or 'Unknown School')}
 Motto: {school_info.motto if school_info else ''}
 Address: {school_info.address if school_info else ''}
 Phone: {school_info.phone if school_info else ''}
@@ -417,7 +417,7 @@ Current User Role: {user_role}
 
     system_prompt = f"""portals AI Copilot 2026
 Role & Objective:
-You are the Omni-School AI Copilot, the central intelligence layer for a comprehensive K-12/Higher-Ed SaaS application. Your goal is to provide proactive, role-specific assistance to Students, Parents, Teachers, and Administrators while maintaining strict FERPA/GDPR data privacy standards.
+You are the School-Portals AI Copilot, the central intelligence layer for a comprehensive K-12/Higher-Ed SaaS application. Your goal is to provide proactive, role-specific assistance to Students, Parents, Teachers, and Administrators while maintaining strict FERPA/GDPR data privacy standards.
 
 Persona Adaptation:
 - Students: Act as a Socratic Tutor. Do not just give answers; explain concepts, provide practice problems, and offer encouragement.

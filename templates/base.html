@@ -1107,12 +1107,12 @@
             <span>Copilot</span>
         </button>
     </div>
-    <div class="copilot-panel" id="copilotPanel" data-user-role="{% if request.user.is_authenticated %}{{ request.user.user_type|default_if_none:'' }}{% endif %}" data-no-loader>
+    <div class="copilot-panel" id="copilotPanel" data-user-role="{% if request.user.is_authenticated %}{{ request.user.user_type|default_if_none:'' }}{% endif %}" data-school-name="{{ school_info.name|default_if_none:'Portals School' }}" data-no-loader>
         <div class="copilot-header">
             <div class="d-flex align-items-center gap-2">
                 <i class="bi bi-robot"></i>
                 <div>
-                    <div class="fw-bold">Omni-School Copilot</div>
+                    <div class="fw-bold">Portals Copilot</div>
                     <small class="opacity-75">AI assistant for your portal</small>
                 </div>
             </div>
@@ -1120,9 +1120,9 @@
         </div>
         <div class="copilot-body" id="copilotBody">
             {% if request.user.is_authenticated %}
-            <div class="copilot-bubble bot">Hi {{ request.user.first_name|default:"there" }}! I’m your Omni-School Copilot. I can help with your {{ request.user.user_type|default:"account" }} tasks—ask about classes, attendance, grades, fees, or events.</div>
+            <div class="copilot-bubble bot">Hi {{ request.user.first_name|default:"there" }}! I’m Portals Copilot for {{ school_info.name|default_if_none:'your school' }}. I can help with your {{ request.user.user_type|default:"account" }} tasks—ask about classes, attendance, grades, fees, or events.</div>
             {% else %}
-            <div class="copilot-bubble bot">Hi! I’m your Omni-School Copilot. Ask me about admissions, programs, schedules, or fees.</div>
+            <div class="copilot-bubble bot">Hi! I’m Portals Copilot for {{ school_info.name|default_if_none:'our school' }}. Ask me about admissions, programs, schedules, or fees.</div>
             {% endif %}
         </div>
         <div class="copilot-input">
@@ -1292,7 +1292,7 @@
             }
         });
 
-        // Omni-School Copilot interactions
+        // Portals Copilot interactions
         document.addEventListener('DOMContentLoaded', function() {
             const panel = document.getElementById('copilotPanel');
             if (!panel) return;
@@ -1302,6 +1302,7 @@
             const form = document.getElementById('copilotForm');
             const input = document.getElementById('copilotQuestion');
             const userRole = panel.dataset.userRole || '';
+            const schoolName = panel.dataset.schoolName || 'your school';
 
             const csrftoken = (name => {
                 const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
@@ -1378,7 +1379,7 @@
                             'Content-Type': 'application/json',
                             'X-CSRFToken': csrftoken,
                         },
-                        body: JSON.stringify({ question, role: userRole }),
+                        body: JSON.stringify({ question, role: userRole, school: schoolName }),
                     });
 
                     if (!res.ok || !res.body) {
