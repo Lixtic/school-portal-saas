@@ -366,31 +366,84 @@ Context Initialization:
         return HttpResponse('Copilot is offline: missing OPENAI_API_KEY.', content_type='text/plain; charset=utf-8', status=503)
 
     try:
-        import openai
-        openai.api_key = settings.OPENAI_API_KEY
+        try:
+            from openai import OpenAI
+        except ImportError as ie:
+            # Older SDKs do not export OpenAI class
+            OpenAI = None
+            print(f"[COPILOT] OpenAI import fallback: {ie}")
 
-        def stream_chat():
+        def normalize_delta(delta_content):
+            if not delta_content:
+                return ""
+            if isinstance(delta_content, list):
+                parts = []
+                for item in delta_content:
+                    text_part = ''
+                    if isinstance(item, dict):
+                        text_part = item.get('text', '')
+                    else:
+                        text_part = getattr(item, 'text', '') or str(item)
+                    parts.append(text_part)
+                return ''.join(parts)
+            return str(delta_content)
+
+        def stream_new_sdk():
+            client = OpenAI(api_key=settings.OPENAI_API_KEY, timeout=15.0)
+            stream = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": question}
+                ],
+                max_tokens=200,
+                temperature=0.7,
+                stream=True
+            )
+            for chunk in stream:
+                delta = chunk.choices[0].delta.content
+                text = normalize_delta(delta)
+                if text:
+                    yield text
+
+        def stream_old_sdk():
+            import openai
+            openai.api_key = settings.OPENAI_API_KEY
+            stream = openai.ChatCompletion.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": question}
+                ],
+                max_tokens=200,
+                temperature=0.7,
+                stream=True
+            )
+            for chunk in stream:
+                delta = chunk['choices'][0]['delta'].get('content')
+                if delta:
+                    yield delta
+
+        # Prefer new SDK; fallback to legacy if unavailable
+        if OpenAI is not None:
             try:
-                stream = openai.ChatCompletion.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": question}
-                    ],
-                    max_tokens=200,
-                    temperature=0.7,
-                    stream=True
-                )
-                for chunk in stream:
-                    delta = chunk['choices'][0]['delta'].get('content')
-                    if delta:
-                        yield delta
-            except Exception as e:
-                print(f"[COPILOT] Streaming error (legacy): {e}")
+                return StreamingHttpResponse(stream_new_sdk(), content_type='text/plain; charset=utf-8')
+            except TypeError as te:
+                # Some environments inject unsupported kwargs; fall back
+                print(f"[COPILOT] New SDK TypeError, falling back to legacy: {te}")
+            except Exception as e_new:
+                print(f"[COPILOT] Streaming error (new SDK): {e_new}")
                 import traceback
                 traceback.print_exc()
 
-        return StreamingHttpResponse(stream_chat(), content_type='text/plain; charset=utf-8')
+        try:
+            return StreamingHttpResponse(stream_old_sdk(), content_type='text/plain; charset=utf-8')
+        except Exception as e_legacy:
+            err_msg = f"Copilot error (legacy): {e_legacy}"
+            print(err_msg)
+            import traceback
+            traceback.print_exc()
+            return HttpResponse(err_msg, content_type='text/plain; charset=utf-8', status=502)
     except Exception as e:
         err_msg = f"Copilot error: {e}"
         print(err_msg)
