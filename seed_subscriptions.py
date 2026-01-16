@@ -36,9 +36,9 @@ plans_data = [
         'name': 'Basic',
         'plan_type': 'basic',
         'description': 'Essential features for small schools',
-        'monthly_price': Decimal('49.00'),
-        'quarterly_price': Decimal('132.00'),  # 10% off
-        'annual_price': Decimal('470.00'),  # 20% off
+        'monthly_price': Decimal('599.00'),
+        'quarterly_price': Decimal('1617.00'),  # 10% off
+        'annual_price': Decimal('5750.00'),  # 20% off
         'max_students': 200,
         'max_teachers': 30,
         'max_storage_gb': 20,
@@ -51,9 +51,9 @@ plans_data = [
         'name': 'Professional',
         'plan_type': 'pro',
         'description': 'Advanced features for growing schools',
-        'monthly_price': Decimal('149.00'),
-        'quarterly_price': Decimal('402.00'),
-        'annual_price': Decimal('1432.00'),
+        'monthly_price': Decimal('1799.00'),
+        'quarterly_price': Decimal('4857.00'),
+        'annual_price': Decimal('17270.00'),
         'max_students': 1000,
         'max_teachers': 100,
         'max_storage_gb': 100,
@@ -66,9 +66,9 @@ plans_data = [
         'name': 'Enterprise',
         'plan_type': 'enterprise',
         'description': 'Complete solution for large institutions',
-        'monthly_price': Decimal('499.00'),
-        'quarterly_price': Decimal('1347.00'),
-        'annual_price': Decimal('4790.00'),
+        'monthly_price': Decimal('5999.00'),
+        'quarterly_price': Decimal('16197.00'),
+        'annual_price': Decimal('57590.00'),
         'max_students': 999999,
         'max_teachers': 999999,
         'max_storage_gb': 500,
@@ -80,14 +80,14 @@ plans_data = [
 ]
 
 for plan_data in plans_data:
-    plan, created = SubscriptionPlan.objects.get_or_create(
+    plan, created = SubscriptionPlan.objects.update_or_create(
         plan_type=plan_data['plan_type'],
         defaults=plan_data
     )
     if created:
         print(f"✓ Created plan: {plan.name}")
     else:
-        print(f"- Plan exists: {plan.name}")
+        print(f"✓ Updated plan: {plan.name}")
 
 # Create Add-ons
 addons_data = [
@@ -97,7 +97,7 @@ addons_data = [
         'category': 'ai',
         'description': 'AI-powered personalized tutoring for students with adaptive learning paths',
         'icon': 'bi-robot',
-        'monthly_price': Decimal('29.00'),
+        'monthly_price': Decimal('350.00'),
         'is_one_time': False,
         'available_for_plans': ['basic', 'pro', 'enterprise'],
     },
@@ -107,7 +107,7 @@ addons_data = [
         'category': 'analytics',
         'description': 'Deep insights into student performance, attendance trends, and predictive analytics',
         'icon': 'bi-graph-up',
-        'monthly_price': Decimal('19.00'),
+        'monthly_price': Decimal('230.00'),
         'is_one_time': False,
         'available_for_plans': ['basic', 'pro', 'enterprise'],
     },
@@ -117,7 +117,7 @@ addons_data = [
         'category': 'communication',
         'description': 'Bulk SMS notifications to parents and students (includes 1000 messages/mo)',
         'icon': 'bi-chat-dots',
-        'monthly_price': Decimal('15.00'),
+        'monthly_price': Decimal('180.00'),
         'is_one_time': False,
         'available_for_plans': ['pro', 'enterprise'],
     },
@@ -127,7 +127,7 @@ addons_data = [
         'category': 'integration',
         'description': 'Seamless sync with Google Classroom for assignments and grades',
         'icon': 'bi-google',
-        'monthly_price': Decimal('12.00'),
+        'monthly_price': Decimal('145.00'),
         'is_one_time': False,
         'available_for_plans': ['basic', 'pro', 'enterprise'],
     },
@@ -137,7 +137,7 @@ addons_data = [
         'category': 'storage',
         'description': 'Additional 100GB cloud storage for documents, videos, and resources',
         'icon': 'bi-cloud-upload',
-        'monthly_price': Decimal('9.00'),
+        'monthly_price': Decimal('110.00'),
         'is_one_time': False,
         'available_for_plans': ['basic', 'pro', 'enterprise'],
     },
@@ -147,7 +147,7 @@ addons_data = [
         'category': 'feature',
         'description': 'Branded mobile apps for iOS and Android with push notifications',
         'icon': 'bi-phone',
-        'monthly_price': Decimal('99.00'),
+        'monthly_price': Decimal('1190.00'),
         'is_one_time': False,
         'available_for_plans': ['pro', 'enterprise'],
     },
@@ -157,7 +157,7 @@ addons_data = [
         'category': 'communication',
         'description': 'Built-in video conferencing for virtual classes (up to 100 participants)',
         'icon': 'bi-camera-video',
-        'monthly_price': Decimal('39.00'),
+        'monthly_price': Decimal('470.00'),
         'is_one_time': False,
         'available_for_plans': ['pro', 'enterprise'],
     },
@@ -167,7 +167,7 @@ addons_data = [
         'category': 'feature',
         'description': 'Enhanced parent portal with real-time notifications and payment integration',
         'icon': 'bi-people',
-        'monthly_price': Decimal('19.00'),
+        'monthly_price': Decimal('230.00'),
         'is_one_time': False,
         'available_for_plans': ['basic', 'pro', 'enterprise'],
     },
@@ -177,7 +177,7 @@ addons_data = [
         'category': 'hardware',
         'description': 'Plug-and-play biometric scanner integration for secure attendance with on-site support',
         'icon': 'bi-fingerprint',
-        'monthly_price': Decimal('199.00'),
+        'monthly_price': Decimal('2390.00'),
         'is_one_time': True,
         'available_for_plans': ['pro', 'enterprise'],
     },
@@ -187,21 +187,21 @@ addons_data = [
         'category': 'hardware',
         'description': 'RFID turnstile integration with live entry logs and alerts to parents',
         'icon': 'bi-broadcast',
-        'monthly_price': Decimal('129.00'),
+        'monthly_price': Decimal('1550.00'),
         'is_one_time': False,
         'available_for_plans': ['pro', 'enterprise'],
     },
 ]
 
 for addon_data in addons_data:
-    addon, created = AddOn.objects.get_or_create(
+    addon, created = AddOn.objects.update_or_create(
         slug=addon_data['slug'],
         defaults=addon_data
     )
     if created:
         print(f"✓ Created add-on: {addon.name}")
     else:
-        print(f"- Add-on exists: {addon.name}")
+        print(f"✓ Updated add-on: {addon.name}")
 
 print("\n" + "=" * 60)
 print("SEEDING COMPLETE!")
