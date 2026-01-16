@@ -531,29 +531,29 @@
     </div>
 </div>
 
-<!-- AI Admissions Assistant -->
+<!-- Omni-School Copilot -->
 <div class="assistant-launcher">
-    <button type="button" class="btn btn-primary" id="assistantToggle" title="Chat with AI Assistant">
+    <button type="button" class="btn btn-primary" id="assistantToggle" title="Open Copilot">
         <i class="fas fa-robot"></i>
     </button>
 </div>
 <div class="assistant-panel" id="assistantPanel" data-no-loader>
     <div class="assistant-header">
-        <span class="fw-bold">AI Assistant</span>
+        <span class="fw-bold">Omni-School Copilot</span>
         <button type="button" class="btn btn-sm" id="assistantClose">✕</button>
     </div>
     <div class="assistant-body" id="assistantBody">
-        <div class="assistant-bubble bot">👋 Hi! I'm your AI admissions assistant. I can help with admissions, fees, term dates, and requirements. What would you like to know?</div>
+        <div class="assistant-bubble bot">👋 Hi! I’m your Omni-School Copilot. Ask me about admissions, classes, schedules, fees, or events.</div>
     </div>
     <div class="assistant-input">
         <form id="assistantForm" data-no-loader>
-            <input type="text" id="assistantQuestion" name="question" placeholder="Ask me anything..." required autocomplete="off">
+            <input type="text" id="assistantQuestion" name="question" placeholder="Ask Copilot about admissions, fees, or classes..." required autocomplete="off">
         </form>
     </div>
 </div>
 
 <script>
-// Admissions assistant frontend
+// Copilot frontend (public landing)
 (function() {
     const panel = document.getElementById('assistantPanel');
     const toggle = document.getElementById('assistantToggle');
@@ -619,14 +619,14 @@
         appendBubble('', 'typing');
 
         try {
-            console.log('Sending request to:', '{% url "academics:admissions_assistant" %}');
-            const res = await fetch('{% url "academics:admissions_assistant" %}', {
+            console.log('Sending request to:', '{% url "academics:copilot_assistant" %}');
+            const res = await fetch('{% url "academics:copilot_assistant" %}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': csrftoken,
                 },
-                body: JSON.stringify({ question }),
+                body: JSON.stringify({ question, role: 'visitor' }),
             });
             
             console.log('Response status:', res.status);

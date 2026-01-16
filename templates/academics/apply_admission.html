@@ -257,23 +257,23 @@
     </div>
 </div>
 
-<!-- AI Admissions Assistant -->
+<!-- Omni-School Copilot -->
 <div class="assistant-launcher">
     <button type="button" class="btn btn-primary d-flex align-items-center gap-2" id="assistantToggle">
-        <i class="fas fa-robot"></i><span>Admissions Assistant</span>
+        <i class="fas fa-robot"></i><span>Copilot</span>
     </button>
 </div>
 <div class="assistant-panel" id="assistantPanel" data-no-loader>
     <div class="assistant-header d-flex justify-content-between align-items-center">
-        <span class="fw-bold">Admissions Assistant</span>
+        <span class="fw-bold">Omni-School Copilot</span>
         <button type="button" class="btn btn-sm btn-light" id="assistantClose">Close</button>
     </div>
     <div class="assistant-body" id="assistantBody">
-        <div class="assistant-bubble bot">Hi! I can help with admissions, fees, term dates, and requirements. Ask me anything.</div>
+        <div class="assistant-bubble bot">Hi! I’m your Omni-School Copilot. Ask me about admissions, classes, schedules, fees, or events.</div>
     </div>
     <div class="assistant-input">
         <form id="assistantForm">
-            <input type="text" id="assistantQuestion" name="question" placeholder="Type your question..." required>
+            <input type="text" id="assistantQuestion" name="question" placeholder="Ask Copilot about admissions, fees, or classes..." required>
         </form>
     </div>
 </div>
@@ -312,24 +312,24 @@
             input.value = '';
 
             try {
-                console.log('Sending request to:', '{% url "academics:admissions_assistant" %}');
-                const res = await fetch('{% url "academics:admissions_assistant" %}', {
+                console.log('Sending request to:', '{% url "academics:copilot_assistant" %}');
+                const res = await fetch('{% url "academics:copilot_assistant" %}', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRFToken': csrftoken,
                     },
-                    body: JSON.stringify({ question }),
+                    body: JSON.stringify({ question, role: 'visitor' }),
                 });
                 
                 console.log('Response status:', res.status);
                 if (!res.ok) {
-                    throw new Error(`HTTP ${res.status}`);
+                    const errorText = await res.text();
+                    throw new Error(`HTTP ${res.status}: ${errorText}`);
                 }
                 
-                const data = await res.json();
-                console.log('Response data:', data);
-                appendBubble(data.answer || data.error || 'Sorry, I could not process that right now.', 'bot');
+                const answer = await res.text();
+                appendBubble(answer || 'Sorry, I could not process that right now.', 'bot');
             } catch (err) {
                 console.error('Chatbot error:', err);
                 appendBubble('Network issue. Please try again.', 'bot');
