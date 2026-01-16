@@ -6,31 +6,41 @@
 {% block content %}
 <style>
     .stat-card {
-        border: none;
-        border-radius: 16px;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        overflow: hidden;
-        position: relative;
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        background: #fff;
+        transition: all 0.2s;
     }
     .stat-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        border-color: #d1d5db;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
-    .stat-card .icon-circle {
+    .stat-label {
+        font-size: 0.75rem;
+        color: #6b7280;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+    }
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 600;
+        color: #111827;
+    }
+    .stat-icon {
         width: 48px;
         height: 48px;
-        border-radius: 12px;
+        border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 1.5rem;
-        background: rgba(255, 255, 255, 0.2);
-        color: white;
     }
-    .bg-gradient-primary { background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); color: white; }
-    .bg-gradient-purple  { background: linear-gradient(135deg, #6f42c1 0%, #59359a 100%); color: white; }
-    .bg-gradient-teal    { background: linear-gradient(135deg, #20c997 0%, #198754 100%); color: white; }
-    .bg-gradient-orange  { background: linear-gradient(135deg, #fd7e14 0%, #d63384 100%); color: white; }
+    .icon-primary { background: #eff6ff; color: #3b82f6; }
+    .icon-success { background: #f0fdf4; color: #22c55e; }
+    .icon-warning { background: #fef3c7; color: #d97706; }
     
     .profile-card {
         background: white;
@@ -87,17 +97,17 @@
 <div class="row g-4 mb-4 d-none d-md-flex">
     <!-- Profile Summary -->
     <div class="col-md-4">
-        <div class="stat-card bg-gradient-primary p-4 h-100">
+        <div class="stat-card h-100">
             <div class="d-flex justify-content-between align-items-start">
                 <div>
-                    <h6 class="text-white-50 mb-1">Current Class</h6>
-                    <h3 class="fw-bold mb-0">{{ student.current_class }}</h3>
-                    <div class="mt-3 fs-6">
-                        <span class="badge bg-white bg-opacity-25 fw-normal">Roll No: {{ student.roll_number }}</span>
+                    <div class="stat-label">Current Class</div>
+                    <div class="stat-value" style="font-size: 1.75rem;">{{ student.current_class }}</div>
+                    <div class="mt-2">
+                        <span class="badge" style="background: #e0f2fe; color: #0369a1; padding: 0.25rem 0.625rem; font-size: 0.75rem; font-weight: 500; border-radius: 6px;">Roll No: {{ student.roll_number }}</span>
                     </div>
                 </div>
                 <!-- Profile Image Avatar -->
-                <div class="bg-white p-1 rounded-circle">
+                <div style="border: 2px solid #e5e7eb; border-radius: 50%; padding: 2px;">
                     {% if student.photo %}
                         <img src="{{ student.photo.url }}" class="rounded-circle" width="60" height="60" style="object-fit: cover;">
                     {% else %}
@@ -112,42 +122,46 @@
     
     <!-- Attendance -->
     <div class="col-md-4">
-        <div class="stat-card bg-gradient-purple p-4 h-100">
-            <div class="d-flex justify-content-between align-items-center">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start">
                 <div>
-                    <h6 class="text-white-50 mb-2">My Attendance</h6>
-                    <h2 class="fw-bold mb-0">{{ attendance_stats.percentage }}%</h2>
+                    <div class="stat-label">My Attendance</div>
+                    <div class="stat-value">{{ attendance_stats.percentage }}%</div>
+                    <div class="mt-2 d-flex gap-2">
+                        <span class="badge" style="background: #dcfce7; color: #15803d; padding: 0.25rem 0.625rem; font-size: 0.7rem; font-weight: 500; border-radius: 6px;"><i class="bi bi-check-circle-fill me-1"></i>{{ attendance_stats.present }}P</span>
+                        <span class="badge" style="background: #fee2e2; color: #991b1b; padding: 0.25rem 0.625rem; font-size: 0.7rem; font-weight: 500; border-radius: 6px;"><i class="bi bi-x-circle-fill me-1"></i>{{ attendance_stats.absent }}A</span>
+                    </div>
                 </div>
-                <div class="icon-circle">
+                <div class="stat-icon icon-success">
                     <i class="bi bi-calendar-check-fill"></i>
                 </div>
-            </div>
-            <div class="mt-3 d-flex gap-3 text-white-50 small">
-                <span><i class="bi bi-check-circle-fill text-success me-1"></i>{{ attendance_stats.present }} Present</span>
-                <span><i class="bi bi-x-circle-fill text-danger me-1"></i>{{ attendance_stats.absent }} Absent</span>
             </div>
         </div>
     </div>
     
-    <!-- Next Activity Placeholder (or Finance if critical) -->
+    <!-- Fee Status -->
     <div class="col-md-4">
-         <div class="stat-card {% if finance_stats.balance > 0 %}bg-gradient-orange{% else %}bg-gradient-teal{% endif %} p-4 h-100">
-            <div class="d-flex justify-content-between align-items-center">
+         <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start">
                 <div>
-                    <h6 class="text-white-50 mb-2">Fee Status</h6>
+                    <div class="stat-label">Fee Status</div>
                     {% if finance_stats.balance > 0 %}
-                        <h2 class="fw-bold mb-0">Due</h2>
-                        <div class="mt-1 badge bg-white text-danger fw-bold">₵ {{ finance_stats.balance|floatformat:2|intcomma }}</div>
+                        <div class="stat-value" style="color: #dc2626;">Due</div>
+                        <div class="mt-2">
+                            <span class="badge" style="background: #fee2e2; color: #991b1b; padding: 0.25rem 0.625rem; font-size: 0.75rem; font-weight: 500; border-radius: 6px;">₵ {{ finance_stats.balance|floatformat:2|intcomma }}</span>
+                        </div>
                     {% else %}
-                        <h2 class="fw-bold mb-0">Cleared</h2>
-                        <div class="mt-1 badge bg-white text-success fw-bold">Fully Paid</div>
+                        <div class="stat-value" style="color: #16a34a;">Cleared</div>
+                        <div class="mt-2">
+                            <span class="badge" style="background: #dcfce7; color: #15803d; padding: 0.25rem 0.625rem; font-size: 0.75rem; font-weight: 500; border-radius: 6px;">Fully Paid</span>
+                        </div>
                     {% endif %}
                 </div>
-                <div class="icon-circle">
+                <div class="stat-icon icon-warning">
                     <i class="bi bi-wallet2"></i>
                 </div>
             </div>
-            <div class="mt-3 text-white-50 small">
+            <div class="mt-2" style="font-size: 0.75rem; color: #6b7280;">
                 Total Paid: ₵ {{ finance_stats.paid|floatformat:2|intcomma }}
             </div>
         </div>
@@ -156,16 +170,16 @@
 
 <!-- Mobile View - Combined card -->
 <div class="d-md-none mb-4">
-    <div class="stat-card bg-gradient-primary p-4">
+    <div class="stat-card">
         <div class="row g-3">
-            <div class="col-12 pb-3 border-bottom border-white border-opacity-25">
+            <div class="col-12 pb-3 border-bottom">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="text-white-50 mb-1">Current Class</h6>
-                        <h3 class="fw-bold mb-0">{{ student.current_class }}</h3>
-                        <span class="badge bg-white bg-opacity-25 fw-normal small mt-2">Roll: {{ student.roll_number }}</span>
+                        <div class="stat-label">Current Class</div>
+                        <div class="stat-value" style="font-size: 1.5rem;">{{ student.current_class }}</div>
+                        <span class="badge mt-2" style="background: #e0f2fe; color: #0369a1; padding: 0.25rem 0.625rem; font-size: 0.7rem; font-weight: 500; border-radius: 6px;">Roll: {{ student.roll_number }}</span>
                     </div>
-                    <div class="bg-white p-1 rounded-circle">
+                    <div style="border: 2px solid #e5e7eb; border-radius: 50%; padding: 2px;">
                         {% if student.photo %}
                             <img src="{{ student.photo.url }}" class="rounded-circle" width="50" height="50" style="object-fit: cover;">
                         {% else %}
@@ -177,17 +191,17 @@
                 </div>
             </div>
             <div class="col-6">
-                <h6 class="text-white-50 mb-2 small">Attendance</h6>
-                <h3 class="fw-bold mb-0">{{ attendance_stats.percentage }}%</h3>
-                <small class="text-white-50">{{ attendance_stats.present }}P / {{ attendance_stats.absent }}A</small>
+                <div class="stat-label">Attendance</div>
+                <div class="stat-value" style="font-size: 1.5rem;">{{ attendance_stats.percentage }}%</div>
+                <small style="color: #6b7280;">{{ attendance_stats.present }}P / {{ attendance_stats.absent }}A</small>
             </div>
             <div class="col-6">
-                <h6 class="text-white-50 mb-2 small">Fee Status</h6>
+                <div class="stat-label">Fee Status</div>
                 {% if finance_stats.balance > 0 %}
-                    <h3 class="fw-bold mb-0 text-warning">Due</h3>
-                    <small class="text-white-50">₵ {{ finance_stats.balance|floatformat:2|intcomma }}</small>
+                    <div class="stat-value" style="font-size: 1.5rem; color: #dc2626;">Due</div>
+                    <small style="color: #6b7280;">₵ {{ finance_stats.balance|floatformat:2|intcomma }}</small>
                 {% else %}
-                    <h3 class="fw-bold mb-0 text-success">Paid</h3>
+                    <div class="stat-value" style="font-size: 1.5rem; color: #16a34a;">Paid</div>
                     <small class="text-white-50">All cleared</small>
                 {% endif %}
             </div>
