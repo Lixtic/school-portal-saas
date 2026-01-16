@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from django.db import transaction, connection
+from django.db import transaction, connection, models
 from .forms import SchoolSignupForm, SchoolSetupForm
 from .models import School, Domain
 from django.contrib.auth import get_user_model, login
@@ -211,3 +211,57 @@ def school_setup_wizard(request):
         form = SchoolSetupForm(instance=school_info)
     
     return render(request, 'tenants/setup_wizard.html', {'form': form})
+
+
+@login_required
+def landlord_dashboard(request):
+    """Public-schema landlord dashboard for platform admins."""
+    if not request.user.is_staff:
+        messages.error(request, "Access denied. Admins only.")
+        return redirect('home')
+
+    schools_count = School.objects.count()
+    active_count = School.objects.filter(is_active=True).count()
+    trial_count = School.objects.filter(on_trial=True).count()
+    inactive_count = schools_count - active_count
+    domains_count = Domain.objects.count()
+    primary_domains = Domain.objects.filter(is_primary=True).count()
+
+    by_type = (
+        School.objects.values('school_type')
+        .order_by('school_type')
+        .annotate(total=models.Count('id'))
+    )
+
+    recent_schools = School.objects.order_by('-created_on')[:6]
+
+    # Signups over the last 30 days for trend display
+    start_date = timezone.now().date() - timedelta(days=29)
+    signups_qs = (
+        School.objects.filter(created_on__gte=start_date)
+        .values('created_on')
+        .annotate(total=models.Count('id'))
+        .order_by('created_on')
+    )
+    max_signups = max([row['total'] for row in signups_qs], default=1)
+    signups_chart = [
+        {
+            'date': row['created_on'],
+            'total': row['total'],
+            'pct': int((row['total'] / max_signups) * 100) if max_signups else 0,
+        }
+        for row in signups_qs
+    ]
+
+    context = {
+        'schools_count': schools_count,
+        'active_count': active_count,
+        'trial_count': trial_count,
+        'inactive_count': inactive_count,
+        'domains_count': domains_count,
+        'primary_domains': primary_domains,
+        'by_type': by_type,
+        'recent_schools': recent_schools,
+        'signups_chart': signups_chart,
+    }
+    return render(request, 'tenants/landlord_dashboard.html', context)
