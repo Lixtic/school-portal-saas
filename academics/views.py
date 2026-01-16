@@ -159,6 +159,8 @@ def activities_public(request):
 
 @csrf_exempt
 def admissions_assistant(request):
+    print(f"[CHATBOT] Request method: {request.method}, Content-Type: {request.content_type}")
+    
     if request.method != 'POST':
         return JsonResponse({'error': 'Invalid request'}, status=405)
 
@@ -169,9 +171,11 @@ def admissions_assistant(request):
         else:
             payload = request.POST.dict()
     except Exception as e:
+        print(f"[CHATBOT] Payload parsing error: {e}")
         return JsonResponse({'error': 'Invalid payload', 'details': str(e)}, status=400)
 
     question = (payload.get('question') or '').strip()
+    print(f"[CHATBOT] Question received: {question}")
     
     if not question:
         return JsonResponse({'answer': 'Please ask a question about admissions, fees, or term dates.'})
@@ -179,15 +183,20 @@ def admissions_assistant(request):
     # Safely get school info
     try:
         school_info = SchoolInfo.objects.first()
-    except Exception:
+        print(f"[CHATBOT] School info found: {school_info.name if school_info else 'None'}")
+    except Exception as e:
+        print(f"[CHATBOT] Error getting school info: {e}")
         school_info = None
 
     # Try OpenAI API first
     from django.conf import settings
+    print(f"[CHATBOT] OpenAI API key configured: {bool(settings.OPENAI_API_KEY)}")
+    
     if settings.OPENAI_API_KEY:
         try:
+            print("[CHATBOT] Initializing OpenAI client...")
             from openai import OpenAI
-            client = OpenAI(api_key=settings.OPENAI_API_KEY)
+            client = OpenAI(api_key=settings.OPENAI_API_KEY, timeout=15.0)
             
             # Build context from school info
             school_context = f"""
@@ -210,6 +219,7 @@ General Information:
 Please provide helpful, concise answers about admissions, fees, term dates, and enrollment processes.
 """
             
+            print("[CHATBOT] Calling OpenAI API...")
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
@@ -221,11 +231,14 @@ Please provide helpful, concise answers about admissions, fees, term dates, and 
             )
             
             answer = response.choices[0].message.content.strip()
+            print(f"[CHATBOT] OpenAI response: {answer[:100]}...")
             return JsonResponse({'answer': answer})
             
         except Exception as e:
             # Fall back to FAQ if OpenAI fails
-            print(f"OpenAI API error: {str(e)}")
+            print(f"[CHATBOT] OpenAI API error: {str(e)}")
+            import traceback
+            traceback.print_exc()
     
     # Fallback FAQ system
     faq = [
