@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, StreamingHttpResponse, HttpResponse
 from django.urls import reverse
 import datetime
 import json
@@ -188,7 +188,25 @@ def admissions_assistant(request):
         print(f"[CHATBOT] Error getting school info: {e}")
         school_info = None
 
-    # Try OpenAI API first
+    def fallback_answer():
+        faq = [
+            (('fee', 'tuition', 'fees', 'payment'), "Our fees vary by class. Please see the fee structure shared during enrollment or ask which class you're interested in."),
+            (('term', 'calendar', 'date', 'schedule'), "Terms follow a three-term calendar: First (Sept-Dec), Second (Jan-Apr), Third (May-Jul). Exact dates are in the school calendar."),
+            (('apply', 'enroll', 'admission', 'register'), "You can apply online via the Apply page. Submit student details, parent contact, and prior school info if available."),
+            (('document', 'requirements', 'forms'), "Commonly needed: birth certificate, prior report (if any), passport photo, and completed application form."),
+            (('scholarship', 'discount', 'financial aid'), "Limited scholarships/fee waivers may be available. Please indicate interest in your application or ask admin for current options."),
+            (('contact', 'phone', 'email'), f"You can reach us at {school_info.phone if school_info else 'the school office phone'} or {school_info.email if school_info else 'our email'} for more details."),
+        ]
+
+        answer_text = "I can help with admissions, fees, and term dates. What would you like to know?"
+        question_lower = question.lower()
+        for keywords, response in faq:
+            if any(k in question_lower for k in keywords):
+                answer_text = response
+                break
+        return answer_text
+
+    # Try OpenAI API first with streaming response
     from django.conf import settings
     print(f"[CHATBOT] OpenAI API key configured: {bool(settings.OPENAI_API_KEY)}")
     
@@ -218,46 +236,181 @@ General Information:
 
 Please provide helpful, concise answers about admissions, fees, term dates, and enrollment processes.
 """
-            
-            print("[CHATBOT] Calling OpenAI API...")
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": school_context},
-                    {"role": "user", "content": question}
-                ],
-                max_tokens=200,
-                temperature=0.7
-            )
-            
-            answer = response.choices[0].message.content.strip()
-            print(f"[CHATBOT] OpenAI response: {answer[:100]}...")
-            return JsonResponse({'answer': answer})
-            
+
+            def normalize_delta(delta_content):
+                if not delta_content:
+                    return ""
+                if isinstance(delta_content, list):
+                    parts = []
+                    for item in delta_content:
+                        text_part = ''
+                        if isinstance(item, dict):
+                            text_part = item.get('text', '')
+                        else:
+                            text_part = getattr(item, 'text', '') or str(item)
+                        parts.append(text_part)
+                    return ''.join(parts)
+                return str(delta_content)
+
+            def stream_chat():
+                try:
+                    print("[CHATBOT] Calling OpenAI API (stream)...")
+                    stream = client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[
+                            {"role": "system", "content": school_context},
+                            {"role": "user", "content": question}
+                        ],
+                        max_tokens=200,
+                        temperature=0.7,
+                        stream=True
+                    )
+
+                    for chunk in stream:
+                        delta = chunk.choices[0].delta.content
+                        text = normalize_delta(delta)
+                        if text:
+                            yield text
+                except Exception as e:
+                    print(f"[CHATBOT] Streaming error: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    # yield nothing further to end stream gracefully
+                
+            return StreamingHttpResponse(stream_chat(), content_type='text/plain; charset=utf-8')
         except Exception as e:
             # Fall back to FAQ if OpenAI fails
             print(f"[CHATBOT] OpenAI API error: {str(e)}")
             import traceback
             traceback.print_exc()
-    
-    # Fallback FAQ system
-    faq = [
-        (('fee', 'tuition', 'fees', 'payment'), "Our fees vary by class. Please see the fee structure shared during enrollment or ask which class you're interested in."),
-        (('term', 'calendar', 'date', 'schedule'), "Terms follow a three-term calendar: First (Sept-Dec), Second (Jan-Apr), Third (May-Jul). Exact dates are in the school calendar."),
-        (('apply', 'enroll', 'admission', 'register'), "You can apply online via the Apply page. Submit student details, parent contact, and prior school info if available."),
-        (('document', 'requirements', 'forms'), "Commonly needed: birth certificate, prior report (if any), passport photo, and completed application form."),
-        (('scholarship', 'discount', 'financial aid'), "Limited scholarships/fee waivers may be available. Please indicate interest in your application or ask admin for current options."),
-        (('contact', 'phone', 'email'), f"You can reach us at {school_info.phone if school_info else 'the school office phone'} or {school_info.email if school_info else 'our email'} for more details."),
-    ]
 
-    answer = "I can help with admissions, fees, and term dates. What would you like to know?"
-    question_lower = question.lower()
-    for keywords, response in faq:
-        if any(k in question_lower for k in keywords):
-            answer = response
-            break
+    # Fallback FAQ system (plain text)
+    fallback_text = fallback_answer()
+    return HttpResponse(fallback_text, content_type='text/plain; charset=utf-8')
 
-    return JsonResponse({'answer': answer})
+
+@csrf_exempt
+def copilot_assistant(request):
+    print(f"[COPILOT] Request method: {request.method}, Content-Type: {request.content_type}")
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request'}, status=405)
+
+    try:
+        if request.content_type == 'application/json':
+            payload = json.loads(request.body.decode('utf-8'))
+        else:
+            payload = request.POST.dict()
+    except Exception as e:
+        print(f"[COPILOT] Payload parsing error: {e}")
+        return JsonResponse({'error': 'Invalid payload', 'details': str(e)}, status=400)
+
+    question = (payload.get('question') or '').strip()
+    user_role = (payload.get('role') or '').strip()
+
+    if not user_role and request.user.is_authenticated:
+        user_role = getattr(request.user, 'user_type', '') or ''
+
+    print(f"[COPILOT] Role: {user_role}, Question: {question}")
+
+    # Guardrail: require role before continuing
+    try:
+        school_info = SchoolInfo.objects.first()
+    except Exception:
+        school_info = None
+
+    if not user_role:
+        prompt_role = f"Welcome to {school_info.name if school_info else 'our school'}! To help you better, are you a student, parent, or staff member?"
+        return HttpResponse(prompt_role, content_type='text/plain; charset=utf-8')
+
+    if not question:
+        return HttpResponse('Ask me anything about your classes, calendar, grades, fees, or school updates.', content_type='text/plain; charset=utf-8')
+
+    school_context = f"""
+School Name: {school_info.name if school_info else 'Unknown School'}
+Motto: {school_info.motto if school_info else ''}
+Address: {school_info.address if school_info else ''}
+Phone: {school_info.phone if school_info else ''}
+Email: {school_info.email if school_info else ''}
+Current User Role: {user_role}
+"""
+
+    system_prompt = f"""portals AI Copilot 2026
+Role & Objective:
+You are the Omni-School AI Copilot, the central intelligence layer for a comprehensive K-12/Higher-Ed SaaS application. Your goal is to provide proactive, role-specific assistance to Students, Parents, Teachers, and Administrators while maintaining strict FERPA/GDPR data privacy standards.
+
+Persona Adaptation:
+- Students: Act as a Socratic Tutor. Do not just give answers; explain concepts, provide practice problems, and offer encouragement.
+- Parents: Act as a Concierge. Provide clear, empathetic updates on school events, child progress, and administrative tasks (fees, forms).
+- Teachers: Act as an Executive Assistant. Be efficient and technical. Assist with lesson plan generation, rubric creation, and automated student performance summaries.
+- Admins: Act as a Data Analyst. Provide high-level insights on enrollment, attendance trends, and resource allocation.
+
+Core Capabilities & Task Execution:
+- Proactive Intelligence: Use If-Then logic to nudge users (e.g., "I noticed you have a math test tomorrow; would you like to review the study guide?").
+- Task Automation: You may suggest triggering actions (simulated) like scheduling conferences, updating attendance, or sending payment links; clearly mark them as simulated.
+- Sentiment Analysis: Watch for distress, bullying, or frustration. If detected, advise involving a human and flag gently.
+- Multilingual Support: Detect the user's preferred language and respond fluently while keeping educational terms accurate.
+
+Operational Guardrails:
+- Privacy: Never disclose one student’s data to another student or unauthorized parent. Keep answers scoped to the asking user.
+- Accuracy: If information is not in the known school context, say you do not know and offer to connect to staff.
+- Tone: Professional, encouraging, and supportive. Avoid robotic or overly formal language.
+
+Context Initialization:
+- The user role is {user_role}. If context is insufficient, ask for clarification briefly.
+- School context: {school_context}
+"""
+
+    from django.conf import settings
+    if settings.OPENAI_API_KEY:
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=settings.OPENAI_API_KEY, timeout=15.0)
+
+            def normalize_delta(delta_content):
+                if not delta_content:
+                    return ""
+                if isinstance(delta_content, list):
+                    parts = []
+                    for item in delta_content:
+                        text_part = ''
+                        if isinstance(item, dict):
+                            text_part = item.get('text', '')
+                        else:
+                            text_part = getattr(item, 'text', '') or str(item)
+                        parts.append(text_part)
+                    return ''.join(parts)
+                return str(delta_content)
+
+            def stream_chat():
+                try:
+                    stream = client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": question}
+                        ],
+                        max_tokens=200,
+                        temperature=0.7,
+                        stream=True
+                    )
+
+                    for chunk in stream:
+                        delta = chunk.choices[0].delta.content
+                        text = normalize_delta(delta)
+                        if text:
+                            yield text
+                except Exception as e:
+                    print(f"[COPILOT] Streaming error: {e}")
+                    import traceback
+                    traceback.print_exc()
+
+            return StreamingHttpResponse(stream_chat(), content_type='text/plain; charset=utf-8')
+        except Exception as e:
+            print(f"[COPILOT] OpenAI error: {e}")
+
+    fallback = "I'm not available right now. Please contact school staff for assistance."
+    return HttpResponse(fallback, content_type='text/plain; charset=utf-8')
 
 
 
