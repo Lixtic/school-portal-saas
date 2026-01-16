@@ -149,6 +149,10 @@ if DATABASE_URL:
     if os.environ.get('VERCEL') == '1':
         db_cfg['CONN_MAX_AGE'] = 0
         db_cfg['CONN_HEALTH_CHECKS'] = True
+    else:
+        # Fallback for other prod hosts: prefer short-lived connections to avoid stale sockets
+        db_cfg['CONN_MAX_AGE'] = 0
+        db_cfg['CONN_HEALTH_CHECKS'] = True
     DATABASES = {'default': db_cfg}
 else:
     # Local development: Must use PostgreSQL for django-tenants
