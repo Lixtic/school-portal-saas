@@ -14,6 +14,7 @@ from accounts.models import User
 from .utils import calculate_class_position, normalize_term, term_filter_values
 from academics.models import Class, AcademicYear, Timetable
 from teachers.models import Teacher
+from academics.tutor_models import generate_student_id_card, export_id_card_to_pdf, export_multiple_id_cards_to_pdf
 
 @login_required
 def student_list(request):
@@ -794,3 +795,115 @@ def import_students_csv(request):
         form = CSVImportForm()
     
     return render(request, 'students/import_csv.html', {'form': form})
+
+
+# =====================
+# ID CARD GENERATION
+# =====================
+
+@login_required
+def student_id_card(request, student_id):
+    """Generate and download student ID card (PNG)"""
+    student = get_object_or_404(Student, id=student_id)
+    
+    # Permission check
+    if request.user.user_type == 'student':
+        student_profile = get_object_or_404(Student, user=request.user)
+        if student_profile.id != student_id:
+            messages.error(request, 'You can only download your own ID card')
+            return redirect('dashboard')
+    elif request.user.user_type not in ['admin', 'teacher']:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+    
+    # Generate card
+    try:
+        card = generate_student_id_card(student)
+        
+        # Return as PNG
+        response = HttpResponse(content_type='image/png')
+        response['Content-Disposition'] = f'attachment; filename="student_id_{student.id}.png"'
+        card.save(response, 'PNG')
+        return response
+    except Exception as e:
+        messages.error(request, f'Error generating ID card: {str(e)}')
+        return redirect('dashboard')
+
+
+@login_required
+def student_id_card_pdf(request, student_id):
+    """Generate and download student ID card (PDF)"""
+    student = get_object_or_404(Student, id=student_id)
+    
+    # Permission check
+    if request.user.user_type == 'student':
+        student_profile = get_object_or_404(Student, user=request.user)
+        if student_profile.id != student_id:
+            messages.error(request, 'You can only download your own ID card')
+            return redirect('dashboard')
+    elif request.user.user_type not in ['admin', 'teacher']:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+    
+    # Generate card and convert to PDF
+    try:
+        card = generate_student_id_card(student)
+        pdf_buffer = export_id_card_to_pdf(card)
+        
+        response = HttpResponse(pdf_buffer, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="student_id_{student.id}.pdf"'
+        return response
+    except Exception as e:
+        messages.error(request, f'Error generating ID card: {str(e)}')
+        return redirect('dashboard')
+
+
+@login_required
+def bulk_student_id_cards_pdf(request):
+    """Generate bulk ID cards for a class (PDF)"""
+    if request.user.user_type not in ['admin', 'teacher']:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+    
+    # Get parameters
+    class_id = request.GET.get('class_id')
+    student_ids = request.GET.get('ids', '').split(',')
+    student_ids = [sid.strip() for sid in student_ids if sid.strip()]
+    
+    try:
+        if class_id:
+            students = Student.objects.filter(current_class_id=class_id).order_by('user__last_name')
+        elif student_ids:
+            students = Student.objects.filter(id__in=student_ids)
+        else:
+            messages.error(request, 'Please select a class or students')
+            return redirect('students:student_list')
+        
+        if not students.exists():
+            messages.error(request, 'No students found')
+            return redirect('students:student_list')
+        
+        # Generate cards
+        card_list = []
+        for student in students:
+            try:
+                card = generate_student_id_card(student)
+                card_list.append((student.user.get_full_name(), card))
+            except:
+                pass  # Skip students with errors
+        
+        if not card_list:
+            messages.error(request, 'Could not generate any ID cards')
+            return redirect('students:student_list')
+        
+        # Export to PDF
+        pdf_buffer = export_multiple_id_cards_to_pdf(card_list)
+        
+        class_name = students.first().current_class.name if class_id else 'bulk'
+        response = HttpResponse(pdf_buffer, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="student_ids_{class_name}.pdf"'
+        return response
+        
+    except Exception as e:
+        messages.error(request, f'Error generating ID cards: {str(e)}')
+        return redirect('students:student_list')

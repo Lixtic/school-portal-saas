@@ -8,6 +8,10 @@ from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
 import qrcode
 from datetime import datetime
+from reportlab.lib.pagesizes import letter, A6
+from reportlab.lib.units import mm, inch
+from reportlab.pdfgen import canvas
+from reportlab.lib.colors import HexColor
 
 
 class TutorSession(models.Model):
@@ -270,3 +274,93 @@ def generate_teacher_id_card(teacher):
     card.paste(qr_img, (card_width - 140, validity_y))
     
     return card
+
+
+# PDF Export Functions
+def export_id_card_to_pdf(card_image):
+    """
+    Convert PIL Image to PDF for printing (A6 ID card size).
+    
+    Args:
+        card_image: PIL Image object
+        
+    Returns:
+        BytesIO object containing PDF
+    """
+    from reportlab.pdfgen.canvas import Canvas, ImageReader
+    from reportlab.lib.pagesizes import A6
+    from reportlab.lib.units import mm
+    
+    pdf_buffer = BytesIO()
+    
+    # A6 is 105 x 148 mm (standard ID card size)
+    c = Canvas(pdf_buffer, pagesize=(105*mm, 148*mm))
+    
+    # Draw the image on canvas
+    img_width = 105*mm
+    img_height = 148*mm
+    
+    c.drawImage(
+        ImageReader(card_image),
+        0, 0,
+        width=img_width,
+        height=img_height,
+        preserveAspectRatio=False
+    )
+    
+    c.save()
+    pdf_buffer.seek(0)
+    return pdf_buffer
+
+
+def export_multiple_id_cards_to_pdf(card_list):
+    """
+    Export multiple ID cards to a single PDF document.
+    
+    Args:
+        card_list: List of (name, PIL_Image) tuples
+        
+    Returns:
+        BytesIO object containing multi-page PDF
+    """
+    from reportlab.pdfgen.canvas import Canvas, ImageReader
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    
+    pdf_buffer = BytesIO()
+    c = Canvas(pdf_buffer, pagesize=A4)
+    
+    # Cards per page: 2 x 3 grid (6 cards per A4 sheet)
+    cards_per_page = 6
+    cards_per_row = 2
+    
+    card_width = 105*mm
+    card_height = 148*mm
+    margin = 10*mm
+    
+    for idx, (name, card_img) in enumerate(card_list):
+        if idx > 0 and idx % cards_per_page == 0:
+            c.showPage()
+        
+        # Calculate position in grid
+        pos_in_page = idx % cards_per_page
+        row = pos_in_page // cards_per_row
+        col = pos_in_page % cards_per_row
+        
+        x = margin + col * (card_width + margin)
+        y = 297*mm - margin - (row + 1) * (card_height + margin)  # A4 height is 297mm
+        
+        try:
+            c.drawImage(
+                ImageReader(card_img),
+                x, y,
+                width=card_width,
+                height=card_height,
+                preserveAspectRatio=False
+            )
+        except:
+            pass  # Skip if image can't be drawn
+    
+    c.save()
+    pdf_buffer.seek(0)
+    return pdf_buffer
