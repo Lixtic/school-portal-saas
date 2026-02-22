@@ -64,7 +64,12 @@ def school_signup(request):
                 print(f"DEBUG SIGNUP: Tenant record saved (Pending approval)")
                 
                 domain = Domain()
-                domain.domain = f"{schema_name}.local" 
+                # Support both development (.local) and production domains via settings
+                base_domain = getattr(settings, 'BASE_SCHOOL_DOMAIN', 'local')
+                if base_domain == 'local':
+                    domain.domain = f"{schema_name}.local"
+                else:
+                    domain.domain = f"{schema_name}.{base_domain}"
                 domain.tenant = tenant
                 domain.is_primary = True
                 domain.save()
@@ -311,6 +316,11 @@ def review_school(request, school_id):
             # If approved, create schema and setup
             if school.approval_status == 'approved' and not school.is_active:
                 try:
+                    import secrets
+                    
+                    # Generate secure random password
+                    temp_password = secrets.token_urlsafe(12)
+                    
                     # Create schema
                     school.auto_create_schema = True
                     school.is_active = True
@@ -326,7 +336,7 @@ def review_school(request, school_id):
                         admin_user = User.objects.create_superuser(
                             username='admin',
                             email=temp_email,
-                            password='admin',
+                            password=temp_password,
                             user_type='admin'
                         )
                     
@@ -337,10 +347,18 @@ def review_school(request, school_id):
                     
                     connection.set_schema_to_public()
                     
-                    # Send approval email notification
-                    send_approval_notification(school, status_changed_by=request.user)
+                    # Send approval email notification with temporary password
+                    context = {
+                        'school': school,
+                        'contact_name': school.contact_person_name or 'Administrator',
+                        'login_url': f"/{school.schema_name}/login/",
+                        'temp_password': temp_password,
+                        'admin_username': 'admin',
+                    }
                     
-                    messages.success(request, f"School '{school.name}' approved and activated! Schema created with sample data. Notification email sent.")
+                    send_approval_notification(school, status_changed_by=request.user, extra_context=context)
+                    
+                    messages.success(request, f"School '{school.name}' approved and activated! Temporary credentials sent to {school.contact_person_email}.")
                     
                 except Exception as e:
                     connection.set_schema_to_public()

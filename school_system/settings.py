@@ -232,6 +232,14 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
 
+# =====================
+# SCHOOL DOMAIN CONFIGURATION
+# =====================
+# Base domain for school subdomains (e.g., 'schoolportal.com' creates 'school1.schoolportal.com')
+# For local development, set to 'local' for *.local domains
+# For production, set via environment variable: BASE_SCHOOL_DOMAIN=yourdomain.com
+BASE_SCHOOL_DOMAIN = os.environ.get('BASE_SCHOOL_DOMAIN', 'local')
+
 
 # =====================
 # CRISPY FORMS CONFIG

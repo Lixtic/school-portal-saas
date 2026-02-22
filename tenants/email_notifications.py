@@ -10,13 +10,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def send_approval_notification(school, status_changed_by=None):
+def send_approval_notification(school, status_changed_by=None, extra_context=None):
     """
     Send email notification based on school approval status
     
     Args:
         school: School instance
         status_changed_by: User who changed the status (for logging)
+        extra_context: Additional context variables for email template (e.g., temp_password)
     """
     if not school.contact_person_email:
         logger.warning(f"No contact email for school {school.schema_name}, skipping notification")
@@ -53,6 +54,10 @@ def send_approval_notification(school, status_changed_by=None):
         'status_changed_by': status_changed_by,
         'login_url': f"/{school.schema_name}/login/" if status == 'approved' else None,
     }
+    
+    # Merge extra context (e.g., temp password from approval process)
+    if extra_context:
+        context.update(extra_context)
     
     try:
         # Render HTML content
