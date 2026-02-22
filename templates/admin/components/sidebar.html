@@ -1,0 +1,226 @@
+<!-- Admin Sidebar Component -->
+<aside class="admin-sidebar" id="adminSidebar">
+    <div class="sidebar-content">
+        <!-- Logo -->
+        <div class="sidebar-logo">
+            <a href="{% url 'tenants:landlord_dashboard' %}">
+                <i class="bi bi-diagram-3"></i>
+                <span>Admin</span>
+            </a>
+        </div>
+        
+        <!-- Navigation -->
+        <nav class="sidebar-nav">
+            <a href="{% url 'tenants:landlord_dashboard' %}" 
+               class="sidebar-nav-link {% if request.resolver_match.url_name == 'landlord_dashboard' %}active{% endif %}">
+                <i class="bi bi-speedometer2"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="{% url 'tenants:approval_queue' %}" 
+               class="sidebar-nav-link {% if request.resolver_match.url_name == 'approval_queue' %}active{% endif %}">
+                <i class="bi bi-clipboard-check"></i>
+                <span>Approvals</span>
+            </a>
+            <a href="{% url 'tenants:revenue_analytics' %}" 
+               class="sidebar-nav-link {% if request.resolver_match.url_name == 'revenue_analytics' %}active{% endif %}">
+                <i class="bi bi-graph-up"></i>
+                <span>Revenue</span>
+            </a>
+            <a href="{% url 'tenants:system_health' %}" 
+               class="sidebar-nav-link {% if request.resolver_match.url_name == 'system_health' %}active{% endif %}">
+                <i class="bi bi-activity"></i>
+                <span>Health</span>
+            </a>
+            <a href="{% url 'tenants:support_tickets' %}" 
+               class="sidebar-nav-link {% if request.resolver_match.url_name == 'support_tickets' %}active{% endif %}">
+                <i class="bi bi-headset"></i>
+                <span>Support</span>
+            </a>
+        </nav>
+        
+        <!-- Divider -->
+        <div class="sidebar-divider"></div>
+        
+        <!-- Admin Links -->
+        <nav class="sidebar-nav">
+            <a href="{% url 'tenants:database_backups' %}" class="sidebar-nav-link">
+                <i class="bi bi-shield-check"></i>
+                <span>Backups</span>
+            </a>
+            <a href="/admin/tenants/school/" class="sidebar-nav-link" target="_blank">
+                <i class="bi bi-list-check"></i>
+                <span>Tenants</span>
+            </a>
+            <a href="/admin/" class="sidebar-nav-link" target="_blank">
+                <i class="bi bi-gear"></i>
+                <span>Settings</span>
+            </a>
+        </nav>
+    </div>
+    
+    <!-- Footer -->
+    <div class="sidebar-footer">
+        <div class="user-info">
+            <img src="{% static 'img/avatar-default.png' %}" alt="User" class="user-avatar">
+            <div class="user-details">
+                <div class="user-name">{{ request.user.first_name }}</div>
+                <div class="user-role">Administrator</div>
+            </div>
+        </div>
+        <a href="{% url 'admin:logout' %}" class="logout-btn" title="Logout">
+            <i class="bi bi-box-arrow-right"></i>
+        </a>
+    </div>
+</aside>
+
+<style>
+    .admin-sidebar {
+        background: var(--admin-card-bg);
+        border-right: 1px solid var(--admin-border);
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        position: sticky;
+        top: 0;
+        overflow-y: auto;
+    }
+    
+    .sidebar-content {
+        flex: 1;
+        padding: var(--admin-spacing-lg) 0;
+        display: flex;
+        flex-direction: column;
+        gap: var(--admin-spacing-xl);
+    }
+    
+    .sidebar-logo {
+        padding: 0 var(--admin-spacing-lg);
+        margin-bottom: var(--admin-spacing-lg);
+    }
+    
+    .sidebar-logo a {
+        display: flex;
+        align-items: center;
+        gap: var(--admin-spacing-md);
+        text-decoration: none;
+        color: var(--admin-primary);
+        font-weight: 700;
+        font-size: 1.125rem;
+    }
+    
+    .sidebar-logo i {
+        font-size: 1.5rem;
+    }
+    
+    .sidebar-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+    
+    .sidebar-nav-link {
+        padding: var(--admin-spacing-md) var(--admin-spacing-lg);
+        color: var(--admin-text-secondary);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: var(--admin-spacing-md);
+        transition: var(--admin-transition-fast);
+        border-left: 3px solid transparent;
+    }
+    
+    .sidebar-nav-link:hover {
+        color: var(--admin-primary);
+        background: var(--admin-bg-secondary);
+    }
+    
+    .sidebar-nav-link.active {
+        color: var(--admin-primary);
+        background: var(--admin-bg-secondary);
+        border-left-color: var(--admin-primary);
+        font-weight: 600;
+    }
+    
+    .sidebar-nav-link i {
+        font-size: 1.125rem;
+        flex-shrink: 0;
+    }
+    
+    .sidebar-divider {
+        height: 1px;
+        background: var(--admin-border);
+        margin: 0 var(--admin-spacing-lg);
+    }
+    
+    .sidebar-footer {
+        padding: var(--admin-spacing-lg);
+        border-top: 1px solid var(--admin-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--admin-spacing-md);
+    }
+    
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: var(--admin-spacing-md);
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+    
+    .user-details {
+        min-width: 0;
+        flex: 1;
+    }
+    
+    .user-name {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--admin-text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .user-role {
+        font-size: 0.75rem;
+        color: var(--admin-text-muted);
+    }
+    
+    .logout-btn {
+        background: none;
+        border: none;
+        color: var(--admin-text-muted);
+        cursor: pointer;
+        font-size: 1.125rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: var(--admin-radius-md);
+        text-decoration: none;
+        transition: var(--admin-transition-fast);
+    }
+    
+    .logout-btn:hover {
+        background: var(--admin-bg-secondary);
+        color: var(--admin-danger);
+    }
+    
+    /* Responsive - hide on small screens */
+    @media (max-width: 1024px) {
+        .admin-sidebar {
+            display: none;
+        }
+    }
+</style>

@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Admin - {{ school_name|default:"School Management System" }}{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+    <!-- Sidebar Navigation -->
+    {% include 'admin/components/sidebar.html' %}
+    
+    <!-- Main Content Area -->
+    <main class="admin-main">
+        <!-- Top Navigation Bar -->
+        {% include 'admin/components/navbar.html' %}
+        
+        <!-- Page Container -->
+        <div class="admin-container">
+            <!-- Breadcrumbs (optional) -->
+            {% if breadcrumbs %}
+            <nav class="breadcrumb-nav mb-4">
+                <ol class="breadcrumb">
+                    {% for item in breadcrumbs %}
+                    <li class="breadcrumb-item">
+                        {% if item.url %}
+                        <a href="{{ item.url }}">{{ item.label }}</a>
+                        {% else %}
+                        <span>{{ item.label }}</span>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ol>
+            </nav>
+            {% endif %}
+            
+            <!-- Page Content -->
+            {% block admin_content %}
+            {% endblock %}
+        </div>
+        
+        <!-- Footer -->
+        {% include 'admin/components/footer.html' %}
+    </main>
+</div>
+
+<!-- Toast Notifications Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<style>
+    :root {
+        --admin-sidebar-width: 260px;
+        --admin-nav-height: 56px;
+    }
+    
+    .admin-layout {
+        display: grid;
+        grid-template-columns: var(--admin-sidebar-width) 1fr;
+        min-height: 100vh;
+        background: var(--admin-bg);
+    }
+    
+    .admin-main {
+        display: flex;
+        flex-direction: column;
+        background: var(--admin-bg);
+    }
+    
+    .admin-container {
+        flex: 1;
+        padding: var(--admin-spacing-xl);
+        overflow-y: auto;
+        max-width: 100%;
+    }
+    
+    /* Breadcrumbs */
+    .breadcrumb-nav {
+        font-size: 0.875rem;
+    }
+    
+    .breadcrumb {
+        padding: 0;
+        margin: 0;
+        background: transparent;
+    }
+    
+    .breadcrumb-item {
+        color: var(--admin-text-secondary);
+    }
+    
+    .breadcrumb-item a {
+        color: var(--admin-primary);
+        text-decoration: none;
+    }
+    
+    .breadcrumb-item a:hover {
+        text-decoration: underline;
+    }
+    
+    .breadcrumb-item.active {
+        color: var(--admin-text-primary);
+    }
+    
+    /* Mobile responsive */
+    @media (max-width: 1024px) {
+        .admin-layout {
+            grid-template-columns: 1fr;
+        }
+        
+        .admin-sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: var(--admin-sidebar-width);
+            height: 100vh;
+            z-index: 999;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .admin-sidebar.active {
+            transform: translateX(0);
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .admin-container {
+            padding: var(--admin-spacing-lg);
+        }
+    }
+</style>
+
+<script>
+    // Simple toast notification system
+    function showToast(message, type = 'info', duration = 4000) {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `admin-toast ${type}`;
+        
+        const icons = {
+            success: 'check-circle',
+            error: 'exclamation-circle',
+            warning: 'exclamation-triangle',
+            info: 'info-circle'
+        };
+        
+        toast.innerHTML = `
+            <div class="toast-message">
+                <i class="bi bi-${icons[type] || 'info-circle'} toast-icon"></i>
+                <span>${message}</span>
+                <i class="bi bi-x toast-close"></i>
+            </div>
+        `;
+        
+        container.appendChild(toast);
+        
+        const closeBtn = toast.querySelector('.toast-close');
+        closeBtn.addEventListener('click', () => toast.remove());
+        
+        // Auto remove after duration
+        setTimeout(() => {
+            if (container.contains(toast)) {
+                toast.remove();
+            }
+        }, duration);
+    }
+    
+    // Expose globally
+    window.showToast = showToast;
+</script>
+
+{% endblock %}

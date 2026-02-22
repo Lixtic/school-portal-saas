@@ -1,0 +1,334 @@
+<!-- Admin Navbar Component -->
+<nav class="admin-navbar">
+    <div class="navbar-content">
+        <!-- Mobile Menu Toggle -->
+        <button class="navbar-menu-toggle" id="mobileMenuToggle" title="Toggle menu">
+            <i class="bi bi-list"></i>
+        </button>
+        
+        <!-- Brand -->
+        <div class="navbar-brand">
+            <a href="{% url 'tenants:landlord_dashboard' %}">
+                <span class="brand-icon">
+                    <i class="bi bi-diagram-3"></i>
+                </span>
+                <span class="brand-name d-none d-md-inline">Admin</span>
+            </a>
+        </div>
+        
+        <!-- Main Navigation (Desktop) -->
+        <div class="navbar-menu d-none d-lg-flex">
+            <a href="{% url 'tenants:landlord_dashboard' %}" 
+               class="nav-link {% if request.resolver_match.url_name == 'landlord_dashboard' %}active{% endif %}">
+                <i class="bi bi-speedometer2"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="{% url 'tenants:approval_queue' %}" 
+               class="nav-link {% if request.resolver_match.url_name == 'approval_queue' %}active{% endif %}">
+                <i class="bi bi-clipboard-check"></i>
+                <span>Approvals</span>
+            </a>
+            <a href="{% url 'tenants:revenue_analytics' %}" 
+               class="nav-link {% if request.resolver_match.url_name == 'revenue_analytics' %}active{% endif %}">
+                <i class="bi bi-graph-up"></i>
+                <span>Revenue</span>
+            </a>
+            <a href="{% url 'tenants:system_health' %}" 
+               class="nav-link {% if request.resolver_match.url_name == 'system_health' %}active{% endif %}">
+                <i class="bi bi-activity"></i>
+                <span>Health</span>
+            </a>
+            <a href="{% url 'tenants:support_tickets' %}" 
+               class="nav-link {% if request.resolver_match.url_name == 'support_tickets' %}active{% endif %}">
+                <i class="bi bi-headset"></i>
+                <span>Support</span>
+            </a>
+        </div>
+        
+        <!-- Right Actions -->
+        <div class="navbar-actions">
+            <!-- Theme Toggle -->
+            <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
+                <i class="bi bi-moon"></i>
+            </button>
+            
+            <!-- User Menu -->
+            <div class="user-menu">
+                <img src="{% static 'img/avatar-default.png' %}" 
+                     alt="User" class="user-avatar" 
+                     title="{{ request.user.first_name }}">
+                <span class="user-name d-none d-md-inline">{{ request.user.first_name }}</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Mobile Navigation Menu -->
+<div class="mobile-menu" id="mobileMenu">
+    <nav class="mobile-nav">
+        <a href="{% url 'tenants:landlord_dashboard' %}" class="mobile-nav-link">
+            <i class="bi bi-speedometer2"></i>
+            Dashboard
+        </a>
+        <a href="{% url 'tenants:approval_queue' %}" class="mobile-nav-link">
+            <i class="bi bi-clipboard-check"></i>
+            Approvals
+        </a>
+        <a href="{% url 'tenants:revenue_analytics' %}" class="mobile-nav-link">
+            <i class="bi bi-graph-up"></i>
+            Revenue
+        </a>
+        <a href="{% url 'tenants:system_health' %}" class="mobile-nav-link">
+            <i class="bi bi-activity"></i>
+            Health
+        </a>
+        <a href="{% url 'tenants:support_tickets' %}" class="mobile-nav-link">
+            <i class="bi bi-headset"></i>
+            Support
+        </a>
+        <div class="mobile-nav-divider"></div>
+        <a href="/admin/" class="mobile-nav-link d-lg-none">
+            <i class="bi bi-shield-check"></i>
+            Full Admin
+        </a>
+    </nav>
+</div>
+
+<style>
+    /* Navbar */
+    .admin-navbar {
+        background: var(--admin-card-bg);
+        border-bottom: 1px solid var(--admin-border);
+        height: var(--admin-nav-height);
+        display: flex;
+        align-items: center;
+        padding: 0 var(--admin-spacing-lg);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        box-shadow: var(--admin-shadow-sm);
+    }
+    
+    .navbar-content {
+        display: flex;
+        align-items: center;
+        gap: var(--admin-spacing-lg);
+        width: 100%;
+    }
+    
+    .navbar-menu-toggle {
+        display: none;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1.25rem;
+        color: var(--admin-primary);
+        padding: 0;
+        width: 40px;
+        height: 40px;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .navbar-brand {
+        display: flex;
+        align-items: center;
+        gap: var(--admin-spacing-md);
+        text-decoration: none;
+        font-weight: 600;
+        color: var(--admin-text-primary);
+        white-space: nowrap;
+    }
+    
+    .navbar-brand a {
+        display: flex;
+        align-items: center;
+        gap: var(--admin-spacing-sm);
+        text-decoration: none;
+        color: inherit;
+    }
+    
+    .brand-icon {
+        font-size: 1.5rem;
+        color: var(--admin-primary);
+    }
+    
+    .navbar-menu {
+        display: flex;
+        gap: var(--admin-spacing-lg);
+        flex: 1;
+    }
+    
+    .nav-link {
+        color: var(--admin-text-secondary);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: var(--admin-spacing-sm);
+        padding: var(--admin-spacing-sm) 0;
+        transition: var(--admin-transition-fast);
+        white-space: nowrap;
+        font-size: 0.95rem;
+    }
+    
+    .nav-link:hover,
+    .nav-link.active {
+        color: var(--admin-primary);
+    }
+    
+    .nav-link.active {
+        font-weight: 600;
+        border-bottom: 2px solid var(--admin-primary);
+    }
+    
+    .navbar-actions {
+        display: flex;
+        align-items: center;
+        gap: var(--admin-spacing-lg);
+    }
+    
+    .theme-toggle {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1.25rem;
+        color: var(--admin-text-secondary);
+        transition: var(--admin-transition-fast);
+        padding: 0;
+        display: flex;
+        align-items: center;
+        width: 40px;
+        height: 40px;
+        justify-content: center;
+        border-radius: var(--admin-radius-md);
+    }
+    
+    .theme-toggle:hover {
+        background: var(--admin-bg-secondary);
+        color: var(--admin-primary);
+    }
+    
+    .user-menu {
+        display: flex;
+        align-items: center;
+        gap: var(--admin-spacing-md);
+        padding: var(--admin-spacing-sm) var(--admin-spacing-md);
+        border-radius: var(--admin-radius-md);
+        cursor: pointer;
+        transition: var(--admin-transition-fast);
+    }
+    
+    .user-menu:hover {
+        background: var(--admin-bg-secondary);
+    }
+    
+    .user-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    
+    .user-name {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--admin-text-primary);
+    }
+    
+    /* Mobile Menu */
+    .mobile-menu {
+        display: none;
+        position: fixed;
+        top: var(--admin-nav-height);
+        left: 0;
+        right: 0;
+        background: var(--admin-card-bg);
+        border-bottom: 1px solid var(--admin-border);
+        max-height: calc(100vh - var(--admin-nav-height));
+        overflow-y: auto;
+        z-index: 99;
+    }
+    
+    .mobile-menu.active {
+        display: block;
+    }
+    
+    .mobile-nav {
+        display: flex;
+        flex-direction: column;
+        padding: var(--admin-spacing-lg) 0;
+    }
+    
+    .mobile-nav-link {
+        padding: var(--admin-spacing-lg);
+        color: var(--admin-text-secondary);
+        text-decoration: none;
+        border-bottom: 1px solid var(--admin-border);
+        display: flex;
+        align-items: center;
+        gap: var(--admin-spacing-md);
+        transition: var(--admin-transition-fast);
+    }
+    
+    .mobile-nav-link:last-child {
+        border-bottom: none;
+    }
+    
+    .mobile-nav-link:hover {
+        background: var(--admin-bg-secondary);
+        color: var(--admin-primary);
+    }
+    
+    .mobile-nav-divider {
+        height: 1px;
+        background: var(--admin-border);
+        margin: var(--admin-spacing-md) 0;
+    }
+    
+    /* Responsive */
+    @media (max-width: 1024px) {
+        .navbar-menu-toggle {
+            display: flex;
+        }
+    }
+</style>
+
+<script>
+    // Mobile menu toggle
+    const menuToggle = document.getElementById('mobileMenuToggle');
+    const mobileMenu = document.getElementById('mobileMenu');
+    const themeToggle = document.getElementById('themeToggle');
+    
+    if (menuToggle && mobileMenu) {
+        menuToggle.addEventListener('click', () => {
+            mobileMenu.classList.toggle('active');
+        });
+        
+        // Close menu when link is clicked
+        mobileMenu.querySelectorAll('.mobile-nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.remove('active');
+            });
+        });
+    }
+    
+    // Theme toggle
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            const html = document.documentElement;
+            const isDark = html.getAttribute('data-bs-theme') === 'dark';
+            html.setAttribute('data-bs-theme', isDark ? 'light' : 'dark');
+            localStorage.setItem('admin-theme', isDark ? 'light' : 'dark');
+            
+            // Update icon
+            const icon = themeToggle.querySelector('i');
+            icon.className = isDark ? 'bi bi-moon' : 'bi bi-sun';
+        });
+        
+        // Restore theme preference
+        const savedTheme = localStorage.getItem('admin-theme') || 'light';
+        document.documentElement.setAttribute('data-bs-theme', savedTheme);
+        const icon = themeToggle.querySelector('i');
+        icon.className = savedTheme === 'dark' ? 'bi bi-sun' : 'bi bi-moon';
+    }
+</script>
