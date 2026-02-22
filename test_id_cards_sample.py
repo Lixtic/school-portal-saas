@@ -1,81 +1,15 @@
 """
-Track AI Tutor usage and sessions
+Test ID card generation with mock data (no database required)
 """
-from django.db import models
-from django.contrib.auth import get_user_model
-from django.utils import timezone
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
 import qrcode
 from datetime import datetime
+from pathlib import Path
 
-
-class TutorSession(models.Model):
-    """Track AI tutor chat sessions"""
-    student = models.ForeignKey('students.Student', on_delete=models.CASCADE, related_name='tutor_sessions')
-    subject = models.ForeignKey('academics.Subject', on_delete=models.SET_NULL, null=True, blank=True)
-    
-    started_at = models.DateTimeField(default=timezone.now)
-    ended_at = models.DateTimeField(null=True, blank=True)
-    
-    message_count = models.IntegerField(default=0)
-    topics_discussed = models.JSONField(default=list, blank=True)
-    
-    class Meta:
-        ordering = ['-started_at']
-    
-    def __str__(self):
-        return f"{self.student.user.get_full_name()} - {self.started_at.date()}"
-
-
-class TutorMessage(models.Model):
-    """Individual messages in tutor sessions"""
-    session = models.ForeignKey(TutorSession, on_delete=models.CASCADE, related_name='messages')
-    role = models.CharField(max_length=20, choices=[('user', 'Student'), ('assistant', 'AI Tutor')])
-    content = models.TextField()
-    created_at = models.DateTimeField(default=timezone.now)
-    
-    class Meta:
-        ordering = ['created_at']
-    
-    def __str__(self):
-        return f"{self.role}: {self.content[:50]}"
-
-
-class PracticeQuestionSet(models.Model):
-    """Generated practice question sets"""
-    student = models.ForeignKey('students.Student', on_delete=models.CASCADE, related_name='practice_sets')
-    subject = models.ForeignKey('academics.Subject', on_delete=models.CASCADE)
-    topic = models.CharField(max_length=200)
-    difficulty = models.CharField(
-        max_length=20, 
-        choices=[('easy', 'Easy'), ('medium', 'Medium'), ('hard', 'Hard')],
-        default='medium'
-    )
-    
-    questions = models.JSONField(help_text="AI-generated questions and answers")
-    
-    generated_at = models.DateTimeField(default=timezone.now)
-    completed_at = models.DateTimeField(null=True, blank=True)
-    score = models.IntegerField(null=True, blank=True, help_text="Percentage score")
-    
-    class Meta:
-        ordering = ['-generated_at']
-    
-    def __str__(self):
-        return f"{self.student.user.get_full_name()} - {self.subject.name}: {self.topic}"
-
-
-# ID Card Generation Functions
-def generate_student_id_card(student):
+def generate_sample_student_id_card(name="John Doe", student_id=1001, class_name="Basic 7"):
     """
-    Generate a professional student ID card as PIL Image.
-    
-    Args:
-        student: Student object
-        
-    Returns:
-        PIL Image object of ID card
+    Generate a sample student ID card as PIL Image.
     """
     # Card dimensions: 85.6 x 53.98mm (standard ID card size, 300 DPI)
     card_width = 920
@@ -100,7 +34,7 @@ def generate_student_id_card(student):
     profile_x, profile_y = 30, 150
     profile_size = 140
     
-    # Profile placeholder circle
+    # Profile placeholder circle with gradient effect
     draw.ellipse(
         [(profile_x, profile_y), (profile_x + profile_size, profile_y + profile_size)],
         fill=light_bg,
@@ -108,14 +42,8 @@ def generate_student_id_card(student):
         width=2
     )
     
-    # Try to use student profile image if available
-    if student.user.profile_picture:
-        try:
-            profile_img = Image.open(student.user.profile_picture.path)
-            profile_img = profile_img.resize((profile_size, profile_size), Image.Resampling.LANCZOS)
-            card.paste(profile_img, (profile_x, profile_y))
-        except:
-            pass  # Fall back to placeholder
+    # Add initials in profile area
+    draw.text((profile_x + 50, profile_y + 55), name[0], fill=primary_color, font=ImageFont.load_default())
     
     # Text starting position (right of profile)
     text_x = profile_x + profile_size + 30
@@ -132,21 +60,18 @@ def generate_student_id_card(student):
     
     # Header text
     draw.text((card_width // 2 - 80, 35), "STUDENT ID CARD", fill='white', font=title_font)
-    school_name = getattr(student.user.request.tenant, 'name', 'School Name') if hasattr(student.user, 'request') else 'School Name'
-    draw.text((card_width // 2 - 100, 70), school_name[:30], fill='white', font=small_font)
+    draw.text((card_width // 2 - 100, 70), "SchoolPortal", fill='white', font=small_font)
     
     # Student information
     draw.text((text_x, text_y), "NAME", fill=(100, 116, 139), font=label_font)
-    draw.text((text_x, text_y + 25), student.user.get_full_name()[:35], fill=text_color, font=name_font)
+    draw.text((text_x, text_y + 25), name[:35], fill=text_color, font=name_font)
     
     # ID Number
     draw.text((text_x, text_y + 70), "ID NUMBER", fill=(100, 116, 139), font=label_font)
-    draw.text((text_x, text_y + 95), f"STU-{student.id:06d}", fill=text_color, font=name_font)
+    draw.text((text_x, text_y + 95), f"STU-{student_id:06d}", fill=text_color, font=name_font)
     
-    # Class and Email
-    email_y = text_y + 140
-    draw.text((text_x, email_y), f"CLASS: {student.current_class.name if student.current_class else 'N/A'}", 
-              fill=text_color, font=label_font)
+    # Class
+    draw.text((text_x, text_y + 140), f"CLASS: {class_name}", fill=text_color, font=label_font)
     
     # Bottom section - validity
     validity_y = 420
@@ -160,7 +85,7 @@ def generate_student_id_card(student):
     
     # QR Code
     qr = qrcode.QRCode(version=1, box_size=5, border=1)
-    qr.add_data(f"STU-{student.id:06d}|{student.user.email}")
+    qr.add_data(f"STU-{student_id:06d}|{name}@school.edu")
     qr.make(fit=True)
     qr_img = qr.make_image(fill_color="black", back_color="white")
     qr_img = qr_img.resize((100, 100))
@@ -169,15 +94,9 @@ def generate_student_id_card(student):
     return card
 
 
-def generate_teacher_id_card(teacher):
+def generate_sample_teacher_id_card(name="Jane Smith", teacher_id=2001, subjects="Mathematics, Physics"):
     """
-    Generate a professional teacher ID card as PIL Image.
-    
-    Args:
-        teacher: Teacher object
-        
-    Returns:
-        PIL Image object of ID card
+    Generate a sample teacher ID card as PIL Image.
     """
     # Card dimensions
     card_width = 920
@@ -211,14 +130,8 @@ def generate_teacher_id_card(teacher):
         width=2
     )
     
-    # Try to use teacher profile image if available
-    if teacher.user.profile_picture:
-        try:
-            profile_img = Image.open(teacher.user.profile_picture.path)
-            profile_img = profile_img.resize((profile_size, profile_size), Image.Resampling.LANCZOS)
-            card.paste(profile_img, (profile_x, profile_y))
-        except:
-            pass
+    # Add initials in profile area
+    draw.text((profile_x + 50, profile_y + 55), name[0], fill=accent_color, font=ImageFont.load_default())
     
     # Text starting position
     text_x = profile_x + profile_size + 30
@@ -235,21 +148,18 @@ def generate_teacher_id_card(teacher):
     
     # Header text
     draw.text((card_width // 2 - 70, 35), "TEACHER ID CARD", fill='white', font=title_font)
-    school_name = getattr(teacher.user.request.tenant, 'name', 'School Name') if hasattr(teacher.user, 'request') else 'School Name'
-    draw.text((card_width // 2 - 100, 70), school_name[:30], fill='white', font=small_font)
+    draw.text((card_width // 2 - 100, 70), "SchoolPortal", fill='white', font=small_font)
     
     # Teacher information
     draw.text((text_x, text_y), "NAME", fill=(100, 116, 139), font=label_font)
-    draw.text((text_x, text_y + 25), teacher.user.get_full_name()[:35], fill=text_color, font=name_font)
+    draw.text((text_x, text_y + 25), name[:35], fill=text_color, font=name_font)
     
     # ID Number
     draw.text((text_x, text_y + 70), "ID NUMBER", fill=(100, 116, 139), font=label_font)
-    draw.text((text_x, text_y + 95), f"TCH-{teacher.id:06d}", fill=text_color, font=name_font)
+    draw.text((text_x, text_y + 95), f"TCH-{teacher_id:06d}", fill=text_color, font=name_font)
     
-    # Qualification and subjects
-    subjects = ", ".join([s.name for s in teacher.subjects.all()[:2]])
-    draw.text((text_x, text_y + 140), f"SUBJECTS: {subjects if subjects else 'N/A'}", 
-              fill=text_color, font=label_font)
+    # Subjects
+    draw.text((text_x, text_y + 140), f"SUBJECTS: {subjects[:40]}", fill=text_color, font=label_font)
     
     # Bottom section
     validity_y = 420
@@ -263,10 +173,69 @@ def generate_teacher_id_card(teacher):
     
     # QR Code
     qr = qrcode.QRCode(version=1, box_size=5, border=1)
-    qr.add_data(f"TCH-{teacher.id:06d}|{teacher.user.email}")
+    qr.add_data(f"TCH-{teacher_id:06d}|{name}@school.edu")
     qr.make(fit=True)
     qr_img = qr.make_image(fill_color="black", back_color="white")
     qr_img = qr_img.resize((100, 100))
     card.paste(qr_img, (card_width - 140, validity_y))
     
     return card
+
+
+if __name__ == '__main__':
+    print("\n" + "="*60)
+    print("🎓 ID Card Generation Test (Sample Data)")
+    print("="*60)
+    
+    # Create output directory
+    output_dir = Path("id_cards")
+    output_dir.mkdir(exist_ok=True)
+    
+    # Test Student ID Cards
+    print("\n📚 Generating Sample Student ID Cards...")
+    print("-" * 60)
+    
+    students = [
+        ("John Doe", 1001, "Basic 7"),
+        ("Mary Jane", 1002, "Basic 8"),
+        ("Samuel Asante", 1003, "Basic 9"),
+    ]
+    
+    for name, student_id, class_name in students:
+        try:
+            card = generate_sample_student_id_card(name, student_id, class_name)
+            filename = f"{output_dir}/sample_student_{student_id}_{name.replace(' ', '_')}.png"
+            card.save(filename)
+            print(f"✅ Generated: {name} (ID: STU-{student_id:06d}, Class: {class_name})")
+            print(f"   → Saved to: {filename}")
+        except Exception as e:
+            print(f"❌ Error generating card for {name}: {str(e)}")
+    
+    # Test Teacher ID Cards
+    print("\n👨‍🏫 Generating Sample Teacher ID Cards...")
+    print("-" * 60)
+    
+    teachers = [
+        ("Jane Smith", 2001, "Mathematics, Physics"),
+        ("Mr. Kwame", 2002, "English, Literature"),
+        ("Dr. Ama Owusu", 2003, "Biology, Chemistry"),
+    ]
+    
+    for name, teacher_id, subjects in teachers:
+        try:
+            card = generate_sample_teacher_id_card(name, teacher_id, subjects)
+            filename = f"{output_dir}/sample_teacher_{teacher_id}_{name.replace(' ', '_')}.png"
+            card.save(filename)
+            print(f"✅ Generated: {name} (ID: TCH-{teacher_id:06d})")
+            print(f"   → Subjects: {subjects}")
+            print(f"   → Saved to: {filename}")
+        except Exception as e:
+            print(f"❌ Error generating card for {name}: {str(e)}")
+    
+    # Summary
+    print("\n" + "="*60)
+    print("✨ Test Complete!")
+    print("="*60)
+    print(f"📁 All ID cards saved to: {output_dir.absolute()}")
+    print(f"📊 Generated {len(students)} student cards and {len(teachers)} teacher cards")
+    print("="*60 + "\n")
