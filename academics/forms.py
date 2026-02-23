@@ -161,3 +161,23 @@ class BulkClassForm(forms.Form):
         queryset=AcademicYear.objects.order_by('-start_date'),
         widget=forms.Select(attrs={'class': 'form-select'}),
     )
+
+
+class AcademicYearForm(forms.ModelForm):
+    class Meta:
+        model = AcademicYear
+        fields = ['name', 'start_date', 'end_date', 'is_current']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 2025-2026'}),
+            'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'is_current': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start = cleaned_data.get('start_date')
+        end = cleaned_data.get('end_date')
+        if start and end and end <= start:
+            raise forms.ValidationError('End date must be after start date.')
+        return cleaned_data

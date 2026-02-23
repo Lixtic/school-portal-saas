@@ -12,7 +12,7 @@ from accounts.models import User
 from announcements.models import Announcement
 from .models import Activity, GalleryImage, SchoolInfo, Class, Timetable, ClassSubject, Resource, AcademicYear, Subject
 from students.models import Student, Attendance, Grade
-from .forms import SchoolInfoForm, GalleryImageForm, ResourceForm, ClassForm, SubjectForm, ClassSubjectForm, BulkClassForm
+from .forms import SchoolInfoForm, GalleryImageForm, ResourceForm, ClassForm, SubjectForm, ClassSubjectForm, BulkClassForm, AcademicYearForm
 from teachers.models import Teacher
 
 def about_us(request):
@@ -344,6 +344,110 @@ def manage_class_subjects(request, class_id):
         'teachers': teachers,
     }
     return render(request, 'academics/manage_class_subjects.html', context)
+
+
+# ─── Academic Year Management ─────────────────────────────────
+@login_required
+def manage_academic_years(request):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    years = AcademicYear.objects.annotate(
+        class_count=Count('class', distinct=True),
+    ).order_by('-start_date')
+
+    total_classes = sum(y.class_count for y in years)
+
+    return render(request, 'academics/manage_academic_years.html', {'years': years, 'total_classes': total_classes})
+
+
+@login_required
+def add_academic_year(request):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        form = AcademicYearForm(request.POST)
+        if form.is_valid():
+            year = form.save(commit=False)
+            if year.is_current:
+                AcademicYear.objects.filter(is_current=True).update(is_current=False)
+            year.save()
+            messages.success(request, f'Academic year "{year.name}" created.')
+            return redirect('academics:manage_academic_years')
+    else:
+        form = AcademicYearForm()
+
+    return render(request, 'academics/academic_year_form.html', {'form': form, 'title': 'Add Academic Year'})
+
+
+@login_required
+def edit_academic_year(request, year_id):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    year = get_object_or_404(AcademicYear, id=year_id)
+    if request.method == 'POST':
+        form = AcademicYearForm(request.POST, instance=year)
+        if form.is_valid():
+            updated = form.save(commit=False)
+            if updated.is_current:
+                AcademicYear.objects.filter(is_current=True).exclude(id=year.id).update(is_current=False)
+            updated.save()
+            messages.success(request, f'Academic year "{year.name}" updated.')
+            return redirect('academics:manage_academic_years')
+    else:
+        form = AcademicYearForm(instance=year)
+
+    return render(request, 'academics/academic_year_form.html', {'form': form, 'title': f'Edit: {year.name}', 'editing': True})
+
+
+@login_required
+def delete_academic_year(request, year_id):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    year = get_object_or_404(AcademicYear, id=year_id)
+    class_count = Class.objects.filter(academic_year=year).count()
+
+    if request.method == 'POST':
+        if class_count > 0:
+            messages.error(request, f'Cannot delete "{year.name}" — it has {class_count} class(es). Remove them first.')
+        elif year.is_current:
+            messages.error(request, f'Cannot delete the current academic year. Set another year as current first.')
+        else:
+            name = year.name
+            year.delete()
+            messages.success(request, f'Academic year "{name}" deleted.')
+        return redirect('academics:manage_academic_years')
+
+    return render(request, 'academics/confirm_delete.html', {
+        'object': year,
+        'object_type': 'Academic Year',
+        'warning': f'This academic year has {class_count} class(es).' if class_count else ('This is the current academic year.' if year.is_current else None),
+        'can_delete': class_count == 0 and not year.is_current,
+        'cancel_url': reverse('academics:manage_academic_years'),
+    })
+
+
+@login_required
+def set_current_year(request, year_id):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        year = get_object_or_404(AcademicYear, id=year_id)
+        AcademicYear.objects.filter(is_current=True).update(is_current=False)
+        year.is_current = True
+        year.save()
+        messages.success(request, f'"{year.name}" is now the current academic year.')
+
+    return redirect('academics:manage_academic_years')
 
 
 @login_required

@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Academic Years - {{ school_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --card-bg: #ffffff; --card-border: #e2e8f0;
+        --text-heading: #0f172a; --text-body: #475569; --text-muted: #94a3b8;
+        --accent: #3b82f6; --accent-soft: rgba(59,130,246,.08);
+        --success: #10b981; --success-soft: rgba(16,185,129,.08);
+        --purple: #8b5cf6; --purple-soft: rgba(139,92,246,.08);
+        --amber: #f59e0b; --amber-soft: rgba(245,158,11,.08);
+    }
+    [data-bs-theme="dark"] {
+        --card-bg: #1e293b; --card-border: #334155;
+        --text-heading: #f1f5f9; --text-body: #cbd5e1; --text-muted: #64748b;
+        --accent-soft: rgba(59,130,246,.15);
+        --success-soft: rgba(16,185,129,.15);
+        --purple-soft: rgba(139,92,246,.15);
+        --amber-soft: rgba(245,158,11,.15);
+    }
+
+    .page-container { max-width: 1000px; margin: 0 auto; padding: 1.5rem 1rem; }
+
+    /* ===== Stat Cards ===== */
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .stat-card {
+        padding: 1.25rem;
+        border-radius: 16px;
+        border: 1px solid var(--card-border);
+        background: var(--card-bg);
+        transition: all 0.25s ease;
+    }
+    .stat-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .stat-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+    .stat-label {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.375rem;
+    }
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-heading);
+        line-height: 1.1;
+    }
+    .stat-icon {
+        width: 44px; height: 44px;
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+    .si-blue { background: var(--accent-soft); color: var(--accent); }
+    .si-green { background: var(--success-soft); color: var(--success); }
+    .si-purple { background: var(--purple-soft); color: var(--purple); }
+
+    /* ===== Year Cards ===== */
+    .year-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1rem;
+    }
+    .year-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 14px;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: .75rem;
+        transition: box-shadow .2s, border-color .2s;
+        position: relative;
+    }
+    .year-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.06); }
+    .year-card.current-year { border-color: var(--success); border-width: 2px; }
+
+    .year-header { display: flex; align-items: center; gap: .75rem; }
+    .year-icon {
+        width: 46px; height: 46px;
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+    .yi-active { background: var(--success-soft); color: var(--success); }
+    .yi-past { background: var(--purple-soft); color: var(--purple); }
+    .year-name {
+        font-weight: 700;
+        font-size: 1.05rem;
+        color: var(--text-heading);
+    }
+
+    .current-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+        background: var(--success-soft);
+        color: var(--success);
+        padding: 0.2rem 0.55rem;
+        border-radius: 20px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .current-badge i { font-size: 0.6rem; }
+
+    .year-details {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    .year-detail {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+    }
+    .year-detail i { font-size: 0.9rem; }
+
+    .year-actions {
+        display: flex;
+        gap: 0.35rem;
+        flex-wrap: wrap;
+        margin-top: auto;
+        padding-top: 0.5rem;
+        border-top: 1px solid var(--card-border);
+    }
+    .year-actions .btn {
+        padding: 0.35rem 0.65rem;
+        font-size: 0.8rem;
+        border-radius: 8px;
+        font-weight: 600;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: var(--text-muted);
+        grid-column: 1 / -1;
+    }
+    .empty-state i { font-size: 3rem; margin-bottom: 1rem; display: block; }
+
+    @media (max-width: 576px) {
+        .stats-row { grid-template-columns: 1fr; }
+        .year-grid { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+        <div>
+            <h2 class="mb-1" style="color: var(--text-heading); font-weight: 700;">
+                <i class="bi bi-calendar-range me-2"></i>Academic Years
+            </h2>
+            <p style="color: var(--text-muted); margin: 0;">Manage academic year periods and set the current active year</p>
+        </div>
+    </div>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="border-radius: 10px;">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <!-- Stats -->
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-top">
+                <div>
+                    <div class="stat-label">Total Years</div>
+                    <div class="stat-value">{{ years|length }}</div>
+                </div>
+                <div class="stat-icon si-blue"><i class="bi bi-calendar-range"></i></div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-top">
+                <div>
+                    <div class="stat-label">Current Year</div>
+                    <div class="stat-value" style="font-size: 1.25rem;">
+                        {% for y in years %}{% if y.is_current %}{{ y.name }}{% endif %}{% endfor %}
+                        {% if not years %}—{% endif %}
+                    </div>
+                </div>
+                <div class="stat-icon si-green"><i class="bi bi-check-circle"></i></div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-top">
+                <div>
+                    <div class="stat-label">Total Classes</div>
+                    <div class="stat-value">{{ total_classes }}</div>
+                </div>
+                <div class="stat-icon si-purple"><i class="bi bi-building"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <div class="d-flex gap-2">
+            <a href="{% url 'academics:add_academic_year' %}" class="btn btn-primary" style="border-radius: 10px; font-weight: 600; font-size: .8125rem;">
+                <i class="bi bi-plus-lg me-1"></i>Add Academic Year
+            </a>
+            <a href="{% url 'academics:manage_classes' %}" class="btn btn-outline-secondary" style="border-radius: 10px; font-weight: 600; font-size: .8125rem;">
+                <i class="bi bi-building me-1"></i>Manage Classes
+            </a>
+        </div>
+        <span class="badge bg-primary" style="font-size: .85rem; border-radius: 8px;">
+            {{ years|length }} year{{ years|length|pluralize }}
+        </span>
+    </div>
+
+    <!-- Year Cards -->
+    <div class="year-grid">
+        {% for year in years %}
+        <div class="year-card {% if year.is_current %}current-year{% endif %}">
+            <div class="year-header">
+                <div class="year-icon {% if year.is_current %}yi-active{% else %}yi-past{% endif %}">
+                    <i class="bi {% if year.is_current %}bi-calendar-check{% else %}bi-calendar3{% endif %}"></i>
+                </div>
+                <div>
+                    <div class="year-name">{{ year.name }}</div>
+                    {% if year.is_current %}
+                    <span class="current-badge"><i class="bi bi-circle-fill"></i> Current</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="year-details">
+                <div class="year-detail">
+                    <i class="bi bi-calendar-event"></i>
+                    {{ year.start_date|date:"M d, Y" }}
+                </div>
+                <div class="year-detail">
+                    <i class="bi bi-arrow-right"></i>
+                    {{ year.end_date|date:"M d, Y" }}
+                </div>
+                <div class="year-detail">
+                    <i class="bi bi-building"></i>
+                    {{ year.class_count }} class{{ year.class_count|pluralize:"es" }}
+                </div>
+            </div>
+
+            <div class="year-actions">
+                <a href="{% url 'academics:edit_academic_year' year.id %}" class="btn btn-outline-secondary" title="Edit">
+                    <i class="bi bi-pencil me-1"></i>Edit
+                </a>
+                {% if not year.is_current %}
+                <form method="post" action="{% url 'academics:set_current_year' year.id %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-success" title="Set as current year">
+                        <i class="bi bi-check-circle me-1"></i>Set Current
+                    </button>
+                </form>
+                {% endif %}
+                <a href="{% url 'academics:delete_academic_year' year.id %}" class="btn btn-outline-danger ms-auto" title="Delete">
+                    <i class="bi bi-trash3"></i>
+                </a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <i class="bi bi-calendar-range"></i>
+            <h5 style="color: var(--text-heading);">No academic years yet</h5>
+            <p>Create your first academic year to start organizing classes and terms.</p>
+            <a href="{% url 'academics:add_academic_year' %}" class="btn btn-primary mt-2">
+                <i class="bi bi-plus-lg me-1"></i>Add Academic Year
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

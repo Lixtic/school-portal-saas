@@ -23,6 +23,13 @@ urlpatterns = [
     path('subjects/<int:subject_id>/edit/', views.edit_subject, name='edit_subject'),
     path('subjects/<int:subject_id>/delete/', views.delete_subject, name='delete_subject'),
     
+    # Academic Year Management
+    path('years/manage/', views.manage_academic_years, name='manage_academic_years'),
+    path('years/add/', views.add_academic_year, name='add_academic_year'),
+    path('years/<int:year_id>/edit/', views.edit_academic_year, name='edit_academic_year'),
+    path('years/<int:year_id>/delete/', views.delete_academic_year, name='delete_academic_year'),
+    path('years/<int:year_id>/set-current/', views.set_current_year, name='set_current_year'),
+    
     path('gallery/', views.gallery_view, name='gallery'),
     path('gallery/upload/', views.upload_gallery_image, name='upload_gallery_image'),
     path('resources/manage/', views.manage_resources, name='manage_resources'),
