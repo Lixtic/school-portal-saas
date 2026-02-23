@@ -4,6 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
 from accounts import views as account_views
+from accounts.views import TenantPasswordResetView
 from tenants import views as tenant_views
 
 admin.site.site_header = "School Portal Administration"
@@ -28,11 +29,7 @@ urlpatterns = [
     ), name='password_change_done'),
 
     # Password Reset
-    path('password_reset/', auth_views.PasswordResetView.as_view(
-        template_name='accounts/password_reset_form.html',
-        email_template_name='accounts/password_reset_email.html',
-        subject_template_name='accounts/password_reset_subject.txt'
-    ), name='password_reset'),
+    path('password_reset/', TenantPasswordResetView.as_view(), name='password_reset'),
     path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(
         template_name='accounts/password_reset_done.html'
     ), name='password_reset_done'),

@@ -504,3 +504,39 @@ def admin_password_reset(request, user_id):
         'target_user': target_user
     })
 
+
+# =============================================================================
+# CUSTOM PASSWORD RESET VIEW FOR MULTI-TENANT
+# =============================================================================
+from django.contrib.auth.views import PasswordResetView
+from django.contrib.auth.forms import PasswordResetForm
+
+
+class TenantPasswordResetView(PasswordResetView):
+    """
+    Custom password reset view that includes the tenant path in the reset URL.
+    This ensures password reset emails contain the correct link for path-based
+    multi-tenant routing (e.g., /school1/reset/xxx/xxx/).
+    """
+    template_name = 'accounts/password_reset_form.html'
+    email_template_name = 'accounts/password_reset_email.html'
+    subject_template_name = 'accounts/password_reset_subject.txt'
+    
+    def get_extra_email_context(self):
+        """Add tenant path to the domain so reset links work correctly."""
+        context = super().get_extra_email_context() or {}
+        
+        # Get the tenant path prefix (e.g., '/school1')
+        script_name = self.request.META.get('SCRIPT_NAME', '')
+        
+        # Build the full domain with tenant path
+        # The default domain variable doesn't include the path
+        if script_name:
+            # Remove leading slash for cleaner URL construction
+            tenant_path = script_name.lstrip('/')
+            context['tenant_path'] = tenant_path
+        else:
+            context['tenant_path'] = ''
+            
+        return context
+
