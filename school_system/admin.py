@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.contrib.auth import logout
+from django.contrib.auth import logout as auth_logout
 from django.shortcuts import redirect
 
 
@@ -11,7 +11,7 @@ class SchoolAdminSite(admin.AdminSite):
     
     def logout(self, request, extra_context=None):
         """Handle logout - support both GET and POST for backwards compatibility"""
-        logout(request)
+        auth_logout(request)
         # Redirect to login page
         return redirect('login')
 
