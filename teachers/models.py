@@ -15,9 +15,9 @@ class Teacher(models.Model):
 
 class DutyWeek(models.Model):
     TERM_CHOICES = (
-        ('First', 'First Term'),
-        ('Second', 'Second Term'),
-        ('Third', 'Third Term'),
+        ('first', 'First Term'),
+        ('second', 'Second Term'),
+        ('third', 'Third Term'),
     )
     academic_year = models.ForeignKey('academics.AcademicYear', on_delete=models.CASCADE)
     term = models.CharField(max_length=15, choices=TERM_CHOICES)

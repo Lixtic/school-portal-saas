@@ -794,8 +794,15 @@
                     <li class="mobile-bubble-item"><a href="{% url 'teachers:enter_grades' %}"><i class="bi bi-journal-plus"></i>Enter Grades</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'homework_list' %}"><i class="bi bi-journal-text"></i>Homework</a></li>
                 {% endif %}
+                {% if user.user_type == 'student' %}
+                    <li class="mobile-bubble-item"><a href="{% url 'students:student_schedule' %}"><i class="bi bi-calendar-week"></i>My Schedule</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'academics:timetable' %}"><i class="bi bi-table"></i>Timetable</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'announcements:list' %}"><i class="bi bi-megaphone"></i>Notices</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'academics:ai_tutor' %}"><i class="bi bi-robot"></i>AI Tutor</a></li>
+                {% endif %}
                 {% if user.user_type == 'parent' %}
-                <li class="mobile-bubble-item"><a href="{% url 'parents:my_children' %}"><i class="bi bi-person-hearts"></i>My Children</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'parents:my_children' %}"><i class="bi bi-person-hearts"></i>My Children</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'announcements:list' %}"><i class="bi bi-megaphone"></i>Notices</a></li>
                 {% endif %}
                 <li class="mobile-bubble-item mt-2 pt-2 border-top border-secondary opacity-75"><a href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i>Sign Out</a></li>
             </ul>
@@ -1043,6 +1050,35 @@
             </div>
 
             {% endif %}
+
+            {% if user.user_type == 'student' %}
+            <!-- STUDENT -->
+            <h4 class="mb-2 mt-4"><i class="bi bi-mortarboard me-2" style="font-size: 0.85rem;"></i>My School</h4>
+            <div class="nav-item">
+                <a href="{% url 'students:student_schedule' %}" class="nav-link {% if request.resolver_match.url_name == 'student_schedule' %}active{% endif %}" title="My Schedule">
+                    <i class="bi bi-calendar-week"></i>
+                    <span>My Schedule</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{% url 'academics:timetable' %}" class="nav-link {% if request.resolver_match.url_name == 'timetable' %}active{% endif %}" title="Timetable">
+                    <i class="bi bi-table"></i>
+                    <span>Timetable</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{% url 'announcements:list' %}" class="nav-link {% if 'announcements' in request.resolver_match.app_names %}active{% endif %}" title="Notices">
+                    <i class="bi bi-megaphone"></i>
+                    <span>Notices</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{% url 'academics:ai_tutor' %}" class="nav-link {% if request.resolver_match.url_name == 'ai_tutor' %}active{% endif %}" title="AI Tutor">
+                    <i class="bi bi-robot"></i>
+                    <span>AI Tutor</span>
+                </a>
+            </div>
+            {% endif %}
             
             {% if user.user_type == 'parent' %}
             <!-- FAMILY -->
@@ -1057,6 +1093,12 @@
                 <a href="{% url 'homework_list' %}" class="nav-link {% if 'homework' in request.resolver_match.url_name %}active{% endif %}" title="Homework">
                     <i class="bi bi-journal-text"></i>
                     <span>Homework</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{% url 'announcements:list' %}" class="nav-link {% if 'announcements' in request.resolver_match.app_names %}active{% endif %}" title="Notices">
+                    <i class="bi bi-megaphone"></i>
+                    <span>Notices</span>
                 </a>
             </div>
             {% endif %}

@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Notices - {{ school_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --card-bg: #ffffff; --card-border: #e2e8f0;
+        --text-heading: #0f172a; --text-body: #475569; --text-muted: #94a3b8;
+        --accent: #3b82f6; --accent-soft: rgba(59,130,246,.08);
+        --purple: #8b5cf6; --purple-soft: rgba(139,92,246,.08);
+        --teal: #14b8a6; --teal-soft: rgba(20,184,166,.08);
+        --amber: #f59e0b; --amber-soft: rgba(245,158,11,.08);
+        --preview-bg: #f1f5f9;
+    }
+    [data-bs-theme="dark"] {
+        --card-bg: #1e293b; --card-border: #334155;
+        --text-heading: #f1f5f9; --text-body: #cbd5e1; --text-muted: #64748b;
+        --accent-soft: rgba(59,130,246,.15);
+        --purple-soft: rgba(139,92,246,.15);
+        --teal-soft: rgba(20,184,166,.15);
+        --amber-soft: rgba(245,158,11,.15);
+        --preview-bg: #141e30;
+    }
+
+    .page-container { max-width: 800px; margin: 0 auto; padding: 1.5rem 1rem; }
+
+    .page-header-icon {
+        width: 48px; height: 48px; border-radius: 14px;
+        background: var(--amber-soft); color: var(--amber);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.3rem; flex-shrink: 0;
+    }
+
+    .notice-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 14px;
+        padding: 1.25rem;
+        margin-bottom: 0.75rem;
+        transition: box-shadow .2s, border-color .2s;
+    }
+    .notice-card:hover {
+        box-shadow: 0 4px 14px rgba(0,0,0,.06);
+        border-color: var(--amber);
+    }
+    [data-bs-theme="dark"] .notice-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.2); }
+
+    .notice-title {
+        font-weight: 700; font-size: 1rem;
+        color: var(--text-heading); margin-bottom: 0.35rem;
+    }
+    .notice-content {
+        font-size: 0.875rem; color: var(--text-body);
+        line-height: 1.6; margin-bottom: 0.5rem;
+    }
+    .notice-meta {
+        font-size: 0.75rem; color: var(--text-muted);
+        display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+    }
+    .notice-badge {
+        display: inline-flex; align-items: center; gap: 0.2rem;
+        font-size: 0.6rem; font-weight: 700;
+        padding: 0.15rem 0.45rem; border-radius: 6px;
+        text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .badge-all { background: var(--accent-soft); color: var(--accent); }
+    .badge-students { background: var(--teal-soft); color: var(--teal); }
+    .badge-parents { background: var(--purple-soft); color: var(--purple); }
+    .badge-teachers { background: var(--amber-soft); color: var(--amber); }
+
+    .empty-state {
+        text-align: center; padding: 3rem 1rem; color: var(--text-muted);
+    }
+    .empty-icon {
+        width: 64px; height: 64px; border-radius: 50%;
+        background: var(--preview-bg);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem; color: var(--text-muted);
+        margin: 0 auto 0.75rem;
+    }
+    .empty-state h5 { color: var(--text-heading); font-weight: 600; font-size: 1rem; }
+    .empty-state p { font-size: 0.85rem; max-width: 360px; margin: 0.4rem auto 0; }
+
+    @media (max-width: 576px) {
+        .page-container { padding: 0.75rem 0.625rem; }
+        .page-header-icon { width: 40px; height: 40px; border-radius: 10px; font-size: 1.1rem; }
+        .notice-card { padding: 1rem; border-radius: 12px; }
+        .notice-title { font-size: 0.9rem; }
+        .notice-content { font-size: 0.825rem; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <div class="page-header-icon">
+            <i class="bi bi-megaphone"></i>
+        </div>
+        <div>
+            <h2 class="mb-0" style="color: var(--text-heading); font-weight: 700; font-size: 1.35rem;">Notices</h2>
+            <p style="color: var(--text-muted); margin: 0; font-size: 0.8rem;">School announcements and updates</p>
+        </div>
+    </div>
+
+    {% for announcement in announcements %}
+    <div class="notice-card">
+        <div class="notice-title">{{ announcement.title }}</div>
+        <div class="notice-content">{{ announcement.content|linebreaksbr }}</div>
+        <div class="notice-meta">
+            <span><i class="bi bi-clock me-1"></i>{{ announcement.created_at|timesince }} ago</span>
+            <span><i class="bi bi-person me-1"></i>{{ announcement.created_by.get_full_name }}</span>
+            <span class="notice-badge {% if announcement.target_audience == 'all' %}badge-all{% elif announcement.target_audience == 'students' %}badge-students{% elif announcement.target_audience == 'parents' %}badge-parents{% else %}badge-teachers{% endif %}">
+                {{ announcement.get_target_audience_display }}
+            </span>
+        </div>
+    </div>
+    {% empty %}
+    <div class="empty-state">
+        <div class="empty-icon"><i class="bi bi-megaphone"></i></div>
+        <h5>No notices yet</h5>
+        <p>There are no announcements for you at this time. Check back later!</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

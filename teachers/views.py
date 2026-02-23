@@ -322,7 +322,7 @@ def print_duty_roster(request):
             start_date__lte=today,
             end_date__gte=today
         ).first()
-        term = current_week.term if current_week else ('Second' if 1 <= today.month <= 4 else ('Third' if 5 <= today.month <= 8 else 'First'))
+        term = current_week.term if current_week else ('second' if 1 <= today.month <= 4 else ('third' if 5 <= today.month <= 8 else 'first'))
 
     year_id = request.GET.get('year', current_year.id if current_year else None)
     
@@ -338,7 +338,7 @@ def print_duty_roster(request):
         'year': year,
         'term': term,
         'school_info': SchoolInfo.objects.first(),
-        'available_terms': ['First', 'Second', 'Third'],
+        'available_terms': ['first', 'second', 'third'],
         'academic_years': AcademicYear.objects.all(),
     }
     return render(request, 'teachers/duty_roster_pdf.html', context)

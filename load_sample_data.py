@@ -399,7 +399,7 @@ print("\n📅 Creating Duty Roster...")
 from teachers.models import DutyWeek, DutyAssignment
 
 # Use retrieved 'ay' (AcademicYear) from above
-term = 'First'
+term = 'first'
 # Explicit dates from the PDF
 duty_weeks_data = [
     # (Week Num, Start, End, Assignments List of (username, role), Remarks)
@@ -447,7 +447,7 @@ for week_num, s_date, e_date, assignments, remarks in duty_weeks_data:
 # SECOND TERM DUTY ROSTER
 # ----------------------------------------------------
 print("\n📅 Creating 2nd Term Duty Roster...")
-term2 = 'Second'
+term2 = 'second'
 start_date_t2 = date(2026, 1, 8) # Thursday
 
 # Reuse logic from First Term (first 12 entries)
