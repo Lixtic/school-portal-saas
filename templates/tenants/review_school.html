@@ -5,6 +5,129 @@
 {% block title %}Review {{ school.name }}{% endblock %}
 
 {% block admin_content %}
+<style>
+    /* Dark Mode Support */
+    .card {
+        background: var(--surface-card);
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    [data-bs-theme="dark"] .card {
+        border-color: rgba(255,255,255,0.05);
+    }
+
+    .card-header {
+        background: var(--admin-primary) !important;
+        color: white !important;
+        border-bottom: 1px solid rgba(0,0,0,0.1);
+    }
+
+    [data-bs-theme="dark"] .card-header {
+        border-bottom-color: rgba(255,255,255,0.05);
+    }
+
+    .card-body {
+        color: var(--text-main);
+    }
+
+    .card-body strong {
+        color: var(--text-main);
+        font-weight: 600;
+    }
+
+    .text-muted {
+        color: var(--text-muted) !important;
+    }
+
+    .alert {
+        background: rgba(0,0,0,0.02);
+        border: 1px solid rgba(0,0,0,0.08);
+        color: var(--text-main);
+    }
+
+    [data-bs-theme="dark"] .alert {
+        background: rgba(255,255,255,0.02);
+        border-color: rgba(255,255,255,0.08);
+    }
+
+    .alert-info {
+        background: rgba(13, 202, 240, 0.1) !important;
+        border-color: rgba(13, 202, 240, 0.3) !important;
+        color: var(--text-main) !important;
+    }
+
+    [data-bs-theme="dark"] .alert-info {
+        background: rgba(13, 202, 240, 0.08) !important;
+        border-color: rgba(13, 202, 240, 0.2) !important;
+    }
+
+    .alert-danger {
+        background: rgba(220, 53, 69, 0.1) !important;
+        border-color: rgba(220, 53, 69, 0.3) !important;
+        color: var(--text-main) !important;
+    }
+
+    [data-bs-theme="dark"] .alert-danger {
+        background: rgba(220, 53, 69, 0.08) !important;
+        border-color: rgba(220, 53, 69, 0.2) !important;
+    }
+
+    code {
+        background: rgba(0,0,0,0.05);
+        color: var(--text-main);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.9em;
+    }
+
+    [data-bs-theme="dark"] code {
+        background: rgba(255,255,255,0.08);
+        color: #4ec9f0;
+    }
+
+    .badge {
+        font-weight: 500;
+    }
+
+    .bg-info {
+        background: #17a2b8 !important;
+    }
+
+    hr {
+        border-color: rgba(0,0,0,0.08);
+    }
+
+    [data-bs-theme="dark"] hr {
+        border-color: rgba(255,255,255,0.08);
+    }
+
+    .sticky-top {
+        position: sticky;
+        top: 20px;
+        z-index: 100;
+    }
+
+    .btn-outline-secondary {
+        color: var(--text-main);
+        border-color: rgba(0,0,0,0.1);
+    }
+
+    .btn-outline-secondary:hover {
+        background: rgba(0,0,0,0.05);
+        border-color: rgba(0,0,0,0.15);
+    }
+
+    [data-bs-theme="dark"] .btn-outline-secondary {
+        color: var(--text-main);
+        border-color: rgba(255,255,255,0.1);
+    }
+
+    [data-bs-theme="dark"] .btn-outline-secondary:hover {
+        background: rgba(255,255,255,0.1);
+        border-color: rgba(255,255,255,0.2);
+    }
+</style>
+
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="fw-bold">
@@ -19,7 +142,7 @@
         {# School Information Panel #}
         <div class="col-lg-7">
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header">
                     <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>School Information</h5>
                 </div>
                 <div class="card-body">
@@ -91,7 +214,7 @@
 
             {# Documents Panel #}
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-success text-white">
+                <div class="card-header">
                     <h5 class="mb-0"><i class="bi bi-file-earmark-check me-2"></i>Submitted Documents</h5>
                 </div>
                 <div class="card-body">
@@ -137,7 +260,7 @@
             {# Review History #}
             {% if school.reviewed_at %}
             <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-secondary text-white">
+                <div class="card-header">
                     <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Review History</h5>
                 </div>
                 <div class="card-body">
@@ -164,8 +287,8 @@
 
         {# Approval Form Panel #}
         <div class="col-lg-5">
-            <div class="card border-0 shadow-sm sticky-top" style="top: 20px;">
-                <div class="card-header bg-warning text-dark">
+            <div class="card border-0 shadow-sm sticky-top">
+                <div class="card-header">
                     <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Approval Decision</h5>
                 </div>
                 <div class="card-body">
