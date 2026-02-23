@@ -1,6 +1,21 @@
 from django.contrib import admin
+from django.contrib.auth import logout
+from django.shortcuts import redirect
 
-# Customize admin site headers
-admin.site.site_header = "School Portal Administration"
-admin.site.site_title = "School Admin"
-admin.site.index_title = "Welcome to School Management System"
+
+class SchoolAdminSite(admin.AdminSite):
+    """Custom admin site with proper logout handling for Django 5+"""
+    site_header = "School Portal Administration"
+    site_title = "School Admin"
+    index_title = "Welcome to School Management System"
+    
+    def logout(self, request, extra_context=None):
+        """Handle logout - support both GET and POST for backwards compatibility"""
+        logout(request)
+        # Redirect to login page
+        return redirect('login')
+
+
+# Replace the default admin site
+admin.site = SchoolAdminSite()
+admin.sites.site = admin.site
