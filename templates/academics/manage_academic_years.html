@@ -12,6 +12,8 @@
         --success: #10b981; --success-soft: rgba(16,185,129,.08);
         --purple: #8b5cf6; --purple-soft: rgba(139,92,246,.08);
         --amber: #f59e0b; --amber-soft: rgba(245,158,11,.08);
+        --danger: #ef4444; --danger-soft: rgba(239,68,68,.08);
+        --page-bg: #f8fafc;
     }
     [data-bs-theme="dark"] {
         --card-bg: #1e293b; --card-border: #334155;
@@ -20,9 +22,22 @@
         --success-soft: rgba(16,185,129,.15);
         --purple-soft: rgba(139,92,246,.15);
         --amber-soft: rgba(245,158,11,.15);
+        --danger-soft: rgba(239,68,68,.15);
+        --page-bg: #0f172a;
     }
 
     .page-container { max-width: 1000px; margin: 0 auto; padding: 1.5rem 1rem; }
+
+    /* ===== Page Header ===== */
+    .page-header-icon {
+        width: 48px; height: 48px;
+        border-radius: 14px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.3rem;
+        flex-shrink: 0;
+    }
 
     /* ===== Stat Cards ===== */
     .stats-row {
@@ -71,6 +86,23 @@
     .si-green { background: var(--success-soft); color: var(--success); }
     .si-purple { background: var(--purple-soft); color: var(--purple); }
 
+    /* ===== Toolbar ===== */
+    .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.25rem;
+    }
+    .toolbar-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .toolbar .btn {
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.8125rem;
+        padding: 0.5rem 1rem;
+    }
+
     /* ===== Year Cards ===== */
     .year-grid {
         display: grid;
@@ -87,9 +119,20 @@
         gap: .75rem;
         transition: box-shadow .2s, border-color .2s;
         position: relative;
+        overflow: hidden;
     }
     .year-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.06); }
-    .year-card.current-year { border-color: var(--success); border-width: 2px; }
+    .year-card.current-year {
+        border-color: var(--success);
+        border-width: 2px;
+    }
+    .year-card.current-year::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--success), #34d399);
+    }
 
     .year-header { display: flex; align-items: center; gap: .75rem; }
     .year-icon {
@@ -111,7 +154,7 @@
         display: inline-flex;
         align-items: center;
         gap: 0.3rem;
-        font-size: 0.7rem;
+        font-size: 0.65rem;
         font-weight: 700;
         background: var(--success-soft);
         color: var(--success);
@@ -120,7 +163,7 @@
         text-transform: uppercase;
         letter-spacing: 0.04em;
     }
-    .current-badge i { font-size: 0.6rem; }
+    .current-badge i { font-size: 0.5rem; }
 
     .year-details {
         display: flex;
@@ -136,19 +179,38 @@
     }
     .year-detail i { font-size: 0.9rem; }
 
+    /* Date range bar */
+    .date-range-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 0.75rem;
+        background: var(--page-bg);
+        border-radius: 10px;
+        font-size: 0.8rem;
+        color: var(--text-body);
+    }
+    .date-range-bar i { color: var(--text-muted); font-size: 0.75rem; }
+    .date-range-bar .date-val { font-weight: 600; color: var(--text-heading); }
+    .date-range-bar .date-sep {
+        color: var(--text-muted);
+        margin: 0 0.15rem;
+    }
+
     .year-actions {
         display: flex;
         gap: 0.35rem;
         flex-wrap: wrap;
         margin-top: auto;
-        padding-top: 0.5rem;
+        padding-top: 0.75rem;
         border-top: 1px solid var(--card-border);
     }
     .year-actions .btn {
-        padding: 0.35rem 0.65rem;
+        padding: 0.4rem 0.7rem;
         font-size: 0.8rem;
         border-radius: 8px;
         font-weight: 600;
+        transition: all 0.2s;
     }
 
     .empty-state {
@@ -159,9 +221,135 @@
     }
     .empty-state i { font-size: 3rem; margin-bottom: 1rem; display: block; }
 
+    /* ===== Mobile: Tablets ===== */
+    @media (max-width: 768px) {
+        .page-container { padding: 1rem 0.75rem; }
+
+        .stats-row {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.6rem;
+        }
+        .stat-card { padding: 0.875rem; border-radius: 12px; }
+        .stat-value { font-size: 1.5rem; }
+        .stat-icon { width: 36px; height: 36px; font-size: 1rem; border-radius: 10px; }
+        .stat-label { font-size: 0.6rem; margin-bottom: 0.25rem; }
+    }
+
+    /* ===== Mobile: Phones ===== */
     @media (max-width: 576px) {
-        .stats-row { grid-template-columns: 1fr; }
-        .year-grid { grid-template-columns: 1fr; }
+        .page-container { padding: 0.75rem 0.625rem; }
+
+        /* Header compact */
+        .page-header-icon { width: 40px; height: 40px; border-radius: 10px; font-size: 1.1rem; }
+        .page-title-mobile { font-size: 1.15rem !important; }
+        .page-subtitle-mobile { font-size: 0.75rem !important; }
+
+        /* Stats: horizontal scroll */
+        .stats-row {
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 0.25rem;
+            margin-bottom: 1rem;
+            scrollbar-width: none;
+        }
+        .stats-row::-webkit-scrollbar { display: none; }
+        .stat-card {
+            min-width: 130px;
+            flex-shrink: 0;
+            scroll-snap-align: start;
+            padding: 0.75rem;
+            border-radius: 12px;
+        }
+        .stat-value { font-size: 1.35rem; }
+        .stat-icon { width: 32px; height: 32px; font-size: 0.9rem; border-radius: 8px; }
+        .stat-label { font-size: 0.6rem; letter-spacing: 0.03em; }
+
+        /* Toolbar: stack */
+        .toolbar {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.5rem;
+        }
+        .toolbar-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+        .toolbar .btn {
+            font-size: 0.75rem;
+            padding: 0.55rem 0.5rem;
+            text-align: center;
+            justify-content: center;
+        }
+        .toolbar .badge { text-align: center; }
+
+        /* Year grid: single column */
+        .year-grid { grid-template-columns: 1fr; gap: 0.75rem; }
+
+        /* Year cards: compact */
+        .year-card {
+            padding: 1rem;
+            border-radius: 12px;
+            gap: 0.6rem;
+        }
+        .year-icon { width: 38px; height: 38px; font-size: 1rem; border-radius: 10px; }
+        .year-name { font-size: 0.95rem; }
+
+        /* Date range bar compact */
+        .date-range-bar {
+            padding: 0.5rem 0.625rem;
+            font-size: 0.75rem;
+            border-radius: 8px;
+            gap: 0.35rem;
+        }
+
+        /* Year details: vertical stack on small phones */
+        .year-details {
+            gap: 0.4rem;
+        }
+        .year-detail { font-size: 0.78rem; }
+
+        /* Actions: fill width */
+        .year-actions {
+            gap: 0.35rem;
+            padding-top: 0.6rem;
+        }
+        .year-actions .btn {
+            padding: 0.4rem 0.55rem;
+            font-size: 0.75rem;
+            flex: 1;
+            text-align: center;
+            justify-content: center;
+            min-height: 36px;
+            display: inline-flex;
+            align-items: center;
+        }
+        .year-actions .btn.ms-auto { flex: 0 0 auto; }
+
+        /* Empty state */
+        .empty-state { padding: 2rem 1rem; }
+        .empty-state i { font-size: 2.5rem; }
+        .empty-state h5 { font-size: 1rem; }
+        .empty-state p { font-size: 0.85rem; }
+    }
+
+    /* ===== Very small phones ===== */
+    @media (max-width: 380px) {
+        .stat-card { min-width: 115px; padding: 0.65rem; }
+        .stat-value { font-size: 1.2rem; }
+        .stat-icon { width: 28px; height: 28px; font-size: 0.8rem; }
+
+        .toolbar-actions { grid-template-columns: 1fr; }
+
+        .year-card { padding: 0.875rem; }
+        .year-icon { width: 34px; height: 34px; font-size: 0.9rem; }
+        .year-name { font-size: 0.875rem; }
+
+        .date-range-bar { font-size: 0.7rem; padding: 0.4rem 0.5rem; }
+        .date-range-bar .date-val { font-size: 0.7rem; }
     }
 </style>
 {% endblock %}
@@ -169,18 +357,21 @@
 {% block content %}
 <div class="page-container">
     <!-- Header -->
-    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-center gap-3 mb-3">
+        <div class="page-header-icon">
+            <i class="bi bi-calendar-range"></i>
+        </div>
         <div>
-            <h2 class="mb-1" style="color: var(--text-heading); font-weight: 700;">
-                <i class="bi bi-calendar-range me-2"></i>Academic Years
+            <h2 class="mb-0 page-title-mobile" style="color: var(--text-heading); font-weight: 700; font-size: 1.35rem;">
+                Academic Years
             </h2>
-            <p style="color: var(--text-muted); margin: 0;">Manage academic year periods and set the current active year</p>
+            <p class="page-subtitle-mobile" style="color: var(--text-muted); margin: 0; font-size: 0.8rem;">Manage year periods &amp; set the active year</p>
         </div>
     </div>
 
     {% if messages %}
     {% for message in messages %}
-    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="border-radius: 10px;">
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="border-radius: 10px; font-size: 0.85rem;">
         {{ message }}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
@@ -222,16 +413,16 @@
     </div>
 
     <!-- Toolbar -->
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-        <div class="d-flex gap-2">
-            <a href="{% url 'academics:add_academic_year' %}" class="btn btn-primary" style="border-radius: 10px; font-weight: 600; font-size: .8125rem;">
-                <i class="bi bi-plus-lg me-1"></i>Add Academic Year
+    <div class="toolbar">
+        <div class="toolbar-actions">
+            <a href="{% url 'academics:add_academic_year' %}" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-1"></i>Add Year
             </a>
-            <a href="{% url 'academics:manage_classes' %}" class="btn btn-outline-secondary" style="border-radius: 10px; font-weight: 600; font-size: .8125rem;">
-                <i class="bi bi-building me-1"></i>Manage Classes
+            <a href="{% url 'academics:manage_classes' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-building me-1"></i>Classes
             </a>
         </div>
-        <span class="badge bg-primary" style="font-size: .85rem; border-radius: 8px;">
+        <span class="badge bg-primary" style="font-size: .8rem; border-radius: 8px; padding: 0.4rem 0.75rem;">
             {{ years|length }} year{{ years|length|pluralize }}
         </span>
     </div>
@@ -252,19 +443,15 @@
                 </div>
             </div>
 
-            <div class="year-details">
-                <div class="year-detail">
-                    <i class="bi bi-calendar-event"></i>
-                    {{ year.start_date|date:"M d, Y" }}
-                </div>
-                <div class="year-detail">
-                    <i class="bi bi-arrow-right"></i>
-                    {{ year.end_date|date:"M d, Y" }}
-                </div>
-                <div class="year-detail">
+            <div class="date-range-bar">
+                <i class="bi bi-calendar-event"></i>
+                <span class="date-val">{{ year.start_date|date:"M d, Y" }}</span>
+                <span class="date-sep"><i class="bi bi-arrow-right"></i></span>
+                <span class="date-val">{{ year.end_date|date:"M d, Y" }}</span>
+                <span style="margin-left: auto; display: flex; align-items: center; gap: 0.25rem;">
                     <i class="bi bi-building"></i>
-                    {{ year.class_count }} class{{ year.class_count|pluralize:"es" }}
-                </div>
+                    <strong>{{ year.class_count }}</strong> class{{ year.class_count|pluralize:"es" }}
+                </span>
             </div>
 
             <div class="year-actions">
@@ -272,9 +459,9 @@
                     <i class="bi bi-pencil me-1"></i>Edit
                 </a>
                 {% if not year.is_current %}
-                <form method="post" action="{% url 'academics:set_current_year' year.id %}" class="d-inline">
+                <form method="post" action="{% url 'academics:set_current_year' year.id %}" class="d-inline" style="flex: 1;">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-outline-success" title="Set as current year">
+                    <button type="submit" class="btn btn-outline-success w-100" title="Set as current year">
                         <i class="bi bi-check-circle me-1"></i>Set Current
                     </button>
                 </form>
