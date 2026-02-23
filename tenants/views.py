@@ -356,7 +356,9 @@ def review_school(request, school_id):
                         'admin_username': 'admin',
                     }
                     
-                    send_approval_notification(school, status_changed_by=request.user, extra_context=context)
+                    print(f"DEBUG: About to send approval email to {school.contact_person_email}")
+                    email_sent = send_approval_notification(school, status_changed_by=request.user, extra_context=context)
+                    print(f"DEBUG: Email send result: {email_sent}")
                     
                     messages.success(request, f"School '{school.name}' approved and activated! Temporary credentials sent to {school.contact_person_email}.")
                     

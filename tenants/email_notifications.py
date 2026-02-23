@@ -19,8 +19,10 @@ def send_approval_notification(school, status_changed_by=None, extra_context=Non
         status_changed_by: User who changed the status (for logging)
         extra_context: Additional context variables for email template (e.g., temp_password)
     """
+    logger.info(f"🔔 Starting approval notification for school: {school.schema_name}, status: {school.approval_status}")
+    
     if not school.contact_person_email:
-        logger.warning(f"No contact email for school {school.schema_name}, skipping notification")
+        logger.warning(f"❌ No contact email for school {school.schema_name}, skipping notification")
         return False
     
     status = school.approval_status
@@ -60,8 +62,11 @@ def send_approval_notification(school, status_changed_by=None, extra_context=Non
         context.update(extra_context)
     
     try:
+        logger.debug(f"📧 Rendering email template: {template}")
+        
         # Render HTML content
         html_content = render_to_string(template, context)
+        logger.debug(f"✓ Template rendered successfully for {school.schema_name}")
         
         # Create plain text version (strip HTML tags for fallback)
         from django.utils.html import strip_tags
@@ -76,14 +81,15 @@ def send_approval_notification(school, status_changed_by=None, extra_context=Non
             reply_to=[settings.DEFAULT_FROM_EMAIL],
         )
         email.attach_alternative(html_content, "text/html")
+        logger.debug(f"✓ Email object created, sending to {school.contact_person_email}")
         
         # Send
-        email.send(fail_silently=False)
-        logger.info(f"Sent {status} notification to {school.contact_person_email} for school {school.schema_name}")
+        result = email.send(fail_silently=False)
+        logger.info(f"✅ Sent {status} notification to {school.contact_person_email} for school {school.schema_name}")
         return True
         
     except Exception as e:
-        logger.error(f"Failed to send email notification for {school.schema_name}: {e}")
+        logger.error(f"❌ Failed to send email notification for {school.schema_name}: {e}", exc_info=True)
         return False
 
 
