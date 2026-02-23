@@ -282,3 +282,19 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
+# =====================
+# ERROR HANDLER CONFIGURATION
+# =====================
+# Custom error page handlers with modern design
+# These will be used when DEBUG = False and exceptions occur
+ERROR_400_FILE = os.path.join(BASE_DIR, 'templates', '400.html')
+ERROR_403_FILE = os.path.join(BASE_DIR, 'templates', '403.html')
+ERROR_404_FILE = os.path.join(BASE_DIR, 'templates', '404.html')
+ERROR_500_FILE = os.path.join(BASE_DIR, 'templates', '500.html')
+ERROR_503_FILE = os.path.join(BASE_DIR, 'templates', '503.html')
+
+# Error handler views in urls.py will handle these
+HANDLER400 = 'school_system.views.bad_request_400'
+HANDLER403 = 'school_system.views.forbidden_403'
+HANDLER404 = 'school_system.views.page_not_found_404'
+HANDLER500 = 'school_system.views.server_error_500'

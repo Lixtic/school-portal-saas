@@ -1,20 +1,20 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Server Error - 500{% endblock %}
+{% block title %}Service Unavailable - 503{% endblock %}
 
 {% block content %}
 <style>
     :root {
-        --primary-color: #ef4444;
-        --primary-light: rgba(239, 68, 68, 0.1);
-        --primary-border: rgba(239, 68, 68, 0.2);
+        --primary-color: #6366f1;
+        --primary-light: rgba(99, 102, 241, 0.1);
+        --primary-border: rgba(99, 102, 241, 0.2);
     }
     
     [data-bs-theme="dark"] {
-        --primary-color: #fca5a5;
-        --primary-light: rgba(252, 165, 165, 0.1);
-        --primary-border: rgba(252, 165, 165, 0.2);
+        --primary-color: #818cf8;
+        --primary-light: rgba(129, 140, 248, 0.1);
+        --primary-border: rgba(129, 140, 248, 0.2);
     }
     
     .error-container {
@@ -62,31 +62,30 @@
     .error-code {
         font-size: 8rem;
         font-weight: 900;
-        background: linear-gradient(135deg, #ef4444, #f87171);
+        background: linear-gradient(135deg, #6366f1, #4f46e5);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
         line-height: 1;
         margin-bottom: 0.5rem;
-        animation: pulse 2s ease-in-out infinite;
+        animation: blink 2s ease-in-out infinite;
     }
     
-    @keyframes pulse {
+    @keyframes blink {
         0%, 100% { opacity: 1; }
-        50% { opacity: 0.7; }
+        50% { opacity: 0.5; }
     }
     
     .error-icon {
         font-size: 4rem;
         color: var(--primary-color);
         margin-bottom: 1.5rem;
-        animation: shake 0.5s ease-in-out 2s infinite;
+        animation: spin 3s linear infinite;
     }
     
-    @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        25% { transform: translateX(-5px); }
-        75% { transform: translateX(5px); }
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
     }
     
     .error-title {
@@ -132,7 +131,7 @@
     }
     
     .error-btn:hover {
-        background: rgba(239, 68, 68, 0.2);
+        background: rgba(99, 102, 241, 0.2);
         border-color: var(--primary-color);
         transform: translateY(-2px);
     }
@@ -144,8 +143,8 @@
     }
     
     .error-btn-primary:hover {
-        background: #dc2626;
-        border-color: #dc2626;
+        background: #4f46e5;
+        border-color: #4f46e5;
     }
     
     .error-meta {
@@ -155,6 +154,16 @@
         font-size: 0.875rem;
         color: var(--text-muted);
     }
+    
+    .maintenance-note {
+        margin-top: 2rem;
+        padding: 1rem;
+        background: var(--primary-light);
+        border-radius: 10px;
+        border: 1px solid var(--primary-border);
+        font-size: 0.875rem;
+        color: var(--primary-color);
+    }
 </style>
 
 <div class="error-container">
@@ -162,18 +171,18 @@
     
     <div class="error-content">
         <div class="error-card">
-            <div class="error-code">500</div>
-            <i class="bi bi-exclamation-triangle-fill error-icon"></i>
+            <div class="error-code">503</div>
+            <i class="bi bi-gear error-icon"></i>
             
-            <h1 class="error-title">Internal Server Error</h1>
+            <h1 class="error-title">Service Unavailable</h1>
             <p class="error-description">
-                Oops! Something went wrong on our end. Our team has been notified and is working to fix this issue. Please try refreshing the page or come back shortly.
+                We're currently performing maintenance or experiencing high traffic. Our team is working hard to get everything back online. Please check back shortly!
             </p>
             
             <div class="error-actions">
                 <a href="javascript:location.reload()" class="error-btn">
                     <i class="bi bi-arrow-clockwise"></i>
-                    <span>Refresh Page</span>
+                    <span>Try Again</span>
                 </a>
                 <a href="/" class="error-btn error-btn-primary">
                     <i class="bi bi-house-door"></i>
@@ -181,8 +190,12 @@
                 </a>
             </div>
             
+            <div class="maintenance-note">
+                <strong>Status:</strong> Maintenance in progress. Expected time: Check back in a few moments.
+            </div>
+            
             <div class="error-meta">
-                <small><strong>Error Code:</strong> 500 Internal Server Error</small>
+                <small><strong>Error Code:</strong> 503 Service Unavailable</small>
             </div>
         </div>
     </div>
