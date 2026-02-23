@@ -92,67 +92,94 @@
         align-items: center;
     }
 
-    /* ===== Quick Actions (CSS Grid) ===== */
-    .actions-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 0.75rem;
-        margin-bottom: 1.75rem;
-    }
-    .action-card {
+    /* ===== Quick Actions - Minimalist Groups ===== */
+    .qa-section {
+        background: #fff;
         border: 1px solid rgba(0,0,0,0.06);
         border-radius: 14px;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        text-decoration: none;
-        color: var(--bs-body-color);
+        overflow: hidden;
+        margin-bottom: 1.75rem;
+    }
+    .qa-group {
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    .qa-group:last-child { border-bottom: none; }
+    .qa-group-header {
         display: flex;
-        flex-direction: column;
         align-items: center;
-        justify-content: center;
         gap: 0.5rem;
-        background: #fff;
-        padding: 1rem 0.5rem;
+        padding: 0.6rem 1rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #9ca3af;
+        background: rgba(0,0,0,0.018);
+        border-bottom: 1px solid rgba(0,0,0,0.04);
     }
-    .action-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 6px 20px rgba(0,0,0,0.07);
-        border-color: transparent;
-        text-decoration: none;
-        color: var(--bs-body-color);
+    .qa-row {
+        display: flex;
+        flex-wrap: wrap;
     }
-    .action-icon {
-        width: 42px;
-        height: 42px;
-        border-radius: 12px;
+    .qa-link {
         display: flex;
         align-items: center;
-        justify-content: center;
-        font-size: 1.2rem;
-        transition: all 0.25s ease;
+        gap: 0.5rem;
+        padding: 0.65rem 1rem;
+        text-decoration: none;
+        color: #374151;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        transition: background 0.15s, color 0.15s;
+        flex: 0 0 25%;
+        border-right: 1px solid rgba(0,0,0,0.04);
+        border-bottom: 1px solid rgba(0,0,0,0.04);
+        white-space: nowrap;
+        overflow: hidden;
     }
-    .action-card:hover .action-icon { transform: scale(1.08); }
-    .action-label {
-        font-weight: 600;
-        font-size: 0.75rem;
-        text-align: center;
-        line-height: 1.25;
-        color: inherit;
+    .qa-link:last-child { border-right: none; }
+    .qa-link:hover {
+        background: rgba(59,130,246,0.04);
+        color: #3b82f6;
+        text-decoration: none;
     }
-    /* Icon theme colors */
-    .ai-blue { background: #eff6ff; color: #3b82f6; }
-    .ai-green { background: #f0fdf4; color: #22c55e; }
-    .ai-rose { background: #fff1f2; color: #f43f5e; }
-    .ai-purple { background: #f5f3ff; color: #8b5cf6; }
-    .ai-amber { background: #fffbeb; color: #f59e0b; }
-    .ai-cyan { background: #ecfeff; color: #06b6d4; }
-    .ai-slate { background: #f1f5f9; color: #64748b; }
-    .action-card:hover .ai-blue { background: #3b82f6; color: #fff; }
-    .action-card:hover .ai-green { background: #22c55e; color: #fff; }
-    .action-card:hover .ai-rose { background: #f43f5e; color: #fff; }
-    .action-card:hover .ai-purple { background: #8b5cf6; color: #fff; }
-    .action-card:hover .ai-amber { background: #f59e0b; color: #fff; }
-    .action-card:hover .ai-cyan { background: #06b6d4; color: #fff; }
-    .action-card:hover .ai-slate { background: #64748b; color: #fff; }
+    .qa-link .qa-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        background: currentColor;
+        opacity: 0.5;
+    }
+    /* Group accent colors */
+    .qa-group.g-people  .qa-link:hover { color: #3b82f6; background: rgba(59,130,246,0.04); }
+    .qa-group.g-people  .qa-link:hover .qa-dot { background: #3b82f6; opacity: 1; }
+    .qa-group.g-academic .qa-link:hover { color: #8b5cf6; background: rgba(139,92,246,0.04); }
+    .qa-group.g-academic .qa-link:hover .qa-dot { background: #8b5cf6; opacity: 1; }
+    .qa-group.g-finance  .qa-link:hover { color: #22c55e; background: rgba(34,197,94,0.04); }
+    .qa-group.g-finance  .qa-link:hover .qa-dot { background: #22c55e; opacity: 1; }
+    .qa-group.g-comms    .qa-link:hover { color: #f59e0b; background: rgba(245,158,11,0.04); }
+    .qa-group.g-comms    .qa-link:hover .qa-dot { background: #f59e0b; opacity: 1; }
+    .qa-group.g-tools    .qa-link:hover { color: #64748b; background: rgba(100,116,139,0.04); }
+    .qa-group.g-tools    .qa-link:hover .qa-dot { background: #64748b; opacity: 1; }
+
+    /* Dark mode */
+    [data-bs-theme="dark"] .qa-section {
+        background: var(--surface-card, #1e293b);
+        border-color: rgba(255,255,255,0.06);
+    }
+    [data-bs-theme="dark"] .qa-group { border-bottom-color: rgba(255,255,255,0.05); }
+    [data-bs-theme="dark"] .qa-group-header { background: rgba(255,255,255,0.02); border-bottom-color: rgba(255,255,255,0.04); color: #64748b; }
+    [data-bs-theme="dark"] .qa-link { color: #cbd5e1; border-right-color: rgba(255,255,255,0.04); border-bottom-color: rgba(255,255,255,0.04); }
+    [data-bs-theme="dark"] .qa-group.g-people  .qa-link:hover { color: #60a5fa; background: rgba(59,130,246,0.08); }
+    [data-bs-theme="dark"] .qa-group.g-academic .qa-link:hover { color: #a78bfa; background: rgba(139,92,246,0.08); }
+    [data-bs-theme="dark"] .qa-group.g-finance  .qa-link:hover { color: #4ade80; background: rgba(34,197,94,0.08); }
+    [data-bs-theme="dark"] .qa-group.g-comms    .qa-link:hover { color: #fbbf24; background: rgba(245,158,11,0.08); }
+    [data-bs-theme="dark"] .qa-group.g-tools    .qa-link:hover { color: #94a3b8; background: rgba(100,116,139,0.08); }
+
+    @media (max-width: 767px) {
+        .qa-link { flex: 0 0 50%; }
+    }
 
     /* ===== Content Grid (Announcements + Charts) ===== */
     .content-grid {
@@ -253,26 +280,7 @@
     [data-bs-theme="dark"] .sb-blue { background: rgba(3,105,161,0.2); color: #7dd3fc; }
     [data-bs-theme="dark"] .sb-green { background: rgba(21,128,61,0.2); color: #86efac; }
     [data-bs-theme="dark"] .sb-indigo { background: rgba(30,64,175,0.2); color: #93c5fd; }
-    [data-bs-theme="dark"] .action-card { color: var(--text-main, #f1f5f9); }
-    [data-bs-theme="dark"] .action-card:hover {
-        background: rgba(255,255,255,0.04);
-        box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-        color: var(--text-main, #f1f5f9);
-    }
-    [data-bs-theme="dark"] .ai-blue { background: rgba(59,130,246,0.12); color: #60a5fa; }
-    [data-bs-theme="dark"] .ai-green { background: rgba(34,197,94,0.12); color: #4ade80; }
-    [data-bs-theme="dark"] .ai-rose { background: rgba(244,63,94,0.12); color: #fb7185; }
-    [data-bs-theme="dark"] .ai-purple { background: rgba(139,92,246,0.12); color: #a78bfa; }
-    [data-bs-theme="dark"] .ai-amber { background: rgba(245,158,11,0.12); color: #fbbf24; }
-    [data-bs-theme="dark"] .ai-cyan { background: rgba(6,182,212,0.12); color: #22d3ee; }
-    [data-bs-theme="dark"] .ai-slate { background: rgba(100,116,139,0.12); color: #94a3b8; }
-    [data-bs-theme="dark"] .action-card:hover .ai-blue { background: rgba(59,130,246,0.25); color: #93c5fd; }
-    [data-bs-theme="dark"] .action-card:hover .ai-green { background: rgba(34,197,94,0.25); color: #86efac; }
-    [data-bs-theme="dark"] .action-card:hover .ai-rose { background: rgba(244,63,94,0.25); color: #fda4af; }
-    [data-bs-theme="dark"] .action-card:hover .ai-purple { background: rgba(139,92,246,0.25); color: #c4b5fd; }
-    [data-bs-theme="dark"] .action-card:hover .ai-amber { background: rgba(245,158,11,0.25); color: #fde68a; }
-    [data-bs-theme="dark"] .action-card:hover .ai-cyan { background: rgba(6,182,212,0.25); color: #67e8f9; }
-    [data-bs-theme="dark"] .action-card:hover .ai-slate { background: rgba(100,116,139,0.25); color: #cbd5e1; }
+    /* (dark mode for qa-* included in qa-section block above) */
     [data-bs-theme="dark"] .announce-item { border-bottom-color: rgba(255,255,255,0.04); }
     [data-bs-theme="dark"] .announce-item:hover { background: rgba(255,255,255,0.03); }
     [data-bs-theme="dark"] .announce-icon { background: rgba(59,130,246,0.12); color: #60a5fa; }
@@ -499,75 +507,76 @@
 </div>
 {% endif %}
 
-<!-- Quick Actions -->
+<!-- Quick Actions - Minimalist grouped rows -->
 <div id="widget-quick-actions">
     <div class="section-heading">Quick Actions</div>
-    <div class="actions-grid">
-        <a href="{% url 'students:add_student' %}" class="action-card">
-            <div class="action-icon ai-blue"><i class="bi bi-person-plus"></i></div>
-            <span class="action-label">Add Student</span>
-        </a>
-        <a href="{% url 'teachers:add_teacher' %}" class="action-card">
-            <div class="action-icon ai-green"><i class="bi bi-person-workspace"></i></div>
-            <span class="action-label">Add Teacher</span>
-        </a>
-        <a href="{% url 'parents:add_parent' %}" class="action-card">
-            <div class="action-icon ai-rose"><i class="bi bi-person-hearts"></i></div>
-            <span class="action-label">Add Parent</span>
-        </a>
-        <a href="{% url 'accounts:manage_users' %}" class="action-card">
-            <div class="action-icon ai-purple"><i class="bi bi-people"></i></div>
-            <span class="action-label">Users</span>
-        </a>
-        <a href="{% url 'finance:dashboard' %}" class="action-card">
-            <div class="action-icon ai-green"><i class="bi bi-wallet2"></i></div>
-            <span class="action-label">Finance</span>
-        </a>
-        <a href="{% url 'academics:timetable' %}" class="action-card">
-            <div class="action-icon ai-cyan"><i class="bi bi-calendar-week"></i></div>
-            <span class="action-label">Timetable</span>
-        </a>
-        <a href="{% url 'academics:manage_classes' %}" class="action-card">
-            <div class="action-icon ai-cyan"><i class="bi bi-building"></i></div>
-            <span class="action-label">Classes</span>
-        </a>
-        <a href="{% url 'academics:manage_subjects' %}" class="action-card">
-            <div class="action-icon ai-amber"><i class="bi bi-book"></i></div>
-            <span class="action-label">Subjects</span>
-        </a>
-        <a href="{% url 'academics:manage_academic_years' %}" class="action-card">
-            <div class="action-icon ai-purple"><i class="bi bi-calendar-range"></i></div>
-            <span class="action-label">Acad. Years</span>
-        </a>
-        <a href="{% url 'academics:manage_id_cards' %}" class="action-card">
-            <div class="action-icon ai-teal"><i class="bi bi-person-badge"></i></div>
-            <span class="action-label">ID Cards</span>
-        </a>
-        <a href="{% url 'teachers:duty_roster' %}" class="action-card">
-            <div class="action-icon ai-rose"><i class="bi bi-clipboard-check"></i></div>
-            <span class="action-label">Duty Roster</span>
-        </a>
-        <a href="{% url 'announcements:manage' %}" class="action-card">
-            <div class="action-icon ai-amber"><i class="bi bi-megaphone"></i></div>
-            <span class="action-label">Notices</span>
-        </a>
-        <a href="{% url 'academics:gallery' %}" class="action-card">
-            <div class="action-icon ai-slate"><i class="bi bi-images"></i></div>
-            <span class="action-label">Gallery</span>
-        </a>
-        <a href="{% url 'academics:manage_resources' %}" class="action-card">
-            <div class="action-icon ai-blue"><i class="bi bi-folder-plus"></i></div>
-            <span class="action-label">Resources</span>
-        </a>
-        <a href="{% url 'academics:school_settings' %}" class="action-card">
-            <div class="action-icon ai-slate"><i class="bi bi-gear"></i></div>
-            <span class="action-label">Settings</span>
-        </a>
-        <a href="/admin/" class="action-card">
-            <div class="action-icon ai-purple"><i class="bi bi-shield-lock"></i></div>
-            <span class="action-label">Admin</span>
-        </a>
+    <div class="qa-section">
+
+        <!-- People -->
+        <div class="qa-group g-people">
+            <div class="qa-group-header"><i class="bi bi-people"></i> People</div>
+            <div class="qa-row">
+                <a href="{% url 'students:add_student' %}" class="qa-link"><span class="qa-dot"></span> Add Student</a>
+                <a href="{% url 'students:student_list' %}" class="qa-link"><span class="qa-dot"></span> All Students</a>
+                <a href="{% url 'teachers:add_teacher' %}" class="qa-link"><span class="qa-dot"></span> Add Teacher</a>
+                <a href="{% url 'teachers:teacher_list' %}" class="qa-link"><span class="qa-dot"></span> All Teachers</a>
+                <a href="{% url 'parents:add_parent' %}" class="qa-link"><span class="qa-dot"></span> Add Parent</a>
+                <a href="{% url 'accounts:manage_users' %}" class="qa-link"><span class="qa-dot"></span> Manage Users</a>
+                <a href="{% url 'students:import_csv' %}" class="qa-link"><span class="qa-dot"></span> Import CSV</a>
+                <a href="{% url 'academics:manage_id_cards' %}" class="qa-link"><span class="qa-dot"></span> ID Cards</a>
+            </div>
+        </div>
+
+        <!-- Academics -->
+        <div class="qa-group g-academic">
+            <div class="qa-group-header"><i class="bi bi-mortarboard"></i> Academics</div>
+            <div class="qa-row">
+                <a href="{% url 'academics:manage_classes' %}" class="qa-link"><span class="qa-dot"></span> Classes</a>
+                <a href="{% url 'academics:manage_subjects' %}" class="qa-link"><span class="qa-dot"></span> Subjects</a>
+                <a href="{% url 'academics:timetable' %}" class="qa-link"><span class="qa-dot"></span> Timetable</a>
+                <a href="{% url 'academics:manage_academic_years' %}" class="qa-link"><span class="qa-dot"></span> Academic Years</a>
+                <a href="{% url 'homework:homework_list' %}" class="qa-link"><span class="qa-dot"></span> Homework</a>
+                <a href="{% url 'students:mark_attendance' %}" class="qa-link"><span class="qa-dot"></span> Attendance</a>
+                <a href="{% url 'students:bulk_report_cards' %}" class="qa-link"><span class="qa-dot"></span> Report Cards</a>
+                <a href="{% url 'academics:manage_activities' %}" class="qa-link"><span class="qa-dot"></span> Activities</a>
+            </div>
+        </div>
+
+        <!-- Finance -->
+        <div class="qa-group g-finance">
+            <div class="qa-group-header"><i class="bi bi-wallet2"></i> Finance</div>
+            <div class="qa-row">
+                <a href="{% url 'finance:dashboard' %}" class="qa-link"><span class="qa-dot"></span> Finance Dashboard</a>
+                <a href="{% url 'finance:manage_fees' %}" class="qa-link"><span class="qa-dot"></span> Manage Fees</a>
+                <a href="{% url 'finance:create_fee_structure' %}" class="qa-link"><span class="qa-dot"></span> New Fee Structure</a>
+                <a href="{% url 'finance:manage_fees' %}" class="qa-link"><span class="qa-dot"></span> Fee Overview</a>
+            </div>
+        </div>
+
+        <!-- Communication -->
+        <div class="qa-group g-comms">
+            <div class="qa-group-header"><i class="bi bi-chat-dots"></i> Communication</div>
+            <div class="qa-row">
+                <a href="{% url 'announcements:manage' %}" class="qa-link"><span class="qa-dot"></span> Notices</a>
+                <a href="{% url 'announcements:list' %}" class="qa-link"><span class="qa-dot"></span> View Notices</a>
+                <a href="{% url 'communication:dashboard' %}" class="qa-link"><span class="qa-dot"></span> Messages</a>
+                <a href="{% url 'academics:gallery' %}" class="qa-link"><span class="qa-dot"></span> Gallery</a>
+            </div>
+        </div>
+
+        <!-- Tools -->
+        <div class="qa-group g-tools">
+            <div class="qa-group-header"><i class="bi bi-gear"></i> Tools & Settings</div>
+            <div class="qa-row">
+                <a href="{% url 'academics:school_settings' %}" class="qa-link"><span class="qa-dot"></span> School Settings</a>
+                <a href="{% url 'academics:manage_resources' %}" class="qa-link"><span class="qa-dot"></span> Resources</a>
+                <a href="{% url 'teachers:duty_roster' %}" class="qa-link"><span class="qa-dot"></span> Duty Roster</a>
+                <a href="/admin/" class="qa-link"><span class="qa-dot"></span> Django Admin</a>
+            </div>
+        </div>
+
     </div>
+</div>
 </div>
 
 <!-- Main Content: Announcements + Charts -->
