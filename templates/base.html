@@ -734,15 +734,40 @@
                         </div>
                         {% endif %}
 
-                        <a href="{% url 'dashboard' %}" class="user-info ms-2">
-                            <div class="d-none d-md-block text-end lh-sm">
-                                <div class="fw-bold" style="font-size: 0.9rem;">{{ user.get_full_name }}</div>
-                                <div class="text-uppercase" style="font-size: 0.65rem; opacity: 0.6; font-weight: 600; letter-spacing: 0.5px;">{{ user.user_type }}</div>
-                            </div>
-                            <div class="user-avatar">
-                                {{ user.get_full_name|first|upper }}
-                            </div>
-                        </a>
+                        <!-- Profile Dropdown -->
+                        <div class="dropdown">
+                            <a href="#" class="user-info ms-2 text-decoration-none" data-bs-toggle="dropdown" aria-expanded="false" id="profileDropdown">
+                                <div class="d-none d-md-block text-end lh-sm">
+                                    <div class="fw-bold" style="font-size: 0.9rem;">{{ user.get_full_name }}</div>
+                                    <div class="text-uppercase" style="font-size: 0.65rem; opacity: 0.6; font-weight: 600; letter-spacing: 0.5px;">{{ user.user_type }}</div>
+                                </div>
+                                <div class="user-avatar">
+                                    {{ user.get_full_name|first|upper }}
+                                </div>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width: 220px; border-radius: 12px; overflow: hidden;" aria-labelledby="profileDropdown">
+                                <li class="px-3 py-2 border-bottom d-md-none">
+                                    <div class="fw-bold">{{ user.get_full_name }}</div>
+                                    <div class="text-muted small text-uppercase" style="letter-spacing: 0.5px;">{{ user.user_type }}</div>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{% url 'dashboard' %}">
+                                        <i class="bi bi-speedometer2 text-primary"></i> My Dashboard
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{% url 'password_change' %}">
+                                        <i class="bi bi-key text-warning"></i> Change Password
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider my-1"></li>
+                                <li>
+                                    <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-danger" href="{% url 'logout' %}">
+                                        <i class="bi bi-box-arrow-right"></i> Sign Out
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -777,6 +802,7 @@
                     <li class="mobile-bubble-item"><a href="{% url 'students:student_list' %}"><i class="bi bi-people"></i>Students</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'students:mark_attendance' %}"><i class="bi bi-calendar-check"></i>Attendance</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'academics:timetable' %}"><i class="bi bi-table"></i>Timetable</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'homework_list' %}"><i class="bi bi-journal-text"></i>Homework</a></li>
                 {% endif %}
                 {% if user.user_type == 'admin' %}
                     <li class="mobile-bubble-item"><a href="{% url 'teachers:teacher_list' %}"><i class="bi bi-person-lines-fill"></i>Teachers</a></li>
@@ -786,26 +812,35 @@
                     <li class="mobile-bubble-item"><a href="{% url 'academics:manage_id_cards' %}"><i class="bi bi-person-badge"></i>ID Cards</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'academics:manage_activities' %}"><i class="bi bi-calendar-event"></i>Activities</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'finance:dashboard' %}"><i class="bi bi-wallet2"></i>Finance</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'finance:manage_fees' %}"><i class="bi bi-receipt"></i>Manage Fees</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'communication:dashboard' %}"><i class="bi bi-envelope"></i>Messages</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'announcements:manage' %}"><i class="bi bi-megaphone"></i>Notices</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'manage_users' %}"><i class="bi bi-people-fill"></i>Manage Users</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'academics:school_settings' %}"><i class="bi bi-gear"></i>Settings</a></li>
                 {% endif %}
                 {% if user.user_type == 'teacher' %}
                     <li class="mobile-bubble-item"><a href="{% url 'teachers:my_classes' %}"><i class="bi bi-book"></i>My Classes</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'teachers:enter_grades' %}"><i class="bi bi-journal-plus"></i>Enter Grades</a></li>
-                    <li class="mobile-bubble-item"><a href="{% url 'homework_list' %}"><i class="bi bi-journal-text"></i>Homework</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'teachers:schedule' %}"><i class="bi bi-calendar-week"></i>My Schedule</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'teachers:duty_roster' %}"><i class="bi bi-calendar-check"></i>Duty Roster</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'teachers:lesson_plan_list' %}"><i class="bi bi-journal-bookmark"></i>Lesson Plans</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'teachers:curriculum_library' %}"><i class="bi bi-collection"></i>Curriculum Library</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'announcements:list' %}"><i class="bi bi-megaphone"></i>Notices</a></li>
                 {% endif %}
                 {% if user.user_type == 'student' %}
                     <li class="mobile-bubble-item"><a href="{% url 'students:student_schedule' %}"><i class="bi bi-calendar-week"></i>My Schedule</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'academics:timetable' %}"><i class="bi bi-table"></i>Timetable</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'homework_list' %}"><i class="bi bi-journal-text"></i>Homework</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'announcements:list' %}"><i class="bi bi-megaphone"></i>Notices</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'academics:ai_tutor' %}"><i class="bi bi-robot"></i>AI Tutor</a></li>
                 {% endif %}
                 {% if user.user_type == 'parent' %}
                     <li class="mobile-bubble-item"><a href="{% url 'parents:my_children' %}"><i class="bi bi-person-hearts"></i>My Children</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'homework_list' %}"><i class="bi bi-journal-text"></i>Homework</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'announcements:list' %}"><i class="bi bi-megaphone"></i>Notices</a></li>
                 {% endif %}
-                <li class="mobile-bubble-item mt-2 pt-2 border-top border-secondary opacity-75"><a href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i>Sign Out</a></li>
+                <li class="mobile-bubble-item mt-2 pt-2 border-top border-secondary opacity-75"><a href="{% url 'password_change' %}"><i class="bi bi-key"></i>Change Password</a></li>
+                <li class="mobile-bubble-item opacity-75"><a href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i>Sign Out</a></li>
             </ul>
         </div>
 
@@ -947,6 +982,12 @@
                     <span>Timetable</span>
                 </a>
             </div>
+            <div class="nav-item">
+                <a href="{% url 'homework_list' %}" class="nav-link {% if request.resolver_match.url_name == 'homework_list' %}active{% endif %}" title="Homework">
+                    <i class="bi bi-journal-text"></i>
+                    <span>Homework</span>
+                </a>
+            </div>
             {% endif %}
 
             {% if user.user_type == 'admin' %}
@@ -988,16 +1029,50 @@
                     <span>Activities</span>
                 </a>
             </div>
+
+            <!-- DATA TOOLS -->
+            <h4 class="mb-2 mt-4"><i class="bi bi-database me-2" style="font-size: 0.85rem;"></i>Data Tools</h4>
+            <div class="nav-item">
+                <a href="{% url 'students:import_csv' %}" class="nav-link {% if request.resolver_match.url_name == 'import_csv' %}active{% endif %}" title="Import Students">
+                    <i class="bi bi-upload"></i>
+                    <span>Import Students</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{% url 'students:export_students' %}" class="nav-link {% if request.resolver_match.url_name == 'export_students' %}active{% endif %}" title="Export Students">
+                    <i class="bi bi-download"></i>
+                    <span>Export Students</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{% url 'students:bulk_report_cards' %}" class="nav-link {% if request.resolver_match.url_name == 'bulk_report_cards' %}active{% endif %}" title="Bulk Report Cards">
+                    <i class="bi bi-printer"></i>
+                    <span>Bulk Report Cards</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{% url 'students:bulk_assign_class' %}" class="nav-link {% if request.resolver_match.url_name == 'bulk_assign_class' %}active{% endif %}" title="Bulk Assign Class">
+                    <i class="bi bi-arrow-left-right"></i>
+                    <span>Bulk Assign Class</span>
+                </a>
+            </div>
             
-            <!-- FINANCE & COMMUNICATION -->
+            <!-- FINANCE -->
             <h4 class="mb-2 mt-4"><i class="bi bi-wallet2 me-2" style="font-size: 0.85rem;"></i>Finance</h4>
             <div class="nav-item">
-                <a href="{% url 'finance:dashboard' %}" class="nav-link {% if 'finance' in request.resolver_match.app_names %}active{% endif %}" title="Finance">
+                <a href="{% url 'finance:dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' and 'finance' in request.resolver_match.app_names %}active{% endif %}" title="Finance Dashboard">
                     <i class="bi bi-cash-stack"></i>
                     <span>Finance Dashboard</span>
                 </a>
             </div>
-            
+            <div class="nav-item">
+                <a href="{% url 'finance:manage_fees' %}" class="nav-link {% if request.resolver_match.url_name == 'manage_fees' %}active{% endif %}" title="Manage Fees">
+                    <i class="bi bi-receipt"></i>
+                    <span>Manage Fees</span>
+                </a>
+            </div>
+
+            <!-- COMMUNICATION -->
             <h4 class="mb-2 mt-4"><i class="bi bi-chat-dots me-2" style="font-size: 0.85rem;"></i>Communication</h4>
             <div class="nav-item">
                 <a href="{% url 'announcements:manage' %}" class="nav-link {% if 'announcements' in request.resolver_match.app_names %}active{% endif %}" title="Notices">
@@ -1015,9 +1090,15 @@
             <!-- SETTINGS -->
             <h4 class="mb-2 mt-4"><i class="bi bi-gear me-2" style="font-size: 0.85rem;"></i>Settings</h4>
             <div class="nav-item">
-                <a href="{% url 'academics:school_settings' %}" class="nav-link {% if request.resolver_match.url_name == 'school_settings' %}active{% endif %}" title="Settings">
+                <a href="{% url 'academics:school_settings' %}" class="nav-link {% if request.resolver_match.url_name == 'school_settings' %}active{% endif %}" title="School Settings">
                     <i class="bi bi-gear-fill"></i>
                     <span>School Settings</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{% url 'manage_users' %}" class="nav-link {% if request.resolver_match.url_name == 'manage_users' or request.resolver_match.url_name == 'admin_password_reset' %}active{% endif %}" title="Manage Users">
+                    <i class="bi bi-people-fill"></i>
+                    <span>Manage Users</span>
                 </a>
             </div>
             {% endif %}
@@ -1038,18 +1119,41 @@
                 </a>
             </div>
             <div class="nav-item">
+                <a href="{% url 'teachers:schedule' %}" class="nav-link {% if request.resolver_match.url_name == 'schedule' %}active{% endif %}" title="My Schedule">
+                    <i class="bi bi-calendar-week"></i>
+                    <span>My Schedule</span>
+                </a>
+            </div>
+            <div class="nav-item">
                 <a href="{% url 'teachers:duty_roster' %}" class="nav-link {% if request.resolver_match.url_name == 'duty_roster' %}active{% endif %}" title="Duty Roster">
                     <i class="bi bi-calendar-check"></i>
                     <span>Duty Roster</span>
                 </a>
             </div>
+
+            <!-- RESOURCES -->
+            <h4 class="mb-2 mt-4"><i class="bi bi-folder me-2" style="font-size: 0.85rem;"></i>Resources</h4>
             <div class="nav-item">
-                <a href="{% url 'homework_list' %}" class="nav-link {% if 'homework' in request.resolver_match.url_name %}active{% endif %}" title="Homework">
-                    <i class="bi bi-journal-text"></i>
-                    <span>Homework</span>
+                <a href="{% url 'teachers:lesson_plan_list' %}" class="nav-link {% if request.resolver_match.url_name == 'lesson_plan_list' or request.resolver_match.url_name == 'lesson_plan_create' or request.resolver_match.url_name == 'lesson_plan_detail' or request.resolver_match.url_name == 'lesson_plan_edit' %}active{% endif %}" title="Lesson Plans">
+                    <i class="bi bi-journal-bookmark"></i>
+                    <span>Lesson Plans</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{% url 'teachers:curriculum_library' %}" class="nav-link {% if request.resolver_match.url_name == 'curriculum_library' %}active{% endif %}" title="Curriculum Library">
+                    <i class="bi bi-collection"></i>
+                    <span>Curriculum Library</span>
                 </a>
             </div>
 
+            <!-- NOTICES -->
+            <h4 class="mb-2 mt-4"><i class="bi bi-chat-dots me-2" style="font-size: 0.85rem;"></i>Communication</h4>
+            <div class="nav-item">
+                <a href="{% url 'announcements:list' %}" class="nav-link {% if 'announcements' in request.resolver_match.app_names %}active{% endif %}" title="Notices">
+                    <i class="bi bi-megaphone"></i>
+                    <span>Notices</span>
+                </a>
+            </div>
             {% endif %}
 
             {% if user.user_type == 'student' %}
@@ -1065,6 +1169,12 @@
                 <a href="{% url 'academics:timetable' %}" class="nav-link {% if request.resolver_match.url_name == 'timetable' %}active{% endif %}" title="Timetable">
                     <i class="bi bi-table"></i>
                     <span>Timetable</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{% url 'homework_list' %}" class="nav-link {% if request.resolver_match.url_name == 'homework_list' %}active{% endif %}" title="Homework">
+                    <i class="bi bi-journal-text"></i>
+                    <span>Homework</span>
                 </a>
             </div>
             <div class="nav-item">
@@ -1091,7 +1201,7 @@
                 </a>
             </div>
             <div class="nav-item">
-                <a href="{% url 'homework_list' %}" class="nav-link {% if 'homework' in request.resolver_match.url_name %}active{% endif %}" title="Homework">
+                <a href="{% url 'homework_list' %}" class="nav-link {% if request.resolver_match.url_name == 'homework_list' %}active{% endif %}" title="Homework">
                     <i class="bi bi-journal-text"></i>
                     <span>Homework</span>
                 </a>
