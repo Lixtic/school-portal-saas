@@ -205,6 +205,50 @@ def school_setup_wizard(request):
 
 
 @login_required
+def landlord_landing(request):
+    """Landlord landing/welcome page with overview."""
+    if not request.user.is_staff:
+        messages.error(request, "Access denied. Admins only.")
+        return redirect('home')
+
+    schools_count = School.objects.count()
+    active_count = School.objects.filter(is_active=True).count()
+    trial_count = School.objects.filter(on_trial=True).count()
+    inactive_count = schools_count - active_count
+    domains_count = Domain.objects.count()
+    primary_domains = Domain.objects.filter(is_primary=True).count()
+    
+    # Approval stats
+    pending_count = School.objects.filter(approval_status='pending').count()
+    under_review_count = School.objects.filter(approval_status='under_review').count()
+    approved_count = School.objects.filter(approval_status='approved').count()
+    rejected_count = School.objects.filter(approval_status='rejected').count()
+    requires_info_count = School.objects.filter(approval_status='requires_info').count()
+
+    by_type = (
+        School.objects.values('school_type')
+        .order_by('school_type')
+        .annotate(total=models.Count('id'))
+    )
+
+    context = {
+        'schools_count': schools_count,
+        'active_count': active_count,
+        'trial_count': trial_count,
+        'inactive_count': inactive_count,
+        'domains_count': domains_count,
+        'primary_domains': primary_domains,
+        'pending_count': pending_count,
+        'under_review_count': under_review_count,
+        'approved_count': approved_count,
+        'rejected_count': rejected_count,
+        'requires_info_count': requires_info_count,
+        'by_type': by_type,
+    }
+    return render(request, 'tenants/landlord_landing.html', context)
+
+
+@login_required
 def landlord_dashboard(request):
     """Public-schema landlord dashboard for platform admins."""
     if not request.user.is_staff:

@@ -1,322 +1,489 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
 
-{% block title %}Start Your School's Journey{% endblock %}
+{% block title %}Create New School Tenant{% endblock %}
 
 {% block content %}
 <style>
-    .signup-split-screen {
-        min-height: calc(100vh - 76px); /* Adjust for navbar */
-    }
-    .left-panel {
-        background: linear-gradient(135deg, var(--primary-brand), var(--primary-accent));
-        color: white;
-        position: relative;
-        overflow: hidden;
-    }
-    .left-panel::after {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=1500&auto=format&fit=crop') center/cover;
-        opacity: 0.15;
-        z-index: 0;
-        mix-blend-mode: overlay;
-    }
-    .left-content {
-        position: relative;
-        z-index: 1;
-    }
-    .feature-list li {
-        margin-bottom: 2rem;
+    /* Minimalist Signup Page */
+    .signup-container {
+        min-height: calc(100vh - 76px);
         display: flex;
-        align-items: start;
-        font-size: 1.05rem;
+        align-items: center;
+        justify-content: center;
+        background: var(--surface-bg);
+        padding: 2rem 1rem;
     }
-    .feature-list i {
-        background: rgba(255,255,255,0.2);
-        width: 40px; height: 40px;
+
+    .signup-form-wrapper {
+        width: 100%;
+        max-width: 500px;
+    }
+
+    .signup-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .signup-header h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.5px;
+    }
+
+    .signup-header p {
+        font-size: 1rem;
+        color: var(--text-muted);
+        margin: 0;
+    }
+
+    /* Form styling */
+    .signup-form {
+        background: var(--surface-card);
         border-radius: 12px;
-        display: flex; align-items: center; justify-content: center;
-        margin-right: 1.25rem;
-        flex-shrink: 0;
-        font-size: 1.2rem;
-        backdrop-filter: blur(5px);
+        padding: 0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
-    
-    /* Form sections styling */
-    .form-section {
-        animation: fadeIn 0.4s ease-in;
+
+    .form-group-section {
+        padding: 1.5rem;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
     }
-    
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
+
+    .form-group-section:last-child {
+        border-bottom: none;
     }
-    
-    .form-section h5 {
+
+    .form-group-section h6 {
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        margin-bottom: 1.25rem;
+    }
+
+    /* Form fields */
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-group:last-child {
+        margin-bottom: 0;
+    }
+
+    .form-control {
+        border: 1px solid rgba(0,0,0,0.08);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-size: 0.95rem;
+        background: transparent;
+        transition: all 0.2s ease;
+    }
+
+    .form-control:focus {
+        border-color: var(--primary-brand);
+        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        outline: none;
+    }
+
+    .form-control::placeholder {
+        color: var(--text-muted);
+    }
+
+    .form-label {
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--text-main);
+        margin-bottom: 0.4rem;
+        display: block;
+    }
+
+    .requiredField::after {
+        content: '*';
+        color: #ef4444;
+        margin-left: 3px;
+    }
+
+    /* URL input group */
+    .url-input-group {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .url-input-group input {
+        flex: 1;
+        font-weight: 600;
         color: var(--primary-brand);
-        border-bottom: 2px solid rgba(67, 97, 238, 0.1);
-        padding-bottom: 0.75rem;
+        font-size: 1rem;
+        letter-spacing: 0.3px;
     }
-    
-    /* File input styling */
-    .form-control[type="file"] {
-        padding: 12px 16px;
-        height: auto;
-        border-style: dashed;
-        border-color: var(--primary-brand);
-        border-opacity: 0.3;
-        background-color: rgba(67, 97, 238, 0.02);
+
+    .url-suffix {
+        white-space: nowrap;
+        color: var(--text-muted);
+        font-size: 0.95rem;
+        font-weight: 500;
+    }
+
+    /* Help text */
+    .form-text {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-top: 0.4rem;
+        display: block;
+    }
+
+    /* Two-column grid */
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    @media (max-width: 576px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* File upload styling - minimalist */
+    .file-upload-zone {
+        border: 1px dashed rgba(0,0,0,0.1);
+        border-radius: 8px;
+        padding: 1.25rem;
+        text-align: center;
+        background: rgba(0,0,0,0.01);
+        transition: all 0.2s ease;
         cursor: pointer;
-        transition: all 0.3s ease;
     }
-    
-    .form-control[type="file"]:hover {
+
+    .file-upload-zone:hover {
         border-color: var(--primary-brand);
-        border-opacity: 0.6;
-        background-color: rgba(67, 97, 238, 0.05);
+        background: rgba(67, 97, 238, 0.05);
     }
-    
-    .form-control[type="file"]::file-selector-button {
+
+    .file-upload-zone i {
+        font-size: 1.5rem;
+        color: var(--primary-brand);
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+
+    .file-upload-zone .upload-label {
+        display: block;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--text-main);
+        margin-bottom: 0.2rem;
+    }
+
+    .file-upload-zone .upload-hint {
+        display: block;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
+    .form-control[type="file"] {
+        display: none;
+    }
+
+    /* Submit button */
+    .submit-btn {
+        width: 100%;
+        padding: 0.875rem 1.5rem;
         background: var(--primary-brand);
         color: white;
-        padding: 6px 16px;
         border: none;
-        border-radius: 6px;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
         cursor: pointer;
-        margin-right: 12px;
-        font-weight: 500;
-        transition: all 0.3s ease;
+        transition: all 0.2s ease;
+        margin-top: 1.5rem;
     }
-    
-    .form-control[type="file"]::file-selector-button:hover {
+
+    .submit-btn:hover {
         background: var(--primary-accent);
         transform: translateY(-1px);
     }
-    
-    .right-panel {
-        background: var(--surface-bg);
+
+    .submit-btn:active {
+        transform: translateY(0);
     }
-    
-    .register-card {
-        background: var(--surface-card);
-        border: 1px solid rgba(0,0,0,0.05);
-        border-radius: 24px;
-        box-shadow: var(--card-shadow);
+
+    .submit-btn.loading {
+        opacity: 0.7;
+        pointer-events: none;
     }
-    
-    [data-bs-theme="dark"] .left-panel {
-        background: linear-gradient(135deg, #0f172a, #1e293b);
+
+    /* Footer links */
+    .signup-footer {
+        text-align: center;
+        margin-top: 2rem;
+        font-size: 0.9rem;
+        color: var(--text-muted);
     }
-    [data-bs-theme="dark"] .register-card {
-        border-color: rgba(255,255,255,0.05);
+
+    .signup-footer a {
+        color: var(--primary-brand);
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .signup-footer a:hover {
+        text-decoration: underline;
+    }
+
+    /* Back button */
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--text-muted);
+        text-decoration: none;
+        font-size: 0.95rem;
+        margin-bottom: 2rem;
+        transition: color 0.2s ease;
+    }
+
+    .back-link:hover {
+        color: var(--text-main);
+    }
+
+    /* Error styling */
+    .errorlist {
+        list-style: none;
+        padding: 0;
+        margin: 0.4rem 0 0 0;
+    }
+
+    .errorlist li {
+        font-size: 0.85rem;
+        color: #ef4444;
+        margin-bottom: 0.25rem;
+    }
+
+    .form-control.is-invalid {
+        border-color: #ef4444;
+    }
+
+    /* Dark mode */
+    [data-bs-theme="dark"] .form-control {
+        border-color: rgba(255,255,255,0.1);
+        color: white;
+    }
+
+    [data-bs-theme="dark"] .form-control:focus {
+        border-color: var(--primary-brand);
+        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+    }
+
+    [data-bs-theme="dark"] .file-upload-zone {
+        background: rgba(255,255,255,0.02);
+        border-color: rgba(255,255,255,0.1);
+    }
+
+    [data-bs-theme="dark"] .file-upload-zone:hover {
+        border-color: var(--primary-brand);
+        background: rgba(67, 97, 238, 0.08);
+    }
+
+    [data-bs-theme="dark"] .signup-form {
+        box-shadow: none;
     }
 </style>
 
-<div class="row g-0 signup-split-screen">
-    <!-- Left Panel (Value Prop) -->
-    <div class="col-lg-5 left-panel d-none d-lg-flex flex-column justify-content-center p-5">
-        <div class="left-content px-4">
-            <h1 class="display-4 fw-bold mb-4">Digitize Your School Today.</h1>
-            <p class="lead mb-5 opacity-90" style="font-weight: 400;">Join forward-thinking schools managing their academics, finance, and people in one unified platform.</p>
-            
-            <ul class="list-unstyled feature-list">
-                <li>
-                    <i class="bi bi-rocket-takeoff-fill"></i>
-                    <div>
-                        <strong class="d-block mb-1">Instant Setup</strong>
-                        <div class="small opacity-75">Get started in less than 2 minutes. No credit card required.</div>
-                    </div>
-                </li>
-                <li>
-                    <i class="bi bi-mortarboard-fill"></i>
-                    <div>
-                        <strong class="d-block mb-1">Complete Academics</strong>
-                        <div class="small opacity-75">Report cards, transcripts, and automated grading out of the box.</div>
-                    </div>
-                </li>
-                <li>
-                    <i class="bi bi-shield-lock-fill"></i>
-                    <div>
-                        <strong class="d-block mb-1">Secure & Isolated</strong>
-                        <div class="small opacity-75">Your data lives in its own dedicated database schema.</div>
-                    </div>
-                </li>
-            </ul>
+<div class="signup-container">
+    <div class="signup-form-wrapper">
+        <a href="/" class="back-link">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
 
-            <div class="mt-5 pt-4 border-top border-white border-opacity-10">
-                <blockquote class="blockquote mb-0 fs-6">
-                    <p class="mb-3 fst-italic opacity-90">"This platform transformed how we handle report cards. It used to take weeks, now it takes hours."</p>
-                    <footer class="text-white opacity-75 d-flex align-items-center gap-2">
-                        <div class="rounded-circle bg-white opacity-25" style="width: 24px; height: 24px;"></div>
-                        <span>Principal at Greenfield Academy</span>
-                    </footer>
-                </blockquote>
-            </div>
+        <div class="signup-header">
+            <h1>New Tenant</h1>
+            <p>Create a school account to get started</p>
         </div>
-    </div>
 
-    <!-- Right Panel (Form) -->
-    <div class="col-lg-7 right-panel d-flex flex-column justify-content-center p-4 p-md-5">
-        <div class="mx-auto w-100" style="max-width: 550px;">
-            <div class="mb-4">
-                <a href="/" class="d-inline-flex align-items-center text-decoration-none text-muted mb-4 fw-medium hover-primary transition">
-                    <i class="bi bi-arrow-left me-2"></i> Back to Home
-                </a>
-                <h2 class="fw-bold mb-2 text-dark">Create your school portal</h2>
-                <p class="text-muted">Enter your details to generate your unique domain.</p>
-            </div>
+        <form method="post" id="signupForm" class="signup-form" novalidate enctype="multipart/form-data">
+            {% csrf_token %}
 
-            <div class="card register-card">
-                <div class="card-body p-4 p-md-5">
-                    <form method="post" id="signupForm" novalidate enctype="multipart/form-data">
-                        {% csrf_token %}
-                        
-                        <!-- Step 1: School Information -->
-                        <div class="form-section" id="step1">
-                            <h5 class="fw-bold mb-4"><i class="bi bi-building me-2"></i>School Information</h5>
-                            
-                            <!-- Custom rendering for better control -->
-                            <div class="mb-3">
-                                {{ form.school_name|as_crispy_field }}
-                            </div>
+            <!-- Section 1: School Information -->
+            <div class="form-group-section">
+                <h6><i class="bi bi-building me-2"></i>School Details</h6>
 
-                            <div class="mb-4">
-                                <label for="id_schema_name" class="form-label requiredField fw-bold small text-uppercase text-muted">
-                                    School URL
-                                </label>
-                                <div class="input-group">
-                                    <input type="text" name="schema_name" id="id_schema_name" 
-                                           class="form-control form-control-lg bg-light border-0 {% if form.schema_name.errors %}is-invalid{% endif %}"
-                                           placeholder="schoolname"
-                                           value="{{ form.schema_name.value|default:'' }}"
-                                           required
-                                           style="font-weight: 600; color: var(--primary-brand);">
-                                    <span class="input-group-text bg-light border-0 text-muted fw-medium">.school-portal.com</span>
-                                </div>
-                                {% if form.schema_name.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.schema_name.errors.0 }}
-                                    </div>
+                <div class="form-group">
+                    <label for="id_school_name" class="form-label requiredField">School Name</label>
+                    <input type="text" id="id_school_name" name="school_name" 
+                           class="form-control {% if form.school_name.errors %}is-invalid{% endif %}"
+                           placeholder="E.g. Greenfield Academy" 
+                           value="{{ form.school_name.value|default:'' }}" 
+                           required>
+                    {% if form.school_name.errors %}
+                        <ul class="errorlist">{% for error in form.school_name.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="id_schema_name" class="form-label requiredField">School URL</label>
+                    <div class="url-input-group">
+                        <input type="text" id="id_schema_name" name="schema_name" 
+                               class="form-control {% if form.schema_name.errors %}is-invalid{% endif %}"
+                               placeholder="schoolname" 
+                               value="{{ form.schema_name.value|default:'' }}" 
+                               required>
+                        <span class="url-suffix">.school</span>
+                    </div>
+                    {% if form.schema_name.errors %}
+                        <ul class="errorlist">{% for error in form.schema_name.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                    {% else %}
+                        <small class="form-text">Unique identifier for your school domain</small>
+                    {% endif %}
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="id_school_type" class="form-label requiredField">School Type</label>
+                        <select id="id_school_type" name="school_type" class="form-control" required>
+                            <option value="">Select type</option>
+                            {% for value, label in form.school_type.field.choices %}
+                                {% if value %}
+                                    <option value="{{ value }}" {% if form.school_type.value == value %}selected{% endif %}>{{ label }}</option>
                                 {% endif %}
-                                <div class="form-text mt-2"><i class="bi bi-info-circle me-1"></i> This will be your permanent web address.</div>
-                            </div>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="id_country" class="form-label requiredField">Country</label>
+                        <input type="text" id="id_country" name="country" 
+                               class="form-control {% if form.country.errors %}is-invalid{% endif %}"
+                               placeholder="E.g. Kenya" 
+                               value="{{ form.country.value|default:'' }}" 
+                               required>
+                    </div>
+                </div>
 
-                            <div class="mb-4">
-                                {{ form.email|as_crispy_field }}
-                            </div>
+                <div class="form-group">
+                    <label for="id_email" class="form-label requiredField">School Email</label>
+                    <input type="email" id="id_email" name="email" 
+                           class="form-control {% if form.email.errors %}is-invalid{% endif %}"
+                           placeholder="school@example.com" 
+                           value="{{ form.email.value|default:'' }}" 
+                           required>
+                </div>
 
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    {{ form.school_type|as_crispy_field }}
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    {{ form.country|as_crispy_field }}
-                                </div>
-                            </div>
+                <div class="form-group">
+                    <label for="id_phone" class="form-label requiredField">Phone Number</label>
+                    <input type="tel" id="id_phone" name="phone" 
+                           class="form-control {% if form.phone.errors %}is-invalid{% endif %}"
+                           placeholder="+254 XXX XXX XXX" 
+                           value="{{ form.phone.value|default:'' }}" 
+                           required>
+                </div>
 
-                            <div class="mb-3">
-                                {{ form.phone|as_crispy_field }}
-                            </div>
-                            
-                            <div class="mb-4">
-                                {{ form.address|as_crispy_field }}
-                            </div>
-                        </div>
-
-                        <!-- Divider -->
-                        <div class="my-5">
-                            <hr class="border-muted opacity-25">
-                        </div>
-
-                        <!-- Step 2: Contact & Verification -->
-                        <div class="form-section" id="step2">
-                            <h5 class="fw-bold mb-4"><i class="bi bi-person-check me-2"></i>Contact Person & Verification</h5>
-                            
-                            <div class="mb-3">
-                                {{ form.contact_person_name|as_crispy_field }}
-                            </div>
-
-                            <div class="mb-3">
-                                {{ form.contact_person_title|as_crispy_field }}
-                            </div>
-
-                            <div class="mb-3">
-                                {{ form.contact_person_email|as_crispy_field }}
-                            </div>
-
-                            <div class="mb-4">
-                                {{ form.contact_person_phone|as_crispy_field }}
-                            </div>
-
-                            <!-- Document Upload -->
-                            <div class="my-4 p-4 rounded-3 bg-light border-2 border-dashed border-primary border-opacity-25">
-                                <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-file-earmark-pdf me-2"></i>Required Documents</h6>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold small text-uppercase text-muted">
-                                        <span class="badge bg-danger me-2">Required</span>School Registration Certificate
-                                    </label>
-                                    {{ form.registration_certificate }}
-                                    {% if form.registration_certificate.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {{ form.registration_certificate.errors.0 }}
-                                        </div>
-                                    {% endif %}
-                                    <small class="form-text d-block mt-2">Official registration/license document (PDF, JPG, PNG - Max 10MB)</small>
-                                </div>
-
-                                <div class="mb-3">
-                                    {{ form.tax_id_document }}
-                                    {% if form.tax_id_document.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {{ form.tax_id_document.errors.0 }}
-                                        </div>
-                                    {% endif %}
-                                    <small class="form-text d-block mt-2">Tax ID or business registration (optional)</small>
-                                </div>
-
-                                <div class="mb-0">
-                                    {{ form.additional_documents }}
-                                    {% if form.additional_documents.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {{ form.additional_documents.errors.0 }}
-                                        </div>
-                                    {% endif %}
-                                    <small class="form-text d-block mt-2">Any other verification documents (optional)</small>
-                                </div>
-                            </div>
-
-                            <div class="alert alert-info d-flex align-items-start gap-3 mt-4" role="alert">
-                                <i class="bi bi-info-circle-fill flex-shrink-0 mt-1"></i>
-                                <div>
-                                    <strong>After submission:</strong> Your school will be pending admin approval. You'll receive an email at <strong>{{ form.contact_person_email.value|default:"your email" }}</strong> once approved, typically within 24 hours.
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="d-grid mt-5">
-                            <button type="submit" class="btn btn-primary btn-lg py-3 rounded-pill fw-bold shadow-sm" id="submitBtn">
-                                <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
-                                Submit Application <i class="bi bi-arrow-right ms-2"></i>
-                            </button>
-                        </div>
-                    </form>
+                <div class="form-group">
+                    <label for="id_address" class="form-label requiredField">School Address</label>
+                    <input type="text" id="id_address" name="address" 
+                           class="form-control {% if form.address.errors %}is-invalid{% endif %}"
+                           placeholder="Street address, city, postal code" 
+                           value="{{ form.address.value|default:'' }}" 
+                           required>
                 </div>
             </div>
 
-            <p class="text-center mt-5 text-muted small">
-                By signing up, you agree to our <a href="#" class="text-decoration-none fw-semibold">Terms of Service</a> and <a href="#" class="text-decoration-none fw-semibold">Privacy Policy</a>.
-            </p>
-            
-            <div class="text-center mt-3">
-                Already have an account? <a href="{% url 'login' %}" class="fw-bold text-primary text-decoration-none">Login to existing school</a>
+            <!-- Section 2: Contact Information -->
+            <div class="form-group-section">
+                <h6><i class="bi bi-person me-2"></i>Contact Person</h6>
+
+                <div class="form-group">
+                    <label for="id_contact_person_name" class="form-label requiredField">Full Name</label>
+                    <input type="text" id="id_contact_person_name" name="contact_person_name" 
+                           class="form-control {% if form.contact_person_name.errors %}is-invalid{% endif %}"
+                           placeholder="E.g. John Doe" 
+                           value="{{ form.contact_person_name.value|default:'' }}" 
+                           required>
+                </div>
+
+                <div class="form-group">
+                    <label for="id_contact_person_title" class="form-label requiredField">Job Title</label>
+                    <input type="text" id="id_contact_person_title" name="contact_person_title" 
+                           class="form-control {% if form.contact_person_title.errors %}is-invalid{% endif %}"
+                           placeholder="E.g. Principal" 
+                           value="{{ form.contact_person_title.value|default:'' }}" 
+                           required>
+                </div>
+
+                <div class="form-group">
+                    <label for="id_contact_person_email" class="form-label requiredField">Email</label>
+                    <input type="email" id="id_contact_person_email" name="contact_person_email" 
+                           class="form-control {% if form.contact_person_email.errors %}is-invalid{% endif %}"
+                           placeholder="john@school.com" 
+                           value="{{ form.contact_person_email.value|default:'' }}" 
+                           required>
+                </div>
+
+                <div class="form-group">
+                    <label for="id_contact_person_phone" class="form-label requiredField">Phone</label>
+                    <input type="tel" id="id_contact_person_phone" name="contact_person_phone" 
+                           class="form-control {% if form.contact_person_phone.errors %}is-invalid{% endif %}"
+                           placeholder="+254 XXX XXX XXX" 
+                           value="{{ form.contact_person_phone.value|default:'' }}" 
+                           required>
+                </div>
             </div>
+
+            <!-- Section 3: Documents -->
+            <div class="form-group-section">
+                <h6><i class="bi bi-file-earmark me-2"></i>Verification Documents</h6>
+
+                <div class="form-group">
+                    <label class="form-label requiredField">School Registration Certificate</label>
+                    <div class="file-upload-zone" onclick="document.getElementById('id_registration_certificate').click()">
+                        <i class="bi bi-upload"></i>
+                        <span class="upload-label">Click to upload</span>
+                        <span class="upload-hint">PDF, JPG, PNG • Max 10MB</span>
+                    </div>
+                    <input type="file" id="id_registration_certificate" name="registration_certificate" 
+                           class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Tax ID Document (Optional)</label>
+                    <div class="file-upload-zone" onclick="document.getElementById('id_tax_id_document').click()">
+                        <i class="bi bi-upload"></i>
+                        <span class="upload-label">Click to upload</span>
+                        <span class="upload-hint">PDF, JPG, PNG • Max 10MB</span>
+                    </div>
+                    <input type="file" id="id_tax_id_document" name="tax_id_document" 
+                           class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Additional Documents (Optional)</label>
+                    <div class="file-upload-zone" onclick="document.getElementById('id_additional_documents').click()">
+                        <i class="bi bi-upload"></i>
+                        <span class="upload-label">Click to upload</span>
+                        <span class="upload-hint">PDF, JPG, PNG • Max 10MB</span>
+                    </div>
+                    <input type="file" id="id_additional_documents" name="additional_documents" 
+                           class="form-control">
+                </div>
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn">
+                <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
+                Create Tenant
+            </button>
+        </form>
+
+        <div class="signup-footer">
+            Already have an account? <a href="{% url 'login' %}">Sign in</a>
         </div>
     </div>
 </div>
-
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const nameInput = document.getElementById('id_school_name');
@@ -331,8 +498,8 @@
                 if (!schemaManuallyChanged) {
                     const slug = this.value
                         .toLowerCase()
-                        .replace(/[^\w\s-]/g, '') // remove non-word chars
-                        .replace(/[\s_-]+/g, '')   // remove spaces
+                        .replace(/[^\w\s-]/g, '')
+                        .replace(/[\s_-]+/g, '')
                         .replace(/^-+|-+$/g, '');
                     
                     schemaInput.value = slug;
@@ -350,11 +517,28 @@
         if (form) {
             form.addEventListener('submit', function() {
                 if (form.checkValidity()) {
-                    submitBtn.classList.add('disabled');
+                    submitBtn.classList.add('loading');
                     submitBtn.querySelector('.spinner-border').classList.remove('d-none');
                 }
             });
         }
+
+        // File upload zone interactions
+        const fileZones = document.querySelectorAll('.file-upload-zone');
+        fileZones.forEach(zone => {
+            const fileInput = zone.nextElementSibling;
+            
+            if (fileInput && fileInput.type === 'file') {
+                fileInput.addEventListener('change', function() {
+                    if (this.files.length > 0) {
+                        const fileName = this.files[0].name;
+                        zone.querySelector('.upload-label').textContent = fileName;
+                        zone.style.borderColor = 'var(--primary-brand)';
+                        zone.style.background = 'rgba(67, 97, 238, 0.05)';
+                    }
+                });
+            }
+        });
     });
 </script>
 {% endblock %}
