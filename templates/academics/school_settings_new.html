@@ -3,463 +3,841 @@
 
 {% block content %}
 <style>
-    [data-bs-theme="dark"] .card {
-        background-color: var(--surface-white);
-        border-color: rgba(255,255,255,0.05);
-        color: var(--text-main);
+    /* ===== Page Layout ===== */
+    .settings-header { margin-bottom: 1.5rem; }
+    .settings-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.125rem;
     }
-    [data-bs-theme="dark"] .form-label {
-        color: var(--text-main);
+    .settings-subtitle {
+        color: #6b7280;
+        font-size: 0.875rem;
+        margin: 0;
     }
-    [data-bs-theme="dark"] input[type="file"], [data-bs-theme="dark"] .form-control, [data-bs-theme="dark"] .form-select {
-        color: var(--text-main);
-        background-color: var(--surface-bg);
-        border-color: rgba(255,255,255,0.1);
+
+    /* ===== Settings Grid ===== */
+    .settings-layout {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        gap: 1.5rem;
+        align-items: start;
     }
-    .nav-pills .nav-link {
-        border-radius: 8px;
-        color: var(--text-muted);
+
+    /* ===== Sidebar Nav ===== */
+    .settings-nav {
+        position: sticky;
+        top: 1rem;
+    }
+    .settings-nav-label {
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #9ca3af;
+        padding: 0 0.75rem;
+        margin-bottom: 0.5rem;
+    }
+    .settings-nav .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 10px;
+        color: #4b5563;
         font-weight: 500;
+        font-size: 0.8125rem;
+        transition: all 0.15s ease;
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+        margin-bottom: 0.125rem;
     }
-    .nav-pills .nav-link.active {
-        background-color: var(--primary-brand);
+    .settings-nav .nav-link:hover {
+        background: rgba(0,0,0,0.04);
+        color: #111827;
     }
-    .form-section {
-        background: var(--surface-card);
-        padding: 20px;
+    .settings-nav .nav-link.active {
+        background: #3b82f6;
+        color: #fff;
+    }
+    .settings-nav .nav-icon {
+        width: 28px;
+        height: 28px;
         border-radius: 8px;
-        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        flex-shrink: 0;
+        background: rgba(0,0,0,0.04);
+        transition: all 0.15s ease;
+    }
+    .settings-nav .nav-link.active .nav-icon {
+        background: rgba(255,255,255,0.2);
+        color: #fff;
+    }
+
+    /* ===== Form Sections ===== */
+    .form-section {
+        background: #fff;
+        padding: 1.25rem;
+        border-radius: 16px;
+        margin-bottom: 1rem;
         border: 1px solid rgba(0,0,0,0.06);
     }
-    [data-bs-theme="dark"] .form-section {
-        border-color: rgba(255,255,255,0.08);
-    }
     .section-title {
-        font-size: 1.1rem;
+        font-size: 0.9rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        padding-bottom: 0.625rem;
+        border-bottom: 1px solid rgba(0,0,0,0.06);
+        color: #111827;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .section-title i {
+        color: #3b82f6;
+        font-size: 0.85rem;
+    }
+    .form-label {
         font-weight: 600;
-        margin-bottom: 16px;
-        padding-bottom: 10px;
-        border-bottom: 2px solid var(--primary-brand);
+        font-size: 0.8rem;
+        color: #374151;
+        margin-bottom: 0.375rem;
     }
     .help-text-small {
+        font-size: 0.75rem;
+        color: #9ca3af;
+        margin-top: 0.25rem;
+        line-height: 1.4;
+    }
+    .help-text-small a { color: #3b82f6; }
+    .form-control, .form-select {
+        border-radius: 10px;
+        border: 1px solid #e5e7eb;
+        padding: 0.5rem 0.75rem;
         font-size: 0.875rem;
-        color: var(--text-muted);
-        margin-top: 4px;
+        transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+    }
+
+    /* ===== Logo Preview ===== */
+    .logo-preview {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+        padding: 0.875rem;
+        background: #f9fafb;
+        border-radius: 12px;
+    }
+    .logo-preview img {
+        width: 64px;
+        height: 64px;
+        border-radius: 12px;
+        object-fit: cover;
+        border: 2px solid #e5e7eb;
+    }
+    .logo-preview-text {
+        font-size: 0.75rem;
+        color: #6b7280;
+    }
+    .logo-preview-text strong {
+        display: block;
+        color: #111827;
+        font-size: 0.8125rem;
+        margin-bottom: 0.125rem;
+    }
+
+    /* ===== Stats Grid ===== */
+    .stats-form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    /* ===== Info Alert ===== */
+    .settings-info {
+        background: #eff6ff;
+        color: #1e40af;
+        padding: 0.75rem 1rem;
+        border-radius: 10px;
+        font-size: 0.8125rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        border: 1px solid #dbeafe;
+    }
+    .settings-info i { flex-shrink: 0; }
+
+    /* ===== Social Input ===== */
+    .social-field {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        margin-bottom: 0.875rem;
+    }
+    .social-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+    .social-icon.fb { background: #eff6ff; color: #1877f2; }
+    .social-icon.tw { background: #f0f9ff; color: #1da1f2; }
+    .social-icon.ig { background: #fff1f2; color: #e4405f; }
+    .social-icon.li { background: #eff6ff; color: #0a66c2; }
+    .social-icon.yt { background: #fff1f2; color: #ff0000; }
+
+    /* ===== Toggle Visibility ===== */
+    .visibility-option {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.875rem;
+        border-radius: 12px;
+        border: 1px solid rgba(0,0,0,0.06);
+        margin-bottom: 0.625rem;
+        background: #f9fafb;
+        transition: background 0.15s;
+    }
+    .visibility-option:hover { background: #f3f4f6; }
+    .visibility-label {
+        font-weight: 600;
+        font-size: 0.8125rem;
+        margin-bottom: 0.125rem;
+    }
+    .visibility-desc {
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin: 0;
+    }
+
+    /* ===== Save Bar ===== */
+    .save-bar {
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid rgba(0,0,0,0.06);
+        padding: 1rem 1.25rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 1rem;
+        position: sticky;
+        bottom: 1rem;
+        z-index: 10;
+        box-shadow: 0 -2px 16px rgba(0,0,0,0.04);
+    }
+    .save-bar-text strong {
+        font-size: 0.875rem;
+        display: block;
+    }
+    .save-bar-text span {
+        font-size: 0.75rem;
+        color: #6b7280;
+    }
+
+    /* ===== Dark Mode ===== */
+    [data-bs-theme="dark"] .form-section,
+    [data-bs-theme="dark"] .save-bar {
+        background: var(--surface-card, #1e293b);
+        border-color: rgba(255,255,255,0.06);
+    }
+    [data-bs-theme="dark"] .save-bar {
+        box-shadow: 0 -2px 16px rgba(0,0,0,0.3);
+    }
+    [data-bs-theme="dark"] .section-title {
+        color: #e2e8f0;
+        border-bottom-color: rgba(255,255,255,0.06);
+    }
+    [data-bs-theme="dark"] .form-label { color: #cbd5e1; }
+    [data-bs-theme="dark"] .help-text-small { color: #64748b; }
+    [data-bs-theme="dark"] .form-control,
+    [data-bs-theme="dark"] .form-select {
+        background: rgba(255,255,255,0.04);
+        border-color: rgba(255,255,255,0.1);
+        color: #f1f5f9;
+    }
+    [data-bs-theme="dark"] .form-control:focus,
+    [data-bs-theme="dark"] .form-select:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    }
+    [data-bs-theme="dark"] input[type="file"] {
+        color: #cbd5e1;
+    }
+    [data-bs-theme="dark"] .settings-nav .nav-link {
+        color: #94a3b8;
+    }
+    [data-bs-theme="dark"] .settings-nav .nav-link:hover {
+        background: rgba(255,255,255,0.04);
+        color: #e2e8f0;
+    }
+    [data-bs-theme="dark"] .settings-nav .nav-link.active {
+        background: #3b82f6;
+        color: #fff;
+    }
+    [data-bs-theme="dark"] .settings-nav .nav-icon {
+        background: rgba(255,255,255,0.06);
+    }
+    [data-bs-theme="dark"] .settings-nav-label { color: #64748b; }
+    [data-bs-theme="dark"] .logo-preview {
+        background: rgba(255,255,255,0.04);
+    }
+    [data-bs-theme="dark"] .logo-preview img { border-color: rgba(255,255,255,0.1); }
+    [data-bs-theme="dark"] .logo-preview-text { color: #94a3b8; }
+    [data-bs-theme="dark"] .logo-preview-text strong { color: #e2e8f0; }
+    [data-bs-theme="dark"] .settings-info {
+        background: rgba(59,130,246,0.1);
+        color: #93c5fd;
+        border-color: rgba(59,130,246,0.15);
+    }
+    [data-bs-theme="dark"] .social-icon.fb { background: rgba(24,119,242,0.12); }
+    [data-bs-theme="dark"] .social-icon.tw { background: rgba(29,161,242,0.12); }
+    [data-bs-theme="dark"] .social-icon.ig { background: rgba(228,64,95,0.12); }
+    [data-bs-theme="dark"] .social-icon.li { background: rgba(10,102,194,0.12); }
+    [data-bs-theme="dark"] .social-icon.yt { background: rgba(255,0,0,0.12); }
+    [data-bs-theme="dark"] .visibility-option {
+        background: rgba(255,255,255,0.03);
+        border-color: rgba(255,255,255,0.06);
+    }
+    [data-bs-theme="dark"] .visibility-option:hover {
+        background: rgba(255,255,255,0.05);
+    }
+    [data-bs-theme="dark"] .visibility-label { color: #e2e8f0; }
+    [data-bs-theme="dark"] .visibility-desc { color: #64748b; }
+    [data-bs-theme="dark"] .settings-subtitle { color: #64748b; }
+    [data-bs-theme="dark"] .save-bar-text strong { color: #e2e8f0; }
+    [data-bs-theme="dark"] .save-bar-text span { color: #64748b; }
+
+    /* ===== Responsive: Tablet ===== */
+    @media (max-width: 991px) {
+        .settings-layout {
+            grid-template-columns: 180px 1fr;
+            gap: 1rem;
+        }
+    }
+
+    /* ===== Responsive: Mobile ===== */
+    @media (max-width: 767px) {
+        .settings-header { margin-bottom: 1rem; }
+        .settings-title { font-size: 1.2rem; }
+        .settings-subtitle { font-size: 0.8rem; }
+
+        .settings-layout {
+            grid-template-columns: 1fr;
+            gap: 0;
+        }
+
+        /* Sidebar becomes horizontal scroll strip */
+        .settings-nav {
+            position: relative;
+            top: 0;
+            margin-bottom: 1rem;
+            padding-bottom: 0.25rem;
+        }
+        .settings-nav-label { display: none; }
+        .settings-nav .nav-pills {
+            flex-direction: row !important;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            gap: 0.375rem;
+            padding-bottom: 0.375rem;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .settings-nav .nav-pills::-webkit-scrollbar { display: none; }
+        .settings-nav .nav-link {
+            white-space: nowrap;
+            padding: 0.5rem 0.875rem;
+            font-size: 0.75rem;
+            border-radius: 20px;
+            gap: 0.375rem;
+            border: 1px solid rgba(0,0,0,0.08);
+            background: #f9fafb;
+        }
+        .settings-nav .nav-link.active {
+            background: #3b82f6;
+            border-color: #3b82f6;
+        }
+        .settings-nav .nav-icon {
+            width: 22px;
+            height: 22px;
+            font-size: 0.65rem;
+            border-radius: 6px;
+        }
+        [data-bs-theme="dark"] .settings-nav .nav-link {
+            background: rgba(255,255,255,0.04);
+            border-color: rgba(255,255,255,0.06);
+        }
+
+        /* Form sections compact */
+        .form-section {
+            padding: 1rem;
+            border-radius: 14px;
+            margin-bottom: 0.75rem;
+        }
+        .section-title { font-size: 0.85rem; }
+
+        /* Stats 1 col */
+        .stats-form-grid { grid-template-columns: 1fr; }
+
+        /* Save bar stacks */
+        .save-bar {
+            flex-direction: column;
+            gap: 0.75rem;
+            text-align: center;
+            border-radius: 14px;
+            padding: 0.875rem 1rem;
+        }
+        .save-bar .d-flex { width: 100%; }
+        .save-bar .btn {
+            flex: 1;
+            font-size: 0.8125rem;
+            padding: 0.5rem 0.75rem;
+        }
+    }
+
+    @media (max-width: 374px) {
+        .settings-nav .nav-link {
+            font-size: 0.7rem;
+            padding: 0.4375rem 0.75rem;
+        }
+        .settings-nav .nav-icon { display: none; }
     }
 </style>
 
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2 class="mb-0">School Configuration</h2>
-                <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
-                </a>
-            </div>
+<!-- Header -->
+<div class="settings-header">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+            <h1 class="settings-title">School Configuration</h1>
+            <p class="settings-subtitle">Customize your school's homepage, branding, and public information</p>
         </div>
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i><span class="d-none d-sm-inline">Dashboard</span>
+        </a>
+    </div>
+</div>
+
+<form method="post" enctype="multipart/form-data">
+{% csrf_token %}
+
+<div class="settings-layout">
+    <!-- Sidebar Navigation -->
+    <div class="settings-nav">
+        <div class="settings-nav-label">Sections</div>
+        <ul class="nav nav-pills flex-column" id="settingsTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="basic-tab" data-bs-toggle="pill" data-bs-target="#basic" type="button" role="tab">
+                    <span class="nav-icon"><i class="bi bi-building"></i></span>Basic Info
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="theme-tab" data-bs-toggle="pill" data-bs-target="#theme" type="button" role="tab">
+                    <span class="nav-icon"><i class="bi bi-palette"></i></span>Theme
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="hero-tab" data-bs-toggle="pill" data-bs-target="#hero" type="button" role="tab">
+                    <span class="nav-icon"><i class="bi bi-stars"></i></span>Hero & About
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="features-tab" data-bs-toggle="pill" data-bs-target="#features" type="button" role="tab">
+                    <span class="nav-icon"><i class="bi bi-grid-3x3-gap"></i></span>Features
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="stats-tab" data-bs-toggle="pill" data-bs-target="#stats" type="button" role="tab">
+                    <span class="nav-icon"><i class="bi bi-graph-up"></i></span>Statistics
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="social-tab" data-bs-toggle="pill" data-bs-target="#social" type="button" role="tab">
+                    <span class="nav-icon"><i class="bi bi-share"></i></span>Social Media
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="sections-tab" data-bs-toggle="pill" data-bs-target="#sections" type="button" role="tab">
+                    <span class="nav-icon"><i class="bi bi-toggles"></i></span>Visibility
+                </button>
+            </li>
+        </ul>
     </div>
 
-    <div class="row">
-        <div class="col-md-3">
-            <div class="card sticky-top" style="top: 20px;">
-                <div class="card-body">
-                    <h6 class="card-title mb-3">Settings Sections</h6>
-                    <ul class="nav nav-pills flex-column" id="settingsTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active w-100 text-start mb-2" id="basic-tab" data-bs-toggle="pill" data-bs-target="#basic" type="button" role="tab">
-                                <i class="fas fa-school me-2"></i>Basic Info
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link w-100 text-start mb-2" id="theme-tab" data-bs-toggle="pill" data-bs-target="#theme" type="button" role="tab">
-                                <i class="fas fa-palette me-2"></i>Theme & Template
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link w-100 text-start mb-2" id="hero-tab" data-bs-toggle="pill" data-bs-target="#hero" type="button" role="tab">
-                                <i class="fas fa-star me-2"></i>Hero Section
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link w-100 text-start mb-2" id="features-tab" data-bs-toggle="pill" data-bs-target="#features" type="button" role="tab">
-                                <i class="fas fa-th-large me-2"></i>Features
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link w-100 text-start mb-2" id="stats-tab" data-bs-toggle="pill" data-bs-target="#stats" type="button" role="tab">
-                                <i class="fas fa-chart-line me-2"></i>Statistics
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link w-100 text-start mb-2" id="social-tab" data-bs-toggle="pill" data-bs-target="#social" type="button" role="tab">
-                                <i class="fas fa-share-alt me-2"></i>Social Media
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link w-100 text-start" id="sections-tab" data-bs-toggle="pill" data-bs-target="#sections" type="button" role="tab">
-                                <i class="fas fa-toggle-on me-2"></i>Section Visibility
-                            </button>
-                        </li>
-                    </ul>
+    <!-- Tab Content -->
+    <div>
+        <div class="tab-content" id="settingsTabContent">
+            <!-- Basic Info Tab -->
+            <div class="tab-pane fade show active" id="basic" role="tabpanel">
+                <div class="form-section">
+                    <div class="section-title"><i class="bi bi-building"></i> Basic Information</div>
+                    
+                    {% if form.instance.logo %}
+                    <div class="logo-preview">
+                        <img src="{{ form.instance.logo.url }}" alt="School Logo">
+                        <div class="logo-preview-text">
+                            <strong>Current Logo</strong>
+                            Upload a new image below to replace
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">School Name</label>
+                            {{ form.name }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">School Motto</label>
+                            {{ form.motto }}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Address</label>
+                        {{ form.address }}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Phone Number</label>
+                            {{ form.phone }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email Address</label>
+                            {{ form.email }}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">School Logo</label>
+                        {{ form.logo }}
+                        <div class="help-text-small">Recommended: square image, 500×500px or larger</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Theme & Template Tab -->
+            <div class="tab-pane fade" id="theme" role="tabpanel">
+                <div class="form-section">
+                    <div class="section-title"><i class="bi bi-palette"></i> Theme Customization</div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label">Homepage Template</label>
+                        {{ form.homepage_template }}
+                        <div class="help-text-small">Choose the layout style for your public homepage</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Primary Color</label>
+                            {{ form.primary_color }}
+                            <div class="help-text-small">Main brand color for buttons and accents</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Secondary Color</label>
+                            {{ form.secondary_color }}
+                            <div class="help-text-small">Sidebar and secondary elements color</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hero Section Tab -->
+            <div class="tab-pane fade" id="hero" role="tabpanel">
+                <div class="form-section">
+                    <div class="section-title"><i class="bi bi-stars"></i> Hero Section</div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Hero Title</label>
+                        {{ form.hero_title }}
+                        <div class="help-text-small">Leave empty to use school name. Main heading on homepage.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Hero Subtitle</label>
+                        {{ form.hero_subtitle }}
+                        <div class="help-text-small">Leave empty to use school motto. Brief tagline under hero title.</div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-title"><i class="bi bi-cursor"></i> Call-to-Action Buttons</div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Primary Button Text</label>
+                            {{ form.cta_primary_text }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Primary Button URL</label>
+                            {{ form.cta_primary_url }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Secondary Button Text</label>
+                            {{ form.cta_secondary_text }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Secondary Button URL</label>
+                            {{ form.cta_secondary_url }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-title"><i class="bi bi-info-circle"></i> About Section</div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Section Title</label>
+                        {{ form.about_title }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">About Description</label>
+                        {{ form.about_description }}
+                        <div class="help-text-small">Brief description about why families should choose your school</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features Tab -->
+            <div class="tab-pane fade" id="features" role="tabpanel">
+                <div class="form-section">
+                    <div class="section-title"><i class="bi bi-1-circle"></i> Feature 1</div>
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">Title</label>
+                            {{ form.feature1_title }}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Icon</label>
+                            {{ form.feature1_icon }}
+                            <div class="help-text-small"><a href="https://fontawesome.com/icons" target="_blank">Browse icons ↗</a></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        {{ form.feature1_description }}
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-title"><i class="bi bi-2-circle"></i> Feature 2</div>
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">Title</label>
+                            {{ form.feature2_title }}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Icon</label>
+                            {{ form.feature2_icon }}
+                            <div class="help-text-small"><a href="https://fontawesome.com/icons" target="_blank">Browse icons ↗</a></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        {{ form.feature2_description }}
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-title"><i class="bi bi-3-circle"></i> Feature 3</div>
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">Title</label>
+                            {{ form.feature3_title }}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Icon</label>
+                            {{ form.feature3_icon }}
+                            <div class="help-text-small"><a href="https://fontawesome.com/icons" target="_blank">Browse icons ↗</a></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        {{ form.feature3_description }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Tab -->
+            <div class="tab-pane fade" id="stats" role="tabpanel">
+                <div class="settings-info">
+                    <i class="bi bi-info-circle-fill"></i>
+                    These statistics appear prominently on your homepage to showcase achievements.
+                </div>
+
+                <div class="stats-form-grid">
+                    <div class="form-section">
+                        <div class="section-title"><i class="bi bi-hash"></i> Statistic 1</div>
+                        <div class="mb-3">
+                            <label class="form-label">Number</label>
+                            {{ form.stat1_number }}
+                            <div class="help-text-small">e.g. 25+, 1000+, 98%</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Label</label>
+                            {{ form.stat1_label }}
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="section-title"><i class="bi bi-hash"></i> Statistic 2</div>
+                        <div class="mb-3">
+                            <label class="form-label">Number</label>
+                            {{ form.stat2_number }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Label</label>
+                            {{ form.stat2_label }}
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="section-title"><i class="bi bi-hash"></i> Statistic 3</div>
+                        <div class="mb-3">
+                            <label class="form-label">Number</label>
+                            {{ form.stat3_number }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Label</label>
+                            {{ form.stat3_label }}
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="section-title"><i class="bi bi-hash"></i> Statistic 4</div>
+                        <div class="mb-3">
+                            <label class="form-label">Number</label>
+                            {{ form.stat4_number }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Label</label>
+                            {{ form.stat4_label }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Social Media Tab -->
+            <div class="tab-pane fade" id="social" role="tabpanel">
+                <div class="form-section">
+                    <div class="section-title"><i class="bi bi-share"></i> Social Media Links</div>
+                    <p class="help-text-small mb-3" style="margin-top: -0.5rem;">Add your school's social media profiles. Leave blank to hide.</p>
+                    
+                    <div class="social-field">
+                        <div class="social-icon fb"><i class="bi bi-facebook"></i></div>
+                        <div class="flex-grow-1">
+                            <label class="form-label mb-1">Facebook</label>
+                            {{ form.facebook_url }}
+                        </div>
+                    </div>
+                    
+                    <div class="social-field">
+                        <div class="social-icon tw"><i class="bi bi-twitter-x"></i></div>
+                        <div class="flex-grow-1">
+                            <label class="form-label mb-1">Twitter / X</label>
+                            {{ form.twitter_url }}
+                        </div>
+                    </div>
+                    
+                    <div class="social-field">
+                        <div class="social-icon ig"><i class="bi bi-instagram"></i></div>
+                        <div class="flex-grow-1">
+                            <label class="form-label mb-1">Instagram</label>
+                            {{ form.instagram_url }}
+                        </div>
+                    </div>
+                    
+                    <div class="social-field">
+                        <div class="social-icon li"><i class="bi bi-linkedin"></i></div>
+                        <div class="flex-grow-1">
+                            <label class="form-label mb-1">LinkedIn</label>
+                            {{ form.linkedin_url }}
+                        </div>
+                    </div>
+                    
+                    <div class="social-field">
+                        <div class="social-icon yt"><i class="bi bi-youtube"></i></div>
+                        <div class="flex-grow-1">
+                            <label class="form-label mb-1">YouTube</label>
+                            {{ form.youtube_url }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section Visibility Tab -->
+            <div class="tab-pane fade" id="sections" role="tabpanel">
+                <div class="form-section">
+                    <div class="section-title"><i class="bi bi-toggles"></i> Homepage Section Visibility</div>
+                    <p class="help-text-small mb-3" style="margin-top: -0.5rem;">Toggle which sections appear on your public homepage</p>
+                    
+                    <div class="visibility-option">
+                        <div class="form-check form-switch mt-1">
+                            {{ form.show_stats_section }}
+                        </div>
+                        <label for="{{ form.show_stats_section.id_for_label }}" style="cursor: pointer;">
+                            <div class="visibility-label">Show Statistics Section</div>
+                            <p class="visibility-desc">Display achievement statistics (years, students, teachers, success rate)</p>
+                        </label>
+                    </div>
+                    
+                    <div class="visibility-option">
+                        <div class="form-check form-switch mt-1">
+                            {{ form.show_programs_section }}
+                        </div>
+                        <label for="{{ form.show_programs_section.id_for_label }}" style="cursor: pointer;">
+                            <div class="visibility-label">Show Academic Programs Section</div>
+                            <p class="visibility-desc">Display program cards (Early Years, Primary, JHS, SHS)</p>
+                        </label>
+                    </div>
+                    
+                    <div class="visibility-option">
+                        <div class="form-check form-switch mt-1">
+                            {{ form.show_gallery_preview }}
+                        </div>
+                        <label for="{{ form.show_gallery_preview.id_for_label }}" style="cursor: pointer;">
+                            <div class="visibility-label">Show Campus Gallery Preview</div>
+                            <p class="visibility-desc">Display campus photos from gallery</p>
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-9">
-            <form method="post" enctype="multipart/form-data">
-                {% csrf_token %}
-                
-                <div class="tab-content" id="settingsTabContent">
-                    <!-- Basic Info Tab -->
-                    <div class="tab-pane fade show active" id="basic" role="tabpanel">
-                        <div class="form-section">
-                            <div class="section-title">Basic Information</div>
-                            
-                            {% if form.instance.logo %}
-                            <div class="text-center mb-4">
-                                <img src="{{ form.instance.logo.url }}" alt="School Logo" style="height: 120px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                                <p class="text-muted small mt-2">Current Logo</p>
-                            </div>
-                            {% endif %}
-                            
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">School Name</label>
-                                    {{ form.name }}
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">School Motto</label>
-                                    {{ form.motto }}
-                                </div>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Address</label>
-                                {{ form.address }}
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Phone Number</label>
-                                    {{ form.phone }}
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Email Address</label>
-                                    {{ form.email }}
-                                </div>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">School Logo</label>
-                                {{ form.logo }}
-                                <div class="help-text-small">Upload a square logo (recommended: 500x500px)</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Theme & Template Tab -->
-                    <div class="tab-pane fade" id="theme" role="tabpanel">
-                        <div class="form-section">
-                            <div class="section-title">Theme Customization</div>
-                            
-                            <div class="mb-4">
-                                <label class="form-label">Homepage Template</label>
-                                {{ form.homepage_template }}
-                                <div class="help-text-small">Choose the layout style for your public homepage</div>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Primary Color</label>
-                                    {{ form.primary_color }}
-                                    <div class="help-text-small">Main brand color for buttons and accents</div>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Secondary Color</label>
-                                    {{ form.secondary_color }}
-                                    <div class="help-text-small">Sidebar and secondary elements color</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Hero Section Tab -->
-                    <div class="tab-pane fade" id="hero" role="tabpanel">
-                        <div class="form-section">
-                            <div class="section-title">Hero Section Content</div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Hero Title</label>
-                                {{ form.hero_title }}
-                                <div class="help-text-small">Leave empty to use school name. Main heading on homepage.</div>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Hero Subtitle</label>
-                                {{ form.hero_subtitle }}
-                                <div class="help-text-small">Leave empty to use school motto. Brief description under hero title.</div>
-                            </div>
-                        </div>
-
-                        <div class="form-section">
-                            <div class="section-title">Call-to-Action Buttons</div>
-                            
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Primary Button Text</label>
-                                    {{ form.cta_primary_text }}
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Primary Button URL</label>
-                                    {{ form.cta_primary_url }}
-                                </div>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Secondary Button Text</label>
-                                    {{ form.cta_secondary_text }}
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Secondary Button URL</label>
-                                    {{ form.cta_secondary_url }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="form-section">
-                            <div class="section-title">About Section</div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Section Title</label>
-                                {{ form.about_title }}
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">About Description</label>
-                                {{ form.about_description }}
-                                <div class="help-text-small">Brief description about why families should choose your school</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Features Tab -->
-                    <div class="tab-pane fade" id="features" role="tabpanel">
-                        <div class="form-section">
-                            <div class="section-title">Feature 1</div>
-                            
-                            <div class="row">
-                                <div class="col-md-8 mb-3">
-                                    <label class="form-label">Title</label>
-                                    {{ form.feature1_title }}
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">Icon</label>
-                                    {{ form.feature1_icon }}
-                                    <div class="help-text-small"><a href="https://fontawesome.com/icons" target="_blank">Browse icons</a></div>
-                                </div>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Description</label>
-                                {{ form.feature1_description }}
-                            </div>
-                        </div>
-
-                        <div class="form-section">
-                            <div class="section-title">Feature 2</div>
-                            
-                            <div class="row">
-                                <div class="col-md-8 mb-3">
-                                    <label class="form-label">Title</label>
-                                    {{ form.feature2_title }}
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">Icon</label>
-                                    {{ form.feature2_icon }}
-                                    <div class="help-text-small"><a href="https://fontawesome.com/icons" target="_blank">Browse icons</a></div>
-                                </div>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Description</label>
-                                {{ form.feature2_description }}
-                            </div>
-                        </div>
-
-                        <div class="form-section">
-                            <div class="section-title">Feature 3</div>
-                            
-                            <div class="row">
-                                <div class="col-md-8 mb-3">
-                                    <label class="form-label">Title</label>
-                                    {{ form.feature3_title }}
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">Icon</label>
-                                    {{ form.feature3_icon }}
-                                    <div class="help-text-small"><a href="https://fontawesome.com/icons" target="_blank">Browse icons</a></div>
-                                </div>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Description</label>
-                                {{ form.feature3_description }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Statistics Tab -->
-                    <div class="tab-pane fade" id="stats" role="tabpanel">
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>These statistics will be displayed prominently on your homepage to showcase your school's achievements.
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-section">
-                                    <div class="section-title">Statistic 1</div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Number</label>
-                                        {{ form.stat1_number }}
-                                        <div class="help-text-small">Example: 25+, 1000+, 98%</div>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Label</label>
-                                        {{ form.stat1_label }}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="form-section">
-                                    <div class="section-title">Statistic 2</div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Number</label>
-                                        {{ form.stat2_number }}
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Label</label>
-                                        {{ form.stat2_label }}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="form-section">
-                                    <div class="section-title">Statistic 3</div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Number</label>
-                                        {{ form.stat3_number }}
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Label</label>
-                                        {{ form.stat3_label }}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="form-section">
-                                    <div class="section-title">Statistic 4</div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Number</label>
-                                        {{ form.stat4_number }}
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Label</label>
-                                        {{ form.stat4_label }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Social Media Tab -->
-                    <div class="tab-pane fade" id="social" role="tabpanel">
-                        <div class="form-section">
-                            <div class="section-title">Social Media Links</div>
-                            <p class="text-muted mb-4">Add your school's social media profiles. Leave blank to hide.</p>
-                            
-                            <div class="mb-3">
-                                <label class="form-label"><i class="fab fa-facebook text-primary me-2"></i>Facebook</label>
-                                {{ form.facebook_url }}
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label"><i class="fab fa-twitter text-info me-2"></i>Twitter / X</label>
-                                {{ form.twitter_url }}
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label"><i class="fab fa-instagram text-danger me-2"></i>Instagram</label>
-                                {{ form.instagram_url }}
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label"><i class="fab fa-linkedin text-primary me-2"></i>LinkedIn</label>
-                                {{ form.linkedin_url }}
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label"><i class="fab fa-youtube text-danger me-2"></i>YouTube</label>
-                                {{ form.youtube_url }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Section Visibility Tab -->
-                    <div class="tab-pane fade" id="sections" role="tabpanel">
-                        <div class="form-section">
-                            <div class="section-title">Homepage Section Visibility</div>
-                            <p class="text-muted mb-4">Toggle which sections appear on your public homepage</p>
-                            
-                            <div class="form-check form-switch mb-3">
-                                {{ form.show_stats_section }}
-                                <label class="form-check-label ms-2" for="{{ form.show_stats_section.id_for_label }}">
-                                    Show Statistics Section
-                                    <div class="help-text-small">Display achievement statistics (years, students, teachers, success rate)</div>
-                                </label>
-                            </div>
-                            
-                            <div class="form-check form-switch mb-3">
-                                {{ form.show_programs_section }}
-                                <label class="form-check-label ms-2" for="{{ form.show_programs_section.id_for_label }}">
-                                    Show Academic Programs Section
-                                    <div class="help-text-small">Display program cards (Early Years, Primary, JHS, SHS)</div>
-                                </label>
-                            </div>
-                            
-                            <div class="form-check form-switch mb-3">
-                                {{ form.show_gallery_preview }}
-                                <label class="form-check-label ms-2" for="{{ form.show_gallery_preview.id_for_label }}">
-                                    Show Campus Gallery Preview
-                                    <div class="help-text-small">Display campus photos from gallery</div>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card mt-4">
-                    <div class="card-body d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>Save Changes</strong>
-                            <p class="text-muted mb-0 small">Preview or update your school configuration</p>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <button type="submit" name="preview" value="1" class="btn btn-outline-primary btn-lg">
-                                <i class="fas fa-eye me-2"></i>Preview Homepage
-                            </button>
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-save me-2"></i>Save Configuration
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </form>
+        <!-- Sticky Save Bar -->
+        <div class="save-bar">
+            <div class="save-bar-text">
+                <strong>Save Changes</strong>
+                <span>Preview or update your school configuration</span>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" name="preview" value="1" class="btn btn-outline-primary rounded-pill px-3">
+                    <i class="bi bi-eye me-1"></i>Preview
+                </button>
+                <button type="submit" class="btn btn-primary rounded-pill px-3">
+                    <i class="bi bi-check-lg me-1"></i>Save
+                </button>
+            </div>
         </div>
     </div>
 </div>
+</form>
 {% endblock %}
