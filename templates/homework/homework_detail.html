@@ -3,6 +3,33 @@
 
 {% block title %}{{ homework.title }}{% endblock %}
 
+{% block extra_css %}
+<style>
+    [data-bs-theme="dark"] .card {
+        background: var(--card-bg, #1e293b);
+        border-color: rgba(255,255,255,0.08);
+    }
+    [data-bs-theme="dark"] .card-header {
+        background: var(--card-bg, #1e293b) !important;
+        border-color: rgba(255,255,255,0.08);
+    }
+    [data-bs-theme="dark"] .card-body { color: #e2e8f0; }
+    [data-bs-theme="dark"] .card-footer { 
+        background: var(--card-bg, #1e293b) !important;
+        border-color: rgba(255,255,255,0.08);
+    }
+    [data-bs-theme="dark"] .text-dark {
+        color: #f1f5f9 !important;
+    }
+    [data-bs-theme="dark"] .bg-light {
+        background: rgba(255,255,255,0.05) !important;
+    }
+    [data-bs-theme="dark"] .text-gray-800 {
+        color: #e2e8f0 !important;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid py-4">
     <div class="row justify-content-center">
@@ -10,30 +37,30 @@
             <!-- Navigation -->
             <div class="mb-4">
                 <a href="{% url 'homework_list' %}" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left"></i> Back to Assignments
+                    <i class="bi bi-arrow-left"></i> Back to Assignments
                 </a>
             </div>
 
             <!-- Main Content -->
-            <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                    <h6 class="m-0 font-weight-bold text-primary">Assignment Details</h6>
+            <div class="card shadow-sm border-0">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between border-bottom">
+                    <h6 class="m-0 fw-bold text-primary">Assignment Details</h6>
                     <span class="badge bg-secondary">{{ homework.subject.name }}</span>
                 </div>
                 <div class="card-body">
                     <div class="row mb-4">
                         <div class="col-md-8">
-                            <h2 class="h3 font-weight-bold text-gray-800">{{ homework.title }}</h2>
+                            <h2 class="h3 fw-bold">{{ homework.title }}</h2>
                             <p class="text-muted mb-0">
-                                Assigned by <strong class="text-dark">{{ homework.teacher.user.get_full_name }}</strong> 
-                                to <strong class="text-dark">{{ homework.target_class.name }}</strong>
+                                Assigned by <strong>{{ homework.teacher.user.get_full_name }}</strong> 
+                                to <strong>{{ homework.target_class.name }}</strong>
                             </p>
                         </div>
                         <div class="col-md-4 text-md-end mt-3 mt-md-0">
                             <div class="p-3 bg-light rounded border">
-                                <small class="text-uppercase text-muted font-weight-bold d-block mb-1">Due Date</small>
+                                <small class="text-uppercase text-muted fw-bold d-block mb-1">Due Date</small>
                                 <span class="h5 {% if homework.due_date < today %}text-danger{% else %}text-primary{% endif %}">
-                                    <i class="bi bi-calendar-alt me-2"></i>{{ homework.due_date|date:"l, F d, Y" }}
+                                    <i class="bi bi-calendar-event me-2"></i>{{ homework.due_date|date:"l, F d, Y" }}
                                 </span>
                             </div>
                         </div>
@@ -42,14 +69,14 @@
                     <hr>
 
                     <div class="my-4">
-                        <h5 class="font-weight-bold mb-3">Description</h5>
-                        <div class="p-4 bg-light rounded text-dark" style="white-space: pre-wrap;">{{ homework.description }}</div>
+                        <h5 class="fw-bold mb-3">Description</h5>
+                        <div class="p-4 bg-light rounded" style="white-space: pre-wrap;">{{ homework.description }}</div>
                     </div>
 
                     {% if homework.attachment %}
                     <hr>
                     <div class="my-4">
-                        <h5 class="font-weight-bold mb-3">Attachments</h5>
+                        <h5 class="fw-bold mb-3">Attachments</h5>
                         <a href="{{ homework.attachment.url }}" class="btn btn-outline-primary" target="_blank">
                             <i class="bi bi-paperclip me-2"></i> Download Attachment
                         </a>

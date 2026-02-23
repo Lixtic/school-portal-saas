@@ -132,36 +132,21 @@ def homepage(request):
         return render(request, 'home.html', context)
 
 def login_view(request):
-    print(f"DEBUG: Login View. Method: {request.method}")
-    if hasattr(request, 'tenant'):
-        print(f"DEBUG: Tenant: {request.tenant.schema_name}")
-    else:
-        print("DEBUG: No tenant set")
-
     if request.user.is_authenticated:
-        print("DEBUG: User already authenticated. Redirecting to dashboard.")
-        # Build proper redirect URL with tenant prefix
         dashboard_url = request.META.get('SCRIPT_NAME', '') + '/dashboard/'
-        print(f"DEBUG: Redirecting to: {dashboard_url}")
         return redirect(dashboard_url)
     
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
-        print(f"DEBUG: Attempting login for user: {username}")
         
         user = authenticate(request, username=username, password=password)
         
         if user is not None:
-            print(f"DEBUG: User authenticated successfully: {user}")
             login(request, user)
-            print("DEBUG: Login function called. Session should be set.")
-            # Build proper redirect URL with tenant prefix
             dashboard_url = request.META.get('SCRIPT_NAME', '') + '/dashboard/'
-            print(f"DEBUG: Redirecting to: {dashboard_url}")
             return redirect(dashboard_url)
         else:
-            print("DEBUG: Authentication failed.")
             messages.error(request, 'Invalid credentials')
     
     return render(request, 'accounts/login.html')
@@ -407,11 +392,14 @@ from io import StringIO
 import sys
 import os
 
+@login_required
 def debug_status(request):
     """
-    Public debug view to check tenant status and force setup.
-    WARNING: Disable or protect this in real production!
+    Debug view to check tenant status (staff only).
     """
+    if not request.user.is_staff:
+        messages.error(request, 'Access denied. Staff only.')
+        return redirect('dashboard')
     from django.db import connection, transaction
     from tenants.models import School, Domain
     
