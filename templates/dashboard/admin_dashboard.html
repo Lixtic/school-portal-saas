@@ -460,6 +460,45 @@
     </div>
 </div>
 
+<!-- Setup Alerts - Show if school needs configuration -->
+{% if total_students == 0 or total_teachers == 0 %}
+<div id="widget-setup-alerts" class="mb-4">
+    <div class="section-heading">
+        <i class="bi bi-lightbulb text-warning me-2"></i>Getting Started
+    </div>
+    <div class="row g-3">
+        {% if total_teachers == 0 %}
+        <div class="col-md-6 col-lg-4">
+            <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center gap-3 mb-0">
+                <div class="p-2 bg-warning bg-opacity-25 rounded-circle">
+                    <i class="bi bi-person-workspace text-warning fs-4"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <strong class="d-block">No Teachers Yet</strong>
+                    <small class="text-muted">Add teaching staff to assign subjects</small>
+                </div>
+                <a href="{% url 'teachers:add_teacher' %}" class="btn btn-warning btn-sm">Add Teacher</a>
+            </div>
+        </div>
+        {% endif %}
+        {% if total_students == 0 %}
+        <div class="col-md-6 col-lg-4">
+            <div class="alert alert-info border-0 shadow-sm d-flex align-items-center gap-3 mb-0">
+                <div class="p-2 bg-info bg-opacity-25 rounded-circle">
+                    <i class="bi bi-people text-info fs-4"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <strong class="d-block">No Students Yet</strong>
+                    <small class="text-muted">Enroll students or import from CSV</small>
+                </div>
+                <a href="{% url 'students:add_student' %}" class="btn btn-info btn-sm">Add Student</a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
 <!-- Quick Actions -->
 <div id="widget-quick-actions">
     <div class="section-heading">Quick Actions</div>

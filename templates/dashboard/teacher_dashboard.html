@@ -435,6 +435,32 @@
 
     <!-- Right Sidebar: Actions -->
     <div class="col-lg-4" id="teacher-side-col">
+        <!-- Contextual Alerts -->
+        {% if next_duty %}
+        <div class="alert alert-warning border-0 shadow-sm mb-3 d-flex align-items-center gap-3">
+            <div class="p-2 bg-warning bg-opacity-25 rounded-circle">
+                <i class="bi bi-calendar-check text-warning"></i>
+            </div>
+            <div class="flex-grow-1">
+                <strong class="d-block small">Duty This Week</strong>
+                <small class="text-muted">{{ next_duty.week.start_date|date:"M d" }} - {{ next_duty.week.end_date|date:"M d" }}</small>
+            </div>
+            <a href="{% url 'teachers:duty_roster' %}" class="btn btn-warning btn-sm">View</a>
+        </div>
+        {% endif %}
+        
+        {% if not teacher_has_classes %}
+        <div class="alert alert-info border-0 shadow-sm mb-3 d-flex align-items-center gap-3">
+            <div class="p-2 bg-info bg-opacity-25 rounded-circle">
+                <i class="bi bi-info-circle text-info"></i>
+            </div>
+            <div class="flex-grow-1">
+                <strong class="d-block small">No Classes Assigned</strong>
+                <small class="text-muted">Contact admin for class assignment</small>
+            </div>
+        </div>
+        {% endif %}
+        
         <div id="widget-teaching-tools">
             <h5 class="fw-bold mb-3 drag-handle" style="cursor: move;">Teaching Tools</h5>
             <div class="row g-3" id="teacher-tools-row">
@@ -444,7 +470,7 @@
                             <i class="bi bi-journal-bookmark-fill"></i>
                         </div>
                         <div class="fw-bold">My Classes</div>
-                        <div class="small text-muted mt-1">View subjects & students</div>
+                        <div class="small text-muted mt-1">{% if teacher_class_count %}{{ teacher_class_count }} class{{ teacher_class_count|pluralize:"es" }} assigned{% else %}View subjects & students{% endif %}</div>
                     </a>
                 </div>
                 <div class="col-6 col-md-12" id="tool-enter-grades">
