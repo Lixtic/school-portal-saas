@@ -459,6 +459,18 @@ def manage_id_cards(request):
 
     from teachers.models import Teacher
 
+    # Handle template selection POST
+    if request.method == 'POST' and 'id_card_template' in request.POST:
+        template_choice = request.POST.get('id_card_template', 'classic')
+        school_info = SchoolInfo.objects.first()
+        if school_info:
+            school_info.id_card_template = template_choice
+            school_info.save(update_fields=['id_card_template'])
+            messages.success(request, f'ID card template changed to {school_info.get_id_card_template_display()}.')
+        else:
+            messages.error(request, 'Please set up School Info first.')
+        return redirect('academics:manage_id_cards')
+
     current_year = AcademicYear.objects.filter(is_current=True).first()
     classes = Class.objects.filter(academic_year=current_year).order_by('name') if current_year else Class.objects.none()
 
@@ -476,6 +488,10 @@ def manage_id_cards(request):
     # Teachers
     teachers = Teacher.objects.select_related('user').order_by('user__last_name')
 
+    # Current template
+    school_info = SchoolInfo.objects.first()
+    current_template = school_info.id_card_template if school_info else 'classic'
+
     context = {
         'classes': classes,
         'students': students,
@@ -484,6 +500,8 @@ def manage_id_cards(request):
         'student_count': students.count(),
         'teacher_count': teachers.count(),
         'current_year': current_year,
+        'current_template': current_template,
+        'school_info': school_info,
     }
     return render(request, 'academics/manage_id_cards.html', context)
 

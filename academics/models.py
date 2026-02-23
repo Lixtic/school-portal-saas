@@ -39,6 +39,13 @@ class SchoolInfo(models.Model):
     )
     homepage_template = models.CharField(max_length=20, choices=TEMPLATE_CHOICES, default='default')
     
+    ID_CARD_TEMPLATE_CHOICES = (
+        ('classic', 'Classic — Orange accent, clean layout'),
+        ('modern', 'Modern — Gradient header, vibrant colors'),
+        ('elegant', 'Elegant — Navy & gold, professional look'),
+    )
+    id_card_template = models.CharField(max_length=20, choices=ID_CARD_TEMPLATE_CHOICES, default='classic', help_text="ID card design template for students and teachers")
+    
     # Hero Section Customization
     hero_title = models.CharField(max_length=200, blank=True, default='', help_text="Main hero heading (leave empty to use school name)")
     hero_subtitle = models.CharField(max_length=300, blank=True, default='', help_text="Hero subtitle/description")
