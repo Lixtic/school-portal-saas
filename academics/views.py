@@ -451,6 +451,44 @@ def set_current_year(request, year_id):
 
 
 @login_required
+def manage_id_cards(request):
+    """ID Card management dashboard for admins."""
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    from teachers.models import Teacher
+
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    classes = Class.objects.filter(academic_year=current_year).order_by('name') if current_year else Class.objects.none()
+
+    # Get selected class filter
+    selected_class_id = request.GET.get('class_id', '')
+
+    # Students
+    students_qs = Student.objects.select_related('user', 'current_class')
+    if selected_class_id:
+        students_qs = students_qs.filter(current_class_id=selected_class_id)
+    elif current_year:
+        students_qs = students_qs.filter(current_class__academic_year=current_year)
+    students = students_qs.order_by('current_class__name', 'user__last_name')
+
+    # Teachers
+    teachers = Teacher.objects.select_related('user').order_by('user__last_name')
+
+    context = {
+        'classes': classes,
+        'students': students,
+        'teachers': teachers,
+        'selected_class_id': selected_class_id,
+        'student_count': students.count(),
+        'teacher_count': teachers.count(),
+        'current_year': current_year,
+    }
+    return render(request, 'academics/manage_id_cards.html', context)
+
+
+@login_required
 def manage_resources(request):
     if request.user.user_type not in ['admin', 'teacher']:
         messages.error(request, 'Access denied.')

@@ -30,6 +30,9 @@ urlpatterns = [
     path('years/<int:year_id>/delete/', views.delete_academic_year, name='delete_academic_year'),
     path('years/<int:year_id>/set-current/', views.set_current_year, name='set_current_year'),
     
+    # ID Card Management
+    path('id-cards/', views.manage_id_cards, name='manage_id_cards'),
+
     path('gallery/', views.gallery_view, name='gallery'),
     path('gallery/upload/', views.upload_gallery_image, name='upload_gallery_image'),
     path('resources/manage/', views.manage_resources, name='manage_resources'),
