@@ -41,28 +41,79 @@
     .icon-primary { background: #eff6ff; color: #3b82f6; }
     .icon-success { background: #f0fdf4; color: #22c55e; }
     .icon-info { background: #f0f9ff; color: #0ea5e9; }
+
+    .stat-badge {
+        padding: 0.25rem 0.625rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        border-radius: 6px;
+        display: inline-block;
+    }
+    .stat-badge-blue { background: #e0f2fe; color: #0369a1; }
+    .stat-badge-green { background: #dcfce7; color: #15803d; }
+    .stat-badge-indigo { background: #dbeafe; color: #1e40af; }
+
+    [data-bs-theme="dark"] .stat-badge-blue { background: rgba(3,105,161,0.2); color: #7dd3fc; }
+    [data-bs-theme="dark"] .stat-badge-green { background: rgba(21,128,61,0.2); color: #86efac; }
+    [data-bs-theme="dark"] .stat-badge-indigo { background: rgba(30,64,175,0.2); color: #93c5fd; }
     
     .action-card {
-        border: 1px solid rgba(0,0,0,0.05);
-        border-radius: 12px;
-        transition: all 0.2s;
+        border: 1px solid rgba(0,0,0,0.06);
+        border-radius: 16px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         text-decoration: none;
         color: var(--bs-body-color);
-        display: block;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.625rem;
         height: 100%;
         background: white;
+        padding: 1.25rem 0.75rem;
+        position: relative;
+        overflow: hidden;
     }
     .action-card:hover {
-        background: #f8f9fa;
-        transform: translateY(-3px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-        border-color: var(--bs-primary);
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        border-color: transparent;
+        text-decoration: none;
+        color: var(--bs-body-color);
     }
-    .action-card i {
-        font-size: 2rem;
-        margin-bottom: 0.5rem;
-        display: block;
+    .action-card .action-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.35rem;
+        transition: all 0.3s ease;
     }
+    .action-card:hover .action-icon {
+        transform: scale(1.1);
+    }
+    .action-card .action-label {
+        font-weight: 600;
+        font-size: 0.8rem;
+        text-align: center;
+        line-height: 1.3;
+    }
+    .ai-blue { background: #eff6ff; color: #3b82f6; }
+    .ai-green { background: #f0fdf4; color: #22c55e; }
+    .ai-rose { background: #fff1f2; color: #f43f5e; }
+    .ai-purple { background: #f5f3ff; color: #8b5cf6; }
+    .ai-amber { background: #fffbeb; color: #f59e0b; }
+    .ai-cyan { background: #ecfeff; color: #06b6d4; }
+    .ai-slate { background: #f1f5f9; color: #64748b; }
+    .action-card:hover .ai-blue { background: #3b82f6; color: #fff; }
+    .action-card:hover .ai-green { background: #22c55e; color: #fff; }
+    .action-card:hover .ai-rose { background: #f43f5e; color: #fff; }
+    .action-card:hover .ai-purple { background: #8b5cf6; color: #fff; }
+    .action-card:hover .ai-amber { background: #f59e0b; color: #fff; }
+    .action-card:hover .ai-cyan { background: #06b6d4; color: #fff; }
+    .action-card:hover .ai-slate { background: #64748b; color: #fff; }
     
     .chart-container {
         background: white;
@@ -92,13 +143,29 @@
         background: rgba(14, 165, 233, 0.15);
     }
     [data-bs-theme="dark"] .action-card {
-        background: var(--surface-white);
-        border-color: rgba(255,255,255,0.05);
-        color: var(--text-main);
+        background: var(--surface-white, #1e293b);
+        border-color: rgba(255,255,255,0.06);
+        color: var(--text-main, #f1f5f9);
     }
     [data-bs-theme="dark"] .action-card:hover {
-        background: rgba(255,255,255,0.05);
+        background: rgba(255,255,255,0.06);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+        color: var(--text-main, #f1f5f9);
     }
+    [data-bs-theme="dark"] .ai-blue { background: rgba(59,130,246,0.15); color: #60a5fa; }
+    [data-bs-theme="dark"] .ai-green { background: rgba(34,197,94,0.15); color: #4ade80; }
+    [data-bs-theme="dark"] .ai-rose { background: rgba(244,63,94,0.15); color: #fb7185; }
+    [data-bs-theme="dark"] .ai-purple { background: rgba(139,92,246,0.15); color: #a78bfa; }
+    [data-bs-theme="dark"] .ai-amber { background: rgba(245,158,11,0.15); color: #fbbf24; }
+    [data-bs-theme="dark"] .ai-cyan { background: rgba(6,182,212,0.15); color: #22d3ee; }
+    [data-bs-theme="dark"] .ai-slate { background: rgba(100,116,139,0.15); color: #94a3b8; }
+    [data-bs-theme="dark"] .action-card:hover .ai-blue { background: rgba(59,130,246,0.3); color: #93c5fd; }
+    [data-bs-theme="dark"] .action-card:hover .ai-green { background: rgba(34,197,94,0.3); color: #86efac; }
+    [data-bs-theme="dark"] .action-card:hover .ai-rose { background: rgba(244,63,94,0.3); color: #fda4af; }
+    [data-bs-theme="dark"] .action-card:hover .ai-purple { background: rgba(139,92,246,0.3); color: #c4b5fd; }
+    [data-bs-theme="dark"] .action-card:hover .ai-amber { background: rgba(245,158,11,0.3); color: #fde68a; }
+    [data-bs-theme="dark"] .action-card:hover .ai-cyan { background: rgba(6,182,212,0.3); color: #67e8f9; }
+    [data-bs-theme="dark"] .action-card:hover .ai-slate { background: rgba(100,116,139,0.3); color: #cbd5e1; }
     [data-bs-theme="dark"] .chart-container {
         background: var(--surface-white);
         box-shadow: none;
@@ -170,7 +237,7 @@
                     <div class="stat-label">Total Students</div>
                     <div class="stat-value">{{ total_students }}</div>
                     <div class="mt-2">
-                        <span class="badge" style="background: #e0f2fe; color: #0369a1; padding: 0.25rem 0.625rem; font-size: 0.75rem; font-weight: 500; border-radius: 6px;">Active</span>
+                        <span class="stat-badge stat-badge-blue">Active</span>
                     </div>
                 </div>
                 <div class="stat-icon icon-primary">
@@ -187,7 +254,7 @@
                     <div class="stat-label">Teaching Staff</div>
                     <div class="stat-value">{{ total_teachers }}</div>
                     <div class="mt-2">
-                        <span class="badge" style="background: #dcfce7; color: #15803d; padding: 0.25rem 0.625rem; font-size: 0.75rem; font-weight: 500; border-radius: 6px;">On Duty</span>
+                        <span class="stat-badge stat-badge-green">On Duty</span>
                     </div>
                 </div>
                 <div class="stat-icon icon-success">
@@ -204,7 +271,7 @@
                     <div class="stat-label">Active Notices</div>
                     <div class="stat-value">{{ notices|length }}</div>
                     <div class="mt-2">
-                        <span class="badge" style="background: #dbeafe; color: #1e40af; padding: 0.25rem 0.625rem; font-size: 0.75rem; font-weight: 500; border-radius: 6px;">Latest</span>
+                        <span class="stat-badge stat-badge-indigo">Latest</span>
                     </div>
                 </div>
                 <div class="stat-icon icon-info">
@@ -250,75 +317,75 @@
             <h5 class="fw-bold mb-3 drag-handle" style="cursor: move;">Quick Actions</h5>
             <div class="row g-3 mb-5" id="admin-quick-actions-row">
                 <div class="col-6 col-sm-4 col-md-3" id="action-add-student">
-                    <a href="{% url 'students:add_student' %}" class="action-card text-center p-3 drag-handle" style="cursor: grab;">
-                        <i class="bi bi-person-plus text-primary"></i>
-                        <span class="fw-bold small">Add Student</span>
+                    <a href="{% url 'students:add_student' %}" class="action-card drag-handle">
+                        <div class="action-icon ai-blue"><i class="bi bi-person-plus"></i></div>
+                        <span class="action-label">Add Student</span>
                     </a>
                 </div>
                 <div class="col-6 col-sm-4 col-md-3" id="action-add-teacher">
-                    <a href="{% url 'teachers:add_teacher' %}" class="action-card text-center p-3 drag-handle" style="cursor: grab;">
-                        <i class="bi bi-person-workspace text-success"></i>
-                        <span class="fw-bold small">Add Teacher</span>
+                    <a href="{% url 'teachers:add_teacher' %}" class="action-card drag-handle">
+                        <div class="action-icon ai-green"><i class="bi bi-person-workspace"></i></div>
+                        <span class="action-label">Add Teacher</span>
                     </a>
                 </div>
                 <div class="col-6 col-sm-4 col-md-3" id="action-add-parent">
-                    <a href="{% url 'parents:add_parent' %}" class="action-card text-center p-3 drag-handle" style="cursor: grab;">
-                        <i class="bi bi-person-hearts text-danger"></i>
-                        <span class="fw-bold small">Add Parent</span>
+                    <a href="{% url 'parents:add_parent' %}" class="action-card drag-handle">
+                        <div class="action-icon ai-rose"><i class="bi bi-person-hearts"></i></div>
+                        <span class="action-label">Add Parent</span>
                     </a>
                 </div>
                 <div class="col-6 col-sm-4 col-md-3" id="action-users">
-                    <a href="{% url 'accounts:manage_users' %}" class="action-card text-center p-3 drag-handle" style="cursor: grab;">
-                        <i class="bi bi-people text-primary"></i>
-                        <span class="fw-bold small">Users</span>
+                    <a href="{% url 'accounts:manage_users' %}" class="action-card drag-handle">
+                        <div class="action-icon ai-purple"><i class="bi bi-people"></i></div>
+                        <span class="action-label">Users</span>
                     </a>
                 </div>
                 <div class="col-6 col-sm-4 col-md-3" id="action-finance">
-                    <a href="{% url 'finance:dashboard' %}" class="action-card text-center p-3 drag-handle" style="cursor: grab;">
-                        <i class="bi bi-wallet2 text-success"></i>
-                        <span class="fw-bold small">Finance</span>
+                    <a href="{% url 'finance:dashboard' %}" class="action-card drag-handle">
+                        <div class="action-icon ai-green"><i class="bi bi-wallet2"></i></div>
+                        <span class="action-label">Finance</span>
                     </a>
                 </div>
                 <div class="col-6 col-sm-4 col-md-3" id="action-timetable">
-                    <a href="{% url 'academics:timetable' %}" class="action-card text-center p-3 drag-handle" style="cursor: grab;">
-                        <i class="bi bi-calendar-week text-info"></i>
-                        <span class="fw-bold small">Timetable</span>
+                    <a href="{% url 'academics:timetable' %}" class="action-card drag-handle">
+                        <div class="action-icon ai-cyan"><i class="bi bi-calendar-week"></i></div>
+                        <span class="action-label">Timetable</span>
                     </a>
                 </div>
                 <div class="col-6 col-sm-4 col-md-3" id="action-duty">
-                    <a href="{% url 'teachers:duty_roster' %}" class="action-card text-center p-3 drag-handle" style="cursor: grab;">
-                        <i class="bi bi-clipboard-check text-danger"></i>
-                        <span class="fw-bold small">Duty Roster</span>
+                    <a href="{% url 'teachers:duty_roster' %}" class="action-card drag-handle">
+                        <div class="action-icon ai-rose"><i class="bi bi-clipboard-check"></i></div>
+                        <span class="action-label">Duty Roster</span>
                     </a>
                 </div>
                 <div class="col-6 col-sm-4 col-md-3" id="action-notice">
-                    <a href="{% url 'announcements:manage' %}" class="action-card text-center p-3 drag-handle" style="cursor: grab;">
-                        <i class="bi bi-megaphone text-warning"></i>
-                        <span class="fw-bold small">Notices</span>
+                    <a href="{% url 'announcements:manage' %}" class="action-card drag-handle">
+                        <div class="action-icon ai-amber"><i class="bi bi-megaphone"></i></div>
+                        <span class="action-label">Notices</span>
                     </a>
                 </div>
                 <div class="col-6 col-sm-4 col-md-3" id="action-gallery">
-                    <a href="{% url 'academics:gallery' %}" class="action-card text-center p-3 drag-handle" style="cursor: grab;">
-                        <i class="bi bi-images text-secondary"></i>
-                        <span class="fw-bold small">Gallery</span>
+                    <a href="{% url 'academics:gallery' %}" class="action-card drag-handle">
+                        <div class="action-icon ai-slate"><i class="bi bi-images"></i></div>
+                        <span class="action-label">Gallery</span>
                     </a>
                 </div>
                 <div class="col-6 col-sm-4 col-md-3" id="action-resources">
-                    <a href="{% url 'academics:manage_resources' %}" class="action-card text-center p-3 drag-handle" style="cursor: grab;">
-                        <i class="bi bi-folder-plus text-primary"></i>
-                        <span class="fw-bold small">Resources</span>
+                    <a href="{% url 'academics:manage_resources' %}" class="action-card drag-handle">
+                        <div class="action-icon ai-blue"><i class="bi bi-folder-plus"></i></div>
+                        <span class="action-label">Resources</span>
                     </a>
                 </div>
                 <div class="col-6 col-sm-4 col-md-3" id="action-settings">
-                    <a href="{% url 'academics:school_settings' %}" class="action-card text-center p-3 drag-handle" style="cursor: grab;">
-                        <i class="bi bi-gear text-secondary"></i>
-                        <span class="fw-bold small">Settings</span>
+                    <a href="{% url 'academics:school_settings' %}" class="action-card drag-handle">
+                        <div class="action-icon ai-slate"><i class="bi bi-gear"></i></div>
+                        <span class="action-label">Settings</span>
                     </a>
                 </div>
                 <div class="col-6 col-sm-4 col-md-3" id="action-admin">
-                    <a href="/admin/" class="action-card text-center p-3 bg-light drag-handle" style="cursor: grab;">
-                        <i class="bi bi-shield-lock text-dark"></i>
-                        <span class="fw-bold small">Django Admin</span>
+                    <a href="/admin/" class="action-card drag-handle">
+                        <div class="action-icon ai-purple"><i class="bi bi-shield-lock"></i></div>
+                        <span class="action-label">Django Admin</span>
                     </a>
                 </div>
             </div>
@@ -340,7 +407,7 @@
                             </div>
                             <div class="flex-grow-1">
                                 <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <h6 class="mb-0 fw-bold text-dark">{{ notice.title }}</h6>
+                                    <h6 class="mb-0 fw-bold">{{ notice.title }}</h6>
                                     <small class="text-muted" style="font-size: 0.75rem;">{{ notice.created_at|date:"M d, H:i" }}</small>
                                 </div>
                                 <p class="text-muted small mb-0">{{ notice.content|truncatechars:120 }}</p>
