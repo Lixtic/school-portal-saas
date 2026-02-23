@@ -798,11 +798,13 @@
                 {% if user.user_type != 'teacher' %}
                 <li class="mobile-bubble-item"><a href="{% url 'home' %}"><i class="bi bi-house"></i>Home Page</a></li>
                 {% endif %}
+                <li class="mobile-bubble-item"><a href="{% url 'academics:gallery' %}"><i class="bi bi-images"></i>Gallery</a></li>
                 {% if user.user_type == 'teacher' or user.user_type == 'admin' %}
                     <li class="mobile-bubble-item"><a href="{% url 'students:student_list' %}"><i class="bi bi-people"></i>Students</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'students:mark_attendance' %}"><i class="bi bi-calendar-check"></i>Attendance</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'academics:timetable' %}"><i class="bi bi-table"></i>Timetable</a></li>
-                    <li class="mobile-bubble-item"><a href="{% url 'homework_list' %}"><i class="bi bi-journal-text"></i>Homework</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'homework:homework_list' %}"><i class="bi bi-journal-text"></i>Homework</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'homework:homework_create' %}"><i class="bi bi-plus-circle"></i>Create Homework</a></li>
                 {% endif %}
                 {% if user.user_type == 'admin' %}
                     <li class="mobile-bubble-item"><a href="{% url 'teachers:teacher_list' %}"><i class="bi bi-person-lines-fill"></i>Teachers</a></li>
@@ -811,11 +813,15 @@
                     <li class="mobile-bubble-item"><a href="{% url 'academics:manage_academic_years' %}"><i class="bi bi-calendar-range"></i>Academic Years</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'academics:manage_id_cards' %}"><i class="bi bi-person-badge"></i>ID Cards</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'academics:manage_activities' %}"><i class="bi bi-calendar-event"></i>Activities</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'students:import_csv' %}"><i class="bi bi-upload"></i>Import Students</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'students:export_students' %}"><i class="bi bi-download"></i>Export Students</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'students:bulk_report_cards' %}"><i class="bi bi-printer"></i>Bulk Report Cards</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'finance:dashboard' %}"><i class="bi bi-wallet2"></i>Finance</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'finance:manage_fees' %}"><i class="bi bi-receipt"></i>Manage Fees</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'communication:dashboard' %}"><i class="bi bi-envelope"></i>Messages</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'announcements:manage' %}"><i class="bi bi-megaphone"></i>Notices</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'accounts:manage_users' %}"><i class="bi bi-people-fill"></i>Manage Users</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'tenants:addon_marketplace' %}"><i class="bi bi-puzzle"></i>Add-ons</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'academics:school_settings' %}"><i class="bi bi-gear"></i>Settings</a></li>
                 {% endif %}
                 {% if user.user_type == 'teacher' %}
@@ -830,13 +836,14 @@
                 {% if user.user_type == 'student' %}
                     <li class="mobile-bubble-item"><a href="{% url 'students:student_schedule' %}"><i class="bi bi-calendar-week"></i>My Schedule</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'academics:timetable' %}"><i class="bi bi-table"></i>Timetable</a></li>
-                    <li class="mobile-bubble-item"><a href="{% url 'homework_list' %}"><i class="bi bi-journal-text"></i>Homework</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'homework:homework_list' %}"><i class="bi bi-journal-text"></i>Homework</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'announcements:list' %}"><i class="bi bi-megaphone"></i>Notices</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'academics:ai_tutor' %}"><i class="bi bi-robot"></i>AI Tutor</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'academics:tutor_sessions' %}"><i class="bi bi-clock-history"></i>Tutor Sessions</a></li>
                 {% endif %}
                 {% if user.user_type == 'parent' %}
                     <li class="mobile-bubble-item"><a href="{% url 'parents:my_children' %}"><i class="bi bi-person-hearts"></i>My Children</a></li>
-                    <li class="mobile-bubble-item"><a href="{% url 'homework_list' %}"><i class="bi bi-journal-text"></i>Homework</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'homework:homework_list' %}"><i class="bi bi-journal-text"></i>Homework</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'announcements:list' %}"><i class="bi bi-megaphone"></i>Notices</a></li>
                 {% endif %}
                 <li class="mobile-bubble-item mt-2 pt-2 border-top border-secondary opacity-75"><a href="{% url 'password_change' %}"><i class="bi bi-key"></i>Change Password</a></li>
@@ -983,9 +990,15 @@
                 </a>
             </div>
             <div class="nav-item">
-                <a href="{% url 'homework_list' %}" class="nav-link {% if request.resolver_match.url_name == 'homework_list' %}active{% endif %}" title="Homework">
+                <a href="{% url 'homework:homework_list' %}" class="nav-link {% if request.resolver_match.url_name == 'homework_list' %}active{% endif %}" title="Homework">
                     <i class="bi bi-journal-text"></i>
                     <span>Homework</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{% url 'homework:homework_create' %}" class="nav-link {% if request.resolver_match.url_name == 'homework_create' %}active{% endif %}" title="Create Homework">
+                    <i class="bi bi-plus-circle"></i>
+                    <span>Create Homework</span>
                 </a>
             </div>
             {% endif %}
@@ -1101,6 +1114,12 @@
                     <span>Manage Users</span>
                 </a>
             </div>
+            <div class="nav-item">
+                <a href="{% url 'tenants:addon_marketplace' %}" class="nav-link {% if request.resolver_match.url_name == 'addon_marketplace' %}active{% endif %}" title="Add-on Marketplace">
+                    <i class="bi bi-puzzle"></i>
+                    <span>Add-ons</span>
+                </a>
+            </div>
             {% endif %}
             
             {% if user.user_type == 'teacher' %}
@@ -1172,7 +1191,7 @@
                 </a>
             </div>
             <div class="nav-item">
-                <a href="{% url 'homework_list' %}" class="nav-link {% if request.resolver_match.url_name == 'homework_list' %}active{% endif %}" title="Homework">
+                <a href="{% url 'homework:homework_list' %}" class="nav-link {% if request.resolver_match.url_name == 'homework_list' %}active{% endif %}" title="Homework">
                     <i class="bi bi-journal-text"></i>
                     <span>Homework</span>
                 </a>
@@ -1189,6 +1208,12 @@
                     <span>AI Tutor</span>
                 </a>
             </div>
+            <div class="nav-item">
+                <a href="{% url 'academics:tutor_sessions' %}" class="nav-link {% if request.resolver_match.url_name == 'tutor_sessions' %}active{% endif %}" title="Tutor Sessions">
+                    <i class="bi bi-clock-history"></i>
+                    <span>Tutor Sessions</span>
+                </a>
+            </div>
             {% endif %}
             
             {% if user.user_type == 'parent' %}
@@ -1201,7 +1226,7 @@
                 </a>
             </div>
             <div class="nav-item">
-                <a href="{% url 'homework_list' %}" class="nav-link {% if request.resolver_match.url_name == 'homework_list' %}active{% endif %}" title="Homework">
+                <a href="{% url 'homework:homework_list' %}" class="nav-link {% if request.resolver_match.url_name == 'homework_list' %}active{% endif %}" title="Homework">
                     <i class="bi bi-journal-text"></i>
                     <span>Homework</span>
                 </a>

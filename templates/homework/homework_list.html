@@ -30,7 +30,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0 fw-bold">Homework & Assignments</h1>
         {% if is_teacher %}
-        <a href="{% url 'homework_create' %}" class="btn btn-primary">
+        <a href="{% url 'homework:homework_create' %}" class="btn btn-primary">
             <i class="bi bi-plus-lg me-2"></i>Assign Homework
         </a>
         {% endif %}
@@ -63,11 +63,11 @@
                             <td>{{ homework.due_date|date:"M d, Y" }}</td>
                             <td>{{ homework.teacher.user.get_full_name }}</td>
                             <td>
-                                <a href="{% url 'homework_detail' pk=homework.pk %}" class="btn btn-info btn-sm">
+                                <a href="{% url 'homework:homework_detail' pk=homework.pk %}" class="btn btn-info btn-sm">
                                     <i class="bi bi-eye me-1"></i>View
                                 </a>
                                 {% if is_teacher and homework.teacher.user == request.user %}
-                                <a href="{% url 'homework_delete' pk=homework.pk %}" class="btn btn-danger btn-sm">
+                                <a href="{% url 'homework:homework_delete' pk=homework.pk %}" class="btn btn-danger btn-sm">
                                     <i class="bi bi-trash me-1"></i>Delete
                                 </a>
                                 {% endif %}

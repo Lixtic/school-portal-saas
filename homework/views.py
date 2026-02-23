@@ -49,7 +49,7 @@ def homework_list(request):
 def homework_create(request):
     if request.user.user_type != 'teacher':
         messages.error(request, "Access denied. Only teachers can create homework.")
-        return redirect('homework_list')
+        return redirect('homework:homework_list')
         
     if request.method == 'POST':
         form = HomeworkForm(request.POST, request.FILES, teacher=request.user.teacher)
@@ -58,7 +58,7 @@ def homework_create(request):
             homework.teacher = request.user.teacher
             homework.save()
             messages.success(request, "Homework assigned successfully.")
-            return redirect('homework_list')
+            return redirect('homework:homework_list')
     else:
         form = HomeworkForm(teacher=request.user.teacher)
         
@@ -79,12 +79,12 @@ def homework_delete(request, pk):
     homework = get_object_or_404(Homework, pk=pk)
     if request.user.user_type != 'teacher' or homework.teacher.user != request.user:
         messages.error(request, "Access denied.")
-        return redirect('homework_list')
+        return redirect('homework:homework_list')
         
     if request.method == 'POST':
         homework.delete()
         messages.success(request, "Homework deleted.")
-        return redirect('homework_list')
+        return redirect('homework:homework_list')
         
     return render(request, 'homework/confirm_delete.html', {'object': homework})
 
