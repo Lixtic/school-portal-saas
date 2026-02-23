@@ -14,7 +14,9 @@
         --teal: #14b8a6; --teal-soft: rgba(20,184,166,.08);
         --amber: #f59e0b; --amber-soft: rgba(245,158,11,.08);
         --rose: #f43f5e; --rose-soft: rgba(244,63,94,.08);
+        --orange: #f97316; --orange-soft: rgba(249,115,22,.08);
         --page-bg: #f8fafc;
+        --preview-bg: #f1f5f9;
     }
     [data-bs-theme="dark"] {
         --card-bg: #1e293b; --card-border: #334155;
@@ -25,7 +27,9 @@
         --teal-soft: rgba(20,184,166,.15);
         --amber-soft: rgba(245,158,11,.15);
         --rose-soft: rgba(244,63,94,.15);
+        --orange-soft: rgba(249,115,22,.15);
         --page-bg: #0f172a;
+        --preview-bg: #141e30;
     }
 
     .page-container { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1rem; }
@@ -53,9 +57,10 @@
         border-radius: 16px;
         border: 1px solid var(--card-border);
         background: var(--card-bg);
-        transition: all 0.25s;
+        transition: all 0.25s ease;
     }
     .stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.05); }
+    [data-bs-theme="dark"] .stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.25); }
     .stat-top {
         display: flex;
         justify-content: space-between;
@@ -98,205 +103,226 @@
         transition: all .3s;
     }
     .template-card:hover {
-        box-shadow: 0 8px 24px rgba(0,0,0,.08);
-        transform: translateY(-2px);
+        box-shadow: 0 8px 28px rgba(0,0,0,.07);
+        transform: translateY(-3px);
+        border-color: var(--text-muted);
     }
+    [data-bs-theme="dark"] .template-card:hover { box-shadow: 0 8px 28px rgba(0,0,0,.3); }
     .template-card.active {
         border-color: var(--teal);
-        box-shadow: 0 0 0 3px var(--teal-soft), 0 6px 20px rgba(20,184,166,.12);
+        box-shadow: 0 0 0 3px var(--teal-soft), 0 6px 24px rgba(20,184,166,.12);
     }
+    .template-card.active:hover { border-color: var(--teal); }
     .template-card.active .template-check {
         opacity: 1; transform: scale(1);
     }
     .template-check {
-        position: absolute; top: 12px; right: 12px;
-        width: 28px; height: 28px; border-radius: 50%;
+        position: absolute; top: 10px; right: 10px;
+        width: 26px; height: 26px; border-radius: 50%;
         background: var(--teal); color: #fff;
         display: flex; align-items: center; justify-content: center;
-        font-size: 0.85rem; font-weight: 700;
+        font-size: 0.8rem; font-weight: 700;
         opacity: 0; transform: scale(0.5);
-        transition: all .3s; z-index: 2;
+        transition: all .3s; z-index: 5;
+        box-shadow: 0 2px 8px rgba(20,184,166,.3);
     }
     .template-preview {
         width: 100%;
         aspect-ratio: 5/7;
+        background: var(--preview-bg);
+        display: flex; align-items: center; justify-content: center;
+        padding: 1rem;
         position: relative;
         overflow: hidden;
     }
     .template-preview-inner {
-        width: 100%; height: 100%;
-        display: flex; flex-direction: column;
+        width: 88%; border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0,0,0,.10);
+        background: #fff;
+        transition: transform .3s;
     }
+    [data-bs-theme="dark"] .template-preview-inner { box-shadow: 0 4px 20px rgba(0,0,0,.35); }
+    .template-card:hover .template-preview-inner { transform: scale(1.03); }
 
-    /* Classic Preview */
-    .preview-classic .tp-header {
-        height: 25%;
-        position: relative;
-    }
-    .preview-classic .tp-triangle-1 {
+    /* Classic Preview — detailed miniature */
+    .preview-classic { aspect-ratio: 5/8; display: flex; flex-direction: column; }
+    .preview-classic .tp-header { position: relative; height: 22%; overflow: hidden; }
+    .preview-classic .tp-tri1 {
         position: absolute; top: 0; left: 0;
-        width: 0; height: 0;
-        border-left: 100px solid #f39200;
-        border-bottom: 100% solid transparent;
-        border-top: 0;
+        border-style: solid; border-width: 90px 0 0 90px;
+        border-color: transparent transparent transparent #f39200;
     }
-    .preview-classic .tp-triangle-2 {
+    .preview-classic .tp-tri2 {
         position: absolute; top: 0; left: 0;
-        width: 0; height: 0;
-        border-left: 80px solid #dc7800;
-        border-bottom: 100% solid transparent;
+        border-style: solid; border-width: 70px 0 0 65px;
+        border-color: transparent transparent transparent #dc7800;
     }
     .preview-classic .tp-school {
-        position: absolute; top: 20%; right: 12%; left: 35%;
-        font-weight: 700; font-size: 0.65rem;
-        color: var(--text-heading);
-        text-transform: uppercase;
-        letter-spacing: 0.02em;
+        position: absolute; top: 28%; right: 8%; left: 40%;
+        font-weight: 800; font-size: 0.45rem; color: #1e293b;
+        text-transform: uppercase; letter-spacing: 0.03em; line-height: 1.3;
     }
+    .preview-classic .tp-line-sub {
+        position: absolute; bottom: 20%; right: 8%; left: 40%;
+        height: 2px; background: rgba(243,146,0,.25); border-radius: 1px;
+    }
+    .preview-classic .tp-body { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 6px 10px 4px; }
     .preview-classic .tp-avatar {
-        width: 48px; height: 48px; border-radius: 50%;
-        border: 3px solid #f39200;
-        background: #fef3e0; margin: 0 auto;
+        width: 36px; height: 36px; border-radius: 50%;
+        border: 2.5px solid #f39200; background: #fef3e0; flex-shrink: 0;
     }
-    .preview-classic .tp-lines {
-        padding: 8px 16px;
-        flex: 1;
+    .preview-classic .tp-type {
+        font-size: 0.32rem; font-weight: 700; color: #f39200;
+        text-transform: uppercase; letter-spacing: 0.08em; margin: 4px 0 5px;
     }
-    .preview-classic .tp-line {
-        height: 5px; border-radius: 3px;
-        background: #f0f0f0; margin: 5px 0;
+    .preview-classic .tp-rows { width: 100%; flex: 1; }
+    .preview-classic .tp-row {
+        display: flex; align-items: center; gap: 4px;
+        margin: 3px 0; padding: 2px 4px; border-radius: 3px;
     }
-    .preview-classic .tp-line.accent { background: rgba(243,146,0,.15); }
+    .preview-classic .tp-row:nth-child(odd) { background: rgba(243,146,0,.04); }
+    .preview-classic .tp-row-label {
+        font-size: 0.28rem; color: #94a3b8; font-weight: 600;
+        text-transform: uppercase; width: 24px; flex-shrink: 0;
+    }
+    .preview-classic .tp-row-val {
+        height: 3px; border-radius: 2px; background: #e2e8f0; flex: 1;
+    }
     .preview-classic .tp-footer {
-        height: 18%; background: #f39200;
-        display: flex; align-items: center; padding: 0 12px;
+        height: 16%; background: #f39200;
+        display: flex; align-items: center; padding: 0 8px;
+    }
+    .preview-classic .tp-foot-lines { flex: 1; }
+    .preview-classic .tp-foot-line {
+        height: 2px; border-radius: 1px;
+        background: rgba(255,255,255,.35); margin: 2px 0;
     }
     .preview-classic .tp-qr {
-        width: 28px; height: 28px; border-radius: 4px;
-        background: #fff; margin-left: auto;
+        width: 20px; height: 20px; border-radius: 3px;
+        background: #fff; margin-left: 6px;
         display: flex; align-items: center; justify-content: center;
     }
-    .preview-classic .tp-qr i { font-size: 0.7rem; color: #333; }
-    .preview-classic .tp-foot-line {
-        height: 4px; width: 50%; border-radius: 2px;
-        background: rgba(255,255,255,.35);
-    }
+    .preview-classic .tp-qr i { font-size: 0.5rem; color: #333; }
 
-    /* Modern Preview */
+    /* Modern Preview — detailed miniature */
+    .preview-modern { aspect-ratio: 5/8; display: flex; flex-direction: column; }
     .preview-modern .tp-gradient {
-        height: 28%;
+        height: 24%;
         background: linear-gradient(135deg, #8228a0, #c83282);
-        position: relative;
         display: flex; flex-direction: column;
         align-items: center; justify-content: center;
-        padding: 8px;
+        position: relative; padding: 6px 8px;
     }
     .preview-modern .tp-gradient::after {
-        content: ''; position: absolute; bottom: -8px; left: 0; right: 0;
-        height: 16px;
-        background: #fff;
+        content: ''; position: absolute; bottom: -6px; left: 0; right: 0;
+        height: 12px; background: #fff;
         border-radius: 50% 50% 0 0 / 100% 100% 0 0;
     }
     .preview-modern .tp-school {
-        font-weight: 700; font-size: 0.55rem; color: #fff;
-        text-transform: uppercase; text-align: center;
+        font-weight: 800; font-size: 0.4rem; color: #fff;
+        text-transform: uppercase; text-align: center; letter-spacing: 0.03em;
     }
     .preview-modern .tp-badge {
-        padding: 2px 10px; border-radius: 10px;
-        background: rgba(255,255,255,.9); color: #8228a0;
-        font-size: 0.45rem; font-weight: 700;
-        margin-top: 4px;
+        padding: 1px 7px; border-radius: 8px;
+        background: rgba(255,255,255,.92); color: #8228a0;
+        font-size: 0.28rem; font-weight: 800;
+        margin-top: 3px; letter-spacing: 0.06em;
+    }
+    .preview-modern .tp-body {
+        flex: 1; display: flex; flex-direction: column;
+        align-items: center; padding: 2px 10px 4px;
     }
     .preview-modern .tp-avatar {
-        width: 44px; height: 44px; border-radius: 50%;
-        border: 3px solid #c83282;
-        background: #f5eefc; margin: 10px auto 6px;
+        width: 32px; height: 32px; border-radius: 50%;
+        border: 2.5px solid #c83282; background: #f5eefc; margin: 8px 0 3px;
     }
     .preview-modern .tp-name {
-        text-align: center; font-weight: 700;
-        font-size: 0.55rem; color: var(--text-heading);
+        font-weight: 700; font-size: 0.4rem; color: #1e293b; margin-bottom: 1px;
     }
-    .preview-modern .tp-pills {
-        padding: 6px 14px; flex: 1;
+    .preview-modern .tp-id {
+        font-size: 0.28rem; color: #b42d91; font-weight: 600; margin-bottom: 6px;
     }
+    .preview-modern .tp-pills { width: 100%; flex: 1; }
     .preview-modern .tp-pill {
-        height: 14px; border-radius: 7px;
-        background: #f5eefc; margin: 4px 0;
-        display: flex; align-items: center; padding: 0 6px;
+        display: flex; align-items: center;
+        padding: 2px 5px; margin: 2.5px 0;
+        border-radius: 6px; background: #f5eefc; gap: 3px;
     }
     .preview-modern .tp-dot {
-        width: 5px; height: 5px; border-radius: 50%;
-        background: #b42d91; margin-right: 4px; flex-shrink: 0;
+        width: 4px; height: 4px; border-radius: 50%;
+        background: #b42d91; flex-shrink: 0;
     }
     .preview-modern .tp-pill-line {
-        height: 3px; border-radius: 2px;
-        background: #e0d0e8; flex: 1;
+        height: 2.5px; border-radius: 2px; background: #e0d0e8;
     }
     .preview-modern .tp-bottom-bar {
-        height: 8%; background: linear-gradient(90deg, #8228a0, #c83282);
+        height: 7%; display: flex; align-items: center;
+        background: linear-gradient(90deg, #8228a0, #c83282);
+        padding: 0 8px;
+    }
+    .preview-modern .tp-foot-line {
+        height: 2px; border-radius: 1px; background: rgba(255,255,255,.3);
     }
 
-    /* Elegant Preview */
-    .preview-elegant {
-        display: flex; flex-direction: column;
-    }
+    /* Elegant Preview — detailed miniature */
+    .preview-elegant { aspect-ratio: 8/5; display: flex; flex-direction: column; }
     .preview-elegant .tp-header {
-        height: 24%;
-        background: #0f1e41;
+        height: 26%; background: #0f1e41;
         display: flex; flex-direction: column;
-        justify-content: center; padding: 0 12px;
-    }
-    .preview-elegant .tp-gold-line {
-        height: 3px; background: #c8a53c; margin-top: 2px;
+        justify-content: center; padding: 0 8px;
     }
     .preview-elegant .tp-school {
-        font-weight: 700; font-size: 0.55rem; color: #fff;
-        text-transform: uppercase;
+        font-weight: 800; font-size: 0.4rem; color: #fff;
+        text-transform: uppercase; letter-spacing: 0.04em;
     }
     .preview-elegant .tp-motto {
-        font-size: 0.4rem; color: #ffe696; font-style: italic;
+        font-size: 0.28rem; color: #ffe696; font-style: italic;
+    }
+    .preview-elegant .tp-gold-line {
+        height: 2.5px; background: #c8a53c; flex-shrink: 0;
     }
     .preview-elegant .tp-body {
         flex: 1; display: flex;
-        padding: 10px 12px; gap: 8px;
+        padding: 6px 8px; gap: 6px;
     }
     .preview-elegant .tp-photo {
-        width: 50px; height: 55px; border-radius: 3px;
-        border: 2px solid #c8a53c; background: #fcfaf5;
+        width: 36px; height: 40px; border-radius: 2px;
+        border: 1.5px solid #c8a53c; background: #fcfaf5;
         flex-shrink: 0;
     }
-    .preview-elegant .tp-fields {
-        flex: 1;
-    }
+    .preview-elegant .tp-fields { flex: 1; }
     .preview-elegant .tp-field {
-        display: flex; align-items: center; gap: 4px;
-        margin: 3px 0; font-size: 0.38rem;
+        display: flex; align-items: center; gap: 3px;
+        margin: 2.5px 0;
     }
     .preview-elegant .tp-field-label {
-        color: var(--text-muted); width: 32px; flex-shrink: 0;
-        font-size: 0.35rem; text-transform: uppercase;
+        font-size: 0.25rem; color: #94a3b8;
+        font-weight: 700; text-transform: uppercase;
+        width: 20px; flex-shrink: 0;
     }
     .preview-elegant .tp-field-colon {
-        color: #c8a53c; flex-shrink: 0;
+        font-size: 0.25rem; color: #c8a53c; flex-shrink: 0;
     }
     .preview-elegant .tp-field-val {
-        height: 3px; border-radius: 2px;
-        background: #e8e4dc; flex: 1;
+        height: 2.5px; border-radius: 1px; background: #e8e4dc;
+    }
+    .preview-elegant .tp-field-line {
+        height: 1px; background: rgba(0,0,0,.05); margin-top: 1px;
     }
     .preview-elegant .tp-qr-area {
-        width: 34px; flex-shrink: 0;
+        width: 28px; flex-shrink: 0;
         display: flex; flex-direction: column;
-        align-items: center; gap: 3px;
+        align-items: center; padding-top: 2px;
     }
     .preview-elegant .tp-qr {
-        width: 30px; height: 30px; border-radius: 2px;
+        width: 22px; height: 22px; border-radius: 2px;
         border: 1px solid #c8a53c; background: #fff;
         display: flex; align-items: center; justify-content: center;
     }
-    .preview-elegant .tp-qr i { font-size: 0.6rem; color: #0f1e41; }
+    .preview-elegant .tp-qr i { font-size: 0.45rem; color: #0f1e41; }
     .preview-elegant .tp-footer {
-        height: 12%;
-        background: #0f1e41; position: relative;
+        height: 12%; background: #0f1e41; position: relative;
     }
     .preview-elegant .tp-footer::before {
         content: ''; position: absolute; top: -2px; left: 0; right: 0;
@@ -304,16 +330,26 @@
     }
 
     .template-info {
-        padding: 1rem;
+        padding: 0.875rem 1rem;
     }
     .template-name {
         font-weight: 700; font-size: 0.95rem;
-        color: var(--text-heading); margin-bottom: 0.2rem;
+        color: var(--text-heading); margin-bottom: 0.15rem;
     }
     .template-desc {
         font-size: 0.75rem; color: var(--text-muted);
-        margin-bottom: 0.75rem; line-height: 1.4;
+        line-height: 1.4; margin: 0;
     }
+    .tpl-tag {
+        display: inline-flex; align-items: center; gap: 0.2rem;
+        font-size: 0.6rem; font-weight: 700;
+        padding: 0.15rem 0.45rem; border-radius: 6px;
+        text-transform: uppercase; letter-spacing: 0.04em;
+        margin-top: 0.5rem;
+    }
+    .tpl-tag-orange  { background: var(--orange-soft); color: var(--orange); }
+    .tpl-tag-purple  { background: var(--purple-soft); color: var(--purple); }
+    .tpl-tag-amber   { background: var(--amber-soft); color: var(--amber); }
 
     /* Toolbar */
     .toolbar {
@@ -350,8 +386,9 @@
     }
     .section-count {
         margin-left: auto;
-        font-size: 0.75rem; font-weight: 600;
+        font-size: 0.7rem; font-weight: 700;
         padding: 0.2rem 0.6rem; border-radius: 20px;
+        letter-spacing: 0.03em;
     }
 
     /* Person Grid */
@@ -364,15 +401,16 @@
     .person-card {
         background: var(--card-bg);
         border: 1px solid var(--card-border);
-        border-radius: 12px;
+        border-radius: 14px;
         padding: 1rem;
         display: flex; align-items: center; gap: 0.75rem;
         transition: box-shadow .2s, border-color .2s;
     }
     .person-card:hover {
-        box-shadow: 0 4px 12px rgba(0,0,0,.06);
+        box-shadow: 0 4px 14px rgba(0,0,0,.06);
         border-color: var(--teal);
     }
+    [data-bs-theme="dark"] .person-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.2); }
     .person-avatar {
         width: 44px; height: 44px;
         border-radius: 12px;
@@ -412,14 +450,15 @@
     .bulk-bar {
         background: var(--card-bg);
         border: 1px solid var(--card-border);
-        border-radius: 12px;
+        border-radius: 14px;
         padding: 1rem 1.25rem;
         display: flex; align-items: center; gap: 0.75rem;
         flex-wrap: wrap;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1.25rem;
     }
+    [data-bs-theme="dark"] .bulk-bar:hover { box-shadow: 0 4px 14px rgba(0,0,0,.2); }
     .bulk-bar .bulk-icon {
-        width: 40px; height: 40px; border-radius: 10px;
+        width: 42px; height: 42px; border-radius: 11px;
         display: flex; align-items: center; justify-content: center;
         font-size: 1.1rem; flex-shrink: 0;
     }
@@ -440,9 +479,21 @@
     /* Empty */
     .empty-state {
         text-align: center; padding: 3rem 1rem;
-        color: var(--text-muted); grid-column: 1/-1;
+        color: var(--text-muted); grid-column: 1 / -1;
     }
-    .empty-state i { font-size: 3rem; margin-bottom: 1rem; display: block; }
+    .empty-icon {
+        width: 64px; height: 64px; border-radius: 50%;
+        background: var(--preview-bg);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem; color: var(--text-muted);
+        margin: 0 auto 0.75rem;
+    }
+    .empty-state h5 {
+        color: var(--text-heading); font-weight: 600; font-size: 1rem;
+    }
+    .empty-state p {
+        font-size: 0.85rem; max-width: 360px; margin: 0.4rem auto 0;
+    }
 
     /* ===== Tablet ===== */
     @media (max-width: 768px) {
@@ -487,34 +538,37 @@
         }
         .template-grid::-webkit-scrollbar { display: none; }
         .template-card {
-            min-width: 240px; flex-shrink: 0;
-            scroll-snap-align: start;
+            min-width: 220px; flex-shrink: 0;
+            scroll-snap-align: start; border-radius: 14px;
         }
-        .template-preview { aspect-ratio: 4/5; }
+        .template-preview { aspect-ratio: 4/5; padding: 0.75rem; }
+        .template-info { padding: 0.65rem 0.75rem; }
+        .template-name { font-size: 0.85rem; }
+        .template-desc { font-size: 0.7rem; }
 
         .toolbar {
             flex-direction: column; align-items: stretch; gap: 0.5rem;
         }
         .toolbar-actions {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;
+            display: grid; grid-template-columns: 1fr; gap: 0.5rem;
         }
-        .toolbar .btn { font-size: 0.75rem; padding: 0.5rem; text-align: center; }
-        .toolbar .form-select {
-            min-width: unset; font-size: 0.75rem; grid-column: 1 / -1;
-        }
+        .toolbar .form-select { min-width: unset; font-size: 0.8rem; }
 
         .person-grid { grid-template-columns: 1fr; gap: 0.5rem; }
-        .person-card { padding: 0.875rem; border-radius: 10px; }
+        .person-card { padding: 0.875rem; border-radius: 12px; }
         .person-avatar { width: 38px; height: 38px; font-size: 0.95rem; border-radius: 10px; }
         .person-name { font-size: 0.825rem; }
         .person-meta { font-size: 0.7rem; }
         .person-actions .btn { width: 32px; height: 32px; font-size: 0.8rem; }
 
-        .bulk-bar { padding: 0.875rem; border-radius: 10px; gap: 0.5rem; }
-        .bulk-bar .bulk-icon { width: 36px; height: 36px; font-size: 1rem; }
+        .bulk-bar {
+            padding: 0.875rem; border-radius: 12px; gap: 0.5rem;
+            flex-direction: column; align-items: stretch; text-align: center;
+        }
+        .bulk-bar .bulk-icon { width: 36px; height: 36px; font-size: 1rem; margin: 0 auto; }
         .bulk-bar .bulk-title { font-size: 0.8rem; }
         .bulk-bar .bulk-desc { font-size: 0.7rem; }
-        .bulk-bar .btn { font-size: 0.75rem; padding: 0.45rem 0.75rem; width: 100%; }
+        .bulk-bar .btn { font-size: 0.75rem; padding: 0.5rem 0.75rem; width: 100%; }
 
         .section-header { margin-bottom: 0.75rem; }
         .section-title { font-size: 0.9rem; }
@@ -544,7 +598,7 @@
             <h2 class="mb-0" style="color: var(--text-heading); font-weight: 700; font-size: 1.35rem;">
                 ID Card Management
             </h2>
-            <p style="color: var(--text-muted); margin: 0; font-size: 0.8rem;">Choose a template &amp; generate ID cards</p>
+            <p style="color: var(--text-muted); margin: 0; font-size: 0.8rem;">Choose a template &amp; generate ID cards for your school</p>
         </div>
     </div>
 
@@ -595,7 +649,8 @@
                 <i class="bi bi-palette"></i>
             </div>
             <h3 class="section-title">Card Template</h3>
-            <span class="section-count" style="background: var(--amber-soft); color: var(--amber);">
+            <span class="section-count" style="background: var(--teal-soft); color: var(--teal);">
+                <i class="bi bi-check-circle-fill" style="font-size:.55rem"></i>
                 {% if current_template == 'classic' %}Classic{% elif current_template == 'modern' %}Modern{% else %}Elegant{% endif %}
             </span>
         </div>
@@ -605,82 +660,98 @@
             <div class="template-grid">
 
                 <!-- CLASSIC -->
-                <label class="template-card {% if current_template == 'classic' %}active{% endif %}" data-template="classic">
+                <label class="template-card {% if current_template == 'classic' %}active{% endif %}">
                     <input type="radio" name="id_card_template" value="classic" {% if current_template == 'classic' %}checked{% endif %} class="d-none" onchange="document.getElementById('templateForm').submit()">
                     <div class="template-check"><i class="bi bi-check2"></i></div>
                     <div class="template-preview">
                         <div class="template-preview-inner preview-classic">
                             <div class="tp-header">
-                                <div class="tp-triangle-1"></div>
-                                <div class="tp-triangle-2"></div>
-                                <div class="tp-school">{{ school_name|default:"School Name"|truncatechars:18 }}</div>
+                                <div class="tp-tri1"></div>
+                                <div class="tp-tri2"></div>
+                                <div class="tp-school">{{ school_name|default:"School Name"|truncatechars:16 }}</div>
+                                <div class="tp-line-sub"></div>
                             </div>
-                            <div class="tp-avatar"></div>
-                            <div class="tp-lines">
-                                <div class="tp-line accent" style="width:40%"></div>
-                                <div class="tp-line" style="width:70%"></div>
-                                <div class="tp-line" style="width:55%"></div>
-                                <div class="tp-line accent" style="width:60%"></div>
-                                <div class="tp-line" style="width:45%"></div>
-                                <div class="tp-line" style="width:65%"></div>
+                            <div class="tp-body">
+                                <div class="tp-avatar"></div>
+                                <div class="tp-type">Student ID Card</div>
+                                <div class="tp-rows">
+                                    <div class="tp-row"><span class="tp-row-label">Reg</span><div class="tp-row-val" style="width:55%"></div></div>
+                                    <div class="tp-row"><span class="tp-row-label">Name</span><div class="tp-row-val" style="width:72%"></div></div>
+                                    <div class="tp-row"><span class="tp-row-label">Class</span><div class="tp-row-val" style="width:42%"></div></div>
+                                    <div class="tp-row"><span class="tp-row-label">Blood</span><div class="tp-row-val" style="width:30%"></div></div>
+                                    <div class="tp-row"><span class="tp-row-label">Phone</span><div class="tp-row-val" style="width:60%"></div></div>
+                                </div>
                             </div>
                             <div class="tp-footer">
-                                <div class="tp-foot-line"></div>
+                                <div class="tp-foot-lines">
+                                    <div class="tp-foot-line" style="width:60%"></div>
+                                    <div class="tp-foot-line" style="width:40%"></div>
+                                </div>
                                 <div class="tp-qr"><i class="bi bi-qr-code"></i></div>
                             </div>
                         </div>
                     </div>
                     <div class="template-info">
                         <div class="template-name">Classic</div>
-                        <div class="template-desc">Orange accent with clean portrait layout. Professional and warm.</div>
+                        <p class="template-desc">Orange accent with clean portrait layout. Professional and warm.</p>
+                        <span class="tpl-tag tpl-tag-orange"><i class="bi bi-aspect-ratio"></i> Portrait</span>
                     </div>
                 </label>
 
                 <!-- MODERN -->
-                <label class="template-card {% if current_template == 'modern' %}active{% endif %}" data-template="modern">
+                <label class="template-card {% if current_template == 'modern' %}active{% endif %}">
                     <input type="radio" name="id_card_template" value="modern" {% if current_template == 'modern' %}checked{% endif %} class="d-none" onchange="document.getElementById('templateForm').submit()">
                     <div class="template-check"><i class="bi bi-check2"></i></div>
                     <div class="template-preview">
                         <div class="template-preview-inner preview-modern">
                             <div class="tp-gradient">
-                                <div class="tp-school">{{ school_name|default:"School Name"|truncatechars:16 }}</div>
+                                <div class="tp-school">{{ school_name|default:"School Name"|truncatechars:14 }}</div>
                                 <div class="tp-badge">STUDENT ID</div>
                             </div>
-                            <div class="tp-avatar"></div>
-                            <div class="tp-name">Student Name</div>
-                            <div class="tp-pills">
-                                <div class="tp-pill"><div class="tp-dot"></div><div class="tp-pill-line" style="width:65%"></div></div>
-                                <div class="tp-pill"><div class="tp-dot"></div><div class="tp-pill-line" style="width:50%"></div></div>
-                                <div class="tp-pill"><div class="tp-dot"></div><div class="tp-pill-line" style="width:70%"></div></div>
-                                <div class="tp-pill"><div class="tp-dot"></div><div class="tp-pill-line" style="width:45%"></div></div>
+                            <div class="tp-body">
+                                <div class="tp-avatar"></div>
+                                <div class="tp-name">Student Name</div>
+                                <div class="tp-id">STU-000001</div>
+                                <div class="tp-pills">
+                                    <div class="tp-pill"><div class="tp-dot"></div><div class="tp-pill-line" style="width:60%"></div></div>
+                                    <div class="tp-pill"><div class="tp-dot"></div><div class="tp-pill-line" style="width:48%"></div></div>
+                                    <div class="tp-pill"><div class="tp-dot"></div><div class="tp-pill-line" style="width:70%"></div></div>
+                                    <div class="tp-pill"><div class="tp-dot"></div><div class="tp-pill-line" style="width:38%"></div></div>
+                                </div>
                             </div>
-                            <div class="tp-bottom-bar"></div>
+                            <div class="tp-bottom-bar">
+                                <div class="tp-foot-line" style="width:35%"></div>
+                            </div>
                         </div>
                     </div>
                     <div class="template-info">
                         <div class="template-name">Modern</div>
-                        <div class="template-desc">Purple gradient with rounded pill fields. Bold and vibrant.</div>
+                        <p class="template-desc">Purple gradient with rounded pill fields. Bold and vibrant.</p>
+                        <span class="tpl-tag tpl-tag-purple"><i class="bi bi-aspect-ratio"></i> Portrait</span>
                     </div>
                 </label>
 
                 <!-- ELEGANT -->
-                <label class="template-card {% if current_template == 'elegant' %}active{% endif %}" data-template="elegant">
+                <label class="template-card {% if current_template == 'elegant' %}active{% endif %}">
                     <input type="radio" name="id_card_template" value="elegant" {% if current_template == 'elegant' %}checked{% endif %} class="d-none" onchange="document.getElementById('templateForm').submit()">
                     <div class="template-check"><i class="bi bi-check2"></i></div>
                     <div class="template-preview">
                         <div class="template-preview-inner preview-elegant">
                             <div class="tp-header">
-                                <div class="tp-school">{{ school_name|default:"School Name"|truncatechars:20 }}</div>
+                                <div class="tp-school">{{ school_name|default:"School Name"|truncatechars:18 }}</div>
                                 <div class="tp-motto">Excellence in Education</div>
                             </div>
                             <div class="tp-gold-line"></div>
                             <div class="tp-body">
                                 <div class="tp-photo"></div>
                                 <div class="tp-fields">
-                                    <div class="tp-field"><span class="tp-field-label">ID</span><span class="tp-field-colon">:</span><div class="tp-field-val" style="width:60%"></div></div>
-                                    <div class="tp-field"><span class="tp-field-label">Name</span><span class="tp-field-colon">:</span><div class="tp-field-val" style="width:75%"></div></div>
-                                    <div class="tp-field"><span class="tp-field-label">Class</span><span class="tp-field-colon">:</span><div class="tp-field-val" style="width:50%"></div></div>
-                                    <div class="tp-field"><span class="tp-field-label">Phone</span><span class="tp-field-colon">:</span><div class="tp-field-val" style="width:65%"></div></div>
+                                    <div class="tp-field"><span class="tp-field-label">ID</span><span class="tp-field-colon">:</span><div class="tp-field-val" style="width:50%"></div></div>
+                                    <div class="tp-field-line"></div>
+                                    <div class="tp-field"><span class="tp-field-label">Name</span><span class="tp-field-colon">:</span><div class="tp-field-val" style="width:68%"></div></div>
+                                    <div class="tp-field-line"></div>
+                                    <div class="tp-field"><span class="tp-field-label">Class</span><span class="tp-field-colon">:</span><div class="tp-field-val" style="width:40%"></div></div>
+                                    <div class="tp-field-line"></div>
+                                    <div class="tp-field"><span class="tp-field-label">Phone</span><span class="tp-field-colon">:</span><div class="tp-field-val" style="width:55%"></div></div>
                                 </div>
                                 <div class="tp-qr-area">
                                     <div class="tp-qr"><i class="bi bi-qr-code"></i></div>
@@ -691,7 +762,8 @@
                     </div>
                     <div class="template-info">
                         <div class="template-name">Elegant</div>
-                        <div class="template-desc">Navy &amp; gold landscape layout. Premium and authoritative.</div>
+                        <p class="template-desc">Navy &amp; gold horizontal layout. Premium and authoritative.</p>
+                        <span class="tpl-tag tpl-tag-amber"><i class="bi bi-aspect-ratio"></i> Landscape</span>
                     </div>
                 </label>
 
@@ -702,7 +774,7 @@
     <!-- Filter Toolbar -->
     <div class="toolbar">
         <div class="toolbar-actions">
-            <form method="get" class="d-contents" style="display: contents;">
+            <form method="get" style="display: contents;">
                 <select name="class_id" class="form-select" onchange="this.form.submit()">
                     <option value="">All Classes{% if current_year %} ({{ current_year.name }}){% endif %}</option>
                     {% for cls in classes %}
@@ -711,6 +783,9 @@
                 </select>
             </form>
         </div>
+        <span class="badge bg-primary" style="font-size:.75rem; border-radius: 8px; padding: 0.35rem 0.65rem;">
+            {{ student_count|add:teacher_count }} card{{ student_count|add:teacher_count|pluralize }}
+        </span>
     </div>
 
     <!-- Bulk Download: Students -->
@@ -759,9 +834,9 @@
         </div>
         {% empty %}
         <div class="empty-state">
-            <i class="bi bi-mortarboard"></i>
-            <h5 style="color: var(--text-heading);">No students found</h5>
-            <p>{% if selected_class_id %}Try selecting a different class.{% else %}Add students to generate ID cards.{% endif %}</p>
+            <div class="empty-icon"><i class="bi bi-mortarboard"></i></div>
+            <h5>No students found</h5>
+            <p>{% if selected_class_id %}Try selecting a different class filter above.{% else %}Add students to start generating ID cards.{% endif %}</p>
         </div>
         {% endfor %}
     </div>
@@ -812,11 +887,21 @@
         </div>
         {% empty %}
         <div class="empty-state">
-            <i class="bi bi-person-workspace"></i>
-            <h5 style="color: var(--text-heading);">No teachers found</h5>
-            <p>Add teachers to generate ID cards.</p>
+            <div class="empty-icon"><i class="bi bi-person-workspace"></i></div>
+            <h5>No teachers found</h5>
+            <p>Add teachers to start generating ID cards.</p>
         </div>
         {% endfor %}
     </div>
 </div>
+
+<!-- Tooltip init -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipEls = [].slice.call(document.querySelectorAll('[title]'));
+    tooltipEls.forEach(function(el) {
+        new bootstrap.Tooltip(el, { placement: 'top', trigger: 'hover' });
+    });
+});
+</script>
 {% endblock %}
