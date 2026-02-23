@@ -368,6 +368,7 @@ def review_school(request, school_id):
                     # Create schema
                     school.auto_create_schema = True
                     school.is_active = True
+                    school.on_trial = True  # Set to trial mode when approved
                     school.save()
                     school.create_schema(check_if_exists=True, verbosity=1)
                     
@@ -401,19 +402,27 @@ def review_school(request, school_id):
                     }
                     
                     print(f"DEBUG: About to send approval email to {school.contact_person_email}")
+                    print(f"DEBUG: School: {school.name}, Status: {school.approval_status}, On Trial: {school.on_trial}")
                     email_sent = send_approval_notification(school, status_changed_by=request.user, extra_context=context)
                     print(f"DEBUG: Email send result: {email_sent}")
                     
-                    messages.success(request, f"School '{school.name}' approved and activated! Temporary credentials sent to {school.contact_person_email}.")
+                    if email_sent:
+                        messages.success(request, f"✅ School '{school.name}' approved and activated! Login credentials sent to {school.contact_person_email}.")
+                    else:
+                        messages.warning(request, f"⚠️ School '{school.name}' approved and activated, but email notification failed. Contact: {school.contact_person_email}")
                     
                 except Exception as e:
                     connection.set_schema_to_public()
+                    print(f"DEBUG: Exception during approval: {e}")
                     messages.error(request, f"Approval saved but schema creation failed: {e}")
                     school.approval_status = 'requires_info'
                     school.admin_notes = f"Schema creation error: {e}"
                     school.save()
                     # Send requires_info notification
-                    send_approval_notification(school, status_changed_by=request.user)
+                    try:
+                        send_approval_notification(school, status_changed_by=request.user)
+                    except Exception as email_err:
+                        print(f"DEBUG: Failed to send requires_info email: {email_err}")
             else:
                 school.save()
                 
@@ -433,6 +442,70 @@ def review_school(request, school_id):
         'form': form,
     }
     return render(request, 'tenants/review_school.html', context)
+
+
+@login_required
+def resend_school_credentials(request, school_id):
+    """Resend login credentials email to an already-approved school"""
+    if not request.user.is_staff:
+        messages.error(request, "Access denied. Staff only.")
+        return redirect('home')
+    
+    school = get_object_or_404(School, id=school_id)
+    
+    # Only allow resending for approved, active schools
+    if school.approval_status != 'approved' or not school.is_active:
+        messages.error(request, f"Can only resend credentials for approved active schools. Current status: {school.approval_status}")
+        return redirect('tenants:approval_queue')
+    
+    try:
+        import secrets
+        
+        # Generate new temporary password
+        temp_password = secrets.token_urlsafe(12)
+        
+        # Update admin user password in school's schema
+        connection.set_tenant(school)
+        User = get_user_model()
+        
+        try:
+            admin_user = User.objects.get(username='admin')
+            admin_user.set_password(temp_password)
+            admin_user.save()
+            print(f"DEBUG: Updated admin password for school {school.schema_name}")
+        except User.DoesNotExist:
+            print(f"DEBUG: No admin user found for school {school.schema_name}, creating one")
+            admin_user = User.objects.create_superuser(
+                username='admin',
+                email=school.contact_person_email or 'admin@example.com',
+                password=temp_password,
+                user_type='admin'
+            )
+        
+        connection.set_schema_to_public()
+        
+        # Send approval email with new credentials
+        context = {
+            'school': school,
+            'contact_name': school.contact_person_name or 'Administrator',
+            'login_url': f"/{school.schema_name}/login/",
+            'temp_password': temp_password,
+            'admin_username': 'admin',
+        }
+        
+        email_sent = send_approval_notification(school, status_changed_by=request.user, extra_context=context)
+        
+        if email_sent:
+            messages.success(request, f"✅ Credentials resent to {school.contact_person_email}. New temporary password: {temp_password}")
+        else:
+            messages.warning(request, f"⚠️ Failed to send email, but password was reset. New temporary password: {temp_password}")
+        
+    except Exception as e:
+        connection.set_schema_to_public()
+        print(f"DEBUG: Error resending credentials: {e}")
+        messages.error(request, f"Error resending credentials: {e}")
+    
+    return redirect('tenants:approval_queue')
 
 
 @login_required
