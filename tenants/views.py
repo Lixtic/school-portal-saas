@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model, login
 from django.contrib import messages
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from academics.models import SchoolInfo, AcademicYear, Class, Subject
+from academics.models import SchoolInfo, AcademicYear, Class, Subject, ClassSubject
 from django.utils import timezone
 from datetime import timedelta
 from .email_notifications import send_submission_confirmation, send_approval_notification
@@ -103,8 +103,15 @@ def school_signup(request):
 
 
 def _create_sample_data(tenant, school_type='basic', phone='', address=''):
-    """Auto-populate new tenant with sample academic data"""
-    # Academic Year
+    """Auto-populate new tenant with default classes, subjects, and school info.
+
+    Ghana education levels:
+      KG  – Kindergarten 1-2
+      B   – Primary / Basic 1-6
+      JHS – Junior High School 1-3
+      SHS – Senior High School 1-3
+    """
+    # ── Academic Year ──────────────────────────────────────────────
     current_year = timezone.now().year
     academic_year, _ = AcademicYear.objects.get_or_create(
         name=f'{current_year}/{current_year + 1}',
@@ -114,57 +121,128 @@ def _create_sample_data(tenant, school_type='basic', phone='', address=''):
             'is_current': True
         }
     )
-    
-    # Sample Classes based on School Type
-    classes = []
-    if school_type == 'primary':
-        classes = [f'Class {i}' for i in range(1, 7)]
-    elif school_type == 'jhs':
-        classes = ['JHS 1', 'JHS 2', 'JHS 3']
-    elif school_type == 'shs':
-        classes = ['SHS 1', 'SHS 2', 'SHS 3']
-    elif school_type == 'basic':
-        classes = ['Kindergarten 1', 'Kindergarten 2'] + [f'Class {i}' for i in range(1, 7)] + ['JHS 1', 'JHS 2', 'JHS 3']
-    else:
-        classes = ['Class 1', 'Class 2', 'Class 3'] # Fallback
-        
-    for class_name in classes:
-        Class.objects.get_or_create(
-            name=class_name,
-            academic_year=academic_year
+
+    # ── Class definitions by level ────────────────────────────────
+    KG_CLASSES  = ['KG 1', 'KG 2']
+    PRI_CLASSES = [f'B{i}' for i in range(1, 7)]           # B1-B6
+    JHS_CLASSES = [f'JHS {i}' for i in range(1, 4)]        # JHS 1-3
+    SHS_CLASSES = [f'SHS {i}' for i in range(1, 4)]        # SHS 1-3
+
+    # Map school_type → which class levels to create
+    LEVEL_MAP = {
+        'primary': KG_CLASSES + PRI_CLASSES,
+        'jhs':     JHS_CLASSES,
+        'shs':     SHS_CLASSES,
+        'basic':   KG_CLASSES + PRI_CLASSES + JHS_CLASSES,
+        'other':   PRI_CLASSES,
+    }
+    class_names = LEVEL_MAP.get(school_type, LEVEL_MAP['basic'])
+
+    created_classes = []
+    for name in class_names:
+        cls, _ = Class.objects.get_or_create(
+            name=name, academic_year=academic_year
         )
-    
-    # Sample Subjects
-    subjects = [
-        ('Mathematics', 'MAT'),
-        ('English Language', 'ENG'),
-        ('Integrated Science', 'SCI'),
-        ('Social Studies', 'SOC'),
-        ('Computing', 'COM'),
-        ('French', 'FRE'),
-        ('Religious & Moral Education', 'RME'),
-        ('Creative Arts', 'CRA'),
-        ('Career Technology', 'CAR')
+        created_classes.append(cls)
+
+    # ── Subject catalogue ─────────────────────────────────────────
+    # Tuple: (name, code)
+    CORE_SUBJECTS = [
+        ('Mathematics',                  'MATH'),
+        ('English Language',             'ENG'),
     ]
-    for subject_name, code in subjects:
-        Subject.objects.get_or_create(
-            name=subject_name,
-            defaults={'code': code}
+
+    KG_SUBJECTS = CORE_SUBJECTS + [
+        ('Our World Our People',         'OWOP'),
+        ('Creative Arts',                'CRA'),
+        ('Physical Education',           'PHE'),
+        ('Language & Literacy',          'LIT'),
+    ]
+
+    PRIMARY_SUBJECTS = CORE_SUBJECTS + [
+        ('Integrated Science',           'SCI'),
+        ('Our World Our People',         'OWOP'),
+        ('Religious & Moral Education',  'RME'),
+        ('Creative Arts',                'CRA'),
+        ('Computing',                    'ICT'),
+        ('Physical Education',           'PHE'),
+        ('Ghanaian Language',            'GHL'),
+        ('French',                       'FRE'),
+    ]
+
+    JHS_SUBJECTS = CORE_SUBJECTS + [
+        ('Integrated Science',           'SCI'),
+        ('Social Studies',               'SOC'),
+        ('Religious & Moral Education',  'RME'),
+        ('Creative Arts & Design',       'CAD'),
+        ('Computing',                    'ICT'),
+        ('Career Technology',            'CAR'),
+        ('French',                       'FRE'),
+        ('Ghanaian Language',            'GHL'),
+        ('Physical Education',           'PHE'),
+    ]
+
+    SHS_SUBJECTS = CORE_SUBJECTS + [
+        ('Integrated Science',           'SCI'),
+        ('Social Studies',               'SOC'),
+        ('Elective Mathematics',         'EMATH'),
+        ('Physics',                      'PHY'),
+        ('Chemistry',                    'CHEM'),
+        ('Biology',                      'BIO'),
+        ('Geography',                    'GEO'),
+        ('History',                      'HIS'),
+        ('Government',                   'GOV'),
+        ('Economics',                    'ECON'),
+        ('Literature in English',        'LIT-E'),
+        ('French',                       'FRE'),
+        ('Business Management',          'BM'),
+        ('Accounting',                   'ACC'),
+        ('Computing',                    'ICT'),
+        ('Physical Education',           'PHE'),
+    ]
+
+    # Helper: determine which subjects a class level gets
+    def _subjects_for(class_name):
+        if class_name.startswith('KG'):  return KG_SUBJECTS
+        if class_name.startswith('B'):   return PRIMARY_SUBJECTS
+        if class_name.startswith('JHS'): return JHS_SUBJECTS
+        if class_name.startswith('SHS'): return SHS_SUBJECTS
+        return CORE_SUBJECTS
+
+    # Create all subjects that this school type needs
+    all_subject_tuples = set()
+    for cn in class_names:
+        all_subject_tuples.update(_subjects_for(cn))
+
+    subject_cache = {}  # code → Subject instance
+    for subj_name, code in all_subject_tuples:
+        obj, _ = Subject.objects.get_or_create(
+            code=code, defaults={'name': subj_name}
         )
-    
-    # School Info - Populate with data from Signup
+        subject_cache[code] = obj
+
+    # ── Link subjects to classes (ClassSubject) ───────────────────
+    for cls in created_classes:
+        for subj_name, code in _subjects_for(cls.name):
+            subj = subject_cache.get(code)
+            if subj:
+                ClassSubject.objects.get_or_create(
+                    class_name=cls, subject=subj,
+                    defaults={'teacher': None}
+                )
+
+    # ── School Info ───────────────────────────────────────────────
     if not SchoolInfo.objects.exists():
         SchoolInfo.objects.create(
             name=tenant.name,
-            address=address or "To be configured",
-            phone=phone or "To be configured",
-            email="info@school.edu",
-            motto="Excellence in Education",
-            primary_color="#026e56",
-            secondary_color="#0f3b57"
+            address=address or 'To be configured',
+            phone=phone or 'To be configured',
+            email='info@school.edu',
+            motto='Excellence in Education',
+            primary_color='#026e56',
+            secondary_color='#0f3b57'
         )
     else:
-        # Update existing record
         info = SchoolInfo.objects.first()
         info.name = tenant.name
         if address: info.address = address

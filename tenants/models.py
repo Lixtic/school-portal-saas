@@ -8,10 +8,10 @@ class School(TenantMixin):
     
     # New Comprehensive Fields
     SCHOOL_TYPES = (
-        ('primary', 'Primary School (Class 1-6)'),
+        ('primary', 'Primary School (KG 1 – B6)'),
         ('jhs', 'Junior High School (JHS 1-3)'),
-        ('shs', 'Senior High School'),
-        ('basic', 'Basic School (Kindergarten - JHS 3)'),
+        ('shs', 'Senior High School (SHS 1-3)'),
+        ('basic', 'Basic School (KG 1 – JHS 3)'),
         ('other', 'Other / Tertiary'),
     )
     school_type = models.CharField(max_length=20, choices=SCHOOL_TYPES, default='basic')
