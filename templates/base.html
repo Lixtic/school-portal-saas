@@ -780,6 +780,7 @@
                 {% if user.user_type == 'admin' %}
                     <li class="mobile-bubble-item"><a href="{% url 'teachers:teacher_list' %}"><i class="bi bi-person-lines-fill"></i>Teachers</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'academics:manage_classes' %}"><i class="bi bi-door-open"></i>Manage Classes</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'academics:manage_subjects' %}"><i class="bi bi-book"></i>Manage Subjects</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'academics:manage_activities' %}"><i class="bi bi-calendar-event"></i>Activities</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'finance:dashboard' %}"><i class="bi bi-wallet2"></i>Finance</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'communication:dashboard' %}"><i class="bi bi-envelope"></i>Messages</a></li>
@@ -948,9 +949,15 @@
                 </a>
             </div>
             <div class="nav-item">
-                <a href="{% url 'academics:manage_classes' %}" class="nav-link {% if request.resolver_match.url_name == 'manage_classes' %}active{% endif %}" title="Manage Classes">
+                <a href="{% url 'academics:manage_classes' %}" class="nav-link {% if request.resolver_match.url_name == 'manage_classes' or request.resolver_match.url_name == 'add_class' or request.resolver_match.url_name == 'edit_class' or request.resolver_match.url_name == 'bulk_add_classes' or request.resolver_match.url_name == 'manage_class_subjects' %}active{% endif %}" title="Manage Classes">
                     <i class="bi bi-door-open"></i>
                     <span>Manage Classes</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{% url 'academics:manage_subjects' %}" class="nav-link {% if request.resolver_match.url_name == 'manage_subjects' or request.resolver_match.url_name == 'add_subject' or request.resolver_match.url_name == 'edit_subject' %}active{% endif %}" title="Manage Subjects">
+                    <i class="bi bi-book"></i>
+                    <span>Manage Subjects</span>
                 </a>
             </div>
             <div class="nav-item">

@@ -3,189 +3,305 @@
 
 {% block title %}Manage Classes - {{ school_name }}{% endblock %}
 
+{% block extra_css %}
+<style>
+    :root {
+        --page-bg: #f8fafc;
+        --card-bg: #ffffff;
+        --card-border: #e2e8f0;
+        --text-heading: #0f172a;
+        --text-body: #475569;
+        --text-muted: #94a3b8;
+        --accent: #3b82f6;
+        --accent-soft: rgba(59,130,246,.08);
+        --success: #10b981;
+        --success-soft: rgba(16,185,129,.08);
+        --warning: #f59e0b;
+        --warning-soft: rgba(245,158,11,.08);
+        --danger: #ef4444;
+        --purple: #8b5cf6;
+        --purple-soft: rgba(139,92,246,.08);
+    }
+    [data-bs-theme="dark"] {
+        --page-bg: #0f172a;
+        --card-bg: #1e293b;
+        --card-border: #334155;
+        --text-heading: #f1f5f9;
+        --text-body: #cbd5e1;
+        --text-muted: #64748b;
+        --accent-soft: rgba(59,130,246,.15);
+        --success-soft: rgba(16,185,129,.15);
+        --warning-soft: rgba(245,158,11,.15);
+        --purple-soft: rgba(139,92,246,.15);
+    }
+
+    .page-container { max-width: 1200px; margin: 0 auto; padding: 1.5rem 1rem; }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .stat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    .stat-icon {
+        width: 48px; height: 48px;
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+    .stat-value { font-size: 1.5rem; font-weight: 700; color: var(--text-heading); line-height: 1; }
+    .stat-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+
+    .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+    }
+    .toolbar .btn-group-custom { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+    .table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .table-card table { margin: 0; color: var(--text-body); }
+    .table-card thead { background: var(--accent-soft); }
+    .table-card thead th {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+        border: none;
+        padding: .75rem 1rem;
+    }
+    .table-card tbody td {
+        padding: .75rem 1rem;
+        border-color: var(--card-border);
+        vertical-align: middle;
+    }
+    .table-card tbody tr:hover { background: var(--accent-soft); }
+    .table-card tbody tr:last-child td { border-bottom: none; }
+
+    .class-name-cell { display: flex; align-items: center; gap: .75rem; }
+    .class-avatar {
+        width: 38px; height: 38px;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .9rem; font-weight: 600; color: #fff;
+        flex-shrink: 0;
+    }
+    .class-avatar.kg { background: linear-gradient(135deg, #f472b6, #ec4899); }
+    .class-avatar.primary { background: linear-gradient(135deg, #60a5fa, #3b82f6); }
+    .class-avatar.jhs { background: linear-gradient(135deg, #34d399, #10b981); }
+    .class-avatar.other { background: linear-gradient(135deg, #a78bfa, #8b5cf6); }
+
+    .teacher-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .25rem .6rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+    }
+    .teacher-badge.assigned { background: var(--success-soft); color: var(--success); }
+    .teacher-badge.unassigned { background: var(--warning-soft); color: var(--warning); }
+
+    .action-btns { display: flex; gap: .35rem; }
+    .action-btns .btn {
+        padding: .3rem .5rem;
+        font-size: .8rem;
+        border-radius: 8px;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: var(--text-muted);
+    }
+    .empty-state i { font-size: 3rem; margin-bottom: 1rem; display: block; }
+
+    .year-filter { max-width: 200px; }
+
+    @media (max-width: 768px) {
+        .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        .toolbar { flex-direction: column; align-items: stretch; }
+        .year-filter { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+        .stats-grid { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid py-4">
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2 class="mb-1" style="color: var(--text-primary);">Manage Classes</h2>
-                    <p class="text-muted mb-0">View and assign class teachers</p>
-                </div>
-                <a href="{% url 'teachers:teacher_list' %}" class="btn btn-outline-primary">
-                    <i class="bi bi-person-lines-fill me-2"></i>View All Teachers
-                </a>
-            </div>
+<div class="page-container">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+        <div>
+            <h2 class="mb-1" style="color: var(--text-heading); font-weight: 700;">
+                <i class="bi bi-building me-2"></i>Manage Classes
+            </h2>
+            <p style="color: var(--text-muted); margin: 0;">Create, edit, and organize your school's classes</p>
         </div>
     </div>
 
     {% if messages %}
-    <div class="row mb-3">
-        <div class="col-12">
-            {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            {% endfor %}
-        </div>
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="border-radius: 10px;">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
+    {% endfor %}
     {% endif %}
 
-    <div class="row">
-        <div class="col-12">
-            <div class="card" style="background-color: var(--surface-card); border: 1px solid var(--border-color);">
-                <div class="card-header border-bottom" style="background-color: var(--surface-elevated); border-color: var(--border-color) !important;">
-                    <h5 class="mb-0" style="color: var(--text-primary);">
-                        <i class="bi bi-door-open me-2"></i>All Classes
-                        <span class="badge bg-primary ms-2">{{ classes.count }}</span>
-                    </h5>
-                </div>
-                <div class="card-body p-0">
-                    {% if classes %}
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead style="background-color: var(--surface-elevated); color: var(--text-primary);">
-                                <tr>
-                                    <th class="px-4 py-3">Class Name</th>
-                                    <th class="px-4 py-3">Academic Year</th>
-                                    <th class="px-4 py-3">Class Teacher</th>
-                                    <th class="px-4 py-3">Students</th>
-                                    <th class="px-4 py-3">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for class in classes %}
-                                <tr style="border-color: var(--border-color);">
-                                    <td class="px-4 py-3">
-                                        <div class="d-flex align-items-center">
-                                            <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                                                <i class="bi bi-door-open text-primary"></i>
-                                            </div>
-                                            <div>
-                                                <h6 class="mb-0" style="color: var(--text-primary);">{{ class.name }}</h6>
-                                                <small class="text-muted">{{ class.section|default:"General Section" }}</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        <span class="badge {% if class.academic_year.is_current %}bg-success{% else %}bg-secondary{% endif %}">
-                                            {{ class.academic_year.start_date.year }}/{{ class.academic_year.end_date.year }}
-                                        </span>
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        {% if class.class_teacher %}
-                                        <div class="d-flex align-items-center">
-                                            <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
-                                                <i class="bi bi-person-check text-success"></i>
-                                            </div>
-                                            <div>
-                                                <a href="{% url 'teachers:teacher_detail' class.class_teacher.id %}" class="text-decoration-none" style="color: var(--text-primary);">
-                                                    {{ class.class_teacher.user.get_full_name }}
-                                                </a>
-                                                <br>
-                                                <small class="text-muted">{{ class.class_teacher.user.email }}</small>
-                                            </div>
-                                        </div>
-                                        {% else %}
-                                        <span class="text-muted">
-                                            <i class="bi bi-dash-circle me-1"></i>Not Assigned
-                                        </span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        <span class="badge bg-info">
-                                            <i class="bi bi-people-fill me-1"></i>{{ class.student_count }}
-                                        </span>
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        <a href="{% url 'teachers:assign_class_teacher' class.id %}" class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-person-plus me-1"></i>
-                                            {% if class.class_teacher %}Change{% else %}Assign{% endif %} Teacher
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="text-center py-5">
-                        <i class="bi bi-door-open" style="font-size: 3rem; color: var(--text-secondary);"></i>
-                        <p class="mt-3 text-muted">No classes found. Create classes in the admin panel.</p>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: var(--accent-soft); color: var(--accent);"><i class="bi bi-building"></i></div>
+            <div><div class="stat-value">{{ total_classes }}</div><div class="stat-label">Total Classes</div></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: var(--success-soft); color: var(--success);"><i class="bi bi-person-check"></i></div>
+            <div><div class="stat-value">{{ assigned_count }}</div><div class="stat-label">With Teacher</div></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: var(--warning-soft); color: var(--warning);"><i class="bi bi-person-dash"></i></div>
+            <div><div class="stat-value">{{ unassigned_count }}</div><div class="stat-label">Need Teacher</div></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: var(--purple-soft); color: var(--purple);"><i class="bi bi-people"></i></div>
+            <div><div class="stat-value">{{ total_students }}</div><div class="stat-label">Total Students</div></div>
         </div>
     </div>
 
-    <!-- Summary Cards -->
-    <div class="row mt-4">
-        <div class="col-md-4">
-            <div class="card" style="background-color: var(--surface-card); border: 1px solid var(--border-color);">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
-                            <i class="bi bi-door-open text-primary" style="font-size: 1.5rem;"></i>
-                        </div>
-                        <div>
-                            <h3 class="mb-0" style="color: var(--text-primary);">{{ classes.count }}</h3>
-                            <p class="text-muted mb-0">Total Classes</p>
-                        </div>
-                    </div>
-                </div>
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="btn-group-custom">
+            <a href="{% url 'academics:add_class' %}" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-1"></i>Add Class
+            </a>
+            <a href="{% url 'academics:bulk_add_classes' %}" class="btn btn-outline-primary">
+                <i class="bi bi-layers me-1"></i>Bulk Add
+            </a>
+            <a href="{% url 'academics:manage_subjects' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-book me-1"></i>Manage Subjects
+            </a>
+        </div>
+        <form method="get" class="year-filter">
+            <select name="year" class="form-select form-select-sm" onchange="this.form.submit()" style="background: var(--card-bg); color: var(--text-body); border-color: var(--card-border);">
+                <option value="">All Years</option>
+                {% for yr in academic_years %}
+                <option value="{{ yr.id }}" {% if yr.id == year_filter %}selected{% endif %}>
+                    {{ yr.name }}{% if yr.is_current %} (Current){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+
+    <!-- Classes Table -->
+    <div class="table-card">
+        {% if classes %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Class</th>
+                        <th>Academic Year</th>
+                        <th>Class Teacher</th>
+                        <th>Students</th>
+                        <th>Subjects</th>
+                        <th style="width: 200px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for class in classes %}
+                    <tr>
+                        <td>
+                            <div class="class-name-cell">
+                                <div class="class-avatar {% if 'KG' in class.name %}kg{% elif 'Primary' in class.name or 'Prim' in class.name %}primary{% elif 'JHS' in class.name or 'Basic' in class.name %}jhs{% else %}other{% endif %}">
+                                    {{ class.name|truncatechars:2 }}
+                                </div>
+                                <div>
+                                    <div style="font-weight: 600; color: var(--text-heading);">{{ class.name }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge {% if class.academic_year.is_current %}bg-success{% else %}bg-secondary{% endif %}">
+                                {{ class.academic_year.name }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if class.class_teacher %}
+                            <span class="teacher-badge assigned">
+                                <i class="bi bi-person-check-fill"></i>
+                                {{ class.class_teacher.user.get_full_name }}
+                            </span>
+                            {% else %}
+                            <span class="teacher-badge unassigned">
+                                <i class="bi bi-person-dash"></i>
+                                Not assigned
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-info bg-opacity-10 text-info" style="font-size: .8rem;">
+                                <i class="bi bi-people-fill me-1"></i>{{ class.student_count }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'academics:manage_class_subjects' class.id %}" class="badge bg-primary bg-opacity-10 text-primary text-decoration-none" style="font-size: .8rem;">
+                                <i class="bi bi-book me-1"></i>{{ class.subject_count }} subject{{ class.subject_count|pluralize }}
+                            </a>
+                        </td>
+                        <td>
+                            <div class="action-btns">
+                                <a href="{% url 'academics:manage_class_subjects' class.id %}" class="btn btn-outline-primary" title="Manage Subjects">
+                                    <i class="bi bi-book"></i>
+                                </a>
+                                <a href="{% url 'academics:edit_class' class.id %}" class="btn btn-outline-secondary" title="Edit Class">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'teachers:assign_class_teacher' class.id %}" class="btn btn-outline-success" title="Assign Teacher">
+                                    <i class="bi bi-person-plus"></i>
+                                </a>
+                                <a href="{% url 'academics:delete_class' class.id %}" class="btn btn-outline-danger" title="Delete Class">
+                                    <i class="bi bi-trash3"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-building"></i>
+            <h5 style="color: var(--text-heading);">No classes found</h5>
+            <p>Get started by creating individual classes or use <strong>Bulk Add</strong> to create an entire level at once.</p>
+            <div class="d-flex gap-2 justify-content-center mt-3">
+                <a href="{% url 'academics:add_class' %}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Add Class</a>
+                <a href="{% url 'academics:bulk_add_classes' %}" class="btn btn-outline-primary"><i class="bi bi-layers me-1"></i>Bulk Add</a>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card" style="background-color: var(--surface-card); border: 1px solid var(--border-color);">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
-                            <i class="bi bi-person-check text-success" style="font-size: 1.5rem;"></i>
-                        </div>
-                        <div>
-                            {% with assigned=classes|length %}
-                            {% with unassigned=0 %}
-                            {% for class in classes %}
-                                {% if class.class_teacher %}
-                                {% else %}
-                                    {% with unassigned=unassigned|add:1 %}
-                                    {% endwith %}
-                                {% endif %}
-                            {% endfor %}
-                            <h3 class="mb-0" style="color: var(--text-primary);">{{ assigned|add:unassigned|add:'-'|add:unassigned }}</h3>
-                            {% endwith %}
-                            {% endwith %}
-                            <p class="text-muted mb-0">With Class Teacher</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card" style="background-color: var(--surface-card); border: 1px solid var(--border-color);">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="rounded-circle bg-warning bg-opacity-10 d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
-                            <i class="bi bi-exclamation-triangle text-warning" style="font-size: 1.5rem;"></i>
-                        </div>
-                        <div>
-                            {% with unassigned=0 %}
-                            {% for class in classes %}
-                                {% if not class.class_teacher %}
-                                    {% with unassigned=unassigned|add:1 %}
-                                    {% endwith %}
-                                {% endif %}
-                            {% endfor %}
-                            <h3 class="mb-0" style="color: var(--text-primary);">{{ unassigned }}</h3>
-                            {% endwith %}
-                            <p class="text-muted mb-0">Need Assignment</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

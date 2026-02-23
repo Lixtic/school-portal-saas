@@ -10,9 +10,10 @@ from django.db.models import Q, Count
 from django.views.decorators.csrf import csrf_exempt
 from accounts.models import User
 from announcements.models import Announcement
-from .models import Activity, GalleryImage, SchoolInfo, Class, Timetable, ClassSubject, Resource, AcademicYear
+from .models import Activity, GalleryImage, SchoolInfo, Class, Timetable, ClassSubject, Resource, AcademicYear, Subject
 from students.models import Student, Attendance, Grade
-from .forms import SchoolInfoForm, GalleryImageForm, ResourceForm
+from .forms import SchoolInfoForm, GalleryImageForm, ResourceForm, ClassForm, SubjectForm, ClassSubjectForm, BulkClassForm
+from teachers.models import Teacher
 
 def about_us(request):
     """Public about us page"""
@@ -45,19 +46,305 @@ def manage_classes(request):
         messages.error(request, 'Access denied.')
         return redirect('dashboard')
     
-    # Get current academic year
     current_year = AcademicYear.objects.filter(is_current=True).first()
     
-    # Get all classes with counts
-    classes = Class.objects.select_related('academic_year', 'class_teacher', 'class_teacher__user').annotate(
-        student_count=Count('student')
-    ).order_by('-academic_year__start_date', 'name')
+    # Filter by academic year if specified
+    year_filter = request.GET.get('year', '')
+    classes_qs = Class.objects.select_related('academic_year', 'class_teacher', 'class_teacher__user').annotate(
+        student_count=Count('student'),
+        subject_count=Count('classsubject'),
+    )
+    if year_filter:
+        classes_qs = classes_qs.filter(academic_year_id=year_filter)
+    elif current_year:
+        classes_qs = classes_qs.filter(academic_year=current_year)
+    
+    classes = classes_qs.order_by('name')
+    academic_years = AcademicYear.objects.order_by('-start_date')
+    
+    # Stats
+    total_classes = classes.count()
+    assigned_count = classes.filter(class_teacher__isnull=False).count()
+    total_students = sum(c.student_count for c in classes)
     
     context = {
         'classes': classes,
-        'current_year': current_year
+        'current_year': current_year,
+        'academic_years': academic_years,
+        'year_filter': int(year_filter) if year_filter else (current_year.id if current_year else ''),
+        'total_classes': total_classes,
+        'assigned_count': assigned_count,
+        'unassigned_count': total_classes - assigned_count,
+        'total_students': total_students,
     }
     return render(request, 'academics/manage_classes.html', context)
+
+
+@login_required
+def add_class(request):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    if request.method == 'POST':
+        form = ClassForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Class "{form.cleaned_data["name"]}" created successfully.')
+            return redirect('academics:manage_classes')
+    else:
+        form = ClassForm()
+        current_year = AcademicYear.objects.filter(is_current=True).first()
+        if current_year:
+            form.fields['academic_year'].initial = current_year.id
+    
+    return render(request, 'academics/class_form.html', {'form': form, 'title': 'Add Class'})
+
+
+@login_required
+def edit_class(request, class_id):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    cls = get_object_or_404(Class, id=class_id)
+    if request.method == 'POST':
+        form = ClassForm(request.POST, instance=cls)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Class "{cls.name}" updated successfully.')
+            return redirect('academics:manage_classes')
+    else:
+        form = ClassForm(instance=cls)
+    
+    return render(request, 'academics/class_form.html', {'form': form, 'title': f'Edit Class: {cls.name}', 'editing': True})
+
+
+@login_required
+def delete_class(request, class_id):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    cls = get_object_or_404(Class, id=class_id)
+    student_count = Student.objects.filter(current_class=cls).count()
+    
+    if request.method == 'POST':
+        if student_count > 0:
+            messages.error(request, f'Cannot delete "{cls.name}" — it has {student_count} student(s) assigned. Reassign them first.')
+        else:
+            name = cls.name
+            cls.delete()
+            messages.success(request, f'Class "{name}" deleted.')
+        return redirect('academics:manage_classes')
+    
+    return render(request, 'academics/confirm_delete.html', {
+        'object': cls,
+        'object_type': 'Class',
+        'warning': f'This class has {student_count} student(s) assigned.' if student_count else None,
+        'can_delete': student_count == 0,
+        'cancel_url': reverse('academics:manage_classes'),
+    })
+
+
+@login_required
+def bulk_add_classes(request):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    if request.method == 'POST':
+        form = BulkClassForm(request.POST)
+        if form.is_valid():
+            level = form.cleaned_data['level']
+            sections = [s.strip().upper() for s in form.cleaned_data['sections'].split(',') if s.strip()]
+            academic_year = form.cleaned_data['academic_year']
+            
+            # Determine class names based on level
+            if level == 'KG':
+                base_names = [f'KG {i}' for i in range(1, 3)]
+            elif level == 'Primary':
+                base_names = [f'Primary {i}' for i in range(1, 7)]
+            elif level == 'JHS':
+                base_names = [f'JHS {i}' for i in range(1, 4)]
+            else:
+                messages.error(request, 'Invalid level selected.')
+                return redirect('academics:manage_classes')
+            
+            created_count = 0
+            skipped_count = 0
+            if sections:
+                for base in base_names:
+                    for sec in sections:
+                        name = f'{base}{sec}'
+                        _, created = Class.objects.get_or_create(
+                            name=name, academic_year=academic_year
+                        )
+                        if created:
+                            created_count += 1
+                        else:
+                            skipped_count += 1
+            else:
+                for base in base_names:
+                    _, created = Class.objects.get_or_create(
+                        name=base, academic_year=academic_year
+                    )
+                    if created:
+                        created_count += 1
+                    else:
+                        skipped_count += 1
+            
+            msg = f'{created_count} class(es) created.'
+            if skipped_count:
+                msg += f' {skipped_count} already existed (skipped).'
+            messages.success(request, msg)
+            return redirect('academics:manage_classes')
+    else:
+        form = BulkClassForm()
+        current_year = AcademicYear.objects.filter(is_current=True).first()
+        if current_year:
+            form.fields['academic_year'].initial = current_year.id
+    
+    return render(request, 'academics/bulk_add_classes.html', {'form': form})
+
+
+# ─── Subject CRUD ─────────────────────────────────────────────
+@login_required
+def manage_subjects(request):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    subjects = Subject.objects.annotate(
+        class_count=Count('classsubject', distinct=True),
+        teacher_count=Count('classsubject__teacher', distinct=True),
+    ).order_by('name')
+    
+    return render(request, 'academics/manage_subjects.html', {'subjects': subjects})
+
+
+@login_required
+def add_subject(request):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    if request.method == 'POST':
+        form = SubjectForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Subject "{form.cleaned_data["name"]}" created.')
+            return redirect('academics:manage_subjects')
+    else:
+        form = SubjectForm()
+    
+    return render(request, 'academics/subject_form.html', {'form': form, 'title': 'Add Subject'})
+
+
+@login_required
+def edit_subject(request, subject_id):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    subject = get_object_or_404(Subject, id=subject_id)
+    if request.method == 'POST':
+        form = SubjectForm(request.POST, instance=subject)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Subject "{subject.name}" updated.')
+            return redirect('academics:manage_subjects')
+    else:
+        form = SubjectForm(instance=subject)
+    
+    return render(request, 'academics/subject_form.html', {'form': form, 'title': f'Edit Subject: {subject.name}', 'editing': True})
+
+
+@login_required
+def delete_subject(request, subject_id):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    subject = get_object_or_404(Subject, id=subject_id)
+    usage_count = ClassSubject.objects.filter(subject=subject).count()
+    
+    if request.method == 'POST':
+        if usage_count > 0:
+            messages.error(request, f'Cannot delete "{subject.name}" — it is assigned to {usage_count} class(es). Remove assignments first.')
+        else:
+            name = subject.name
+            subject.delete()
+            messages.success(request, f'Subject "{name}" deleted.')
+        return redirect('academics:manage_subjects')
+    
+    return render(request, 'academics/confirm_delete.html', {
+        'object': subject,
+        'object_type': 'Subject',
+        'warning': f'This subject is assigned to {usage_count} class(es).' if usage_count else None,
+        'can_delete': usage_count == 0,
+        'cancel_url': reverse('academics:manage_subjects'),
+    })
+
+
+# ─── Class-Subject Management ────────────────────────────────
+@login_required
+def manage_class_subjects(request, class_id):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    cls = get_object_or_404(Class.objects.select_related('academic_year', 'class_teacher', 'class_teacher__user'), id=class_id)
+    class_subjects = ClassSubject.objects.filter(class_name=cls).select_related('subject', 'teacher', 'teacher__user').order_by('subject__name')
+    
+    # Subjects not yet assigned to this class
+    assigned_subject_ids = class_subjects.values_list('subject_id', flat=True)
+    available_subjects = Subject.objects.exclude(id__in=assigned_subject_ids).order_by('name')
+    teachers = Teacher.objects.select_related('user').order_by('user__first_name')
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'add':
+            subject_id = request.POST.get('subject_id')
+            teacher_id = request.POST.get('teacher_id') or None
+            if subject_id:
+                subject = get_object_or_404(Subject, id=subject_id)
+                teacher = Teacher.objects.filter(id=teacher_id).first() if teacher_id else None
+                _, created = ClassSubject.objects.get_or_create(
+                    class_name=cls, subject=subject,
+                    defaults={'teacher': teacher}
+                )
+                if created:
+                    messages.success(request, f'Added {subject.name} to {cls.name}.')
+                else:
+                    messages.info(request, f'{subject.name} is already assigned to {cls.name}.')
+        
+        elif action == 'update_teacher':
+            cs_id = request.POST.get('cs_id')
+            teacher_id = request.POST.get('teacher_id') or None
+            cs = get_object_or_404(ClassSubject, id=cs_id, class_name=cls)
+            cs.teacher = Teacher.objects.filter(id=teacher_id).first() if teacher_id else None
+            cs.save()
+            messages.success(request, f'Teacher updated for {cs.subject.name}.')
+        
+        elif action == 'remove':
+            cs_id = request.POST.get('cs_id')
+            cs = get_object_or_404(ClassSubject, id=cs_id, class_name=cls)
+            subject_name = cs.subject.name
+            cs.delete()
+            messages.success(request, f'Removed {subject_name} from {cls.name}.')
+        
+        return redirect('academics:manage_class_subjects', class_id=cls.id)
+    
+    context = {
+        'cls': cls,
+        'class_subjects': class_subjects,
+        'available_subjects': available_subjects,
+        'teachers': teachers,
+    }
+    return render(request, 'academics/manage_class_subjects.html', context)
+
 
 @login_required
 def manage_resources(request):

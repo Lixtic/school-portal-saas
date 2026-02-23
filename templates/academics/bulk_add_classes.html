@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}Bulk Add Classes - {{ school_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --card-bg: #ffffff; --card-border: #e2e8f0;
+        --text-heading: #0f172a; --text-muted: #94a3b8;
+        --accent-soft: rgba(59,130,246,.08);
+    }
+    [data-bs-theme="dark"] {
+        --card-bg: #1e293b; --card-border: #334155;
+        --text-heading: #f1f5f9; --text-muted: #64748b;
+        --accent-soft: rgba(59,130,246,.15);
+    }
+    .form-page { max-width: 650px; margin: 0 auto; padding: 1.5rem 1rem; }
+    .form-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        padding: 2rem;
+    }
+    .form-card label { color: var(--text-heading); font-weight: 600; font-size: .9rem; }
+    .form-card .form-control,
+    .form-card .form-select {
+        background: var(--card-bg); color: var(--text-heading);
+        border-color: var(--card-border);
+    }
+    .form-card .form-text { color: var(--text-muted); }
+    .level-preview {
+        background: var(--accent-soft);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-top: 1rem;
+        color: var(--text-heading);
+        font-size: .85rem;
+    }
+    .level-preview .badge { font-size: .75rem; margin: .15rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-page">
+    <div class="d-flex align-items-center gap-2 mb-3">
+        <a href="{% url 'academics:manage_classes' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <h3 class="mb-0" style="color: var(--text-heading); font-weight: 700;">
+            <i class="bi bi-layers me-2"></i>Bulk Add Classes
+        </h3>
+    </div>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="border-radius: 10px;">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="form-card">
+        <p style="color: var(--text-muted); font-size: .9rem;">
+            Quickly create an entire level of classes. Choose a level, optionally add section letters, and all classes will be created at once.
+        </p>
+
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+            <div class="mb-3">
+                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}
+                <div class="form-text">{{ field.help_text }}</div>
+                {% endif %}
+                {% for error in field.errors %}
+                <div class="text-danger small mt-1">{{ error }}</div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+
+            <div class="level-preview" id="preview" style="display: none;">
+                <strong><i class="bi bi-eye me-1"></i>Preview:</strong>
+                <div id="preview-classes" class="mt-2"></div>
+            </div>
+
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-layers me-1"></i>Create Classes
+                </button>
+                <a href="{% url 'academics:manage_classes' %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const levelSelect = document.getElementById('id_level');
+    const sectionsInput = document.getElementById('id_sections');
+    const preview = document.getElementById('preview');
+    const previewClasses = document.getElementById('preview-classes');
+
+    const levelMap = {
+        'KG': ['KG 1', 'KG 2'],
+        'Primary': ['Primary 1', 'Primary 2', 'Primary 3', 'Primary 4', 'Primary 5', 'Primary 6'],
+        'JHS': ['JHS 1', 'JHS 2', 'JHS 3'],
+    };
+
+    function updatePreview() {
+        const level = levelSelect.value;
+        const sections = sectionsInput.value.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+        const bases = levelMap[level];
+
+        if (!bases) {
+            preview.style.display = 'none';
+            return;
+        }
+
+        let names = [];
+        if (sections.length) {
+            bases.forEach(b => sections.forEach(s => names.push(b + s)));
+        } else {
+            names = bases;
+        }
+
+        previewClasses.innerHTML = names.map(n =>
+            `<span class="badge bg-primary">${n}</span>`
+        ).join('');
+        preview.style.display = 'block';
+    }
+
+    levelSelect.addEventListener('change', updatePreview);
+    sectionsInput.addEventListener('input', updatePreview);
+    updatePreview();
+});
+</script>
+{% endblock %}

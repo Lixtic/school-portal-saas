@@ -1,5 +1,6 @@
 from django import forms
-from .models import SchoolInfo, GalleryImage, Resource
+from .models import SchoolInfo, GalleryImage, Resource, Class, Subject, ClassSubject, AcademicYear
+from teachers.models import Teacher
 
 class ResourceForm(forms.ModelForm):
     class Meta:
@@ -91,3 +92,72 @@ class SchoolInfoForm(forms.ModelForm):
             'linkedin_url': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://linkedin.com/company/yourschool'}),
             'youtube_url': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://youtube.com/c/yourschool'}),
         }
+
+
+class ClassForm(forms.ModelForm):
+    class Meta:
+        model = Class
+        fields = ['name', 'academic_year', 'class_teacher']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Primary 1A, JHS 2B'}),
+            'academic_year': forms.Select(attrs={'class': 'form-select'}),
+            'class_teacher': forms.Select(attrs={'class': 'form-select'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['class_teacher'].required = False
+        self.fields['class_teacher'].empty_label = "— No teacher assigned —"
+        self.fields['academic_year'].queryset = AcademicYear.objects.order_by('-start_date')
+        self.fields['class_teacher'].queryset = Teacher.objects.select_related('user').order_by('user__first_name')
+
+
+class SubjectForm(forms.ModelForm):
+    class Meta:
+        model = Subject
+        fields = ['name', 'code', 'description']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Mathematics'}),
+            'code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. MATH'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Brief description of the subject'}),
+        }
+
+
+class ClassSubjectForm(forms.ModelForm):
+    class Meta:
+        model = ClassSubject
+        fields = ['class_name', 'subject', 'teacher']
+        widgets = {
+            'class_name': forms.Select(attrs={'class': 'form-select'}),
+            'subject': forms.Select(attrs={'class': 'form-select'}),
+            'teacher': forms.Select(attrs={'class': 'form-select'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['teacher'].required = False
+        self.fields['teacher'].empty_label = "— No teacher assigned —"
+        self.fields['class_name'].queryset = Class.objects.select_related('academic_year').order_by('-academic_year__start_date', 'name')
+        self.fields['teacher'].queryset = Teacher.objects.select_related('user').order_by('user__first_name')
+
+
+class BulkClassForm(forms.Form):
+    """Form for bulk-creating classes using a naming pattern."""
+    LEVEL_CHOICES = [
+        ('', '— Select Level —'),
+        ('KG', 'Kindergarten (KG 1, KG 2)'),
+        ('Primary', 'Primary (Primary 1 – Primary 6)'),
+        ('JHS', 'JHS (JHS 1 – JHS 3)'),
+        ('custom', 'Custom'),
+    ]
+    level = forms.ChoiceField(choices=LEVEL_CHOICES, widget=forms.Select(attrs={'class': 'form-select'}))
+    sections = forms.CharField(
+        max_length=50,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. A, B or leave empty for none'}),
+        help_text='Comma-separated section letters. Leave empty for no sections.'
+    )
+    academic_year = forms.ModelChoiceField(
+        queryset=AcademicYear.objects.order_by('-start_date'),
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )

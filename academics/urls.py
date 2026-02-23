@@ -8,7 +8,21 @@ urlpatterns = [
     path('admissions/assistant/', views.admissions_assistant, name='admissions_assistant'),
     path('activities/', views.activities_public, name='activities'),
     path('activities/manage/', views.manage_activities, name='manage_activities'),
+    
+    # Class Management
     path('classes/manage/', views.manage_classes, name='manage_classes'),
+    path('classes/add/', views.add_class, name='add_class'),
+    path('classes/bulk-add/', views.bulk_add_classes, name='bulk_add_classes'),
+    path('classes/<int:class_id>/edit/', views.edit_class, name='edit_class'),
+    path('classes/<int:class_id>/delete/', views.delete_class, name='delete_class'),
+    path('classes/<int:class_id>/subjects/', views.manage_class_subjects, name='manage_class_subjects'),
+    
+    # Subject Management
+    path('subjects/manage/', views.manage_subjects, name='manage_subjects'),
+    path('subjects/add/', views.add_subject, name='add_subject'),
+    path('subjects/<int:subject_id>/edit/', views.edit_subject, name='edit_subject'),
+    path('subjects/<int:subject_id>/delete/', views.delete_subject, name='delete_subject'),
+    
     path('gallery/', views.gallery_view, name='gallery'),
     path('gallery/upload/', views.upload_gallery_image, name='upload_gallery_image'),
     path('resources/manage/', views.manage_resources, name='manage_resources'),

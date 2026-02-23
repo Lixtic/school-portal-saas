@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Manage Subjects - {{ school_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --card-bg: #ffffff; --card-border: #e2e8f0;
+        --text-heading: #0f172a; --text-body: #475569; --text-muted: #94a3b8;
+        --accent: #3b82f6; --accent-soft: rgba(59,130,246,.08);
+        --success: #10b981; --success-soft: rgba(16,185,129,.08);
+        --purple: #8b5cf6; --purple-soft: rgba(139,92,246,.08);
+    }
+    [data-bs-theme="dark"] {
+        --card-bg: #1e293b; --card-border: #334155;
+        --text-heading: #f1f5f9; --text-body: #cbd5e1; --text-muted: #64748b;
+        --accent-soft: rgba(59,130,246,.15);
+        --success-soft: rgba(16,185,129,.15);
+        --purple-soft: rgba(139,92,246,.15);
+    }
+
+    .page-container { max-width: 1000px; margin: 0 auto; padding: 1.5rem 1rem; }
+
+    .subject-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
+    }
+    .subject-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        padding: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: .75rem;
+        transition: box-shadow .2s;
+    }
+    .subject-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+
+    .subject-header { display: flex; align-items: center; gap: .75rem; }
+    .subject-icon {
+        width: 42px; height: 42px;
+        border-radius: 10px;
+        background: var(--accent-soft);
+        display: flex; align-items: center; justify-content: center;
+        color: var(--accent);
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+    .subject-name { font-weight: 600; color: var(--text-heading); font-size: 1rem; }
+    .subject-code {
+        font-size: .75rem;
+        color: var(--accent);
+        font-weight: 600;
+        background: var(--accent-soft);
+        padding: .15rem .4rem;
+        border-radius: 6px;
+    }
+    .subject-desc { font-size: .85rem; color: var(--text-muted); flex-grow: 1; }
+    .subject-stats { display: flex; gap: .75rem; }
+    .subject-stats .stat {
+        display: flex; align-items: center; gap: .3rem;
+        font-size: .8rem; color: var(--text-muted);
+    }
+    .subject-actions { display: flex; gap: .35rem; }
+    .subject-actions .btn { padding: .3rem .5rem; font-size: .8rem; border-radius: 8px; }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: var(--text-muted);
+        grid-column: 1 / -1;
+    }
+    .empty-state i { font-size: 3rem; margin-bottom: 1rem; display: block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+        <div>
+            <h2 class="mb-1" style="color: var(--text-heading); font-weight: 700;">
+                <i class="bi bi-book me-2"></i>Manage Subjects
+            </h2>
+            <p style="color: var(--text-muted); margin: 0;">Create and manage subjects for your school curriculum</p>
+        </div>
+    </div>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="border-radius: 10px;">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <!-- Toolbar -->
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <div class="d-flex gap-2">
+            <a href="{% url 'academics:add_subject' %}" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-1"></i>Add Subject
+            </a>
+            <a href="{% url 'academics:manage_classes' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-building me-1"></i>Back to Classes
+            </a>
+        </div>
+        <span class="badge bg-primary" style="font-size: .85rem;">{{ subjects|length }} subject{{ subjects|length|pluralize }}</span>
+    </div>
+
+    <!-- Subject Cards -->
+    <div class="subject-grid">
+        {% for subject in subjects %}
+        <div class="subject-card">
+            <div class="subject-header">
+                <div class="subject-icon"><i class="bi bi-book"></i></div>
+                <div>
+                    <div class="subject-name">{{ subject.name }}</div>
+                    <span class="subject-code">{{ subject.code }}</span>
+                </div>
+            </div>
+            {% if subject.description %}
+            <div class="subject-desc">{{ subject.description|truncatewords:20 }}</div>
+            {% endif %}
+            <div class="subject-stats">
+                <div class="stat"><i class="bi bi-building"></i> {{ subject.class_count }} class{{ subject.class_count|pluralize:"es" }}</div>
+                <div class="stat"><i class="bi bi-person"></i> {{ subject.teacher_count }} teacher{{ subject.teacher_count|pluralize }}</div>
+            </div>
+            <div class="subject-actions">
+                <a href="{% url 'academics:edit_subject' subject.id %}" class="btn btn-outline-secondary" title="Edit">
+                    <i class="bi bi-pencil me-1"></i>Edit
+                </a>
+                <a href="{% url 'academics:delete_subject' subject.id %}" class="btn btn-outline-danger" title="Delete">
+                    <i class="bi bi-trash3"></i>
+                </a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <i class="bi bi-book"></i>
+            <h5 style="color: var(--text-heading);">No subjects yet</h5>
+            <p>Create your first subject to start building your curriculum.</p>
+            <a href="{% url 'academics:add_subject' %}" class="btn btn-primary mt-2">
+                <i class="bi bi-plus-lg me-1"></i>Add Subject
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ cls.name }} — Subjects - {{ school_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --card-bg: #ffffff; --card-border: #e2e8f0;
+        --text-heading: #0f172a; --text-body: #475569; --text-muted: #94a3b8;
+        --accent: #3b82f6; --accent-soft: rgba(59,130,246,.08);
+        --success: #10b981; --success-soft: rgba(16,185,129,.08);
+        --warning: #f59e0b; --warning-soft: rgba(245,158,11,.08);
+        --danger: #ef4444;
+    }
+    [data-bs-theme="dark"] {
+        --card-bg: #1e293b; --card-border: #334155;
+        --text-heading: #f1f5f9; --text-body: #cbd5e1; --text-muted: #64748b;
+        --accent-soft: rgba(59,130,246,.15);
+        --success-soft: rgba(16,185,129,.15);
+        --warning-soft: rgba(245,158,11,.15);
+    }
+
+    .page-container { max-width: 900px; margin: 0 auto; padding: 1.5rem 1rem; }
+
+    .class-header-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    .class-badge {
+        width: 56px; height: 56px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #60a5fa, #3b82f6);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.2rem; font-weight: 700; color: #fff;
+        flex-shrink: 0;
+    }
+    .class-meta { flex: 1; min-width: 200px; }
+    .class-meta h3 { margin: 0; color: var(--text-heading); font-weight: 700; }
+    .class-meta p { margin: .25rem 0 0; color: var(--text-muted); font-size: .85rem; }
+
+    /* Add Subject Form */
+    .add-form-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+    .add-form-card h5 { color: var(--text-heading); font-weight: 600; margin-bottom: 1rem; }
+    .add-form-card .form-select,
+    .add-form-card .form-control {
+        background: var(--card-bg); color: var(--text-heading);
+        border-color: var(--card-border);
+    }
+
+    /* Subject List */
+    .subjects-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .subjects-card table { margin: 0; color: var(--text-body); }
+    .subjects-card thead { background: var(--accent-soft); }
+    .subjects-card thead th {
+        font-size: 0.75rem; font-weight: 600;
+        text-transform: uppercase; letter-spacing: 0.05em;
+        color: var(--text-muted); border: none; padding: .75rem 1rem;
+    }
+    .subjects-card tbody td {
+        padding: .75rem 1rem;
+        border-color: var(--card-border);
+        vertical-align: middle;
+    }
+    .subjects-card tbody tr:hover { background: var(--accent-soft); }
+    .subjects-card tbody tr:last-child td { border-bottom: none; }
+
+    .teacher-select { max-width: 220px; }
+
+    .empty-state {
+        text-align: center;
+        padding: 2.5rem 1rem;
+        color: var(--text-muted);
+    }
+    .empty-state i { font-size: 2.5rem; margin-bottom: .75rem; display: block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <!-- Back Button -->
+    <div class="d-flex align-items-center gap-2 mb-3">
+        <a href="{% url 'academics:manage_classes' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <span style="color: var(--text-muted); font-size: .9rem;">Back to Classes</span>
+    </div>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="border-radius: 10px;">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <!-- Class Header -->
+    <div class="class-header-card">
+        <div class="class-badge">{{ cls.name|truncatechars:3 }}</div>
+        <div class="class-meta">
+            <h3>{{ cls.name }} — Subjects</h3>
+            <p>
+                {{ cls.academic_year.name }}
+                {% if cls.class_teacher %} · Teacher: {{ cls.class_teacher.user.get_full_name }}{% endif %}
+                · {{ class_subjects|length }} subject{{ class_subjects|length|pluralize }} assigned
+            </p>
+        </div>
+    </div>
+
+    <!-- Add Subject Form -->
+    {% if available_subjects %}
+    <div class="add-form-card">
+        <h5><i class="bi bi-plus-circle me-2"></i>Assign a Subject</h5>
+        <form method="post" class="row g-2 align-items-end">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add">
+            <div class="col-sm-4">
+                <label class="form-label small" style="color: var(--text-muted);">Subject</label>
+                <select name="subject_id" class="form-select form-select-sm" required>
+                    <option value="">Select subject...</option>
+                    {% for subject in available_subjects %}
+                    <option value="{{ subject.id }}">{{ subject.code }} — {{ subject.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm-4">
+                <label class="form-label small" style="color: var(--text-muted);">Teacher (optional)</label>
+                <select name="teacher_id" class="form-select form-select-sm">
+                    <option value="">No teacher</option>
+                    {% for teacher in teachers %}
+                    <option value="{{ teacher.id }}">{{ teacher.user.get_full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm-4">
+                <button type="submit" class="btn btn-primary btn-sm w-100">
+                    <i class="bi bi-plus-lg me-1"></i>Add Subject
+                </button>
+            </div>
+        </form>
+    </div>
+    {% elif not class_subjects %}
+    {% else %}
+    <div class="alert alert-info" style="border-radius: 10px;">
+        <i class="bi bi-info-circle me-1"></i>All available subjects have been assigned to this class.
+        <a href="{% url 'academics:add_subject' %}">Create a new subject</a> to add more.
+    </div>
+    {% endif %}
+
+    <!-- Assigned Subjects Table -->
+    <div class="subjects-card">
+        {% if class_subjects %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Subject</th>
+                        <th>Code</th>
+                        <th>Teacher</th>
+                        <th style="width: 180px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cs in class_subjects %}
+                    <tr>
+                        <td style="color: var(--text-muted);">{{ forloop.counter }}</td>
+                        <td style="font-weight: 600; color: var(--text-heading);">{{ cs.subject.name }}</td>
+                        <td><span class="badge bg-primary bg-opacity-10 text-primary">{{ cs.subject.code }}</span></td>
+                        <td>
+                            <form method="post" class="d-flex align-items-center gap-1">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="update_teacher">
+                                <input type="hidden" name="cs_id" value="{{ cs.id }}">
+                                <select name="teacher_id" class="form-select form-select-sm teacher-select" onchange="this.form.submit()" style="background: var(--card-bg); color: var(--text-body); border-color: var(--card-border);">
+                                    <option value="">No teacher</option>
+                                    {% for teacher in teachers %}
+                                    <option value="{{ teacher.id }}" {% if cs.teacher_id == teacher.id %}selected{% endif %}>
+                                        {{ teacher.user.get_full_name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </form>
+                        </td>
+                        <td>
+                            <form method="post" style="display: inline;" onsubmit="return confirm('Remove {{ cs.subject.name }} from {{ cls.name }}?');">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="remove">
+                                <input type="hidden" name="cs_id" value="{{ cs.id }}">
+                                <button type="submit" class="btn btn-outline-danger btn-sm" title="Remove Subject">
+                                    <i class="bi bi-x-lg me-1"></i>Remove
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-book"></i>
+            <h5 style="color: var(--text-heading);">No subjects assigned</h5>
+            <p>Use the form above to assign subjects to this class.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

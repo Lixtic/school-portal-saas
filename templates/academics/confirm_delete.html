@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete {{ object_type }} - {{ school_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --card-bg: #ffffff; --card-border: #e2e8f0;
+        --text-heading: #0f172a; --text-muted: #94a3b8;
+        --danger: #ef4444; --danger-soft: rgba(239,68,68,.08);
+    }
+    [data-bs-theme="dark"] {
+        --card-bg: #1e293b; --card-border: #334155;
+        --text-heading: #f1f5f9; --text-muted: #64748b;
+        --danger-soft: rgba(239,68,68,.15);
+    }
+    .delete-page { max-width: 500px; margin: 0 auto; padding: 2rem 1rem; }
+    .delete-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+    }
+    .delete-icon {
+        width: 64px; height: 64px;
+        border-radius: 50%;
+        background: var(--danger-soft);
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 1rem;
+        font-size: 1.5rem;
+        color: var(--danger);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="delete-page">
+    <div class="delete-card">
+        <div class="delete-icon"><i class="bi bi-exclamation-triangle"></i></div>
+        <h4 style="color: var(--text-heading);">Delete {{ object_type }}?</h4>
+        <p style="color: var(--text-muted);">
+            Are you sure you want to delete <strong style="color: var(--text-heading);">{{ object }}</strong>?
+            This action cannot be undone.
+        </p>
+
+        {% if warning %}
+        <div class="alert alert-warning" style="border-radius: 10px; text-align: left;">
+            <i class="bi bi-exclamation-triangle me-1"></i>{{ warning }}
+        </div>
+        {% endif %}
+
+        <div class="d-flex gap-2 justify-content-center mt-3">
+            {% if can_delete %}
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">
+                    <i class="bi bi-trash3 me-1"></i>Yes, Delete
+                </button>
+            </form>
+            {% else %}
+            <button class="btn btn-danger" disabled>
+                <i class="bi bi-trash3 me-1"></i>Cannot Delete
+            </button>
+            {% endif %}
+            <a href="{{ cancel_url }}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
