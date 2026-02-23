@@ -42,42 +42,76 @@
     .icon-success { background: #f0fdf4; color: #22c55e; }
     .icon-info { background: #f0f9ff; color: #0ea5e9; }
     
-    .action-card {
-        background: white;
-        border: 1px solid rgba(0,0,0,0.05);
-        border-radius: 16px;
-        padding: 1.5rem;
-        transition: all 0.2s;
-        text-align: center;
-        height: 100%;
-        color: var(--bs-body-color);
+    /* ===== Teaching Tools - Minimalist Groups ===== */
+    .tt-section {
+        background: var(--surface-card, #fff);
+        border: 1px solid rgba(0,0,0,0.06);
+        border-radius: 14px;
+        overflow: hidden;
+    }
+    .tt-group { border-bottom: 1px solid rgba(0,0,0,0.05); }
+    .tt-group:last-child { border-bottom: none; }
+    .tt-group-header {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.5rem 0.875rem;
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #9ca3af;
+        background: rgba(0,0,0,0.018);
+        border-bottom: 1px solid rgba(0,0,0,0.04);
+    }
+    .tt-link {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        padding: 0.6rem 0.875rem;
         text-decoration: none;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
+        color: #374151;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        border-bottom: 1px solid rgba(0,0,0,0.04);
+        transition: background 0.15s, color 0.15s;
     }
-    .action-card:hover {
-        background: #f8f9fa;
-        transform: translateY(-3px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-        border-color: var(--bs-primary);
-        color: var(--bs-primary);
-    }
-    .action-icon {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
+    .tt-link:last-child { border-bottom: none; }
+    .tt-link:hover { text-decoration: none; }
+    .tt-link-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.75rem;
-        margin-bottom: 1rem;
-        transition: all 0.2s;
+        font-size: 0.875rem;
+        flex-shrink: 0;
+        transition: background 0.15s;
     }
-    .action-card:hover .action-icon {
-        transform: scale(1.1);
-    }
+    .tt-link-meta { font-size: 0.7rem; color: #9ca3af; line-height: 1; margin-top: 1px; }
+    /* Group accent colors */
+    .tt-group.g-teach .tt-link-icon { background: #eff6ff; color: #3b82f6; }
+    .tt-group.g-teach .tt-link:hover { color: #3b82f6; background: rgba(59,130,246,0.04); }
+    .tt-group.g-plan  .tt-link-icon { background: #f5f3ff; color: #8b5cf6; }
+    .tt-group.g-plan  .tt-link:hover { color: #8b5cf6; background: rgba(139,92,246,0.04); }
+    .tt-group.g-resources .tt-link-icon { background: #fffbeb; color: #f59e0b; }
+    .tt-group.g-resources .tt-link:hover { color: #f59e0b; background: rgba(245,158,11,0.04); }
+    .tt-group.g-sched .tt-link-icon { background: #f0fdf4; color: #22c55e; }
+    .tt-group.g-sched .tt-link:hover { color: #22c55e; background: rgba(34,197,94,0.04); }
+    /* Dark mode */
+    [data-bs-theme="dark"] .tt-section { background: var(--surface-card, #1e293b); border-color: rgba(255,255,255,0.06); }
+    [data-bs-theme="dark"] .tt-group { border-bottom-color: rgba(255,255,255,0.05); }
+    [data-bs-theme="dark"] .tt-group-header { background: rgba(255,255,255,0.02); border-bottom-color: rgba(255,255,255,0.04); color: #64748b; }
+    [data-bs-theme="dark"] .tt-link { color: #cbd5e1; border-bottom-color: rgba(255,255,255,0.04); }
+    [data-bs-theme="dark"] .tt-group.g-teach .tt-link-icon { background: rgba(59,130,246,0.12); color: #60a5fa; }
+    [data-bs-theme="dark"] .tt-group.g-teach .tt-link:hover { color: #60a5fa; background: rgba(59,130,246,0.08); }
+    [data-bs-theme="dark"] .tt-group.g-plan .tt-link-icon { background: rgba(139,92,246,0.12); color: #a78bfa; }
+    [data-bs-theme="dark"] .tt-group.g-plan .tt-link:hover { color: #a78bfa; background: rgba(139,92,246,0.08); }
+    [data-bs-theme="dark"] .tt-group.g-resources .tt-link-icon { background: rgba(245,158,11,0.12); color: #fbbf24; }
+    [data-bs-theme="dark"] .tt-group.g-resources .tt-link:hover { color: #fbbf24; background: rgba(245,158,11,0.08); }
+    [data-bs-theme="dark"] .tt-group.g-sched .tt-link-icon { background: rgba(34,197,94,0.12); color: #4ade80; }
+    [data-bs-theme="dark"] .tt-group.g-sched .tt-link:hover { color: #4ade80; background: rgba(34,197,94,0.08); }
 
     .schedule-item {
         border-left: 4px solid var(--bs-primary);
@@ -118,14 +152,6 @@
     }
     [data-bs-theme="dark"] .icon-info {
         background: rgba(14, 165, 233, 0.15);
-    }
-    [data-bs-theme="dark"] .action-card {
-        background: var(--surface-white);
-        border-color: rgba(255,255,255,0.05);
-        color: var(--text-main);
-    }
-    [data-bs-theme="dark"] .action-card:hover {
-        background: rgba(255,255,255,0.05);
     }
     [data-bs-theme="dark"] .schedule-item:hover {
         background-color: rgba(255,255,255,0.05);
@@ -463,80 +489,71 @@
         
         <div id="widget-teaching-tools">
             <h5 class="fw-bold mb-3 drag-handle" style="cursor: move;">Teaching Tools</h5>
-            <div class="row g-3" id="teacher-tools-row">
-                <div class="col-6 col-md-12" id="tool-my-classes">
-                    <a href="{% url 'teachers:my_classes' %}" class="action-card drag-handle" style="cursor: grab;">
-                        <div class="action-icon bg-primary bg-opacity-10 text-primary">
-                            <i class="bi bi-journal-bookmark-fill"></i>
+            <div class="tt-section">
+
+                <!-- Teaching -->
+                <div class="tt-group g-teach">
+                    <div class="tt-group-header"><i class="bi bi-easel"></i> Teaching</div>
+                    <a href="{% url 'teachers:my_classes' %}" class="tt-link">
+                        <div class="tt-link-icon"><i class="bi bi-journal-bookmark-fill"></i></div>
+                        <div>
+                            <div>My Classes</div>
+                            <div class="tt-link-meta">{% if teacher_class_count %}{{ teacher_class_count }} class{{ teacher_class_count|pluralize:"es" }} assigned{% else %}View subjects & students{% endif %}</div>
                         </div>
-                        <div class="fw-bold">My Classes</div>
-                        <div class="small text-muted mt-1">{% if teacher_class_count %}{{ teacher_class_count }} class{{ teacher_class_count|pluralize:"es" }} assigned{% else %}View subjects & students{% endif %}</div>
+                    </a>
+                    <a href="{% url 'teachers:enter_grades' %}" class="tt-link">
+                        <div class="tt-link-icon"><i class="bi bi-pencil-square"></i></div>
+                        <div><div>Record Grades</div><div class="tt-link-meta">Enter scores & remarks</div></div>
+                    </a>
+                    <a href="{% url 'students:mark_attendance' %}" class="tt-link">
+                        <div class="tt-link-icon"><i class="bi bi-check2-square"></i></div>
+                        <div><div>Attendance</div><div class="tt-link-meta">Mark daily registry</div></div>
                     </a>
                 </div>
-                <div class="col-6 col-md-12" id="tool-enter-grades">
-                     <a href="{% url 'teachers:enter_grades' %}" class="action-card drag-handle" style="cursor: grab;">
-                        <div class="action-icon bg-success bg-opacity-10 text-success">
-                            <i class="bi bi-pencil-square"></i>
-                        </div>
-                        <div class="fw-bold">Record Grades</div>
-                        <div class="small text-muted mt-1">Enter scores & remarks</div>
+
+                <!-- Planning -->
+                <div class="tt-group g-plan">
+                    <div class="tt-group-header"><i class="bi bi-calendar3"></i> Planning</div>
+                    <a href="{% url 'teachers:lesson_plan_list' %}" class="tt-link">
+                        <div class="tt-link-icon"><i class="bi bi-file-earmark-easel"></i></div>
+                        <div><div>Lesson Plans</div><div class="tt-link-meta">Manage weekly plans</div></div>
+                    </a>
+                    <a href="{% url 'homework:homework_list' %}" class="tt-link">
+                        <div class="tt-link-icon"><i class="bi bi-journal-check"></i></div>
+                        <div><div>Homework</div><div class="tt-link-meta">Create & track assignments</div></div>
+                    </a>
+                    <a href="{% url 'homework:homework_create' %}" class="tt-link">
+                        <div class="tt-link-icon"><i class="bi bi-plus-circle"></i></div>
+                        <div><div>New Homework</div><div class="tt-link-meta">Assign to a class</div></div>
                     </a>
                 </div>
-                <div class="col-6 col-md-12" id="tool-attendance">
-                    <a href="{% url 'students:mark_attendance' %}" class="action-card drag-handle" style="cursor: grab;">
-                        <div class="action-icon bg-info bg-opacity-10 text-info">
-                            <i class="bi bi-check2-square"></i>
-                        </div>
-                        <div class="fw-bold">Attendance</div>
-                        <div class="small text-muted mt-1">Mark daily registry</div>
+
+                <!-- Resources -->
+                <div class="tt-group g-resources">
+                    <div class="tt-group-header"><i class="bi bi-folder2"></i> Resources</div>
+                    <a href="{% url 'academics:manage_resources' %}" class="tt-link">
+                        <div class="tt-link-icon"><i class="bi bi-folder2-open"></i></div>
+                        <div><div>Browse Resources</div><div class="tt-link-meta">Curriculum & teaching packs</div></div>
+                    </a>
+                    <a href="{% url 'teachers:curriculum_library' %}" class="tt-link">
+                        <div class="tt-link-icon"><i class="bi bi-collection"></i></div>
+                        <div><div>Curriculum Library</div><div class="tt-link-meta">GES packs for teachers</div></div>
                     </a>
                 </div>
-                <div class="col-6 col-md-12" id="tool-lesson-plans">
-                    <a href="{% url 'teachers:lesson_plan_list' %}" class="action-card drag-handle" style="cursor: grab;">
-                        <div class="action-icon bg-danger bg-opacity-10 text-danger">
-                            <i class="bi bi-file-earmark-easel"></i>
-                        </div>
-                        <div class="fw-bold">Lesson Plans</div>
-                        <div class="small text-muted mt-1">Manage weekly plans</div>
+
+                <!-- Schedule -->
+                <div class="tt-group g-sched">
+                    <div class="tt-group-header"><i class="bi bi-calendar-week"></i> Schedule</div>
+                    <a href="{% url 'teachers:schedule' %}" class="tt-link">
+                        <div class="tt-link-icon"><i class="bi bi-calendar-week"></i></div>
+                        <div><div>My Schedule</div><div class="tt-link-meta">Weekly class timetable</div></div>
+                    </a>
+                    <a href="{% url 'teachers:duty_roster' %}" class="tt-link">
+                        <div class="tt-link-icon"><i class="bi bi-calendar-check"></i></div>
+                        <div><div>Duty Roster</div><div class="tt-link-meta">Check staff duties</div></div>
                     </a>
                 </div>
-                <div class="col-6 col-md-12" id="tool-homework">
-                    <a href="{% url 'homework:homework_list' %}" class="action-card drag-handle" style="cursor: grab;">
-                        <div class="action-icon bg-warning bg-opacity-10 text-warning">
-                            <i class="bi bi-journal-check"></i>
-                        </div>
-                        <div class="fw-bold">Homework</div>
-                        <div class="small text-muted mt-1">Create & track assignments</div>
-                    </a>
-                </div>
-                <div class="col-6 col-md-12" id="tool-resources">
-                    <a href="{% url 'academics:manage_resources' %}" class="action-card drag-handle" style="cursor: grab;">
-                        <div class="action-icon bg-info bg-opacity-10 text-info">
-                            <i class="bi bi-folder2-open"></i>
-                        </div>
-                        <div class="fw-bold">Browse Resources</div>
-                        <div class="small text-muted mt-1">Curriculum & teaching packs</div>
-                    </a>
-                </div>
-                <div class="col-6 col-md-12" id="tool-curriculum-library">
-                    <a href="{% url 'teachers:curriculum_library' %}" class="action-card drag-handle" style="cursor: grab;">
-                        <div class="action-icon bg-warning bg-opacity-10 text-warning">
-                            <i class="bi bi-journal-bookmark-fill"></i>
-                        </div>
-                        <div class="fw-bold">Curriculum Library</div>
-                        <div class="small text-muted mt-1">GES packs for teachers</div>
-                    </a>
-                </div>
-                
-                <div class="col-6 col-md-12" id="tool-duty-roster">
-                    <a href="{% url 'teachers:duty_roster' %}" class="action-card drag-handle" style="cursor: grab;">
-                        <div class="action-icon bg-warning bg-opacity-10 text-warning">
-                            <i class="bi bi-calendar3"></i>
-                        </div>
-                        <div class="fw-bold">Duty Roster</div>
-                        <div class="small text-muted mt-1">Check staff duties</div>
-                    </a>
-                </div>
+
             </div>
         </div>
     </div>
@@ -551,7 +568,6 @@
         initSortableWidget('teacher-stats-row', 'order_teacher_stats_{{ user.id }}');
         initSortableWidget('teacher-main-col', 'order_teacher_main_{{ user.id }}');
         initSortableWidget('teacher-side-col', 'order_teacher_side_{{ user.id }}');
-        initSortableWidget('teacher-tools-row', 'order_teacher_tools_{{ user.id }}');
 
         const toggles = document.querySelectorAll('.widget-toggle');
         
