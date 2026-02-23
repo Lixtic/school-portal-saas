@@ -5,101 +5,140 @@
 
 {% block content %}
 <style>
+    /* ===== Dashboard Layout ===== */
+    .dash-header { margin-bottom: 1.5rem; }
+    .dash-greeting {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.125rem;
+    }
+    .dash-subtitle {
+        color: var(--text-muted, #6b7280);
+        font-size: 0.875rem;
+        margin: 0;
+    }
+
+    /* ===== Stat Cards (CSS Grid) ===== */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
     .stat-card {
-        padding: 1.5rem;
-        border-radius: 12px;
-        border: 1px solid #e5e7eb;
+        padding: 1.25rem;
+        border-radius: 16px;
+        border: 1px solid rgba(0,0,0,0.06);
         background: #fff;
-        transition: all 0.2s;
+        transition: all 0.25s ease;
     }
     .stat-card:hover {
-        border-color: #d1d5db;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        border-color: rgba(0,0,0,0.1);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .stat-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
     }
     .stat-label {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         color: #6b7280;
-        font-weight: 500;
+        font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.375rem;
     }
     .stat-value {
         font-size: 2rem;
-        font-weight: 600;
+        font-weight: 700;
         color: #111827;
+        line-height: 1.1;
     }
     .stat-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 10px;
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
+        font-size: 1.25rem;
+        flex-shrink: 0;
     }
-    .icon-primary { background: #eff6ff; color: #3b82f6; }
-    .icon-success { background: #f0fdf4; color: #22c55e; }
-    .icon-info { background: #f0f9ff; color: #0ea5e9; }
-
     .stat-badge {
-        padding: 0.25rem 0.625rem;
-        font-size: 0.75rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.2rem 0.5rem;
+        font-size: 0.7rem;
         font-weight: 500;
         border-radius: 6px;
-        display: inline-block;
+        margin-top: 0.5rem;
     }
-    .stat-badge-blue { background: #e0f2fe; color: #0369a1; }
-    .stat-badge-green { background: #dcfce7; color: #15803d; }
-    .stat-badge-indigo { background: #dbeafe; color: #1e40af; }
+    .si-blue { background: #eff6ff; color: #3b82f6; }
+    .si-green { background: #f0fdf4; color: #22c55e; }
+    .si-sky { background: #f0f9ff; color: #0ea5e9; }
+    .sb-blue { background: #e0f2fe; color: #0369a1; }
+    .sb-green { background: #dcfce7; color: #15803d; }
+    .sb-indigo { background: #dbeafe; color: #1e40af; }
 
-    [data-bs-theme="dark"] .stat-badge-blue { background: rgba(3,105,161,0.2); color: #7dd3fc; }
-    [data-bs-theme="dark"] .stat-badge-green { background: rgba(21,128,61,0.2); color: #86efac; }
-    [data-bs-theme="dark"] .stat-badge-indigo { background: rgba(30,64,175,0.2); color: #93c5fd; }
-    
+    /* ===== Section Heading ===== */
+    .section-heading {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-bottom: 0.75rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    /* ===== Quick Actions (CSS Grid) ===== */
+    .actions-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.75rem;
+        margin-bottom: 1.75rem;
+    }
     .action-card {
         border: 1px solid rgba(0,0,0,0.06);
-        border-radius: 16px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 14px;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         text-decoration: none;
         color: var(--bs-body-color);
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 0.625rem;
-        height: 100%;
-        background: white;
-        padding: 1.25rem 0.75rem;
-        position: relative;
-        overflow: hidden;
+        gap: 0.5rem;
+        background: #fff;
+        padding: 1rem 0.5rem;
     }
     .action-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.07);
         border-color: transparent;
         text-decoration: none;
         color: var(--bs-body-color);
     }
-    .action-card .action-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 14px;
+    .action-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.35rem;
-        transition: all 0.3s ease;
+        font-size: 1.2rem;
+        transition: all 0.25s ease;
     }
-    .action-card:hover .action-icon {
-        transform: scale(1.1);
-    }
-    .action-card .action-label {
+    .action-card:hover .action-icon { transform: scale(1.08); }
+    .action-label {
         font-weight: 600;
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         text-align: center;
-        line-height: 1.3;
+        line-height: 1.25;
+        color: inherit;
     }
+    /* Icon theme colors */
     .ai-blue { background: #eff6ff; color: #3b82f6; }
     .ai-green { background: #f0fdf4; color: #22c55e; }
     .ai-rose { background: #fff1f2; color: #f43f5e; }
@@ -114,332 +153,411 @@
     .action-card:hover .ai-amber { background: #f59e0b; color: #fff; }
     .action-card:hover .ai-cyan { background: #06b6d4; color: #fff; }
     .action-card:hover .ai-slate { background: #64748b; color: #fff; }
-    
-    .chart-container {
-        background: white;
+
+    /* ===== Content Grid (Announcements + Charts) ===== */
+    .content-grid {
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        gap: 1.5rem;
+        align-items: start;
+    }
+    .chart-card {
+        background: #fff;
         border-radius: 16px;
-        padding: 1.5rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-        height: 100%;
+        padding: 1.25rem;
+        border: 1px solid rgba(0,0,0,0.06);
+    }
+    .chart-heading {
+        font-size: 0.875rem;
+        font-weight: 700;
+        margin-bottom: 0.75rem;
     }
 
-    [data-bs-theme="dark"] .stat-card {
-        background: var(--surface-card);
-        border-color: rgba(255,255,255,0.08);
+    /* ===== Announcements ===== */
+    .announce-card {
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid rgba(0,0,0,0.06);
+        overflow: hidden;
     }
-    [data-bs-theme="dark"] .stat-value {
-        color: #f3f4f6;
+    .announce-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.875rem 1rem;
+        border-bottom: 1px solid rgba(0,0,0,0.04);
+        transition: background 0.15s;
     }
-    [data-bs-theme="dark"] .stat-label {
+    .announce-item:last-child { border-bottom: none; }
+    .announce-item:hover { background: rgba(0,0,0,0.015); }
+    .announce-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: #eff6ff;
+        color: #3b82f6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.95rem;
+        flex-shrink: 0;
+    }
+    .announce-title {
+        font-weight: 600;
+        font-size: 0.875rem;
+        margin-bottom: 0.125rem;
+        line-height: 1.3;
+    }
+    .announce-body {
+        font-size: 0.8rem;
+        color: #6b7280;
+        margin: 0;
+        line-height: 1.4;
+    }
+    .announce-date {
+        font-size: 0.7rem;
+        color: #9ca3af;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .announce-empty {
+        text-align: center;
+        padding: 2.5rem 1rem;
         color: #9ca3af;
     }
-    [data-bs-theme="dark"] .icon-primary {
-        background: rgba(59, 130, 246, 0.15);
+    .announce-empty i { font-size: 2rem; margin-bottom: 0.5rem; display: block; }
+
+    /* ===== Customize Dropdown ===== */
+    .customize-menu {
+        width: 260px;
+        padding: 0.75rem;
+        border-radius: 12px;
     }
-    [data-bs-theme="dark"] .icon-success {
-        background: rgba(34, 197, 94, 0.15);
-    }
-    [data-bs-theme="dark"] .icon-info {
-        background: rgba(14, 165, 233, 0.15);
-    }
-    [data-bs-theme="dark"] .action-card {
-        background: var(--surface-white, #1e293b);
+    .customize-menu .form-check { margin-bottom: 0.375rem; }
+    .customize-menu .form-check-label { font-size: 0.8125rem; }
+
+    /* ===== Dark Mode ===== */
+    [data-bs-theme="dark"] .stat-card,
+    [data-bs-theme="dark"] .action-card,
+    [data-bs-theme="dark"] .announce-card,
+    [data-bs-theme="dark"] .chart-card {
+        background: var(--surface-card, #1e293b);
         border-color: rgba(255,255,255,0.06);
-        color: var(--text-main, #f1f5f9);
     }
+    [data-bs-theme="dark"] .stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    [data-bs-theme="dark"] .stat-value { color: #f1f5f9; }
+    [data-bs-theme="dark"] .stat-label { color: #94a3b8; }
+    [data-bs-theme="dark"] .si-blue { background: rgba(59,130,246,0.12); }
+    [data-bs-theme="dark"] .si-green { background: rgba(34,197,94,0.12); }
+    [data-bs-theme="dark"] .si-sky { background: rgba(14,165,233,0.12); }
+    [data-bs-theme="dark"] .sb-blue { background: rgba(3,105,161,0.2); color: #7dd3fc; }
+    [data-bs-theme="dark"] .sb-green { background: rgba(21,128,61,0.2); color: #86efac; }
+    [data-bs-theme="dark"] .sb-indigo { background: rgba(30,64,175,0.2); color: #93c5fd; }
+    [data-bs-theme="dark"] .action-card { color: var(--text-main, #f1f5f9); }
     [data-bs-theme="dark"] .action-card:hover {
-        background: rgba(255,255,255,0.06);
-        box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+        background: rgba(255,255,255,0.04);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.3);
         color: var(--text-main, #f1f5f9);
     }
-    [data-bs-theme="dark"] .ai-blue { background: rgba(59,130,246,0.15); color: #60a5fa; }
-    [data-bs-theme="dark"] .ai-green { background: rgba(34,197,94,0.15); color: #4ade80; }
-    [data-bs-theme="dark"] .ai-rose { background: rgba(244,63,94,0.15); color: #fb7185; }
-    [data-bs-theme="dark"] .ai-purple { background: rgba(139,92,246,0.15); color: #a78bfa; }
-    [data-bs-theme="dark"] .ai-amber { background: rgba(245,158,11,0.15); color: #fbbf24; }
-    [data-bs-theme="dark"] .ai-cyan { background: rgba(6,182,212,0.15); color: #22d3ee; }
-    [data-bs-theme="dark"] .ai-slate { background: rgba(100,116,139,0.15); color: #94a3b8; }
-    [data-bs-theme="dark"] .action-card:hover .ai-blue { background: rgba(59,130,246,0.3); color: #93c5fd; }
-    [data-bs-theme="dark"] .action-card:hover .ai-green { background: rgba(34,197,94,0.3); color: #86efac; }
-    [data-bs-theme="dark"] .action-card:hover .ai-rose { background: rgba(244,63,94,0.3); color: #fda4af; }
-    [data-bs-theme="dark"] .action-card:hover .ai-purple { background: rgba(139,92,246,0.3); color: #c4b5fd; }
-    [data-bs-theme="dark"] .action-card:hover .ai-amber { background: rgba(245,158,11,0.3); color: #fde68a; }
-    [data-bs-theme="dark"] .action-card:hover .ai-cyan { background: rgba(6,182,212,0.3); color: #67e8f9; }
-    [data-bs-theme="dark"] .action-card:hover .ai-slate { background: rgba(100,116,139,0.3); color: #cbd5e1; }
-    [data-bs-theme="dark"] .chart-container {
-        background: var(--surface-white);
-        box-shadow: none;
+    [data-bs-theme="dark"] .ai-blue { background: rgba(59,130,246,0.12); color: #60a5fa; }
+    [data-bs-theme="dark"] .ai-green { background: rgba(34,197,94,0.12); color: #4ade80; }
+    [data-bs-theme="dark"] .ai-rose { background: rgba(244,63,94,0.12); color: #fb7185; }
+    [data-bs-theme="dark"] .ai-purple { background: rgba(139,92,246,0.12); color: #a78bfa; }
+    [data-bs-theme="dark"] .ai-amber { background: rgba(245,158,11,0.12); color: #fbbf24; }
+    [data-bs-theme="dark"] .ai-cyan { background: rgba(6,182,212,0.12); color: #22d3ee; }
+    [data-bs-theme="dark"] .ai-slate { background: rgba(100,116,139,0.12); color: #94a3b8; }
+    [data-bs-theme="dark"] .action-card:hover .ai-blue { background: rgba(59,130,246,0.25); color: #93c5fd; }
+    [data-bs-theme="dark"] .action-card:hover .ai-green { background: rgba(34,197,94,0.25); color: #86efac; }
+    [data-bs-theme="dark"] .action-card:hover .ai-rose { background: rgba(244,63,94,0.25); color: #fda4af; }
+    [data-bs-theme="dark"] .action-card:hover .ai-purple { background: rgba(139,92,246,0.25); color: #c4b5fd; }
+    [data-bs-theme="dark"] .action-card:hover .ai-amber { background: rgba(245,158,11,0.25); color: #fde68a; }
+    [data-bs-theme="dark"] .action-card:hover .ai-cyan { background: rgba(6,182,212,0.25); color: #67e8f9; }
+    [data-bs-theme="dark"] .action-card:hover .ai-slate { background: rgba(100,116,139,0.25); color: #cbd5e1; }
+    [data-bs-theme="dark"] .announce-item { border-bottom-color: rgba(255,255,255,0.04); }
+    [data-bs-theme="dark"] .announce-item:hover { background: rgba(255,255,255,0.03); }
+    [data-bs-theme="dark"] .announce-icon { background: rgba(59,130,246,0.12); color: #60a5fa; }
+    [data-bs-theme="dark"] .announce-title { color: #e2e8f0; }
+    [data-bs-theme="dark"] .announce-body { color: #94a3b8; }
+    [data-bs-theme="dark"] .announce-date { color: #64748b; }
+    [data-bs-theme="dark"] .announce-empty { color: #64748b; }
+
+    /* ===== Responsive: Tablet ===== */
+    @media (max-width: 991px) {
+        .content-grid { grid-template-columns: 1fr; }
+        .actions-grid { grid-template-columns: repeat(4, 1fr); }
     }
-    [data-bs-theme="dark"] .bg-light {
-        background: var(--surface-white) !important;
+
+    /* ===== Responsive: Mobile ===== */
+    @media (max-width: 767px) {
+        .dash-header { margin-bottom: 1rem; }
+        .dash-greeting { font-size: 1.2rem; }
+        .dash-subtitle { font-size: 0.8rem; }
+
+        /* Stats: keep 3 across but compact */
+        .stats-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .stat-card {
+            padding: 0.75rem 0.625rem;
+            border-radius: 14px;
+            text-align: center;
+        }
+        .stat-top {
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .stat-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 1rem;
+            border-radius: 10px;
+            order: -1;
+        }
+        .stat-label { font-size: 0.6rem; margin-bottom: 0.125rem; }
+        .stat-value { font-size: 1.5rem; }
+        .stat-badge { display: none; }
+
+        /* Actions: 4 columns, tighter */
+        .actions-grid {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+        }
+        .action-card {
+            padding: 0.75rem 0.25rem;
+            border-radius: 12px;
+            gap: 0.375rem;
+        }
+        .action-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 1.05rem;
+            border-radius: 10px;
+        }
+        .action-label { font-size: 0.625rem; }
+
+        /* Section headings */
+        .section-heading { font-size: 0.9rem; margin-bottom: 0.5rem; }
+
+        /* Announcements compact */
+        .announce-item { padding: 0.75rem; gap: 0.5rem; }
+        .announce-icon { width: 30px; height: 30px; font-size: 0.85rem; border-radius: 8px; }
+        .announce-title { font-size: 0.8rem; }
+        .announce-body { font-size: 0.75rem; }
+        .announce-date { font-size: 0.65rem; }
+
+        /* Charts compact */
+        .chart-card { padding: 1rem; border-radius: 14px; }
+        .chart-heading { font-size: 0.8rem; }
+    }
+
+    @media (max-width: 374px) {
+        /* Very small screens: 3 cols for actions */
+        .actions-grid { grid-template-columns: repeat(3, 1fr); }
+        .stat-value { font-size: 1.25rem; }
     }
 </style>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h2 class="fw-bold mb-1">Dashboard</h2>
-        <p class="text-muted mb-0">Welcome back, {{ user.first_name }}! Here's what's happening today.</p>
-    </div>
-    <div class="d-flex gap-2">
-        <div class="dropdown d-inline-block">
-            <button class="btn btn-outline-secondary rounded-pill px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-layout-wtf me-2"></i><span class="d-none d-sm-inline">Customize</span>
-            </button>
-            <ul class="dropdown-menu p-3 shadow-lg border-0 dropdown-menu-end" style="width: 280px;" onclick="event.stopPropagation()">
-                <li><h6 class="dropdown-header text-uppercase small fw-bold">Visible Widgets</h6></li>
-                <li><hr class="dropdown-divider"></li>
-                <li class="form-check form-switch mb-2">
-                    <input class="form-check-input widget-toggle" type="checkbox" role="switch" id="toggle-stat-students" data-target="widget-stat-students" checked>
-                    <label class="form-check-label" for="toggle-stat-students">Student Stats</label>
-                </li>
-                <li class="form-check form-switch mb-2">
-                    <input class="form-check-input widget-toggle" type="checkbox" role="switch" id="toggle-stat-teachers" data-target="widget-stat-teachers" checked>
-                    <label class="form-check-label" for="toggle-stat-teachers">Teacher Stats</label>
-                </li>
-                <li class="form-check form-switch mb-2">
-                    <input class="form-check-input widget-toggle" type="checkbox" role="switch" id="toggle-stat-notices" data-target="widget-stat-notices" checked>
-                    <label class="form-check-label" for="toggle-stat-notices">Notice Stats</label>
-                </li>
-                <li><hr class="dropdown-divider"></li>
-                <li class="form-check form-switch mb-2">
-                    <input class="form-check-input widget-toggle" type="checkbox" role="switch" id="toggle-quick-actions" data-target="widget-quick-actions" checked>
-                    <label class="form-check-label" for="toggle-quick-actions">Quick Actions</label>
-                </li>
-                <li class="form-check form-switch mb-2">
-                    <input class="form-check-input widget-toggle" type="checkbox" role="switch" id="toggle-announcements" data-target="widget-announcements" checked>
-                    <label class="form-check-label" for="toggle-announcements">Announcements</label>
-                </li>
-                 <li><hr class="dropdown-divider"></li>
-                <li class="form-check form-switch mb-2">
-                    <input class="form-check-input widget-toggle" type="checkbox" role="switch" id="toggle-chart-attendance" data-target="widget-chart-attendance" checked>
-                    <label class="form-check-label" for="toggle-chart-attendance">Attendance Trend</label>
-                </li>
-                <li class="form-check form-switch mb-2">
-                    <input class="form-check-input widget-toggle" type="checkbox" role="switch" id="toggle-chart-classes" data-target="widget-chart-classes" checked>
-                    <label class="form-check-label" for="toggle-chart-classes">Class Distribution</label>
-                </li>
-            </ul>
+<!-- Header -->
+<div class="dash-header">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+            <h1 class="dash-greeting">Dashboard</h1>
+            <p class="dash-subtitle">Welcome back, {{ user.first_name }}! Here's what's happening today.</p>
         </div>
-        <button class="btn btn-primary rounded-pill px-4 d-none d-md-block" onclick="window.print()">
-            <i class="bi bi-printer me-2"></i>Print Report
-        </button>
+        <div class="d-flex gap-2 align-items-center">
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-sliders2 me-1"></i><span class="d-none d-sm-inline">Customize</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end customize-menu shadow-lg border-0" onclick="event.stopPropagation()">
+                    <li><h6 class="dropdown-header text-uppercase small fw-bold px-0">Widgets</h6></li>
+                    <li class="form-check form-switch">
+                        <input class="form-check-input widget-toggle" type="checkbox" id="toggle-stat-students" data-target="widget-stat-students" checked>
+                        <label class="form-check-label" for="toggle-stat-students">Student Stats</label>
+                    </li>
+                    <li class="form-check form-switch">
+                        <input class="form-check-input widget-toggle" type="checkbox" id="toggle-stat-teachers" data-target="widget-stat-teachers" checked>
+                        <label class="form-check-label" for="toggle-stat-teachers">Teacher Stats</label>
+                    </li>
+                    <li class="form-check form-switch">
+                        <input class="form-check-input widget-toggle" type="checkbox" id="toggle-stat-notices" data-target="widget-stat-notices" checked>
+                        <label class="form-check-label" for="toggle-stat-notices">Notice Stats</label>
+                    </li>
+                    <li><hr class="dropdown-divider my-2"></li>
+                    <li class="form-check form-switch">
+                        <input class="form-check-input widget-toggle" type="checkbox" id="toggle-quick-actions" data-target="widget-quick-actions" checked>
+                        <label class="form-check-label" for="toggle-quick-actions">Quick Actions</label>
+                    </li>
+                    <li class="form-check form-switch">
+                        <input class="form-check-input widget-toggle" type="checkbox" id="toggle-announcements" data-target="widget-announcements" checked>
+                        <label class="form-check-label" for="toggle-announcements">Announcements</label>
+                    </li>
+                    <li><hr class="dropdown-divider my-2"></li>
+                    <li class="form-check form-switch">
+                        <input class="form-check-input widget-toggle" type="checkbox" id="toggle-chart-attendance" data-target="widget-chart-attendance" checked>
+                        <label class="form-check-label" for="toggle-chart-attendance">Attendance Chart</label>
+                    </li>
+                    <li class="form-check form-switch">
+                        <input class="form-check-input widget-toggle" type="checkbox" id="toggle-chart-classes" data-target="widget-chart-classes" checked>
+                        <label class="form-check-label" for="toggle-chart-classes">Class Chart</label>
+                    </li>
+                </ul>
+            </div>
+            <button class="btn btn-primary btn-sm rounded-pill px-3 d-none d-md-inline-flex" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i>Print
+            </button>
+        </div>
     </div>
 </div>
 
 <!-- Key Metrics -->
-<!-- Desktop View - 3 separate cards -->
-<div class="row g-4 mb-5 d-none d-md-flex" id="admin-stats-row">
-    <!-- Students -->
-    <div class="col-md-4" id="widget-stat-students">
-        <div class="stat-card h-100 drag-handle" style="cursor: grab;">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <div class="stat-label">Total Students</div>
-                    <div class="stat-value">{{ total_students }}</div>
-                    <div class="mt-2">
-                        <span class="stat-badge stat-badge-blue">Active</span>
-                    </div>
-                </div>
-                <div class="stat-icon icon-primary">
-                    <i class="bi bi-people-fill"></i>
-                </div>
+<div class="stats-grid">
+    <div class="stat-card" id="widget-stat-students">
+        <div class="stat-top">
+            <div>
+                <div class="stat-label">Students</div>
+                <div class="stat-value">{{ total_students }}</div>
+                <span class="stat-badge sb-blue">
+                    <i class="bi bi-check-circle-fill" style="font-size: 0.6rem;"></i> Active
+                </span>
+            </div>
+            <div class="stat-icon si-blue">
+                <i class="bi bi-people-fill"></i>
             </div>
         </div>
     </div>
-    <!-- Teachers -->
-    <div class="col-md-4" id="widget-stat-teachers">
-        <div class="stat-card h-100 drag-handle" style="cursor: grab;">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <div class="stat-label">Teaching Staff</div>
-                    <div class="stat-value">{{ total_teachers }}</div>
-                    <div class="mt-2">
-                        <span class="stat-badge stat-badge-green">On Duty</span>
-                    </div>
-                </div>
-                <div class="stat-icon icon-success">
-                    <i class="bi bi-person-badge-fill"></i>
-                </div>
+    <div class="stat-card" id="widget-stat-teachers">
+        <div class="stat-top">
+            <div>
+                <div class="stat-label">Teachers</div>
+                <div class="stat-value">{{ total_teachers }}</div>
+                <span class="stat-badge sb-green">
+                    <i class="bi bi-check-circle-fill" style="font-size: 0.6rem;"></i> On Duty
+                </span>
+            </div>
+            <div class="stat-icon si-green">
+                <i class="bi bi-person-badge-fill"></i>
             </div>
         </div>
     </div>
-    <!-- Notices/Alerts -->
-    <div class="col-md-4" id="widget-stat-notices">
-        <div class="stat-card h-100 drag-handle" style="cursor: grab;">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <div class="stat-label">Active Notices</div>
-                    <div class="stat-value">{{ notices|length }}</div>
-                    <div class="mt-2">
-                        <span class="stat-badge stat-badge-indigo">Latest</span>
-                    </div>
-                </div>
-                <div class="stat-icon icon-info">
-                    <i class="bi bi-bell-fill"></i>
-                </div>
+    <div class="stat-card" id="widget-stat-notices">
+        <div class="stat-top">
+            <div>
+                <div class="stat-label">Notices</div>
+                <div class="stat-value">{{ notices|length }}</div>
+                <span class="stat-badge sb-indigo">
+                    <i class="bi bi-clock-fill" style="font-size: 0.6rem;"></i> Latest
+                </span>
+            </div>
+            <div class="stat-icon si-sky">
+                <i class="bi bi-bell-fill"></i>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Mobile View - Combined card -->
-<div class="d-md-none mb-4">
-    <div class="stat-card">
-        <div class="row g-3">
-            <div class="col-12 pb-3 border-bottom">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <div class="stat-label">Total Students</div>
-                        <div class="stat-value">{{ total_students }}</div>
-                    </div>
-                    <div class="stat-icon icon-primary">
-                        <i class="bi bi-people-fill"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6">
-                <h6 class="text-white-50 mb-2 small">Teaching Staff</h6>
-                <h3 class="fw-bold mb-0">{{ total_teachers }}</h3>
-            </div>
-            <div class="col-6">
-                <h6 class="text-white-50 mb-2 small">Active Notices</h6>
-                <h3 class="fw-bold mb-0">{{ notices|length }}</h3>
-            </div>
-        </div>
+<!-- Quick Actions -->
+<div id="widget-quick-actions">
+    <div class="section-heading">Quick Actions</div>
+    <div class="actions-grid">
+        <a href="{% url 'students:add_student' %}" class="action-card">
+            <div class="action-icon ai-blue"><i class="bi bi-person-plus"></i></div>
+            <span class="action-label">Add Student</span>
+        </a>
+        <a href="{% url 'teachers:add_teacher' %}" class="action-card">
+            <div class="action-icon ai-green"><i class="bi bi-person-workspace"></i></div>
+            <span class="action-label">Add Teacher</span>
+        </a>
+        <a href="{% url 'parents:add_parent' %}" class="action-card">
+            <div class="action-icon ai-rose"><i class="bi bi-person-hearts"></i></div>
+            <span class="action-label">Add Parent</span>
+        </a>
+        <a href="{% url 'accounts:manage_users' %}" class="action-card">
+            <div class="action-icon ai-purple"><i class="bi bi-people"></i></div>
+            <span class="action-label">Users</span>
+        </a>
+        <a href="{% url 'finance:dashboard' %}" class="action-card">
+            <div class="action-icon ai-green"><i class="bi bi-wallet2"></i></div>
+            <span class="action-label">Finance</span>
+        </a>
+        <a href="{% url 'academics:timetable' %}" class="action-card">
+            <div class="action-icon ai-cyan"><i class="bi bi-calendar-week"></i></div>
+            <span class="action-label">Timetable</span>
+        </a>
+        <a href="{% url 'teachers:duty_roster' %}" class="action-card">
+            <div class="action-icon ai-rose"><i class="bi bi-clipboard-check"></i></div>
+            <span class="action-label">Duty Roster</span>
+        </a>
+        <a href="{% url 'announcements:manage' %}" class="action-card">
+            <div class="action-icon ai-amber"><i class="bi bi-megaphone"></i></div>
+            <span class="action-label">Notices</span>
+        </a>
+        <a href="{% url 'academics:gallery' %}" class="action-card">
+            <div class="action-icon ai-slate"><i class="bi bi-images"></i></div>
+            <span class="action-label">Gallery</span>
+        </a>
+        <a href="{% url 'academics:manage_resources' %}" class="action-card">
+            <div class="action-icon ai-blue"><i class="bi bi-folder-plus"></i></div>
+            <span class="action-label">Resources</span>
+        </a>
+        <a href="{% url 'academics:school_settings' %}" class="action-card">
+            <div class="action-icon ai-slate"><i class="bi bi-gear"></i></div>
+            <span class="action-label">Settings</span>
+        </a>
+        <a href="/admin/" class="action-card">
+            <div class="action-icon ai-purple"><i class="bi bi-shield-lock"></i></div>
+            <span class="action-label">Admin</span>
+        </a>
     </div>
 </div>
 
-<div class="row g-4">
-    <!-- Main Column -->
-    <div class="col-lg-8" id="admin-main-col">
-        <!-- Quick Actions -->
-        <div id="widget-quick-actions">
-            <h5 class="fw-bold mb-3 drag-handle" style="cursor: move;">Quick Actions</h5>
-            <div class="row g-3 mb-5" id="admin-quick-actions-row">
-                <div class="col-6 col-sm-4 col-md-3" id="action-add-student">
-                    <a href="{% url 'students:add_student' %}" class="action-card drag-handle">
-                        <div class="action-icon ai-blue"><i class="bi bi-person-plus"></i></div>
-                        <span class="action-label">Add Student</span>
-                    </a>
-                </div>
-                <div class="col-6 col-sm-4 col-md-3" id="action-add-teacher">
-                    <a href="{% url 'teachers:add_teacher' %}" class="action-card drag-handle">
-                        <div class="action-icon ai-green"><i class="bi bi-person-workspace"></i></div>
-                        <span class="action-label">Add Teacher</span>
-                    </a>
-                </div>
-                <div class="col-6 col-sm-4 col-md-3" id="action-add-parent">
-                    <a href="{% url 'parents:add_parent' %}" class="action-card drag-handle">
-                        <div class="action-icon ai-rose"><i class="bi bi-person-hearts"></i></div>
-                        <span class="action-label">Add Parent</span>
-                    </a>
-                </div>
-                <div class="col-6 col-sm-4 col-md-3" id="action-users">
-                    <a href="{% url 'accounts:manage_users' %}" class="action-card drag-handle">
-                        <div class="action-icon ai-purple"><i class="bi bi-people"></i></div>
-                        <span class="action-label">Users</span>
-                    </a>
-                </div>
-                <div class="col-6 col-sm-4 col-md-3" id="action-finance">
-                    <a href="{% url 'finance:dashboard' %}" class="action-card drag-handle">
-                        <div class="action-icon ai-green"><i class="bi bi-wallet2"></i></div>
-                        <span class="action-label">Finance</span>
-                    </a>
-                </div>
-                <div class="col-6 col-sm-4 col-md-3" id="action-timetable">
-                    <a href="{% url 'academics:timetable' %}" class="action-card drag-handle">
-                        <div class="action-icon ai-cyan"><i class="bi bi-calendar-week"></i></div>
-                        <span class="action-label">Timetable</span>
-                    </a>
-                </div>
-                <div class="col-6 col-sm-4 col-md-3" id="action-duty">
-                    <a href="{% url 'teachers:duty_roster' %}" class="action-card drag-handle">
-                        <div class="action-icon ai-rose"><i class="bi bi-clipboard-check"></i></div>
-                        <span class="action-label">Duty Roster</span>
-                    </a>
-                </div>
-                <div class="col-6 col-sm-4 col-md-3" id="action-notice">
-                    <a href="{% url 'announcements:manage' %}" class="action-card drag-handle">
-                        <div class="action-icon ai-amber"><i class="bi bi-megaphone"></i></div>
-                        <span class="action-label">Notices</span>
-                    </a>
-                </div>
-                <div class="col-6 col-sm-4 col-md-3" id="action-gallery">
-                    <a href="{% url 'academics:gallery' %}" class="action-card drag-handle">
-                        <div class="action-icon ai-slate"><i class="bi bi-images"></i></div>
-                        <span class="action-label">Gallery</span>
-                    </a>
-                </div>
-                <div class="col-6 col-sm-4 col-md-3" id="action-resources">
-                    <a href="{% url 'academics:manage_resources' %}" class="action-card drag-handle">
-                        <div class="action-icon ai-blue"><i class="bi bi-folder-plus"></i></div>
-                        <span class="action-label">Resources</span>
-                    </a>
-                </div>
-                <div class="col-6 col-sm-4 col-md-3" id="action-settings">
-                    <a href="{% url 'academics:school_settings' %}" class="action-card drag-handle">
-                        <div class="action-icon ai-slate"><i class="bi bi-gear"></i></div>
-                        <span class="action-label">Settings</span>
-                    </a>
-                </div>
-                <div class="col-6 col-sm-4 col-md-3" id="action-admin">
-                    <a href="/admin/" class="action-card drag-handle">
-                        <div class="action-icon ai-purple"><i class="bi bi-shield-lock"></i></div>
-                        <span class="action-label">Django Admin</span>
-                    </a>
-                </div>
-            </div>
+<!-- Main Content: Announcements + Charts -->
+<div class="content-grid">
+    <!-- Announcements -->
+    <div id="widget-announcements">
+        <div class="section-heading">
+            Recent Announcements
+            <a href="{% url 'announcements:manage' %}" class="btn btn-link btn-sm text-decoration-none p-0" style="font-size: 0.8125rem;">View All</a>
         </div>
-
-        <!-- Recent Announcements -->
-        <div id="widget-announcements">
-            <h5 class="fw-bold mb-3 d-flex justify-content-between align-items-center drag-handle" style="cursor: move;">
-                Recent Announcements
-                <a href="{% url 'announcements:manage' %}" class="btn btn-link btn-sm text-decoration-none">View All</a>
-            </h5>
-            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-                <div class="list-group list-group-flush">
-                    {% for notice in notices %}
-                    <div class="list-group-item p-3 border-0 border-bottom">
-                        <div class="d-flex align-items-start gap-3">
-                            <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                <i class="bi bi-info-circle-fill"></i>
-                            </div>
-                            <div class="flex-grow-1">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <h6 class="mb-0 fw-bold">{{ notice.title }}</h6>
-                                    <small class="text-muted" style="font-size: 0.75rem;">{{ notice.created_at|date:"M d, H:i" }}</small>
-                                </div>
-                                <p class="text-muted small mb-0">{{ notice.content|truncatechars:120 }}</p>
-                            </div>
-                        </div>
+        <div class="announce-card">
+            {% for notice in notices %}
+            <div class="announce-item">
+                <div class="announce-icon">
+                    <i class="bi bi-info-circle-fill"></i>
+                </div>
+                <div class="flex-grow-1" style="min-width: 0;">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                        <div class="announce-title text-truncate">{{ notice.title }}</div>
+                        <span class="announce-date">{{ notice.created_at|date:"M d" }}</span>
                     </div>
-                    {% empty %}
-                    <div class="p-4 text-center text-muted">
-                        <i class="bi bi-inbox fs-3 d-block mb-2"></i>
-                        No active announcements found.
-                    </div>
-                    {% endfor %}
+                    <p class="announce-body">{{ notice.content|truncatechars:100 }}</p>
                 </div>
             </div>
+            {% empty %}
+            <div class="announce-empty">
+                <i class="bi bi-inbox"></i>
+                <p class="mb-0" style="font-size: 0.8125rem;">No active announcements</p>
+            </div>
+            {% endfor %}
         </div>
     </div>
 
-    <!-- Right Column: Charts -->
-    <div class="col-lg-4" id="admin-side-col">
-        <!-- Attendance Chart -->
+    <!-- Charts Column -->
+    <div>
         <div class="mb-4" id="widget-chart-attendance">
-            <h5 class="fw-bold mb-3 drag-handle" style="cursor: move;">Attendance Trend</h5>
-            <div class="chart-container">
-                <canvas id="attendanceChart" height="220"></canvas>
+            <div class="chart-heading">Attendance Trend</div>
+            <div class="chart-card">
+                <canvas id="attendanceChart" height="200"></canvas>
             </div>
         </div>
-
-        <!-- Class Distribution -->
-        <div class="mb-4" id="widget-chart-classes">
-            <h5 class="fw-bold mb-3 drag-handle" style="cursor: move;">Class Distribution</h5>
-            <div class="chart-container">
-                <canvas id="classChart" height="220"></canvas>
+        <div id="widget-chart-classes">
+            <div class="chart-heading">Class Distribution</div>
+            <div class="chart-card">
+                <canvas id="classChart" height="200"></canvas>
             </div>
         </div>
     </div>
@@ -447,125 +565,119 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Widget Visibility Logic
-        const STORAGE_KEY = 'dashboard_widgets_admin_{{ user.id }}';
-        
-        // Initialize Drag and Drop Sorting
-        initSortableWidget('admin-stats-row', 'order_admin_stats_{{ user.id }}');
-        initSortableWidget('admin-main-col', 'order_admin_main_{{ user.id }}');
-        initSortableWidget('admin-side-col', 'order_admin_side_{{ user.id }}');
-        initSortableWidget('admin-quick-actions-row', 'order_admin_actions_{{ user.id }}');
+document.addEventListener('DOMContentLoaded', function() {
+    /* ===== Widget Visibility ===== */
+    const STORAGE_KEY = 'dashboard_widgets_admin_{{ user.id }}';
+    const toggles = document.querySelectorAll('.widget-toggle');
+    let preferences = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
 
-        const toggles = document.querySelectorAll('.widget-toggle');
-        
-        // Load saved preferences
-        let preferences = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-        
-        toggles.forEach(toggle => {
-            const targetId = toggle.dataset.target;
-            const targetEl = document.getElementById(targetId);
-            
-            // Apply initial state
-            if (preferences[targetId] === false) {
-                toggle.checked = false;
-                if (targetEl) targetEl.style.display = 'none';
-            }
-            
-            // Add listener
-            toggle.addEventListener('change', (e) => {
-                const isVisible = e.target.checked;
-                if (targetEl) {
-                    targetEl.style.display = isVisible ? '' : 'none'; // 'none' to hide which works even with flex/grid classes usually (might break layout if col is hidden, handled by col-md-4 wrapping)
-                }
-                
-                // Save state
-                preferences[targetId] = isVisible;
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences));
-            });
-        });
-
-
-        // Attendance Chart
-        const ctxAtt = document.getElementById('attendanceChart').getContext('2d');
-        
-        // Gradient for line chart
-        let gradientAtt = ctxAtt.createLinearGradient(0, 0, 0, 400);
-        gradientAtt.addColorStop(0, 'rgba(13, 110, 253, 0.2)');
-        gradientAtt.addColorStop(1, 'rgba(13, 110, 253, 0.0)');
-
-        new Chart(ctxAtt, {
-            type: 'line',
-            data: {
-                labels: {{ chart_labels_attendance|safe }},
-                datasets: [{
-                    label: 'Present Students',
-                    data: {{ chart_data_attendance|safe }},
-                    borderColor: '#0d6efd',
-                    backgroundColor: gradientAtt,
-                    borderWidth: 2,
-                    pointBackgroundColor: '#fff',
-                    pointBorderColor: '#0d6efd',
-                    pointHoverBackgroundColor: '#0d6efd',
-                    pointHoverBorderColor: '#fff',
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                plugins: { 
-                    legend: { display: false },
-                    tooltip: {
-                        backgroundColor: '#0f172a',
-                        titleFont: { family: "'Manrope', sans-serif" },
-                        bodyFont: { family: "'Manrope', sans-serif" },
-                        padding: 10,
-                        cornerRadius: 8,
-                        displayColors: false
-                    }
-                },
-                scales: { 
-                    y: { 
-                        beginAtZero: true, 
-                        grid: { borderDash: [5, 5], color: '#f0f0f0' },
-                        ticks: { font: { size: 11 } }
-                    },
-                    x: { 
-                        grid: { display: false },
-                        ticks: { font: { size: 11 } }
-                    }
-                },
-                interaction: {
-                    mode: 'index',
-                    intersect: false,
-                },
-            }
-        });
-
-        // Class Chart
-        const ctxClass = document.getElementById('classChart').getContext('2d');
-        new Chart(ctxClass, {
-            type: 'doughnut',
-            data: {
-                labels: {{ chart_labels_classes|safe }},
-                datasets: [{
-                    data: {{ chart_data_classes|safe }},
-                    backgroundColor: [
-                        '#4361ee', '#3f37c9', '#4895ef', '#4cc9f0', '#f72585'
-                    ],
-                    borderWidth: 0,
-                    hoverOffset: 15
-                }]
-            },
-            options: {
-                responsive: true,
-                cutout: '75%',
-                plugins: { 
-                    legend: { position: 'bottom', labels: { boxWidth: 10, usePointStyle: true, font: { size: 11 } } } 
-                },
-                layout: { padding: 10 }
-            }
+    toggles.forEach(toggle => {
+        const targetId = toggle.dataset.target;
+        const targetEl = document.getElementById(targetId);
+        if (preferences[targetId] === false) {
+            toggle.checked = false;
+            if (targetEl) targetEl.style.display = 'none';
+        }
+        toggle.addEventListener('change', (e) => {
+            if (targetEl) targetEl.style.display = e.target.checked ? '' : 'none';
+            preferences[targetId] = e.target.checked;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences));
         });
     });
+
+    /* ===== Chart Theme ===== */
+    const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    const gridColor = isDark ? 'rgba(255,255,255,0.06)' : '#f0f0f0';
+    const tickColor = isDark ? '#94a3b8' : '#6b7280';
+
+    /* ===== Attendance Chart ===== */
+    const ctxAtt = document.getElementById('attendanceChart').getContext('2d');
+    const gradAtt = ctxAtt.createLinearGradient(0, 0, 0, 300);
+    gradAtt.addColorStop(0, 'rgba(59, 130, 246, 0.18)');
+    gradAtt.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+
+    new Chart(ctxAtt, {
+        type: 'line',
+        data: {
+            labels: {{ chart_labels_attendance|safe }},
+            datasets: [{
+                label: 'Present',
+                data: {{ chart_data_attendance|safe }},
+                borderColor: '#3b82f6',
+                backgroundColor: gradAtt,
+                borderWidth: 2,
+                pointRadius: 3,
+                pointBackgroundColor: isDark ? '#1e293b' : '#fff',
+                pointBorderColor: '#3b82f6',
+                pointBorderWidth: 2,
+                pointHoverRadius: 5,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: isDark ? '#334155' : '#0f172a',
+                    padding: 8,
+                    cornerRadius: 8,
+                    displayColors: false,
+                    titleFont: { size: 11 },
+                    bodyFont: { size: 12, weight: '600' }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: gridColor, drawBorder: false },
+                    ticks: { font: { size: 10 }, color: tickColor, padding: 4 }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { size: 10 }, color: tickColor, maxRotation: 0 }
+                }
+            },
+            interaction: { mode: 'index', intersect: false }
+        }
+    });
+
+    /* ===== Class Distribution Chart ===== */
+    const ctxClass = document.getElementById('classChart').getContext('2d');
+    new Chart(ctxClass, {
+        type: 'doughnut',
+        data: {
+            labels: {{ chart_labels_classes|safe }},
+            datasets: [{
+                data: {{ chart_data_classes|safe }},
+                backgroundColor: ['#3b82f6', '#8b5cf6', '#06b6d4', '#22c55e', '#f43f5e', '#f59e0b'],
+                borderWidth: isDark ? 2 : 0,
+                borderColor: isDark ? '#1e293b' : '#fff',
+                hoverOffset: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '72%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 8,
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        font: { size: 10 },
+                        color: tickColor,
+                        padding: 12
+                    }
+                }
+            },
+            layout: { padding: 4 }
+        }
+    });
+});
 </script>
 {% endblock %}
