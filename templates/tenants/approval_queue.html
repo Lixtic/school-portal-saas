@@ -4,6 +4,18 @@
 {% block title %}School Approval Queue{% endblock %}
 
 {% block admin_content %}
+<style>
+    /* Dark mode fix for nav-pills active badge contrast */
+    [data-bs-theme="dark"] .nav-pills .nav-link.active .badge.bg-light {
+        background-color: rgba(255, 255, 255, 0.2) !important;
+        color: #fff !important;
+    }
+
+    [data-bs-theme="dark"] .nav-pills .nav-link:not(.active) .badge.bg-secondary {
+        background-color: rgba(148, 163, 184, 0.2) !important;
+        color: #94a3b8 !important;
+    }
+</style>
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="fw-bold">
@@ -123,7 +135,7 @@
                         </td>
                         <td>
                             {% if school.approval_status == 'pending' %}
-                                <span class="badge bg-warning text-dark">Pending</span>
+                                <span class="badge bg-warning">Pending</span>
                             {% elif school.approval_status == 'under_review' %}
                                 <span class="badge bg-primary">Under Review</span>
                             {% elif school.approval_status == 'approved' %}
