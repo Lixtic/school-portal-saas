@@ -288,18 +288,14 @@
             }
         }
 
-        /* Sidebar Modern Light */
+        /* Sidebar Base Layout */
         .sidebar {
             width: var(--sidebar-width);
-            background: var(--sidebar-bg);
-            color: var(--sidebar-text);
             position: fixed;
             left: 0;
             top: var(--header-height);
             height: calc(100vh - var(--header-height));
             z-index: 999;
-            box-shadow: none; /* Removed heavy shadow */
-            border-right: 1px solid rgba(0,0,0,0.06); /* Clean separator */
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             overflow-y: auto;
             padding-top: 2rem;
@@ -307,10 +303,25 @@
             flex-direction: column;
         }
 
-        .sidebar h4 {
+        /* Tenant Dashboard Sidebar */
+        .sidebar.tenant-sidebar {
+            background: linear-gradient(180deg, var(--sidebar-bg) 0%, color-mix(in srgb, var(--sidebar-bg) 86%, var(--primary-brand) 14%) 100%);
+            color: var(--sidebar-text);
+            border-right: 1px solid color-mix(in srgb, rgba(0,0,0,0.08) 70%, var(--primary-brand) 30%);
+            box-shadow: 12px 0 30px rgba(0,0,0,0.06);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        [data-bs-theme="dark"] .sidebar.tenant-sidebar {
+            border-right: 1px solid rgba(255,255,255,0.08) !important;
+            box-shadow: 12px 0 28px rgba(0,0,0,0.3);
+        }
+
+        .sidebar.tenant-sidebar h4 {
             font-size: 0.75rem;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.08em;
             font-weight: 800;
             margin: 0.5rem 1.5rem 1rem;
             color: var(--text-muted);
@@ -319,49 +330,58 @@
         }
         
         /* Navigation Links */
-        .nav-item {
+        .tenant-sidebar .nav-item {
             margin: 4px 16px;
         }
 
-        .nav-link {
+        .tenant-sidebar .nav-link {
             color: var(--sidebar-text) !important;
             padding: 0.75rem 1rem !important;
-            border-radius: 12px !important;
+            border-radius: 14px !important;
             display: flex !important;
             align-items: center !important;
             gap: 14px !important;
             text-decoration: none !important;
             transition: all 0.2s ease !important;
             font-weight: 600 !important;
-            font-size: 0.95rem;
+            font-size: 0.92rem;
             border: 1px solid transparent;
             position: relative;
         }
 
-        .nav-link:hover {
-            background: var(--surface-bg) !important;
+        .tenant-sidebar .nav-link:hover {
+            background: color-mix(in srgb, var(--surface-card) 78%, var(--primary-brand) 22%) !important;
             color: var(--primary-brand) !important;
             transform: translateX(2px);
+            border-color: color-mix(in srgb, var(--primary-brand) 34%, transparent);
         }
         
-        .nav-link.active {
-            background: var(--sidebar-active-bg) !important; 
+        .tenant-sidebar .nav-link.active {
+            background: linear-gradient(135deg, var(--sidebar-active-bg), color-mix(in srgb, var(--sidebar-active-bg) 75%, transparent 25%)) !important;
             color: var(--sidebar-active-text) !important;
-            box-shadow: none;
+            border-color: color-mix(in srgb, var(--sidebar-active-text) 38%, transparent);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
         }
 
-        .nav-link i {
-            font-size: 1.25rem;
-            width: 24px;
+        .tenant-sidebar .nav-link i {
+            font-size: 0.95rem;
+            width: 28px;
+            height: 28px;
             text-align: center;
             display: flex;
             justify-content: center;
             align-items: center;
-            color: #9ca3af; /* Muted icon default */
+            color: #9ca3af;
             transition: color 0.2s;
+            border-radius: 8px;
+            background: color-mix(in srgb, var(--surface-card) 86%, var(--primary-brand) 14%);
         }
         
-        .nav-link:hover i, .nav-link.active i {
+        .tenant-sidebar .nav-link.active i {
+            background: color-mix(in srgb, var(--primary-brand) 18%, transparent);
+        }
+
+        .tenant-sidebar .nav-link:hover i, .tenant-sidebar .nav-link.active i {
             color: var(--primary-brand);
         }
 
@@ -974,9 +994,9 @@
         <div class="mobile-bubble-overlay position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50" id="mobileBubbleOverlay" style="display:none; z-index: 1002;" onclick="toggleMobileMenu()"></div>
 
         <!-- Sidebar -->
-        <nav class="sidebar" id="sidebar">
+        <nav class="sidebar {% if not user.is_staff or request.resolver_match.app_name != 'tenants' %}tenant-sidebar{% endif %}" id="sidebar">
             
-            {% if user.is_staff and request.path == '/tenants/dashboard/' %}
+            {% if user.is_staff and request.resolver_match.app_name == 'tenants' %}
             <!-- LANDLORD DASHBOARD -->
             <h4 class="mb-2"><i class="bi bi-shield-check me-2" style="font-size: 0.85rem;"></i>Platform Admin</h4>
             
