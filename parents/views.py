@@ -203,3 +203,4 @@ def child_fees(request, student_id):
         'total_payable': total_payable,
         'total_paid': total_paid,
         'total_balance': total_balance,
+    })
