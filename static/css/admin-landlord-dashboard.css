@@ -1,5 +1,17 @@
 /* ========== Landlord Dashboard - Glass-Morphism Design ========== */
 
+/* ---- Variable bridge: maps generic names used in this file to the
+        admin-variables.css palette so both light & dark are correct ---- */
+:root {
+    --text-main: var(--admin-text-primary, #1a202c);
+    --primary-brand: var(--admin-primary, #7c3aed);
+}
+
+[data-bs-theme="dark"] {
+    --text-main: var(--admin-text-primary, #f1f5f9);
+    --primary-brand: var(--admin-primary-light, #a78bfa);
+}
+
 /* Dashboard container with animated gradient background */
 .landlord-dashboard {
     min-height: 100vh;
@@ -52,6 +64,11 @@
         0 8px 32px rgba(31, 38, 135, 0.12),
         inset 0 1px 0 rgba(255, 255, 255, 0.5);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Nested glass cards (e.g. pipeline tiles) get a tighter radius */
+.glass-card .glass-card {
+    border-radius: 16px;
 }
 
 [data-bs-theme="dark"] .glass-card {
@@ -107,11 +124,18 @@
 .metric-value {
     font-size: 2.5rem;
     font-weight: 800;
-    background: linear-gradient(135deg, var(--text-main), var(--primary-brand));
+    background: linear-gradient(135deg, #7c3aed, #3b82f6);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     line-height: 1;
+}
+
+[data-bs-theme="dark"] .metric-value {
+    background: linear-gradient(135deg, #c4b5fd, #93c5fd);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .metric-icon-wrapper {
@@ -143,9 +167,21 @@
     height: 8px;
     border-radius: 50%;
     display: inline-block;
-    margin-right: 8px;
+    margin-right: 6px;
+    vertical-align: middle;
     box-shadow: 0 0 8px currentColor;
     animation: blink 2s ease-in-out infinite;
+}
+
+/* Inside badges the glow and margin are distracting — suppress them */
+.badge .status-indicator {
+    width: 6px;
+    height: 6px;
+    margin-right: 4px;
+    box-shadow: none;
+    animation: none;
+    opacity: 0.9;
+    vertical-align: middle;
 }
 
 @keyframes blink {
