@@ -224,6 +224,94 @@ def manage_subjects(request):
 
 
 @login_required
+def bulk_add_subjects(request):
+    """Accept a textarea of lines (Name, CODE) and create subjects in bulk."""
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    if request.method != 'POST':
+        return redirect('academics:manage_subjects')
+
+    raw = request.POST.get('lines', '')
+    created_count = 0
+    skipped_count = 0
+    error_lines = []
+
+    for lineno, line in enumerate(raw.splitlines(), start=1):
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+
+        # Accept: "Name, CODE"  |  "Name | CODE"  |  "Name" (auto code)
+        if ',' in line:
+            parts = [p.strip() for p in line.split(',', 1)]
+        elif '|' in line:
+            parts = [p.strip() for p in line.split('|', 1)]
+        else:
+            parts = [line.strip()]
+
+        name = parts[0]
+        if not name:
+            error_lines.append(f'Line {lineno}: empty name')
+            continue
+
+        if len(parts) >= 2 and parts[1]:
+            code = parts[1].upper()[:20]
+        else:
+            # Auto-generate a code from the first letters of each word, max 6 chars
+            words = name.split()
+            if len(words) == 1:
+                code = name[:6].upper()
+            else:
+                code = ''.join(w[0] for w in words)[:6].upper()
+
+        # Ensure code uniqueness by appending a number if needed
+        base_code = code
+        suffix = 1
+        while suffix < 100:
+            exists = Subject.objects.filter(code=code).first()
+            if not exists:
+                break
+            if exists.name.lower() == name.lower():
+                # Exact duplicate — skip it
+                code = None
+                break
+            code = f'{base_code}{suffix}'
+            suffix += 1
+
+        if code is None:
+            skipped_count += 1
+            continue
+
+        _, created = Subject.objects.get_or_create(
+            name__iexact=name,
+            defaults={'name': name, 'code': code},
+        )
+        if created:
+            created_count += 1
+        else:
+            skipped_count += 1
+
+    parts_msg = []
+    if created_count:
+        parts_msg.append(f'{created_count} subject{"s" if created_count != 1 else ""} created')
+    if skipped_count:
+        parts_msg.append(f'{skipped_count} already existed (skipped)')
+    if error_lines:
+        parts_msg.append(f'{len(error_lines)} line{"s" if len(error_lines) != 1 else ""} had errors')
+
+    if created_count:
+        messages.success(request, '. '.join(parts_msg) + '.')
+    elif skipped_count and not error_lines:
+        messages.info(request, 'All subjects already exist — nothing new to create.')
+    else:
+        messages.warning(request, '. '.join(parts_msg) + '.' if parts_msg else 'No valid subjects found.')
+
+    return redirect('academics:manage_subjects')
+
+
+@login_required
 def add_subject(request):
     if request.user.user_type != 'admin':
         messages.error(request, 'Access denied.')

@@ -20,6 +20,7 @@ urlpatterns = [
     # Subject Management
     path('subjects/manage/', views.manage_subjects, name='manage_subjects'),
     path('subjects/add/', views.add_subject, name='add_subject'),
+    path('subjects/bulk-add/', views.bulk_add_subjects, name='bulk_add_subjects'),
     path('subjects/<int:subject_id>/edit/', views.edit_subject, name='edit_subject'),
     path('subjects/<int:subject_id>/delete/', views.delete_subject, name='delete_subject'),
     

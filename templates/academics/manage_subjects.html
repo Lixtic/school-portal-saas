@@ -74,6 +74,88 @@
         grid-column: 1 / -1;
     }
     .empty-state i { font-size: 3rem; margin-bottom: 1rem; display: block; }
+
+    /* ===== Bulk-add modal ===== */
+    .bulk-modal .modal-content {
+        border-radius: 16px;
+        border: 1px solid var(--card-border);
+    }
+    .bulk-modal .modal-header {
+        border-bottom: 1px solid var(--card-border);
+        padding: 1rem 1.25rem;
+    }
+    .bulk-modal .modal-title { font-weight: 700; font-size: 1rem; }
+
+    /* Preset chip pills */
+    .preset-group { margin-bottom: .5rem; }
+    .preset-label {
+        font-size: .7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: var(--text-muted);
+        margin-bottom: .3rem;
+    }
+    .preset-chips { display: flex; flex-wrap: wrap; gap: .35rem; }
+    .preset-chip {
+        font-size: .75rem;
+        font-weight: 600;
+        padding: .25rem .65rem;
+        border-radius: 20px;
+        border: 1.5px solid currentColor;
+        background: transparent;
+        cursor: pointer;
+        transition: all .15s;
+        line-height: 1.4;
+    }
+    .preset-chip:hover { opacity: .75; }
+    .preset-chip.chip-blue  { color: #3b82f6; border-color: #bfdbfe; }
+    .preset-chip.chip-blue:hover  { background: #eff6ff; }
+    .preset-chip.chip-green { color: #10b981; border-color: #a7f3d0; }
+    .preset-chip.chip-green:hover { background: #f0fdf4; }
+    .preset-chip.chip-amber { color: #d97706; border-color: #fde68a; }
+    .preset-chip.chip-amber:hover { background: #fffbeb; }
+    .preset-chip.chip-rose  { color: #f43f5e; border-color: #fda4af; }
+    .preset-chip.chip-rose:hover  { background: #fff1f2; }
+    .preset-chip.chip-purple{ color: #8b5cf6; border-color: #ddd6fe; }
+    .preset-chip.chip-purple:hover{ background: #f5f3ff; }
+    [data-bs-theme="dark"] .preset-chip.chip-blue:hover  { background: rgba(59,130,246,.12); }
+    [data-bs-theme="dark"] .preset-chip.chip-green:hover { background: rgba(16,185,129,.12); }
+    [data-bs-theme="dark"] .preset-chip.chip-amber:hover { background: rgba(217,119,6,.12); }
+    [data-bs-theme="dark"] .preset-chip.chip-rose:hover  { background: rgba(244,63,94,.12); }
+    [data-bs-theme="dark"] .preset-chip.chip-purple:hover{ background: rgba(139,92,246,.12); }
+
+    #bulkTextarea {
+        font-family: 'Courier New', monospace;
+        font-size: .82rem;
+        resize: vertical;
+        min-height: 130px;
+        border-radius: 10px;
+    }
+    /* Preview table */
+    #bulkPreview {
+        max-height: 220px;
+        overflow-y: auto;
+        border-radius: 10px;
+        border: 1px solid var(--card-border);
+    }
+    #bulkPreview table { margin: 0; font-size: .8rem; }
+    #bulkPreview thead th {
+        position: sticky; top: 0;
+        background: var(--card-bg);
+        font-size: .7rem;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: var(--text-muted);
+        font-weight: 700;
+        border-bottom: 1px solid var(--card-border);
+    }
+    .preview-badge-new   { background:#dcfce7; color:#15803d; font-size:.7rem; padding:.1rem .4rem; border-radius:5px; }
+    .preview-badge-dup   { background:#fee2e2; color:#991b1b; font-size:.7rem; padding:.1rem .4rem; border-radius:5px; }
+    .preview-badge-auto  { background:#e0e7ff; color:#3730a3; font-size:.7rem; padding:.1rem .4rem; border-radius:5px; }
+    [data-bs-theme="dark"] .preview-badge-new  { background:rgba(21,128,61,.2);  color:#4ade80; }
+    [data-bs-theme="dark"] .preview-badge-dup  { background:rgba(153,27,27,.2);  color:#fca5a5; }
+    [data-bs-theme="dark"] .preview-badge-auto { background:rgba(55,48,163,.2);  color:#a5b4fc; }
 </style>
 {% endblock %}
 
@@ -104,6 +186,9 @@
             <a href="{% url 'academics:add_subject' %}" class="btn btn-primary">
                 <i class="bi bi-plus-lg me-1"></i>Add Subject
             </a>
+            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#bulkAddModal">
+                <i class="bi bi-collection me-1"></i>Bulk Add
+            </button>
             <a href="{% url 'academics:manage_classes' %}" class="btn btn-outline-secondary">
                 <i class="bi bi-building me-1"></i>Back to Classes
             </a>
@@ -150,4 +235,281 @@
         {% endfor %}
     </div>
 </div>
+
+<!-- ===== Bulk Add Subjects Modal ===== -->
+<div class="modal fade bulk-modal" id="bulkAddModal" tabindex="-1" aria-labelledby="bulkAddModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="bulkAddModalLabel">
+                    <i class="bi bi-collection me-2 text-primary"></i>Bulk Add Subjects
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body" style="padding: 1.25rem; display:flex; flex-direction:column; gap:1rem;">
+
+                <!-- Format hint -->
+                <div class="alert alert-info mb-0 py-2 px-3" style="font-size:.82rem; border-radius:10px;">
+                    <i class="bi bi-info-circle me-1"></i>
+                    One subject per line &mdash; <code>Subject Name, CODE</code> or just <code>Subject Name</code> (code auto-generated).
+                    Lines starting with <code>#</code> are ignored.
+                </div>
+
+                <!-- Preset chips -->
+                <div>
+                    <div class="preset-label mb-1">Quick-fill presets</div>
+                    <div class="preset-group">
+                        <div class="preset-chips">
+                            <button type="button" class="preset-chip chip-blue" data-preset="core">Core (GES)</button>
+                            <button type="button" class="preset-chip chip-green" data-preset="sciences">Sciences</button>
+                            <button type="button" class="preset-chip chip-amber" data-preset="languages">Languages</button>
+                            <button type="button" class="preset-chip chip-rose" data-preset="arts">Creative Arts</button>
+                            <button type="button" class="preset-chip chip-purple" data-preset="vocational">Vocational</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Textarea -->
+                <div>
+                    <label class="form-label fw-semibold" style="font-size:.85rem;">Subject list</label>
+                    <textarea id="bulkTextarea" class="form-control" rows="8"
+                        placeholder="Mathematics, MTH&#10;English Language, ENG&#10;Integrated Science, ISC&#10;Social Studies"></textarea>
+                    <div class="d-flex justify-content-between mt-1">
+                        <small class="text-muted">Tip: paste from a spreadsheet — one row per line</small>
+                        <button type="button" class="btn btn-link btn-sm p-0 text-danger" id="clearBtn" style="font-size:.78rem;">Clear</button>
+                    </div>
+                </div>
+
+                <!-- Live preview -->
+                <div id="bulkPreviewWrap" style="display:none;">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-semibold" style="font-size:.85rem;">Preview</span>
+                        <span id="previewSummary" style="font-size:.78rem; color:var(--text-muted);"></span>
+                    </div>
+                    <div id="bulkPreview">
+                        <table class="table table-sm table-hover">
+                            <thead><tr><th>#</th><th>Name</th><th>Code</th><th>Status</th></tr></thead>
+                            <tbody id="previewBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="modal-footer" style="border-top: 1px solid var(--card-border); padding:.75rem 1.25rem;">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" action="{% url 'academics:bulk_add_subjects' %}" id="bulkForm" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="lines" id="bulkHiddenLines">
+                    <button type="submit" class="btn btn-primary btn-sm" id="bulkSubmitBtn" disabled>
+                        <i class="bi bi-check2-all me-1"></i>Add Subjects
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    /* ── Preset data ── */
+    const PRESETS = {
+        core: [
+            ['English Language', 'ENG'],
+            ['Mathematics', 'MTH'],
+            ['Integrated Science', 'ISC'],
+            ['Social Studies', 'SOS'],
+            ['Religious & Moral Education', 'RME'],
+            ['Creative Arts & Design', 'CAD'],
+            ['Career Technology', 'CRT'],
+            ['Computing', 'CPT'],
+            ['Ghanaian Language', 'GHL'],
+            ['French', 'FRE'],
+        ],
+        sciences: [
+            ['Physics', 'PHY'],
+            ['Chemistry', 'CHE'],
+            ['Biology', 'BIO'],
+            ['Elective Mathematics', 'EMATH'],
+            ['Earth Science', 'ESCI'],
+            ['Agricultural Science', 'AGR'],
+        ],
+        languages: [
+            ['English Language', 'ENG'],
+            ['French', 'FRE'],
+            ['Arabic', 'ARA'],
+            ['Twi', 'TWI'],
+            ['Ga', 'GA'],
+            ['Ewe', 'EWE'],
+            ['Hausa', 'HAU'],
+            ['Literature in English', 'LIT'],
+        ],
+        arts: [
+            ['Visual Arts', 'VA'],
+            ['Music', 'MUS'],
+            ['Dance', 'DAN'],
+            ['Drama', 'DRA'],
+            ['Creative Arts & Design', 'CAD'],
+            ['Textiles', 'TEX'],
+            ['Graphic Design', 'GRD'],
+            ['Painting & Sculpture', 'PSC'],
+        ],
+        vocational: [
+            ['Home Economics', 'HEC'],
+            ['Technical Drawing', 'TDR'],
+            ['Woodwork', 'WOD'],
+            ['Metalwork', 'MET'],
+            ['Electronics', 'ELC'],
+            ['Catering', 'CAT'],
+            ['Fashion & Textiles', 'FAT'],
+            ['Building Construction', 'BLD'],
+        ],
+    };
+
+    const textarea = document.getElementById('bulkTextarea');
+    const previewWrap = document.getElementById('bulkPreviewWrap');
+    const previewBody = document.getElementById('previewBody');
+    const previewSummary = document.getElementById('previewSummary');
+    const hiddenLines = document.getElementById('bulkHiddenLines');
+    const submitBtn = document.getElementById('bulkSubmitBtn');
+    const clearBtn = document.getElementById('clearBtn');
+
+    // Existing subject names from server (lowercased for comparison)
+    const existingNames = new Set([
+        {% for s in subjects %}"{{ s.name|lower|escapejs }}",{% endfor %}
+    ]);
+    const existingCodes = new Set([
+        {% for s in subjects %}"{{ s.code|upper|escapejs }}",{% endfor %}
+    ]);
+
+    function autoCode(name) {
+        const words = name.trim().split(/\s+/);
+        if (words.length === 1) return name.substring(0, 6).toUpperCase();
+        return words.map(w => w[0]).join('').substring(0, 6).toUpperCase();
+    }
+
+    function parseLine(line) {
+        line = line.trim();
+        if (!line || line.startsWith('#')) return null;
+        let name, code;
+        if (line.includes(',')) {
+            const sep = line.indexOf(',');
+            name = line.substring(0, sep).trim();
+            code = line.substring(sep + 1).trim().toUpperCase().substring(0, 6);
+        } else if (line.includes('|')) {
+            const sep = line.indexOf('|');
+            name = line.substring(0, sep).trim();
+            code = line.substring(sep + 1).trim().toUpperCase().substring(0, 6);
+        } else {
+            name = line.trim();
+            code = null;
+        }
+        return { name, code };
+    }
+
+    function updatePreview() {
+        const val = textarea.value;
+        hiddenLines.value = val;
+        const lines = val.split('\n');
+        let newCount = 0, dupCount = 0, rows = '';
+        let rowNum = 0;
+
+        lines.forEach(line => {
+            const parsed = parseLine(line);
+            if (!parsed) return;
+            rowNum++;
+            const { name } = parsed;
+            let code = parsed.code;
+            const autoCoded = !parsed.code;
+            if (!code) code = autoCode(name);
+
+            const isDup = existingNames.has(name.toLowerCase());
+            const codeConflict = !isDup && existingCodes.has(code);
+            let displayCode = code;
+            if (codeConflict) {
+                // Append suffix hint
+                displayCode = code + '…';
+            }
+
+            let badge;
+            if (isDup) {
+                dupCount++;
+                badge = '<span class="preview-badge-dup">exists</span>';
+            } else {
+                newCount++;
+                if (autoCoded) {
+                    badge = '<span class="preview-badge-new">new</span> <span class="preview-badge-auto">auto-code</span>';
+                } else {
+                    badge = '<span class="preview-badge-new">new</span>';
+                }
+            }
+
+            rows += `<tr class="${isDup ? 'text-muted' : ''}">
+                <td>${rowNum}</td>
+                <td>${escHtml(name)}</td>
+                <td><code>${escHtml(displayCode)}</code></td>
+                <td>${badge}</td>
+            </tr>`;
+        });
+
+        if (rowNum === 0) {
+            previewWrap.style.display = 'none';
+            submitBtn.disabled = true;
+            return;
+        }
+
+        previewWrap.style.display = '';
+        previewBody.innerHTML = rows;
+        previewSummary.textContent = `${newCount} new · ${dupCount} will be skipped`;
+        submitBtn.disabled = newCount === 0;
+        submitBtn.innerHTML = newCount > 0
+            ? `<i class="bi bi-check2-all me-1"></i>Add ${newCount} Subject${newCount !== 1 ? 's' : ''}`
+            : '<i class="bi bi-x me-1"></i>Nothing new to add';
+    }
+
+    function escHtml(str) {
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    textarea.addEventListener('input', updatePreview);
+
+    clearBtn.addEventListener('click', () => {
+        textarea.value = '';
+        updatePreview();
+    });
+
+    /* Preset chips */
+    document.querySelectorAll('.preset-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const key = chip.dataset.preset;
+            const items = PRESETS[key] || [];
+            const lines = items.map(([name, code]) => `${name}, ${code}`);
+            // Merge without duplicates
+            const existing = textarea.value ? textarea.value.trimEnd().split('\n') : [];
+            const existingSet = new Set(existing.map(l => l.trim().toLowerCase()));
+            lines.forEach(l => {
+                if (!existingSet.has(l.toLowerCase())) existing.push(l);
+            });
+            textarea.value = existing.join('\n');
+            updatePreview();
+            textarea.focus();
+        });
+    });
+
+    /* Sync hidden input on form submit */
+    document.getElementById('bulkForm').addEventListener('submit', () => {
+        hiddenLines.value = textarea.value;
+    });
+
+    /* Reset state when modal closes */
+    document.getElementById('bulkAddModal').addEventListener('hidden.bs.modal', () => {
+        textarea.value = '';
+        previewWrap.style.display = 'none';
+        submitBtn.disabled = true;
+    });
+})();
+</script>
 {% endblock %}
