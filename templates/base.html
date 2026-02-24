@@ -269,6 +269,80 @@
             font-size: 0.95rem;
         }
 
+        .header-app-menu .btn {
+            border-radius: 999px;
+            border: 1px solid rgba(0,0,0,0.08);
+            background: var(--surface-card);
+            color: var(--text-main);
+            font-weight: 600;
+            font-size: 0.84rem;
+            padding: 0.42rem 0.8rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+        }
+        .header-app-menu .btn:hover,
+        .header-app-menu .btn:focus {
+            border-color: rgba(67, 97, 238, 0.35);
+            color: var(--primary-brand);
+            box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.12);
+        }
+        .header-app-menu .dropdown-menu {
+            min-width: 280px;
+            max-height: 72vh;
+            overflow-y: auto;
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.08);
+            box-shadow: 0 16px 40px rgba(0,0,0,0.12);
+            padding: 0.4rem;
+        }
+        .header-app-menu .dropdown-header {
+            font-size: 0.64rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            padding: 0.45rem 0.65rem 0.25rem;
+            font-weight: 800;
+        }
+        .header-app-menu .dropdown-item {
+            border-radius: 8px;
+            padding: 0.5rem 0.65rem;
+            font-size: 0.84rem;
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            color: var(--text-main);
+        }
+        .header-app-menu .dropdown-item i {
+            width: 18px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+        .header-app-menu .dropdown-item:hover {
+            background: rgba(67, 97, 238, 0.08);
+            color: var(--primary-brand);
+        }
+        .header-app-menu .dropdown-item:hover i {
+            color: var(--primary-brand);
+        }
+
+        [data-bs-theme="dark"] .header-app-menu .btn {
+            border-color: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.03);
+            color: #e2e8f0;
+        }
+        [data-bs-theme="dark"] .header-app-menu .dropdown-menu {
+            background: #1e293b;
+            border-color: rgba(255,255,255,0.08);
+        }
+        [data-bs-theme="dark"] .header-app-menu .dropdown-item {
+            color: #e2e8f0;
+        }
+        [data-bs-theme="dark"] .header-app-menu .dropdown-item:hover {
+            background: rgba(96, 165, 250, 0.12);
+            color: #bfdbfe;
+        }
+
         /* Mobile Header Tweaks */
         @media (max-width: 768px) {
             .header {
@@ -301,6 +375,10 @@
             padding-top: 2rem;
             display: flex;
             flex-direction: column;
+        }
+
+        .sidebar {
+            display: none !important;
         }
 
         /* Tenant Dashboard Sidebar */
@@ -387,7 +465,7 @@
 
         /* Main Content Area */
         .main-content {
-            margin-left: var(--sidebar-width);
+            margin-left: 0;
             min-height: 100vh;
             padding: 2.5rem;
             transition: margin-left 0.3s ease;
@@ -645,7 +723,7 @@
         }
         
         body.sidebar-collapsed .main-content {
-            margin-left: var(--sidebar-collapsed-width);
+            margin-left: 0;
         }
 
         body.sidebar-collapsed .sidebar h4 {
@@ -739,11 +817,6 @@
                         <button class="header-action-btn d-lg-none me-2" onclick="toggleMobileMenu()">
                             <i class="bi bi-list fs-3"></i>
                         </button>
-                        
-                        <!-- Desktop Sidebar Toggle -->
-                        <button class="header-action-btn d-none d-lg-block me-2" onclick="toggleSidebar()">
-                            <i class="bi bi-list fs-3"></i>
-                        </button>
 
                         <div class="navbar-brand m-0">
                             <div class="header-brand-icon">
@@ -755,6 +828,84 @@
                             </div>
                             <span class="d-none d-sm-block">{{ school_name|default:"School Portal" }}</span>
                             <span class="d-block d-sm-none text-truncate" style="max-width: 140px; font-size: 1rem;">{{ school_name|default:"School Portal" }}</span>
+                        </div>
+
+                        <div class="dropdown header-app-menu d-none d-lg-block ms-2">
+                            <button class="btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-grid"></i> Menu
+                            </button>
+                            <ul class="dropdown-menu shadow-lg border-0">
+                                {% if user.is_staff and request.resolver_match.app_name == 'tenants' %}
+                                <li><h6 class="dropdown-header">Platform Admin</h6></li>
+                                <li><a class="dropdown-item" href="{% url 'tenants:landlord_dashboard' %}"><i class="bi bi-grid-3x3-gap"></i> Command Center</a></li>
+                                <li><a class="dropdown-item" href="{% url 'tenants:approval_queue' %}"><i class="bi bi-clipboard-check"></i> Approval Queue</a></li>
+                                <li><a class="dropdown-item" href="{% url 'tenants:revenue_analytics' %}"><i class="bi bi-graph-up-arrow"></i> Revenue Analytics</a></li>
+                                <li><a class="dropdown-item" href="{% url 'tenants:system_health' %}"><i class="bi bi-activity"></i> System Health</a></li>
+                                <li><a class="dropdown-item" href="{% url 'tenants:support_tickets' %}"><i class="bi bi-headset"></i> Support Desk</a></li>
+                                <li><a class="dropdown-item" href="{% url 'tenants:database_backups' %}"><i class="bi bi-shield-check"></i> Database Backups</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><h6 class="dropdown-header">Management</h6></li>
+                                <li><a class="dropdown-item" href="/admin/tenants/school/" target="_blank"><i class="bi bi-building"></i> Manage Tenants</a></li>
+                                <li><a class="dropdown-item" href="/admin/tenants/domain/" target="_blank"><i class="bi bi-globe"></i> Manage Domains</a></li>
+                                <li><a class="dropdown-item" href="/admin/auth/user/" target="_blank"><i class="bi bi-people"></i> User Management</a></li>
+                                <li><a class="dropdown-item" href="{% url 'signup' %}"><i class="bi bi-plus-circle"></i> New Tenant</a></li>
+                                <li><a class="dropdown-item" href="/admin/" target="_blank"><i class="bi bi-gear-fill"></i> Django Admin</a></li>
+                                {% else %}
+                                <li><h6 class="dropdown-header">Overview</h6></li>
+                                <li><a class="dropdown-item" href="{% url 'dashboard' %}"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+                                {% if user.user_type != 'teacher' %}
+                                <li><a class="dropdown-item" href="{% url 'home' %}"><i class="bi bi-house-door"></i> Home Page</a></li>
+                                {% endif %}
+                                <li><a class="dropdown-item" href="{% url 'academics:gallery' %}"><i class="bi bi-images"></i> Gallery</a></li>
+
+                                {% if user.user_type == 'admin' or user.user_type == 'teacher' %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><h6 class="dropdown-header">Academics</h6></li>
+                                <li><a class="dropdown-item" href="{% url 'students:student_list' %}"><i class="bi bi-people"></i> Students</a></li>
+                                <li><a class="dropdown-item" href="{% url 'students:mark_attendance' %}"><i class="bi bi-calendar-check"></i> Attendance</a></li>
+                                <li><a class="dropdown-item" href="{% url 'academics:timetable' %}"><i class="bi bi-table"></i> Timetable</a></li>
+                                <li><a class="dropdown-item" href="{% url 'homework:homework_list' %}"><i class="bi bi-journal-text"></i> Homework</a></li>
+                                {% endif %}
+
+                                {% if user.user_type == 'admin' %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><h6 class="dropdown-header">Management</h6></li>
+                                <li><a class="dropdown-item" href="{% url 'teachers:teacher_list' %}"><i class="bi bi-person-lines-fill"></i> Teachers</a></li>
+                                <li><a class="dropdown-item" href="{% url 'academics:manage_classes' %}"><i class="bi bi-door-open"></i> Manage Classes</a></li>
+                                <li><a class="dropdown-item" href="{% url 'academics:manage_subjects' %}"><i class="bi bi-book"></i> Manage Subjects</a></li>
+                                <li><a class="dropdown-item" href="{% url 'finance:manage_fees' %}"><i class="bi bi-receipt"></i> Manage Fees</a></li>
+                                <li><a class="dropdown-item" href="{% url 'announcements:manage' %}"><i class="bi bi-megaphone"></i> Notices</a></li>
+                                <li><a class="dropdown-item" href="{% url 'accounts:manage_users' %}"><i class="bi bi-people-fill"></i> Manage Users</a></li>
+                                <li><a class="dropdown-item" href="{% url 'academics:school_settings' %}"><i class="bi bi-gear-fill"></i> School Settings</a></li>
+                                {% endif %}
+
+                                {% if user.user_type == 'teacher' %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><h6 class="dropdown-header">Teaching</h6></li>
+                                <li><a class="dropdown-item" href="{% url 'teachers:my_classes' %}"><i class="bi bi-book"></i> My Classes</a></li>
+                                <li><a class="dropdown-item" href="{% url 'teachers:enter_grades' %}"><i class="bi bi-pencil-square"></i> Enter Grades</a></li>
+                                <li><a class="dropdown-item" href="{% url 'teachers:schedule' %}"><i class="bi bi-calendar-week"></i> My Schedule</a></li>
+                                <li><a class="dropdown-item" href="{% url 'announcements:list' %}"><i class="bi bi-megaphone"></i> Notices</a></li>
+                                {% endif %}
+
+                                {% if user.user_type == 'student' %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><h6 class="dropdown-header">My School</h6></li>
+                                <li><a class="dropdown-item" href="{% url 'students:student_schedule' %}"><i class="bi bi-calendar-week"></i> My Schedule</a></li>
+                                <li><a class="dropdown-item" href="{% url 'academics:timetable' %}"><i class="bi bi-table"></i> Timetable</a></li>
+                                <li><a class="dropdown-item" href="{% url 'homework:homework_list' %}"><i class="bi bi-journal-text"></i> Homework</a></li>
+                                <li><a class="dropdown-item" href="{% url 'announcements:list' %}"><i class="bi bi-megaphone"></i> Notices</a></li>
+                                {% endif %}
+
+                                {% if user.user_type == 'parent' %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><h6 class="dropdown-header">Family</h6></li>
+                                <li><a class="dropdown-item" href="{% url 'parents:my_children' %}"><i class="bi bi-person-hearts"></i> My Children</a></li>
+                                <li><a class="dropdown-item" href="{% url 'homework:homework_list' %}"><i class="bi bi-journal-text"></i> Homework</a></li>
+                                <li><a class="dropdown-item" href="{% url 'announcements:list' %}"><i class="bi bi-megaphone"></i> Notices</a></li>
+                                {% endif %}
+                                {% endif %}
+                            </ul>
                         </div>
                     </div>
 
