@@ -5,6 +5,411 @@
 
 {% block content %}
 <style>
+    /* ===== Token Variables ===== */
+    :root {
+        --sd-surface: #ffffff;
+        --sd-border: #e5e7eb;
+        --sd-heading: #0f172a;
+        --sd-body: #374151;
+        --sd-muted: #6b7280;
+        --sd-accent-blue: #3b82f6;
+        --sd-accent-green: #22c55e;
+        --sd-accent-amber: #f59e0b;
+        --sd-accent-red: #ef4444;
+        --sd-accent-purple: #8b5cf6;
+        --sd-si-blue: #eff6ff;
+        --sd-si-green: #f0fdf4;
+        --sd-si-amber: #fef9c3;
+    }
+    [data-bs-theme="dark"] {
+        --sd-surface: var(--surface-card, #1e293b);
+        --sd-border: rgba(255,255,255,0.08);
+        --sd-heading: #f1f5f9;
+        --sd-body: #cbd5e1;
+        --sd-muted: #64748b;
+        --sd-si-blue: rgba(59,130,246,0.15);
+        --sd-si-green: rgba(34,197,94,0.15);
+        --sd-si-amber: rgba(245,158,11,0.15);
+    }
+
+    /* ===== Stat Cards ===== */
+    .sd-stat {
+        padding: 1.25rem;
+        border-radius: 14px;
+        border: 1px solid var(--sd-border);
+        background: var(--sd-surface);
+        transition: box-shadow .2s, border-color .2s;
+    }
+    .sd-stat:hover { box-shadow: 0 4px 12px rgba(0,0,0,.07); border-color: rgba(0,0,0,.1); }
+    [data-bs-theme="dark"] .sd-stat:hover { border-color: rgba(255,255,255,.14); }
+    .sd-stat-label {
+        font-size: .7rem; font-weight: 700; letter-spacing: .06em;
+        text-transform: uppercase; color: var(--sd-muted); margin-bottom: .25rem;
+    }
+    .sd-stat-value {
+        font-size: 1.75rem; font-weight: 700; color: var(--sd-heading); line-height: 1.1;
+    }
+    .sd-stat-icon {
+        width: 44px; height: 44px; border-radius: 11px;
+        display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;
+    }
+    .si-blue  { background: var(--sd-si-blue);  color: var(--sd-accent-blue); }
+    .si-green { background: var(--sd-si-green); color: var(--sd-accent-green); }
+    .si-amber { background: var(--sd-si-amber); color: var(--sd-accent-amber); }
+    .sd-pill {
+        display: inline-flex; align-items: center; gap: .25rem;
+        padding: .2rem .5rem; border-radius: 6px; font-size: .7rem; font-weight: 600;
+    }
+    .pill-blue  { background: var(--sd-si-blue);  color: var(--sd-accent-blue); }
+    .pill-green { background: var(--sd-si-green); color: var(--sd-accent-green); }
+    .pill-red   { background: #fee2e2; color: #dc2626; }
+    .pill-amber { background: #fef9c3; color: #92400e; }
+    [data-bs-theme="dark"] .pill-red   { background: rgba(220,38,38,.15);  color: #fca5a5; }
+    [data-bs-theme="dark"] .pill-amber { background: rgba(245,158,11,.15); color: #fcd34d; }
+
+    /* ===== Action Cards ===== */
+    .sd-action-card {
+        display: flex; align-items: center; gap: .9rem;
+        padding: .9rem 1rem;
+        border-radius: 12px; border: 1px solid var(--sd-border);
+        background: var(--sd-surface); text-decoration: none;
+        transition: all .2s; color: inherit;
+    }
+    .sd-action-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.08); border-color: rgba(0,0,0,.12); transform: translateY(-1px); color: inherit; }
+    [data-bs-theme="dark"] .sd-action-card:hover { border-color: rgba(255,255,255,.16); }
+    .sd-action-icon {
+        width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+    }
+    .sd-action-label { font-weight: 600; font-size: .875rem; color: var(--sd-heading); line-height: 1.2; }
+    .sd-action-sub   { font-size: .75rem; color: var(--sd-muted); }
+
+    /* Alert action cards */
+    .sd-alert-card {
+        display: flex; align-items: center; gap: .9rem;
+        padding: .9rem 1rem; border-radius: 12px;
+        text-decoration: none; color: #fff;
+    }
+    .sd-alert-attendance { background: linear-gradient(135deg, #f43f5e, #dc2626); }
+    .sd-alert-fee        { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+    /* ===== Content Cards ===== */
+    .sd-card {
+        background: var(--sd-surface); border: 1px solid var(--sd-border);
+        border-radius: 14px; overflow: hidden;
+    }
+    .sd-card-header {
+        padding: .75rem 1rem; border-bottom: 1px solid var(--sd-border);
+        display: flex; align-items: center; justify-content: space-between;
+    }
+    .sd-card-title { font-weight: 700; font-size: .9rem; color: var(--sd-heading); }
+    .sd-item {
+        display: flex; align-items: flex-start; gap: .75rem;
+        padding: .75rem 1rem; border-bottom: 1px solid var(--sd-border);
+    }
+    .sd-item:last-child { border-bottom: none; }
+    .sd-item-icon {
+        width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center; font-size: .9rem; margin-top: .05rem;
+    }
+    .sd-item-label { font-weight: 600; font-size: .82rem; color: var(--sd-heading); margin-bottom: .1rem; }
+    .sd-item-sub   { font-size: .75rem; color: var(--sd-muted); }
+    .sd-empty { padding: 2rem 1rem; text-align: center; color: var(--sd-muted); }
+    .sd-empty i { font-size: 2rem; display: block; margin-bottom: .5rem; opacity: .4; }
+
+    /* ===== Section heading ===== */
+    .sd-section-heading {
+        font-size: .875rem; font-weight: 700; color: var(--sd-heading);
+        margin-bottom: .75rem; display: flex; align-items: center; justify-content: space-between;
+    }
+    .sd-section-heading a { font-size: .78rem; font-weight: 500; color: var(--sd-accent-blue); text-decoration: none; }
+
+    /* ===== Avatar ===== */
+    .sd-avatar {
+        width: 44px; height: 44px; border-radius: 50%; object-fit: cover;
+        border: 2px solid var(--sd-border);
+    }
+    .sd-avatar-placeholder {
+        width: 44px; height: 44px; border-radius: 50%;
+        background: var(--sd-si-blue); color: var(--sd-accent-blue);
+        display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+        border: 2px solid var(--sd-border);
+    }
+
+    /* ===== Quote card ===== */
+    .sd-quote {
+        background: linear-gradient(135deg, #eff6ff, #f0f4ff);
+        border: 1px solid #bfdbfe; border-radius: 14px; padding: 1.1rem;
+    }
+    [data-bs-theme="dark"] .sd-quote {
+        background: rgba(59,130,246,.08);
+        border-color: rgba(59,130,246,.2);
+    }
+
+    /* ===== Responsive ===== */
+    .sd-stats-row {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin-bottom: 1.25rem;
+    }
+    @media (max-width: 640px) {
+        .sd-stats-row { grid-template-columns: 1fr 1fr; }
+        .sd-stats-row .sd-stat:last-child { grid-column: 1 / -1; }
+        .sd-action-icon { width: 36px; height: 36px; }
+    }
+    .sd-main-grid {
+        display: grid; grid-template-columns: 1fr 300px; gap: 1.25rem;
+    }
+    @media (max-width: 900px) { .sd-main-grid { grid-template-columns: 1fr; } }
+    .sd-tools-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-bottom: 1.25rem;
+    }
+    @media (max-width: 560px) { .sd-tools-grid { grid-template-columns: 1fr; } }
+    .sd-content-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+    @media (max-width: 700px) { .sd-content-grid { grid-template-columns: 1fr; } }
+</style>
+
+<!-- ===== Header ===== -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 style="font-size:1.45rem; font-weight:700; color:var(--sd-heading); margin:0 0 .1rem;">My Dashboard</h1>
+        <p style="color:var(--sd-muted); font-size:.875rem; margin:0;">Hello, {{ student.user.first_name }}! Ready to learn?</p>
+    </div>
+    <span class="sd-pill pill-blue">
+        <i class="bi bi-person-badge"></i> {{ student.admission_number }}
+    </span>
+</div>
+
+<!-- ===== Stat Cards ===== -->
+<div class="sd-stats-row">
+    <!-- Class -->
+    <div class="sd-stat">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <div class="sd-stat-label">My Class</div>
+                <div class="sd-stat-value" style="font-size:1.3rem;">{{ student.current_class|default:"—" }}</div>
+                <span class="sd-pill pill-blue mt-1">Roll: {{ student.roll_number|default:"N/A" }}</span>
+            </div>
+            {% if student.photo %}
+            <img src="{{ student.photo.url }}" class="sd-avatar">
+            {% else %}
+            <div class="sd-avatar-placeholder"><i class="bi bi-person"></i></div>
+            {% endif %}
+        </div>
+    </div>
+    <!-- Attendance -->
+    <div class="sd-stat">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <div class="sd-stat-label">Attendance</div>
+                <div class="sd-stat-value {% if attendance_stats.percentage < 75 %}text-danger{% elif attendance_stats.percentage < 90 %}text-warning{% endif %}">{{ attendance_stats.percentage }}%</div>
+                <div class="d-flex gap-1 mt-1 flex-wrap">
+                    <span class="sd-pill pill-green"><i class="bi bi-check-circle-fill" style="font-size:.6rem;"></i> {{ attendance_stats.present }}P</span>
+                    <span class="sd-pill pill-red"><i class="bi bi-x-circle-fill" style="font-size:.6rem;"></i> {{ attendance_stats.absent }}A</span>
+                </div>
+            </div>
+            <div class="sd-stat-icon si-green"><i class="bi bi-calendar-check-fill"></i></div>
+        </div>
+    </div>
+    <!-- Fee -->
+    <div class="sd-stat">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <div class="sd-stat-label">Fee Status</div>
+                {% if finance_stats.balance > 0 %}
+                <div class="sd-stat-value" style="color:var(--sd-accent-red);">Due</div>
+                <span class="sd-pill pill-red mt-1">₵{{ finance_stats.balance|floatformat:2|intcomma }}</span>
+                {% else %}
+                <div class="sd-stat-value" style="color:var(--sd-accent-green);">Cleared</div>
+                <span class="sd-pill pill-green mt-1"><i class="bi bi-check-circle-fill" style="font-size:.6rem;"></i> Paid</span>
+                {% endif %}
+            </div>
+            <div class="sd-stat-icon si-amber"><i class="bi bi-wallet2"></i></div>
+        </div>
+        <div style="font-size:.72rem; color:var(--sd-muted); margin-top:.5rem;">Paid: ₵{{ finance_stats.paid|floatformat:2|intcomma }}</div>
+    </div>
+</div>
+
+<!-- ===== Main grid ===== -->
+<div class="sd-main-grid">
+    <div>
+        <!-- Contextual alerts -->
+        {% if attendance_stats.percentage < 80 and attendance_stats.total > 0 or finance_stats.balance > 0 %}
+        <div class="sd-tools-grid mb-3">
+            {% if attendance_stats.percentage < 80 and attendance_stats.total > 0 %}
+            <a href="{% url 'students:student_schedule' %}" class="sd-alert-card sd-alert-attendance">
+                <div class="bg-white bg-opacity-20 p-2 rounded-circle"><i class="bi bi-exclamation-triangle fs-4"></i></div>
+                <div>
+                    <div class="fw-bold" style="font-size:.85rem;">Attendance Alert</div>
+                    <small class="opacity-90">{{ attendance_stats.percentage }}% — needs improvement</small>
+                </div>
+            </a>
+            {% endif %}
+            {% if finance_stats.balance > 0 %}
+            <div class="sd-alert-card sd-alert-fee">
+                <div class="bg-white bg-opacity-20 p-2 rounded-circle"><i class="bi bi-wallet2 fs-4"></i></div>
+                <div>
+                    <div class="fw-bold" style="font-size:.85rem;">Fee Balance</div>
+                    <small class="opacity-90">₵{{ finance_stats.balance|floatformat:2|intcomma }} outstanding</small>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Tools -->
+        <div class="sd-section-heading">Academic Tools</div>
+        <div class="sd-tools-grid">
+            <a href="{% url 'academics:ai_tutor' %}" class="sd-action-card">
+                <div class="sd-action-icon" style="background:linear-gradient(135deg,#667eea,#764ba2); color:#fff;">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <div>
+                    <div class="sd-action-label">AI Tutor</div>
+                    <div class="sd-action-sub">24/7 learning help</div>
+                </div>
+            </a>
+            <a href="{% url 'students:report_card' student.id %}" target="_blank" class="sd-action-card">
+                <div class="sd-action-icon si-blue"><i class="bi bi-award"></i></div>
+                <div>
+                    <div class="sd-action-label">Report Card</div>
+                    <div class="sd-action-sub">{% if grades %}{{ grades.count }} subject{{ grades.count|pluralize }} graded{% else %}View grades{% endif %}</div>
+                </div>
+                <i class="bi bi-arrow-right ms-auto" style="color:var(--sd-muted);"></i>
+            </a>
+            <a href="{% url 'academics:timetable' %}" class="sd-action-card">
+                <div class="sd-action-icon" style="background:#f0f9ff; color:#0ea5e9;"><i class="bi bi-calendar-week"></i></div>
+                <div>
+                    <div class="sd-action-label">Timetable</div>
+                    <div class="sd-action-sub">View weekly schedule</div>
+                </div>
+                <i class="bi bi-arrow-right ms-auto" style="color:var(--sd-muted);"></i>
+            </a>
+            <a href="{% url 'homework:homework_list' %}" class="sd-action-card">
+                <div class="sd-action-icon si-amber"><i class="bi bi-pencil-square"></i></div>
+                <div>
+                    <div class="sd-action-label">Homework</div>
+                    <div class="sd-action-sub">{{ homework_list|length }} active assignment{{ homework_list|length|pluralize }}</div>
+                </div>
+                <i class="bi bi-arrow-right ms-auto" style="color:var(--sd-muted);"></i>
+            </a>
+        </div>
+
+        <!-- Homework + Resources -->
+        <div class="sd-content-grid">
+            <!-- Homework -->
+            <div>
+                <div class="sd-section-heading">
+                    Recent Homework <a href="{% url 'homework:homework_list' %}">View all</a>
+                </div>
+                <div class="sd-card">
+                    {% for hw in homework_list %}
+                    <div class="sd-item">
+                        <div class="sd-item-icon" style="background:var(--sd-si-amber); color:var(--sd-accent-amber);">
+                            <i class="bi bi-pencil-square"></i>
+                        </div>
+                        <div class="flex-grow-1" style="min-width:0;">
+                            <div class="sd-item-label text-truncate">{{ hw.title }}</div>
+                            <div class="sd-item-sub">{{ hw.description|truncatechars:50 }}</div>
+                            <div class="d-flex gap-2 mt-1 flex-wrap">
+                                <span class="sd-pill" style="background:var(--sd-si-blue); color:var(--sd-accent-blue);">{{ hw.subject.name }}</span>
+                                <span class="sd-pill pill-red">Due {{ hw.due_date|date:"M d" }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="sd-empty"><i class="bi bi-journal-check"></i>No active homework</div>
+                    {% endfor %}
+                </div>
+            </div>
+            <!-- Resources -->
+            <div>
+                <div class="sd-section-heading">Study Resources</div>
+                <div class="sd-card">
+                    {% for res in resources %}
+                    <div class="sd-item">
+                        <div class="sd-item-icon" style="background:var(--sd-si-green); color:var(--sd-accent-green);">
+                            <i class="bi {% if res.link %}bi-link-45deg{% else %}bi-file-earmark-text{% endif %}"></i>
+                        </div>
+                        <div class="flex-grow-1" style="min-width:0;">
+                            <div class="sd-item-label text-truncate">{{ res.title }}</div>
+                            <div class="sd-item-sub">{% if res.class_subject %}{{ res.class_subject.subject.name }}{% else %}General{% endif %}</div>
+                        </div>
+                        {% if res.link %}<a href="{{ res.link }}" target="_blank" class="btn btn-sm btn-outline-secondary px-2 py-1" style="font-size:.75rem;"><i class="bi bi-box-arrow-up-right"></i></a>
+                        {% elif res.file %}<a href="{{ res.file.url }}" target="_blank" class="btn btn-sm btn-outline-secondary px-2 py-1" style="font-size:.75rem;"><i class="bi bi-download"></i></a>{% endif %}
+                    </div>
+                    {% empty %}
+                    <div class="sd-empty"><i class="bi bi-folder2-open"></i>No resources yet</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Announcements -->
+        <div class="sd-section-heading">School Announcements</div>
+        <div class="sd-card">
+            {% for notice in notices %}
+            <div class="sd-item">
+                <div class="sd-item-icon" style="background:#fef9c3; color:#ca8a04;"><i class="bi bi-megaphone-fill"></i></div>
+                <div class="flex-grow-1" style="min-width:0;">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div class="sd-item-label">{{ notice.title }}</div>
+                        <span class="sd-pill" style="white-space:nowrap; background:var(--sd-si-blue); color:var(--sd-accent-blue); font-size:.65rem;">{{ notice.created_at|date:"M d" }}</span>
+                    </div>
+                    <div class="sd-item-sub">{{ notice.content|truncatechars:120 }}</div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="sd-empty"><i class="bi bi-inbox"></i>No announcements</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- ===== Sidebar ===== -->
+    <div>
+        <!-- Profile card -->
+        <div class="sd-card mb-3" style="padding: 1.25rem; text-align:center;">
+            <div class="mb-2" style="position:relative; display:inline-block;">
+                {% if student.photo %}
+                <img src="{{ student.photo.url }}" class="rounded-circle" style="width:80px;height:80px;object-fit:cover; border:3px solid var(--sd-border);">
+                {% else %}
+                <div style="width:80px;height:80px;border-radius:50%;background:var(--sd-si-blue);color:var(--sd-accent-blue);display:flex;align-items:center;justify-content:center;font-size:2rem; border:3px solid var(--sd-border); margin:0 auto;">
+                    <i class="bi bi-person"></i>
+                </div>
+                {% endif %}
+                <span style="position:absolute;bottom:2px;right:2px;width:12px;height:12px;background:#22c55e;border-radius:50%;border:2px solid var(--sd-surface);"></span>
+            </div>
+            <div style="font-weight:700; font-size:.95rem; color:var(--sd-heading);">{{ student.user.get_full_name }}</div>
+            <div style="font-size:.75rem; color:var(--sd-muted); margin-bottom:.75rem;">Student</div>
+            <span class="sd-pill pill-blue"><i class="bi bi-calendar-event" style="font-size:.6rem;"></i> Joined {{ student.date_of_admission|date:"Y" }}</span>
+        </div>
+
+        <!-- Quick Grade Summary -->
+        {% if grades %}
+        <div class="sd-card mb-3">
+            <div class="sd-card-header">
+                <span class="sd-card-title">Grade Summary</span>
+                <a href="{% url 'students:report_card' student.id %}" style="font-size:.78rem; color:var(--sd-accent-blue); text-decoration:none;" target="_blank">Full report</a>
+            </div>
+            {% for grade in grades|slice:":5" %}
+            <div class="sd-item">
+                <div class="flex-grow-1" style="min-width:0;">
+                    <div class="sd-item-label text-truncate">{{ grade.subject.name }}</div>
+                    <div style="font-size:.7rem; color:var(--sd-muted);">{{ grade.get_term_display|default:grade.term }} · {{ grade.academic_year }}</div>
+                </div>
+                <span class="sd-pill {% if grade.total_score >= 70 %}pill-green{% elif grade.total_score >= 50 %}pill-amber{% else %}pill-red{% endif %}" style="font-weight:700; font-size:.75rem;">{{ grade.grade }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Quote -->
+        <div class="sd-quote">
+            <div style="font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--sd-accent-blue); margin-bottom:.5rem;">Today's Quote</div>
+            <p style="font-style:italic; font-size:.82rem; color:var(--sd-body); margin-bottom:.4rem;">"Education is the passport to the future, for tomorrow belongs to those who prepare for it today."</p>
+            <div style="font-size:.72rem; color:var(--sd-muted);">— Malcolm X</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
     .stat-card {
         padding: 1.5rem;
         border-radius: 12px;

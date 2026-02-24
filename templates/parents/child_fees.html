@@ -1,134 +1,190 @@
-{% extends 'base.html' %}
+﻿{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Fee History - {{ student.user.get_full_name }}{% endblock %}
 
 {% block content %}
-{% block extra_css %}
 <style>
-    [data-bs-theme="dark"] .card {
-        background: var(--card-bg, #1e293b);
-        border-color: rgba(255,255,255,0.08);
+    :root {
+        --cf-surface: #ffffff;
+        --cf-border:  #e5e7eb;
+        --cf-heading: #0f172a;
+        --cf-body:    #374151;
+        --cf-muted:   #6b7280;
+        --cf-blue:    #3b82f6;
+        --cf-green:   #22c55e;
+        --cf-red:     #ef4444;
+        --cf-amber:   #f59e0b;
+        --cf-si-blue:  #eff6ff;
+        --cf-si-green: #f0fdf4;
+        --cf-si-amber: #fef9c3;
     }
-    [data-bs-theme="dark"] .card-header.bg-white,
-    [data-bs-theme="dark"] .card-header {
-        background: var(--card-bg, #1e293b) !important;
-        border-color: rgba(255,255,255,0.08);
-        color: #f1f5f9;
+    [data-bs-theme="dark"] {
+        --cf-surface: var(--surface-card, #1e293b);
+        --cf-border:  rgba(255,255,255,0.08);
+        --cf-heading: #f1f5f9;
+        --cf-body:    #cbd5e1;
+        --cf-muted:   #64748b;
+        --cf-si-blue:  rgba(59,130,246,0.15);
+        --cf-si-green: rgba(34,197,94,0.15);
+        --cf-si-amber: rgba(245,158,11,0.15);
     }
-    [data-bs-theme="dark"] .card.bg-light {
-        background: rgba(255,255,255,0.05) !important;
-    }
-    [data-bs-theme="dark"] .card-body { color: #e2e8f0; }
-    [data-bs-theme="dark"] .table { color: #e2e8f0; }
-    [data-bs-theme="dark"] .table th { color: #cbd5e1; }
-    [data-bs-theme="dark"] .bg-light {
-        background: rgba(255,255,255,0.05) !important;
-    }
-    [data-bs-theme="dark"] .bg-white {
-        background: rgba(255,255,255,0.05) !important;
-    }
-    [data-bs-theme="dark"] .text-muted { color: #94a3b8 !important; }
-    [data-bs-theme="dark"] .badge.bg-warning.text-dark {
-        color: #1e293b !important;
-    }
-    [data-bs-theme="dark"] .btn-secondary {
-        background: rgba(255,255,255,0.1);
-        border-color: rgba(255,255,255,0.1);
-        color: #e2e8f0;
-    }
+    .cf-card { background:var(--cf-surface); border:1px solid var(--cf-border); border-radius:14px; overflow:hidden; }
+    .cf-card-header { padding:.75rem 1.1rem; border-bottom:1px solid var(--cf-border); display:flex; align-items:center; justify-content:space-between; }
+    .cf-card-title { font-weight:700; font-size:.9rem; color:var(--cf-heading); }
+    .cf-pill { display:inline-flex; align-items:center; gap:.2rem; padding:.18rem .55rem; border-radius:6px; font-size:.7rem; font-weight:700; line-height:1.4; }
+    .pill-green { background:var(--cf-si-green); color:#16a34a; }
+    .pill-amber { background:var(--cf-si-amber); color:#92400e; }
+    .pill-red   { background:#fee2e2; color:#dc2626; }
+    [data-bs-theme="dark"] .pill-green { background:rgba(34,197,94,.15);  color:#86efac; }
+    [data-bs-theme="dark"] .pill-amber { background:rgba(245,158,11,.15); color:#fcd34d; }
+    [data-bs-theme="dark"] .pill-red   { background:rgba(239,68,68,.15);  color:#fca5a5; }
+    .cf-stat { text-align:center; padding:1rem .75rem; }
+    .cf-stat-val { font-size:1.4rem; font-weight:800; color:var(--cf-heading); line-height:1.1; }
+    .cf-stat-label { font-size:.72rem; color:var(--cf-muted); margin-top:.2rem; }
+    .cf-stats-grid { display:grid; grid-template-columns:1fr 1px 1fr 1px 1fr; }
+    .cf-divider-v { background:var(--cf-border); }
+    @media(max-width:500px){ .cf-stats-grid{ grid-template-columns:1fr 1fr; gap:.5rem; } .cf-divider-v{ display:none; } }
+    .cf-fee-block { border:1px solid var(--cf-border); border-radius:12px; overflow:hidden; margin-bottom:.75rem; }
+    .cf-fee-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem; padding:.75rem 1rem; background:var(--cf-surface); cursor:pointer; transition:background .15s; }
+    .cf-fee-header:hover { background:rgba(0,0,0,.02); }
+    [data-bs-theme="dark"] .cf-fee-header:hover { background:rgba(255,255,255,.03); }
+    .cf-fee-left { display:flex; align-items:center; gap:.75rem; }
+    .cf-fee-icon { width:34px; height:34px; border-radius:9px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:.9rem; }
+    .cf-fee-name { font-weight:700; font-size:.865rem; color:var(--cf-heading); }
+    .cf-fee-sub  { font-size:.73rem; color:var(--cf-muted); }
+    .cf-fee-right{ display:flex; align-items:center; gap:.6rem; flex-shrink:0; }
+    .cf-amount   { font-weight:700; font-size:.875rem; color:var(--cf-heading); }
+    .cf-payments { padding:.6rem 1rem; border-top:1px solid var(--cf-border); background:rgba(0,0,0,.01); }
+    [data-bs-theme="dark"] .cf-payments { background:rgba(255,255,255,.02); }
+    .cf-payment-row { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.5rem; padding:.5rem .25rem; border-bottom:1px solid var(--cf-border); font-size:.8rem; }
+    .cf-payment-row:last-child{ border-bottom:none; }
+    .cf-payment-meta{ color:var(--cf-muted); }
+    .cf-empty-ph { padding:1.5rem 1rem; text-align:center; color:var(--cf-muted); font-size:.8rem; }
 </style>
-{% endblock %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="bi bi-wallet2"></i> Fee Details: {{ student.user.get_full_name }}</h2>
-        <a href="{% url 'parents:my_children' %}" class="btn btn-secondary">
-            <i class="bi bi-arrow-left"></i> Back
-        </a>
-    </div>
 
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card bg-light">
-                <div class="card-body text-center">
-                    <h5 class="text-muted">Total Payable</h5>
-                    <h3>{{ total_payable }}</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card bg-light">
-                <div class="card-body text-center">
-                    <h5 class="text-muted">Total Paid</h5>
-                    <h3 class="text-success">{{ total_paid }}</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card bg-light">
-                <div class="card-body text-center">
-                    <h5 class="text-muted">Outstanding Balance</h5>
-                    <h3 class="{% if total_balance > 0 %}text-danger{% else %}text-success{% endif %}">
-                        {{ total_balance }}
-                    </h3>
-                </div>
-            </div>
-        </div>
+<!-- Header -->
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1.1rem;">
+    <div>
+        <h1 style="font-size:1.25rem;font-weight:800;color:var(--cf-heading);margin:0 0 .15rem;">Fee History</h1>
+        <p style="color:var(--cf-muted);font-size:.82rem;margin:0;">{{ student.user.get_full_name }} &bull; {{ student.current_class.name|default:"No Class" }}</p>
     </div>
+    <a href="{% url 'parents:my_children' %}" class="btn btn-outline-secondary btn-sm" style="border-radius:8px;font-size:.8rem;">
+        <i class="bi bi-arrow-left me-1"></i>Back
+    </a>
+</div>
 
-    <div class="card shadow-sm">
-        <div class="card-header bg-white">
-            <h5 class="mb-0">Fee Schedule</h5>
+<!-- Summary stats -->
+<div class="cf-card" style="margin-bottom:1.1rem;">
+    <div class="cf-stats-grid">
+        <div class="cf-stat">
+            <div class="cf-stat-val">GH&#8373;{{ total_payable|floatformat:2|intcomma }}</div>
+            <div class="cf-stat-label">Total Billed</div>
         </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Fee Type</th>
-                            <th>Term</th>
-                            <th>Due Date</th>
-                            <th>Amount</th>
-                            <th>Paid</th>
-                            <th>Balance</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% if fees %}
-                            {% for fee in fees %}
-                            <tr>
-                                <td>{{ fee.head }}</td>
-                                <td>{{ fee.term }}</td>
-                                <td>{{ fee.due_date|default:"-" }}</td>
-                                <td>{{ fee.amount }}</td>
-                                <td>{{ fee.paid }}</td>
-                                <td>
-                                    {% if fee.balance > 0 %}
-                                        <span class="text-danger fw-bold">{{ fee.balance }}</span>
-                                    {% else %}
-                                        <span class="text-success">0.00</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if fee.status == 'paid' %}
-                                        <span class="badge bg-success">Paid</span>
-                                    {% elif fee.status == 'partial' %}
-                                        <span class="badge bg-warning text-dark">Partial</span>
-                                    {% else %}
-                                        <span class="badge bg-danger">Unpaid</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        {% else %}
-                            <tr>
-                                <td colspan="7" class="text-center text-muted py-4">
-                                    No fee records found.
-                                </td>
-                            </tr>
-                        {% endif %}
-                    </tbody>
-                </table>
+        <div class="cf-divider-v"></div>
+        <div class="cf-stat">
+            <div class="cf-stat-val" style="color:#16a34a;">GH&#8373;{{ total_paid|floatformat:2|intcomma }}</div>
+            <div class="cf-stat-label">Total Paid</div>
+        </div>
+        <div class="cf-divider-v"></div>
+        <div class="cf-stat">
+            <div class="cf-stat-val" style="{% if total_balance > 0 %}color:#dc2626;{% else %}color:#16a34a;{% endif %}">
+                GH&#8373;{{ total_balance|floatformat:2|intcomma }}
             </div>
+            <div class="cf-stat-label">{% if total_balance > 0 %}Outstanding{% else %}Balance{% endif %}</div>
         </div>
     </div>
 </div>
+
+<!-- Fee blocks -->
+{% if fees %}
+  {% for fee in fees %}
+  <div class="cf-fee-block">
+    <!-- Fee header (clickable to expand payments) -->
+    <div class="cf-fee-header" onclick="togglePayments('fee-{{ fee.id }}', this)" role="button">
+        <div class="cf-fee-left">
+            <div class="cf-fee-icon" style="background:var(--cf-si-blue);color:var(--cf-blue);">
+                <i class="bi bi-receipt"></i>
+            </div>
+            <div>
+                <div class="cf-fee-name">{{ fee.fee_structure.head.name }}</div>
+                <div class="cf-fee-sub">
+                    {{ fee.fee_structure.get_term_display }} term
+                    {% if fee.fee_structure.due_date %}&bull; Due {{ fee.fee_structure.due_date|date:"M d, Y" }}{% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="cf-fee-right">
+            {% if fee.status == 'paid' %}
+            <span class="cf-pill pill-green"><i class="bi bi-check-circle-fill" style="font-size:.6rem;"></i> Paid</span>
+            {% elif fee.status == 'partial' %}
+            <span class="cf-pill pill-amber"><i class="bi bi-clock-fill" style="font-size:.6rem;"></i> Partial</span>
+            {% else %}
+            <span class="cf-pill pill-red"><i class="bi bi-x-circle-fill" style="font-size:.6rem;"></i> Unpaid</span>
+            {% endif %}
+            <div style="text-align:right;min-width:80px;">
+                <div class="cf-amount">GH&#8373;{{ fee.amount_payable|floatformat:2|intcomma }}</div>
+                {% if fee.balance > 0 %}
+                <div style="font-size:.7rem;color:#dc2626;">GH&#8373;{{ fee.balance|floatformat:2|intcomma }} due</div>
+                {% endif %}
+            </div>
+            <i class="bi bi-chevron-down" style="color:var(--cf-muted);font-size:.75rem;transition:transform .2s;" id="icon-fee-{{ fee.id }}"></i>
+        </div>
+    </div>
+
+    <!-- Payment history (collapsed by default) -->
+    <div id="fee-{{ fee.id }}" style="display:none;">
+        <div class="cf-payments">
+            {% with payments=fee.payments.all %}
+            {% if payments %}
+            <div style="font-size:.73rem;font-weight:700;color:var(--cf-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem;">Payment Transactions</div>
+            {% for payment in payments %}
+            <div class="cf-payment-row">
+                <div>
+                    <span style="font-weight:600;color:var(--cf-heading);">GH&#8373;{{ payment.amount|floatformat:2|intcomma }}</span>
+                    <span class="cf-payment-meta"> &bull; {{ payment.date|date:"M d, Y" }}</span>
+                    {% if payment.method %}
+                    <span class="cf-payment-meta"> &bull; {{ payment.get_method_display }}</span>
+                    {% endif %}
+                    {% if payment.reference %}
+                    <span class="cf-payment-meta"> &bull; Ref: {{ payment.reference }}</span>
+                    {% endif %}
+                </div>
+                <a href="{% url 'finance:print_receipt' payment.id %}"
+                   class="btn btn-sm btn-outline-secondary"
+                   style="font-size:.72rem;border-radius:7px;padding:.2rem .55rem;"
+                   target="_blank">
+                    <i class="bi bi-printer me-1"></i>Receipt
+                </a>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="cf-empty-ph">
+                <i class="bi bi-inbox me-1"></i>No payments recorded yet.
+            </div>
+            {% endif %}
+            {% endwith %}
+        </div>
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+<div class="cf-card">
+    <div style="padding:2.5rem 1rem;text-align:center;color:var(--cf-muted);">
+        <i class="bi bi-wallet2" style="font-size:2rem;opacity:.3;display:block;margin-bottom:.5rem;"></i>
+        <div style="font-size:.875rem;">No fee records found for this student.</div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+function togglePayments(id, headerEl) {
+    var panel = document.getElementById(id);
+    var icon  = document.getElementById('icon-' + id);
+    if (!panel) return;
+    var visible = panel.style.display !== 'none';
+    panel.style.display = visible ? 'none' : 'block';
+    if (icon) icon.style.transform = visible ? 'rotate(0deg)' : 'rotate(180deg)';
+}
+</script>
 {% endblock %}

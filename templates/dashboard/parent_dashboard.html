@@ -1,300 +1,229 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 {% load humanize %}
 {% load static %}
 
+{% block title %}Parent Dashboard - {{ school_name }}{% endblock %}
+
 {% block content %}
 <style>
-    .stat-card {
-        padding: 1.5rem;
-        border-radius: 12px;
-        border: 1px solid #e5e7eb;
-        background: #fff;
-        transition: all 0.2s;
+    :root {
+        --pd-surface: #ffffff;
+        --pd-border:  #e5e7eb;
+        --pd-heading: #0f172a;
+        --pd-body:    #374151;
+        --pd-muted:   #6b7280;
+        --pd-blue:    #3b82f6;
+        --pd-green:   #22c55e;
+        --pd-red:     #ef4444;
+        --pd-purple:  #8b5cf6;
+        --pd-si-blue:   #eff6ff;
+        --pd-si-green:  #f0fdf4;
+        --pd-si-amber:  #fef9c3;
+        --pd-si-purple: #f5f3ff;
     }
-    .stat-card:hover {
-        border-color: #d1d5db;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    [data-bs-theme="dark"] {
+        --pd-surface: var(--surface-card, #1e293b);
+        --pd-border:  rgba(255,255,255,0.08);
+        --pd-heading: #f1f5f9;
+        --pd-body:    #cbd5e1;
+        --pd-muted:   #64748b;
+        --pd-si-blue:   rgba(59,130,246,0.15);
+        --pd-si-green:  rgba(34,197,94,0.15);
+        --pd-si-amber:  rgba(245,158,11,0.15);
+        --pd-si-purple: rgba(139,92,246,0.15);
     }
-    .stat-label {
-        font-size: 0.75rem;
-        color: #6b7280;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 0.5rem;
-    }
-    .stat-value {
-        font-size: 2rem;
-        font-weight: 600;
-        color: #111827;
-    }
-    .welcome-banner {
-        padding: 1.5rem;
-        border-radius: 12px;
-        border: 1px solid #e5e7eb;
-        background: #fff;
-        margin-bottom: 1.5rem;
-    }
-    .child-card {
-        padding: 1rem;
-        border-radius: 12px;
-        border: 1px solid #e5e7eb;
-        background: #fff;
-        transition: all 0.2s;
-    }
-    .child-card:hover {
-        border-color: #d1d5db;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-    .child-avatar {
-        width: 60px;
-        height: 60px;
-        background-color: #f3f4f6;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-        color: #6b7280;
-        object-fit: cover;
-    }
-    .notice-card {
-        padding: 1rem;
-        border: 1px solid #e5e7eb;
-        border-radius: 10px;
-        background: #fff;
-        margin-bottom: 0.75rem;
-        transition: all 0.2s;
-    }
-    .notice-card:hover {
-        border-color: #3b82f6;
-        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08);
-    }
-    .btn-icon {
-        width: 32px;
-        height: 32px;
-        padding: 0;
-        border-radius: 6px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border: 1px solid #e5e7eb;
-        background: #fff;
-        color: #6b7280;
-        transition: all 0.15s;
-    }
-    .btn-icon:hover {
-        border-color: #3b82f6;
-        color: #3b82f6;
-        background: #eff6ff;
-    }
-    
-    [data-bs-theme="dark"] .stat-card,
-    [data-bs-theme="dark"] .welcome-banner,
-    [data-bs-theme="dark"] .child-card,
-    [data-bs-theme="dark"] .notice-card {
-        background: var(--surface-card);
-        border-color: rgba(255,255,255,0.08);
-    }
-    [data-bs-theme="dark"] .stat-value {
-        color: #f3f4f6;
-    }
-    [data-bs-theme="dark"] .stat-label {
-        color: #9ca3af;
-    }
-    [data-bs-theme="dark"] .child-avatar {
-        background: rgba(255,255,255,0.05);
-        color: #d1d5db;
-    }
-    [data-bs-theme="dark"] .btn-icon {
-        background: rgba(255,255,255,0.05);
-        border-color: rgba(255,255,255,0.08);
-        color: #9ca3af;
-    }
+    .pd-card { background:var(--pd-surface); border:1px solid var(--pd-border); border-radius:14px; overflow:hidden; }
+    .pd-card-pad { padding:1.1rem; }
+    .pd-card-header { padding:.75rem 1.1rem; border-bottom:1px solid var(--pd-border); display:flex; align-items:center; justify-content:space-between; }
+    .pd-card-title { font-weight:700; font-size:.9rem; color:var(--pd-heading); }
+    .pd-pill { display:inline-flex; align-items:center; gap:.2rem; padding:.18rem .5rem; border-radius:6px; font-size:.7rem; font-weight:600; line-height:1.4; }
+    .pill-blue   { background:var(--pd-si-blue);  color:var(--pd-blue); }
+    .pill-green  { background:var(--pd-si-green); color:#16a34a; }
+    .pill-red    { background:#fee2e2; color:#dc2626; }
+    .pill-amber  { background:var(--pd-si-amber); color:#92400e; }
+    .pill-purple { background:var(--pd-si-purple);color:var(--pd-purple); }
+    [data-bs-theme="dark"] .pill-red   { background:rgba(239,68,68,.15);  color:#fca5a5; }
+    [data-bs-theme="dark"] .pill-amber { background:rgba(245,158,11,.15); color:#fcd34d; }
+    [data-bs-theme="dark"] .pill-green { background:rgba(34,197,94,.15);  color:#86efac; }
+    .pd-item { display:flex; align-items:flex-start; gap:.75rem; padding:.75rem 1rem; border-bottom:1px solid var(--pd-border); }
+    .pd-item:last-child { border-bottom:none; }
+    .pd-item-icon { width:36px; height:36px; border-radius:9px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:.95rem; }
+    .pd-item-label { font-weight:600; font-size:.82rem; color:var(--pd-heading); margin-bottom:.1rem; }
+    .pd-item-sub   { font-size:.74rem; color:var(--pd-muted); }
+    .pd-empty { padding:2rem 1rem; text-align:center; color:var(--pd-muted); }
+    .pd-empty i { font-size:1.8rem; opacity:.35; display:block; margin-bottom:.4rem; }
+    .pd-action { display:flex; align-items:center; gap:.8rem; padding:.85rem 1rem; border-radius:12px; border:1px solid var(--pd-border); background:var(--pd-surface); text-decoration:none; color:inherit; transition:all .18s; }
+    .pd-action:hover { border-color:rgba(0,0,0,.12); box-shadow:0 3px 10px rgba(0,0,0,.07); color:inherit; transform:translateY(-1px); }
+    [data-bs-theme="dark"] .pd-action:hover { border-color:rgba(255,255,255,.16); box-shadow:0 3px 10px rgba(0,0,0,.3); }
+    .pd-action-icon { width:40px; height:40px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:1.05rem; }
+    .pd-child { background:var(--pd-surface); border:1px solid var(--pd-border); border-radius:12px; padding:1rem; transition:all .18s; }
+    .pd-child:hover { box-shadow:0 3px 10px rgba(0,0,0,.07); }
+    [data-bs-theme="dark"] .pd-child:hover { box-shadow:0 3px 10px rgba(0,0,0,.3); border-color:rgba(255,255,255,.14); }
+    .pd-child-avatar { width:52px; height:52px; border-radius:50%; flex-shrink:0; object-fit:cover; border:2px solid var(--pd-border); }
+    .pd-child-initials { width:52px; height:52px; border-radius:50%; flex-shrink:0; background:var(--pd-si-blue); color:var(--pd-blue); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:1.1rem; border:2px solid var(--pd-border); }
+    .pd-section-h { font-size:.875rem; font-weight:700; color:var(--pd-heading); margin-bottom:.75rem; display:flex; align-items:center; justify-content:space-between; }
+    .pd-section-h a { font-size:.78rem; font-weight:500; color:var(--pd-blue); text-decoration:none; }
+    .pd-fin-row { display:flex; justify-content:space-between; align-items:center; padding:.5rem 0; border-bottom:1px solid var(--pd-border); font-size:.85rem; }
+    .pd-fin-row:last-child { border-bottom:none; padding-bottom:0; }
+    .pd-fin-label { color:var(--pd-muted); }
+    .pd-fin-val   { font-weight:700; color:var(--pd-heading); }
+    .pd-top-grid { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; }
+    @media(max-width:560px){ .pd-top-grid{ grid-template-columns:1fr; } }
+    .pd-main-grid { display:grid; grid-template-columns:1fr 300px; gap:1.1rem; }
+    @media(max-width:900px){ .pd-main-grid{ grid-template-columns:1fr; } }
+    .pd-children-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:.7rem; }
 </style>
 
-<div class="container-fluid">
-    <!-- Welcome Header -->
-    <div class="welcome-banner">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h2 class="fw-bold mb-1">Welcome, {{ user.get_full_name }}! 👋</h2>
-                <p class="mb-0 text-muted">Here is today's overview for your wards.</p>
+<!-- Header -->
+<div style="background:var(--pd-surface);border:1px solid var(--pd-border);border-radius:14px;padding:1.1rem 1.25rem;margin-bottom:1.1rem;">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h1 style="font-size:1.4rem;font-weight:700;color:var(--pd-heading);margin:0 0 .1rem;">Parent Portal</h1>
+            <p style="color:var(--pd-muted);font-size:.875rem;margin:0;">Welcome back, {{ user.first_name }}! Here is your family overview.</p>
+        </div>
+        <span style="font-size:.8rem;color:var(--pd-muted);">{% now "l, F j, Y" %}</span>
+    </div>
+</div>
+
+<!-- Fee alert banner -->
+{% if finance_stats.outstanding > 0 %}
+<div style="background:linear-gradient(135deg,rgba(239,68,68,.07),rgba(220,38,38,.1));border:1px solid rgba(239,68,68,.25);border-radius:12px;padding:.85rem 1.1rem;margin-bottom:1.1rem;display:flex;align-items:center;gap:.9rem;">
+    <div style="width:40px;height:40px;border-radius:10px;background:rgba(239,68,68,.15);color:#dc2626;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;">
+        <i class="bi bi-exclamation-circle-fill"></i>
+    </div>
+    <div class="flex-grow-1">
+        <div style="font-weight:700;font-size:.875rem;color:var(--pd-heading);">Outstanding Fee Balance</div>
+        <div style="font-size:.8rem;color:var(--pd-muted);">GH{{ finance_stats.outstanding|floatformat:2|intcomma }} is due across your children's accounts</div>
+    </div>
+    {% if children %}
+    <a href="{% url 'parents:child_fees' children.0.id %}" class="btn btn-danger btn-sm">View Fees</a>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Quick actions -->
+<div class="pd-top-grid" style="margin-bottom:1.1rem;">
+    <a href="{% url 'parents:my_children' %}" class="pd-action">
+        <div class="pd-action-icon" style="background:var(--pd-si-blue);color:var(--pd-blue);"><i class="bi bi-people-fill"></i></div>
+        <div>
+            <div style="font-weight:700;font-size:.875rem;color:var(--pd-heading);">My Children</div>
+            <div style="font-size:.75rem;color:var(--pd-muted);">{{ children|length }} ward{{ children|length|pluralize }} linked</div>
+        </div>
+        <i class="bi bi-chevron-right ms-auto" style="color:var(--pd-muted);font-size:.75rem;"></i>
+    </a>
+    <a href="#notices" class="pd-action">
+        <div class="pd-action-icon" style="background:var(--pd-si-amber);color:#ca8a04;"><i class="bi bi-bell-fill"></i></div>
+        <div>
+            <div style="font-weight:700;font-size:.875rem;color:var(--pd-heading);">Announcements</div>
+            <div style="font-size:.75rem;color:var(--pd-muted);">{{ notices|length }} notice{{ notices|length|pluralize }}</div>
+        </div>
+        <i class="bi bi-chevron-right ms-auto" style="color:var(--pd-muted);font-size:.75rem;"></i>
+    </a>
+</div>
+
+<!-- Main grid -->
+<div class="pd-main-grid">
+    <div>
+        <!-- Children -->
+        <div class="pd-section-h">My Wards <a href="{% url 'parents:my_children' %}">All children</a></div>
+        <div class="pd-children-grid mb-4">
+            {% for child in children %}
+            <div class="pd-child">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    {% if child.passport_photo %}
+                    <img src="{{ child.passport_photo.url }}" alt="{{ child.get_full_name }}" class="pd-child-avatar">
+                    {% else %}
+                    <div class="pd-child-initials">{{ child.first_name|first }}{{ child.last_name|first }}</div>
+                    {% endif %}
+                    <div style="min-width:0;">
+                        <div style="font-weight:700;font-size:.875rem;color:var(--pd-heading);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ child.get_full_name }}</div>
+                        <span class="pd-pill pill-blue">{{ child.current_class.name|default:"No Class" }}</span>
+                    </div>
+                </div>
+                <div class="d-grid gap-1">
+                    <a href="{% url 'parents:child_details' child.id %}" class="btn btn-sm btn-outline-secondary text-start" style="font-size:.78rem;">
+                        <i class="bi bi-person me-1"></i> Profile &amp; Grades
+                    </a>
+                    <a href="{% url 'parents:child_fees' child.id %}" class="btn btn-sm btn-outline-secondary text-start" style="font-size:.78rem;">
+                        <i class="bi bi-wallet2 me-1"></i> Fee History
+                    </a>
+                </div>
             </div>
-            <div class="d-none d-md-block text-end">
-                <div class="h5 mb-0 text-muted">{% now "l, F j, Y" %}</div>
+            {% empty %}
+            <div style="grid-column:1/-1;">
+                <div style="background:var(--pd-si-blue);border:1px solid #bfdbfe;border-radius:10px;padding:1rem;color:var(--pd-blue);font-size:.855rem;">
+                    <i class="bi bi-info-circle me-2"></i>No children linked yet. Contact the school administrator.
+                </div>
             </div>
+            {% endfor %}
+        </div>
+
+        <!-- Announcements -->
+        <div class="pd-section-h" id="notices">School Announcements</div>
+        <div class="pd-card">
+            {% for notice in notices %}
+            <div class="pd-item">
+                <div class="pd-item-icon" style="background:var(--pd-si-amber);color:#ca8a04;"><i class="bi bi-bell-fill"></i></div>
+                <div class="flex-grow-1" style="min-width:0;">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div class="pd-item-label">{{ notice.title }}</div>
+                        <span class="pd-pill pill-blue" style="white-space:nowrap;font-size:.65rem;">{{ notice.created_at|date:"M d" }}</span>
+                    </div>
+                    <div class="pd-item-sub">{{ notice.content|truncatechars:180 }}</div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="pd-empty"><i class="bi bi-inbox"></i>No announcements right now</div>
+            {% endfor %}
         </div>
     </div>
 
-    <!-- Quick Actions - Contextual based on parent state -->
-    <div class="row g-3 mb-4">
-        {% if finance_stats.outstanding > 0 %}
-        <div class="col-md-4">
-            <div class="stat-card h-100 border-danger border-opacity-50" style="background: linear-gradient(135deg, rgba(239,68,68,0.05), rgba(220,38,38,0.08));">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="p-3 rounded-circle" style="background: rgba(239,68,68,0.15);">
-                        <i class="bi bi-exclamation-circle-fill text-danger fs-4"></i>
-                    </div>
-                    <div>
-                        <div class="stat-label">Fee Alert</div>
-                        <div class="fw-bold text-danger">₵{{ finance_stats.outstanding|floatformat:2|intcomma }}</div>
-                        <small class="text-muted">Outstanding balance</small>
-                    </div>
+    <!-- Sidebar -->
+    <div>
+        <!-- Finance summary -->
+        <div class="pd-card mb-3">
+            <div class="pd-card-header">
+                <span class="pd-card-title"><i class="bi bi-wallet2 me-2" style="color:var(--pd-green);"></i>Financial Overview</span>
+            </div>
+            <div class="pd-card-pad">
+                <div style="text-align:center;margin-bottom:.9rem;">
+                    {% if finance_stats.outstanding > 0 %}
+                    <div style="font-size:1.5rem;font-weight:800;color:#dc2626;">GH{{ finance_stats.outstanding|floatformat:2|intcomma }}</div>
+                    <span class="pd-pill pill-red">Outstanding balance</span>
+                    {% else %}
+                    <div style="font-size:1.4rem;font-weight:800;color:#16a34a;">All Cleared</div>
+                    <span class="pd-pill pill-green"><i class="bi bi-check-circle-fill" style="font-size:.6rem;"></i> Up to date</span>
+                    {% endif %}
+                </div>
+                <div class="pd-fin-row">
+                    <span class="pd-fin-label">Total paid (YTD)</span>
+                    <span class="pd-fin-val">GH{{ finance_stats.paid|floatformat:2|intcomma }}</span>
+                </div>
+                <div class="pd-fin-row">
+                    <span class="pd-fin-label">Outstanding</span>
+                    <span class="pd-fin-val {% if finance_stats.outstanding > 0 %}text-danger{% endif %}">GH{{ finance_stats.outstanding|floatformat:2|intcomma }}</span>
                 </div>
                 {% if children %}
-                <a href="{% url 'parents:child_fees' children.0.id %}" class="btn btn-danger btn-sm w-100 mt-3">View & Pay Fees</a>
+                <a href="{% url 'parents:child_fees' children.0.id %}" class="btn btn-outline-primary btn-sm w-100 mt-3" style="font-size:.8rem;">
+                    <i class="bi bi-receipt me-1"></i>View Payment History
+                </a>
                 {% endif %}
             </div>
         </div>
-        {% endif %}
-        
-        {% for child in children|slice:":2" %}
-        <div class="col-md-4">
-            <div class="stat-card h-100">
-                <div class="d-flex align-items-center gap-3 mb-3">
-                    {% if child.passport_photo %}
-                        <img src="{{ child.passport_photo.url }}" alt="{{ child.first_name }}" class="rounded-circle border" style="width: 48px; height: 48px; object-fit: cover;">
-                    {% else %}
-                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background: #eff6ff; color: #3b82f6;">
-                            {{ child.first_name|first }}{{ child.last_name|first }}
-                        </div>
-                    {% endif %}
-                    <div>
-                        <div class="fw-bold">{{ child.first_name }}</div>
-                        <small class="text-muted">{{ child.current_class.name|default:"No Class" }}</small>
-                    </div>
-                </div>
-                <div class="d-flex gap-2">
-                    <a href="{% url 'parents:child_details' child.id %}" class="btn btn-outline-primary btn-sm flex-grow-1">
-                        <i class="bi bi-eye me-1"></i> View
-                    </a>
-                    <a href="{% url 'parents:child_fees' child.id %}" class="btn btn-outline-secondary btn-sm flex-grow-1">
-                        <i class="bi bi-wallet2 me-1"></i> Fees
-                    </a>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-        
-        <!-- Homework Quick View -->
-        <div class="col-md-4">
-            <a href="{% url 'homework:homework_list' %}" class="stat-card h-100 text-decoration-none d-block" style="background: linear-gradient(135deg, rgba(99,102,241,0.05), rgba(139,92,246,0.08));">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="p-3 rounded-circle" style="background: rgba(99,102,241,0.15);">
-                        <i class="bi bi-journal-text text-primary fs-4"></i>
-                    </div>
-                    <div>
-                        <div class="stat-label">Homework</div>
-                        <div class="fw-bold">View Assignments</div>
-                        <small class="text-muted">Check due dates & tasks</small>
-                    </div>
-                    <i class="bi bi-arrow-right ms-auto text-muted"></i>
-                </div>
-            </a>
-        </div>
-    </div>
 
-    <div class="row g-4 mb-4">
-        <!-- Finance Status -->
-        <div class="col-md-5">
-            <div class="stat-card h-100">
-                <div class="mb-3">
-                    <h5 class="fw-bold mb-0"><i class="bi bi-wallet2 me-2" style="color: #22c55e;"></i>Financial Status</h5>
-                </div>
-                <div class="d-flex flex-column gap-3">
-                    <div class="p-3 rounded-3 {% if finance_stats.outstanding > 0 %}bg-danger bg-opacity-10 border border-danger border-opacity-25{% else %}bg-success bg-opacity-10 border border-success border-opacity-25{% endif %}">
-                        <div class="stat-label">Total Outstanding</div>
-                        {% if finance_stats.outstanding > 0 %}
-                            <div class="stat-value text-danger">₵ {{ finance_stats.outstanding|floatformat:2|intcomma }}</div>
-                            <small class="text-danger">Action required</small>
-                        {% else %}
-                            <div class="stat-value text-success">Cleared</div>
-                            <small class="text-success"><i class="bi bi-check-circle-fill"></i> You are up to date!</small>
-                        {% endif %}
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center px-1">
-                        <span class="text-muted">Total Paid (YTD)</span>
-                        <span class="fw-bold">₵ {{ finance_stats.paid|floatformat:2|intcomma }}</span>
-                    </div>
-                    {% if children %}
-                    <a href="{% url 'parents:child_fees' children.0.id %}" class="btn btn-outline-primary w-100 mt-2">View Payment History</a>
-                    {% endif %}
-                </div>
+        <!-- Help card -->
+        <div class="pd-card">
+            <div class="pd-card-header">
+                <span class="pd-card-title"><i class="bi bi-info-circle me-2" style="color:var(--pd-blue);"></i>Need Help?</span>
             </div>
-        </div>
-
-        <!-- My Children -->
-        <div class="col-md-7">
-            <h5 class="fw-bold mb-3" style="color: #6b7280;">My Wards</h5>
-            <div class="row g-3">
-                {% for child in children %}
-                <div class="col-sm-6">
-                    <div class="child-card h-100">
-                        <div class="d-flex align-items-center gap-3 mb-3">
-                            {% if child.passport_photo %}
-                                <img src="{{ child.passport_photo.url }}" alt="{{ child.get_full_name }}" class="child-avatar border">
-                            {% else %}
-                                <div class="child-avatar">
-                                    {{ child.first_name|first }}{{ child.last_name|first }}
-                                </div>
-                            {% endif %}
-                            <div>
-                                <h6 class="fw-bold mb-0 text-truncate" style="max-width: 150px;">{{ child.get_full_name }}</h6>
-                                <span class="badge" style="background: #eff6ff; color: #3b82f6; padding: 0.25rem 0.625rem; font-size: 0.75rem; font-weight: 500; border-radius: 6px;">{{ child.current_class.name|default:"No Class" }}</span>
-                            </div>
-                        </div>
-                        <div class="d-grid gap-2">
-                            <a href="{% url 'parents:child_details' child.id %}" class="btn btn-sm btn-outline-secondary text-start">
-                                <i class="bi bi-person me-2"></i> Profile & Grades
-                            </a>
-                            <!-- Since there is no dedicated attendance detail view, we link back to the profile which should contain attendance summary -->
-                            <a href="{% url 'parents:child_details' child.id %}" class="btn btn-sm btn-outline-secondary text-start">
-                                <i class="bi bi-calendar-check me-2"></i> Attendance
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                {% empty %}
-                <div class="col-12">
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle me-2"></i> No children linked to your account yet. Please contact administration.
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-
-    <!-- School Notices -->
-    <div class="row g-4">
-        <div class="col-12">
-            <h5 class="fw-bold mb-3" style="color: #6b7280;">Announcements & Notices</h5>
-            <div class="stat-card">
-                <div class="p-0">
-                    {% for notice in notices %}
-                    <div class="notice-card">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; min-width: 48px; background: #eff6ff; color: #3b82f6; border-radius: 10px;">
-                                <i class="bi bi-bell-fill fs-5"></i>
-                            </div>
-                            <div class="flex-grow-1">
-                                <div class="d-flex justify-content-between align-items-start mb-1">
-                                    <h6 class="mb-0 fw-bold">{{ notice.title }}</h6>
-                                    <small class="text-muted px-2 py-1 rounded" style="background: #f3f4f6; font-size: 0.7rem;">{{ notice.created_at|timesince }} ago</small>
-                                </div>
-                                    <p class="mb-0 text-muted small" style="line-height: 1.5;">{{ notice.content|truncatechars:180 }}</p>
-                                </div>
-                            </div>
-                        </div>
-                        {% empty %}
-                        <div class="text-center py-5">
-                            <div class="text-muted mb-2"><i class="bi bi-inbox fs-1"></i></div>
-                            <p class="text-muted">No new announcements at this time.</p>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
+            <div class="pd-card-pad" style="font-size:.82rem;color:var(--pd-muted);line-height:1.6;">
+                <p style="margin:0 0 .6rem;">Contact the school office for:</p>
+                <ul style="padding-left:1.1rem;margin:0;color:var(--pd-body);">
+                    <li>Fee payment receipts</li>
+                    <li>Linking a child account</li>
+                    <li>Attendance disputes</li>
+                    <li>Grade queries</li>
+                </ul>
             </div>
         </div>
     </div>

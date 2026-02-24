@@ -1133,3 +1133,20 @@ def database_backups(request):
     }
     
     return render(request, 'tenants/database_backups.html', context)
+
+
+def application_status(request):
+    """Public page for applicants to check their school application approval status."""
+    schema = request.GET.get('school', '').strip().lower()
+    school = None
+    error = None
+    if schema:
+        school = School.objects.filter(schema_name=schema).first()
+        if not school:
+            error = "No application found for that school ID. Please double-check and try again."
+    return render(request, 'tenants/application_status.html', {
+        'school': school,
+        'queried': bool(schema),
+        'error': error,
+        'schema_query': schema,
+    })

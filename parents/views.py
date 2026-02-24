@@ -186,30 +186,20 @@ def child_fees(request, student_id):
         messages.error(request, 'Access denied')
         return redirect('parents:my_children')
         
-    fees = StudentFee.objects.filter(student=student).select_related('fee_structure', 'fee_structure__head').order_by('-created_at')
+    fees = (StudentFee.objects
+            .filter(student=student)
+            .select_related('fee_structure', 'fee_structure__head')
+            .prefetch_related('payments__recorded_by')
+            .order_by('-fee_structure__due_date', '-created_at'))
     
     # Calculate totals
     total_payable = sum(fee.amount_payable for fee in fees)
     total_paid = sum(fee.total_paid for fee in fees)
     total_balance = total_payable - total_paid
-    
-    fee_data = []
-    for fee in fees:
-        fee_data.append({
-            'head': fee.fee_structure.head.name,
-            'term': fee.fee_structure.get_term_display(),
-            'amount': fee.amount_payable,
-            'paid': fee.total_paid,
-            'balance': fee.balance,
-            'status': fee.get_status_display(),
-            'due_date': fee.fee_structure.due_date
-        })
         
     return render(request, 'parents/child_fees.html', {
         'student': student,
-        'fees': fee_data,
+        'fees': fees,
         'total_payable': total_payable,
         'total_paid': total_paid,
-        'total_balance': total_balance
-    })
-
+        'total_balance': total_balance,

@@ -21,4 +21,7 @@ urlpatterns = [
     path('support/<int:ticket_id>/', views.support_ticket_detail, name='support_ticket_detail'),
     path('support/create/', views.create_support_ticket, name='create_support_ticket'),
     path('backups/', views.database_backups, name='database_backups'),
+
+    # Public application status check
+    path('status/', views.application_status, name='application_status'),
 ]
