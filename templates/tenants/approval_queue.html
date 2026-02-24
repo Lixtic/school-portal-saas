@@ -1,174 +1,266 @@
-{% extends 'admin/admin_base.html' %}
+﻿{% extends "admin/admin_base.html" %}
 {% load static %}
 
-{% block title %}School Approval Queue{% endblock %}
+{% block title %}Approval Queue{% endblock %}
 
 {% block admin_content %}
+<link rel="stylesheet" href="{% static "css/admin-landlord-dashboard.css" %}">
 <style>
-    /* Dark mode fix for nav-pills active badge contrast */
-    [data-bs-theme="dark"] .nav-pills .nav-link.active .badge.bg-light {
-        background-color: rgba(255, 255, 255, 0.2) !important;
-        color: #fff !important;
+    /* ===== Queue-specific tokens ===== */
+    :root {
+        --q-surface: #ffffff;
+        --q-border:  rgba(139,92,246,0.12);
+        --q-heading: #0f172a;
+        --q-muted:   #6b7280;
+        --q-blue:    #3b82f6;
+        --q-purple:  #8b5cf6;
+        --q-green:   #22c55e;
+        --q-amber:   #f59e0b;
+        --q-red:     #ef4444;
+    }
+    [data-bs-theme="dark"] {
+        --q-surface: var(--surface-card, #1e293b);
+        --q-border:  rgba(139,92,246,0.18);
+        --q-heading: #f1f5f9;
+        --q-muted:   #64748b;
     }
 
-    [data-bs-theme="dark"] .nav-pills .nav-link:not(.active) .badge.bg-secondary {
-        background-color: rgba(148, 163, 184, 0.2) !important;
-        color: #94a3b8 !important;
+    /* ===== Status tabs ===== */
+    .q-tabs { display:flex; gap:.35rem; flex-wrap:wrap; margin-bottom:1.25rem; }
+    .q-tab {
+        display:inline-flex; align-items:center; gap:.4rem;
+        padding:.38rem .85rem; border-radius:8px; font-size:.8rem; font-weight:600;
+        text-decoration:none; color:var(--q-muted);
+        border:1px solid transparent; background:transparent; transition:all .15s;
     }
+    .q-tab:hover { background:rgba(139,92,246,.07); color:var(--q-purple); }
+    .q-tab.active { background:rgba(139,92,246,.12); color:var(--q-purple); border-color:rgba(139,92,246,.25); }
+    .q-tab-count {
+        display:inline-flex; align-items:center; justify-content:center;
+        min-width:18px; height:18px; padding:0 5px;
+        border-radius:99px; font-size:.68rem; font-weight:700;
+        background:rgba(139,92,246,.15); color:var(--q-purple);
+    }
+    .q-tab.active .q-tab-count { background:var(--q-purple); color:#fff; }
+
+    /* ===== Search bar ===== */
+    .q-search {
+        position:relative; margin-bottom:1rem;
+    }
+    .q-search input {
+        width:100%; padding:.5rem .85rem .5rem 2.2rem;
+        border:1px solid var(--q-border); border-radius:10px;
+        background:var(--q-surface); color:var(--q-heading); font-size:.85rem;
+        outline:none; transition:border-color .15s;
+    }
+    .q-search input:focus { border-color:var(--q-purple); }
+    .q-search i { position:absolute; left:.7rem; top:50%; transform:translateY(-50%); color:var(--q-muted); font-size:.85rem; pointer-events:none; }
+
+    /* ===== School card ===== */
+    .q-card {
+        background:var(--q-surface); border:1px solid var(--q-border);
+        border-radius:14px; overflow:hidden; margin-bottom:.7rem;
+        transition:border-color .15s, box-shadow .15s;
+    }
+    .q-card:hover { border-color:rgba(139,92,246,.3); box-shadow:0 3px 12px rgba(139,92,246,.07); }
+    .q-card-body { padding:.9rem 1.1rem; display:flex; align-items:center; gap:1rem; flex-wrap:wrap; }
+    .q-avatar {
+        width:44px; height:44px; border-radius:11px; background:rgba(139,92,246,.12);
+        color:var(--q-purple); display:flex; align-items:center; justify-content:center;
+        font-size:1.1rem; flex-shrink:0;
+    }
+    .q-school-name { font-weight:700; font-size:.9rem; color:var(--q-heading); }
+    .q-school-meta { font-size:.74rem; color:var(--q-muted); display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.15rem; }
+    .q-meta-chip { display:inline-flex; align-items:center; gap:.2rem; }
+
+    /* ===== Status badge ===== */
+    .q-badge {
+        display:inline-flex; align-items:center; gap:.3rem;
+        padding:.2rem .6rem; border-radius:6px; font-size:.7rem; font-weight:700;
+    }
+    .qb-pending  { background:#fef9c3; color:#92400e; }
+    .qb-review   { background:#eff6ff; color:#1d4ed8; }
+    .qb-approved { background:#dcfce7; color:#15803d; }
+    .qb-rejected { background:#fee2e2; color:#dc2626; }
+    .qb-info     { background:#f3f4f6; color:#374151; }
+    [data-bs-theme="dark"] .qb-pending  { background:rgba(245,158,11,.15);  color:#fcd34d; }
+    [data-bs-theme="dark"] .qb-review   { background:rgba(59,130,246,.15);  color:#93c5fd; }
+    [data-bs-theme="dark"] .qb-approved { background:rgba(34,197,94,.15);   color:#86efac; }
+    [data-bs-theme="dark"] .qb-rejected { background:rgba(239,68,68,.15);   color:#fca5a5; }
+    [data-bs-theme="dark"] .qb-info     { background:rgba(255,255,255,.07); color:#cbd5e1; }
+
+    /* ===== Doc presence dots ===== */
+    .q-doc-dot {
+        width:7px; height:7px; border-radius:50%; display:inline-block;
+    }
+    .q-doc-dot.yes { background:var(--q-green); }
+    .q-doc-dot.no  { background:rgba(0,0,0,.12); }
+    [data-bs-theme="dark"] .q-doc-dot.no { background:rgba(255,255,255,.15); }
+
+    /* ===== Action area ===== */
+    .q-actions { display:flex; gap:.4rem; align-items:center; margin-left:auto; flex-shrink:0; }
+
+    /* ===== Empty state ===== */
+    .q-empty { padding:3rem 1rem; text-align:center; color:var(--q-muted); }
+    .q-empty i { font-size:2.5rem; opacity:.25; display:block; margin-bottom:.6rem; }
+
+    /* ===== Header ===== */
+    .q-header { margin-bottom:1.25rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.75rem; }
+    .q-title { font-size:1.25rem; font-weight:800; color:var(--q-heading); }
+
+    /* ===== Submitted timing color ===== */
+    .q-age-urgent { color:var(--q-red); font-weight:700; }
+    .q-age-warn   { color:#ca8a04; font-weight:600; }
 </style>
-<div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold">
-            <i class="bi bi-clipboard-check me-2"></i>School Approval Queue
-        </h2>
-        <a href="{% url 'tenants:landlord_dashboard' %}" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+
+<div class="landlord-dashboard">
+    <div class="q-header">
+        <div>
+            <h1 class="q-title"><i class="bi bi-clipboard-check me-2" style="color:var(--q-purple);"></i>Approval Queue</h1>
+            <p style="color:var(--q-muted);font-size:.82rem;margin:0;">Review and act on school applications</p>
+        </div>
+        <a href="{% url "tenants:landlord_dashboard" %}" class="glass-btn">
+            <i class="bi bi-arrow-left me-2"></i>Dashboard
         </a>
     </div>
 
-    {# Status Tabs #}
-    <ul class="nav nav-pills mb-4">
-        <li class="nav-item">
-            <a class="nav-link {% if current_status == 'pending' %}active{% endif %}" 
-               href="?status=pending">
-                Pending 
-                <span class="badge bg-{% if current_status == 'pending' %}light text-dark{% else %}secondary{% endif %} ms-1">
-                    {{ pending_count }}
-                </span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {% if current_status == 'under_review' %}active{% endif %}" 
-               href="?status=under_review">
-                Under Review 
-                <span class="badge bg-{% if current_status == 'under_review' %}light text-dark{% else %}secondary{% endif %} ms-1">
-                    {{ under_review_count }}
-                </span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {% if current_status == 'approved' %}active{% endif %}" 
-               href="?status=approved">
-                Approved 
-                <span class="badge bg-{% if current_status == 'approved' %}light text-dark{% else %}secondary{% endif %} ms-1">
-                    {{ approved_count }}
-                </span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {% if current_status == 'rejected' %}active{% endif %}" 
-               href="?status=rejected">
-                Rejected 
-                <span class="badge bg-{% if current_status == 'rejected' %}light text-dark{% else %}secondary{% endif %} ms-1">
-                    {{ rejected_count }}
-                </span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {% if current_status == 'requires_info' %}active{% endif %}" 
-               href="?status=requires_info">
-                Requires Info 
-                <span class="badge bg-{% if current_status == 'requires_info' %}light text-dark{% else %}secondary{% endif %} ms-1">
-                    {{ requires_info_count }}
-                </span>
-            </a>
-        </li>
-    </ul>
+    <!-- Status tabs -->
+    <div class="q-tabs">
+        <a href="?status=pending" class="q-tab {% if current_status == "pending" %}active{% endif %}">
+            <i class="bi bi-hourglass"></i> Pending
+            <span class="q-tab-count">{{ pending_count }}</span>
+        </a>
+        <a href="?status=under_review" class="q-tab {% if current_status == "under_review" %}active{% endif %}">
+            <i class="bi bi-eye"></i> Under Review
+            <span class="q-tab-count">{{ under_review_count }}</span>
+        </a>
+        <a href="?status=requires_info" class="q-tab {% if current_status == "requires_info" %}active{% endif %}">
+            <i class="bi bi-info-circle"></i> Needs Info
+            <span class="q-tab-count">{{ requires_info_count }}</span>
+        </a>
+        <a href="?status=approved" class="q-tab {% if current_status == "approved" %}active{% endif %}">
+            <i class="bi bi-check-circle"></i> Approved
+            <span class="q-tab-count">{{ approved_count }}</span>
+        </a>
+        <a href="?status=rejected" class="q-tab {% if current_status == "rejected" %}active{% endif %}">
+            <i class="bi bi-x-circle"></i> Rejected
+            <span class="q-tab-count">{{ rejected_count }}</span>
+        </a>
+    </div>
 
-    {# Schools Table #}
-    {% if schools %}
-    <div class="card border-0 shadow-sm">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead class="bg-light">
-                    <tr>
-                        <th>School Name</th>
-                        <th>Schema</th>
-                        <th>Type</th>
-                        <th>Contact Person</th>
-                        <th>Submitted</th>
-                        <th>Documents</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for school in schools %}
-                    <tr>
-                        <td>
-                            <strong>{{ school.name }}</strong><br>
-                            <small class="text-muted">{{ school.country }}</small>
-                        </td>
-                        <td><code>{{ school.schema_name }}</code></td>
-                        <td>
-                            <span class="badge bg-info">{{ school.get_school_type_display }}</span>
-                        </td>
-                        <td>
-                            {{ school.contact_person_name|default:"—" }}<br>
-                            <small class="text-muted">
-                                {{ school.contact_person_title|default:"" }}<br>
-                                {% if school.contact_person_email %}
-                                    <i class="bi bi-envelope me-1"></i>{{ school.contact_person_email }}<br>
-                                {% endif %}
-                                {% if school.contact_person_phone %}
-                                    <i class="bi bi-phone me-1"></i>{{ school.contact_person_phone }}
-                                {% endif %}
-                            </small>
-                        </td>
-                        <td>
-                            {{ school.submitted_for_review_at|date:"M d, Y" }}<br>
-                            <small class="text-muted">{{ school.submitted_for_review_at|timesince }} ago</small>
-                        </td>
-                        <td>
-                            {% if school.registration_certificate %}
-                                <i class="bi bi-file-earmark-check text-success" title="Registration Certificate"></i>
-                            {% endif %}
-                            {% if school.tax_id_document %}
-                                <i class="bi bi-file-earmark-text text-success" title="Tax ID"></i>
-                            {% endif %}
-                            {% if school.additional_documents %}
-                                <i class="bi bi-file-earmark-plus text-success" title="Additional Docs"></i>
-                            {% endif %}
-                            {% if not school.registration_certificate and not school.tax_id_document and not school.additional_documents %}
-                                <span class="text-muted">None</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if school.approval_status == 'pending' %}
-                                <span class="badge bg-warning">Pending</span>
-                            {% elif school.approval_status == 'under_review' %}
-                                <span class="badge bg-primary">Under Review</span>
-                            {% elif school.approval_status == 'approved' %}
-                                <span class="badge bg-success">Approved</span>
-                            {% elif school.approval_status == 'rejected' %}
-                                <span class="badge bg-danger">Rejected</span>
-                            {% elif school.approval_status == 'requires_info' %}
-                                <span class="badge bg-secondary">Requires Info</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <a href="{% url 'tenants:review_school' school.id %}" 
-                               class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-eye me-1"></i>Review
-                            </a>
-                            {% if school.approval_status == 'approved' and school.is_active %}
-                            <a href="{% url 'tenants:resend_credentials' school.id %}" 
-                               class="btn btn-sm btn-outline-info"
-                               title="Resend login credentials email">
-                                <i class="bi bi-arrow-repeat me-1"></i>Resend
-                            </a>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <!-- Search -->
+    <div class="q-search">
+        <i class="bi bi-search"></i>
+        <input type="text" id="qSearch" placeholder="Search by school name, schema, or contact">
+    </div>
+
+    <!-- Cards -->
+    <div id="qList">
+        {% for school in schools %}
+        {% with age_days=school.submitted_for_review_at|timesince %}
+        <div class="q-card" data-name="{{ school.name|lower }}" data-schema="{{ school.schema_name|lower }}" data-contact="{{ school.contact_person_name|lower }}">
+            <div class="q-card-body">
+                <!-- Avatar -->
+                <div class="q-avatar"><i class="bi bi-building"></i></div>
+
+                <!-- School info -->
+                <div class="flex-grow-1" style="min-width:0;">
+                    <div class="q-school-name">{{ school.name }}</div>
+                    <div class="q-school-meta">
+                        <span class="q-meta-chip"><i class="bi bi-terminal-fill" style="font-size:.65rem;"></i> {{ school.schema_name }}</span>
+                        <span class="q-meta-chip"><i class="bi bi-tag" style="font-size:.65rem;"></i> {{ school.get_school_type_display }}</span>
+                        <span class="q-meta-chip"><i class="bi bi-geo-alt" style="font-size:.65rem;"></i> {{ school.country }}</span>
+                        {% if school.contact_person_name %}
+                        <span class="q-meta-chip"><i class="bi bi-person" style="font-size:.65rem;"></i> {{ school.contact_person_name }}{% if school.contact_person_title %} &bull; {{ school.contact_person_title }}{% endif %}</span>
+                        {% endif %}
+                        {% if school.contact_person_email %}
+                        <span class="q-meta-chip"><i class="bi bi-envelope" style="font-size:.65rem;"></i> {{ school.contact_person_email }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Docs indicator -->
+                <div class="d-none d-md-flex flex-column align-items-center gap-1" style="flex-shrink:0;">
+                    <div style="font-size:.65rem;color:var(--q-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.1rem;">Docs</div>
+                    <div class="d-flex gap-1">
+                        <span class="q-doc-dot {% if school.registration_certificate %}yes{% else %}no{% endif %}" title="Registration Cert"></span>
+                        <span class="q-doc-dot {% if school.tax_id_document %}yes{% else %}no{% endif %}" title="Tax ID"></span>
+                        <span class="q-doc-dot {% if school.additional_documents %}yes{% else %}no{% endif %}" title="Other Docs"></span>
+                    </div>
+                </div>
+
+                <!-- Submitted timing -->
+                <div class="d-none d-lg-flex flex-column align-items-end" style="flex-shrink:0;min-width:80px;">
+                    <div style="font-size:.65rem;color:var(--q-muted);text-transform:uppercase;letter-spacing:.04em;">Submitted</div>
+                    {% if school.submitted_for_review_at %}
+                    <div style="font-size:.78rem;color:var(--q-heading);font-weight:600;">{{ school.submitted_for_review_at|date:"M d, Y" }}</div>
+                    <div style="font-size:.72rem;color:var(--q-muted);">{{ school.submitted_for_review_at|timesince }} ago</div>
+                    {% else %}
+                    <div style="font-size:.78rem;color:var(--q-muted);"></div>
+                    {% endif %}
+                </div>
+
+                <!-- Status badge -->
+                <div style="flex-shrink:0;">
+                    {% if school.approval_status == "pending" %}
+                    <span class="q-badge qb-pending"><i class="bi bi-hourglass" style="font-size:.6rem;"></i> Pending</span>
+                    {% elif school.approval_status == "under_review" %}
+                    <span class="q-badge qb-review"><i class="bi bi-eye" style="font-size:.6rem;"></i> Under Review</span>
+                    {% elif school.approval_status == "approved" %}
+                    <span class="q-badge qb-approved"><i class="bi bi-check-circle-fill" style="font-size:.6rem;"></i> Approved</span>
+                    {% elif school.approval_status == "rejected" %}
+                    <span class="q-badge qb-rejected"><i class="bi bi-x-circle-fill" style="font-size:.6rem;"></i> Rejected</span>
+                    {% else %}
+                    <span class="q-badge qb-info"><i class="bi bi-info-circle" style="font-size:.6rem;"></i> Needs Info</span>
+                    {% endif %}
+                </div>
+
+                <!-- Actions -->
+                <div class="q-actions">
+                    <a href="{% url "tenants:review_school" school.id %}" class="glass-btn glass-btn-primary" style="font-size:.8rem;padding:.3rem .8rem;">
+                        <i class="bi bi-pencil-square me-1"></i>Review
+                    </a>
+                    {% if school.approval_status == "approved" and school.is_active %}
+                    <a href="{% url "tenants:resend_credentials" school.id %}" class="glass-btn" style="font-size:.8rem;padding:.3rem .8rem;" title="Resend login credentials">
+                        <i class="bi bi-arrow-repeat me-1"></i><span class="d-none d-xl-inline">Resend</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
         </div>
+        {% endwith %}
+        {% empty %}
+        <div class="glass-card q-empty">
+            <i class="bi bi-inbox"></i>
+            No applications with status <strong>"{{ current_status|title }}"</strong> right now.
+        </div>
+        {% endfor %}
     </div>
-    {% else %}
-    <div class="alert alert-info">
-        <i class="bi bi-info-circle me-2"></i>No schools with status "{{ current_status }}" at this time.
+
+    <div id="qNoMatch" style="display:none;" class="glass-card q-empty">
+        <i class="bi bi-search"></i>
+        No results match your search.
     </div>
-    {% endif %}
 </div>
+
+<script>
+(function(){
+    var inp = document.getElementById("qSearch");
+    var cards = document.querySelectorAll("#qList .q-card");
+    var noMatch = document.getElementById("qNoMatch");
+    inp.addEventListener("input", function(){
+        var q = inp.value.trim().toLowerCase();
+        var any = false;
+        cards.forEach(function(c){
+            var hit = !q
+                || c.dataset.name.includes(q)
+                || c.dataset.schema.includes(q)
+                || c.dataset.contact.includes(q);
+            c.style.display = hit ? "" : "none";
+            if(hit) any = true;
+        });
+        noMatch.style.display = (!any && q) ? "" : "none";
+    });
+})();
+</script>
 {% endblock admin_content %}

@@ -1,283 +1,309 @@
-{% extends 'admin/admin_base.html' %}
+﻿{% extends "admin/admin_base.html" %}
 {% load static %}
 {% load crispy_forms_tags %}
 
 {% block title %}Review {{ school.name }}{% endblock %}
 
 {% block admin_content %}
+<link rel="stylesheet" href="{% static "css/admin-landlord-dashboard.css" %}">
 <style>
-    /* Dark Mode Support */
-    .card {
-        background: var(--surface-card);
-        border: 1px solid rgba(0,0,0,0.05);
+    :root {
+        --rs-surface: #ffffff;
+        --rs-border:  rgba(139,92,246,0.12);
+        --rs-heading: #0f172a;
+        --rs-muted:   #6b7280;
+        --rs-purple:  #8b5cf6;
+        --rs-green:   #22c55e;
+        --rs-amber:   #f59e0b;
+        --rs-red:     #ef4444;
     }
+    [data-bs-theme="dark"] {
+        --rs-surface: var(--surface-card, #1e293b);
+        --rs-border:  rgba(139,92,246,0.18);
+        --rs-heading: #f1f5f9;
+        --rs-muted:   #64748b;
+    }
+    .rs-card { background:var(--rs-surface); border:1px solid var(--rs-border); border-radius:14px; overflow:hidden; margin-bottom:1rem; }
+    .rs-card-header { padding:.75rem 1.1rem; border-bottom:1px solid var(--rs-border); display:flex; align-items:center; gap:.6rem; }
+    .rs-card-icon { width:30px; height:30px; border-radius:8px; background:rgba(139,92,246,.12); color:var(--rs-purple); display:flex; align-items:center; justify-content:center; font-size:.85rem; flex-shrink:0; }
+    .rs-card-title { font-weight:700; font-size:.875rem; color:var(--rs-heading); }
+    .rs-card-pad { padding:1rem 1.1rem; }
+    .rs-row { display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:.85rem; }
+    .rs-field { flex:1; min-width:130px; }
+    .rs-label { font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; color:var(--rs-muted); margin-bottom:.2rem; font-weight:600; }
+    .rs-value { font-size:.875rem; color:var(--rs-heading); font-weight:500; }
+    .rs-value a { color:var(--rs-purple); }
+    .rs-value code { background:rgba(139,92,246,.1); color:var(--rs-purple); padding:.1rem .35rem; border-radius:5px; font-size:.85em; }
+    .rs-divider { border:none; border-top:1px solid var(--rs-border); margin:.75rem 0; }
 
-    [data-bs-theme="dark"] .card {
-        border-color: rgba(255,255,255,0.05);
-    }
+    /* Current status badge */
+    .rs-status { display:inline-flex; align-items:center; gap:.3rem; padding:.22rem .65rem; border-radius:6px; font-size:.75rem; font-weight:700; }
+    .rs-status.pending  { background:#fef9c3; color:#92400e; }
+    .rs-status.under_review { background:#eff6ff; color:#1d4ed8; }
+    .rs-status.approved { background:#dcfce7; color:#15803d; }
+    .rs-status.rejected { background:#fee2e2; color:#dc2626; }
+    .rs-status.requires_info { background:#f3f4f6; color:#374151; }
+    [data-bs-theme="dark"] .rs-status.pending  { background:rgba(245,158,11,.15);  color:#fcd34d; }
+    [data-bs-theme="dark"] .rs-status.under_review { background:rgba(59,130,246,.15);  color:#93c5fd; }
+    [data-bs-theme="dark"] .rs-status.approved { background:rgba(34,197,94,.15);   color:#86efac; }
+    [data-bs-theme="dark"] .rs-status.rejected { background:rgba(239,68,68,.15);   color:#fca5a5; }
+    [data-bs-theme="dark"] .rs-status.requires_info { background:rgba(255,255,255,.07); color:#cbd5e1; }
 
-    .card-header {
-        background: var(--admin-primary) !important;
-        color: white !important;
-        border-bottom: 1px solid rgba(0,0,0,0.1);
+    /* Doc chip */
+    .rs-doc-chip {
+        display:inline-flex; align-items:center; gap:.35rem;
+        padding:.3rem .65rem; border-radius:8px; font-size:.78rem; font-weight:600;
+        text-decoration:none; transition:opacity .15s;
     }
+    .rs-doc-chip:hover { opacity:.85; }
+    .rs-doc-chip.has { background:rgba(34,197,94,.12); color:#15803d; }
+    .rs-doc-chip.missing { background:rgba(0,0,0,.04); color:var(--rs-muted); cursor:default; }
+    [data-bs-theme="dark"] .rs-doc-chip.has { background:rgba(34,197,94,.18); color:#86efac; }
+    [data-bs-theme="dark"] .rs-doc-chip.missing { background:rgba(255,255,255,.05); }
 
-    [data-bs-theme="dark"] .card-header {
-        border-bottom-color: rgba(255,255,255,0.05);
-    }
+    /* Decision action buttons */
+    .rs-decision-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:.5rem; margin-bottom:1rem; }
+    @media(max-width:500px){ .rs-decision-grid{ grid-template-columns:1fr; } }
 
-    .card-body {
-        color: var(--text-main);
+    .rs-action-btn {
+        display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.3rem;
+        padding:.85rem .5rem; border-radius:12px; border:2px solid transparent;
+        font-weight:700; font-size:.8rem; cursor:pointer; transition:all .15s;
+        background:transparent; text-align:center; line-height:1.3;
     }
+    .rs-action-btn i { font-size:1.2rem; }
+    .rs-action-btn:hover { transform:translateY(-1px); }
 
-    .card-body strong {
-        color: var(--text-main);
-        font-weight: 600;
-    }
+    .btn-approve { border-color:rgba(34,197,94,.4); color:#15803d; background:rgba(34,197,94,.07); }
+    .btn-approve:hover, .btn-approve.selected { background:rgba(34,197,94,.14); border-color:#22c55e; }
+    .btn-review  { border-color:rgba(59,130,246,.4); color:#1d4ed8; background:rgba(59,130,246,.07); }
+    .btn-review:hover, .btn-review.selected  { background:rgba(59,130,246,.14); border-color:#3b82f6; }
+    .btn-needinfo{ border-color:rgba(245,158,11,.4); color:#92400e; background:rgba(245,158,11,.07); }
+    .btn-needinfo:hover, .btn-needinfo.selected{ background:rgba(245,158,11,.14); border-color:#f59e0b; }
+    .btn-reject  { border-color:rgba(239,68,68,.35); color:#dc2626; background:rgba(239,68,68,.05); }
+    .btn-reject:hover, .btn-reject.selected  { background:rgba(239,68,68,.12); border-color:#ef4444; }
 
-    .text-muted {
-        color: var(--text-muted) !important;
-    }
+    [data-bs-theme="dark"] .btn-approve { color:#86efac; }
+    [data-bs-theme="dark"] .btn-review  { color:#93c5fd; }
+    [data-bs-theme="dark"] .btn-needinfo{ color:#fcd34d; }
+    [data-bs-theme="dark"] .btn-reject  { color:#fca5a5; }
 
-    .alert {
-        background: rgba(0,0,0,0.02);
-        border: 1px solid rgba(0,0,0,0.08);
-        color: var(--text-main);
+    /* Notes area */
+    .rs-textarea {
+        width:100%; border:1px solid var(--rs-border); border-radius:10px;
+        padding:.6rem .8rem; font-size:.82rem; background:var(--rs-surface);
+        color:var(--rs-heading); resize:vertical; min-height:76px; outline:none;
+        transition:border-color .15s;
     }
+    .rs-textarea:focus { border-color:var(--rs-purple); }
+    .rs-textarea-label { font-size:.75rem; font-weight:600; color:var(--rs-heading); margin-bottom:.3rem; display:block; }
 
-    [data-bs-theme="dark"] .alert {
-        background: rgba(255,255,255,0.02);
-        border-color: rgba(255,255,255,0.08);
-    }
+    /* Warn box */
+    .rs-warn { background:rgba(239,68,68,.07); border:1px solid rgba(239,68,68,.25); border-radius:10px; padding:.7rem .9rem; font-size:.8rem; color:#dc2626; margin-bottom:.75rem; display:none; }
+    [data-bs-theme="dark"] .rs-warn { color:#fca5a5; background:rgba(239,68,68,.12); }
 
-    .alert-info {
-        background: rgba(13, 202, 240, 0.1) !important;
-        border-color: rgba(13, 202, 240, 0.3) !important;
-        color: var(--text-main) !important;
-    }
+    /* Info note */
+    .rs-note { background:rgba(59,130,246,.06); border:1px solid rgba(59,130,246,.2); border-radius:10px; padding:.65rem .9rem; font-size:.78rem; color:#1d4ed8; }
+    [data-bs-theme="dark"] .rs-note { color:#93c5fd; background:rgba(59,130,246,.1); }
 
-    [data-bs-theme="dark"] .alert-info {
-        background: rgba(13, 202, 240, 0.08) !important;
-        border-color: rgba(13, 202, 240, 0.2) !important;
-    }
+    .rs-main-grid { display:grid; grid-template-columns:1fr 340px; gap:1.1rem; }
+    @media(max-width:900px){ .rs-main-grid{ grid-template-columns:1fr; } }
+    .rs-sticky { position:sticky; top:20px; }
 
-    .alert-danger {
-        background: rgba(220, 53, 69, 0.1) !important;
-        border-color: rgba(220, 53, 69, 0.3) !important;
-        color: var(--text-main) !important;
+    /* Portal link */
+    .rs-portal-link {
+        display:flex; align-items:center; gap:.5rem; padding:.5rem .8rem;
+        border-radius:9px; background:rgba(139,92,246,.07); border:1px solid rgba(139,92,246,.18);
+        font-size:.78rem; color:var(--rs-purple); text-decoration:none; font-weight:600;
+        transition:background .15s;
     }
-
-    [data-bs-theme="dark"] .alert-danger {
-        background: rgba(220, 53, 69, 0.08) !important;
-        border-color: rgba(220, 53, 69, 0.2) !important;
-    }
-
-    code {
-        background: rgba(0,0,0,0.05);
-        color: var(--text-main);
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-size: 0.9em;
-    }
-
-    [data-bs-theme="dark"] code {
-        background: rgba(255,255,255,0.08);
-        color: #4ec9f0;
-    }
-
-    .badge {
-        font-weight: 500;
-    }
-
-    .bg-info {
-        background: #17a2b8 !important;
-    }
-
-    hr {
-        border-color: rgba(0,0,0,0.08);
-    }
-
-    [data-bs-theme="dark"] hr {
-        border-color: rgba(255,255,255,0.08);
-    }
-
-    .sticky-top {
-        position: sticky;
-        top: 20px;
-        z-index: 100;
-    }
-
-    .btn-outline-secondary {
-        color: var(--text-main);
-        border-color: rgba(0,0,0,0.1);
-    }
-
-    .btn-outline-secondary:hover {
-        background: rgba(0,0,0,0.05);
-        border-color: rgba(0,0,0,0.15);
-    }
-
-    [data-bs-theme="dark"] .btn-outline-secondary {
-        color: var(--text-main);
-        border-color: rgba(255,255,255,0.1);
-    }
-
-    [data-bs-theme="dark"] .btn-outline-secondary:hover {
-        background: rgba(255,255,255,0.1);
-        border-color: rgba(255,255,255,0.2);
-    }
+    .rs-portal-link:hover { background:rgba(139,92,246,.13); color:var(--rs-purple); }
 </style>
 
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold">
-            <i class="bi bi-building me-2"></i>Review School Application
-        </h2>
-        <a href="{% url 'tenants:approval_queue' %}" class="btn btn-outline-secondary">
+<div class="landlord-dashboard">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1.25rem;">
+        <div>
+            <h1 style="font-size:1.25rem;font-weight:800;color:var(--rs-heading);margin:0 0 .1rem;">
+                <i class="bi bi-building me-2" style="color:var(--rs-purple);"></i>{{ school.name }}
+            </h1>
+            <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+                <code style="font-size:.78rem;background:rgba(139,92,246,.1);color:var(--rs-purple);padding:.1rem .35rem;border-radius:5px;">{{ school.schema_name }}</code>
+                <span class="rs-status {{ school.approval_status }}">
+                    {% if school.approval_status == "pending" %}<i class="bi bi-hourglass" style="font-size:.6rem;"></i> Pending
+                    {% elif school.approval_status == "under_review" %}<i class="bi bi-eye" style="font-size:.6rem;"></i> Under Review
+                    {% elif school.approval_status == "approved" %}<i class="bi bi-check-circle-fill" style="font-size:.6rem;"></i> Approved
+                    {% elif school.approval_status == "rejected" %}<i class="bi bi-x-circle-fill" style="font-size:.6rem;"></i> Rejected
+                    {% else %}<i class="bi bi-info-circle" style="font-size:.6rem;"></i> Needs Info
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+        <a href="{% url "tenants:approval_queue" %}" class="glass-btn">
             <i class="bi bi-arrow-left me-2"></i>Back to Queue
         </a>
     </div>
 
-    <div class="row">
-        {# School Information Panel #}
-        <div class="col-lg-7">
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>School Information</h5>
+    {% if messages %}
+    {% for message in messages %}
+    <div class="glass-card" style="padding:.75rem 1rem;margin-bottom:1rem;border-left:3px solid {% if message.tags == "error" %}#ef4444{% elif message.tags == "warning" %}#f59e0b{% else %}#22c55e{% endif %};">
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="rs-main-grid">
+        <!-- Left: School info -->
+        <div>
+            <!-- School details -->
+            <div class="rs-card">
+                <div class="rs-card-header">
+                    <div class="rs-card-icon"><i class="bi bi-info-circle"></i></div>
+                    <span class="rs-card-title">School Information</span>
                 </div>
-                <div class="card-body">
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <strong>School Name:</strong><br>
-                            {{ school.name }}
+                <div class="rs-card-pad">
+                    <div class="rs-row">
+                        <div class="rs-field">
+                            <div class="rs-label">School Name</div>
+                            <div class="rs-value">{{ school.name }}</div>
                         </div>
-                        <div class="col-md-6">
-                            <strong>Schema Name:</strong><br>
-                            <code>{{ school.schema_name }}</code>
-                        </div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <strong>School Type:</strong><br>
-                            <span class="badge bg-info">{{ school.get_school_type_display }}</span>
-                        </div>
-                        <div class="col-md-6">
-                            <strong>Country:</strong><br>
-                            {{ school.country }}
+                        <div class="rs-field">
+                            <div class="rs-label">Schema / ID</div>
+                            <div class="rs-value"><code>{{ school.schema_name }}</code></div>
                         </div>
                     </div>
-                    <div class="row mb-3">
-                        <div class="col-12">
-                            <strong>Address:</strong><br>
-                            {{ school.address|default:"Not provided" }}
+                    <div class="rs-row">
+                        <div class="rs-field">
+                            <div class="rs-label">Type</div>
+                            <div class="rs-value">{{ school.get_school_type_display }}</div>
+                        </div>
+                        <div class="rs-field">
+                            <div class="rs-label">Country</div>
+                            <div class="rs-value">{{ school.country }}</div>
                         </div>
                     </div>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <strong>Phone:</strong><br>
-                            {{ school.phone_number|default:"Not provided" }}
+                    <div class="rs-row">
+                        <div class="rs-field">
+                            <div class="rs-label">Address</div>
+                            <div class="rs-value">{{ school.address|default:"Not provided" }}</div>
                         </div>
-                        <div class="col-md-6">
-                            <strong>Submitted:</strong><br>
-                            {{ school.submitted_for_review_at|date:"M d, Y H:i" }}<br>
-                            <small class="text-muted">{{ school.submitted_for_review_at|timesince }} ago</small>
-                        </div>
-                    </div>
-                    <hr>
-                    <h6 class="fw-bold mb-3">Contact Person</h6>
-                    <div class="row mb-2">
-                        <div class="col-md-6">
-                            <strong>Name:</strong><br>
-                            {{ school.contact_person_name|default:"Not provided" }}
-                        </div>
-                        <div class="col-md-6">
-                            <strong>Title:</strong><br>
-                            {{ school.contact_person_title|default:"Not provided" }}
+                        <div class="rs-field">
+                            <div class="rs-label">Phone</div>
+                            <div class="rs-value">{{ school.phone_number|default:"" }}</div>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <strong>Email:</strong><br>
-                            {% if school.contact_person_email %}
+                    <div class="rs-row" style="margin-bottom:0;">
+                        <div class="rs-field">
+                            <div class="rs-label">Submitted</div>
+                            <div class="rs-value">{{ school.submitted_for_review_at|date:"M d, Y H:i"|default:"" }}</div>
+                        </div>
+                        <div class="rs-field">
+                            <div class="rs-label">Portal URL</div>
+                            <div class="rs-value">
+                                <a href="/{{ school.schema_name }}/login/" class="rs-portal-link" target="_blank">
+                                    <i class="bi bi-box-arrow-up-right"></i>/{{ school.schema_name }}/login/
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact person -->
+            <div class="rs-card">
+                <div class="rs-card-header">
+                    <div class="rs-card-icon"><i class="bi bi-person-badge"></i></div>
+                    <span class="rs-card-title">Contact Person</span>
+                </div>
+                <div class="rs-card-pad">
+                    <div class="rs-row">
+                        <div class="rs-field">
+                            <div class="rs-label">Name</div>
+                            <div class="rs-value">{{ school.contact_person_name|default:"" }}</div>
+                        </div>
+                        <div class="rs-field">
+                            <div class="rs-label">Title</div>
+                            <div class="rs-value">{{ school.contact_person_title|default:"" }}</div>
+                        </div>
+                    </div>
+                    <div class="rs-row" style="margin-bottom:0;">
+                        <div class="rs-field">
+                            <div class="rs-label">Email</div>
+                            <div class="rs-value">
+                                {% if school.contact_person_email %}
                                 <a href="mailto:{{ school.contact_person_email }}">{{ school.contact_person_email }}</a>
-                            {% else %}
-                                Not provided
-                            {% endif %}
+                                {% else %}{% endif %}
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <strong>Phone:</strong><br>
-                            {{ school.contact_person_phone|default:"Not provided" }}
+                        <div class="rs-field">
+                            <div class="rs-label">Phone</div>
+                            <div class="rs-value">{{ school.contact_person_phone|default:"" }}</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {# Documents Panel #}
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-file-earmark-check me-2"></i>Submitted Documents</h5>
+            <!-- Documents -->
+            <div class="rs-card">
+                <div class="rs-card-header">
+                    <div class="rs-card-icon"><i class="bi bi-file-earmark-check"></i></div>
+                    <span class="rs-card-title">Submitted Documents</span>
                 </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <strong>Registration Certificate:</strong>
-                        {% if school.registration_certificate %}
-                            <br>
-                            <a href="{{ school.registration_certificate.url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
-                                <i class="bi bi-download me-1"></i>View/Download
-                            </a>
-                            <br><small class="text-muted">{{ school.registration_certificate.name }}</small>
-                        {% else %}
-                            <br><span class="text-danger">Not uploaded</span>
-                        {% endif %}
-                    </div>
-                    <div class="mb-3">
-                        <strong>Tax ID Document:</strong>
-                        {% if school.tax_id_document %}
-                            <br>
-                            <a href="{{ school.tax_id_document.url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
-                                <i class="bi bi-download me-1"></i>View/Download
-                            </a>
-                            <br><small class="text-muted">{{ school.tax_id_document.name }}</small>
-                        {% else %}
-                            <br><span class="text-muted">Not uploaded</span>
-                        {% endif %}
-                    </div>
-                    <div class="mb-0">
-                        <strong>Additional Documents:</strong>
-                        {% if school.additional_documents %}
-                            <br>
-                            <a href="{{ school.additional_documents.url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
-                                <i class="bi bi-download me-1"></i>View/Download
-                            </a>
-                            <br><small class="text-muted">{{ school.additional_documents.name }}</small>
-                        {% else %}
-                            <br><span class="text-muted">Not uploaded</span>
-                        {% endif %}
-                    </div>
+                <div class="rs-card-pad" style="display:flex;flex-wrap:wrap;gap:.5rem;">
+                    {% if school.registration_certificate %}
+                    <a href="{{ school.registration_certificate.url }}" target="_blank" class="rs-doc-chip has">
+                        <i class="bi bi-file-earmark-text"></i>Registration Cert
+                    </a>
+                    {% else %}
+                    <span class="rs-doc-chip missing"><i class="bi bi-file-earmark-x"></i>Registration Cert</span>
+                    {% endif %}
+
+                    {% if school.tax_id_document %}
+                    <a href="{{ school.tax_id_document.url }}" target="_blank" class="rs-doc-chip has">
+                        <i class="bi bi-file-earmark-text"></i>Tax ID
+                    </a>
+                    {% else %}
+                    <span class="rs-doc-chip missing"><i class="bi bi-file-earmark-x"></i>Tax ID</span>
+                    {% endif %}
+
+                    {% if school.additional_documents %}
+                    <a href="{{ school.additional_documents.url }}" target="_blank" class="rs-doc-chip has">
+                        <i class="bi bi-file-earmark-plus"></i>Additional Docs
+                    </a>
+                    {% else %}
+                    <span class="rs-doc-chip missing"><i class="bi bi-file-earmark-x"></i>Additional Docs</span>
+                    {% endif %}
                 </div>
             </div>
 
-            {# Review History #}
+            <!-- Review history -->
             {% if school.reviewed_at %}
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Review History</h5>
+            <div class="rs-card">
+                <div class="rs-card-header">
+                    <div class="rs-card-icon"><i class="bi bi-clock-history"></i></div>
+                    <span class="rs-card-title">Previous Decision</span>
                 </div>
-                <div class="card-body">
-                    <p class="mb-2">
-                        <strong>Last Reviewed:</strong> {{ school.reviewed_at|date:"M d, Y H:i" }}<br>
-                        <strong>Reviewed By:</strong> {{ school.reviewed_by.username }}
-                    </p>
+                <div class="rs-card-pad">
+                    <div class="rs-row">
+                        <div class="rs-field">
+                            <div class="rs-label">Reviewed</div>
+                            <div class="rs-value">{{ school.reviewed_at|date:"M d, Y H:i" }}</div>
+                        </div>
+                        <div class="rs-field">
+                            <div class="rs-label">By</div>
+                            <div class="rs-value">{{ school.reviewed_by.get_full_name|default:school.reviewed_by.username }}</div>
+                        </div>
+                    </div>
                     {% if school.admin_notes %}
-                    <p class="mb-2">
-                        <strong>Admin Notes:</strong><br>
-                        <span class="text-muted">{{ school.admin_notes }}</span>
-                    </p>
+                    <div style="margin-top:.5rem;">
+                        <div class="rs-label">Admin Notes</div>
+                        <div class="rs-value" style="white-space:pre-wrap;">{{ school.admin_notes }}</div>
+                    </div>
                     {% endif %}
                     {% if school.rejection_reason %}
-                    <div class="alert alert-danger mb-0">
-                        <strong>Rejection Reason:</strong><br>
-                        {{ school.rejection_reason }}
+                    <div style="margin-top:.5rem;">
+                        <div class="rs-label" style="color:#dc2626;">Rejection Reason</div>
+                        <div class="rs-value" style="color:#dc2626;">{{ school.rejection_reason }}</div>
                     </div>
                     {% endif %}
                 </div>
@@ -285,40 +311,132 @@
             {% endif %}
         </div>
 
-        {# Approval Form Panel #}
-        <div class="col-lg-5">
-            <div class="card border-0 shadow-sm sticky-top">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Approval Decision</h5>
+        <!-- Right: Decision panel -->
+        <div class="rs-sticky">
+            <div class="rs-card">
+                <div class="rs-card-header">
+                    <div class="rs-card-icon"><i class="bi bi-pencil-square"></i></div>
+                    <span class="rs-card-title">Make a Decision</span>
                 </div>
-                <div class="card-body">
-                    <form method="post" enctype="multipart/form-data">
+                <div class="rs-card-pad">
+                    <form method="post" id="decisionForm" enctype="multipart/form-data">
                         {% csrf_token %}
-                        {{ form|crispy }}
-                        
-                        <hr>
-                        
-                        <div class="alert alert-info small">
-                            <strong><i class="bi bi-info-circle me-1"></i>Note:</strong>
-                            <ul class="mb-0 mt-2">
-                                <li>Setting status to <strong>Approved</strong> will automatically create the school's database schema and admin account</li>
-                                <li><strong>Rejected</strong> schools can be reconsidered later</li>
-                                <li>Use <strong>Requires Info</strong> to request additional documents</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="bi bi-check-circle me-2"></i>Save Decision
+                        <!-- Hidden fields that the view reads -->
+                        <input type="hidden" name="approval_status" id="statusInput" value="{{ school.approval_status }}">
+                        <input type="hidden" name="is_active" id="isActiveInput" value="{% if school.is_active %}True{% else %}False{% endif %}">
+                        <input type="hidden" name="on_trial" id="onTrialInput" value="{% if school.on_trial %}True{% else %}False{% endif %}">
+
+                        <!-- Decision buttons -->
+                        <div style="font-size:.75rem;font-weight:700;color:var(--rs-heading);margin-bottom:.5rem;">Set Status</div>
+                        <div class="rs-decision-grid">
+                            <button type="button" class="rs-action-btn btn-approve {% if school.approval_status == "approved" %}selected{% endif %}"
+                                    onclick="setDecision('approved', this)">
+                                <i class="bi bi-check-circle-fill"></i>Approve
                             </button>
-                            <a href="{% url 'tenants:approval_queue' %}" class="btn btn-outline-secondary">
-                                Cancel
-                            </a>
+                            <button type="button" class="rs-action-btn btn-review {% if school.approval_status == "under_review" %}selected{% endif %}"
+                                    onclick="setDecision('under_review', this)">
+                                <i class="bi bi-eye-fill"></i>Mark Review
+                            </button>
+                            <button type="button" class="rs-action-btn btn-needinfo {% if school.approval_status == "requires_info" %}selected{% endif %}"
+                                    onclick="setDecision('requires_info', this)">
+                                <i class="bi bi-question-circle-fill"></i>Needs Info
+                            </button>
                         </div>
+                        <button type="button" class="rs-action-btn btn-reject {% if school.approval_status == "rejected" %}selected{% endif %} w-100 mb-3"
+                                onclick="setDecision('rejected', this)" style="flex-direction:row;justify-content:center;padding:.6rem;">
+                            <i class="bi bi-x-circle-fill"></i>&nbsp;Reject Application
+                        </button>
+
+                        <!-- Rejection reason (shown only when reject selected) -->
+                        <div id="rejectionBlock" style="display:{% if school.approval_status == "rejected" %}block{% else %}none{% endif %};margin-bottom:.75rem;">
+                            <div class="rs-warn" id="rejectWarn" style="display:block;">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                This will notify the applicant that their application was not approved.
+                            </div>
+                            <label class="rs-textarea-label" for="rejectionReason">Rejection Reason <span style="color:var(--rs-red);">*</span></label>
+                            <textarea class="rs-textarea" id="rejectionReason" name="rejection_reason" placeholder="Explain why the application is being rejected">{{ school.rejection_reason }}</textarea>
+                        </div>
+
+                        <!-- Admin notes (always visible) -->
+                        <div style="margin-bottom:.75rem;">
+                            <label class="rs-textarea-label" for="adminNotes">Internal Notes</label>
+                            <textarea class="rs-textarea" id="adminNotes" name="admin_notes" placeholder="Private notes for this review (not sent to school)">{{ school.admin_notes }}</textarea>
+                        </div>
+
+                        <!-- Info note -->
+                        <div class="rs-note mb-3" style="font-size:.75rem;">
+                            <i class="bi bi-info-circle me-1"></i>
+                            <strong>Approve</strong>  creates DB schema &amp; sends credentials.<br>
+                            <strong>Needs Info</strong>  notifies school to provide documents.<br>
+                            <strong>Reject</strong>  notifies school via email with reason.
+                        </div>
+
+                        <button type="submit" class="glass-btn glass-btn-primary w-100" style="justify-content:center;font-size:.875rem;padding:.6rem;" id="submitBtn">
+                            <i class="bi bi-check-lg me-2"></i>Save Decision
+                        </button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+var allDecisionBtns = document.querySelectorAll(".rs-action-btn");
+
+function setDecision(status, btn) {
+    document.getElementById("statusInput").value = status;
+
+    // Visual selection
+    allDecisionBtns.forEach(function(b){ b.classList.remove("selected"); });
+    btn.classList.add("selected");
+
+    // Toggle rejection block
+    var rejBlock = document.getElementById("rejectionBlock");
+    rejBlock.style.display = (status === "rejected") ? "block" : "none";
+
+    // Auto-set is_active / on_trial when approving
+    if (status === "approved") {
+        document.getElementById("isActiveInput").value = "True";
+        document.getElementById("onTrialInput").value  = "True";
+    }
+
+    // Change submit label
+    var labels = {
+        approved:      "Approve School",
+        under_review:  "Mark as Under Review",
+        requires_info: "Request More Info",
+        rejected:      "Reject Application"
+    };
+    var btn_icons = {
+        approved:      "bi-check-circle-fill",
+        under_review:  "bi-eye-fill",
+        requires_info: "bi-question-circle-fill",
+        rejected:      "bi-x-circle-fill"
+    };
+    var sb = document.getElementById("submitBtn");
+    sb.innerHTML = "<i class='bi " + (btn_icons[status]||"bi-check-lg") + " me-2'></i>" + (labels[status] || "Save Decision");
+}
+
+// Confirm on reject
+document.getElementById("decisionForm").addEventListener("submit", function(e){
+    var status = document.getElementById("statusInput").value;
+    if (status === "rejected") {
+        var reason = document.getElementById("rejectionReason").value.trim();
+        if (!reason) {
+            e.preventDefault();
+            alert("Please provide a rejection reason before submitting.");
+            return;
+        }
+        if (!confirm("Are you sure you want to reject this application? The school will be notified by email.")) {
+            e.preventDefault();
+        }
+    }
+    if (status === "approved") {
+        if (!confirm("Approve this school? A database schema will be created and login credentials will be emailed to the contact.")) {
+            e.preventDefault();
+        }
+    }
+});
+</script>
 {% endblock admin_content %}
