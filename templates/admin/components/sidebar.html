@@ -11,6 +11,7 @@
         </div>
         
         <!-- Navigation -->
+        <div class="sidebar-section-title">Core</div>
         <nav class="sidebar-nav">
             <a href="{% url 'tenants:landlord_dashboard' %}" 
                class="sidebar-nav-link {% if request.resolver_match.url_name == 'landlord_dashboard' %}active{% endif %}">
@@ -43,6 +44,7 @@
         <div class="sidebar-divider"></div>
         
         <!-- Admin Links -->
+        <div class="sidebar-section-title">Operations</div>
         <nav class="sidebar-nav">
             <a href="{% url 'tenants:database_backups' %}" class="sidebar-nav-link">
                 <i class="bi bi-shield-check"></i>
@@ -64,7 +66,7 @@
         <div class="user-info">
             <img src="{% static 'img/avatar-default.png' %}" alt="User" class="user-avatar">
             <div class="user-details">
-                <div class="user-name">{{ request.user.first_name }}</div>
+                <div class="user-name">{{ request.user.get_full_name|default:request.user.username }}</div>
                 <div class="user-role">Administrator</div>
             </div>
         </div>
@@ -76,27 +78,40 @@
 
 <style>
     .admin-sidebar {
-        background: var(--admin-card-bg);
-        border-right: 1px solid var(--admin-border);
+        background: linear-gradient(180deg, var(--admin-card-bg) 0%, color-mix(in srgb, var(--admin-card-bg) 88%, var(--admin-primary) 12%) 100%);
+        border-right: 1px solid color-mix(in srgb, var(--admin-border) 70%, var(--admin-primary) 30%);
+        box-shadow: 12px 0 32px rgba(var(--admin-primary-rgb), 0.08);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         display: flex;
         flex-direction: column;
         height: 100vh;
         position: sticky;
         top: 0;
         overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--admin-primary) 60%, transparent) transparent;
+    }
+
+    .admin-sidebar::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .admin-sidebar::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--admin-primary) 35%, transparent);
+        border-radius: 999px;
     }
     
     .sidebar-content {
         flex: 1;
-        padding: var(--admin-spacing-lg) 0;
+        padding: var(--admin-spacing-lg) var(--admin-spacing-md) var(--admin-spacing-xl);
         display: flex;
         flex-direction: column;
-        gap: var(--admin-spacing-xl);
+        gap: var(--admin-spacing-lg);
     }
     
     .sidebar-logo {
-        padding: 0 var(--admin-spacing-lg);
-        margin-bottom: var(--admin-spacing-lg);
+        margin-bottom: var(--admin-spacing-sm);
     }
     
     .sidebar-logo a {
@@ -104,62 +119,101 @@
         align-items: center;
         gap: var(--admin-spacing-md);
         text-decoration: none;
-        color: var(--admin-primary);
+        color: var(--admin-text-primary);
         font-weight: 700;
-        font-size: 1.125rem;
+        font-size: 1rem;
+        padding: 0.85rem 1rem;
+        border-radius: 14px;
+        border: 1px solid color-mix(in srgb, var(--admin-primary) 22%, var(--admin-border) 78%);
+        background: linear-gradient(135deg, rgba(var(--admin-primary-rgb), 0.13), rgba(var(--admin-primary-rgb), 0.04));
     }
     
     .sidebar-logo i {
-        font-size: 1.5rem;
+        font-size: 1.125rem;
+        width: 30px;
+        height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        background: rgba(var(--admin-primary-rgb), 0.12);
+        color: var(--admin-primary);
+    }
+
+    .sidebar-section-title {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--admin-text-muted);
+        font-weight: 700;
+        padding: 0 0.95rem;
+        margin-top: 0.25rem;
     }
     
     .sidebar-nav {
         display: flex;
         flex-direction: column;
-        gap: 0;
+        gap: 0.3rem;
     }
     
     .sidebar-nav-link {
-        padding: var(--admin-spacing-md) var(--admin-spacing-lg);
+        padding: 0.72rem 0.95rem;
         color: var(--admin-text-secondary);
         text-decoration: none;
         display: flex;
         align-items: center;
-        gap: var(--admin-spacing-md);
-        transition: var(--admin-transition-fast);
-        border-left: 3px solid transparent;
+        gap: 0.72rem;
+        transition: var(--admin-transition);
+        border: 1px solid transparent;
+        border-radius: 12px;
+        font-weight: 500;
     }
     
     .sidebar-nav-link:hover {
         color: var(--admin-primary);
-        background: var(--admin-bg-secondary);
+        background: color-mix(in srgb, var(--admin-bg-secondary) 80%, var(--admin-primary) 20%);
+        border-color: color-mix(in srgb, var(--admin-primary) 32%, transparent);
+        transform: translateX(2px);
     }
     
     .sidebar-nav-link.active {
         color: var(--admin-primary);
-        background: var(--admin-bg-secondary);
-        border-left-color: var(--admin-primary);
-        font-weight: 600;
+        background: linear-gradient(135deg, rgba(var(--admin-primary-rgb), 0.16), rgba(var(--admin-primary-rgb), 0.06));
+        border-color: rgba(var(--admin-primary-rgb), 0.32);
+        box-shadow: 0 8px 20px rgba(var(--admin-primary-rgb), 0.14);
+        font-weight: 700;
     }
     
     .sidebar-nav-link i {
-        font-size: 1.125rem;
+        font-size: 0.95rem;
         flex-shrink: 0;
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--admin-bg-secondary) 86%, var(--admin-primary) 14%);
+    }
+
+    .sidebar-nav-link.active i {
+        background: rgba(var(--admin-primary-rgb), 0.2);
     }
     
     .sidebar-divider {
         height: 1px;
-        background: var(--admin-border);
-        margin: 0 var(--admin-spacing-lg);
+        background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--admin-border) 72%, var(--admin-primary) 28%), transparent);
+        margin: 0.35rem 0.4rem;
     }
     
     .sidebar-footer {
-        padding: var(--admin-spacing-lg);
-        border-top: 1px solid var(--admin-border);
+        padding: var(--admin-spacing-md);
+        border-top: 1px solid color-mix(in srgb, var(--admin-border) 76%, var(--admin-primary) 24%);
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: var(--admin-spacing-md);
+        background: color-mix(in srgb, var(--admin-bg-secondary) 75%, transparent);
     }
     
     .user-info {
@@ -176,6 +230,7 @@
         border-radius: 50%;
         object-fit: cover;
         flex-shrink: 0;
+        border: 2px solid rgba(var(--admin-primary-rgb), 0.32);
     }
     
     .user-details {
@@ -199,7 +254,7 @@
     
     .logout-btn {
         background: none;
-        border: none;
+        border: 1px solid transparent;
         color: var(--admin-text-muted);
         cursor: pointer;
         font-size: 1.125rem;
@@ -214,14 +269,23 @@
     }
     
     .logout-btn:hover {
-        background: var(--admin-bg-secondary);
+        background: color-mix(in srgb, var(--admin-bg-secondary) 82%, var(--admin-danger) 18%);
+        border-color: color-mix(in srgb, var(--admin-danger) 40%, transparent);
         color: var(--admin-danger);
     }
     
-    /* Responsive - hide on small screens */
+    [data-bs-theme="dark"] .admin-sidebar {
+        box-shadow: 12px 0 36px rgba(0, 0, 0, 0.35);
+    }
+
+    /* Responsive - keep visible for drawer behavior from admin_base */
     @media (max-width: 1024px) {
         .admin-sidebar {
-            display: none !important;
+            display: flex !important;
+        }
+
+        .sidebar-content {
+            padding-top: var(--admin-spacing-md);
         }
     }
 </style>
