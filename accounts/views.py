@@ -4,7 +4,7 @@ from django.contrib.auth.forms import SetPasswordForm
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
-from academics.models import Class, AcademicYear, ClassSubject, Activity, Timetable, GalleryImage, Resource, SchoolInfo
+from academics.models import Class, AcademicYear, ClassSubject, Activity, Timetable, GalleryImage, Resource, SchoolInfo, Subject
 from teachers.models import Teacher, DutyAssignment
 from students.models import Student, Attendance
 from announcements.models import Announcement
@@ -14,6 +14,113 @@ import datetime
 import json
 
 from django.db.utils import OperationalError, ProgrammingError
+
+
+def build_onboarding_checklist():
+    """Compute the 8-step getting-started checklist for school admins."""
+    from finance.models import FeeStructure
+    from django.urls import reverse
+
+    try:
+        school_info = SchoolInfo.objects.first()
+        school_profile_done = bool(school_info and school_info.name not in ('', 'School Name'))
+    except Exception:
+        school_info = None
+        school_profile_done = False
+
+    steps = [
+        {
+            'id': 'school_profile',
+            'icon': 'bi-building',
+            'label': 'Set up school profile',
+            'desc': 'Add your school name, logo, and contact information',
+            'done': school_profile_done,
+            'url_name': 'academics:school_settings',
+            'url_label': 'Open Settings',
+        },
+        {
+            'id': 'academic_year',
+            'icon': 'bi-calendar3',
+            'label': 'Create an academic year',
+            'desc': 'Set the current academic year to activate grade and attendance tracking',
+            'done': AcademicYear.objects.filter(is_current=True).exists(),
+            'url_name': 'academics:manage_academic_years',
+            'url_label': 'Academic Years',
+        },
+        {
+            'id': 'classes',
+            'icon': 'bi-door-open',
+            'label': 'Add classes',
+            'desc': 'Create class groups (e.g. Basic 7, Form 1) for your school',
+            'done': Class.objects.exists(),
+            'url_name': 'academics:manage_classes',
+            'url_label': 'Manage Classes',
+        },
+        {
+            'id': 'subjects',
+            'icon': 'bi-book',
+            'label': 'Add subjects',
+            'desc': 'Define the subjects taught at your school',
+            'done': Subject.objects.exists(),
+            'url_name': 'academics:manage_subjects',
+            'url_label': 'Manage Subjects',
+        },
+        {
+            'id': 'teachers',
+            'icon': 'bi-person-badge',
+            'label': 'Add a teacher',
+            'desc': 'Create teacher profiles and assign them to classes and subjects',
+            'done': Teacher.objects.exists(),
+            'url_name': 'teachers:add_teacher',
+            'url_label': 'Add Teacher',
+        },
+        {
+            'id': 'students',
+            'icon': 'bi-people',
+            'label': 'Enroll a student',
+            'desc': 'Register students individually or import a class list via CSV',
+            'done': Student.objects.exists(),
+            'url_name': 'students:add_student',
+            'url_label': 'Add Student',
+        },
+        {
+            'id': 'fees',
+            'icon': 'bi-cash-stack',
+            'label': 'Set up fee structure',
+            'desc': 'Define fee types and amounts per class and term',
+            'done': FeeStructure.objects.exists(),
+            'url_name': 'finance:create_fee_structure',
+            'url_label': 'Create Fee Structure',
+        },
+        {
+            'id': 'announcement',
+            'icon': 'bi-megaphone',
+            'label': 'Post an announcement',
+            'desc': 'Keep students, teachers, and parents informed with notices',
+            'done': Announcement.objects.exists(),
+            'url_name': 'announcements:manage',
+            'url_label': 'Create Announcement',
+        },
+    ]
+
+    done_count = sum(1 for s in steps if s['done'])
+    total = len(steps)
+
+    # Pre-resolve URLs so templates can use them directly
+    for step in steps:
+        try:
+            step['url'] = reverse(step['url_name'])
+        except Exception:
+            step['url'] = '#'
+
+    return {
+        'steps': steps,
+        'done_count': done_count,
+        'total': total,
+        'all_done': done_count == total,
+        'percent': int(done_count * 100 / total),
+    }
+
 
 def homepage(request):
     # Route logic for different tenants
@@ -242,6 +349,11 @@ def dashboard(request):
             chart_labels_attendance.append(d.strftime("%a")) # Mon, Tue...
             chart_data_attendance.append(daily_presence.get(d, 0))
 
+        try:
+            onboarding = build_onboarding_checklist()
+        except Exception:
+            onboarding = None
+
         context = {
             'user': user,
             'notices': notices,
@@ -251,6 +363,7 @@ def dashboard(request):
             'chart_data_attendance': json.dumps(chart_data_attendance),
             'total_students': Student.objects.count(),
             'total_teachers': Teacher.objects.count(),
+            'onboarding': onboarding,
         }
 
         return render(request, 'dashboard/admin_dashboard.html', context)
