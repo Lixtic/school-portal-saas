@@ -35,6 +35,13 @@ CSRF_TRUSTED_ORIGINS = [
     'https://school-portal-inky.vercel.app',
 ]
 
+# =====================
+# SITE URL (for absolute links in emails)
+# =====================
+# Set SITE_URL in your .env / production environment
+# e.g. SITE_URL=https://school-portal-inky.vercel.app
+SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000').rstrip('/')
+
 # Application definition
 
 SHARED_APPS = [

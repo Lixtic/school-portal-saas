@@ -50,11 +50,12 @@ def send_approval_notification(school, status_changed_by=None, extra_context=Non
         return False
     
     # Context for email template
+    site_url = settings.SITE_URL
     context = {
         'school': school,
         'contact_name': school.contact_person_name or 'Administrator',
         'status_changed_by': status_changed_by,
-        'login_url': f"/{school.schema_name}/login/" if status == 'approved' else None,
+        'login_url': f"{site_url}/{school.schema_name}/login/" if status == 'approved' else None,
     }
     
     # Merge extra context (e.g., temp password from approval process)
@@ -153,6 +154,8 @@ def _notify_staff_new_application(school):
         return
     
     subject = f'🔔 New School Application: {school.name}'
+    site_url = settings.SITE_URL
+    approval_url = f"{site_url}/tenants/approval-queue/"
     
     html_content = f"""
     <!DOCTYPE html>
@@ -184,7 +187,7 @@ def _notify_staff_new_application(school):
             
             <p><strong>Action Required:</strong> Please review the application and submitted documents.</p>
             
-            <a href="/tenants/approval-queue/" class="btn">Go to Approval Queue →</a>
+            <a href="{approval_url}" class="btn">Go to Approval Queue →</a>
         </div>
     </body>
     </html>
@@ -200,7 +203,7 @@ def _notify_staff_new_application(school):
     Contact: {school.contact_person_name} ({school.contact_person_email})
     Submitted: {school.submitted_for_review_at.strftime('%B %d, %Y at %I:%M %p')}
     
-    Please review the application at: /tenants/approval-queue/
+    Please review the application at: {approval_url}
     """
     
     try:
