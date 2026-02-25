@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}New Message{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4" style="max-width:640px;">
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="{% url 'communication:inbox' %}" class="btn btn-sm btn-outline-secondary rounded-3">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <h2 class="fw-bold mb-0"><i class="bi bi-pencil-square me-2"></i>New Message</h2>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-danger rounded-3 py-2 mb-3">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-4">
+            <form method="post" id="composeForm">
+                {% csrf_token %}
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">To</label>
+                    <input type="text" id="recipientSearch" class="form-control rounded-3"
+                           placeholder="Search by name or role…" autocomplete="off">
+                    <input type="hidden" name="recipient_id" id="recipientId">
+                    <div id="recipientPreview" class="mt-2 d-none">
+                        <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle px-3 py-2 rounded-3 fs-6" id="recipientLabel"></span>
+                        <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-2" onclick="clearRecipient()">
+                            <i class="bi bi-x-circle"></i>
+                        </button>
+                    </div>
+                    <div id="recipientList" class="mt-1 card border shadow-sm rounded-3 p-0 d-none" style="max-height:220px;overflow-y:auto;">
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="content" class="form-label fw-semibold">Message</label>
+                    <textarea name="content" id="content" rows="5" class="form-control rounded-3"
+                              placeholder="Write your message here…" required></textarea>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary rounded-3 px-4" id="sendBtn" disabled>
+                        <i class="bi bi-send me-1"></i>Send Message
+                    </button>
+                    <a href="{% url 'communication:inbox' %}" class="btn btn-outline-secondary rounded-3">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+const allRecipients = [
+    {% for u in recipients %}
+    {
+        id: {{ u.pk }},
+        name: "{{ u.get_full_name|default:u.username|escapejs }}",
+        role: "{{ u.get_user_type_display|escapejs }}",
+        username: "{{ u.username|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+
+const searchInput = document.getElementById('recipientSearch');
+const recipientList = document.getElementById('recipientList');
+const recipientId = document.getElementById('recipientId');
+const recipientPreview = document.getElementById('recipientPreview');
+const recipientLabel = document.getElementById('recipientLabel');
+const sendBtn = document.getElementById('sendBtn');
+
+function showList(filtered) {
+    if (!filtered.length) {
+        recipientList.innerHTML = '<div class="px-3 py-2 text-body-secondary small">No results</div>';
+    } else {
+        recipientList.innerHTML = filtered.map(u => `
+            <button type="button" class="list-group-item list-group-item-action px-3 py-2"
+                    onclick="selectRecipient(${u.id}, '${u.name} (${u.role})')">
+                <strong>${u.name}</strong> <span class="text-body-secondary small">${u.role}</span>
+            </button>
+        `).join('');
+    }
+    recipientList.classList.remove('d-none');
+}
+
+function selectRecipient(id, label) {
+    recipientId.value = id;
+    recipientLabel.textContent = label;
+    recipientPreview.classList.remove('d-none');
+    recipientList.classList.add('d-none');
+    searchInput.value = '';
+    sendBtn.disabled = false;
+}
+
+function clearRecipient() {
+    recipientId.value = '';
+    recipientPreview.classList.add('d-none');
+    sendBtn.disabled = true;
+    searchInput.value = '';
+}
+
+searchInput.addEventListener('input', function () {
+    const q = this.value.trim().toLowerCase();
+    if (q.length < 1) { recipientList.classList.add('d-none'); return; }
+    const filtered = allRecipients.filter(u =>
+        u.name.toLowerCase().includes(q) ||
+        u.role.toLowerCase().includes(q) ||
+        u.username.toLowerCase().includes(q)
+    );
+    showList(filtered);
+});
+
+searchInput.addEventListener('focus', function () {
+    if (this.value.trim().length > 0) return;
+    showList(allRecipients.slice(0, 12));
+});
+
+document.addEventListener('click', function (e) {
+    if (!e.target.closest('#composeForm')) {
+        recipientList.classList.add('d-none');
+    }
+});
+</script>
+{% endblock %}

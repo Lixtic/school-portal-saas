@@ -1103,7 +1103,7 @@
                 </ul>
                 <div class="mobile-nav-label">Communication</div>
                 <ul class="mobile-bubble-list">
-                    <li class="mobile-bubble-item"><a href="{% url 'communication:dashboard' %}"><i class="bi bi-envelope"></i>Messages</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'communication:inbox' %}"><i class="bi bi-envelope"></i>Messages <span id="mobile-msg-badge" class="badge rounded-pill bg-danger d-none"></span></a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'announcements:manage' %}"><i class="bi bi-megaphone"></i>Notices</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'accounts:manage_users' %}"><i class="bi bi-people-fill"></i>Manage Users</a></li>
                 </ul>
@@ -1403,9 +1403,10 @@
                 </a>
             </div>
             <div class="nav-item">
-                <a href="{% url 'communication:dashboard' %}" class="nav-link {% if 'communication' in request.resolver_match.app_names %}active{% endif %}" title="Communication">
+                <a href="{% url 'communication:inbox' %}" class="nav-link {% if 'communication' in request.resolver_match.app_names %}active{% endif %}" title="Communication">
                     <i class="bi bi-envelope"></i>
                     <span>Messages</span>
+                    <span id="sidebar-msg-badge" class="badge rounded-pill bg-danger ms-auto d-none"></span>
                 </a>
             </div>
             
@@ -2324,5 +2325,38 @@
             });
         }
     </script>
+
+    {% if user.is_authenticated %}
+    <script>
+    (function() {
+        "use strict";
+        const apiUrl = "{% url 'communication:api_unread' %}";
+        const sidebarBadge = document.getElementById('sidebar-msg-badge');
+        const mobileBadge  = document.getElementById('mobile-msg-badge');
+
+        function updateBadges(count) {
+            [sidebarBadge, mobileBadge].forEach(function(el) {
+                if (!el) return;
+                if (count > 0) {
+                    el.textContent = count > 99 ? '99+' : count;
+                    el.classList.remove('d-none');
+                } else {
+                    el.classList.add('d-none');
+                }
+            });
+        }
+
+        function fetchUnread() {
+            fetch(apiUrl, {credentials: 'same-origin'})
+                .then(function(r) { return r.ok ? r.json() : null; })
+                .then(function(data) { if (data) updateBadges(data.unread); })
+                .catch(function() {});
+        }
+
+        fetchUnread();
+        setInterval(fetchUnread, 60000); // refresh every 60 s
+    })();
+    </script>
+    {% endif %}
 </body>
 </html>

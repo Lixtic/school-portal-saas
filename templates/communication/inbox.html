@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}Messages{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1"><i class="bi bi-envelope-open me-2"></i>Messages</h2>
+            <p class="text-body-secondary mb-0">
+                {% if total_unread %}
+                    <span class="badge bg-danger me-1">{{ total_unread }}</span> unread message{{ total_unread|pluralize }}
+                {% else %}
+                    All caught up!
+                {% endif %}
+            </p>
+        </div>
+        <a href="{% url 'communication:compose' %}" class="btn btn-primary rounded-3">
+            <i class="bi bi-pencil-square me-1"></i>New Message
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-0">
+            {% if conversations %}
+            <div class="list-group list-group-flush rounded-4">
+                {% for item in conversations %}
+                {% with other=item.other last=item.last_msg unread=item.unread %}
+                <a href="{% url 'communication:conversation' user_id=other.pk %}"
+                   class="list-group-item list-group-item-action px-4 py-3 d-flex align-items-center gap-3 {% if unread %}bg-primary-subtle{% endif %}"
+                   style="text-decoration:none;">
+
+                    {# Avatar #}
+                    <div class="flex-shrink-0 position-relative">
+                        {% if other.profile_picture %}
+                            <img src="{{ other.profile_picture.url }}" class="rounded-circle" width="46" height="46" style="object-fit:cover;">
+                        {% else %}
+                            <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
+                                 style="width:46px;height:46px;background:var(--bs-primary);font-size:1.1rem;">
+                                {{ other.first_name|slice:":1"|upper }}{{ other.last_name|slice:":1"|upper }}
+                            </div>
+                        {% endif %}
+                        {% if unread %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:.6rem;">{{ unread }}</span>
+                        {% endif %}
+                    </div>
+
+                    {# Content #}
+                    <div class="flex-grow-1 overflow-hidden">
+                        <div class="d-flex justify-content-between align-items-baseline">
+                            <span class="fw-semibold {% if unread %}text-body{% else %}text-body{% endif %}">
+                                {{ other.get_full_name|default:other.username }}
+                                <small class="text-body-secondary fw-normal ms-1">{{ other.get_user_type_display }}</small>
+                            </span>
+                            {% if last %}
+                            <small class="text-body-secondary text-nowrap ms-2">{{ last.created_at|timesince }} ago</small>
+                            {% endif %}
+                        </div>
+                        <div class="text-body-secondary text-truncate small mt-1">
+                            {% if last %}
+                                {% if last.sender == request.user %}<span class="text-body-secondary me-1">You:</span>{% endif %}
+                                {{ last.content|truncatechars:80 }}
+                            {% else %}
+                                <em>No messages yet</em>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <i class="bi bi-chevron-right text-body-secondary flex-shrink-0"></i>
+                </a>
+                {% endwith %}
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="p-5 text-center">
+                <i class="bi bi-chat-dots fs-1 text-body-secondary d-block mb-3"></i>
+                <h5 class="fw-semibold mb-2">No messages yet</h5>
+                <p class="text-body-secondary mb-4">Send your first message to get the conversation started.</p>
+                <a href="{% url 'communication:compose' %}" class="btn btn-primary rounded-3">
+                    <i class="bi bi-pencil-square me-1"></i>Compose Message
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if request.user.user_type == 'admin' %}
+    <div class="mt-3 text-end">
+        <a href="{% url 'communication:broadcast_dashboard' %}" class="btn btn-sm btn-outline-secondary rounded-3">
+            <i class="bi bi-megaphone me-1"></i>SMS / Email Broadcasts
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
