@@ -1124,6 +1124,7 @@
                     <li class="mobile-bubble-item"><a href="{% url 'teachers:lesson_plan_list' %}"><i class="bi bi-journal-bookmark"></i>Lesson Plans</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'teachers:curriculum_library' %}"><i class="bi bi-collection"></i>Curriculum Library</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'announcements:list' %}"><i class="bi bi-megaphone"></i>Notices</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'communication:inbox' %}"><i class="bi bi-envelope"></i>Messages</a></li>
                 </ul>
                 {% endif %}
 
@@ -1136,6 +1137,7 @@
                     <li class="mobile-bubble-item"><a href="{% url 'announcements:list' %}"><i class="bi bi-megaphone"></i>Notices</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'academics:ai_tutor' %}"><i class="bi bi-robot"></i>AI Tutor</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'academics:tutor_sessions' %}"><i class="bi bi-clock-history"></i>Tutor Sessions</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'communication:inbox' %}"><i class="bi bi-envelope"></i>Messages</a></li>
                 </ul>
                 {% endif %}
 
@@ -1145,6 +1147,7 @@
                     <li class="mobile-bubble-item"><a href="{% url 'parents:my_children' %}"><i class="bi bi-person-hearts"></i>My Children</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'homework:homework_list' %}"><i class="bi bi-journal-text"></i>Homework</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'announcements:list' %}"><i class="bi bi-megaphone"></i>Notices</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'communication:inbox' %}"><i class="bi bi-envelope"></i>Messages</a></li>
                 </ul>
                 {% endif %}
 
@@ -1483,6 +1486,13 @@
                     <span>Notices</span>
                 </a>
             </div>
+            <div class="nav-item">
+                <a href="{% url 'communication:inbox' %}" class="nav-link {% if 'communication' in request.resolver_match.app_names %}active{% endif %}" title="Messages">
+                    <i class="bi bi-envelope"></i>
+                    <span>Messages</span>
+                    <span id="sidebar-msg-badge" class="badge rounded-pill bg-danger ms-auto d-none"></span>
+                </a>
+            </div>
             {% endif %}
 
             {% if user.user_type == 'student' %}
@@ -1524,6 +1534,13 @@
                     <span>Tutor Sessions</span>
                 </a>
             </div>
+            <div class="nav-item">
+                <a href="{% url 'communication:inbox' %}" class="nav-link {% if 'communication' in request.resolver_match.app_names %}active{% endif %}" title="Messages">
+                    <i class="bi bi-envelope"></i>
+                    <span>Messages</span>
+                    <span id="sidebar-msg-badge" class="badge rounded-pill bg-danger ms-auto d-none"></span>
+                </a>
+            </div>
             {% endif %}
             
             {% if user.user_type == 'parent' %}
@@ -1545,6 +1562,13 @@
                 <a href="{% url 'announcements:list' %}" class="nav-link {% if 'announcements' in request.resolver_match.app_names %}active{% endif %}" title="Notices">
                     <i class="bi bi-megaphone"></i>
                     <span>Notices</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{% url 'communication:inbox' %}" class="nav-link {% if 'communication' in request.resolver_match.app_names %}active{% endif %}" title="Messages">
+                    <i class="bi bi-envelope"></i>
+                    <span>Messages</span>
+                    <span id="sidebar-msg-badge" class="badge rounded-pill bg-danger ms-auto d-none"></span>
                 </a>
             </div>
             {% endif %}
