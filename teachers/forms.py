@@ -154,6 +154,7 @@ class TeacherEditForm(forms.ModelForm):
     last_name = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'class': 'form-control'}))
     email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'class': 'form-control'}))
     phone = forms.CharField(max_length=20, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    profile_picture = forms.ImageField(required=False, widget=forms.ClearableFileInput(attrs={'class': 'form-control'}))
     
     class Meta:
         model = Teacher
@@ -173,6 +174,7 @@ class TeacherEditForm(forms.ModelForm):
             self.fields['first_name'].initial = self.instance.user.first_name
             self.fields['last_name'].initial = self.instance.user.last_name
             self.fields['email'].initial = self.instance.user.email
+            self.fields['profile_picture'].initial = self.instance.user.profile_picture
             if hasattr(self.instance.user, 'profile'):
                 self.fields['phone'].initial = self.instance.user.profile.phone
         self.fields['employee_id'].widget.attrs['readonly'] = True
@@ -184,6 +186,8 @@ class TeacherEditForm(forms.ModelForm):
         teacher.user.first_name = self.cleaned_data['first_name']
         teacher.user.last_name = self.cleaned_data['last_name']
         teacher.user.email = self.cleaned_data['email']
+        if 'profile_picture' in self.cleaned_data:
+            teacher.user.profile_picture = self.cleaned_data['profile_picture']
         
         if commit:
             teacher.user.save()

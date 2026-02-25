@@ -91,7 +91,7 @@
     {% endif %}
 
     <div class="form-card">
-        <form method="post">
+        <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
 
             <div class="section-divider"><i class="bi bi-person"></i> Personal Information</div>
@@ -108,6 +108,13 @@
             <div class="mb-3">
                 <label class="form-label">Email</label>
                 {{ form.email }}
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Profile Picture</label>
+                {{ form.profile_picture }}
+                {% if student.user.profile_picture %}
+                <div class="form-text">Current: {{ student.user.profile_picture.name|cut:'profiles/' }}</div>
+                {% endif %}
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">

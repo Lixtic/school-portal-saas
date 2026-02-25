@@ -672,12 +672,14 @@ def edit_student(request, student_id):
     student = get_object_or_404(Student, id=student_id)
     
     if request.method == 'POST':
-        form = StudentForm(request.POST, instance=student)
+        form = StudentForm(request.POST, request.FILES, instance=student)
         if form.is_valid():
             # Update user fields
             student.user.first_name = form.cleaned_data['first_name']
             student.user.last_name = form.cleaned_data['last_name']
             student.user.email = form.cleaned_data['email']
+            if 'profile_picture' in form.cleaned_data:
+                student.user.profile_picture = form.cleaned_data['profile_picture']
             student.user.save()
             
             form.save()
@@ -689,6 +691,7 @@ def edit_student(request, student_id):
             'first_name': student.user.first_name,
             'last_name': student.user.last_name,
             'email': student.user.email,
+            'profile_picture': student.user.profile_picture,
         }
         form = StudentForm(instance=student, initial=initial_data)
         

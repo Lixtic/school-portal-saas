@@ -147,7 +147,7 @@ def edit_teacher(request, teacher_id):
     teacher = get_object_or_404(Teacher, id=teacher_id)
     
     if request.method == 'POST':
-        form = TeacherEditForm(request.POST, instance=teacher)
+        form = TeacherEditForm(request.POST, request.FILES, instance=teacher)
         if form.is_valid():
             form.save()
             messages.success(request, f'Teacher profile for {teacher.user.get_full_name()} updated successfully.')
