@@ -39,7 +39,7 @@ class SchoolInfoForm(forms.ModelForm):
         model = SchoolInfo
         fields = [
             'name', 'address', 'phone', 'email', 'motto', 'logo', 
-            'primary_color', 'secondary_color', 'homepage_template',
+            'primary_color', 'secondary_color', 'homepage_template', 'report_card_template',
             'hero_title', 'hero_subtitle', 'cta_primary_text', 'cta_primary_url',
             'cta_secondary_text', 'cta_secondary_url',
             'stat1_number', 'stat1_label', 'stat2_number', 'stat2_label',
@@ -61,6 +61,7 @@ class SchoolInfoForm(forms.ModelForm):
             'primary_color': forms.TextInput(attrs={'class': 'form-control form-control-color', 'type': 'color', 'title': 'Choose Main Color'}),
             'secondary_color': forms.TextInput(attrs={'class': 'form-control form-control-color', 'type': 'color', 'title': 'Choose Sidebar Color'}),
             'homepage_template': forms.Select(attrs={'class': 'form-select'}),
+            'report_card_template': forms.Select(attrs={'class': 'form-select'}),
             'hero_title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Leave empty to use school name'}),
             'hero_subtitle': forms.TextInput(attrs={'class': 'form-control'}),
             'cta_primary_text': forms.TextInput(attrs={'class': 'form-control'}),

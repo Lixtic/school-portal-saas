@@ -46,6 +46,41 @@ class TutorMessage(models.Model):
         return f"{self.role}: {self.content[:50]}"
 
 
+class CopilotConversation(models.Model):
+    """Conversation thread for the global Portals Copilot assistant."""
+    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='copilot_conversations')
+    title = models.CharField(max_length=120, blank=True)
+    user_role = models.CharField(max_length=20, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.updated_at:%Y-%m-%d %H:%M}"
+
+
+class CopilotMessage(models.Model):
+    """Single message entry within a Copilot conversation."""
+    ROLE_CHOICES = [
+        ('user', 'User'),
+        ('assistant', 'Assistant'),
+    ]
+
+    conversation = models.ForeignKey(CopilotConversation, on_delete=models.CASCADE, related_name='messages')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    content = models.TextField()
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.role}: {self.content[:50]}"
+
+
 class PracticeQuestionSet(models.Model):
     """Generated practice question sets"""
     student = models.ForeignKey('students.Student', on_delete=models.CASCADE, related_name='practice_sets')

@@ -15,6 +15,7 @@ admin.site.index_title = "Welcome to School Management System"
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', account_views.homepage, name='home'),
+    path('find-school/', account_views.find_school, name='find_school'),
     path('signup/', tenant_views.school_signup, name='signup'),
     path('login/', account_views.login_view, name='login'),
     # path('home/', account_views.homepage, name='home'), # Redirect old home

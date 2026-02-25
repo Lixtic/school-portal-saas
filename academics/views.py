@@ -8,6 +8,7 @@ import json
 from django.db import connection, ProgrammingError
 from django.db.models import Q, Count
 from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
 from accounts.models import User
 from announcements.models import Announcement
 from .models import Activity, GalleryImage, SchoolInfo, Class, Timetable, ClassSubject, Resource, AcademicYear, Subject
@@ -826,6 +827,31 @@ Please provide helpful, concise answers about admissions, fees, term dates, and 
 
 
 @csrf_exempt
+@login_required
+def copilot_history(request):
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Invalid request'}, status=405)
+
+    from .tutor_models import CopilotConversation
+
+    conversation = CopilotConversation.objects.filter(user=request.user, is_active=True).first()
+    if not conversation:
+        return JsonResponse({'conversation_id': None, 'messages': []})
+
+    messages_qs = conversation.messages.order_by('created_at')[:30]
+    messages = [
+        {
+            'role': message.role,
+            'content': message.content,
+            'created_at': message.created_at.isoformat(),
+        }
+        for message in messages_qs
+    ]
+
+    return JsonResponse({'conversation_id': conversation.id, 'messages': messages})
+
+
+@csrf_exempt
 def copilot_assistant(request):
     print(f"[COPILOT] Request method: {request.method}, Content-Type: {request.content_type}")
 
@@ -861,6 +887,7 @@ def copilot_assistant(request):
 
     question = (payload.get('question') or '').strip()
     user_role = (payload.get('role') or '').strip()
+    incoming_conversation_id = payload.get('conversation_id')
 
     if not user_role and request.user.is_authenticated:
         user_role = getattr(request.user, 'user_type', '') or ''
@@ -882,6 +909,39 @@ def copilot_assistant(request):
 
     if not question:
         return HttpResponse('Ask me anything about your classes, calendar, grades, fees, or school updates.', content_type='text/plain; charset=utf-8')
+
+    conversation = None
+    if request.user.is_authenticated:
+        try:
+            from .tutor_models import CopilotConversation, CopilotMessage
+
+            if incoming_conversation_id:
+                conversation = CopilotConversation.objects.filter(
+                    id=incoming_conversation_id,
+                    user=request.user,
+                    is_active=True,
+                ).first()
+
+            if not conversation:
+                conversation = CopilotConversation.objects.filter(user=request.user, is_active=True).first()
+
+            if not conversation:
+                conversation = CopilotConversation.objects.create(
+                    user=request.user,
+                    title=question[:120],
+                    user_role=user_role or getattr(request.user, 'user_type', ''),
+                    is_active=True,
+                )
+
+            CopilotMessage.objects.create(
+                conversation=conversation,
+                role='user',
+                content=question,
+            )
+            conversation.updated_at = timezone.now()
+            conversation.save(update_fields=['updated_at'])
+        except Exception as persistence_err:
+            print(f"[COPILOT] Could not persist user message: {persistence_err}")
 
     def build_data_snapshot():
         if not request.user.is_authenticated:
@@ -983,6 +1043,44 @@ Context Initialization:
         return HttpResponse('Copilot is offline: missing OPENAI_API_KEY.', content_type='text/plain; charset=utf-8', status=503)
 
     try:
+        def persist_assistant_message(full_text):
+            if not conversation:
+                return
+            text = (full_text or '').strip()
+            if not text:
+                return
+            try:
+                from .tutor_models import CopilotMessage
+                CopilotMessage.objects.create(
+                    conversation=conversation,
+                    role='assistant',
+                    content=text,
+                )
+                conversation.updated_at = timezone.now()
+                conversation.save(update_fields=['updated_at'])
+            except Exception as persistence_err:
+                print(f"[COPILOT] Could not persist assistant message: {persistence_err}")
+
+        def stream_and_store(generator):
+            full_text = ''
+            for token in generator:
+                full_text += token
+                yield token
+            persist_assistant_message(full_text)
+
+        def build_stream_response(generator):
+            response = StreamingHttpResponse(stream_and_store(generator), content_type='text/plain; charset=utf-8')
+            if conversation:
+                response['X-Conversation-Id'] = str(conversation.id)
+            return response
+
+        def build_plain_response(text, status=200):
+            persist_assistant_message(text)
+            response = HttpResponse(text, content_type='text/plain; charset=utf-8', status=status)
+            if conversation:
+                response['X-Conversation-Id'] = str(conversation.id)
+            return response
+
         def normalize_delta(delta_content):
             if not delta_content:
                 return ""
@@ -1075,7 +1173,7 @@ Context Initialization:
 
         # Attempt REST streaming first to bypass client/proxy issues
         try:
-            return StreamingHttpResponse(stream_via_rest(), content_type='text/plain; charset=utf-8')
+            return build_stream_response(stream_via_rest())
         except Exception as rest_err:
             print(f"[COPILOT] REST streaming error, trying SDK: {rest_err}")
             import traceback
@@ -1084,7 +1182,7 @@ Context Initialization:
         try:
             import openai
             if hasattr(openai, 'OpenAI'):
-                return StreamingHttpResponse(stream_new_sdk(), content_type='text/plain; charset=utf-8')
+                return build_stream_response(stream_new_sdk())
         except TypeError as te:
             print(f"[COPILOT] New SDK TypeError, falling back to legacy: {te}")
         except Exception as e_new:
@@ -1094,19 +1192,19 @@ Context Initialization:
 
         # Fallback to legacy only when everything else failed
         try:
-            return StreamingHttpResponse(stream_old_sdk(), content_type='text/plain; charset=utf-8')
+            return build_stream_response(stream_old_sdk())
         except Exception as e_legacy:
             err_msg = f"Copilot error (legacy): {e_legacy}"
             print(err_msg)
             import traceback
             traceback.print_exc()
-            return HttpResponse(err_msg, content_type='text/plain; charset=utf-8', status=502)
+            return build_plain_response(err_msg, status=502)
     except Exception as e:
         err_msg = f"Copilot error: {e}"
         print(err_msg)
         import traceback
         traceback.print_exc()
-        return HttpResponse(err_msg, content_type='text/plain; charset=utf-8', status=502)
+        return build_plain_response(err_msg, status=502)
 
 
 

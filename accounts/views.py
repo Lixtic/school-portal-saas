@@ -3,17 +3,55 @@ from django.contrib.auth import login, logout, authenticate, get_user_model
 from django.contrib.auth.forms import SetPasswordForm
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.http import JsonResponse
 from django.core.paginator import Paginator
 from academics.models import Class, AcademicYear, ClassSubject, Activity, Timetable, GalleryImage, Resource, SchoolInfo, Subject
 from teachers.models import Teacher, DutyAssignment
 from students.models import Student, Attendance
 from announcements.models import Announcement
 from django.db.models import Q, Count
+from django.db import connection
 from django.utils import timezone
 import datetime
 import json
 
 from django.db.utils import OperationalError, ProgrammingError
+
+
+def build_academic_calendar_widget(limit=5):
+    today = timezone.now().date()
+    current_year = AcademicYear.objects.filter(is_current=True).first() or AcademicYear.objects.order_by('-start_date').first()
+
+    events = []
+    if current_year:
+        total_days = max((current_year.end_date - current_year.start_date).days, 1)
+        first_term_start = current_year.start_date
+        second_term_start = current_year.start_date + datetime.timedelta(days=total_days // 3)
+        third_term_start = current_year.start_date + datetime.timedelta(days=(2 * total_days) // 3)
+
+        term_markers = [
+            ('Term 1 Start', first_term_start, 'Term'),
+            ('Term 2 Start', second_term_start, 'Term'),
+            ('Term 3 Start', third_term_start, 'Term'),
+            ('Academic Year Ends', current_year.end_date, 'Year End'),
+        ]
+        for title, when, tag in term_markers:
+            if when >= today:
+                events.append({'title': title, 'date': when, 'tag': tag})
+
+    upcoming_activities = Activity.objects.filter(is_active=True, date__gte=today).order_by('date')[:limit]
+    for activity in upcoming_activities:
+        events.append({
+            'title': activity.title,
+            'date': activity.date,
+            'tag': activity.tag or 'Activity',
+        })
+
+    events.sort(key=lambda item: item['date'])
+    return {
+        'academic_calendar_year': current_year.name if current_year else 'Not Set',
+        'academic_calendar_events': events[:limit],
+    }
 
 
 def build_onboarding_checklist():
@@ -259,6 +297,86 @@ def login_view(request):
     return render(request, 'accounts/login.html')
 
 
+def find_school(request):
+    query = (request.GET.get('q') or '').strip()
+    exact = request.GET.get('exact') == '1'
+
+    from tenants.models import School, Domain
+
+    schools_qs = School.objects.exclude(schema_name='public').filter(is_active=True)
+
+    def serialize_school(school):
+        primary_domain = Domain.objects.filter(tenant=school, is_primary=True).values_list('domain', flat=True).first()
+        return {
+            'id': school.id,
+            'name': school.name,
+            'schema_name': school.schema_name,
+            'domain': primary_domain,
+            'login_url': f'/{school.schema_name}/login/',
+        }
+
+    if not query:
+        popular_schools = schools_qs.order_by('name')[:8]
+        return JsonResponse(
+            {
+                'results': [serialize_school(school) for school in popular_schools],
+                'message': 'Popular schools',
+            }
+        )
+
+    if exact:
+        school = schools_qs.filter(
+            Q(schema_name__iexact=query) |
+            Q(name__iexact=query)
+        ).first()
+
+        if not school:
+            domain_match = Domain.objects.select_related('tenant').filter(
+                tenant__is_active=True,
+                domain__iexact=query,
+            ).exclude(tenant__schema_name='public').first()
+            school = domain_match.tenant if domain_match else None
+
+        if not school:
+            return JsonResponse(
+                {
+                    'results': [],
+                    'error': 'School not found. Check the School ID/name and try again.',
+                },
+                status=404,
+            )
+
+        return JsonResponse({'results': [serialize_school(school)]})
+
+    school_ids = list(
+        schools_qs.filter(
+            Q(schema_name__icontains=query) |
+            Q(name__icontains=query)
+        ).values_list('id', flat=True)[:12]
+    )
+
+    domain_school_ids = list(
+        Domain.objects.select_related('tenant').filter(
+            tenant__is_active=True,
+            domain__icontains=query,
+        ).exclude(tenant__schema_name='public').values_list('tenant_id', flat=True)[:12]
+    )
+
+    ordered_ids = []
+    for school_id in school_ids + domain_school_ids:
+        if school_id not in ordered_ids:
+            ordered_ids.append(school_id)
+
+    schools_map = {
+        school.id: school
+        for school in schools_qs.filter(id__in=ordered_ids[:8])
+    }
+
+    results = [serialize_school(schools_map[school_id]) for school_id in ordered_ids if school_id in schools_map][:8]
+
+    return JsonResponse({'results': results})
+
+
 @login_required
 def logout_view(request):
     logout(request)
@@ -309,6 +427,7 @@ def dashboard(request):
 
     # Base query without slicing
     base_notices = Announcement.objects.filter(is_active=True).order_by('-created_at')
+    calendar_widget = build_academic_calendar_widget()
     
     if user.user_type == 'admin':
         # Admin gets top 5 of all active notices
@@ -364,6 +483,7 @@ def dashboard(request):
             'total_students': Student.objects.count(),
             'total_teachers': Teacher.objects.count(),
             'onboarding': onboarding,
+            **calendar_widget,
         }
 
         return render(request, 'dashboard/admin_dashboard.html', context)
@@ -451,6 +571,7 @@ def dashboard(request):
             'todays_classes': todays_classes,
             'recent_resources': recent_resources,
             'resource_fields_available': resource_fields_available,
+            **calendar_widget,
         }
 
         return render(request, 'dashboard/teacher_dashboard.html', teacher_context)
@@ -495,7 +616,8 @@ def dashboard(request):
             'finance_stats': {
                 'outstanding': total_outstanding,
                 'paid': total_paid
-            }
+            },
+            **calendar_widget,
         })
     
     return redirect('login')

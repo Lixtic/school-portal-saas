@@ -1,0 +1,35 @@
+<div class="card border-0 shadow-sm rounded-4 mb-3">
+    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold mb-0 d-flex align-items-center gap-2 text-primary">
+            <i class="bi bi-calendar3"></i>
+            Academic Calendar
+        </h6>
+        <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">{{ academic_calendar_year }}</span>
+    </div>
+    <div class="card-body p-0">
+        {% if academic_calendar_events %}
+            <div class="list-group list-group-flush rounded-bottom-4">
+                {% for event in academic_calendar_events %}
+                <div class="list-group-item border-0 border-bottom py-3 px-3">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="rounded-3 bg-primary bg-opacity-10 text-primary d-flex flex-column align-items-center justify-content-center px-2 py-1" style="min-width: 52px;">
+                            <small class="fw-semibold" style="line-height:1;">{{ event.date|date:"M"|upper }}</small>
+                            <span class="fw-bold" style="font-size: 1.05rem; line-height:1;">{{ event.date|date:"d" }}</span>
+                        </div>
+                        <div class="flex-grow-1" style="min-width:0;">
+                            <div class="fw-semibold text-truncate">{{ event.title }}</div>
+                            <small class="text-muted">{{ event.date|date:"D, M d" }}</small>
+                        </div>
+                        <span class="badge bg-light text-secondary border rounded-pill">{{ event.tag }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center text-muted py-4 px-3">
+                <i class="bi bi-calendar-x d-block mb-2" style="font-size:1.35rem;"></i>
+                <small>No upcoming calendar events yet.</small>
+            </div>
+        {% endif %}
+    </div>
+</div>

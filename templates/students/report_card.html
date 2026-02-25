@@ -14,11 +14,25 @@
     
     <style>
         :root {
+            {% if report_card_template == 'modern_plus' %}
+            --primary-color: #1d4ed8;
+            --secondary-color: #06b6d4;
+            --accent-color: #eff6ff;
+            --text-dark: #0f172a;
+            --border-color: #dbeafe;
+            {% elif report_card_template == 'minimal_clean' %}
+            --primary-color: #111827;
+            --secondary-color: #374151;
+            --accent-color: #f9fafb;
+            --text-dark: #111827;
+            --border-color: #e5e7eb;
+            {% else %}
             --primary-color: #0f3b57;
             --secondary-color: #026e56;
             --accent-color: #e6fcf5;
             --text-dark: #1f2937;
             --border-color: #e5e7eb;
+            {% endif %}
         }
 
         body {
@@ -48,7 +62,15 @@
             margin: 0 auto;
             min-height: 297mm; /* Minimum A4 height */
             padding: 2.5rem;
+            {% if report_card_template == 'modern_plus' %}
+            box-shadow: 0 12px 30px rgba(37, 99, 235, 0.12);
+            border-radius: 16px;
+            {% elif report_card_template == 'minimal_clean' %}
+            box-shadow: none;
+            border: 1px solid #d1d5db;
+            {% else %}
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            {% endif %}
             position: relative;
         }
 
@@ -60,7 +82,14 @@
             left: 1rem;
             right: 1rem;
             bottom: 1rem;
+            {% if report_card_template == 'modern_plus' %}
+            border: 2px solid #bfdbfe;
+            border-radius: 12px;
+            {% elif report_card_template == 'minimal_clean' %}
+            border: 1px solid #e5e7eb;
+            {% else %}
             border: 2px double var(--primary-color);
+            {% endif %}
             pointer-events: none;
             z-index: 0;
         }
@@ -74,7 +103,14 @@
         .school-header {
             text-align: center;
             margin-bottom: 1rem;
+            {% if report_card_template == 'modern_plus' %}
+            border-bottom: 3px solid transparent;
+            border-image: linear-gradient(90deg, #1d4ed8, #06b6d4) 1;
+            {% elif report_card_template == 'minimal_clean' %}
+            border-bottom: 1px solid #d1d5db;
+            {% else %}
             border-bottom: 2px solid var(--primary-color);
+            {% endif %}
             padding-bottom: 1rem;
         }
         
@@ -94,7 +130,15 @@
         }
 
         .report-title {
+            {% if report_card_template == 'modern_plus' %}
+            background: linear-gradient(90deg, #1d4ed8, #06b6d4);
+            {% elif report_card_template == 'minimal_clean' %}
+            background: #f3f4f6;
+            color: #111827;
+            border: 1px solid #d1d5db;
+            {% else %}
             background: var(--primary-color);
+            {% endif %}
             color: white;
             text-align: center;
             padding: 0.5rem;
@@ -105,6 +149,18 @@
             letter-spacing: 1px;
             font-size: 0.9rem;
         }
+
+        {% if report_card_template == 'minimal_clean' %}
+        .report-title {
+            color: #111827;
+        }
+        .grade-table th {
+            background: #111827;
+        }
+        .summary-header {
+            background: #f9fafb;
+        }
+        {% endif %}
 
         /* Info Grid */
         .info-grid {

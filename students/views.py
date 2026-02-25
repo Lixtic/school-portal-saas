@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.db.models import Q, Count, Avg
+from django.utils import timezone
 from datetime import date, timedelta
 import csv
 import random
@@ -12,9 +13,45 @@ from .forms import StudentForm, CSVImportForm
 from accounts.models import User
 
 from .utils import calculate_class_position, normalize_term, term_filter_values
-from academics.models import Class, AcademicYear, Timetable
+from academics.models import Class, AcademicYear, Timetable, Activity
 from teachers.models import Teacher
 from academics.tutor_models import generate_student_id_card, export_id_card_to_pdf, export_multiple_id_cards_to_pdf
+
+
+def build_academic_calendar_widget(limit=5):
+    today = timezone.now().date()
+    current_year = AcademicYear.objects.filter(is_current=True).first() or AcademicYear.objects.order_by('-start_date').first()
+
+    events = []
+    if current_year:
+        total_days = max((current_year.end_date - current_year.start_date).days, 1)
+        first_term_start = current_year.start_date
+        second_term_start = current_year.start_date + timedelta(days=total_days // 3)
+        third_term_start = current_year.start_date + timedelta(days=(2 * total_days) // 3)
+
+        term_markers = [
+            ('Term 1 Start', first_term_start, 'Term'),
+            ('Term 2 Start', second_term_start, 'Term'),
+            ('Term 3 Start', third_term_start, 'Term'),
+            ('Academic Year Ends', current_year.end_date, 'Year End'),
+        ]
+        for title, when, tag in term_markers:
+            if when >= today:
+                events.append({'title': title, 'date': when, 'tag': tag})
+
+    upcoming_activities = Activity.objects.filter(is_active=True, date__gte=today).order_by('date')[:limit]
+    for activity in upcoming_activities:
+        events.append({
+            'title': activity.title,
+            'date': activity.date,
+            'tag': activity.tag or 'Activity',
+        })
+
+    events.sort(key=lambda item: item['date'])
+    return {
+        'academic_calendar_year': current_year.name if current_year else 'Not Set',
+        'academic_calendar_events': events[:limit],
+    }
 
 @login_required
 def student_list(request):
@@ -360,7 +397,8 @@ def student_dashboard_view(request):
             'payable': total_payable,
             'paid': total_paid,
             'balance': balance
-        }
+        },
+        **build_academic_calendar_widget(),
     }
     
     return render(request, 'dashboard/student_dashboard.html', context)
@@ -470,6 +508,7 @@ def _get_student_report_context(student, academic_year, term, raw_term):
         'school_email': school_info.email if school_info else "info@spswjh.edu.gh",
         'school_motto': school_info.motto if school_info else "Knowledge is Power",
         'school_logo': school_info.logo if school_info else None,
+        'report_card_template': school_info.report_card_template if school_info else 'classic',
         'term_choices': Grade.TERM_CHOICES,
     }
 

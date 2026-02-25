@@ -45,6 +45,13 @@ class SchoolInfo(models.Model):
         ('elegant', 'Elegant — Navy & gold, professional look'),
     )
     id_card_template = models.CharField(max_length=20, choices=ID_CARD_TEMPLATE_CHOICES, default='classic', help_text="ID card design template for students and teachers")
+
+    REPORT_CARD_TEMPLATE_CHOICES = (
+        ('classic', 'Classic — Traditional bordered report card'),
+        ('modern_plus', 'Modern Plus — Contemporary gradient style'),
+        ('minimal_clean', 'Minimal Clean — Lightweight monochrome style'),
+    )
+    report_card_template = models.CharField(max_length=20, choices=REPORT_CARD_TEMPLATE_CHOICES, default='classic', help_text="Report card design template")
     
     # Hero Section Customization
     hero_title = models.CharField(max_length=200, blank=True, default='', help_text="Main hero heading (leave empty to use school name)")
@@ -253,5 +260,11 @@ class Resource(models.Model):
         ordering = ['-uploaded_at']
 
 
-# Import AI Tutor models
-from .tutor_models import TutorSession, TutorMessage, PracticeQuestionSet
+# Import AI Tutor/Copilot models
+from .tutor_models import (
+    TutorSession,
+    TutorMessage,
+    PracticeQuestionSet,
+    CopilotConversation,
+    CopilotMessage,
+)

@@ -1951,6 +1951,10 @@
             const input = document.getElementById('copilotQuestion');
             const userRole = panel.dataset.userRole || '';
             const schoolName = panel.dataset.schoolName || 'your school';
+            let conversationId = null;
+            let hasLoadedHistory = false;
+            let inactivityTimer = null;
+            const INACTIVITY_TIMEOUT_MS = 120000;
 
             const csrftoken = (name => {
                 const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
@@ -1969,6 +1973,42 @@
                 bodyEl.appendChild(div);
                 bodyEl.scrollTop = bodyEl.scrollHeight;
                 return div;
+            }
+
+            function resetInactivityTimer() {
+                if (inactivityTimer) {
+                    clearTimeout(inactivityTimer);
+                }
+                if (!panel.classList.contains('open')) {
+                    return;
+                }
+                inactivityTimer = setTimeout(() => {
+                    closePanel();
+                }, INACTIVITY_TIMEOUT_MS);
+            }
+
+            async function loadHistory() {
+                if (!userRole || hasLoadedHistory) return;
+                try {
+                    const res = await fetch('{% url "academics:copilot_history" %}', {
+                        method: 'GET',
+                        headers: {
+                            'X-CSRFToken': csrftoken,
+                        },
+                    });
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    hasLoadedHistory = true;
+                    if (!Array.isArray(data.messages) || data.messages.length === 0) return;
+                    conversationId = data.conversation_id || null;
+                    bodyEl.innerHTML = '';
+                    data.messages.forEach((message) => {
+                        const type = message.role === 'user' ? 'user' : 'bot';
+                        appendBubble(message.content, type);
+                    });
+                } catch (err) {
+                    console.error('[COPILOT] History load error:', err);
+                }
             }
 
             function removeTyping() {
@@ -1994,11 +2034,17 @@
                 panel.classList.add('open');
                 panel.style.display = 'flex';
                 setTimeout(() => input?.focus(), 50);
+                resetInactivityTimer();
+                loadHistory();
             }
 
             function closePanel() {
                 panel.classList.remove('open');
                 panel.style.display = 'none';
+                if (inactivityTimer) {
+                    clearTimeout(inactivityTimer);
+                    inactivityTimer = null;
+                }
             }
 
             toggle && toggle.addEventListener('click', (e) => {
@@ -2016,6 +2062,8 @@
                 const question = (input?.value || '').trim();
                 if (!question) return;
 
+                resetInactivityTimer();
+
                 appendBubble(question, 'user');
                 input.value = '';
                 appendBubble('', 'typing');
@@ -2027,8 +2075,13 @@
                             'Content-Type': 'application/json',
                             'X-CSRFToken': csrftoken,
                         },
-                        body: JSON.stringify({ question, role: userRole, school: schoolName }),
+                        body: JSON.stringify({ question, role: userRole, school: schoolName, conversation_id: conversationId }),
                     });
+
+                    const responseConversationId = res.headers.get('X-Conversation-Id');
+                    if (responseConversationId) {
+                        conversationId = responseConversationId;
+                    }
 
                     if (!res.ok || !res.body) {
                         removeTyping();
@@ -2047,6 +2100,11 @@
                     appendBubble('Network issue. Please try again.', 'bot');
                 }
             });
+
+            ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'].forEach((eventName) => {
+                panel.addEventListener(eventName, resetInactivityTimer, { passive: true });
+            });
+            input && input.addEventListener('input', resetInactivityTimer);
         });
 
         // Toast helper
