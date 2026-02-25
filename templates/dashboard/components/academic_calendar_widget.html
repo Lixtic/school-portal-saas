@@ -2,34 +2,57 @@
     <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
         <h6 class="fw-bold mb-0 d-flex align-items-center gap-2 text-primary">
             <i class="bi bi-calendar3"></i>
-            Academic Calendar
+            Calendar
         </h6>
         <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">{{ academic_calendar_year }}</span>
     </div>
-    <div class="card-body p-0">
-        {% if academic_calendar_events %}
-            <div class="list-group list-group-flush rounded-bottom-4">
-                {% for event in academic_calendar_events %}
-                <div class="list-group-item border-0 border-bottom py-3 px-3">
-                    <div class="d-flex align-items-start gap-3">
-                        <div class="rounded-3 bg-primary bg-opacity-10 text-primary d-flex flex-column align-items-center justify-content-center px-2 py-1" style="min-width: 52px;">
-                            <small class="fw-semibold" style="line-height:1;">{{ event.date|date:"M"|upper }}</small>
-                            <span class="fw-bold" style="font-size: 1.05rem; line-height:1;">{{ event.date|date:"d" }}</span>
-                        </div>
-                        <div class="flex-grow-1" style="min-width:0;">
-                            <div class="fw-semibold text-truncate">{{ event.title }}</div>
-                            <small class="text-muted">{{ event.date|date:"D, M d" }}</small>
-                        </div>
-                        <span class="badge bg-light text-secondary border rounded-pill">{{ event.tag }}</span>
+    <div class="card-body p-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="fw-semibold small text-muted">{{ academic_calendar_month_label }}</div>
+            <div class="small d-flex align-items-center gap-1 text-muted">
+                <span class="d-inline-block rounded-circle bg-primary" style="width:8px;height:8px;"></span>
+                Academic dates
+            </div>
+        </div>
+
+        <div class="mb-2">
+            <div class="row g-1 text-center mb-1">
+                {% for day_name in academic_calendar_weekdays %}
+                <div class="col"><small class="text-uppercase text-muted" style="font-size:.62rem; letter-spacing:.04em;">{{ day_name }}</small></div>
+                {% endfor %}
+            </div>
+            {% for week in academic_calendar_weeks %}
+            <div class="row g-1 mb-1">
+                {% for day in week %}
+                <div class="col">
+                    <div
+                        class="position-relative text-center rounded-3 py-2 {% if day.is_current_month %}bg-light{% else %}bg-transparent{% endif %} {% if day.is_today %}border border-primary{% endif %}"
+                        style="min-height: 36px;"
+                        title="{% if day.events %}{% for event in day.events %}{{ event.title }}{% if not forloop.last %} • {% endif %}{% endfor %}{% else %}{{ day.date|date:'D, M d' }}{% endif %}"
+                    >
+                        <span class="small {% if not day.is_current_month %}text-muted opacity-50{% endif %}">{{ day.day }}</span>
+                        {% if day.events %}
+                        <span class="position-absolute top-0 end-0 translate-middle badge rounded-pill bg-primary" style="font-size:0.54rem; padding: 0.18rem 0.3rem;">
+                            {{ day.events|length }}
+                        </span>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}
             </div>
-        {% else %}
-            <div class="text-center text-muted py-4 px-3">
-                <i class="bi bi-calendar-x d-block mb-2" style="font-size:1.35rem;"></i>
-                <small>No upcoming calendar events yet.</small>
+            {% endfor %}
+        </div>
+
+        {% if academic_calendar_events %}
+        <div class="border-top pt-2 mt-2">
+            <div class="small fw-semibold text-muted mb-2">Upcoming</div>
+            {% for event in academic_calendar_events|slice:":3" %}
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <small class="text-truncate" style="max-width: 75%;">{{ event.title }}</small>
+                <small class="text-muted">{{ event.date|date:"M d" }}</small>
             </div>
+            {% endfor %}
+        </div>
         {% endif %}
     </div>
 </div>

@@ -12,6 +12,7 @@ from announcements.models import Announcement
 from django.db.models import Q, Count
 from django.db import connection
 from django.utils import timezone
+import calendar
 import datetime
 import json
 
@@ -36,8 +37,7 @@ def build_academic_calendar_widget(limit=5):
             ('Academic Year Ends', current_year.end_date, 'Year End'),
         ]
         for title, when, tag in term_markers:
-            if when >= today:
-                events.append({'title': title, 'date': when, 'tag': tag})
+            events.append({'title': title, 'date': when, 'tag': tag})
 
     upcoming_activities = Activity.objects.filter(is_active=True, date__gte=today).order_by('date')[:limit]
     for activity in upcoming_activities:
@@ -48,9 +48,64 @@ def build_academic_calendar_widget(limit=5):
         })
 
     events.sort(key=lambda item: item['date'])
+
+    display_year = today.year
+    display_month = today.month
+    month_start_weekday, month_days = calendar.monthrange(display_year, display_month)
+    prev_month = display_month - 1 if display_month > 1 else 12
+    prev_month_year = display_year if display_month > 1 else display_year - 1
+    prev_month_days = calendar.monthrange(prev_month_year, prev_month)[1]
+
+    event_map = {}
+    for event in events:
+        event_key = event['date'].isoformat()
+        event_map.setdefault(event_key, []).append(event)
+
+    cells = []
+
+    for day in range(prev_month_days - month_start_weekday + 1, prev_month_days + 1):
+        month_date = datetime.date(prev_month_year, prev_month, day)
+        cells.append({
+            'day': day,
+            'date': month_date,
+            'is_current_month': False,
+            'is_today': month_date == today,
+            'events': event_map.get(month_date.isoformat(), []),
+        })
+
+    for day in range(1, month_days + 1):
+        month_date = datetime.date(display_year, display_month, day)
+        cells.append({
+            'day': day,
+            'date': month_date,
+            'is_current_month': True,
+            'is_today': month_date == today,
+            'events': event_map.get(month_date.isoformat(), []),
+        })
+
+    next_month = display_month + 1 if display_month < 12 else 1
+    next_month_year = display_year if display_month < 12 else display_year + 1
+    trailing_days = (7 - (len(cells) % 7)) % 7
+    for day in range(1, trailing_days + 1):
+        month_date = datetime.date(next_month_year, next_month, day)
+        cells.append({
+            'day': day,
+            'date': month_date,
+            'is_current_month': False,
+            'is_today': month_date == today,
+            'events': event_map.get(month_date.isoformat(), []),
+        })
+
+    calendar_weeks = [cells[index:index + 7] for index in range(0, len(cells), 7)]
+
+    upcoming_events = [event for event in events if event['date'] >= today][:limit]
+
     return {
         'academic_calendar_year': current_year.name if current_year else 'Not Set',
-        'academic_calendar_events': events[:limit],
+        'academic_calendar_events': upcoming_events,
+        'academic_calendar_month_label': datetime.date(display_year, display_month, 1).strftime('%B %Y'),
+        'academic_calendar_weekdays': ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        'academic_calendar_weeks': calendar_weeks,
     }
 
 
