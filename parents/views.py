@@ -10,6 +10,7 @@ from accounts.models import User
 from students.models import Student, Attendance, Grade
 from finance.models import StudentFee
 from django.db.models import Sum
+from django.db.models import Q
 
 @login_required
 def parent_children(request):
@@ -137,6 +138,16 @@ def add_parent(request):
     if request.user.user_type != 'admin':
         messages.error(request, 'Access denied')
         return redirect('dashboard')
+
+    query = request.GET.get('q', '').strip()
+    parents = Parent.objects.select_related('user').prefetch_related('children').order_by('user__first_name', 'user__last_name')
+    if query:
+        parents = parents.filter(
+            Q(user__first_name__icontains=query) |
+            Q(user__last_name__icontains=query) |
+            Q(user__email__icontains=query) |
+            Q(user__phone__icontains=query)
+        )
         
     if request.method == 'POST':
         form = ParentForm(request.POST)
@@ -166,11 +177,73 @@ def add_parent(request):
             parent.save()
             form.save_m2m() # Save children
             messages.success(request, f"Parent {user.get_full_name()} added successfully.")
-            return redirect('dashboard')
+            return redirect('parents:add_parent')
     else:
         form = ParentForm()
         
-    return render(request, 'parents/add_parent.html', {'form': form})
+    return render(request, 'parents/add_parent.html', {
+        'form': form,
+        'parents': parents,
+        'query': query,
+        'is_edit': False,
+    })
+
+
+@login_required
+def edit_parent(request, parent_id):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    parent = get_object_or_404(Parent.objects.select_related('user'), id=parent_id)
+
+    if request.method == 'POST':
+        form = ParentForm(request.POST, instance=parent)
+        if form.is_valid():
+            user = parent.user
+            user.first_name = form.cleaned_data['first_name']
+            user.last_name = form.cleaned_data['last_name']
+            user.email = form.cleaned_data['email']
+            user.phone = form.cleaned_data.get('phone', '')
+            user.address = form.cleaned_data.get('address', '')
+            user.save()
+
+            form.save()
+            messages.success(request, f"Parent {user.get_full_name()} updated successfully.")
+            return redirect('parents:add_parent')
+    else:
+        form = ParentForm(instance=parent, initial={
+            'first_name': parent.user.first_name,
+            'last_name': parent.user.last_name,
+            'email': parent.user.email,
+            'phone': parent.user.phone,
+            'address': parent.user.address,
+        })
+
+    parents = Parent.objects.select_related('user').prefetch_related('children').order_by('user__first_name', 'user__last_name')
+    return render(request, 'parents/add_parent.html', {
+        'form': form,
+        'parents': parents,
+        'query': '',
+        'is_edit': True,
+        'editing_parent': parent,
+    })
+
+
+@login_required
+def delete_parent(request, parent_id):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    parent = get_object_or_404(Parent.objects.select_related('user'), id=parent_id)
+
+    if request.method == 'POST':
+        full_name = parent.user.get_full_name() or parent.user.username
+        parent.user.delete()
+        messages.success(request, f"Parent {full_name} deleted successfully.")
+
+    return redirect('parents:add_parent')
 
 @login_required
 def child_fees(request, student_id):

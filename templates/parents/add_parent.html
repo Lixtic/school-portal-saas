@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
 
-{% block title %}Add Parent{% endblock %}
+{% block title %}Parent Management{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -27,21 +27,102 @@
 {% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent py-3 border-bottom">
-                <h5 class="mb-0 fw-bold">Add New Parent</h5>
+<div class="container-fluid py-3">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h4 class="mb-1 fw-bold">Parent Management</h4>
+            <p class="text-muted mb-0">Create, edit and manage parent profiles and child assignments.</p>
+        </div>
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">Back to Dashboard</a>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent py-3 border-bottom">
+                    <h5 class="mb-0 fw-bold">{% if is_edit %}Edit Parent{% else %}Add New Parent{% endif %}</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form|crispy }}
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            {% if is_edit %}
+                            <a href="{% url 'parents:add_parent' %}" class="btn btn-light me-md-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary px-4">Update Parent</button>
+                            {% else %}
+                            <button type="submit" class="btn btn-primary px-4">Add Parent</button>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
             </div>
-            <div class="card-body p-4">
-                <form method="post">
-                    {% csrf_token %}
-                    {{ form|crispy }}
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                        <a href="{% url 'dashboard' %}" class="btn btn-light me-md-2">Cancel</a>
-                        <button type="submit" class="btn btn-primary px-4">Add Parent</button>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent py-3 border-bottom d-flex justify-content-between align-items-center gap-2">
+                    <h5 class="mb-0 fw-bold">Existing Parents</h5>
+                    <form method="get" class="d-flex gap-2" style="max-width: 320px; width: 100%;">
+                        <input type="text" name="q" class="form-control form-control-sm" placeholder="Search parent..." value="{{ query }}">
+                        <button type="submit" class="btn btn-sm btn-outline-primary">Search</button>
+                    </form>
+                </div>
+                <div class="card-body p-0">
+                    {% if parents %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-3">Parent</th>
+                                    <th>Relation</th>
+                                    <th>Children</th>
+                                    <th class="text-end pe-3">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for parent in parents %}
+                                <tr>
+                                    <td class="ps-3">
+                                        <div class="fw-semibold">{{ parent.user.get_full_name }}</div>
+                                        <div class="small text-muted">{{ parent.user.email|default:'-' }}</div>
+                                    </td>
+                                    <td><span class="badge bg-light text-dark">{{ parent.get_relation_display }}</span></td>
+                                    <td>
+                                        {% if parent.children.count %}
+                                            {% for child in parent.children.all|slice:":2" %}
+                                                <span class="badge bg-primary-subtle text-primary me-1">{{ child.user.get_full_name }}</span>
+                                            {% endfor %}
+                                            {% if parent.children.count > 2 %}
+                                                <span class="small text-muted">+{{ parent.children.count|add:'-2' }} more</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted small">No children linked</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end pe-3">
+                                        <a href="{% url 'parents:edit_parent' parent.id %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <form method="post" action="{% url 'parents:delete_parent' parent.id %}" class="d-inline" onsubmit="return confirm('Delete this parent profile?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
-                </form>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-person-hearts fs-2 text-muted opacity-50"></i>
+                        <p class="text-muted mt-2 mb-0">No parent profiles found.</p>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
