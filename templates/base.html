@@ -658,6 +658,23 @@
             letter-spacing: 0.08em;
             color: var(--text-muted);
             padding: 0.7rem 1rem 0.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            user-select: none;
+        }
+
+        .mobile-nav-label.mobile-nav-collapsible::after {
+            content: '\F282';
+            font-family: 'bootstrap-icons';
+            font-size: 0.72rem;
+            opacity: 0.8;
+            transition: transform 0.2s ease;
+        }
+
+        .mobile-nav-label.mobile-nav-collapsible.collapsed::after {
+            transform: rotate(-90deg);
         }
 
         .mobile-bubble-list {
@@ -871,6 +888,7 @@
                                 <li><hr class="dropdown-divider"></li>
                                 <li><h6 class="dropdown-header">Management</h6></li>
                                 <li><a class="dropdown-item" href="{% url 'teachers:teacher_list' %}"><i class="bi bi-person-lines-fill"></i> Teachers</a></li>
+                                <li><a class="dropdown-item" href="{% url 'parents:add_parent' %}"><i class="bi bi-person-hearts"></i> Parent Management</a></li>
                                 <li><a class="dropdown-item" href="{% url 'academics:manage_classes' %}"><i class="bi bi-door-open"></i> Manage Classes</a></li>
                                 <li><a class="dropdown-item" href="{% url 'academics:manage_subjects' %}"><i class="bi bi-book"></i> Manage Subjects</a></li>
                                 <li><a class="dropdown-item" href="{% url 'finance:manage_fees' %}"><i class="bi bi-receipt"></i> Manage Fees</a></li>
@@ -1065,6 +1083,7 @@
                 <div class="mobile-nav-label">Management</div>
                 <ul class="mobile-bubble-list">
                     <li class="mobile-bubble-item"><a href="{% url 'teachers:teacher_list' %}"><i class="bi bi-person-lines-fill"></i>Teachers</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'parents:add_parent' %}"><i class="bi bi-person-hearts"></i>Parent Management</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'academics:manage_classes' %}"><i class="bi bi-door-open"></i>Manage Classes</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'academics:manage_subjects' %}"><i class="bi bi-book"></i>Manage Subjects</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'academics:manage_academic_years' %}"><i class="bi bi-calendar-range"></i>Academic Years</a></li>
@@ -1868,7 +1887,41 @@
             if (localStorage.getItem('sidebarCollapsed') === 'true' && window.innerWidth >= 993) {
                 document.body.classList.add('sidebar-collapsed');
             }
+
+            initMobileCategoryCollapse();
         });
+
+        function initMobileCategoryCollapse() {
+            const labels = document.querySelectorAll('.mobile-nav-label');
+            labels.forEach((label, index) => {
+                const next = label.nextElementSibling;
+                if (!next || !next.classList.contains('mobile-bubble-list')) return;
+
+                label.classList.add('mobile-nav-collapsible');
+                label.setAttribute('role', 'button');
+                label.setAttribute('tabindex', '0');
+
+                // Keep first section open by default; others can be collapsed/expanded
+                if (index > 0) {
+                    next.style.display = 'none';
+                    label.classList.add('collapsed');
+                }
+
+                const toggle = () => {
+                    const isCollapsed = label.classList.contains('collapsed');
+                    label.classList.toggle('collapsed', !isCollapsed);
+                    next.style.display = isCollapsed ? '' : 'none';
+                };
+
+                label.addEventListener('click', toggle);
+                label.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        toggle();
+                    }
+                });
+            });
+        }
 
         // Handle window resize for overlay reset
         window.addEventListener('resize', function() {

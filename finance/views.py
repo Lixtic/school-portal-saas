@@ -87,6 +87,52 @@ def create_fee_structure(request):
 
     return render(request, 'finance/fee_form.html', {'form': form})
 
+
+@login_required
+def edit_fee_structure(request, structure_id):
+    if request.user.user_type != 'admin':
+        return redirect('dashboard')
+
+    structure = get_object_or_404(FeeStructure, id=structure_id)
+
+    if request.method == 'POST':
+        form = FeeStructureForm(request.POST, instance=structure)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Fee Structure updated successfully.')
+            return redirect('finance:manage_fees')
+    else:
+        form = FeeStructureForm(instance=structure)
+
+    return render(request, 'finance/fee_form.html', {
+        'form': form,
+        'is_edit': True,
+        'form_title': 'Edit Fee Structure',
+        'submit_label': 'Update Fee'
+    })
+
+
+@login_required
+def edit_fee_head(request, head_id):
+    if request.user.user_type != 'admin':
+        return redirect('dashboard')
+
+    fee_head = get_object_or_404(FeeHead, id=head_id)
+
+    if request.method == 'POST':
+        form = FeeHeadForm(request.POST, instance=fee_head)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Fee Category updated successfully.')
+            return redirect('finance:manage_fees')
+    else:
+        form = FeeHeadForm(instance=fee_head)
+
+    return render(request, 'finance/fee_head_form.html', {
+        'form': form,
+        'fee_head': fee_head
+    })
+
 @login_required
 def student_fees(request, student_id):
     student = get_object_or_404(Student, id=student_id)
