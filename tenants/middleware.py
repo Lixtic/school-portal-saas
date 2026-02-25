@@ -23,7 +23,8 @@ class TenantPathMiddleware(TenantMainMiddleware):
         # Add common global paths to exclude from tenant lookup
         reserved_paths = [
             'static', 'media', 'admin', 'accounts', 
-            'signup', 'login', 'logout', 'debug', 'favicon.ico', 'dashboard', 'tenants'
+            'signup', 'login', 'logout', 'debug', 'favicon.ico', 'dashboard', 'tenants',
+            'find-school'
         ]
         
         if possible_schema and possible_schema != 'public' and possible_schema not in reserved_paths:
@@ -95,7 +96,7 @@ class TenantPathMiddleware(TenantMainMiddleware):
             # identifying that the school itself doesn't exist.
             reserved_paths = [
                 'admin', 'static', 'media', 'signup', 'login', 'logout', 
-                'dashboard', 'favicon.ico', 'debug', 'accounts', 'tenants',
+                'dashboard', 'favicon.ico', 'debug', 'accounts', 'tenants', 'find-school',
                 'password', 'reset', ''
             ]
             # Ensure we don't treat root path (empty string) as a missing tenant

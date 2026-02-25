@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}My Tutor Sessions{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">
+                <i class="bi bi-clock-history me-2"></i>My Tutor Sessions
+            </h2>
+            <p class="text-body-secondary mb-0">Review your AI Tutor conversation history.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle px-3 py-2">
+                Total Sessions: {{ sessions|length }}
+            </span>
+            <a href="{% url 'academics:ai_tutor' %}" class="btn btn-primary rounded-3">
+                <i class="bi bi-robot me-1"></i>Back to AI Tutor
+            </a>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-0">
+            {% if sessions %}
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="px-4 py-3">Started</th>
+                            <th class="py-3">Subject</th>
+                            <th class="py-3">Messages</th>
+                            <th class="py-3">Last Activity</th>
+                            <th class="py-3">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for session in sessions %}
+                        <tr>
+                            <td class="px-4 py-3">
+                                <div class="fw-semibold">{{ session.started_at|date:"M d, Y" }}</div>
+                                <small class="text-body-secondary">{{ session.started_at|date:"h:i A" }}</small>
+                            </td>
+                            <td class="py-3">
+                                {% if session.subject %}
+                                    <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">{{ session.subject.name }}</span>
+                                {% else %}
+                                    <span class="text-body-secondary">General</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3">
+                                <span class="fw-semibold">{{ session.message_count }}</span>
+                            </td>
+                            <td class="py-3">
+                                {% if session.last_message_at %}
+                                    <small class="text-body-secondary">{{ session.last_message_at|timesince }} ago</small>
+                                {% else %}
+                                    <small class="text-body-secondary">No messages</small>
+                                {% endif %}
+                            </td>
+                            <td class="py-3">
+                                {% if session.ended_at %}
+                                    <span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">Ended</span>
+                                {% else %}
+                                    <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">Active</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-5 text-center">
+                <i class="bi bi-chat-dots fs-1 text-body-secondary d-block mb-3"></i>
+                <h5 class="fw-semibold mb-2">No tutor sessions yet</h5>
+                <p class="text-body-secondary mb-4">Start a conversation with AI Tutor to see your learning history here.</p>
+                <a href="{% url 'academics:ai_tutor' %}" class="btn btn-primary rounded-3">
+                    <i class="bi bi-rocket-takeoff me-1"></i>Start AI Tutor
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

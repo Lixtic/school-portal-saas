@@ -6,7 +6,7 @@ from django.urls import reverse
 import datetime
 import json
 from django.db import connection, ProgrammingError
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Max
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from accounts.models import User
@@ -1929,7 +1929,12 @@ def tutor_sessions(request):
             messages.error(request, error_message)
             return redirect('dashboard')
 
-        sessions = TutorSession.objects.filter(student=student).select_related('subject')
+        sessions = (
+            TutorSession.objects.filter(student=student)
+            .select_related('subject')
+            .annotate(last_message_at=Max('messages__created_at'))
+            .order_by('-started_at')
+        )
         
         context = {
             'sessions': sessions,
