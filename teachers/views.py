@@ -26,11 +26,31 @@ def teacher_list(request):
     if request.user.user_type != 'admin':
         messages.error(request, 'Access denied')
         return redirect('dashboard')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        teacher_id = request.POST.get('teacher_id')
+        teacher = get_object_or_404(Teacher, id=teacher_id)
+
+        if action == 'assign_class':
+            class_id = request.POST.get('class_id')
+            if class_id:
+                class_obj = get_object_or_404(Class, id=class_id)
+                class_obj.class_teacher = teacher
+                class_obj.save()
+                messages.success(request, f'{teacher.user.get_full_name()} assigned to {class_obj.name}.')
+            else:
+                messages.error(request, 'Please select a class to assign.')
+        elif action == 'clear_assignments':
+            removed_count = teacher.managed_classes.update(class_teacher=None)
+            messages.success(request, f'Cleared {removed_count} class assignment(s) for {teacher.user.get_full_name()}.')
+
+        return redirect('teachers:teacher_list')
     
     query = request.GET.get('q', '')
     teachers = Teacher.objects.select_related('user').annotate(
-        classes_count=Count('managed_classes'),
-        subjects_count=Count('classsubject')
+        classes_count=Count('managed_classes', distinct=True),
+        subjects_count=Count('classsubject', distinct=True)
     )
     
     if query:
@@ -42,10 +62,12 @@ def teacher_list(request):
         )
     
     teachers = teachers.order_by('user__first_name', 'user__last_name')
+    classes = Class.objects.select_related('academic_year').order_by('name')
     
     context = {
         'teachers': teachers,
-        'query': query
+        'query': query,
+        'classes': classes,
     }
     return render(request, 'teachers/teacher_list.html', context)
 

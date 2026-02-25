@@ -79,6 +79,30 @@
                                 <a href="{% url 'teachers:edit_teacher' teacher.id %}" class="btn btn-sm btn-outline-primary" title="Edit">
                                     <i class="bi bi-pencil"></i>
                                 </a>
+                                <form method="post" class="d-inline-flex align-items-center gap-1 ms-1">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="assign_class">
+                                    <input type="hidden" name="teacher_id" value="{{ teacher.id }}">
+                                    <select name="class_id" class="form-select form-select-sm" style="width: 130px;" required>
+                                        <option value="">Assign class</option>
+                                        {% for school_class in classes %}
+                                        <option value="{{ school_class.id }}">{{ school_class.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Assign as Class Teacher">
+                                        <i class="bi bi-check2-circle"></i>
+                                    </button>
+                                </form>
+                                {% if teacher.classes_count > 0 %}
+                                <form method="post" class="d-inline ms-1">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="clear_assignments">
+                                    <input type="hidden" name="teacher_id" value="{{ teacher.id }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Clear Class Assignments">
+                                        <i class="bi bi-x-circle"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
