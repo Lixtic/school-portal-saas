@@ -1,9 +1,43 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Announcement
+from .models import Announcement, Notification
 from .forms import AnnouncementForm
 from django.db.models import Q
+from accounts.models import User
+
+
+def _create_announcement_notifications(announcement):
+    """Bulk-create Notification records for every user targeted by an announcement."""
+    audience = announcement.target_audience
+    qs = User.objects.exclude(pk=announcement.created_by_id)
+
+    if audience == 'all':
+        recipients = qs
+    elif audience == 'staff':
+        recipients = qs.filter(user_type__in=['admin', 'teacher'])
+    elif audience == 'teachers':
+        recipients = qs.filter(user_type='teacher')
+    elif audience == 'students':
+        recipients = qs.filter(user_type='student')
+    elif audience == 'parents':
+        recipients = qs.filter(user_type='parent')
+    else:
+        recipients = qs.none()
+
+    # Remove any old notifications for this same announcement (e.g. on edit)
+    Notification.objects.filter(announcement=announcement).delete()
+
+    notifications = [
+        Notification(
+            recipient=user,
+            message=f"📢 {announcement.title}",
+            alert_type='announcement',
+            announcement=announcement,
+        )
+        for user in recipients
+    ]
+    Notification.objects.bulk_create(notifications, ignore_conflicts=True)
 
 
 @login_required
@@ -50,6 +84,7 @@ def manage_announcements(request):
             announcement = form.save(commit=False)
             announcement.created_by = request.user
             announcement.save()
+            _create_announcement_notifications(announcement)
             messages.success(request, 'Announcement posted successfully.')
             return redirect('announcements:manage')
             
@@ -63,10 +98,16 @@ def manage_announcements(request):
 
 @login_required
 def mark_notification_read(request, notification_id):
-    from .models import Notification
     notification = get_object_or_404(Notification, id=notification_id, recipient=request.user)
     notification.is_read = True
     notification.save()
+    # Route to contextually relevant page based on notification type
+    if notification.alert_type == 'announcement':
+        if request.user.user_type == 'admin':
+            return redirect('announcements:manage')
+        return redirect('announcements:list')
+    if notification.alert_type == 'message':
+        return redirect('communication:inbox')
     return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
 
 @login_required

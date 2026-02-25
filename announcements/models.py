@@ -26,14 +26,24 @@ class Announcement(models.Model):
 
 
 class Notification(models.Model):
+    ALERT_CHOICES = [
+        ('45_min', '45 Minutes Before Class'),
+        ('10_min', '10 Minutes Before Class'),
+        ('announcement', 'Announcement'),
+        ('message', 'New Message'),
+        ('general', 'General'),
+    ]
+
     recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
     message = models.CharField(max_length=255)
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-    
-    # Link to the specific timetable slot to avoid duplicates
+    link = models.CharField(max_length=500, blank=True, default='')
+
+    # Optional links to source objects
     timetable_slot = models.ForeignKey('academics.Timetable', on_delete=models.CASCADE, null=True, blank=True)
-    alert_type = models.CharField(max_length=20, choices=[('45_min', '45 Minutes'), ('10_min', '10 Minutes')]) # To track which alert was sent
+    announcement = models.ForeignKey(Announcement, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
+    alert_type = models.CharField(max_length=20, choices=ALERT_CHOICES, default='general')
 
     class Meta:
         ordering = ['-created_at']

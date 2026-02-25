@@ -9,6 +9,17 @@ from .models import Conversation, Message, SMSMessage, EmailCampaign
 from .forms import SMSForm, EmailForm
 from students.models import Student
 from teachers.models import Teacher
+from announcements.models import Notification
+
+
+def _notify_new_message(sender, recipient, preview):
+    """Create a bell notification for the recipient of a new message."""
+    short = preview[:80] + ('…' if len(preview) > 80 else '')
+    Notification.objects.create(
+        recipient=recipient,
+        message=f"💬 New message from {sender.get_full_name() or sender.username}: {short}",
+        alert_type='message',
+    )
 
 
 # ═══════════════════════════════
@@ -64,6 +75,7 @@ def conversation_view(request, user_id):
                 content=content,
             )
             conv.save()  # bumps updated_at
+            _notify_new_message(request.user, other_user, content)
         return redirect('communication:conversation', user_id=user_id)
 
     messages_qs = conv.messages.select_related('sender').order_by('created_at')
@@ -95,6 +107,7 @@ def compose(request):
         conv, _ = Conversation.get_or_create_between(user, other_user)
         Message.objects.create(conversation=conv, sender=user, content=content)
         conv.save()
+        _notify_new_message(user, other_user, content)
         return redirect('communication:conversation', user_id=other_user.pk)
 
     recipients = _allowed_recipients(user)
