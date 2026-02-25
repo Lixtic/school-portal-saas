@@ -9,6 +9,7 @@ from django.utils import timezone
 
 def get_tutor_system_prompt(student, subject=None):
     """Generate context-aware system prompt for AI tutor"""
+    from .models import Subject
     
     context = f"""You are an expert AI tutor helping {student.user.get_full_name()}, a student in {student.current_class.name if student.current_class else 'school'}.
 
@@ -34,8 +35,10 @@ Guidelines:
     
     # Add student's enrolled subjects
     if student.current_class:
-        enrolled_subjects = student.current_class.subjects.all()
-        if enrolled_subjects:
+        enrolled_subjects = Subject.objects.filter(
+            classsubject__class_name=student.current_class
+        ).distinct()
+        if enrolled_subjects.exists():
             context += f"\n\nStudent's Subjects: {', '.join([s.name for s in enrolled_subjects])}"
     
     context += "\n\nAlways maintain an encouraging, supportive tone. Make learning fun and engaging!"

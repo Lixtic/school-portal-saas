@@ -1653,49 +1653,86 @@ def global_search(request):
 # AI TUTOR ASSISTANT
 # =====================
 
+def _get_student_tutor_context(user, tenant=None):
+    """Return (student, subjects, error_message) for AI Tutor endpoints."""
+    from students.models import Student
+    from tenants.models import SchoolSubscription, SchoolAddOn, AddOn
+
+    if user.user_type != 'student':
+        return None, [], "AI Tutor is only available for students"
+
+    try:
+        student = Student.objects.select_related('current_class').get(user=user)
+    except Student.DoesNotExist:
+        return None, [], "Student profile not found"
+
+    subjects = []
+    if student.current_class:
+        subjects = list(
+            Subject.objects.filter(classsubject__class_name=student.current_class)
+            .distinct()
+            .order_by('name')
+        )
+
+    if tenant is not None:
+        try:
+            subscription = SchoolSubscription.objects.get(school=tenant)
+            ai_tutor_addon = AddOn.objects.get(slug='ai-tutor')
+            has_addon = SchoolAddOn.objects.filter(
+                subscription=subscription,
+                addon=ai_tutor_addon,
+                is_active=True
+            ).exists()
+            if not has_addon:
+                return None, [], "AI Tutor is not available. Please contact your administrator."
+        except (SchoolSubscription.DoesNotExist, AddOn.DoesNotExist):
+            return None, [], "AI Tutor is not available. Please contact your administrator."
+        except Exception:
+            return None, [], "Unable to verify AI Tutor access"
+
+    return student, subjects, None
+
 @login_required
 def ai_tutor(request):
     """AI Tutor chat interface for students"""
-    from students.models import Student
-    from tenants.models import SchoolSubscription, SchoolAddOn, AddOn
-    
-    # Check if user is a student
-    if request.user.user_type != 'student':
-        messages.error(request, "AI Tutor is only available for students")
+    student, subjects, error_message = _get_student_tutor_context(request.user, request.tenant)
+    if error_message:
+        messages.error(request, error_message)
         return redirect('dashboard')
-    
-    # Check if school has AI Tutor add-on
-    try:
-        student = Student.objects.get(user=request.user)
-        subscription = SchoolSubscription.objects.get(school=request.tenant)
-        ai_tutor_addon = AddOn.objects.get(slug='ai-tutor')
-        
-        has_addon = SchoolAddOn.objects.filter(
-            subscription=subscription,
-            addon=ai_tutor_addon,
-            is_active=True
-        ).exists()
-        
-        if not has_addon:
-            messages.warning(request, "AI Tutor is not available. Please contact your administrator.")
-            return redirect('dashboard')
-    except Exception as e:
-        messages.error(request, "Unable to access AI Tutor")
-        return redirect('dashboard')
-    
-    # Get student's subjects
-    subjects = []
-    if student.current_class:
-        subjects = student.current_class.subjects.all()
-    
+
     # Get recent sessions
     from .models import TutorSession
     recent_sessions = TutorSession.objects.filter(student=student).order_by('-started_at')[:5]
+
+    latest_session = recent_sessions.first()
+    initial_messages = []
+    initial_subject_id = None
+
+    if latest_session:
+        initial_messages = [
+            {
+                'role': message.role,
+                'content': message.content,
+            }
+            for message in latest_session.messages.order_by('created_at')
+            if message.role in ['user', 'assistant']
+        ]
+        if latest_session.subject_id:
+            initial_subject_id = latest_session.subject_id
+
+    ai_tutor_bootstrap = {
+        'session_id': latest_session.id if latest_session else None,
+        'messages': initial_messages,
+        'subject_id': initial_subject_id,
+    }
     
     context = {
         'student': student,
         'subjects': subjects,
         'recent_sessions': recent_sessions,
+        'initial_messages': initial_messages,
+        'initial_subject_id': initial_subject_id,
+        'ai_tutor_bootstrap': ai_tutor_bootstrap,
     }
     
     return render(request, 'academics/ai_tutor.html', context)
@@ -1704,7 +1741,6 @@ def ai_tutor(request):
 @login_required
 def ai_tutor_chat(request):
     """Stream AI tutor responses"""
-    from students.models import Student
     from .ai_tutor import stream_tutor_response
     from .models import TutorSession, TutorMessage, Subject
     
@@ -1712,45 +1748,89 @@ def ai_tutor_chat(request):
         return JsonResponse({'error': 'Invalid method'}, status=400)
     
     try:
-        student = Student.objects.get(user=request.user)
+        student, subjects, error_message = _get_student_tutor_context(request.user, request.tenant)
+        if error_message:
+            return JsonResponse({'error': error_message}, status=403)
+
         data = json.loads(request.body)
         messages_list = data.get('messages', [])
         subject_id = data.get('subject_id')
         session_id = data.get('session_id')
+
+        if not isinstance(messages_list, list):
+            return JsonResponse({'error': 'Invalid messages payload'}, status=400)
+
+        allowed_subject_ids = {str(subject.id) for subject in subjects}
         
         # Get or create session
         if session_id:
             session = TutorSession.objects.get(id=session_id, student=student)
         else:
+            subject_pk = None
+            if subject_id:
+                if str(subject_id) not in allowed_subject_ids:
+                    return JsonResponse({'error': 'Invalid subject selected'}, status=400)
+                subject_pk = subject_id
             session = TutorSession.objects.create(
                 student=student,
-                subject_id=subject_id if subject_id else None
+                subject_id=subject_pk
             )
         
         # Save user message
-        if messages_list and messages_list[-1]['role'] == 'user':
+        if messages_list and isinstance(messages_list[-1], dict) and messages_list[-1].get('role') == 'user':
             TutorMessage.objects.create(
                 session=session,
                 role='user',
-                content=messages_list[-1]['content']
+                content=messages_list[-1].get('content', '')
             )
             session.message_count += 1
             session.save()
         
         # Get subject context
-        subject = Subject.objects.get(id=subject_id) if subject_id else None
+        subject = None
+        if subject_id:
+            if str(subject_id) not in allowed_subject_ids:
+                return JsonResponse({'error': 'Invalid subject selected'}, status=400)
+            subject = Subject.objects.get(id=subject_id)
+
+        def _stream_and_persist():
+            assistant_chunks = []
+            for chunk in stream_tutor_response(messages_list, student, subject):
+                if chunk.startswith('data: '):
+                    payload = chunk[6:].strip()
+                    if payload and payload != '[DONE]':
+                        try:
+                            parsed = json.loads(payload)
+                            content_piece = parsed.get('content')
+                            if content_piece:
+                                assistant_chunks.append(content_piece)
+                        except Exception:
+                            pass
+                yield chunk
+
+            full_assistant_message = ''.join(assistant_chunks).strip()
+            if full_assistant_message:
+                TutorMessage.objects.create(
+                    session=session,
+                    role='assistant',
+                    content=full_assistant_message
+                )
+                session.message_count += 1
+                session.save(update_fields=['message_count'])
         
         # Stream response
         response = StreamingHttpResponse(
-            stream_tutor_response(messages_list, student, subject),
+            _stream_and_persist(),
             content_type='text/event-stream'
         )
         response['Cache-Control'] = 'no-cache'
         response['X-Accel-Buffering'] = 'no'
-        response['session_id'] = session.id
+        response['X-Session-Id'] = str(session.id)
         
         return response
         
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
@@ -1758,7 +1838,6 @@ def ai_tutor_chat(request):
 @login_required
 def generate_practice(request):
     """Generate practice questions"""
-    from students.models import Student
     from .ai_tutor import generate_practice_questions
     from .models import Subject, PracticeQuestionSet
     
@@ -1766,7 +1845,10 @@ def generate_practice(request):
         return JsonResponse({'error': 'Invalid method'}, status=400)
     
     try:
-        student = Student.objects.get(user=request.user)
+        student, subjects, error_message = _get_student_tutor_context(request.user, request.tenant)
+        if error_message:
+            return JsonResponse({'error': error_message}, status=403)
+
         data = json.loads(request.body)
         
         subject_id = data.get('subject_id')
@@ -1774,6 +1856,10 @@ def generate_practice(request):
         difficulty = data.get('difficulty', 'medium')
         count = data.get('count', 5)
         
+        allowed_subject_ids = {str(subject.id) for subject in subjects}
+        if str(subject_id) not in allowed_subject_ids:
+            return JsonResponse({'error': 'Invalid subject selected'}, status=400)
+
         subject = Subject.objects.get(id=subject_id)
         
         # Generate questions
@@ -1792,6 +1878,8 @@ def generate_practice(request):
         
         return JsonResponse(result)
         
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
@@ -1799,7 +1887,6 @@ def generate_practice(request):
 @login_required
 def explain_concept(request):
     """Get AI explanation of a concept"""
-    from students.models import Student
     from .ai_tutor import explain_concept as get_explanation
     from .models import Subject
     
@@ -1807,17 +1894,26 @@ def explain_concept(request):
         return JsonResponse({'error': 'Invalid method'}, status=400)
     
     try:
-        student = Student.objects.get(user=request.user)
+        student, subjects, error_message = _get_student_tutor_context(request.user, request.tenant)
+        if error_message:
+            return JsonResponse({'error': error_message}, status=403)
+
         data = json.loads(request.body)
         
         subject_id = data.get('subject_id')
         concept = data.get('concept', '')
+
+        allowed_subject_ids = {str(subject.id) for subject in subjects}
+        if str(subject_id) not in allowed_subject_ids:
+            return JsonResponse({'error': 'Invalid subject selected'}, status=400)
         
         subject = Subject.objects.get(id=subject_id)
         explanation = get_explanation(subject, concept)
         
         return JsonResponse({'explanation': explanation})
         
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
@@ -1825,11 +1921,14 @@ def explain_concept(request):
 @login_required
 def tutor_sessions(request):
     """View all tutor sessions"""
-    from students.models import Student
     from .models import TutorSession
     
     try:
-        student = Student.objects.get(user=request.user)
+        student, _subjects, error_message = _get_student_tutor_context(request.user, request.tenant)
+        if error_message:
+            messages.error(request, error_message)
+            return redirect('dashboard')
+
         sessions = TutorSession.objects.filter(student=student).select_related('subject')
         
         context = {
@@ -1837,8 +1936,8 @@ def tutor_sessions(request):
         }
         
         return render(request, 'academics/tutor_sessions.html', context)
-        
-    except Student.DoesNotExist:
-        messages.error(request, "Student profile not found")
+
+    except Exception:
+        messages.error(request, "Unable to load tutor sessions")
         return redirect('dashboard')
 
