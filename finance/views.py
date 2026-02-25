@@ -190,14 +190,22 @@ def print_receipt(request, payment_id):
     payment = get_object_or_404(Payment, id=payment_id)
     student = payment.student_fee.student
     
-    # Permission check: Only Admin or Assigned Class Teacher
+    # Permission check: Admin, Assigned Class Teacher, or Parent of the student
     allowed = False
     if request.user.user_type == 'admin':
         allowed = True
     elif request.user.user_type == 'teacher':
         if student.current_class and student.current_class.class_teacher and student.current_class.class_teacher.user == request.user:
             allowed = True
-            
+    elif request.user.user_type == 'parent':
+        from parents.models import Parent
+        try:
+            parent = Parent.objects.get(user=request.user)
+            if student in parent.children.all():
+                allowed = True
+        except Parent.DoesNotExist:
+            pass
+
     if not allowed:
         return redirect('dashboard')
     
