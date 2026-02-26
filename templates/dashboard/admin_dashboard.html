@@ -174,11 +174,25 @@
         .qa-min-link { padding: 0.62rem 0.65rem; font-size: 0.76rem; min-height: 42px; }
     }
 
+    /* ===== Admin Two-Column Layout ===== */
+    .admin-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        gap: 1.25rem;
+        align-items: start;
+    }
+    .admin-main,
+    .admin-sidebar {
+        display: grid;
+        gap: 1rem;
+        align-content: start;
+    }
+
     /* ===== Content Grid (Announcements + Charts) ===== */
     .content-grid {
         display: grid;
         grid-template-columns: 1fr 380px;
-        gap: 1.5rem;
+        gap: 1rem;
         align-items: start;
     }
     .chart-card {
@@ -247,6 +261,45 @@
     }
     .announce-empty i { font-size: 2rem; margin-bottom: 0.5rem; display: block; }
 
+    /* ===== Messages Widget ===== */
+    .messages-card {
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid rgba(0,0,0,0.06);
+        overflow: hidden;
+    }
+    .messages-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.625rem;
+        padding: 0.8rem 0.9rem;
+        border-bottom: 1px solid rgba(0,0,0,0.04);
+    }
+    .messages-item:last-child { border-bottom: none; }
+    .messages-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 9px;
+        background: #ecfeff;
+        color: #0891b2;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 0.88rem;
+    }
+    .messages-text {
+        font-size: 0.78rem;
+        color: #4b5563;
+        line-height: 1.35;
+    }
+    .messages-date {
+        font-size: 0.68rem;
+        color: #9ca3af;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
     /* ===== Customize Dropdown ===== */
     .customize-menu {
         width: 260px;
@@ -260,7 +313,8 @@
     [data-bs-theme="dark"] .stat-card,
     [data-bs-theme="dark"] .action-card,
     [data-bs-theme="dark"] .announce-card,
-    [data-bs-theme="dark"] .chart-card {
+    [data-bs-theme="dark"] .chart-card,
+    [data-bs-theme="dark"] .messages-card {
         background: var(--surface-card, #1e293b);
         border-color: rgba(255,255,255,0.06);
     }
@@ -281,9 +335,14 @@
     [data-bs-theme="dark"] .announce-body { color: #94a3b8; }
     [data-bs-theme="dark"] .announce-date { color: #64748b; }
     [data-bs-theme="dark"] .announce-empty { color: #64748b; }
+    [data-bs-theme="dark"] .messages-item { border-bottom-color: rgba(255,255,255,0.04); }
+    [data-bs-theme="dark"] .messages-icon { background: rgba(6,182,212,0.18); color: #67e8f9; }
+    [data-bs-theme="dark"] .messages-text { color: #cbd5e1; }
+    [data-bs-theme="dark"] .messages-date { color: #64748b; }
 
     /* ===== Responsive: Tablet ===== */
     @media (max-width: 991px) {
+        .admin-layout { grid-template-columns: 1fr; }
         .content-grid { grid-template-columns: 1fr; }
         .actions-grid { grid-template-columns: repeat(4, 1fr); }
     }
@@ -603,6 +662,10 @@
                         <label class="form-check-label" for="toggle-quick-actions">Quick Actions</label>
                     </li>
                     <li class="form-check form-switch">
+                        <input class="form-check-input widget-toggle" type="checkbox" id="toggle-messages" data-target="widget-messages" checked>
+                        <label class="form-check-label" for="toggle-messages">Messages</label>
+                    </li>
+                    <li class="form-check form-switch">
                         <input class="form-check-input widget-toggle" type="checkbox" id="toggle-announcements" data-target="widget-announcements" checked>
                         <label class="form-check-label" for="toggle-announcements">Announcements</label>
                     </li>
@@ -701,143 +764,170 @@
 {% endif %}
 {% endif %}
 
-<!-- Key Metrics -->
-<div class="stats-grid">
-    <div class="stat-card" id="widget-stat-students">
-        <div class="stat-top">
-            <div>
-                <div class="stat-label">Students</div>
-                <div class="stat-value">{{ total_students }}</div>
-                <span class="stat-badge sb-blue">
-                    <i class="bi bi-check-circle-fill" style="font-size: 0.6rem;"></i> Active
-                </span>
-            </div>
-            <div class="stat-icon si-blue">
-                <i class="bi bi-people-fill"></i>
-            </div>
-        </div>
-    </div>
-    <div class="stat-card" id="widget-stat-teachers">
-        <div class="stat-top">
-            <div>
-                <div class="stat-label">Teachers</div>
-                <div class="stat-value">{{ total_teachers }}</div>
-                <span class="stat-badge sb-green">
-                    <i class="bi bi-check-circle-fill" style="font-size: 0.6rem;"></i> On Duty
-                </span>
-            </div>
-            <div class="stat-icon si-green">
-                <i class="bi bi-person-badge-fill"></i>
-            </div>
-        </div>
-    </div>
-    <div class="stat-card" id="widget-stat-notices">
-        <div class="stat-top">
-            <div>
-                <div class="stat-label">Notices</div>
-                <div class="stat-value">{{ notices|length }}</div>
-                <span class="stat-badge sb-indigo">
-                    <i class="bi bi-clock-fill" style="font-size: 0.6rem;"></i> Latest
-                </span>
-            </div>
-            <div class="stat-icon si-sky">
-                <i class="bi bi-bell-fill"></i>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Setup alerts replaced by Getting Started Guide above -->
-
-<!-- Quick Actions - Minimal minimalist grid -->
-<div id="widget-quick-actions">
-    <div class="section-heading">Quick Actions</div>
-    <div class="qa-minimal-wrap">
-        <div class="qa-minimal-grid">
-            <a href="{% url 'students:add_student' %}" class="qa-min-link">
-                <i class="bi bi-person-plus"></i>
-                <span>Add Student</span>
-            </a>
-            <a href="{% url 'teachers:add_teacher' %}" class="qa-min-link">
-                <i class="bi bi-person-badge"></i>
-                <span>Add Teacher</span>
-            </a>
-            <a href="{% url 'students:mark_attendance' %}" class="qa-min-link qa-academic">
-                <i class="bi bi-calendar-check"></i>
-                <span>Attendance</span>
-            </a>
-            <a href="{% url 'academics:timetable' %}" class="qa-min-link qa-academic">
-                <i class="bi bi-table"></i>
-                <span>Timetable</span>
-            </a>
-            <a href="{% url 'finance:manage_fees' %}" class="qa-min-link qa-finance">
-                <i class="bi bi-wallet2"></i>
-                <span>Manage Fees</span>
-            </a>
-            <a href="{% url 'announcements:manage' %}" class="qa-min-link qa-ops">
-                <i class="bi bi-megaphone"></i>
-                <span>Notices</span>
-            </a>
-            <a href="{% url 'academics:manage_classes' %}" class="qa-min-link qa-academic">
-                <i class="bi bi-door-open"></i>
-                <span>Classes</span>
-            </a>
-            <a href="{% url 'academics:school_settings' %}" class="qa-min-link qa-ops">
-                <i class="bi bi-sliders"></i>
-                <span>School Settings</span>
-            </a>
-        </div>
-    </div>
-</div>
-
-{% include 'dashboard/components/academic_calendar_widget.html' %}
-
-<!-- Main Content: Announcements + Charts -->
-<div class="content-grid">
-    <!-- Announcements -->
-    <div id="widget-announcements">
-        <div class="section-heading">
-            Recent Announcements
-            <a href="{% url 'announcements:manage' %}" class="btn btn-link btn-sm text-decoration-none p-0" style="font-size: 0.8125rem;">View All</a>
-        </div>
-        <div class="announce-card">
-            {% for notice in notices %}
-            <div class="announce-item">
-                <div class="announce-icon">
-                    <i class="bi bi-info-circle-fill"></i>
-                </div>
-                <div class="flex-grow-1" style="min-width: 0;">
-                    <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
-                        <div class="announce-title text-truncate">{{ notice.title }}</div>
-                        <span class="announce-date">{{ notice.created_at|date:"M d" }}</span>
+<div class="admin-layout">
+    <div class="admin-main">
+        <!-- Key Metrics -->
+        <div class="stats-grid">
+            <div class="stat-card" id="widget-stat-students">
+                <div class="stat-top">
+                    <div>
+                        <div class="stat-label">Students</div>
+                        <div class="stat-value">{{ total_students }}</div>
+                        <span class="stat-badge sb-blue">
+                            <i class="bi bi-check-circle-fill" style="font-size: 0.6rem;"></i> Active
+                        </span>
                     </div>
-                    <p class="announce-body">{{ notice.content|truncatechars:100 }}</p>
+                    <div class="stat-icon si-blue">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
                 </div>
             </div>
-            {% empty %}
-            <div class="announce-empty">
-                <i class="bi bi-inbox"></i>
-                <p class="mb-0" style="font-size: 0.8125rem;">No active announcements</p>
+            <div class="stat-card" id="widget-stat-teachers">
+                <div class="stat-top">
+                    <div>
+                        <div class="stat-label">Teachers</div>
+                        <div class="stat-value">{{ total_teachers }}</div>
+                        <span class="stat-badge sb-green">
+                            <i class="bi bi-check-circle-fill" style="font-size: 0.6rem;"></i> On Duty
+                        </span>
+                    </div>
+                    <div class="stat-icon si-green">
+                        <i class="bi bi-person-badge-fill"></i>
+                    </div>
+                </div>
             </div>
-            {% endfor %}
+            <div class="stat-card" id="widget-stat-notices">
+                <div class="stat-top">
+                    <div>
+                        <div class="stat-label">Notices</div>
+                        <div class="stat-value">{{ notices|length }}</div>
+                        <span class="stat-badge sb-indigo">
+                            <i class="bi bi-clock-fill" style="font-size: 0.6rem;"></i> Latest
+                        </span>
+                    </div>
+                    <div class="stat-icon si-sky">
+                        <i class="bi bi-bell-fill"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content: Announcements + Charts -->
+        <div class="content-grid">
+            <!-- Announcements -->
+            <div id="widget-announcements">
+                <div class="section-heading">
+                    Recent Announcements
+                    <a href="{% url 'announcements:manage' %}" class="btn btn-link btn-sm text-decoration-none p-0" style="font-size: 0.8125rem;">View All</a>
+                </div>
+                <div class="announce-card">
+                    {% for notice in notices %}
+                    <div class="announce-item">
+                        <div class="announce-icon">
+                            <i class="bi bi-info-circle-fill"></i>
+                        </div>
+                        <div class="flex-grow-1" style="min-width: 0;">
+                            <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                                <div class="announce-title text-truncate">{{ notice.title }}</div>
+                                <span class="announce-date">{{ notice.created_at|date:"M d" }}</span>
+                            </div>
+                            <p class="announce-body">{{ notice.content|truncatechars:100 }}</p>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="announce-empty">
+                        <i class="bi bi-inbox"></i>
+                        <p class="mb-0" style="font-size: 0.8125rem;">No active announcements</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Charts Column -->
+            <div>
+                <div class="mb-4" id="widget-chart-attendance">
+                    <div class="chart-heading">Attendance Trend</div>
+                    <div class="chart-card">
+                        <canvas id="attendanceChart" height="200"></canvas>
+                    </div>
+                </div>
+                <div id="widget-chart-classes">
+                    <div class="chart-heading">Class Distribution</div>
+                    <div class="chart-card">
+                        <canvas id="classChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Charts Column -->
-    <div>
-        <div class="mb-4" id="widget-chart-attendance">
-            <div class="chart-heading">Attendance Trend</div>
-            <div class="chart-card">
-                <canvas id="attendanceChart" height="200"></canvas>
+    <aside class="admin-sidebar">
+        <div id="widget-messages">
+            <div class="section-heading">
+                Messages
+                <a href="{% url 'communication:inbox' %}" class="btn btn-link btn-sm text-decoration-none p-0" style="font-size: 0.8125rem;">Open Inbox</a>
+            </div>
+            <div class="messages-card">
+                {% for notification in message_notifications %}
+                <a href="{% url 'announcements:mark_read' notification.id %}" class="messages-item text-decoration-none">
+                    <span class="messages-icon"><i class="bi bi-chat-left-text"></i></span>
+                    <div class="flex-grow-1" style="min-width: 0;">
+                        <div class="messages-text text-truncate">{{ notification.message }}</div>
+                    </div>
+                    <span class="messages-date">{{ notification.created_at|date:"M d" }}</span>
+                </a>
+                {% empty %}
+                <div class="announce-empty" style="padding: 1.75rem 1rem;">
+                    <i class="bi bi-chat-square-text"></i>
+                    <p class="mb-0" style="font-size: 0.78rem;">No unread messages</p>
+                </div>
+                {% endfor %}
             </div>
         </div>
-        <div id="widget-chart-classes">
-            <div class="chart-heading">Class Distribution</div>
-            <div class="chart-card">
-                <canvas id="classChart" height="200"></canvas>
+
+        {% include 'dashboard/components/academic_calendar_widget.html' %}
+
+        <!-- Quick Actions - Minimal minimalist grid -->
+        <div id="widget-quick-actions">
+            <div class="section-heading">Quick Actions</div>
+            <div class="qa-minimal-wrap">
+                <div class="qa-minimal-grid">
+                    <a href="{% url 'students:add_student' %}" class="qa-min-link">
+                        <i class="bi bi-person-plus"></i>
+                        <span>Add Student</span>
+                    </a>
+                    <a href="{% url 'teachers:add_teacher' %}" class="qa-min-link">
+                        <i class="bi bi-person-badge"></i>
+                        <span>Add Teacher</span>
+                    </a>
+                    <a href="{% url 'students:mark_attendance' %}" class="qa-min-link qa-academic">
+                        <i class="bi bi-calendar-check"></i>
+                        <span>Attendance</span>
+                    </a>
+                    <a href="{% url 'academics:timetable' %}" class="qa-min-link qa-academic">
+                        <i class="bi bi-table"></i>
+                        <span>Timetable</span>
+                    </a>
+                    <a href="{% url 'finance:manage_fees' %}" class="qa-min-link qa-finance">
+                        <i class="bi bi-wallet2"></i>
+                        <span>Manage Fees</span>
+                    </a>
+                    <a href="{% url 'announcements:manage' %}" class="qa-min-link qa-ops">
+                        <i class="bi bi-megaphone"></i>
+                        <span>Notices</span>
+                    </a>
+                    <a href="{% url 'academics:manage_classes' %}" class="qa-min-link qa-academic">
+                        <i class="bi bi-door-open"></i>
+                        <span>Classes</span>
+                    </a>
+                    <a href="{% url 'academics:school_settings' %}" class="qa-min-link qa-ops">
+                        <i class="bi bi-sliders"></i>
+                        <span>School Settings</span>
+                    </a>
+                </div>
             </div>
         </div>
-    </div>
+    </aside>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

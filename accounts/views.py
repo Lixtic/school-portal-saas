@@ -8,7 +8,7 @@ from django.core.paginator import Paginator
 from academics.models import Class, AcademicYear, ClassSubject, Activity, Timetable, GalleryImage, Resource, SchoolInfo, Subject
 from teachers.models import Teacher, DutyAssignment
 from students.models import Student, Attendance
-from announcements.models import Announcement
+from announcements.models import Announcement, Notification
 from django.db.models import Q, Count
 from django.db import connection
 from django.utils import timezone
@@ -487,6 +487,14 @@ def dashboard(request):
     if user.user_type == 'admin':
         # Admin gets top 5 of all active notices
         notices = base_notices[:5]
+        try:
+            message_notifications = Notification.objects.filter(
+                recipient=user,
+                is_read=False,
+                alert_type='message',
+            ).order_by('-created_at')[:5]
+        except (OperationalError, ProgrammingError):
+            message_notifications = []
         
         # Analytics Data
         
@@ -538,6 +546,7 @@ def dashboard(request):
             'total_students': Student.objects.count(),
             'total_teachers': Teacher.objects.count(),
             'onboarding': onboarding,
+            'message_notifications': message_notifications,
             **calendar_widget,
         }
 
