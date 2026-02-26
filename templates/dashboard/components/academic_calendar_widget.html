@@ -1,4 +1,93 @@
-<div class="card border-0 shadow-sm rounded-4 mb-3">
+<style>
+    .academic-calendar-widget {
+        border: 1px solid rgba(0, 0, 0, 0.06);
+    }
+
+    .academic-calendar-widget .calendar-weekday {
+        font-size: .62rem;
+        letter-spacing: .04em;
+    }
+
+    .academic-calendar-widget .calendar-cell {
+        min-height: 36px;
+    }
+
+    .academic-calendar-widget .calendar-day-badge {
+        font-size: 0.54rem;
+        padding: 0.18rem 0.3rem;
+    }
+
+    @media (min-width: 992px) {
+        .academic-calendar-widget {
+            max-width: 380px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .academic-calendar-widget .card-header {
+            padding-top: 0.75rem !important;
+            padding-bottom: 0.75rem !important;
+        }
+
+        .academic-calendar-widget .card-body {
+            padding: 0.85rem !important;
+        }
+
+        .academic-calendar-widget .calendar-cell {
+            min-height: 30px;
+            padding-top: 0.35rem !important;
+            padding-bottom: 0.35rem !important;
+        }
+
+        .academic-calendar-widget .calendar-weekday {
+            font-size: .58rem;
+        }
+
+        .academic-calendar-widget .calendar-day-badge {
+            font-size: 0.5rem;
+            padding: 0.12rem 0.25rem;
+        }
+    }
+
+    [data-bs-theme="dark"] .academic-calendar-widget {
+        background: var(--surface-card);
+        border-color: rgba(255, 255, 255, 0.12);
+        box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35) !important;
+    }
+
+    [data-bs-theme="dark"] .academic-calendar-widget .card-header {
+        background: rgba(255, 255, 255, 0.04) !important;
+        border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    [data-bs-theme="dark"] .academic-calendar-widget .calendar-cell.current-month {
+        background: rgba(255, 255, 255, 0.06) !important;
+    }
+
+    [data-bs-theme="dark"] .academic-calendar-widget .calendar-cell.other-month {
+        background: transparent !important;
+    }
+
+    [data-bs-theme="dark"] .academic-calendar-widget .calendar-cell.today {
+        border-color: var(--primary-color) !important;
+        box-shadow: 0 0 0 1px rgba(var(--primary-rgb), 0.28) inset;
+    }
+
+    [data-bs-theme="dark"] .academic-calendar-widget .event-dot {
+        background: #60a5fa !important;
+    }
+
+    [data-bs-theme="dark"] .academic-calendar-widget .calendar-day-badge {
+        background: var(--primary-color) !important;
+        color: #fff !important;
+    }
+
+    [data-bs-theme="dark"] .academic-calendar-widget .calendar-upcoming {
+        border-top-color: rgba(255, 255, 255, 0.1) !important;
+    }
+</style>
+
+<div class="card academic-calendar-widget border-0 shadow-sm rounded-4 mb-3">
     <div class="card-header bg-body-tertiary border-bottom py-3 d-flex justify-content-between align-items-center">
         <h6 class="fw-bold mb-0 d-flex align-items-center gap-2 text-primary">
             <i class="bi bi-calendar3"></i>
@@ -10,7 +99,7 @@
         <div class="d-flex justify-content-between align-items-center mb-2">
             <div class="fw-semibold small text-body-secondary">{{ academic_calendar_month_label }}</div>
             <div class="small d-flex align-items-center gap-1 text-body-secondary">
-                <span class="d-inline-block rounded-circle bg-primary" style="width:8px;height:8px;"></span>
+                <span class="d-inline-block rounded-circle bg-primary event-dot" style="width:8px;height:8px;"></span>
                 Academic dates
             </div>
         </div>
@@ -18,7 +107,7 @@
         <div class="mb-2">
             <div class="row g-1 text-center mb-1">
                 {% for day_name in academic_calendar_weekdays %}
-                <div class="col"><small class="text-uppercase text-body-secondary" style="font-size:.62rem; letter-spacing:.04em;">{{ day_name }}</small></div>
+                <div class="col"><small class="text-uppercase text-body-secondary calendar-weekday">{{ day_name }}</small></div>
                 {% endfor %}
             </div>
             {% for week in academic_calendar_weeks %}
@@ -26,13 +115,12 @@
                 {% for day in week %}
                 <div class="col">
                     <div
-                        class="position-relative text-center rounded-3 py-2 {% if day.is_current_month %}bg-body-tertiary{% else %}bg-transparent{% endif %} {% if day.is_today %}border border-primary{% endif %}"
-                        style="min-height: 36px;"
+                        class="position-relative text-center rounded-3 py-2 calendar-cell {% if day.is_current_month %}bg-body-tertiary current-month{% else %}bg-transparent other-month{% endif %} {% if day.is_today %}border border-primary today{% endif %}"
                         title="{% if day.events %}{% for event in day.events %}{{ event.title }}{% if not forloop.last %} • {% endif %}{% endfor %}{% else %}{{ day.date|date:'D, M d' }}{% endif %}"
                     >
                         <span class="small {% if not day.is_current_month %}text-body-secondary opacity-50{% else %}text-body{% endif %}">{{ day.day }}</span>
                         {% if day.events %}
-                        <span class="position-absolute top-0 end-0 translate-middle badge rounded-pill bg-primary" style="font-size:0.54rem; padding: 0.18rem 0.3rem;">
+                        <span class="position-absolute top-0 end-0 translate-middle badge rounded-pill bg-primary calendar-day-badge">
                             {{ day.events|length }}
                         </span>
                         {% endif %}
@@ -44,7 +132,7 @@
         </div>
 
         {% if academic_calendar_events %}
-        <div class="border-top pt-2 mt-2">
+        <div class="border-top pt-2 mt-2 calendar-upcoming">
             <div class="small fw-semibold text-body-secondary mb-2">Upcoming</div>
             {% for event in academic_calendar_events|slice:":3" %}
             <div class="d-flex justify-content-between align-items-center mb-1">
