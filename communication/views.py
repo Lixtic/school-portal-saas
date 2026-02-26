@@ -13,12 +13,24 @@ from announcements.models import Notification
 
 
 def _notify_new_message(sender, recipient, preview):
-    """Create a bell notification for the recipient of a new message."""
+    """Create a bell notification for the recipient of a new message.
+    Suppressed if the recipient already has an unread notification from this
+    sender to avoid spamming the bell on every reply in an active thread.
+    """
+    already = Notification.objects.filter(
+        recipient=recipient,
+        alert_type='message',
+        link=str(sender.pk),
+        is_read=False,
+    ).exists()
+    if already:
+        return
     short = preview[:80] + ('…' if len(preview) > 80 else '')
     Notification.objects.create(
         recipient=recipient,
         message=f"💬 New message from {sender.get_full_name() or sender.username}: {short}",
         alert_type='message',
+        link=str(sender.pk),  # store sender pk so we can redirect to the thread
     )
 
 
@@ -65,6 +77,13 @@ def conversation_view(request, user_id):
 
     # Mark messages from the other person as read
     conv.messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
+    # Also clear the bell notification for messages from this sender
+    Notification.objects.filter(
+        recipient=request.user,
+        alert_type='message',
+        link=str(other_user.pk),
+        is_read=False,
+    ).update(is_read=True)
 
     if request.method == 'POST':
         content = request.POST.get('content', '').strip()

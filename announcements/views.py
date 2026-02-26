@@ -106,6 +106,13 @@ def mark_notification_read(request, notification_id):
         if request.user.user_type == 'admin':
             return redirect('announcements:manage')
         return redirect('announcements:list')
+    if notification.alert_type == 'message' and notification.link:
+        # link stores the sender's user pk — go straight to that thread
+        try:
+            return redirect('communication:conversation', user_id=int(notification.link))
+        except (ValueError, TypeError):
+            pass
+        return redirect('communication:inbox')
     if notification.alert_type == 'message':
         return redirect('communication:inbox')
     return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
