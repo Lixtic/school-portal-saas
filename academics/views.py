@@ -1695,7 +1695,10 @@ def _get_student_tutor_context(user, tenant=None):
 @login_required
 def ai_tutor(request):
     """AI Tutor chat interface for students"""
-    student, subjects, error_message = _get_student_tutor_context(request.user, request.tenant)
+    student, subjects, error_message = _get_student_tutor_context(
+        request.user,
+        getattr(request, 'tenant', None),
+    )
     if error_message:
         messages.error(request, error_message)
         return redirect('dashboard')
@@ -1748,7 +1751,10 @@ def ai_tutor_chat(request):
         return JsonResponse({'error': 'Invalid method'}, status=400)
     
     try:
-        student, subjects, error_message = _get_student_tutor_context(request.user, request.tenant)
+        student, subjects, error_message = _get_student_tutor_context(
+            request.user,
+            getattr(request, 'tenant', None),
+        )
         if error_message:
             return JsonResponse({'error': error_message}, status=403)
 
@@ -1845,7 +1851,10 @@ def generate_practice(request):
         return JsonResponse({'error': 'Invalid method'}, status=400)
     
     try:
-        student, subjects, error_message = _get_student_tutor_context(request.user, request.tenant)
+        student, subjects, error_message = _get_student_tutor_context(
+            request.user,
+            getattr(request, 'tenant', None),
+        )
         if error_message:
             return JsonResponse({'error': error_message}, status=403)
 
@@ -1894,7 +1903,10 @@ def explain_concept(request):
         return JsonResponse({'error': 'Invalid method'}, status=400)
     
     try:
-        student, subjects, error_message = _get_student_tutor_context(request.user, request.tenant)
+        student, subjects, error_message = _get_student_tutor_context(
+            request.user,
+            getattr(request, 'tenant', None),
+        )
         if error_message:
             return JsonResponse({'error': error_message}, status=403)
 
@@ -1924,7 +1936,10 @@ def tutor_sessions(request):
     from .models import TutorSession
     
     try:
-        student, _subjects, error_message = _get_student_tutor_context(request.user, request.tenant)
+        student, _subjects, error_message = _get_student_tutor_context(
+            request.user,
+            getattr(request, 'tenant', None),
+        )
         if error_message:
             messages.error(request, error_message)
             return redirect('dashboard')
