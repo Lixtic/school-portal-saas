@@ -1,213 +1,160 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 
 {% block content %}
 <style>
-    /* Modern Minimal Styles */
-    .stat-card {
-        padding: 1rem;
-        border-radius: 12px;
-        border: 1px solid #e5e7eb;
-        background: #fff;
-        transition: all 0.2s;
-    }
-    .stat-card:hover {
-        border-color: #d1d5db;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-    .stat-label {
-        font-size: 0.75rem;
-        color: #6b7280;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-    .stat-value {
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: #111827;
-        margin-top: 0.25rem;
-    }
-    .student-card {
-        padding: 1rem;
-        border: 1px solid #e5e7eb;
-        border-radius: 10px;
-        background: #fff;
-        transition: all 0.2s;
-        margin-bottom: 0.75rem;
-    }
-    .student-card:hover {
-        border-color: #3b82f6;
-        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08);
-    }
-    .avatar-sm {
-        width: 42px;
-        height: 42px;
-        border-radius: 8px;
-        object-fit: cover;
-    }
-    .avatar-initials {
-        width: 42px;
-        height: 42px;
-        border-radius: 8px;
-        background: #f3f4f6;
-        color: #6b7280;
-        font-weight: 600;
-        font-size: 0.875rem;
-    }
-    .badge-minimal {
-        padding: 0.25rem 0.625rem;
-        font-size: 0.75rem;
-        font-weight: 500;
-        border-radius: 6px;
-        background: #f3f4f6;
-        color: #4b5563;
-        border: none;
-    }
-    .btn-icon {
-        width: 32px;
-        height: 32px;
-        padding: 0;
-        border-radius: 6px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border: 1px solid #e5e7eb;
-        background: #fff;
-        color: #6b7280;
-        transition: all 0.15s;
-    }
-    .btn-icon:hover {
-        border-color: #3b82f6;
-        color: #3b82f6;
-        background: #eff6ff;
-    }
-    .search-box {
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        padding: 0.625rem 1rem;
-        font-size: 0.9rem;
-        transition: all 0.2s;
-    }
-    .search-box:focus {
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    /* High-End Modern Styles */
+    :root {
+        --sl-primary: #3b82f6;
+        --sl-primary-soft: rgba(59, 130, 246, 0.1);
+        --sl-surface: #ffffff;
+        --sl-border: #e5e7eb;
+        --sl-text-main: #111827;
+        --sl-text-muted: #6b7280;
     }
     
-    /* Dark Mode */
-    [data-bs-theme="dark"] .stat-card,
-    [data-bs-theme="dark"] .student-card {
-        background: var(--surface-white);
-        border-color: rgba(255,255,255,0.08);
-    }
-    [data-bs-theme="dark"] .stat-value {
-        color: #f3f4f6;
-    }
-    [data-bs-theme="dark"] .stat-label {
-        color: #9ca3af;
-    }
-    [data-bs-theme="dark"] .avatar-initials {
-        background: rgba(255,255,255,0.05);
-        color: #9ca3af;
-    }
-    [data-bs-theme="dark"] .badge-minimal {
-        background: rgba(255,255,255,0.05);
-        color: #d1d5db;
-    }
-    [data-bs-theme="dark"] .btn-icon {
-        background: rgba(255,255,255,0.05);
-        border-color: rgba(255,255,255,0.08);
-        color: #9ca3af;
-    }
-    [data-bs-theme="dark"] .btn-icon:hover {
-        border-color: #3b82f6;
-        color: #3b82f6;
-        background: rgba(59, 130, 246, 0.1);
-    }
-    [data-bs-theme="dark"] .search-box {
-        background: var(--surface-white);
-        border-color: rgba(255,255,255,0.08);
-        color: var(--text-main);
-    }
-    [data-bs-theme="dark"] .modal-content {
-        background-color: var(--surface-white);
-        border: 1px solid rgba(255,255,255,0.1);
-    }
-    [data-bs-theme="dark"] .modal-header, 
-    [data-bs-theme="dark"] .modal-footer {
-        border-color: rgba(255,255,255,0.1);
-    }
-    [data-bs-theme="dark"] .btn-close {
-        filter: invert(1) grayscale(100%) brightness(200%);
+    [data-bs-theme="dark"] {
+        --sl-surface: #1e293b;
+        --sl-border: rgba(255, 255, 255, 0.1);
+        --sl-text-main: #f8fafc;
+        --sl-text-muted: #94a3b8;
     }
 
-    /* Mobile layout refinements */
-    @media (max-width: 768px) {
-        .student-card {
-            padding: 0.75rem;
-            border-radius: 12px;
-        }
+    /* Stat Cards */
+    .stat-card {
+        padding: 1.25rem;
+        border-radius: 12px;
+        background: var(--sl-surface);
+        border: 1px solid var(--sl-border);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+    }
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+    .stat-icon.blue { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+    .stat-icon.green { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+    .stat-icon.purple { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
+    .stat-icon.orange { background: rgba(249, 115, 22, 0.15); color: #f97316; }
+    
+    .stat-info { flex-grow: 1; }
+    .stat-value { font-size: 1.5rem; font-weight: 700; color: var(--sl-text-main); line-height: 1.2; }
+    .stat-label { font-size: 0.8rem; font-weight: 600; color: var(--sl-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
 
-        .student-row {
-            flex-wrap: wrap;
-            align-items: center !important;
-            gap: 0.6rem !important;
-        }
+    /* Filter Bar */
+    .filter-card {
+        background: var(--sl-surface);
+        border: 1px solid var(--sl-border);
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .search-input {
+        background-color: var(--sl-surface);
+        border: 1px solid var(--sl-border);
+        color: var(--sl-text-main);
+    }
+    .search-input:focus {
+        border-color: var(--sl-primary);
+        box-shadow: 0 0 0 3px var(--sl-primary-soft);
+    }
 
-        .student-meta {
-            width: 100%;
-            display: flex;
-            gap: 0.4rem;
-            margin-left: 2.2rem;
-            margin-top: -0.2rem;
-        }
+    /* Modern Table */
+    .table-card {
+        background: var(--sl-surface);
+        border: 1px solid var(--sl-border);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .modern-table { margin-bottom: 0; }
+    .modern-table thead th {
+        background: rgba(0,0,0,0.02);
+        color: var(--sl-text-muted);
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--sl-border);
+        padding: 1rem;
+    }
+    [data-bs-theme="dark"] .modern-table thead th { background: rgba(255,255,255,0.02); }
+    .modern-table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--sl-border);
+        color: var(--sl-text-main);
+    }
+    .modern-table tbody tr:last-child td { border-bottom: none; }
+    .modern-table tbody tr:hover td { background: var(--sl-primary-soft); }
 
-        .student-actions {
-            width: 100%;
-            justify-content: flex-end;
-            margin-top: 0.15rem;
-        }
+    /* Badges & Elements */
+    .avatar-sm { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; }
+    .avatar-initials {
+        width: 40px; height: 40px; border-radius: 10px;
+        background: var(--sl-primary-soft); color: var(--sl-primary);
+        font-weight: 600; font-size: 0.9rem;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .badge-class {
+        padding: 0.35rem 0.65rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: rgba(99, 102, 241, 0.1);
+        color: #6366f1;
+        border: 1px solid rgba(99, 102, 241, 0.2);
+    }
 
-        .btn-icon {
-            width: 30px;
-            height: 30px;
-            border-radius: 8px;
-        }
-
-        .btn-icon i {
-            font-size: 0.85rem;
-        }
-
-        .avatar-sm,
-        .avatar-initials {
-            width: 38px;
-            height: 38px;
-            border-radius: 10px;
-        }
-
-        .stat-card {
-            padding: 0.75rem;
-        }
-
-        .stat-value {
-            font-size: 1.25rem;
-        }
+    /* Actions */
+    .action-btn {
+        width: 32px; height: 32px;
+        border-radius: 8px;
+        display: inline-flex; align-items: center; justify-content: center;
+        background: transparent; color: var(--sl-text-muted);
+        border: 1px solid transparent;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+    .action-btn:hover {
+        background: var(--sl-primary-soft);
+        color: var(--sl-primary);
+        border-color: rgba(59, 130, 246, 0.2);
+    }
+    .action-btn.del:hover {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444; border-color: rgba(239, 68, 68, 0.2);
     }
 </style>
 
-<div class="container-fluid px-3 px-md-4 py-3">
+<div class="container-fluid px-3 px-md-4 py-4">
     <!-- Header -->
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-        <h4 class="mb-0 fw-semibold">Students</h4>
+        <div>
+            <h4 class="mb-1 fw-bold" style="color: var(--sl-text-main);">Student Directory</h4>
+            <p class="mb-0 text-muted small">Manage and view all students securely.</p>
+        </div>
         <div class="d-flex gap-2 flex-wrap">
-            <a href="{% url 'students:add_student' %}" class="btn btn-primary btn-sm px-3">
-                <i class="bi bi-plus-circle me-1"></i> Add Student
-            </a>
-            <a href="{% url 'students:import_csv' %}" class="btn btn-success btn-sm px-3">
-                <i class="bi bi-upload me-1"></i> Import CSV
-            </a>
-            <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-toggle="modal" data-bs-target="#bulkActionsModal">
-                <i class="bi bi-list-check me-1"></i> Bulk Actions
+            <button type="button" class="btn btn-light border btn-sm px-3 shadow-sm text-secondary" data-bs-toggle="modal" data-bs-target="#bulkActionsModal">
+                <i class="bi bi-layers me-1"></i> Bulk Actions
             </button>
+            <a href="{% url 'students:import_csv' %}" class="btn btn-outline-success btn-sm px-3 shadow-sm">
+                <i class="bi bi-file-earmark-spreadsheet me-1"></i> Import CSV
+            </a>
+            <a href="{% url 'students:add_student' %}" class="btn btn-primary btn-sm px-3 shadow-sm">
+                <i class="bi bi-person-plus-fill me-1"></i> Add Student
+            </a>
         </div>
     </div>
 
@@ -215,40 +162,58 @@
     <div class="row g-3 mb-4">
         <div class="col-6 col-md-3">
             <div class="stat-card">
-                <div class="stat-label">Total</div>
-                <div class="stat-value">{{ total_students }}</div>
+                <div class="stat-icon blue"><i class="bi bi-people-fill"></i></div>
+                <div class="stat-info">
+                    <div class="stat-label">Total</div>
+                    <div class="stat-value">{{ total_students }}</div>
+                </div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="stat-card">
-                <div class="stat-label">Active</div>
-                <div class="stat-value">{{ active_students }}</div>
+                <div class="stat-icon green"><i class="bi bi-person-check-fill"></i></div>
+                <div class="stat-info">
+                    <div class="stat-label">Active</div>
+                    <div class="stat-value">{{ active_students }}</div>
+                </div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="stat-card">
-                <div class="stat-label">Classes</div>
-                <div class="stat-value">{{ total_classes }}</div>
+                <div class="stat-icon purple"><i class="bi bi-book-half"></i></div>
+                <div class="stat-info">
+                    <div class="stat-label">Classes</div>
+                    <div class="stat-value">{{ total_classes }}</div>
+                </div>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="stat-card">
-                <div class="stat-label">Showing</div>
-                <div class="stat-value">{{ students|length }}</div>
+                <div class="stat-icon orange"><i class="bi bi-funnel-fill"></i></div>
+                <div class="stat-info">
+                    <div class="stat-label">Showing</div>
+                    <div class="stat-value">{{ students|length }}</div>
+                </div>
             </div>
         </div>
     </div>
+
     <!-- Search and Filters -->
-    <div class="mb-4">
+    <div class="filter-card">
         <form method="get" id="filterForm">
-            <div class="row g-3">
-                <div class="col-md-5">
-                    <input type="text" name="search" class="form-control search-box" 
-                           placeholder="Search by name or admission number..." 
-                           value="{{ request.GET.search }}">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-end-0 text-muted">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text" name="search" class="form-control search-input border-start-0 ps-0" 
+                               placeholder="Search students..." 
+                               value="{{ request.GET.search }}">
+                    </div>
                 </div>
                 <div class="col-md-3">
-                    <select name="class" class="form-select search-box" onchange="this.form.submit()">
+                    <select name="class" class="form-select search-input" onchange="this.form.submit()">
                         <option value="">All Classes</option>
                         {% for class in classes %}
                             <option value="{{ class.id }}" 
@@ -258,125 +223,150 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <select name="sort" class="form-select search-box">
+                <div class="col-md-3">
+                    <select name="sort" class="form-select search-input" onchange="this.form.submit()">
                         <option value="name" {% if request.GET.sort == 'name' %}selected{% endif %}>Name (A-Z)</option>
                         <option value="-name" {% if request.GET.sort == '-name' %}selected{% endif %}>Name (Z-A)</option>
-                        <option value="admission_number" {% if request.GET.sort == 'admission_number' %}selected{% endif %}>Adm No. ↑</option>
-                        <option value="-admission_number" {% if request.GET.sort == '-admission_number' %}selected{% endif %}>Adm No. ↓</option>
+                        <option value="admission_number" {% if request.GET.sort == 'admission_number' %}selected{% endif %}>Adm No. &uarr;</option>
+                        <option value="-admission_number" {% if request.GET.sort == '-admission_number' %}selected{% endif %}>Adm No. &darr;</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">Filter</button>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100 shadow-sm">Filter</button>
+                    {% if request.GET.search or request.GET.class or request.GET.sort %}
+                    <a href="{% url 'students:student_list' %}" class="btn btn-light border text-muted shadow-sm w-100" title="Clear Filters">
+                        Clear
+                    </a>
+                    {% endif %}
                 </div>
             </div>
-            {% if request.GET.search or request.GET.class or request.GET.sort %}
-            <div class="mt-2">
-                <a href="{% url 'students:student_list' %}" class="btn btn-sm btn-outline-secondary">
-                    <i class="bi bi-x-circle me-1"></i> Clear
-                </a>
-            </div>
-            {% endif %}
         </form>
     </div>
 
-    <!-- Action Bar -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectAll()">
-                <i class="bi bi-check-all me-1"></i> Select All
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAll()">
-                <i class="bi bi-x me-1"></i> Clear
-            </button>
-            <span id="selectedCount" class="text-muted small align-self-center ms-2">0 selected</span>
+    <!-- Action Bar & Selection -->
+    <div class="d-flex justify-content-between align-items-center mb-3 px-1">
+        <div class="d-flex align-items-center gap-3">
+            <div class="form-check mb-0">
+                <input type="checkbox" id="selectAllCheckbox" onchange="toggleAll(this)" class="form-check-input">
+                <label class="form-check-label text-muted small fw-medium" for="selectAllCheckbox">Select All</label>
+            </div>
+            <span id="selectedCount" class="badge bg-secondary rounded-pill fw-medium d-none">0</span>
         </div>
         <button class="btn btn-sm btn-outline-primary" onclick="exportSelected()">
-            <i class="bi bi-download me-1"></i> Export
+            <i class="bi bi-download me-1"></i> Export Selected
         </button>
     </div>
 
-    <!-- Students List -->
-    <div>
-        {% for student in students %}
-        <div class="student-card">
-            <div class="d-flex align-items-center gap-3 student-row">
-                <input type="checkbox" class="student-checkbox form-check-input" 
-                       value="{{ student.id }}" 
-                       onchange="updateSelectedCount()">
-                
-                {% if student.user.profile_picture %}
-                    <img src="{{ student.user.profile_picture.url }}" class="avatar-sm">
-                {% else %}
-                    <div class="avatar-initials d-flex align-items-center justify-content-center">
-                        {{ student.user.first_name.0 }}{{ student.user.last_name.0 }}
-                    </div>
-                {% endif %}
-                
-                <div class="flex-grow-1 min-w-0">
-                    <div class="fw-semibold text-truncate mb-1">{{ student.user.get_full_name }}</div>
-                    <div class="small text-muted">{{ student.admission_number }}</div>
-                </div>
-
-                <div class="student-meta">
-                    {% if student.current_class %}
-                        <span class="badge-minimal">{{ student.current_class }}</span>
-                    {% endif %}
-
-                    {% if student.roll_number %}
-                        <span class="badge-minimal">Roll: {{ student.roll_number }}</span>
-                    {% endif %}
-                </div>
-
-                <div class="d-flex gap-1 student-actions">
-                    <a href="{% url 'students:edit_student' student.id %}" 
-                       class="btn-icon" title="Edit">
-                        <i class="bi bi-pencil"></i>
-                    </a>
-                    <a href="{% url 'finance:student_fees' student.id %}" 
-                       class="btn-icon" title="Fees">
-                        <i class="bi bi-wallet2"></i>
-                    </a>
-                    <a href="{% url 'students:report_card' student.id %}" 
-                       class="btn-icon" title="Report" target="_blank">
-                        <i class="bi bi-file-text"></i>
-                    </a>
-                    <button type="button" class="btn-icon" 
-                            onclick="viewDetails({{ student.id }})" title="View">
-                        <i class="bi bi-eye"></i>
-                    </button>
-                </div>
-            </div>
+    <!-- Modern Table -->
+    <div class="table-card shadow-sm">
+        <div class="table-responsive">
+            <table class="table modern-table align-middle">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"></th>
+                        <th>Student Details</th>
+                        <th>Admission No.</th>
+                        <th>Class & Roll</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
+                    <tr>
+                        <td>
+                            <input type="checkbox" class="student-checkbox form-check-input" 
+                                   value="{{ student.id }}" 
+                                   onchange="updateSelectedCount()">
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                {% if student.user.profile_picture %}
+                                    <img src="{{ student.user.profile_picture.url }}" class="avatar-sm shadow-sm" alt="Avatar">
+                                {% else %}
+                                    <div class="avatar-initials shadow-sm">
+                                        {{ student.user.first_name.0 }}{{ student.user.last_name.0 }}
+                                    </div>
+                                {% endif %}
+                                <div>
+                                    <div class="fw-bold" style="color: var(--sl-text-main);">{{ student.user.get_full_name }}</div>
+                                    <div class="small fw-medium" style="color: var(--sl-text-muted);">{{ student.user.email|default:"No email provided" }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="font-monospace fw-semibold text-secondary">{{ student.admission_number }}</span>
+                        </td>
+                        <td>
+                            {% if student.current_class %}
+                                <span class="badge-class">{{ student.current_class }}</span>
+                            {% else %}
+                                <span class="badge bg-light text-muted border">Unassigned</span>
+                            {% endif %}
+                            
+                            {% if student.roll_number %}
+                                <div class="small text-muted mt-1 fw-medium"><i class="bi bi-hash"></i> {{ student.roll_number }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="d-flex gap-1 justify-content-end">
+                                <button type="button" class="action-btn" onclick="viewDetails({{ student.id }})" title="Quick View" data-bs-toggle="tooltip">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <a href="{% url 'students:edit_student' student.id %}" class="action-btn" title="Edit Student" data-bs-toggle="tooltip">
+                                    <i class="bi bi-pencil-square"></i>
+                                </a>
+                                <a href="{% url 'finance:student_fees' student.id %}" class="action-btn" title="Fee Records" data-bs-toggle="tooltip">
+                                    <i class="bi bi-receipt"></i>
+                                </a>
+                                <a href="{% url 'students:report_card' student.id %}" class="action-btn" title="Report Card" target="_blank" data-bs-toggle="tooltip">
+                                    <i class="bi bi-file-earmark-bar-graph"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5">
+                            <div class="text-center py-5">
+                                <div class="mb-3">
+                                    <i class="bi bi-inbox display-4" style="color: var(--sl-border);"></i>
+                                </div>
+                                <h6 class="fw-bold text-muted mb-1">No Students Found</h6>
+                                <p class="text-secondary small mb-0">Adjust your filters or add a new student to get started.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-        {% empty %}
-        <div class="text-center py-5">
-            <i class="bi bi-inbox display-4 text-muted opacity-25"></i>
-            <p class="mt-3 text-muted">No students found</p>
-        </div>
-        {% endfor %}
     </div>
 
     {% if students %}
-    <div class="text-muted small mt-3">
-        Showing {{ students|length }} of {{ total_students }} students
+    <div class="text-secondary small mt-3 fw-medium text-end px-2">
+        Showing {{ students|length }} of {{ total_students }} {{ total_students|pluralize:"student,students" }}
     </div>
     {% endif %}
 </div>
 
 <!-- Bulk Actions Modal -->
 <div class="modal fade" id="bulkActionsModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Bulk Actions</h5>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold">Bulk Actions</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
+                <div id="selectedStudentsInfo" class="alert alert-primary d-flex align-items-center py-2 mb-3" style="display: none;">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    <div><strong>Selected:</strong> <span id="selectedStudentsList"></span></div>
+                </div>
                 <form id="bulkActionForm">
                     <div class="mb-3">
-                        <label class="form-label">Select Action</label>
-                        <select class="form-select" id="bulkAction" required>
-                            <option value="">-- Choose Action --</option>
+                        <label class="form-label fw-medium text-secondary">Select Action</label>
+                        <select class="form-select shadow-sm" id="bulkAction" required>
+                            <option value="">-- Choose what to do --</option>
                             <option value="assign_class">Assign to Class</option>
                             <option value="mark_attendance">Mark Attendance</option>
                             <option value="export">Export Data</option>
@@ -384,32 +374,29 @@
                         </select>
                     </div>
                     
-                    <div id="classSelectionDiv" style="display: none;">
-                        <label class="form-label">Select Class</label>
-                        <select class="form-select" id="bulkClass">
-                            <option value="">-- Select Class --</option>
+                    <div id="classSelectionDiv" style="display: none;" class="mb-2">
+                        <label class="form-label fw-medium text-secondary">Target Class</label>
+                        <select class="form-select shadow-sm" id="bulkClass">
+                            <option value="">-- Choose target class --</option>
                             {% for class in classes %}
                                 <option value="{{ class.id }}">{{ class.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
 
-                    <div id="printReportDiv" style="display: none;">
-                        <label class="form-label">Select Term</label>
-                        <select class="form-select" id="bulkTerm">
+                    <div id="printReportDiv" style="display: none;" class="mb-2">
+                        <label class="form-label fw-medium text-secondary">Which Term?</label>
+                        <select class="form-select shadow-sm" id="bulkTerm">
                             <option value="first">First Term</option>
                             <option value="second">Second Term</option>
                             <option value="third">Third Term</option>
                         </select>
                     </div>
                 </form>
-                <div id="selectedStudentsInfo" class="alert alert-info mt-3" style="display: none;">
-                    <strong>Selected Students:</strong> <span id="selectedStudentsList"></span>
-                </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="executeBulkAction()">Execute</button>
+            <div class="modal-footer border-top-0 pt-0">
+                <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary px-4 shadow-sm" onclick="executeBulkAction()">Run Action</button>
             </div>
         </div>
     </div>
@@ -417,15 +404,15 @@
 
 <!-- Student Details Modal -->
 <div class="modal fade" id="studentDetailsModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Student Details</h5>
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content shadow border-0">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold">Student Profile Overview</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body" id="studentDetailsContent">
-                <div class="text-center">
-                    <div class="spinner-border" role="status">
+            <div class="modal-body p-4" id="studentDetailsContent">
+                <div class="d-flex justify-content-center py-5">
+                    <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Loading...</span>
                     </div>
                 </div>
@@ -435,6 +422,14 @@
 </div>
 
 <script>
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function () {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+});
+
 let selectedStudents = [];
 
 function toggleAll(checkbox) {
@@ -458,35 +453,35 @@ function deselectAll() {
 }
 
 function updateSelectedCount() {
-    const checkboxes = document.querySelectorAll('.student-checkbox:checked');
+    const checkboxes = document.querySelectorAll('.student-checkbox:checked');  
     selectedStudents = Array.from(checkboxes).map(cb => cb.value);
-    
-    // Update desktop count
-    const desktopCount = document.getElementById('selectedCount');
-    if(desktopCount) desktopCount.textContent = `${selectedStudents.length} selected`;
-    
-    // Update mobile count
-    const mobileCount = document.getElementById('mobileSelectedCount');
-    if(mobileCount) {
-        mobileCount.textContent = selectedStudents.length > 0 ? `${selectedStudents.length} selected` : '';
-    }
+
+    const countBadge = document.getElementById('selectedCount');
+    const infoAlert = document.getElementById('selectedStudentsInfo');
     
     if (selectedStudents.length > 0) {
-        document.getElementById('selectedStudentsInfo').style.display = 'block';
-        document.getElementById('selectedStudentsList').textContent = selectedStudents.length + ' students';
+        if(countBadge) {
+            countBadge.textContent = selectedStudents.length;
+            countBadge.classList.remove('d-none');
+        }
+        if(infoAlert) {
+            infoAlert.style.display = 'flex';
+            document.getElementById('selectedStudentsList').textContent = selectedStudents.length + (selectedStudents.length > 1 ? ' students' : ' student');
+        }
     } else {
-        document.getElementById('selectedStudentsInfo').style.display = 'none';
+        if(countBadge) countBadge.classList.add('d-none');
+        if(infoAlert) infoAlert.style.display = 'none'; 
     }
 }
 
-document.getElementById('bulkAction').addEventListener('change', function() {
+document.getElementById('bulkAction').addEventListener('change', function() {   
     const action = this.value;
     const classDiv = document.getElementById('classSelectionDiv');
     const printDiv = document.getElementById('printReportDiv');
-    
+
     classDiv.style.display = 'none';
     printDiv.style.display = 'none';
-    
+
     if (action === 'assign_class') {
         classDiv.style.display = 'block';
     } else if (action === 'print_report') {
@@ -496,24 +491,24 @@ document.getElementById('bulkAction').addEventListener('change', function() {
 
 function executeBulkAction() {
     const action = document.getElementById('bulkAction').value;
-    
+
     if (selectedStudents.length === 0) {
         showToast('Please select at least one student', 'warning');
         return;
     }
-    
+
     if (!action) {
         showToast('Please select an action', 'warning');
         return;
     }
-    
+
     if (action === 'assign_class') {
         const classId = document.getElementById('bulkClass').value;
         if (!classId) {
-            showToast('Please select a class', 'warning');
+            showToast('Please select a target class before proceeding.', 'warning');
             return;
         }
-        
+
         // Submit to backend
         fetch('{% url "students:bulk_assign_class" %}', {
             method: 'POST',
@@ -528,68 +523,87 @@ function executeBulkAction() {
         })
         .then(response => response.json())
         .then(data => {
-            showToast(data.message, data.status === 'success' ? 'success' : 'danger');
+            showToast(data.message, data.status === 'success' ? 'success' : 'danger');                                                                                      
             location.reload();
         });
     } else if (action === 'export') {
         exportSelected();
     } else if (action === 'print_report') {
         const term = document.getElementById('bulkTerm').value;
-        window.open(`{% url "students:bulk_report_cards" %}?ids=${selectedStudents.join(',')}&term=${term}`, '_blank');
-        const modal = bootstrap.Modal.getInstance(document.getElementById('bulkActionsModal'));
-        modal.hide();
+        window.open({% url "students:bulk_report_cards" %}?ids=&term=, '_blank');                                                 
+        const modal = bootstrap.Modal.getInstance(document.getElementById('bulkActionsModal'));                                                                         
+        if(modal) modal.hide();
     }
 }
 
 function exportSelected() {
     if (selectedStudents.length === 0) {
-        showToast('Please select at least one student', 'warning');
+        showToast('Please select at least one student to export', 'warning');
         return;
     }
-    
+
     // Create CSV export
-    window.location.href = `{% url "students:export_students" %}?ids=${selectedStudents.join(',')}`;
+    window.location.href = {% url "students:export_students" %}?ids=;                                                            
 }
 
 function viewDetails(studentId) {
-    const modal = new bootstrap.Modal(document.getElementById('studentDetailsModal'));
+    const modal = new bootstrap.Modal(document.getElementById('studentDetailsModal'));                                                                              
     modal.show();
-    
-    const urlPattern = "{% url 'students:student_details' 123456789 %}".replace('123456789', studentId);
+
+    // Reset content to spinner instantly
+    document.getElementById('studentDetailsContent').innerHTML = 
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    ;
+
+    const urlPattern = "{% url 'students:student_details' 123456789 %}".replace('123456789', studentId);                                                            
     fetch(urlPattern)
         .then(response => response.json())
         .then(data => {
-            document.getElementById('studentDetailsContent').innerHTML = `
-                <div class="row">
+            document.getElementById('studentDetailsContent').innerHTML =       
+                <div class="row g-4">
                     <div class="col-md-6">
-                        <h6>Personal Information</h6>
-                        <p><strong>Name:</strong> ${data.name}</p>
-                        <p><strong>Admission No:</strong> ${data.admission_number}</p>
-                        <p><strong>Date of Birth:</strong> ${data.date_of_birth}</p>
-                        <p><strong>Class:</strong> ${data.current_class || 'Not Assigned'}</p>
+                        <div class="bg-light p-3 rounded h-100 border">
+                            <h6 class="fw-bold mb-3 d-flex align-items-center"><i class="bi bi-person-badge me-2 text-primary"></i> Personal Details</h6>
+                            <div class="mb-2"><span class="text-muted small">Name:</span> <div class="fw-medium"></div></div>
+                            <div class="mb-2"><span class="text-muted small">Admission No:</span> <div class="fw-medium"></div></div>
+                            <div class="mb-2"><span class="text-muted small">Date of Birth:</span> <div class="fw-medium"></div></div>
+                            <div class="mb-0"><span class="text-muted small">Class:</span> <div class="fw-medium text-primary"></div></div>
+                        </div>
                     </div>
                     <div class="col-md-6">
-                        <h6>Contact Information</h6>
-                        <p><strong>Email:</strong> ${data.email}</p>
-                        <p><strong>Emergency Contact:</strong> ${data.emergency_contact}</p>
-                        <p><strong>Blood Group:</strong> ${data.blood_group || 'N/A'}</p>
+                        <div class="bg-light p-3 rounded h-100 border">
+                            <h6 class="fw-bold mb-3 d-flex align-items-center"><i class="bi bi-telephone-fill me-2 text-success"></i> Contact Info</h6>
+                            <div class="mb-2"><span class="text-muted small">Email:</span> <div class="fw-medium"></div></div>
+                            <div class="mb-2"><span class="text-muted small">Emergency Contact:</span> <div class="fw-medium"></div></div>
+                            <div class="mb-0"><span class="text-muted small">Blood Group:</span> <div class="fw-medium text-danger"></div></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mt-4">
+                        <div class="border p-3 rounded">
+                            <h6 class="fw-bold mb-3 d-flex align-items-center"><i class="bi bi-calendar-check-fill me-2 text-warning"></i> Attendance</h6>
+                            <div class="d-flex justify-content-between mb-2"><span>Present</span> <span class="fw-semibold text-success"></span></div>
+                            <div class="d-flex justify-content-between mb-2"><span>Absent</span> <span class="fw-semibold text-danger"></span></div>
+                            <div class="d-flex justify-content-between"><span>Percentage</span> <span class="fw-bold text-primary">%</span></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mt-4">
+                        <div class="border p-3 rounded">
+                            <h6 class="fw-bold mb-3 d-flex align-items-center"><i class="bi bi-award-fill me-2 text-info"></i> Academic summary</h6>
+                            <div class="d-flex justify-content-between mb-2"><span>Total Grades Recorded</span> <span class="fw-semibold"></span></div>
+                            <div class="d-flex justify-content-between"><span>Avg. Percentage</span> <span class="fw-bold text-success">%</span></div>
+                        </div>
                     </div>
                 </div>
-                <hr>
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Attendance</h6>
-                        <p>Present: ${data.attendance.present}</p>
-                        <p>Absent: ${data.attendance.absent}</p>
-                        <p>Percentage: ${data.attendance.percentage}%</p>
-                    </div>
-                    <div class="col-md-6">
-                        <h6>Academic</h6>
-                        <p>Total Grades: ${data.grades_count}</p>
-                        <p>Average: ${data.average_percentage}%</p>
-                    </div>
-                </div>
-            `;
+            ;
+        })
+        .catch(err => {
+            document.getElementById('studentDetailsContent').innerHTML = 
+                <div class="alert alert-danger mb-0">Failed to load student details. Please try again.</div>
+            ;
         });
 }
 </script>

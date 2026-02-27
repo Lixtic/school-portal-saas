@@ -1,0 +1,596 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* Modern Minimal Styles */
+    .stat-card {
+        padding: 1rem;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        background: #fff;
+        transition: all 0.2s;
+    }
+    .stat-card:hover {
+        border-color: #d1d5db;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .stat-label {
+        font-size: 0.75rem;
+        color: #6b7280;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #111827;
+        margin-top: 0.25rem;
+    }
+    .student-card {
+        padding: 1rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        background: #fff;
+        transition: all 0.2s;
+        margin-bottom: 0.75rem;
+    }
+    .student-card:hover {
+        border-color: #3b82f6;
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08);
+    }
+    .avatar-sm {
+        width: 42px;
+        height: 42px;
+        border-radius: 8px;
+        object-fit: cover;
+    }
+    .avatar-initials {
+        width: 42px;
+        height: 42px;
+        border-radius: 8px;
+        background: #f3f4f6;
+        color: #6b7280;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+    .badge-minimal {
+        padding: 0.25rem 0.625rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        border-radius: 6px;
+        background: #f3f4f6;
+        color: #4b5563;
+        border: none;
+    }
+    .btn-icon {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #e5e7eb;
+        background: #fff;
+        color: #6b7280;
+        transition: all 0.15s;
+    }
+    .btn-icon:hover {
+        border-color: #3b82f6;
+        color: #3b82f6;
+        background: #eff6ff;
+    }
+    .search-box {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 0.625rem 1rem;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+    .search-box:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    /* Dark Mode */
+    [data-bs-theme="dark"] .stat-card,
+    [data-bs-theme="dark"] .student-card {
+        background: var(--surface-white);
+        border-color: rgba(255,255,255,0.08);
+    }
+    [data-bs-theme="dark"] .stat-value {
+        color: #f3f4f6;
+    }
+    [data-bs-theme="dark"] .stat-label {
+        color: #9ca3af;
+    }
+    [data-bs-theme="dark"] .avatar-initials {
+        background: rgba(255,255,255,0.05);
+        color: #9ca3af;
+    }
+    [data-bs-theme="dark"] .badge-minimal {
+        background: rgba(255,255,255,0.05);
+        color: #d1d5db;
+    }
+    [data-bs-theme="dark"] .btn-icon {
+        background: rgba(255,255,255,0.05);
+        border-color: rgba(255,255,255,0.08);
+        color: #9ca3af;
+    }
+    [data-bs-theme="dark"] .btn-icon:hover {
+        border-color: #3b82f6;
+        color: #3b82f6;
+        background: rgba(59, 130, 246, 0.1);
+    }
+    [data-bs-theme="dark"] .search-box {
+        background: var(--surface-white);
+        border-color: rgba(255,255,255,0.08);
+        color: var(--text-main);
+    }
+    [data-bs-theme="dark"] .modal-content {
+        background-color: var(--surface-white);
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    [data-bs-theme="dark"] .modal-header, 
+    [data-bs-theme="dark"] .modal-footer {
+        border-color: rgba(255,255,255,0.1);
+    }
+    [data-bs-theme="dark"] .btn-close {
+        filter: invert(1) grayscale(100%) brightness(200%);
+    }
+
+    /* Mobile layout refinements */
+    @media (max-width: 768px) {
+        .student-card {
+            padding: 0.75rem;
+            border-radius: 12px;
+        }
+
+        .student-row {
+            flex-wrap: wrap;
+            align-items: center !important;
+            gap: 0.6rem !important;
+        }
+
+        .student-meta {
+            width: 100%;
+            display: flex;
+            gap: 0.4rem;
+            margin-left: 2.2rem;
+            margin-top: -0.2rem;
+        }
+
+        .student-actions {
+            width: 100%;
+            justify-content: flex-end;
+            margin-top: 0.15rem;
+        }
+
+        .btn-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+        }
+
+        .btn-icon i {
+            font-size: 0.85rem;
+        }
+
+        .avatar-sm,
+        .avatar-initials {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+        }
+
+        .stat-card {
+            padding: 0.75rem;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+        }
+    }
+</style>
+
+<div class="container-fluid px-3 px-md-4 py-3">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <h4 class="mb-0 fw-semibold">Students</h4>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'students:add_student' %}" class="btn btn-primary btn-sm px-3">
+                <i class="bi bi-plus-circle me-1"></i> Add Student
+            </a>
+            <a href="{% url 'students:import_csv' %}" class="btn btn-success btn-sm px-3">
+                <i class="bi bi-upload me-1"></i> Import CSV
+            </a>
+            <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-toggle="modal" data-bs-target="#bulkActionsModal">
+                <i class="bi bi-list-check me-1"></i> Bulk Actions
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-label">Total</div>
+                <div class="stat-value">{{ total_students }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-label">Active</div>
+                <div class="stat-value">{{ active_students }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-label">Classes</div>
+                <div class="stat-value">{{ total_classes }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-label">Showing</div>
+                <div class="stat-value">{{ students|length }}</div>
+            </div>
+        </div>
+    </div>
+    <!-- Search and Filters -->
+    <div class="mb-4">
+        <form method="get" id="filterForm">
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <input type="text" name="search" class="form-control search-box" 
+                           placeholder="Search by name or admission number..." 
+                           value="{{ request.GET.search }}">
+                </div>
+                <div class="col-md-3">
+                    <select name="class" class="form-select search-box" onchange="this.form.submit()">
+                        <option value="">All Classes</option>
+                        {% for class in classes %}
+                            <option value="{{ class.id }}" 
+                                {% if current_class_filter == class.id|stringformat:"s" %}selected{% endif %}>
+                                {{ class.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="sort" class="form-select search-box">
+                        <option value="name" {% if request.GET.sort == 'name' %}selected{% endif %}>Name (A-Z)</option>
+                        <option value="-name" {% if request.GET.sort == '-name' %}selected{% endif %}>Name (Z-A)</option>
+                        <option value="admission_number" {% if request.GET.sort == 'admission_number' %}selected{% endif %}>Adm No. ↑</option>
+                        <option value="-admission_number" {% if request.GET.sort == '-admission_number' %}selected{% endif %}>Adm No. ↓</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Filter</button>
+                </div>
+            </div>
+            {% if request.GET.search or request.GET.class or request.GET.sort %}
+            <div class="mt-2">
+                <a href="{% url 'students:student_list' %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-x-circle me-1"></i> Clear
+                </a>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectAll()">
+                <i class="bi bi-check-all me-1"></i> Select All
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAll()">
+                <i class="bi bi-x me-1"></i> Clear
+            </button>
+            <span id="selectedCount" class="text-muted small align-self-center ms-2">0 selected</span>
+        </div>
+        <button class="btn btn-sm btn-outline-primary" onclick="exportSelected()">
+            <i class="bi bi-download me-1"></i> Export
+        </button>
+    </div>
+
+    <!-- Students List -->
+    <div>
+        {% for student in students %}
+        <div class="student-card">
+            <div class="d-flex align-items-center gap-3 student-row">
+                <input type="checkbox" class="student-checkbox form-check-input" 
+                       value="{{ student.id }}" 
+                       onchange="updateSelectedCount()">
+                
+                {% if student.user.profile_picture %}
+                    <img src="{{ student.user.profile_picture.url }}" class="avatar-sm">
+                {% else %}
+                    <div class="avatar-initials d-flex align-items-center justify-content-center">
+                        {{ student.user.first_name.0 }}{{ student.user.last_name.0 }}
+                    </div>
+                {% endif %}
+                
+                <div class="flex-grow-1 min-w-0">
+                    <div class="fw-semibold text-truncate mb-1">{{ student.user.get_full_name }}</div>
+                    <div class="small text-muted">{{ student.admission_number }}</div>
+                </div>
+
+                <div class="student-meta">
+                    {% if student.current_class %}
+                        <span class="badge-minimal">{{ student.current_class }}</span>
+                    {% endif %}
+
+                    {% if student.roll_number %}
+                        <span class="badge-minimal">Roll: {{ student.roll_number }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="d-flex gap-1 student-actions">
+                    <a href="{% url 'students:edit_student' student.id %}" 
+                       class="btn-icon" title="Edit">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <a href="{% url 'finance:student_fees' student.id %}" 
+                       class="btn-icon" title="Fees">
+                        <i class="bi bi-wallet2"></i>
+                    </a>
+                    <a href="{% url 'students:report_card' student.id %}" 
+                       class="btn-icon" title="Report" target="_blank">
+                        <i class="bi bi-file-text"></i>
+                    </a>
+                    <button type="button" class="btn-icon" 
+                            onclick="viewDetails({{ student.id }})" title="View">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-5">
+            <i class="bi bi-inbox display-4 text-muted opacity-25"></i>
+            <p class="mt-3 text-muted">No students found</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if students %}
+    <div class="text-muted small mt-3">
+        Showing {{ students|length }} of {{ total_students }} students
+    </div>
+    {% endif %}
+</div>
+
+<!-- Bulk Actions Modal -->
+<div class="modal fade" id="bulkActionsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bulk Actions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="bulkActionForm">
+                    <div class="mb-3">
+                        <label class="form-label">Select Action</label>
+                        <select class="form-select" id="bulkAction" required>
+                            <option value="">-- Choose Action --</option>
+                            <option value="assign_class">Assign to Class</option>
+                            <option value="mark_attendance">Mark Attendance</option>
+                            <option value="export">Export Data</option>
+                            <option value="print_report">Print Report Cards</option>
+                        </select>
+                    </div>
+                    
+                    <div id="classSelectionDiv" style="display: none;">
+                        <label class="form-label">Select Class</label>
+                        <select class="form-select" id="bulkClass">
+                            <option value="">-- Select Class --</option>
+                            {% for class in classes %}
+                                <option value="{{ class.id }}">{{ class.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div id="printReportDiv" style="display: none;">
+                        <label class="form-label">Select Term</label>
+                        <select class="form-select" id="bulkTerm">
+                            <option value="first">First Term</option>
+                            <option value="second">Second Term</option>
+                            <option value="third">Third Term</option>
+                        </select>
+                    </div>
+                </form>
+                <div id="selectedStudentsInfo" class="alert alert-info mt-3" style="display: none;">
+                    <strong>Selected Students:</strong> <span id="selectedStudentsList"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="executeBulkAction()">Execute</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Student Details Modal -->
+<div class="modal fade" id="studentDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Student Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="studentDetailsContent">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedStudents = [];
+
+function toggleAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.student-checkbox');
+    checkboxes.forEach(cb => cb.checked = checkbox.checked);
+    updateSelectedCount();
+}
+
+function selectAll() {
+    const checkboxes = document.querySelectorAll('.student-checkbox');
+    checkboxes.forEach(cb => cb.checked = true);
+    document.getElementById('selectAllCheckbox').checked = true;
+    updateSelectedCount();
+}
+
+function deselectAll() {
+    const checkboxes = document.querySelectorAll('.student-checkbox');
+    checkboxes.forEach(cb => cb.checked = false);
+    document.getElementById('selectAllCheckbox').checked = false;
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const checkboxes = document.querySelectorAll('.student-checkbox:checked');
+    selectedStudents = Array.from(checkboxes).map(cb => cb.value);
+    
+    // Update desktop count
+    const desktopCount = document.getElementById('selectedCount');
+    if(desktopCount) desktopCount.textContent = `${selectedStudents.length} selected`;
+    
+    // Update mobile count
+    const mobileCount = document.getElementById('mobileSelectedCount');
+    if(mobileCount) {
+        mobileCount.textContent = selectedStudents.length > 0 ? `${selectedStudents.length} selected` : '';
+    }
+    
+    if (selectedStudents.length > 0) {
+        document.getElementById('selectedStudentsInfo').style.display = 'block';
+        document.getElementById('selectedStudentsList').textContent = selectedStudents.length + ' students';
+    } else {
+        document.getElementById('selectedStudentsInfo').style.display = 'none';
+    }
+}
+
+document.getElementById('bulkAction').addEventListener('change', function() {
+    const action = this.value;
+    const classDiv = document.getElementById('classSelectionDiv');
+    const printDiv = document.getElementById('printReportDiv');
+    
+    classDiv.style.display = 'none';
+    printDiv.style.display = 'none';
+    
+    if (action === 'assign_class') {
+        classDiv.style.display = 'block';
+    } else if (action === 'print_report') {
+        printDiv.style.display = 'block';
+    }
+});
+
+function executeBulkAction() {
+    const action = document.getElementById('bulkAction').value;
+    
+    if (selectedStudents.length === 0) {
+        showToast('Please select at least one student', 'warning');
+        return;
+    }
+    
+    if (!action) {
+        showToast('Please select an action', 'warning');
+        return;
+    }
+    
+    if (action === 'assign_class') {
+        const classId = document.getElementById('bulkClass').value;
+        if (!classId) {
+            showToast('Please select a class', 'warning');
+            return;
+        }
+        
+        // Submit to backend
+        fetch('{% url "students:bulk_assign_class" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                student_ids: selectedStudents,
+                class_id: classId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            showToast(data.message, data.status === 'success' ? 'success' : 'danger');
+            location.reload();
+        });
+    } else if (action === 'export') {
+        exportSelected();
+    } else if (action === 'print_report') {
+        const term = document.getElementById('bulkTerm').value;
+        window.open(`{% url "students:bulk_report_cards" %}?ids=${selectedStudents.join(',')}&term=${term}`, '_blank');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('bulkActionsModal'));
+        modal.hide();
+    }
+}
+
+function exportSelected() {
+    if (selectedStudents.length === 0) {
+        showToast('Please select at least one student', 'warning');
+        return;
+    }
+    
+    // Create CSV export
+    window.location.href = `{% url "students:export_students" %}?ids=${selectedStudents.join(',')}`;
+}
+
+function viewDetails(studentId) {
+    const modal = new bootstrap.Modal(document.getElementById('studentDetailsModal'));
+    modal.show();
+    
+    const urlPattern = "{% url 'students:student_details' 123456789 %}".replace('123456789', studentId);
+    fetch(urlPattern)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('studentDetailsContent').innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Personal Information</h6>
+                        <p><strong>Name:</strong> ${data.name}</p>
+                        <p><strong>Admission No:</strong> ${data.admission_number}</p>
+                        <p><strong>Date of Birth:</strong> ${data.date_of_birth}</p>
+                        <p><strong>Class:</strong> ${data.current_class || 'Not Assigned'}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Contact Information</h6>
+                        <p><strong>Email:</strong> ${data.email}</p>
+                        <p><strong>Emergency Contact:</strong> ${data.emergency_contact}</p>
+                        <p><strong>Blood Group:</strong> ${data.blood_group || 'N/A'}</p>
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Attendance</h6>
+                        <p>Present: ${data.attendance.present}</p>
+                        <p>Absent: ${data.attendance.absent}</p>
+                        <p>Percentage: ${data.attendance.percentage}%</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Academic</h6>
+                        <p>Total Grades: ${data.grades_count}</p>
+                        <p>Average: ${data.average_percentage}%</p>
+                    </div>
+                </div>
+            `;
+        });
+}
+</script>
+{% endblock %}
