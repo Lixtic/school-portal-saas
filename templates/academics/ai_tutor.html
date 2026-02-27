@@ -1088,20 +1088,79 @@
         } catch(e) {}
     }
 
-    // 6. Voice Button Toggle
-    voiceBtn.onclick = function() {
-        this.classList.toggle('recording');
-        if(this.classList.contains('recording')) {
-            messageInput.placeholder = "Listening (Twi/English)...";
-            // Simulate listening
-            setTimeout(() => {
-                this.classList.remove('recording');
-                messageInput.value = "How do I calculate profit if I sell 50 yams at Kejetia?";
-                messageInput.placeholder = "Type a message...";
-                messageInput.dispatchEvent(new Event('input'));
-            }, 3000);
-        } else {
+    // 6. Voice Button Toggle (Web Speech API)
+    let recognition = null;
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = true;
+        recognition.lang = 'en-GH'; // Default to English (Ghana) if supported, else browser default
+
+        recognition.onstart = function() {
+            voiceBtn.classList.add('recording');
+            messageInput.placeholder = "Listening... Speak clearly";
+        };
+
+        recognition.onend = function() {
+            voiceBtn.classList.remove('recording');
             messageInput.placeholder = "Type a message...";
+        };
+
+        recognition.onresult = function(event) {
+            let interimTranscript = '';
+            let finalTranscript = '';
+
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    finalTranscript += event.results[i][0].transcript;
+                } else {
+                    interimTranscript += event.results[i][0].transcript;
+                }
+            }
+            
+            // If we have text, update input
+            if (finalTranscript || interimTranscript) {
+                // If final, append it. If interim, show it.
+                // For simplicity in chat interface, we might just replace value
+                // taking care not to overwrite if user typed something before?
+                // Let's just set the value to what is being spoken.
+                messageInput.value = finalTranscript || interimTranscript;
+                messageInput.dispatchEvent(new Event('input')); // Trigger resize
+            }
+        };
+
+        recognition.onerror = function(event) {
+            console.error('Speech recognition error', event.error);
+            voiceBtn.classList.remove('recording');
+            messageInput.placeholder = "Error accessing microphone";
+            setTimeout(() => { messageInput.placeholder = "Type a message..."; }, 3000);
+        };
+    } else {
+        console.warn('Web Speech API not supported in this browser.');
+        voiceBtn.style.display = 'none'; // Hide if not supported
+    }
+
+    voiceBtn.onclick = function() {
+        if (!recognition) {
+            alert("Your browser does not support voice input. Please use Chrome, Edge, or Safari.");
+            return;
+        }
+
+        if (this.classList.contains('recording')) {
+            recognition.stop();
+        } else {
+            // Retrieve previous text if any? Or clear? 
+            // Usually voice typing appends. 
+            // Let's clear for now as it's a "voice command" style often.
+            // Or better: don't clear, just append if we wanted sophisticated logic.
+            // Simple approach: start recognition.
+            try {
+                recognition.start();
+            } catch (e) {
+                console.error("Recognition start error:", e);
+                recognition.stop();
+            }
         }
     };
 
