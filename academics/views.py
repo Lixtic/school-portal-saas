@@ -1666,13 +1666,14 @@ def _get_student_tutor_context(user, tenant=None):
     except Student.DoesNotExist:
         return None, [], "Student profile not found"
 
-    subjects = []
-    if student.current_class:
-        subjects = list(
-            Subject.objects.filter(classsubject__class_name=student.current_class)
-            .distinct()
-            .order_by('name')
-        )
+    subjects = list(
+        Subject.objects.filter(classsubject__isnull=False)
+        .distinct()
+        .order_by('name')
+    )
+
+    if not subjects:
+        subjects = list(Subject.objects.all().order_by('name'))
 
     if tenant is not None:
         try:
