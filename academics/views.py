@@ -2085,9 +2085,11 @@ def tutor_sessions(request):
             request.user,
             getattr(request, 'tenant', None),
         )
-        if error_message:
+        if error_message and request.GET.get('format') != 'json':
             messages.error(request, error_message)
             return redirect('dashboard')
+        elif error_message:
+             return JsonResponse({'error': error_message}, status=400)
 
         sessions = (
             TutorSession.objects.filter(student=student)
@@ -2096,13 +2098,28 @@ def tutor_sessions(request):
             .order_by('-started_at')
         )
         
+        if request.GET.get('format') == 'json':
+            data = []
+            for s in sessions:
+                data.append({
+                    'id': s.id,
+                    'subject': s.subject.name if s.subject else 'General',
+                    'topic': s.topic,
+                    # Format as "Oct 25, 2:30 PM"
+                    'date': s.started_at.strftime('%b %d, %I:%M %p'),
+                    'msg_count': s.messages.count()
+                })
+            return JsonResponse({'sessions': data})
+        
         context = {
             'sessions': sessions,
         }
         
         return render(request, 'academics/tutor_sessions.html', context)
 
-    except Exception:
+    except Exception as e:
+        if request.GET.get('format') == 'json':
+             return JsonResponse({'error': str(e)}, status=500)
         messages.error(request, "Unable to load tutor sessions")
         return redirect('dashboard')
 

@@ -463,6 +463,30 @@
 </style>
 
 <!-- Progress Bar -->
+<!-- Sessions Modal -->
+<div class="modal fade" id="sessionsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header border-bottom-0">
+                <h5 class="modal-title fw-bold">My Tutor Sessions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="list-group list-group-flush" id="sessionList">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0">
+                <button type="button" class="btn btn-primary w-100" onclick="createNewChatSession()">
+                    <i class="bi bi-plus-lg me-1"></i> Start New Session
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="progress-tracker">
     <div class="phase-step active" id="phase-diagnostic">
         <i class="bi bi-activity me-1"></i> Diagnostic
@@ -493,22 +517,31 @@
                     <span class="fw-bold text-dark">Whiteboard</span>
                 </div>
                 <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-secondary border-0" onclick="toggleDrawing()" id="drawingBtn" data-bs-toggle="tooltip" title="Draw">
+                        <i class="bi bi-pencil"></i>
+                    </button>
                     <button class="btn btn-sm btn-outline-secondary border-0" onclick="clearWhiteboard()" data-bs-toggle="tooltip" title="Clear Board">
                         <i class="bi bi-eraser"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-secondary border-0" onclick="expandWhiteboard()" data-bs-toggle="tooltip" title="Fullscreen">
+                    <button class="btn btn-sm btn-outline-secondary border-0" onclick="toggleFullscreen()" data-bs-toggle="tooltip" title="Fullscreen">
                         <i class="bi bi-arrows-fullscreen"></i>
                     </button>
                 </div>
             </div>
             
-            <div class="whiteboard-content" id="whiteboardContent">
-                <!-- Empty State -->
-                <div class="h-100 d-flex flex-col align-items-center justify-content-center text-center opacity-50">
-                    <div>
-                        <i class="bi bi-magic display-4 mb-3 d-block text-secondary"></i>
-                        <h5 class="fw-normal">Ready to learn?</h5>
-                        <p>I'll sketch diagrams, maps, and solve equations here.</p>
+            <div class="whiteboard-content" id="whiteboardContent" style="padding: 0; position: relative;">
+                <!-- Drawing Canvas -->
+                <canvas id="drawingCanvas" style="position: absolute; top: 0; left: 0; display: none;"></canvas>
+                
+                <!-- Content Container (Text/Math) -->
+                <div id="whiteboardTextContent" class="p-4 h-100" style="overflow-y: auto;">
+                    <!-- Empty State -->
+                    <div class="h-100 d-flex flex-column align-items-center justify-content-center text-center opacity-50">
+                        <div>
+                            <i class="bi bi-magic display-4 mb-3 d-block text-secondary"></i>
+                            <h5 class="fw-normal">Ready to learn?</h5>
+                            <p>I'll sketch diagrams, maps, and solve equations here.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -523,6 +556,9 @@
                         <span class="position-absolute bottom-0 end-0 bg-success border border-white rounded-circle" style="width: 10px; height: 10px;"></span>
                     </div>
                     <span class="fw-bold text-dark" style="font-size: 0.95rem;">Aura 2.0</span>
+                    <button class="btn btn-sm btn-light border ms-2" data-bs-toggle="modal" data-bs-target="#sessionsModal">
+                        <i class="bi bi-list-ul"></i> Sessions
+                    </button>
                 </div>
                 <div class="dropdown">
                     <button class="btn btn-sm btn-light rounded-circle" data-bs-toggle="dropdown">
@@ -651,14 +687,23 @@
     const messageInput = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
     const whiteboardContent = document.getElementById('whiteboardContent');
+    const whiteboardTextContent = document.getElementById('whiteboardTextContent');
+    const drawingCanvas = document.getElementById('drawingCanvas');
     const mathKeyboard = document.getElementById('mathKeyboard');
     const voiceBtn = document.getElementById('voiceBtn');
     const insightBadge = document.getElementById('insightBadge');
     const typingIndicator = document.getElementById('typingIndicator');
+    
+    // Canvas State
+    let isDrawingMode = false;
+    let isDrawing = false;
+    let ctx = null;
+    let lastX = 0;
+    let lastY = 0;
 
     // Auto-scroll on load
     window.onload = function() {
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+        if(chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
         renderMathInElement(document.body); // Initialize KaTeX globally
         
         // Tooltips
@@ -666,9 +711,148 @@
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
           return new bootstrap.Tooltip(tooltipTriggerEl)
         })
+        
+        initCanvas();
     };
 
     // --- Core Logic ---
+    
+    // 0. Fullscreen & Canvas Logic
+    function toggleFullscreen() {
+        const elem = document.getElementById('whiteboardPanel');
+        if (!document.fullscreenElement) {
+            elem.requestFullscreen().catch(err => {
+                alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    }
+    
+    document.addEventListener('fullscreenchange', () => {
+         const elem = document.getElementById('whiteboardPanel');
+         if (document.fullscreenElement) {
+             elem.style.borderRadius = '0';
+             resizeCanvas();
+         } else {
+             elem.style.borderRadius = '16px';
+             resizeCanvas();
+         }
+    });
+
+    function initCanvas() {
+        ctx = drawingCanvas.getContext('2d');
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        drawingCanvas.addEventListener('mousedown', startDrawing);
+        drawingCanvas.addEventListener('mousemove', draw);
+        drawingCanvas.addEventListener('mouseup', stopDrawing);
+        drawingCanvas.addEventListener('mouseout', stopDrawing);
+        
+        // Touch support
+        drawingCanvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent("mousedown", {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            drawingCanvas.dispatchEvent(mouseEvent);
+        });
+        
+        drawingCanvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent("mousemove", {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            drawingCanvas.dispatchEvent(mouseEvent);
+        });
+        
+        drawingCanvas.addEventListener('touchend', () => {
+             const mouseEvent = new MouseEvent("mouseup", {});
+             drawingCanvas.dispatchEvent(mouseEvent);
+        });
+    }
+    
+    function resizeCanvas() {
+        const parent = whiteboardContent;
+        drawingCanvas.width = parent.clientWidth;
+        drawingCanvas.height = parent.clientHeight;
+        // Keep style
+        if(ctx) {
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#2563eb'; // Blue pen
+        }
+    }
+    
+    function startDrawing(e) {
+        if(!isDrawingMode) return;
+        isDrawing = true;
+        
+        // Correct offset relative to canvas
+        const rect = drawingCanvas.getBoundingClientRect();
+        [lastX, lastY] = [e.clientX - rect.left, e.clientY - rect.top];
+    }
+    
+    function draw(e) {
+        if(!isDrawing || !isDrawingMode) return;
+        const rect = drawingCanvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        [lastX, lastY] = [x, y];
+    }
+    
+    function stopDrawing() {
+        isDrawing = false;
+    }
+    
+    function toggleDrawing() {
+        isDrawingMode = !isDrawingMode;
+        const btn = document.getElementById('drawingBtn');
+        
+        if(isDrawingMode) {
+            drawingCanvas.style.display = 'block';
+            whiteboardTextContent.style.pointerEvents = 'none'; // Click through text
+            whiteboardTextContent.style.opacity = '0.3';
+            btn.classList.add('active', 'bg-primary', 'text-white');
+            btn.style.borderColor = 'var(--chat-primary)';
+        } else {
+            // drawingCanvas.style.display = 'none'; // Keep canvas visible but not interactive? No, usually toggle layers
+             whiteboardTextContent.style.pointerEvents = 'auto';
+             whiteboardTextContent.style.opacity = '1';
+             btn.classList.remove('active', 'bg-primary', 'text-white');
+             btn.style.borderColor = '';
+        }
+    }
+    
+    function clearWhiteboard() {
+        if(isDrawingMode) {
+            ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+        } else {
+            whiteboardTextContent.innerHTML = `
+            <div class="h-100 d-flex flex-column align-items-center justify-content-center text-center opacity-50">
+                <div>
+                    <i class="bi bi-easel display-4 mb-3 d-block text-secondary"></i>
+                    <p>Board Cleared</p>
+                </div>
+            </div>`;
+        }
+    }
+    
+    function createNewChatSession() {
+         // Create a fresh session by reloading page without session ID (or with new request)
+         window.location.href = "{% url 'academics:ai_tutor' %}";
+    }
 
     // 1. Math Keyboard Toggle
     function toggleMathKeyboard(btn) {
@@ -874,9 +1058,9 @@
             `;
         }
         
-        whiteboardContent.innerHTML = content;
+        whiteboardTextContent.innerHTML = content;
         // Re-render Math
-        renderMathInElement(whiteboardContent, {
+        renderMathInElement(whiteboardTextContent, {
             delimiters: [
                 {left: "$$", right: "$$", display: true},
                 {left: "$", right: "$", display: false}
@@ -884,14 +1068,17 @@
         });
         
         // Highlight Effect
-        whiteboardContent.style.transition = 'background 0.5s';
-        whiteboardContent.style.background = '#f0fdf4';
-        setTimeout(() => whiteboardContent.style.background = 'white', 800);
+        const panel = document.getElementById('whiteboardPanel');
+        panel.style.transition = 'background 0.5s';
+        panel.style.background = '#f0fdf4';
+        setTimeout(() => panel.style.background = 'white', 800);
         
         // Move Progress Bar (Demo)
-        document.getElementById('phase-instruction').classList.add('active');
-        document.getElementById('phase-diagnostic').classList.add('completed');
-        document.getElementById('phase-diagnostic').classList.remove('active');
+        try {
+            document.getElementById('phase-instruction').classList.add('active');
+            document.getElementById('phase-diagnostic').classList.add('completed');
+            document.getElementById('phase-diagnostic').classList.remove('active');
+        } catch(e) {}
     }
 
     // 6. Voice Button Toggle
@@ -992,26 +1179,80 @@
     }
     
     function clearWhiteboard() {
-        whiteboardContent.innerHTML = `
-            <div class="h-100 d-flex flex-col align-items-center justify-content-center text-center opacity-50">
+        if(isDrawingMode) {
+            ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+        } else {
+            whiteboardTextContent.innerHTML = `
+            <div class="h-100 d-flex flex-column align-items-center justify-content-center text-center opacity-50">
                 <div>
                     <i class="bi bi-easel display-4 mb-3 d-block text-secondary"></i>
                     <p>Board Cleared</p>
                 </div>
             </div>`;
+        }
     }
     
-    function expandWhiteboard() {
-        const panel = document.getElementById('whiteboardPanel');
-        panel.classList.toggle('flex-grow-1'); // Simple toggle logic needs more CSS support for full screen, 
-        // usually utilizing a fullscreen API or just maxing width.
-        // For now, toggle class for demo
-        alert("Fullscreen mode active");
+    function createNewChatSession() {
+         window.location.href = "{% url 'academics:ai_tutor_new_session' %}";
     }
-    
-    function quickActionTrigger(text) {
-        messageInput.value = text;
-        sendMessage();
+
+    // Sessions Modal Logic
+    const sessionsModal = document.getElementById('sessionsModal');
+    if (sessionsModal) {
+        sessionsModal.addEventListener('show.bs.modal', async function () {
+            const list = document.getElementById('sessionList');
+            try {
+                // We'll create a simple API endpoint for this or just fetch the page fragment?
+                // For now, let's use a dedicated API endpoint in views if exists, otherwise fallback to parsing?
+                // Let's implement a quick API endpoint in a moment. But first, let's assume we fetch JSON.
+                // Or since we don't have an API yet, let's use the page we found earlier: tutor_sessions.html
+                // Actually, let's just make a fetch call to a new JSON endpoint or reuse existing.
+                
+                // Since I cannot easily add a new view right now without reloading context, let's try to fetch the HTML list page and parse it? 
+                // No, that's messy. Let's assume there is an API or add one.
+                // Wait, I can just render the list in the template if I pass it!
+                // But `ai_tutor` view might not pass `sessions`.
+                // Let's check `ai_tutor` view in `academics/views.py`.
+                
+                const response = await fetch("{% url 'academics:tutor_sessions' %}?format=json");
+                if (response.ok) {
+                    const data = await response.json();
+                    renderSessionList(data.sessions);
+                } else {
+                    // Fallback to iframe or redirect?
+                    list.innerHTML = `<div class="p-4 text-center text-muted">Unable to load sessions via API. <br><a href="{% url 'academics:tutor_sessions' %}" class="btn btn-sm btn-outline-primary mt-2">View Full History</a></div>`;
+                }
+            } catch (e) {
+                // If fetching JSON fails (because view returns HTML), just show link
+                list.innerHTML = `<div class="p-4 text-center text-muted">
+                    <p>View your full conversation history.</p>
+                    <a href="{% url 'academics:tutor_sessions' %}" class="btn btn-outline-primary">Go to History</a>
+                </div>`;
+            }
+        });
+    }
+
+    function renderSessionList(sessions) {
+        const list = document.getElementById('sessionList');
+        if (!sessions || sessions.length === 0) {
+            list.innerHTML = `<div class="p-4 text-center text-muted">No sessions found.</div>`;
+            return;
+        }
+        
+        let html = '';
+        sessions.forEach(s => {
+            const activeClass = (s.id == "{{ session.id }}") ? 'active' : '';
+            html += `
+                <a href="?session=${s.id}" class="list-group-item list-group-item-action ${activeClass} d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-bold text-truncate" style="max-width: 200px;">${s.subject || 'General Chat'}</div>
+                        <small class="text-muted">${s.date} &bull; ${s.msg_count} msgs</small>
+                    </div>
+                    <i class="bi bi-chevron-right text-muted small"></i>
+                </a>
+            `;
+        });
+        list.innerHTML = html;
     }
 </script>
 {% endblock %}
