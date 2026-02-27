@@ -920,7 +920,11 @@
 
         try {
             // Check for triggers locally to simulate instant UI response for demo
-            if(text.toLowerCase().includes('kejetia') || text.toLowerCase().includes('market') || text.toLowerCase().includes('map')) {
+            const drawMatch = text.match(/draw\s+(.*)/i) || text.match(/generate image of\s+(.*)/i);
+            
+            if (drawMatch && drawMatch[1]) {
+                 generateTutorImage(drawMatch[1]);
+            } else if(text.toLowerCase().includes('kejetia') || text.toLowerCase().includes('market') || text.toLowerCase().includes('map')) {
                 simulateWhiteboardUpdate('map');
             } else if (text.toLowerCase().includes('quadratic') || text.toLowerCase().includes('solve') || text.toLowerCase().includes('equation')) {
                 simulateWhiteboardUpdate('math');
@@ -1030,6 +1034,64 @@
     messageInput.addEventListener('keydown', (e) => {
         if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
     });
+
+    // 4.1 Image Generation Function (Aura LTS)
+    async function generateTutorImage(prompt) {
+        // Show loading state
+        whiteboardTextContent.innerHTML = `
+            <div class="h-100 d-flex flex-column align-items-center justify-content-center text-muted">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <div>Generating image: "<strong>${prompt}</strong>"...</div>
+                <small class="mt-2 text-secondary">Using Tongyi-MAI/Z-Image-Turbo</small>
+            </div>
+        `;
+        
+        try {
+            const response = await fetch("{% url 'academics:generate_tutor_image' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ prompt: prompt })
+            });
+            
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Generation failed');
+            }
+            
+            const data = await response.json();
+            
+            if (data.image_url) {
+                whiteboardTextContent.innerHTML = `
+                    <div class="h-100 d-flex flex-column p-4">
+                        <h3 class="h5 mb-3 fw-bold"><i class="bi bi-magic me-2"></i>Generated Visual</h3>
+                        <div class="flex-grow-1 d-flex align-items-center justify-content-center bg-light rounded border overflow-hidden position-relative">
+                            <img src="${data.image_url}" class="img-fluid shadow-sm" style="max-height: 100%; object-fit: contain;" alt="${prompt}">
+                        </div>
+                        <p class="mt-3 text-muted small text-center fst-italic">Prompt: ${prompt}</p>
+                    </div>
+                `;
+                // Highlight Effect
+                const panel = document.getElementById('whiteboardPanel');
+                if(panel) {
+                    panel.style.transition = 'background 0.5s';
+                    panel.style.background = '#f0fdf4';
+                    setTimeout(() => panel.style.background = 'white', 800);
+                }
+            }
+        } catch (e) {
+            console.error(e);
+            whiteboardTextContent.innerHTML = `
+                <div class="alert alert-danger m-4">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <strong>Image Generation Failed</strong><br>
+                    <small>${e.message}</small>
+                </div>
+            `;
+        }
+    }
 
     // 5. Whiteboard Simulation (For Demo Polish)
     function simulateWhiteboardUpdate(type) {

@@ -2129,3 +2129,81 @@ def tutor_sessions(request):
         messages.error(request, "Unable to load tutor sessions")
         return redirect('dashboard')
 
+
+@csrf_exempt
+@login_required
+def generate_tutor_image(request):
+    """Generate image based on prompt using HF API (Tongyi-MAI/Z-Image-Turbo)"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid method'}, status=400)
+    
+    try:
+        data = json.loads(request.body)
+        prompt = data.get('prompt')
+        if not prompt:
+             return JsonResponse({'error': 'No prompt provided'}, status=400)
+        
+        # Initialize client with token from environment
+        hf_token = os.environ.get('HF_TOKEN')
+        if not hf_token:
+            return JsonResponse({'error': 'HF_TOKEN not configured'}, status=500)
+            
+        client = InferenceClient(token=hf_token)
+
+        # Call text-to-image API
+        # Model: Tongyi-MAI/Z-Image-Turbo
+        image = client.text_to_image(
+            prompt,
+            model="Tongyi-MAI/Z-Image-Turbo",
+            num_inference_steps=5
+        )
+        
+        # Convert PIL Image to base64
+        buffered = io.BytesIO()
+        image.save(buffered, format="PNG")
+        img_str = base64.b64encode(buffered.getvalue()).decode()
+        
+        return JsonResponse({'image_url': f"data:image/png;base64,{img_str}"})
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+@login_required
+def generate_tutor_image(request):
+    """Generate image based on prompt using HF API (Tongyi-MAI/Z-Image-Turbo)"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid method'}, status=400)
+    
+    try:
+        data = json.loads(request.body)
+        prompt = data.get('prompt')
+        if not prompt:
+             return JsonResponse({'error': 'No prompt provided'}, status=400)
+        
+        # Initialize client with token from environment
+        hf_token = os.environ.get('HF_TOKEN')
+        if not hf_token:
+            # Fallback for dev if needed, but better to enforce env var
+            return JsonResponse({'error': 'HF_TOKEN not configured'}, status=500)
+            
+        client = InferenceClient(token=hf_token)
+
+        # Call text-to-image API
+        # Model: Tongyi-MAI/Z-Image-Turbo
+        image = client.text_to_image(
+            prompt,
+            model="Tongyi-MAI/Z-Image-Turbo",
+            num_inference_steps=5
+        )
+        
+        # Convert PIL Image to base64
+        buffered = io.BytesIO()
+        image.save(buffered, format="PNG")
+        img_str = base64.b64encode(buffered.getvalue()).decode()
+        
+        return JsonResponse({'image_url': f"data:image/png;base64,{img_str}"})
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
