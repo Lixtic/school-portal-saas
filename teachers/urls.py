@@ -31,6 +31,8 @@ urlpatterns = [
     path('lesson-plans/', views.lesson_plan_list, name='lesson_plan_list'),
     path('lesson-plans/create/', views.lesson_plan_create, name='lesson_plan_create'),
     path('lesson-plans/<int:pk>/', views.lesson_plan_detail, name='lesson_plan_detail'),
+    path('lesson-plans/<int:pk>/duplicate/', views.lesson_plan_duplicate, name='lesson_plan_duplicate'),
+    path('lesson-plans/<int:pk>/print/', views.lesson_plan_print, name='lesson_plan_print'),
     path('lesson-plans/<int:pk>/edit/', views.lesson_plan_edit, name='lesson_plan_edit'),
     path('lesson-plans/<int:pk>/delete/', views.lesson_plan_delete, name='lesson_plan_delete'),
     

@@ -95,7 +95,7 @@ class TeacherQuickAddForm(forms.Form):
         pass
 
 from .models import LessonPlan
-from academics.models import Subject, Class
+from academics.models import Subject, Class, ClassSubject
 
 class LessonPlanForm(forms.ModelForm):
     class Meta:
@@ -122,9 +122,42 @@ class LessonPlanForm(forms.ModelForm):
         self.teacher = kwargs.pop('teacher', None)
         super(LessonPlanForm, self).__init__(*args, **kwargs)
         if self.teacher:
-            # Filter subjects if teacher assign to subjects
-            if self.teacher.subjects.exists():
+            assigned_pairs = ClassSubject.objects.filter(teacher=self.teacher).select_related('class_name', 'subject')
+            assigned_subject_ids = assigned_pairs.values_list('subject_id', flat=True).distinct()
+            assigned_class_ids = assigned_pairs.values_list('class_name_id', flat=True).distinct()
+
+            if assigned_subject_ids:
+                self.fields['subject'].queryset = Subject.objects.filter(id__in=assigned_subject_ids)
+            elif self.teacher.subjects.exists():
                 self.fields['subject'].queryset = self.teacher.subjects.all()
+
+            if assigned_class_ids:
+                self.fields['school_class'].queryset = Class.objects.filter(id__in=assigned_class_ids)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if not self.teacher:
+            return cleaned_data
+
+        subject = cleaned_data.get('subject')
+        school_class = cleaned_data.get('school_class')
+
+        if subject and school_class:
+            can_teach_combo = ClassSubject.objects.filter(
+                teacher=self.teacher,
+                class_name=school_class,
+                subject=subject,
+            ).exists()
+            if can_teach_combo:
+                return cleaned_data
+
+            # fallback for setups that only map subjects to teacher profile
+            if self.teacher.subjects.filter(id=subject.id).exists():
+                return cleaned_data
+
+            raise forms.ValidationError('You can only create lesson plans for classes and subjects assigned to you.')
+
+        return cleaned_data
 
 class TeacherCreateForm(forms.ModelForm):
     first_name = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'class': 'form-control'}))

@@ -841,20 +841,51 @@ def lesson_plan_list(request):
     
     teacher = get_object_or_404(Teacher, user=request.user)
     
-    week = request.GET.get('week')
+    week = request.GET.get('week', '').strip()
+    subject_id = request.GET.get('subject', '').strip()
+    class_id = request.GET.get('school_class', '').strip()
+    query = request.GET.get('q', '').strip()
+
+    assigned_pairs = ClassSubject.objects.filter(teacher=teacher).select_related('class_name', 'subject')
+    teacher_subjects = [pair.subject for pair in assigned_pairs]
+    teacher_classes = [pair.class_name for pair in assigned_pairs]
+
+    # de-duplicate while preserving order
+    seen_subject_ids = set()
+    teacher_subjects = [s for s in teacher_subjects if not (s.id in seen_subject_ids or seen_subject_ids.add(s.id))]
+    seen_class_ids = set()
+    teacher_classes = [c for c in teacher_classes if not (c.id in seen_class_ids or seen_class_ids.add(c.id))]
+
     try:
         # Force evaluation to catch DB errors if table doesn't exist yet
-        lesson_plans_qs = LessonPlan.objects.filter(teacher=teacher)
+        lesson_plans_qs = LessonPlan.objects.filter(teacher=teacher).select_related('subject', 'school_class')
         if week:
             lesson_plans_qs = lesson_plans_qs.filter(week_number=week)
+        if subject_id:
+            lesson_plans_qs = lesson_plans_qs.filter(subject_id=subject_id)
+        if class_id:
+            lesson_plans_qs = lesson_plans_qs.filter(school_class_id=class_id)
+        if query:
+            lesson_plans_qs = lesson_plans_qs.filter(
+                Q(topic__icontains=query) |
+                Q(objectives__icontains=query) |
+                Q(presentation__icontains=query)
+            )
         lesson_plans = list(lesson_plans_qs)
     except (OperationalError, ProgrammingError):
         lesson_plans = []
+        teacher_subjects = []
+        teacher_classes = []
         messages.warning(request, "Lesson Plan system is initializing. Please try again later.")
         
     return render(request, 'teachers/lesson_plan_list.html', {
         'lesson_plans': lesson_plans,
-        'selected_week': week
+        'selected_week': week,
+        'selected_subject': subject_id,
+        'selected_class': class_id,
+        'selected_query': query,
+        'teacher_subjects': teacher_subjects,
+        'teacher_classes': teacher_classes,
     })
         
 @login_required
@@ -933,6 +964,48 @@ def lesson_plan_detail(request, pk):
     lesson_plan = get_object_or_404(LessonPlan, pk=pk, teacher=teacher)
     
     return render(request, 'teachers/lesson_plan_detail.html', {'lesson_plan': lesson_plan})
+
+
+@login_required
+def lesson_plan_duplicate(request, pk):
+    if request.user.user_type != 'teacher':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    teacher = get_object_or_404(Teacher, user=request.user)
+    lesson_plan = get_object_or_404(LessonPlan, pk=pk, teacher=teacher)
+
+    duplicate_plan = LessonPlan.objects.create(
+        teacher=teacher,
+        subject=lesson_plan.subject,
+        school_class=lesson_plan.school_class,
+        week_number=lesson_plan.week_number,
+        topic=f"{lesson_plan.topic} (Copy)",
+        objectives=lesson_plan.objectives,
+        teaching_materials=lesson_plan.teaching_materials,
+        introduction=lesson_plan.introduction,
+        presentation=lesson_plan.presentation,
+        evaluation=lesson_plan.evaluation,
+        homework=lesson_plan.homework,
+    )
+
+    messages.success(request, 'Lesson plan duplicated. You can now edit the copy.')
+    return redirect('teachers:lesson_plan_edit', pk=duplicate_plan.pk)
+
+
+@login_required
+def lesson_plan_print(request, pk):
+    if request.user.user_type != 'teacher':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    teacher = get_object_or_404(Teacher, user=request.user)
+    lesson_plan = get_object_or_404(LessonPlan, pk=pk, teacher=teacher)
+
+    return render(request, 'teachers/lesson_plan_detail.html', {
+        'lesson_plan': lesson_plan,
+        'print_mode': True,
+    })
 
 @login_required
 def lesson_plan_delete(request, pk):

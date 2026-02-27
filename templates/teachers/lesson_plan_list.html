@@ -45,17 +45,37 @@
     <!-- Filter -->
     <div class="card shadow-sm border-0 mb-4 rounded-4">
         <div class="card-body">
-            <form method="get" class="row g-3 align-items-center">
-                <div class="col-auto">
-                    <label for="week" class="col-form-label fw-bold">Filter by Week:</label>
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-sm-6 col-md-2">
+                    <label for="week" class="form-label fw-bold">Week</label>
+                    <input type="number" id="week" name="week" class="form-control"
+                           value="{{ selected_week|default:'' }}" placeholder="e.g. 6">
                 </div>
-                <div class="col-auto">
-                    <input type="number" id="week" name="week" class="form-control" 
-                           value="{{ selected_week|default:'' }}" placeholder="Week No.">
+                <div class="col-sm-6 col-md-3">
+                    <label for="subject" class="form-label fw-bold">Subject</label>
+                    <select id="subject" name="subject" class="form-select">
+                        <option value="">All Subjects</option>
+                        {% for subject in teacher_subjects %}
+                        <option value="{{ subject.id }}" {% if selected_subject == subject.id|stringformat:"s" %}selected{% endif %}>{{ subject.name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
-                <div class="col-auto">
-                    <button type="submit" class="btn btn-secondary">Filter</button>
-                    {% if selected_week %}
+                <div class="col-sm-6 col-md-3">
+                    <label for="school_class" class="form-label fw-bold">Class</label>
+                    <select id="school_class" name="school_class" class="form-select">
+                        <option value="">All Classes</option>
+                        {% for school_class in teacher_classes %}
+                        <option value="{{ school_class.id }}" {% if selected_class == school_class.id|stringformat:"s" %}selected{% endif %}>{{ school_class.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-sm-6 col-md-2">
+                    <label for="q" class="form-label fw-bold">Topic Search</label>
+                    <input type="text" id="q" name="q" class="form-control" value="{{ selected_query|default:'' }}" placeholder="e.g. Fractions">
+                </div>
+                <div class="col-sm-12 col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-secondary w-100">Filter</button>
+                    {% if selected_week or selected_subject or selected_class or selected_query %}
                     <a href="{% url 'teachers:lesson_plan_list' %}" class="btn btn-outline-secondary ms-2">Clear</a>
                     {% endif %}
                 </div>
@@ -93,6 +113,12 @@
                                 </a>
                                 <a href="{% url 'teachers:lesson_plan_edit' plan.pk %}" class="btn btn-sm btn-outline-secondary" title="Edit">
                                     <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'teachers:lesson_plan_duplicate' plan.pk %}" class="btn btn-sm btn-outline-success" title="Duplicate">
+                                    <i class="bi bi-files"></i>
+                                </a>
+                                <a href="{% url 'teachers:lesson_plan_print' plan.pk %}" class="btn btn-sm btn-outline-dark" title="Print">
+                                    <i class="bi bi-printer"></i>
                                 </a>
                                 <a href="{% url 'teachers:lesson_plan_delete' plan.pk %}" class="btn btn-sm btn-outline-danger" title="Delete">
                                     <i class="bi bi-trash"></i>
