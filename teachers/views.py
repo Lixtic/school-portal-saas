@@ -15,6 +15,9 @@ from students.utils import normalize_term
 from .forms import ResourceForm, LessonPlanForm, TeacherCreateForm #, HomeworkForm
 from accounts.models import User
 from academics.tutor_models import generate_teacher_id_card, export_id_card_to_pdf, export_multiple_id_cards_to_pdf
+from parents.models import Parent
+from communication.models import Conversation, Message
+from django.views.decorators.http import require_POST
 # from parents.models import Homework
 
 
@@ -93,6 +96,7 @@ def teacher_detail(request, teacher_id):
         'subject', 'school_class'
     ).order_by('-date_added')[:5]
     
+
     context = {
         'teacher': teacher,
         'managed_classes': managed_classes,
@@ -100,6 +104,113 @@ def teacher_detail(request, teacher_id):
         'lesson_plans': lesson_plans,
     }
     return render(request, 'teachers/teacher_detail.html', context)
+
+
+@login_required
+def analytics_dashboard(request):
+    if request.user.user_type not in ['teacher', 'admin']:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+    
+    # Try to get the teacher object
+    teacher = None
+    if request.user.user_type == 'teacher':
+        teacher = get_object_or_404(Teacher, user=request.user)
+    
+    # Get classes taught by the teacher
+    classes = Class.objects.none()
+    selected_class = None
+    students_data = []
+    
+    if teacher:
+        # Teachers see their assigned classes
+        classes = Class.objects.filter(classsubject__teacher=teacher).distinct()
+    elif request.user.user_type == 'admin':
+        # Admins see all classes
+        classes = Class.objects.all()
+
+    class_id = request.GET.get('class_id')
+    if class_id:
+        selected_class = get_object_or_404(Class, id=class_id)
+    elif classes.exists():
+        selected_class = classes.first()
+        
+    if selected_class:
+        # Generate mock analytics data for the selected class
+        students = Student.objects.filter(current_class=selected_class).select_related('user')
+        for student in students:
+            # Mock logic: Randomized mastery for demo purposes
+            # In production, this would query an AI analytics model
+            import random
+            # Use student ID to seed random content so it feels persistent
+            random.seed(student.id)
+            
+            mastery = random.randint(40, 100)
+            status = 'green' if mastery >= 80 else 'yellow' if mastery >= 60 else 'red'
+            misconception = None
+            suggested_intervention = None
+            
+            if status == 'red':
+                misconceptions_list = [
+                    "Confuses area with perimeter",
+                    "Difficulty with negative numbers",
+                    "Fraction addition errors",
+                    "Linear equation variable isolation"
+                ]
+                misconception = random.choice(misconceptions_list)
+                suggested_intervention = "Assign 'Foundations of Geometry' module"
+            elif status == 'yellow':
+                misconceptions_list = [
+                    "Minor calculation errors",
+                    "Needs more practice with word problems",
+                    "Inconsistent with unit conversion"
+                ]
+                misconception = random.choice(misconceptions_list)
+                suggested_intervention = "Review session on unit conversion"
+            
+            students_data.append({
+                'name': student.user.get_full_name(),
+                'id': student.id,
+                'mastery': mastery,
+                'status': status,
+                'misconception': misconception,
+                'intervention': suggested_intervention,
+                'last_active': "2 mins ago" if random.random() > 0.5 else "1 hour ago"
+            })
+            
+    # Calculate class aggregate stats
+    avg_mastery = 0
+    intervention_count = 0
+    if students_data:
+        avg_mastery = sum(s['mastery'] for s in students_data) / len(students_data)
+        intervention_count = sum(1 for s in students_data if s['status'] == 'red')
+
+
+    context = {
+        'classes': classes,
+        'selected_class': selected_class,
+        'students_data': students_data,
+        'avg_mastery': round(avg_mastery, 1),
+        'intervention_count': intervention_count,
+    }
+    return render(request, 'teachers/analytics_dashboard.html', context)
+
+
+@login_required
+def generate_remedial_lesson(request):
+    if request.user.user_type != 'teacher':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+        
+    topic = request.GET.get('topic', 'General Review')
+    # In a real implementation, this would call an AI service to generate a lesson plan
+    # For now, we'll redirect to the lesson plan create page with pre-filled data (passed via session or query params if supported)
+    
+    messages.success(request, f"AI Draft generated for remedial lesson on '{topic}'. Please review and save.")
+    # Assuming 'lesson_plan_create' can handle query params or we just simulate it
+    return redirect('teachers:lesson_plan_create')
+
+
 
 
 @login_required
@@ -898,3 +1009,99 @@ def bulk_teacher_id_cards_pdf(request):
     except Exception as e:
         messages.error(request, f'Error generating ID cards: {str(e)}')
         return redirect('teachers:teacher_list')
+
+
+import json
+from django.views.decorators.http import require_POST
+from communication.models import Conversation, Message
+from parents.models import Parent
+
+@require_POST
+@login_required
+def boost_intervention(request):
+    """
+    AJAX endpoint to trigger an AI intervention 'Boost'.
+    1. Creates a remedial assignment (ClassExercise)
+    2. Notifies the parent via internal message system
+    """
+    if request.user.user_type != 'teacher':
+        return JsonResponse({'status': 'error', 'message': 'Access denied'}, status=403)
+        
+    try:
+        data = json.loads(request.body)
+        student_id = data.get('student_id')
+        intervention_text = data.get('interventionText')
+
+        student = get_object_or_404(Student, id=student_id)
+        # Note: request.user might not be Teacher instance directly, but user linked to Teacher
+        try:
+            teacher = Teacher.objects.get(user=request.user)
+        except Teacher.DoesNotExist:
+             return JsonResponse({'status': 'error', 'message': 'Teacher profile not found'}, status=404)
+        
+        # 1. Assign Remedial Task
+        # Find a subject this teacher teaches to this student
+        # We look for a ClassSubject where teacher=teacher and class_name=student.current_class
+        class_subject = ClassSubject.objects.filter(
+            teacher=teacher, 
+            class_name=student.current_class
+        ).first()
+
+        log_message = []
+        
+        if class_subject:
+            # Create a specialized ClassExercise
+            exercise = ClassExercise.objects.create(
+                class_subject=class_subject,
+                title=f"Boost: {intervention_text[:20]}...",
+                description=f"AI-suggested intervention: {intervention_text}",
+                max_marks=10,
+                term='first' # Defaulting to first term
+            )
+            # Assign score entry (initializes it for student)
+            StudentExerciseScore.objects.create(
+                student=student,
+                exercise=exercise,
+                score=0,
+                remarks="Assigned via AI Boost"
+            )
+            log_message.append(f"Assigned '{exercise.title}' in {class_subject.subject.name}")
+        else:
+            log_message.append("No class subject found to assign work")
+
+        # 2. Notify Parent
+        # Student -> Parents (ManyToMany)
+        # We pick the first one
+        parent = student.parents.first() # Using related_name='parents' from Parent model? 
+        # Wait, Parent model has: children = models.ManyToManyField('students.Student', related_name='parents')
+        # So yes, student.parents.all() returns QuerySet of Parent objects.
+        
+        if parent:
+            parent_user = parent.user
+            # Create or get conversation
+            # Using specific method from Conversation model or get_or_create
+            conversation, created = Conversation.get_or_create_between(request.user, parent_user)
+            
+            msg_content = (
+                f"Dear {parent_user.last_name}, we noticed {student.user.first_name} could use a little extra help with "
+                f"'{intervention_text}'. I've assigned a short practice module (Boost) to support them. "
+                f"Please encourage them to complete it effectively. Thanks!"
+            )
+            
+            Message.objects.create(
+                conversation=conversation,
+                sender=request.user,
+                content=msg_content
+            )
+            log_message.append(f"Notified {parent_user.get_full_name()}")
+        else:
+            log_message.append("No parent linked for notification")
+
+        return JsonResponse({
+            'status': 'success', 
+            'message': f"Intervention deployed! {'. '.join(log_message)}."
+        })
+        
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+

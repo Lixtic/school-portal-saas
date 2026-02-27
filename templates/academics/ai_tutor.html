@@ -1,553 +1,602 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}AI Tutor Assistant{% endblock %}
+{% block title %}AI Tutor - Aura 2.0{% endblock %}
 
 {% block content %}
+<!-- KaTeX for Math Rendering -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"></script>
+
 <style>
     :root {
         --chat-primary: #6366f1; /* Indigo 500 */
         --chat-primary-light: #818cf8;
         --chat-bg: #f9fafb;
-        --chat-bubble-user: var(--chat-primary);
-        --chat-bubble-ai: #ffffff;
-        --chat-text-ai: #1f2937;
+        --whiteboard-bg: #f8fafc; /* Slate 50 */
+        --success-green: #10b981;
+        --kofi-red: #ef4444; /* Alert color for misconceptions */
     }
 
-    /* Main Layout */
-    .ai-tutor-wrapper {
-        height: calc(100vh - 140px); /* Adjust based on header/footer */
-        min-height: 500px;
+    /* --- LAYOUT & GRID --- */
+    .learning-space-wrapper {
+        min-height: calc(100vh - 100px);
+        background: #f1f5f9;
         display: flex;
         flex-direction: column;
-        background: var(--chat-bg);
-        border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-        overflow: hidden;
-        position: relative;
-        margin-bottom: 20px;
-        border: 1px solid #e5e7eb;
+        padding-bottom: 20px;
     }
 
-    /* Header Section */
-    .chat-header {
+    /* Progress Bar (Phase Tracker) */
+    .progress-tracker {
         background: white;
         padding: 12px 20px;
-        border-bottom: 1px solid #f3f4f6;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    
+    .phase-step {
+        display: flex;
+        align-items: center;
+        opacity: 0.6;
+        transition: all 0.3s;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #64748b;
+        padding: 6px 16px;
+        border-radius: 20px;
+        background: #f8fafc;
+    }
+    
+    .phase-step.active {
+        opacity: 1;
+        background: #e0e7ff;
+        color: var(--chat-primary);
+        box-shadow: 0 0 0 2px #c7d2fe;
+    }
+    
+    .phase-step.completed {
+        opacity: 1;
+        color: var(--success-green);
+        background: #ecfdf5;
+    }
+    
+    .phase-arrow {
+        color: #cbd5e1;
+        font-size: 0.8rem;
+    }
+
+    /* Main Container Split */
+    .split-container {
+        display: flex;
+        flex: 1;
+        height: calc(100vh - 160px);
+        margin: 20px;
+        gap: 20px;
+        border-radius: 16px;
+        overflow: hidden;
+    }
+    
+    /* LEFT: Whiteboard (60%) */
+    .whiteboard-panel {
+        flex: 6;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+    
+    .whiteboard-header {
+        padding: 12px 20px;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f8fafc;
+        border-top-left-radius: 16px;
+        border-top-right-radius: 16px;
+    }
+    
+    .whiteboard-content {
+        flex: 1;
+        padding: 30px;
+        overflow-y: auto;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #334155;
+        background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+        background-size: 20px 20px;
+    }
+
+    .whiteboard-content h1, .whiteboard-content h2, .whiteboard-content h3 { 
+        font-weight: 700; 
+        margin-bottom: 1rem; 
+        color: #0f172a;
+    }
+    
+    .whiteboard-content p { 
+        line-height: 1.8; 
+        margin-bottom: 1rem; 
+        font-size: 1.05rem;
+    }
+    
+    /* Image/Map Placeholder styling */
+    .wb-image-container {
+        border-radius: 12px;
+        overflow: hidden;
+        border: 2px solid #e2e8f0;
+        margin: 1rem 0;
+    }
+
+    /* RIGHT: Chat Stream (40%) */
+    .chat-panel {
+        flex: 4;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        position: relative;
+    }
+
+    .chat-header-small {
+        padding: 12px 16px;
+        border-bottom: 1px solid #f1f5f9;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        z-index: 10;
-        height: 70px;
+        background: white;
+        border-top-left-radius: 16px;
+        border-top-right-radius: 16px;
     }
 
-    .header-title {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .ai-avatar-header {
-        width: 42px;
-        height: 42px;
-        background: linear-gradient(135deg, #6366f1, #8b5cf6);
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 1.3rem;
-        box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);
-    }
-
-    .header-controls {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .status-badge {
-        font-size: 0.75rem;
-        padding: 2px 8px;
-        background: #ecfdf5;
-        color: #059669;
-        border-radius: 10px;
-        font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-    }
-    
-    .status-dot {
-        width: 6px;
-        height: 6px;
-        background: #10b981;
-        border-radius: 50%;
-        display: inline-block;
-    }
-
-    /* Chat Area */
     .chat-messages {
         flex: 1;
         overflow-y: auto;
-        padding: 24px;
+        padding: 20px;
         display: flex;
         flex-direction: column;
-        gap: 24px;
-        background-color: var(--chat-bg);
-        background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
-        background-size: 32px 32px;
+        gap: 16px;
         scroll-behavior: smooth;
+        background: #f9fafb;
     }
 
-    /* Messages */
     .message {
         display: flex;
-        gap: 16px;
-        max-width: 80%;
-        opacity: 0;
-        animation: slideIn 0.3s ease forwards;
+        gap: 12px;
+        max-width: 90%;
+        animation: fadeIn 0.3s ease;
     }
-
-    @media (min-width: 1200px) {
-        .message { max-width: 70%; }
-    }
-
-    .message.user {
-        align-self: flex-end;
-        flex-direction: row-reverse;
-    }
-
-    .message.assistant {
-        align-self: flex-start;
-    }
-
-    @keyframes slideIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    .message-avatar {
-        width: 38px;
-        height: 38px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        font-size: 1rem;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        border: 2px solid white;
-    }
-
-    .message.user .message-avatar {
-        background: #e0e7ff;
-        color: var(--chat-primary);
-    }
-
-    .message.assistant .message-avatar {
-        background: #ffffff;
-        color: var(--chat-primary);
-    }
-
+    
+    .message.user { flex-direction: row-reverse; align-self: flex-end; }
+    .message.assistant { align-self: flex-start; }
+    
     .message-bubble {
-        padding: 16px 20px;
-        border-radius: 20px;
-        line-height: 1.6;
+        padding: 12px 16px;
+        border-radius: 16px;
         font-size: 0.95rem;
+        line-height: 1.5;
         position: relative;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        word-wrap: break-word;
     }
-
+    
     .message.user .message-bubble {
         background: var(--chat-primary);
         color: white;
-        border-top-right-radius: 4px;
+        border-top-right-radius: 2px;
+        box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
     }
-
+    
     .message.assistant .message-bubble {
         background: white;
-        color: var(--chat-text-ai);
-        border-top-left-radius: 4px;
-        border: 1px solid rgba(0,0,0,0.03);
-    }
-
-    .message-content strong {
-        font-weight: 600;
-        color: inherit;
-    }
-    
-    .message.user .message-content a { color: #e0e7ff; text-decoration: underline; }
-    .message.assistant .message-content a { color: var(--chat-primary); text-decoration: underline; }
-    
-    .message-content ul, .message-content ol {
-        margin-bottom: 0;
-        padding-left: 1.2rem;
-    }
-    
-    .message-content p:last-child {
-        margin-bottom: 0;
+        color: #1e293b;
+        border-top-left-radius: 2px;
+        border: 1px solid #e2e8f0;
     }
 
     /* Input Area */
-    .input-wrapper {
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(12px);
-        padding: 16px 24px 20px;
-        border-top: 1px solid rgba(0,0,0,0.05);
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
+    .chat-input-area {
+        padding: 16px;
+        border-top: 1px solid #f1f5f9;
+        background: white;
+        border-bottom-left-radius: 16px;
+        border-bottom-right-radius: 16px;
         position: relative;
-        z-index: 20;
     }
 
-    .quick-prompts {
+    .toolbar-actions {
         display: flex;
-        gap: 10px;
+        gap: 8px;
+        margin-bottom: 12px;
         overflow-x: auto;
         padding-bottom: 4px;
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-        margin-bottom: 4px;
     }
     
-    .quick-prompts::-webkit-scrollbar {
-        display: none;
-    }
-
-    .prompt-chip {
-        padding: 8px 16px;
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 24px;
-        font-size: 0.85rem;
-        color: #4b5563;
-        white-space: nowrap;
+    .action-btn {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 20px; /* Pill shape */
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        color: #64748b;
         cursor: pointer;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.2s;
         display: flex;
         align-items: center;
-        gap: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.03);
-        font-weight: 500;
+        gap: 6px;
+        white-space: nowrap;
     }
-
-    .prompt-chip:hover {
-        background: #fdfeff;
+    
+    .action-btn:hover {
+        background: #f1f5f9;
+        color: var(--chat-primary);
         border-color: var(--chat-primary-light);
-        color: var(--chat-primary);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
     }
     
-    .prompt-chip i {
-        font-size: 1rem;
-        color: #9ca3af;
-    }
-    
-    .prompt-chip:hover i {
+    .action-btn.active {
+        background: #e0e7ff;
         color: var(--chat-primary);
+        border-color: var(--chat-primary);
     }
 
-    .input-box-container {
+    .input-group-custom {
         display: flex;
         align-items: flex-end;
-        gap: 12px;
-        background: white;
-        border: 1px solid #e5e7eb;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
         border-radius: 24px;
-        padding: 6px 6px 6px 20px;
-        transition: all 0.2s;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        padding: 8px 8px 8px 16px;
+        transition: border-color 0.2s;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+    }
+    
+    .input-group-custom:focus-within {
+        border-color: var(--chat-primary);
+        background: white;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
     }
 
-    .input-box-container:focus-within {
-        border-color: var(--chat-primary-light);
-        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
-    }
-
-    .chat-input {
+    .chat-textarea {
         flex: 1;
         border: none;
         outline: none;
-        background: transparent;
-        max-height: 150px;
-        padding: 10px 0;
         resize: none;
+        max-height: 120px;
+        padding: 8px 4px;
         font-family: inherit;
+        background: transparent;
         font-size: 0.95rem;
-        line-height: 1.5;
     }
 
-    .send-btn-icon {
-        width: 44px;
-        height: 44px;
+    .voice-btn {
+        width: 36px;
+        height: 36px;
         border-radius: 50%;
-        background: var(--chat-primary);
-        color: white;
+        border: none;
+        background: transparent;
+        color: #64748b;
         display: flex;
         align-items: center;
         justify-content: center;
-        border: none;
         cursor: pointer;
         transition: all 0.2s;
-        flex-shrink: 0;
-        box-shadow: 0 4px 6px rgba(99, 102, 241, 0.3);
-    }
-
-    .send-btn-icon:hover {
-        background: #4f46e5;
-        transform: scale(1.05);
     }
     
-    .send-btn-icon:active {
-        transform: scale(0.95);
-    }
+    .voice-btn:hover { background: #e2e8f0; color: var(--chat-primary); }
+    .voice-btn.recording { color: #ef4444; animation: pulse 1.5s infinite; }
 
-    .send-btn-icon:disabled {
-        background: #e5e7eb;
-        color: #9ca3af;
-        cursor: not-allowed;
-        box-shadow: none;
-        transform: none;
-    }
-
-    /* Typing Indicator */
-    .typing-indicator {
-        padding: 16px 20px;
-        background: white;
-        border-radius: 20px;
-        border-top-left-radius: 4px;
-        display: none;
-        width: fit-content;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        margin-bottom: 24px;
-        margin-left: 54px; /* avatar width + gap */
-        border: 1px solid #f3f4f6;
-    }
-
-    .typing-indicator span {
-        display: inline-block;
-        width: 6px;
-        height: 6px;
-        background: #9ca3af;
+    .send-btn-round {
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
-        animation: typeBounce 1.4s infinite ease-in-out both;
-        margin: 0 3px;
+        background: var(--chat-primary);
+        color: white;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: transform 0.1s;
+        box-shadow: 0 2px 5px rgba(99, 102, 241, 0.3);
+    }
+    
+    .send-btn-round:hover { transform: scale(1.05); background: #4f46e5; }
+    .send-btn-round:disabled { background: #cbd5e1; cursor: not-allowed; box-shadow: none; }
+
+    /* Gamification Badge */
+    .insight-badge {
+        position: fixed;
+        top: 20%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0);
+        background: white;
+        padding: 16px 24px;
+        border-radius: 16px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        z-index: 1000;
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s;
+        opacity: 0;
+        pointer-events: none;
+        border: 2px solid #ecfdf5;
+    }
+    
+    .insight-badge.show { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    .insight-icon { font-size: 2rem; color: var(--success-green); }
+
+    /* Math Keyboard (Hidden by default) */
+    .math-keyboard-panel {
+        position: absolute;
+        bottom: 100%;
+        left: 16px;
+        right: 16px;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 12px;
+        display: none;
+        grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+        gap: 8px;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+        z-index: 30;
+        margin-bottom: 8px;
+    }
+    
+    .math-key {
+        padding: 8px 0;
+        text-align: center;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        font-family: 'Times New Roman', serif;
+        font-style: italic;
+        cursor: pointer;
+        font-size: 1.1rem;
+        transition: all 0.1s;
+    }
+    .math-key:hover { background: #e0e7ff; color: var(--chat-primary); border-color: #c7d2fe; }
+    .math-key:active { transform: translateY(1px); }
+
+    /* Offline Indicator */
+    .sync-status {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 6px;
+        justify-content: flex-end;
+        padding-right: 8px;
     }
 
-    .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
-    .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
-
-    @keyframes typeBounce {
-        0%, 80%, 100% { transform: scale(0); }
-        40% { transform: scale(1); }
-    }
-
-    /* Custom Scrollbar for messages */
-    .chat-messages::-webkit-scrollbar {
-        width: 6px;
-    }
-    .chat-messages::-webkit-scrollbar-track {
-        background: transparent;
-    }
-    .chat-messages::-webkit-scrollbar-thumb {
-        background: #d1d5db;
-        border-radius: 10px;
-    }
-    .chat-messages::-webkit-scrollbar-thumb:hover {
-        background: #9ca3af;
-    }
+    .sync-status.offline { color: #ef4444; }
+    .sync-status.synced { color: #10b981; }
 
     /* Mobile Responsive */
-    @media (max-width: 768px) {
-        .ai-tutor-wrapper {
-            height: calc(100vh - 110px);
-            border-radius: 16px;
-            margin-bottom: 10px;
-        }
-        
-        .chat-header {
-            padding: 10px 15px;
-            height: auto;
+    @media (max-width: 992px) {
+        .split-container {
             flex-direction: column;
-            gap: 12px;
-            align-items: stretch;
+            height: auto;
+            min-height: calc(100vh - 140px);
+            margin: 10px;
         }
-        
-        .header-title {
-            justify-content: space-between;
+        .whiteboard-panel {
+            min-height: 250px;
+            max-height: 40vh;
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
         }
-        
-        .header-controls {
-            justify-content: space-between;
+        .chat-panel {
+            flex: 1;
+            min-height: 50vh;
+            border-top-left-radius: 0;
+            border-top-right-radius: 0;
+            border-top: none;
         }
-        
-        .header-controls select {
-            font-size: 0.85rem;
-            padding: 6px 10px;
-            width: 48%; /* Split width */
+        .progress-tracker {
+            overflow-x: auto;
+            justify-content: flex-start;
+            padding: 10px;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
-        
-        /* Hide buttons text on mobile, icons only maybe? */
-        
-        .chat-messages {
-            padding: 15px;
-            gap: 16px;
-        }
-        
-        .message-avatar {
-            width: 32px;
-            height: 32px;
-        }
-        
-        .message {
-            max-width: 90%;
-            gap: 10px;
-        }
-        
-        .typing-indicator {
-            margin-left: 42px;
-        }
-        
-        .input-wrapper {
-            padding: 12px 15px 15px;
-        }
+        .progress-tracker::-webkit-scrollbar { display: none; }
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.1); opacity: 0.8; }
+        100% { transform: scale(1); opacity: 1; }
     }
 </style>
 
-<div class="container-fluid py-3 px-md-4">
-    <div class="ai-tutor-wrapper">
-        <!-- Header -->
-        <div class="chat-header">
-            <div class="header-title">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="ai-avatar-header">
-                        <i class="bi bi-robot"></i>
+<!-- Progress Bar -->
+<div class="progress-tracker">
+    <div class="phase-step active" id="phase-diagnostic">
+        <i class="bi bi-activity me-1"></i> Diagnostic
+    </div>
+    <div class="phase-arrow"><i class="bi bi-chevron-right"></i></div>
+    <div class="phase-step" id="phase-instruction">
+        <i class="bi bi-lightbulb me-1"></i> Instruction
+    </div>
+    <div class="phase-arrow"><i class="bi bi-chevron-right"></i></div>
+    <div class="phase-step" id="phase-practice">
+        <i class="bi bi-pencil-square me-1"></i> Practice
+    </div>
+    <div class="phase-arrow"><i class="bi bi-chevron-right"></i></div>
+    <div class="phase-step" id="phase-assessment">
+        <i class="bi bi-trophy me-1"></i> Assessment
+    </div>
+</div>
+
+<div class="container-fluid px-0 pb-3">
+    <div class="split-container">
+        <!-- LEFT: Dynamic Whiteboard (60%) -->
+        <div class="whiteboard-panel" id="whiteboardPanel">
+            <div class="whiteboard-header">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="bg-primary bg-opacity-10 p-2 rounded-circle text-primary">
+                        <i class="bi bi-easel"></i>
                     </div>
+                    <span class="fw-bold text-dark">Whiteboard</span>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-secondary border-0" onclick="clearWhiteboard()" data-bs-toggle="tooltip" title="Clear Board">
+                        <i class="bi bi-eraser"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary border-0" onclick="expandWhiteboard()" data-bs-toggle="tooltip" title="Fullscreen">
+                        <i class="bi bi-arrows-fullscreen"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="whiteboard-content" id="whiteboardContent">
+                <!-- Empty State -->
+                <div class="h-100 d-flex flex-col align-items-center justify-content-center text-center opacity-50">
                     <div>
-                        <h5 class="fw-bold mb-0 text-dark">AI Tutor Assistant</h5>
-                        <div class="status-badge">
-                            <span class="status-dot"></span> Online
+                        <i class="bi bi-magic display-4 mb-3 d-block text-secondary"></i>
+                        <h5 class="fw-normal">Ready to learn?</h5>
+                        <p>I'll sketch diagrams, maps, and solve equations here.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Chat Interface (40%) -->
+        <div class="chat-panel">
+            <div class="chat-header-small">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="position-relative">
+                        <img src="{% static 'img/ai-avatar.png' %}" onerror="this.src='https://ui-avatars.com/api/?name=AI+Tutor&background=6366f1&color=fff'" alt="AI" class="rounded-circle" width="32" height="32">
+                        <span class="position-absolute bottom-0 end-0 bg-success border border-white rounded-circle" style="width: 10px; height: 10px;"></span>
+                    </div>
+                    <span class="fw-bold text-dark" style="font-size: 0.95rem;">Aura 2.0</span>
+                </div>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-light rounded-circle" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                        <li><a class="dropdown-item" href="#" onclick="createNewChatSession()"><i class="bi bi-plus-lg me-2"></i>New Session</a></li>
+                        <li><a class="dropdown-item" href="{% url 'academics:tutor_sessions' %}"><i class="bi bi-clock-history me-2"></i>History</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-flag me-2"></i>Report Issue</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                {% if initial_messages %}
+                    {% for msg in initial_messages %}
+                        <div class="message {{ msg.role }}">
+                            <div class="message-bubble">{{ msg.content|linebreaksbr }}</div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <!-- Quick Onboarding Bubbles -->
+                    <div class="message assistant">
+                        <div class="message-bubble">
+                            Hi <strong>{{ student.user.first_name }}</strong>! 👋 I'm ready to help.
+                            <br><br>
+                            Try asking:
+                            <ul class="mt-2 mb-0 ps-3">
+                                <li>"Help me understand the quadratic formula"</li>
+                                <li>"Map of Kejetia Market vs. Circle"</li>
+                                <li>"Practice quiz for JHS Science"</li>
+                            </ul>
                         </div>
                     </div>
-                </div>
-            </div>
-            
-            <div class="header-controls">
-                <select id="sessionSelect" class="form-select form-select-sm border-0 bg-light shadow-sm" style="min-width: 140px; cursor: pointer;" onchange="switchSession(this.value)">
-                    <option value="">Current Session</option>
-                    {% for session in recent_sessions %}
-                    <option value="{{ session.id }}" {% if selected_session_id and selected_session_id == session.id|stringformat:"s" %}selected{% endif %}>
-                        {{ session.started_at|date:"M d, g:i A" }}
-                    </option>
-                    {% endfor %}
-                </select>
-
-                <select id="subjectSelect" class="form-select form-select-sm border-0 bg-light shadow-sm" style="min-width: 130px; cursor: pointer;">
-                    <option value="">All Subjects</option>
-                    {% for subject in subjects %}
-                    <option value="{{ subject.id }}" {% if initial_subject_id == subject.id %}selected{% endif %}>{{ subject.name }}</option>
-                    {% endfor %}
-                </select>
+                {% endif %}
                 
-                <a href="{% url 'academics:tutor_sessions' %}" class="btn btn-light btn-sm rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" data-bs-toggle="tooltip" title="Full History">
-                    <i class="bi bi-clock-history"></i>
-                </a>
-                
-                <button onclick="createNewChatSession()" class="btn btn-primary btn-sm rounded-circle shadow-sm d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" data-bs-toggle="tooltip" title="New Chat">
-                    <i class="bi bi-plus-lg"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- Chat Area -->
-        <div class="chat-messages" id="chatMessages">
-            {% if initial_messages %}
-                {% for msg in initial_messages %}
-                <div class="message {{ msg.role }}">
-                    <div class="message-avatar">
-                        {% if msg.role == 'user' %}
-                            <i class="bi bi-person-fill"></i>
-                        {% else %}
-                            <i class="bi bi-stars"></i>
-                        {% endif %}
-                    </div>
-                    <div class="message-bubble">
-                        <div class="message-content">{{ msg.content|linebreaksbr }}</div>
+                <!-- Typing Indicator -->
+                <div class="typing-indicator" id="typingIndicator" style="display: none; padding: 0 0 0 20px;">
+                    <div class="d-flex gap-1 bg-white p-2 rounded-3 shadow-sm" style="width: fit-content; border: 1px solid #e2e8f0;">
+                         <div class="spinner-grow spinner-grow-sm text-primary" role="status" style="width: 0.5rem; height: 0.5rem;"></div>
+                         <div class="spinner-grow spinner-grow-sm text-primary" role="status" style="width: 0.5rem; height: 0.5rem; animation-delay: 0.1s"></div>
+                         <div class="spinner-grow spinner-grow-sm text-primary" role="status" style="width: 0.5rem; height: 0.5rem; animation-delay: 0.2s"></div>
                     </div>
                 </div>
-                {% endfor %}
-            {% else %}
-            <!-- Welcome Message -->
-            <div class="d-flex flex-column align-items-center justify-content-center h-100 text-center opacity-75 mt-5">
-                <div class="mb-4 text-primary bg-light p-4 rounded-circle shadow-sm" style="font-size: 3.5rem; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center;">
-                    <i class="bi bi-robot"></i>
-                </div>
-                <h3 class="fw-bold text-dark mb-2">Hello, {{ student.user.first_name }}!</h3>
-                <p class="text-muted px-4" style="max-width: 450px; font-size: 1.1rem;">
-                    I'm your personal AI Tutor. I can help you with homework, explain complex topics, or create practice tests.
-                </p>
-                <div class="mt-4 d-flex gap-2 flex-wrap justify-content-center">
-                    <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="quickAction('Help me with math homework')">Math Help</button>
-                    <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="quickAction('Explain photosynthesis')">Science Concept</button>
-                    <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="quickAction('Quiz me on history')">History Quiz</button>
-                </div>
             </div>
-            {% endif %}
 
-             <!-- Typing Indicator (Moved inside for flow) -->
-            <div class="typing-indicator" id="typingIndicator">
-                <span></span>
-                <span></span>
-                <span></span>
+            <!-- Input Area -->
+            <div class="chat-input-area">
+                <!-- Helper Tools -->
+                <div class="toolbar-actions">
+                    <button class="action-btn" onclick="toggleMathKeyboard(this)">
+                        <span style="font-family: serif; font-style: italic;">∑</span> Math Keyboard
+                    </button>
+                    <button class="action-btn" onclick="quickActionTrigger('Generate a diagram for this')">
+                        <i class="bi bi-image"></i> Visuals
+                    </button>
+                    <button class="action-btn" onclick="quickActionTrigger('Give me a hint')">
+                        <i class="bi bi-magic"></i> Hint
+                    </button>
+                </div>
+                
+                <!-- Math Keyboard -->
+                <div class="math-keyboard-panel" id="mathKeyboard">
+                    <div class="math-key" onclick="insertSymbol('\\sqrt{x}')">√</div>
+                    <div class="math-key" onclick="insertSymbol('\\pi')">π</div>
+                    <div class="math-key" onclick="insertSymbol('\\theta')">θ</div>
+                    <div class="math-key" onclick="insertSymbol('\\int')">∫</div>
+                    <div class="math-key" onclick="insertSymbol('\\sum')">∑</div>
+                    <div class="math-key" onclick="insertSymbol('\\infty')">∞</div>
+                    <div class="math-key" onclick="insertSymbol('^2')">x²</div>
+                    <div class="math-key" onclick="insertSymbol('\\frac{a}{b}')">a/b</div>
+                    <div class="math-key" onclick="insertSymbol('\\pm')">±</div>
+                    <div class="math-key" onclick="insertSymbol('\\neq')">≠</div>
+                    <div class="math-key" onclick="insertSymbol('\\approx')">≈</div>
+                    <div class="math-key" onclick="insertSymbol('\\leq')">≤</div>
+                </div>
+
+                <div class="input-group-custom">
+                    <button class="voice-btn" id="voiceBtn" title="Voice Input (Local Dialect)">
+                        <i class="bi bi-mic"></i>
+                    </button>
+                    <textarea 
+                        id="messageInput" 
+                        class="chat-textarea" 
+                        placeholder="Type a message..." 
+                        rows="1"></textarea>
+                    <button id="sendBtn" class="send-btn-round" disabled onclick="sendMessage()">
+                        <i class="bi bi-arrow-up"></i>
+                    </button>
+                </div>
+                
+                <!-- Status -->
+                <div class="sync-status synced" id="syncStatus">
+                    <i class="bi bi-cloud-check-fill"></i> Saved
+                </div>
             </div>
         </div>
+    </div>
+</div>
 
-
-        <!-- Input Area -->
-        <div class="input-wrapper">
-            <!-- Quick Prompts (Horizontal Scroll) -->
-            <div class="quick-prompts" id="quickPrompts">
-                <button class="prompt-chip" onclick="quickAction('Explain this concept simply')">
-                    <i class="bi bi-lightbulb"></i> Explain simply
-                </button>
-                <button class="prompt-chip" onclick="quickAction('Give me a practice problem')">
-                    <i class="bi bi-pencil"></i> Practice Problem
-                </button>
-                <button class="prompt-chip" onclick="quickAction('Summarize the key points')">
-                    <i class="bi bi-list-check"></i> Summarize
-                </button>
-                <button class="prompt-chip" onclick="quickAction('How does this apply to real life?')">
-                    <i class="bi bi-globe"></i> Real world application
-                </button>
-                <button class="prompt-chip" onclick="quickAction('Create a study schedule for me')">
-                    <i class="bi bi-calendar-check"></i> Study Plan
-                </button>
-            </div>
-
-            <!-- Input Box -->
-            <div class="input-box-container">
-                <textarea 
-                    id="messageInput" 
-                    class="chat-input" 
-                    placeholder="Ask a question..."
-                    rows="1"
-                    oninput="this.style.height = ''; this.style.height = Math.min(this.scrollHeight, 150) + 'px'"
-                    onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }"
-                ></textarea>
-                <button id="sendBtn" class="send-btn-icon" onclick="sendMessage()" disabled>
-                    <i class="bi bi-send-fill" style="margin-left: 2px;"></i>
-                </button>
-            </div>
-            
-            <div class="text-center mt-1">
-                <small class="text-muted" style="font-size: 0.75rem;">
-                    Generated content may be inaccurate. Verify important information.
-                </small>
-            </div>
-        </div>
+<!-- Gamification Badge -->
+<div class="insight-badge" id="insightBadge">
+    <div class="bg-success bg-opacity-10 p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+        <i class="bi bi-lightbulb-fill text-success" style="font-size: 1.8rem;"></i>
+    </div>
+    <div>
+        <h5 class="fw-bold text-dark mb-1">Insight Earned!</h5>
+        <p class="text-muted mb-0 small">You mastered this concept.</p>
     </div>
 </div>
 
@@ -555,85 +604,110 @@
 {{ initial_messages|json_script:"initialMessagesData" }}
 
 <script>
+    // --- Initialization ---
     const aiTutorBootstrap = JSON.parse(document.getElementById('aiTutorBootstrapData').textContent);
     let conversationHistory = [];
     try {
         conversationHistory = JSON.parse(document.getElementById('initialMessagesData').textContent || '[]');
-    } catch(e) {
-        console.warn('Could not parse initial messages', e);
-        conversationHistory = [];
-    }
+    } catch(e) { console.warn(e); }
 
+    // Elements
     const chatMessages = document.getElementById('chatMessages');
     const messageInput = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
+    const whiteboardContent = document.getElementById('whiteboardContent');
+    const mathKeyboard = document.getElementById('mathKeyboard');
+    const voiceBtn = document.getElementById('voiceBtn');
+    const insightBadge = document.getElementById('insightBadge');
     const typingIndicator = document.getElementById('typingIndicator');
-    const subjectSelect = document.getElementById('subjectSelect');
 
-    // Enable/disable send button
-    messageInput.addEventListener('input', function() {
-        sendBtn.disabled = !this.value.trim();
-    });
-
-    // Auto-scroll to bottom on load
+    // Auto-scroll on load
     window.onload = function() {
-        scrollToBottom();
-        // Initialize tooltips
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        renderMathInElement(document.body); // Initialize KaTeX globally
+        
+        // Tooltips
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl)
+          return new bootstrap.Tooltip(tooltipTriggerEl)
         })
     };
 
-    function scrollToBottom() {
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
+    // --- Core Logic ---
 
-    function quickAction(text) {
-        messageInput.value = text;
+    // 1. Math Keyboard Toggle
+    function toggleMathKeyboard(btn) {
+        if(mathKeyboard.style.display === 'grid') {
+            mathKeyboard.style.display = 'none';
+            btn.classList.remove('active');
+        } else {
+            mathKeyboard.style.display = 'grid';
+            btn.classList.add('active');
+        }
+    }
+    
+    // 2. Insert Math Symbol
+    function insertSymbol(symbol) {
+        const start = messageInput.selectionStart;
+        const end = messageInput.selectionEnd;
+        const text = messageInput.value;
+        const before = text.substring(0, start);
+        const after = text.substring(end, text.length);
+        
+        messageInput.value = before + symbol + after;
+        messageInput.selectionStart = messageInput.selectionEnd = start + symbol.length;
         messageInput.focus();
-        // Trigger auto-resize
-        messageInput.style.height = '';
-        messageInput.style.height = Math.min(messageInput.scrollHeight, 150) + 'px';
-        
-        // Enable send button
-        sendBtn.disabled = false;
-        
-        // Optional: Auto-send for specific types of prompts if desired
-        // sendMessage(); 
+        messageInput.dispatchEvent(new Event('input')); // Trigger resize/enable
     }
 
-    async function sendMessage() {
-        const content = messageInput.value.trim();
-        if (!content) return;
-
-        // Add to history
-        conversationHistory.push({ role: 'user', content: content });
-
-        // Add user message to UI
-        appendMessage('user', content);
-        messageInput.value = '';
-        messageInput.style.height = 'auto'; // Reset height
-        sendBtn.disabled = true;
+    // 3. Auto-expand Textarea & Enable Button
+    messageInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        sendBtn.disabled = !this.value.trim();
         
-        // Show typing indicator
-        showTyping(true);
+        // Update Sync Status to "Writing..."
+        document.getElementById('syncStatus').innerHTML = '<i class="bi bi-pencil"></i> Writing...';
+        document.getElementById('syncStatus').className = 'sync-status';
+    });
+    
+    // 4. Send Message (with Whiteboard Logic)
+    async function sendMessage() {
+        const text = messageInput.value.trim();
+        if(!text) return;
+        
+        // UI Updates
+        appendMessage('user', text);
+        messageInput.value = '';
+        messageInput.style.height = 'auto';
+        sendBtn.disabled = true;
+        mathKeyboard.style.display = 'none';
+        
+        // Show Typing
+        typingIndicator.style.display = 'block';
+        chatMessages.scrollTop = chatMessages.scrollHeight;
 
         try {
-            const subjectId = subjectSelect.value;
-            const currentSessionId = new URLSearchParams(window.location.search).get('session');
+            // Check for triggers locally to simulate instant UI response for demo
+            if(text.toLowerCase().includes('kejetia') || text.toLowerCase().includes('market') || text.toLowerCase().includes('map')) {
+                simulateWhiteboardUpdate('map');
+            } else if (text.toLowerCase().includes('quadratic') || text.toLowerCase().includes('solve') || text.toLowerCase().includes('equation')) {
+                simulateWhiteboardUpdate('math');
+            }
+
+            // Real Backend Call
+            conversationHistory.push({ role: 'user', content: text });
             
             const response = await fetch("{% url 'academics:ai_tutor_chat' %}", {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
                 body: JSON.stringify({ 
                     messages: conversationHistory,
-                    subject_id: subjectId,
-                    session_id: currentSessionId
-                })
+                    session_id: new URLSearchParams(window.location.search).get('session')
+                }),
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'X-CSRFToken': '{{ csrf_token }}' 
+                }
             });
 
             if (!response.ok) throw new Error('Network response was not ok');
@@ -641,28 +715,17 @@
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             
-            // Create assistant message container
+            // Prepare assistant bubble
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message assistant';
-            messageDiv.innerHTML = `
-                <div class="message-avatar">
-                    <i class="bi bi-stars"></i>
-                </div>
-                <div class="message-bubble">
-                    <div class="message-content"></div>
-                </div>
-            `;
-            
-            // Insert before typing indicator
+            messageDiv.innerHTML = `<div class="message-bubble"></div>`;
             chatMessages.insertBefore(messageDiv, typingIndicator);
+            const contentDiv = messageDiv.querySelector('.message-bubble');
             
-            const contentDiv = messageDiv.querySelector('.message-content');
-            
-            // Hide typing indicator once we start receiving data but keep it in DOM
-            showTyping(false); 
+            typingIndicator.style.display = 'none';
             
             let fullText = '';
-
+            
             while (true) {
                 const { value, done } = await reader.read();
                 if (done) break;
@@ -677,117 +740,150 @@
                             if (data.content) {
                                 fullText += data.content;
                                 contentDiv.innerHTML = formatMessage(fullText);
-                                scrollToBottom();
+                                chatMessages.scrollTop = chatMessages.scrollHeight;
                             }
-                        } catch (e) {
-                            console.error('Error parsing chunk', e);
-                        }
+                        } catch (e) { console.error(e); }
                     }
                 }
             }
             
-            // Final check for cleaning
-            // We strip any JSON summary block that might have been appended at the end
-            const cleanText = stripSessionSummary(fullText);
-            if (cleanText !== fullText) {
-                contentDiv.innerHTML = formatMessage(cleanText);
-            } else {
-                // Ensure final render is clean
-                contentDiv.innerHTML = formatMessage(fullText);
-            }
+            // Add to history
+            conversationHistory.push({ role: 'assistant', content: fullText });
+            
+            // Sync Status
+            document.getElementById('syncStatus').innerHTML = '<i class="bi bi-cloud-check-fill"></i> Saved';
+            document.getElementById('syncStatus').className = 'sync-status synced';
 
-            // Add response to history
-            conversationHistory.push({ role: 'assistant', content: cleanText });
-
-        } catch (error) {
-            console.error('Error:', error);
-            showTyping(false);
-            appendMessage('assistant', 'Sorry, I encountered an error. Please try again.');
-        } finally {
-            scrollToBottom();
-        }
-    }
-
-    function appendMessage(role, text) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${role}`;
-        
-        const avatarIcon = role === 'user' ? 'bi-person-fill' : 'bi-stars';
-        
-        messageDiv.innerHTML = `
-            <div class="message-avatar">
-                <i class="bi ${avatarIcon}"></i>
-            </div>
-            <div class="message-bubble">
-                <div class="message-content">${formatMessage(text)}</div>
-            </div>
-        `;
-        
-        if (role === 'user') {
-            chatMessages.insertBefore(messageDiv, typingIndicator);
-        } else {
-            chatMessages.insertBefore(messageDiv, typingIndicator);
-        }
-        
-        scrollToBottom();
-    }
-
-    function showTyping(show) {
-        if (show) {
-            typingIndicator.style.display = 'block';
-            scrollToBottom();
-        } else {
+        } catch(e) {
+            console.error(e);
             typingIndicator.style.display = 'none';
+            appendMessage('assistant', "I'm having trouble connecting to the school server. Please try again.");
+            document.getElementById('syncStatus').innerHTML = '<i class="bi bi-wifi-off"></i> Offline';
+            document.getElementById('syncStatus').className = 'sync-status offline';
         }
     }
+    
+    // Keyboard Send
+    messageInput.addEventListener('keydown', (e) => {
+        if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    });
 
+    // 5. Whiteboard Simulation (For Demo Polish)
+    function simulateWhiteboardUpdate(type) {
+        let content = '';
+        if(type === 'math') {
+            content = `
+                <h2>Quadratic Formula</h2>
+                <p>For an equation in the form $ax^2 + bx + c = 0$:</p>
+                <div class="p-3 bg-light rounded text-center my-3 border">
+                    $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$
+                </div>
+                <h3>Standard Steps</h3>
+                <ol>
+                    <li>Identify $a$, $b$, and $c$.</li>
+                    <li>Calculate the discriminant: $b^2 - 4ac$.</li>
+                    <li>Plug into the formula.</li>
+                </ol>
+            `;
+            // Trigger Gamification for "Discovery"
+            setTimeout(() => {
+                insightBadge.classList.add('show');
+                setTimeout(() => insightBadge.classList.remove('show'), 4000);
+            }, 2000);
+        } else if (type === 'map') {
+            content = `
+                <h2>Kejetia Market vs. Circle</h2>
+                <div class="wb-image-container">
+                    <div style="height: 200px; background: #e2e8f0; display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-geo-alt display-1 text-secondary"></i>
+                        <span class="ms-2">Map View Loading...</span>
+                    </div>
+                </div>
+                <h3>Key Differences</h3>
+                <ul>
+                    <li><strong>Layout:</strong> Kejetia is radial, Circle is linear.</li>
+                    <li><strong>Traffic Flow:</strong> Analyzed using flow dynamics equation: $$Q = Av$$</li>
+                </ul>
+            `;
+        }
+        
+        whiteboardContent.innerHTML = content;
+        // Re-render Math
+        renderMathInElement(whiteboardContent, {
+            delimiters: [
+                {left: "$$", right: "$$", display: true},
+                {left: "$", right: "$", display: false}
+            ]
+        });
+        
+        // Highlight Effect
+        whiteboardContent.style.transition = 'background 0.5s';
+        whiteboardContent.style.background = '#f0fdf4';
+        setTimeout(() => whiteboardContent.style.background = 'white', 800);
+        
+        // Move Progress Bar (Demo)
+        document.getElementById('phase-instruction').classList.add('active');
+        document.getElementById('phase-diagnostic').classList.add('completed');
+        document.getElementById('phase-diagnostic').classList.remove('active');
+    }
+
+    // 6. Voice Button Toggle
+    voiceBtn.onclick = function() {
+        this.classList.toggle('recording');
+        if(this.classList.contains('recording')) {
+            messageInput.placeholder = "Listening (Twi/English)...";
+            // Simulate listening
+            setTimeout(() => {
+                this.classList.remove('recording');
+                messageInput.value = "How do I calculate profit if I sell 50 yams at Kejetia?";
+                messageInput.placeholder = "Type a message...";
+                messageInput.dispatchEvent(new Event('input'));
+            }, 3000);
+        } else {
+            messageInput.placeholder = "Type a message...";
+        }
+    };
+
+    // Helper functions
+    function appendMessage(role, text) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `message ${role}`;
+        msgDiv.innerHTML = `<div class="message-bubble">${formatMessage(text)}</div>`;
+        document.getElementById('chatMessages').insertBefore(msgDiv, typingIndicator);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
     function formatMessage(text) {
         if (!text) return '';
-        // Basic formatting
-        let formatted = text
+        return text
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
             .replace(/>/g, "&gt;")
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
-            .replace(/`(.*?)`/g, '<code style="background:#f3f4f6; padding:2px 4px; border-radius:4px; font-size:0.9em; color:#e11d48;">$1</code>') // Inline code
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\n/g, '<br>');
-        return formatted;
     }
-
-    function stripSessionSummary(text) {
-        // Regex to match "```json {Session Summary} ```" pattern at end of string
-        // Using [\s\S] to match any character including newlines for better compatibility
-        const jsonPattern = /```json\s*\{[\s\S]*"summary"[\s\S]*\}\s*```\s*$/;
-        return text.replace(jsonPattern, '').trim();
+    
+    function clearWhiteboard() {
+        whiteboardContent.innerHTML = `
+            <div class="h-100 d-flex flex-col align-items-center justify-content-center text-center opacity-50">
+                <div>
+                    <i class="bi bi-easel display-4 mb-3 d-block text-secondary"></i>
+                    <p>Board Cleared</p>
+                </div>
+            </div>`;
     }
-
-    function createNewChatSession() {
-        fetch("{% url 'academics:ai_tutor_new_session' %}", {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.session_id) {
-                window.location.href = `?session=${data.session_id}`;
-            } else {
-                window.location.reload();
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            window.location.href = window.location.pathname;
-        });
+    
+    function expandWhiteboard() {
+        const panel = document.getElementById('whiteboardPanel');
+        panel.classList.toggle('flex-grow-1'); // Simple toggle logic needs more CSS support for full screen, 
+        // usually utilizing a fullscreen API or just maxing width.
+        // For now, toggle class for demo
+        alert("Fullscreen mode active");
     }
-
-    function switchSession(sessionId) {
-        if (sessionId) {
-            window.location.href = `?session=${sessionId}`;
-        } else {
-            window.location.href = window.location.pathname;
-        }
+    
+    function quickActionTrigger(text) {
+        messageInput.value = text;
+        sendMessage();
     }
 </script>
 {% endblock %}

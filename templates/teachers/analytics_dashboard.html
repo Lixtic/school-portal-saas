@@ -1,0 +1,291 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h2 class="h3 mb-0 text-gray-800">Class Analytics & AI Insights</h2>
+        <div class="dropdown">
+            <button class="btn btn-primary dropdown-toggle" type="button" id="classDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                {% if selected_class %}
+                    <i class="fas fa-chalkboard me-2"></i>{{ selected_class.name }}
+                {% else %}
+                    Select Class
+                {% endif %}
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="classDropdown">
+                {% for cls in classes %}
+                <li><a class="dropdown-item" href="?class_id={{ cls.id }}">{{ cls.name }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+{% if selected_class %}
+<!-- Top Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Average Mastery (Class)</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ avg_mastery }}%</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card border-left-danger shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                            Interventions Needed</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ intervention_count }} Students</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Top Concept Strength</div>
+                        <div class="text-sm font-weight-bold text-gray-800">Algebraic Expansion</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Dashboard Grid -->
+<div class="row">
+    <!-- Student Heat Map -->
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Student Mastery Heat Map</h6>
+                <div class="dropdown no-arrow">
+                    <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row g-2">
+                    {% for student in students_data %}
+                    <div class="col-6 col-md-4 col-lg-3">
+                        <div class="card h-100 border-{{ student.status }} shadow-sm student-card position-relative" 
+                             data-bs-toggle="tooltip" title="Mastery: {{ student.mastery }}%">
+                             
+                            <div class="card-body p-2 text-center">
+                                <div class="avatar-circle mb-2 mx-auto bg-{{ student.status }} text-white">
+                                    {{ student.name|make_list|first }}
+                                </div>
+                                <h6 class="card-title text-truncate mb-1" style="font-size: 0.9rem;">{{ student.name }}</h6>
+                                
+                                {% if student.status == 'red' %}
+                                    <span class="badge bg-danger mb-1" style="font-size: 0.7rem;">Needs Help</span>
+                                    <button class="btn btn-sm btn-outline-danger w-100 mt-2 py-0" 
+                                            onclick="triggerIntervention('{{ student.id }}', '{{ student.name|escapejs }}', '{{ student.intervention|escapejs }}')">
+                                        <i class="fas fa-bolt me-1"></i>Boost
+                                    </button>
+                                {% elif student.status == 'yellow' %}
+                                    <div class="progress mt-2" style="height: 5px;">
+                                        <div class="progress-bar bg-warning" role="progressbar" style="width: {{ student.mastery }}%;"></div>
+                                    </div>
+                                {% else %}
+                                    <div class="text-success small mt-2"><i class="fas fa-check-circle me-1"></i>On Track</div>
+                                {% endif %}
+                            </div>
+
+                            {% if student.misconception %}
+                            <div class="position-absolute header-indicator" style="top: 5px; right: 5px; width: 15px; height: 15px; border-radius: 50%; background-color: #e74a3b;" 
+                                 title="Misconception: {{ student.misconception }}" data-bs-toggle="tooltip">
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Curriculum & Insights Side Panel -->
+    <div class="col-lg-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Class Insights</h6>
+            </div>
+            <div class="card-body">
+                <h5 class="small font-weight-bold">Common Misconceptions</h5>
+                <div class="mb-3">
+                    {% for student in students_data %}
+                        {% if student.misconception and forloop.counter <= 3 %}
+                        <div class="alert alert-warning py-2 mb-2" role="alert" style="font-size: 0.85rem;">
+                            <i class="fas fa-exclamation-circle me-1"></i> <strong>{{ student.misconception }}</strong>
+                            <div class="text-muted small mt-1">Affecting multiple students</div>
+                            <a href="{% url 'teachers:generate_remedial_lesson' %}?topic={{ student.misconception|urlencode }}" class="btn btn-sm btn-light text-primary mt-1 py-0 px-1" style="font-size: 0.75rem;"><i class="fas fa-magic me-1"></i>Generate Lesson</a>
+                        </div>
+
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                <hr>
+                
+                <h5 class="small font-weight-bold mt-4">Curriculum Pace</h5>
+                <h4 class="small font-weight-bold">Variable Manipulation <span class="float-right">40%</span></h4>
+                <div class="progress mb-4">
+                    <div class="progress-bar bg-warning" role="progressbar" style="width: 40%" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <h4 class="small font-weight-bold">Geometry Basics <span class="float-right">Complete</span></h4>
+                <div class="progress mb-4">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: 100%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">
+    Please select a class to view analytics.
+</div>
+{% endif %}
+
+<!-- Intervention Modal -->
+
+<div class="modal fade" id="interventionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-robot me-2"></i>AI Intervention Assistant</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Generate personalized practice for <strong id="modalStudentName"></strong>?</p>
+                <div class="card bg-light mb-3">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">Suggested Action</h6>
+                        <p class="card-text text-primary font-weight-bold" id="modalInterventionText"></p>
+                    </div>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="" id="notifyParent" checked>
+                    <label class="form-check-label" for="notifyParent">
+                        Notify parent of extra assignment
+                    </label>
+                </div>
+                {% csrf_token %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="confirmIntervention()">
+                    <i class="fas fa-paper-plane me-1"></i> Send Assignment
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* ... existing styles ... */
+</style>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    });
+    
+    // Global variables
+    let interventionModal; 
+    let currentStudentName = '';
+    let currentStudentId = null;
+    let currentInterventionText = '';
+    
+    function triggerIntervention(id, studentName, interventionText) {
+        currentStudentId = id;
+        currentStudentName = studentName;
+        currentInterventionText = interventionText || "Refresher exercises based on recent performance.";
+        
+        document.getElementById('modalStudentName').textContent = currentStudentName;
+        document.getElementById('modalInterventionText').textContent = currentInterventionText;
+        
+        var modalEl = document.getElementById('interventionModal');
+        if (!interventionModal) {
+            interventionModal = new bootstrap.Modal(modalEl);
+        }
+        interventionModal.show();
+    }
+    
+    function confirmIntervention() {
+        if (!currentStudentId) return;
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const btn = document.querySelector('#interventionModal .btn-success');
+        // Save original content to restore later
+        const originalText = '<i class="fas fa-paper-plane me-1"></i> Send Assignment'; 
+        
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
+
+        fetch("{% url 'teachers:boost_intervention' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                student_id: currentStudentId,
+                interventionText: currentInterventionText
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (interventionModal) {
+                interventionModal.hide();
+            }
+            
+            if (data.status === 'success') {
+                alert(data.message);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while assigning the intervention.');
+        })
+        .finally(() => {
+            // Reset button state
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        });
+    }
+    </script>
+    {% endblock %}
+
