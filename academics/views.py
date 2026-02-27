@@ -2137,7 +2137,7 @@ def tutor_sessions(request):
 @csrf_exempt
 @login_required
 def generate_tutor_image(request):
-    """Generate image based on prompt using HF API (Tongyi-MAI/Z-Image-Turbo)"""
+    """Generate image based on prompt using HF API (FLUX.1-schnell)"""
     if request.method != 'POST':
         return JsonResponse({'error': 'Invalid method'}, status=400)
     
@@ -2155,11 +2155,11 @@ def generate_tutor_image(request):
         client = InferenceClient(token=hf_token)
 
         # Call text-to-image API
-        # Model: Tongyi-MAI/Z-Image-Turbo
+        # Model: black-forest-labs/FLUX.1-schnell
         image = client.text_to_image(
             prompt,
-            model="Tongyi-MAI/Z-Image-Turbo",
-            num_inference_steps=5
+            model="black-forest-labs/FLUX.1-schnell",
+            num_inference_steps=4
         )
         
         # Convert PIL Image to base64
