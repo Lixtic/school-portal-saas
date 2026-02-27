@@ -7,7 +7,7 @@
     .chat-container {
         max-width: 1000px;
         margin: 0 auto;
-        height: calc(100vh - 200px);
+        height: calc(100vh - 155px);
         display: flex;
         flex-direction: column;
     }
@@ -17,7 +17,7 @@
         padding: 20px;
         background: #f8f9fa;
         border-radius: 12px;
-        margin-bottom: 20px;
+        margin-bottom: 12px;
     }
     .message {
         margin-bottom: 16px;
@@ -97,18 +97,20 @@
     .quick-actions {
         display: flex;
         gap: 8px;
-        flex-wrap: wrap;
-        margin-bottom: 16px;
-        justify-content: center;
+        flex-wrap: nowrap;
+        margin-bottom: 10px;
+        overflow-x: auto;
+        padding-bottom: 2px;
     }
     .quick-action-btn {
-        padding: 8px 16px;
+        padding: 7px 12px;
         border: 1px solid #e5e7eb;
         background: white;
         border-radius: 20px;
         cursor: pointer;
-        font-size: 0.875rem;
+        font-size: 0.82rem;
         transition: all 0.2s;
+        white-space: nowrap;
     }
     .quick-action-btn:hover {
         background: #f3f4f6;
@@ -144,9 +146,9 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
+        gap: 8px;
         flex-wrap: wrap;
-        margin-bottom: 16px;
+        margin-bottom: 10px;
     }
     .toolbar-controls {
         display: flex;
@@ -155,7 +157,7 @@
         flex-wrap: wrap;
     }
     .toolbar-controls .form-select {
-        min-width: 190px;
+        min-width: 170px;
     }
     @media (max-width: 768px) {
         .toolbar-controls,
@@ -168,19 +170,23 @@
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        margin-bottom: 12px;
         background: #eef2ff;
         color: #3730a3;
         border: 1px solid #c7d2fe;
         border-radius: 999px;
-        padding: 6px 12px;
-        font-size: 0.82rem;
+        padding: 6px 10px;
+        font-size: 0.78rem;
         font-weight: 600;
+        text-decoration: none;
+    }
+    .current-session-badge:hover {
+        background: #e0e7ff;
+        color: #312e81;
     }
 </style>
 
 <div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <div>
             <h2 class="fw-bold mb-1">
                 <i class="bi bi-robot me-2"></i>AI Tutor Assistant
@@ -192,6 +198,16 @@
     <div class="chat-container">
         <div class="tutor-toolbar">
             <div class="toolbar-controls">
+                <button
+                    type="button"
+                    class="btn btn-outline-secondary d-md-none"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#quickPrompts"
+                    aria-expanded="false"
+                    aria-controls="quickPrompts"
+                >
+                    <i class="bi bi-lightning-charge me-1"></i>Prompts
+                </button>
                 <a href="{% url 'academics:tutor_sessions' %}" class="btn btn-outline-secondary">
                     <i class="bi bi-clock-history me-1"></i>Tutor Sessions
                 </a>
@@ -214,14 +230,14 @@
                     <option value="{{ subject.id }}" {% if initial_subject_id == subject.id %}selected{% endif %}>{{ subject.name }}</option>
                     {% endfor %}
                 </select>
+                <a href="{% url 'academics:tutor_sessions' %}" class="current-session-badge" id="currentSessionBadge" aria-label="Open tutor sessions">
+                    <i class="bi bi-chat-square-text"></i>
+                    <span id="currentSessionLabel"></span>
+                </a>
             </div>
         </div>
-        <div class="current-session-badge" id="currentSessionBadge">
-            <i class="bi bi-chat-square-text"></i>
-            <span id="currentSessionLabel"></span>
-        </div>
 
-        <div class="quick-actions">
+        <div id="quickPrompts" class="quick-actions collapse d-md-flex">
             <button class="quick-action-btn" onclick="quickAction('Explain this concept to me')">
                 <i class="bi bi-lightbulb me-1"></i>Explain Concept
             </button>
