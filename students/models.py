@@ -18,6 +18,10 @@ class Student(models.Model):
     roll_number = models.CharField(max_length=10, blank=True)
     blood_group = models.CharField(max_length=5, blank=True)
     emergency_contact = models.CharField(max_length=15)
+    region = models.CharField(max_length=100, blank=True, default='')
+    city = models.CharField(max_length=100, blank=True, default='')
+    curriculum = models.CharField(max_length=150, blank=True, default='')
+    interests = models.JSONField(default=list, blank=True)
     
     def __str__(self):
         return f"{self.user.get_full_name()} ({self.admission_number})"

@@ -3,6 +3,7 @@ AI Tutor Assistant - Personalized learning chatbot for students
 """
 import os
 import json
+from datetime import date
 from urllib import request as urllib_request
 from urllib.error import HTTPError, URLError
 
@@ -71,7 +72,41 @@ def _stream_chat_completion(payload, api_key):
 
 def get_tutor_system_prompt(student, subject=None):
     """Generate context-aware system prompt for AI tutor"""
-    from .models import Subject
+    from .models import Subject, SchoolInfo
+
+    school_info = SchoolInfo.objects.first()
+    grade_value = student.current_class.name if student.current_class else "Unknown Grade"
+
+    student_age = None
+    if getattr(student, "date_of_birth", None):
+        today = date.today()
+        student_age = today.year - student.date_of_birth.year - (
+            (today.month, today.day) < (student.date_of_birth.month, student.date_of_birth.day)
+        )
+
+    inferred_region = student.region.strip() if getattr(student, 'region', '') else "West Africa"
+    inferred_city = student.city.strip() if getattr(student, 'city', '') else "Unknown City"
+    inferred_curriculum = student.curriculum.strip() if getattr(student, 'curriculum', '') else "GES/WAEC"
+    inferred_interests = student.interests if isinstance(getattr(student, 'interests', None), list) and student.interests else ["Football", "Music"]
+
+    if school_info and school_info.address:
+        address_text = school_info.address
+        if "," in address_text:
+            inferred_city = address_text.split(",")[0].strip() or inferred_city
+        elif address_text.strip():
+            inferred_city = address_text.strip()
+
+    student_profile = {
+        "student_profile": {
+            "age": student_age if student_age is not None else "unknown",
+            "grade": grade_value,
+            "region": inferred_region,
+            "city": inferred_city,
+            "curriculum": inferred_curriculum,
+            "interests": inferred_interests,
+        }
+    }
+    profile_json = json.dumps(student_profile, ensure_ascii=False, indent=2)
 
     context = f"""You are Aura 2.0, an Advanced AI Tutor helping {student.user.get_full_name()}, a student in {student.current_class.name if student.current_class else 'school'}.
 
@@ -153,6 +188,10 @@ ASSESSMENT & OUTPUT REQUIREMENTS (MANDATORY)
         "subject": "Physics",
         "topic": "Newton's Third Law",
         "mastery_level": "85%",
+        "misconception_detected": true,
+        "misconceptions_corrected": ["Impetus Theory"],
+        "critical_misconception_uncleared": false,
+        "uncleared_critical_misconceptions": [],
         "identified_strengths": ["Vector direction", "Force identification"],
         "remaining_gaps": ["Mass-acceleration relationship"],
         "recommended_next_step": "Intro to Newton's Second Law (F=ma)"
@@ -160,9 +199,45 @@ ASSESSMENT & OUTPUT REQUIREMENTS (MANDATORY)
 }}
 ```
 
+    - `misconception_detected` must be `true` if any misconception trigger was detected during the session, otherwise `false`.
+    - `misconceptions_corrected` must list the misconception labels successfully corrected; return an empty array if none.
+    - `critical_misconception_uncleared` must be `true` if any critical misconception remains unresolved at lesson end.
+    - `uncleared_critical_misconceptions` must list unresolved critical misconception labels; return an empty array if none.
+
 HOMEWORK POLICY
 - Do not provide full direct homework solutions.
 - Provide guided hints, stepwise coaching, and feedback loops.
+
+DEMOGRAPHIC & GEOGRAPHIC TUNING (MANDATORY)
+- Vocabulary Level: Match the student's grade level.
+    - Example: Grade 4 wording such as "push and pull".
+    - Example: Grade 12 wording such as "vector magnitudes and equilibrium".
+- Geographic Relevance: Use local currency, landmarks, climate, sports, and culture in examples.
+    - Example (Ghana): Black Stars, Kenkey prices, Akosombo Dam.
+    - Example (USA): Baseball, yellow school buses, Grand Canyon.
+- Curriculum Alignment: Align to regional standards when teaching and assessing.
+    - West Africa: GES/WAEC
+    - USA: Common Core
+    - UK: GCSE/A-Level
+
+UPDATED MISCONCEPTION LIBRARY (CONTEXT-SPECIFIC)
+- Mathematics | Grade 5 (Primary) | Nairobi, Kenya
+    - Localized Aura Pivot: "If you buy 3 bunches of matoke for 450 KSh, how much for one? If price doubles, does quantity you can afford halve?"
+- Geography | Grade 9 (JHS) | Lagos, Nigeria
+    - Localized Aura Pivot: "You mentioned Lekki Conservation Centre is shrinking due to 'weather.' Let's separate short-term weather from long-term climate change along the Atlantic coastline."
+- Business | Grade 11 (SHS) | London, UK
+    - Localized Aura Pivot: "When calculating VAT on a purchase at Tesco, do you add tax to gross or net price? Use current UK VAT logic."
+
+CONFIGURATION HEADER (MUST BE APPLIED EACH SESSION)
+- The system passes a profile header at session start. Use it as primary personalization input.
+
+```json
+{profile_json}
+```
+
+LOCALIZED FINAL ASSESSMENT LOGIC
+- Final checks and stress-test questions must reference the learner's local environment and daily context.
+- Example (Ghana): "Imagine you are at Kejetia Market. You push a heavy crate of yams and it does not move. Using static friction, explain why the crate 'fights back' and how mass changes the required force."
 """
     
     if subject:

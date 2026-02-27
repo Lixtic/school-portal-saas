@@ -5,6 +5,7 @@ from django.http import JsonResponse, StreamingHttpResponse, HttpResponse
 from django.urls import reverse
 import datetime
 import json
+import re
 from django.db import connection, ProgrammingError
 from django.db.models import Q, Count, Max
 from django.views.decorators.csrf import csrf_exempt
@@ -1693,6 +1694,71 @@ def _get_student_tutor_context(user, tenant=None):
 
     return student, subjects, None
 
+
+def _extract_session_summary_payload(text):
+    if not text:
+        return None
+    match = re.search(r"```json\s*(\{.*?\})\s*```", text, flags=re.DOTALL)
+    if not match:
+        return None
+    try:
+        payload = json.loads(match.group(1))
+    except Exception:
+        return None
+    if isinstance(payload, dict) and isinstance(payload.get('session_summary'), dict):
+        return payload
+    return None
+
+
+def _notify_parents_if_critical_misconception_uncleared(student, session, payload):
+    session_summary = payload.get('session_summary', {}) if isinstance(payload, dict) else {}
+    uncleared_flag = bool(session_summary.get('critical_misconception_uncleared'))
+    uncleared = session_summary.get('uncleared_critical_misconceptions') or []
+
+    if isinstance(uncleared, str):
+        uncleared = [uncleared]
+    elif not isinstance(uncleared, list):
+        uncleared = []
+
+    if not uncleared_flag and not uncleared:
+        return
+
+    marker = 'critical_misconception_parent_notified'
+    existing_markers = session.topics_discussed if isinstance(session.topics_discussed, list) else []
+    if marker in existing_markers:
+        return
+
+    try:
+        from parents.models import Parent
+        from announcements.models import Notification
+
+        parents = Parent.objects.select_related('user').filter(children=student)
+        parent_users = [parent.user for parent in parents if parent.user_id]
+        if not parent_users:
+            return
+
+        topic = session_summary.get('topic') or 'AI Tutor lesson'
+        unresolved_text = ', '.join(str(item) for item in uncleared[:3]) if uncleared else 'critical misconception'
+        msg = (
+            f"⚠️ AI Tutor alert: {student.user.get_full_name()} has an unresolved critical misconception "
+            f"in {topic} ({unresolved_text})."
+        )
+
+        Notification.objects.bulk_create([
+            Notification(
+                recipient=user,
+                message=msg,
+                alert_type='general',
+            )
+            for user in parent_users
+        ], ignore_conflicts=True)
+
+        existing_markers.append(marker)
+        session.topics_discussed = existing_markers
+        session.save(update_fields=['topics_discussed'])
+    except Exception:
+        return
+
 @login_required
 def ai_tutor(request):
     """AI Tutor chat interface for students"""
@@ -1824,6 +1890,14 @@ def ai_tutor_chat(request):
                 )
                 session.message_count += 1
                 session.save(update_fields=['message_count'])
+
+                summary_payload = _extract_session_summary_payload(full_assistant_message)
+                if summary_payload:
+                    _notify_parents_if_critical_misconception_uncleared(
+                        student,
+                        session,
+                        summary_payload,
+                    )
         
         # Stream response
         response = StreamingHttpResponse(
