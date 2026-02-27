@@ -520,6 +520,9 @@
                     <button class="btn btn-sm btn-outline-secondary border-0" onclick="toggleDrawing()" id="drawingBtn" data-bs-toggle="tooltip" title="Draw">
                         <i class="bi bi-pencil"></i>
                     </button>
+                    <button class="btn btn-sm btn-outline-secondary border-0" onclick="promptVisualization()" id="visualizeBtn" data-bs-toggle="tooltip" title="Visualize">
+                        <i class="bi bi-image"></i>
+                    </button>
                     <button class="btn btn-sm btn-outline-secondary border-0" onclick="clearWhiteboard()" data-bs-toggle="tooltip" title="Clear Board">
                         <i class="bi bi-eraser"></i>
                     </button>
@@ -1389,6 +1392,14 @@
             `;
         });
         list.innerHTML = html;
+    }
+    
+    // 6. Visualization Prompt
+    function promptVisualization() {
+        const userInput = prompt("What would you like to visualize? (e.g. 'Structure of a plant cell', 'Map of Africa')");
+        if (userInput && userInput.trim()) {
+            generateTutorImage(userInput.trim());
+        }
     }
 </script>
 {% endblock %}
