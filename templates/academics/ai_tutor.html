@@ -336,6 +336,14 @@ updateCurrentSessionBadge();
 function quickAction(text) {
     document.getElementById('messageInput').value = text;
     document.getElementById('messageInput').focus();
+
+    if (window.innerWidth < 768) {
+        const promptsPanel = document.getElementById('quickPrompts');
+        if (promptsPanel && promptsPanel.classList.contains('show') && window.bootstrap?.Collapse) {
+            const collapse = bootstrap.Collapse.getOrCreateInstance(promptsPanel);
+            collapse.hide();
+        }
+    }
 }
 
 function addMessage(role, content) {
