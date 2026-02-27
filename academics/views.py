@@ -1778,26 +1778,39 @@ def ai_tutor(request):
 
     # Get recent sessions
     from .models import TutorSession
-    recent_sessions = TutorSession.objects.filter(student=student).order_by('-started_at')[:5]
+    recent_sessions = (
+        TutorSession.objects.filter(student=student)
+        .select_related('subject')
+        .order_by('-started_at')[:20]
+    )
+
+    selected_session = None
+    selected_session_id = request.GET.get('session')
+    if selected_session_id:
+        selected_session = TutorSession.objects.filter(
+            student=student,
+            id=selected_session_id,
+        ).first()
 
     latest_session = recent_sessions.first()
+    active_session = selected_session or latest_session
     initial_messages = []
     initial_subject_id = None
 
-    if latest_session:
+    if active_session:
         initial_messages = [
             {
                 'role': message.role,
                 'content': _strip_session_summary_block(message.content) if message.role == 'assistant' else message.content,
             }
-            for message in latest_session.messages.order_by('created_at')
+            for message in active_session.messages.order_by('created_at')
             if message.role in ['user', 'assistant']
         ]
-        if latest_session.subject_id:
-            initial_subject_id = latest_session.subject_id
+        if active_session.subject_id:
+            initial_subject_id = active_session.subject_id
 
     ai_tutor_bootstrap = {
-        'session_id': latest_session.id if latest_session else None,
+        'session_id': active_session.id if active_session else None,
         'messages': initial_messages,
         'subject_id': initial_subject_id,
     }
@@ -1806,6 +1819,7 @@ def ai_tutor(request):
         'student': student,
         'subjects': subjects,
         'recent_sessions': recent_sessions,
+        'selected_session_id': str(active_session.id) if active_session else '',
         'initial_messages': initial_messages,
         'initial_subject_id': initial_subject_id,
         'ai_tutor_bootstrap': ai_tutor_bootstrap,

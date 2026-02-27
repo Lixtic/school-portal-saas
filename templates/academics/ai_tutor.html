@@ -99,6 +99,7 @@
         gap: 8px;
         flex-wrap: wrap;
         margin-bottom: 16px;
+        justify-content: center;
     }
     .quick-action-btn {
         padding: 8px 16px;
@@ -139,30 +140,87 @@
         0%, 60%, 100% { transform: translateY(0); }
         30% { transform: translateY(-10px); }
     }
+    .tutor-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+    }
+    .toolbar-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .toolbar-controls .form-select {
+        min-width: 190px;
+    }
+    @media (max-width: 768px) {
+        .toolbar-controls,
+        .toolbar-controls .form-select,
+        .toolbar-controls .btn {
+            width: 100%;
+        }
+    }
+    .current-session-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 12px;
+        background: #eef2ff;
+        color: #3730a3;
+        border: 1px solid #c7d2fe;
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-size: 0.82rem;
+        font-weight: 600;
+    }
 </style>
 
 <div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
             <h2 class="fw-bold mb-1">
                 <i class="bi bi-robot me-2"></i>AI Tutor Assistant
             </h2>
             <p class="text-muted mb-0">Your personal learning companion</p>
         </div>
-        <div class="d-flex align-items-center gap-2">
-            <button type="button" class="btn btn-outline-primary" onclick="createNewChatSession()">
-                <i class="bi bi-plus-circle me-1"></i>New Chat
-            </button>
-            <select id="subjectSelect" class="form-select">
-                <option value="">All Subjects</option>
-                {% for subject in subjects %}
-                <option value="{{ subject.id }}" {% if initial_subject_id == subject.id %}selected{% endif %}>{{ subject.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
     </div>
 
     <div class="chat-container">
+        <div class="tutor-toolbar">
+            <div class="toolbar-controls">
+                <a href="{% url 'academics:tutor_sessions' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-clock-history me-1"></i>Tutor Sessions
+                </a>
+                <button type="button" class="btn btn-outline-primary" onclick="createNewChatSession()">
+                    <i class="bi bi-plus-circle me-1"></i>New Chat
+                </button>
+            </div>
+            <div class="toolbar-controls">
+                <select id="sessionSelect" class="form-select" onchange="switchSession(this.value)">
+                    <option value="">Latest Session</option>
+                    {% for session in recent_sessions %}
+                    <option value="{{ session.id }}" {% if selected_session_id and selected_session_id == session.id|stringformat:"s" %}selected{% endif %}>
+                        {{ session.started_at|date:"M d, h:i A" }}{% if session.subject %} · {{ session.subject.name }}{% else %} · General{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+                <select id="subjectSelect" class="form-select">
+                    <option value="">All Subjects</option>
+                    {% for subject in subjects %}
+                    <option value="{{ subject.id }}" {% if initial_subject_id == subject.id %}selected{% endif %}>{{ subject.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="current-session-badge" id="currentSessionBadge">
+            <i class="bi bi-chat-square-text"></i>
+            <span id="currentSessionLabel"></span>
+        </div>
+
         <div class="quick-actions">
             <button class="quick-action-btn" onclick="quickAction('Explain this concept to me')">
                 <i class="bi bi-lightbulb me-1"></i>Explain Concept
@@ -227,6 +285,28 @@ const aiTutorBootstrap = JSON.parse(document.getElementById('aiTutorBootstrapDat
 let messages = Array.isArray(aiTutorBootstrap.messages) ? aiTutorBootstrap.messages : [];
 let sessionId = aiTutorBootstrap.session_id || null;
 
+function updateCurrentSessionBadge() {
+    const label = document.getElementById('currentSessionLabel');
+    if (!label) return;
+    const sessionSelect = document.getElementById('sessionSelect');
+    const selectedOption = sessionSelect?.options?.[sessionSelect.selectedIndex];
+    if (selectedOption && selectedOption.value) {
+        label.textContent = `Currently viewing: ${selectedOption.textContent.trim()}`;
+        return;
+    }
+    label.textContent = 'Currently viewing: Latest Session';
+}
+
+function switchSession(selectedSessionId) {
+    const nextUrl = new URL(window.location.href);
+    if (selectedSessionId) {
+        nextUrl.searchParams.set('session', selectedSessionId);
+    } else {
+        nextUrl.searchParams.delete('session');
+    }
+    window.location.href = nextUrl.toString();
+}
+
 function stripSessionSummary(text) {
     if (!text) return text;
     return text.replace(/\n?```json\s*\{[\s\S]*?\}\s*```\s*$/m, '').trim();
@@ -235,6 +315,7 @@ function stripSessionSummary(text) {
 if (aiTutorBootstrap.subject_id) {
     document.getElementById('subjectSelect').value = String(aiTutorBootstrap.subject_id);
 }
+updateCurrentSessionBadge();
 
 function quickAction(text) {
     document.getElementById('messageInput').value = text;
@@ -300,6 +381,18 @@ async function createNewChatSession() {
         sessionId = payload.session_id || null;
         messages = [];
         renderWelcomeMessage();
+        const sessionSelect = document.getElementById('sessionSelect');
+        if (sessionSelect && sessionId) {
+            const exists = Array.from(sessionSelect.options).some(opt => opt.value === sessionId);
+            if (!exists) {
+                const option = document.createElement('option');
+                option.value = sessionId;
+                option.textContent = 'New Session';
+                sessionSelect.insertBefore(option, sessionSelect.options[1] || null);
+            }
+            sessionSelect.value = sessionId;
+        }
+        updateCurrentSessionBadge();
         document.getElementById('messageInput').value = '';
         document.getElementById('messageInput').focus();
     } catch (error) {
