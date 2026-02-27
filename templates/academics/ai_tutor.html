@@ -420,36 +420,10 @@
     .sync-status.offline { color: #ef4444; }
     .sync-status.synced { color: #10b981; }
 
-    /* Mobile Responsive */
-    @media (max-width: 992px) {
-        .split-container {
-            flex-direction: column;
-            height: auto;
-            min-height: calc(100vh - 140px);
-            margin: 10px;
-        }
-        .whiteboard-panel {
-            min-height: 250px;
-            max-height: 40vh;
-            border-bottom-left-radius: 0;
-            border-bottom-right-radius: 0;
-        }
-        .chat-panel {
-            flex: 1;
-            min-height: 50vh;
-            border-top-left-radius: 0;
-            border-top-right-radius: 0;
-            border-top: none;
-        }
-        .progress-tracker {
-            overflow-x: auto;
-            justify-content: flex-start;
-            padding: 10px;
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-        .progress-tracker::-webkit-scrollbar { display: none; }
-    }
+    /* Mobile Responsive - OLD STYLES REMOVED/OVERRIDDEN BELOW */
+    /* 
+    @media (max-width: 992px) { ... } 
+    */
     
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(10px); }
@@ -459,6 +433,81 @@
         0% { transform: scale(1); opacity: 1; }
         50% { transform: scale(1.1); opacity: 0.8; }
         100% { transform: scale(1); opacity: 1; }
+    }
+    
+    /* MOBILE POLISH & TABS */
+    .mobile-tabs {
+        display: none;
+        background: white;
+        padding: 8px 16px;
+        border-bottom: 1px solid #e2e8f0;
+        gap: 12px;
+        position: sticky; /* Keep tabs visible */
+        top: 0;
+        z-index: 90;
+    }
+    
+    .mobile-tab-btn {
+        flex: 1;
+        border: none;
+        background: #f8fafc;
+        padding: 10px;
+        border-radius: 12px;
+        font-weight: 600;
+        color: #64748b;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        position: relative;
+    }
+    
+    .mobile-tab-btn.active {
+        background: var(--chat-primary);
+        color: white;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+    }
+
+    @media (max-width: 992px) {
+        /* Reset stack layout */
+        .split-container {
+            margin: 0;
+            border-radius: 0;
+            height: calc(100vh - 120px); /* Adjust for header/tabs */
+            overflow: hidden;
+            display: block; /* We'll toggle visibility manually */
+            position: relative;
+        }
+        
+        .whiteboard-panel, .chat-panel {
+            width: 100%;
+            height: 100%;
+            border-radius: 0;
+            border: none;
+            position: absolute; /* Stack on top of each other */
+            top: 0;
+            left: 0;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 0;
+            display: flex; /* Keep flex context */
+        }
+        
+        .panel-active {
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            z-index: 10 !important;
+        }
+        
+        /* Adjust spacing for mobile */
+        .whiteboard-content { padding: 20px; }
+        .chat-messages { padding: 16px; }
+        
+        /* Show tabs */
+        .mobile-tabs { display: flex; }
+        .progress-tracker { display: none; } /* Hide tracker to save vertical space */
     }
 </style>
 
@@ -506,6 +555,17 @@
 </div>
 
 <div class="container-fluid px-0 pb-3">
+    <!-- Mobile Tabs -->
+    <div class="mobile-tabs d-lg-none">
+        <button class="mobile-tab-btn active" id="tab-chat" onclick="switchMobileTab('chat')">
+            <i class="bi bi-chat-dots-fill"></i> Chat
+        </button>
+        <button class="mobile-tab-btn" id="tab-whiteboard" onclick="switchMobileTab('whiteboard')">
+            <i class="bi bi-easel-fill"></i> Board
+            <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle d-none" id="wb-notification" style="width: 10px; height: 10px;"></span>
+        </button>
+    </div>
+
     <div class="split-container">
         <!-- LEFT: Dynamic Whiteboard (60%) -->
         <div class="whiteboard-panel" id="whiteboardPanel">
@@ -551,7 +611,7 @@
         </div>
 
         <!-- RIGHT: Chat Interface (40%) -->
-        <div class="chat-panel">
+        <div class="chat-panel panel-active">
             <div class="chat-header-small">
                 <div class="d-flex align-items-center gap-2">
                     <div class="position-relative">
@@ -1088,6 +1148,11 @@
                     panel.style.background = '#f0fdf4';
                     setTimeout(() => panel.style.background = 'white', 800);
                 }
+                
+                // Show notification dot on mobile tab if not active
+                if (typeof checkMobileNotification === 'function') {
+                    checkMobileNotification('image');
+                }
             }
         } catch (e) {
             console.error(e);
@@ -1416,6 +1481,48 @@
         const userInput = prompt("What would you like to visualize? (e.g. 'Structure of a plant cell', 'Map of Africa')");
         if (userInput && userInput.trim()) {
             generateTutorImage(userInput.trim());
+        }
+    }
+
+    // 7. Mobile Tab Logic
+    function switchMobileTab(tab) {
+        // Toggle Buttons
+        document.querySelectorAll('.mobile-tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`tab-${tab}`).classList.add('active');
+        
+        // Hide both panels first
+        document.querySelector('.whiteboard-panel').classList.remove('panel-active');
+        document.querySelector('.chat-panel').classList.remove('panel-active');
+        
+        // Show target
+        if (tab === 'chat') {
+            document.querySelector('.chat-panel').classList.add('panel-active');
+            // Hide notification on chat
+        } else {
+            document.querySelector('.whiteboard-panel').classList.add('panel-active');
+            // Hide notification on whiteboard
+            const badge = document.getElementById('wb-notification');
+            if(badge) badge.classList.add('d-none');
+        }
+        
+        // Ensure scroll positions feel natural
+        if (tab === 'chat') {
+            const chatMessages = document.getElementById('chatMessages');
+            if(chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    }
+    
+    // Auto-switch to Whiteboard if image generated and on mobile
+    function checkMobileNotification(type) {
+        if (window.innerWidth <= 992) {
+            const activeTab = document.querySelector('.mobile-tab-btn.active');
+            if (activeTab && activeTab.id === 'tab-chat') {
+                if(type === 'image') {
+                    // Show notification dot on whiteboard tab
+                    const badge = document.getElementById('wb-notification');
+                    if(badge) badge.classList.remove('d-none');
+                }
+            }
         }
     }
 </script>
