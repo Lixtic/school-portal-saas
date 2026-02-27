@@ -1710,6 +1710,12 @@ def _extract_session_summary_payload(text):
     return None
 
 
+def _strip_session_summary_block(text):
+    if not text:
+        return text
+    return re.sub(r"\n?```json\s*\{.*?\}\s*```\s*$", "", text, flags=re.DOTALL).strip()
+
+
 def _notify_parents_if_critical_misconception_uncleared(student, session, payload):
     session_summary = payload.get('session_summary', {}) if isinstance(payload, dict) else {}
     uncleared_flag = bool(session_summary.get('critical_misconception_uncleared'))
@@ -1782,7 +1788,7 @@ def ai_tutor(request):
         initial_messages = [
             {
                 'role': message.role,
-                'content': message.content,
+                'content': _strip_session_summary_block(message.content) if message.role == 'assistant' else message.content,
             }
             for message in latest_session.messages.order_by('created_at')
             if message.role in ['user', 'assistant']
@@ -1883,10 +1889,11 @@ def ai_tutor_chat(request):
 
             full_assistant_message = ''.join(assistant_chunks).strip()
             if full_assistant_message:
+                visible_assistant_message = _strip_session_summary_block(full_assistant_message)
                 TutorMessage.objects.create(
                     session=session,
                     role='assistant',
-                    content=full_assistant_message
+                    content=visible_assistant_message or full_assistant_message
                 )
                 session.message_count += 1
                 session.save(update_fields=['message_count'])
@@ -1910,6 +1917,44 @@ def ai_tutor_chat(request):
         
         return response
         
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def ai_tutor_new_session(request):
+    """Create a new AI Tutor session for the current student."""
+    from .models import TutorSession
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid method'}, status=400)
+
+    try:
+        student, subjects, error_message = _get_student_tutor_context(
+            request.user,
+            getattr(request, 'tenant', None),
+        )
+        if error_message:
+            return JsonResponse({'error': error_message}, status=403)
+
+        data = json.loads(request.body or '{}')
+        subject_id = data.get('subject_id')
+
+        allowed_subject_ids = {str(subject.id) for subject in subjects}
+        subject_pk = None
+        if subject_id:
+            if str(subject_id) not in allowed_subject_ids:
+                return JsonResponse({'error': 'Invalid subject selected'}, status=400)
+            subject_pk = subject_id
+
+        session = TutorSession.objects.create(
+            student=student,
+            subject_id=subject_pk,
+        )
+
+        return JsonResponse({'session_id': str(session.id)})
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
     except Exception as e:

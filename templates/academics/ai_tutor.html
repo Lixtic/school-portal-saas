@@ -149,7 +149,10 @@
             </h2>
             <p class="text-muted mb-0">Your personal learning companion</p>
         </div>
-        <div>
+        <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-outline-primary" onclick="createNewChatSession()">
+                <i class="bi bi-plus-circle me-1"></i>New Chat
+            </button>
             <select id="subjectSelect" class="form-select">
                 <option value="">All Subjects</option>
                 {% for subject in subjects %}
@@ -224,6 +227,11 @@ const aiTutorBootstrap = JSON.parse(document.getElementById('aiTutorBootstrapDat
 let messages = Array.isArray(aiTutorBootstrap.messages) ? aiTutorBootstrap.messages : [];
 let sessionId = aiTutorBootstrap.session_id || null;
 
+function stripSessionSummary(text) {
+    if (!text) return text;
+    return text.replace(/\n?```json\s*\{[\s\S]*?\}\s*```\s*$/m, '').trim();
+}
+
 if (aiTutorBootstrap.subject_id) {
     document.getElementById('subjectSelect').value = String(aiTutorBootstrap.subject_id);
 }
@@ -237,6 +245,7 @@ function addMessage(role, content) {
     const messagesDiv = document.getElementById('chatMessages');
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
+    const visibleContent = role === 'assistant' ? stripSessionSummary(content) : content;
     
     const avatar = document.createElement('div');
     avatar.className = 'message-avatar';
@@ -244,14 +253,58 @@ function addMessage(role, content) {
     
     const contentDiv = document.createElement('div');
     contentDiv.className = 'message-content';
-    contentDiv.innerHTML = content.replace(/\n/g, '<br>');
+    contentDiv.innerHTML = visibleContent.replace(/\n/g, '<br>');
     
     messageDiv.appendChild(avatar);
     messageDiv.appendChild(contentDiv);
     messagesDiv.appendChild(messageDiv);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
     
-    messages.push({ role, content });
+    messages.push({ role, content: visibleContent });
+}
+
+function renderWelcomeMessage() {
+    const messagesDiv = document.getElementById('chatMessages');
+    messagesDiv.innerHTML = `
+        <div class="message assistant">
+            <div class="message-avatar">
+                <i class="bi bi-robot"></i>
+            </div>
+            <div class="message-content">
+                <strong>Hi {{ student.user.get_full_name|escapejs }}! 👋</strong><br>
+                I'm your AI tutor. I'm here to help you learn, answer questions, and practice concepts.
+                What would you like to work on today?
+            </div>
+        </div>
+    `;
+}
+
+async function createNewChatSession() {
+    try {
+        const subjectId = document.getElementById('subjectSelect').value;
+        const response = await fetch('{% url "academics:ai_tutor_new_session" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ subject_id: subjectId || null })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Unable to create a new session.');
+        }
+
+        const payload = await response.json();
+        sessionId = payload.session_id || null;
+        messages = [];
+        renderWelcomeMessage();
+        document.getElementById('messageInput').value = '';
+        document.getElementById('messageInput').focus();
+    } catch (error) {
+        addMessage('assistant', error.message || 'Unable to create a new session. Please try again.');
+    }
 }
 
 function showTyping() {
@@ -342,6 +395,7 @@ async function sendMessage() {
 
                 if (parsed.content) {
                     assistantMessage += parsed.content;
+                    const visibleAssistantMessage = stripSessionSummary(assistantMessage);
 
                     if (!messageDiv) {
                         messageDiv = document.createElement('div');
@@ -354,7 +408,7 @@ async function sendMessage() {
                     }
 
                     messageDiv.querySelector('.message-content').innerHTML =
-                        assistantMessage.replace(/\n/g, '<br>');
+                        visibleAssistantMessage.replace(/\n/g, '<br>');
                     messagesDiv.scrollTop = messagesDiv.scrollHeight;
                 }
             } catch (e) {
@@ -380,7 +434,8 @@ async function sendMessage() {
         }
         
         if (assistantMessage) {
-            messages.push({ role: 'assistant', content: assistantMessage });
+            const visibleAssistantMessage = stripSessionSummary(assistantMessage);
+            messages.push({ role: 'assistant', content: visibleAssistantMessage });
         }
         
     } catch (error) {

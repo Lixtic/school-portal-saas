@@ -50,6 +50,7 @@ urlpatterns = [
     # AI Tutor
     path('ai-tutor/', views.ai_tutor, name='ai_tutor'),
     path('ai-tutor/chat/', views.ai_tutor_chat, name='ai_tutor_chat'),
+    path('ai-tutor/session/new/', views.ai_tutor_new_session, name='ai_tutor_new_session'),
     path('ai-tutor/practice/', views.generate_practice, name='generate_practice'),
     path('ai-tutor/explain/', views.explain_concept, name='explain_concept'),
     path('ai-tutor/sessions/', views.tutor_sessions, name='tutor_sessions'),
