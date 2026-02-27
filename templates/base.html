@@ -343,6 +343,27 @@
             color: #bfdbfe;
         }
 
+        .school-context-link {
+            transition: background-color 0.2s ease, color 0.2s ease;
+            border-radius: 10px;
+            cursor: pointer;
+            padding-top: 0.2rem;
+            padding-bottom: 0.2rem;
+        }
+        .school-context-link:hover,
+        .school-context-link:focus-visible {
+            background: rgba(67, 97, 238, 0.08);
+            outline: none;
+        }
+        .school-context-link:hover .school-context-name,
+        .school-context-link:focus-visible .school-context-name {
+            color: var(--primary-brand) !important;
+        }
+        [data-bs-theme="dark"] .school-context-link:hover,
+        [data-bs-theme="dark"] .school-context-link:focus-visible {
+            background: rgba(76, 201, 240, 0.12);
+        }
+
         /* Mobile Header Tweaks */
         @media (max-width: 768px) {
             .header {
@@ -994,9 +1015,9 @@
 
                         <!-- School Name Context Indicator -->
                         {% if user.is_authenticated and school_name %}
-                        <a href="{% url 'dashboard' %}" class="d-none d-xl-block me-2 text-end lh-sm border-end pe-3 text-decoration-none" style="border-color: rgba(0,0,0,0.1) !important;" aria-label="Go to dashboard">
+                        <a href="{% url 'dashboard' %}" class="school-context-link d-none d-xl-block me-2 text-end lh-sm border-end pe-3 text-decoration-none" style="border-color: rgba(0,0,0,0.1) !important;" aria-label="Go to dashboard">
                             <div class="text-muted text-uppercase" style="font-size: 0.6rem; letter-spacing: 0.5px; font-weight: 600;">Current School</div>
-                            <div class="fw-bold text-dark" style="font-size: 0.85rem;">{{ school_name }}</div>
+                            <div class="school-context-name fw-bold text-dark" style="font-size: 0.85rem;">{{ school_name }}</div>
                         </a>
                         {% endif %}
 
