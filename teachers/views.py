@@ -13,6 +13,7 @@ from academics.models import ClassSubject, AcademicYear, Timetable, SchoolInfo, 
 from students.models import Student, Grade, ClassExercise, StudentExerciseScore
 from students.utils import normalize_term
 from .forms import ResourceForm, LessonPlanForm, TeacherCreateForm #, HomeworkForm
+from .models import LessonGenerationSession
 from accounts.models import User
 from academics.tutor_models import generate_teacher_id_card, export_id_card_to_pdf, export_multiple_id_cards_to_pdf
 from parents.models import Parent
@@ -196,19 +197,30 @@ def analytics_dashboard(request):
     return render(request, 'teachers/analytics_dashboard.html', context)
 
 
+
+
 @login_required
 def generate_remedial_lesson(request):
+    """
+    Called from analytics dashboard to 'Generate Lesson' for a misconception.
+    Redirects to lesson plan creator with a pre-filled topic.
+    """
     if request.user.user_type != 'teacher':
         messages.error(request, 'Access denied')
         return redirect('dashboard')
         
     topic = request.GET.get('topic', 'General Review')
-    # In a real implementation, this would call an AI service to generate a lesson plan
-    # For now, we'll redirect to the lesson plan create page with pre-filled data (passed via session or query params if supported)
     
-    messages.success(request, f"AI Draft generated for remedial lesson on '{topic}'. Please review and save.")
-    # Assuming 'lesson_plan_create' can handle query params or we just simulate it
-    return redirect('teachers:lesson_plan_create')
+    # We simply redirect to the creation form, passing the topic.
+    # The lesson_plan_create view handles the 'Artificial Intelligence' part by pre-filling data.
+    from django.urls import reverse
+    import urllib.parse
+    
+    encoded_topic = urllib.parse.quote(topic)
+    url = reverse('teachers:lesson_plan_create')
+    return redirect(f"{url}?topic={encoded_topic}")
+
+
 
 
 
@@ -783,12 +795,30 @@ def lesson_plan_list(request):
     })
         
 @login_required
+
+@login_required
 def lesson_plan_create(request):
     if request.user.user_type != 'teacher':
         messages.error(request, 'Access denied')
         return redirect('dashboard')
     
     teacher = get_object_or_404(Teacher, user=request.user)
+    
+    # Check for AI generation request
+    initial_data = {}
+    topic = request.GET.get('topic')
+    if topic:
+        # Simulate AI generation
+        initial_data = {
+            'topic': topic,
+            'objectives': f"By the end of the lesson, students will be able to:\n1. Understand the core concepts of {topic}.\n2. Apply {topic} to solve simple problems.\n3. Analyze real-world examples of {topic}.",
+            'introduction': f"Begin with a 5-minute warm-up activity related to {topic}. Ask students what they already know about it to gauge prior knowledge.",
+            'presentation': f"1. Define {topic} and key terminology.\n2. Demonstrate the main concept using visual aids.\n3. Walk through 2-3 step-by-step examples on the board.\n4. Facilitate a class discussion to check for understanding.",
+            'evaluation': f"Distribute a short worksheet with 5 problems on {topic}. Circulate to provide individual assistance.",
+            'homework': f"Read the chapter on {topic} and complete exercises 1-10 on page 42.",
+            'teaching_materials': f"Textbook, Whiteboard, Marker, Projector (optional), Handouts on {topic}"
+        }
+        messages.info(request, f"AI has drafted a lesson plan for '{topic}'. Please review and edit.")
     
     if request.method == 'POST':
         form = LessonPlanForm(request.POST, teacher=teacher)
@@ -799,12 +829,13 @@ def lesson_plan_create(request):
             messages.success(request, 'Lesson plan created successfully.')
             return redirect('teachers:lesson_plan_list')
     else:
-        form = LessonPlanForm(teacher=teacher)
+        form = LessonPlanForm(teacher=teacher, initial=initial_data)
         
     return render(request, 'teachers/lesson_plan_form.html', {
         'form': form,
         'title': 'Create Lesson Plan'
     })
+
 
 @login_required
 def lesson_plan_edit(request, pk):
@@ -1104,4 +1135,107 @@ def boost_intervention(request):
         
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+# ==========================================
+# AI Chat Sessions
+# ==========================================
+
+from django.http import JsonResponse
+from django.conf import settings
+import json
+import openai
+
+@login_required
+def ai_sessions_list(request):
+    if not hasattr(request.user, 'teacher'):
+         messages.error(request, "Access restricted to teachers.")
+         return redirect('dashboard')
+         
+    teacher = request.user.teacher
+    sessions = LessonGenerationSession.objects.filter(teacher=teacher).order_by('-updated_at')
+    return render(request, 'teachers/ai_sessions_list.html', {'sessions': sessions})
+
+@login_required
+def ai_session_new(request):
+    if not hasattr(request.user, 'teacher'):
+         return redirect('dashboard')
+    
+    teacher = request.user.teacher
+    session = LessonGenerationSession.objects.create(teacher=teacher)
+    return redirect('teachers:ai_session_detail', session_id=session.id)
+
+@login_required
+def ai_session_detail(request, session_id):
+    if not hasattr(request.user, 'teacher'):
+         return redirect('dashboard')
+         
+    teacher = request.user.teacher
+    session = get_object_or_404(LessonGenerationSession, id=session_id, teacher=teacher)
+    
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            user_message = data.get('message')
+            
+            if user_message:
+                messages_list = list(session.messages)
+                messages_list.append({"role": "user", "content": user_message})
+                session.messages = messages_list
+                session.save()
+                
+                import openai
+                client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+                
+                system_prompt = "You are an expert lesson planner for teachers. Help them create detailed, engaging lesson plans."
+                api_msgs = [{"role": "system", "content": system_prompt}] + messages_list
+                
+                response = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=api_msgs,
+                    temperature=0.7
+                )
+                
+                ai_content = response.choices[0].message.content
+                messages_list.append({"role": "assistant", "content": ai_content})
+                session.messages = messages_list
+                
+                if session.title == "New Session" and len(messages_list) >= 2:
+                    try:
+                        title_resp = client.chat.completions.create(
+                            model="gpt-4o-mini", 
+                            messages=api_msgs + [{"role": "user", "content": "Suggest a short 3-5 word title for this chat."}],
+                            max_tokens=15
+                        )
+                        new_title = title_resp.choices[0].message.content.strip().strip('"')
+                        session.title = new_title
+                    except:
+                        pass
+                
+                session.save()
+                return JsonResponse({'status': 'success', 'reply': ai_content, 'title': session.title})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+    return render(request, 'teachers/ai_session_detail.html', {'session': session})
+
+@login_required
+def ai_session_rename(request, session_id):
+    if request.method == 'POST':
+        teacher = request.user.teacher
+        session = get_object_or_404(LessonGenerationSession, id=session_id, teacher=teacher)
+        new_title = request.POST.get('title')
+        if new_title:
+            session.title = new_title
+            session.save()
+            messages.success(request, "Session renamed.")
+    return redirect('teachers:ai_sessions_list')
+
+@login_required
+def ai_session_delete(request, session_id):
+    teacher = request.user.teacher
+    session = get_object_or_404(LessonGenerationSession, id=session_id, teacher=teacher)
+    session.delete()
+    messages.success(request, "Session deleted.")
+    return redirect('teachers:ai_sessions_list')
 

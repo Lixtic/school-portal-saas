@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ session.title }} | AI Lesson Planner{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 h-100 d-flex flex-column" style="min-height: 80vh;">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <a href="{% url 'teachers:ai_sessions_list' %}" class="text-decoration-none text-muted mb-1 d-block">
+                Optional: <i class="fas fa-arrow-left"></i> Back to History
+            </a>
+            <h1 class="h4 mb-0 text-gray-800" id="session-title">{{ session.title }}</h1>
+        </div>
+        <div>
+            <form action="{% url 'teachers:ai_session_delete' session.id %}" method="post" style="display:inline;" onsubmit="return confirm('Delete this session?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Chat Container -->
+    <div class="card shadow flex-grow-1 d-flex flex-column" style="overflow: hidden;">
+        <div class="card-body d-flex flex-column p-0">
+            <!-- Messages Area -->
+            <div id="chat-messages" class="flex-grow-1 p-3" style="overflow-y: auto; background-color: #f8f9fa;">
+                {% for msg in session.messages %}
+                    <div class="d-flex mb-3 {% if msg.role == 'user' %}justify-content-end{% endif %}">
+                        <div class="card shadow-sm border-0 {% if msg.role == 'user' %}bg-primary text-white{% else %}bg-white{% endif %}" style="max-width: 80%;">
+                            <div class="card-body py-2 px-3">
+                                <strong>{% if msg.role == 'user' %}You{% else %}AI Assistant{% endif %}</strong>
+                                <div class="mt-1" style="white-space: pre-wrap;">{{ msg.content }}</div>
+                            </div>
+                            {% if msg.role == 'assistant' %}
+                            <div class="card-footer bg-transparent border-0 p-1 text-end">
+                                <button class="btn btn-sm btn-light py-0 px-2 copy-btn" title="Copy to clipboard">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                                <a href="{% url 'teachers:lesson_plan_create' %}?topic={{ session.title|urlencode }}" class="btn btn-sm btn-light py-0 px-2" title="Create Lesson Plan from this">
+                                    <i class="fas fa-file-alt"></i> Draft
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="d-flex justify-content-center align-items-center h-100 text-muted">
+                        <div class="text-center">
+                            <i class="fas fa-robot fa-3x mb-3"></i>
+                            <p>Start a conversation to plan your lesson.<br>Try: "Plan a lesson on Photosynthesis for Grade 8"</p>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Input Area -->
+            <div class="p-3 border-top bg-white">
+                <form id="chat-form" class="d-flex gap-2">
+                    {% csrf_token %}
+                    <textarea id="user-input" class="form-control" rows="2" placeholder="Type your message..." required style="resize: none;"></textarea>
+                    <button type="submit" class="btn btn-primary px-4 d-flex align-items-center">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const chatMessages = document.getElementById('chat-messages');
+    const chatForm = document.getElementById('chat-form');
+    const userInput = document.getElementById('user-input');
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const sessionTitle = document.getElementById('session-title');
+
+    // Scroll to bottom
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    chatForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const message = userInput.value.trim();
+        if (!message) return;
+
+        // Add user message to UI
+        appendMessage('user', message);
+        userInput.value = '';
+        userInput.disabled = true;
+
+        // Show loading
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'd-flex mb-3';
+        loadingDiv.innerHTML = `
+            <div class="card shadow-sm border-0 bg-white" style="max-width: 80%;">
+                <div class="card-body py-2 px-3">
+                    <strong>AI Assistant</strong>
+                    <div class="mt-1"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Thinking...</div>
+                </div>
+            </div>`;
+        chatMessages.appendChild(loadingDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        try {
+            const response = await fetch("{% url 'teachers:ai_session_detail' session.id %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ message: message })
+            });
+
+            const data = await response.json();
+            
+            // Remove loading
+            chatMessages.removeChild(loadingDiv);
+
+            if (data.status === 'success') {
+                appendMessage('assistant', data.reply);
+                if (data.title && data.title !== "New Session") {
+                    sessionTitle.innerText = data.title;
+                }
+            } else {
+                appendMessage('assistant', "Error: " + data.message);
+            }
+        } catch (error) {
+            chatMessages.removeChild(loadingDiv);
+            appendMessage('assistant', "Network Error: " + error.message);
+        } finally {
+            userInput.disabled = false;
+            userInput.focus();
+        }
+    });
+
+    function appendMessage(role, content) {
+        const div = document.createElement('div');
+        div.className = `d-flex mb-3 ${role === 'user' ? 'justify-content-end' : ''}`;
+        
+        const cardClass = role === 'user' ? 'bg-primary text-white' : 'bg-white';
+        const sender = role === 'user' ? 'You' : 'AI Assistant';
+        
+        let footer = '';
+        if (role === 'assistant') {
+            footer = `
+                <div class="card-footer bg-transparent border-0 p-1 text-end">
+                    <button class="btn btn-sm btn-light py-0 px-2 copy-btn" onclick="copyToClipboard(this)">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    <a href="{% url 'teachers:lesson_plan_create' %}?topic=${encodeURIComponent(content.substring(0, 50))}..." class="btn btn-sm btn-light py-0 px-2">
+                        <i class="fas fa-file-alt"></i> Draft
+                    </a>
+                </div>
+            `;
+        }
+
+        div.innerHTML = `
+            <div class="card shadow-sm border-0 ${cardClass}" style="max-width: 80%;">
+                <div class="card-body py-2 px-3">
+                    <strong>${sender}</strong>
+                    <div class="mt-1" style="white-space: pre-wrap;">${escapeHtml(content)}</div>
+                </div>
+                ${footer}
+            </div>
+        `;
+        chatMessages.appendChild(div);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+
+    // Delegate copy event for dynamically added buttons
+    function copyToClipboard(btn) {
+        const content = btn.closest('.card').querySelector('.card-body .mt-1').innerText;
+        navigator.clipboard.writeText(content).then(() => {
+            const originalIcon = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i>';
+            setTimeout(() => {
+                btn.innerHTML = originalIcon;
+            }, 2000);
+        });
+    }
+    
+    // Attach listener to existing buttons
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.onclick = function() { copyToClipboard(this); };
+    });
+    
+    // Auto-resize textarea
+    userInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+        if(this.value === '') this.style.height = '';
+    });
+</script>
+{% endblock %}

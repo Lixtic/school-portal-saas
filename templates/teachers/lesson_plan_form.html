@@ -31,6 +31,18 @@
                     <form method="post">
                         {% csrf_token %}
                         
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                    {% if 'AI has drafted' in message.message %}
+                                        <i class="bi bi-robot me-2"></i>
+                                    {% endif %}
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                        
                         <div class="row g-3">
                             <div class="col-md-3">
                                 {{ form.week_number|as_crispy_field }}

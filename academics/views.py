@@ -1713,7 +1713,15 @@ def _extract_session_summary_payload(text):
 def _strip_session_summary_block(text):
     if not text:
         return text
-    return re.sub(r"\n?```json\s*\{.*?\}\s*```\s*$", "", text, flags=re.DOTALL).strip()
+    # Strip summary block
+    text = re.sub(r"\n?```json\s*\{.*?\}\s*```\s*$", "", text, flags=re.DOTALL).strip()
+    return text
+
+def _strip_suggested_responses_block(text):
+    if not text:
+        return text
+    # Strip suggested responses XML block
+    return re.sub(r"\n?<suggested_responses>.*?</suggested_responses>\s*$", "", text, flags=re.DOTALL).strip()
 
 
 def _notify_parents_if_critical_misconception_uncleared(student, session, payload):
@@ -1903,11 +1911,14 @@ def ai_tutor_chat(request):
 
             full_assistant_message = ''.join(assistant_chunks).strip()
             if full_assistant_message:
-                visible_assistant_message = _strip_session_summary_block(full_assistant_message)
+                # Strip internal blocks (suggestions, summary) before saving to history
+                visible_message = _strip_session_summary_block(full_assistant_message)
+                visible_message = _strip_suggested_responses_block(visible_message)
+                
                 TutorMessage.objects.create(
                     session=session,
                     role='assistant',
-                    content=visible_assistant_message or full_assistant_message
+                    content=visible_message or full_assistant_message
                 )
                 session.message_count += 1
                 session.save(update_fields=['message_count'])
