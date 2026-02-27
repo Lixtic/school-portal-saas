@@ -879,6 +879,13 @@
         messageInput.dispatchEvent(new Event('input')); // Trigger resize/enable
     }
 
+    // Quick Action Trigger
+    function quickActionTrigger(text) {
+        messageInput.value = text;
+        messageInput.dispatchEvent(new Event('input')); // Calculate height/enable button
+        sendMessage();
+    }
+
     // 3. Auto-expand Textarea & Enable Button
     messageInput.addEventListener('input', function() {
         this.style.height = 'auto';
@@ -1242,11 +1249,14 @@
         let html = '';
         sessions.forEach(s => {
             const activeClass = (s.id == "{{ session.id }}") ? 'active' : '';
+            const topicDisplay = s.topic ? `<div class="small text-muted text-truncate" style="max-width: 200px;">${s.topic}</div>` : '';
+            
             html += `
                 <a href="?session=${s.id}" class="list-group-item list-group-item-action ${activeClass} d-flex justify-content-between align-items-center">
                     <div>
                         <div class="fw-bold text-truncate" style="max-width: 200px;">${s.subject || 'General Chat'}</div>
-                        <small class="text-muted">${s.date} &bull; ${s.msg_count} msgs</small>
+                        ${topicDisplay}
+                        <small class="text-muted" style="font-size: 0.75rem;">${s.date} &bull; ${s.msg_count} msgs</small>
                     </div>
                     <i class="bi bi-chevron-right text-muted small"></i>
                 </a>

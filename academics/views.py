@@ -2094,20 +2094,26 @@ def tutor_sessions(request):
         sessions = (
             TutorSession.objects.filter(student=student)
             .select_related('subject')
-            .annotate(last_message_at=Max('messages__created_at'))
+            .annotate(
+                last_message_at=Max('messages__created_at'),
+                total_msgs=Count('messages')
+            )
             .order_by('-started_at')
         )
         
         if request.GET.get('format') == 'json':
             data = []
             for s in sessions:
+                # Safely handle topics
+                topics = s.topics_discussed if isinstance(s.topics_discussed, list) else []
+                topic_text = ", ".join([str(t) for t in topics[:2]])
+                
                 data.append({
                     'id': s.id,
                     'subject': s.subject.name if s.subject else 'General',
-                    'topic': s.topic,
-                    # Format as "Oct 25, 2:30 PM"
+                    'topic': topic_text,
                     'date': s.started_at.strftime('%b %d, %I:%M %p'),
-                    'msg_count': s.messages.count()
+                    'msg_count': s.total_msgs
                 })
             return JsonResponse({'sessions': data})
         
