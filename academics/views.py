@@ -1810,21 +1810,40 @@ def ai_tutor(request):
     initial_subject_id = None
 
     if active_session:
-        initial_messages = [
-            {
-                'role': message.role,
-                'content': _strip_session_summary_block(message.content) if message.role == 'assistant' else message.content,
-            }
-            for message in active_session.messages.order_by('created_at')
-            if message.role in ['user', 'assistant']
-        ]
+        initial_messages = []
+        for message in active_session.messages.order_by('created_at'):
+            if message.role in ['user', 'assistant']:
+                content = message.content
+                if message.role == 'assistant':
+                    content = _strip_session_summary_block(content)
+                    # Strip [AWARD_XP:...] tags from historical messages so they don't re-trigger
+                    content = re.sub(r'\[AWARD_XP:\s*\d+\]', '', content)
+                initial_messages.append({'role': message.role, 'content': content})
+
         if active_session.subject_id:
             initial_subject_id = active_session.subject_id
+
+    # Get Gamification Profile
+    from .gamification_models import StudentXP
+    xp_profile, _ = StudentXP.objects.get_or_create(student=student)
+    
+    # Calculate progress to next level
+    xp_for_current_level = (xp_profile.level - 1) * 100
+    xp_for_next_level = xp_profile.level * 100
+    xp_in_level = xp_profile.total_xp - xp_for_current_level
+    level_progress = (xp_in_level / 100) * 100
+    if level_progress > 100: level_progress = 100
 
     ai_tutor_bootstrap = {
         'session_id': active_session.id if active_session else None,
         'messages': initial_messages,
         'subject_id': initial_subject_id,
+        'student_xp': {
+            'level': xp_profile.level,
+            'total_xp': xp_profile.total_xp,
+            'progress': level_progress,
+            'streak': xp_profile.current_streak
+        }
     }
     
     context = {
@@ -1838,6 +1857,39 @@ def ai_tutor(request):
     }
     
     return render(request, 'academics/ai_tutor.html', context)
+
+
+
+def _process_xp_awards(student, full_text):
+    """
+    Scan assistant response for [AWARD_XP: <amount>] tokens 
+    and update student's Gamification profile.
+    """
+    try:
+        xp_pattern = r'\[AWARD_XP:\s*(\d+)\]'
+        matches = re.finditer(xp_pattern, full_text)
+        
+        total_awarded = 0
+        for match in matches:
+            try:
+                amount = int(match.group(1))
+                total_awarded += amount
+            except ValueError:
+                pass
+                
+        if total_awarded > 0:
+            from .gamification_models import StudentXP
+            profile, created = StudentXP.objects.get_or_create(student=student)
+            leveled_up = profile.add_xp(total_awarded)
+            profile.update_streak()
+            
+            print(f"[GAMIFICATION] Awarded {total_awarded} XP to {student}. New Level: {profile.level}")
+            return total_awarded, leveled_up
+    except Exception as e:
+        print(f"[GAMIFICATION ERROR] {e}")
+        pass
+        
+    return 0, False
 
 
 @login_required
@@ -1919,6 +1971,9 @@ def ai_tutor_chat(request):
                 visible_message = _strip_session_summary_block(full_assistant_message)
                 visible_message = _strip_suggested_responses_block(visible_message)
                 
+                # Process Gamification (XP Awards)
+                _process_xp_awards(student, full_assistant_message)
+
                 TutorMessage.objects.create(
                     session=session,
                     role='assistant',

@@ -207,7 +207,56 @@
         padding: 0 4px;
         animation: fadeIn 0.5s ease;
     }
+
+    /* XP Animation Styles */
+    @keyframes floatUp {
+        0% { transform: translateY(0) scale(0.8); opacity: 0; }
+        20% { transform: translateY(-20px) scale(1.1); opacity: 1; }
+        80% { transform: translateY(-40px) scale(1); opacity: 1; }
+        100% { transform: translateY(-60px) scale(0.9); opacity: 0; }
+    }
+
+    .xp-float {
+        position: absolute;
+        color: #fbbf24;
+        font-weight: 900;
+        font-size: 1.5rem;
+        pointer-events: none;
+        z-index: 1000;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        animation: floatUp 2s ease-out forwards;
+    }
+
+    /* Level Progress Header */
+    .level-badge {
+        background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 0.85rem;
+        box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
     
+    .xp-bar-container {
+        width: 100px;
+        height: 8px;
+        background: rgba(255,255,255,0.3);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-left: 8px;
+    }
+    
+    .xp-bar-fill {
+        height: 100%;
+        background: white;
+        width: 0%;
+        transition: width 0.5s ease;
+    }
+
     .suggestion-chip {
         display: inline-flex;
         align-items: center;
@@ -537,6 +586,14 @@
 </div>
 
 <div class="progress-tracker">
+    <!-- Level Display -->
+    <div class="level-badge me-3" id="levelDisplay">
+        <i class="bi bi-star-fill"></i> Level <span id="xpLevel">1</span>
+        <div class="xp-bar-container">
+            <div class="xp-bar-fill" id="xpBar" style="width: 0%"></div>
+        </div>
+    </div>
+
     <div class="phase-step active" id="phase-diagnostic">
         <i class="bi bi-activity me-1"></i> Diagnostic
     </div>
@@ -739,12 +796,17 @@
 
 <script>
     // --- Initialization ---
-    const aiTutorBootstrap = JSON.parse(document.getElementById('aiTutorBootstrapData').textContent);
+    const aiTutorBootstrap = JSON.parse(document.getElementById('aiTutorBootstrapData').textContent) || {};
     let conversationHistory = [];
     try {
         conversationHistory = JSON.parse(document.getElementById('initialMessagesData').textContent || '[]');
     } catch(e) { console.warn(e); }
 
+    // Init XP State
+    let currentXP = aiTutorBootstrap.student_xp ? aiTutorBootstrap.student_xp.total_xp : 0;
+    let currentLevel = aiTutorBootstrap.student_xp ? aiTutorBootstrap.student_xp.level : 1;
+    let currentProgress = aiTutorBootstrap.student_xp ? aiTutorBootstrap.student_xp.progress : 0;
+    
     // Elements
     const chatMessages = document.getElementById('chatMessages');
     const messageInput = document.getElementById('messageInput');
@@ -757,6 +819,9 @@
     const insightBadge = document.getElementById('insightBadge');
     const typingIndicator = document.getElementById('typingIndicator');
     
+    const xpBar = document.getElementById('xpBar');
+    const xpLevel = document.getElementById('xpLevel');
+
     // Canvas State
     let isDrawingMode = false;
     let isDrawing = false;
@@ -776,7 +841,71 @@
         })
         
         initCanvas();
+        updateXPDisplay();
     };
+
+    function updateXPDisplay() {
+        if(xpBar) xpBar.style.width = currentProgress + '%';
+        if(xpLevel) xpLevel.innerText = currentLevel;
+    }
+
+    function showXPAnimation(amount) {
+        // Update local state logic
+        let newTotal = currentXP + amount;
+        
+        let earnedInLevel = (currentProgress / 100) * 100; // current progress in XP terms
+        let newLevelXP = earnedInLevel + amount;
+        
+        // Check for level up
+        if (newLevelXP >= 100) {
+            currentLevel++;
+            currentProgress = newLevelXP - 100;
+            showInsightBadge("Level Up! 🌟", `You reached Level ${currentLevel}!`);
+        } else {
+            currentProgress = newLevelXP;
+        }
+        
+        currentXP = newTotal;
+        
+        // Update UI
+        if (xpBar) xpBar.style.width = currentProgress + '%';
+        if (xpLevel) xpLevel.innerText = currentLevel;
+
+        // Floating Bubble Animation
+        const floatEl = document.createElement('div');
+        floatEl.className = 'xp-float';
+        floatEl.innerText = `+${amount} XP`;
+        floatEl.style.left = '50%';
+        floatEl.style.bottom = '80px';
+        
+        const container = document.querySelector('.chat-input-area');
+        if (container) {
+            container.appendChild(floatEl);
+            setTimeout(() => {
+                floatEl.remove();
+            }, 2000);
+        }
+    }
+
+    function showInsightBadge(title, message) {
+        if (!insightBadge) return;
+        const h5 = insightBadge.querySelector('h5');
+        const p = insightBadge.querySelector('p');
+        if (h5) h5.innerText = title || "Insight Earned!";
+        if (p) p.innerText = message || "You mastered this concept.";
+        
+        insightBadge.style.display = 'flex';
+        // Force reflow
+        void insightBadge.offsetWidth;
+        insightBadge.classList.add('show');
+        
+        setTimeout(() => {
+            insightBadge.classList.remove('show');
+            setTimeout(() => {
+                insightBadge.style.display = 'none';
+            }, 300);
+        }, 4000);
+    }
 
     // --- Core Logic ---
     
@@ -1313,7 +1442,20 @@
         
         if (drawMatch) {
             visualizationPrompt = drawMatch[1];
-            fullText = fullText.replace(drawRegex, '').trim();
+            fullText = fullText.replace(drawMatch[0], ''); // Remove the entire token from text
+        }
+
+        // 1.5 Extract XP Awards
+        const xpRegex = /\[AWARD_XP:\s*(\d+)\]/i;
+        const xpMatch = fullText.match(xpRegex);
+        let xpAward = null;
+
+        if (xpMatch) {
+            xpAward = parseInt(xpMatch[1]);
+            fullText = fullText.replace(xpMatch[0], ''); // Remove token
+            
+            // Trigger animation immediately
+            showXPAnimation(xpAward);
         }
 
         // 2. Extract suggested responses logic

@@ -259,6 +259,7 @@ class Resource(models.Model):
     class Meta:
         ordering = ['-uploaded_at']
 
+# Import AI Tutor/Copilot models
 from .tutor_models import (
     TutorSession,
     TutorMessage,
@@ -267,12 +268,9 @@ from .tutor_models import (
     CopilotMessage,
 )
 
-
-# Import AI Tutor/Copilot models
-from .tutor_models import (
-    TutorSession,
-    TutorMessage,
-    PracticeQuestionSet,
-    CopilotConversation,
-    CopilotMessage,
+# Import Gamification models
+from .gamification_models import (
+    StudentXP,
+    Achievement,
+    StudentAchievement,
 )
