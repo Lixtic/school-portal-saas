@@ -20,6 +20,7 @@
         --sd-si-blue: #eff6ff;
         --sd-si-green: #f0fdf4;
         --sd-si-amber: #fef9c3;
+        --sd-si-purple: #f3e8ff;
     }
     [data-bs-theme="dark"] {
         --sd-surface: var(--surface-card, #1e293b);
@@ -30,6 +31,7 @@
         --sd-si-blue: rgba(59,130,246,0.15);
         --sd-si-green: rgba(34,197,94,0.15);
         --sd-si-amber: rgba(245,158,11,0.15);
+        --sd-si-purple: rgba(139,92,246,0.15);
     }
 
     /* ===== Stat Cards ===== */
@@ -56,6 +58,7 @@
     .si-blue  { background: var(--sd-si-blue);  color: var(--sd-accent-blue); }
     .si-green { background: var(--sd-si-green); color: var(--sd-accent-green); }
     .si-amber { background: var(--sd-si-amber); color: var(--sd-accent-amber); }
+    .si-purple { background: var(--sd-si-purple); color: var(--sd-accent-purple); }
     .sd-pill {
         display: inline-flex; align-items: center; gap: .25rem;
         padding: .2rem .5rem; border-radius: 6px; font-size: .7rem; font-weight: 600;
@@ -64,6 +67,7 @@
     .pill-green { background: var(--sd-si-green); color: var(--sd-accent-green); }
     .pill-red   { background: #fee2e2; color: #dc2626; }
     .pill-amber { background: #fef9c3; color: #92400e; }
+    .pill-purple { background: var(--sd-si-purple); color: var(--sd-accent-purple); }
     [data-bs-theme="dark"] .pill-red   { background: rgba(220,38,38,.15);  color: #fca5a5; }
     [data-bs-theme="dark"] .pill-amber { background: rgba(245,158,11,.15); color: #fcd34d; }
 
@@ -148,11 +152,12 @@
 
     /* ===== Responsive ===== */
     .sd-stats-row {
-        display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin-bottom: 1.25rem;
+        display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: 1.25rem;
+    }
+    @media (max-width: 1024px) {
+        .sd-stats-row { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 640px) {
-        .sd-stats-row { grid-template-columns: 1fr 1fr; }
-        .sd-stats-row .sd-stat:last-child { grid-column: 1 / -1; }
         .sd-action-icon { width: 36px; height: 36px; }
     }
     .sd-main-grid {
@@ -225,6 +230,23 @@
             <div class="sd-stat-icon si-amber"><i class="bi bi-wallet2"></i></div>
         </div>
         <div style="font-size:.72rem; color:var(--sd-muted); margin-top:.5rem;">Paid: ₵{{ finance_stats.paid|floatformat:2|intcomma }}</div>
+    </div>
+    <!-- Gamification -->
+    <div class="sd-stat">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <div class="sd-stat-label">Level {{ gamification.level|default:1 }}</div>
+                <div class="sd-stat-value" style="color:var(--sd-accent-purple);">{{ gamification.total_xp|default:0|intcomma }} XP</div>
+                <div class="progress mt-2" style="height: 6px; width: 80px; background-color: var(--sd-si-purple);">
+                    <div class="progress-bar" role="progressbar" style="width: {{ gamification.level_progress }}%; background-color: var(--sd-accent-purple);" 
+                         aria-valuenow="{{ gamification.level_progress }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+            <div class="sd-stat-icon si-purple"><i class="bi bi-trophy-fill"></i></div>
+        </div>
+        <div style="font-size:.72rem; color:var(--sd-muted); margin-top:.5rem;">
+            <i class="bi bi-fire text-danger"></i> {{ gamification.current_streak|default:0 }} Day Streak
+        </div>
     </div>
 </div>
 

@@ -17,6 +17,15 @@ class StudentXP(models.Model):
     
     updated_at = models.DateTimeField(auto_now=True)
 
+    @property
+    def level_progress(self):
+        """Standard 100 XP per level progression"""
+        return self.total_xp % 100
+
+    @property
+    def xp_to_next_level(self):
+        return 100 - (self.total_xp % 100)
+
     def __str__(self):
         return f"{self.student} - Lvl {self.level} ({self.total_xp} XP)"
 

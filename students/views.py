@@ -15,6 +15,7 @@ from accounts.models import User
 
 from .utils import calculate_class_position, normalize_term, term_filter_values
 from academics.models import Class, AcademicYear, Timetable, Activity
+from academics.gamification_models import StudentXP
 from teachers.models import Teacher
 from academics.tutor_models import generate_student_id_card, export_id_card_to_pdf, export_multiple_id_cards_to_pdf
 
@@ -440,8 +441,12 @@ def student_dashboard_view(request):
     total_paid = sum(fee.total_paid for fee in student_fees)
     balance = val = total_payable - total_paid
     
+    # Get gamification data
+    student_xp, _ = StudentXP.objects.get_or_create(student=student)
+
     context = {
         'student': student,
+        'gamification': student_xp,
         'recent_attendance': recent_attendance,
         'attendance_stats': attendance_stats,
         'grades': grades,
