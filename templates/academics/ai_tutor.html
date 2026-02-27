@@ -1011,6 +1011,11 @@
             if (processed.suggestions && processed.suggestions.length > 0) {
                 renderSuggestions(processed.suggestions, messageDiv);
             }
+
+            // Trigger visualization if commanded (e.g. from [DRAW: ...])
+            if (processed.visualizationPrompt) {
+                generateTutorImage(processed.visualizationPrompt);
+            }
             
             // Add to history (cleaned text only to save context tokens)
             conversationHistory.push({ role: 'assistant', content: processed.text });
@@ -1236,11 +1241,22 @@
 
     // Helper functions
     function parseSuggestions(fullText) {
+        // 1. Extract visualization prompt
+        const drawRegex = /\[DRAW:\s*(.*?)\]/i;
+        const drawMatch = fullText.match(drawRegex);
+        let visualizationPrompt = null;
+        
+        if (drawMatch) {
+            visualizationPrompt = drawMatch[1];
+            fullText = fullText.replace(drawRegex, '').trim();
+        }
+
+        // 2. Extract suggested responses logic
         const tagStart = '<suggested_responses>';
         const tagEnd = '</suggested_responses>';
         
         const startIdx = fullText.indexOf(tagStart);
-        if (startIdx === -1) return { text: fullText, suggestions: [] };
+        if (startIdx === -1) return { text: fullText, suggestions: [], visualizationPrompt };
         
         const endIdx = fullText.indexOf(tagEnd);
         let suggestions = [];
@@ -1258,7 +1274,8 @@
         
         return { 
             text: fullText.substring(0, startIdx).trim(), 
-            suggestions: suggestions 
+            suggestions: suggestions,
+            visualizationPrompt: visualizationPrompt
         };
     }
 
