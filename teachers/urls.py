@@ -5,6 +5,7 @@ app_name = 'teachers'
 
 urlpatterns = [
     path('', views.teacher_list, name='teacher_list'),
+    path('ai-insights/', views.teacher_ai_insights, name='teacher_ai_insights'),
     path('analytics/', views.analytics_dashboard, name='analytics_dashboard'),
     path('analytics/boost/', views.boost_intervention, name='boost_intervention'),
     path('analytics/generate-lesson/', views.generate_remedial_lesson, name='generate_remedial_lesson'),

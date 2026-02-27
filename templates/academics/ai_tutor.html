@@ -531,7 +531,7 @@
             
             <div class="whiteboard-content" id="whiteboardContent" style="padding: 0; position: relative;">
                 <!-- Drawing Canvas -->
-                <canvas id="drawingCanvas" style="position: absolute; top: 0; left: 0; display: none;"></canvas>
+                <canvas id="drawingCanvas" style="position: absolute; top: 0; left: 0; display: none; touch-action: none;"></canvas>
                 
                 <!-- Content Container (Text/Math) -->
                 <div id="whiteboardTextContent" class="p-4 h-100" style="overflow-y: auto;">
@@ -745,36 +745,41 @@
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
         
+        // Mouse Events
         drawingCanvas.addEventListener('mousedown', startDrawing);
         drawingCanvas.addEventListener('mousemove', draw);
         drawingCanvas.addEventListener('mouseup', stopDrawing);
         drawingCanvas.addEventListener('mouseout', stopDrawing);
         
-        // Touch support
+        // Touch Events (Direct handling for better responsiveness)
         drawingCanvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            const touch = e.touches[0];
-            const mouseEvent = new MouseEvent("mousedown", {
-                clientX: touch.clientX,
-                clientY: touch.clientY
-            });
-            drawingCanvas.dispatchEvent(mouseEvent);
-        });
+            e.preventDefault(); // Prevent scrolling
+            if (e.touches.length > 0) {
+                const touch = e.touches[0];
+                const rect = drawingCanvas.getBoundingClientRect();
+                isDrawing = true;
+                [lastX, lastY] = [touch.clientX - rect.left, touch.clientY - rect.top];
+            }
+        }, { passive: false });
         
         drawingCanvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            const touch = e.touches[0];
-            const mouseEvent = new MouseEvent("mousemove", {
-                clientX: touch.clientX,
-                clientY: touch.clientY
-            });
-            drawingCanvas.dispatchEvent(mouseEvent);
-        });
+            e.preventDefault(); // Prevent scrolling
+            if (!isDrawing) return;
+            if (e.touches.length > 0) {
+                const touch = e.touches[0];
+                const rect = drawingCanvas.getBoundingClientRect();
+                const x = touch.clientX - rect.left;
+                const y = touch.clientY - rect.top;
+                
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+                [lastX, lastY] = [x, y];
+            }
+        }, { passive: false });
         
-        drawingCanvas.addEventListener('touchend', () => {
-             const mouseEvent = new MouseEvent("mouseup", {});
-             drawingCanvas.dispatchEvent(mouseEvent);
-        });
+        drawingCanvas.addEventListener('touchend', stopDrawing);
     }
     
     function resizeCanvas() {

@@ -1,7 +1,7 @@
 from django import forms
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db import models
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Sum, Avg
 from django.db.utils import OperationalError, ProgrammingError
 import django
 from django.contrib.auth.decorators import login_required
@@ -15,7 +15,7 @@ from students.utils import normalize_term
 from .forms import ResourceForm, LessonPlanForm, TeacherCreateForm #, HomeworkForm
 from .models import LessonGenerationSession
 from accounts.models import User
-from academics.tutor_models import generate_teacher_id_card, export_id_card_to_pdf, export_multiple_id_cards_to_pdf
+from academics.tutor_models import generate_teacher_id_card, export_id_card_to_pdf, export_multiple_id_cards_to_pdf, TutorSession
 from parents.models import Parent
 from communication.models import Conversation, Message
 from django.views.decorators.http import require_POST
@@ -23,6 +23,69 @@ from django.views.decorators.http import require_POST
 
 
 # Homework views moved to 'homework' app
+
+@login_required
+def teacher_ai_insights(request):
+    """Dashboard for teachers to view AI Tutor usage and common student questions"""
+    if request.user.user_type not in ['admin', 'teacher']:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+    
+    # Filter sessions - show all for admin, show relevant classes for teacher
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    
+    sessions_qs = TutorSession.objects.select_related('student', 'student__user', 'student__current_class', 'subject')
+    
+    if request.user.user_type == 'teacher':
+        teacher = get_object_or_404(Teacher, user=request.user)
+        # Get classes taught by teacher
+        teacher_classes = ClassSubject.objects.filter(teacher=teacher, academic_year=current_year).values_list('class_assigned', flat=True)
+        # Also managed classes
+        managed_classes = Class.objects.filter(class_teacher=teacher, academic_year=current_year).values_list('id', flat=True)
+        
+        relevant_class_ids = set(list(teacher_classes) + list(managed_classes))
+        sessions_qs = sessions_qs.filter(student__current_class__id__in=relevant_class_ids)
+
+    # 1. Total Stats
+    total_sessions = sessions_qs.count()
+    if total_sessions == 0:
+         return render(request, 'teachers/ai_insights.html', {'no_data': True})
+
+    active_students_count = sessions_qs.values('student').distinct().count()
+    avg_msgs_per_session = sessions_qs.aggregate(avg=Avg('message_count'))['avg'] or 0
+
+    # 2. Most Active Students
+    top_students = sessions_qs.values(
+        'student__user__first_name', 'student__user__last_name', 'student__current_class__name'
+    ).annotate(
+        session_count=Count('id'),
+        total_msgs=Sum('message_count')
+    ).order_by('-session_count')[:5]
+
+    # 3. Common Topics (Flatten topics_discussed)
+    # This is slightly complex with JSONField in older Django, but simple in Python
+    # Since JSONField query support varies, Python processing for top topics is acceptable for small scale
+    recent_sessions = sessions_qs.order_by('-started_at')[:50]
+    all_topics = []
+    for s in recent_sessions:
+        if isinstance(s.topics_discussed, list):
+            all_topics.extend([str(t).lower().strip() for t in s.topics_discussed if t])
+    
+    from collections import Counter
+    topic_counts = Counter(all_topics).most_common(8)
+    
+    # 4. Recent Activity Feed
+    recent_activity = sessions_qs.order_by('-started_at')[:10]
+
+    context = {
+        'total_sessions': total_sessions,
+        'active_students_count': active_students_count,
+        'avg_msgs': round(avg_msgs_per_session, 1),
+        'top_students': top_students,
+        'common_topics': topic_counts,
+        'recent_activity': recent_activity,
+    }
+    return render(request, 'teachers/ai_insights.html', context)
 
 
 @login_required
