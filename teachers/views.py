@@ -927,12 +927,9 @@ def lesson_plan_create(request):
         topic = request.GET.get('topic')
         initial_data = {
             'topic': topic,
-            'objectives': f"By the end of the lesson, students will be able to:
-1. Understand the core concepts of {topic}.
-2. Apply {topic} to solve simple problems.",
+            'objectives': f"By the end of the lesson, students will be able to:\n1. Understand the core concepts of {topic}.\n2. Apply {topic} to solve simple problems.",
             'introduction': f"Begin with a 5-minute warm-up activity related to {topic}.",
-            'presentation': f"1. Define {topic} and key terminology.
-2. Demonstrate the main concept.",
+            'presentation': f"1. Define {topic} and key terminology.\n2. Demonstrate the main concept.",
             'evaluation': f"Distribute a short worksheet on {topic}.",
             'homework': f"Read the chapter on {topic}.",
             'teaching_materials': f"Textbook, Whiteboard"
