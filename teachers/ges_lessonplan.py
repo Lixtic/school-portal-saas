@@ -177,21 +177,30 @@ def parse_ges_lesson_text(text: str) -> Dict[str, str]:
         return {}
 
     compact_text = text.replace("\r\n", "\n")
+    compact_text = re.sub(r"[*_`#]", "", compact_text)
+    compact_text = re.sub(r"\n{3,}", "\n\n", compact_text)
 
     def _search(pattern, flags=re.IGNORECASE | re.DOTALL):
         match = re.search(pattern, compact_text, flags)
         return match.group(1).strip() if match else ""
 
-    week_number = _search(r"WEEK\s+(\d+)")
-    subject = _search(r"Subject:\s*(.+?)(?:\n|$)")
-    class_level = _search(r"Class:\s*(.+?)\s+Class Size:")
-    content_standard = _search(r"Content Standard:\s*Indicator:\s*\n\s*(.+?)\s+(?:[A-Za-z0-9\.]+:)" )
-    indicator = _search(r"Content Standard:\s*Indicator:\s*\n\s*.+?\s+(.+?)\nLesson:")
-    performance_indicator = _search(r"Performance Indicator:\s*Core Competencies:\s*\n\s*(.+?)(?:\n|$)")
-    phase_1_starter = _search(r"PHASE 1:\s*STARTER\s*(.+?)\n\s*PHASE 2:")
-    phase_2_new = _search(r"PHASE 2:\s*NEW\s*(.+?)\n\s*LEARNING")
-    phase_3_reflection = _search(r"PHASE 3:\s*(.+?)\n\s*REFLECTION")
+    week_number = _search(r"WEEK\s*(\d+)")
+    subject = _search(r"(?:Subject|SUBJECT)\s*:\s*(.+?)(?:\n|$)")
+    class_level = _search(r"(?:Class|Class Level)\s*:\s*([^\n]+?)(?:\s+Class Size:|\n|$)")
+    content_standard = _search(r"Content Standard\s*:\s*(.+?)(?:\n|Indicator:|$)")
+    indicator = _search(r"Indicator\s*:\s*(.+?)(?:\n|Lesson:|$)")
+    performance_indicator = _search(r"Performance Indicator\s*:\s*(.+?)(?:\n|Core Competencies:|$)")
+    phase_1_starter = _search(r"PHASE\s*1\s*:\s*STARTER\s*(.+?)(?:\n\s*PHASE\s*2|$)")
+    phase_2_new = _search(r"PHASE\s*2\s*:\s*NEW\s*(.+?)(?:\n\s*PHASE\s*3|\n\s*LEARNING|$)")
+    phase_3_reflection = _search(r"PHASE\s*3\s*:\s*(.+?)(?:\n\s*REFLECTION|$)")
     reference = _search(r"Reference:\s*(.+?)(?:\n|$)")
+
+    if not phase_1_starter:
+        phase_1_starter = _search(r"Starter\s*(?:\(.*?\))?\s*:\s*(.+?)(?:\n|$)")
+    if not phase_2_new:
+        phase_2_new = _search(r"(?:New Learning|Presentation|Activity)\s*(?:\(.*?\))?\s*:\s*(.+?)(?:\n|$)")
+    if not phase_3_reflection:
+        phase_3_reflection = _search(r"(?:Reflection|Assessment|Evaluation)\s*(?:\(.*?\))?\s*:\s*(.+?)(?:\n|$)")
 
     topic = indicator or subject or "GES AI Draft Lesson"
     objectives = performance_indicator or ""
