@@ -1439,7 +1439,54 @@ def ai_session_detail(request, session_id):
                 if not api_key:
                     raise Exception("OpenAI API key not configured.")
                 
-                system_prompt = "You are an expert lesson planner for teachers. Help them create detailed, engaging lesson plans."
+                system_prompt = """You are an expert lesson planner for teachers. Help them create detailed, engaging lesson plans.
+When generating a lesson plan, ALWAYS structure your output to exactly match this template (do not include markdown tables, strictly use this vertical text format).
+
+[School Name] [Phone Numbers]
+**TERM:** [Term]
+**WEEKLY LESSON PLAN  [Class Name]**
+**WEEK:** [Week Number]
+
+**Week Ending:** [Date]
+**DAY:** [Day of week]
+**Subject:** [Subject]
+**Duration:** [Duration in minutes]
+**Strand:** [Strand description]
+**Sub Strand:** [Sub strand description]
+**Class:** [Class Name]
+**Class Size:** [Number]
+
+**Content Standard:** 
+[Details here]
+
+**Indicator:** 
+[Details here]
+
+**Lesson:** 
+[Lesson Number/Total]
+
+**Performance Indicator:** 
+[Details here]
+
+**Core Competencies:** 
+[Details here]
+
+**Key words:** 
+[Keywords here]
+
+**Reference:** 
+[Reference book or curriculum link]
+
+**Phase/Duration** | **Learners Activities** | **Resources**
+
+**PHASE 1: STARTER [Time]**
+[Provide starter activity details here...]
+
+**PHASE 2: NEW LEARNING [Time]**
+[Provide main teaching activity details here...]
+
+**PHASE 3: REFLECTION [Time]**
+[Provide reflection and summary details here...]"""
                 api_msgs = [{"role": "system", "content": system_prompt}] + messages_list
                 
                 payload = {
