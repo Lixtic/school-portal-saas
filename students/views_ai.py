@@ -12,15 +12,25 @@ from django.conf import settings
 # HF_API_URL_WHISPER = "https://api-inference.huggingface.co/models/openai/whisper-large-v3-turbo" # Faster, good accuracy -- 410 Error
 # Use lists for fallbacks
 HF_WHISPER_MODELS = [
+    "https://api-inference.huggingface.co/models/openai/whisper-large-v3-turbo",
     "https://api-inference.huggingface.co/models/openai/whisper-large-v3",
-    "https://api-inference.huggingface.co/models/distil-whisper/distil-large-v3",
+    "https://api-inference.huggingface.co/models/openai/whisper-large-v2", 
+    "https://api-inference.huggingface.co/models/openai/whisper-medium",
+    "https://api-inference.huggingface.co/models/openai/whisper-tiny",
 ]
 
-HF_API_URL_LLM = "https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct"
-# Alternative: "https://api-inference.huggingface.co/models/meta-llama/Llama-2-7b-chat-hf"
+# Use a very reliable, open LLM for fallback (Zephyr or Mistral)
+HF_LLM_MODELS = [
+    "https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct",
+    "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta",
+    "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
+]
 
-HF_API_URL_TTS = "https://api-inference.huggingface.co/models/parler-tts/parler-tts-mini-v1" 
-# Alternative: "https://api-inference.huggingface.co/models/facebook/mms-tts-eng"
+# Fallback TTS
+HF_TTS_MODELS = [
+    "https://api-inference.huggingface.co/models/parler-tts/parler-tts-mini-v1",
+    "https://api-inference.huggingface.co/models/facebook/mms-tts-eng"
+]
 
 def get_hf_headers():
     token = os.environ.get("HUGGINGFACE_API_TOKEN")
@@ -131,9 +141,21 @@ def process_voice_interaction(request):
         # Generator function for streaming response
         def generate_audio_stream():
             try:
-                # Use requests with stream=True for LLM
-                response_llm_stream = requests.post(HF_API_URL_LLM, headers=headers, json=payload_llm, stream=True)
+                # 1. Try to find a working LLM stream
+                response_llm_stream = None
+                for llm_url in HF_LLM_MODELS:
+                    try:
+                        resp = requests.post(llm_url, headers=headers, json=payload_llm, stream=True)
+                        if resp.status_code == 200:
+                            response_llm_stream = resp
+                            break
+                    except:
+                        continue
                 
+                if not response_llm_stream:
+                    # All LLMs failed
+                    return
+
                 buffer = ""
                 sentence_endings = {'.', '!', '?'}
                 
@@ -149,21 +171,34 @@ def process_voice_interaction(request):
                                 
                                 # Check for sentence end
                                 if any(token.endswith(p) for p in sentence_endings) and len(buffer.strip()) > 5:
-                                    # Send sentence to TTS
-                                    # Note: Using fallback for speed/reliability in streaming chunks
+                                    # Send sentence to TTS with fallback
                                     tts_payload = {"inputs": buffer.strip()}
-                                    tts_resp = requests.post(HF_API_URL_TTS, headers=headers, json=tts_payload) 
-                                    if tts_resp.status_code == 200:
-                                        yield tts_resp.content
+                                    
+                                    # Try TTS models
+                                    for tts_url in HF_TTS_MODELS:
+                                        try:
+                                            tts_resp = requests.post(tts_url, headers=headers, json=tts_payload)
+                                            if tts_resp.status_code == 200:
+                                                yield tts_resp.content
+                                                break
+                                        except:
+                                            continue
+                                            
                                     buffer = "" # Reset buffer
                             except:
                                 pass
                 
                 # Process remaining buffer
                 if buffer.strip():
-                     tts_resp = requests.post(HF_API_URL_TTS, headers=headers, json={"inputs": buffer.strip()})
-                     if tts_resp.status_code == 200:
-                         yield tts_resp.content
+                     tts_payload = {"inputs": buffer.strip()}
+                     for tts_url in HF_TTS_MODELS:
+                        try:
+                            tts_resp = requests.post(tts_url, headers=headers, json=tts_payload)
+                            if tts_resp.status_code == 200:
+                                yield tts_resp.content
+                                break
+                        except:
+                            continue
 
             except Exception as e:
                 # Log error or yield slight silence
