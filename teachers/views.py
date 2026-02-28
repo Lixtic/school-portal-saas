@@ -1375,3 +1375,107 @@ def ai_session_delete(request, session_id):
     messages.success(request, "Session deleted.")
     return redirect('teachers:ai_sessions_list')
 
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+@login_required
+@csrf_exempt
+def aura_t_api(request):
+    if request.user.user_type != 'teacher':
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+        
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            action = data.get('action')
+            topic = data.get('topic', 'General Topic')
+            
+            # Simulated Aura-T logic
+            if action == 'class_sync':
+                return JsonResponse({
+                    'status': 'success',
+                    'introduction': f"I see 12 students struggled with this. Let's rewrite today's 'Hook' to focus on a practical scenario to reinforce the visual logic before we move to '{topic}'.",
+                    'presentation': f"Focus heavily on the visual analogies for {topic}.",
+                    'differentiation': "Focus on base concepts for remedial group. Advanced group analyzes edge-cases."
+                })
+            elif action == 'interest_mashup':
+                interests = data.get('interests', 'Gaming')
+                return JsonResponse({
+                    'status': 'success',
+                    'introduction': f"Let's teach {topic} by calculating stats for {interests}.",
+                    'presentation': f"Use examples from {interests} to illustrate {topic}."
+                })
+            elif action == 'standard_linker':
+                return JsonResponse({
+                    'status': 'success',
+                    'objectives': f"This lesson covers GES & WAEC standards for {topic} and develops 'Critical Thinking' and 'Digital Literacy' competencies.\n1. Understand {topic}\n2. Apply {topic}"
+                })
+            elif action == 'chat_suggest':
+                context = data.get('context', '')
+                if 'Objective' in context or 'assessment' in context.lower():
+                    tip = "Alert: You haven't assessed 'Objective B' yet. Should I add a question to the exit ticket?"
+                elif 'introduction' in context.lower() or 'hook' in context.lower():
+                    tip = "Teacher Tip: Students usually find this part boring. Want a 1-minute fun fact about this?"
+                else:
+                    tip = f"Resource: I found a PhET Interactive Simulation that perfectly matches {topic}. Click to embed."
+                return JsonResponse({'status': 'success', 'suggestion': tip})
+            else:
+                return JsonResponse({'error': 'Unknown action'}, status=400)
+                
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+            
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+@login_required
+@csrf_exempt
+def aura_t_api(request):
+    if request.user.user_type != 'teacher':
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+        
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            action = data.get('action')
+            topic = data.get('topic', 'General Topic')
+            
+            # Simulated Aura-T logic
+            if action == 'class_sync':
+                return JsonResponse({
+                    'status': 'success',
+                    'introduction': f"I see 12 students struggled with this. Let's rewrite today's 'Hook' to focus on a practical scenario to reinforce the visual logic before we move to '{topic}'.",
+                    'presentation': f"Focus heavily on the visual analogies for {topic}.",
+                    'differentiation': "Focus on base concepts for remedial group. Advanced group analyzes edge-cases."
+                })
+            elif action == 'interest_mashup':
+                interests = data.get('interests', 'Gaming')
+                return JsonResponse({
+                    'status': 'success',
+                    'introduction': f"Let's teach {topic} by calculating stats for {interests}.",
+                    'presentation': f"Use examples from {interests} to illustrate {topic}."
+                })
+            elif action == 'standard_linker':
+                return JsonResponse({
+                    'status': 'success',
+                    'objectives': f"This lesson covers GES & WAEC standards for {topic} and develops 'Critical Thinking' and 'Digital Literacy' competencies.\n1. Understand {topic}\n2. Apply {topic}"
+                })
+            elif action == 'chat_suggest':
+                context = data.get('context', '')
+                if 'Objective' in context or 'assessment' in context.lower():
+                    tip = "Alert: You haven't assessed 'Objective B' yet. Should I add a question to the exit ticket?"
+                elif 'introduction' in context.lower() or 'hook' in context.lower():
+                    tip = "Teacher Tip: Students usually find this part boring. Want a 1-minute fun fact about this?"
+                else:
+                    tip = f"Resource: I found a PhET Interactive Simulation that perfectly matches {topic}. Click to embed."
+                return JsonResponse({'status': 'success', 'suggestion': tip})
+            else:
+                return JsonResponse({'error': 'Unknown action'}, status=400)
+                
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+            
+    return JsonResponse({'error': 'Invalid request'}, status=400)
