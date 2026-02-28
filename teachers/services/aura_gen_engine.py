@@ -270,6 +270,9 @@ Return a JSON object with:
             response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
             content = response['choices'][0]['message']['content']
             data = json.loads(content)
+            exercises = data.get("exercises") or []
+            if not exercises:
+                exercises = AuraGenEngine._mock_exercises(topic)
             return {
                 "meta": {
                     "topic": topic,
@@ -277,7 +280,7 @@ Return a JSON object with:
                     "grade": grade_level,
                     "generated_at": timezone.now().isoformat()
                 },
-                **data
+                "exercises": exercises
             }
         except Exception as e:
             print(f"Exercise generation failed: {e}")
@@ -288,8 +291,41 @@ Return a JSON object with:
                     "grade": grade_level,
                     "generated_at": timezone.now().isoformat()
                 },
-                "exercises": []
+                "exercises": AuraGenEngine._mock_exercises(topic)
             }
+
+    @staticmethod
+    def _mock_exercises(topic: str) -> List[Dict]:
+        """Fallback exercises when AI output is empty."""
+        return [
+            {
+                "type": "mcq",
+                "prompt": f"Which statement best describes {topic}?",
+                "options": [
+                    "It is a core concept taught in class",
+                    "It is unrelated to the subject",
+                    "It is only used in advanced courses",
+                    "It is a historical event"
+                ],
+                "answer": "It is a core concept taught in class"
+            },
+            {
+                "type": "short",
+                "prompt": f"Explain {topic} in your own words.",
+                "answer": "A clear explanation of the concept with an example."
+            },
+            {
+                "type": "mcq",
+                "prompt": f"Pick a real-world use of {topic}.",
+                "options": [
+                    "Everyday problem solving",
+                    "Only theoretical research",
+                    "Unrelated classroom rules",
+                    "None of the above"
+                ],
+                "answer": "Everyday problem solving"
+            }
+        ]
 
     @staticmethod
     def _generate_mock_fallback(topic: str, subject: str, grade_level: str) -> Dict:

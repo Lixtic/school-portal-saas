@@ -1226,8 +1226,21 @@ def aura_t_api(request):
                 )
 
                 exercises = result.get('exercises', [])
+                if not exercises:
+                    exercises = AuraGenEngine.generate_interactive_exercises(topic, subject.name, school_class.name).get('exercises', [])
+
+                type_map = {
+                    'multiple_choice': 'mcq',
+                    'multiple choice': 'mcq',
+                    'mcq': 'mcq',
+                    'quiz': 'mcq',
+                    'short_answer': 'short',
+                    'short answer': 'short',
+                    'short': 'short',
+                }
                 for item in exercises:
-                    ex_type = (item.get('type') or '').lower()
+                    raw_type = (item.get('type') or '').lower()
+                    ex_type = type_map.get(raw_type, raw_type or 'short')
                     prompt = item.get('prompt') or 'Untitled question'
                     if ex_type not in ['mcq', 'short']:
                         ex_type = 'short'
@@ -1243,6 +1256,13 @@ def aura_t_api(request):
                     if ex_type == 'mcq':
                         options = item.get('options') or []
                         correct = item.get('answer')
+                        if not options and correct:
+                            options = [
+                                str(correct),
+                                'Option B',
+                                'Option C',
+                                'Option D'
+                            ]
                         for opt in options:
                             Choice.objects.create(
                                 question=question,
