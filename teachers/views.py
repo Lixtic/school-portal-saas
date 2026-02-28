@@ -39,7 +39,7 @@ def teacher_ai_insights(request):
     if request.user.user_type == 'teacher':
         teacher = get_object_or_404(Teacher, user=request.user)
         # Get classes taught by teacher
-        teacher_classes = ClassSubject.objects.filter(teacher=teacher, academic_year=current_year).values_list('class_assigned', flat=True)
+        teacher_classes = ClassSubject.objects.filter(teacher=teacher, class_name__academic_year=current_year).values_list('class_name', flat=True)
         # Also managed classes
         managed_classes = Class.objects.filter(class_teacher=teacher, academic_year=current_year).values_list('id', flat=True)
         
