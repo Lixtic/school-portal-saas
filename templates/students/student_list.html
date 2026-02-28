@@ -394,6 +394,11 @@
                         </select>
                     </div>
 
+                    <div id="attendanceDateDiv" style="display: none;" class="mt-3">
+                        <label class="form-label">Attendance Date</label>
+                        <input type="date" class="form-control" id="bulkAttendanceDate">
+                    </div>
+
                     <div id="printReportDiv" style="display: none;">
                         <label class="form-label">Select Term</label>
                         <select class="form-select" id="bulkTerm">
@@ -436,6 +441,12 @@
 
 <script>
 let selectedStudents = [];
+
+const bulkDateInput = document.getElementById('bulkAttendanceDate');
+if (bulkDateInput) {
+    const today = new Date().toISOString().split('T')[0];
+    bulkDateInput.value = today;
+}
 
 function getCookie(name) {
     const cookieValue = document.cookie
@@ -490,12 +501,17 @@ document.getElementById('bulkAction').addEventListener('change', function() {
     const action = this.value;
     const classDiv = document.getElementById('classSelectionDiv');
     const printDiv = document.getElementById('printReportDiv');
+    const attendanceDateDiv = document.getElementById('attendanceDateDiv');
     
     classDiv.style.display = 'none';
     printDiv.style.display = 'none';
+    attendanceDateDiv.style.display = 'none';
     
     if (action === 'assign_class' || action === 'mark_attendance') {
         classDiv.style.display = 'block';
+        if (action === 'mark_attendance') {
+            attendanceDateDiv.style.display = 'block';
+        }
     } else if (action === 'print_report') {
         printDiv.style.display = 'block';
     }
@@ -546,11 +562,13 @@ function executeBulkAction() {
         });
     } else if (action === 'mark_attendance') {
         const classId = document.getElementById('bulkClass').value;
+        const dateInput = document.getElementById('bulkAttendanceDate').value;
         if (!classId) {
             showToast('Please select a class', 'warning');
             return;
         }
-        window.location.href = `{% url "students:mark_attendance" %}?class_id=${classId}`;
+        const dateParam = dateInput ? `&date=${encodeURIComponent(dateInput)}` : '';
+        window.location.href = `{% url "students:mark_attendance" %}?class_id=${classId}${dateParam}`;
     } else if (action === 'export') {
         exportSelected();
     } else if (action === 'print_report') {

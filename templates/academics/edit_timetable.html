@@ -6,6 +6,15 @@
 
 {% block content %}
 <style>
+    .page-bg-fixed {
+        position: fixed; inset: 0; width: 100vw; height: 100vh;
+        background-image: url('https://img.freepik.com/free-vector/ginkgo-leaf-frame-design-colorful-background_53876-120237.jpg?semt=ais_user_personalization&w=740&q=80');
+        background-size: cover; background-position: center;
+        opacity: 0.12; pointer-events: none; z-index: 0;
+    }
+    [data-bs-theme="dark"] .page-bg-fixed { opacity: 0.05; filter: grayscale(0.5); }
+    .content-wrapper { position: relative; z-index: 1; }
+
     /* Responsive Timetable Edit Styles */
     @media (max-width: 768px) {
         /* Hide table headers on mobile */
@@ -76,7 +85,8 @@
     }
 </style>
 
-<div class="container-fluid py-4">
+<div class="page-bg-fixed"></div>
+<div class="container-fluid py-4 content-wrapper">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 mb-0 text-gray-800">Edit Timetable: {{ school_class.name }}</h1>

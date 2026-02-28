@@ -24,18 +24,33 @@
     [data-bs-theme="dark"] .form-text { color: #94a3b8; }
     [data-bs-theme="dark"] .text-muted { color: #94a3b8 !important; }
 
-    .page-bg-fixed {
-        position: fixed; inset: 0; width: 100vw; height: 100vh;
-        background-image: url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=2070');
-        background-size: cover; background-position: center;
-        opacity: 0.12; pointer-events: none; z-index: 0;
+    .child-search {
+        border-radius: 8px;
     }
-    [data-bs-theme="dark"] .page-bg-fixed { opacity: 0.05; filter: grayscale(0.5); }
-    .content-wrapper { position: relative; z-index: 1; }
+    .child-search-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        margin-top: 0.35rem;
+        font-size: 0.8rem;
+        color: var(--text-muted, #94a3b8);
+    }
+    .child-search-clear {
+        border: 1px solid rgba(0,0,0,0.08);
+        background: transparent;
+        border-radius: 999px;
+        padding: 0.1rem 0.6rem;
+        font-size: 0.75rem;
+    }
+    [data-bs-theme="dark"] .child-search-clear {
+        border-color: rgba(255,255,255,0.2);
+        color: #cbd5e1;
+    }
 
     .page-bg-fixed {
         position: fixed; inset: 0; width: 100vw; height: 100vh;
-        background-image: url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=2070');
+        background-image: url('https://img.freepik.com/free-vector/ginkgo-leaf-frame-design-colorful-background_53876-120237.jpg?semt=ais_user_personalization&w=740&q=80');
         background-size: cover; background-position: center;
         opacity: 0.12; pointer-events: none; z-index: 0;
     }
@@ -146,4 +161,69 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const childrenSelect = document.getElementById('id_children');
+    if (!childrenSelect) {
+        return;
+    }
+
+    const searchWrapper = document.createElement('div');
+    searchWrapper.className = 'mb-3';
+    searchWrapper.innerHTML = `
+        <label class="form-label">Search students</label>
+        <input type="text" class="form-control child-search" id="childSearchInput" placeholder="Type a name or admission number">
+        <div class="child-search-meta">
+            <span id="childSearchCount">Showing all</span>
+            <button type="button" class="child-search-clear" id="childSearchClear">Clear</button>
+        </div>
+    `;
+
+    childrenSelect.parentNode.insertBefore(searchWrapper, childrenSelect);
+
+    const searchInput = document.getElementById('childSearchInput');
+    const searchCount = document.getElementById('childSearchCount');
+    const clearButton = document.getElementById('childSearchClear');
+
+    const applyFilter = (rawTerm) => {
+        const tokens = rawTerm
+            .trim()
+            .toLowerCase()
+            .split(/\s+/)
+            .filter(Boolean);
+        const options = Array.from(childrenSelect.options);
+        let visibleCount = 0;
+
+        options.forEach((option) => {
+            if (!option.value) {
+                option.hidden = false;
+                return;
+            }
+
+            const text = option.text.toLowerCase();
+            const match = tokens.length === 0 || tokens.every(token => text.includes(token));
+            option.hidden = !match;
+            if (match) {
+                visibleCount += 1;
+            }
+        });
+
+        if (tokens.length === 0) {
+            searchCount.textContent = 'Showing all';
+        } else {
+            searchCount.textContent = `${visibleCount} match${visibleCount === 1 ? '' : 'es'}`;
+        }
+    };
+
+    searchInput.addEventListener('input', (event) => applyFilter(event.target.value));
+    clearButton.addEventListener('click', () => {
+        searchInput.value = '';
+        applyFilter('');
+        searchInput.focus();
+    });
+});
+</script>
 {% endblock %}

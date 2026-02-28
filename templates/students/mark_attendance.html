@@ -301,7 +301,27 @@
 </div>
 
 <script>
-document.getElementById('loadStudents').addEventListener('click', function() {
+const classSelect = document.getElementById('classSelect');
+const loadButton = document.getElementById('loadStudents');
+
+const params = new URLSearchParams(window.location.search);
+const preselectClassId = params.get('class_id');
+const preselectDate = params.get('date');
+const dateInput = document.querySelector('input[name="date"]');
+
+if (preselectDate && dateInput) {
+    dateInput.value = preselectDate;
+}
+
+if (preselectClassId && classSelect) {
+    classSelect.value = preselectClassId;
+    if (loadButton) {
+        loadButton.click();
+    }
+}
+
+if (loadButton) {
+    loadButton.addEventListener('click', function() {
     const classId = document.getElementById('classSelect').value;
     const dateVal = document.querySelector('input[name="date"]').value;
     
@@ -403,7 +423,8 @@ document.getElementById('loadStudents').addEventListener('click', function() {
             if(window.showToast) showToast('Error loading students: ' + error.message, 'danger');
             else alert('Error loading students: ' + error.message);
         });
-});
+    });
+}
 
 function renderStatusOption(studentId, value, label, iconClass, currentStatus) {
     const isChecked = value === currentStatus ? 'checked' : '';
