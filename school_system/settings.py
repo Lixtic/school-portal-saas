@@ -131,6 +131,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'academics.context_processors.school_info',
                 'announcements.context_processors.user_notifications',
+                'teachers.context_processors.teacher_context',
             ],
             'string_if_invalid': '',  # Return empty string instead of raising errors for undefined variables
         },
