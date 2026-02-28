@@ -1,54 +1,88 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Lesson Plan Detail{% endblock %}
 
 {% block content %}
 <style>
-    [data-bs-theme="dark"] .card {
-        background-color: var(--surface-white);
-        border-color: rgba(255,255,255,0.1) !important;
-        color: var(--text-main);
-    }
-    [data-bs-theme="dark"] .bg-light {
-        background-color: #0f172a !important; /* Slightly darker than card */
-        border: 1px solid rgba(255,255,255,0.05);
-    }
-    [data-bs-theme="dark"] .text-secondary {
-        color: #94a3b8 !important;
-    }
-    [data-bs-theme="dark"] hr {
-        border-color: rgba(255,255,255,0.1);
-    }
-    [data-bs-theme="dark"] .print-hide .btn-outline-secondary {
-        color: #e2e8f0;
-        border-color: rgba(255,255,255,0.2);
-    }
-    [data-bs-theme="dark"] .print-hide .btn-outline-secondary:hover {
-        background-color: rgba(255,255,255,0.1);
+    /* GES Standard Lesson Plan Styles */
+    .ges-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: 'Times New Roman', Times, serif; /* Typical for formal docs */
+        font-size: 11pt;
+        color: #000;
     }
     
+    .ges-table th, .ges-table td {
+        border: 1px solid #000;
+        padding: 5px 8px;
+        vertical-align: top;
+    }
+    
+    .ges-table th {
+        font-weight: bold;
+        background-color: #f0f0f0; /* Light gray for screen, white for print */
+    }
+    
+    .ges-header {
+        text-align: center;
+        font-weight: bold;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+        font-family: 'Times New Roman', Times, serif;
+    }
+    
+    .phase-col { width: 30%; }
+    .day-col { width: 10%; }
+    
+    /* Screen-only adjustments */
+    [data-bs-theme="dark"] .ges-table {
+        color: var(--text-main);
+        border-color: rgba(255,255,255,0.2);
+    }
+    [data-bs-theme="dark"] .ges-table th, 
+    [data-bs-theme="dark"] .ges-table td {
+        border-color: rgba(255,255,255,0.2);
+    }
+    [data-bs-theme="dark"] .ges-table th {
+        background-color: #1e293b;
+    }
+
+    /* Print Styles */
     @media print {
-        [data-bs-theme="dark"] {
-             --text-main: #000;
-             --surface-white: #fff;
+        @page { size: portrait; margin: 1cm; }
+        body * { visibility: hidden; }
+        #printableArea, #printableArea * { visibility: visible; }
+        #printableArea {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+            background: white;
+            color: black;
         }
-        [data-bs-theme="dark"] .card {
-            background-color: #fff !important;
-            color: #000 !important;
-            border: 1px solid #ccc !important;
-        }
+        .ges-table th { background-color: transparent !important; }
+        .print-hide { display: none !important; }
+        
+        /* Force single page break avoidance if possible */
+        tr { page-break-inside: avoid; }
     }
 </style>
+
 <div class="container py-4">
     <div class="row justify-content-center">
-        <div class="col-lg-10">
+        <div class="col-lg-11 col-xl-10">
+            <!-- Action Bar -->
             <div class="d-flex justify-content-between align-items-center mb-4 print-hide {% if print_mode %}d-none{% endif %}">
                 <a href="{% url 'teachers:lesson_plan_list' %}" class="btn btn-outline-secondary rounded-pill">
                     <i class="bi bi-arrow-left me-2"></i>Back to List
                 </a>
                 <div class="d-flex gap-2">
                     <button onclick="window.print()" class="btn btn-dark rounded-pill">
-                        <i class="bi bi-printer me-2"></i>Print
+                        <i class="bi bi-printer me-2"></i>Print / PDF
                     </button>
                     <a href="{% url 'teachers:lesson_plan_edit' lesson_plan.pk %}" class="btn btn-primary rounded-pill">
                         <i class="bi bi-pencil me-2"></i>Edit
@@ -64,118 +98,111 @@
             </div>
             {% endif %}
 
-            <div class="card border rounded-0 shadow-none" id="printableArea">
-                <div class="card-body p-5">
-                    <!-- Header -->
-                    <div class="text-center mb-5 border-bottom pb-4">
-                        <h2 class="fw-bold mb-1">LESSON PLAN</h2>
-                        <h5 class="text-secondary fw-bold text-uppercase">{{ lesson_plan.teacher.user.get_full_name }}</h5>
+            <!-- Document Content -->
+            <div class="card border rounded-0 shadow-sm" id="printableArea">
+                <div class="card-body p-4 p-md-5 bg-white text-black">
+                    
+                    <div class="ges-header">
+                        <h4>{{ lesson_plan.school_class.name }}</h4>
+                        <h3>WEEKLY LESSON PLAN</h3>
                     </div>
 
-                    <!-- Meta Data -->
-                    <div class="row text-uppercase small mb-4 border-bottom pb-3 g-3">
-                        <div class="col-md-3">
-                            <span class="text-muted d-block">Week</span>
-                            <span class="fw-bold fs-5">{{ lesson_plan.week_number }}</span>
-                        </div>
-                        <div class="col-md-3">
-                            <span class="text-muted d-block">Subject</span>
-                            <span class="fw-bold fs-5">{{ lesson_plan.subject.name }}</span>
-                        </div>
-                        <div class="col-md-3">
-                            <span class="text-muted d-block">Class</span>
-                            <span class="fw-bold fs-5">{{ lesson_plan.school_class.name }}</span>
-                        </div>
-                        <div class="col-md-3">
-                            <span class="text-muted d-block">Date Created</span>
-                            <span class="fw-bold">{{ lesson_plan.date_added|date:"M d, Y" }}</span>
-                        </div>
-                    </div>
-
-                    <!-- Topic -->
-                    <div class="mb-4">
-                        <h6 class="fw-bold text-secondary text-uppercase mb-2">Topic</h6>
-                        <p class="fs-4 fw-bold">{{ lesson_plan.topic }}</p>
-                    </div>
-
-                    <!-- Objectives -->
-                    <div class="mb-4">
-                        <h6 class="fw-bold text-secondary text-uppercase mb-2">Objectives</h6>
-                        <div class="bg-light p-3 rounded">
-                            {{ lesson_plan.objectives|linebreaks }}
-                        </div>
-                    </div>
-
-                    <!-- Materials -->
-                    {% if lesson_plan.teaching_materials %}
-                    <div class="mb-4">
-                        <h6 class="fw-bold text-secondary text-uppercase mb-2">Teaching/Learning Materials</h6>
-                        <p>{{ lesson_plan.teaching_materials|linebreaks }}</p>
-                    </div>
-                    {% endif %}
-
-                    <hr class="my-4 text-muted">
-
-                    <!-- Procedure Grid -->
-                    <div class="row g-4">
-                        <div class="col-12">
-                            <h5 class="fw-bold text-decoration-underline mb-3">Lesson Procedure</h5>
+                    <table class="ges-table mb-0">
+                        <!-- Header Section -->
+                        <tbody>
+                            <tr>
+                                <th width="25%">Learning Indicator(s)</th>
+                                <td colspan="3">
+                                    {{ lesson_plan.objectives|linebreaksbr }}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Performance Indicator</th>
+                                <td colspan="3">
+                                    <ul style="margin-bottom: 0; padding-left: 1.2rem;">
+                                        <li>Learners can relate the lesson to real life situations.</li>
+                                        <li>Learners can demonstrate understanding of core concepts.</li>
+                                        <!-- Placeholder as we don't have separate field -->
+                                    </ul>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Week Ending</th>
+                                <td colspan="3">
+                                    <!-- Use a calculated date if available or just Week Number -->
+                                    Week {{ lesson_plan.week_number }} ({{ lesson_plan.date_added|date:"F d, Y" }})
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Class</th>
+                                <td colspan="3">{{ lesson_plan.school_class.name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Subject</th>
+                                <td colspan="3">{{ lesson_plan.subject.name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Reference</th>
+                                <td colspan="3">National {{ lesson_plan.subject.name }} Curriculum</td>
+                            </tr>
+                            <tr>
+                                <th>Teaching/Learning Resources</th>
+                                <td colspan="3">{{ lesson_plan.teaching_materials|linebreaksbr }}</td>
+                            </tr>
                             
-                            <div class="mb-3">
-                                <span class="badge bg-secondary mb-2 rounded-0">INTRODUCTION</span>
-                                <div class="ps-3 border-start border-3 border-secondary">
+                            <!-- Spacing Row -->
+                            <tr style="border: none;"><td colspan="4" style="border: none; padding: 10px;"></td></tr>
+
+                            <!-- Instructional Phases Header -->
+                            <tr>
+                                <th class="day-col text-center">DAYS</th>
+                                <th class="phase-col">PHASE 1: STARTER<br><small>(Preparing The Brain For Learning)</small></th>
+                                <th class="phase-col">PHASE 2: MAIN<br><small>(New Learning Including Assessment)</small></th>
+                                <th class="phase-col">PHASE 3: REFLECTION<br><small>(Learner And Teacher)</small></th>
+                            </tr>
+                            
+                            <!-- Instructional Phases Content -->
+                            <tr style="height: 300px;">
+                                <td class="text-center fw-bold">
+                                    <br>ALL<br>DAYS
+                                </td>
+                                <td>
                                     {{ lesson_plan.introduction|linebreaks }}
-                                </div>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <span class="badge bg-primary mb-2 rounded-0">PRESENTATION / ACTIVITY</span>
-                                <div class="ps-3 border-start border-3 border-primary">
+                                </td>
+                                <td>
                                     {{ lesson_plan.presentation|linebreaks }}
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <span class="badge bg-success mb-2 rounded-0">EVALUATION</span>
-                                <div class="ps-3 border-start border-3 border-success">
+                                </td>
+                                <td>
                                     {{ lesson_plan.evaluation|linebreaks }}
-                                </div>
-                            </div>
+                                    
+                                    {% if lesson_plan.homework %}
+                                    <div class="mt-3 pt-3 border-top border-dark">
+                                        <strong>Homework:</strong><br>
+                                        {{ lesson_plan.homework|linebreaksbr }}
+                                    </div>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="mt-4 pt-4 d-flex justify-content-between" style="font-family: 'Times New Roman', serif;">
+                        <div>
+                            <p class="mb-0">Teacher's Signature: ______________________</p>
+                        </div>
+                        <div>
+                            <p class="mb-0">Headteacher's Signature: ______________________</p>
                         </div>
                     </div>
-
-                    {% if lesson_plan.homework %}
-                    <div class="mt-4 p-3 border border-dark border-dashed rounded bg-warning bg-opacity-10">
-                        <h6 class="fw-bold text-dark text-uppercase mb-2">Homework / Assignment</h6>
-                        <p class="mb-0">{{ lesson_plan.homework|linebreaks }}</p>
-                    </div>
-                    {% endif %}
 
                 </div>
             </div>
+            
+            <div class="mt-4 text-center text-muted small print-hide">
+                <p>This document is formatted according to GES standards.</p>
+            </div>
+            
         </div>
     </div>
 </div>
-
-<style>
-    @media print {
-        body * {
-            visibility: hidden;
-        }
-        #printableArea, #printableArea * {
-            visibility: visible;
-        }
-        #printableArea {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            border: none !important;
-            box-shadow: none !important;
-        }
-        .print-hide { 
-            display: none !important; 
-        }
-    }
-</style>
 {% endblock %}

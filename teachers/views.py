@@ -1040,7 +1040,11 @@ def lesson_plan_print(request, pk):
     teacher = get_object_or_404(Teacher, user=request.user)
     lesson_plan = get_object_or_404(LessonPlan, pk=pk, teacher=teacher)
     
-    return render(request, 'teachers/lesson_plan_print.html', {'lesson_plan': lesson_plan})
+    # Use detail template with print mode enabled to render the GES standard table
+    return render(request, 'teachers/lesson_plan_detail.html', {
+        'lesson_plan': lesson_plan, 
+        'print_mode': True
+    })
 
 @login_required
 def aura_t_api(request):
@@ -1074,14 +1078,6 @@ def aura_t_api(request):
             return JsonResponse({"status": "error", "message": str(e)}, status=500)
             
     return JsonResponse({"status": "error", "message": "Invalid method"}, status=405)
-
-    teacher = get_object_or_404(Teacher, user=request.user)
-    lesson_plan = get_object_or_404(LessonPlan, pk=pk, teacher=teacher)
-
-    return render(request, 'teachers/lesson_plan_detail.html', {
-        'lesson_plan': lesson_plan,
-        'print_mode': True,
-    })
 
 @login_required
 def lesson_plan_delete(request, pk):
