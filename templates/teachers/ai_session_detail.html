@@ -243,6 +243,27 @@ textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
     transform: none;
 }
 
+.aura-generator-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+.aura-gen-btn {
+    font-size: 0.75rem;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--aura-text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.aura-gen-btn:hover {
+    background: rgba(139, 92, 246, 0.12);
+    color: var(--aura-text-primary);
+}
+
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
 /* Scrollbar */
@@ -342,6 +363,17 @@ textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
                     <i class="fas fa-paper-plane"></i>
                 </button>
             </form>
+            <div class="aura-generator-bar">
+                <button class="aura-gen-btn" type="button" onclick="runGenerator('generate_lesson')">
+                    <i class="fas fa-file-alt me-1"></i> Full Lesson Plan
+                </button>
+                <button class="aura-gen-btn" type="button" onclick="runGenerator('generate_slides')">
+                    <i class="fas fa-desktop me-1"></i> Slides Outline
+                </button>
+                <button class="aura-gen-btn" type="button" onclick="runGenerator('generate_exercises')">
+                    <i class="fas fa-puzzle-piece me-1"></i> Interactive Exercises
+                </button>
+            </div>
         </div>
 
     </div>
@@ -353,6 +385,7 @@ textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
     const userInput = document.getElementById('user-input');
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
     const sessionTitle = document.getElementById('session-title');
+    let lastUserMessage = '';
 
     // Scroll to bottom
     chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -377,6 +410,7 @@ textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
         if (!message) return;
 
         // Add user message to UI
+        lastUserMessage = message;
         appendMessage('user', message);
         userInput.value = '';
         userInput.style.height = 'auto';
@@ -516,6 +550,88 @@ textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
                 btn.innerHTML = originalHTML;
             }, 2000);
         });
+    }
+
+    async function runGenerator(action) {
+        const topic = userInput.value.trim() || lastUserMessage;
+        if (!topic) {
+            alert('Type a topic or instruction first.');
+            return;
+        }
+
+        appendMessage('user', `[${action.replace('_', ' ').toUpperCase()}] ${topic}`);
+
+        const loadingDiv = document.createElement('div');
+        loadingDiv.id = 'loading-generator';
+        loadingDiv.className = 'aura-message ai';
+        loadingDiv.innerHTML = `
+            <div class="aura-avatar ai"><i class="fas fa-robot"></i></div>
+            <div class="aura-bubble">
+                <i class="fas fa-circle-notch fa-spin me-2"></i> Generating...
+            </div>`;
+        chatMessages.appendChild(loadingDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        try {
+            const response = await fetch("{% url 'teachers:aura_t_api' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ action: action, topic: topic })
+            });
+            const data = await response.json();
+
+            const loadingEl = document.getElementById('loading-generator');
+            if (loadingEl) loadingEl.remove();
+
+            if (data.status === 'success') {
+                appendMessage('assistant', formatGeneratorResult(action, data.data));
+            } else {
+                appendMessage('assistant', `Error: ${data.message || 'Generation failed.'}`);
+            }
+        } catch (error) {
+            const loadingEl = document.getElementById('loading-generator');
+            if (loadingEl) loadingEl.remove();
+            appendMessage('assistant', `Network Error: ${error.message}`);
+        }
+    }
+
+    function formatGeneratorResult(action, payload) {
+        if (!payload) return 'No output returned.';
+        if (action === 'generate_lesson') {
+            return payload.lesson_plan || 'Lesson plan generated.';
+        }
+        if (action === 'generate_slides') {
+            const slides = payload.slides || [];
+            const activities = payload.activities || [];
+            let text = 'Slides Outline:\n';
+            slides.forEach((slide, idx) => {
+                text += `\n${idx + 1}. ${slide.title}\n`;
+                (slide.bullets || []).forEach(b => { text += `- ${b}\n`; });
+                if (slide.notes) text += `Notes: ${slide.notes}\n`;
+            });
+            if (activities.length) {
+                text += '\nActivities:\n';
+                activities.forEach(a => { text += `- ${a}\n`; });
+            }
+            return text.trim();
+        }
+        if (action === 'generate_exercises') {
+            const exercises = payload.exercises || [];
+            let text = 'Interactive Exercises:\n';
+            exercises.forEach((ex, idx) => {
+                text += `\n${idx + 1}. (${ex.type}) ${ex.prompt}\n`;
+                if (ex.options) {
+                    ex.options.forEach(opt => { text += `- ${opt}\n`; });
+                }
+                if (ex.answer) text += `Answer: ${ex.answer}\n`;
+                if (ex.deliverable) text += `Deliverable: ${ex.deliverable}\n`;
+            });
+            return text.trim();
+        }
+        return 'Generation complete.';
     }
 
     // Initialize copy buttons for existing server-rendered messages

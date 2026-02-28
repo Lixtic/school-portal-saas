@@ -1117,18 +1117,76 @@ def aura_t_api(request):
             teacher = get_object_or_404(Teacher, user=request.user)
             
             if action == 'generate_lesson':
-                # Placeholder for lesson generation logic
-                return JsonResponse({
-                    "status": "success", 
-                    "content": "Lesson generated successfully (Mock Data)",
-                    "lesson_id": 123
-                })
+                topic = data.get('topic')
+                class_id = data.get('class_id')
+                subject_id = data.get('subject_id')
+
+                if not topic:
+                    return JsonResponse({"status": "error", "message": "Topic is required"}, status=400)
+
+                subject_name = "General Studies"
+                class_name = "General"
+                if subject_id:
+                    from academics.models import Subject
+                    subject = get_object_or_404(Subject, pk=subject_id)
+                    subject_name = subject.name
+                if class_id:
+                    from academics.models import Class
+                    school_class = get_object_or_404(Class, pk=class_id)
+                    class_name = school_class.name
+
+                result = AuraGenEngine.generate_lesson_plan(topic, subject_name, class_name)
+                return JsonResponse({"status": "success", "data": result})
             elif action == 'differentiate':
                 # Placeholder for differentiation logic
                 return JsonResponse({
                     "status": "success", 
                     "content": "Differentiation suggestions ready"
                 })
+
+            elif action == 'generate_slides':
+                topic = data.get('topic')
+                class_id = data.get('class_id')
+                subject_id = data.get('subject_id')
+
+                if not topic:
+                    return JsonResponse({"status": "error", "message": "Topic is required"}, status=400)
+
+                subject_name = "General Studies"
+                class_name = "General"
+                if subject_id:
+                    from academics.models import Subject
+                    subject = get_object_or_404(Subject, pk=subject_id)
+                    subject_name = subject.name
+                if class_id:
+                    from academics.models import Class
+                    school_class = get_object_or_404(Class, pk=class_id)
+                    class_name = school_class.name
+
+                result = AuraGenEngine.generate_slides_outline(topic, subject_name, class_name)
+                return JsonResponse({"status": "success", "data": result})
+
+            elif action == 'generate_exercises':
+                topic = data.get('topic')
+                class_id = data.get('class_id')
+                subject_id = data.get('subject_id')
+
+                if not topic:
+                    return JsonResponse({"status": "error", "message": "Topic is required"}, status=400)
+
+                subject_name = "General Studies"
+                class_name = "General"
+                if subject_id:
+                    from academics.models import Subject
+                    subject = get_object_or_404(Subject, pk=subject_id)
+                    subject_name = subject.name
+                if class_id:
+                    from academics.models import Class
+                    school_class = get_object_or_404(Class, pk=class_id)
+                    class_name = school_class.name
+
+                result = AuraGenEngine.generate_interactive_exercises(topic, subject_name, class_name)
+                return JsonResponse({"status": "success", "data": result})
             
             elif action == 'generate_assignment':
                 lesson_id = data.get('lesson_id')

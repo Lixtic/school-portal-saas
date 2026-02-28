@@ -106,6 +106,192 @@ class AuraGenEngine:
             return AuraGenEngine._generate_mock_fallback(topic, subject, grade_level)
 
     @staticmethod
+    def generate_lesson_plan(topic: str, subject: str, grade_level: str) -> Dict:
+        """
+        Generate a full lesson plan in the standardized Aura-T format.
+        """
+        system_prompt = f"""You are Aura-T, an expert lesson planner for teachers.
+Return a full lesson plan using the exact template below. Do not use markdown tables.
+
+[School Name] [Phone Numbers]
+**TERM:** [Term]
+**WEEKLY LESSON PLAN – [Class Name]**
+**WEEK:** [Week Number]
+
+**Week Ending:** [Date]
+**DAY:** [Day of week]
+**Subject:** [Subject]
+**Duration:** [Duration in minutes]
+**Strand:** [Strand description]
+**Sub Strand:** [Sub strand description]
+**Class:** [Class Name]
+**Class Size:** [Number]
+
+**Content Standard:**
+[Details here]
+
+**Indicator:**
+[Details here]
+
+**Lesson:**
+[Lesson Number/Total]
+
+**Performance Indicator:**
+[Details here]
+
+**Core Competencies:**
+[Details here]
+
+**Key words:**
+[Keywords here]
+
+**Reference:**
+[Reference book or curriculum link]
+
+**Phase/Duration** | **Learners Activities** | **Resources**
+
+**PHASE 1: STARTER [Time]**
+[Provide starter activity details here...]
+
+**PHASE 2: NEW LEARNING [Time]**
+[Provide main teaching activity details here...]
+
+**PHASE 3: REFLECTION [Time]**
+[Provide reflection and summary details here...]
+"""
+
+        try:
+            payload = {
+                "model": "gpt-4o-mini",
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"Create a full lesson plan on '{topic}' for {grade_level} {subject}."}
+                ],
+                "temperature": 0.7
+            }
+            response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
+            content = response['choices'][0]['message']['content']
+            return {
+                "meta": {
+                    "topic": topic,
+                    "subject": subject,
+                    "grade": grade_level,
+                    "generated_at": timezone.now().isoformat()
+                },
+                "lesson_plan": content
+            }
+        except Exception as e:
+            print(f"Lesson plan generation failed: {e}")
+            return {
+                "meta": {
+                    "topic": topic,
+                    "subject": subject,
+                    "grade": grade_level,
+                    "generated_at": timezone.now().isoformat()
+                },
+                "lesson_plan": f"Lesson plan generation failed. Please try again for {topic}."
+            }
+
+    @staticmethod
+    def generate_slides_outline(topic: str, subject: str, grade_level: str) -> Dict:
+        """
+        Generate a slide deck outline with titles, bullets, and speaker notes.
+        """
+        system_prompt = f"""You are Aura-T, an expert teaching assistant.
+Generate a slide deck outline for a lesson.
+Return a JSON object with this structure:
+{{
+  "slides": [
+    {{"title": "Slide title", "bullets": ["Point 1", "Point 2"], "notes": "Speaker notes"}}
+  ],
+  "activities": ["Short in-slide activity", "Quick check"]
+}}
+"""
+        try:
+            payload = {
+                "model": "gpt-4o-mini",
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"Create slides for '{topic}' for {grade_level} {subject}."}
+                ],
+                "response_format": {"type": "json_object"},
+                "temperature": 0.7
+            }
+            response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
+            content = response['choices'][0]['message']['content']
+            data = json.loads(content)
+            return {
+                "meta": {
+                    "topic": topic,
+                    "subject": subject,
+                    "grade": grade_level,
+                    "generated_at": timezone.now().isoformat()
+                },
+                **data
+            }
+        except Exception as e:
+            print(f"Slides generation failed: {e}")
+            return {
+                "meta": {
+                    "topic": topic,
+                    "subject": subject,
+                    "grade": grade_level,
+                    "generated_at": timezone.now().isoformat()
+                },
+                "slides": [],
+                "activities": []
+            }
+
+    @staticmethod
+    def generate_interactive_exercises(topic: str, subject: str, grade_level: str) -> Dict:
+        """
+        Generate interactive exercises (MCQ, short answer, group task).
+        """
+        system_prompt = """You are Aura-T, an expert teacher assistant.
+Return a JSON object with:
+{
+  "exercises": [
+    {"type": "mcq", "prompt": "...", "options": ["A","B","C","D"], "answer": "A"},
+    {"type": "short_answer", "prompt": "...", "answer": "..."},
+    {"type": "group_activity", "prompt": "...", "deliverable": "..."}
+  ]
+}
+"""
+        try:
+            payload = {
+                "model": "gpt-4o-mini",
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"Create interactive exercises for '{topic}' for {grade_level} {subject}."}
+                ],
+                "response_format": {"type": "json_object"},
+                "temperature": 0.7
+            }
+            response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
+            content = response['choices'][0]['message']['content']
+            data = json.loads(content)
+            return {
+                "meta": {
+                    "topic": topic,
+                    "subject": subject,
+                    "grade": grade_level,
+                    "generated_at": timezone.now().isoformat()
+                },
+                **data
+            }
+        except Exception as e:
+            print(f"Exercise generation failed: {e}")
+            return {
+                "meta": {
+                    "topic": topic,
+                    "subject": subject,
+                    "grade": grade_level,
+                    "generated_at": timezone.now().isoformat()
+                },
+                "exercises": []
+            }
+
+    @staticmethod
     def _generate_mock_fallback(topic: str, subject: str, grade_level: str) -> Dict:
         """
         Mock implementation as fallback.
