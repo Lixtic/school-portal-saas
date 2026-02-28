@@ -20,6 +20,8 @@ HF_WHISPER_MODELS = [
 
 # Try new router endpoint first, then legacy API
 HF_INFERENCE_URL_TEMPLATES = [
+    "https://router.huggingface.co/v1/models/{model_id}",
+    "https://api-inference.huggingface.co/v1/models/{model_id}",
     "https://router.huggingface.co/hf-inference/models/{model_id}",
     "https://api-inference.huggingface.co/models/{model_id}",
 ]
@@ -42,7 +44,11 @@ def get_hf_headers():
     if not token:
         # Fallback or error
         return {}
-    return {"Authorization": f"Bearer {token}"}
+    return {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json",
+        "X-Wait-For-Model": "true",
+    }
 
 def query_hf_inference(model_urls, headers, data=None, json_payload=None):
     """
@@ -61,7 +67,10 @@ def query_hf_inference(model_urls, headers, data=None, json_payload=None):
     for url in model_urls:
         response = None
         try:
-            kwargs = {'headers': headers}
+            request_headers = dict(headers)
+            if data is not None and "content-type" not in {k.lower() for k in request_headers}:
+                request_headers["Content-Type"] = "application/octet-stream"
+            kwargs = {'headers': request_headers}
             if data is not None:
                 kwargs['data'] = data
             elif json_payload is not None:
