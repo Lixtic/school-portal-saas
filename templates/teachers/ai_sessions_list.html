@@ -10,8 +10,8 @@
    AURA-T 2.0 COMMAND CENTRE — Dark Glassmorphism / Bento Grid / Futuristic SaaS
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── CSS Custom Properties (Tailwind-inspired tokens) ────────────────────── */
-:root {
+/* ── CSS Custom Properties (Scoped for dark mode) ────────────────────────── */
+.aura-command-shell {
     --aura-bg-primary: #0a0a0f;
     --aura-bg-secondary: #12121a;
     --aura-bg-card: rgba(18, 18, 26, 0.7);
@@ -44,6 +44,53 @@
     --aura-transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
     --aura-transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
     --aura-transition-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Force Dark Mode for Aura-T page ─────────────────────────────────────── */
+html[data-aura-page] {
+    --surface-bg: #0a0a0f !important;
+    --surface-card: #12121a !important;
+    --sidebar-bg: #0a0a0f !important;
+    --text-main: #f8fafc !important;
+    --text-muted: #64748b !important;
+    --sidebar-text: #94a3b8 !important;
+    --sidebar-active-bg: rgba(139, 92, 246, 0.15) !important;
+    --sidebar-active-text: #8b5cf6 !important;
+    --bs-body-bg: #0a0a0f !important;
+    --bs-body-color: #f8fafc !important;
+}
+
+html[data-aura-page] body {
+    background: #0a0a0f !important;
+}
+
+html[data-aura-page] .header {
+    background: rgba(10, 10, 15, 0.85) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+    backdrop-filter: blur(20px) !important;
+}
+
+html[data-aura-page] .sidebar {
+    background: #0a0a0f !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+html[data-aura-page] .sidebar .nav-link {
+    color: #94a3b8 !important;
+}
+
+html[data-aura-page] .sidebar .nav-link.active,
+html[data-aura-page] .sidebar .nav-link:hover {
+    background: rgba(139, 92, 246, 0.15) !important;
+    color: #8b5cf6 !important;
+}
+
+html[data-aura-page] .sidebar .nav-link i {
+    color: inherit !important;
+}
+
+html[data-aura-page] .main-content {
+    background: #0a0a0f !important;
 }
 
 /* ── Base Overrides ──────────────────────────────────────────────────────── */
@@ -755,6 +802,25 @@
                 </a>
             </div>
         </div>
+
+<!-- Auto-inject dark mode attribute for Aura Command Shell -->
+<script>
+    (function() {
+        // Apply immediately to prevent flash if possible, though base.html might revert it temporarily
+        document.documentElement.setAttribute('data-aura-page', 'true');
+        document.documentElement.setAttribute('data-bs-theme', 'dark');
+
+        // Re-apply after DOM load to ensure it overrides base.html's theme init
+        window.addEventListener('DOMContentLoaded', function() {
+            document.documentElement.setAttribute('data-aura-page', 'true');
+            document.documentElement.setAttribute('data-bs-theme', 'dark');
+            
+            // Hide the global theme toggle if it exists to prevent confusion
+            const themeToggle = document.querySelector('.header-action-btn[onclick="toggleTheme()"]');
+            if (themeToggle) themeToggle.style.display = 'none';
+        });
+    })();
+</script>
         
         <!-- ═══ PULSE STATUS ═══ -->
         <div class="aura-glass aura-bento-pulse aura-pulse-card">
