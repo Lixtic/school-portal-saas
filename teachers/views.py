@@ -1229,6 +1229,24 @@ def aura_t_api(request):
                 if not exercises:
                     exercises = AuraGenEngine.generate_interactive_exercises(topic, subject.name, school_class.name).get('exercises', [])
 
+                if isinstance(exercises, dict):
+                    exercises = exercises.get('items', [])
+                normalized_exercises = []
+                for item in exercises:
+                    if isinstance(item, str):
+                        normalized_exercises.append({'type': 'short', 'prompt': item, 'answer': '', 'dok_level': 1})
+                    elif isinstance(item, dict):
+                        if not item.get('prompt') and item.get('question'):
+                            item['prompt'] = item.get('question')
+                        normalized_exercises.append(item)
+                exercises = normalized_exercises
+
+                if len(exercises) < 5:
+                    fallback = AuraGenEngine._mock_exercises(topic)
+                    exercises = (exercises + fallback)[:5]
+                elif len(exercises) > 10:
+                    exercises = exercises[:10]
+
                 type_map = {
                     'multiple_choice': 'mcq',
                     'multiple choice': 'mcq',
@@ -1238,10 +1256,18 @@ def aura_t_api(request):
                     'short answer': 'short',
                     'short': 'short',
                 }
+                questions_created = 0
                 for item in exercises:
                     raw_type = (item.get('type') or '').lower()
                     ex_type = type_map.get(raw_type, raw_type or 'short')
                     prompt = item.get('prompt') or 'Untitled question'
+                    dok_level = item.get('dok_level')
+                    try:
+                        dok_level = int(dok_level)
+                    except (TypeError, ValueError):
+                        dok_level = 1
+                    if dok_level not in [1, 2, 3, 4]:
+                        dok_level = 1
                     if ex_type not in ['mcq', 'short']:
                         ex_type = 'short'
 
@@ -1250,8 +1276,10 @@ def aura_t_api(request):
                         text=prompt,
                         points=1,
                         question_type=ex_type,
+                        dok_level=dok_level,
                         correct_answer=item.get('answer', '')
                     )
+                    questions_created += 1
 
                     if ex_type == 'mcq':
                         options = item.get('options') or []
@@ -1274,7 +1302,8 @@ def aura_t_api(request):
                     "status": "success",
                     "data": {
                         "homework_id": homework.id,
-                        "homework_title": homework.title
+                        "homework_title": homework.title,
+                        "questions_created": questions_created
                     }
                 })
             

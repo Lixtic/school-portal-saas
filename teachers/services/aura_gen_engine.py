@@ -251,11 +251,14 @@ Return a JSON object with this structure:
 Return a JSON object with:
 {
   "exercises": [
-    {"type": "mcq", "prompt": "...", "options": ["A","B","C","D"], "answer": "A"},
-    {"type": "short_answer", "prompt": "...", "answer": "..."},
-    {"type": "group_activity", "prompt": "...", "deliverable": "..."}
+        {"type": "mcq", "prompt": "...", "options": ["A","B","C","D"], "answer": "A", "dok_level": 1},
+        {"type": "short_answer", "prompt": "...", "answer": "...", "dok_level": 2}
   ]
 }
+Rules:
+- Create 5 to 10 questions total.
+- Cover all DOK levels 1, 2, 3, and 4 at least once.
+- Keep wording student-friendly.
 """
         try:
             payload = {
@@ -307,12 +310,14 @@ Return a JSON object with:
                     "It is only used in advanced courses",
                     "It is a historical event"
                 ],
-                "answer": "It is a core concept taught in class"
+                "answer": "It is a core concept taught in class",
+                "dok_level": 1
             },
             {
                 "type": "short",
                 "prompt": f"Explain {topic} in your own words.",
-                "answer": "A clear explanation of the concept with an example."
+                "answer": "A clear explanation of the concept with an example.",
+                "dok_level": 2
             },
             {
                 "type": "mcq",
@@ -323,7 +328,20 @@ Return a JSON object with:
                     "Unrelated classroom rules",
                     "None of the above"
                 ],
-                "answer": "Everyday problem solving"
+                "answer": "Everyday problem solving",
+                "dok_level": 1
+            },
+            {
+                "type": "short",
+                "prompt": f"Compare {topic} with a related concept you learned before.",
+                "answer": "A comparison that shows similarities and differences.",
+                "dok_level": 3
+            },
+            {
+                "type": "short",
+                "prompt": f"Design a mini project that applies {topic} in a new situation.",
+                "answer": "A project outline with steps and expected outcome.",
+                "dok_level": 4
             }
         ]
 

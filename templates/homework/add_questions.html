@@ -14,6 +14,27 @@
 
     <form method="post" id="questionsForm">
         {% csrf_token %}
+
+        {% if existing_questions %}
+        <div class="card mb-4 shadow-sm border-0">
+            <div class="card-header bg-light fw-bold">Existing Questions ({{ existing_questions|length }})</div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    {% for q in existing_questions %}
+                    <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold">{{ forloop.counter }}. {{ q.text|truncatechars:90 }}</div>
+                            <small class="text-muted">{{ q.get_question_type_display }} • {{ q.get_dok_level_display }}</small>
+                        </div>
+                        {% if q.question_type == 'mcq' %}
+                        <span class="badge bg-secondary">{{ q.choices.count }} options</span>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
         
         <div id="questions-container">
             <!-- Existing questions will be loaded here if any (future enhancement) -->
@@ -54,10 +75,34 @@
                     <label class="form-label">Question Text</label>
                     <textarea name="question_text_${questionCount}" class="form-control" rows="2" required></textarea>
                 </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Question Type</label>
+                        <select name="question_type_${questionCount}" class="form-select" onchange="toggleQuestionType(${questionCount}, this.value)">
+                            <option value="mcq" selected>Multiple Choice</option>
+                            <option value="short">Short Answer</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">DOK Level</label>
+                        <select name="dok_level_${questionCount}" class="form-select">
+                            <option value="1">DOK 1: Recall</option>
+                            <option value="2">DOK 2: Skills/Concepts</option>
+                            <option value="3">DOK 3: Strategic Thinking</option>
+                            <option value="4">DOK 4: Extended Thinking</option>
+                        </select>
+                    </div>
+                </div>
                 
                 <h6 class="text-muted small text-uppercase fw-bold mb-3">Choices</h6>
                 <div id="choices-container-${questionCount}">
                     <!-- Choices go here -->
+                </div>
+
+                <div id="short-answer-${questionCount}" class="d-none mb-3">
+                    <label class="form-label">Expected Answer (for AI grading)</label>
+                    <textarea name="expected_answer_${questionCount}" class="form-control" rows="2" placeholder="What should a good answer include?"></textarea>
                 </div>
                 
                 <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addChoice(${questionCount})">
@@ -99,6 +144,11 @@
             
             const addChoiceBtn = q.querySelector('.btn-outline-primary');
             addChoiceBtn.setAttribute('onclick', `addChoice(${questionCount})`);
+
+            const shortAnswerEl = q.querySelector('[id^="short-answer-"]');
+            if (shortAnswerEl) {
+                shortAnswerEl.id = `short-answer-${questionCount}`;
+            }
             
             // Reindex choices
             const choices = choiceContainer.querySelectorAll('.choice-row');
@@ -162,6 +212,21 @@
                 // Actually reindexQuestions handles the qId, this handles local index inside qId.
             }
         });
+    }
+
+    function toggleQuestionType(qId, val) {
+        const choicesContainer = document.getElementById(`choices-container-${qId}`);
+        const addBtn = choicesContainer ? choicesContainer.parentElement.querySelector('.btn-outline-primary') : null;
+        const shortAnswer = document.getElementById(`short-answer-${qId}`);
+        if (val === 'short') {
+            if (choicesContainer) choicesContainer.classList.add('d-none');
+            if (addBtn) addBtn.classList.add('d-none');
+            if (shortAnswer) shortAnswer.classList.remove('d-none');
+        } else {
+            if (choicesContainer) choicesContainer.classList.remove('d-none');
+            if (addBtn) addBtn.classList.remove('d-none');
+            if (shortAnswer) shortAnswer.classList.add('d-none');
+        }
     }
 
     // Initialize with one empty question

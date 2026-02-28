@@ -116,31 +116,83 @@ def homework_add_questions(request, pk):
         return redirect('homework:homework_list')
         
     if request.method == 'POST':
-        question_text = request.POST.get('question_text')
-        
-        if question_text:
+        created_count = 0
+
+        question_keys = [k for k in request.POST.keys() if k.startswith('question_text_')]
+        if not question_keys and request.POST.get('question_text'):
+            question_keys = ['question_text']
+
+        for key in sorted(question_keys):
+            if key == 'question_text':
+                q_idx = ''
+                question_text = (request.POST.get('question_text') or '').strip()
+                q_type = 'mcq'
+                dok_level = 1
+            else:
+                q_idx = key.split('question_text_')[-1]
+                question_text = (request.POST.get(key) or '').strip()
+                q_type = (request.POST.get(f'question_type_{q_idx}') or 'mcq').strip().lower()
+                try:
+                    dok_level = int(request.POST.get(f'dok_level_{q_idx}', 1))
+                except (TypeError, ValueError):
+                    dok_level = 1
+
+            if not question_text:
+                continue
+
+            if q_type not in ['mcq', 'short']:
+                q_type = 'mcq'
+            if dok_level not in [1, 2, 3, 4]:
+                dok_level = 1
+
+            correct_answer = ''
+            if q_type == 'short':
+                correct_answer = (request.POST.get(f'expected_answer_{q_idx}') or '').strip()
+
             question = Question.objects.create(
                 homework=homework,
                 text=question_text,
-                points=1
+                points=1,
+                question_type=q_type,
+                dok_level=dok_level,
+                correct_answer=correct_answer,
             )
-            
-            # Process 4 choices
-            correct_choice_idx = request.POST.get('correct_choice')
-            
-            for i in range(1, 5):
-                choice_text = request.POST.get(f'choice_{i}')
-                if choice_text:
+
+            if q_type == 'mcq':
+                choice_keys = [k for k in request.POST.keys() if k.startswith(f'choice_text_{q_idx}_')]
+                has_correct = False
+                for c_key in sorted(choice_keys):
+                    c_idx = c_key.split(f'choice_text_{q_idx}_')[-1]
+                    choice_text = (request.POST.get(c_key) or '').strip()
+                    if not choice_text:
+                        continue
+                    is_correct = request.POST.get(f'is_correct_{q_idx}_{c_idx}') in ['on', 'true', '1']
+                    if is_correct:
+                        has_correct = True
                     Choice.objects.create(
                         question=question,
                         text=choice_text,
-                        is_correct=(str(i) == correct_choice_idx)
+                        is_correct=is_correct,
                     )
-            
-            messages.success(request, "Question added successfully.")
-            return redirect('homework:homework_add_questions', pk=pk)
 
-    return render(request, 'homework/add_questions.html', {'homework': homework})
+                if not has_correct:
+                    first_choice = question.choices.first()
+                    if first_choice:
+                        first_choice.is_correct = True
+                        first_choice.save(update_fields=['is_correct'])
+
+            created_count += 1
+
+        if created_count > 0:
+            messages.success(request, f"{created_count} question(s) added successfully.")
+            return redirect('homework:homework_add_questions', pk=pk)
+        messages.warning(request, "No valid questions were submitted.")
+
+    existing_questions = homework.questions.prefetch_related('choices').all()
+    return render(request, 'homework/add_questions.html', {
+        'homework': homework,
+        'existing_questions': existing_questions,
+    })
 
 @login_required
 def homework_solve(request, pk):

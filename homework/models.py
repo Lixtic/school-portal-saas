@@ -25,11 +25,18 @@ class Question(models.Model):
         ('mcq', 'Multiple Choice'),
         ('short', 'Short Answer'),
     )
+    DOK_CHOICES = (
+        (1, 'DOK 1: Recall'),
+        (2, 'DOK 2: Skills/Concepts'),
+        (3, 'DOK 3: Strategic Thinking'),
+        (4, 'DOK 4: Extended Thinking'),
+    )
 
     homework = models.ForeignKey(Homework, on_delete=models.CASCADE, related_name='questions')
     text = models.TextField()
     points = models.IntegerField(default=1)
     question_type = models.CharField(max_length=10, choices=QUESTION_TYPES, default='mcq')
+    dok_level = models.PositiveSmallIntegerField(choices=DOK_CHOICES, default=1)
     correct_answer = models.TextField(blank=True)
     
     def __str__(self):

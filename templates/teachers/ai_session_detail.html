@@ -676,7 +676,8 @@ textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
         }
         if (action === 'generate_exercises_and_assign') {
             if (payload.homework_id) {
-                return `Exercise assigned: ${payload.homework_title}. Open in Assignments list.`;
+                const c = payload.questions_created ? ` (${payload.questions_created} questions)` : '';
+                return `Exercise assigned: ${payload.homework_title}${c}. Open in Assignments list.`;
             }
             return 'Exercise assigned.';
         }
