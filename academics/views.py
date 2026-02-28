@@ -994,6 +994,16 @@ Email: {school_info.email if school_info else ''}
 Current User Role: {user_role}
 """
 
+    teacher_response_guide = ""
+    if user_role == 'teacher':
+        teacher_response_guide = (
+            "Teacher Response Style:\n"
+            "- Be concise and action-focused.\n"
+            "- Use bullet points where possible.\n"
+            "- Keep to 3-6 short lines unless the user asks for more.\n"
+            "- Avoid long introductions or filler.\n"
+        )
+
     system_prompt = f"""portals AI Copilot 2026
 Role & Objective:
 You are the School-Portals AI Copilot, the central intelligence layer for a comprehensive K-12/Higher-Ed SaaS application. Your goal is to provide proactive, role-specific assistance to Students, Parents, Teachers, and Administrators while maintaining strict FERPA/GDPR data privacy standards.
@@ -1020,6 +1030,7 @@ Context Initialization:
 - The user role is {user_role}. If context is insufficient, ask for clarification briefly.
 - School context: {school_context}
 - Data snapshot (only for authorized users): {data_snapshot if data_snapshot else 'None'}
+{teacher_response_guide}
 """
 
     from django.conf import settings

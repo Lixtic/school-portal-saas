@@ -2542,6 +2542,32 @@
         margin-bottom: 15px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
+    .aura-scaffold {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 10px;
+    }
+    .aura-chip {
+        border: 1px solid rgba(0,0,0,0.08);
+        background: #fff;
+        color: #4b5563;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 0.7rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .aura-chip:hover {
+        border-color: rgba(102, 126, 234, 0.5);
+        color: #667eea;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+    [data-bs-theme="dark"] .aura-chip {
+        background: rgba(255,255,255,0.04);
+        border-color: rgba(255,255,255,0.12);
+        color: #cbd5e1;
+    }
 </style>
 
 <div id="aura-copilot-container">
@@ -2589,6 +2615,16 @@
                 <a href="{% url 'teachers:ai_sessions_list' %}" class="btn btn-sm btn-outline-primary w-100" style="font-size: 0.75rem;"><i class="fas fa-rocket me-1"></i> Open Command Centre</a>
             </div>
 
+            <div class="aura-insight-card" style="border-left-color: #a855f7;">
+                <div class="small fw-bold mb-2 text-muted">Quick scaffolds</div>
+                <div class="aura-scaffold">
+                    <button type="button" class="aura-chip" data-aura-prompt="Summarize class progress in 4 bullets.">Class summary</button>
+                    <button type="button" class="aura-chip" data-aura-prompt="Create a 10-minute lesson starter with 3 guiding questions.">Lesson starter</button>
+                    <button type="button" class="aura-chip" data-aura-prompt="Generate a 4-criteria rubric with simple descriptors.">Rubric</button>
+                    <button type="button" class="aura-chip" data-aura-prompt="Draft a 5-question exit ticket and answers.">Exit ticket</button>
+                </div>
+            </div>
+
             <!-- Aura Chat Messages -->
             <div id="auraChatMessages" class="mt-3" style="max-height: 200px; overflow-y: auto;"></div>
         </div>
@@ -2614,6 +2650,7 @@
     const form = document.getElementById('auraChatForm');
     const input = document.getElementById('auraChatInput');
     const messagesContainer = document.getElementById('auraChatMessages');
+    const scaffoldButtons = document.querySelectorAll('[data-aura-prompt]');
     if (!form || !input || !messagesContainer) return;
 
     let isProcessing = false;
@@ -2634,6 +2671,20 @@
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
         return div;
     }
+
+    scaffoldButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            const prompt = button.getAttribute('data-aura-prompt') || '';
+            if (!prompt.trim()) return;
+            input.value = prompt;
+            input.focus();
+            if (typeof form.requestSubmit === 'function') {
+                form.requestSubmit();
+            } else {
+                form.dispatchEvent(new Event('submit', { cancelable: true }));
+            }
+        });
+    });
 
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
