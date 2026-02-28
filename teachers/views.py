@@ -998,6 +998,44 @@ def lesson_plan_print(request, pk):
     if request.user.user_type != 'teacher':
         messages.error(request, 'Access denied')
         return redirect('dashboard')
+    
+    teacher = get_object_or_404(Teacher, user=request.user)
+    lesson_plan = get_object_or_404(LessonPlan, pk=pk, teacher=teacher)
+    
+    return render(request, 'teachers/lesson_plan_print.html', {'lesson_plan': lesson_plan})
+
+@login_required
+def aura_t_api(request):
+    """
+    API Endpoint for Aura-T (Teacher Copilot) features.
+    Handles AJAX requests for lesson plan generation, differentiation, etc.
+    """
+    if request.method == "POST":
+        try:
+            import json
+            data = json.loads(request.body)
+            action = data.get('action')
+            
+            if action == 'generate_lesson':
+                # Placeholder for lesson generation logic
+                return JsonResponse({
+                    "status": "success", 
+                    "content": "Lesson generated successfully (Mock Data)",
+                    "lesson_id": 123
+                })
+            elif action == 'differentiate':
+                # Placeholder for differentiation logic
+                return JsonResponse({
+                    "status": "success", 
+                    "content": "Differentiation suggestions ready"
+                })
+                
+            return JsonResponse({"status": "error", "message": "Unknown action"}, status=400)
+            
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+            
+    return JsonResponse({"status": "error", "message": "Invalid method"}, status=405)
 
     teacher = get_object_or_404(Teacher, user=request.user)
     lesson_plan = get_object_or_404(LessonPlan, pk=pk, teacher=teacher)
