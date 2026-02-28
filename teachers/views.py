@@ -1351,7 +1351,11 @@ def ai_sessions_list(request):
             # Draft parent updates
             parent = student.parents.first()
             if parent:
-                parent_name = parent.user.get_full_name() or parent.user.username
+                try:
+                    parent_name = parent.user.get_full_name() or parent.user.username
+                except Exception:
+                    # Parent's user may have been deleted
+                    continue
                 if status == 'struggling':
                     draftMsg = f"Hi {parent_name}, {student.user.first_name} is having some challenges with recent topics. Let's work together to provide additional support."
                 elif status == 'excellent':
