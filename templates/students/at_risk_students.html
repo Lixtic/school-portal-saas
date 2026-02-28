@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}At-Risk Students{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 fw-bold">At-Risk Students</h1>
+        <div class="text-muted" style="font-size: 0.85rem;">
+            {% if current_year %}{{ current_year.name }}{% else %}All Years{% endif %}
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-sm-6 col-md-3">
+                    <label for="class" class="form-label fw-bold">Class</label>
+                    <select id="class" name="class" class="form-select">
+                        <option value="">All Classes</option>
+                        {% for school_class in classes %}
+                        <option value="{{ school_class.id }}" {% if selected_class == school_class.id|stringformat:"s" %}selected{% endif %}>
+                            {{ school_class.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-sm-6 col-md-3">
+                    <label for="term" class="form-label fw-bold">Term</label>
+                    <select id="term" name="term" class="form-select">
+                        <option value="">All Terms</option>
+                        <option value="first" {% if selected_term == 'first' %}selected{% endif %}>First Term</option>
+                        <option value="second" {% if selected_term == 'second' %}selected{% endif %}>Second Term</option>
+                        <option value="third" {% if selected_term == 'third' %}selected{% endif %}>Third Term</option>
+                    </select>
+                </div>
+                <div class="col-sm-6 col-md-3">
+                    <label for="threshold" class="form-label fw-bold">Risk Threshold</label>
+                    <input type="number" id="threshold" name="threshold" class="form-control" step="0.1" min="0" max="100"
+                           value="{{ risk_threshold }}">
+                </div>
+                <div class="col-sm-12 col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-secondary w-100">Filter</button>
+                    {% if selected_class or selected_term or risk_threshold != 50.0 %}
+                    <a href="{% url 'students:at_risk_students' %}" class="btn btn-outline-secondary">Clear</a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-header py-3 border-bottom">
+            <h6 class="m-0 fw-bold text-primary">Students Below {{ risk_threshold }}%</h6>
+        </div>
+        <div class="card-body">
+            {% if at_risk_students %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Class</th>
+                            <th>Average Score</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in at_risk_students %}
+                        <tr>
+                            <td>{{ entry.student.user.get_full_name|default:entry.student.user.username }}</td>
+                            <td>{{ entry.student.current_class.name }}</td>
+                            <td>{{ entry.avg_score|floatformat:1 }}%</td>
+                            <td>
+                                <a href="{% url 'students:report_card' entry.student.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-file-earmark-text"></i>
+                                </a>
+                                <a href="{% url 'students:student_list' %}?search={{ entry.student.user.get_full_name|urlencode }}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-person"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <div class="mb-3">
+                    <i class="bi bi-emoji-smile fs-1 opacity-25"></i>
+                </div>
+                <h5 class="text-muted">No at-risk students found</h5>
+                <p class="text-muted mb-0">Adjust filters or threshold to broaden the results.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

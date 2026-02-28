@@ -35,11 +35,13 @@
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="fw-bold">
-            <i class="bi bi-journal-text me-2"></i>My Lesson Plans
+            <i class="bi bi-journal-text me-2"></i>{% if is_admin %}Lesson Plans{% else %}My Lesson Plans{% endif %}
         </h2>
+        {% if is_teacher %}
         <a href="{% url 'teachers:lesson_plan_create' %}" class="btn btn-primary rounded-pill">
             <i class="bi bi-plus-lg me-2"></i>Create New Plan
         </a>
+        {% endif %}
     </div>
 
     <!-- Filter -->
@@ -51,6 +53,19 @@
                     <input type="number" id="week" name="week" class="form-control"
                            value="{{ selected_week|default:'' }}" placeholder="e.g. 6">
                 </div>
+                {% if is_admin %}
+                <div class="col-sm-6 col-md-3">
+                    <label for="teacher" class="form-label fw-bold">Teacher</label>
+                    <select id="teacher" name="teacher" class="form-select">
+                        <option value="">All Teachers</option>
+                        {% for teacher in teacher_list %}
+                        <option value="{{ teacher.id }}" {% if selected_teacher == teacher.id|stringformat:"s" %}selected{% endif %}>
+                            {{ teacher.user.get_full_name|default:teacher.user.username }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
                 <div class="col-sm-6 col-md-3">
                     <label for="subject" class="form-label fw-bold">Subject</label>
                     <select id="subject" name="subject" class="form-select">
@@ -75,7 +90,7 @@
                 </div>
                 <div class="col-sm-12 col-md-2 d-flex gap-2">
                     <button type="submit" class="btn btn-secondary w-100">Filter</button>
-                    {% if selected_week or selected_subject or selected_class or selected_query %}
+                    {% if selected_week or selected_subject or selected_class or selected_query or selected_teacher %}
                     <a href="{% url 'teachers:lesson_plan_list' %}" class="btn btn-outline-secondary ms-2">Clear</a>
                     {% endif %}
                 </div>
@@ -90,6 +105,9 @@
                     <tr>
                         <th class="ps-4">Week</th>
                         <th>Subject</th>
+                        {% if is_admin %}
+                        <th>Teacher</th>
+                        {% endif %}
                         <th>Class</th>
                         <th>Topic</th>
                         <th>Actions</th>
@@ -104,6 +122,9 @@
                                 {{ plan.subject.name }}
                             </span>
                         </td>
+                        {% if is_admin %}
+                        <td>{{ plan.teacher.user.get_full_name|default:plan.teacher.user.username }}</td>
+                        {% endif %}
                         <td>{{ plan.school_class.name }}</td>
                         <td>{{ plan.topic }}</td>
                         <td>
@@ -111,18 +132,22 @@
                                 <a href="{% url 'teachers:lesson_plan_detail' plan.pk %}" class="btn btn-sm btn-outline-primary" title="View">
                                     <i class="bi bi-eye"></i>
                                 </a>
+                                {% if is_teacher %}
                                 <a href="{% url 'teachers:lesson_plan_edit' plan.pk %}" class="btn btn-sm btn-outline-secondary" title="Edit">
                                     <i class="bi bi-pencil"></i>
                                 </a>
                                 <a href="{% url 'teachers:lesson_plan_duplicate' plan.pk %}" class="btn btn-sm btn-outline-success" title="Duplicate">
                                     <i class="bi bi-files"></i>
                                 </a>
+                                {% endif %}
                                 <a href="{% url 'teachers:lesson_plan_print' plan.pk %}" class="btn btn-sm btn-outline-dark" title="Print">
                                     <i class="bi bi-printer"></i>
                                 </a>
+                                {% if is_teacher %}
                                 <a href="{% url 'teachers:lesson_plan_delete' plan.pk %}" class="btn btn-sm btn-outline-danger" title="Delete">
                                     <i class="bi bi-trash"></i>
                                 </a>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>
@@ -135,7 +160,9 @@
             <i class="bi bi-journal-x display-1 text-muted mb-3"></i>
             <h4 class="text-muted">No lesson plans found.</h4>
             <p class="text-secondary">Get started by creating your first lesson plan.</p>
+                {% if is_teacher %}
             <a href="{% url 'teachers:lesson_plan_create' %}" class="btn btn-primary mt-3">Create Plan</a>
+                {% endif %}
         </div>
     {% endif %}
 </div>

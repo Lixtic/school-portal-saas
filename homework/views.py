@@ -39,6 +39,8 @@ def homework_list(request):
             homeworks = Homework.objects.filter(target_class__in=classes)
         except Parent.DoesNotExist:
             pass
+    elif user.user_type == 'admin':
+        homeworks = Homework.objects.select_related('subject', 'target_class', 'teacher', 'teacher__user')
         
     context = {
         'homeworks': homeworks,

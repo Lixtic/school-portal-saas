@@ -177,6 +177,60 @@ def student_list(request):
 
 
 @login_required
+def at_risk_students(request):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    selected_term = request.GET.get('term', '').strip()
+    selected_class = request.GET.get('class', '').strip()
+    threshold_raw = request.GET.get('threshold', '').strip()
+
+    try:
+        risk_threshold = float(threshold_raw) if threshold_raw else 50.0
+    except ValueError:
+        risk_threshold = 50.0
+
+    grades_qs = Grade.objects.select_related('student', 'student__user', 'student__current_class')
+    if current_year:
+        grades_qs = grades_qs.filter(academic_year=current_year)
+    if selected_term:
+        grades_qs = grades_qs.filter(term__in=term_filter_values(selected_term))
+    if selected_class:
+        grades_qs = grades_qs.filter(student__current_class_id=selected_class)
+
+    averages = grades_qs.values('student_id').annotate(avg_score=Avg('total_score'))
+    averages = averages.filter(avg_score__lt=risk_threshold).order_by('avg_score')
+
+    student_ids = [row['student_id'] for row in averages]
+    students = Student.objects.select_related('user', 'current_class').filter(id__in=student_ids)
+    student_map = {s.id: s for s in students}
+
+    at_risk = []
+    for row in averages:
+        student = student_map.get(row['student_id'])
+        if student:
+            at_risk.append({
+                'student': student,
+                'avg_score': row['avg_score'],
+            })
+
+    classes = Class.objects.filter(academic_year=current_year) if current_year else Class.objects.all()
+
+    context = {
+        'at_risk_students': at_risk,
+        'risk_threshold': risk_threshold,
+        'selected_term': selected_term,
+        'selected_class': selected_class,
+        'classes': classes,
+        'current_year': current_year,
+    }
+
+    return render(request, 'students/at_risk_students.html', context)
+
+
+@login_required
 def student_details_ajax(request, student_id):
     """Return student details as JSON for modal"""
     student = get_object_or_404(Student, id=student_id)

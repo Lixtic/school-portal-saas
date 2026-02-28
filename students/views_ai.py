@@ -18,12 +18,12 @@ HF_WHISPER_MODELS = [
     "openai/whisper-tiny", # Last resort
 ]
 
+# Optional: dedicated HF Inference Endpoint URL (recommended if router returns 404)
+HF_ASR_ENDPOINT = os.environ.get("HF_ASR_ENDPOINT")
+
 # Try new router endpoint first, then legacy API
 HF_INFERENCE_URL_TEMPLATES = [
     "https://router.huggingface.co/v1/models/{model_id}",
-    "https://api-inference.huggingface.co/v1/models/{model_id}",
-    "https://router.huggingface.co/hf-inference/models/{model_id}",
-    "https://api-inference.huggingface.co/models/{model_id}",
 ]
 
 # Use a very reliable, open LLM for fallback (Zephyr or Mistral)
@@ -154,9 +154,11 @@ def process_voice_interaction(request):
         try:
             # Read audio content for potential retries
             audio_content = audio_file.read()
-            
-            # Use list of models for reliability
-            response_asr = query_hf_inference(HF_WHISPER_MODELS, headers, data=audio_content)
+
+            # Use optional dedicated endpoint first, then router models
+            asr_urls = [HF_ASR_ENDPOINT] if HF_ASR_ENDPOINT else []
+            asr_urls.extend(HF_WHISPER_MODELS)
+            response_asr = query_hf_inference(asr_urls, headers, data=audio_content)
             user_text = response_asr.json().get('text')
         except Exception as e:
             return JsonResponse({"error": f"ASR Unavailable: {str(e)}"}, status=503)

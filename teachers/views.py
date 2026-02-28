@@ -9,7 +9,7 @@ from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from decimal import Decimal, InvalidOperation
 from teachers.models import Teacher, DutyWeek, LessonPlan
-from academics.models import ClassSubject, AcademicYear, Timetable, SchoolInfo, Resource, Class
+from academics.models import ClassSubject, AcademicYear, Timetable, SchoolInfo, Resource, Class, Subject
 from students.models import Student, Grade, ClassExercise, StudentExerciseScore
 from students.utils import normalize_term
 from .forms import ResourceForm, LessonPlanForm, TeacherCreateForm #, HomeworkForm
@@ -835,20 +835,38 @@ def delete_resource(request, resource_id):
 
 @login_required
 def lesson_plan_list(request):
-    if request.user.user_type != 'teacher':
+    is_teacher = request.user.user_type == 'teacher'
+    is_admin = request.user.user_type == 'admin'
+    if not is_teacher and not is_admin:
         messages.error(request, 'Access denied')
         return redirect('dashboard')
     
-    teacher = get_object_or_404(Teacher, user=request.user)
+    teacher = None
+    if is_teacher:
+        teacher = get_object_or_404(Teacher, user=request.user)
     
     week = request.GET.get('week', '').strip()
     subject_id = request.GET.get('subject', '').strip()
     class_id = request.GET.get('school_class', '').strip()
     query = request.GET.get('q', '').strip()
 
-    assigned_pairs = ClassSubject.objects.filter(teacher=teacher).select_related('class_name', 'subject')
-    teacher_subjects = [pair.subject for pair in assigned_pairs]
-    teacher_classes = [pair.class_name for pair in assigned_pairs]
+    teacher_subjects = []
+    teacher_classes = []
+    teacher_list = []
+    selected_teacher = request.GET.get('teacher', '').strip()
+
+    if is_teacher:
+        assigned_pairs = ClassSubject.objects.filter(teacher=teacher).select_related('class_name', 'subject')
+        teacher_subjects = [pair.subject for pair in assigned_pairs]
+        teacher_classes = [pair.class_name for pair in assigned_pairs]
+    else:
+        current_year = AcademicYear.objects.filter(is_current=True).first()
+        class_qs = Class.objects.all()
+        if current_year:
+            class_qs = class_qs.filter(academic_year=current_year)
+        teacher_subjects = Subject.objects.all().order_by('name')
+        teacher_classes = class_qs.order_by('name')
+        teacher_list = Teacher.objects.select_related('user').order_by('user__first_name', 'user__last_name')
 
     # de-duplicate while preserving order
     seen_subject_ids = set()
@@ -858,7 +876,11 @@ def lesson_plan_list(request):
 
     try:
         # Force evaluation to catch DB errors if table doesn't exist yet
-        lesson_plans_qs = LessonPlan.objects.filter(teacher=teacher).select_related('subject', 'school_class')
+        lesson_plans_qs = LessonPlan.objects.select_related('subject', 'school_class', 'teacher', 'teacher__user')
+        if is_teacher:
+            lesson_plans_qs = lesson_plans_qs.filter(teacher=teacher)
+        elif selected_teacher:
+            lesson_plans_qs = lesson_plans_qs.filter(teacher_id=selected_teacher)
         if week:
             lesson_plans_qs = lesson_plans_qs.filter(week_number=week)
         if subject_id:
@@ -883,9 +905,13 @@ def lesson_plan_list(request):
         'selected_week': week,
         'selected_subject': subject_id,
         'selected_class': class_id,
+        'selected_teacher': selected_teacher,
         'selected_query': query,
         'teacher_subjects': teacher_subjects,
         'teacher_classes': teacher_classes,
+        'teacher_list': teacher_list,
+        'is_teacher': is_teacher,
+        'is_admin': is_admin,
     })
         
 @login_required
@@ -1000,14 +1026,22 @@ def lesson_plan_edit(request, pk):
 
 @login_required
 def lesson_plan_detail(request, pk):
-    if request.user.user_type != 'teacher':
+    is_teacher = request.user.user_type == 'teacher'
+    is_admin = request.user.user_type == 'admin'
+    if not is_teacher and not is_admin:
         messages.error(request, 'Access denied')
         return redirect('dashboard')
     
-    teacher = get_object_or_404(Teacher, user=request.user)
-    lesson_plan = get_object_or_404(LessonPlan, pk=pk, teacher=teacher)
+    if is_teacher:
+        teacher = get_object_or_404(Teacher, user=request.user)
+        lesson_plan = get_object_or_404(LessonPlan, pk=pk, teacher=teacher)
+    else:
+        lesson_plan = get_object_or_404(LessonPlan, pk=pk)
     
-    return render(request, 'teachers/lesson_plan_detail.html', {'lesson_plan': lesson_plan})
+    return render(request, 'teachers/lesson_plan_detail.html', {
+        'lesson_plan': lesson_plan,
+        'is_admin': is_admin,
+    })
 
 
 @login_required
@@ -1039,12 +1073,17 @@ def lesson_plan_duplicate(request, pk):
 
 @login_required
 def lesson_plan_print(request, pk):
-    if request.user.user_type != 'teacher':
+    is_teacher = request.user.user_type == 'teacher'
+    is_admin = request.user.user_type == 'admin'
+    if not is_teacher and not is_admin:
         messages.error(request, 'Access denied')
         return redirect('dashboard')
     
-    teacher = get_object_or_404(Teacher, user=request.user)
-    lesson_plan = get_object_or_404(LessonPlan, pk=pk, teacher=teacher)
+    if is_teacher:
+        teacher = get_object_or_404(Teacher, user=request.user)
+        lesson_plan = get_object_or_404(LessonPlan, pk=pk, teacher=teacher)
+    else:
+        lesson_plan = get_object_or_404(LessonPlan, pk=pk)
     
     # Check for template preference
     template_format = request.GET.get('template', 'standard')
