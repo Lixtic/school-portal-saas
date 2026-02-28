@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
 
-{% block title %}Aura-T | Strategic Command Centre
+{% block title %}Aura-T | Strategic Command Centre{% endblock %}
+
+{% block extra_css %}
 <style>
 .time-block.dragging {
     opacity: 0.5;
@@ -14,227 +16,7 @@
 }
 .empty-state { pointer-events: none; }
 </style>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    // Tooltip init
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Popover(tooltipTriggerEl)
-    });
-
-    const draggables = document.querySelectorAll('.time-block');
-    const canvases = [document.getElementById('lesson-canvas'), document.getElementById('blocks-bank')];
-    const lessonCanvas = document.getElementById('lesson-canvas');
-
-    draggables.forEach(draggable => {
-        draggable.addEventListener('dragstart', () => {
-            draggable.classList.add('dragging');
-        });
-
-        draggable.addEventListener('dragend', () => {
-            draggable.classList.remove('dragging');
-            checkCanvasState();
-        });
-    });
-
-    canvases.forEach(canvas => {
-        if(!canvas) return;
-        
-        canvas.addEventListener('dragover', e => {
-            e.preventDefault();
-            if (canvas.id === 'lesson-canvas') {
-                canvas.classList.add('drag-over');
-            }
-            
-            const afterElement = getDragAfterElement(canvas, e.clientY);
-            const draggable = document.querySelector('.dragging');
-            if (draggable) {
-                if (afterElement == null) {
-                    canvas.appendChild(draggable);
-                } else {
-                    canvas.insertBefore(draggable, afterElement);
-                }
-            }
-        });
-        
-        canvas.addEventListener('dragleave', e => {
-            if (canvas.id === 'lesson-canvas') {
-                canvas.classList.remove('drag-over');
-            }
-        });
-
-        canvas.addEventListener('drop', e => {
-            if (canvas.id === 'lesson-canvas') {
-                canvas.classList.remove('drag-over');
-                // Could emit haptic feedback or simple sound here
-            }
-        });
-    });
-
-    function checkCanvasState() {
-        if(!lessonCanvas) return;
-        const blocks = lessonCanvas.querySelectorAll('.time-block');
-        const emptyState = lessonCanvas.querySelector('.empty-state');
-        
-        if (blocks.length > 0) {
-            if(emptyState) emptyState.style.display = 'none';
-        } else {
-            if(emptyState) emptyState.style.display = 'flex';
-        }
-    }
-
-    function getDragAfterElement(container, y) {
-        const draggableElements = [...container.querySelectorAll('.time-block:not(.dragging)')];
-        return draggableElements.reduce((closest, child) => {
-            const box = child.getBoundingClientRect();
-            const offset = y - box.top - box.height / 2;
-            if (offset < 0 && offset > closest.offset) {
-                return { offset: offset, element: child };
-            } else {
-                return closest;
-            }
-        }, { offset: Number.NEGATIVE_INFINITY }).element;
-    }
-
-    // Difficulty slider logic
-    const diffSlider = document.getElementById('diffSlider');
-    const diffLabel = document.getElementById('diffLabel');
-    if(diffSlider && diffLabel) {
-        diffSlider.addEventListener('input', function() {
-            if(this.value == 1) { diffLabel.innerText = "Remedial (Slower)"; diffLabel.className = 'small ms-2 fw-bold text-warning'; }
-            else if(this.value == 2) { diffLabel.innerText = "Balanced"; diffLabel.className = 'small ms-2 fw-bold text-dark'; }
-            else { diffLabel.innerText = "Accelerated (Fast)"; diffLabel.className = 'small ms-2 fw-bold text-success'; }
-        });
-    }
-});
-</script>
-
-<!-- GES Lesson Note Modal -->
-<div class="modal fade" id="gesNoteModal" tabindex="-1" aria-labelledby="gesNoteModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
-      <div class="modal-header bg-dark text-white border-0" style="border-top-left-radius: 16px; border-top-right-radius: 16px;">
-        <h5 class="modal-title fw-bold" id="gesNoteModalLabel"><i class="fas fa-robot text-info me-2"></i>Aura-T: GES Curriculum Specialist</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body p-4 bg-light">
-        <!-- System Prompt Indicator -->
-        <div class="alert alert-secondary border-0 mb-4 shadow-sm" style="font-size: 0.85rem; border-left: 4px solid #6c757d !important;">
-            <strong><i class="fas fa-microchip me-1"></i> Logic Engine Configuration:</strong><br>
-            Strictly adhering to GES Pre-Tertiary Curriculum. Required tags included. Localized contexts verified.
-        </div>
-        
-        <div class="bg-white p-4 rounded shadow-sm print-area">
-            <div class="text-center mb-4">
-                <h5 class="text-uppercase fw-bold mb-1" style="letter-spacing: 1px;">Official GES Lesson Note</h5>
-                <p class="small text-muted mb-0">Generated by Aura-T Curriculum Engine</p>
-            </div>
-            
-            <div class="table-responsive">
-                <table class="table table-bordered border-dark align-middle small mb-4">
-                    <tbody>
-                        <tr>
-                            <th class="bg-light" style="width: 25%;">Subject / Class</th>
-                            <td>Mathematics / {{ class_name_display }}</td>
-                        </tr>
-                        <tr>
-                            <th class="bg-light">Strand</th>
-                            <td>Number</td>
-                        </tr>
-                        <tr>
-                            <th class="bg-light">Sub-Strand</th>
-                            <td>Fractions</td>
-                        </tr>
-                        <tr>
-                            <th class="bg-light">Content Standard</th>
-                            <td>B7.1.1</td>
-                        </tr>
-                        <tr>
-                            <th class="bg-light">Indicator</th>
-                            <td><strong>B7.1.1.2.1:</strong> Solve problems involving addition and subtraction of fractions.</td>
-                        </tr>
-                        <tr>
-                            <th class="bg-light">Core Competencies</th>
-                            <td>
-                                <span class="badge bg-info text-dark me-1">Digital Literacy</span> 
-                                <span class="badge bg-primary">Cultural Identity</span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th class="bg-light">Starter (5m)</th>
-                            <td><em>Hook:</em> "You have 1/2 a loaf of sugar bread and your brother brings 1/4. How much bread do you have total?"</td>
-                        </tr>
-                        <tr>
-                            <th class="bg-light">New Learning (20m)</th>
-                            <td>Interactive AI-scaffolded practice on individual devices using Aura to visualize fraction bars.</td>
-                        </tr>
-                        <tr>
-                            <th class="bg-light">Localized Resources</th>
-                            <td>
-                                <ul class="mb-0 ps-3">
-                                    <li><i class="fas fa-image text-primary me-1"></i> Visuals of Makola Market goods for transactions.</li>
-                                    <li><i class="fas fa-file-alt text-danger me-1"></i> 2020 BECE Past Question adapted for final challenge.</li>
-                                </ul>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th class="bg-light">Reflection / Assessment</th>
-                            <td>3-question quiz on adding unlike denominators (localized to market prices).</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            
-            <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
-                <div>
-                    <button type="button" class="btn btn-outline-dark btn-sm" onclick="window.print()">
-                        <i class="fas fa-print me-1"></i> Print
-                    </button>
-                    <small class="text-muted ms-3"><i class="fas fa-check-circle text-success me-1"></i> GES Compliant</small>
-                </div>
-                <div class="d-flex align-items-center">
-                    <div id="approvalStatus" class="me-3 text-muted small fw-bold" style="display: none;">
-                        <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i> Pending HoD Review</span>
-                    </div>
-                    <button type="button" class="btn btn-success" id="submitHodBtn">
-                        <i class="fas fa-paper-plane me-2"></i>Submit to HoD
-                    </button>
-                    <button type="button" class="btn btn-secondary d-none" id="sentHodBtn" disabled>
-                        <i class="fas fa-check me-2"></i>Sent
-                    </button>
-                </div>
-            </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const submitHodBtn = document.getElementById('submitHodBtn');
-    const sentHodBtn = document.getElementById('sentHodBtn');
-    const approvalStatus = document.getElementById('approvalStatus');
-    
-    if(submitHodBtn) {
-        submitHodBtn.addEventListener('click', () => {
-            submitHodBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Routing...';
-            
-            setTimeout(() => {
-                submitHodBtn.classList.add('d-none');
-                sentHodBtn.classList.remove('d-none');
-                approvalStatus.style.display = 'block';
-                
-                // Show a quick global toast/notification (optional, simulating)
-                alert("GES Lesson Note sent to HoD App for digital sign-off.");
-            }, 1200);
-        });
-    }
-});
-</script>
-
 {% endblock %}
-
 
 {% block content %}
 <style>
@@ -604,19 +386,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 </script>
 
-<style>
-.time-block.dragging {
-    opacity: 0.5;
-    transform: scale(0.95);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    z-index: 100;
-}
-.timeline-canvas.drag-over {
-    background-color: var(--bs-light);
-    border-color: var(--bs-primary) !important;
-}
-.empty-state { pointer-events: none; }
-</style>
+
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     // Tooltip init
@@ -837,4 +608,3 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 {% endblock %}
-
