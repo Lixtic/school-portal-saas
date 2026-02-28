@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import List, Dict
+import re
 
 
 @dataclass
@@ -168,3 +169,43 @@ def render_ges_lesson_plan(template_data: LessonPlanTemplate) -> str:
         resources=template_data.resources,
         phase_3_reflection=template_data.phase_3_reflection,
     ).strip()
+
+
+def parse_ges_lesson_text(text: str) -> Dict[str, str]:
+    """Best-effort parser that extracts key fields from a GES-formatted lesson text."""
+    if not text:
+        return {}
+
+    compact_text = text.replace("\r\n", "\n")
+
+    def _search(pattern, flags=re.IGNORECASE | re.DOTALL):
+        match = re.search(pattern, compact_text, flags)
+        return match.group(1).strip() if match else ""
+
+    week_number = _search(r"WEEK\s+(\d+)")
+    subject = _search(r"Subject:\s*(.+?)(?:\n|$)")
+    class_level = _search(r"Class:\s*(.+?)\s+Class Size:")
+    content_standard = _search(r"Content Standard:\s*Indicator:\s*\n\s*(.+?)\s+(?:[A-Za-z0-9\.]+:)" )
+    indicator = _search(r"Content Standard:\s*Indicator:\s*\n\s*.+?\s+(.+?)\nLesson:")
+    performance_indicator = _search(r"Performance Indicator:\s*Core Competencies:\s*\n\s*(.+?)(?:\n|$)")
+    phase_1_starter = _search(r"PHASE 1:\s*STARTER\s*(.+?)\n\s*PHASE 2:")
+    phase_2_new = _search(r"PHASE 2:\s*NEW\s*(.+?)\n\s*LEARNING")
+    phase_3_reflection = _search(r"PHASE 3:\s*(.+?)\n\s*REFLECTION")
+    reference = _search(r"Reference:\s*(.+?)(?:\n|$)")
+
+    topic = indicator or subject or "GES AI Draft Lesson"
+    objectives = performance_indicator or ""
+
+    return {
+        "week_number": week_number,
+        "subject": subject,
+        "class_level": class_level,
+        "content_standard": content_standard,
+        "indicator": indicator,
+        "topic": topic,
+        "objectives": objectives,
+        "introduction": phase_1_starter,
+        "presentation": phase_2_new,
+        "evaluation": phase_3_reflection,
+        "teaching_materials": reference,
+    }
