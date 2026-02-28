@@ -2449,5 +2449,137 @@
     })();
     </script>
     {% endif %}
+{% if user.is_authenticated and user.user_type == 'teacher' %}
+<!-- Global Aura-T Co-pilot -->
+<style>
+    #aura-copilot-container {
+        position: fixed;
+        right: 20px;
+        bottom: 20px;
+        z-index: 1040;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+    }
+    .aura-orb-btn {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        box-shadow: 0 4px 15px rgba(111, 66, 193, 0.4);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        border: 2px solid white;
+    }
+    .aura-orb-btn:hover {
+        transform: scale(1.1);
+    }
+    /* Pulse Animation based on class status */
+    .pulse-amber { animation: pulse-amber 2s infinite; }
+    
+    @keyframes pulse-amber {
+        0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
+        70% { box-shadow: 0 0 0 15px rgba(255, 193, 7, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+    }
+    
+    .aura-panel {
+        width: 350px;
+        max-height: 80vh;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        margin-bottom: 20px;
+        transform: translateY(20px);
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    
+    .aura-panel.show {
+        transform: translateY(0);
+        opacity: 1;
+        visibility: visible;
+    }
+    
+    .aura-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px 20px;
+        display: d-flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .aura-body {
+        padding: 20px;
+        overflow-y: auto;
+        flex-grow: 1;
+    }
+    
+    .aura-insight-card {
+        background: #fff;
+        border-left: 4px solid #ffc107;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+</style>
+
+<div id="aura-copilot-container">
+    <div id="auraPanel" class="aura-panel">
+        <div class="aura-header d-flex justify-content-between align-items-center">
+            <div>
+                <h6 class="mb-0 fw-bold"><i class="fas fa-brain me-2"></i>Aura Co-Pilot</h6>
+                <small class="opacity-75">Active Class: Basic 8</small>
+            </div>
+            <button class="btn-close btn-close-white" onclick="document.getElementById('auraPanel').classList.remove('show');"></button>
+        </div>
+        <div class="aura-body">
+            <h6 class="text-uppercase text-muted small fw-bold mb-3">Live Pulse</h6>
+            
+            <div class="aura-insight-card">
+                <div class="d-flex align-items-center mb-2">
+                    <span class="badge bg-warning text-dark me-2">Alert</span>
+                    <span class="small fw-bold">Misconception Detected</span>
+                </div>
+                <p class="small mb-2">3 students are stuck on 'Factoring Quadratics'.</p>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-sm btn-outline-primary" style="font-size: 0.75rem;"><i class="fas fa-users me-1"></i> Create Remedial Group</button>
+                    <button class="btn btn-sm btn-outline-secondary" style="font-size: 0.75rem;"><i class="fas fa-envelope me-1"></i> Notify Parents</button>
+                </div>
+            </div>
+            
+            <div class="aura-insight-card" style="border-left-color: #28a745;">
+                <div class="d-flex align-items-center mb-2">
+                    <span class="badge bg-success me-2">Goal</span>
+                    <span class="small fw-bold">Mastery Target Hit</span>
+                </div>
+                <p class="small mb-2">85% passed yesterday's quiz on Physics.</p>
+                <a href="{% url 'teachers:ai_sessions_list' %}" class="btn btn-sm btn-outline-success w-100" style="font-size: 0.75rem;">Open Command Centre</a>
+            </div>
+        </div>
+        <div class="bg-light p-2 text-center border-top">
+            <small class="text-muted"><i class="fas fa-bolt text-warning me-1"></i> Powered by Aura-T</small>
+        </div>
+    </div>
+    <div class="aura-orb-btn pulse-amber" onclick="document.getElementById('auraPanel').classList.toggle('show');" title="Open Aura Co-Pilot">
+        <i class="fas fa-robot"></i>
+    </div>
+</div>
+{% endif %}
+
 </body>
 </html>

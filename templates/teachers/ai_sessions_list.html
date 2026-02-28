@@ -1,88 +1,335 @@
 {% extends 'base.html' %}
 
-{% block title %}AI Lesson Planner Sessions{% endblock %}
+{% block title %}Aura-T | Strategic Command Centre{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0 text-gray-800">AI Lesson Planner Sessions</h1>
-        <a href="{% url 'teachers:ai_session_new' %}" class="btn btn-primary">
-            <i class="fas fa-plus me-1"></i> New Session
-        </a>
+<style>
+    /* Glassmorphism & Next.js/Tailwind Aesthetic Overrides */
+    body {
+        background: linear-gradient(135deg, #f0f4f8 0%, #e9ecef 100%);
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    .glass-card {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .glass-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px rgba(31, 38, 135, 0.08);
+    }
+    /* Pulse Indicator */
+    .pulse-orb {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        display: inline-block;
+        box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
+        animation: pulse-amber 2s infinite;
+        background-color: #ffc107;
+    }
+    @keyframes pulse-amber {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
+        70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+    }
+    /* Map Grid */
+    .heatmap-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 12px;
+    }
+    .student-tile {
+        height: 80px;
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        font-size: 0.85rem;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s ease;
+    }
+    .tile-excellent { background-color: rgba(40, 167, 69, 0.15); border: 1px solid rgba(40, 167, 69, 0.3); color: #1e7e34; }
+    .tile-good { background-color: rgba(23, 162, 184, 0.15); border: 1px solid rgba(23, 162, 184, 0.3); color: #117a8b; }
+    .tile-struggling { background-color: rgba(220, 53, 69, 0.15); border: 1px solid rgba(220, 53, 69, 0.3); color: #bd2130; }
+    .student-tile:hover {
+        transform: scale(1.05);
+        z-index: 10;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    .sparkline {
+        width: 60px;
+        height: 15px;
+        margin-top: 5px;
+        opacity: 0.6;
+    }
+    
+    /* Interactive Timeline */
+    .timeline-canvas {
+        background: rgba(248, 249, 250, 0.6);
+        border-radius: 12px;
+        padding: 20px;
+        border: 1px dashed #dee2e6;
+    }
+    .time-block {
+        border-radius: 8px;
+        padding: 10px 15px;
+        margin-bottom: 10px;
+        background: white;
+        border-left: 4px solid #4e73df;
+        cursor: grab;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .time-block:active { cursor: grabbing; }
+    
+    /* Differentiation Column */
+    .diff-col {
+        border-radius: 12px;
+        padding: 15px;
+    }
+    .diff-support { background-color: rgba(23, 162, 184, 0.05); border: 1px solid rgba(23, 162, 184, 0.2); }
+    .diff-core { background-color: rgba(78, 115, 223, 0.05); border: 1px solid rgba(78, 115, 223, 0.2); }
+    .diff-extension { background-color: rgba(111, 66, 193, 0.05); border: 1px solid rgba(111, 66, 193, 0.2); }
+</style>
+
+<div class="container-fluid py-4" style="max-width: 1400px;">
+    <!-- Top Nav / Core status -->
+    <div class="d-flex justify-content-between align-items-center mb-4 glass-card p-3">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800 fw-bold"><i class="fas fa-brain text-primary me-2"></i>Aura-T Command Centre</h1>
+            <p class="text-muted mb-0 small mt-1">Glanceable class insights & intelligent lesson planning</p>
+        </div>
+        <div class="d-flex align-items-center bg-white px-4 py-2 rounded-pill shadow-sm border">
+            <span class="fw-bold me-3">Class Pulse</span>
+            <div class="pulse-orb me-2"></div>
+            <span class="text-warning fw-bold">Active Misconception: 3 students</span>
+        </div>
     </div>
 
-    <div class="card shadow mb-4">
-        <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">Your History</h6>
+    <div class="row g-4 mb-4">
+        <!-- Sidebar Aura Actions -->
+        <div class="col-lg-3">
+            <div class="glass-card p-4 h-100 position-relative">
+                <div class="text-center mb-4">
+                    <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow" style="width: 60px; height: 60px; font-size: 24px;">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h5 class="fw-bold">Aura Co-Pilot</h5>
+                </div>
+                
+                <h6 class="text-uppercase text-muted fw-bold small mb-3">Live Insights</h6>
+                <div class="alert custom-alert border-warning border-start border-4 bg-warning bg-opacity-10 py-2 px-3 mb-3">
+                    <p class="mb-1 small"><strong>Kofi, Ama, and Yaw</strong> are stuck on 'Factoring Quadratics'.</p>
+                    <button class="btn btn-sm btn-outline-warning w-100 mt-2 rounded-pill" onclick="alert('Creating remedial group...')"><i class="fas fa-users"></i> Create Remedial Group</button>
+                </div>
+                
+                <div class="alert custom-alert border-success border-start border-4 bg-success bg-opacity-10 py-2 px-3 mb-4">
+                    <p class="mb-1 small"><strong>85%</strong> scored above target on yesterday's Knowledge Check.</p>
+                </div>
+
+                <h6 class="text-uppercase text-muted fw-bold small mb-3">Quick Actions</h6>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'teachers:ai_session_new' %}" class="btn btn-primary rounded-pill text-start"><i class="fas fa-magic me-2"></i> Generate New Lesson</a>
+                    <button class="btn btn-light border rounded-pill text-start" data-bs-toggle="collapse" data-bs-target="#parentBridge"><i class="fas fa-envelope-open-text me-2"></i> Draft Parent Updates</button>
+                    <button class="btn btn-light border rounded-pill text-start" onclick="document.getElementById('diff-tool').scrollIntoView({behavior: 'smooth'})"><i class="fas fa-layer-group me-2"></i> 1-Click Differentiation</button>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            {% if sessions %}
+
+        <!-- Main Center Dash -->
+        <div class="col-lg-9">
+            <!-- Mastery Heatmap -->
+            <div class="glass-card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold m-0"><i class="fas fa-th me-2 text-primary"></i>Mastery Heatmap (Last 30 Days)</h5>
+                    <span class="badge bg-secondary">Basic 8 Science</span>
+                </div>
+                <div class="heatmap-grid pb-2">
+                    <!-- Generating mock students for visual effect -->
+                    <div class="student-tile tile-good" title="Kwame - On target">
+                        <span class="fw-bold">Kwame</span>
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/e/e4/Sparkline_example.png" class="sparkline" style="filter: grayscale(1) opacity(0.5);">
+                    </div>
+                    <div class="student-tile tile-excellent" title="Efia - Excelling">
+                        <span class="fw-bold">Efia</span>
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/e/e4/Sparkline_example.png" class="sparkline" style="filter: grayscale(1) opacity(0.5);">
+                    </div>
+                    <div class="student-tile tile-struggling" data-bs-toggle="popover" data-bs-trigger="hover" title="Kofi's Status" data-bs-content="Struggling with 'Factoring'. Used 'Hint' 4 times. Click to open chat.">
+                        <span class="fw-bold">Kofi </span>
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/e/e4/Sparkline_example.png" class="sparkline" style="filter: grayscale(1) opacity(0.5);">
+                    </div>
+                    <div class="student-tile tile-good" title="Yaw - Progressing"><span class="fw-bold">Yaw</span></div>
+                    <div class="student-tile tile-good" title="Adjoa - Progressing"><span class="fw-bold">Adjoa</span></div>
+                    <div class="student-tile tile-excellent" title="Zainab - Excelling"><span class="fw-bold">Zainab</span></div>
+                    <div class="student-tile tile-struggling" title="Ama - Needs Help"><span class="fw-bold">Ama </span></div>
+                    <div class="student-tile tile-good" title="Kweku - Progressing"><span class="fw-bold">Kweku</span></div>
+                    <div class="student-tile tile-excellent" title="Abena - Excelling"><span class="fw-bold">Abena</span></div>
+                    <div class="student-tile tile-good" title="Esi - Progressing"><span class="fw-bold">Esi</span></div>
+                    <div class="student-tile tile-struggling" title="Kwesi - Needs Help"><span class="fw-bold">Kwesi </span></div>
+                    <div class="student-tile tile-good" title="Akosua - Progressing"><span class="fw-bold">Akosua</span></div>
+                </div>
+            </div>
+
+            <!-- Interactive Lesson Canvas -->
+            <div class="glass-card p-4 mb-4">
+                <h5 class="fw-bold mb-3"><i class="fas fa-stream me-2 text-primary"></i>Interactive Lesson Canvas</h5>
+                <p class="text-muted small mb-3">Drag AI-generated modules to build your 45-minute flow.</p>
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="p-3 bg-light rounded border">
+                            <h6 class="fw-bold small text-muted text-uppercase mb-2">Smart Blocks Bank</h6>
+                            <div class="time-block border-warning border-start-4 shadow-sm" draggable="true">
+                                <div><i class="fas fa-lightbulb text-warning me-2"></i> Hook (Makola Market local story)</div>
+                                <span class="badge bg-light text-dark">5m</span>
+                            </div>
+                            <div class="time-block shadow-sm" draggable="true">
+                                <div><i class="fas fa-chalkboard-teacher text-primary me-2"></i> Direct Instruction</div>
+                                <span class="badge bg-light text-dark">15m</span>
+                            </div>
+                            <div class="time-block shadow-sm" draggable="true">
+                                <div><i class="fas fa-users text-info me-2"></i> Group Practice</div>
+                                <span class="badge bg-light text-dark">15m</span>
+                            </div>
+                            <div class="time-block border-success shadow-sm" draggable="true">
+                                <div><i class="fas fa-check-circle text-success me-2"></i> Exit Ticket</div>
+                                <span class="badge bg-light text-dark">10m</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="timeline-canvas h-100 d-flex flex-column align-items-center justify-content-center text-muted">
+                            <i class="fas fa-grip-lines fa-2x mb-2 text-gray-300"></i>
+                            <p>Drag blocks here to sequence lesson</p>
+                            <div class="d-flex align-items-center mt-3 w-75">
+                                <span class="small me-2">Difficulty/Speed</span>
+                                <input type="range" class="form-range flex-grow-1 mx-2" min="1" max="3" id="diffSlider" value="2">
+                                <span class="small ms-2" id="diffLabel">Balanced</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Differentiation Tool -->
+            <div id="diff-tool" class="glass-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold m-0"><i class="fas fa-layer-group me-2 text-primary"></i>1-Click Differentiation</h5>
+                    <button class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" onclick="alert('Content Pushed to Student Devices!')"><i class="fas fa-paper-plane me-1"></i> Push to Devices</button>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="diff-col diff-support h-100">
+                            <h6 class="text-info fw-bold mb-2">Support (Scaffolded)</h6>
+                            <p class="small text-muted mb-2">Includes hints and visual aids.</p>
+                            <div class="bg-white p-2 rounded small shadow-sm border mb-2">1. Expand: 2(x + 3)</div>
+                            <div class="bg-white p-2 rounded small shadow-sm border">2. Factor: 3x + 6 (Hint: Find common multiple)</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="diff-col diff-core h-100">
+                            <h6 class="text-primary fw-bold mb-2">Core (Standard)</h6>
+                            <p class="small text-muted mb-2">Main learning objective.</p>
+                            <div class="bg-white p-2 rounded small shadow-sm border mb-2">1. Expand: (x + 2)(x - 3)</div>
+                            <div class="bg-white p-2 rounded small shadow-sm border">2. Factor: x + 5x + 6</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="diff-col diff-extension h-100">
+                            <h6 class="text-purple fw-bold mb-2" style="color: #6f42c1;">Extension (Challenge)</h6>
+                            <p class="small text-muted mb-2">Multi-step word problems.</p>
+                            <div class="bg-white p-2 rounded small shadow-sm border mb-2">1. The area of a rectangle is x + 7x + 12. Find the dimensions.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Parent Bridge (Hidden by default) -->
+            <div id="parentBridge" class="collapse mt-4">
+                <div class="glass-card p-4 border-primary border-start border-4">
+                    <h5 class="fw-bold mb-3"><i class="fas fa-envelope-open-text me-2 text-primary"></i>Parent-Teacher Bridge</h5>
+                    <div class="list-group">
+                        <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1 fw-bold">Mr. Osei (Ama's Father)</h6>
+                                <p class="mb-0 small text-muted">"Hi Mr. Osei, Ama did great with 'Friction' today, but she's still a bit confused about 'Mass.' Here is a video link..."</p>
+                            </div>
+                            <button class="btn btn-sm btn-success rounded-pill px-3">Send <i class="fas fa-paper-plane ms-1"></i></button>
+                        </div>
+                        <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1 fw-bold">Mrs. Mensah (Kofi's Mother)</h6>
+                                <p class="mb-0 small text-muted">"Hi Mrs. Mensah, Kofi is struggling with 'Negative Coefficients'. I have assigned him to a remedial group tomorrow..."</p>
+                            </div>
+                            <button class="btn btn-sm btn-success rounded-pill px-3">Send <i class="fas fa-paper-plane ms-1"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Traditional AI History -->
+            <div class="glass-card mt-4 p-4">
+                <h6 class="fw-bold mb-3"><i class="fas fa-history me-2 text-secondary"></i>Previous Planning Sessions</h6>
                 <div class="table-responsive">
-                    <table class="table table-bordered border-secondary" width="100%" cellspacing="0">
-                        <thead class="table-light">
+                    <table class="table table-hover table-borderless align-middle mb-0">
+                        <thead class="bg-light rounded">
                             <tr>
-                                <th>Title</th>
+                                <th class="rounded-start">Title</th>
                                 <th>Last Updated</th>
-                                <th>Actions</th>
+                                <th class="text-end rounded-end">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for session in sessions %}
+                            {% for session in sessions|slice:":3" %}
                             <tr>
                                 <td>
-                                    <a href="{% url 'teachers:ai_session_detail' session.id %}" class="text-decoration-none fw-bold">
-                                        {{ session.title }}
+                                    <a href="{% url 'teachers:ai_session_detail' session.id %}" class="text-decoration-none fw-bold text-dark">
+                                        {{ session.title|default:"Untitled Session" }}
                                     </a>
                                 </td>
-                                <td>{{ session.updated_at|date:"M d, Y H:i" }}</td>
-                                <td>
-                                    <a href="{% url 'teachers:ai_session_detail' session.id %}" class="btn btn-sm btn-info me-1">
-                                        <i class="fas fa-comment-dots"></i> Resume
-                                    </a>
-                                    <button type="button" class="btn btn-sm btn-secondary me-1" data-bs-toggle="modal" data-bs-target="#renameModal{{ session.id }}">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <form action="{% url 'teachers:ai_session_delete' session.id %}" method="post" class="d-inline" onsubmit="return confirm('Delete this session?');">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-danger">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
-
-                                    <!-- Rename Modal -->
-                                    <div class="modal fade" id="renameModal{{ session.id }}" tabindex="-1" aria-hidden="true">
-                                        <div class="modal-dialog">
-                                            <form action="{% url 'teachers:ai_session_rename' session.id %}" method="post">
-                                                {% csrf_token %}
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title">Rename Session</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <input type="text" name="title" class="form-control" value="{{ session.title }}" required>
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                        <button type="submit" class="btn btn-primary">Save</button>
-                                                    </div>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
+                                <td class="text-muted small">{{ session.updated_at|date:"M d, Y" }}</td>
+                                <td class="text-end">
+                                    <a href="{% url 'teachers:ai_session_detail' session.id %}" class="btn btn-sm btn-light border rounded-pill">Open</a>
                                 </td>
                             </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-center text-muted py-3">No previous sessions found.</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
+                    {% if sessions.count > 3 %}
+                    <div class="text-center mt-3">
+                        <button class="btn btn-sm btn-link text-decoration-none" onclick="alert('Loading full history modal...')">View All History</button>
+                    </div>
+                    {% endif %}
                 </div>
-            {% else %}
-                <div class="text-center py-5">
-                    <p class="text-muted mb-3">No lesson planning sessions found.</p>
-                    <a href="{% url 'teachers:ai_session_new' %}" class="btn btn-primary">Start Planning</a>
-                </div>
-            {% endif %}
+            </div>
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+        var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+            return new bootstrap.Popover(popoverTriggerEl)
+        });
+
+        const slider = document.getElementById('diffSlider');
+        const label = document.getElementById('diffLabel');
+        slider.addEventListener('input', function() {
+            if (this.value == 1) label.innerText = 'More Instruction Time';
+            if (this.value == 2) label.innerText = 'Balanced';
+            if (this.value == 3) label.innerText = 'More Practice Time';
+        });
+    });
+</script>
 {% endblock %}
