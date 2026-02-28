@@ -1384,46 +1384,127 @@ from django.views.decorators.csrf import csrf_exempt
 def aura_t_api(request):
     if request.user.user_type != 'teacher':
         return JsonResponse({'error': 'Unauthorized'}, status=403)
-        
+
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             action = data.get('action')
             topic = data.get('topic', 'General Topic')
             
-            # Simulated Aura-T logic
+            api_key = os.environ.get('OPENAI_API_KEY')
+            if not api_key:
+                # Fallback to simulated logic if no API key is provided
+                return _simulate_aura_t(action, topic, data)
+                
+            from academics.ai_tutor import _post_chat_completion
+            
             if action == 'class_sync':
-                return JsonResponse({
-                    'status': 'success',
-                    'introduction': f"I see 12 students struggled with this. Let's rewrite today's 'Hook' to focus on a practical scenario to reinforce the visual logic before we move to '{topic}'.",
-                    'presentation': f"Focus heavily on the visual analogies for {topic}.",
-                    'differentiation': "Focus on base concepts for remedial group. Advanced group analyzes edge-cases."
-                })
+                system_prompt = "You are Aura-T, an expert AI assistant for teachers. Generate a 'class_sync' response. Provide a json with 'introduction', 'presentation', and 'differentiation'. The response should rewrite a hook based on students struggling, and provide strategies."
+                user_prompt = f"Topic: {topic}. Generate the JSON payload."
+                
+                payload = {
+                    "model": "gpt-4o-mini",
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    "response_format": {"type": "json_object"}
+                }
+                response = _post_chat_completion(payload, api_key)
+                content = response.get("choices", [{}])[0].get("message", {}).get("content", "{}")
+                result = json.loads(content)
+                result['status'] = 'success'
+                return JsonResponse(result)
+                
             elif action == 'interest_mashup':
                 interests = data.get('interests', 'Gaming')
-                return JsonResponse({
-                    'status': 'success',
-                    'introduction': f"Let's teach {topic} by calculating stats for {interests}.",
-                    'presentation': f"Use examples from {interests} to illustrate {topic}."
-                })
+                system_prompt = "You are Aura-T. Generate an 'interest_mashup' response. Provide a json with 'introduction' and 'presentation'. Mix the topic with the provided student interests to make it highly engaging."
+                user_prompt = f"Topic: {topic}. Interests: {interests}. Generate the JSON payload."
+                
+                payload = {
+                    "model": "gpt-4o-mini",
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    "response_format": {"type": "json_object"}
+                }
+                response = _post_chat_completion(payload, api_key)
+                content = response.get("choices", [{}])[0].get("message", {}).get("content", "{}")
+                result = json.loads(content)
+                result['status'] = 'success'
+                return JsonResponse(result)
+                
             elif action == 'standard_linker':
-                return JsonResponse({
-                    'status': 'success',
-                    'objectives': f"This lesson covers GES & WAEC standards for {topic} and develops 'Critical Thinking' and 'Digital Literacy' competencies.\n1. Understand {topic}\n2. Apply {topic}"
-                })
+                system_prompt = "You are Aura-T. Generate a 'standard_linker' response. Provide a json with 'objectives'. Link the topic to official GES & WAEC standards and competencies."
+                user_prompt = f"Topic: {topic}. Generate the JSON payload."
+                
+                payload = {
+                    "model": "gpt-4o-mini",
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    "response_format": {"type": "json_object"}
+                }
+                response = _post_chat_completion(payload, api_key)
+                content = response.get("choices", [{}])[0].get("message", {}).get("content", "{}")
+                result = json.loads(content)
+                result['status'] = 'success'
+                return JsonResponse(result)
+                
             elif action == 'chat_suggest':
                 context = data.get('context', '')
-                if 'Objective' in context or 'assessment' in context.lower():
-                    tip = "Alert: You haven't assessed 'Objective B' yet. Should I add a question to the exit ticket?"
-                elif 'introduction' in context.lower() or 'hook' in context.lower():
-                    tip = "Teacher Tip: Students usually find this part boring. Want a 1-minute fun fact about this?"
-                else:
-                    tip = f"Resource: I found a PhET Interactive Simulation that perfectly matches {topic}. Click to embed."
+                system_prompt = "You are Aura-T. Provide a helpful 1-2 sentence teacher tip based on the context they are typing. If they mention introduction or hook, suggest a fun fact. If assessment, remind them."
+                user_prompt = f"Topic: {topic}. User is typing: '{context}'. Suggestion?"
+                
+                payload = {
+                    "model": "gpt-4o-mini",
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ]
+                }
+                response = _post_chat_completion(payload, api_key)
+                tip = response.get("choices", [{}])[0].get("message", {}).get("content", "Teacher Tip: Keep it up!")
                 return JsonResponse({'status': 'success', 'suggestion': tip})
+
             else:
                 return JsonResponse({'error': 'Unknown action'}, status=400)
-                
+
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-            
+
     return JsonResponse({'error': 'Invalid request'}, status=400)
+
+def _simulate_aura_t(action, topic, data):
+    if action == 'class_sync':
+        return JsonResponse({
+            'status': 'success',
+            'introduction': f"I see 12 students struggled with this. Let's rewrite today's 'Hook' to focus on a practical scenario to reinforce the visual logic before we move to '{topic}'.",
+            'presentation': f"Focus heavily on the visual analogies for {topic}.",
+            'differentiation': "Focus on base concepts for remedial group. Advanced group analyzes edge-cases."
+        })
+    elif action == 'interest_mashup':
+        interests = data.get('interests', 'Gaming')
+        return JsonResponse({
+            'status': 'success',
+            'introduction': f"Let's teach {topic} by calculating stats for {interests}.",
+            'presentation': f"Use examples from {interests} to illustrate {topic}."
+        })
+    elif action == 'standard_linker':
+        return JsonResponse({
+            'status': 'success',
+            'objectives': f"This lesson covers GES & WAEC standards for {topic} and develops 'Critical Thinking' and 'Digital Literacy' competencies.\n1. Understand {topic}\n2. Apply {topic}"
+        })
+    elif action == 'chat_suggest':
+        context = data.get('context', '')
+        if 'Objective' in context or 'assessment' in context.lower():
+            tip = "Alert: You haven't assessed 'Objective B' yet. Should I add a question to the exit ticket?"
+        elif 'introduction' in context.lower() or 'hook' in context.lower():
+            tip = "Teacher Tip: Students usually find this part boring. Want a 1-minute fun fact about this?"
+        else:
+            tip = f"Resource: I found a PhET Interactive Simulation that perfectly matches {topic}. Click to embed."
+        return JsonResponse({'status': 'success', 'suggestion': tip})
+    else:
+        return JsonResponse({'error': 'Unknown action'}, status=400)
