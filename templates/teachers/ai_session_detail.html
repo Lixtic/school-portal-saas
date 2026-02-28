@@ -313,12 +313,13 @@ textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
                         </div>
                         {% if msg.role == 'assistant' %}
                         <div class="aura-message-actions">
-                            <button class="aura-action-btn copy-btn" title="Copy">
-                                <i class="fas fa-copy"></i> Copy
+                            <button class="aura-action-btn copy-btn" title="Copy" onclick="copyToClipboard(this)">
+                                <i class="fas fa-copy"></i>
+                                Copy
                             </button>
-                            <a href="{% url 'teachers:lesson_plan_create' %}?topic={{ session.title|urlencode }}" class="aura-action-btn" title="Create Draft">
+                            <button class="aura-action-btn" onclick="draftLesson(decodeURIComponent('{{ msg.content|urlencode }}'.replace(/'/g, '%27')))" title="Create Draft">
                                 <i class="fas fa-file-alt"></i> Draft Lesson
-                            </a>
+                            </button>
                         </div>
                         {% endif %}
                     </div>
@@ -427,6 +428,30 @@ textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
         }
     });
 
+    function draftLesson(content) {
+        // Create a hidden form to submit the full content via POST
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = "{% url 'teachers:lesson_plan_create' %}";
+        
+        // Add CSRF token
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+        
+        // Add content
+        const contentInput = document.createElement('input');
+        contentInput.type = 'hidden';
+        contentInput.name = 'ai_content';
+        contentInput.value = content;
+        form.appendChild(contentInput);
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+
     function appendMessage(role, content) {
         const div = document.createElement('div');
         div.className = `aura-message ${role === 'user' ? 'user' : 'ai'}`;
@@ -435,6 +460,10 @@ textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
         
         // Escape HTML for safety, but allow basic formatting if needed later
         const safeContent = escapeHtml(content);
+        
+        // Encode content safely for onclick attribute
+        // encodeURIComponent does not escape single quotes, so we do it manually to avoid breaking the onclick attribute
+        const encodedContent = encodeURIComponent(content).replace(/'/g, "%27");
 
         let actions = '';
         if (role === 'assistant') {
@@ -443,9 +472,9 @@ textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
                     <button class="aura-action-btn copy-btn" onclick="copyToClipboard(this)">
                         <i class="fas fa-copy"></i> Copy
                     </button>
-                    <a href="{% url 'teachers:lesson_plan_create' %}?topic=${encodeURIComponent(content.slice(0, 100))}" class="aura-action-btn">
+                    <button class="aura-action-btn" onclick="draftLesson(decodeURIComponent('${encodedContent}'))">
                         <i class="fas fa-file-alt"></i> Draft Lesson
-                    </a>
+                    </button>
                 </div>
             `;
         }

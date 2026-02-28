@@ -900,8 +900,46 @@ def lesson_plan_create(request):
     
     # Check for AI generation request
     initial_data = {}
-    topic = request.GET.get('topic')
-    if topic:
+    
+    # CASE 1: Full AI Content passed via POST (from Chat) or huge GET
+    # Ideally we'd use POST for large content, but if coming from a link, it's GET.
+    # We might need to parse the unstructured text from Aura-T.
+    
+    ai_content = request.POST.get('ai_content') or request.GET.get('ai_content')
+    topic = request.GET.get('topic') # Legacy/Simple Fallback
+
+    if ai_content:
+        # PARSING LOGIC: Extract fields from the Aura-T standardized format
+        import re
+        
+        def extract_section(header, text):
+            # Allow for optional suffix inside the bold tag (like duration "[10 mins]")
+            # Pattern matches: **Header[optional text]**:? content...
+            # We use re.escape(header) but need to allow trailing chars before the closing **
+            # Matches: **PHASE 1: STARTER [10mins]** or **PHASE 1: STARTER**
+            pattern = re.compile(rf"\*\*{re.escape(header)}.*?\*\*\s*(.*?)(?=\n\*\*|\Z)", re.DOTALL | re.IGNORECASE)
+            match = pattern.search(text)
+            return match.group(1).strip() if match else ""
+
+        # Attempt to map Aura-T output format to LessonPlan model fields
+        parsed_topic = extract_section("Strand", ai_content) + ": " + extract_section("Sub Strand", ai_content)
+        if len(parsed_topic) < 5: parsed_topic = topic or "New Lesson Plan"
+            
+        initial_data = {
+            'topic': parsed_topic,
+            'week_number': extract_section("WEEK", ai_content) or 1,
+            'objectives': extract_section("Content Standard", ai_content) + "\n\n" + extract_section("Indicator", ai_content),
+            'teaching_materials': extract_section("Resources", ai_content),
+            'introduction': extract_section("PHASE 1: STARTER", ai_content),
+            'presentation': extract_section("PHASE 2: NEW LEARNING", ai_content),
+            'evaluation': extract_section("PHASE 3: REFLECTION", ai_content) or extract_section("Assessment", ai_content),
+            'homework': extract_section("Homework", ai_content) or "Refer to textbook exercises.",
+            'core_competencies': extract_section("Core Competencies", ai_content), # If you add this field to model later
+        }
+        messages.success(request, "Lesson plan draft populated from Aura-T session.")
+
+    elif topic:
+        # CASE 2: Simpler generation (Old method)
         # Simulate AI generation
         initial_data = {
             'topic': topic,
@@ -912,9 +950,9 @@ def lesson_plan_create(request):
             'homework': f"Read the chapter on {topic} and complete exercises 1-10 on page 42.",
             'teaching_materials': f"Textbook, Whiteboard, Marker, Projector (optional), Handouts on {topic}"
         }
-        messages.info(request, f"AI has drafted a lesson plan for '{topic}'. Please review and edit.")
+        messages.info(request, f"AI has drafted a lesson plan block for '{topic}'. Please review and edit.")
     
-    if request.method == 'POST':
+    if request.method == 'POST' and 'topic' in request.POST: # Standard form submit
         form = LessonPlanForm(request.POST, teacher=teacher)
         if form.is_valid():
             lesson_plan = form.save(commit=False)
