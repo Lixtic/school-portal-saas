@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Weekly Lesson Plan{% endblock %}
+
+{% block content %}
+<style>
+    /* B7 Weekly Lesson Plan Styles */
+    .b7-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 11pt;
+        color: #000;
+        background-color: #fff;
+    }
+    
+    .b7-table th, .b7-table td {
+        border: 2px solid #000; /* Thicker borders as per image style */
+        padding: 6px 8px;
+        vertical-align: top;
+    }
+    
+    /* Header fields usually have a light background in some prints, but image is colored. 
+       We'll simulate the peach/light-orange background for headers if needed, 
+       but standard print is usually B&W. Let's stick to clean B&W for broader compatibility 
+       or add a subtle class for screen. */
+    .bg-header {
+        background-color: #faeadd; /* Light peach match */
+    }
+
+    .b7-table th {
+        font-weight: bold;
+        text-align: left;
+    }
+
+    .center-text { text-align: center; }
+    
+    /* Screen-only adjustments */
+    [data-bs-theme="dark"] .b7-container {
+        color: var(--text-main);
+    }
+    [data-bs-theme="dark"] .b7-table {
+        color: #e2e8f0;
+        background-color: #1e293b;
+        border-color: #475569;
+    }
+    [data-bs-theme="dark"] .b7-table th, 
+    [data-bs-theme="dark"] .b7-table td {
+        border-color: #475569;
+    }
+    [data-bs-theme="dark"] .bg-header {
+        background-color: #334155;
+    }
+
+    /* Print Styles */
+    @media print {
+        @page { size: portrait; margin: 1cm; }
+        body * { visibility: hidden; }
+        #printableArea, #printableArea * { visibility: visible; }
+        #printableArea {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+            background: white !important;
+            color: black !important;
+        }
+        .b7-table { 
+            border-color: #000 !important;
+            background-color: transparent !important;
+        }
+        .b7-table th, .b7-table td {
+            border-color: #000 !important;
+        }
+        .bg-header {
+            background-color: #faeadd !important; /* Keep the color if user wants, or set to light grey */
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .print-hide { display: none !important; }
+        
+        tr { page-break-inside: avoid; }
+    }
+</style>
+
+<div class="container py-4 b7-container">
+    <div class="row justify-content-center">
+        <div class="col-lg-11 col-xl-10">
+            <!-- Action Bar -->
+            <div class="d-flex justify-content-between align-items-center mb-4 print-hide">
+                <a href="{% url 'teachers:lesson_plan_list' %}" class="btn btn-outline-secondary rounded-pill">
+                    <i class="bi bi-arrow-left me-2"></i>Back to List
+                </a>
+                <div class="d-flex gap-2">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-primary rounded-pill dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            Change Template
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="?template=standard">Standard GES</a></li>
+                            <li><a class="dropdown-item active" href="?template=weekly">Weekly B7 Format</a></li>
+                        </ul>
+                    </div>
+                    <button onclick="window.print()" class="btn btn-dark rounded-pill">
+                        <i class="bi bi-printer me-2"></i>Print / PDF
+                    </button>
+                    <a href="{% url 'teachers:lesson_plan_edit' lesson_plan.pk %}" class="btn btn-primary rounded-pill">
+                        <i class="bi bi-pencil me-2"></i>Edit
+                    </a>
+                </div>
+            </div>
+
+            <!-- Document Content -->
+            <div class="card border rounded-0 shadow-sm" id="printableArea">
+                <div class="card-body p-4 p-md-5 bg-white text-black">
+                    
+                    <div class="text-center mb-4 font-family-serif">
+                        <h4 class="fw-bold text-uppercase">Weekly Lesson Plan – {{ lesson_plan.school_class.name }}</h4>
+                        <h4 class="fw-bold text-uppercase">Week {{ lesson_plan.week_number }}</h4>
+                    </div>
+
+
+                    <table class="b7-table">
+                        <!-- Row 1 -->
+                        <tr>
+                            <td class="bg-header" width="15%"><strong>Date:</strong></td>
+                            <td width="35%">
+                                {% if lesson_plan.date_added %}
+                                    {{ lesson_plan.date_added|date:"d/m/Y" }}
+                                {% else %}
+                                    &nbsp;
+                                {% endif %}
+                            </td>
+                            <td class="bg-header" width="15%"><strong>Period:</strong></td>
+                            <td width="35%">1</td> <!-- Hardcoded based on image, or add field later -->
+                        </tr>
+                        <!-- Row 2 -->
+                        <tr>
+                            <td class="bg-header"><strong>Duration:</strong></td>
+                            <td>60 Mins</td>
+                            <td class="bg-header"><strong>Strand:</strong></td>
+                            <td>Environment</td>
+                        </tr>
+                        <!-- Row 3 -->
+                        <tr>
+                            <td class="bg-header"><strong>Class:</strong></td>
+                            <td>{{ lesson_plan.school_class.name }}</td>
+                            <td class="bg-header"><strong>Class Size:</strong></td>
+                            <td>45</td>
+                        </tr>
+                        <tr>
+                            <td class="bg-header"><strong>Subject:</strong></td>
+                            <td>{{ lesson_plan.subject.name }}</td>
+                            <td class="bg-header"><strong>Sub Strand:</strong></td>
+                            <td>{{ lesson_plan.topic }}</td>
+                        </tr>
+                    </table>
+
+                    <table class="b7-table" style="margin-top: -2px;">
+                        <tr>
+                            <td width="50%" valign="top">
+                                <div class="bg-header p-1 border-bottom border-dark"><strong>Content Standard:</strong></div>
+                                <div class="p-1">{{ lesson_plan.objectives|truncatewords:20 }}</div>
+                            </td>
+                            <td width="30%" valign="top">
+                                <div class="bg-header p-1 border-bottom border-dark"><strong>Indicator:</strong></div>
+                                <div class="p-1">{{ lesson_plan.objectives|linebreaksbr }}</div>
+                            </td>
+                            <td width="20%" valign="top">
+                                <div class="bg-header p-1 border-bottom border-dark"><strong>Lesson:</strong></div>
+                                <div class="p-1">1 of 3</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" valign="top">
+                                <div class="bg-header p-1 border-bottom border-dark"><strong>Performance Indicator:</strong></div>
+                                <div class="p-1">Learners can relate the lesson to real life situations.</div>
+                            </td>
+                            <td valign="top">
+                                <div class="bg-header p-1 border-bottom border-dark"><strong>Core Competencies:</strong></div>
+                                <div class="p-1">CP 5.1, CC 8.1</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="3" class="bg-header p-1"><strong>References:</strong> National {{ lesson_plan.subject.name }} Curriculum</td>
+                        </tr>
+                        <tr>
+                            <td colspan="3" class="bg-header p-1"><strong>Keywords:</strong> {{ lesson_plan.topic }}</td>
+                        </tr>
+                    </table>
+                        
+                    <!-- Instructional Phases Header -->
+                    <table class="b7-table" style="margin-top: 5px;">
+                        <thead>
+                            <tr class="bg-white">
+                                <th width="20%">Phase/Duration</th>
+                                <th width="50%">Learners Activities</th>
+                                <th width="30%">Resources</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Phase 1 -->
+                            <tr>
+                                <td><strong>PHASE 1: STARTER</strong></td>
+                                <td>{{ lesson_plan.introduction|linebreaksbr }}</td>
+                                <td rowspan="3" valign="top">{{ lesson_plan.teaching_materials|linebreaksbr }}</td>
+                            </tr>
+                            
+                            <!-- Phase 2 -->
+                            <tr>
+                                <td><strong>PHASE 2: NEW LEARNING</strong></td>
+                                <td>
+                                    {{ lesson_plan.presentation|linebreaksbr }}
+                                    <br><br>
+                                    <strong>Assessment:</strong>
+                                    {{ lesson_plan.evaluation|linebreaksbr }}
+                                </td>
+                            </tr>
+                            
+                            <!-- Phase 3 -->
+                            <tr>
+                                <td><strong>PHASE 3: REFLECTION</strong></td>
+                                <td>
+                                    <p>Use peer discussion and effective questioning to find out from learners what they have learnt during the lesson.</p>
+                                    <p>Take feedback from learners and summarize the lesson.</p>
+                                    
+                                    {% if lesson_plan.homework %}
+                                    <br><strong>Homework:</strong><br>
+                                    {{ lesson_plan.homework }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+{% endblock %}

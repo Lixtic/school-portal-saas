@@ -81,9 +81,17 @@
                     <i class="bi bi-arrow-left me-2"></i>Back to List
                 </a>
                 <div class="d-flex gap-2">
-                    <button onclick="window.print()" class="btn btn-dark rounded-pill">
-                        <i class="bi bi-printer me-2"></i>Print / PDF
-                    </button>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-dark rounded-pill dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-printer me-2"></i>Format
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><h6 class="dropdown-header">Select Template</h6></li>
+                            <li><a class="dropdown-item" href="#" onclick="window.print()">Standard GES (Current)</a></li>
+                            <li><a class="dropdown-item" href="{% url 'teachers:lesson_plan_print' lesson_plan.pk %}?template=b7">New B7 Weekly</a></li>
+                        </ul>
+                    </div>
+                    
                     <a href="{% url 'teachers:lesson_plan_edit' lesson_plan.pk %}" class="btn btn-primary rounded-pill">
                         <i class="bi bi-pencil me-2"></i>Edit
                     </a>

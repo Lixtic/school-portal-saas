@@ -1040,10 +1040,19 @@ def lesson_plan_print(request, pk):
     teacher = get_object_or_404(Teacher, user=request.user)
     lesson_plan = get_object_or_404(LessonPlan, pk=pk, teacher=teacher)
     
-    # Use detail template with print mode enabled to render the GES standard table
-    return render(request, 'teachers/lesson_plan_detail.html', {
+    # Check for template preference
+    template_format = request.GET.get('template', 'standard')
+    
+    if template_format == 'b7':
+        template_name = 'teachers/lesson_plan_print_b7.html'
+    else:
+        # Default to standard GES detail view with print mode
+        template_name = 'teachers/lesson_plan_detail.html'
+    
+    return render(request, template_name, {
         'lesson_plan': lesson_plan, 
-        'print_mode': True
+        'print_mode': True,
+        'current_template': template_format
     })
 
 @login_required
