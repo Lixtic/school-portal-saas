@@ -20,3 +20,35 @@ class Homework(models.Model):
     def __str__(self):
         return f"{self.title} - {self.target_class}"
 
+class Question(models.Model):
+    homework = models.ForeignKey(Homework, on_delete=models.CASCADE, related_name='questions')
+    text = models.TextField()
+    points = models.IntegerField(default=1)
+    
+    def __str__(self):
+        return f"{self.text[:50]}..."
+
+class Choice(models.Model):
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='choices')
+    text = models.CharField(max_length=200)
+    is_correct = models.BooleanField(default=False)
+    
+    def __str__(self):
+        return self.text
+
+class Submission(models.Model):
+    homework = models.ForeignKey(Homework, on_delete=models.CASCADE, related_name='submissions')
+    student = models.ForeignKey('students.Student', on_delete=models.CASCADE, related_name='homework_submissions')
+    score = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['homework', 'student']
+
+class Answer(models.Model):
+    submission = models.ForeignKey(Submission, on_delete=models.CASCADE, related_name='answers')
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    selected_choice = models.ForeignKey(Choice, on_delete=models.CASCADE, null=True, blank=True)
+    is_correct = models.BooleanField(default=False)
+
+

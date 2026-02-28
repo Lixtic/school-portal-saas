@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Add Questions - {{ homework.title }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h3 fw-bold">Manage Questions for: {{ homework.title }}</h2>
+        <a href="{% url 'homework:homework_detail' homework.id %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
+    </div>
+
+    <form method="post" id="questionsForm">
+        {% csrf_token %}
+        
+        <div id="questions-container">
+            <!-- Existing questions will be loaded here if any (future enhancement) -->
+            <!-- For now, we assume adding new questions -->
+        </div>
+
+        <div class="d-grid gap-2 d-md-flex justify-content-md-start mb-4">
+            <button type="button" class="btn btn-info text-white" onclick="addQuestion()">
+                <i class="bi bi-plus-lg"></i> Add Question
+            </button>
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-save"></i> Save All Questions
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    let questionCount = 0;
+
+    function addQuestion() {
+        questionCount++;
+        const container = document.getElementById('questions-container');
+        
+        const card = document.createElement('div');
+        card.className = 'card mb-4 shadow-sm border-0 question-block';
+        card.id = `question-${questionCount}`;
+        
+        card.innerHTML = `
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <span class="fw-bold">Question ${questionCount}</span>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeQuestion(${questionCount})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Question Text</label>
+                    <textarea name="question_text_${questionCount}" class="form-control" rows="2" required></textarea>
+                </div>
+                
+                <h6 class="text-muted small text-uppercase fw-bold mb-3">Choices</h6>
+                <div id="choices-container-${questionCount}">
+                    <!-- Choices go here -->
+                </div>
+                
+                <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addChoice(${questionCount})">
+                    <i class="bi bi-plus"></i> Add Choice
+                </button>
+            </div>
+        `;
+        
+        container.appendChild(card);
+        
+        // Add initial 2 choices
+        addChoice(questionCount);
+        addChoice(questionCount);
+    }
+
+    function removeQuestion(id) {
+        const el = document.getElementById(`question-${id}`);
+        el.remove();
+        // Note: Renumbering logic is omitted for simplicity; backend should handle gaps or front-end should re-index.
+        // For this simple implementation, backend loops blindly or we need to ensure indices are consecutive? 
+        // The view code: `while True: i+=1 ... get(...)`. It expects consecutive integers starting from 1.
+        // So we must re-index on submit or keep indices consecutive.
+        // Let's simple re-index on remove.
+        reindexQuestions();
+    }
+
+    function reindexQuestions() {
+        const questions = document.querySelectorAll('.question-block');
+        questionCount = 0;
+        questions.forEach((q) => {
+            questionCount++;
+            q.id = `question-${questionCount}`;
+            q.querySelector('.card-header span').textContent = `Question ${questionCount}`;
+            q.querySelector('textarea').name = `question_text_${questionCount}`;
+            q.querySelector('.btn-outline-danger').setAttribute('onclick', `removeQuestion(${questionCount})`);
+            
+            const choiceContainer = q.querySelector('[id^="choices-container-"]');
+            choiceContainer.id = `choices-container-${questionCount}`;
+            
+            const addChoiceBtn = q.querySelector('.btn-outline-primary');
+            addChoiceBtn.setAttribute('onclick', `addChoice(${questionCount})`);
+            
+            // Reindex choices
+            const choices = choiceContainer.querySelectorAll('.choice-row');
+            let cCount = 0;
+            choices.forEach(c => {
+                cCount++;
+                const checkbox = c.querySelector('input[type="checkbox"]');
+                const text = c.querySelector('input[type="text"]');
+                const removeChoiceBtn = c.querySelector('button');
+                
+                if(checkbox) checkbox.name = `is_correct_${questionCount}_${cCount}`;
+                if(text) {
+                    text.name = `choice_text_${questionCount}_${cCount}`;
+                    text.placeholder = `Choice ${cCount}`;
+                }
+                if(removeChoiceBtn) {
+                    removeChoiceBtn.setAttribute('onclick', `this.parentElement.remove(); reindexChoices(${questionCount})`);
+                }
+            });
+        });
+    }
+
+    function addChoice(qId) {
+        const container = document.getElementById(`choices-container-${qId}`);
+        // Count existing rows to set initial index
+        const count = container.children.length + 1;
+        
+        const div = document.createElement('div');
+        div.className = 'input-group mb-2 choice-row';
+        // Add choice HTML
+        div.innerHTML = `
+            <div class="input-group-text">
+                <input class="form-check-input mt-0" type="checkbox" name="is_correct_${qId}_${count}" aria-label="Correct answer">
+            </div>
+            <input type="text" class="form-control" name="choice_text_${qId}_${count}" placeholder="Choice ${count}" required>
+            <button class="btn btn-outline-secondary" type="button" onclick="this.parentElement.remove(); reindexChoices(${qId})">
+                <i class="bi bi-x"></i>
+            </button>
+        `;
+        container.appendChild(div);
+    }
+    
+    function reindexChoices(qId) {
+        const container = document.getElementById(`choices-container-${qId}`);
+        const choices = container.querySelectorAll('.choice-row');
+        let count = 0;
+        choices.forEach(c => {
+            count++;
+            const checkbox = c.querySelector('input[type="checkbox"]');
+            const text = c.querySelector('input[type="text"]');
+            const btn = c.querySelector('button');
+            
+            if(checkbox) checkbox.name = `is_correct_${qId}_${count}`;
+            if(text) {
+               text.name = `choice_text_${qId}_${count}`;
+               text.placeholder = `Choice ${count}`;
+            }
+             if(btn) {
+                // Ensure the button still points to the correct question ID 
+                // in case this was called after question reordering? 
+                // Actually reindexQuestions handles the qId, this handles local index inside qId.
+            }
+        });
+    }
+
+    // Initialize with one empty question
+    document.addEventListener('DOMContentLoaded', () => {
+        addQuestion();
+    });
+</script>
+{% endblock %}

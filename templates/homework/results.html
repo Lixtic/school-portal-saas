@@ -1,0 +1,74 @@
+{% extends 'base.html' %} 
+{% load static %}
+
+{% block title %}Results - {{ homework.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .result-card.correct { border-left: 5px solid #198754; background-color: #f8fff9; }
+    .result-card.incorrect { border-left: 5px solid #dc3545; background-color: #fff8f8; }
+    .status-icon { position: absolute; top: 1rem; right: 1rem; font-size: 1.5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="mb-4">
+                <a href="{% url 'homework:homework_detail' homework.id %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Assignment
+                </a>
+            </div>
+
+            <div class="card shadow-lg border-0 mb-5 overflow-hidden">
+                <div class="card-header {% if score >= 50 %}bg-success{% else %}bg-danger{% endif %} text-white text-center py-5">
+                    <h1 class="display-1 fw-bold mb-0">{{ score }}%</h1>
+                    <p class="fs-4 mb-0 opacity-75">Your Review for {{ homework.title }}</p>
+                </div>
+                
+                <div class="card-body p-4 p-md-5">
+                    <h4 class="mb-4 fw-bold border-bottom pb-2">Question Breakdown</h4>
+                    
+                    {% for answer in submission.answers.all %}
+                    <div class="card mb-3 result-card {% if answer.selected_choice.is_correct %}correct{% else %}incorrect{% endif %} shadow-sm border-0 position-relative">
+                        <div class="card-body py-4 ps-4 pe-5">
+                            <h5 class="fw-bold text-dark mb-3">{{ forloop.counter }}. {{ answer.question.text }}</h5>
+                            
+                            <div class="d-flex flex-column gap-2">
+                                <div class="p-3 rounded {% if answer.selected_choice.is_correct %}bg-success text-white{% else %}bg-danger text-white{% endif %} bg-opacity-75">
+                                    <i class="bi {% if answer.selected_choice.is_correct %}bi-check-circle-fill{% else %}bi-x-circle-fill{% endif %} me-2"></i>
+                                    <strong>Your Answer:</strong> {{ answer.selected_choice.text }}
+                                </div>
+
+                                {% if not answer.selected_choice.is_correct %}
+                                    <div class="p-3 rounded bg-light border border-success text-success">
+                                        <i class="bi bi-check-lg me-2"></i>
+                                        <strong>Correct Answer:</strong>
+                                        {% for choice in answer.question.choices.all %}
+                                            {% if choice.is_correct %}
+                                                {{ choice.text }}
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="status-icon {% if answer.selected_choice.is_correct %}text-success{% else %}text-danger{% endif %}">
+                                <i class="bi {% if answer.selected_choice.is_correct %}bi-check-lg{% else %}bi-x-lg{% endif %}"></i>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="card-footer bg-light p-4 text-center">
+                    <a href="{% url 'homework:homework_list' %}" class="btn btn-primary btn-lg">
+                        Continue to Assignments <i class="bi bi-chevron-right ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
