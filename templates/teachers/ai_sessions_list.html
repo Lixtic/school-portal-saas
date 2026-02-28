@@ -142,6 +142,7 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
 .aura-bento-chat { grid-column: span 4; grid-row: span 6; }
 .aura-bento-syllabus { grid-column: span 4; grid-row: span 2; }
 .aura-bento-actions { grid-column: span 4; grid-row: span 2; }
+.aura-bento-history { grid-column: span 4; grid-row: span 2; }
 .aura-bento-timeline { grid-column: span 8; grid-row: span 3; }
 .aura-bento-progress-bar { grid-column: span 12; position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; }
 
@@ -153,6 +154,7 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
     .aura-bento-chat { grid-column: span 6; grid-row: span 4; }
     .aura-bento-syllabus { grid-column: span 3; }
     .aura-bento-actions { grid-column: span 3; }
+    .aura-bento-history { grid-column: span 3; }
     .aura-bento-timeline { grid-column: span 6; }
 }
 @media (max-width: 768px) {
@@ -751,6 +753,70 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
 .aura-bento > *:nth-child(5) { animation-delay: 0.25s; }
 .aura-bento > *:nth-child(6) { animation-delay: 0.3s; }
 .aura-bento > *:nth-child(7) { animation-delay: 0.35s; }
+.aura-bento > *:nth-child(8) { animation-delay: 0.4s; }
+
+.aura-history-card h4 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.aura-history-list {
+    display: grid;
+    gap: 10px;
+    max-height: 240px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+.aura-history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--aura-border);
+    background: var(--aura-bg-glass);
+    color: var(--aura-text-primary);
+    text-decoration: none;
+    transition: all var(--aura-transition-fast);
+}
+.aura-history-item:hover {
+    border-color: var(--aura-border-glow);
+    box-shadow: var(--aura-shadow-glow);
+    transform: translateY(-1px);
+}
+.aura-history-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+.aura-history-meta {
+    font-size: 0.7rem;
+    color: var(--aura-text-muted);
+}
+.aura-history-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.aura-history-actions form { margin: 0; }
+.aura-history-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid var(--aura-border);
+    background: var(--aura-bg-glass);
+    color: var(--aura-text-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--aura-transition-fast);
+}
+.aura-history-btn:hover {
+    color: var(--aura-text-primary);
+    border-color: var(--aura-border-glow);
+}
 
 /* Scroll styling */
 .aura-command-shell ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -885,6 +951,31 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
                 <input type="text" id="auraChatInput" placeholder="Ask Aura anything..." autocomplete="off" required>
                 <button type="submit"><i class="fas fa-paper-plane"></i></button>
             </form>
+        </div>
+
+        <!-- ═══ SESSION HISTORY ═══ -->
+        <div class="aura-glass aura-bento-history aura-history-card">
+            <h4><i class="fas fa-history"></i> Session History</h4>
+            <div class="aura-history-list">
+                {% for s in sessions|slice:":8" %}
+                <a class="aura-history-item" href="{% url 'teachers:ai_session_detail' s.id %}">
+                    <div>
+                        <div class="aura-history-title">{{ s.title }}</div>
+                        <div class="aura-history-meta">Updated {{ s.updated_at|date:"M d, H:i" }}</div>
+                    </div>
+                    <div class="aura-history-actions">
+                        <form action="{% url 'teachers:ai_session_delete' s.id %}" method="post" onsubmit="return confirm('Delete this session?');">
+                            {% csrf_token %}
+                            <button type="submit" class="aura-history-btn" title="Delete">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </form>
+                    </div>
+                </a>
+                {% empty %}
+                <div class="text-muted small">No sessions yet. Start a new lesson to keep history.</div>
+                {% endfor %}
+            </div>
         </div>
         
         <!-- ═══ SYLLABUS PROGRESS / NEXT CLASS ═══ -->
