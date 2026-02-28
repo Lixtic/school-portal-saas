@@ -1,582 +1,1194 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Aura-T | Strategic Command Centre{% endblock %}
+{% block title %}Aura-T 2.0 | Command Centre{% endblock %}
 
 {% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-.time-block.dragging {
-    opacity: 0.5;
-    transform: scale(0.95);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    z-index: 100;
+/* ═══════════════════════════════════════════════════════════════════════════
+   AURA-T 2.0 COMMAND CENTRE — Dark Glassmorphism / Bento Grid / Futuristic SaaS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── CSS Custom Properties (Tailwind-inspired tokens) ────────────────────── */
+:root {
+    --aura-bg-primary: #0a0a0f;
+    --aura-bg-secondary: #12121a;
+    --aura-bg-card: rgba(18, 18, 26, 0.7);
+    --aura-bg-glass: rgba(255, 255, 255, 0.03);
+    --aura-border: rgba(255, 255, 255, 0.06);
+    --aura-border-glow: rgba(139, 92, 246, 0.3);
+    --aura-text-primary: #f8fafc;
+    --aura-text-secondary: #94a3b8;
+    --aura-text-muted: #64748b;
+    --aura-accent-violet: #8b5cf6;
+    --aura-accent-cyan: #06b6d4;
+    --aura-accent-emerald: #10b981;
+    --aura-accent-amber: #f59e0b;
+    --aura-accent-rose: #f43f5e;
+    --aura-gradient-primary: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+    --aura-gradient-glow: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%);
+    --aura-shadow-glow: 0 0 40px rgba(139, 92, 246, 0.15);
+    --aura-radius-sm: 8px;
+    --aura-radius-md: 12px;
+    --aura-radius-lg: 16px;
+    --aura-radius-xl: 24px;
+    --aura-space-1: 4px;
+    --aura-space-2: 8px;
+    --aura-space-3: 12px;
+    --aura-space-4: 16px;
+    --aura-space-5: 20px;
+    --aura-space-6: 24px;
+    --aura-space-8: 32px;
+    --aura-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --aura-transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    --aura-transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    --aura-transition-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.timeline-canvas.drag-over {
-    background-color: var(--bs-light);
-    border-color: var(--bs-primary) !important;
+
+/* ── Base Overrides ──────────────────────────────────────────────────────── */
+.aura-command-shell {
+    min-height: 100vh;
+    background: var(--aura-bg-primary);
+    background-image: 
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(139, 92, 246, 0.15), transparent),
+        radial-gradient(ellipse 60% 40% at 100% 100%, rgba(6, 182, 212, 0.1), transparent);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--aura-text-primary);
+    overflow-x: hidden;
 }
-.empty-state { pointer-events: none; }
+
+/* ── Glassmorphism Card Base ─────────────────────────────────────────────── */
+.aura-glass {
+    background: var(--aura-bg-glass);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid var(--aura-border);
+    border-radius: var(--aura-radius-lg);
+    transition: all var(--aura-transition-base);
+}
+.aura-glass:hover {
+    border-color: var(--aura-border-glow);
+    box-shadow: var(--aura-shadow-glow);
+}
+
+/* ── Bento Grid Layout ───────────────────────────────────────────────────── */
+.aura-bento {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-auto-rows: minmax(80px, auto);
+    gap: var(--aura-space-4);
+    padding: var(--aura-space-6);
+    max-width: 1600px;
+    margin: 0 auto;
+}
+.aura-bento-header { grid-column: span 9; grid-row: span 1; }
+.aura-bento-pulse { grid-column: span 3; grid-row: span 1; }
+.aura-bento-students { grid-column: span 8; grid-row: span 4; }
+.aura-bento-chat { grid-column: span 4; grid-row: span 6; }
+.aura-bento-syllabus { grid-column: span 4; grid-row: span 2; }
+.aura-bento-actions { grid-column: span 4; grid-row: span 2; }
+.aura-bento-timeline { grid-column: span 8; grid-row: span 3; }
+.aura-bento-progress-bar { grid-column: span 12; position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; }
+
+@media (max-width: 1200px) {
+    .aura-bento { grid-template-columns: repeat(6, 1fr); }
+    .aura-bento-header { grid-column: span 6; }
+    .aura-bento-pulse { grid-column: span 6; }
+    .aura-bento-students { grid-column: span 6; grid-row: span 3; }
+    .aura-bento-chat { grid-column: span 6; grid-row: span 4; }
+    .aura-bento-syllabus { grid-column: span 3; }
+    .aura-bento-actions { grid-column: span 3; }
+    .aura-bento-timeline { grid-column: span 6; }
+}
+@media (max-width: 768px) {
+    .aura-bento { grid-template-columns: 1fr; padding: var(--aura-space-3); }
+    .aura-bento > * { grid-column: span 1 !important; grid-row: span 1 !important; }
+    .aura-bento-chat { order: 10; }
+}
+
+/* ── Header Bar ──────────────────────────────────────────────────────────── */
+.aura-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--aura-space-4) var(--aura-space-5);
+}
+.aura-logo {
+    display: flex;
+    align-items: center;
+    gap: var(--aura-space-3);
+}
+.aura-logo-icon {
+    width: 44px;
+    height: 44px;
+    background: var(--aura-gradient-primary);
+    border-radius: var(--aura-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+    animation: aura-float 3s ease-in-out infinite;
+}
+@keyframes aura-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+}
+.aura-logo-text h1 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+    background: var(--aura-gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.aura-logo-text span {
+    font-size: 0.7rem;
+    color: var(--aura-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+.aura-header-actions {
+    display: flex;
+    gap: var(--aura-space-2);
+}
+.aura-btn-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--aura-radius-sm);
+    background: var(--aura-bg-glass);
+    border: 1px solid var(--aura-border);
+    color: var(--aura-text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--aura-transition-fast);
+}
+.aura-btn-icon:hover {
+    background: rgba(139, 92, 246, 0.1);
+    border-color: var(--aura-accent-violet);
+    color: var(--aura-accent-violet);
+    transform: scale(1.05);
+}
+
+/* ── Pulse Status Card ───────────────────────────────────────────────────── */
+.aura-pulse-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--aura-space-3);
+    padding: var(--aura-space-4);
+}
+.aura-pulse-orb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--aura-accent-amber);
+    animation: aura-pulse 2s ease-in-out infinite;
+    box-shadow: 0 0 20px var(--aura-accent-amber);
+}
+@keyframes aura-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.7; }
+}
+.aura-pulse-orb.green { background: var(--aura-accent-emerald); box-shadow: 0 0 20px var(--aura-accent-emerald); }
+.aura-pulse-orb.red { background: var(--aura-accent-rose); box-shadow: 0 0 20px var(--aura-accent-rose); }
+.aura-pulse-text {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--aura-text-secondary);
+}
+.aura-pulse-text strong { color: var(--aura-accent-amber); }
+
+/* ── Student Status Tiles Grid (40 tiles) ────────────────────────────────── */
+.aura-students-panel {
+    padding: var(--aura-space-5);
+    display: flex;
+    flex-direction: column;
+}
+.aura-students-panel h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: var(--aura-space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--aura-space-2);
+}
+.aura-students-panel h3 i { color: var(--aura-accent-cyan); }
+.aura-students-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(54px, 1fr));
+    gap: var(--aura-space-2);
+    flex: 1;
+    overflow-y: auto;
+}
+.aura-student-tile {
+    aspect-ratio: 1;
+    border-radius: var(--aura-radius-sm);
+    background: var(--aura-bg-secondary);
+    border: 1px solid var(--aura-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--aura-text-secondary);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all var(--aura-transition-spring);
+}
+.aura-student-tile::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity var(--aura-transition-fast);
+}
+.aura-student-tile:hover {
+    transform: scale(1.12) translateY(-2px);
+    z-index: 10;
+}
+/* Status Glow States */
+.aura-student-tile[data-status="active"] {
+    border-color: var(--aura-accent-emerald);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.4), inset 0 0 20px rgba(16, 185, 129, 0.1);
+    color: var(--aura-accent-emerald);
+    animation: tile-glow-green 2s ease-in-out infinite;
+}
+.aura-student-tile[data-status="struggling"] {
+    border-color: var(--aura-accent-rose);
+    box-shadow: 0 0 12px rgba(244, 63, 94, 0.4), inset 0 0 20px rgba(244, 63, 94, 0.1);
+    color: var(--aura-accent-rose);
+    animation: tile-glow-red 1.5s ease-in-out infinite;
+}
+.aura-student-tile[data-status="idle"] {
+    border-color: var(--aura-accent-amber);
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+    color: var(--aura-accent-amber);
+}
+.aura-student-tile[data-status="offline"] {
+    opacity: 0.4;
+}
+@keyframes tile-glow-green {
+    0%, 100% { box-shadow: 0 0 12px rgba(16, 185, 129, 0.4); }
+    50% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.6); }
+}
+@keyframes tile-glow-red {
+    0%, 100% { box-shadow: 0 0 12px rgba(244, 63, 94, 0.4); }
+    50% { box-shadow: 0 0 24px rgba(244, 63, 94, 0.7); }
+}
+
+/* ── AI Chat Sidebar ─────────────────────────────────────────────────────── */
+.aura-chat-panel {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+}
+.aura-chat-header {
+    padding: var(--aura-space-4) var(--aura-space-5);
+    border-bottom: 1px solid var(--aura-border);
+    display: flex;
+    align-items: center;
+    gap: var(--aura-space-3);
+}
+.aura-chat-header-avatar {
+    width: 36px;
+    height: 36px;
+    background: var(--aura-gradient-primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+}
+.aura-chat-header-info h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin: 0;
+}
+.aura-chat-header-info span {
+    font-size: 0.7rem;
+    color: var(--aura-accent-emerald);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.aura-chat-header-info span::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--aura-accent-emerald);
+    border-radius: 50%;
+}
+.aura-chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--aura-space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--aura-space-3);
+}
+.aura-chat-msg {
+    max-width: 85%;
+    padding: var(--aura-space-3) var(--aura-space-4);
+    border-radius: var(--aura-radius-md);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    animation: msg-slide-in 0.3s var(--aura-transition-spring);
+}
+@keyframes msg-slide-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.aura-chat-msg.bot {
+    background: var(--aura-bg-secondary);
+    border: 1px solid var(--aura-border);
+    align-self: flex-start;
+}
+.aura-chat-msg.user {
+    background: var(--aura-gradient-primary);
+    color: white;
+    align-self: flex-end;
+}
+.aura-chat-scaffolds {
+    padding: var(--aura-space-3) var(--aura-space-4);
+    border-top: 1px solid var(--aura-border);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--aura-space-2);
+}
+.aura-scaffold-chip {
+    padding: var(--aura-space-1) var(--aura-space-3);
+    background: var(--aura-bg-secondary);
+    border: 1px solid var(--aura-border);
+    border-radius: 999px;
+    font-size: 0.65rem;
+    color: var(--aura-text-secondary);
+    cursor: pointer;
+    transition: all var(--aura-transition-fast);
+}
+.aura-scaffold-chip:hover {
+    border-color: var(--aura-accent-violet);
+    color: var(--aura-accent-violet);
+    transform: scale(1.03);
+}
+.aura-chat-input {
+    padding: var(--aura-space-3) var(--aura-space-4);
+    border-top: 1px solid var(--aura-border);
+    display: flex;
+    gap: var(--aura-space-2);
+}
+.aura-chat-input input {
+    flex: 1;
+    background: var(--aura-bg-secondary);
+    border: 1px solid var(--aura-border);
+    border-radius: var(--aura-radius-sm);
+    padding: var(--aura-space-2) var(--aura-space-3);
+    color: var(--aura-text-primary);
+    font-size: 0.8rem;
+    outline: none;
+    transition: border-color var(--aura-transition-fast);
+}
+.aura-chat-input input::placeholder { color: var(--aura-text-muted); }
+.aura-chat-input input:focus { border-color: var(--aura-accent-violet); }
+.aura-chat-input button {
+    width: 36px;
+    height: 36px;
+    background: var(--aura-gradient-primary);
+    border: none;
+    border-radius: var(--aura-radius-sm);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform var(--aura-transition-fast), box-shadow var(--aura-transition-fast);
+}
+.aura-chat-input button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+}
+
+/* ── Syllabus Progress Card ──────────────────────────────────────────────── */
+.aura-syllabus-card {
+    padding: var(--aura-space-5);
+}
+.aura-syllabus-card h4 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: var(--aura-space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--aura-space-2);
+}
+.aura-syllabus-card h4 i { color: var(--aura-accent-cyan); }
+.aura-progress-ring {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto var(--aura-space-4);
+    position: relative;
+}
+.aura-progress-ring svg { transform: rotate(-90deg); }
+.aura-progress-ring circle {
+    fill: none;
+    stroke-width: 6;
+}
+.aura-progress-ring .bg { stroke: var(--aura-bg-secondary); }
+.aura-progress-ring .progress {
+    stroke: url(#aura-gradient);
+    stroke-linecap: round;
+    stroke-dasharray: 226;
+    stroke-dashoffset: 79; /* 65% = 226 - (226 * 0.65) */
+    transition: stroke-dashoffset 1s ease;
+}
+.aura-progress-ring .value {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    font-weight: 700;
+    background: var(--aura-gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.aura-syllabus-insight {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    border-radius: var(--aura-radius-sm);
+    padding: var(--aura-space-3);
+    font-size: 0.7rem;
+    color: var(--aura-accent-amber);
+}
+
+/* ── Quick Actions Card ──────────────────────────────────────────────────── */
+.aura-actions-card {
+    padding: var(--aura-space-5);
+}
+.aura-actions-card h4 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: var(--aura-space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--aura-space-2);
+}
+.aura-actions-card h4 i { color: var(--aura-accent-violet); }
+.aura-action-btn {
+    width: 100%;
+    padding: var(--aura-space-3) var(--aura-space-4);
+    background: var(--aura-bg-secondary);
+    border: 1px solid var(--aura-border);
+    border-radius: var(--aura-radius-sm);
+    color: var(--aura-text-primary);
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    margin-bottom: var(--aura-space-2);
+    display: flex;
+    align-items: center;
+    gap: var(--aura-space-3);
+    transition: all var(--aura-transition-fast);
+    text-decoration: none;
+}
+.aura-action-btn:hover {
+    background: var(--aura-gradient-glow);
+    border-color: var(--aura-border-glow);
+    transform: translateX(4px);
+    color: var(--aura-text-primary);
+}
+.aura-action-btn i {
+    width: 24px;
+    height: 24px;
+    background: var(--aura-bg-glass);
+    border-radius: var(--aura-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    color: var(--aura-accent-violet);
+}
+
+/* ── Timeline / Lesson Canvas ────────────────────────────────────────────── */
+.aura-timeline-panel {
+    padding: var(--aura-space-5);
+}
+.aura-timeline-panel h4 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: var(--aura-space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--aura-space-2);
+}
+.aura-timeline-panel h4 i { color: var(--aura-accent-emerald); }
+.aura-timeline-grid {
+    display: flex;
+    gap: var(--aura-space-3);
+}
+.aura-timeline-bank {
+    width: 180px;
+    flex-shrink: 0;
+}
+.aura-timeline-bank h5 {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--aura-text-muted);
+    margin-bottom: var(--aura-space-3);
+}
+.aura-time-block {
+    background: var(--aura-bg-secondary);
+    border: 1px solid var(--aura-border);
+    border-radius: var(--aura-radius-sm);
+    padding: var(--aura-space-2) var(--aura-space-3);
+    margin-bottom: var(--aura-space-2);
+    font-size: 0.7rem;
+    cursor: grab;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all var(--aura-transition-fast);
+}
+.aura-time-block:hover {
+    border-color: var(--aura-accent-violet);
+    transform: scale(1.02);
+}
+.aura-time-block:active { cursor: grabbing; }
+.aura-time-block.dragging { opacity: 0.5; transform: scale(0.95); }
+.aura-time-block i { margin-right: var(--aura-space-2); }
+.aura-time-block .badge {
+    background: var(--aura-bg-glass);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    color: var(--aura-text-muted);
+}
+.aura-timeline-canvas {
+    flex: 1;
+    background: var(--aura-bg-secondary);
+    border: 2px dashed var(--aura-border);
+    border-radius: var(--aura-radius-md);
+    min-height: 160px;
+    padding: var(--aura-space-4);
+    transition: all var(--aura-transition-fast);
+    display: flex;
+    flex-direction: column;
+    gap: var(--aura-space-2);
+}
+.aura-timeline-canvas.drag-over {
+    border-color: var(--aura-accent-violet);
+    background: var(--aura-gradient-glow);
+}
+.aura-timeline-canvas .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--aura-text-muted);
+    font-size: 0.75rem;
+    pointer-events: none;
+}
+.aura-timeline-canvas .empty-state i { font-size: 1.5rem; margin-bottom: var(--aura-space-2); opacity: 0.5; }
+
+/* ── 45-Minute Lesson Progress Bar (Fixed Bottom) ────────────────────────── */
+.aura-lesson-progress {
+    background: var(--aura-bg-secondary);
+    border-top: 1px solid var(--aura-border);
+    padding: var(--aura-space-3) var(--aura-space-6);
+    display: flex;
+    align-items: center;
+    gap: var(--aura-space-4);
+}
+.aura-lesson-progress .time-label {
+    font-size: 0.7rem;
+    color: var(--aura-text-muted);
+    font-family: 'JetBrains Mono', monospace;
+}
+.aura-lesson-progress .time-label strong {
+    color: var(--aura-text-primary);
+    font-weight: 600;
+}
+.aura-progress-track {
+    flex: 1;
+    height: 8px;
+    background: var(--aura-bg-primary);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+.aura-progress-fill {
+    height: 100%;
+    background: var(--aura-gradient-primary);
+    border-radius: 4px;
+    width: 0%;
+    transition: width 1s linear;
+    position: relative;
+}
+.aura-progress-fill::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.6);
+}
+.aura-progress-markers {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    pointer-events: none;
+}
+.aura-progress-marker {
+    font-size: 0.6rem;
+    color: var(--aura-text-muted);
+    text-align: center;
+}
+.aura-lesson-controls {
+    display: flex;
+    gap: var(--aura-space-2);
+}
+.aura-lesson-controls button {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--aura-border);
+    background: var(--aura-bg-glass);
+    color: var(--aura-text-secondary);
+    cursor: pointer;
+    transition: all var(--aura-transition-fast);
+}
+.aura-lesson-controls button:hover {
+    background: var(--aura-accent-violet);
+    border-color: var(--aura-accent-violet);
+    color: white;
+}
+.aura-lesson-controls button.active {
+    background: var(--aura-accent-emerald);
+    border-color: var(--aura-accent-emerald);
+    color: white;
+}
+
+/* ── Micro-interactions & Animations (Framer Motion style) ──────────────── */
+@keyframes aura-fade-in {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.aura-glass {
+    animation: aura-fade-in 0.5s ease-out backwards;
+}
+.aura-bento > *:nth-child(1) { animation-delay: 0.05s; }
+.aura-bento > *:nth-child(2) { animation-delay: 0.1s; }
+.aura-bento > *:nth-child(3) { animation-delay: 0.15s; }
+.aura-bento > *:nth-child(4) { animation-delay: 0.2s; }
+.aura-bento > *:nth-child(5) { animation-delay: 0.25s; }
+.aura-bento > *:nth-child(6) { animation-delay: 0.3s; }
+.aura-bento > *:nth-child(7) { animation-delay: 0.35s; }
+
+/* Scroll styling */
+.aura-command-shell ::-webkit-scrollbar { width: 6px; height: 6px; }
+.aura-command-shell ::-webkit-scrollbar-track { background: var(--aura-bg-primary); }
+.aura-command-shell ::-webkit-scrollbar-thumb { background: var(--aura-border); border-radius: 3px; }
+.aura-command-shell ::-webkit-scrollbar-thumb:hover { background: var(--aura-accent-violet); }
+
+/* Utility classes */
+.text-gradient {
+    background: var(--aura-gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.glow-violet { box-shadow: 0 0 30px rgba(139, 92, 246, 0.3); }
+.glow-cyan { box-shadow: 0 0 30px rgba(6, 182, 212, 0.3); }
+
+/* Body padding for fixed progress bar */
+.aura-command-shell { padding-bottom: 60px; }
 </style>
 {% endblock %}
 
 {% block content %}
-<style>
-    /* Glassmorphism & Next.js/Tailwind Aesthetic Overrides */
-    body {
-        background: linear-gradient(135deg, #f0f4f8 0%, #e9ecef 100%);
-        font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    }
-    .glass-card {
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: 16px;
-        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .glass-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 12px 40px rgba(31, 38, 135, 0.08);
-    }
-    /* Pulse Indicator */
-    .pulse-orb {
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        display: inline-block;
-        box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
-        animation: pulse-amber 2s infinite;
-        background-color: #ffc107;
-    }
-    @keyframes pulse-amber {
-        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
-        70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
-        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
-    }
-    /* Map Grid */
-    .heatmap-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-        gap: 12px;
-    }
-    .student-tile {
-        height: 80px;
-        border-radius: 12px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        font-size: 0.85rem;
-        cursor: pointer;
-        position: relative;
-        transition: all 0.2s ease;
-    }
-    .tile-excellent { background-color: rgba(40, 167, 69, 0.15); border: 1px solid rgba(40, 167, 69, 0.3); color: #1e7e34; }
-    .tile-good { background-color: rgba(23, 162, 184, 0.15); border: 1px solid rgba(23, 162, 184, 0.3); color: #117a8b; }
-    .tile-struggling { background-color: rgba(220, 53, 69, 0.15); border: 1px solid rgba(220, 53, 69, 0.3); color: #bd2130; }
-    .student-tile:hover {
-        transform: scale(1.05);
-        z-index: 10;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    }
-    .sparkline {
-        width: 60px;
-        height: 15px;
-        margin-top: 5px;
-        opacity: 0.6;
-    }
-    
-    /* Interactive Timeline */
-    .timeline-canvas {
-        background: rgba(248, 249, 250, 0.6);
-        border-radius: 12px;
-        padding: 20px;
-        border: 1px dashed #dee2e6;
-    }
-    .time-block {
-        border-radius: 8px;
-        padding: 10px 15px;
-        margin-bottom: 10px;
-        background: white;
-        border-left: 4px solid #4e73df;
-        cursor: grab;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .time-block:active { cursor: grabbing; }
-    
-    /* Differentiation Column */
-    .diff-col {
-        border-radius: 12px;
-        padding: 15px;
-    }
-    .diff-support { background-color: rgba(23, 162, 184, 0.05); border: 1px solid rgba(23, 162, 184, 0.2); }
-    .diff-core { background-color: rgba(78, 115, 223, 0.05); border: 1px solid rgba(78, 115, 223, 0.2); }
-    .diff-extension { background-color: rgba(111, 66, 193, 0.05); border: 1px solid rgba(111, 66, 193, 0.2); }
-</style>
+<!-- SVG Gradient Definitions -->
+<svg width="0" height="0" style="position: absolute;">
+    <defs>
+        <linearGradient id="aura-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#8b5cf6"/>
+            <stop offset="100%" style="stop-color:#06b6d4"/>
+        </linearGradient>
+    </defs>
+</svg>
 
-<div class="container-fluid py-4" style="max-width: 1400px;">
-    <!-- Top Nav / Core status -->
-    <div class="d-flex justify-content-between align-items-center mb-4 glass-card p-3">
-        <div>
-            <h1 class="h3 mb-0 text-gray-800 fw-bold"><i class="fas fa-brain text-primary me-2"></i>Aura-T Command Centre</h1>
-            <p class="text-muted mb-0 small mt-1">Glanceable class insights & intelligent lesson planning</p>
+<div class="aura-command-shell">
+    <div class="aura-bento">
+        
+        <!-- ═══ HEADER BAR ═══ -->
+        <div class="aura-glass aura-bento-header aura-header">
+            <div class="aura-logo">
+                <div class="aura-logo-icon">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <div class="aura-logo-text">
+                    <h1>Aura-T 2.0</h1>
+                    <span>Teacher Command Centre</span>
+                </div>
+            </div>
+            <div class="aura-header-actions">
+                <a href="{% url 'teachers:ai_session_new' %}" class="aura-btn-icon" title="New Lesson">
+                    <i class="fas fa-plus"></i>
+                </a>
+                <button class="aura-btn-icon" title="Settings">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <a href="{% url 'dashboard' %}" class="aura-btn-icon" title="Dashboard">
+                    <i class="fas fa-th-large"></i>
+                </a>
+            </div>
         </div>
-        <div class="d-flex align-items-center bg-white px-4 py-2 rounded-pill shadow-sm border">
-            <span class="fw-bold me-3">Class Pulse</span>
-            <div class="pulse-orb me-2"></div>
-            <span class="text-warning fw-bold">Active Misconception: 3 students</span>
+        
+        <!-- ═══ PULSE STATUS ═══ -->
+        <div class="aura-glass aura-bento-pulse aura-pulse-card">
+            <div class="aura-pulse-orb {% if struggling_count == 0 %}green{% elif struggling_count > 5 %}red{% endif %}"></div>
+            <div class="aura-pulse-text">
+                {% if struggling_count > 0 %}
+                    <strong>{{ struggling_count }}</strong> need attention
+                {% else %}
+                    Class is <strong>on track</strong>
+                {% endif %}
+            </div>
         </div>
+        
+        <!-- ═══ STUDENT STATUS TILES (40 tiles with glow) ═══ -->
+        <div class="aura-glass aura-bento-students aura-students-panel">
+            <h3><i class="fas fa-users"></i> Live Student Matrix</h3>
+            <div class="aura-students-grid" id="studentGrid">
+                {% for student in student_data %}
+                <div class="aura-student-tile" 
+                     data-status="{% if student.status == 'excellent' %}active{% elif student.status == 'struggling' %}struggling{% else %}idle{% endif %}"
+                     title="{{ student.name }}{% if student.tooltip %} - {{ student.tooltip }}{% endif %}">
+                    {{ student.name|slice:":2"|upper }}
+                </div>
+                {% empty %}
+                <!-- Demo tiles when no data -->
+                {% for i in "1234567890123456789012345678901234567890"|make_list %}
+                <div class="aura-student-tile" 
+                     data-status="{% cycle 'active' 'idle' 'active' 'struggling' 'active' 'idle' 'idle' 'active' 'offline' 'active' %}"
+                     title="Student {{ forloop.counter }}">
+                    S{{ forloop.counter }}
+                </div>
+                {% endfor %}
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- ═══ AI CHAT SIDEBAR ═══ -->
+        <div class="aura-glass aura-bento-chat aura-chat-panel">
+            <div class="aura-chat-header">
+                <div class="aura-chat-header-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="aura-chat-header-info">
+                    <h4>Aura Co-Pilot</h4>
+                    <span>Online</span>
+                </div>
+            </div>
+            <div class="aura-chat-messages" id="auraChatMessages">
+                <div class="aura-chat-msg bot">
+                    Hello! I'm your AI teaching assistant. I can help with lesson planning, student insights, and curriculum alignment. What would you like to work on?
+                </div>
+            </div>
+            <div class="aura-chat-scaffolds">
+                <button class="aura-scaffold-chip" data-prompt="Summarize my class progress in 3 bullets">Class summary</button>
+                <button class="aura-scaffold-chip" data-prompt="Create a 10-minute lesson starter">Lesson starter</button>
+                <button class="aura-scaffold-chip" data-prompt="Generate a rubric for today's activity">Rubric</button>
+                <button class="aura-scaffold-chip" data-prompt="Draft an exit ticket for this topic">Exit ticket</button>
+            </div>
+            <form class="aura-chat-input" id="auraChatForm" data-no-loader>
+                <input type="text" id="auraChatInput" placeholder="Ask Aura anything..." autocomplete="off" required>
+                <button type="submit"><i class="fas fa-paper-plane"></i></button>
+            </form>
+        </div>
+        
+        <!-- ═══ SYLLABUS PROGRESS ═══ -->
+        <div class="aura-glass aura-bento-syllabus aura-syllabus-card">
+            <h4><i class="fas fa-book-open"></i> Syllabus Coverage</h4>
+            <div class="aura-progress-ring">
+                <svg width="80" height="80" viewBox="0 0 80 80">
+                    <circle class="bg" cx="40" cy="40" r="36"/>
+                    <circle class="progress" cx="40" cy="40" r="36"/>
+                </svg>
+                <div class="value">65%</div>
+            </div>
+            <div class="aura-syllabus-insight">
+                <i class="fas fa-lightbulb"></i> 2 days behind on Algebra. Aura has condensed today's intro phase.
+            </div>
+        </div>
+        
+        <!-- ═══ QUICK ACTIONS ═══ -->
+        <div class="aura-glass aura-bento-actions aura-actions-card">
+            <h4><i class="fas fa-bolt"></i> Quick Actions</h4>
+            <a href="{% url 'teachers:ai_session_new' %}" class="aura-action-btn">
+                <i class="fas fa-magic"></i>
+                <span>Generate New Lesson</span>
+            </a>
+            <button class="aura-action-btn" data-bs-toggle="modal" data-bs-target="#gesNoteModal">
+                <i class="fas fa-file-signature"></i>
+                <span>GES Lesson Note</span>
+            </button>
+            <button class="aura-action-btn" onclick="document.getElementById('auraChatInput').focus(); document.getElementById('auraChatInput').value = 'Help me differentiate content for my class';">
+                <i class="fas fa-layer-group"></i>
+                <span>1-Click Differentiation</span>
+            </button>
+            <button class="aura-action-btn" onclick="document.getElementById('auraChatInput').focus(); document.getElementById('auraChatInput').value = 'Draft parent update messages for struggling students';">
+                <i class="fas fa-envelope"></i>
+                <span>Parent Updates</span>
+            </button>
+        </div>
+        
+        <!-- ═══ INTERACTIVE TIMELINE ═══ -->
+        <div class="aura-glass aura-bento-timeline aura-timeline-panel">
+            <h4><i class="fas fa-stream"></i> Lesson Builder</h4>
+            <div class="aura-timeline-grid">
+                <div class="aura-timeline-bank" id="blocksBank">
+                    <h5>Smart Blocks</h5>
+                    <div class="aura-time-block" draggable="true">
+                        <span><i class="fas fa-lightbulb" style="color: var(--aura-accent-amber);"></i> Hook</span>
+                        <span class="badge">5m</span>
+                    </div>
+                    <div class="aura-time-block" draggable="true">
+                        <span><i class="fas fa-chalkboard" style="color: var(--aura-accent-violet);"></i> Instruction</span>
+                        <span class="badge">15m</span>
+                    </div>
+                    <div class="aura-time-block" draggable="true">
+                        <span><i class="fas fa-users" style="color: var(--aura-accent-cyan);"></i> Group Work</span>
+                        <span class="badge">15m</span>
+                    </div>
+                    <div class="aura-time-block" draggable="true">
+                        <span><i class="fas fa-check" style="color: var(--aura-accent-emerald);"></i> Exit Ticket</span>
+                        <span class="badge">10m</span>
+                    </div>
+                </div>
+                <div class="aura-timeline-canvas" id="lessonCanvas">
+                    <div class="empty-state">
+                        <i class="fas fa-grip-lines"></i>
+                        <span>Drag blocks here to build your lesson</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
     </div>
-
-    <div class="row g-4 mb-4">
-        <!-- Sidebar Aura Actions -->
-        <div class="col-lg-3">
-            <div class="glass-card p-4 h-100 position-relative">
-                <div class="text-center mb-4">
-                    <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow" style="width: 60px; height: 60px; font-size: 24px;">
-                        <i class="fas fa-robot"></i>
-                    </div>
-                    <h5 class="fw-bold">Aura Co-Pilot</h5>
-                </div>
-                
-                <h6 class="text-uppercase text-muted fw-bold small mb-3">Live Insights</h6>
-                <div class="alert custom-alert border-warning border-start border-4 bg-warning bg-opacity-10 py-2 px-3 mb-3">
-                    <p class="mb-1 small"><strong>{{ struggling_count }} students</strong> are struggling with recent materials.</p>
-                    <button class="btn btn-sm btn-outline-warning w-100 mt-2 rounded-pill" onclick="alert('Creating remedial group...')"><i class="fas fa-users"></i> Create Remedial Group</button>
-                </div>
-                
-                <div class="alert custom-alert border-success border-start border-4 bg-success bg-opacity-10 py-2 px-3 mb-4">
-                    <p class="mb-1 small"><strong>{{ excelling_count }} students</strong> are excelling in their metrics.</p>
-                </div>
-
-                <h6 class="text-uppercase text-muted fw-bold small mb-3">Quick Actions</h6>
-                <div class="d-grid gap-2">
-                    <a href="{% url 'teachers:ai_session_new' %}" class="btn btn-primary rounded-pill text-start"><i class="fas fa-magic me-2"></i> Generate New Lesson</a>
-                    <button class="btn btn-light border rounded-pill text-start" data-bs-toggle="collapse" data-bs-target="#parentBridge"><i class="fas fa-envelope-open-text me-2"></i> Draft Parent Updates</button>
-                    <button class="btn btn-light border rounded-pill text-start" onclick="document.getElementById('diff-tool').scrollIntoView({behavior: 'smooth'})"><i class="fas fa-layer-group me-2"></i> 1-Click Differentiation</button>
-                </div>
-            </div>
+    
+    <!-- ═══ 45-MINUTE LESSON PROGRESS BAR (Fixed Bottom) ═══ -->
+    <div class="aura-bento-progress-bar aura-lesson-progress">
+        <div class="time-label"><strong id="elapsedTime">00:00</strong> / 45:00</div>
+        <div class="aura-progress-track">
+            <div class="aura-progress-fill" id="lessonProgressFill" style="width: 0%;"></div>
         </div>
-
-        <!-- Main Center Dash -->
-        <div class="col-lg-9">
-            
-              <!-- Smart Syllabus Tracker -->
-              <div class="glass-card mb-4 p-4 border-start border-4 border-info">
-                  <div class="d-flex justify-content-between align-items-center mb-3">
-                      <h5 class="fw-bold mb-0"><i class="fas fa-book-open me-2 text-info"></i>Smart Syllabus Tracker</h5>
-                      <span class="badge bg-info text-dark rounded-pill">GES 1st Term</span>
-                  </div>
-                  
-                  <div class="mb-3">
-                      <div class="d-flex justify-content-between small mb-1">
-                          <span>Syllabus Coverage: {{ class_name_display }}</span>
-                          <span class="fw-bold">65%</span>
-                      </div>
-                      <div class="progress" style="height: 10px;">
-                          <div class="progress-bar bg-info progress-bar-striped progress-bar-animated" role="progressbar" style="width: 65%;" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100"></div>
-                      </div>
-                  </div>
-                  
-                  <div class="bg-light p-3 rounded rounded-3 d-flex align-items-start border-start border-3 border-warning">
-                      <div class="me-3 mt-1 text-warning"><i class="fas fa-exclamation-triangle fa-lg"></i></div>
-                      <div>
-                          <p class="mb-1 fw-bold small text-dark">Aura-T Insight</p>
-                          <p class="mb-0 small text-muted">"Teacher, based on the GES 1st Term Calendar, we are <strong>2 days behind</strong> on 'Algebra.' I have condensed the 'Introduction' phase in today's lesson plan to get the class back on track."</p>
-                      </div>
-                  </div>
-              </div>
-
-              <!-- Mastery Heatmap -->
-            <div class="glass-card p-4 mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="fw-bold m-0"><i class="fas fa-th me-2 text-primary"></i>Mastery Heatmap (Last 30 Days)</h5>
-                    <span class="badge bg-secondary">{{ class_name_display }}</span>
-                </div>
-                <div class="heatmap-grid pb-2">
-                    {% for student in student_data %}
-                        {% if student.status == 'excellent' %}
-                            <div class="student-tile tile-excellent" title="{{ student.name }} - Excelling" data-bs-toggle="popover" data-bs-trigger="hover" data-bs-content="{{ student.tooltip }}">
-                                <span class="fw-bold">{{ student.name }}</span>
-                                <img src="https://upload.wikimedia.org/wikipedia/commons/e/e4/Sparkline_example.png" class="sparkline" style="filter: grayscale(1) opacity(0.5);">
-                            </div>
-                        {% elif student.status == 'struggling' %}
-                            <div class="student-tile tile-struggling" data-bs-toggle="popover" data-bs-trigger="hover" title="{{ student.name }}'s Status" data-bs-content="{{ student.tooltip }}">
-                                <span class="fw-bold">{{ student.name }} </span>
-                                <img src="https://upload.wikimedia.org/wikipedia/commons/e/e4/Sparkline_example.png" class="sparkline" style="filter: grayscale(1) opacity(0.5);">
-                            </div>
-                        {% else %}
-                            <div class="student-tile tile-good" title="{{ student.name }} - Progressing" data-bs-toggle="popover" data-bs-trigger="hover" data-bs-content="{{ student.tooltip }}">
-                                <span class="fw-bold">{{ student.name }}</span>
-                            </div>
-                        {% endif %}
-                    {% empty %}
-                        <p class="text-muted small">No student data available. Ensure your class assignments are configured.</p>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <!-- Interactive Lesson Canvas -->
-              <div class="glass-card p-4 mb-4">
-                  <h5 class="fw-bold mb-3"><i class="fas fa-stream me-2 text-primary"></i>Interactive Lesson Canvas</h5>
-                  <p class="text-muted small mb-3">Drag AI-generated modules to build your 45-minute flow.</p>
-
-                  <div class="row">
-                      <div class="col-md-4">
-                          <div class="p-3 bg-light rounded border" id="blocks-bank" style="min-height: 300px;">
-                              <h6 class="fw-bold small text-muted text-uppercase mb-2">Smart Blocks Bank</h6>
-                              <div class="time-block border-warning border-start-4 shadow-sm" draggable="true">
-                                  <div><i class="fas fa-lightbulb text-warning me-2"></i> Hook (Local Story)</div>
-                                  <span class="badge bg-light text-dark">5m</span>
-                              </div>
-                              <div class="time-block shadow-sm" draggable="true">
-                                  <div><i class="fas fa-chalkboard-teacher text-primary me-2"></i> Direct Instruction</div>
-                                  <span class="badge bg-light text-dark">15m</span>
-                              </div>
-                              <div class="time-block shadow-sm" draggable="true">
-                                  <div><i class="fas fa-users text-info me-2"></i> Group Practice</div>
-                                  <span class="badge bg-light text-dark">15m</span>
-                              </div>
-                              <div class="time-block border-success shadow-sm" draggable="true">
-                                  <div><i class="fas fa-check-circle text-success me-2"></i> Exit Ticket</div>
-                                  <span class="badge bg-light text-dark">10m</span>
-                              </div>
-                          </div>
-                      </div>
-                      <div class="col-md-8">
-                          <div class="timeline-canvas h-100 d-flex flex-column text-muted p-2" id="lesson-canvas" style="min-height: 300px; border: 2px dashed #dee2e6; border-radius: 12px; transition: all 0.3s; background: rgba(255,255,255,0.5);">
-                              <div class="empty-state d-flex flex-column align-items-center justify-content-center h-100 w-100 py-5">
-                                  <i class="fas fa-grip-lines fa-2x mb-2 text-gray-300"></i>
-                                  <p>Drag blocks here to sequence lesson</p>
-                              </div>
-                          </div>
-                      </div>
-                  </div>
-                  
-                  <div class="d-flex align-items-center mt-3 w-100 bg-light p-2 rounded border">
-                      <span class="small me-2"><i class="fas fa-sliders-h text-primary me-1"></i> Pacing Tool:</span>
-                      <input type="range" class="form-range flex-grow-1 mx-2" min="1" max="3" id="diffSlider" value="2">
-                      <span class="small ms-2 fw-bold" id="diffLabel" style="width: 120px;">Balanced</span>
-                  </div>
-              </div>
-
-              
-              <!-- Differentiation Tool -->
-              <!-- GES Lesson Note Generator -->
-              <div class="glass-card p-4 mb-4 border-start border-4 border-success">
-                  <div class="d-flex justify-content-between align-items-center mb-3">
-                      <div>
-                          <h5 class="fw-bold mb-1"><i class="fas fa-file-signature me-2 text-success"></i>GES Lesson Note</h5>
-                          <p class="text-muted small mb-0">Follows National Pre-Tertiary Education Curriculum Framework.</p>
-                      </div>
-                      <button class="btn btn-success btn-sm rounded-pill px-4 py-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#gesNoteModal">
-                          <i class="fas fa-magic me-1"></i> Generate Note
-                      </button>
-                  </div>
-              </div>
-            <div id="diff-tool" class="glass-card p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="fw-bold m-0"><i class="fas fa-layer-group me-2 text-primary"></i>1-Click Differentiation</h5>
-                    <button class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" onclick="alert('Content Pushed to Student Devices!')"><i class="fas fa-paper-plane me-1"></i> Push to Devices</button>
-                </div>
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <div class="diff-col diff-support h-100">
-                            <h6 class="text-info fw-bold mb-2">Support (Scaffolded)</h6>
-                            <p class="small text-muted mb-2">Includes hints and visual aids.</p>
-                            <div class="bg-white p-2 rounded small shadow-sm border mb-2">1. Expand: 2(x + 3)</div>
-                            <div class="bg-white p-2 rounded small shadow-sm border">2. Factor: 3x + 6 (Hint: Find common multiple)</div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="diff-col diff-core h-100">
-                            <h6 class="text-primary fw-bold mb-2">Core (Standard)</h6>
-                            <p class="small text-muted mb-2">Main learning objective.</p>
-                            <div class="bg-white p-2 rounded small shadow-sm border mb-2">1. Expand: (x + 2)(x - 3)</div>
-                            <div class="bg-white p-2 rounded small shadow-sm border">2. Factor: x + 5x + 6</div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="diff-col diff-extension h-100">
-                            <h6 class="text-purple fw-bold mb-2" style="color: #6f42c1;">Extension (Challenge)</h6>
-                            <p class="small text-muted mb-2">Multi-step word problems.</p>
-                            <div class="bg-white p-2 rounded small shadow-sm border mb-2">1. The area of a rectangle is x + 7x + 12. Find the dimensions.</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Parent Bridge (Hidden by default) -->
-            <div id="parentBridge" class="collapse mt-4">
-                <div class="glass-card p-4 border-primary border-start border-4">
-                    <h5 class="fw-bold mb-3"><i class="fas fa-envelope-open-text me-2 text-primary"></i>Parent-Teacher Bridge</h5>
-                    <div class="list-group">
-                        {% for update in parent_updates %}
-                        <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-1 fw-bold">{{ update.parent_name }} ({{ update.student_name }}'s Parent)</h6>
-                                <p class="mb-0 small text-muted">"{{ update.draft }}"</p>
-                            </div>
-                            <button class="btn btn-sm btn-success rounded-pill px-3" onclick="alert('Message sent to {{ update.parent_name }}!')">Send <i class="fas fa-paper-plane ms-1"></i></button>
-                        </div>
-                        {% empty %}
-                        <div class="text-muted small p-2">No parent updates available to draft.</div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Traditional AI History -->
-            <div class="glass-card mt-4 p-4">
-                <h6 class="fw-bold mb-3"><i class="fas fa-history me-2 text-secondary"></i>Previous Planning Sessions</h6>
-                <div class="table-responsive">
-                    <table class="table table-hover table-borderless align-middle mb-0">
-                        <thead class="bg-light rounded">
-                            <tr>
-                                <th class="rounded-start">Title</th>
-                                <th>Last Updated</th>
-                                <th class="text-end rounded-end">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for session in sessions|slice:":3" %}
-                            <tr>
-                                <td>
-                                    <a href="{% url 'teachers:ai_session_detail' session.id %}" class="text-decoration-none fw-bold text-dark">
-                                        {{ session.title|default:"Untitled Session" }}
-                                    </a>
-                                </td>
-                                <td class="text-muted small">{{ session.updated_at|date:"M d, Y" }}</td>
-                                <td class="text-end">
-                                    <a href="{% url 'teachers:ai_session_detail' session.id %}" class="btn btn-sm btn-light border rounded-pill">Open</a>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr><td colspan="3" class="text-center text-muted py-3">No previous sessions found.</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                    {% if sessions.count > 3 %}
-                    <div class="text-center mt-3">
-                        <button class="btn btn-sm btn-link text-decoration-none" onclick="alert('Loading full history modal...')">View All History</button>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
+        <div class="aura-lesson-controls">
+            <button id="lessonPlayBtn" title="Start Lesson Timer">
+                <i class="fas fa-play"></i>
+            </button>
+            <button id="lessonResetBtn" title="Reset Timer">
+                <i class="fas fa-redo"></i>
+            </button>
         </div>
     </div>
 </div>
 
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
-        var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
-            return new bootstrap.Popover(popoverTriggerEl)
-        });
-
-        const slider = document.getElementById('diffSlider');
-        const label = document.getElementById('diffLabel');
-        slider.addEventListener('input', function() {
-            if (this.value == 1) label.innerText = 'More Instruction Time';
-            if (this.value == 2) label.innerText = 'Balanced';
-            if (this.value == 3) label.innerText = 'More Practice Time';
-        });
-    });
-</script>
-
-
-
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     AURA-T 2.0 JAVASCRIPT — Micro-interactions, Drag/Drop, Chat, Timer
+     ═══════════════════════════════════════════════════════════════════════════ -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // Tooltip init
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Popover(tooltipTriggerEl)
-    });
-
-    const draggables = document.querySelectorAll('.time-block');
-    const canvases = [document.getElementById('lesson-canvas'), document.getElementById('blocks-bank')];
-    const lessonCanvas = document.getElementById('lesson-canvas');
-
-    draggables.forEach(draggable => {
-        draggable.addEventListener('dragstart', () => {
-            draggable.classList.add('dragging');
-        });
-
-        draggable.addEventListener('dragend', () => {
-            draggable.classList.remove('dragging');
-            checkCanvasState();
-        });
-    });
-
-    canvases.forEach(canvas => {
-        if(!canvas) return;
-        
-        canvas.addEventListener('dragover', e => {
-            e.preventDefault();
-            if (canvas.id === 'lesson-canvas') {
-                canvas.classList.add('drag-over');
+    // ── AI Chat Implementation ──
+    const chatForm = document.getElementById('auraChatForm');
+    const chatInput = document.getElementById('auraChatInput');
+    const chatMessages = document.getElementById('auraChatMessages');
+    const scaffoldChips = document.querySelectorAll('.aura-scaffold-chip');
+    
+    const csrftoken = (name => {
+        const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+        return match ? match[2] : '';
+    })('csrftoken');
+    
+    let isProcessing = false;
+    
+    function appendMessage(text, type) {
+        const div = document.createElement('div');
+        div.className = 'aura-chat-msg ' + type;
+        div.textContent = text;
+        chatMessages.appendChild(div);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        return div;
+    }
+    
+    scaffoldChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            const prompt = chip.dataset.prompt;
+            if (prompt) {
+                chatInput.value = prompt;
+                chatInput.focus();
+                chatForm.requestSubmit();
             }
+        });
+    });
+    
+    chatForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (isProcessing) return;
+        
+        const question = chatInput.value.trim();
+        if (!question) return;
+        
+        isProcessing = true;
+        chatInput.disabled = true;
+        
+        appendMessage(question, 'user');
+        chatInput.value = '';
+        
+        const loadingDiv = appendMessage('Thinking...', 'bot');
+        
+        try {
+            const res = await fetch('{% url "academics:copilot_assistant" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken,
+                },
+                body: JSON.stringify({ question, role: 'teacher' }),
+            });
             
-            const afterElement = getDragAfterElement(canvas, e.clientY);
-            const draggable = document.querySelector('.dragging');
-            if (draggable) {
+            loadingDiv.remove();
+            
+            if (!res.ok) {
+                appendMessage('Sorry, I could not process that.', 'bot');
+            } else {
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let fullText = '';
+                const botDiv = appendMessage('', 'bot');
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    fullText += decoder.decode(value, { stream: true });
+                    botDiv.textContent = fullText;
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            }
+        } catch (err) {
+            loadingDiv.remove();
+            appendMessage('Network error. Please try again.', 'bot');
+        } finally {
+            isProcessing = false;
+            chatInput.disabled = false;
+            chatInput.focus();
+        }
+    });
+    
+    // ── Drag & Drop Timeline ──
+    const draggables = document.querySelectorAll('.aura-time-block');
+    const canvas = document.getElementById('lessonCanvas');
+    const blocksBank = document.getElementById('blocksBank');
+    
+    draggables.forEach(block => {
+        block.addEventListener('dragstart', () => block.classList.add('dragging'));
+        block.addEventListener('dragend', () => {
+            block.classList.remove('dragging');
+            updateCanvasState();
+        });
+    });
+    
+    [canvas, blocksBank].forEach(container => {
+        if (!container) return;
+        
+        container.addEventListener('dragover', e => {
+            e.preventDefault();
+            if (container === canvas) container.classList.add('drag-over');
+            
+            const dragging = document.querySelector('.dragging');
+            const afterElement = getDragAfterElement(container, e.clientY);
+            
+            if (dragging) {
                 if (afterElement == null) {
-                    canvas.appendChild(draggable);
+                    container.appendChild(dragging);
                 } else {
-                    canvas.insertBefore(draggable, afterElement);
+                    container.insertBefore(dragging, afterElement);
                 }
             }
         });
         
-        canvas.addEventListener('dragleave', e => {
-            if (canvas.id === 'lesson-canvas') {
-                canvas.classList.remove('drag-over');
-            }
+        container.addEventListener('dragleave', () => {
+            if (container === canvas) container.classList.remove('drag-over');
         });
-
-        canvas.addEventListener('drop', e => {
-            if (canvas.id === 'lesson-canvas') {
-                canvas.classList.remove('drag-over');
-                // Could emit haptic feedback or simple sound here
-            }
+        
+        container.addEventListener('drop', () => {
+            if (container === canvas) container.classList.remove('drag-over');
         });
     });
-
-    function checkCanvasState() {
-        if(!lessonCanvas) return;
-        const blocks = lessonCanvas.querySelectorAll('.time-block');
-        const emptyState = lessonCanvas.querySelector('.empty-state');
-        
-        if (blocks.length > 0) {
-            if(emptyState) emptyState.style.display = 'none';
-        } else {
-            if(emptyState) emptyState.style.display = 'flex';
-        }
-    }
-
+    
     function getDragAfterElement(container, y) {
-        const draggableElements = [...container.querySelectorAll('.time-block:not(.dragging)')];
-        return draggableElements.reduce((closest, child) => {
+        const elements = [...container.querySelectorAll('.aura-time-block:not(.dragging)')];
+        return elements.reduce((closest, child) => {
             const box = child.getBoundingClientRect();
             const offset = y - box.top - box.height / 2;
             if (offset < 0 && offset > closest.offset) {
-                return { offset: offset, element: child };
-            } else {
-                return closest;
+                return { offset, element: child };
             }
+            return closest;
         }, { offset: Number.NEGATIVE_INFINITY }).element;
     }
-
-    // Difficulty slider logic
-    const diffSlider = document.getElementById('diffSlider');
-    const diffLabel = document.getElementById('diffLabel');
-    if(diffSlider && diffLabel) {
-        diffSlider.addEventListener('input', function() {
-            if(this.value == 1) { diffLabel.innerText = "Remedial (Slower)"; diffLabel.className = 'small ms-2 fw-bold text-warning'; }
-            else if(this.value == 2) { diffLabel.innerText = "Balanced"; diffLabel.className = 'small ms-2 fw-bold text-dark'; }
-            else { diffLabel.innerText = "Accelerated (Fast)"; diffLabel.className = 'small ms-2 fw-bold text-success'; }
-        });
+    
+    function updateCanvasState() {
+        const blocks = canvas.querySelectorAll('.aura-time-block');
+        const emptyState = canvas.querySelector('.empty-state');
+        if (emptyState) {
+            emptyState.style.display = blocks.length > 0 ? 'none' : 'flex';
+        }
     }
+    
+    // ── 45-Minute Lesson Timer ──
+    const playBtn = document.getElementById('lessonPlayBtn');
+    const resetBtn = document.getElementById('lessonResetBtn');
+    const progressFill = document.getElementById('lessonProgressFill');
+    const elapsedTimeEl = document.getElementById('elapsedTime');
+    
+    let timerInterval = null;
+    let elapsedSeconds = 0;
+    const totalSeconds = 45 * 60;
+    
+    function formatTime(seconds) {
+        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const s = (seconds % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    }
+    
+    function updateTimer() {
+        elapsedSeconds++;
+        if (elapsedSeconds >= totalSeconds) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            playBtn.innerHTML = '<i class="fas fa-check"></i>';
+            playBtn.classList.add('active');
+        }
+        elapsedTimeEl.textContent = formatTime(elapsedSeconds);
+        progressFill.style.width = ((elapsedSeconds / totalSeconds) * 100) + '%';
+    }
+    
+    playBtn.addEventListener('click', () => {
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            playBtn.innerHTML = '<i class="fas fa-play"></i>';
+            playBtn.classList.remove('active');
+        } else {
+            timerInterval = setInterval(updateTimer, 1000);
+            playBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            playBtn.classList.add('active');
+        }
+    });
+    
+    resetBtn.addEventListener('click', () => {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        elapsedSeconds = 0;
+        elapsedTimeEl.textContent = '00:00';
+        progressFill.style.width = '0%';
+        playBtn.innerHTML = '<i class="fas fa-play"></i>';
+        playBtn.classList.remove('active');
+    });
+    
+    // ── Student Tile Hover Micro-interactions ──
+    const studentTiles = document.querySelectorAll('.aura-student-tile');
+    studentTiles.forEach(tile => {
+        tile.addEventListener('mouseenter', () => {
+            tile.style.zIndex = '20';
+        });
+        tile.addEventListener('mouseleave', () => {
+            tile.style.zIndex = '';
+        });
+    });
 });
 </script>
 
-<!-- GES Lesson Note Modal -->
+<!-- GES Lesson Note Modal (Dark Theme) -->
 <div class="modal fade" id="gesNoteModal" tabindex="-1" aria-labelledby="gesNoteModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
-      <div class="modal-header bg-dark text-white border-0" style="border-top-left-radius: 16px; border-top-right-radius: 16px;">
-        <h5 class="modal-title fw-bold" id="gesNoteModalLabel"><i class="fas fa-robot text-info me-2"></i>Aura-T: GES Curriculum Specialist</h5>
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; background: var(--aura-bg-secondary, #12121a); color: var(--aura-text-primary, #f8fafc);">
+      <div class="modal-header border-0" style="background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%); border-top-left-radius: 16px; border-top-right-radius: 16px;">
+        <h5 class="modal-title fw-bold text-white" id="gesNoteModalLabel"><i class="fas fa-robot me-2"></i>Aura-T: GES Curriculum Engine</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body p-4 bg-light">
-        <!-- System Prompt Indicator -->
-        <div class="alert alert-secondary border-0 mb-4 shadow-sm" style="font-size: 0.85rem; border-left: 4px solid #6c757d !important;">
-            <strong><i class="fas fa-microchip me-1"></i> Logic Engine Configuration:</strong><br>
-            Strictly adhering to GES Pre-Tertiary Curriculum. Required tags included. Localized contexts verified.
+      <div class="modal-body p-4" style="background: var(--aura-bg-secondary, #12121a);">
+        <div class="alert mb-4" style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); color: var(--aura-text-secondary, #94a3b8); font-size: 0.85rem;">
+            <strong><i class="fas fa-microchip me-1"></i> Engine Mode:</strong> GES Pre-Tertiary Curriculum Framework
         </div>
         
-        <div class="bg-white p-4 rounded shadow-sm print-area">
+        <div class="p-4 rounded" style="background: var(--aura-bg-primary, #0a0a0f); border: 1px solid var(--aura-border, rgba(255,255,255,0.06));">
             <div class="text-center mb-4">
-                <h5 class="text-uppercase fw-bold mb-1" style="letter-spacing: 1px;">Official GES Lesson Note</h5>
-                <p class="small text-muted mb-0">Generated by Aura-T Curriculum Engine</p>
+                <h5 class="text-uppercase fw-bold mb-1 text-gradient" style="letter-spacing: 1px; background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Official GES Lesson Note</h5>
+                <p class="small mb-0" style="color: var(--aura-text-muted, #64748b);">Auto-generated by Aura-T</p>
             </div>
             
             <div class="table-responsive">
-                <table class="table table-bordered border-dark align-middle small mb-4">
+                <table class="table table-borderless align-middle small mb-4" style="color: var(--aura-text-secondary, #94a3b8);">
                     <tbody>
-                        <tr>
-                            <th class="bg-light" style="width: 25%;">Subject / Class</th>
-                            <td>Mathematics / {{ class_name_display }}</td>
+                        <tr style="border-bottom: 1px solid var(--aura-border, rgba(255,255,255,0.06));">
+                            <th style="color: var(--aura-text-muted, #64748b); width: 30%;">Subject / Class</th>
+                            <td>Mathematics / {{ class_name_display|default:"Basic 7" }}</td>
                         </tr>
-                        <tr>
-                            <th class="bg-light">Strand</th>
+                        <tr style="border-bottom: 1px solid var(--aura-border, rgba(255,255,255,0.06));">
+                            <th style="color: var(--aura-text-muted, #64748b);">Strand</th>
                             <td>Number</td>
                         </tr>
-                        <tr>
-                            <th class="bg-light">Sub-Strand</th>
+                        <tr style="border-bottom: 1px solid var(--aura-border, rgba(255,255,255,0.06));">
+                            <th style="color: var(--aura-text-muted, #64748b);">Sub-Strand</th>
                             <td>Fractions</td>
                         </tr>
-                        <tr>
-                            <th class="bg-light">Content Standard</th>
-                            <td>B7.1.1</td>
+                        <tr style="border-bottom: 1px solid var(--aura-border, rgba(255,255,255,0.06));">
+                            <th style="color: var(--aura-text-muted, #64748b);">Indicator</th>
+                            <td><span style="color: var(--aura-accent-cyan, #06b6d4);">B7.1.1.2.1:</span> Solve addition/subtraction of fractions</td>
                         </tr>
-                        <tr>
-                            <th class="bg-light">Indicator</th>
-                            <td><strong>B7.1.1.2.1:</strong> Solve problems involving addition and subtraction of fractions.</td>
-                        </tr>
-                        <tr>
-                            <th class="bg-light">Core Competencies</th>
+                        <tr style="border-bottom: 1px solid var(--aura-border, rgba(255,255,255,0.06));">
+                            <th style="color: var(--aura-text-muted, #64748b);">Core Competencies</th>
                             <td>
-                                <span class="badge bg-info text-dark me-1">Digital Literacy</span> 
-                                <span class="badge bg-primary">Cultural Identity</span>
+                                <span class="badge me-1" style="background: rgba(6, 182, 212, 0.2); color: var(--aura-accent-cyan, #06b6d4);">Digital Literacy</span> 
+                                <span class="badge" style="background: rgba(139, 92, 246, 0.2); color: var(--aura-accent-violet, #8b5cf6);">Cultural Identity</span>
                             </td>
                         </tr>
-                        <tr>
-                            <th class="bg-light">Starter (5m)</th>
-                            <td><em>Hook:</em> "You have 1/2 a loaf of sugar bread and your brother brings 1/4. How much bread do you have total?"</td>
+                        <tr style="border-bottom: 1px solid var(--aura-border, rgba(255,255,255,0.06));">
+                            <th style="color: var(--aura-text-muted, #64748b);">Starter (5m)</th>
+                            <td><em>"You have 1/2 sugar bread, brother brings 1/4. Total?"</em></td>
                         </tr>
                         <tr>
-                            <th class="bg-light">New Learning (20m)</th>
-                            <td>Interactive AI-scaffolded practice on individual devices using Aura to visualize fraction bars.</td>
-                        </tr>
-                        <tr>
-                            <th class="bg-light">Localized Resources</th>
-                            <td>
-                                <ul class="mb-0 ps-3">
-                                    <li><i class="fas fa-image text-primary me-1"></i> Visuals of Makola Market goods for transactions.</li>
-                                    <li><i class="fas fa-file-alt text-danger me-1"></i> 2020 BECE Past Question adapted for final challenge.</li>
-                                </ul>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th class="bg-light">Reflection / Assessment</th>
-                            <td>3-question quiz on adding unlike denominators (localized to market prices).</td>
+                            <th style="color: var(--aura-text-muted, #64748b);">Assessment</th>
+                            <td>3-question quiz on unlike denominators</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
             
-            <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+            <div class="d-flex justify-content-between align-items-center mt-4 pt-3" style="border-top: 1px solid var(--aura-border, rgba(255,255,255,0.06));">
                 <div>
-                    <button type="button" class="btn btn-outline-dark btn-sm" onclick="window.print()">
+                    <button type="button" class="btn btn-sm" style="background: var(--aura-bg-glass, rgba(255,255,255,0.03)); border: 1px solid var(--aura-border, rgba(255,255,255,0.06)); color: var(--aura-text-secondary, #94a3b8);" onclick="window.print()">
                         <i class="fas fa-print me-1"></i> Print
                     </button>
-                    <small class="text-muted ms-3"><i class="fas fa-check-circle text-success me-1"></i> GES Compliant</small>
+                    <small class="ms-3" style="color: var(--aura-accent-emerald, #10b981);"><i class="fas fa-check-circle me-1"></i> GES Compliant</small>
                 </div>
-                <div class="d-flex align-items-center">
-                    <div id="approvalStatus" class="me-3 text-muted small fw-bold" style="display: none;">
-                        <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i> Pending HoD Review</span>
-                    </div>
-                    <button type="button" class="btn btn-success" id="submitHodBtn">
-                        <i class="fas fa-paper-plane me-2"></i>Submit to HoD
-                    </button>
-                    <button type="button" class="btn btn-secondary d-none" id="sentHodBtn" disabled>
-                        <i class="fas fa-check me-2"></i>Sent
-                    </button>
-                </div>
+                <button type="button" class="btn" style="background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%); color: white;" id="submitHodBtn2">
+                    <i class="fas fa-paper-plane me-2"></i>Submit to HoD
+                </button>
             </div>
         </div>
       </div>
@@ -586,21 +1198,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const submitHodBtn = document.getElementById('submitHodBtn');
-    const sentHodBtn = document.getElementById('sentHodBtn');
-    const approvalStatus = document.getElementById('approvalStatus');
-    
-    if(submitHodBtn) {
-        submitHodBtn.addEventListener('click', () => {
-            submitHodBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Routing...';
-            
+    const submitBtn = document.getElementById('submitHodBtn2');
+    if (submitBtn) {
+        submitBtn.addEventListener('click', () => {
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
             setTimeout(() => {
-                submitHodBtn.classList.add('d-none');
-                sentHodBtn.classList.remove('d-none');
-                approvalStatus.style.display = 'block';
-                
-                // Show a quick global toast/notification (optional, simulating)
-                alert("GES Lesson Note sent to HoD App for digital sign-off.");
+                submitBtn.innerHTML = '<i class="fas fa-check me-2"></i>Sent';
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.7';
             }, 1200);
         });
     }
