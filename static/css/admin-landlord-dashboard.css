@@ -16,7 +16,7 @@
 .landlord-dashboard {
     min-height: 100vh;
     position: relative;
-    overflow: hidden;
+    overflow-x: clip; /* prevent horizontal overflow from animations without clipping vertical scroll */
 }
 
 .glass-bg {
@@ -26,6 +26,7 @@
     right: 0;
     bottom: 0;
     z-index: -1;
+    pointer-events: none; /* decorative only */
     background:
         radial-gradient(circle at 20% 30%, rgba(139, 92, 246, 0.15), transparent 40%),
         radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.15), transparent 35%),
@@ -79,14 +80,35 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
+/* Static content cards (tables, charts) — subtle shadow deepening only, no lift */
 .glass-card:hover {
-    transform: translateY(-4px) scale(1.01);
+    box-shadow:
+        0 12px 40px rgba(31, 38, 135, 0.14),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+[data-bs-theme="dark"] .glass-card:hover {
+    box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+/* Interactive cards — full lift effect */
+a > .glass-card,
+a .glass-card {
+    cursor: pointer;
+}
+
+a > .glass-card:hover,
+a .glass-card:hover {
+    transform: translateY(-3px) scale(1.005);
     box-shadow:
         0 20px 60px rgba(31, 38, 135, 0.18),
         inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
-[data-bs-theme="dark"] .glass-card:hover {
+[data-bs-theme="dark"] a > .glass-card:hover,
+[data-bs-theme="dark"] a .glass-card:hover {
     box-shadow:
         0 20px 60px rgba(0, 0, 0, 0.6),
         inset 0 1px 0 rgba(255, 255, 255, 0.12);
@@ -96,7 +118,6 @@
 .analytics-tile {
     position: relative;
     overflow: hidden;
-    cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -255,12 +276,12 @@
 }
 
 .glass-table tbody tr:hover {
-    background: rgba(139, 92, 246, 0.08);
-    transform: scale(1.01);
+    background: rgba(139, 92, 246, 0.07);
+    /* no scale — rows in a table jumping out is jarring */
 }
 
 [data-bs-theme="dark"] .glass-table tbody tr:hover {
-    background: rgba(139, 92, 246, 0.15);
+    background: rgba(139, 92, 246, 0.13);
 }
 
 /* Action buttons */
@@ -349,6 +370,44 @@ code {
     color: #c4b5fd;
 }
 
+/* ========== Desktop Layout Enhancements ========== */
+@media (min-width: 992px) {
+    /* Hero: keep title and buttons vertically centred with tight right-alignment */
+    .hero-actions {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    /* Stat cards: slightly taller min-height for better proportion */
+    .analytics-tile {
+        min-height: 150px;
+    }
+
+    /* Approval pipeline: uniform interior height */
+    .pipeline-tile {
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    /* Quick Operations: pill-style button cluster */
+    .quick-ops-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    /* Section divider lines */
+    .glass-card > .row + .row {
+        border-top: 1px solid rgba(139, 92, 246, 0.07);
+        padding-top: 1rem;
+    }
+}
+
 /* ========== Mobile Optimizations ========== */
 @media (max-width: 768px) {
     /* Simplify hero section */
@@ -365,6 +424,14 @@ code {
     /* Stack action buttons */
     .glass-card .d-flex.flex-wrap.gap-2 {
         flex-direction: column !important;
+    }
+
+    .quick-ops-bar {
+        flex-direction: column;
+    }
+
+    .quick-ops-bar .vr {
+        display: none !important;
     }
 
     .glass-btn {
