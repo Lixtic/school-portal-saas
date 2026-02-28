@@ -340,6 +340,8 @@ def homepage(request):
 
 def login_view(request):
     if request.user.is_authenticated:
+        if getattr(request.user, 'is_staff', False):
+            return redirect('/admin/')
         dashboard_url = request.META.get('SCRIPT_NAME', '') + '/dashboard/'
         return redirect(dashboard_url)
     
@@ -351,6 +353,8 @@ def login_view(request):
         
         if user is not None:
             login(request, user)
+            if getattr(user, 'is_staff', False):
+                return redirect('/admin/')
             dashboard_url = request.META.get('SCRIPT_NAME', '') + '/dashboard/'
             return redirect(dashboard_url)
         else:
