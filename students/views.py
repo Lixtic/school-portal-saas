@@ -223,23 +223,31 @@ def student_details_ajax(request, student_id):
 @login_required
 def bulk_assign_class(request):
     """Bulk assign students to a class"""
-    if request.method == 'POST':
-        import json
+    if request.user.user_type not in ['admin', 'teacher']:
+        return JsonResponse({'status': 'error', 'message': 'Access denied'}, status=403)
+
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+    import json
+    try:
         data = json.loads(request.body)
-        student_ids = data.get('student_ids', [])
-        class_id = data.get('class_id')
-        
-        if not student_ids or not class_id:
-            return JsonResponse({'error': 'Missing data'}, status=400)
-        
-        class_obj = get_object_or_404(Class, id=class_id)
-        Student.objects.filter(id__in=student_ids).update(current_class=class_obj)
-        
-        return JsonResponse({
-            'message': f'{len(student_ids)} students assigned to {class_obj.name}'
-        })
-    
-    return JsonResponse({'error': 'Invalid request'}, status=400)
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Invalid JSON payload'}, status=400)
+
+    student_ids = data.get('student_ids', [])
+    class_id = data.get('class_id')
+
+    if not student_ids or not class_id:
+        return JsonResponse({'status': 'error', 'message': 'Missing data'}, status=400)
+
+    class_obj = get_object_or_404(Class, id=class_id)
+    Student.objects.filter(id__in=student_ids).update(current_class=class_obj)
+
+    return JsonResponse({
+        'status': 'success',
+        'message': f'{len(student_ids)} students assigned to {class_obj.name}'
+    })
 
 
 @login_required
