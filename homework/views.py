@@ -4,6 +4,9 @@ from django.contrib import messages
 from django.http import HttpResponseForbidden
 from django.utils import timezone
 from .models import Homework, Question, Choice, Submission, Answer
+from .forms import HomeworkForm
+from teachers.models import Teacher
+from students.models import Student
 
 @login_required
 def homework_list(request):
