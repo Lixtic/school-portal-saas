@@ -17,7 +17,7 @@
         <div class="col-lg-8">
              <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2 class="h3 fw-bold mb-0">Quiz: {{ homework.title }}</h2>
-                <span class="badge bg-secondary">{{ questions.count }} Questions</span>
+                <span class="badge bg-secondary">{{ homework.questions.count }} Questions</span>
             </div>
             
             <form method="post">
@@ -30,17 +30,21 @@
                     </div>
                     <div class="card-body p-4">
                         <p class="lead mb-4">{{ question.text }}</p>
-                        
-                        <div class="list-group">
-                            {% for choice in question.choices.all %}
-                            <label class="list-group-item list-group-item-action d-flex align-items-center p-3 cursor-pointer">
-                                <input class="form-check-input me-3 fs-5" type="radio" 
-                                       name="question_{{ question.id }}" 
-                                       value="{{ choice.id }}" required>
-                                <span class="fs-5">{{ choice.text }}</span>
-                            </label>
-                            {% endfor %}
-                        </div>
+
+                        {% if question.question_type == 'short' %}
+                            <textarea class="form-control" name="question_{{ question.id }}" rows="4" placeholder="Type your answer here..." required></textarea>
+                        {% else %}
+                            <div class="list-group">
+                                {% for choice in question.choices.all %}
+                                <label class="list-group-item list-group-item-action d-flex align-items-center p-3 cursor-pointer">
+                                    <input class="form-check-input me-3 fs-5" type="radio" 
+                                           name="question_{{ question.id }}" 
+                                           value="{{ choice.id }}" required>
+                                    <span class="fs-5">{{ choice.text }}</span>
+                                </label>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
                 {% empty %}

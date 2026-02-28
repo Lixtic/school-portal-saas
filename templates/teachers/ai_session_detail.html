@@ -263,6 +263,27 @@ textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
     background: rgba(139, 92, 246, 0.12);
     color: var(--aura-text-primary);
 }
+.aura-gen-context {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+}
+.aura-gen-context .form-select,
+.aura-gen-context .form-control {
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--aura-text-primary);
+    font-size: 0.75rem;
+}
+.aura-gen-context .form-select:focus,
+.aura-gen-context .form-control:focus {
+    box-shadow: none;
+    border-color: rgba(139, 92, 246, 0.4);
+}
+@media (max-width: 768px) {
+    .aura-gen-context { grid-template-columns: 1fr; }
+}
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -373,6 +394,24 @@ textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
                 <button class="aura-gen-btn" type="button" onclick="runGenerator('generate_exercises')">
                     <i class="fas fa-puzzle-piece me-1"></i> Interactive Exercises
                 </button>
+                <button class="aura-gen-btn" type="button" onclick="runGenerator('generate_exercises_and_assign')">
+                    <i class="fas fa-paper-plane me-1"></i> Generate + Assign
+                </button>
+            </div>
+            <div class="aura-gen-context">
+                <select id="genClass" class="form-select">
+                    <option value="">Select Class</option>
+                    {% for school_class in classes %}
+                    <option value="{{ school_class.id }}">{{ school_class.name }}</option>
+                    {% endfor %}
+                </select>
+                <select id="genSubject" class="form-select">
+                    <option value="">Select Subject</option>
+                    {% for subject in subjects %}
+                    <option value="{{ subject.id }}">{{ subject.name }}</option>
+                    {% endfor %}
+                </select>
+                <input id="genDueDate" type="date" class="form-control" />
             </div>
         </div>
 
@@ -559,6 +598,17 @@ textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
             return;
         }
 
+        const classId = document.getElementById('genClass').value;
+        const subjectId = document.getElementById('genSubject').value;
+        const dueDate = document.getElementById('genDueDate').value;
+
+        if (action === 'generate_exercises_and_assign') {
+            if (!classId || !subjectId) {
+                alert('Select class and subject before assigning.');
+                return;
+            }
+        }
+
         appendMessage('user', `[${action.replace('_', ' ').toUpperCase()}] ${topic}`);
 
         const loadingDiv = document.createElement('div');
@@ -579,7 +629,13 @@ textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
                     'Content-Type': 'application/json',
                     'X-CSRFToken': csrfToken
                 },
-                body: JSON.stringify({ action: action, topic: topic })
+                body: JSON.stringify({
+                    action: action,
+                    topic: topic,
+                    class_id: classId,
+                    subject_id: subjectId,
+                    due_date: dueDate
+                })
             });
             const data = await response.json();
 
@@ -617,6 +673,12 @@ textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
                 activities.forEach(a => { text += `- ${a}\n`; });
             }
             return text.trim();
+        }
+        if (action === 'generate_exercises_and_assign') {
+            if (payload.homework_id) {
+                return `Exercise assigned: ${payload.homework_title}. Open in Assignments list.`;
+            }
+            return 'Exercise assigned.';
         }
         if (action === 'generate_exercises') {
             const exercises = payload.exercises || [];

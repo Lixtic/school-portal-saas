@@ -3,10 +3,14 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponseForbidden
 from django.utils import timezone
+from django.conf import settings
+from django.db.models import Sum
+import json
 from .models import Homework, Question, Choice, Submission, Answer
 from .forms import HomeworkForm
 from teachers.models import Teacher
 from students.models import Student
+from academics.ai_tutor import _post_chat_completion
 
 @login_required
 def homework_list(request):
@@ -161,32 +165,78 @@ def homework_solve(request, pk):
         )
         
         total_score = 0
+        total_points = 0
         
         for question in homework.questions.all():
-            selected_choice_id = request.POST.get(f'question_{question.id}')
-            
-            if selected_choice_id:
-                try:
-                    choice = Choice.objects.get(id=selected_choice_id, question=question)
-                    is_correct = choice.is_correct
-                    if is_correct:
-                        total_score += question.points
-                        
+            total_points += question.points
+            input_value = request.POST.get(f'question_{question.id}')
+
+            if question.question_type == 'short':
+                text_response = (input_value or '').strip()
+                answer = Answer.objects.create(
+                    submission=submission,
+                    question=question,
+                    text_response=text_response,
+                    is_correct=False
+                )
+
+                if text_response and question.correct_answer and settings.OPENAI_API_KEY:
+                    try:
+                        grading_prompt = {
+                            "model": "gpt-4o-mini",
+                            "messages": [
+                                {
+                                    "role": "system",
+                                    "content": "You are a strict grading assistant. Return JSON with score (0 to max_points) and feedback." 
+                                },
+                                {
+                                    "role": "user",
+                                    "content": (
+                                        f"Question: {question.text}\n"
+                                        f"Expected answer: {question.correct_answer}\n"
+                                        f"Student answer: {text_response}\n"
+                                        f"Max points: {question.points}"
+                                    )
+                                }
+                            ],
+                            "response_format": {"type": "json_object"},
+                            "temperature": 0.2
+                        }
+                        resp = _post_chat_completion(grading_prompt, settings.OPENAI_API_KEY)
+                        content = resp["choices"][0]["message"]["content"]
+                        data = json.loads(content)
+                        ai_score = max(0, min(float(data.get("score", 0)), question.points))
+                        answer.ai_score = ai_score
+                        answer.ai_feedback = data.get("feedback", "")
+                        answer.is_correct = ai_score >= question.points
+                        answer.save()
+                        total_score += ai_score
+                    except Exception:
+                        pass
+            else:
+                selected_choice_id = input_value
+                if selected_choice_id:
+                    try:
+                        choice = Choice.objects.get(id=selected_choice_id, question=question)
+                        is_correct = choice.is_correct
+                        if is_correct:
+                            total_score += question.points
+                            
+                        Answer.objects.create(
+                            submission=submission,
+                            question=question,
+                            selected_choice=choice,
+                            is_correct=is_correct
+                        )
+                    except Choice.DoesNotExist:
+                        pass
+                else:
+                    # Unanswered
                     Answer.objects.create(
                         submission=submission,
                         question=question,
-                        selected_choice=choice,
-                        is_correct=is_correct
+                        is_correct=False
                     )
-                except Choice.DoesNotExist:
-                    pass
-            else:
-                # Unanswered
-                Answer.objects.create(
-                    submission=submission,
-                    question=question,
-                    is_correct=False
-                )
         
         submission.score = total_score
         submission.save()
@@ -203,13 +253,14 @@ def homework_results(request, pk):
     submission = get_object_or_404(Submission, homework=homework, student=student)
     
     # Calculate percentage
-    total_questions = homework.questions.count()
-    percentage = (submission.score / total_questions * 100) if total_questions > 0 else 0
+    total_points = homework.questions.aggregate(total=Sum('points'))['total'] or 0
+    percentage = (submission.score / total_points * 100) if total_points > 0 else 0
     
     return render(request, 'homework/results.html', {
         'homework': homework,
         'submission': submission,
         'percentage': round(percentage, 1),
+        'total_points': total_points,
         'answers': submission.answers.select_related('question', 'selected_choice')
     })
 

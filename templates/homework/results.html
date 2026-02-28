@@ -22,8 +22,8 @@
             </div>
 
             <div class="card shadow-lg border-0 mb-5 overflow-hidden">
-                <div class="card-header {% if score >= 50 %}bg-success{% else %}bg-danger{% endif %} text-white text-center py-5">
-                    <h1 class="display-1 fw-bold mb-0">{{ score }}%</h1>
+                <div class="card-header {% if percentage >= 50 %}bg-success{% else %}bg-danger{% endif %} text-white text-center py-5">
+                    <h1 class="display-1 fw-bold mb-0">{{ percentage }}%</h1>
                     <p class="fs-4 mb-0 opacity-75">Your Review for {{ homework.title }}</p>
                 </div>
                 
@@ -31,31 +31,50 @@
                     <h4 class="mb-4 fw-bold border-bottom pb-2">Question Breakdown</h4>
                     
                     {% for answer in submission.answers.all %}
-                    <div class="card mb-3 result-card {% if answer.selected_choice.is_correct %}correct{% else %}incorrect{% endif %} shadow-sm border-0 position-relative">
+                    <div class="card mb-3 result-card {% if answer.is_correct %}correct{% else %}incorrect{% endif %} shadow-sm border-0 position-relative">
                         <div class="card-body py-4 ps-4 pe-5">
                             <h5 class="fw-bold text-dark mb-3">{{ forloop.counter }}. {{ answer.question.text }}</h5>
                             
                             <div class="d-flex flex-column gap-2">
-                                <div class="p-3 rounded {% if answer.selected_choice.is_correct %}bg-success text-white{% else %}bg-danger text-white{% endif %} bg-opacity-75">
-                                    <i class="bi {% if answer.selected_choice.is_correct %}bi-check-circle-fill{% else %}bi-x-circle-fill{% endif %} me-2"></i>
-                                    <strong>Your Answer:</strong> {{ answer.selected_choice.text }}
-                                </div>
-
-                                {% if not answer.selected_choice.is_correct %}
-                                    <div class="p-3 rounded bg-light border border-success text-success">
-                                        <i class="bi bi-check-lg me-2"></i>
-                                        <strong>Correct Answer:</strong>
-                                        {% for choice in answer.question.choices.all %}
-                                            {% if choice.is_correct %}
-                                                {{ choice.text }}
-                                            {% endif %}
-                                        {% endfor %}
+                                {% if answer.question.question_type == 'short' %}
+                                    <div class="p-3 rounded {% if answer.is_correct %}bg-success text-white{% else %}bg-danger text-white{% endif %} bg-opacity-75">
+                                        <i class="bi {% if answer.is_correct %}bi-check-circle-fill{% else %}bi-x-circle-fill{% endif %} me-2"></i>
+                                        <strong>Your Answer:</strong> {{ answer.text_response|default:"No response" }}
                                     </div>
+                                    {% if answer.ai_feedback %}
+                                        <div class="p-3 rounded bg-light border border-primary text-primary">
+                                            <i class="bi bi-chat-text me-2"></i>
+                                            <strong>Feedback:</strong> {{ answer.ai_feedback }}
+                                        </div>
+                                    {% endif %}
+                                    {% if answer.question.correct_answer %}
+                                        <div class="p-3 rounded bg-light border border-success text-success">
+                                            <i class="bi bi-check-lg me-2"></i>
+                                            <strong>Expected:</strong> {{ answer.question.correct_answer }}
+                                        </div>
+                                    {% endif %}
+                                {% else %}
+                                    <div class="p-3 rounded {% if answer.is_correct %}bg-success text-white{% else %}bg-danger text-white{% endif %} bg-opacity-75">
+                                        <i class="bi {% if answer.is_correct %}bi-check-circle-fill{% else %}bi-x-circle-fill{% endif %} me-2"></i>
+                                        <strong>Your Answer:</strong> {{ answer.selected_choice.text }}
+                                    </div>
+
+                                    {% if not answer.is_correct %}
+                                        <div class="p-3 rounded bg-light border border-success text-success">
+                                            <i class="bi bi-check-lg me-2"></i>
+                                            <strong>Correct Answer:</strong>
+                                            {% for choice in answer.question.choices.all %}
+                                                {% if choice.is_correct %}
+                                                    {{ choice.text }}
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
                                 {% endif %}
                             </div>
                             
-                            <div class="status-icon {% if answer.selected_choice.is_correct %}text-success{% else %}text-danger{% endif %}">
-                                <i class="bi {% if answer.selected_choice.is_correct %}bi-check-lg{% else %}bi-x-lg{% endif %}"></i>
+                            <div class="status-icon {% if answer.is_correct %}text-success{% else %}text-danger{% endif %}">
+                                <i class="bi {% if answer.is_correct %}bi-check-lg{% else %}bi-x-lg{% endif %}"></i>
                             </div>
                         </div>
                     </div>

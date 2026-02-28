@@ -21,9 +21,16 @@ class Homework(models.Model):
         return f"{self.title} - {self.target_class}"
 
 class Question(models.Model):
+    QUESTION_TYPES = (
+        ('mcq', 'Multiple Choice'),
+        ('short', 'Short Answer'),
+    )
+
     homework = models.ForeignKey(Homework, on_delete=models.CASCADE, related_name='questions')
     text = models.TextField()
     points = models.IntegerField(default=1)
+    question_type = models.CharField(max_length=10, choices=QUESTION_TYPES, default='mcq')
+    correct_answer = models.TextField(blank=True)
     
     def __str__(self):
         return f"{self.text[:50]}..."
@@ -50,5 +57,8 @@ class Answer(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     selected_choice = models.ForeignKey(Choice, on_delete=models.CASCADE, null=True, blank=True)
     is_correct = models.BooleanField(default=False)
+    text_response = models.TextField(blank=True)
+    ai_score = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    ai_feedback = models.TextField(blank=True)
 
 

@@ -8,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from decimal import Decimal, InvalidOperation
+from django.utils import timezone
 from teachers.models import Teacher, DutyWeek, LessonPlan
 from academics.models import ClassSubject, AcademicYear, Timetable, SchoolInfo, Resource, Class, Subject
 from students.models import Student, Grade, ClassExercise, StudentExerciseScore
@@ -1187,6 +1188,75 @@ def aura_t_api(request):
 
                 result = AuraGenEngine.generate_interactive_exercises(topic, subject_name, class_name)
                 return JsonResponse({"status": "success", "data": result})
+
+            elif action == 'generate_exercises_and_assign':
+                topic = data.get('topic')
+                class_id = data.get('class_id')
+                subject_id = data.get('subject_id')
+                due_date = data.get('due_date')
+
+                if not topic or not class_id or not subject_id:
+                    return JsonResponse({"status": "error", "message": "Topic, class, and subject are required"}, status=400)
+
+                from academics.models import Class, Subject
+                from homework.models import Homework, Question, Choice
+                from django.utils import timezone
+                from datetime import timedelta, datetime
+
+                school_class = get_object_or_404(Class, pk=class_id)
+                subject = get_object_or_404(Subject, pk=subject_id)
+                
+                result = AuraGenEngine.generate_interactive_exercises(topic, subject.name, school_class.name)
+
+                try:
+                    if due_date:
+                        due_date_value = datetime.strptime(due_date, '%Y-%m-%d').date()
+                    else:
+                        due_date_value = timezone.now().date() + timedelta(days=7)
+                except ValueError:
+                    due_date_value = timezone.now().date() + timedelta(days=7)
+
+                homework = Homework.objects.create(
+                    title=f"{topic} - Interactive Exercise",
+                    description=f"AI-generated interactive exercise on {topic}.",
+                    teacher=teacher,
+                    subject=subject,
+                    target_class=school_class,
+                    due_date=due_date_value
+                )
+
+                exercises = result.get('exercises', [])
+                for item in exercises:
+                    ex_type = (item.get('type') or '').lower()
+                    prompt = item.get('prompt') or 'Untitled question'
+                    if ex_type not in ['mcq', 'short']:
+                        ex_type = 'short'
+
+                    question = Question.objects.create(
+                        homework=homework,
+                        text=prompt,
+                        points=1,
+                        question_type=ex_type,
+                        correct_answer=item.get('answer', '')
+                    )
+
+                    if ex_type == 'mcq':
+                        options = item.get('options') or []
+                        correct = item.get('answer')
+                        for opt in options:
+                            Choice.objects.create(
+                                question=question,
+                                text=opt,
+                                is_correct=(str(opt).strip() == str(correct).strip())
+                            )
+
+                return JsonResponse({
+                    "status": "success",
+                    "data": {
+                        "homework_id": homework.id,
+                        "homework_title": homework.title
+                    }
+                })
             
             elif action == 'generate_assignment':
                 lesson_id = data.get('lesson_id')
@@ -1705,7 +1775,15 @@ When generating a lesson plan, ALWAYS structure your output to exactly match thi
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
     
-    return render(request, 'teachers/ai_session_detail.html', {'session': session})
+    class_subjects = ClassSubject.objects.filter(teacher=teacher).select_related('class_name', 'subject')
+    classes = sorted(list(set(cs.class_name for cs in class_subjects)), key=lambda c: c.name)
+    subjects = sorted(list(set(cs.subject for cs in class_subjects)), key=lambda s: s.name)
+
+    return render(request, 'teachers/ai_session_detail.html', {
+        'session': session,
+        'classes': classes,
+        'subjects': subjects,
+    })
 
 @login_required
 def ai_session_rename(request, session_id):
