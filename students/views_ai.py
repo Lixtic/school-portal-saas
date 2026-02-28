@@ -9,9 +9,18 @@ from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 
 # Configuration - should be in settings.py
-HF_API_URL_WHISPER = "https://api-inference.huggingface.co/models/openai/whisper-large-v3-turbo" # Faster, good accuracy
+# HF_API_URL_WHISPER = "https://api-inference.huggingface.co/models/openai/whisper-large-v3-turbo" # Faster, good accuracy -- 410 Error
+# Use lists for fallbacks
+HF_WHISPER_MODELS = [
+    "https://api-inference.huggingface.co/models/openai/whisper-large-v3",
+    "https://api-inference.huggingface.co/models/distil-whisper/distil-large-v3",
+]
+
 HF_API_URL_LLM = "https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct"
-HF_API_URL_TTS = "https://api-inference.huggingface.co/models/parler-tts/parler-tts-mini-v1" # Optimized for speed
+# Alternative: "https://api-inference.huggingface.co/models/meta-llama/Llama-2-7b-chat-hf"
+
+HF_API_URL_TTS = "https://api-inference.huggingface.co/models/parler-tts/parler-tts-mini-v1" 
+# Alternative: "https://api-inference.huggingface.co/models/facebook/mms-tts-eng"
 
 def get_hf_headers():
     token = os.environ.get("HUGGINGFACE_API_TOKEN")
@@ -19,6 +28,53 @@ def get_hf_headers():
         # Fallback or error
         return {}
     return {"Authorization": f"Bearer {token}"}
+
+def query_hf_inference(model_urls, headers, data=None, json_payload=None):
+    """
+    Helper to query HF Inference API with fallbacks.
+    Args:
+        model_urls (list or str): List of model URLs to try.
+        headers (dict): Request headers.
+        data (bytes, optional): Raw data for POST.
+        json_payload (dict, optional): JSON data for POST.
+    """
+    last_error = None
+    if isinstance(model_urls, str):
+        model_urls = [model_urls]
+        
+    for url in model_urls:
+        try:
+            kwargs = {'headers': headers}
+            if data is not None:
+                kwargs['data'] = data
+            elif json_payload is not None:
+                kwargs['json'] = json_payload
+            
+            # Simple retry loop for 503 loading
+            for attempt in range(2):
+                response = requests.post(url, **kwargs)
+                
+                if response.status_code == 200:
+                    return response
+                
+                if response.status_code == 503:
+                    # Model loading, wait briefly
+                    time.sleep(3)
+                    continue
+                else:
+                    break
+            
+            # If we get here, it failed
+            last_error = f"Status: {response.status_code}, Response: {response.text[:200]}"
+            # Try next model
+            
+        except Exception as e:
+            last_error = str(e)
+    
+    # If all failed
+    if last_error:
+        raise Exception(f"All models failed. Last error: {last_error}")
+    raise Exception("Unknown error in HF query")
 
 def aura_voice_view(request):
     """Render the voice interface."""
@@ -40,16 +96,17 @@ def process_voice_interaction(request):
 
         # 1. ASR - Whisper
         headers = get_hf_headers()
-        response_asr = requests.post(
-            HF_API_URL_WHISPER,
-            headers=headers,
-            data=audio_file.read()
-        )
         
-        if response_asr.status_code != 200:
-            return JsonResponse({"error": f"ASR Error: {response_asr.text}"}, status=500)
+        try:
+            # Read audio content for potential retries
+            audio_content = audio_file.read()
             
-        user_text = response_asr.json().get('text')
+            # Use list of models for reliability
+            response_asr = query_hf_inference(HF_WHISPER_MODELS, headers, data=audio_content)
+            user_text = response_asr.json().get('text')
+        except Exception as e:
+            return JsonResponse({"error": f"ASR Unavailable: {str(e)}"}, status=503)
+        
         if not user_text:
              return JsonResponse({"error": "Could not transcribe audio"}, status=500)
 
@@ -114,8 +171,6 @@ def process_voice_interaction(request):
 
         # Return the generator as a stream
         return StreamingHttpResponse(generate_audio_stream(), content_type='audio/mpeg')
-
-
 
     except Exception as e:
         return JsonResponse({"error":str(e)}, status=500)
