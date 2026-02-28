@@ -1,70 +1,348 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}{{ session.title }} | AI Lesson Planner{% endblock %}
+{% block title %}{{ session.title }} | Aura-T 2.0{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   AURA-T 2.0 CHAT INTERFACE — Dark Glassmorphism
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── CSS Custom Properties (Scoped) ──────────────────────────────────────── */
+.aura-command-shell {
+    --aura-bg-primary: #0a0a0f;
+    --aura-bg-secondary: #12121a;
+    --aura-bg-card: rgba(18, 18, 26, 0.7);
+    --aura-bg-glass: rgba(255, 255, 255, 0.03);
+    --aura-border: rgba(255, 255, 255, 0.06);
+    --aura-border-glow: rgba(139, 92, 246, 0.3);
+    --aura-text-primary: #f8fafc;
+    --aura-text-secondary: #94a3b8;
+    --aura-text-muted: #64748b;
+    --aura-accent-violet: #8b5cf6;
+    --aura-accent-cyan: #06b6d4;
+    --aura-accent-emerald: #10b981;
+    --aura-gradient-primary: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+    --aura-shadow-glow: 0 0 40px rgba(139, 92, 246, 0.15);
+    --aura-radius-lg: 16px;
+    --aura-space-4: 16px;
+    --aura-transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Force Dark Mode ────────────────────────────────────────────────────── */
+html[data-aura-page] {
+    --surface-bg: #0a0a0f !important;
+    --bs-body-bg: #0a0a0f !important;
+    --bs-body-color: #f8fafc !important;
+}
+html[data-aura-page] body { background: #0a0a0f !important; }
+
+/* ── Layout ─────────────────────────────────────────────────────────────── */
+.aura-command-shell {
+    min-height: 100vh;
+    background: var(--aura-bg-primary);
+    background-image: 
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(139, 92, 246, 0.15), transparent),
+        radial-gradient(ellipse 60% 40% at 100% 100%, rgba(6, 182, 212, 0.1), transparent);
+    font-family: 'Inter', sans-serif;
+    color: var(--aura-text-primary);
+    display: flex;
+    flex-direction: column;
+    padding: var(--aura-space-4);
+}
+
+.aura-chat-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    gap: var(--aura-space-4);
+    height: calc(100vh - 40px);
+}
+
+/* ── Header ────────────────────────────────────────────────────────────── */
+.aura-chat-header {
+    background: var(--aura-bg-glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--aura-border);
+    border-radius: var(--aura-radius-lg);
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.aura-title h1 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--aura-text-primary);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.aura-title i { color: var(--aura-accent-violet); }
+.aura-btn-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid transparent;
+    color: var(--aura-text-secondary);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.2s;
+    text-decoration: none;
+}
+.aura-btn-icon:hover {
+    background: rgba(255,255,255,0.1);
+    color: var(--aura-text-primary);
+}
+
+/* ── Messages Area ─────────────────────────────────────────────────────── */
+.aura-messages-area {
+    flex: 1;
+    background: rgba(10, 10, 15, 0.4);
+    border: 1px solid var(--aura-border);
+    border-radius: var(--aura-radius-lg);
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.aura-message {
+    display: flex;
+    gap: 16px;
+    max-width: 85%;
+    animation: fadeIn 0.3s ease-out;
+}
+.aura-message.user {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+.aura-avatar {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+.aura-avatar.ai {
+    background: linear-gradient(135deg, var(--aura-accent-violet), var(--aura-accent-cyan));
+    color: white;
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+.aura-avatar.user {
+    background: var(--aura-bg-secondary);
+    border: 1px solid var(--aura-border);
+    color: var(--aura-text-secondary);
+}
+
+.aura-bubble {
+    background: var(--aura-bg-glass);
+    border: 1px solid var(--aura-border);
+    padding: 16px 20px;
+    border-radius: 16px;
+    border-top-left-radius: 4px;
+    color: var(--aura-text-primary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    position: relative;
+    backdrop-filter: blur(10px);
+}
+.aura-message.user .aura-bubble {
+    background: rgba(139, 92, 246, 0.15);
+    border-color: rgba(139, 92, 246, 0.3);
+    border-radius: 16px;
+    border-top-right-radius: 4px;
+}
+
+.aura-message-actions {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+.aura-message:hover .aura-message-actions { opacity: 1; }
+.aura-action-btn {
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--aura-text-secondary);
+    cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    text-decoration: none;
+}
+.aura-action-btn:hover {
+    background: rgba(255,255,255,0.1);
+    color: var(--aura-text-primary);
+}
+
+/* ── Input Area ────────────────────────────────────────────────────────── */
+.aura-input-area {
+    background: var(--aura-bg-glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--aura-border);
+    border-radius: var(--aura-radius-lg);
+    padding: 12px;
+    position: relative;
+}
+.aura-input-wrapper {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    background: rgba(0,0,0,0.2);
+    border-radius: 12px;
+    padding: 8px 12px;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+}
+.aura-input-wrapper:focus-within {
+    border-color: var(--aura-accent-violet);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
+}
+textarea.aura-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: white;
+    resize: none;
+    padding: 8px 0;
+    font-family: inherit;
+    font-size: 0.95rem;
+    max-height: 200px;
+    outline: none;
+}
+textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
+
+.aura-send-btn {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    border: none;
+    background: var(--aura-accent-violet);
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.aura-send-btn:hover {
+    background: #7c3aed;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+}
+.aura-send-btn:disabled {
+    background: rgba(255,255,255,0.1);
+    cursor: not-allowed;
+    transform: none;
+}
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Scrollbar */
+.aura-messages-area::-webkit-scrollbar { width: 6px; }
+.aura-messages-area::-webkit-scrollbar-track { background: transparent; }
+.aura-messages-area::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+.aura-messages-area::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+/* Markdown Content Styling */
+.aura-bubble h1, .aura-bubble h2, .aura-bubble h3 { color: white; margin-top: 0.5em; margin-bottom: 0.5em; font-weight: 600; }
+.aura-bubble code { background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.85em; color: #e2e8f0; }
+.aura-bubble pre { background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; overflow-x: auto; margin: 10px 0; }
+.aura-bubble pre code { background: transparent; padding: 0; color: inherit; }
+.aura-bubble ul, .aura-bubble ol { padding-left: 1.5em; margin-bottom: 1em; }
+.aura-bubble li { margin-bottom: 0.3em; }
+.aura-bubble strong { color: white; font-weight: 600; }
+</style>
+<!-- Auto-inject dark mode -->
+<script>
+    (function() {
+        document.documentElement.setAttribute('data-aura-page', 'true');
+        document.documentElement.setAttribute('data-bs-theme', 'dark');
+        window.addEventListener('DOMContentLoaded', function() {
+            document.documentElement.setAttribute('data-aura-page', 'true');
+            // Hide global theme toggle
+            const themeToggle = document.querySelector('.header-action-btn[onclick="toggleTheme()"]');
+            if (themeToggle) themeToggle.style.display = 'none';
+        });
+    })();
+</script>
+{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4 h-100 d-flex flex-column" style="min-height: 80vh;">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <a href="{% url 'teachers:ai_sessions_list' %}" class="text-decoration-none text-muted mb-1 d-block">
-                Optional: <i class="fas fa-arrow-left"></i> Back to History
-            </a>
-            <h1 class="h4 mb-0 text-gray-800" id="session-title">{{ session.title }}</h1>
-        </div>
-        <div>
-            <form action="{% url 'teachers:ai_session_delete' session.id %}" method="post" style="display:inline;" onsubmit="return confirm('Delete this session?');">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Chat Container -->
-    <div class="card shadow flex-grow-1 d-flex flex-column" style="overflow: hidden;">
-        <div class="card-body d-flex flex-column p-0">
-            <!-- Messages Area -->
-            <div id="chat-messages" class="flex-grow-1 p-3" style="overflow-y: auto; background-color: #f8f9fa;">
-                {% for msg in session.messages %}
-                    <div class="d-flex mb-3 {% if msg.role == 'user' %}justify-content-end{% endif %}">
-                        <div class="card shadow-sm border-0 {% if msg.role == 'user' %}bg-primary text-white{% else %}bg-white{% endif %}" style="max-width: 80%;">
-                            <div class="card-body py-2 px-3">
-                                <strong>{% if msg.role == 'user' %}You{% else %}AI Assistant{% endif %}</strong>
-                                <div class="mt-1" style="white-space: pre-wrap;">{{ msg.content }}</div>
-                            </div>
-                            {% if msg.role == 'assistant' %}
-                            <div class="card-footer bg-transparent border-0 p-1 text-end">
-                                <button class="btn btn-sm btn-light py-0 px-2 copy-btn" title="Copy to clipboard">
-                                    <i class="fas fa-copy"></i>
-                                </button>
-                                <a href="{% url 'teachers:lesson_plan_create' %}?topic={{ session.title|urlencode }}" class="btn btn-sm btn-light py-0 px-2" title="Create Lesson Plan from this">
-                                    <i class="fas fa-file-alt"></i> Draft
-                                </a>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                {% empty %}
-                    <div class="d-flex justify-content-center align-items-center h-100 text-muted">
-                        <div class="text-center">
-                            <i class="fas fa-robot fa-3x mb-3"></i>
-                            <p>Start a conversation to plan your lesson.<br>Try: "Plan a lesson on Photosynthesis for Grade 8"</p>
-                        </div>
-                    </div>
-                {% endfor %}
+<div class="aura-command-shell">
+    <div class="aura-chat-container">
+        
+        <!-- Header -->
+        <div class="aura-chat-header">
+            <div class="aura-title">
+                <h1>
+                    <a href="{% url 'teachers:ai_sessions_list' %}" class="aura-btn-icon me-3" title="Back to Command Centre">
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                    <i class="fas fa-brain me-2"></i>
+                    <span id="session-title">{{ session.title }}</span>
+                </h1>
             </div>
-
-            <!-- Input Area -->
-            <div class="p-3 border-top bg-white">
-                <form id="chat-form" class="d-flex gap-2">
+            <div class="d-flex gap-2">
+                <form action="{% url 'teachers:ai_session_delete' session.id %}" method="post" onsubmit="return confirm('Delete this session permanently?');">
                     {% csrf_token %}
-                    <textarea id="user-input" class="form-control" rows="2" placeholder="Type your message..." required style="resize: none;"></textarea>
-                    <button type="submit" class="btn btn-primary px-4 d-flex align-items-center">
-                        <i class="fas fa-paper-plane"></i>
+                    <button type="submit" class="aura-btn-icon text-danger" title="Delete Session">
+                        <i class="fas fa-trash-alt"></i>
                     </button>
                 </form>
             </div>
         </div>
+
+        <!-- Chat Area -->
+        <div id="chat-messages" class="aura-messages-area">
+            {% for msg in session.messages %}
+                <div class="aura-message {% if msg.role == 'user' %}user{% else %}ai{% endif %}">
+                    <div class="aura-avatar {% if msg.role == 'user' %}user{% else %}ai{% endif %}">
+                        {% if msg.role == 'user' %}<i class="fas fa-user"></i>{% else %}<i class="fas fa-robot"></i>{% endif %}
+                    </div>
+                    <div class="d-flex flex-column" style="max-width: 100%;">
+                        <div class="aura-bubble">
+                            {{ msg.content|linebreaksbr }}
+                        </div>
+                        {% if msg.role == 'assistant' %}
+                        <div class="aura-message-actions">
+                            <button class="aura-action-btn copy-btn" title="Copy">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                            <a href="{% url 'teachers:lesson_plan_create' %}?topic={{ session.title|urlencode }}" class="aura-action-btn" title="Create Draft">
+                                <i class="fas fa-file-alt"></i> Draft Lesson
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% empty %}
+                <div class="d-flex flex-column align-items-center justify-content-center h-100 text-center opacity-50">
+                    <i class="fas fa-brain fa-3x mb-3" style="color: var(--aura-accent-violet);"></i>
+                    <h3 style="color: white; font-weight: 600;">Aura-T Ready</h3>
+                    <p>Start planning your next great lesson.<br>Try: "Plan a lesson on Algebra for Grade 9"</p>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Input Area -->
+        <div class="aura-input-area">
+            <form id="chat-form" class="aura-input-wrapper">
+                {% csrf_token %}
+                <textarea id="user-input" class="aura-input" rows="1" placeholder="Type your instruction..." required></textarea>
+                <button type="submit" class="aura-send-btn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
+
     </div>
 </div>
 
@@ -78,6 +356,20 @@
     // Scroll to bottom
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
+    // Auto-resize textarea
+    userInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (Math.min(this.scrollHeight, 150)) + 'px';
+    });
+    
+    // Submit on Enter (without shift)
+    userInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            chatForm.dispatchEvent(new Event('submit'));
+        }
+    });
+
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const message = userInput.value.trim();
@@ -86,17 +378,17 @@
         // Add user message to UI
         appendMessage('user', message);
         userInput.value = '';
+        userInput.style.height = 'auto';
         userInput.disabled = true;
 
         // Show loading
         const loadingDiv = document.createElement('div');
-        loadingDiv.className = 'd-flex mb-3';
+        loadingDiv.id = 'loading-indicator';
+        loadingDiv.className = 'aura-message ai';
         loadingDiv.innerHTML = `
-            <div class="card shadow-sm border-0 bg-white" style="max-width: 80%;">
-                <div class="card-body py-2 px-3">
-                    <strong>AI Assistant</strong>
-                    <div class="mt-1"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Thinking...</div>
-                </div>
+            <div class="aura-avatar ai"><i class="fas fa-robot"></i></div>
+            <div class="aura-bubble">
+                <i class="fas fa-circle-notch fa-spin me-2"></i> Thinking...
             </div>`;
         chatMessages.appendChild(loadingDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -114,7 +406,9 @@
             const data = await response.json();
             
             // Remove loading
-            chatMessages.removeChild(loadingDiv);
+            if(document.getElementById('loading-indicator')) {
+                document.getElementById('loading-indicator').remove();
+            }
 
             if (data.status === 'success') {
                 appendMessage('assistant', data.reply);
@@ -125,7 +419,7 @@
                 appendMessage('assistant', "Error: " + data.message);
             }
         } catch (error) {
-            chatMessages.removeChild(loadingDiv);
+            if(document.getElementById('loading-indicator')) document.getElementById('loading-indicator').remove();
             appendMessage('assistant', "Network Error: " + error.message);
         } finally {
             userInput.disabled = false;
@@ -135,34 +429,35 @@
 
     function appendMessage(role, content) {
         const div = document.createElement('div');
-        div.className = `d-flex mb-3 ${role === 'user' ? 'justify-content-end' : ''}`;
+        div.className = `aura-message ${role === 'user' ? 'user' : 'ai'}`;
         
-        const cardClass = role === 'user' ? 'bg-primary text-white' : 'bg-white';
-        const sender = role === 'user' ? 'You' : 'AI Assistant';
+        const avatarIcon = role === 'user' ? '<i class="fas fa-user"></i>' : '<i class="fas fa-robot"></i>';
         
-        let footer = '';
+        // Escape HTML for safety, but allow basic formatting if needed later
+        const safeContent = escapeHtml(content);
+
+        let actions = '';
         if (role === 'assistant') {
-            footer = `
-                <div class="card-footer bg-transparent border-0 p-1 text-end">
-                    <button class="btn btn-sm btn-light py-0 px-2 copy-btn" onclick="copyToClipboard(this)">
-                        <i class="fas fa-copy"></i>
+            actions = `
+                <div class="aura-message-actions">
+                    <button class="aura-action-btn copy-btn" onclick="copyToClipboard(this)">
+                        <i class="fas fa-copy"></i> Copy
                     </button>
-                    <a href="{% url 'teachers:lesson_plan_create' %}?topic=${encodeURIComponent(content.substring(0, 50))}..." class="btn btn-sm btn-light py-0 px-2">
-                        <i class="fas fa-file-alt"></i> Draft
+                    <a href="{% url 'teachers:lesson_plan_create' %}?topic=${encodeURIComponent(content.slice(0, 100))}" class="aura-action-btn">
+                        <i class="fas fa-file-alt"></i> Draft Lesson
                     </a>
                 </div>
             `;
         }
 
         div.innerHTML = `
-            <div class="card shadow-sm border-0 ${cardClass}" style="max-width: 80%;">
-                <div class="card-body py-2 px-3">
-                    <strong>${sender}</strong>
-                    <div class="mt-1" style="white-space: pre-wrap;">${escapeHtml(content)}</div>
-                </div>
-                ${footer}
+            <div class="aura-avatar ${role === 'user' ? 'user' : 'ai'}">${avatarIcon}</div>
+            <div class="d-flex flex-column" style="max-width: 100%;">
+                <div class="aura-bubble">${safeContent}</div>
+                ${actions}
             </div>
         `;
+        
         chatMessages.appendChild(div);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
@@ -175,31 +470,28 @@
             '"': '&quot;',
             "'": '&#039;'
         };
-        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        // Simple line break handling
+        return text.replace(/[&<>"']/g, function(m) { return map[m]; }).replace(/\n/g, '<br>');
     }
 
-    // Delegate copy event for dynamically added buttons
     function copyToClipboard(btn) {
-        const content = btn.closest('.card').querySelector('.card-body .mt-1').innerText;
-        navigator.clipboard.writeText(content).then(() => {
-            const originalIcon = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-check"></i>';
+        // Find the content in the bubble relative to the button
+        const container = btn.closest('.d-flex'); 
+        const bubble = container.querySelector('.aura-bubble');
+        const text = bubble.innerText; // Use innerText to get text without HTML tags if styled
+
+        navigator.clipboard.writeText(text).then(() => {
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i> Copied';
             setTimeout(() => {
-                btn.innerHTML = originalIcon;
+                btn.innerHTML = originalHTML;
             }, 2000);
         });
     }
-    
-    // Attach listener to existing buttons
+
+    // Initialize copy buttons for existing server-rendered messages
     document.querySelectorAll('.copy-btn').forEach(btn => {
         btn.onclick = function() { copyToClipboard(this); };
-    });
-    
-    // Auto-resize textarea
-    userInput.addEventListener('input', function() {
-        this.style.height = 'auto';
-        this.style.height = (this.scrollHeight) + 'px';
-        if(this.value === '') this.style.height = '';
     });
 </script>
 {% endblock %}
