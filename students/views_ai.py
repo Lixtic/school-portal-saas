@@ -54,6 +54,7 @@ def query_hf_inference(model_urls, headers, data=None, json_payload=None):
         json_payload (dict, optional): JSON data for POST.
     """
     last_error = None
+    error_log = []
     if isinstance(model_urls, str):
         model_urls = [model_urls]
         
@@ -80,6 +81,7 @@ def query_hf_inference(model_urls, headers, data=None, json_payload=None):
                         response = requests.post(candidate_url, **kwargs)
                     except Exception as req_err:
                         last_error = f"Connection error for {candidate_url}: {str(req_err)}"
+                        error_log.append(last_error)
                         continue
 
                     if response.status_code == 200:
@@ -93,20 +95,28 @@ def query_hf_inference(model_urls, headers, data=None, json_payload=None):
                         continue
                     else:
                         # Immediate failure (400, 401, 403, 404, 410, 500)
-                        last_error = f"Error {response.status_code} from {candidate_url}: {response.text[:200]}"
+                        content_type = response.headers.get("content-type", "")
+                        last_error = (
+                            f"Error {response.status_code} from {candidate_url} "
+                            f"(content-type={content_type}): {response.text[:200]}"
+                        )
+                        error_log.append(last_error)
                         break # Break inner loop, try next candidate
                 
                 # If loop finished naturally (503s exhausted) or break (other error)
                 if response and response.status_code == 503:
                     last_error = f"Model {candidate_url} unavailable (503) after retries"
+                    error_log.append(last_error)
                 # Try next candidate URL for the same model id
 
         except Exception as e:
             last_error = f"Exception processing {url}: {str(e)}"
+            error_log.append(last_error)
     
     # If all failed
     if last_error:
-        raise Exception(f"All models failed. Last error: {last_error}")
+        recent_errors = " | ".join(error_log[-3:])
+        raise Exception(f"All models failed. Last error: {last_error}. Recent: {recent_errors}")
     raise Exception("Unknown error in HF query")
 
 def aura_voice_view(request):
@@ -129,6 +139,8 @@ def process_voice_interaction(request):
 
         # 1. ASR - Whisper
         headers = get_hf_headers()
+        if not headers:
+            return JsonResponse({"error": "ASR Unavailable: Missing HUGGINGFACE_API_TOKEN"}, status=503)
         
         try:
             # Read audio content for potential retries
