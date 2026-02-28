@@ -2568,6 +2568,32 @@
         border-color: rgba(255,255,255,0.12);
         color: #cbd5e1;
     }
+
+    /* ===== Mobile: Tap Feedback (Global) ===== */
+    @media (max-width: 767px) {
+        /* Eliminate 300ms tap delay on iOS */
+        a, button, [role="button"], [onclick],
+        .stat-card, .action-card, .qa-min-link, .tt-link,
+        .sd-action-card, .sd-stat, .pd-child, .pd-action {
+            touch-action: manipulation;
+        }
+        /* Clean tap highlight – we provide our own :active feedback */
+        a.stat-card, .qa-min-link, .sd-action-card, .tt-link,
+        a.sd-stat, .pd-action, .pd-child {
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* Press-scale effect for stat & quick-action cards */
+        a.stat-card:active,
+        .qa-min-link:active,
+        .sd-action-card:active,
+        .tt-link:active,
+        a.sd-stat:active,
+        .pd-action:active {
+            transform: scale(0.97);
+            opacity: 0.9;
+            transition: transform 0.1s, opacity 0.1s;
+        }
+    }
 </style>
 
 <div id="aura-copilot-container">

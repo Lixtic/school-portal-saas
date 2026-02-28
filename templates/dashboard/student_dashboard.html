@@ -40,10 +40,12 @@
         border-radius: 14px;
         border: 1px solid var(--sd-border);
         background: var(--sd-surface);
-        transition: box-shadow .2s, border-color .2s;
+        transition: box-shadow .2s, border-color .2s, transform .15s;
     }
     .sd-stat:hover { box-shadow: 0 4px 12px rgba(0,0,0,.07); border-color: rgba(0,0,0,.1); }
     [data-bs-theme="dark"] .sd-stat:hover { border-color: rgba(255,255,255,.14); }
+    a.sd-stat { color: inherit; text-decoration: none; display: block; }
+    a.sd-stat:active { transform: scale(0.97); box-shadow: 0 2px 8px rgba(0,0,0,.1); }
     .sd-stat-label {
         font-size: .7rem; font-weight: 700; letter-spacing: .06em;
         text-transform: uppercase; color: var(--sd-muted); margin-bottom: .25rem;
@@ -186,11 +188,11 @@
 <!-- ===== Stat Cards ===== -->
 <div class="sd-stats-row">
     <!-- Class -->
-    <div class="sd-stat">
+    <a href="{% url 'students:student_schedule' %}" class="sd-stat">
         <div class="d-flex justify-content-between align-items-start">
             <div>
                 <div class="sd-stat-label">My Class</div>
-                <div class="sd-stat-value" style="font-size:1.3rem;">{{ student.current_class|default:"—" }}</div>
+                <div class="sd-stat-value" style="font-size:1.3rem;">{{ student.current_class|default:"\u2014" }}</div>
                 <span class="sd-pill pill-blue mt-1">Roll: {{ student.roll_number|default:"N/A" }}</span>
             </div>
             {% if student.user.profile_picture %}
@@ -199,9 +201,9 @@
             <div class="sd-avatar-placeholder"><i class="bi bi-person"></i></div>
             {% endif %}
         </div>
-    </div>
+    </a>
     <!-- Attendance -->
-    <div class="sd-stat">
+    <a href="{% url 'students:student_schedule' %}" class="sd-stat">
         <div class="d-flex justify-content-between align-items-start">
             <div>
                 <div class="sd-stat-label">Attendance</div>
@@ -213,9 +215,9 @@
             </div>
             <div class="sd-stat-icon si-green"><i class="bi bi-calendar-check-fill"></i></div>
         </div>
-    </div>
+    </a>
     <!-- Fee -->
-    <div class="sd-stat">
+    <a href="{% url 'finance:student_fees' student.id %}" class="sd-stat">
         <div class="d-flex justify-content-between align-items-start">
             <div>
                 <div class="sd-stat-label">Fee Status</div>
@@ -230,9 +232,9 @@
             <div class="sd-stat-icon si-amber"><i class="bi bi-wallet2"></i></div>
         </div>
         <div style="font-size:.72rem; color:var(--sd-muted); margin-top:.5rem;">Paid: ₵{{ finance_stats.paid|floatformat:2|intcomma }}</div>
-    </div>
+    </a>
     <!-- Gamification -->
-    <div class="sd-stat">
+    <a href="{% url 'students:report_card' student.id %}" class="sd-stat">
         <div class="d-flex justify-content-between align-items-start">
             <div>
                 <div class="sd-stat-label">Level {{ gamification.level|default:1 }}</div>
@@ -247,7 +249,7 @@
         <div style="font-size:.72rem; color:var(--sd-muted); margin-top:.5rem;">
             <i class="bi bi-fire text-danger"></i> {{ gamification.current_streak|default:0 }} Day Streak
         </div>
-    </div>
+    </a>
 </div>
 
 <!-- ===== Main grid ===== -->
