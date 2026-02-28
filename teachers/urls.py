@@ -31,7 +31,6 @@ urlpatterns = [
     path('lesson-plans/', views.lesson_plan_list, name='lesson_plan_list'),
     path('lesson-plans/create/', views.lesson_plan_create, name='lesson_plan_create'),
     path('lesson-plans/aura-t-api/', views.aura_t_api, name='aura_t_api'),
-    path('lesson-plans/aura-t-api/', views.aura_t_api, name='aura_t_api'),
     path('lesson-plans/<int:pk>/', views.lesson_plan_detail, name='lesson_plan_detail'),
     path('lesson-plans/<int:pk>/duplicate/', views.lesson_plan_duplicate, name='lesson_plan_duplicate'),
     path('lesson-plans/<int:pk>/print/', views.lesson_plan_print, name='lesson_plan_print'),
@@ -49,5 +48,7 @@ urlpatterns = [
     path('id-card/<int:teacher_id>/pdf/', views.teacher_id_card_pdf, name='id_card_pdf'),
     path('id-cards/bulk-pdf/', views.bulk_teacher_id_cards_pdf, name='bulk_id_cards_pdf'),
 ]
+
+
 
 
