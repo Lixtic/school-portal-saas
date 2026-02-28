@@ -12,10 +12,16 @@ from django.conf import settings
 # HF_API_URL_WHISPER = "https://api-inference.huggingface.co/models/openai/whisper-large-v3-turbo" # Faster, good accuracy -- 410 Error
 # Use lists for fallbacks
 HF_WHISPER_MODELS = [
-    "https://api-inference.huggingface.co/models/openai/whisper-large-v3", # Main stable model
-    "https://api-inference.huggingface.co/models/openai/whisper-large-v2", # Reliable fallback
-    "https://api-inference.huggingface.co/models/distil-whisper/distil-large-v3", # Fast & Good
-    "https://api-inference.huggingface.co/models/openai/whisper-tiny", # Last resort
+    "openai/whisper-large-v3", # Main stable model
+    "openai/whisper-large-v2", # Reliable fallback
+    "distil-whisper/distil-large-v3", # Fast and good
+    "openai/whisper-tiny", # Last resort
+]
+
+# Try new router endpoint first, then legacy API
+HF_INFERENCE_URL_TEMPLATES = [
+    "https://router.huggingface.co/hf-inference/models/{model_id}",
+    "https://api-inference.huggingface.co/models/{model_id}",
 ]
 
 # Use a very reliable, open LLM for fallback (Zephyr or Mistral)
@@ -59,32 +65,41 @@ def query_hf_inference(model_urls, headers, data=None, json_payload=None):
                 kwargs['data'] = data
             elif json_payload is not None:
                 kwargs['json'] = json_payload
-            
-            # Simple retry loop for 503 loading
-            for attempt in range(3): # Increased retries
-                try:
-                    response = requests.post(url, **kwargs)
-                except Exception as req_err:
-                    last_error = f"Connection error for {url}: {str(req_err)}"
-                    continue
 
-                if response.status_code == 200:
-                    return response
+            url_candidates = [url]
+            if not url.startswith("http"):
+                url_candidates = [
+                    template.format(model_id=url)
+                    for template in HF_INFERENCE_URL_TEMPLATES
+                ]
+
+            for candidate_url in url_candidates:
+                # Simple retry loop for 503 loading
+                for attempt in range(3): # Increased retries
+                    try:
+                        response = requests.post(candidate_url, **kwargs)
+                    except Exception as req_err:
+                        last_error = f"Connection error for {candidate_url}: {str(req_err)}"
+                        continue
+
+                    if response.status_code == 200:
+                        return response
+                    
+                    if response.status_code == 503:
+                        # Model loading, wait briefly
+                        status_print = f"Model {candidate_url} loading (503), retrying..."
+                        print(status_print)
+                        time.sleep(5) # Increased wait
+                        continue
+                    else:
+                        # Immediate failure (400, 401, 403, 404, 410, 500)
+                        last_error = f"Error {response.status_code} from {candidate_url}: {response.text[:200]}"
+                        break # Break inner loop, try next candidate
                 
-                if response.status_code == 503:
-                    # Model loading, wait briefly
-                    status_print = f"Model {url} loading (503), retrying..."
-                    print(status_print)
-                    time.sleep(5) # Increased wait
-                    continue
-                else:
-                    # Immediate failure (400, 401, 403, 404, 500)
-                    last_error = f"Error {response.status_code} from {url}: {response.text[:200]}"
-                    break # Break inner loop, try next model
-            
-            # If loop finished naturally (503s exhausted) or break (other error)
-            if response and response.status_code == 503:
-                 last_error = f"Model {url} unavailable (503) after retries"
+                # If loop finished naturally (503s exhausted) or break (other error)
+                if response and response.status_code == 503:
+                    last_error = f"Model {candidate_url} unavailable (503) after retries"
+                # Try next candidate URL for the same model id
 
         except Exception as e:
             last_error = f"Exception processing {url}: {str(e)}"
