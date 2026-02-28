@@ -881,6 +881,7 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
                 <button class="aura-scaffold-chip" data-prompt="Suggest homework ideas">Homework</button>
             </div>
             <form class="aura-chat-input" id="auraChatForm" data-no-loader>
+                {% csrf_token %}
                 <input type="text" id="auraChatInput" placeholder="Ask Aura anything..." autocomplete="off" required>
                 <button type="submit"><i class="fas fa-paper-plane"></i></button>
             </form>
@@ -989,17 +990,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatMessages = document.getElementById('auraChatMessages');
     const scaffoldChips = document.querySelectorAll('.aura-scaffold-chip');
     
-    const csrftoken = (name => {
-        const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-        return match ? match[2] : '';
-    })('csrftoken');
-    
+    const getCookie = (name) => {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    };
+    const csrftoken = getCookie('csrftoken');
+
     let isProcessing = false;
     
     function appendMessage(text, type) {
         const div = document.createElement('div');
         div.className = 'aura-chat-msg ' + type;
-        div.textContent = text;
+        // Check for markdown-like formatting (simple bold/italic) or preserve newlines
+        // For basic text, we can use innerText/textContent, but let's allow basic HTML safe-rendering if needed
+        // For now, textContent is safer against XSS
+        div.textContent = text; 
         chatMessages.appendChild(div);
         chatMessages.scrollTop = chatMessages.scrollHeight;
         return div;
@@ -1011,7 +1027,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (prompt) {
                 chatInput.value = prompt;
                 chatInput.focus();
-                chatForm.requestSubmit();
+                // Instead of requestSubmit which might not work in all browsers or if hidden submit
+                chatForm.dispatchEvent(new Event('submit', { cancelable: true }));
             }
         });
     });
@@ -1029,7 +1046,12 @@ document.addEventListener('DOMContentLoaded', () => {
         appendMessage(question, 'user');
         chatInput.value = '';
         
-        const loadingDiv = appendMessage('Thinking...', 'bot');
+        // Show thinking indicator
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'aura-chat-msg bot';
+        loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Thinking...';
+        chatMessages.appendChild(loadingDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
         
         try {
             const res = await fetch('{% url "academics:copilot_assistant" %}', {
@@ -1044,7 +1066,7 @@ document.addEventListener('DOMContentLoaded', () => {
             loadingDiv.remove();
             
             if (!res.ok) {
-                appendMessage('Sorry, I could not process that.', 'bot');
+                appendMessage('Sorry, I encountered an issue. Please try again.', 'bot');
             } else {
                 const reader = res.body.getReader();
                 const decoder = new TextDecoder();
@@ -1054,14 +1076,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
-                    fullText += decoder.decode(value, { stream: true });
-                    botDiv.textContent = fullText;
+                    const chunk = decoder.decode(value, { stream: true });
+                    fullText += chunk;
+                    
+                    // Basic Markdown parsing for UX improvement
+                    // Replace **text** with <strong>text</strong>
+                    // Replace \n with <br>
+                    let formattedText = fullText
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\n/g, '<br>');
+                    
+                    botDiv.innerHTML = formattedText;
                     chatMessages.scrollTop = chatMessages.scrollHeight;
                 }
             }
         } catch (err) {
             loadingDiv.remove();
-            appendMessage('Network error. Please try again.', 'bot');
+            appendMessage('Network connection error. Please check your internet.', 'bot');
+            console.error(err);
         } finally {
             isProcessing = false;
             chatInput.disabled = false;
