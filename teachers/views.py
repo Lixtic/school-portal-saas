@@ -1280,7 +1280,6 @@ def boost_intervention(request):
 from django.http import JsonResponse
 from django.conf import settings
 import json
-import openai
 
 @login_required
 def ai_sessions_list(request):
@@ -1320,31 +1319,42 @@ def ai_session_detail(request, session_id):
                 session.messages = messages_list
                 session.save()
                 
-                import openai
-                client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+                from academics.ai_tutor import _post_chat_completion
+                api_key = settings.OPENAI_API_KEY
+                
+                if not api_key:
+                    raise Exception("OpenAI API key not configured.")
                 
                 system_prompt = "You are an expert lesson planner for teachers. Help them create detailed, engaging lesson plans."
                 api_msgs = [{"role": "system", "content": system_prompt}] + messages_list
                 
-                response = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=api_msgs,
-                    temperature=0.7
-                )
+                payload = {
+                    "model": "gpt-4o-mini",
+                    "messages": api_msgs,
+                    "temperature": 0.7
+                }
                 
-                ai_content = response.choices[0].message.content
+                response_data = _post_chat_completion(payload, api_key)
+                
+                if "error" in response_data:
+                    raise Exception(response_data["error"].get("message", "API Error"))
+                    
+                ai_content = response_data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                
                 messages_list.append({"role": "assistant", "content": ai_content})
                 session.messages = messages_list
                 
                 if session.title == "New Session" and len(messages_list) >= 2:
                     try:
-                        title_resp = client.chat.completions.create(
-                            model="gpt-4o-mini", 
-                            messages=api_msgs + [{"role": "user", "content": "Suggest a short 3-5 word title for this chat."}],
-                            max_tokens=15
-                        )
-                        new_title = title_resp.choices[0].message.content.strip().strip('"')
-                        session.title = new_title
+                        title_payload = {
+                            "model": "gpt-4o-mini",
+                            "messages": api_msgs + [{"role": "user", "content": "Suggest a short 3-5 word title for this chat."}],
+                            "max_tokens": 15
+                        }
+                        title_resp = _post_chat_completion(title_payload, api_key)
+                        new_title = title_resp.get("choices", [{}])[0].get("message", {}).get("content", "").strip().strip('"')
+                        if new_title:
+                            session.title = new_title
                     except:
                         pass
                 

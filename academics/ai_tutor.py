@@ -433,3 +433,40 @@ def health_check_openai():
             "ok": False,
             "error": str(exc),
         }
+
+
+def _stream_chat_completion_text(payload, api_key):
+    req = urllib_request.Request(
+        OPENAI_CHAT_COMPLETIONS_URL,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+
+    try:
+        with urllib_request.urlopen(req, timeout=300) as resp:
+            for raw_line in resp:
+                line = raw_line.decode("utf-8", errors="ignore").strip()
+                if not line or not line.startswith("data: "):
+                    continue
+                data = line[len("data: "):].strip()
+                if data == "[DONE]":
+                    break
+
+                try:
+                    parsed = json.loads(data)
+                    delta = parsed.get("choices", [{}])[0].get("delta", {})
+                    content_piece = delta.get("content")
+                    if content_piece:
+                        yield content_piece
+                except Exception:
+                    continue
+    except HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="ignore") if exc.fp else str(exc)
+        raise RuntimeError(f"OpenAI HTTP {exc.code}: {detail}")
+    except URLError as exc:
+        raise RuntimeError(f"Network error: {exc.reason}")
+

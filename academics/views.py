@@ -754,9 +754,8 @@ def admissions_assistant(request):
     
     if settings.OPENAI_API_KEY:
         try:
-            print("[CHATBOT] Initializing OpenAI client...")
-            from openai import OpenAI
-            client = OpenAI(api_key=settings.OPENAI_API_KEY, timeout=15.0)
+            print("[CHATBOT] Calling OpenAI API via REST...")
+            from academics.ai_tutor import _stream_chat_completion_text
             
             # Build context from school info
             school_context = f"""
@@ -779,45 +778,25 @@ General Information:
 Please provide helpful, concise answers about admissions, fees, term dates, and enrollment processes.
 """
 
-            def normalize_delta(delta_content):
-                if not delta_content:
-                    return ""
-                if isinstance(delta_content, list):
-                    parts = []
-                    for item in delta_content:
-                        text_part = ''
-                        if isinstance(item, dict):
-                            text_part = item.get('text', '')
-                        else:
-                            text_part = getattr(item, 'text', '') or str(item)
-                        parts.append(text_part)
-                    return ''.join(parts)
-                return str(delta_content)
+            payload = {
+                "model": "gpt-4o-mini",
+                "messages": [
+                    {"role": "system", "content": school_context},
+                    {"role": "user", "content": question}
+                ],
+                "max_tokens": 200,
+                "temperature": 0.7,
+                "stream": True
+            }
 
             def stream_chat():
                 try:
-                    print("[CHATBOT] Calling OpenAI API (stream)...")
-                    stream = client.chat.completions.create(
-                        model="gpt-4o-mini",
-                        messages=[
-                            {"role": "system", "content": school_context},
-                            {"role": "user", "content": question}
-                        ],
-                        max_tokens=200,
-                        temperature=0.7,
-                        stream=True
-                    )
-
-                    for chunk in stream:
-                        delta = chunk.choices[0].delta.content
-                        text = normalize_delta(delta)
-                        if text:
-                            yield text
+                    for chunk in _stream_chat_completion_text(payload, settings.OPENAI_API_KEY):
+                        yield chunk
                 except Exception as e:
                     print(f"[CHATBOT] Streaming error: {e}")
                     import traceback
                     traceback.print_exc()
-                    # yield nothing further to end stream gracefully
                 
             return StreamingHttpResponse(stream_chat(), content_type='text/plain; charset=utf-8')
         except Exception as e:
@@ -1102,14 +1081,7 @@ Context Initialization:
             return str(delta_content)
 
         def stream_via_rest():
-            import requests
-            import json as pyjson
-
-            url = "https://api.openai.com/v1/chat/completions"
-            headers = {
-                "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
-                "Content-Type": "application/json",
-            }
+            from academics.ai_tutor import _stream_chat_completion_text
             payload = {
                 "model": "gpt-4o-mini",
                 "messages": [
@@ -1120,90 +1092,15 @@ Context Initialization:
                 "temperature": 0.7,
                 "stream": True,
             }
+            try:
+                for chunk in _stream_chat_completion_text(payload, settings.OPENAI_API_KEY):
+                    yield chunk
+            except Exception as e:
+                print(f"[COPILOT] Streaming error: {e}")
+                import traceback
+                traceback.print_exc()
 
-            with requests.post(url, headers=headers, json=payload, stream=True, timeout=30) as resp:
-                resp.raise_for_status()
-                for line in resp.iter_lines(decode_unicode=True):
-                    if not line:
-                        continue
-                    if not line.startswith("data: "):
-                        continue
-                    data = line[len("data: "):].strip()
-                    if data == "[DONE]":
-                        break
-                    try:
-                        obj = pyjson.loads(data)
-                        delta = obj.get("choices", [{}])[0].get("delta", {}).get("content")
-                        if delta:
-                            yield delta
-                    except Exception as parse_err:
-                        print(f"[COPILOT] Parse error: {parse_err} for line: {data}")
-
-        def stream_new_sdk():
-            import openai
-            client = openai.OpenAI(api_key=settings.OPENAI_API_KEY, timeout=15.0, http_client=None)
-            stream = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": question}
-                ],
-                max_tokens=200,
-                temperature=0.7,
-                stream=True
-            )
-            for chunk in stream:
-                delta = chunk.choices[0].delta.content
-                text = normalize_delta(delta)
-                if text:
-                    yield text
-
-        def stream_old_sdk():
-            import openai
-            openai.api_key = settings.OPENAI_API_KEY
-            stream = openai.ChatCompletion.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": question}
-                ],
-                max_tokens=200,
-                temperature=0.7,
-                stream=True
-            )
-            for chunk in stream:
-                delta = chunk['choices'][0]['delta'].get('content')
-                if delta:
-                    yield delta
-
-        # Attempt REST streaming first to bypass client/proxy issues
-        try:
-            return build_stream_response(stream_via_rest())
-        except Exception as rest_err:
-            print(f"[COPILOT] REST streaming error, trying SDK: {rest_err}")
-            import traceback
-            traceback.print_exc()
-
-        try:
-            import openai
-            if hasattr(openai, 'OpenAI'):
-                return build_stream_response(stream_new_sdk())
-        except TypeError as te:
-            print(f"[COPILOT] New SDK TypeError, falling back to legacy: {te}")
-        except Exception as e_new:
-            print(f"[COPILOT] Streaming error (new SDK): {e_new}")
-            import traceback
-            traceback.print_exc()
-
-        # Fallback to legacy only when everything else failed
-        try:
-            return build_stream_response(stream_old_sdk())
-        except Exception as e_legacy:
-            err_msg = f"Copilot error (legacy): {e_legacy}"
-            print(err_msg)
-            import traceback
-            traceback.print_exc()
-            return build_plain_response(err_msg, status=502)
+        return build_stream_response(stream_via_rest())
     except Exception as e:
         err_msg = f"Copilot error: {e}"
         print(err_msg)
