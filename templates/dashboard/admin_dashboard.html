@@ -812,34 +812,73 @@
             </a>
         </div>
 
-        <!-- Main Content: Announcements + Charts -->
+                <!-- Main Content: Announcements + Charts -->
         <div class="content-grid">
-            <!-- Announcements -->
-            <div id="widget-announcements">
-                <div class="section-heading">
-                    Recent Announcements
-                    <a href="{% url 'announcements:manage' %}" class="btn btn-link btn-sm text-decoration-none p-0" style="font-size: 0.8125rem;">View All</a>
-                </div>
-                <div class="announce-card">
-                    {% for notice in notices %}
-                    <div class="announce-item">
-                        <div class="announce-icon">
-                            <i class="bi bi-info-circle-fill"></i>
-                        </div>
-                        <div class="flex-grow-1" style="min-width: 0;">
-                            <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
-                                <div class="announce-title text-truncate">{{ notice.title }}</div>
-                                <span class="announce-date">{{ notice.created_at|date:"M d" }}</span>
+            <!-- Announcements Column-->
+            <div class="d-flex flex-column gap-3">
+                <div id="widget-announcements">
+                    <div class="section-heading">Recent Announcements</div>
+                    <div class="d-flex flex-column gap-3">
+                        {% for notice in recent_notices %}
+                        <div class="announce-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="announce-title mb-0">{{ notice.title }}</h6>
+                                <span class="badge bg-light text-muted border" style="font-size:0.65rem;">
+                                    {{ notice.get_target_audience_display }}
+                                </span>
                             </div>
-                            <p class="announce-body">{{ notice.content|truncatechars:100 }}</p>
+                            <p class="announce-body">{{ notice.content|truncatewords:80 }}</p>
+                            <div class="announce-date">
+                                <i class="bi bi-clock me-1"></i>{{ notice.created_at|date:"M d, Y" }}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="card card-body text-center text-muted" style="border-radius:14px; background:var(--surface-white);">
+                            No recent announcements
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Quick Actions Moved Here under Recent Announcements -->
+                <div id="widget-quick-actions" class="mt-2">
+                    <div class="section-heading">Quick Actions</div>
+                    <div class="qa-minimal-wrap">
+                        <div class="qa-minimal-grid">
+                            <a href="{% url 'students:add_student' %}" class="qa-min-link qa-primary">
+                                <i class="bi bi-person-plus"></i>
+                                <span>Add Student</span>
+                            </a>
+                            <a href="{% url 'teachers:add_teacher' %}" class="qa-min-link qa-primary">
+                                <i class="bi bi-person-badge"></i>
+                                <span>Add Teacher</span>
+                            </a>
+                            <a href="{% url 'finance:payment_history' %}" class="qa-min-link qa-success">
+                                <i class="bi bi-receipt"></i>
+                                <span>Payments</span>
+                            </a>
+                            <a href="{% url 'academics:add_class' %}" class="qa-min-link qa-academic">
+                                <i class="bi bi-journal-plus"></i>
+                                <span>New Class</span>
+                            </a>
+                            <a href="{% url 'students:mark_attendance' %}" class="qa-min-link qa-academic">
+                                <i class="bi bi-calendar-check"></i>
+                                <span>Attendance</span>
+                            </a>
+                            <a href="{% url 'academics:timetable_list' %}" class="qa-min-link qa-warning">
+                                <i class="bi bi-table"></i>
+                                <span>Timetable</span>
+                            </a>
+                            <a href="{% url 'announcements:create' %}" class="qa-min-link qa-danger">
+                                <i class="bi bi-megaphone"></i>
+                                <span>Notice</span>
+                            </a>
+                            <a href="{% url 'dashboard' %}" class="qa-min-link qa-tertiary">
+                                <i class="bi bi-gear"></i>
+                                <span>Settings</span>
+                            </a>
                         </div>
                     </div>
-                    {% empty %}
-                    <div class="announce-empty">
-                        <i class="bi bi-inbox"></i>
-                        <p class="mb-0" style="font-size: 0.8125rem;">No active announcements</p>
-                    </div>
-                    {% endfor %}
                 </div>
             </div>
 
@@ -858,6 +897,7 @@
                     </div>
                 </div>
             </div>
+        </div>
         </div>
     </div>
 
@@ -886,47 +926,6 @@
         </div>
 
         {% include 'dashboard/components/academic_calendar_widget.html' %}
-
-        <!-- Quick Actions - Minimal minimalist grid -->
-        <div id="widget-quick-actions">
-            <div class="section-heading">Quick Actions</div>
-            <div class="qa-minimal-wrap">
-                <div class="qa-minimal-grid">
-                    <a href="{% url 'students:add_student' %}" class="qa-min-link">
-                        <i class="bi bi-person-plus"></i>
-                        <span>Add Student</span>
-                    </a>
-                    <a href="{% url 'teachers:add_teacher' %}" class="qa-min-link">
-                        <i class="bi bi-person-badge"></i>
-                        <span>Add Teacher</span>
-                    </a>
-                    <a href="{% url 'students:mark_attendance' %}" class="qa-min-link qa-academic">
-                        <i class="bi bi-calendar-check"></i>
-                        <span>Attendance</span>
-                    </a>
-                    <a href="{% url 'academics:timetable' %}" class="qa-min-link qa-academic">
-                        <i class="bi bi-table"></i>
-                        <span>Timetable</span>
-                    </a>
-                    <a href="{% url 'finance:manage_fees' %}" class="qa-min-link qa-finance">
-                        <i class="bi bi-wallet2"></i>
-                        <span>Manage Fees</span>
-                    </a>
-                    <a href="{% url 'announcements:manage' %}" class="qa-min-link qa-ops">
-                        <i class="bi bi-megaphone"></i>
-                        <span>Notices</span>
-                    </a>
-                    <a href="{% url 'academics:manage_classes' %}" class="qa-min-link qa-academic">
-                        <i class="bi bi-door-open"></i>
-                        <span>Classes</span>
-                    </a>
-                    <a href="{% url 'academics:school_settings' %}" class="qa-min-link qa-ops">
-                        <i class="bi bi-sliders"></i>
-                        <span>School Settings</span>
-                    </a>
-                </div>
-            </div>
-        </div>
     </aside>
 </div>
 
@@ -1098,3 +1097,6 @@ function sgDismiss() {
 }
 </script>
 {% endblock %}
+
+
+

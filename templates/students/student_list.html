@@ -1,4 +1,4 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 
 {% block content %}
 <style>
@@ -132,9 +132,96 @@
         color: var(--sl-primary);
         border-color: rgba(59, 130, 246, 0.2);
     }
-    .action-btn.del:hover {
+        .action-btn.del:hover {
         background: rgba(239, 68, 68, 0.1);
         color: #ef4444; border-color: rgba(239, 68, 68, 0.2);
+    }
+
+    /* Mobile layout refinements */
+        @media (max-width: 768px) {
+        .stat-card {
+            padding: 1rem;
+            flex-direction: row;
+            text-align: left;
+            gap: 0.75rem;
+        }
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1.25rem;
+        }
+        .stat-value {
+            font-size: 1.25rem;
+        }
+        
+        .modern-table thead {
+            display: none;
+        }
+        .modern-table tbody td {
+            display: block;
+            border-bottom: none;
+            padding: 0.5rem 1rem;
+        }
+        .modern-table tbody td:first-child {
+            padding-top: 1rem;
+            position: absolute;
+            right: 0;
+            top: 0;
+        }
+        .modern-table tbody td:nth-child(2) {
+            padding-top: 1rem;
+            padding-right: 3rem; /* Make room for checkbox */
+        }
+        .modern-table tbody td:nth-child(3)::before {
+            content: "Adm No: ";
+            font-weight: 600;
+            color: var(--sl-text-muted);
+            font-size: 0.8rem;
+        }
+        .modern-table tbody td:nth-child(4)::before {
+            content: "Class: ";
+            font-weight: 600;
+            color: var(--sl-text-muted);
+            font-size: 0.8rem;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+        .modern-table tbody td:last-child {
+            padding-bottom: 1rem;
+            text-align: left !important;
+            padding-top: 0;
+        }
+        .modern-table tr {
+            display: block;
+            position: relative;
+            margin-bottom: 1rem;
+            border: 1px solid var(--sl-border);
+            border-radius: 8px;
+            background: var(--sl-surface);
+        }
+        .action-btn {
+            background: var(--sl-primary-soft);
+            border: 1px solid transparent;
+            width: 38px;
+            height: 38px;
+            font-size: 1.1rem;
+        }
+        
+        .modern-table td > .d-flex.justify-content-end {
+            justify-content: flex-start !important;
+            margin-top: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px dashed var(--sl-border);
+            gap: 0.5rem !important;
+        }
+
+        /* Adjust filter bar for mobile */
+        .filter-card .row > div {
+            margin-bottom: 0.5rem;
+        }
+        .filter-card .row > div:last-child {
+            margin-bottom: 0;
+        }
     }
 </style>
 
@@ -326,15 +413,13 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5">
-                            <div class="text-center py-5">
-                                <div class="mb-3">
-                                    <i class="bi bi-inbox display-4" style="color: var(--sl-border);"></i>
-                                </div>
-                                <h6 class="fw-bold text-muted mb-1">No Students Found</h6>
-                                <p class="text-secondary small mb-0">Adjust your filters or add a new student to get started.</p>
-                            </div>
-                        </td>
+                        <td colspan="5" class="text-center py-5">
+    <div class="mb-3">
+        <i class="bi bi-inbox display-4" style="color: var(--sl-border);"></i>
+    </div>
+    <h6 class="fw-bold text-muted mb-1">No Students Found</h6>
+    <p class="text-secondary small mb-0">Adjust your filters or add a new student to get started.</p>
+</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -608,3 +693,6 @@ function viewDetails(studentId) {
 }
 </script>
 {% endblock %}
+
+
+
