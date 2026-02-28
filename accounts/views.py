@@ -21,7 +21,11 @@ from django.db.utils import OperationalError, ProgrammingError
 
 def build_academic_calendar_widget(limit=5):
     today = timezone.now().date()
-    current_year = AcademicYear.objects.filter(is_current=True).first() or AcademicYear.objects.order_by('-start_date').first()
+    
+    try:
+        current_year = AcademicYear.objects.filter(is_current=True).first() or AcademicYear.objects.order_by('-start_date').first()
+    except ProgrammingError:
+        current_year = None
 
     events = []
     if current_year:
@@ -39,13 +43,16 @@ def build_academic_calendar_widget(limit=5):
         for title, when, tag in term_markers:
             events.append({'title': title, 'date': when, 'tag': tag})
 
-    upcoming_activities = Activity.objects.filter(is_active=True, date__gte=today).order_by('date')[:limit]
-    for activity in upcoming_activities:
-        events.append({
-            'title': activity.title,
-            'date': activity.date,
-            'tag': activity.tag or 'Activity',
-        })
+    try:
+        upcoming_activities = Activity.objects.filter(is_active=True, date__gte=today).order_by('date')[:limit]
+        for activity in upcoming_activities:
+            events.append({
+                'title': activity.title,
+                'date': activity.date,
+                'tag': activity.tag or 'Activity',
+            })
+    except ProgrammingError:
+        pass  # Table doesn't exist in this tenant schema
 
     events.sort(key=lambda item: item['date'])
 
