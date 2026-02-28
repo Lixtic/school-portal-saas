@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from . import views, views_ai
 
 app_name = 'students'
 
@@ -20,4 +20,8 @@ urlpatterns = [
     path('id-card/<int:student_id>/png/', views.student_id_card, name='id_card_png'),
     path('id-card/<int:student_id>/pdf/', views.student_id_card_pdf, name='id_card_pdf'),
     path('id-cards/bulk-pdf/', views.bulk_student_id_cards_pdf, name='bulk_id_cards_pdf'),
+    
+    # AI Voice Interface
+    path('aura/voice/', views_ai.aura_voice_view, name='aura_voice'),
+    path('aura/process-voice/', views_ai.process_voice_interaction, name='process_voice'),
 ]
