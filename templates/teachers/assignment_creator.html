@@ -1,0 +1,370 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Aura-T | Assignment Creator{% endblock %}
+
+{% block extra_css %}
+<style>
+    .aura-panel {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+    
+    .aura-gradient-text {
+        background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 800;
+    }
+    
+    .differentiation-card {
+        border-left: 4px solid transparent;
+        transition: transform 0.2s;
+    }
+    .differentiation-card:hover {
+        transform: translateY(-2px);
+    }
+    .diff-support { border-left-color: #10b981; }
+    .diff-standard { border-left-color: #3b82f6; }
+    .diff-challenge { border-left-color: #f59e0b; }
+    
+    .rubric-table th {
+        background-color: #f8fafc;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4 align-items-center">
+        <div class="col">
+            <h1 class="h3 mb-0"><i class="bi bi-magic me-2 aura-gradient-text"></i>AI Assignment Creator</h1>
+            <p class="text-muted small mb-0">Generative Pedagogical Engine</p>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'teachers:teacher_ai_insights' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i> Back to Command Centre
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Input Panel -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-sliders me-2"></i>Configuration</h6>
+                </div>
+                <div class="card-body">
+                    <form id="generatorForm">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted">Source Material</label>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="sourceType" id="sourceLesson" value="lesson" checked>
+                                <label class="form-check-label" for="sourceLesson">From Recent Lesson Plan</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="sourceType" id="sourceTopic" value="topic">
+                                <label class="form-check-label" for="sourceTopic">From Topic Prompt</label>
+                            </div>
+                        </div>
+
+                        <!-- Lesson Selector -->
+                        <div id="lessonSelectGroup" class="mb-3">
+                            <label class="form-label">Select Lesson Plan</label>
+                            <select class="form-select" id="lessonSelect">
+                                <option value="" selected disabled>Choose a recent lesson...</option>
+                                {% for lesson in recent_lessons %}
+                                <option value="{{ lesson.id }}">{{ lesson.subject.name }} - {{ lesson.topic }} (Week {{ lesson.week_number }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Topic Input (Hidden initially) -->
+                        <div id="topicInputGroup" class="mb-3 d-none">
+                            <div class="mb-2">
+                                <label class="form-label">Topic / Concept</label>
+                                <input type="text" class="form-control" id="topicInput" placeholder="e.g. Photosynthesis">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">Class</label>
+                                <select class="form-select" id="classSelect">
+                                    {% for class in classes %}
+                                    <option value="{{ class.id }}">{{ class.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">Subject</label>
+                                <select class="form-select" id="subjectSelect">
+                                    {% for subject in subjects %}
+                                    <option value="{{ subject.id }}">{{ subject.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg" id="generateBtn">
+                                <span class="normal-state"><i class="bi bi-stars me-2"></i>Generate Assignment Package</span>
+                                <span class="loading-state d-none">
+                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    Generating Context...
+                                </span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Output Panel -->
+        <div class="col-lg-8">
+            <div id="emptyState" class="text-center py-5 text-muted">
+                <i class="bi bi-robot display-4 mb-3 d-block opacity-50"></i>
+                <h5>Ready to Design</h5>
+                <p>Select a source and click Generate to create<br>assignments, differentiation, and rubrics instantly.</p>
+            </div>
+
+            <div id="resultContainer" class="d-none">
+                <!-- 1. Assignment Core -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold text-primary"><i class="bi bi-file-text me-2"></i>Core Assignment</h6>
+                        <span class="badge bg-light text-dark border" id="metaBadge">Generated just now</span>
+                    </div>
+                    <div class="card-body">
+                        <h4 id="resTitle" class="fw-bold mb-3"></h4>
+                        <p id="resDesc" class="lead fs-6 mb-4"></p>
+                        
+                        <div class="bg-light p-3 rounded mb-3 border">
+                            <h6 class="fw-bold small text-uppercase text-muted mb-2">Visual Prompt / Resource</h6>
+                            <p id="resVisual" class="mb-0 fst-italic text-primary"></p>
+                        </div>
+
+                        <h6 class="fw-bold mt-4">Task Questions:</h6>
+                        <ul id="resQuestions" class="list-group list-group-flush mb-0"></ul>
+                    </div>
+                </div>
+
+                <!-- 2. Differentiation -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h6 class="fw-bold text-muted mb-3"><i class="bi bi-diagram-3 me-2"></i>Adaptive Differentiation</h6>
+                    </div>
+                    <!-- Support -->
+                    <div class="col-md-4">
+                        <div class="card h-100 border-0 shadow-sm differentiation-card diff-support">
+                            <div class="card-body">
+                                <h6 class="fw-bold text-success mb-2">Support</h6>
+                                <p class="small text-muted mb-3" id="diffSupportDesc"></p>
+                                <ul class="small ps-3 mb-0" id="diffSupportList"></ul>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Standard -->
+                    <div class="col-md-4">
+                        <div class="card h-100 border-0 shadow-sm differentiation-card diff-standard">
+                            <div class="card-body">
+                                <h6 class="fw-bold text-primary mb-2">Standard</h6>
+                                <p class="small text-muted mb-3" id="diffStandardDesc"></p>
+                                <ul class="small ps-3 mb-0" id="diffStandardList"></ul>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Challenge -->
+                    <div class="col-md-4">
+                        <div class="card h-100 border-0 shadow-sm differentiation-card diff-challenge">
+                            <div class="card-body">
+                                <h6 class="fw-bold text-warning mb-2">Challenge</h6>
+                                <p class="small text-muted mb-3" id="diffChallengeDesc"></p>
+                                <ul class="small ps-3 mb-0" id="diffChallengeList"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Rubric -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="mb-0 fw-bold text-danger"><i class="bi bi-grid-3x3 me-2"></i>Grading Rubric</h6>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered mb-0 rubric-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 20%">Criteria</th>
+                                    <th style="width: 20%">Excellent (4)</th>
+                                    <th style="width: 20%">Proficient (3)</th>
+                                    <th style="width: 20%">Basic (2)</th>
+                                    <th style="width: 20%">Limited (1)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rubricBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Actions -->
+                <div class="text-end mt-4 mb-5">
+                    <button class="btn btn-outline-dark me-2"><i class="bi bi-printer me-2"></i>Print Worksheet</button>
+                    <button class="btn btn-success"><i class="bi bi-save me-2"></i>Save to Assignments</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle Inputs
+    const sourceRadios = document.querySelectorAll('input[name="sourceType"]');
+    const lessonGroup = document.getElementById('lessonSelectGroup');
+    const topicGroup = document.getElementById('topicInputGroup');
+    
+    sourceRadios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            if (e.target.value === 'lesson') {
+                lessonGroup.classList.remove('d-none');
+                topicGroup.classList.add('d-none');
+            } else {
+                lessonGroup.classList.add('d-none');
+                topicGroup.classList.remove('d-none');
+            }
+        });
+    });
+
+    // Handle Generation
+    document.getElementById('generatorForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const btn = document.getElementById('generateBtn');
+        const emptyState = document.getElementById('emptyState');
+        const resultContainer = document.getElementById('resultContainer');
+        
+        // UI Loading State
+        btn.disabled = true;
+        btn.querySelector('.normal-state').classList.add('d-none');
+        btn.querySelector('.loading-state').classList.remove('d-none');
+        
+        // Prepare Payload
+        const sourceType = document.querySelector('input[name="sourceType"]:checked').value;
+        const payload = { action: 'generate_assignment' };
+        
+        if (sourceType === 'lesson') {
+            payload.lesson_id = document.getElementById('lessonSelect').value;
+            if (!payload.lesson_id) {
+                alert('Please select a lesson plan');
+                resetBtn();
+                return;
+            }
+        } else {
+            payload.topic = document.getElementById('topicInput').value;
+            payload.class_id = document.getElementById('classSelect').value;
+            payload.subject_id = document.getElementById('subjectSelect').value;
+            if (!payload.topic) {
+                alert('Please enter a topic');
+                resetBtn();
+                return;
+            }
+        }
+        
+        try {
+            const response = await fetch("{% url 'teachers:aura_t_api' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(payload)
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                renderResults(data.data);
+                emptyState.classList.add('d-none');
+                resultContainer.classList.remove('d-none');
+            } else {
+                alert('Generation failed: ' + data.message);
+            }
+            
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred during generation.');
+        } finally {
+            resetBtn();
+        }
+        
+        function resetBtn() {
+            btn.disabled = false;
+            btn.querySelector('.normal-state').classList.remove('d-none');
+            btn.querySelector('.loading-state').classList.add('d-none');
+        }
+    });
+    
+    function renderResults(data) {
+        // 1. Core
+        document.getElementById('resTitle').textContent = data.assignment.title;
+        document.getElementById('resDesc').textContent = data.assignment.description;
+        document.getElementById('resVisual').textContent = data.assignment.content.visual_prompt;
+        document.getElementById('metaBadge').textContent = `${data.meta.subject} • ${data.meta.grade} • ${data.meta.topic}`;
+        
+        const qList = document.getElementById('resQuestions');
+        qList.innerHTML = '';
+        data.assignment.content.questions.forEach(q => {
+            const li = document.createElement('li');
+            li.className = 'list-group-item bg-transparent px-0 py-2';
+            li.innerHTML = `<i class="bi bi-dot me-2"></i>${q}`;
+            qList.appendChild(li);
+        });
+        
+        // 2. Differentiation
+        // Support
+        document.getElementById('diffSupportDesc').textContent = data.differentiation.support.description;
+        const supList = document.getElementById('diffSupportList');
+        supList.innerHTML = '';
+        data.differentiation.support.modifications.forEach(m => supList.innerHTML += `<li>${m}</li>`);
+        
+        // Standard
+        document.getElementById('diffStandardDesc').textContent = data.differentiation.standard.description;
+        const stdList = document.getElementById('diffStandardList');
+        stdList.innerHTML = ''; // Usually same as questions, handle gracefully
+        if (data.differentiation.standard.content) {
+             data.differentiation.standard.content.forEach(m => stdList.innerHTML += `<li>${m}</li>`);
+        }
+        
+        // Challenge
+        document.getElementById('diffChallengeDesc').textContent = data.differentiation.challenge.description;
+        const chaList = document.getElementById('diffChallengeList');
+        chaList.innerHTML = '';
+        data.differentiation.challenge.modifications.forEach(m => chaList.innerHTML += `<li>${m}</li>`);
+        
+        // 3. Rubric
+        const rubricBody = document.getElementById('rubricBody');
+        rubricBody.innerHTML = '';
+        data.rubric.forEach(r => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="fw-bold text-dark">${r.criteria} <br><small class="text-muted font-weight-normal">Weight: ${r.weight}</small></td>
+                <td>${r.levels.excellent}</td>
+                <td>${r.levels.proficient}</td>
+                <td>${r.levels.basic}</td>
+                <td class="text-muted">${r.levels.limited}</td>
+            `;
+            rubricBody.appendChild(tr);
+        });
+    }
+});
+</script>
+{% endblock %}

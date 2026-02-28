@@ -114,132 +114,207 @@
             </div>
 
             <!-- Document Content -->
-            <div class="card border rounded-0 shadow-sm" id="printableArea">
-                <div class="card-body p-4 p-md-5 bg-white text-black">
-                    
-                    <div class="text-center mb-4 font-family-serif">
-                        <h4 class="fw-bold text-uppercase">Weekly Lesson Plan – {{ lesson_plan.school_class.name }}</h4>
-                        <h4 class="fw-bold text-uppercase">Week {{ lesson_plan.week_number }}</h4>
-                    </div>
-
-
-                    <table class="b7-table">
-                        <!-- Row 1 -->
-                        <tr>
-                            <td class="bg-header" width="15%"><strong>Date:</strong></td>
-                            <td width="35%">
-                                {% if lesson_plan.date_added %}
-                                    {{ lesson_plan.date_added|date:"d/m/Y" }}
-                                {% else %}
-                                    &nbsp;
-                                {% endif %}
-                            </td>
-                            <td class="bg-header" width="15%"><strong>Period:</strong></td>
-                            <td width="35%">1</td> <!-- Hardcoded based on image, or add field later -->
-                        </tr>
-                        <!-- Row 2 -->
-                        <tr>
-                            <td class="bg-header"><strong>Duration:</strong></td>
-                            <td>60 Mins</td>
-                            <td class="bg-header"><strong>Strand:</strong></td>
-                            <td>Environment</td>
-                        </tr>
-                        <!-- Row 3 -->
-                        <tr>
-                            <td class="bg-header"><strong>Class:</strong></td>
-                            <td>{{ lesson_plan.school_class.name }}</td>
-                            <td class="bg-header"><strong>Class Size:</strong></td>
-                            <td>45</td>
-                        </tr>
-                        <tr>
-                            <td class="bg-header"><strong>Subject:</strong></td>
-                            <td>{{ lesson_plan.subject.name }}</td>
-                            <td class="bg-header"><strong>Sub Strand:</strong></td>
-                            <td>{{ lesson_plan.topic }}</td>
-                        </tr>
-                    </table>
-
-                    <table class="b7-table" style="margin-top: -2px;">
-                        <tr>
-                            <td width="50%" valign="top">
-                                <div class="bg-header p-1 border-bottom border-dark"><strong>Content Standard:</strong></div>
-                                <div class="p-1">{{ lesson_plan.objectives|truncatewords:20 }}</div>
-                            </td>
-                            <td width="30%" valign="top">
-                                <div class="bg-header p-1 border-bottom border-dark"><strong>Indicator:</strong></div>
-                                <div class="p-1">{{ lesson_plan.objectives|linebreaksbr }}</div>
-                            </td>
-                            <td width="20%" valign="top">
-                                <div class="bg-header p-1 border-bottom border-dark"><strong>Lesson:</strong></div>
-                                <div class="p-1">1 of 3</div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td colspan="2" valign="top">
-                                <div class="bg-header p-1 border-bottom border-dark"><strong>Performance Indicator:</strong></div>
-                                <div class="p-1">Learners can relate the lesson to real life situations.</div>
-                            </td>
-                            <td valign="top">
-                                <div class="bg-header p-1 border-bottom border-dark"><strong>Core Competencies:</strong></div>
-                                <div class="p-1">CP 5.1, CC 8.1</div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td colspan="3" class="bg-header p-1"><strong>References:</strong> National {{ lesson_plan.subject.name }} Curriculum</td>
-                        </tr>
-                        <tr>
-                            <td colspan="3" class="bg-header p-1"><strong>Keywords:</strong> {{ lesson_plan.topic }}</td>
-                        </tr>
-                    </table>
+            <form method="post" action="{% url 'teachers:lesson_plan_edit' lesson_plan.pk %}" id="lessonPlanFormB7">
+                {% csrf_token %}
+                <input type="hidden" name="week_number" value="{{ lesson_plan.week_number }}">
+                <input type="hidden" name="subject" value="{{ lesson_plan.subject.id }}">
+                <input type="hidden" name="school_class" value="{{ lesson_plan.school_class.id }}">
+                <input type="hidden" name="topic" value="{{ lesson_plan.topic }}">
+                <!-- Keep template param so we return here after save -->
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                
+                <div class="card border rounded-0 shadow-sm" id="printableArea">
+                    <div class="card-body p-4 p-md-5 bg-white text-black">
                         
-                    <!-- Instructional Phases Header -->
-                    <table class="b7-table" style="margin-top: 5px;">
-                        <thead>
-                            <tr class="bg-white">
-                                <th width="20%">Phase/Duration</th>
-                                <th width="50%">Learners Activities</th>
-                                <th width="30%">Resources</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Phase 1 -->
+                        <div class="text-center mb-4 font-family-serif">
+                            <h4 class="fw-bold text-uppercase">Weekly Lesson Plan – {{ lesson_plan.school_class.name }}</h4>
+                            <h4 class="fw-bold text-uppercase">Week {{ lesson_plan.week_number }}</h4>
+                        </div>
+    
+                        <table class="b7-table">
+                            <!-- Row 1 -->
                             <tr>
-                                <td><strong>PHASE 1: STARTER</strong></td>
-                                <td>{{ lesson_plan.introduction|linebreaksbr }}</td>
-                                <td rowspan="3" valign="top">{{ lesson_plan.teaching_materials|linebreaksbr }}</td>
-                            </tr>
-                            
-                            <!-- Phase 2 -->
-                            <tr>
-                                <td><strong>PHASE 2: NEW LEARNING</strong></td>
-                                <td>
-                                    {{ lesson_plan.presentation|linebreaksbr }}
-                                    <br><br>
-                                    <strong>Assessment:</strong>
-                                    {{ lesson_plan.evaluation|linebreaksbr }}
-                                </td>
-                            </tr>
-                            
-                            <!-- Phase 3 -->
-                            <tr>
-                                <td><strong>PHASE 3: REFLECTION</strong></td>
-                                <td>
-                                    <p>Use peer discussion and effective questioning to find out from learners what they have learnt during the lesson.</p>
-                                    <p>Take feedback from learners and summarize the lesson.</p>
-                                    
-                                    {% if lesson_plan.homework %}
-                                    <br><strong>Homework:</strong><br>
-                                    {{ lesson_plan.homework }}
+                                <td class="bg-header" width="15%"><strong>Date:</strong></td>
+                                <td width="35%">
+                                    {% if lesson_plan.date_added %}
+                                        {{ lesson_plan.date_added|date:"d/m/Y" }}
+                                    {% else %}
+                                        &nbsp;
                                     {% endif %}
                                 </td>
+                                <td class="bg-header" width="15%"><strong>Period:</strong></td>
+                                <td width="35%">1</td> <!-- Hardcoded based on image, or add field later -->
                             </tr>
-                        </tbody>
-                    </table>
+                            <!-- Row 2 -->
+                            <tr>
+                                <td class="bg-header"><strong>Duration:</strong></td>
+                                <td>60 Mins</td>
+                                <td class="bg-header"><strong>Strand:</strong></td>
+                                <td>Environment</td>
+                            </tr>
+                            <!-- Row 3 -->
+                            <tr>
+                                <td class="bg-header"><strong>Class:</strong></td>
+                                <td>{{ lesson_plan.school_class.name }}</td>
+                                <td class="bg-header"><strong>Class Size:</strong></td>
+                                <td>45</td>
+                            </tr>
+                            <tr>
+                                <td class="bg-header"><strong>Subject:</strong></td>
+                                <td>{{ lesson_plan.subject.name }}</td>
+                                <td class="bg-header"><strong>Sub Strand:</strong></td>
+                                <td>{{ lesson_plan.topic }}</td>
+                            </tr>
+                        </table>
+    
+                        <table class="b7-table" style="margin-top: -2px;">
+                            <tr>
+                                <td width="50%" valign="top">
+                                    <div class="bg-header p-1 border-bottom border-dark"><strong>Content Standard:</strong></div>
+                                    <div class="p-1">
+                                        <textarea name="objectives" class="form-control border-0 shadow-none rounded-0 p-1" rows="3" style="font-size: 11pt;">{{ lesson_plan.objectives }}</textarea>
+                                    </div>
+                                </td>
+                                <td width="30%" valign="top">
+                                    <div class="bg-header p-1 border-bottom border-dark"><strong>Indicator:</strong></div>
+                                    <div class="p-1" style="font-size: 11pt;">See Content Standard</div>
+                                </td>
+                                <td width="20%" valign="top">
+                                    <div class="bg-header p-1 border-bottom border-dark"><strong>Lesson:</strong></div>
+                                    <div class="p-1">1 of 3</div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="2" valign="top">
+                                    <div class="bg-header p-1 border-bottom border-dark"><strong>Performance Indicator:</strong></div>
+                                    <div class="p-1">Learners can relate the lesson to real life situations.</div>
+                                </td>
+                                <td valign="top">
+                                    <div class="bg-header p-1 border-bottom border-dark"><strong>Core Competencies:</strong></div>
+                                    <div class="p-1">CP 5.1, CC 8.1</div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" class="bg-header p-1"><strong>References:</strong> National {{ lesson_plan.subject.name }} Curriculum</td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" class="bg-header p-1"><strong>Keywords:</strong> {{ lesson_plan.topic }}</td>
+                            </tr>
+                        </table>
+                        
+                        <table class="b7-table" style="margin-top: 5px;">
+                            <thead>
+                                <tr class="bg-white">
+                                    <th width="20%">Phase/Duration</th>
+                                    <th width="50%">Learners Activities</th>
+                                    <th width="30%">Resources</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Phase 1 -->
+                                <tr>
+                                    <td><strong>PHASE 1: STARTER</strong><br><small class="text-muted">(10 Mins)</small></td>
+                                    <td>
+                                        <textarea name="introduction" class="form-control border-0 shadow-none rounded-0" rows="6" placeholder="Recall previous knowledge...">{{ lesson_plan.introduction }}</textarea>
+                                    </td>
+                                    <td rowspan="3" valign="top">
+                                        <textarea name="teaching_materials" class="form-control border-0 shadow-none rounded-0 h-100" rows="20" placeholder="TLMs...">{{ lesson_plan.teaching_materials }}</textarea>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Phase 2 -->
+                                <tr>
+                                    <td><strong>PHASE 2: NEW LEARNING</strong><br><small class="text-muted">(40 Mins)</small></td>
+                                    <td>
+                                        <textarea name="presentation" class="form-control border-0 shadow-none rounded-0" rows="12" placeholder="Main activities...">{{ lesson_plan.presentation }}</textarea>
+                                        <div class="border-top mt-2 pt-2">
+                                            <strong>Assessment:</strong>
+                                            <textarea name="evaluation" class="form-control border-0 shadow-none rounded-0" rows="4" placeholder=" assessment tasks...">{{ lesson_plan.evaluation }}</textarea>
+                                        </div>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Phase 3 -->
+                                <tr>
+                                    <td><strong>PHASE 3: REFLECTION</strong><br><small class="text-muted">(10 Mins)</small></td>
+                                    <td>
+                                        <p class="mb-2 text-muted small">Peer discussion and summary...</p>
+                                        <textarea name="remarks" class="form-control border-0 shadow-none rounded-0" rows="4" placeholder="Reflection notes...">{{ lesson_plan.remarks }}</textarea>
+                                        
+                                        <div class="border-top mt-2 pt-2">
+                                            <strong>Homework:</strong>
+                                            <textarea name="homework" class="form-control border-0 shadow-none rounded-0" rows="3" placeholder="Homework tasks...">{{ lesson_plan.homework }}</textarea>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
 
+                    </div>
                 </div>
-            </div>
+
+                <!-- Floating Save Button -->
+                <div class="position-fixed bottom-0 end-0 p-4" style="z-index: 1050">
+                    <button type="submit" class="btn btn-primary btn-lg rounded-pill shadow-lg d-flex align-items-center gap-2">
+                        <i class="bi bi-save"></i>
+                        <span>Save Changes</span>
+                    </button>
+                </div>
+            </form>
             
         </div>
     </div>
 </div>
+
+<style>
+    /* Mobile Responsive Styles for B7 Template */
+    @media (max-width: 768px) {
+        .b7-table td, .b7-table th {
+            display: block;
+            width: 100% !important;
+            box-sizing: border-box;
+        }
+        
+        .b7-table tr {
+            display: block;
+            margin-bottom: 1rem;
+            border: 1px solid #000;
+        }
+
+        .b7-table td {
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        /* Hide empty cells on mobile if necessary, or adjust structure */
+        
+        /* Ensure textareas are usable on mobile */
+        textarea.form-control {
+            font-size: 16px; /* Prevent zoom on iOS */
+            min-height: 100px;
+        }
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-resize textareas
+    const textareas = document.querySelectorAll('textarea');
+    textareas.forEach(textarea => {
+        textarea.style.height = 'auto';
+        textarea.style.height = textarea.scrollHeight + 'px';
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = this.scrollHeight + 'px';
+        });
+    });
+
+    // Handle form submission
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const btn = this.querySelector('button[type="submit"]');
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+        btn.disabled = true;
+    });
+});
+</script>
 {% endblock %}

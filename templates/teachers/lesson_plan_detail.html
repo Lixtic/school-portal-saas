@@ -25,16 +25,66 @@
         background-color: #f0f0f0; /* Light gray for screen, white for print */
     }
     
+    /* Make textareas blend seamlessly */
+    .ges-table textarea {
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 11pt;
+        color: inherit;
+        background: transparent;
+        padding: 4px; /* Match cell padding visually */
+        min-height: 40px;
+    }
+    .ges-table textarea:focus {
+        background: #f8f9fa;
+        outline: none;
+        box-shadow: none;
+    }
+
     .ges-header {
         text-align: center;
         font-weight: bold;
         text-transform: uppercase;
-        margin-bottom: 10px;
+        margin-bottom: 15px;
         font-family: 'Times New Roman', Times, serif;
     }
     
     .phase-col { width: 30%; }
     .day-col { width: 10%; }
+    
+    /* Mobile-Friendly Adjustments */
+    @media (max-width: 768px) {
+        .ges-table {
+            display: block;
+            width: 100%;
+        }
+        .ges-table tbody, .ges-table tr, .ges-table th, .ges-table td {
+            display: block;
+            width: 100%;
+            border: none;
+        }
+        .ges-table tr {
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .ges-table th {
+            background-color: var(--bs-light);
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .ges-table td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        /* Hide complex headers on mobile if needed, or stack them */
+        .phase-col, .day-col { width: 100%; }
+        
+        /* Make header rows stack gracefully */
+        .ges-header h3 { font-size: 1.2rem; }
+        .ges-header h4 { font-size: 1rem; }
+    }
     
     /* Screen-only adjustments */
     [data-bs-theme="dark"] .ges-table {
@@ -47,6 +97,12 @@
     }
     [data-bs-theme="dark"] .ges-table th {
         background-color: #1e293b;
+    }
+    [data-bs-theme="dark"] .ges-table textarea {
+        color: var(--text-main);
+    }
+    [data-bs-theme="dark"] .ges-table textarea:focus {
+        background: rgba(255,255,255,0.05);
     }
 
     /* Print Styles */
@@ -64,6 +120,24 @@
             background: white;
             color: black;
         }
+        /* Reset table display for print so it looks like a real table again */
+        .ges-table { display: table !important; }
+        .ges-table tbody { display: table-row-group !important; }
+        .ges-table tr { display: table-row !important; border: none !important; margin: 0 !important; box-shadow: none !important;}
+        .ges-table th, .ges-table td { display: table-cell !important; border: 1px solid #000 !important; }
+        
+        /* Hide form controls in print, show just text content */
+        textarea {
+            border: none !important;
+            resize: none !important;
+            overflow: hidden !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            height: auto !important; /* This might cut off text if not careful, JS resize needed or pure text swap */
+            /* Better approach for print: use JS to replace textarea with div before print, or just rely on browser print handling of textarea content */
+            white-space: pre-wrap;
+        }
+        
         .ges-table th { background-color: transparent !important; }
         .print-hide { display: none !important; }
         
@@ -107,110 +181,136 @@
             {% endif %}
 
             <!-- Document Content -->
-            <div class="card border rounded-0 shadow-sm" id="printableArea">
-                <div class="card-body p-4 p-md-5 bg-white text-black">
-                    
-                    <div class="ges-header">
-                        <h4>{{ lesson_plan.school_class.name }}</h4>
-                        <h3>WEEKLY LESSON PLAN</h3>
-                    </div>
+            <form method="post" action="{% url 'teachers:lesson_plan_edit' lesson_plan.pk %}" id="lessonPlanForm">
+                {% csrf_token %}
+                <!-- Hidden fields for required model fields that might not be in the visual table or rely on defaults if missing from POST -->
+                <input type="hidden" name="week_number" value="{{ lesson_plan.week_number }}">
+                <input type="hidden" name="subject" value="{{ lesson_plan.subject.id }}">
+                <input type="hidden" name="school_class" value="{{ lesson_plan.school_class.id }}">
+                <input type="hidden" name="topic" value="{{ lesson_plan.topic }}">
 
-                    <table class="ges-table mb-0">
-                        <!-- Header Section -->
-                        <tbody>
-                            <tr>
-                                <th width="25%">Learning Indicator(s)</th>
-                                <td colspan="3">
-                                    {{ lesson_plan.objectives|linebreaksbr }}
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Performance Indicator</th>
-                                <td colspan="3">
-                                    <ul style="margin-bottom: 0; padding-left: 1.2rem;">
-                                        <li>Learners can relate the lesson to real life situations.</li>
-                                        <li>Learners can demonstrate understanding of core concepts.</li>
-                                        <!-- Placeholder as we don't have separate field -->
-                                    </ul>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Week Ending</th>
-                                <td colspan="3">
-                                    <!-- Use a calculated date if available or just Week Number -->
-                                    Week {{ lesson_plan.week_number }} ({{ lesson_plan.date_added|date:"F d, Y" }})
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Class</th>
-                                <td colspan="3">{{ lesson_plan.school_class.name }}</td>
-                            </tr>
-                            <tr>
-                                <th>Subject</th>
-                                <td colspan="3">{{ lesson_plan.subject.name }}</td>
-                            </tr>
-                            <tr>
-                                <th>Reference</th>
-                                <td colspan="3">National {{ lesson_plan.subject.name }} Curriculum</td>
-                            </tr>
-                            <tr>
-                                <th>Teaching/Learning Resources</th>
-                                <td colspan="3">{{ lesson_plan.teaching_materials|linebreaksbr }}</td>
-                            </tr>
-                            
-                            <!-- Spacing Row -->
-                            <tr style="border: none;"><td colspan="4" style="border: none; padding: 10px;"></td></tr>
+                <div class="card border rounded-0 shadow-sm" id="printableArea">
+                    <div class="card-body p-4 p-md-5 bg-white text-black">
+                        
+                        <div class="ges-header">
+                            <h4>{{ lesson_plan.school_class.name }}</h4>
+                            <h3>WEEKLY LESSON PLAN</h3>
+                        </div>
 
-                            <!-- Instructional Phases Header -->
-                            <tr>
-                                <th class="day-col text-center">DAYS</th>
-                                <th class="phase-col">PHASE 1: STARTER<br><small>(Preparing The Brain For Learning)</small></th>
-                                <th class="phase-col">PHASE 2: MAIN<br><small>(New Learning Including Assessment)</small></th>
-                                <th class="phase-col">PHASE 3: REFLECTION<br><small>(Learner And Teacher)</small></th>
-                            </tr>
-                            
-                            <!-- Instructional Phases Content -->
-                            <tr style="height: 300px;">
-                                <td class="text-center fw-bold">
-                                    <br>ALL<br>DAYS
-                                </td>
-                                <td>
-                                    {{ lesson_plan.introduction|linebreaks }}
-                                </td>
-                                <td>
-                                    {{ lesson_plan.presentation|linebreaks }}
-                                </td>
-                                <td>
-                                    {{ lesson_plan.evaluation|linebreaks }}
+                        <div class="table-responsive">
+                            <table class="ges-table mb-0">
+                                <!-- Header Section -->
+                                <tbody>
+                                    <tr>
+                                        <th width="25%">Learning Indicator(s)</th>
+                                        <td colspan="3" class="p-0">
+                                            <textarea name="objectives" class="form-control border-0 shadow-none rounded-0" rows="3" style="resize: vertical;">{{ lesson_plan.objectives }}</textarea>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Performance Indicator</th>
+                                        <td colspan="3">
+                                            <ul style="margin-bottom: 0; padding-left: 1.2rem;">
+                                                <li>Learners can relate the lesson to real life situations.</li>
+                                                <li>Learners can demonstrate understanding of core concepts.</li>
+                                            </ul>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Week Ending</th>
+                                        <td colspan="3">
+                                            Week {{ lesson_plan.week_number }} ({{ lesson_plan.date_added|date:"F d, Y" }})
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Class</th>
+                                        <td colspan="3">{{ lesson_plan.school_class.name }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Subject</th>
+                                        <td colspan="3">{{ lesson_plan.subject.name }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Reference</th>
+                                        <td colspan="3">National {{ lesson_plan.subject.name }} Curriculum</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Teaching/Learning Resources</th>
+                                        <td colspan="3" class="p-0">
+                                            <textarea name="teaching_materials" class="form-control border-0 shadow-none rounded-0" rows="2" style="resize: vertical;">{{ lesson_plan.teaching_materials }}</textarea>
+                                        </td>
+                                    </tr>
                                     
-                                    {% if lesson_plan.homework %}
-                                    <div class="mt-3 pt-3 border-top border-dark">
-                                        <strong>Homework:</strong><br>
-                                        {{ lesson_plan.homework|linebreaksbr }}
-                                    </div>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                                    <!-- Spacing Row -->
+                                    <tr style="border: none;"><td colspan="4" style="border: none; padding: 10px;"></td></tr>
 
-                    <div class="mt-4 pt-4 d-flex justify-content-between" style="font-family: 'Times New Roman', serif;">
-                        <div>
-                            <p class="mb-0">Teacher's Signature: ______________________</p>
+                                    <!-- Instructional Phases Header -->
+                                    <tr>
+                                        <th class="day-col text-center">DAYS</th>
+                                        <th class="phase-col">PHASE 1: STARTER<br><small>(Preparing The Brain For Learning)</small></th>
+                                        <th class="phase-col">PHASE 2: MAIN<br><small>(New Learning Including Assessment)</small></th>
+                                        <th class="phase-col">PHASE 3: REFLECTION<br><small>(Learner And Teacher)</small></th>
+                                    </tr>
+                                    
+                                    <!-- Instructional Phases Content -->
+                                    <tr>
+                                        <td class="text-center fw-bold align-middle">
+                                            ALL<br>DAYS
+                                        </td>
+                                        <td class="p-0">
+                                            <textarea name="introduction" class="form-control border-0 shadow-none rounded-0 h-100" rows="10">{{ lesson_plan.introduction }}</textarea>
+                                        </td>
+                                        <td class="p-0">
+                                            <textarea name="presentation" class="form-control border-0 shadow-none rounded-0 h-100" rows="10">{{ lesson_plan.presentation }}</textarea>
+                                        </td>
+                                        <td class="p-0">
+                                            <textarea name="evaluation" class="form-control border-0 shadow-none rounded-0" rows="6">{{ lesson_plan.evaluation }}</textarea>
+                                            
+                                            <div class="border-top border-dark mt-2 pt-2 px-2">
+                                                <strong>Homework:</strong><br>
+                                                <textarea name="homework" class="form-control border-0 shadow-none rounded-0" rows="3">{{ lesson_plan.homework }}</textarea>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
-                        <div>
-                            <p class="mb-0">Headteacher's Signature: ______________________</p>
+
+                        <div class="mt-4 pt-4 d-flex justify-content-between flex-wrap gap-4" style="font-family: 'Times New Roman', serif;">
+                            <div>
+                                <p class="mb-0">Teacher's Signature: ______________________</p>
+                            </div>
+                            <div>
+                                <p class="mb-0">Headteacher's Signature: ______________________</p>
+                            </div>
                         </div>
+
                     </div>
-
                 </div>
-            </div>
+
+                <div class="text-center mt-4 print-hide fixed-bottom bg-white p-3 border-top shadow-lg d-none" id="saveBar">
+                    <span class="me-3 fw-bold text-dark">You have unsaved changes</span>
+                    <button type="submit" class="btn btn-success px-4 rounded-pill">
+                        <i class="bi bi-check-circle me-2"></i>Save Changes
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary px-4 rounded-pill ms-2" onclick="location.reload()">Discard</button>
+                </div>
+            </form>
             
             <div class="mt-4 text-center text-muted small print-hide">
-                <p>This document is formatted according to GES standards.</p>
+                <p>This document is formatted according to GES standards. Edit directly in the table.</p>
             </div>
             
         </div>
     </div>
 </div>
+
+<script>
+    // Show save bar on input change
+    document.querySelectorAll('#lessonPlanForm textarea').forEach(input => {
+        input.addEventListener('input', () => {
+            document.getElementById('saveBar').classList.remove('d-none');
+        });
+    });
+</script>
 {% endblock %}

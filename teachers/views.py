@@ -983,6 +983,12 @@ def lesson_plan_edit(request, pk):
         if form.is_valid():
             form.save()
             messages.success(request, 'Lesson plan updated successfully.')
+            
+            # Check for next URL to return to same view (e.g. from inline edit)
+            next_url = request.POST.get('next') or request.GET.get('next')
+            if next_url:
+                return redirect(next_url)
+                
             return redirect('teachers:lesson_plan_list')
     else:
         form = LessonPlanForm(instance=lesson_plan, teacher=teacher)
@@ -1043,7 +1049,7 @@ def lesson_plan_print(request, pk):
     # Check for template preference
     template_format = request.GET.get('template', 'standard')
     
-    if template_format == 'b7':
+    if template_format == 'b7' or template_format == 'weekly':
         template_name = 'teachers/lesson_plan_print_b7.html'
     else:
         # Default to standard GES detail view with print mode
@@ -1059,13 +1065,17 @@ def lesson_plan_print(request, pk):
 def aura_t_api(request):
     """
     API Endpoint for Aura-T (Teacher Copilot) features.
-    Handles AJAX requests for lesson plan generation, differentiation, etc.
+    Handles AJAX requests for lesson plan generation, differentiation, and assignment creation.
     """
     if request.method == "POST":
         try:
             import json
+            from teachers.services.aura_gen_engine import AuraGenEngine
+            
             data = json.loads(request.body)
             action = data.get('action')
+            
+            teacher = get_object_or_404(Teacher, user=request.user)
             
             if action == 'generate_lesson':
                 # Placeholder for lesson generation logic
@@ -1079,6 +1089,38 @@ def aura_t_api(request):
                 return JsonResponse({
                     "status": "success", 
                     "content": "Differentiation suggestions ready"
+                })
+            
+            elif action == 'generate_assignment':
+                lesson_id = data.get('lesson_id')
+                topic = data.get('topic')
+                
+                if lesson_id:
+                    lesson_plan = get_object_or_404(LessonPlan, pk=lesson_id, teacher=teacher)
+                    result = AuraGenEngine.generate_assignment_package(lesson_plan)
+                elif topic and data.get('class_id'):
+                    # Create a temporary lesson object for the engine if topic is provided manually
+                    # This is a simplified path
+                    from academics.models import Class, Subject
+                    school_class = get_object_or_404(Class, pk=data.get('class_id'))
+                    subject = get_object_or_404(Subject, pk=data.get('subject_id')) # Assuming subject passed
+                    
+                    # Mock lesson plan for the engine
+                    mock_lesson = LessonPlan(
+                        teacher=teacher,
+                        subject=subject,
+                        school_class=school_class,
+                        topic=topic,
+                        objectives=f"Understand {topic}",
+                        week_number=1 # Dummy
+                    )
+                    result = AuraGenEngine.generate_assignment_package(mock_lesson, topic_prompt=topic)
+                else:
+                    return JsonResponse({"status": "error", "message": "Missing lesson_id or topic/class_id"}, status=400)
+                
+                return JsonResponse({
+                    "status": "success", 
+                    "data": result
                 })
                 
             return JsonResponse({"status": "error", "message": "Unknown action"}, status=400)
@@ -1587,4 +1629,28 @@ def ai_session_delete(request, session_id):
     session.delete()
     messages.success(request, "Session deleted.")
     return redirect('teachers:ai_sessions_list')
+
+@login_required
+def assignment_creator(request):
+    """
+    View for Aura-T Assignment Creator Interface.
+    Allows teachers to generate assignments, differentiation, and rubrics.
+    """
+    if request.user.user_type != 'teacher':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+    
+    teacher = get_object_or_404(Teacher, user=request.user)
+    recent_lessons = LessonPlan.objects.filter(teacher=teacher).order_by('-date_added')[:5]
+    
+    # Get classes and subjects for manual entry
+    class_subjects = ClassSubject.objects.filter(teacher=teacher).select_related('class_name', 'subject')
+    classes = sorted(list(set(cs.class_name for cs in class_subjects)), key=lambda c: c.name)
+    subjects = sorted(list(set(cs.subject for cs in class_subjects)), key=lambda s: s.name)
+    
+    return render(request, 'teachers/assignment_creator.html', {
+        'recent_lessons': recent_lessons,
+        'classes': classes,
+        'subjects': subjects
+    })
 

@@ -43,6 +43,9 @@ urlpatterns = [
     path('ai-sessions/<int:session_id>/', views.ai_session_detail, name='ai_session_detail'),
     path('ai-sessions/<int:session_id>/rename/', views.ai_session_rename, name='ai_session_rename'),
     path('ai-sessions/<int:session_id>/delete/', views.ai_session_delete, name='ai_session_delete'),
+    
+    # AI Assignment Creator
+    path('ai-assignments/', views.assignment_creator, name='assignment_creator'),
 
     path('id-card/<int:teacher_id>/png/', views.teacher_id_card, name='id_card_png'),
     path('id-card/<int:teacher_id>/pdf/', views.teacher_id_card_pdf, name='id_card_pdf'),
