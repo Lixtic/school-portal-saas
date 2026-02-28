@@ -898,43 +898,21 @@ def lesson_plan_create(request):
     
     teacher = get_object_or_404(Teacher, user=request.user)
     
-    # Check for AI generation request (either from topic or structured text)
+    # Check for AI generation request
     initial_data = {}
-    
-    # Try the new draft session parsing logic
-    draft_session = request.GET.get('draft_session')
-    if draft_session:
-        session = get_object_or_404(LessonGenerationSession, id=draft_session, teacher=teacher)
-        # Find the last assistant message
-        draft_text = ""
-        for msg in reversed(session.messages):
-            if msg.get('role') == 'assistant':
-                draft_text = msg.get('content', '')
-                break
-                
-        if draft_text:
-            from .ges_lessonplan import parse_ges_lesson_text
-            parsed_data = parse_ges_lesson_text(draft_text)
-            if parsed_data:
-                initial_data = parsed_data
-                messages.info(request, "Loaded structured AI draft. Please review and edit.")
-            else:
-                initial_data['introduction'] = draft_text
-                messages.info(request, "Loaded AI draft text. Please review and edit.")
-                
-    # Fallback to simple topic generation
-    elif request.GET.get('topic'):
-        topic = request.GET.get('topic')
+    topic = request.GET.get('topic')
+    if topic:
+        # Simulate AI generation
         initial_data = {
             'topic': topic,
-            'objectives': f"By the end of the lesson, students will be able to:\n1. Understand the core concepts of {topic}.\n2. Apply {topic} to solve simple problems.",
-            'introduction': f"Begin with a 5-minute warm-up activity related to {topic}.",
-            'presentation': f"1. Define {topic} and key terminology.\n2. Demonstrate the main concept.",
-            'evaluation': f"Distribute a short worksheet on {topic}.",
-            'homework': f"Read the chapter on {topic}.",
-            'teaching_materials': f"Textbook, Whiteboard"
+            'objectives': f"By the end of the lesson, students will be able to:\n1. Understand the core concepts of {topic}.\n2. Apply {topic} to solve simple problems.\n3. Analyze real-world examples of {topic}.",
+            'introduction': f"Begin with a 5-minute warm-up activity related to {topic}. Ask students what they already know about it to gauge prior knowledge.",
+            'presentation': f"1. Define {topic} and key terminology.\n2. Demonstrate the main concept using visual aids.\n3. Walk through 2-3 step-by-step examples on the board.\n4. Facilitate a class discussion to check for understanding.",
+            'evaluation': f"Distribute a short worksheet with 5 problems on {topic}. Circulate to provide individual assistance.",
+            'homework': f"Read the chapter on {topic} and complete exercises 1-10 on page 42.",
+            'teaching_materials': f"Textbook, Whiteboard, Marker, Projector (optional), Handouts on {topic}"
         }
-        messages.info(request, f"AI has drafted a simple outline for '{topic}'. Please review.")
+        messages.info(request, f"AI has drafted a lesson plan for '{topic}'. Please review and edit.")
     
     if request.method == 'POST':
         form = LessonPlanForm(request.POST, teacher=teacher)
@@ -1305,6 +1283,11 @@ import json
 
 @login_required
 def ai_sessions_list(request):
+    """
+    Aura-T Command Centre:
+    Displays AI Copilot sessions, actively scheduled class (or next one),
+    and a matrix of students with (simulated) real-time engagement status.
+    """
     if not hasattr(request.user, 'teacher'):
          messages.error(request, "Access restricted to teachers.")
          return redirect('dashboard')
@@ -1312,118 +1295,74 @@ def ai_sessions_list(request):
     teacher = request.user.teacher
     sessions = LessonGenerationSession.objects.filter(teacher=teacher).order_by('-updated_at')
     
-    from academics.models import ClassSubject, AcademicYear
-    from students.models import Student, Grade
-    from parents.models import Parent
+    # --- REDESIGN: REAL DATA INJECTION ---
+    from datetime import datetime
+    now = datetime.now()
+    weekday = now.weekday()  # 0=Monday, 6=Sunday
+    current_time = now.time()
     
-    current_year = AcademicYear.objects.filter(is_current=True).first()
+    # 1. Fetch Next Active Class
+    # Query: Find classes for this teacher today that haven't ended yet
+    next_class_session = Timetable.objects.filter(
+        class_subject__teacher=teacher,
+        day=weekday,
+        end_time__gte=current_time
+    ).select_related('class_subject__class_name', 'class_subject__subject').order_by('start_time').first()
     
-    # Get subjects this teacher teaches
-    teacher_subjects = list(ClassSubject.objects.filter(teacher=teacher).values_list('subject_id', flat=True))
-    
-    # Get classes this teacher teaches
-    teacher_classes = list(ClassSubject.objects.filter(teacher=teacher).values_list('class_name_id', flat=True))
-    
-    # Try fetching real students
-    students = Student.objects.filter(current_class_id__in=teacher_classes).select_related('user')
+    # 2. Determine Scope Context (Which class to show in matrix?)
+    active_class = None
+    if next_class_session:
+        active_class = next_class_session.class_subject.class_name
+    elif teacher.managed_classes.exists():
+        # Fallback to the first class they manage (e.g. homeroom)
+        active_class = teacher.managed_classes.first()
+    else:
+        # Fallback to any class they teach
+        first_subject = ClassSubject.objects.filter(teacher=teacher).select_related('class_name').first()
+        if first_subject:
+            active_class = first_subject.class_name
+            
+    # 3. Build Student Matrix Data
     student_data = []
-    
     struggling_count = 0
-    on_target_count = 0
-    excelling_count = 0
+    total_students = 0
     
-    parent_updates = []
-    
-    class_name_display = "All Classes"
-    if students.exists():
-        classes_names = set(Student.objects.filter(id__in=students).values_list('current_class__name', flat=True))
-        class_name_display = ", ".join(filter(None, classes_names))
+    if active_class:
+        # Get up to 40 students for the visualization grid
+        students = Student.objects.filter(current_class=active_class).select_related('user')[:40]
+        total_students = students.count()
         
-        for student in students:
-            # Check grades for this teacher's subjects
-            grades = Grade.objects.filter(student=student, subject_id__in=teacher_subjects)
-            if current_year:
-                grades = grades.filter(academic_year=current_year)
+        for i, s in enumerate(students):
+            # Simulation Logic for Demo Purposes (Replace with Real-Time Analytics later)
+            # Deterministic pseudo-random status based on ID
+            # Statuses: 'active' (Green/Engaged), 'struggling' (Red/Need Help), 'idle' (Amber), 'offline' (Grey)
+            status_seed = (s.id * 7 + i) % 10
             
-            # Simple heuristic
-            total_scores = [g.total_score for g in grades if getattr(g, 'total_score', None)]
-            avg_score = sum(total_scores)/len(total_scores) if total_scores else None
-            
-            status = 'good' # default 'Progressing'
-            if avg_score is not None:
-                if avg_score >= 80: 
-                    status = 'excellent'
-                    excelling_count += 1
-                elif avg_score < 50: 
-                    status = 'struggling'
-                    struggling_count += 1
-                else: 
-                    on_target_count += 1
-            else:
-                on_target_count += 1
+            if status_seed == 0: 
+                status = 'struggling'
+                struggling_count += 1
+            elif status_seed < 6: 
+                status = 'active'
+            elif status_seed < 8: 
+                status = 'idle'
+            else: 
+                status = 'offline'
                 
             student_data.append({
-                'id': student.id,
-                'name': student.user.get_full_name() or student.user.username,
+                'id': s.id,
+                'name': s.user.get_full_name() or s.user.username,
                 'status': status,
-                'avg_score': avg_score,
-                'tooltip': f"Avg Score: {avg_score:.1f}%" if avg_score else "No grades yet."
+                'tooltip': f"{s.admission_number} | {status.title()}"
             })
-            
-            # Draft parent updates
-            parent = student.parents.first()
-            if parent:
-                try:
-                    parent_name = parent.user.get_full_name() or parent.user.username
-                except Exception:
-                    # Parent's user may have been deleted
-                    continue
-                if status == 'struggling':
-                    draftMsg = f"Hi {parent_name}, {student.user.first_name} is having some challenges with recent topics. Let's work together to provide additional support."
-                elif status == 'excellent':
-                    draftMsg = f"Hi {parent_name}, {student.user.first_name} is doing exceptionally well! Keep up the great work at home."
-                else:
-                    draftMsg = f"Hi {parent_name}, {student.user.first_name} is progressing smoothly and staying on target."
-                    
-                parent_updates.append({
-                    'parent_name': parent_name,
-                    'student_name': student.user.first_name,
-                    'draft': draftMsg
-                })
-    else:
-        # Mock Data for testing the UI when there are no real students
-        class_name_display = "Basic 8 Science (Mock)"
-        student_data = [
-            {'name': 'Kwame', 'status': 'good', 'tooltip': 'Progressing well.'},
-            {'name': 'Efia', 'status': 'excellent', 'tooltip': 'Excelling. Target Achieved.'},
-            {'name': 'Kofi', 'status': 'struggling', 'tooltip': "Struggling with 'Factoring'. Used 'Hint' 4 times."},
-            {'name': 'Yaw', 'status': 'good', 'tooltip': 'Progressing well.'},
-            {'name': 'Adjoa', 'status': 'good', 'tooltip': 'Progressing well.'},
-            {'name': 'Zainab', 'status': 'excellent', 'tooltip': 'Excelling. Target Achieved.'},
-            {'name': 'Ama', 'status': 'struggling', 'tooltip': "Requires help with core concepts."},
-            {'name': 'Kweku', 'status': 'good', 'tooltip': 'Progressing well.'},
-            {'name': 'Abena', 'status': 'excellent', 'tooltip': 'Excelling. Target Achieved.'},
-            {'name': 'Esi', 'status': 'good', 'tooltip': 'Progressing well.'},
-            {'name': 'Kwesi', 'status': 'struggling', 'tooltip': "Requires help with core concepts."},
-            {'name': 'Akosua', 'status': 'good', 'tooltip': 'Progressing well.'},
-        ]
-        struggling_count = 3
-        on_target_count = 6
-        excelling_count = 3
-        
-        parent_updates = [
-            {'parent_name': "Mr. Osei", 'student_name': "Ama", 'draft': "Hi Mr. Osei, Ama did great with 'Friction' today, but she's still a bit confused about 'Mass.' Here is a video link..."},
-            {'parent_name': "Mrs. Mensah", 'student_name': "Kofi", 'draft': "Hi Mrs. Mensah, Kofi is struggling with 'Negative Coefficients'. I have assigned him to a remedial group tomorrow..."}
-        ]
-        
+    
     context = {
         'sessions': sessions,
+        'next_class': next_class_session,
+        'active_class': active_class,
         'student_data': student_data,
         'struggling_count': struggling_count,
-        'on_target_count': on_target_count,
-        'excelling_count': excelling_count,
-        'class_name_display': class_name_display,
-        'parent_updates': parent_updates
+        'student_count': total_students,
+        'current_time': now,
     }
     return render(request, 'teachers/ai_sessions_list.html', context)
 
@@ -1462,11 +1401,11 @@ def ai_session_detail(request, session_id):
                     raise Exception("OpenAI API key not configured.")
                 
                 system_prompt = """You are an expert lesson planner for teachers. Help them create detailed, engaging lesson plans.
-When generating a lesson plan, ALWAYS structure your output to exactly match this template (do not include markdown tables, strictly use this vertical text format).
+When generating a lesson plan, ALWAYS structure your output to exactly match this template (do not include markdown tables, strictly use this vertical text format with bold headings):
 
 [School Name] [Phone Numbers]
 **TERM:** [Term]
-**WEEKLY LESSON PLAN  [Class Name]**
+**WEEKLY LESSON PLAN – [Class Name]**
 **WEEK:** [Week Number]
 
 **Week Ending:** [Date]
@@ -1568,136 +1507,3 @@ def ai_session_delete(request, session_id):
     messages.success(request, "Session deleted.")
     return redirect('teachers:ai_sessions_list')
 
-import json
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-
-@login_required
-@csrf_exempt
-def aura_t_api(request):
-    if request.user.user_type != 'teacher':
-        return JsonResponse({'error': 'Unauthorized'}, status=403)
-
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            action = data.get('action')
-            topic = data.get('topic', 'General Topic')
-            
-            api_key = os.environ.get('OPENAI_API_KEY')
-            if not api_key:
-                # Fallback to simulated logic if no API key is provided
-                return _simulate_aura_t(action, topic, data)
-                
-            from academics.ai_tutor import _post_chat_completion
-            
-            if action == 'class_sync':
-                system_prompt = "You are Aura-T, an expert AI assistant for teachers. Generate a 'class_sync' response. Provide a json with 'introduction', 'presentation', and 'differentiation'. The response should rewrite a hook based on students struggling, and provide strategies."
-                user_prompt = f"Topic: {topic}. Generate the JSON payload."
-                
-                payload = {
-                    "model": "gpt-4o-mini",
-                    "messages": [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    "response_format": {"type": "json_object"}
-                }
-                response = _post_chat_completion(payload, api_key)
-                content = response.get("choices", [{}])[0].get("message", {}).get("content", "{}")
-                result = json.loads(content)
-                result['status'] = 'success'
-                return JsonResponse(result)
-                
-            elif action == 'interest_mashup':
-                interests = data.get('interests', 'Gaming')
-                system_prompt = "You are Aura-T. Generate an 'interest_mashup' response. Provide a json with 'introduction' and 'presentation'. Mix the topic with the provided student interests to make it highly engaging."
-                user_prompt = f"Topic: {topic}. Interests: {interests}. Generate the JSON payload."
-                
-                payload = {
-                    "model": "gpt-4o-mini",
-                    "messages": [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    "response_format": {"type": "json_object"}
-                }
-                response = _post_chat_completion(payload, api_key)
-                content = response.get("choices", [{}])[0].get("message", {}).get("content", "{}")
-                result = json.loads(content)
-                result['status'] = 'success'
-                return JsonResponse(result)
-                
-            elif action == 'standard_linker':
-                system_prompt = "You are Aura-T. Generate a 'standard_linker' response. Provide a json with 'objectives'. Link the topic to official GES & WAEC standards and competencies."
-                user_prompt = f"Topic: {topic}. Generate the JSON payload."
-                
-                payload = {
-                    "model": "gpt-4o-mini",
-                    "messages": [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    "response_format": {"type": "json_object"}
-                }
-                response = _post_chat_completion(payload, api_key)
-                content = response.get("choices", [{}])[0].get("message", {}).get("content", "{}")
-                result = json.loads(content)
-                result['status'] = 'success'
-                return JsonResponse(result)
-                
-            elif action == 'chat_suggest':
-                context = data.get('context', '')
-                system_prompt = "You are Aura-T. Provide a helpful 1-2 sentence teacher tip based on the context they are typing. If they mention introduction or hook, suggest a fun fact. If assessment, remind them."
-                user_prompt = f"Topic: {topic}. User is typing: '{context}'. Suggestion?"
-                
-                payload = {
-                    "model": "gpt-4o-mini",
-                    "messages": [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ]
-                }
-                response = _post_chat_completion(payload, api_key)
-                tip = response.get("choices", [{}])[0].get("message", {}).get("content", "Teacher Tip: Keep it up!")
-                return JsonResponse({'status': 'success', 'suggestion': tip})
-
-            else:
-                return JsonResponse({'error': 'Unknown action'}, status=400)
-
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-
-    return JsonResponse({'error': 'Invalid request'}, status=400)
-
-def _simulate_aura_t(action, topic, data):
-    if action == 'class_sync':
-        return JsonResponse({
-            'status': 'success',
-            'introduction': f"I see 12 students struggled with this. Let's rewrite today's 'Hook' to focus on a practical scenario to reinforce the visual logic before we move to '{topic}'.",
-            'presentation': f"Focus heavily on the visual analogies for {topic}.",
-            'differentiation': "Focus on base concepts for remedial group. Advanced group analyzes edge-cases."
-        })
-    elif action == 'interest_mashup':
-        interests = data.get('interests', 'Gaming')
-        return JsonResponse({
-            'status': 'success',
-            'introduction': f"Let's teach {topic} by calculating stats for {interests}.",
-            'presentation': f"Use examples from {interests} to illustrate {topic}."
-        })
-    elif action == 'standard_linker':
-        return JsonResponse({
-            'status': 'success',
-            'objectives': f"This lesson covers GES & WAEC standards for {topic} and develops 'Critical Thinking' and 'Digital Literacy' competencies.\n1. Understand {topic}\n2. Apply {topic}"
-        })
-    elif action == 'chat_suggest':
-        context = data.get('context', '')
-        if 'Objective' in context or 'assessment' in context.lower():
-            tip = "Alert: You haven't assessed 'Objective B' yet. Should I add a question to the exit ticket?"
-        elif 'introduction' in context.lower() or 'hook' in context.lower():
-            tip = "Teacher Tip: Students usually find this part boring. Want a 1-minute fun fact about this?"
-        else:
-            tip = f"Resource: I found a PhET Interactive Simulation that perfectly matches {topic}. Click to embed."
-        return JsonResponse({'status': 'success', 'suggestion': tip})
-    else:
-        return JsonResponse({'error': 'Unknown action'}, status=400)

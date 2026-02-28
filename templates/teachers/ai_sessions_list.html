@@ -46,8 +46,22 @@
     --aura-transition-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* ── Force Dark Mode for Aura-T page ─────────────────────────────────────── */
-html[data-aura-page] {
+/* Light Mode Variables Override */
+[data-bs-theme="light"] .aura-command-shell {
+    --aura-bg-primary: #f0f4f8;
+    --aura-bg-secondary: #ffffff;
+    --aura-bg-card: rgba(255, 255, 255, 0.8);
+    --aura-bg-glass: rgba(255, 255, 255, 0.7);
+    --aura-border: rgba(0, 0, 0, 0.08);
+    --aura-border-glow: rgba(139, 92, 246, 0.4);
+    --aura-text-primary: #1e293b;
+    --aura-text-secondary: #475569;
+    --aura-text-muted: #94a3b8;
+    --aura-shadow-glow: 0 10px 30px rgba(139, 92, 246, 0.1);
+}
+
+/* ── Force Dark Mode for Aura-T page (Only if theme is dark) ──────────────── */
+html[data-aura-page][data-bs-theme="dark"] {
     --surface-bg: #0a0a0f !important;
     --surface-card: #12121a !important;
     --sidebar-bg: #0a0a0f !important;
@@ -60,37 +74,30 @@ html[data-aura-page] {
     --bs-body-color: #f8fafc !important;
 }
 
-html[data-aura-page] body {
+html[data-aura-page][data-bs-theme="dark"] body {
     background: #0a0a0f !important;
 }
 
-html[data-aura-page] .header {
+html[data-aura-page][data-bs-theme="dark"] .header {
     background: rgba(10, 10, 15, 0.85) !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
-    backdrop-filter: blur(20px) !important;
 }
 
-html[data-aura-page] .sidebar {
+html[data-aura-page][data-bs-theme="dark"] .sidebar {
     background: #0a0a0f !important;
     border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
 }
-
-html[data-aura-page] .sidebar .nav-link {
-    color: #94a3b8 !important;
-}
-
-html[data-aura-page] .sidebar .nav-link.active,
-html[data-aura-page] .sidebar .nav-link:hover {
-    background: rgba(139, 92, 246, 0.15) !important;
-    color: #8b5cf6 !important;
-}
-
-html[data-aura-page] .sidebar .nav-link i {
-    color: inherit !important;
-}
-
-html[data-aura-page] .main-content {
+html[data-aura-page][data-bs-theme="dark"] .main-content {
     background: #0a0a0f !important;
+}
+
+/* Light Mode Text Visibility Fixes */
+[data-bs-theme="light"] .aura-pulse-text strong,
+[data-bs-theme="light"] .time-label strong {
+    color: #0f172a;
+}
+[data-bs-theme="light"] .aura-btn-icon:hover {
+    background: rgba(139, 92, 246, 0.1);
 }
 
 /* ── Base Overrides ──────────────────────────────────────────────────────── */
@@ -803,22 +810,14 @@ html[data-aura-page] .main-content {
             </div>
         </div>
 
-<!-- Auto-inject dark mode attribute for Aura Command Shell -->
+<!-- Auto-inject Aura context but respect user theme preference -->
 <script>
     (function() {
-        // Apply immediately to prevent flash if possible, though base.html might revert it temporarily
+        // Mark page as Aura-powered immediately
         document.documentElement.setAttribute('data-aura-page', 'true');
-        document.documentElement.setAttribute('data-bs-theme', 'dark');
-
-        // Re-apply after DOM load to ensure it overrides base.html's theme init
-        window.addEventListener('DOMContentLoaded', function() {
-            document.documentElement.setAttribute('data-aura-page', 'true');
-            document.documentElement.setAttribute('data-bs-theme', 'dark');
-            
-            // Hide the global theme toggle if it exists to prevent confusion
-            const themeToggle = document.querySelector('.header-action-btn[onclick="toggleTheme()"]');
-            if (themeToggle) themeToggle.style.display = 'none';
-        });
+        
+        // Removed forced dark mode injection.
+        // The base template will handle theme toggling via localStorage ('theme').
     })();
 </script>
         
@@ -826,33 +825,35 @@ html[data-aura-page] .main-content {
         <div class="aura-glass aura-bento-pulse aura-pulse-card">
             <div class="aura-pulse-orb {% if struggling_count == 0 %}green{% elif struggling_count > 5 %}red{% endif %}"></div>
             <div class="aura-pulse-text">
-                {% if struggling_count > 0 %}
-                    <strong>{{ struggling_count }}</strong> need attention
+                {% if active_class %}
+                    <span class="d-block mb-1" style="font-size:0.75rem; color:var(--aura-text-muted);">LIVE NOW: {{ active_class.name }}</span>
+                    {% if struggling_count > 0 %}
+                        <strong>{{ struggling_count }}</strong> students need help
+                    {% else %}
+                        Class is <strong>on track</strong>
+                    {% endif %}
                 {% else %}
-                    Class is <strong>on track</strong>
+                    <span class="d-block mb-1" style="font-size:0.75rem; color:var(--aura-text-muted);">STATUS</span>
+                    No active class
                 {% endif %}
             </div>
         </div>
         
         <!-- ═══ STUDENT STATUS TILES (40 tiles with glow) ═══ -->
         <div class="aura-glass aura-bento-students aura-students-panel">
-            <h3><i class="fas fa-users"></i> Live Student Matrix</h3>
+            <h3><i class="fas fa-users"></i> Live Student Matrix {% if active_class %}<span class="badge ms-2" style="background:var(--aura-bg-secondary); font-size:0.65rem;">{{ active_class.name }}</span>{% endif %}</h3>
             <div class="aura-students-grid" id="studentGrid">
                 {% for student in student_data %}
                 <div class="aura-student-tile" 
-                     data-status="{% if student.status == 'excellent' %}active{% elif student.status == 'struggling' %}struggling{% else %}idle{% endif %}"
-                     title="{{ student.name }}{% if student.tooltip %} - {{ student.tooltip }}{% endif %}">
+                     data-status="{{ student.status }}"
+                     title="{{ student.name }} ({{ student.status|title }})">
                     {{ student.name|slice:":2"|upper }}
                 </div>
                 {% empty %}
-                <!-- Demo tiles when no data -->
-                {% for i in "1234567890123456789012345678901234567890"|make_list %}
-                <div class="aura-student-tile" 
-                     data-status="{% cycle 'active' 'idle' 'active' 'struggling' 'active' 'idle' 'idle' 'active' 'offline' 'active' %}"
-                     title="Student {{ forloop.counter }}">
-                    S{{ forloop.counter }}
+                <div class="d-flex flex-column align-items-center justify-content-center h-100 text-muted small">
+                    <i class="fas fa-school mb-2 opacity-50" style="font-size:1.5rem;"></i>
+                    No students in session
                 </div>
-                {% endfor %}
                 {% endfor %}
             </div>
         </div>
@@ -865,19 +866,19 @@ html[data-aura-page] .main-content {
                 </div>
                 <div class="aura-chat-header-info">
                     <h4>Aura Co-Pilot</h4>
-                    <span>Online</span>
+                    <span>{% if next_class %}Assisting with {{ next_class.class_subject.subject.name }}{% else %}Online{% endif %}</span>
                 </div>
             </div>
             <div class="aura-chat-messages" id="auraChatMessages">
                 <div class="aura-chat-msg bot">
-                    Hello! I'm your AI teaching assistant. I can help with lesson planning, student insights, and curriculum alignment. What would you like to work on?
+                    Hello! I'm ready to help with {% if next_class %}{{ next_class.class_subject.subject.name }} for {{ next_class.class_subject.class_name.name }}{% else %}your classes{% endif %}.
                 </div>
             </div>
             <div class="aura-chat-scaffolds">
-                <button class="aura-scaffold-chip" data-prompt="Summarize my class progress in 3 bullets">Class summary</button>
-                <button class="aura-scaffold-chip" data-prompt="Create a 10-minute lesson starter">Lesson starter</button>
-                <button class="aura-scaffold-chip" data-prompt="Generate a rubric for today's activity">Rubric</button>
-                <button class="aura-scaffold-chip" data-prompt="Draft an exit ticket for this topic">Exit ticket</button>
+                <button class="aura-scaffold-chip" data-prompt="Draft a 5-minute starter activity{% if next_class %} for {{ next_class.class_subject.subject.name }}{% endif %}">Lesson Starter</button>
+                <button class="aura-scaffold-chip" data-prompt="Create a quiz with 3 questions{% if next_class %} on {{ next_class.class_subject.subject.name }}{% endif %}">Quick Quiz</button>
+                <button class="aura-scaffold-chip" data-prompt="Explain a complex concept simply">Explain Concept</button>
+                <button class="aura-scaffold-chip" data-prompt="Suggest homework ideas">Homework</button>
             </div>
             <form class="aura-chat-input" id="auraChatForm" data-no-loader>
                 <input type="text" id="auraChatInput" placeholder="Ask Aura anything..." autocomplete="off" required>
@@ -885,18 +886,23 @@ html[data-aura-page] .main-content {
             </form>
         </div>
         
-        <!-- ═══ SYLLABUS PROGRESS ═══ -->
+        <!-- ═══ SYLLABUS PROGRESS / NEXT CLASS ═══ -->
         <div class="aura-glass aura-bento-syllabus aura-syllabus-card">
-            <h4><i class="fas fa-book-open"></i> Syllabus Coverage</h4>
-            <div class="aura-progress-ring">
-                <svg width="80" height="80" viewBox="0 0 80 80">
-                    <circle class="bg" cx="40" cy="40" r="36"/>
-                    <circle class="progress" cx="40" cy="40" r="36"/>
-                </svg>
-                <div class="value">65%</div>
-            </div>
-            <div class="aura-syllabus-insight">
-                <i class="fas fa-lightbulb"></i> 2 days behind on Algebra. Aura has condensed today's intro phase.
+            <h4><i class="fas fa-clock"></i> Schedule</h4>
+            <div class="d-flex flex-column align-items-center justify-content-center h-100 pb-3">
+                {% if next_class %}
+                    <div class="text-center mb-3">
+                        <div class="h2 mb-0 fw-bold text-gradient">{{ next_class.start_time|time:"H:i" }}</div>
+                        <small class="text-muted">Ends {{ next_class.end_time|time:"H:i" }}</small>
+                    </div>
+                    <div class="badge bg-secondary mb-2">{{ next_class.class_subject.class_name.name }}</div>
+                    <div class="small text-truncate" style="max-width:100%;">{{ next_class.class_subject.subject.name }}</div>
+                {% else %}
+                     <div class="text-muted text-center small">
+                        <i class="fas fa-coffee mb-2 d-block" style="font-size:1.5rem; opacity:0.5;"></i>
+                        No active class right now
+                    </div>
+                {% endif %}
             </div>
         </div>
         
@@ -905,20 +911,16 @@ html[data-aura-page] .main-content {
             <h4><i class="fas fa-bolt"></i> Quick Actions</h4>
             <a href="{% url 'teachers:ai_session_new' %}" class="aura-action-btn">
                 <i class="fas fa-magic"></i>
-                <span>Generate New Lesson</span>
+                <span>New AI Lesson</span>
             </a>
-            <button class="aura-action-btn" data-bs-toggle="modal" data-bs-target="#gesNoteModal">
-                <i class="fas fa-file-signature"></i>
-                <span>GES Lesson Note</span>
-            </button>
-            <button class="aura-action-btn" onclick="document.getElementById('auraChatInput').focus(); document.getElementById('auraChatInput').value = 'Help me differentiate content for my class';">
-                <i class="fas fa-layer-group"></i>
-                <span>1-Click Differentiation</span>
-            </button>
-            <button class="aura-action-btn" onclick="document.getElementById('auraChatInput').focus(); document.getElementById('auraChatInput').value = 'Draft parent update messages for struggling students';">
-                <i class="fas fa-envelope"></i>
-                <span>Parent Updates</span>
-            </button>
+            <a href="{% url 'students:mark_attendance' %}" class="aura-action-btn">
+                <i class="fas fa-check-circle"></i>
+                <span>Mark Attendance</span>
+            </a>
+            <a href="{% url 'teachers:enter_grades' %}" class="aura-action-btn">
+                <i class="fas fa-graduation-cap"></i>
+                <span>Enter Grades</span>
+            </a>
         </div>
         
         <!-- ═══ INTERACTIVE TIMELINE ═══ -->
