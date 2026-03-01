@@ -197,6 +197,7 @@ def homework_add_questions(request, pk):
 @login_required
 def homework_solve(request, pk):
     homework = get_object_or_404(Homework, pk=pk)
+    questions = homework.questions.prefetch_related('choices').all()
     
     # Ensure student context
     if request.user.user_type != 'student':
@@ -219,7 +220,7 @@ def homework_solve(request, pk):
         total_score = 0
         total_points = 0
         
-        for question in homework.questions.all():
+        for question in questions:
             total_points += question.points
             input_value = request.POST.get(f'question_{question.id}')
 
@@ -296,7 +297,10 @@ def homework_solve(request, pk):
         messages.success(request, f"Homework submitted! Your score: {total_score}")
         return redirect('homework:homework_results', pk=pk)
 
-    return render(request, 'homework/solve_homework.html', {'homework': homework})
+    return render(request, 'homework/solve_homework.html', {
+        'homework': homework,
+        'questions': questions,
+    })
 
 @login_required
 def homework_results(request, pk):
