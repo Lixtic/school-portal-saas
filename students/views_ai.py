@@ -461,7 +461,7 @@ def aura_arena_api(request):
                 user_msg = content.replace("@aura", "").replace("@Aura", "").strip()
                 prompt = (
                     f"<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n"
-                    f"You are Aura-T, a helpful AI tutor for students. Keep answers fun, concise, and under 3 sentences.<|eot_id|>"
+                    f"You are Aura-T, a helpful AI tutor for students. Do NOT use headings, phases, or labels like 'Phase A', 'Hook', or 'Nugget'. Use 'tiny scaffolds' (very short, single-step conversational hints). Keep answers fun, extremely concise, and under 3 sentences.<|eot_id|>"
                     f"<|start_header_id|>user<|end_header_id|>\n\n{user_msg}<|eot_id|>"
                     f"<|start_header_id|>assistant<|end_header_id|>\n\n"
                 )
