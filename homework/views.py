@@ -12,7 +12,7 @@ from .models import Homework, Question, Choice, Submission, Answer
 from .forms import HomeworkForm
 from teachers.models import Teacher
 from students.models import Student
-from academics.ai_tutor import _post_chat_completion
+from academics.ai_tutor import _post_chat_completion, get_openai_chat_model
 
 
 def _normalize_text(value):
@@ -95,7 +95,7 @@ def _build_grading_prompt(question_text, student_answer, rubric_constraints, str
     )
 
     return {
-        "model": "gpt-4o-mini",
+        "model": get_openai_chat_model(),
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},

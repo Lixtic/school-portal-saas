@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 from django.utils import timezone
 from django.conf import settings
 from teachers.models import LessonPlan, Teacher
-from academics.ai_tutor import _post_chat_completion
+from academics.ai_tutor import _post_chat_completion, get_openai_chat_model
 
 class AuraGenEngine:
     """
@@ -77,7 +77,7 @@ class AuraGenEngine:
 
         try:
             payload = {
-                "model": "gpt-4o-mini",
+                "model": get_openai_chat_model(),
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"Generate a creative and educational assignment package for {topic}."}
@@ -163,7 +163,7 @@ Return a full lesson plan using the exact template below. Do not use markdown ta
 
         try:
             payload = {
-                "model": "gpt-4o-mini",
+                "model": get_openai_chat_model(),
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"Create a full lesson plan on '{topic}' for {grade_level} {subject}."}
@@ -214,7 +214,7 @@ Rules:
 """
         try:
             payload = {
-                "model": "gpt-4o-mini",
+                "model": get_openai_chat_model(),
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"Create slides for '{topic}' for {grade_level} {subject}."}
@@ -412,7 +412,7 @@ Rules:
 """
         try:
             payload = {
-                "model": "gpt-4o-mini",
+                "model": get_openai_chat_model(),
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"Create interactive exercises for '{topic}' for {grade_level} {subject}."}

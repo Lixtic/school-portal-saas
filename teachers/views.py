@@ -9,6 +9,7 @@ from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from decimal import Decimal, InvalidOperation
 from django.utils import timezone
+import os
 from teachers.models import Teacher, DutyWeek, LessonPlan
 from academics.models import ClassSubject, AcademicYear, Timetable, SchoolInfo, Resource, Class, Subject
 from students.models import Student, Grade, ClassExercise, StudentExerciseScore
@@ -21,6 +22,71 @@ from parents.models import Parent
 from communication.models import Conversation, Message
 from django.views.decorators.http import require_POST
 # from parents.models import Homework
+
+
+def _classify_ai_error(exception):
+    raw_message = str(exception or '').strip()
+    message_lower = raw_message.lower()
+
+    if (
+        'insufficient_quota' in message_lower
+        or 'openai http 429' in message_lower
+        or ('quota' in message_lower and 'openai' in message_lower)
+    ):
+        return {
+            'error_code': 'ai_quota_exceeded',
+            'message': 'Aura AI is temporarily unavailable because the OpenAI quota is exhausted. Please top up billing and try again.',
+            'http_status': 503,
+            'retryable': False,
+        }
+
+    if (
+        'api key' in message_lower
+        or 'missing openai_api_key' in message_lower
+        or 'not configured' in message_lower
+    ):
+        return {
+            'error_code': 'ai_not_configured',
+            'message': 'Aura AI is currently unavailable due to configuration. Please contact your administrator.',
+            'http_status': 503,
+            'retryable': False,
+        }
+
+    if 'network error' in message_lower or 'timed out' in message_lower:
+        return {
+            'error_code': 'ai_network_error',
+            'message': 'Aura AI is temporarily unreachable. Please check your connection and try again shortly.',
+            'http_status': 503,
+            'retryable': True,
+        }
+
+    if 'openai http 5' in message_lower:
+        return {
+            'error_code': 'ai_upstream_error',
+            'message': 'Aura AI service is temporarily unavailable. Please try again shortly.',
+            'http_status': 503,
+            'retryable': True,
+        }
+
+    return {
+        'error_code': 'ai_generation_failed',
+        'message': raw_message or 'Aura AI could not complete this request right now.',
+        'http_status': 500,
+        'retryable': True,
+    }
+
+
+def _ai_json_error_response(exception):
+    error_info = _classify_ai_error(exception)
+    return JsonResponse(
+        {
+            'status': 'error',
+            'message': error_info['message'],
+            'error_code': error_info['error_code'],
+            'retryable': error_info['retryable'],
+        },
+        status=error_info['http_status'],
+    )
 
 
 # Homework views moved to 'homework' app
@@ -1377,7 +1443,7 @@ def aura_t_api(request):
             return JsonResponse({"status": "error", "message": "Unknown action"}, status=400)
             
         except Exception as e:
-            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+            return _ai_json_error_response(e)
             
     return JsonResponse({"status": "error", "message": "Invalid method"}, status=405)
 
@@ -1729,6 +1795,15 @@ def ai_sessions_list(request):
                 'tooltip': f"{s.admission_number} | {status.title()}"
             })
     
+    from academics.ai_tutor import get_openai_chat_model
+
+    active_ai_model = get_openai_chat_model()
+    hf_fallback_model = (
+        os.environ.get('HF_FALLBACK_MODEL')
+        or os.environ.get('HUGGINGFACE_FALLBACK_MODEL')
+        or 'google/flan-t5-large'
+    )
+
     context = {
         'sessions': sessions,
         'next_class': next_class_session,
@@ -1737,6 +1812,8 @@ def ai_sessions_list(request):
         'struggling_count': struggling_count,
         'student_count': total_students,
         'current_time': now,
+        'active_ai_model': active_ai_model,
+        'hf_fallback_model': hf_fallback_model,
     }
     return render(request, 'teachers/ai_sessions_list.html', context)
 
@@ -1768,11 +1845,8 @@ def ai_session_detail(request, session_id):
                 session.messages = messages_list
                 session.save()
                 
-                from academics.ai_tutor import _post_chat_completion
+                from academics.ai_tutor import _post_chat_completion, get_openai_chat_model
                 api_key = settings.OPENAI_API_KEY
-                
-                if not api_key:
-                    raise Exception("OpenAI API key not configured.")
                 
                 system_prompt = """You are an expert lesson planner for teachers. Help them create detailed, engaging lesson plans.
 When generating a lesson plan, ALWAYS structure your output to exactly match this template (do not include markdown tables, strictly use this vertical text format with bold headings):
@@ -1825,7 +1899,7 @@ When generating a lesson plan, ALWAYS structure your output to exactly match thi
                 api_msgs = [{"role": "system", "content": system_prompt}] + messages_list
                 
                 payload = {
-                    "model": "gpt-4o-mini",
+                    "model": get_openai_chat_model(),
                     "messages": api_msgs,
                     "temperature": 0.7
                 }
@@ -1843,7 +1917,7 @@ When generating a lesson plan, ALWAYS structure your output to exactly match thi
                 if session.title == "New Session" and len(messages_list) >= 2:
                     try:
                         title_payload = {
-                            "model": "gpt-4o-mini",
+                            "model": get_openai_chat_model(),
                             "messages": api_msgs + [{"role": "user", "content": "Suggest a short 3-5 word title for this chat."}],
                             "max_tokens": 15
                         }
@@ -1857,7 +1931,7 @@ When generating a lesson plan, ALWAYS structure your output to exactly match thi
                 session.save()
                 return JsonResponse({'status': 'success', 'reply': ai_content, 'title': session.title})
         except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+            return _ai_json_error_response(e)
     
     class_subjects = ClassSubject.objects.filter(teacher=teacher).select_related('class_name', 'subject')
     classes = sorted(list(set(cs.class_name for cs in class_subjects)), key=lambda c: c.name)

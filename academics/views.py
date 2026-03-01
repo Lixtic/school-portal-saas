@@ -755,7 +755,7 @@ def admissions_assistant(request):
     if settings.OPENAI_API_KEY:
         try:
             print("[CHATBOT] Calling OpenAI API via REST...")
-            from academics.ai_tutor import _stream_chat_completion_text
+            from academics.ai_tutor import _stream_chat_completion_text, get_openai_chat_model
             
             # Build context from school info
             school_context = f"""
@@ -779,7 +779,7 @@ Please provide helpful, concise answers about admissions, fees, term dates, and 
 """
 
             payload = {
-                "model": "gpt-4o-mini",
+                "model": get_openai_chat_model(),
                 "messages": [
                     {"role": "system", "content": school_context},
                     {"role": "user", "content": question}
@@ -1034,8 +1034,13 @@ Context Initialization:
 """
 
     from django.conf import settings
-    if not settings.OPENAI_API_KEY:
-        return HttpResponse('Copilot is offline: missing OPENAI_API_KEY.', content_type='text/plain; charset=utf-8', status=503)
+    hf_token = (
+        os.environ.get('HUGGINGFACE_API_TOKEN')
+        or os.environ.get('HF_TOKEN')
+        or os.environ.get('HUGGINGFACEHUB_API_TOKEN')
+    )
+    if not settings.OPENAI_API_KEY and not hf_token:
+        return HttpResponse('Copilot is offline: no AI provider credentials configured.', content_type='text/plain; charset=utf-8', status=503)
 
     try:
         def persist_assistant_message(full_text):
@@ -1092,9 +1097,9 @@ Context Initialization:
             return str(delta_content)
 
         def stream_via_rest():
-            from academics.ai_tutor import _stream_chat_completion_text
+            from academics.ai_tutor import _stream_chat_completion_text, get_openai_chat_model
             payload = {
-                "model": "gpt-4o-mini",
+                "model": get_openai_chat_model(),
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": question},

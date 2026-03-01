@@ -38,10 +38,6 @@ html[data-aura-page] {
     --bs-body-color: #f8fafc !important;
 }
 html[data-aura-page] body { background: #0a0a0f !important; }
-html[data-aura-page] #aura-copilot-container,
-html[data-aura-page] .copilot-launcher {
-    display: none !important;
-}
 
 /* ── Layout ─────────────────────────────────────────────────────────────── */
 .aura-command-shell {
@@ -430,6 +426,32 @@ textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
     const sessionTitle = document.getElementById('session-title');
     let lastUserMessage = '';
 
+    function buildAuraErrorMessage(source, fallback = 'Aura AI could not complete this request right now.') {
+        let message = '';
+        let code = '';
+
+        if (typeof source === 'string') {
+            message = source;
+        } else if (source && typeof source === 'object') {
+            message = source.message || '';
+            code = source.error_code || '';
+        }
+
+        const merged = `${code} ${message}`.toLowerCase();
+
+        if (merged.includes('ai_quota_exceeded') || merged.includes('insufficient_quota') || merged.includes('openai http 429') || merged.includes('quota')) {
+            return 'Aura AI is temporarily unavailable because usage quota is exhausted. Please top up billing, then try again.';
+        }
+        if (merged.includes('ai_not_configured') || merged.includes('api key') || merged.includes('not configured')) {
+            return 'Aura AI is not configured on this server yet. Please contact your administrator.';
+        }
+        if (merged.includes('network') || merged.includes('timeout')) {
+            return 'Aura AI is temporarily unreachable. Please check your connection and retry.';
+        }
+
+        return message || fallback;
+    }
+
     // Scroll to bottom
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
@@ -494,11 +516,11 @@ textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
                     sessionTitle.innerText = data.title;
                 }
             } else {
-                appendMessage('assistant', "Error: " + data.message);
+                appendMessage('assistant', buildAuraErrorMessage(data));
             }
         } catch (error) {
             if(document.getElementById('loading-indicator')) document.getElementById('loading-indicator').remove();
-            appendMessage('assistant', "Network Error: " + error.message);
+            appendMessage('assistant', buildAuraErrorMessage({ message: error.message, error_code: 'network_error' }));
         } finally {
             userInput.disabled = false;
             userInput.focus();
@@ -654,13 +676,13 @@ textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
                 }
                 return true;
             } else {
-                appendMessage('assistant', `Error: ${data.message || 'Generation failed.'}`);
+                appendMessage('assistant', buildAuraErrorMessage(data, 'Generation failed.'));
                 return false;
             }
         } catch (error) {
             const loadingEl = document.getElementById('loading-generator');
             if (loadingEl) loadingEl.remove();
-            appendMessage('assistant', `Network Error: ${error.message}`);
+            appendMessage('assistant', buildAuraErrorMessage({ message: error.message, error_code: 'network_error' }));
             return false;
         }
     }

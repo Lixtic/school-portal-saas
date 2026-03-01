@@ -9,9 +9,200 @@ from urllib.error import HTTPError, URLError
 
 
 OPENAI_CHAT_COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions"
+HF_INFERENCE_API_URL = "https://api-inference.huggingface.co/models"
+HF_DEFAULT_FALLBACK_MODEL = "google/flan-t5-large"
+OPENAI_CHAT_MODELS = [
+    "gpt-5-nano",
+    "gpt-4o-mini",
+]
+
+
+def _resolve_openai_model(payload):
+    requested_model = str((payload or {}).get("model") or "").strip()
+    env_model = str(os.environ.get("OPENAI_CHAT_MODEL", "")).strip()
+
+    if requested_model:
+        return requested_model
+    if env_model:
+        return env_model
+    return OPENAI_CHAT_MODELS[0]
+
+
+def get_openai_chat_model():
+    return _resolve_openai_model({})
+
+
+def _with_resolved_model(payload):
+    data = dict(payload or {})
+    data["model"] = _resolve_openai_model(data)
+    return data
+
+
+def _extract_temperature(payload):
+    try:
+        return float(payload.get("temperature", 0.7))
+    except (TypeError, ValueError, AttributeError):
+        return 0.7
+
+
+def _extract_max_tokens(payload, default_value=700):
+    try:
+        value = payload.get("max_tokens", default_value)
+        return int(value)
+    except (TypeError, ValueError, AttributeError):
+        return default_value
+
+
+def _messages_to_hf_prompt(messages):
+    if not isinstance(messages, list):
+        return ""
+
+    prompt_lines = []
+    for item in messages:
+        if not isinstance(item, dict):
+            continue
+        role = str(item.get("role", "user")).strip().upper() or "USER"
+        content = str(item.get("content", "")).strip()
+        if not content:
+            continue
+        prompt_lines.append(f"{role}: {content}")
+
+    prompt_lines.append("ASSISTANT:")
+    return "\n\n".join(prompt_lines)
+
+
+def _extract_hf_generated_text(parsed):
+    if isinstance(parsed, list) and parsed:
+        first = parsed[0]
+        if isinstance(first, str):
+            return first.strip()
+        if isinstance(first, dict):
+            text = (
+                first.get("generated_text")
+                or first.get("summary_text")
+                or first.get("translation_text")
+                or ""
+            )
+            return str(text).strip()
+
+    if isinstance(parsed, dict):
+        if parsed.get("error"):
+            raise RuntimeError(f"Hugging Face error: {parsed.get('error')}")
+        text = (
+            parsed.get("generated_text")
+            or parsed.get("summary_text")
+            or parsed.get("translation_text")
+            or ""
+        )
+        if text:
+            return str(text).strip()
+
+    return ""
+
+
+def _build_openai_compatible_response(content_text, model_name):
+    return {
+        "id": f"hf-fallback-{model_name}",
+        "object": "chat.completion",
+        "choices": [
+            {
+                "index": 0,
+                "message": {
+                    "role": "assistant",
+                    "content": content_text,
+                },
+                "finish_reason": "stop",
+            }
+        ],
+        "model": f"hf:{model_name}",
+        "fallback": True,
+        "provider": "huggingface",
+    }
+
+
+def _call_hf_fallback(payload):
+    model_name = (
+        os.environ.get("HF_FALLBACK_MODEL")
+        or os.environ.get("HUGGINGFACE_FALLBACK_MODEL")
+        or HF_DEFAULT_FALLBACK_MODEL
+    )
+
+    hf_token = (
+        os.environ.get("HUGGINGFACE_API_TOKEN")
+        or os.environ.get("HF_TOKEN")
+        or os.environ.get("HUGGINGFACEHUB_API_TOKEN")
+    )
+
+    headers = {"Content-Type": "application/json"}
+    if hf_token:
+        headers["Authorization"] = f"Bearer {hf_token}"
+
+    prompt = _messages_to_hf_prompt(payload.get("messages", []))
+    if not prompt:
+        raise RuntimeError("Hugging Face fallback failed: empty prompt")
+
+    hf_payload = {
+        "inputs": prompt,
+        "parameters": {
+            "max_new_tokens": max(64, min(_extract_max_tokens(payload), 1024)),
+            "temperature": max(0.1, min(_extract_temperature(payload), 1.5)),
+            "return_full_text": False,
+        },
+        "options": {
+            "wait_for_model": True,
+            "use_cache": True,
+        },
+    }
+
+    req = urllib_request.Request(
+        f"{HF_INFERENCE_API_URL}/{model_name}",
+        data=json.dumps(hf_payload).encode("utf-8"),
+        headers=headers,
+        method="POST",
+    )
+
+    try:
+        with urllib_request.urlopen(req, timeout=180) as resp:
+            raw = resp.read().decode("utf-8")
+            parsed = json.loads(raw)
+            generated_text = _extract_hf_generated_text(parsed)
+            if not generated_text:
+                raise RuntimeError("Hugging Face fallback returned an empty response")
+            return generated_text, model_name
+    except HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="ignore") if exc.fp else str(exc)
+        raise RuntimeError(f"Hugging Face HTTP {exc.code}: {detail}")
+    except URLError as exc:
+        raise RuntimeError(f"Hugging Face network error: {exc.reason}")
+
+
+def _should_try_hf_fallback(error_message):
+    lowered = str(error_message or "").lower()
+    return (
+        "openai http 429" in lowered
+        or "insufficient_quota" in lowered
+        or "rate_limit" in lowered
+        or "network error" in lowered
+        or "openai http 5" in lowered
+        or "api key" in lowered
+        or "not configured" in lowered
+    )
+
+
+def _fallback_chat_completion(payload, original_error):
+    if not _should_try_hf_fallback(original_error):
+        raise RuntimeError(original_error)
+
+    generated_text, model_name = _call_hf_fallback(payload)
+    return _build_openai_compatible_response(generated_text, model_name)
 
 
 def _post_chat_completion(payload, api_key):
+    payload = _with_resolved_model(payload)
+
+    if not api_key:
+        return _fallback_chat_completion(payload, "OpenAI API key not configured")
+
     req = urllib_request.Request(
         OPENAI_CHAT_COMPLETIONS_URL,
         data=json.dumps(payload).encode("utf-8"),
@@ -28,12 +219,22 @@ def _post_chat_completion(payload, api_key):
             return json.loads(content)
     except HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="ignore") if exc.fp else str(exc)
-        raise RuntimeError(f"OpenAI HTTP {exc.code}: {detail}")
+        original_error = f"OpenAI HTTP {exc.code}: {detail}"
+        return _fallback_chat_completion(payload, original_error)
     except URLError as exc:
-        raise RuntimeError(f"Network error: {exc.reason}")
+        original_error = f"Network error: {exc.reason}"
+        return _fallback_chat_completion(payload, original_error)
 
 
 def _stream_chat_completion(payload, api_key):
+    payload = _with_resolved_model(payload)
+
+    if not api_key:
+        fallback_text, _ = _call_hf_fallback(payload)
+        yield "data: " + json.dumps({"content": fallback_text}) + "\n\n"
+        yield "data: [DONE]\n\n"
+        return
+
     req = urllib_request.Request(
         OPENAI_CHAT_COMPLETIONS_URL,
         data=json.dumps(payload).encode("utf-8"),
@@ -65,9 +266,21 @@ def _stream_chat_completion(payload, api_key):
                     continue
     except HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="ignore") if exc.fp else str(exc)
-        raise RuntimeError(f"OpenAI HTTP {exc.code}: {detail}")
+        original_error = f"OpenAI HTTP {exc.code}: {detail}"
+        if _should_try_hf_fallback(original_error):
+            fallback_text, _ = _call_hf_fallback(payload)
+            yield "data: " + json.dumps({"content": fallback_text}) + "\n\n"
+            yield "data: [DONE]\n\n"
+            return
+        raise RuntimeError(original_error)
     except URLError as exc:
-        raise RuntimeError(f"Network error: {exc.reason}")
+        original_error = f"Network error: {exc.reason}"
+        if _should_try_hf_fallback(original_error):
+            fallback_text, _ = _call_hf_fallback(payload)
+            yield "data: " + json.dumps({"content": fallback_text}) + "\n\n"
+            yield "data: [DONE]\n\n"
+            return
+        raise RuntimeError(original_error)
 
 
 def get_tutor_system_prompt(student, subject=None):
@@ -321,7 +534,7 @@ def stream_tutor_response(messages, student, subject=None):
         conversation.extend(messages)
 
         payload = {
-            "model": "gpt-4o-mini",
+            "model": get_openai_chat_model(),
             "messages": conversation,
             "stream": True,
             "temperature": 0.7,
@@ -368,7 +581,7 @@ Format as JSON:
 }}"""
 
         payload = {
-            "model": "gpt-4o-mini",
+            "model": get_openai_chat_model(),
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.8,
             "response_format": {"type": "json_object"},
@@ -390,7 +603,7 @@ def explain_concept(subject, concept):
     
     try:
         payload = {
-            "model": "gpt-4o-mini",
+            "model": get_openai_chat_model(),
             "messages": [{
                 "role": "user",
                 "content": f"Explain this {subject.name} concept in a clear, student-friendly way with examples: {concept}"
@@ -417,7 +630,7 @@ def health_check_openai():
 
     try:
         payload = {
-            "model": "gpt-4o-mini",
+            "model": get_openai_chat_model(),
             "messages": [{"role": "user", "content": "Reply with OK"}],
             "max_tokens": 5,
             "temperature": 0,
@@ -436,6 +649,14 @@ def health_check_openai():
 
 
 def _stream_chat_completion_text(payload, api_key):
+    payload = _with_resolved_model(payload)
+
+    if not api_key:
+        fallback_text, _ = _call_hf_fallback(payload)
+        if fallback_text:
+            yield fallback_text
+        return
+
     req = urllib_request.Request(
         OPENAI_CHAT_COMPLETIONS_URL,
         data=json.dumps(payload).encode("utf-8"),
@@ -466,7 +687,19 @@ def _stream_chat_completion_text(payload, api_key):
                     continue
     except HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="ignore") if exc.fp else str(exc)
-        raise RuntimeError(f"OpenAI HTTP {exc.code}: {detail}")
+        original_error = f"OpenAI HTTP {exc.code}: {detail}"
+        if _should_try_hf_fallback(original_error):
+            fallback_text, _ = _call_hf_fallback(payload)
+            if fallback_text:
+                yield fallback_text
+            return
+        raise RuntimeError(original_error)
     except URLError as exc:
-        raise RuntimeError(f"Network error: {exc.reason}")
+        original_error = f"Network error: {exc.reason}"
+        if _should_try_hf_fallback(original_error):
+            fallback_text, _ = _call_hf_fallback(payload)
+            if fallback_text:
+                yield fallback_text
+            return
+        raise RuntimeError(original_error)
 

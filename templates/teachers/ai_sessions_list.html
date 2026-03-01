@@ -92,12 +92,6 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
     background: #0a0a0f !important;
 }
 
-/* Hide global floating assistants inside Aura-T command center */
-html[data-aura-page] #aura-copilot-container,
-html[data-aura-page] .copilot-launcher {
-    display: none !important;
-}
-
 /* Light Mode Text Visibility Fixes */
 [data-bs-theme="light"] .aura-pulse-text strong,
 [data-bs-theme="light"] .time-label strong {
@@ -212,6 +206,29 @@ html[data-aura-page] .copilot-launcher {
     color: var(--aura-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.1em;
+}
+.aura-model-chip {
+    margin-top: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 999px;
+    border: 1px solid var(--aura-border);
+    background: var(--aura-bg-glass);
+    color: var(--aura-text-secondary);
+    padding: 4px 10px;
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: none;
+}
+.aura-model-chip i {
+    color: var(--aura-accent-cyan);
+    font-size: 0.7rem;
+}
+.aura-model-chip strong {
+    color: var(--aura-text-primary);
+    font-weight: 700;
 }
 .aura-header-actions {
     display: flex;
@@ -960,6 +977,10 @@ html[data-aura-page] .copilot-launcher {
                 <div class="aura-logo-text">
                     <h1>Aura-T 2.0</h1>
                     <span>Teacher Command Centre</span>
+                    <div class="aura-model-chip" title="Active OpenAI model with Hugging Face fallback">
+                        <i class="fas fa-microchip"></i>
+                        <span>LLM <strong>{{ active_ai_model }}</strong></span>
+                    </div>
                 </div>
             </div>
             <div class="aura-header-actions">
@@ -1283,6 +1304,32 @@ document.addEventListener('DOMContentLoaded', () => {
         chatMessages.scrollTop = chatMessages.scrollHeight;
         return div;
     }
+
+    function buildAuraErrorMessage(source, fallback = 'Aura AI could not complete this request right now.') {
+        let message = '';
+        let code = '';
+
+        if (typeof source === 'string') {
+            message = source;
+        } else if (source && typeof source === 'object') {
+            message = source.message || '';
+            code = source.error_code || '';
+        }
+
+        const merged = `${code} ${message}`.toLowerCase();
+
+        if (merged.includes('ai_quota_exceeded') || merged.includes('insufficient_quota') || merged.includes('openai http 429') || merged.includes('quota')) {
+            return 'Aura AI is temporarily unavailable because usage quota is exhausted. Please top up billing, then try again.';
+        }
+        if (merged.includes('ai_not_configured') || merged.includes('api key') || merged.includes('not configured')) {
+            return 'Aura AI is not configured on this server yet. Please contact your administrator.';
+        }
+        if (merged.includes('network') || merged.includes('timeout')) {
+            return 'Aura AI is temporarily unreachable. Please check your connection and retry.';
+        }
+
+        return message || fallback;
+    }
     
     scaffoldChips.forEach(chip => {
         chip.addEventListener('click', () => {
@@ -1359,7 +1406,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (!res.ok || !data || data.status !== 'success') {
-                const msg = (data && data.message) ? data.message : 'Unable to assign exercises right now.';
+                const msg = buildAuraErrorMessage(data, 'Unable to assign exercises right now.');
                 appendMessage(`Assignment failed: ${msg}`, 'bot');
                 return;
             }
@@ -1369,7 +1416,7 @@ document.addEventListener('DOMContentLoaded', () => {
             appendMessage(`Assigned: ${payload.homework_title || 'Interactive Exercise'}${countText}.`, 'bot');
         } catch (err) {
             loadingDiv.remove();
-            appendMessage('Network connection error while assigning exercises.', 'bot');
+            appendMessage(buildAuraErrorMessage({ message: err.message, error_code: 'network_error' }), 'bot');
             console.error(err);
         } finally {
             isProcessing = false;
@@ -1410,7 +1457,8 @@ document.addEventListener('DOMContentLoaded', () => {
             loadingDiv.remove();
             
             if (!res.ok) {
-                appendMessage('Sorry, I encountered an issue. Please try again.', 'bot');
+                const errorText = await res.text();
+                appendMessage(buildAuraErrorMessage(errorText, 'Sorry, I encountered an issue. Please try again.'), 'bot');
             } else {
                 const reader = res.body.getReader();
                 const decoder = new TextDecoder();
@@ -1433,10 +1481,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     botDiv.innerHTML = formattedText;
                     chatMessages.scrollTop = chatMessages.scrollHeight;
                 }
+
+                if (!fullText.trim()) {
+                    botDiv.textContent = 'Aura AI returned an empty response. Please try again in a moment.';
+                }
             }
         } catch (err) {
             loadingDiv.remove();
-            appendMessage('Network connection error. Please check your internet.', 'bot');
+            appendMessage(buildAuraErrorMessage({ message: err.message, error_code: 'network_error' }, 'Network connection error. Please check your internet.'), 'bot');
             console.error(err);
         } finally {
             isProcessing = false;
