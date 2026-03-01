@@ -1,4 +1,4 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% load crispy_forms_tags %}
 
 {% block title %}{{ title }}{% endblock %}
@@ -20,116 +20,43 @@
 <div class="page-bg-fixed"></div>
 <div class="content-wrapper">
 <style>
-    :root {
-        --aura-bg: #f8fafc;
-        --aura-border: #e2e8f0;
-        --aura-primary: #8b5cf6;
-        --aura-primary-soft: rgba(139, 92, 246, 0.1);
-        --aura-text: #334155;
-    }
-    [data-bs-theme="dark"] {
-        --aura-bg: #1e293b;
-        --aura-border: rgba(255,255,255,0.1);
-        --aura-text: #cbd5e1;
-    }
     [data-bs-theme="dark"] .card {
-        background-color: var(--surface-white);
+        background-color: var(--surface-card, #1e293b);
         border-color: rgba(255,255,255,0.05);
         color: var(--text-main);
     }
-    [data-bs-theme="dark"] .form-label,
+    [data-bs-theme="dark"] .form-label, 
     [data-bs-theme="dark"] h5.border-bottom {
         color: var(--text-main);
         border-color: rgba(255,255,255,0.1) !important;
     }
-    .aura-sidebar {
-        background: var(--aura-bg);
-        border: 1px solid var(--aura-border);
-        border-radius: 16px;
-        padding: 1.5rem;
-        position: sticky;
-        top: 2rem;
-        height: calc(100vh - 4rem);
-        overflow-y: auto;
+    [data-bs-theme="dark"] .form-control,
+    [data-bs-theme="dark"] .form-select,
+    [data-bs-theme="dark"] textarea {
+        background-color: rgba(255,255,255,0.03);
+        border-color: rgba(255,255,255,0.12);
+        color: #e2e8f0;
     }
-    .aura-header {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        margin-bottom: 1.5rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid var(--aura-border);
-    }
-    .aura-logo {
-        width: 36px; height: 36px;
-        background: linear-gradient(135deg, #a855f7, #6366f1);
-        border-radius: 10px;
-        display: flex; align-items: center; justify-content: center;
-        color: white; font-size: 1.2rem;
-    }
-    .aura-btn {
-        display: flex; align-items: center; gap: 0.5rem;
-        width: 100%; text-align: left;
-        padding: 0.75rem 1rem;
-        background: var(--surface-white);
-        border: 1px solid var(--aura-border);
-        border-radius: 10px;
-        color: var(--aura-text);
-        margin-bottom: 0.75rem;
-        transition: all 0.2s;
-        font-size: 0.85rem; font-weight: 600;
-    }
-    .aura-btn:hover {
-        background: var(--aura-primary-soft);
-        border-color: var(--aura-primary);
-        color: var(--aura-primary);
-        transform: translateY(-1px);
-    }
-    .aura-btn i { font-size: 1.1rem; color: var(--aura-primary); }
-    
-    .aura-chat-bubble {
-        background: var(--surface-white);
-        border: 1px solid var(--aura-border);
-        padding: 1rem;
-        border-radius: 12px;
-        border-top-left-radius: 2px;
-        margin-bottom: 1rem;
-        font-size: 0.85rem;
-        color: var(--aura-text);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        animation: slideIn 0.3s ease-out;
-    }
-    .aura-chat-bubble strong { color: var(--aura-primary); display: block; margin-bottom: 0.25rem; }
-    
-    @keyframes slideIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    .magic-glow {
-        animation: glow 1.5s ease-in-out infinite alternate;
-    }
-    @keyframes glow {
-        from { box-shadow: 0 0 5px rgba(139, 92, 246, 0.2); }
-        to { box-shadow: 0 0 15px rgba(139, 92, 246, 0.6); }
+    [data-bs-theme="dark"] .form-control::placeholder,
+    [data-bs-theme="dark"] textarea::placeholder {
+        color: #94a3b8;
     }
 </style>
-
-<div class="container-fluid py-4 px-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold">{{ title }}</h2>
-        <a href="{% url 'teachers:lesson_plan_list' %}" class="btn btn-outline-secondary rounded-pill">
-            <i class="bi bi-arrow-left me-2"></i>Back to List
-        </a>
-    </div>
-
-    <div class="row g-4">
-        <!-- Form Area -->
+<div class="container py-4">
+    <div class="row justify-content-center">
         <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="fw-bold">{{ title }}</h2>
+                <a href="{% url 'teachers:lesson_plan_list' %}" class="btn btn-outline-secondary rounded-pill">
+                    <i class="bi bi-arrow-left me-2"></i>Back to List
+                </a>
+            </div>
+
             <div class="card shadow-sm border-0 rounded-4">
                 <div class="card-body p-4">
-                    <form method="post" id="lessonPlanForm">
+                    <form method="post">
                         {% csrf_token %}
-
+                        
                         {% if messages %}
                             {% for message in messages %}
                                 <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
@@ -141,7 +68,7 @@
                                 </div>
                             {% endfor %}
                         {% endif %}
-
+                        
                         <div class="row g-3">
                             <div class="col-md-3">
                                 {{ form.week_number|as_crispy_field }}
@@ -154,9 +81,7 @@
                             </div>
 
                             <div class="col-12">
-                                <div class="form-group position-relative">
-                                    {{ form.topic|as_crispy_field }}
-                                </div>
+                                {{ form.topic|as_crispy_field }}
                             </div>
 
                             <div class="col-12">
@@ -167,10 +92,7 @@
                                 {{ form.teaching_materials|as_crispy_field }}
                             </div>
 
-                            <h5 class="mt-4 mb-3 border-bottom pb-2 d-flex justify-content-between align-items-center">
-                                Lesson Procedure
-                                <span class="badge bg-light text-muted border" style="font-size:0.6rem;">45-MIN BLOCK</span>
-                            </h5>
+                            <h5 class="mt-4 mb-3 border-bottom pb-2">Lesson Procedure</h5>
                             
                             <div class="col-12">
                                 {{ form.introduction|as_crispy_field }}
@@ -183,7 +105,7 @@
                             <div class="col-12">
                                 {{ form.evaluation|as_crispy_field }}
                             </div>
-
+                            
                             <div class="col-12">
                                 {{ form.homework|as_crispy_field }}
                             </div>
@@ -198,185 +120,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- Aura-T Sidebar -->
-        <div class="col-lg-4">
-            <div class="aura-sidebar shadow-sm">
-                <div class="aura-header">
-                    <div class="aura-logo"><i class="bi bi-stars"></i></div>
-                    <div>
-                        <h6 class="mb-0 fw-bold" style="color:var(--text-main);">Aura-T</h6>
-                        <small class="text-muted" style="font-size:0.75rem;">Master Pedagogue Assistant</small>
-                    </div>
-                </div>
-
-                <div class="mb-4">
-                    <p class="text-muted small fw-medium mb-2 text-uppercase" style="letter-spacing:0.05em;">Lesson Architect Tools</p>
-                    
-                    <button type="button" class="aura-btn" onclick="callAuraT('class_sync')">
-                        <i class="bi bi-graph-up-arrow"></i>
-                        <div>
-                            <div>Class-Sync Plan</div>
-                            <small class="text-muted fw-normal" style="font-size:0.7rem;">Generate based on recent class performance.</small>
-                        </div>
-                    </button>
-                    
-                    <button type="button" class="aura-btn" onclick="openInterestModal()">
-                        <i class="bi bi-controller"></i>
-                        <div>
-                            <div>Interest-Mashup</div>
-                            <small class="text-muted fw-normal" style="font-size:0.7rem;">Mix topic with student interests.</small>
-                        </div>
-                    </button>
-                    
-                    <button type="button" class="aura-btn" onclick="callAuraT('standard_linker')">
-                        <i class="bi bi-link-45deg"></i>
-                        <div>
-                            <div>Standard-Linker</div>
-                            <small class="text-muted fw-normal" style="font-size:0.7rem;">Auto-fill official GES/WAEC rubrics.</small>
-                        </div>
-                    </button>
-                </div>
-
-                <div>
-                    <p class="text-muted small fw-medium mb-2 text-uppercase" style="letter-spacing:0.05em;">Aura's Suggestions</p>
-                    <div id="auraChatFeed">
-                        <div class="aura-chat-bubble">
-                            <strong><i class="bi bi-robot me-1"></i>Aura-T</strong>
-                            Hello! I'm Aura-T. Click one of the Architect tools above, or just start typing in the Lesson Procedure. I'll monitor your 45-minute block and pop in with suggestions!
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
-</div>
-
-<!-- Interest Mashup Modal -->
-<div class="modal fade" id="interestModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow">
-      <div class="modal-header border-bottom-0">
-        <h5 class="modal-title fw-bold"><i class="bi bi-controller text-primary me-2"></i>Interest-Mashup Generator</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body pt-0">
-        <p class="text-muted small">Blend current class topics with popular student interests perfectly balanced for engagement.</p>
-        <div class="form-group mb-3">
-            <label class="fw-medium small mb-1">Target Topic</label>
-            <input type="text" id="mashupTopic" class="form-control" placeholder="e.g. Geometry, Division...">
-        </div>
-        <div class="form-group mb-3">
-            <label class="fw-medium small mb-1">Student Interests (comma separated)</label>
-            <input type="text" id="mashupInterests" class="form-control" placeholder="e.g. Gaming, Tailoring, Football...">
-        </div>
-        <button type="button" class="btn btn-primary w-100" onclick="triggerInterestMashup()">Generate Hook & Lesson</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-    function addAuraMessage(title, message, isTyping = false) {
-        const feed = document.getElementById('auraChatFeed');
-        const id = 'msg-' + Date.now();
-        const html = 
-            <div class="aura-chat-bubble" id="">
-                <strong><i class="bi bi-robot me-1"></i></strong>
-                <div class="msg-content"></div>
-            </div>
-        ;
-        feed.insertAdjacentHTML('afterbegin', html);
-        return id;
-    }
-
-    function updateAuraMessage(id, message) {
-        const el = document.querySelector(# .msg-content);
-        if(el) el.innerHTML = message;
-    }
-
-    async function callAuraT(action, extraData = {}) {
-        const topic = document.getElementById('id_topic').value || 'The designated topic';
-        
-        const loadingId = addAuraMessage('Aura-T Computing...', '<div class="spinner-grow spinner-grow-sm text-primary" role="status"></div> Analyzing...', true);
-        
-        const payload = {
-            action: action,
-            topic: topic,
-            ...extraData
-        };
-
-        try {
-            const response = await fetch("{% url 'teachers:aura_t_api' %}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify(payload)
-            });
-            const data = await response.json();
-            
-            if(data.status === 'success') {
-                if(action === 'class_sync' || action === 'interest_mashup') {
-                    if(data.introduction) document.getElementById('id_introduction').value = data.introduction;
-                    if(data.presentation) document.getElementById('id_presentation').value = data.presentation;
-                    
-                    document.getElementById('id_introduction').classList.add('magic-glow');
-                    setTimeout(() => document.getElementById('id_introduction').classList.remove('magic-glow'), 2000);
-                    
-                    updateAuraMessage(loadingId, <strong>Success!</strong> I've updated your Introduction and Presentation fields to focus on high-engagement hooks.);
-                } else if(action === 'standard_linker') {
-                    if(data.objectives) document.getElementById('id_objectives').value = data.objectives;
-                    document.getElementById('id_objectives').classList.add('magic-glow');
-                    setTimeout(() => document.getElementById('id_objectives').classList.remove('magic-glow'), 2000);
-                    
-                    updateAuraMessage(loadingId, <strong>Standards Linked.</strong> I've automatically injected GES/WAEC rubrics into the Objectives field.);
-                } else if(action === 'chat_suggest') {
-                    updateAuraMessage(loadingId, data.suggestion);
-                }
-            } else {
-                updateAuraMessage(loadingId, <span class="text-danger">Error: </span>);
-            }
-        } catch (e) {
-            updateAuraMessage(loadingId, <span class="text-danger">Failed to connect to Aura.</span>);
-        }
-    }
-
-    function openInterestModal() {
-        const topic = document.getElementById('id_topic').value;
-        document.getElementById('mashupTopic').value = topic;
-        const modal = new bootstrap.Modal(document.getElementById('interestModal'));
-        modal.show();
-    }
-
-    function triggerInterestMashup() {
-        const t = document.getElementById('mashupTopic').value;
-        const i = document.getElementById('mashupInterests').value;
-        const modal = bootstrap.Modal.getInstance(document.getElementById('interestModal'));
-        if(modal) modal.hide();
-        
-        callAuraT('interest_mashup', {topic: t, interests: i});
-    }
-
-    // Smart context detection when typing
-    let typingTimer;
-    const inputs = ['id_introduction', 'id_presentation', 'id_evaluation'];
-    
-    inputs.forEach(id => {
-        const el = document.getElementById(id);
-        if(el) {
-            el.addEventListener('keyup', () => {
-                clearTimeout(typingTimer);
-                typingTimer = setTimeout(() => {
-                    if(el.value.length > 20) {
-                        callAuraT('chat_suggest', {context: el.value + ' [Field: ' + id + ']'});
-                    }
-                }, 2500); // Wait 2.5s after typing stops
-            });
-        }
-    });
-
-</script>
 </div>
 {% endblock %}
