@@ -571,10 +571,10 @@
 
         /* Main Content Area */
         .main-content {
-            margin-left: 0;
+            margin-left: var(--sidebar-width);
             min-height: 100vh;
             padding: 2.5rem;
-            transition: margin-left 0.3s ease;
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         /* Buttons and pills */
@@ -846,7 +846,7 @@
         }
         
         body.sidebar-collapsed .main-content {
-            margin-left: 0;
+            margin-left: var(--sidebar-collapsed-width);
         }
 
         body.sidebar-collapsed .sidebar h4 {
@@ -938,6 +938,11 @@
                     <div class="d-flex align-items-center gap-2">
                         <!-- Mobile Toggle Inside Header -->
                         <button class="header-action-btn d-lg-none me-2" onclick="toggleMobileMenu()">
+                            <i class="bi bi-list fs-3"></i>
+                        </button>
+
+                        <!-- Desktop Sidebar Toggle -->
+                        <button class="header-action-btn d-none d-lg-flex me-2" onclick="toggleSidebar()" title="Toggle Sidebar">
                             <i class="bi bi-list fs-3"></i>
                         </button>
 
@@ -2053,7 +2058,9 @@
 
         // Restore sidebar state
         document.addEventListener('DOMContentLoaded', function() {
-            if (localStorage.getItem('sidebarCollapsed') === 'true' && window.innerWidth >= 993) {
+            if (window.innerWidth >= 993 && window.innerWidth < 1200) {
+                document.body.classList.add('sidebar-collapsed');
+            } else if (localStorage.getItem('sidebarCollapsed') === 'true' && window.innerWidth >= 993) {
                 document.body.classList.add('sidebar-collapsed');
             }
 
@@ -2099,16 +2106,13 @@
                 const overlay = document.getElementById('sidebarOverlay');
                 if (overlay) overlay.classList.add('d-none');
                 
-                // Restore collapsed state on resize to desktop
-                if (localStorage.getItem('sidebarCollapsed') === 'true') {
+                // Restore collapsed state on resize to desktop or auto-collapse for tablets
+                if (window.innerWidth < 1200) {
                     document.body.classList.add('sidebar-collapsed');
-                }
-            } else {
-                // On mobile, always uncollapse (remove class so it takes full width when shown)
-                document.body.classList.remove('sidebar-collapsed');
-            }
-        });
-
+                } else if (localStorage.getItem('sidebarCollapsed') === 'true') {
+                    document.body.classList.add('sidebar-collapsed');
+                } else {
+                    document.body.classList.remove('sidebar-collapsed');
         // Portals Copilot interactions
         document.addEventListener('DOMContentLoaded', function() {
             const panel = document.getElementById('copilotPanel');
