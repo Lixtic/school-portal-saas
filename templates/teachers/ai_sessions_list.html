@@ -418,6 +418,26 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
     flex-wrap: wrap;
     gap: var(--aura-space-2);
 }
+.aura-chat-meta {
+    padding: 0 var(--aura-space-4) var(--aura-space-3);
+    border-top: 1px solid var(--aura-border);
+    display: flex;
+    align-items: center;
+    gap: var(--aura-space-2);
+}
+.aura-chat-meta label {
+    font-size: 0.65rem;
+    color: var(--aura-text-muted);
+    white-space: nowrap;
+}
+.aura-chat-meta input[type="date"] {
+    background: var(--aura-bg-secondary);
+    border: 1px solid var(--aura-border);
+    border-radius: var(--aura-radius-sm);
+    color: var(--aura-text-primary);
+    font-size: 0.72rem;
+    padding: 0.28rem 0.45rem;
+}
 .aura-scaffold-chip {
     padding: var(--aura-space-1) var(--aura-space-3);
     background: var(--aura-bg-secondary);
@@ -943,8 +963,19 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
             <div class="aura-chat-scaffolds">
                 <button class="aura-scaffold-chip" data-prompt="Draft a 5-minute starter activity{% if next_class %} for {{ next_class.class_subject.subject.name }}{% endif %}">Lesson Starter</button>
                 <button class="aura-scaffold-chip" data-prompt="Create a quiz with 3 questions{% if next_class %} on {{ next_class.class_subject.subject.name }}{% endif %}">Quick Quiz</button>
+                <button
+                    class="aura-scaffold-chip"
+                    data-generator-action="generate_exercises_and_assign"
+                    data-prompt="Generate interactive exercises{% if next_class %} for {{ next_class.class_subject.subject.name }} in {{ next_class.class_subject.class_name.name }}{% endif %} and assign to class"
+                    data-class-id="{% if next_class %}{{ next_class.class_subject.class_name.id }}{% endif %}"
+                    data-subject-id="{% if next_class %}{{ next_class.class_subject.subject.id }}{% endif %}"
+                >Exercise + Assign</button>
                 <button class="aura-scaffold-chip" data-prompt="Explain a complex concept simply">Explain Concept</button>
                 <button class="aura-scaffold-chip" data-prompt="Suggest homework ideas">Homework</button>
+            </div>
+            <div class="aura-chat-meta">
+                <label for="auraAssignDueDate">Due date</label>
+                <input type="date" id="auraAssignDueDate" aria-label="Assignment due date">
             </div>
             <form class="aura-chat-input" id="auraChatForm" data-no-loader>
                 {% csrf_token %}
@@ -1079,6 +1110,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatForm = document.getElementById('auraChatForm');
     const chatInput = document.getElementById('auraChatInput');
     const chatMessages = document.getElementById('auraChatMessages');
+    const assignDueDateInput = document.getElementById('auraAssignDueDate');
     const scaffoldChips = document.querySelectorAll('.aura-scaffold-chip');
     
     const getCookie = (name) => {
@@ -1098,6 +1130,15 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const csrftoken = getCookie('csrftoken');
 
+    if (assignDueDateInput && !assignDueDateInput.value) {
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 7);
+        const yyyy = dueDate.getFullYear();
+        const mm = String(dueDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(dueDate.getDate()).padStart(2, '0');
+        assignDueDateInput.value = `${yyyy}-${mm}-${dd}`;
+    }
+
     let isProcessing = false;
     
     function appendMessage(text, type) {
@@ -1114,6 +1155,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     scaffoldChips.forEach(chip => {
         chip.addEventListener('click', () => {
+            const generatorAction = chip.dataset.generatorAction;
+            if (generatorAction === 'generate_exercises_and_assign') {
+                runQuickAssignFromScaffold(chip);
+                return;
+            }
+
             const prompt = chip.dataset.prompt;
             if (prompt) {
                 chatInput.value = prompt;
@@ -1123,6 +1170,81 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    async function runQuickAssignFromScaffold(chip) {
+        if (isProcessing) return;
+
+        const classId = chip.dataset.classId;
+        const subjectId = chip.dataset.subjectId;
+        const topic = (chip.dataset.prompt || '').trim();
+
+        if (!classId || !subjectId) {
+            appendMessage('Select an active class first, then use Exercise + Assign.', 'bot');
+            return;
+        }
+
+        isProcessing = true;
+        appendMessage(topic || 'Generate and assign interactive exercises', 'user');
+
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'aura-chat-msg bot';
+        loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Generating and assigning...';
+        chatMessages.appendChild(loadingDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        try {
+            let selectedDueDate = assignDueDateInput ? assignDueDateInput.value : '';
+            if (!selectedDueDate) {
+                const dueDate = new Date();
+                dueDate.setDate(dueDate.getDate() + 7);
+                const yyyy = dueDate.getFullYear();
+                const mm = String(dueDate.getMonth() + 1).padStart(2, '0');
+                const dd = String(dueDate.getDate()).padStart(2, '0');
+                selectedDueDate = `${yyyy}-${mm}-${dd}`;
+            }
+
+            const res = await fetch('{% url "teachers:aura_t_api" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken,
+                },
+                body: JSON.stringify({
+                    action: 'generate_exercises_and_assign',
+                    topic: topic || 'Interactive exercises',
+                    class_id: classId,
+                    subject_id: subjectId,
+                    due_date: selectedDueDate,
+                }),
+            });
+
+            loadingDiv.remove();
+
+            let data = null;
+            try {
+                data = await res.json();
+            } catch (e) {
+                data = null;
+            }
+
+            if (!res.ok || !data || data.status !== 'success') {
+                const msg = (data && data.message) ? data.message : 'Unable to assign exercises right now.';
+                appendMessage(`Assignment failed: ${msg}`, 'bot');
+                return;
+            }
+
+            const payload = data.data || {};
+            const countText = payload.questions_created ? ` (${payload.questions_created} questions)` : '';
+            appendMessage(`Assigned: ${payload.homework_title || 'Interactive Exercise'}${countText}.`, 'bot');
+        } catch (err) {
+            loadingDiv.remove();
+            appendMessage('Network connection error while assigning exercises.', 'bot');
+            console.error(err);
+        } finally {
+            isProcessing = false;
+            chatInput.focus();
+        }
+    }
     
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();

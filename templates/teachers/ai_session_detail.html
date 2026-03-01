@@ -591,11 +591,11 @@ textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
         });
     }
 
-    async function runGenerator(action) {
-        const topic = userInput.value.trim() || lastUserMessage;
+    async function runGenerator(action, topicOverride = null) {
+        const topic = (topicOverride || userInput.value.trim() || lastUserMessage || '').trim();
         if (!topic) {
             alert('Type a topic or instruction first.');
-            return;
+            return false;
         }
 
         const classId = document.getElementById('genClass').value;
@@ -605,7 +605,7 @@ textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
         if (action === 'generate_exercises_and_assign') {
             if (!classId || !subjectId) {
                 alert('Select class and subject before assigning.');
-                return;
+                return false;
             }
         }
 
@@ -643,14 +643,21 @@ textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
             if (loadingEl) loadingEl.remove();
 
             if (data.status === 'success') {
-                appendMessage('assistant', formatGeneratorResult(action, data.data));
+                if (action === 'generate_exercises') {
+                    appendExercisesScaffold(data.data, topic);
+                } else {
+                    appendMessage('assistant', formatGeneratorResult(action, data.data));
+                }
+                return true;
             } else {
                 appendMessage('assistant', `Error: ${data.message || 'Generation failed.'}`);
+                return false;
             }
         } catch (error) {
             const loadingEl = document.getElementById('loading-generator');
             if (loadingEl) loadingEl.remove();
             appendMessage('assistant', `Network Error: ${error.message}`);
+            return false;
         }
     }
 
@@ -695,6 +702,61 @@ textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
             return text.trim();
         }
         return 'Generation complete.';
+    }
+
+    function appendExercisesScaffold(payload, topic) {
+        const exercises = (payload && payload.exercises) ? payload.exercises : [];
+        let preview = 'Interactive Exercises:\n';
+        exercises.slice(0, 5).forEach((ex, idx) => {
+            const exType = ex.type || 'item';
+            const exPrompt = ex.prompt || ex.question || 'Exercise';
+            preview += `\n${idx + 1}. (${exType}) ${exPrompt}`;
+        });
+        if (exercises.length > 5) {
+            preview += `\n\n+${exercises.length - 5} more exercise(s)`;
+        }
+
+        const classSelect = document.getElementById('genClass');
+        const subjectSelect = document.getElementById('genSubject');
+        const classLabel = classSelect && classSelect.selectedOptions.length ? classSelect.selectedOptions[0].text : 'a class';
+        const subjectLabel = subjectSelect && subjectSelect.selectedOptions.length ? subjectSelect.selectedOptions[0].text : 'a subject';
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'aura-message ai';
+        wrapper.innerHTML = `
+            <div class="aura-avatar ai"><i class="fas fa-robot"></i></div>
+            <div class="d-flex flex-column" style="max-width: 100%;">
+                <div class="aura-bubble">
+                    ${escapeHtml(preview).replace(/\n/g, '<br>')}
+                    <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.1);">
+                        <div style="font-size:.8rem; color: var(--aura-text-secondary); margin-bottom:8px;">
+                            Assign these exercises to <strong>${escapeHtml(classLabel)}</strong> (${escapeHtml(subjectLabel)})
+                        </div>
+                        <button type="button" class="aura-action-btn assign-from-chat-btn" style="justify-content:center;">
+                            <i class="fas fa-share"></i> Assign To Class
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        chatMessages.appendChild(wrapper);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        const assignBtn = wrapper.querySelector('.assign-from-chat-btn');
+        if (assignBtn) {
+            assignBtn.addEventListener('click', async () => {
+                assignBtn.disabled = true;
+                assignBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Assigning...';
+                const ok = await runGenerator('generate_exercises_and_assign', topic);
+                if (ok) {
+                    assignBtn.innerHTML = '<i class="fas fa-check"></i> Assigned';
+                } else {
+                    assignBtn.disabled = false;
+                    assignBtn.innerHTML = '<i class="fas fa-share"></i> Assign To Class';
+                }
+            });
+        }
     }
 
     // Initialize copy buttons for existing server-rendered messages

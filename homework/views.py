@@ -6,11 +6,46 @@ from django.utils import timezone
 from django.conf import settings
 from django.db.models import Sum
 import json
+import re
 from .models import Homework, Question, Choice, Submission, Answer
 from .forms import HomeworkForm
 from teachers.models import Teacher
 from students.models import Student
 from academics.ai_tutor import _post_chat_completion
+
+
+def _normalize_text(value):
+    return re.sub(r'\s+', ' ', (value or '').strip().lower())
+
+
+def _fallback_short_score(student_answer, expected_answer, max_points):
+    student_norm = _normalize_text(student_answer)
+    expected_norm = _normalize_text(expected_answer)
+
+    if not student_norm or not expected_norm:
+        return 0.0, "No score awarded due to missing expected answer or response."
+
+    if student_norm == expected_norm:
+        return float(max_points), "Exact match with expected answer."
+
+    expected_tokens = [token for token in re.findall(r'\w+', expected_norm) if len(token) > 2]
+    if not expected_tokens:
+        return 0.0, "Could not evaluate keywords from expected answer."
+
+    unique_expected = set(expected_tokens)
+    student_tokens = set(re.findall(r'\w+', student_norm))
+    overlap = len(unique_expected & student_tokens)
+    ratio = overlap / len(unique_expected)
+
+    score = round(float(max_points) * ratio, 2)
+    if ratio >= 0.75:
+        feedback = "Strong keyword match with expected answer."
+    elif ratio >= 0.4:
+        feedback = "Partial match with expected answer."
+    else:
+        feedback = "Limited match with expected answer."
+
+    return score, feedback
 
 @login_required
 def homework_list(request):
@@ -233,6 +268,9 @@ def homework_solve(request, pk):
                     is_correct=False
                 )
 
+                short_score = 0.0
+                short_feedback = ""
+
                 if text_response and question.correct_answer and settings.OPENAI_API_KEY:
                     try:
                         grading_prompt = {
@@ -258,14 +296,18 @@ def homework_solve(request, pk):
                         resp = _post_chat_completion(grading_prompt, settings.OPENAI_API_KEY)
                         content = resp["choices"][0]["message"]["content"]
                         data = json.loads(content)
-                        ai_score = max(0, min(float(data.get("score", 0)), question.points))
-                        answer.ai_score = ai_score
-                        answer.ai_feedback = data.get("feedback", "")
-                        answer.is_correct = ai_score >= question.points
-                        answer.save()
-                        total_score += ai_score
+                        short_score = max(0, min(float(data.get("score", 0)), question.points))
+                        short_feedback = data.get("feedback", "")
                     except Exception:
-                        pass
+                        short_score, short_feedback = _fallback_short_score(text_response, question.correct_answer, question.points)
+                elif text_response and question.correct_answer:
+                    short_score, short_feedback = _fallback_short_score(text_response, question.correct_answer, question.points)
+
+                answer.ai_score = short_score
+                answer.ai_feedback = short_feedback
+                answer.is_correct = short_score >= question.points
+                answer.save(update_fields=['ai_score', 'ai_feedback', 'is_correct'])
+                total_score += short_score
             else:
                 selected_choice_id = input_value
                 if selected_choice_id:

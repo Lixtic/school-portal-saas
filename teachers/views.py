@@ -1291,12 +1291,47 @@ def aura_t_api(request):
                                 'Option C',
                                 'Option D'
                             ]
-                        for opt in options:
+
+                        if not options:
+                            options = ['Option A', 'Option B', 'Option C', 'Option D']
+
+                        def normalize_text(value):
+                            return str(value or '').strip().lower()
+
+                        correct_norm = normalize_text(correct)
+                        correct_index = None
+                        label_map = {'a': 0, 'b': 1, 'c': 2, 'd': 3}
+                        if correct_norm in label_map:
+                            correct_index = label_map[correct_norm]
+                        elif correct_norm.isdigit():
+                            idx = int(correct_norm) - 1
+                            if 0 <= idx < len(options):
+                                correct_index = idx
+
+                        has_correct = False
+                        for idx, opt in enumerate(options):
+                            opt_norm = normalize_text(opt)
+                            is_correct = False
+
+                            if correct_index is not None and idx == correct_index:
+                                is_correct = True
+                            elif correct_norm and opt_norm == correct_norm:
+                                is_correct = True
+
+                            if is_correct:
+                                has_correct = True
+
                             Choice.objects.create(
                                 question=question,
                                 text=opt,
-                                is_correct=(str(opt).strip() == str(correct).strip())
+                                is_correct=is_correct
                             )
+
+                        if not has_correct:
+                            first_choice = question.choices.first()
+                            if first_choice:
+                                first_choice.is_correct = True
+                                first_choice.save(update_fields=['is_correct'])
 
                 return JsonResponse({
                     "status": "success",
