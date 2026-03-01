@@ -425,46 +425,60 @@ def aura_arena_api(request):
                 return JsonResponse({'status': 'success', 'xp_earned': xp_earned, 'is_winner': True})
                 
         if "@aura battle" in content.lower() and not active_battle:
-            import openai
-            from django.conf import settings
-            client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
-            
-            prompt = f"Generate a short multiple-choice or short-answer educational trivia question for a {student.current_class.name} class. Return ONLY a JSON object with 'question' and 'answer'. Example: {{\"question\": \"What is 5x5?\", \"answer\": \"25\"}}"
-            try:
-                res = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[{"role": "user", "content": prompt}],
-                    response_format={ "type": "json_object" }
+            headers = get_hf_headers()
+            if headers:
+                prompt = (
+                    f"<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n"
+                    f"You are a strict JSON generator. Generate a short educational trivia question for a {student.current_class.name} class. "
+                    f"Return ONLY a JSON object with keys 'question' and 'answer'. No other text.<|eot_id|>"
+                    f"<|start_header_id|>user<|end_header_id|>\n\nGenerate JSON.<|eot_id|>"
+                    f"<|start_header_id|>assistant<|end_header_id|>\n\n{{"
                 )
-                q_data = json.loads(res.choices[0].message.content)
-                StudyGroupMessage.objects.create(
-                    room=room,
-                    is_aura=True,
-                    is_battle_question=True,
-                    battle_answer=q_data.get('answer', ''),
-                    content=f"🔴 **AURA BATTLE!** First to answer gets 20 XP!\n\n**Question:** {q_data.get('question', '')}"
-                )
-            except Exception as e:
-                pass
+                payload = {
+                    "inputs": prompt,
+                    "parameters": {"max_new_tokens": 100, "temperature": 0.7, "return_full_text": False}
+                }
+                
+                try:
+                    resp = query_hf_inference(HF_LLM_MODELS, headers, json_payload=payload)
+                    text_response = "{" + resp.json()[0]['generated_text'].strip()
+                    # Basic cleanup in case it added markdown block
+                    text_response = text_response.replace("```json", "").replace("```", "").strip()
+                    q_data = json.loads(text_response)
+                    
+                    StudyGroupMessage.objects.create(
+                        room=room,
+                        is_aura=True,
+                        is_battle_question=True,
+                        battle_answer=q_data.get('answer', ''),
+                        content=f"🔴 **AURA BATTLE!** First to answer gets 20 XP!\n\n**Question:** {q_data.get('question', '')}"
+                    )
+                except Exception as e:
+                    pass
         elif "@aura" in content.lower() and not is_winner:
-            import openai
-            from django.conf import settings
-            client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
-            try:
-                res = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        {"role": "system", "content": "You are Aura-T, short insightful responses for students in a group chat. Keep it fun and less than 3 sentences."},
-                        {"role": "user", "content": content.replace("@aura", "").replace("@Aura", "").strip()}
-                    ],
+            headers = get_hf_headers()
+            if headers:
+                user_msg = content.replace("@aura", "").replace("@Aura", "").strip()
+                prompt = (
+                    f"<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n"
+                    f"You are Aura-T, a helpful AI tutor for students. Keep answers fun, concise, and under 3 sentences.<|eot_id|>"
+                    f"<|start_header_id|>user<|end_header_id|>\n\n{user_msg}<|eot_id|>"
+                    f"<|start_header_id|>assistant<|end_header_id|>\n\n"
                 )
-                StudyGroupMessage.objects.create(
-                    room=room,
-                    is_aura=True,
-                    content=res.choices[0].message.content
-                )
-            except Exception:
-                pass
+                payload = {
+                    "inputs": prompt,
+                    "parameters": {"max_new_tokens": 150, "temperature": 0.7, "return_full_text": False}
+                }
+                try:
+                    resp = query_hf_inference(HF_LLM_MODELS, headers, json_payload=payload)
+                    text_response = resp.json()[0]['generated_text'].strip()
+                    StudyGroupMessage.objects.create(
+                        room=room,
+                        is_aura=True,
+                        content=text_response
+                    )
+                except Exception as e:
+                    pass
                 
         return JsonResponse({'status': 'success', 'xp_earned': xp_earned, 'is_winner': is_winner})
 
