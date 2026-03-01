@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Aura Arena{% endblock %}
+
+{% block content %}
+<div class="row h-100">
+    <!-- Sidebar: Leaderboard & Stats -->
+    <div class="col-md-3 border-end bg-light p-4 d-none d-md-block h-100">
+        <h5 class="fw-bold mb-3"><i class="fas fa-trophy text-warning"></i> Your Stats</h5>
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body text-center">
+                <h2 class="text-primary mb-0">Level {{ xp.level }}</h2>
+                <div class="progress mt-3 mb-2" style="height: 10px;">
+                    <div class="progress-bar bg-warning" role="progressbar" style="width: {{ xp.level_progress }}%" aria-valuenow="{{ xp.level_progress }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <small class="text-muted">{{ xp.total_xp }} Total XP</small>
+            </div>
+        </div>
+
+        <div class="alert alert-info">
+            <h6><i class="fas fa-magic"></i> How to Play</h6>
+            <p class="small mb-0">
+                Chat with your classmates and Aura-T in real-time. 
+                Type <strong>@Aura battle</strong> to trigger an AI trivia question. First to answer correctly earns 20 XP!
+            </p>
+        </div>
+    </div>
+
+    <!-- Main Chat Area -->
+    <div class="col-md-9 d-flex flex-column" style="height: 80vh;">
+        <div class="p-3 border-bottom d-flex align-items-center bg-white shadow-sm">
+            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                <i class="fas fa-chalkboard-teacher"></i>
+            </div>
+            <div>
+                <h5 class="mb-0">{{ room.name }}</h5>
+                <small class="text-muted"><i class="fas fa-users"></i> Study Group Chat & Battle Arena</small>
+            </div>
+        </div>
+
+        <div id="chatWindow" class="flex-grow-1 overflow-auto p-4 bg-light" style="position: relative;">
+            <!-- Messages pushed here via JS -->
+            <div class="text-center text-muted mt-2">
+                <small>Welcome to the {{ room.name }} Arena.</small>
+            </div>
+        </div>
+
+        <!-- Chat Input Form -->
+        <div class="p-3 bg-white border-top shadow-sm">
+            <form id="chatForm" class="d-flex text-muted gap-2">
+                <input type="text" id="chatInput" placeholder="Type a message or '@Aura battle'..." class="form-control rounded-pill px-4" autocomplete="off" required>
+                <button type="submit" class="btn btn-primary rounded-pill px-4">
+                    Send <i class="fas fa-paper-plane ms-1"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+/* CSS to make chat bubbles look like WhatsApp/Messenger */
+.chat-bubble {
+    max-width: 75%;
+    padding: 10px 16px;
+    border-radius: 20px;
+    margin-bottom: 4px;
+    font-size: 0.95rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    word-wrap: break-word;
+}
+.chat-me {
+    background-color: #007bff;
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+.chat-other {
+    background-color: #e9ecef;
+    color: #212529;
+    border-bottom-left-radius: 4px;
+}
+.chat-aura {
+    background-color: #f8d7da;
+    color: #721c24;
+    border-left: 4px solid #dc3545;
+    border-radius: 8px;
+}
+.battle-q {
+    background-color: #fff3cd;
+    border: 2px dashed #ffc107;
+}
+.win-msg {
+    color: #155724;
+    font-weight: bold;
+}
+.msg-container-me {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+.msg-container-other {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const chatWindow = document.getElementById("chatWindow");
+    const chatForm = document.getElementById("chatForm");
+    const chatInput = document.getElementById("chatInput");
+    
+    let lastId = 0;
+    
+    function scrollToBottom() {
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    function renderMessage(msg) {
+        let alignClass = msg.is_me ? "msg-container-me" : "msg-container-other";
+        let colorClass = msg.is_me ? "chat-me" : "chat-other";
+        if(msg.is_aura) {
+            colorClass = msg.is_battle ? "chat-aura battle-q" : "chat-aura";
+            alignClass = "msg-container-other w-100"; // center Aura usually, or left
+        }
+        
+        let senderNameHTML = '';
+        if(!msg.is_me && !msg.is_aura) {
+            senderNameHTML = `<small class="text-muted ms-2 mb-1" style="font-size:0.7rem;">${msg.sender}</small>`;
+        } else if (msg.is_aura) {
+            senderNameHTML = `<small class="text-danger ms-2 mb-1 fw-bold" style="font-size:0.7rem;"><i class="fas fa-robot"></i> Aura-T</small>`;
+        }
+        
+        // Render content
+        let contentHTML = msg.content;
+        // Parse bold markdown
+        contentHTML = contentHTML.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        contentHTML = contentHTML.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        
+        let parsedDate = msg.time;
+
+        const el = document.createElement("div");
+        el.className = `w-100 mb-3 ${alignClass}`;
+        el.innerHTML = `
+            ${senderNameHTML}
+            <div class="chat-bubble ${colorClass}">
+                ${contentHTML.replace(/\n/g, '<br>')}
+            </div>
+            <small class="text-muted mt-1" style="font-size:0.65rem;">${parsedDate}</small>
+        `;
+        chatWindow.appendChild(el);
+    }
+    
+    async function fetchMessages() {
+        try {
+            const resp = await fetch(`/students/aura/arena/api/?last_id=${lastId}`);
+            if(resp.ok) {
+                const data = await resp.json();
+                if(data.messages && data.messages.length > 0) {
+                    let shouldScroll = (chatWindow.scrollTop + chatWindow.clientHeight) >= chatWindow.scrollHeight - 50;
+                    data.messages.forEach(m => {
+                        renderMessage(m);
+                        lastId = m.id;
+                    });
+                    if(shouldScroll){ scrollToBottom(); }
+                }
+            }
+        } catch(e) {
+            console.error("Chat fetch error:", e);
+        }
+    }
+    
+    // Initial fetch and poll
+    fetchMessages().then(scrollToBottom);
+    setInterval(fetchMessages, 3000); // Check every 3 seconds
+    
+    // Post message
+    chatForm.addEventListener("submit", async function(e) {
+        e.preventDefault();
+        const text = chatInput.value.trim();
+        if(!text) return;
+        
+        chatInput.value = "";
+        
+        try {
+            const res = await fetch("/students/aura/arena/api/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ content: text })
+            });
+            
+            if(res.ok) {
+                const data = await res.json();
+                if(data.status === 'success') {
+                    if(data.is_winner) {
+                        // User won, trigger confeti or just instantly fetch
+                        // Using a manual fetch to show message instantly
+                    }
+                    await fetchMessages();
+                    scrollToBottom();
+                } else {
+                    console.error("Error sending:", data.error);
+                }
+            }
+        } catch(e) {
+            console.error("Failed to post message", e);
+        }
+    });
+});
+</script>
+{% endblock %}

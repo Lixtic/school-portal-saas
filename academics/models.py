@@ -274,3 +274,9 @@ from .gamification_models import (
     Achievement,
     StudentAchievement,
 )
+
+# Import Study Arena models
+from .arena_models import (
+    StudyGroupRoom,
+    StudyGroupMessage,
+)
