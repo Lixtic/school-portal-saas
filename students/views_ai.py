@@ -425,27 +425,30 @@ def aura_arena_api(request):
                 return JsonResponse({'status': 'success', 'xp_earned': xp_earned, 'is_winner': True})
                 
         if "@aura battle" in content.lower() and not active_battle:
-            headers = get_hf_headers()
-            if headers:
-                prompt = (
-                    f"<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n"
-                    f"You are a strict JSON generator. Generate a short educational trivia question for a {student.current_class.name} class. "
-                    f"Return ONLY a JSON object with keys 'question' and 'answer'. No other text.<|eot_id|>"
-                    f"<|start_header_id|>user<|end_header_id|>\n\nGenerate JSON.<|eot_id|>"
-                    f"<|start_header_id|>assistant<|end_header_id|>\n\n{{"
-                )
-                payload = {
-                    "inputs": prompt,
-                    "parameters": {"max_new_tokens": 100, "temperature": 0.7, "return_full_text": False}
-                }
-                
+            api_key = get_openai_api_key()
+            if api_key:
                 try:
-                    resp = query_hf_inference(HF_LLM_MODELS, headers, json_payload=payload)
-                    text_response = "{" + resp.json()[0]['generated_text'].strip()
+                    import openai
+                    client = openai.OpenAI(api_key=api_key)
+                    
+                    prompt = (
+                        f"You are a strict JSON generator. Generate a short educational trivia question for a {student.current_class.name} class. "
+                        f"Return ONLY a valid JSON object with keys 'question' and 'answer'. No markdown, no other text."
+                    )
+                    
+                    res = client.chat.completions.create(
+                        model='gpt-4o-mini',
+                        messages=[{'role': 'user', 'content': prompt}],
+                        temperature=0.7,
+                        max_tokens=150
+                    )
+                    
+                    text_response = res.choices[0].message.content.strip()
+                    
                     # Basic cleanup in case it added markdown block
                     text_response = text_response.replace("```json", "").replace("```", "").strip()
                     q_data = json.loads(text_response)
-                    
+
                     StudyGroupMessage.objects.create(
                         room=room,
                         is_aura=True,
@@ -454,24 +457,30 @@ def aura_arena_api(request):
                         content=f"🔴 **AURA BATTLE!** First to answer gets 20 XP!\n\n**Question:** {q_data.get('question', '')}"
                     )
                 except Exception as e:
-                    pass
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Aura Battle Error: {str(e)}")
         elif "@aura" in content.lower() and not is_winner:
-            headers = get_hf_headers()
-            if headers:
+            api_key = get_openai_api_key()
+            if api_key:
                 user_msg = content.replace("@aura", "").replace("@Aura", "").strip()
-                prompt = (
-                    f"<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n"
-                    f"You are Aura-T, a helpful AI tutor for students. Do NOT use headings, phases, or labels like 'Phase A', 'Hook', or 'Nugget'. Use 'tiny scaffolds' (very short, single-step conversational hints). Keep answers fun, extremely concise, and under 3 sentences.<|eot_id|>"
-                    f"<|start_header_id|>user<|end_header_id|>\n\n{user_msg}<|eot_id|>"
-                    f"<|start_header_id|>assistant<|end_header_id|>\n\n"
-                )
-                payload = {
-                    "inputs": prompt,
-                    "parameters": {"max_new_tokens": 150, "temperature": 0.7, "return_full_text": False}
-                }
                 try:
-                    resp = query_hf_inference(HF_LLM_MODELS, headers, json_payload=payload)
-                    text_response = resp.json()[0]['generated_text'].strip()
+                    import openai
+                    client = openai.OpenAI(api_key=api_key)
+                    
+                    system_prompt = "You are Aura-T, a helpful AI tutor for students. Do NOT use headings, phases, or labels like 'Phase A', 'Hook', or 'Nugget'. Use 'tiny scaffolds' (very short, single-step conversational hints). Keep answers fun, extremely concise, and under 3 sentences."
+                    
+                    res = client.chat.completions.create(
+                        model='gpt-4o-mini',
+                        messages=[
+                            {'role': 'system', 'content': system_prompt},
+                            {'role': 'user', 'content': user_msg}
+                        ],
+                        temperature=0.7,
+                        max_tokens=200
+                    )
+                    text_response = res.choices[0].message.content.strip()
+
                     StudyGroupMessage.objects.create(
                         room=room,
                         is_aura=True,
