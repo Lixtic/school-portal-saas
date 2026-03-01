@@ -625,10 +625,99 @@ LOCALIZED FINAL ASSESSMENT LOGIC
                 context += f"\n\nStudent's Subjects: {', '.join([s.name for s in enrolled_subjects])}"
         except Exception:
             pass
-    
+
+    # ── CONTINUOUS CONTEXT AWARENESS: Grade Performance Trends ────────
+    context += _build_grade_performance_context(student, subject)
+
+    # ── CONTINUOUS CONTEXT AWARENESS: Learner Memory Brief ───────────
+    context += _build_learner_memory_context(student)
+
     context += "\n\nAlways maintain an encouraging, supportive tone. Keep responses concise, structured, and cognitively active."
     
     return context
+
+
+def _build_grade_performance_context(student, subject=None):
+    """
+    Query the student's actual Grade records and build a compact
+    performance-trend summary for injection into the system prompt.
+    """
+    try:
+        from students.models import Grade
+        from academics.models import AcademicYear
+
+        current_year = AcademicYear.objects.filter(is_current=True).first()
+        if not current_year:
+            return ""
+
+        grades_qs = Grade.objects.filter(
+            student=student,
+            academic_year=current_year,
+        ).select_related('subject').order_by('subject__name', 'term')
+
+        if not grades_qs.exists():
+            return ""
+
+        lines = ["\n\nSTUDENT ACADEMIC PERFORMANCE (Current Year — Real Grades from School System)"]
+
+        # Group by subject
+        by_subject = {}
+        for g in grades_qs:
+            subj_name = g.subject.name if g.subject else "Unknown"
+            by_subject.setdefault(subj_name, []).append(g)
+
+        for subj_name, grades in by_subject.items():
+            highlight = " ★" if (subject and subject.name == subj_name) else ""
+            term_parts = []
+            for g in grades:
+                term_label = g.get_term_display()
+                term_parts.append(
+                    f"{term_label}: {g.total_score}% ({g.remarks}, rank #{g.subject_position})"
+                )
+            lines.append(f"  {subj_name}{highlight}: {' | '.join(term_parts)}")
+
+        # Calculate average
+        all_scores = [float(g.total_score) for g in grades_qs if g.total_score]
+        if all_scores:
+            avg = sum(all_scores) / len(all_scores)
+            lines.append(f"  Overall Average: {avg:.1f}%")
+
+            # Identify strongest and weakest subjects
+            subj_avgs = {}
+            for subj_name, grades in by_subject.items():
+                scores = [float(g.total_score) for g in grades if g.total_score]
+                if scores:
+                    subj_avgs[subj_name] = sum(scores) / len(scores)
+
+            if subj_avgs:
+                strongest = max(subj_avgs, key=subj_avgs.get)
+                weakest = min(subj_avgs, key=subj_avgs.get)
+                lines.append(f"  Strongest Subject: {strongest} ({subj_avgs[strongest]:.1f}%)")
+                lines.append(f"  Weakest Subject: {weakest} ({subj_avgs[weakest]:.1f}%)")
+
+        lines.append("  → Use these real grades to calibrate difficulty. If the student struggles in a subject, scaffold more; if they excel, push harder.")
+
+        return "\n".join(lines)
+    except Exception:
+        return ""
+
+
+def _build_learner_memory_context(student):
+    """
+    Fetch the student's LearnerMemory and return the formatted brief
+    for the system prompt. Returns empty string if no memory exists yet.
+    """
+    try:
+        from .tutor_models import LearnerMemory
+
+        memory = LearnerMemory.objects.filter(student=student).first()
+        if not memory or memory.total_sessions_analysed == 0:
+            return ""
+
+        brief = memory.build_memory_brief()
+        return f"\n\n{brief}"
+    except Exception:
+        return ""
 
 
 def stream_tutor_response(messages, student, subject=None):

@@ -46,6 +46,245 @@ class TutorMessage(models.Model):
         return f"{self.role}: {self.content[:50]}"
 
 
+class LearnerMemory(models.Model):
+    """
+    Persistent cross-session memory for Aura's continuous context awareness.
+
+    Stores cumulative learning insights so every new session can pick up
+    where the last one left off — misconceptions, mastered topics,
+    strengths/weaknesses, and a spaced-repetition review queue.
+    """
+    student = models.OneToOneField(
+        'students.Student',
+        on_delete=models.CASCADE,
+        related_name='learner_memory',
+    )
+
+    # ── Cumulative knowledge graph ────────────────────────────────────
+    mastered_topics = models.JSONField(
+        default=list, blank=True,
+        help_text='List of topic strings the student has demonstrated mastery of.',
+    )
+    active_misconceptions = models.JSONField(
+        default=list, blank=True,
+        help_text='Misconceptions not yet fully resolved across sessions.',
+    )
+    corrected_misconceptions = models.JSONField(
+        default=list, blank=True,
+        help_text='Misconceptions successfully corrected (historical).',
+    )
+    strengths = models.JSONField(
+        default=list, blank=True,
+        help_text='Identified cognitive or subject-area strengths.',
+    )
+    weaknesses = models.JSONField(
+        default=list, blank=True,
+        help_text='Identified areas needing improvement.',
+    )
+
+    # ── Rolling session summaries (last N kept) ──────────────────────
+    recent_summaries = models.JSONField(
+        default=list, blank=True,
+        help_text='Last 10 session_summary payloads for trend analysis.',
+    )
+
+    # ── Spaced-repetition review queue ───────────────────────────────
+    review_queue = models.JSONField(
+        default=list, blank=True,
+        help_text='Topics scheduled for review: [{topic, subject, due_date, interval_days, ease_factor}].',
+    )
+
+    # ── Meta ─────────────────────────────────────────────────────────
+    total_sessions_analysed = models.IntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Learner Memory'
+        verbose_name_plural = 'Learner Memories'
+
+    def __str__(self):
+        return f"LearnerMemory: {self.student.user.get_full_name()}"
+
+    # ── Helpers ──────────────────────────────────────────────────────
+    MAX_RECENT_SUMMARIES = 10
+
+    def ingest_session_summary(self, summary: dict):
+        """
+        Merge a single session_summary dict into the cumulative memory.
+        Called at the end of every Aura session that emits a summary.
+        """
+        ss = summary.get('session_summary', summary)
+
+        # 1. Mastered topics
+        topic = ss.get('topic')
+        mastery_str = str(ss.get('mastery_level', '0%')).replace('%', '')
+        try:
+            mastery = float(mastery_str)
+        except (ValueError, TypeError):
+            mastery = 0
+
+        mastered = list(self.mastered_topics or [])
+        if topic and mastery >= 80 and topic not in mastered:
+            mastered.append(topic)
+        self.mastered_topics = mastered
+
+        # 2. Misconceptions
+        active = list(self.active_misconceptions or [])
+        corrected = list(self.corrected_misconceptions or [])
+
+        for m in (ss.get('misconceptions_corrected') or []):
+            if m not in corrected:
+                corrected.append(m)
+            if m in active:
+                active.remove(m)
+
+        for m in (ss.get('uncleared_critical_misconceptions') or []):
+            if m not in active and m not in corrected:
+                active.append(m)
+
+        self.active_misconceptions = active
+        self.corrected_misconceptions = corrected
+
+        # 3. Strengths / weaknesses
+        strengths = list(self.strengths or [])
+        for s in (ss.get('identified_strengths') or []):
+            if s not in strengths:
+                strengths.append(s)
+        self.strengths = strengths[-20:]  # cap at 20
+
+        weaknesses = list(self.weaknesses or [])
+        remaining = ss.get('remaining_gaps') or []
+        for w in remaining:
+            if w not in weaknesses:
+                weaknesses.append(w)
+        # Remove weaknesses that have been mastered
+        weaknesses = [w for w in weaknesses if w not in mastered]
+        self.weaknesses = weaknesses[-20:]
+
+        # 4. Rolling summaries
+        summaries = list(self.recent_summaries or [])
+        entry = dict(ss)
+        entry['_ingested_at'] = timezone.now().isoformat()
+        summaries.append(entry)
+        self.recent_summaries = summaries[-self.MAX_RECENT_SUMMARIES:]
+
+        # 5. Spaced-repetition queue
+        self._update_review_queue(ss)
+
+        # 6. Counter
+        self.total_sessions_analysed = (self.total_sessions_analysed or 0) + 1
+        self.save()
+
+    def _update_review_queue(self, ss):
+        """
+        SM-2-lite: schedule topics for future review.
+        - Mastered topics (>=80%) → push interval out (ease increases).
+        - Weak/remaining-gap topics → schedule sooner.
+        """
+        from datetime import timedelta
+        queue = {item['topic']: item for item in (self.review_queue or []) if isinstance(item, dict)}
+
+        topic = ss.get('topic')
+        subject = ss.get('subject', '')
+        mastery_str = str(ss.get('mastery_level', '0%')).replace('%', '')
+        try:
+            mastery = float(mastery_str)
+        except (ValueError, TypeError):
+            mastery = 0
+
+        if topic:
+            existing = queue.get(topic, {})
+            ease = existing.get('ease_factor', 2.5)
+            interval = existing.get('interval_days', 1)
+
+            if mastery >= 80:
+                interval = max(int(interval * ease), interval + 1)
+                ease = min(ease + 0.15, 3.0)
+            elif mastery >= 50:
+                interval = max(1, int(interval * 0.8))
+            else:
+                interval = 1
+                ease = max(ease - 0.2, 1.3)
+
+            due = (timezone.now() + timedelta(days=interval)).date().isoformat()
+            queue[topic] = {
+                'topic': topic,
+                'subject': subject,
+                'due_date': due,
+                'interval_days': interval,
+                'ease_factor': round(ease, 2),
+            }
+
+        # Also schedule remaining gaps for near-term review
+        for gap in (ss.get('remaining_gaps') or []):
+            if gap not in queue:
+                due = (timezone.now() + timedelta(days=1)).date().isoformat()
+                queue[gap] = {
+                    'topic': gap,
+                    'subject': subject,
+                    'due_date': due,
+                    'interval_days': 1,
+                    'ease_factor': 2.5,
+                }
+
+        self.review_queue = list(queue.values())
+
+    def get_due_reviews(self):
+        """Return topics that are due for review today or earlier."""
+        today = timezone.now().date().isoformat()
+        return [
+            item for item in (self.review_queue or [])
+            if isinstance(item, dict) and item.get('due_date', '9999') <= today
+        ]
+
+    def build_memory_brief(self, max_tokens_budget=600):
+        """
+        Build a compact text brief suitable for injection into the system prompt.
+        Keeps it concise to stay within token budget.
+        """
+        lines = []
+        lines.append("LEARNER MEMORY (Cross-Session Context)")
+
+        if self.mastered_topics:
+            topics = self.mastered_topics[-10:]
+            lines.append(f"  Mastered Topics: {', '.join(str(t) for t in topics)}")
+
+        if self.active_misconceptions:
+            lines.append(f"  Active Misconceptions (UNRESOLVED — prioritize correcting): {', '.join(str(m) for m in self.active_misconceptions)}")
+
+        if self.corrected_misconceptions:
+            recent = self.corrected_misconceptions[-5:]
+            lines.append(f"  Previously Corrected Misconceptions: {', '.join(str(m) for m in recent)}")
+
+        if self.strengths:
+            lines.append(f"  Strengths: {', '.join(str(s) for s in self.strengths[-8:])}")
+
+        if self.weaknesses:
+            lines.append(f"  Weaknesses/Gaps: {', '.join(str(w) for w in self.weaknesses[-8:])}")
+
+        due = self.get_due_reviews()
+        if due:
+            due_topics = [d['topic'] for d in due[:5]]
+            lines.append(f"  Topics Due for Review (Spaced Repetition): {', '.join(due_topics)}")
+
+        if self.recent_summaries:
+            last = self.recent_summaries[-1]
+            lines.append(f"  Last Session: {last.get('subject', '?')} / {last.get('topic', '?')} — Mastery {last.get('mastery_level', '?')}")
+            if last.get('recommended_next_step'):
+                lines.append(f"  Recommended Next Step: {last['recommended_next_step']}")
+
+        lines.append(f"  Total sessions analysed: {self.total_sessions_analysed}")
+        lines.append("")
+        lines.append("INSTRUCTIONS FOR USING LEARNER MEMORY:")
+        lines.append("- If active misconceptions exist, probe for them early in the session.")
+        lines.append("- If topics are due for review, weave recall questions into the conversation.")
+        lines.append("- Acknowledge mastered topics positively; do not re-teach them from scratch.")
+        lines.append("- Use identified strengths as scaffolding anchors for new material.")
+        lines.append("- Prioritize weaknesses/gaps when choosing examples and difficulty level.")
+
+        return "\n".join(lines)
+
+
 class CopilotConversation(models.Model):
     """Conversation thread for the global Portals Copilot assistant."""
     user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='copilot_conversations')

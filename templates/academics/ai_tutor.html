@@ -645,30 +645,124 @@
         .mobile-tabs { display: flex; }
         .progress-tracker { display: none; } /* Hide tracker to save vertical space */
     }
+
+    /* ── Sessions Offcanvas Sidebar ──────────────────────── */
+    .sessions-offcanvas {
+        max-width: 340px;
+        border-right: 1px solid var(--bs-border-color) !important;
+    }
+    .sessions-offcanvas .offcanvas-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--bs-border-color);
+    }
+    .sessions-offcanvas .offcanvas-body {
+        padding: 0;
+    }
+    .session-date-group {
+        padding: 0.5rem 1rem 0.25rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--bs-secondary-color);
+        background: var(--bs-tertiary-bg);
+        position: sticky;
+        top: 0;
+        z-index: 2;
+    }
+    .session-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        text-decoration: none;
+        color: inherit;
+        border-bottom: 1px solid var(--bs-border-color-translucent);
+        transition: background 0.15s;
+    }
+    .session-item:hover {
+        background: var(--bs-tertiary-bg);
+        color: inherit;
+    }
+    .session-item.active-session {
+        background: rgba(99, 102, 241, 0.08);
+        border-left: 3px solid var(--chat-primary, #6366f1);
+    }
+    .session-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        flex-shrink: 0;
+    }
+    .session-item-body {
+        min-width: 0;
+        flex: 1;
+    }
+    .session-item-title {
+        font-weight: 600;
+        font-size: 0.85rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .session-item-meta {
+        font-size: 0.72rem;
+        color: var(--bs-secondary-color);
+    }
+    .session-msg-badge {
+        font-size: 0.65rem;
+        padding: 0.15em 0.5em;
+        border-radius: 10px;
+        background: var(--bs-tertiary-bg);
+        color: var(--bs-secondary-color);
+        white-space: nowrap;
+    }
+    .sessions-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem 1.5rem;
+        text-align: center;
+    }
+    .sessions-empty i {
+        font-size: 2.5rem;
+        color: var(--bs-secondary-color);
+        margin-bottom: 1rem;
+    }
 </style>
 
 <!-- Progress Bar -->
-<!-- Sessions Modal -->
-<div class="modal fade" id="sessionsModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header border-bottom-0">
-                <h5 class="modal-title fw-bold">My Tutor Sessions</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<!-- Sessions Sidebar (Offcanvas) -->
+<div class="offcanvas offcanvas-start sessions-offcanvas" tabindex="-1" id="sessionsSidebar" aria-labelledby="sessionsSidebarLabel">
+    <div class="offcanvas-header">
+        <div class="d-flex align-items-center gap-2">
+            <div class="bg-primary bg-opacity-10 p-1 rounded-2 text-primary d-flex align-items-center justify-content-center" style="width:28px;height:28px;">
+                <i class="bi bi-clock-history" style="font-size:0.85rem;"></i>
             </div>
-            <div class="modal-body p-0">
-                <div class="list-group list-group-flush" id="sessionList">
-                    <div class="text-center py-4">
-                        <div class="spinner-border text-primary" role="status"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer border-top-0">
-                <button type="button" class="btn btn-primary w-100" onclick="createNewChatSession()">
-                    <i class="bi bi-plus-lg me-1"></i> Start New Session
-                </button>
+            <h6 class="offcanvas-title fw-bold mb-0" id="sessionsSidebarLabel">Sessions</h6>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div id="sessionList">
+            <div class="text-center py-4">
+                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                <div class="small text-muted mt-2">Loading sessions...</div>
             </div>
         </div>
+    </div>
+    <div class="border-top p-3 d-flex gap-2">
+        <button class="btn btn-primary flex-grow-1 rounded-3" onclick="createNewChatSession()">
+            <i class="bi bi-plus-lg me-1"></i> New Session
+        </button>
+        <a href="{% url 'academics:tutor_sessions' %}" class="btn btn-outline-secondary rounded-3" title="Full history">
+            <i class="bi bi-clock-history"></i>
+        </a>
     </div>
 </div>
 
@@ -765,7 +859,7 @@
                     <span class="fw-bold text-dark" style="font-size: 0.95rem;">Aura 2.0</span>
                     <span class="aura-model-chip" id="auraModelChip" title="Active AI model: {{ active_ai_model }}">{{ active_ai_model }}</span>
                     <span class="aura-provider-chip" id="auraProviderChip" title="Active AI provider: {{ active_ai_provider }}">{{ active_ai_provider }}</span>
-                    <button class="btn btn-sm btn-light border ms-2" data-bs-toggle="modal" data-bs-target="#sessionsModal">
+                    <button class="btn btn-sm btn-light border ms-2" data-bs-toggle="offcanvas" data-bs-target="#sessionsSidebar" aria-controls="sessionsSidebar">
                         <i class="bi bi-list-ul"></i> Sessions
                     </button>
                 </div>
@@ -1182,10 +1276,7 @@
         }
     }
     
-    function createNewChatSession() {
-         // Create a fresh session by reloading page without session ID (or with new request)
-         window.location.href = "{% url 'academics:ai_tutor' %}";
-    }
+    // createNewChatSession defined once at bottom of script
 
     // 1. Math Keyboard Toggle
     function toggleMathKeyboard(btn) {
@@ -1265,13 +1356,23 @@
                 method: 'POST',
                 body: JSON.stringify({ 
                     messages: conversationHistory,
-                    session_id: new URLSearchParams(window.location.search).get('session')
+                    session_id: currentSessionId || new URLSearchParams(window.location.search).get('session')
                 }),
                 headers: { 
                     'Content-Type': 'application/json', 
                     'X-CSRFToken': '{{ csrf_token }}' 
                 }
             });
+
+            // Capture session ID from response header (created by backend on first message)
+            const returnedSessionId = response.headers.get('X-Session-Id');
+            if (returnedSessionId && !currentSessionId) {
+                currentSessionId = returnedSessionId;
+                // Update URL so refresh continues the same session
+                const url = new URL(window.location);
+                url.searchParams.set('session', returnedSessionId);
+                window.history.replaceState({}, '', url);
+            }
 
             if (!response.ok) {
                 let errorMessage = 'Network response was not ok';
@@ -1713,68 +1814,105 @@
         }
     }
     
+    // Track the active session ID (may be set by backend or first chat response)
+    let currentSessionId = '{{ selected_session_id|escapejs }}' || null;
+
     function createNewChatSession() {
-         window.location.href = "{% url 'academics:ai_tutor_new_session' %}";
+        // Navigate to AI tutor without session param to start fresh
+        window.location.href = "{% url 'academics:ai_tutor' %}";
     }
 
-    // Sessions Modal Logic
-    const sessionsModal = document.getElementById('sessionsModal');
-    if (sessionsModal) {
-        sessionsModal.addEventListener('show.bs.modal', async function () {
+    // Sessions Sidebar Logic
+    const sessionsSidebar = document.getElementById('sessionsSidebar');
+    if (sessionsSidebar) {
+        sessionsSidebar.addEventListener('show.bs.offcanvas', async function () {
             const list = document.getElementById('sessionList');
             try {
-                // We'll create a simple API endpoint for this or just fetch the page fragment?
-                // For now, let's use a dedicated API endpoint in views if exists, otherwise fallback to parsing?
-                // Let's implement a quick API endpoint in a moment. But first, let's assume we fetch JSON.
-                // Or since we don't have an API yet, let's use the page we found earlier: tutor_sessions.html
-                // Actually, let's just make a fetch call to a new JSON endpoint or reuse existing.
-                
-                // Since I cannot easily add a new view right now without reloading context, let's try to fetch the HTML list page and parse it? 
-                // No, that's messy. Let's assume there is an API or add one.
-                // Wait, I can just render the list in the template if I pass it!
-                // But `ai_tutor` view might not pass `sessions`.
-                // Let's check `ai_tutor` view in `academics/views.py`.
-                
                 const response = await fetch("{% url 'academics:tutor_sessions' %}?format=json");
                 if (response.ok) {
                     const data = await response.json();
                     renderSessionList(data.sessions);
                 } else {
-                    // Fallback to iframe or redirect?
-                    list.innerHTML = `<div class="p-4 text-center text-muted">Unable to load sessions via API. <br><a href="{% url 'academics:tutor_sessions' %}" class="btn btn-sm btn-outline-primary mt-2">View Full History</a></div>`;
+                    list.innerHTML = `<div class="sessions-empty"><i class="bi bi-exclamation-circle"></i><p class="text-muted mb-2">Unable to load sessions.</p><a href="{% url 'academics:tutor_sessions' %}" class="btn btn-sm btn-outline-primary">View Full History</a></div>`;
                 }
             } catch (e) {
-                // If fetching JSON fails (because view returns HTML), just show link
-                list.innerHTML = `<div class="p-4 text-center text-muted">
-                    <p>View your full conversation history.</p>
-                    <a href="{% url 'academics:tutor_sessions' %}" class="btn btn-outline-primary">Go to History</a>
-                </div>`;
+                list.innerHTML = `<div class="sessions-empty"><i class="bi bi-wifi-off"></i><p class="text-muted">Could not connect.</p></div>`;
             }
         });
+    }
+
+    function getDateGroup(isoString) {
+        if (!isoString) return 'Older';
+        const d = new Date(isoString);
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
+        const weekAgo = new Date(today); weekAgo.setDate(weekAgo.getDate() - 7);
+        if (d >= today) return 'Today';
+        if (d >= yesterday) return 'Yesterday';
+        if (d >= weekAgo) return 'This Week';
+        return 'Older';
+    }
+
+    const subjectColors = [
+        {bg: 'rgba(99,102,241,0.1)', fg: '#6366f1', icon: 'bi-book'},
+        {bg: 'rgba(16,185,129,0.1)', fg: '#10b981', icon: 'bi-calculator'},
+        {bg: 'rgba(245,158,11,0.1)', fg: '#f59e0b', icon: 'bi-pencil'},
+        {bg: 'rgba(239,68,68,0.1)',  fg: '#ef4444', icon: 'bi-globe2'},
+        {bg: 'rgba(6,182,212,0.1)',  fg: '#06b6d4', icon: 'bi-lightbulb'},
+    ];
+    const subjectColorMap = {};
+    let colorIdx = 0;
+    function getSubjectColor(subject) {
+        if (!subjectColorMap[subject]) {
+            subjectColorMap[subject] = subjectColors[colorIdx % subjectColors.length];
+            colorIdx++;
+        }
+        return subjectColorMap[subject];
     }
 
     function renderSessionList(sessions) {
         const list = document.getElementById('sessionList');
         if (!sessions || sessions.length === 0) {
-            list.innerHTML = `<div class="p-4 text-center text-muted">No sessions found.</div>`;
+            list.innerHTML = `<div class="sessions-empty">
+                <i class="bi bi-chat-dots"></i>
+                <h6 class="fw-semibold mb-1">No sessions yet</h6>
+                <p class="text-muted small mb-0">Start a conversation to see your history here.</p>
+            </div>`;
             return;
         }
-        
-        let html = '';
+
+        // Group by date
+        const groups = {};
         sessions.forEach(s => {
-            const activeClass = (s.id == "{{ session.id }}") ? 'active' : '';
-            const topicDisplay = s.topic ? `<div class="small text-muted text-truncate" style="max-width: 200px;">${s.topic}</div>` : '';
-            
-            html += `
-                <a href="?session=${s.id}" class="list-group-item list-group-item-action ${activeClass} d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="fw-bold text-truncate" style="max-width: 200px;">${s.subject || 'General Chat'}</div>
-                        ${topicDisplay}
-                        <small class="text-muted" style="font-size: 0.75rem;">${s.date} &bull; ${s.msg_count} msgs</small>
-                    </div>
-                    <i class="bi bi-chevron-right text-muted small"></i>
-                </a>
-            `;
+            const group = getDateGroup(s.started_at_iso);
+            if (!groups[group]) groups[group] = [];
+            groups[group].push(s);
+        });
+
+        const orderedGroups = ['Today', 'Yesterday', 'This Week', 'Older'];
+        let html = '';
+        orderedGroups.forEach(groupName => {
+            if (!groups[groupName]) return;
+            html += `<div class="session-date-group">${groupName}</div>`;
+            groups[groupName].forEach(s => {
+                const isActive = currentSessionId && (String(s.id) === String(currentSessionId));
+                const activeClass = isActive ? 'active-session' : '';
+                const sc = getSubjectColor(s.subject || 'General');
+                const topicLine = s.topic ? `<span class="text-truncate d-block">${s.topic}</span>` : '';
+                html += `
+                    <a href="?session=${s.id}" class="session-item ${activeClass}">
+                        <div class="session-icon" style="background:${sc.bg};color:${sc.fg};">
+                            <i class="bi ${sc.icon}"></i>
+                        </div>
+                        <div class="session-item-body">
+                            <div class="session-item-title">${s.subject || 'General Chat'}</div>
+                            <div class="session-item-meta">${topicLine}${s.date}</div>
+                        </div>
+                        <span class="session-msg-badge">${s.msg_count}</span>
+                    </a>
+                `;
+            });
         });
         list.innerHTML = html;
     }

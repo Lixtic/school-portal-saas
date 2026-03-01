@@ -1619,6 +1619,20 @@ def _get_student_tutor_context(user, tenant=None):
     return student, subjects, None
 
 
+def _persist_to_learner_memory(student, summary_payload):
+    """
+    Persist a session_summary payload into the student's LearnerMemory.
+    Creates the LearnerMemory row on first use.
+    """
+    try:
+        from .tutor_models import LearnerMemory
+        memory, _ = LearnerMemory.objects.get_or_create(student=student)
+        memory.ingest_session_summary(summary_payload)
+    except Exception as e:
+        # Non-critical — log but don't break the response
+        print(f"[LEARNER_MEMORY] Failed to persist for {student}: {e}")
+
+
 def _extract_session_summary_payload(text):
     if not text:
         return None
@@ -1915,6 +1929,8 @@ def ai_tutor_chat(request):
                         session,
                         summary_payload,
                     )
+                    # ── Continuous Context Awareness: Persist to LearnerMemory ──
+                    _persist_to_learner_memory(student, summary_payload)
         
         # Stream response
         response = StreamingHttpResponse(
@@ -2098,7 +2114,9 @@ def tutor_sessions(request):
                     'subject': s.subject.name if s.subject else 'General',
                     'topic': topic_text,
                     'date': s.started_at.strftime('%b %d, %I:%M %p'),
-                    'msg_count': s.total_msgs
+                    'started_at_iso': s.started_at.isoformat(),
+                    'msg_count': s.total_msgs,
+                    'is_active': s.ended_at is None
                 })
             return JsonResponse({'sessions': data})
         
