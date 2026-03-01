@@ -1714,7 +1714,7 @@ def _notify_parents_if_critical_misconception_uncleared(student, session, payloa
 @login_required
 def ai_tutor(request):
     """AI Tutor chat interface for students"""
-    from .ai_tutor import get_openai_chat_model
+    from .ai_tutor import get_openai_chat_model, get_student_schedule_data
 
     student, subjects, error_message = _get_student_tutor_context(
         request.user,
@@ -1783,6 +1783,9 @@ def ai_tutor(request):
             'streak': xp_profile.current_streak
         }
     }
+
+    # Get student schedule for after-school auto-prompt
+    schedule_data = get_student_schedule_data(student)
     
     context = {
         'student': student,
@@ -1794,6 +1797,7 @@ def ai_tutor(request):
         'active_ai_model': get_openai_chat_model(),
         'active_ai_provider': 'openai',
         'ai_tutor_bootstrap': ai_tutor_bootstrap,
+        'schedule_data': schedule_data,
     }
     
     return render(request, 'academics/ai_tutor.html', context)

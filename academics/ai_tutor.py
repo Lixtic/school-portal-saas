@@ -7,6 +7,7 @@ from datetime import date
 from urllib import request as urllib_request
 from urllib.error import HTTPError, URLError
 from django.conf import settings
+from django.utils import timezone
 
 
 OPENAI_CHAT_COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions"
@@ -632,6 +633,9 @@ LOCALIZED FINAL ASSESSMENT LOGIC
     # ── CONTINUOUS CONTEXT AWARENESS: Learner Memory Brief ───────────
     context += _build_learner_memory_context(student)
 
+    # ── CONTINUOUS CONTEXT AWARENESS: Timetable / Daily Schedule ──────
+    context += _build_schedule_context(student)
+
     context += "\n\nAlways maintain an encouraging, supportive tone. Keep responses concise, structured, and cognitively active."
     
     return context
@@ -718,6 +722,166 @@ def _build_learner_memory_context(student):
         return f"\n\n{brief}"
     except Exception:
         return ""
+
+
+def _build_schedule_context(student):
+    """
+    Query the student's timetable and build a compact schedule brief
+    for today and tomorrow so Aura can proactively review lessons.
+    """
+    try:
+        from .models import Timetable
+        from datetime import timedelta
+
+        if not student.current_class:
+            return ""
+
+        now = timezone.now()
+        today_dow = now.weekday()          # 0=Mon … 6=Sun
+        tomorrow_dow = (today_dow + 1) % 7
+        current_time = now.time()
+
+        # Fetch all entries for today and tomorrow for this class
+        entries = (
+            Timetable.objects.filter(
+                class_subject__class_name=student.current_class,
+                day__in=[today_dow, tomorrow_dow],
+            )
+            .select_related('class_subject__subject', 'class_subject__teacher__user')
+            .order_by('day', 'start_time')
+        )
+
+        if not entries.exists():
+            return ""
+
+        day_names = {0: 'Monday', 1: 'Tuesday', 2: 'Wednesday',
+                     3: 'Thursday', 4: 'Friday', 5: 'Saturday', 6: 'Sunday'}
+
+        today_entries = [e for e in entries if e.day == today_dow]
+        tomorrow_entries = [e for e in entries if e.day == tomorrow_dow]
+
+        lines = ["\n\nSTUDENT TIMETABLE CONTEXT"]
+        lines.append(f"  Current date/time: {now.strftime('%A %B %d, %Y %I:%M %p')}")
+
+        def format_entry(e):
+            subj = e.class_subject.subject.name
+            t_start = e.start_time.strftime('%I:%M %p')
+            t_end = e.end_time.strftime('%I:%M %p')
+            teacher = ''
+            if e.class_subject.teacher and e.class_subject.teacher.user:
+                teacher = f' (Teacher: {e.class_subject.teacher.user.get_full_name()})'
+            room = f' [{e.room}]' if e.room else ''
+            return f"{t_start}-{t_end}: {subj}{teacher}{room}"
+
+        if today_entries:
+            lines.append(f"\n  Today ({day_names.get(today_dow, '?')}):")
+            completed = []
+            upcoming = []
+            for e in today_entries:
+                if e.end_time <= current_time:
+                    completed.append(e)
+                else:
+                    upcoming.append(e)
+
+            if completed:
+                lines.append("    Already completed:")
+                for e in completed:
+                    lines.append(f"      ✓ {format_entry(e)}")
+            if upcoming:
+                lines.append("    Still coming:")
+                for e in upcoming:
+                    lines.append(f"      → {format_entry(e)}")
+
+            # Determine school status
+            if not upcoming and completed:
+                last_end = max(e.end_time for e in completed)
+                lines.append(f"    STATUS: School day is OVER (last class ended at {last_end.strftime('%I:%M %p')}).")
+                lines.append("    → AFTER-SCHOOL MODE: Proactively offer to review today's lessons. Summarize key concepts from each subject and quiz the student.")
+            elif upcoming and not completed:
+                lines.append("    STATUS: School has not started yet.")
+                lines.append("    → PRE-SCHOOL MODE: Offer a quick preview of today's subjects to prime the student.")
+        else:
+            lines.append(f"\n  Today ({day_names.get(today_dow, '?')}): No classes scheduled.")
+
+        if tomorrow_entries:
+            lines.append(f"\n  Tomorrow ({day_names.get(tomorrow_dow, '?')}):")
+            for e in tomorrow_entries:
+                lines.append(f"    → {format_entry(e)}")
+            lines.append("    → When reviewing today's lessons, also preview what's coming tomorrow to help the student prepare.")
+        else:
+            lines.append(f"\n  Tomorrow ({day_names.get(tomorrow_dow, '?')}): No classes scheduled.")
+
+        return "\n".join(lines)
+    except Exception:
+        return ""
+
+
+def get_student_schedule_data(student):
+    """
+    Return structured schedule data for template rendering and auto-prompt logic.
+    Returns dict with today_lessons, tomorrow_lessons, is_after_school, auto_prompt.
+    """
+    try:
+        from .models import Timetable
+
+        if not student.current_class:
+            return None
+
+        now = timezone.now()
+        today_dow = now.weekday()
+        tomorrow_dow = (today_dow + 1) % 7
+        current_time = now.time()
+
+        day_names = {0: 'Monday', 1: 'Tuesday', 2: 'Wednesday',
+                     3: 'Thursday', 4: 'Friday', 5: 'Saturday', 6: 'Sunday'}
+
+        entries = (
+            Timetable.objects.filter(
+                class_subject__class_name=student.current_class,
+                day__in=[today_dow, tomorrow_dow],
+            )
+            .select_related('class_subject__subject')
+            .order_by('day', 'start_time')
+        )
+
+        today_lessons = []
+        tomorrow_lessons = []
+        for e in entries:
+            info = {
+                'subject': e.class_subject.subject.name,
+                'start': e.start_time.strftime('%I:%M %p'),
+                'end': e.end_time.strftime('%I:%M %p'),
+                'done': e.end_time <= current_time if e.day == today_dow else False,
+            }
+            if e.day == today_dow:
+                today_lessons.append(info)
+            else:
+                tomorrow_lessons.append(info)
+
+        is_after_school = (
+            bool(today_lessons)
+            and all(l['done'] for l in today_lessons)
+        )
+
+        # Build auto-prompt message
+        auto_prompt = None
+        if is_after_school:
+            subject_list = ', '.join(l['subject'] for l in today_lessons)
+            auto_prompt = (
+                f"School is over for today! I had these subjects: {subject_list}. "
+                f"Can you review today's lessons with me and help me prepare for tomorrow?"
+            )
+
+        return {
+            'today_name': day_names.get(today_dow, ''),
+            'tomorrow_name': day_names.get(tomorrow_dow, ''),
+            'today_lessons': today_lessons,
+            'tomorrow_lessons': tomorrow_lessons,
+            'is_after_school': is_after_school,
+            'auto_prompt': auto_prompt,
+        }
+    except Exception:
+        return None
 
 
 def stream_tutor_response(messages, student, subject=None):

@@ -884,19 +884,70 @@
                         </div>
                     {% endfor %}
                 {% else %}
-                    <!-- Quick Onboarding Bubbles -->
+                    <!-- Schedule-Aware Onboarding Bubble -->
                     <div class="message assistant">
                         <div class="message-bubble">
                             Hi <strong>{{ student.user.first_name }}</strong>! 👋 I'm ready to help.
-                            <br><br>
+
+                            {% if schedule_data %}
+                                {% if schedule_data.is_after_school %}
+                                    <div class="mt-2 p-2 rounded-3" style="background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2);">
+                                        <strong>🏫 School's out!</strong> Here's what you covered today ({{ schedule_data.today_name }}):
+                                        <ul class="mt-1 mb-1 ps-3 small">
+                                            {% for lesson in schedule_data.today_lessons %}
+                                                <li>{{ lesson.subject }} ({{ lesson.start }} – {{ lesson.end }})</li>
+                                            {% endfor %}
+                                        </ul>
+                                        {% if schedule_data.tomorrow_lessons %}
+                                            <div class="mt-1 small"><strong>📅 Tomorrow ({{ schedule_data.tomorrow_name }}):</strong>
+                                                {% for lesson in schedule_data.tomorrow_lessons %}
+                                                    {{ lesson.subject }}{% if not forloop.last %}, {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                        <div class="mt-2">
+                                            <em>Tap the button below and I'll review today's lessons with you!</em>
+                                        </div>
+                                    </div>
+                                {% elif schedule_data.today_lessons %}
+                                    <div class="mt-2 p-2 rounded-3" style="background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.15);">
+                                        <strong>📋 Today's schedule ({{ schedule_data.today_name }}):</strong>
+                                        <ul class="mt-1 mb-0 ps-3 small">
+                                            {% for lesson in schedule_data.today_lessons %}
+                                                <li>
+                                                    {% if lesson.done %}✅{% else %}⏳{% endif %}
+                                                    {{ lesson.subject }} ({{ lesson.start }} – {{ lesson.end }})
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                {% endif %}
+                            {% endif %}
+
+                            <br>
                             Try asking:
                             <ul class="mt-2 mb-0 ps-3">
-                                <li>"Help me understand the quadratic formula"</li>
-                                <li>"Map of Kejetia Market vs. Circle"</li>
-                                <li>"Practice quiz for JHS Science"</li>
+                                {% if schedule_data.is_after_school %}
+                                    <li>"Review today's lessons with me"</li>
+                                    <li>"Help me prepare for tomorrow"</li>
+                                    <li>"Quiz me on what I learned today"</li>
+                                {% else %}
+                                    <li>"Help me understand the quadratic formula"</li>
+                                    <li>"Map of Kejetia Market vs. Circle"</li>
+                                    <li>"Practice quiz for JHS Science"</li>
+                                {% endif %}
                             </ul>
                         </div>
                     </div>
+
+                    {% if schedule_data.is_after_school %}
+                    <!-- After-school auto-review button -->
+                    <div class="text-center my-2" id="autoReviewPrompt">
+                        <button class="btn btn-success btn-sm rounded-pill px-4 shadow-sm" onclick="triggerAfterSchoolReview()">
+                            <i class="bi bi-play-circle me-1"></i> Start Today's Review Session
+                        </button>
+                    </div>
+                    {% endif %}
                 {% endif %}
                 
                 <!-- Typing Indicator -->
@@ -1058,6 +1109,24 @@
     let ctx = null;
     let lastX = 0;
     let lastY = 0;
+
+    // ── After-School Review Logic ──────────────────────────────────────
+    const afterSchoolAutoPrompt = {% if schedule_data.auto_prompt %}"{{ schedule_data.auto_prompt|escapejs }}"{% else %}null{% endif %};
+
+    function triggerAfterSchoolReview() {
+        if (!afterSchoolAutoPrompt) return;
+
+        // Hide the auto-review button
+        const btn = document.getElementById('autoReviewPrompt');
+        if (btn) btn.style.display = 'none';
+
+        // Set the message input and send
+        if (messageInput) {
+            messageInput.value = afterSchoolAutoPrompt;
+            messageInput.dispatchEvent(new Event('input'));
+            sendMessage();
+        }
+    }
 
     // Auto-scroll on load
     window.onload = function() {
