@@ -24,6 +24,7 @@ class Question(models.Model):
     QUESTION_TYPES = (
         ('mcq', 'Multiple Choice'),
         ('short', 'Short Answer'),
+        ('essay', 'Essay'),
     )
     DOK_CHOICES = (
         (1, 'DOK 1: Recall'),

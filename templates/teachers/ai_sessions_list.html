@@ -5,6 +5,7 @@
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
 <style>
 /* ═══════════════════════════════════════════════════════════════════════════
    AURA-T 2.0 COMMAND CENTRE — Dark Glassmorphism / Bento Grid / Futuristic SaaS
@@ -444,9 +445,17 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
     border: 1px solid var(--aura-border);
     border-radius: 999px;
     font-size: 0.65rem;
+    font-weight: 600;
     color: var(--aura-text-secondary);
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     transition: all var(--aura-transition-fast);
+}
+.aura-scaffold-chip i {
+    font-size: 0.68rem;
+    opacity: 0.9;
 }
 .aura-scaffold-chip:hover {
     border-color: var(--aura-accent-violet);
@@ -556,6 +565,41 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
     gap: var(--aura-space-2);
 }
 .aura-actions-card h4 i { color: var(--aura-accent-violet); }
+.aura-action-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--aura-space-2);
+    margin-bottom: var(--aura-space-3);
+}
+.aura-tab-btn {
+    border: 1px solid var(--aura-border);
+    background: var(--aura-bg-secondary);
+    color: var(--aura-text-secondary);
+    border-radius: var(--aura-radius-sm);
+    padding: 8px 10px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all var(--aura-transition-fast);
+}
+.aura-tab-btn i { font-size: 0.72rem; }
+.aura-tab-btn:hover {
+    color: var(--aura-text-primary);
+    border-color: var(--aura-border-glow);
+}
+.aura-tab-btn.active {
+    background: var(--aura-gradient-glow);
+    color: var(--aura-text-primary);
+    border-color: var(--aura-border-glow);
+    box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.25) inset;
+}
+.aura-tab-pane { display: none; }
+.aura-tab-pane.active { display: block; }
 .aura-action-btn {
     width: 100%;
     padding: var(--aura-space-3) var(--aura-space-4);
@@ -961,17 +1005,17 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
                 </div>
             </div>
             <div class="aura-chat-scaffolds">
-                <button class="aura-scaffold-chip" data-prompt="Draft a 5-minute starter activity{% if next_class %} for {{ next_class.class_subject.subject.name }}{% endif %}">Lesson Starter</button>
-                <button class="aura-scaffold-chip" data-prompt="Create a quiz with 3 questions{% if next_class %} on {{ next_class.class_subject.subject.name }}{% endif %}">Quick Quiz</button>
+                <button class="aura-scaffold-chip" data-prompt="Draft a 5-minute starter activity{% if next_class %} for {{ next_class.class_subject.subject.name }}{% endif %}"><i class="fas fa-flag-checkered"></i> Lesson Starter</button>
+                <button class="aura-scaffold-chip" data-prompt="Create a quiz with 3 questions{% if next_class %} on {{ next_class.class_subject.subject.name }}{% endif %}"><i class="fas fa-question-circle"></i> Quick Quiz</button>
                 <button
                     class="aura-scaffold-chip"
                     data-generator-action="generate_exercises_and_assign"
                     data-prompt="Generate interactive exercises{% if next_class %} for {{ next_class.class_subject.subject.name }} in {{ next_class.class_subject.class_name.name }}{% endif %} and assign to class"
                     data-class-id="{% if next_class %}{{ next_class.class_subject.class_name.id }}{% endif %}"
                     data-subject-id="{% if next_class %}{{ next_class.class_subject.subject.id }}{% endif %}"
-                >Exercise + Assign</button>
-                <button class="aura-scaffold-chip" data-prompt="Explain a complex concept simply">Explain Concept</button>
-                <button class="aura-scaffold-chip" data-prompt="Suggest homework ideas">Homework</button>
+                ><i class="fas fa-tasks"></i> Exercise + Assign</button>
+                <button class="aura-scaffold-chip" data-prompt="Explain a complex concept simply"><i class="fas fa-lightbulb"></i> Explain Concept</button>
+                <button class="aura-scaffold-chip" data-prompt="Suggest homework ideas"><i class="fas fa-book-open"></i> Homework</button>
             </div>
             <div class="aura-chat-meta">
                 <label for="auraAssignDueDate">Due date</label>
@@ -1032,22 +1076,51 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
         <!-- ═══ QUICK ACTIONS ═══ -->
         <div class="aura-glass aura-bento-actions aura-actions-card">
             <h4><i class="fas fa-bolt"></i> Quick Actions</h4>
-            <a href="{% url 'teachers:ai_session_new' %}" class="aura-action-btn">
-                <i class="fas fa-magic"></i>
-                <span>New AI Lesson</span>
-            </a>
-            <a href="{% url 'teachers:assignment_creator' %}" class="aura-action-btn">
-                <i class="fas fa-file-signature"></i>
-                <span>Create Assignment</span>
-            </a>
-            <a href="{% url 'students:mark_attendance' %}" class="aura-action-btn">
-                <i class="fas fa-check-circle"></i>
-                <span>Mark Attendance</span>
-            </a>
-            <a href="{% url 'teachers:enter_grades' %}" class="aura-action-btn">
-                <i class="fas fa-graduation-cap"></i>
-                <span>Enter Grades</span>
-            </a>
+
+            <div class="aura-action-tabs" role="tablist" aria-label="Aura command tabs">
+                <button type="button" class="aura-tab-btn active" data-tab="ai-tools" aria-selected="true">
+                    <i class="fas fa-robot"></i> AI Tools
+                </button>
+                <button type="button" class="aura-tab-btn" data-tab="class-tasks" aria-selected="false">
+                    <i class="fas fa-chalkboard-teacher"></i> Class Tasks
+                </button>
+                <button type="button" class="aura-tab-btn" data-tab="workspace" aria-selected="false">
+                    <i class="fas fa-th-large"></i> Workspace
+                </button>
+            </div>
+
+            <div class="aura-tab-pane active" id="tab-ai-tools">
+                <a href="{% url 'teachers:ai_session_new' %}" class="aura-action-btn">
+                    <i class="fas fa-magic"></i>
+                    <span>New AI Lesson</span>
+                </a>
+                <a href="{% url 'teachers:assignment_creator' %}" class="aura-action-btn">
+                    <i class="fas fa-file-signature"></i>
+                    <span>Create Assignment</span>
+                </a>
+            </div>
+
+            <div class="aura-tab-pane" id="tab-class-tasks">
+                <a href="{% url 'students:mark_attendance' %}" class="aura-action-btn">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Mark Attendance</span>
+                </a>
+                <a href="{% url 'teachers:enter_grades' %}" class="aura-action-btn">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>Enter Grades</span>
+                </a>
+            </div>
+
+            <div class="aura-tab-pane" id="tab-workspace">
+                <a href="{% url 'teachers:my_classes' %}" class="aura-action-btn">
+                    <i class="fas fa-users"></i>
+                    <span>My Classes</span>
+                </a>
+                <a href="{% url 'dashboard' %}" class="aura-action-btn">
+                    <i class="fas fa-home"></i>
+                    <span>Main Dashboard</span>
+                </a>
+            </div>
         </div>
         
         <!-- ═══ INTERACTIVE TIMELINE ═══ -->
@@ -1106,6 +1179,26 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
      ═══════════════════════════════════════════════════════════════════════════ -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    const actionTabButtons = document.querySelectorAll('.aura-tab-btn');
+    const actionTabPanes = document.querySelectorAll('.aura-tab-pane');
+
+    actionTabButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            const tabKey = button.dataset.tab;
+            actionTabButtons.forEach((b) => {
+                b.classList.remove('active');
+                b.setAttribute('aria-selected', 'false');
+            });
+            actionTabPanes.forEach((pane) => pane.classList.remove('active'));
+
+            button.classList.add('active');
+            button.setAttribute('aria-selected', 'true');
+
+            const targetPane = document.getElementById(`tab-${tabKey}`);
+            if (targetPane) targetPane.classList.add('active');
+        });
+    });
+
     // ── AI Chat Implementation ──
     const chatForm = document.getElementById('auraChatForm');
     const chatInput = document.getElementById('auraChatInput');

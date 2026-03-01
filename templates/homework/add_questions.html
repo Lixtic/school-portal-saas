@@ -82,6 +82,7 @@
                         <select name="question_type_${questionCount}" class="form-select" onchange="toggleQuestionType(${questionCount}, this.value)">
                             <option value="mcq" selected>Multiple Choice</option>
                             <option value="short">Short Answer</option>
+                            <option value="essay">Essay</option>
                         </select>
                     </div>
                     <div class="col-md-6">
@@ -100,8 +101,8 @@
                     <!-- Choices go here -->
                 </div>
 
-                <div id="short-answer-${questionCount}" class="d-none mb-3">
-                    <label class="form-label">Expected Answer (for AI grading)</label>
+                <div id="rubric-answer-${questionCount}" class="d-none mb-3">
+                    <label class="form-label" id="rubric-label-${questionCount}">Expected Answer (for AI grading)</label>
                     <textarea name="expected_answer_${questionCount}" class="form-control" rows="2" placeholder="What should a good answer include?"></textarea>
                 </div>
                 
@@ -145,9 +146,13 @@
             const addChoiceBtn = q.querySelector('.btn-outline-primary');
             addChoiceBtn.setAttribute('onclick', `addChoice(${questionCount})`);
 
-            const shortAnswerEl = q.querySelector('[id^="short-answer-"]');
-            if (shortAnswerEl) {
-                shortAnswerEl.id = `short-answer-${questionCount}`;
+            const rubricAnswerEl = q.querySelector('[id^="rubric-answer-"]');
+            if (rubricAnswerEl) {
+                rubricAnswerEl.id = `rubric-answer-${questionCount}`;
+            }
+            const rubricLabelEl = q.querySelector('[id^="rubric-label-"]');
+            if (rubricLabelEl) {
+                rubricLabelEl.id = `rubric-label-${questionCount}`;
             }
             
             // Reindex choices
@@ -217,15 +222,21 @@
     function toggleQuestionType(qId, val) {
         const choicesContainer = document.getElementById(`choices-container-${qId}`);
         const addBtn = choicesContainer ? choicesContainer.parentElement.querySelector('.btn-outline-primary') : null;
-        const shortAnswer = document.getElementById(`short-answer-${qId}`);
-        if (val === 'short') {
+        const rubricAnswer = document.getElementById(`rubric-answer-${qId}`);
+        const rubricLabel = document.getElementById(`rubric-label-${qId}`);
+        if (val !== 'mcq') {
             if (choicesContainer) choicesContainer.classList.add('d-none');
             if (addBtn) addBtn.classList.add('d-none');
-            if (shortAnswer) shortAnswer.classList.remove('d-none');
+            if (rubricAnswer) rubricAnswer.classList.remove('d-none');
+            if (rubricLabel) {
+                rubricLabel.textContent = val === 'essay'
+                    ? 'Rubric / Answer Key (for AI grading)'
+                    : 'Expected Answer (for AI grading)';
+            }
         } else {
             if (choicesContainer) choicesContainer.classList.remove('d-none');
             if (addBtn) addBtn.classList.remove('d-none');
-            if (shortAnswer) shortAnswer.classList.add('d-none');
+            if (rubricAnswer) rubricAnswer.classList.add('d-none');
         }
     }
 

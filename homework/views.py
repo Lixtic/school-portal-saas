@@ -7,6 +7,7 @@ from django.conf import settings
 from django.db.models import Sum
 import json
 import re
+import math
 from .models import Homework, Question, Choice, Submission, Answer
 from .forms import HomeworkForm
 from teachers.models import Teacher
@@ -16,6 +17,92 @@ from academics.ai_tutor import _post_chat_completion
 
 def _normalize_text(value):
     return re.sub(r'\s+', ' ', (value or '').strip().lower())
+
+
+def _token_frequency(text):
+    frequencies = {}
+    for token in re.findall(r'\w+', _normalize_text(text)):
+        if len(token) <= 2:
+            continue
+        frequencies[token] = frequencies.get(token, 0) + 1
+    return frequencies
+
+
+def _cosine_similarity(text_a, text_b):
+    freq_a = _token_frequency(text_a)
+    freq_b = _token_frequency(text_b)
+    if not freq_a or not freq_b:
+        return 0.0
+
+    dot = 0.0
+    for token, count in freq_a.items():
+        dot += count * freq_b.get(token, 0)
+
+    mag_a = math.sqrt(sum(count * count for count in freq_a.values()))
+    mag_b = math.sqrt(sum(count * count for count in freq_b.values()))
+    if mag_a == 0 or mag_b == 0:
+        return 0.0
+    return dot / (mag_a * mag_b)
+
+
+def _extract_json_payload(content):
+    raw = (content or '').strip()
+    if not raw:
+        return {}
+    if raw.startswith('```'):
+        raw = re.sub(r'^```(?:json)?\s*', '', raw)
+        raw = re.sub(r'\s*```$', '', raw)
+    start = raw.find('{')
+    end = raw.rfind('}')
+    if start != -1 and end != -1 and end >= start:
+        raw = raw[start:end + 1]
+    return json.loads(raw)
+
+
+def _strictness_for_question(question):
+    if question.question_type == 'essay':
+        return 'High'
+    return 'High' if int(getattr(question, 'dok_level', 1) or 1) >= 3 else 'Low'
+
+
+def _build_grading_prompt(question_text, student_answer, rubric_constraints, strictness):
+    system_prompt = (
+        "### ROLE DEFINITION\n"
+        "You are an Expert Pedagogical Assessor. Your task is to evaluate a student's submission against a provided Question and Rubric. "
+        "You must be objective, identifying specific evidence for every point awarded or deducted.\n\n"
+        "### EVALUATION PROTOCOL\n"
+        "1. Decompose the student answer into atomic claims.\n"
+        "2. Verify each claim against the rubric as MATCH, ERROR, or NOISE.\n"
+        "3. Identify missing rubric concepts.\n"
+        "4. Compute final score as a percentage.\n\n"
+        "### OUTPUT FORMAT\n"
+        "Return ONLY valid JSON with this schema:\n"
+        "{\n"
+        "  \"thinking_process\": \"Brief summary of verification steps\",\n"
+        "  \"claims_verified\": [\"...\"],\n"
+        "  \"errors_detected\": [\"...\"],\n"
+        "  \"missing_concepts\": [\"...\"],\n"
+        "  \"final_score\": 0-100,\n"
+        "  \"feedback\": \"Constructive, 2-sentence feedback addressing missing concepts.\"\n"
+        "}"
+    )
+
+    user_prompt = (
+        f"- Question: {question_text}\n"
+        f"- Student Answer: {student_answer}\n"
+        f"- Rubric/Answer Key: {rubric_constraints}\n"
+        f"- Strictness Level: {strictness} (Low = forgive minor phrasing errors; High = exact terminology required)"
+    )
+
+    return {
+        "model": "gpt-4o-mini",
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "response_format": {"type": "json_object"},
+        "temperature": 0.1,
+    }
 
 
 def _fallback_short_score(student_answer, expected_answer, max_points):
@@ -28,19 +115,14 @@ def _fallback_short_score(student_answer, expected_answer, max_points):
     if student_norm == expected_norm:
         return float(max_points), "Exact match with expected answer."
 
-    expected_tokens = [token for token in re.findall(r'\w+', expected_norm) if len(token) > 2]
-    if not expected_tokens:
+    similarity = _cosine_similarity(student_norm, expected_norm)
+    if similarity <= 0:
         return 0.0, "Could not evaluate keywords from expected answer."
 
-    unique_expected = set(expected_tokens)
-    student_tokens = set(re.findall(r'\w+', student_norm))
-    overlap = len(unique_expected & student_tokens)
-    ratio = overlap / len(unique_expected)
-
-    score = round(float(max_points) * ratio, 2)
-    if ratio >= 0.75:
+    score = round(float(max_points) * similarity, 2)
+    if similarity >= 0.78:
         feedback = "Strong keyword match with expected answer."
-    elif ratio >= 0.4:
+    elif similarity >= 0.45:
         feedback = "Partial match with expected answer."
     else:
         feedback = "Limited match with expected answer."
@@ -175,13 +257,13 @@ def homework_add_questions(request, pk):
             if not question_text:
                 continue
 
-            if q_type not in ['mcq', 'short']:
+            if q_type not in ['mcq', 'short', 'essay']:
                 q_type = 'mcq'
             if dok_level not in [1, 2, 3, 4]:
                 dok_level = 1
 
             correct_answer = ''
-            if q_type == 'short':
+            if q_type in ['short', 'essay']:
                 correct_answer = (request.POST.get(f'expected_answer_{q_idx}') or '').strip()
 
             question = Question.objects.create(
@@ -259,7 +341,7 @@ def homework_solve(request, pk):
             total_points += question.points
             input_value = request.POST.get(f'question_{question.id}')
 
-            if question.question_type == 'short':
+            if question.question_type in ['short', 'essay']:
                 text_response = (input_value or '').strip()
                 answer = Answer.objects.create(
                     submission=submission,
@@ -273,31 +355,34 @@ def homework_solve(request, pk):
 
                 if text_response and question.correct_answer and settings.OPENAI_API_KEY:
                     try:
-                        grading_prompt = {
-                            "model": "gpt-4o-mini",
-                            "messages": [
-                                {
-                                    "role": "system",
-                                    "content": "You are a strict grading assistant. Return JSON with score (0 to max_points) and feedback." 
-                                },
-                                {
-                                    "role": "user",
-                                    "content": (
-                                        f"Question: {question.text}\n"
-                                        f"Expected answer: {question.correct_answer}\n"
-                                        f"Student answer: {text_response}\n"
-                                        f"Max points: {question.points}"
-                                    )
-                                }
-                            ],
-                            "response_format": {"type": "json_object"},
-                            "temperature": 0.2
-                        }
+                        grading_prompt = _build_grading_prompt(
+                            question_text=question.text,
+                            student_answer=text_response,
+                            rubric_constraints=question.correct_answer,
+                            strictness=_strictness_for_question(question),
+                        )
                         resp = _post_chat_completion(grading_prompt, settings.OPENAI_API_KEY)
                         content = resp["choices"][0]["message"]["content"]
-                        data = json.loads(content)
-                        short_score = max(0, min(float(data.get("score", 0)), question.points))
-                        short_feedback = data.get("feedback", "")
+                        data = _extract_json_payload(content)
+                        final_score = float(data.get("final_score", 0) or 0)
+                        bounded_percentage = max(0.0, min(final_score, 100.0))
+                        short_score = round((bounded_percentage / 100.0) * float(question.points), 2)
+
+                        feedback_text = (data.get("feedback") or "").strip()
+                        missing_concepts = data.get("missing_concepts") or []
+                        if isinstance(missing_concepts, list):
+                            missing_concepts = [str(item).strip() for item in missing_concepts if str(item).strip()]
+                        else:
+                            missing_concepts = []
+
+                        if feedback_text and missing_concepts:
+                            short_feedback = f"{feedback_text} Missing concepts: {', '.join(missing_concepts[:3])}."
+                        elif feedback_text:
+                            short_feedback = feedback_text
+                        elif missing_concepts:
+                            short_feedback = f"Missing concepts: {', '.join(missing_concepts[:3])}."
+                        else:
+                            short_feedback = "Answer evaluated against rubric constraints."
                     except Exception:
                         short_score, short_feedback = _fallback_short_score(text_response, question.correct_answer, question.points)
                 elif text_response and question.correct_answer:
