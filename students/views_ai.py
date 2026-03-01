@@ -478,8 +478,9 @@ def aura_arena_api(request):
                         content=text_response
                     )
                 except Exception as e:
-                    pass
-                
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Aura LLM Error: {str(e)}")
         return JsonResponse({'status': 'success', 'xp_earned': xp_earned, 'is_winner': is_winner})
 
 
