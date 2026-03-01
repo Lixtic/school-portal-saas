@@ -286,7 +286,7 @@ def _stream_chat_completion(payload, api_key):
 
     if not api_key:
         fallback_text, _ = _call_hf_fallback(payload)
-        yield "data: " + json.dumps({"content": fallback_text}) + "\n\n"
+        yield "data: " + json.dumps({"provider": "huggingface", "content": fallback_text}) + "\n\n"
         yield "data: [DONE]\n\n"
         return
 
@@ -318,7 +318,7 @@ def _stream_chat_completion(payload, api_key):
                     content_piece = delta.get("content")
                     if content_piece:
                         streamed_any_content = True
-                        yield "data: " + json.dumps({"content": content_piece}) + "\n\n"
+                        yield "data: " + json.dumps({"provider": "openai", "content": content_piece}) + "\n\n"
                 except Exception:
                     continue
 
@@ -327,8 +327,9 @@ def _stream_chat_completion(payload, api_key):
             fallback_payload.pop("stream", None)
             response_data = _post_chat_completion(fallback_payload, api_key)
             text = _extract_assistant_text_from_completion(response_data).strip()
+            provider = response_data.get("provider", "openai") if isinstance(response_data, dict) else "openai"
             if text:
-                yield "data: " + json.dumps({"content": text}) + "\n\n"
+                yield "data: " + json.dumps({"provider": provider, "content": text}) + "\n\n"
                 yield "data: [DONE]\n\n"
                 return
     except HTTPError as exc:
@@ -336,7 +337,7 @@ def _stream_chat_completion(payload, api_key):
         original_error = f"OpenAI HTTP {exc.code}: {detail}"
         if _should_try_hf_fallback(original_error):
             fallback_text, _ = _call_hf_fallback(payload)
-            yield "data: " + json.dumps({"content": fallback_text}) + "\n\n"
+            yield "data: " + json.dumps({"provider": "huggingface", "content": fallback_text}) + "\n\n"
             yield "data: [DONE]\n\n"
             return
         raise RuntimeError(original_error)
@@ -344,7 +345,7 @@ def _stream_chat_completion(payload, api_key):
         original_error = f"Network error: {exc.reason}"
         if _should_try_hf_fallback(original_error):
             fallback_text, _ = _call_hf_fallback(payload)
-            yield "data: " + json.dumps({"content": fallback_text}) + "\n\n"
+            yield "data: " + json.dumps({"provider": "huggingface", "content": fallback_text}) + "\n\n"
             yield "data: [DONE]\n\n"
             return
         raise RuntimeError(original_error)
