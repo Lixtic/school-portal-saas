@@ -319,6 +319,7 @@ def process_voice_interaction(request):
         return JsonResponse({"error":str(e)}, status=500)
 
 
+from django.contrib.auth.decorators import login_required
 from academics.models import StudyGroupRoom, StudyGroupMessage, StudentXP
 
 @login_required
@@ -466,3 +467,4 @@ def aura_arena_api(request):
                 pass
                 
         return JsonResponse({'status': 'success', 'xp_earned': xp_earned, 'is_winner': is_winner})
+
