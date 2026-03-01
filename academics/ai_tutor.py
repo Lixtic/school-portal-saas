@@ -6,10 +6,11 @@ import json
 from datetime import date
 from urllib import request as urllib_request
 from urllib.error import HTTPError, URLError
+from django.conf import settings
 
 
 OPENAI_CHAT_COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions"
-HF_INFERENCE_API_URL = "https://api-inference.huggingface.co/models"
+HF_INFERENCE_API_URL = "https://router.huggingface.co/v1/models"
 HF_DEFAULT_FALLBACK_MODEL = "google/flan-t5-large"
 OPENAI_CHAT_MODELS = [
     "gpt-5-nano",
@@ -28,6 +29,13 @@ def _resolve_openai_model(payload):
     return OPENAI_CHAT_MODELS[0]
 
 
+def _get_openai_api_key():
+    configured = getattr(settings, "OPENAI_API_KEY", None)
+    if configured:
+        return configured
+    return os.environ.get("OPENAI_API_KEY")
+
+
 def get_openai_chat_model():
     return _resolve_openai_model({})
 
@@ -35,6 +43,20 @@ def get_openai_chat_model():
 def _with_resolved_model(payload):
     data = dict(payload or {})
     data["model"] = _resolve_openai_model(data)
+
+    model_name = str(data.get("model") or "").lower()
+    if model_name.startswith("gpt-5"):
+        if "max_tokens" in data and "max_completion_tokens" not in data:
+            data["max_completion_tokens"] = data.pop("max_tokens")
+
+        if "temperature" in data:
+            try:
+                temp_value = float(data.get("temperature"))
+            except (TypeError, ValueError):
+                temp_value = 1.0
+            if temp_value != 1.0:
+                data["temperature"] = 1
+
     return data
 
 
@@ -154,8 +176,14 @@ def _call_hf_fallback(payload):
         },
     }
 
+    hf_base_url = (
+        os.environ.get("HF_INFERENCE_BASE_URL")
+        or os.environ.get("HUGGINGFACE_INFERENCE_BASE_URL")
+        or HF_INFERENCE_API_URL
+    ).rstrip("/")
+
     req = urllib_request.Request(
-        f"{HF_INFERENCE_API_URL}/{model_name}",
+        f"{hf_base_url}/{model_name}",
         data=json.dumps(hf_payload).encode("utf-8"),
         headers=headers,
         method="POST",
@@ -519,12 +547,7 @@ def stream_tutor_response(messages, student, subject=None):
     """
     Stream AI tutor responses using OpenAI
     """
-    api_key = os.environ.get('OPENAI_API_KEY')
-    if not api_key:
-        yield "data: " + json.dumps({
-            "error": "AI Tutor is not configured. Please contact your administrator."
-        }) + "\n\n"
-        return
+    api_key = _get_openai_api_key()
     
     try:
         # Build conversation with system prompt
@@ -552,7 +575,7 @@ def stream_tutor_response(messages, student, subject=None):
 
 def generate_practice_questions(subject, topic, difficulty="medium", count=5):
     """Generate practice questions for a subject/topic"""
-    api_key = os.environ.get('OPENAI_API_KEY')
+    api_key = _get_openai_api_key()
     if not api_key:
         return {"error": "AI Tutor not configured"}
     
@@ -597,7 +620,7 @@ Format as JSON:
 
 def explain_concept(subject, concept):
     """Get detailed explanation of a concept"""
-    api_key = os.environ.get('OPENAI_API_KEY')
+    api_key = _get_openai_api_key()
     if not api_key:
         return "AI Tutor not configured"
     
@@ -621,7 +644,7 @@ def explain_concept(subject, concept):
 
 def health_check_openai():
     """Lightweight connectivity check for AI Tutor OpenAI integration."""
-    api_key = os.environ.get('OPENAI_API_KEY')
+    api_key = _get_openai_api_key()
     if not api_key:
         return {
             "ok": False,
