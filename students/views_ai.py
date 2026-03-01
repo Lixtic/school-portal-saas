@@ -468,3 +468,6 @@ def aura_arena_api(request):
                 
         return JsonResponse({'status': 'success', 'xp_earned': xp_earned, 'is_winner': is_winner})
 
+
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
