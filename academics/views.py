@@ -946,13 +946,36 @@ def copilot_assistant(request):
                         snapshot_lines.append("Recent Attendance: " + " | ".join(att_lines))
 
                     current_year = AcademicYear.objects.filter(is_current=True).first()
-                    recent_grades = Grade.objects.filter(student=student)
+                    recent_grades_qs = Grade.objects.filter(student=student)
                     if current_year:
-                        recent_grades = recent_grades.filter(academic_year=current_year)
-                    recent_grades = recent_grades.select_related('subject').order_by('-updated_at')[:5]
+                        recent_grades_qs = recent_grades_qs.filter(academic_year=current_year)
+                        
+                    # Trend Analysis (Average across terms)
+                    try:
+                        from django.db.models import Avg
+                        term_avgs = []
+                        for t in ['first', 'second', 'third']:
+                            qs = recent_grades_qs.filter(term__iexact=t, total_score__isnull=False)
+                            if qs.exists():
+                                term_avgs.append((t.title(), round(qs.aggregate(val=Avg('total_score'))['val'], 1)))
+                        if term_avgs:
+                            trend_str = ", ".join([f"{term} Term: {avg}%" for term, avg in term_avgs])
+                            snapshot_lines.append(f"Term Averages: {trend_str}")
+                            if len(term_avgs) > 1:
+                                cur_avg, prev_avg = term_avgs[-1][1], term_avgs[-2][1]
+                                if cur_avg >= prev_avg + 2:
+                                    snapshot_lines.append("Trend Insight: The student is showing improvement recently.")
+                                elif cur_avg <= prev_avg - 2:
+                                    snapshot_lines.append("Trend Insight: The student's average has dropped. Mention they might need study support.")
+                                else:
+                                    snapshot_lines.append("Trend Insight: The student's academic performance is very stable.")
+                    except Exception:
+                        pass
+
+                    recent_grades = recent_grades_qs.select_related('subject').order_by('-updated_at')[:5]
                     if recent_grades:
                         grade_lines = [f"{g.subject.name} ({g.term}): {g.total_score} ({g.remarks})" for g in recent_grades]
-                        snapshot_lines.append("Recent Grades: " + " | ".join(grade_lines))
+                        snapshot_lines.append("Recent Assessed Grades: " + " | ".join(grade_lines))
 
             if user_role == 'parent':
                 from parents.models import Parent
@@ -965,6 +988,25 @@ def copilot_assistant(request):
                         if recent_att:
                             att_bits = [f"{a.date}: {a.status}" for a in recent_att]
                             line += " | Attendance: " + "; ".join(att_bits)
+                        
+                        # Add Trend insight for Parent
+                        try:
+                            from django.db.models import Avg
+                            term_avgs = []
+                            for t in ['first', 'second', 'third']:
+                                qs = Grade.objects.filter(student=child, term__iexact=t, total_score__isnull=False)
+                                if qs.exists():
+                                    term_avgs.append(round(qs.aggregate(val=Avg('total_score'))['val'], 1))
+                            if len(term_avgs) > 1:
+                                if term_avgs[-1] >= term_avgs[-2] + 2:
+                                    line += f" | Trend: Improving (Latest Avg: {term_avgs[-1]}%)"
+                                elif term_avgs[-1] <= term_avgs[-2] - 2:
+                                    line += f" | Trend: Decreased (Latest Avg: {term_avgs[-1]}%)"
+                                else:
+                                    line += f" | Trend: Stable"
+                        except Exception:
+                            pass
+                            
                         recent_grades = Grade.objects.filter(student=child).select_related('subject').order_by('-updated_at')[:3]
                         if recent_grades:
                             grade_bits = [f"{g.subject.name} {g.term}: {g.total_score} ({g.remarks})" for g in recent_grades]
@@ -1146,13 +1188,23 @@ Context Initialization:
 
         def stream_via_rest():
             from academics.ai_tutor import _stream_chat_completion_text, get_openai_chat_model
+            
+            # Retrieve recent conversation history for continuous context memory
+            api_messages = [{"role": "system", "content": system_prompt}]
+            
+            if conversation:
+                # Exclude the very last message since we just saved the current question in it, 
+                # but it's simpler to just grab up to 10 and ensure chronological order.
+                recent_msgs = conversation.messages.order_by('-created_at')[:10]
+                for msg in reversed(list(recent_msgs)):
+                    api_messages.append({"role": msg.role, "content": msg.content})
+            else:
+                api_messages.append({"role": "user", "content": question})
+
             payload = {
                 "model": get_openai_chat_model(),
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": question},
-                ],
-                "max_tokens": 200,
+                "messages": api_messages,
+                "max_tokens": 600, # Increased for detailed assistance
                 "temperature": 0.7,
                 "stream": True,
             }
