@@ -222,8 +222,8 @@ def homework_delete(request, pk):
         homework.delete()
         messages.success(request, "Homework deleted.")
         return redirect('homework:homework_list')
-        
-    return render(request, 'homework/results.html', {'homework': homework, 'submission': submission, 'score_percentage': (submission.score / homework.questions.count()) * 100})
+    # Show a simple confirmation page for deletion
+    return render(request, 'homework/confirm_delete.html', {'homework': homework})
 
 @login_required
 def homework_add_questions(request, pk):

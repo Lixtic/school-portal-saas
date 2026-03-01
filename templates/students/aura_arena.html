@@ -1,219 +1,778 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Aura Arena{% endblock %}
+{% block title %}Talk to Aura{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+    --aura-primary: #6f42c1;
+    --aura-secondary: #0d6efd;
+    --aura-accent: #0dcaf0;
+    --aura-bg: #f8f9fa;
+    --aura-card: #ffffff;
+    --aura-text: #212529;
+    --aura-text-muted: #6c757d;
+    --aura-border: #dee2e6;
+}
+
+.aura-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    height: calc(100vh - 80px);
+    display: flex;
+    background: var(--aura-bg);
+}
+
+.aura-sidebar {
+    width: 280px;
+    background: var(--aura-card);
+    border-right: 1px solid var(--aura-border);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease;
+}
+
+.aura-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+.aura-header {
+    background: var(--aura-card);
+    border-bottom: 1px solid var(--aura-border);
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    backdrop-filter: blur(10px);
+    position: relative;
+    z-index: 10;
+}
+
+.aura-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.aura-avatar {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--aura-primary), var(--aura-secondary));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+}
+
+.mode-toggle {
+    display: flex;
+    gap: 0.5rem;
+    background: var(--aura-bg);
+    padding: 4px;
+    border-radius: 12px;
+}
+
+.mode-btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+    color: var(--aura-text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.mode-btn.active {
+    background: var(--aura-card);
+    color: var(--aura-primary);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.aura-chat-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.chat-message {
+    display: flex;
+    gap: 1rem;
+    animation: messageSlide 0.3s ease;
+}
+
+@keyframes messageSlide {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+}
+
+.message-avatar.user {
+    background: linear-gradient(135deg, #0d6efd, #0dcaf0);
+    color: white;
+}
+
+.message-avatar.aura {
+    background: linear-gradient(135deg, var(--aura-primary), var(--aura-secondary));
+    color: white;
+}
+
+.message-content {
+    flex: 1;
+    max-width: 700px;
+}
+
+.message-sender {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+    color: var(--aura-text);
+}
+
+.message-text {
+    background: var(--aura-card);
+    padding: 0.875rem 1.125rem;
+    border-radius: 12px;
+    line-height: 1.6;
+    color: var(--aura-text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.message-time {
+    font-size: 0.75rem;
+    color: var(--aura-text-muted);
+    margin-top: 0.25rem;
+}
+
+.battle-message {
+    border-left: 3px solid #ffc107;
+    background: linear-gradient(90deg, #fff3cd 0%, var(--aura-card) 5%);
+}
+
+.aura-input-container {
+    padding: 1.5rem;
+    background: var(--aura-card);
+    border-top: 1px solid var(--aura-border);
+}
+
+.aura-input-wrapper {
+    max-width: 900px;
+    margin: 0 auto;
+    position: relative;
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+#chatInput {
+    flex: 1;
+    border: 1px solid var(--aura-border);
+    border-radius: 24px;
+    padding: 0.875rem 1.25rem;
+    font-size: 0.95rem;
+    resize: none;
+    outline: none;
+    transition: all 0.2s;
+    background: var(--aura-bg);
+}
+
+#chatInput:focus {
+    border-color: var(--aura-primary);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.1);
+}
+
+.send-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, var(--aura-primary), var(--aura-secondary));
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.send-btn:hover:not(:disabled) {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(111, 66, 193, 0.4);
+}
+
+.send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Voice Mode Styles */
+.voice-mode-container {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    padding: 3rem;
+}
+
+.voice-mode-container.active {
+    display: flex;
+}
+
+.voice-orb-wrapper {
+    position: relative;
+    margin-bottom: 3rem;
+}
+
+.voice-orb {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--aura-primary), var(--aura-secondary), var(--aura-accent));
+    background-size: 200% 200%;
+    animation: gradientShift 6s ease infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 10px 40px rgba(111, 66, 193, 0.3);
+    position: relative;
+    z-index: 5;
+}
+
+.voice-orb:hover {
+    transform: scale(1.05);
+}
+
+.voice-orb i {
+    font-size: 3.5rem;
+    color: white;
+    transition: all 0.3s;
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.voice-rings {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.voice-ring {
+    position: absolute;
+    border: 2px solid var(--aura-primary);
+    border-radius: 50%;
+    opacity: 0.3;
+}
+
+.voice-status {
+    text-align: center;
+}
+
+.voice-status h3 {
+    font-weight: 300;
+    margin-bottom: 0.5rem;
+    color: var(--aura-text);
+}
+
+.voice-status p {
+    color: var(--aura-text-muted);
+    max-width: 320px;
+}
+
+/* Recording State */
+.voice-orb.recording {
+    background: linear-gradient(135deg, #dc3545, #fd7e14) !important;
+    transform: scale(0.95);
+}
+
+@keyframes pulseRing {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+    100% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; }
+}
+
+.recording .voice-ring {
+    animation: pulseRing 1.5s ease-out infinite;
+}
+
+.recording .voice-ring:nth-child(2) {
+    animation-delay: 0.75s;
+}
+
+/* Speaking State */
+@keyframes speakPulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 10px 40px rgba(13, 202, 240, 0.4); }
+    50% { transform: scale(1.1); box-shadow: 0 15px 60px rgba(13, 202, 240, 0.6); }
+}
+
+.voice-orb.speaking {
+    background: linear-gradient(135deg, var(--aura-accent), var(--aura-secondary)) !important;
+    animation: speakPulse 1s ease-in-out infinite;
+}
+
+/* Stats Sidebar */
+.stats-section {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--aura-border);
+}
+
+.stats-card {
+    background: linear-gradient(135deg, var(--aura-primary), var(--aura-secondary));
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-align: center;
+    color: white;
+}
+
+.stats-level {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.stats-progress {
+    background: rgba(255,255,255,0.2);
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 1rem 0 0.5rem;
+}
+
+.stats-progress-bar {
+    background: white;
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s;
+}
+
+.stats-xp {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+.info-card {
+    background: #e7f3ff;
+    border-radius: 12px;
+    padding: 1.25rem;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: #004085;
+}
+
+.info-card strong {
+    color: var(--aura-primary);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .aura-sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        z-index: 1000;
+        transform: translateX(-100%);
+    }
+    
+    .aura-sidebar.show {
+        transform: translateX(0);
+    }
+    
+    .voice-orb {
+        width: 140px;
+        height: 140px;
+    }
+    
+    .voice-orb i {
+        font-size: 2.5rem;
+    }
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row h-100">
-    <!-- Sidebar: Leaderboard & Stats -->
-    <div class="col-md-3 border-end bg-light p-4 d-none d-md-block h-100">
-        <h5 class="fw-bold mb-3"><i class="fas fa-trophy text-warning"></i> Your Stats</h5>
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body text-center">
-                <h2 class="text-primary mb-0">Level {{ xp.level }}</h2>
-                <div class="progress mt-3 mb-2" style="height: 10px;">
-                    <div class="progress-bar bg-warning" role="progressbar" style="width: {{ xp.level_progress }}%" aria-valuenow="{{ xp.level_progress }}" aria-valuemin="0" aria-valuemax="100"></div>
+<div class="aura-container">
+    <!-- Sidebar -->
+    <aside class="aura-sidebar">
+        <div class="stats-section">
+            <div class="stats-card">
+                <div class="stats-level">Level {{ xp.level }}</div>
+                <div class="stats-progress">
+                    <div class="stats-progress-bar" style="width: {{ xp.level_progress }}%"></div>
                 </div>
-                <small class="text-muted">{{ xp.total_xp }} Total XP</small>
+                <div class="stats-xp">{{ xp.total_xp }} Total XP</div>
             </div>
         </div>
-
-        <div class="alert alert-info">
-            <h6><i class="fas fa-magic"></i> How to Play</h6>
-            <p class="small mb-0">
-                Chat with your classmates and Aura-T in real-time. 
-                Type <strong>@Aura battle</strong> to trigger an AI trivia question. First to answer correctly earns 20 XP!
-            </p>
+        
+        <div class="stats-section">
+            <div class="info-card">
+                <h6 class="mb-2"><i class="fas fa-magic"></i> How to Earn XP</h6>
+                <p class="mb-0">
+                    Type <strong>@Aura battle</strong> to start a trivia challenge. 
+                    First correct answer earns <strong>+20 XP</strong>!
+                </p>
+            </div>
         </div>
-    </div>
-
+    </aside>
+    
     <!-- Main Chat Area -->
-    <div class="col-md-9 d-flex flex-column" style="height: 80vh;">
-        <div class="p-3 border-bottom d-flex align-items-center bg-white shadow-sm">
-            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                <i class="fas fa-chalkboard-teacher"></i>
+    <main class="aura-main">
+        <!-- Header -->
+        <header class="aura-header">
+            <div class="aura-brand">
+                <div class="aura-avatar">
+                    <i class="fas fa-magic"></i>
+                </div>
+                <div>
+                    <h5 class="mb-0">Aura</h5>
+                    <small class="text-muted">Your AI Study Assistant</small>
+                </div>
             </div>
-            <div>
-                <h5 class="mb-0">{{ room.name }}</h5>
-                <small class="text-muted"><i class="fas fa-users"></i> Study Group Chat & Battle Arena</small>
+            
+            <div class="mode-toggle">
+                <button class="mode-btn active" data-mode="text">
+                    <i class="fas fa-keyboard"></i>
+                    <span>Text</span>
+                </button>
+                <button class="mode-btn" data-mode="voice">
+                    <i class="fas fa-microphone"></i>
+                    <span>Voice</span>
+                </button>
+            </div>
+        </header>
+        
+        <!-- Text Chat Container -->
+        <div class="aura-chat-container" id="textMode">
+            <div class="text-center text-muted" style="padding: 2rem 0;">
+                <i class="fas fa-comments fa-3x mb-3 opacity-25"></i>
+                <p>Start a conversation with Aura or challenge your classmates!</p>
             </div>
         </div>
-
-        <div id="chatWindow" class="flex-grow-1 overflow-auto p-4 bg-light" style="position: relative;">
-            <!-- Messages pushed here via JS -->
-            <div class="text-center text-muted mt-2">
-                <small>Welcome to the {{ room.name }} Arena.</small>
+        
+        <!-- Voice Mode Container -->
+        <div class="voice-mode-container" id="voiceMode">
+            <div class="voice-orb-wrapper">
+                <div class="voice-rings">
+                    <div class="voice-ring" style="width: 180px; height: 180px;"></div>
+                    <div class="voice-ring" style="width: 180px; height: 180px;"></div>
+                </div>
+                <div class="voice-orb" id="voiceOrb">
+                    <i class="fas fa-microphone" id="voiceIcon"></i>
+                </div>
+            </div>
+            
+            <div class="voice-status">
+                <h3 id="voiceStatus">Hi, I'm Aura</h3>
+                <p id="voiceSubstatus">Tap the orb to start speaking with me</p>
             </div>
         </div>
-
-        <!-- Chat Input Form -->
-        <div class="p-3 bg-white border-top shadow-sm">
-            <form id="chatForm" class="d-flex text-muted gap-2">
-                <input type="text" id="chatInput" placeholder="Type a message or '@Aura battle'..." class="form-control rounded-pill px-4" autocomplete="off" required>
-                <button type="submit" class="btn btn-primary rounded-pill px-4">
-                    Send <i class="fas fa-paper-plane ms-1"></i>
+        
+        <!-- Input Area -->
+        <div class="aura-input-container" id="textInput">
+            <form id="chatForm" class="aura-input-wrapper">
+                <input 
+                    type="text" 
+                    id="chatInput" 
+                    placeholder="Ask me anything or type '@Aura battle' for a challenge..."
+                    autocomplete="off"
+                    required
+                />
+                <button type="submit" class="send-btn" id="sendBtn">
+                    <i class="fas fa-paper-plane"></i>
                 </button>
             </form>
         </div>
-    </div>
+    </main>
 </div>
 
-<style>
-/* CSS to make chat bubbles look cleaner and less crowded */
-.chat-bubble {
-    max-width: 85%;
-    padding: 12px 18px;
-    border-radius: 18px;
-    margin-bottom: 2px;
-    font-size: 0.95rem;
-    line-height: 1.5;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    word-wrap: break-word;
-}
-.chat-me {
-    background-color: #0d6efd;
-    color: white;
-    border-bottom-right-radius: 4px;
-}
-.chat-other {
-    background-color: #f1f3f5;
-    color: #212529;
-    border-bottom-left-radius: 4px;
-}
-.chat-aura {
-    background-color: #f8f9fa;
-    color: #495057;
-    border: 1px solid #e9ecef;
-    border-left: 4px solid #6f42c1;
-    border-radius: 12px;
-}
-.battle-q {
-    background-color: #fff3cd;
-    border: 2px dashed #ffc107;
-}
-.win-msg {
-    color: #155724;
-    font-weight: bold;
-}
-.msg-container-me {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-}
-.msg-container-other {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-}
-</style>
+<!-- Hidden audio element for voice mode -->
+<audio id="ttsAudio" class="d-none"></audio>
 
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-    const chatWindow = document.getElementById("chatWindow");
-    const chatForm = document.getElementById("chatForm");
-    const chatInput = document.getElementById("chatInput");
+document.addEventListener('DOMContentLoaded', function() {
+    // Mode Management
+    const textMode = document.getElementById('textMode');
+    const voiceMode = document.getElementById('voiceMode');
+    const textInput = document.getElementById('textInput');
+    const modeButtons = document.querySelectorAll('.mode-btn');
     
-    let lastId = 0;
+    let currentMode = 'text';
     
-    function scrollToBottom() {
-        chatWindow.scrollTop = chatWindow.scrollHeight;
-    }
-
-    function renderMessage(msg) {
-        let alignClass = msg.is_me ? "msg-container-me" : "msg-container-other";
-        let colorClass = msg.is_me ? "chat-me" : "chat-other";
-        if(msg.is_aura) {
-            colorClass = msg.is_battle ? "chat-aura battle-q" : "chat-aura";
-            alignClass = "msg-container-other w-100"; // center Aura usually, or left
+    modeButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const mode = btn.dataset.mode;
+            switchMode(mode);
+        });
+    });
+    
+    function switchMode(mode) {
+        currentMode = mode;
+        
+        // Update button states
+        modeButtons.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === mode);
+        });
+        
+        // Toggle containers
+        if (mode === 'text') {
+            textMode.style.display = 'flex';
+            voiceMode.classList.remove('active');
+            textInput.style.display = 'block';
+        } else {
+            textMode.style.display = 'none';
+            voiceMode.classList.add('active');
+            textInput.style.display = 'none';
         }
-        
-        let senderNameHTML = '';
-        if(!msg.is_me && !msg.is_aura) {
-            senderNameHTML = `<small class="text-muted ms-2 mb-1" style="font-size:0.7rem;">${msg.sender}</small>`;
-        } else if (msg.is_aura) {
-            senderNameHTML = `<small class="mb-1 fw-bold" style="font-size:0.7rem; color: #6f42c1;"><i class="fas fa-magic"></i> Aura-T</small>`;
-        }
-        
-        // Render content
-        let contentHTML = msg.content;
-        // Parse bold markdown
-        contentHTML = contentHTML.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        contentHTML = contentHTML.replace(/\*(.*?)\*/g, '<em>$1</em>');
-        
-        let parsedDate = msg.time;
-
-        const el = document.createElement("div");
-        el.className = `w-100 mb-4 ${alignClass}`;
-        el.innerHTML = `
-            ${senderNameHTML}
-            <div class="chat-bubble ${colorClass}">
-                ${contentHTML.replace(/\n/g, '<br>')}
-            </div>
-            <small class="text-muted mt-1" style="font-size:0.65rem;">${parsedDate}</small>
-        `;
-        chatWindow.appendChild(el);
     }
     
-    async function fetchMessages() {
+    // ====== TEXT CHAT MODE ======
+    const chatForm = document.getElementById('chatForm');
+    const chatInput = document.getElementById('chatInput');
+    const sendBtn = document.getElementById('sendBtn');
+    let lastMessageId = 0;
+    let pollInterval;
+    
+    // Initialize chat polling
+    function startChatPolling() {
+        pollMessages();
+        pollInterval = setInterval(pollMessages, 2000);
+    }
+    
+    async function pollMessages() {
         try {
-            const apiUrl = "{% url 'students:aura_arena_api' %}";
-            const resp = await fetch(`${apiUrl}?last_id=${lastId}`);
-            if(resp.ok) {
-                const data = await resp.json();
-                if(data.messages && data.messages.length > 0) {
-                    let shouldScroll = (chatWindow.scrollTop + chatWindow.clientHeight) >= chatWindow.scrollHeight - 50;
-                    data.messages.forEach(m => {
-                        renderMessage(m);
-                        lastId = m.id;
-                    });
-                    if(shouldScroll){ scrollToBottom(); }
-                }
+            const response = await fetch(`{% url 'students:aura_arena_api' %}?last_id=${lastMessageId}`);
+            if (!response.ok) return;
+            
+            const data = await response.json();
+            if (data.messages && data.messages.length > 0) {
+                data.messages.forEach(msg => {
+                    appendMessage(msg);
+                    lastMessageId = Math.max(lastMessageId, msg.id);
+                });
             }
-        } catch(e) {
-            console.error("Chat fetch error:", e);
+        } catch (err) {
+            console.error('Poll error:', err);
         }
     }
     
-    // Initial fetch and poll
-    fetchMessages().then(scrollToBottom);
-    setInterval(fetchMessages, 3000); // Check every 3 seconds
-    
-    // Post message
-    chatForm.addEventListener("submit", async function(e) {
-        e.preventDefault();
-        const text = chatInput.value.trim();
-        if(!text) return;
+    function appendMessage(msg) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'chat-message';
         
-        chatInput.value = "";
+        const isAura = msg.is_aura;
+        const isUser = msg.is_me;
+        
+        messageDiv.innerHTML = `
+            <div class=\"message-avatar ${isAura ? 'aura' : 'user'}\">
+                <i class=\"fas fa-${isAura ? 'magic' : 'user'}\"></i>
+            </div>
+            <div class=\"message-content\">
+                <div class=\"message-sender\">${msg.sender}</div>
+                <div class=\"message-text ${msg.is_battle ? 'battle-message' : ''}\">
+                    ${msg.content}
+                </div>
+                <div class=\"message-time\">${msg.time}</div>
+            </div>
+        `;
+        
+        textMode.appendChild(messageDiv);
+        textMode.scrollTop = textMode.scrollHeight;
+    }
+    
+    chatForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const content = chatInput.value.trim();
+        if (!content) return;
+        
+        sendBtn.disabled = true;
         
         try {
-            const apiUrl = "{% url 'students:aura_arena_api' %}";
-            const res = await fetch(apiUrl, {
-                method: "POST",
+            const response = await fetch(`{% url 'students:aura_arena_api' %}`, {
+                method: 'POST',
                 headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRFToken": '{{ csrf_token }}'
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
                 },
-                body: JSON.stringify({ content: text })
+                body: JSON.stringify({ content })
             });
             
-            if(res.ok) {
-                const data = await res.json();
-                if(data.status === 'success') {
-                    if(data.is_winner) {
-                        // User won, trigger confeti or just instantly fetch
-                        // Using a manual fetch to show message instantly
-                    }
-                    await fetchMessages();
-                    scrollToBottom();
-                } else {
-                    console.error("Error sending:", data.error);
-                }
+            if (response.ok) {
+                chatInput.value = '';
+                pollMessages(); // Immediate poll
             }
-        } catch(e) {
-            console.error("Failed to post message", e);
+        } catch (err) {
+            console.error('Send error:', err);
+        } finally {
+            sendBtn.disabled = false;
+            chatInput.focus();
         }
     });
+    
+    // ====== VOICE MODE ======
+    const voiceOrb = document.getElementById('voiceOrb');
+    const voiceIcon = document.getElementById('voiceIcon');
+    const voiceStatus = document.getElementById('voiceStatus');
+    const voiceSubstatus = document.getElementById('voiceSubstatus');
+    const ttsAudio = document.getElementById('ttsAudio');
+    
+    let voiceState = 'idle'; // idle, recording, thinking, speaking
+    let mediaRecorder = null;
+    let audioChunks = [];
+    
+    function updateVoiceState(state) {
+        voiceState = state;
+        
+        // Remove all state classes
+        voiceOrb.classList.remove('recording', 'speaking');
+        
+        switch(state) {
+            case 'idle':
+                voiceIcon.className = 'fas fa-microphone';
+                voiceStatus.textContent = \"Hi, I'm Aura\";
+                voiceSubstatus.textContent = 'Tap the orb to start speaking';
+                break;
+            case 'recording':
+                voiceOrb.classList.add('recording');
+                voiceIcon.className = 'fas fa-stop';
+                voiceStatus.textContent = 'Listening...';
+                voiceSubstatus.textContent = 'Tap again when you\\'re done';
+                break;
+            case 'thinking':
+                voiceIcon.className = 'fas fa-circle-notch fa-spin';
+                voiceStatus.textContent = 'Thinking...';
+                voiceSubstatus.textContent = 'Processing your message';
+                break;
+            case 'speaking':
+                voiceOrb.classList.add('speaking');
+                voiceIcon.className = 'fas fa-volume-up';
+                voiceStatus.textContent = 'Speaking';
+                voiceSubstatus.textContent = 'Tap to interrupt';
+                break;
+        }
+    }
+    
+    async function startRecording() {
+        try {
+            // Stop any playing audio
+            if (!ttsAudio.paused) {
+                ttsAudio.pause();
+                ttsAudio.currentTime = 0;
+            }
+            
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+            
+            mediaRecorder.ondataavailable = e => {
+                if (e.data.size > 0) audioChunks.push(e.data);
+            };
+            
+            mediaRecorder.onstop = async () => {
+                stream.getTracks().forEach(track => track.stop());
+                
+                if (audioChunks.length === 0) {
+                    updateVoiceState('idle');
+                    return;
+                }
+                
+                updateVoiceState('thinking');
+                
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                const formData = new FormData();
+                formData.append('audio', audioBlob, 'voice.webm');
+                
+                try {
+                    const response = await fetch(`{% url 'students:process_voice' %}`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: formData
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Voice processing failed');
+                    }
+                    
+                    const audioResponseBlob = await response.blob();
+                    const audioUrl = URL.createObjectURL(audioResponseBlob);
+                    
+                    ttsAudio.src = audioUrl;
+                    updateVoiceState('speaking');
+                    await ttsAudio.play();
+                    
+                } catch (err) {
+                    console.error('Voice error:', err);
+                    voiceStatus.textContent = 'Connection Error';
+                    voiceSubstatus.textContent = 'Please try again';
+                    setTimeout(() => updateVoiceState('idle'), 2000);
+                }
+            };
+            
+            mediaRecorder.start();
+            updateVoiceState('recording');
+            
+        } catch (err) {
+            console.error('Microphone error:', err);
+            voiceStatus.textContent = 'Mic Access Denied';
+            voiceSubstatus.textContent = 'Please allow microphone access';
+        }
+    }
+    
+    voiceOrb.addEventListener('click', () => {
+        if (voiceState === 'idle') {
+            startRecording();
+        } else if (voiceState === 'recording') {
+            mediaRecorder.stop();
+        } else if (voiceState === 'speaking') {
+            ttsAudio.pause();
+            ttsAudio.currentTime = 0;
+            updateVoiceState('idle');
+        }
+    });
+    
+    ttsAudio.addEventListener('ended', () => {
+        if (voiceState === 'speaking') {
+            updateVoiceState('idle');
+        }
+    });
+    
+    // Initialize
+    updateVoiceState('idle');
+    if (currentMode === 'text') {
+        startChatPolling();
+    }
 });
 </script>
 {% endblock %}
