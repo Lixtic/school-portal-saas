@@ -283,6 +283,12 @@ def process_voice_interaction(request):
                 logger = logging.getLogger(__name__)
                 logger.error(f"Aura Voice Stream Error: {str(e)}")
 
+        return StreamingHttpResponse(
+            generate_audio_stream(),
+            content_type="audio/mpeg",
+            headers={"Content-Disposition": "inline; filename=\"aura.mp3\""},
+        )
+
     except Exception as e:
         return JsonResponse({"error":str(e)}, status=500)
 

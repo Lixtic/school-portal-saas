@@ -1,0 +1,240 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Aura 2.0 Voice{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column justify-content-center align-items-center bg-dark text-white shadow-lg mx-auto mt-4" style="border-radius: 20px; position: relative; overflow: hidden; min-height: 80vh; max-width: 600px; border: 1px solid rgba(255,255,255,0.1);">
+    
+    <!-- Background pulse effect -->
+    <div id="orbBackground" class="position-absolute w-100 h-100 d-flex justify-content-center align-items-center opacity-50 pe-none" style="z-index: 0;">
+        <div class="shadow-pulse" style="width: 350px; height: 350px; background: radial-gradient(circle, rgba(111,66,193,0.3) 0%, rgba(0,0,0,0) 70%); border-radius: 50%; filter: blur(30px); transition: all 1s ease;"></div>
+    </div>
+
+    <!-- Header / Exit -->
+    <div class="position-absolute top-0 w-100 p-4 d-flex justify-content-between align-items-center" style="z-index: 2;">
+        <a href="{% url 'students:aura_arena' %}" class="btn btn-outline-light rounded-pill btn-sm d-flex align-items-center gap-2 px-3 py-2 bg-dark bg-opacity-50 blur-backdrop border-secondary">
+            <i class="fas fa-keyboard"></i> Text Mode
+        </a>
+        <div class="badge bg-primary bg-opacity-25 border border-primary px-3 py-2 rounded-pill d-flex align-items-center gap-2">
+            <i class="fas fa-magic text-primary"></i> <span class="fw-semibold">Aura 2.0</span>
+        </div>
+        <div style="width: 90px;"><!-- spacer --></div>
+    </div>
+
+    <!-- Main Active Area (The Orb) -->
+    <div class="text-center z-2 d-flex flex-column align-items-center">
+        <!-- Visualizer -->
+        <div class="mb-5 position-relative" style="width: 150px; height: 150px; user-select: none;">
+            <div id="voiceOrb" class="rounded-circle d-flex align-items-center justify-content-center bg-gradient-voice w-100 h-100 shadow-lg" style="transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; z-index: 5;">
+                <i id="voiceIcon" class="fas fa-microphone fa-3x text-white" style="transition: all 0.3s ease;"></i>
+            </div>
+            <div id="orbRing1" class="position-absolute top-50 start-50 translate-middle rounded-circle border border-primary opacity-50" style="width: 100%; height: 100%; z-index: 1;"></div>
+            <div id="orbRing2" class="position-absolute top-50 start-50 translate-middle rounded-circle border border-info opacity-25" style="width: 100%; height: 100%; z-index: 0;"></div>
+        </div>
+
+        <!-- Status text -->
+        <h3 id="statusText" class="fw-light mb-3">Hi, I'm Aura.</h3>
+        <p id="substatusText" class="text-white-50 px-4" style="max-width: 320px; font-size: 0.95rem; line-height: 1.5;">Tap the orb to start a conversation. I'm ready to listen.</p>
+    </div>
+
+    <!-- Sub Controls -->
+    <!-- Removed for true minimalist GPT voice style, but keeping logic -->
+</div>
+
+<!-- Audio element for TTS playback -->
+<audio id="ttsAudio" class="d-none" autoplay></audio>
+
+<style>
+/* Glassmorphism utilities */
+.blur-backdrop { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+
+/* Core orb gradient */
+.bg-gradient-voice {
+    background: linear-gradient(135deg, #6f42c1, #0d6efd, #0dcaf0);
+    background-size: 300% 300%;
+    animation: gradientShift 6s ease infinite;
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Hover effect */
+#voiceOrb:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 30px rgba(111, 66, 193, 0.6);
+}
+
+/* State: Recording */
+@keyframes pulseRecording {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; border-color: #dc3545; }
+    100% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; border-color: #dc3545; }
+}
+.is-recording #orbRing1 { animation: pulseRecording 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
+.is-recording #orbRing2 { animation: pulseRecording 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite 0.75s; }
+.is-recording #voiceOrb { 
+    transform: scale(0.95); 
+    background: linear-gradient(135deg, #dc3545, #fd7e14) !important; 
+    box-shadow: 0 0 40px rgba(220, 53, 69, 0.6) !important;
+}
+
+/* State: Thinking */
+.is-thinking #voiceOrb {
+    background: linear-gradient(135deg, #6c757d, #343a40) !important;
+    transform: scale(0.9);
+}
+
+/* State: Speaking */
+@keyframes orbSpeakPulse {
+    0% { transform: scale(1); box-shadow: 0 0 20px rgba(13, 202, 240, 0.4); }
+    50% { transform: scale(1.15); box-shadow: 0 0 60px rgba(13, 202, 240, 0.8); }
+    100% { transform: scale(1); box-shadow: 0 0 20px rgba(13, 202, 240, 0.4); }
+}
+.is-speaking #voiceOrb {
+    animation: orbSpeakPulse 1s ease-in-out infinite alternate;
+    background: linear-gradient(135deg, #0dcaf0, #0d6efd) !important;
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const voiceOrb = document.getElementById("voiceOrb");
+    const statusText = document.getElementById("statusText");
+    const substatusText = document.getElementById("substatusText");
+    const voiceIcon = document.getElementById("voiceIcon");
+    const ttsAudio = document.getElementById("ttsAudio");
+    
+    // States: IDLE, RECORDING, THINKING, SPEAKING
+    let state = 'IDLE'; 
+    let mediaRecorder = null;
+    let audioChunks = [];
+
+    function updateState(newState) {
+        state = newState;
+        document.body.classList.remove('is-recording', 'is-thinking', 'is-speaking');
+        
+        switch (state) {
+            case 'IDLE':
+                statusText.innerText = "Hi, I'm Aura.";
+                substatusText.innerText = "Tap the orb to start speaking.";
+                voiceIcon.className = "fas fa-microphone fa-3x text-white";
+                break;
+            case 'RECORDING':
+                document.body.classList.add('is-recording');
+                statusText.innerText = "Listening...";
+                substatusText.innerText = "Tap the orb again to stream your message.";
+                voiceIcon.className = "fas fa-stop fa-3x text-white";
+                break;
+            case 'THINKING':
+                document.body.classList.add('is-thinking');
+                statusText.innerText = "Thinking...";
+                substatusText.innerText = "Aura is forming a response...";
+                voiceIcon.className = "fas fa-circle-notch fa-spin fa-3x text-white";
+                break;
+            case 'SPEAKING':
+                document.body.classList.add('is-speaking');
+                statusText.innerText = "Aura";
+                substatusText.innerText = "Speaking (Tap orb to interrupt)";
+                voiceIcon.className = "fas fa-volume-up fa-3x text-white";
+                break;
+        }
+    }
+
+    async function startRecording() {
+        try {
+            // Interrupt if speaking
+            if (!ttsAudio.paused) {
+                ttsAudio.pause();
+                ttsAudio.currentTime = 0;
+            }
+
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            
+            // Prefer webm for better browser compats, standard encoding for uploading
+            const options = { mimeType: 'audio/webm' };
+            mediaRecorder = new MediaRecorder(stream, MediaRecorder.isTypeSupported(options.mimeType) ? options : {});
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = e => {
+                if (e.data.size > 0) audioChunks.push(e.data);
+            };
+
+            mediaRecorder.onstop = async () => {
+                stream.getTracks().forEach(track => track.stop());
+
+                if (audioChunks.length === 0) {
+                    updateState('IDLE');
+                    return;
+                }
+
+                updateState('THINKING');
+
+                const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+                const formData = new FormData();
+                formData.append('audio', audioBlob, 'voice_input.webm');
+
+                try {
+                    const response = await fetch("{% url 'students:process_voice' %}", {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Server returned ${response.status}`);
+                    }
+
+                    // Turn binary stream into blob URL for the audio element
+                    const responseBlob = await response.blob();
+                    const audioUrl = URL.createObjectURL(responseBlob);
+                    
+                    ttsAudio.src = audioUrl;
+                    updateState('SPEAKING');
+                    await ttsAudio.play();
+
+                } catch (err) {
+                    console.error("Voice processing error:", err);
+                    statusText.innerText = "Connection lost.";
+                    substatusText.innerText = "Sorry, I couldn't reach the servers. Please try again.";
+                    setTimeout(() => updateState('IDLE'), 3000);
+                }
+            };
+
+            updateState('RECORDING');
+            mediaRecorder.start();
+
+        } catch (err) {
+            console.error("Microphone access denied or failed", err);
+            statusText.innerText = "Mic Error";
+            substatusText.innerText = "Please allow microphone access to use Aura Voice.";
+        }
+    }
+
+    // Stop speaking automatically when TTS ends
+    ttsAudio.addEventListener('ended', () => {
+        if (state === 'SPEAKING') updateState('IDLE');
+    });
+
+    voiceOrb.addEventListener("click", () => {
+        if (state === 'IDLE') {
+            startRecording();
+        } else if (state === 'RECORDING') {
+            mediaRecorder.stop();
+        } else if (state === 'SPEAKING') {
+            // Interrupt
+            ttsAudio.pause();
+            ttsAudio.currentTime = 0;
+            updateState('IDLE');
+        }
+    });
+
+    // Init UI
+    updateState('IDLE');
+});
+</script>
+{% endblock %}
