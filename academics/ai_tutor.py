@@ -40,14 +40,43 @@ def get_openai_chat_model():
     return _resolve_openai_model({})
 
 
+# GPT-5 Nano is a reasoning model: completion tokens include hidden
+# chain-of-thought reasoning tokens that do NOT produce visible output.
+# A small max_completion_tokens (e.g. 1000) can be entirely consumed by
+# reasoning, leaving 0 tokens for the actual response.  We enforce a
+# generous minimum so reasoning + output both fit.
+GPT5_MIN_COMPLETION_TOKENS = 16384
+
+
+def _is_reasoning_model(model_name):
+    """Return True for models that consume completion tokens on internal reasoning."""
+    lowered = str(model_name or "").lower()
+    return (
+        lowered.startswith("gpt-5")
+        or lowered.startswith("o1")
+        or lowered.startswith("o3")
+        or lowered.startswith("o4")
+    )
+
+
 def _with_resolved_model(payload):
     data = dict(payload or {})
     data["model"] = _resolve_openai_model(data)
 
     model_name = str(data.get("model") or "").lower()
-    if model_name.startswith("gpt-5"):
+    if _is_reasoning_model(model_name):
+        # Reasoning models require max_completion_tokens, not max_tokens
         if "max_tokens" in data and "max_completion_tokens" not in data:
             data["max_completion_tokens"] = data.pop("max_tokens")
+
+        # Enforce minimum so reasoning + output both fit
+        current = data.get("max_completion_tokens") or 0
+        try:
+            current = int(current)
+        except (TypeError, ValueError):
+            current = 0
+        if current < GPT5_MIN_COMPLETION_TOKENS:
+            data["max_completion_tokens"] = GPT5_MIN_COMPLETION_TOKENS
 
         if "temperature" in data:
             try:
@@ -334,6 +363,15 @@ def _stream_chat_completion(payload, api_key):
                 yield "data: " + json.dumps({"provider": provider, "model": model, "content": text}) + "\n\n"
                 yield "data: [DONE]\n\n"
                 return
+            else:
+                # All completion tokens consumed by reasoning with no visible output
+                yield "data: " + json.dumps({
+                    "provider": "openai",
+                    "model": stream_model,
+                    "error": "The AI model used all its capacity for internal reasoning and produced no visible reply. Please try again or rephrase your question.",
+                }) + "\n\n"
+                yield "data: [DONE]\n\n"
+                return
         else:
             yield "data: [DONE]\n\n"
     except HTTPError as exc:
@@ -611,7 +649,7 @@ def stream_tutor_response(messages, student, subject=None):
             "messages": conversation,
             "stream": True,
             "temperature": 0.7,
-            "max_tokens": 1000,
+            "max_tokens": 16384,
         }
 
         for chunk in _stream_chat_completion(payload, api_key):
@@ -682,7 +720,7 @@ def explain_concept(subject, concept):
                 "content": f"Explain this {subject.name} concept in a clear, student-friendly way with examples: {concept}"
             }],
             "temperature": 0.7,
-            "max_tokens": 800,
+            "max_tokens": 4096,
         }
 
         response = _post_chat_completion(payload, api_key)
@@ -705,7 +743,7 @@ def health_check_openai():
         payload = {
             "model": get_openai_chat_model(),
             "messages": [{"role": "user", "content": "Reply with OK"}],
-            "max_tokens": 5,
+            "max_tokens": 512,
             "temperature": 0,
         }
         response = _post_chat_completion(payload, api_key)
