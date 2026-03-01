@@ -1,5 +1,6 @@
 import json
 import random
+import re
 from typing import Dict, List, Optional
 from django.utils import timezone
 from django.conf import settings
@@ -206,6 +207,10 @@ Return a JSON object with this structure:
   ],
   "activities": ["Short in-slide activity", "Quick check"]
 }}
+Rules:
+- Return 6 to 8 slides.
+- Every slide must include non-empty title, bullets (2-4 items), and notes.
+- Keep bullets concise and student-friendly.
 """
         try:
             payload = {
@@ -219,7 +224,16 @@ Return a JSON object with this structure:
             }
             response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
             content = response['choices'][0]['message']['content']
-            data = json.loads(content)
+            data = AuraGenEngine._extract_json_object(content)
+
+            slides = AuraGenEngine._normalize_slides(data.get("slides"), topic)
+            activities = AuraGenEngine._normalize_activities(data.get("activities"))
+
+            if not slides:
+                slides = AuraGenEngine._fallback_slides_outline(topic, subject, grade_level).get("slides", [])
+            if not activities:
+                activities = AuraGenEngine._fallback_slides_outline(topic, subject, grade_level).get("activities", [])
+
             return {
                 "meta": {
                     "topic": topic,
@@ -227,7 +241,8 @@ Return a JSON object with this structure:
                     "grade": grade_level,
                     "generated_at": timezone.now().isoformat()
                 },
-                **data
+                "slides": slides,
+                "activities": activities,
             }
         except Exception as e:
             print(f"Slides generation failed: {e}")
@@ -238,9 +253,144 @@ Return a JSON object with this structure:
                     "grade": grade_level,
                     "generated_at": timezone.now().isoformat()
                 },
-                "slides": [],
-                "activities": []
+                **AuraGenEngine._fallback_slides_outline(topic, subject, grade_level)
             }
+
+    @staticmethod
+    def _extract_json_object(raw_content: str) -> Dict:
+        content = (raw_content or '').strip()
+        if not content:
+            return {}
+
+        if content.startswith('```'):
+            content = re.sub(r'^```(?:json)?\s*', '', content)
+            content = re.sub(r'\s*```$', '', content)
+
+        start = content.find('{')
+        end = content.rfind('}')
+        if start != -1 and end != -1 and end >= start:
+            content = content[start:end + 1]
+
+        parsed = json.loads(content)
+        return parsed if isinstance(parsed, dict) else {}
+
+    @staticmethod
+    def _normalize_slides(slides: Optional[List], topic: str) -> List[Dict]:
+        normalized = []
+        if not isinstance(slides, list):
+            return normalized
+
+        for idx, slide in enumerate(slides, start=1):
+            if isinstance(slide, str):
+                title = slide.strip() or f"Slide {idx}: {topic}"
+                bullets = [f"Key point about {topic}", "Brief explanation", "Class discussion prompt"]
+                notes = f"Guide learners through {topic} using this slide."
+            elif isinstance(slide, dict):
+                title = str(slide.get("title") or slide.get("heading") or f"Slide {idx}: {topic}").strip()
+                raw_bullets = slide.get("bullets")
+                if isinstance(raw_bullets, str):
+                    raw_bullets = [piece.strip() for piece in re.split(r'\n|;', raw_bullets) if piece.strip()]
+                if not isinstance(raw_bullets, list):
+                    raw_bullets = []
+                bullets = [str(item).strip() for item in raw_bullets if str(item).strip()]
+                notes = str(slide.get("notes") or slide.get("speaker_notes") or "").strip()
+            else:
+                continue
+
+            if not bullets:
+                bullets = [f"Core idea of {topic}", "Worked example", "Quick student check"]
+            bullets = bullets[:4]
+            if len(bullets) < 2:
+                bullets.append("Class reflection question")
+
+            if not notes:
+                notes = f"Explain {title.lower()} and connect it to the lesson objective."
+
+            normalized.append({
+                "title": title,
+                "bullets": bullets,
+                "notes": notes,
+            })
+
+        return normalized[:8]
+
+    @staticmethod
+    def _normalize_activities(activities: Optional[List]) -> List[str]:
+        if isinstance(activities, str):
+            activities = [piece.strip() for piece in re.split(r'\n|;', activities) if piece.strip()]
+        if not isinstance(activities, list):
+            return []
+
+        cleaned = [str(item).strip() for item in activities if str(item).strip()]
+        return cleaned[:6]
+
+    @staticmethod
+    def _fallback_slides_outline(topic: str, subject: str, grade_level: str) -> Dict:
+        slides = [
+            {
+                "title": f"Lesson Goal: {topic}",
+                "bullets": [
+                    f"What {topic} means in {subject}",
+                    "Why this topic matters",
+                    "Learning target for today",
+                ],
+                "notes": f"Set context for {grade_level} learners and share success criteria.",
+            },
+            {
+                "title": "Prior Knowledge Check",
+                "bullets": [
+                    "Recall related ideas from previous lessons",
+                    "Identify common misconceptions",
+                    "Quick warm-up prompt",
+                ],
+                "notes": "Use 2-3 rapid questions to assess readiness.",
+            },
+            {
+                "title": f"Core Concept: {topic}",
+                "bullets": [
+                    "Define the core concept",
+                    "Show one clear example",
+                    "Highlight key terms",
+                ],
+                "notes": "Model thinking aloud and emphasize vocabulary.",
+            },
+            {
+                "title": "Guided Practice",
+                "bullets": [
+                    "Work through a sample problem together",
+                    "Invite student reasoning",
+                    "Correct errors in real time",
+                ],
+                "notes": "Pause after each step and ask checking questions.",
+            },
+            {
+                "title": "Independent Practice",
+                "bullets": [
+                    "Assign a short individual task",
+                    "Encourage peer comparison",
+                    "Collect quick evidence of understanding",
+                ],
+                "notes": "Monitor and support learners who need scaffolding.",
+            },
+            {
+                "title": "Exit Check",
+                "bullets": [
+                    "One concise recap question",
+                    "One application question",
+                    "Preview next lesson",
+                ],
+                "notes": "Use responses to plan follow-up interventions.",
+            },
+        ]
+
+        return {
+            "slides": slides,
+            "activities": [
+                "Think-Pair-Share: Explain one key idea to a partner.",
+                "Quick check: 3-item mini quiz.",
+                "Exit ticket: one thing learned, one question remaining.",
+            ],
+        }
 
     @staticmethod
     def generate_interactive_exercises(topic: str, subject: str, grade_level: str) -> Dict:
