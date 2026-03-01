@@ -978,6 +978,54 @@ def copilot_assistant(request):
                 current_year = AcademicYear.objects.filter(is_current=True).first()
                 if current_year:
                     snapshot_lines.append(f"Current academic year: {current_year.name}")
+                
+                # Expose today's attendance summary for the teacher's classes
+                try:
+                    from teachers.models import Teacher
+                    from students.models import Attendance
+                    from django.utils import timezone
+                    
+                    teacher = Teacher.objects.filter(user=request.user).first()
+                    if teacher:
+                        today = timezone.now().date()
+                        my_classes = Class.objects.filter(class_teacher=teacher)
+                        
+                        if my_classes.exists():
+                            for c in my_classes:
+                                students_in_class = Student.objects.filter(current_class=c)
+                                total_students = students_in_class.count()
+                                if total_students > 0:
+                                    present = Attendance.objects.filter(
+                                        student__in=students_in_class, 
+                                        date=today, 
+                                        status='present'
+                                    ).count()
+                                    absent = Attendance.objects.filter(
+                                        student__in=students_in_class, 
+                                        date=today, 
+                                        status__in=['absent', 'late', 'excused']
+                                    ).count()
+                                    
+                                    unmarked = total_students - (present + absent)
+                                    att_summary = f"{c.name} Attendance (Today {today.strftime('%b %d')}): {present} Present, {absent} Absent"
+                                    if unmarked > 0:
+                                        att_summary += f", {unmarked} Not Marked Yet"
+                                        
+                                    # Allow Aura to name absentees if asked
+                                    absentees = list(Attendance.objects.filter(
+                                        student__in=students_in_class, 
+                                        date=today, 
+                                        status='absent'
+                                    ).select_related('student__user'))
+                                    
+                                    if absentees:
+                                        names = ", ".join([a.student.user.get_full_name() for a in absentees])
+                                        att_summary += f". (Absent: {names})"
+                                        
+                                    snapshot_lines.append(att_summary)
+                except Exception as e:
+                    pass
+
         except Exception as ctx_err:
             print(f"[COPILOT] Data snapshot error: {ctx_err}")
 

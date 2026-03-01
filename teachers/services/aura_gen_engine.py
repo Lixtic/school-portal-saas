@@ -88,8 +88,8 @@ class AuraGenEngine:
             
             response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
             content = response['choices'][0]['message']['content']
-            data = json.loads(content)
-            
+            data = AuraGenEngine._extract_json_object(content)
+
             # Add metadata
             return {
                 "meta": {
