@@ -289,6 +289,98 @@
         border: 1px solid #e2e8f0;
     }
 
+    /* Thinking Animation */
+    .thinking-indicator {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 0;
+        color: #94a3b8;
+        font-size: 0.88rem;
+    }
+    .thinking-indicator .thinking-dots {
+        display: flex;
+        gap: 3px;
+    }
+    .thinking-indicator .thinking-dots span {
+        width: 6px; height: 6px;
+        border-radius: 50%;
+        background: var(--chat-primary-light);
+        animation: thinkPulse 1.4s ease-in-out infinite;
+    }
+    .thinking-indicator .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .thinking-indicator .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes thinkPulse {
+        0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+        40% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Markdown chat formatting */
+    .message-bubble pre {
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 10px 14px;
+        overflow-x: auto;
+        font-size: 0.85rem;
+        margin: 8px 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+    .message-bubble code {
+        background: #f1f5f9;
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-size: 0.88em;
+        color: #d946ef;
+    }
+    .message-bubble pre code {
+        background: none;
+        padding: 0;
+        color: inherit;
+    }
+    .message-bubble ul, .message-bubble ol {
+        margin: 6px 0;
+        padding-left: 1.5em;
+    }
+    .message-bubble li { margin-bottom: 3px; }
+    .message-bubble h1, .message-bubble h2, .message-bubble h3 {
+        margin: 10px 0 6px 0;
+        font-weight: 700;
+        line-height: 1.3;
+    }
+    .message-bubble h1 { font-size: 1.15em; }
+    .message-bubble h2 { font-size: 1.08em; }
+    .message-bubble h3 { font-size: 1.02em; }
+    .message-bubble blockquote {
+        border-left: 3px solid var(--chat-primary-light);
+        margin: 8px 0;
+        padding: 4px 12px;
+        color: #64748b;
+        background: #f8fafc;
+        border-radius: 0 6px 6px 0;
+    }
+    .message-bubble hr {
+        border: none;
+        border-top: 1px solid #e2e8f0;
+        margin: 10px 0;
+    }
+    .message-bubble table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 8px 0;
+        font-size: 0.9em;
+    }
+    .message-bubble th, .message-bubble td {
+        border: 1px solid #e2e8f0;
+        padding: 6px 10px;
+        text-align: left;
+    }
+    .message-bubble th {
+        background: #f1f5f9;
+        font-weight: 600;
+    }
+
     /* Input Area */
     .chat-input-area {
         padding: 16px;
@@ -880,7 +972,7 @@
                 {% if initial_messages %}
                     {% for msg in initial_messages %}
                         <div class="message {{ msg.role }}">
-                            <div class="message-bubble">{{ msg.content|linebreaksbr }}</div>
+                            <div class="message-bubble msg-needs-format">{{ msg.content }}</div>
                         </div>
                     {% endfor %}
                 {% else %}
@@ -1130,6 +1222,15 @@
 
     // Auto-scroll on load
     window.onload = function() {
+        // Format loaded messages with proper markdown rendering
+        document.querySelectorAll('.msg-needs-format').forEach(function(el) {
+            const raw = el.textContent || el.innerText;
+            const cleaned = stripInternalBlocks(raw);
+            el.innerHTML = formatMessage(cleaned);
+            el.classList.remove('msg-needs-format');
+            renderMathInElement(el);
+        });
+        
         if(chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
         renderMathInElement(document.body); // Initialize KaTeX globally
         
@@ -1461,17 +1562,24 @@
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             
-            // Prepare assistant bubble
+            // Prepare assistant bubble with thinking animation
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message assistant';
-            messageDiv.innerHTML = `<div class="message-bubble"></div>`;
+            messageDiv.innerHTML = `<div class="message-bubble">
+                <div class="thinking-indicator" id="thinkingAnim">
+                    <div class="thinking-dots"><span></span><span></span><span></span></div>
+                    <span>Aura is thinking…</span>
+                </div>
+            </div>`;
             chatMessages.insertBefore(messageDiv, typingIndicator);
             const contentDiv = messageDiv.querySelector('.message-bubble');
             
             typingIndicator.style.display = 'none';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
             
             let fullText = '';
             let suggestionsFound = false;
+            let firstContentReceived = false;
 
             while (true) {
                 const { value, done } = await reader.read();
@@ -1497,16 +1605,25 @@
                                 continue;
                             }
                             if (data.content) {
+                                // Remove thinking animation on first content token
+                                if (!firstContentReceived) {
+                                    firstContentReceived = true;
+                                    const thinkEl = contentDiv.querySelector('#thinkingAnim');
+                                    if (thinkEl) thinkEl.remove();
+                                }
+                                
                                 fullText += data.content;
                                 
+                                // Strip internal blocks from display
+                                let displayText = stripInternalBlocks(fullText);
+                                
                                 // Live check for suggestions tag start to hide it from view
-                                const tagStartIdx = fullText.indexOf('<suggested_responses>');
+                                const tagStartIdx = displayText.indexOf('<suggested_responses>');
                                 if (tagStartIdx !== -1) {
-                                    // Only show content UP TO the start of the tag
-                                    contentDiv.innerHTML = formatMessage(fullText.substring(0, tagStartIdx));
-                                } else {
-                                    contentDiv.innerHTML = formatMessage(fullText);
+                                    displayText = displayText.substring(0, tagStartIdx);
                                 }
+                                
+                                contentDiv.innerHTML = formatMessage(displayText);
                                 chatMessages.scrollTop = chatMessages.scrollHeight;
                             }
                         } catch (e) { 
@@ -1552,6 +1669,12 @@
         } catch(e) {
             console.error(e);
             typingIndicator.style.display = 'none';
+            // Remove the thinking bubble if it was created but no content arrived
+            const thinkEl = document.querySelector('#thinkingAnim');
+            if (thinkEl) {
+                const emptyBubble = thinkEl.closest('.message');
+                if (emptyBubble) emptyBubble.remove();
+            }
             appendMessage('assistant', e && e.message ? e.message : "I'm having trouble connecting to the school server. Please try again.");
             document.getElementById('syncStatus').innerHTML = '<i class="bi bi-wifi-off"></i> Offline';
             document.getElementById('syncStatus').className = 'sync-status offline';
@@ -1794,7 +1917,7 @@
         const tagEnd = '</suggested_responses>';
         
         const startIdx = fullText.indexOf(tagStart);
-        if (startIdx === -1) return { text: fullText, suggestions: [], visualizationPrompt };
+        if (startIdx === -1) return { text: stripInternalBlocks(fullText), suggestions: [], visualizationPrompt };
         
         const endIdx = fullText.indexOf(tagEnd);
         let suggestions = [];
@@ -1811,7 +1934,7 @@
         }
         
         return { 
-            text: fullText.substring(0, startIdx).trim(), 
+            text: stripInternalBlocks(fullText.substring(0, startIdx).trim()), 
             suggestions: suggestions,
             visualizationPrompt: visualizationPrompt
         };
@@ -1854,19 +1977,112 @@
     function appendMessage(role, text) {
         const msgDiv = document.createElement('div');
         msgDiv.className = `message ${role}`;
-        msgDiv.innerHTML = `<div class="message-bubble">${formatMessage(text)}</div>`;
+        const cleaned = role === 'user' ? text : stripInternalBlocks(text);
+        msgDiv.innerHTML = `<div class="message-bubble">${formatMessage(cleaned)}</div>`;
         document.getElementById('chatMessages').insertBefore(msgDiv, typingIndicator);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
     
+    // Strip ```json session summaries, [AWARD_XP:...], [DRAW:...] from display
+    function stripInternalBlocks(text) {
+        if (!text) return text;
+        // Remove ```json { ... } ``` blocks (session summaries)
+        text = text.replace(/\n?```json\s*\{[\s\S]*?\}\s*```/g, '');
+        // Remove partial ```json block at the end (still streaming)
+        text = text.replace(/\n?```json\s*\{[\s\S]*$/g, '');
+        // Remove [AWARD_XP: ...] tokens
+        text = text.replace(/\[AWARD_XP:\s*\d+\]/gi, '');
+        // Remove [DRAW: ...] tokens
+        text = text.replace(/\[DRAW:\s*.*?\]/gi, '');
+        return text.trim();
+    }
+
     function formatMessage(text) {
         if (!text) return '';
-        return text
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\n/g, '<br>');
+        
+        // Protect code blocks first (``` ... ```)
+        const codeBlocks = [];
+        text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, function(match, lang, code) {
+            codeBlocks.push({ lang: lang, code: code });
+            return `%%CODEBLOCK_${codeBlocks.length - 1}%%`;
+        });
+        
+        // Protect inline code
+        const inlineCodes = [];
+        text = text.replace(/`([^`]+)`/g, function(match, code) {
+            inlineCodes.push(code);
+            return `%%INLINE_${inlineCodes.length - 1}%%`;
+        });
+        
+        // Escape HTML
+        text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        
+        // Headers (### before ## before #)
+        text = text.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+        text = text.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+        text = text.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+        
+        // Blockquotes
+        text = text.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+        
+        // Horizontal rules
+        text = text.replace(/^---+$/gm, '<hr>');
+        
+        // Bold + italic
+        text = text.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+        // Bold
+        text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        // Italic
+        text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+        
+        // Unordered lists
+        text = text.replace(/^[\*\-] (.+)$/gm, '<li>$1</li>');
+        text = text.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
+        
+        // Ordered lists
+        text = text.replace(/^\d+[\.\)] (.+)$/gm, '<li>$1</li>');
+        // Wrap consecutive <li> not inside <ul> into <ol>
+        text = text.replace(/(<li>.*<\/li>\n?)(?!<\/ul>)/g, function(match) {
+            // Only wrap if not already in a list
+            return match;
+        });
+        
+        // Tables (simple: | col | col |)
+        text = text.replace(/^(\|.+\|)$/gm, function(row) {
+            // Skip separator rows like |---|---|
+            if (/^\|[\s\-:]+\|$/.test(row)) return '%%TABLE_SEP%%';
+            const cells = row.split('|').filter(c => c.trim() !== '');
+            return '<tr>' + cells.map(c => `<td>${c.trim()}</td>`).join('') + '</tr>';
+        });
+        text = text.replace(/%%TABLE_SEP%%\n?/g, '');
+        text = text.replace(/((?:<tr>.*<\/tr>\n?)+)/g, '<table>$1</table>');
+        // Promote first row to th
+        text = text.replace(/<table><tr>(.*?)<\/tr>/g, function(match, firstRow) {
+            const headerRow = firstRow.replace(/<td>/g, '<th>').replace(/<\/td>/g, '</th>');
+            return `<table><thead><tr>${headerRow}</tr></thead><tbody>`;
+        });
+        text = text.replace(/<\/table>/g, '</tbody></table>');
+        
+        // Newlines to <br> (but not inside block elements)
+        text = text.replace(/\n/g, '<br>');
+        
+        // Clean up excessive <br> around block elements
+        text = text.replace(/<br>\s*(<\/?(?:h[1-3]|ul|ol|li|table|thead|tbody|tr|th|td|blockquote|pre|hr))/g, '$1');
+        text = text.replace(/(<\/(?:h[1-3]|ul|ol|li|table|thead|tbody|tr|th|td|blockquote|pre|hr)>)\s*<br>/g, '$1');
+        
+        // Restore code blocks
+        codeBlocks.forEach((block, i) => {
+            const escaped = block.code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            text = text.replace(`%%CODEBLOCK_${i}%%`, `<pre><code>${escaped.trim()}</code></pre>`);
+        });
+        
+        // Restore inline code
+        inlineCodes.forEach((code, i) => {
+            const escaped = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            text = text.replace(`%%INLINE_${i}%%`, `<code>${escaped}</code>`);
+        });
+        
+        return text;
     }
     
     function clearWhiteboard() {
