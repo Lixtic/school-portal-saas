@@ -1583,29 +1583,36 @@ def _get_student_tutor_context(user, tenant=None):
         student = Student.objects.select_related('current_class').get(user=user)
     except Student.DoesNotExist:
         return None, [], "Student profile not found"
+    except ProgrammingError:
+        return None, [], "AI Tutor is unavailable because this school database is not fully migrated yet. Please contact your administrator."
 
-    subjects = list(
-        Subject.objects.filter(classsubject__isnull=False)
-        .distinct()
-        .order_by('name')
-    )
+    try:
+        subjects = list(
+            Subject.objects.filter(classsubject__isnull=False)
+            .distinct()
+            .order_by('name')
+        )
 
-    if not subjects:
-        subjects = list(Subject.objects.all().order_by('name'))
+        if not subjects:
+            subjects = list(Subject.objects.all().order_by('name'))
+    except ProgrammingError:
+        return None, [], "AI Tutor is unavailable because this school database is not fully migrated yet. Please contact your administrator."
 
     if tenant is not None:
         try:
-            subscription = SchoolSubscription.objects.get(school=tenant)
-            ai_tutor_addon = AddOn.objects.get(slug='ai-tutor')
-            has_addon = SchoolAddOn.objects.filter(
+            subscription = SchoolSubscription.objects.filter(school=tenant).first()
+            ai_tutor_addon = AddOn.objects.filter(slug='ai-tutor').first()
+
+            if not subscription or not ai_tutor_addon:
+                return student, subjects, None
+
+            addon_link = SchoolAddOn.objects.filter(
                 subscription=subscription,
                 addon=ai_tutor_addon,
-                is_active=True
-            ).exists()
-            if not has_addon:
+            ).first()
+
+            if addon_link is not None and not addon_link.is_active:
                 return None, [], "AI Tutor is not available. Please contact your administrator."
-        except (SchoolSubscription.DoesNotExist, AddOn.DoesNotExist):
-            return None, [], "AI Tutor is not available. Please contact your administrator."
         except Exception:
             return None, [], "Unable to verify AI Tutor access"
 

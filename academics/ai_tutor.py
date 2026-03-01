@@ -142,6 +142,33 @@ def _build_openai_compatible_response(content_text, model_name):
     }
 
 
+def _extract_assistant_text_from_completion(response_data):
+    if not isinstance(response_data, dict):
+        return ""
+
+    choices = response_data.get("choices") or []
+    if not choices or not isinstance(choices, list):
+        return ""
+
+    message = choices[0].get("message") if isinstance(choices[0], dict) else {}
+    if not isinstance(message, dict):
+        return ""
+
+    content = message.get("content")
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for item in content:
+            if isinstance(item, dict):
+                text_part = item.get("text") or item.get("content") or ""
+                if text_part:
+                    parts.append(str(text_part))
+        return "".join(parts)
+
+    return ""
+
+
 def _call_hf_fallback(payload):
     model_name = (
         os.environ.get("HF_FALLBACK_MODEL")
@@ -274,6 +301,7 @@ def _stream_chat_completion(payload, api_key):
     )
 
     try:
+        streamed_any_content = False
         with urllib_request.urlopen(req, timeout=300) as resp:
             for raw_line in resp:
                 line = raw_line.decode("utf-8", errors="ignore").strip()
@@ -289,9 +317,20 @@ def _stream_chat_completion(payload, api_key):
                     delta = parsed.get("choices", [{}])[0].get("delta", {})
                     content_piece = delta.get("content")
                     if content_piece:
+                        streamed_any_content = True
                         yield "data: " + json.dumps({"content": content_piece}) + "\n\n"
                 except Exception:
                     continue
+
+        if not streamed_any_content:
+            fallback_payload = dict(payload)
+            fallback_payload.pop("stream", None)
+            response_data = _post_chat_completion(fallback_payload, api_key)
+            text = _extract_assistant_text_from_completion(response_data).strip()
+            if text:
+                yield "data: " + json.dumps({"content": text}) + "\n\n"
+                yield "data: [DONE]\n\n"
+                return
     except HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="ignore") if exc.fp else str(exc)
         original_error = f"OpenAI HTTP {exc.code}: {detail}"
@@ -315,7 +354,10 @@ def get_tutor_system_prompt(student, subject=None):
     """Generate context-aware system prompt for AI tutor"""
     from .models import Subject, SchoolInfo
 
-    school_info = SchoolInfo.objects.first()
+    try:
+        school_info = SchoolInfo.objects.first()
+    except Exception:
+        school_info = None
     grade_value = student.current_class.name if student.current_class else "Unknown Grade"
 
     student_age = None
@@ -532,11 +574,14 @@ LOCALIZED FINAL ASSESSMENT LOGIC
     
     # Add student's enrolled subjects
     if student.current_class:
-        enrolled_subjects = Subject.objects.filter(
-            classsubject__class_name=student.current_class
-        ).distinct()
-        if enrolled_subjects.exists():
-            context += f"\n\nStudent's Subjects: {', '.join([s.name for s in enrolled_subjects])}"
+        try:
+            enrolled_subjects = Subject.objects.filter(
+                classsubject__class_name=student.current_class
+            ).distinct()
+            if enrolled_subjects.exists():
+                context += f"\n\nStudent's Subjects: {', '.join([s.name for s in enrolled_subjects])}"
+        except Exception:
+            pass
     
     context += "\n\nAlways maintain an encouraging, supportive tone. Keep responses concise, structured, and cognitively active."
     
@@ -691,6 +736,7 @@ def _stream_chat_completion_text(payload, api_key):
     )
 
     try:
+        streamed_any_content = False
         with urllib_request.urlopen(req, timeout=300) as resp:
             for raw_line in resp:
                 line = raw_line.decode("utf-8", errors="ignore").strip()
@@ -705,9 +751,19 @@ def _stream_chat_completion_text(payload, api_key):
                     delta = parsed.get("choices", [{}])[0].get("delta", {})
                     content_piece = delta.get("content")
                     if content_piece:
+                        streamed_any_content = True
                         yield content_piece
                 except Exception:
                     continue
+
+        if not streamed_any_content:
+            fallback_payload = dict(payload)
+            fallback_payload.pop("stream", None)
+            response_data = _post_chat_completion(fallback_payload, api_key)
+            text = _extract_assistant_text_from_completion(response_data)
+            if text:
+                yield text
+                return
     except HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="ignore") if exc.fp else str(exc)
         original_error = f"OpenAI HTTP {exc.code}: {detail}"
