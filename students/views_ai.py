@@ -83,7 +83,7 @@ def transcribe_with_openai_whisper(audio_content, filename="recording.webm", con
     return (parsed.get("text") or "").strip()
 
 def get_hf_headers():
-    token = os.environ.get("HUGGINGFACE_API_TOKEN")
+    token = os.environ.get("HUGGINGFACE_API_TOKEN") or getattr(settings, "HUGGINGFACE_API_TOKEN", None) or os.environ.get("HF_TOKEN")
     if not token:
         # Fallback or error
         return {}
