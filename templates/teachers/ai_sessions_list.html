@@ -782,15 +782,21 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
     gap: var(--aura-space-2);
 }
 .aura-lesson-controls button {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
+    min-height: 32px;
+    border-radius: 999px;
     border: 1px solid var(--aura-border);
     background: var(--aura-bg-glass);
     color: var(--aura-text-secondary);
     cursor: pointer;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.68rem;
+    font-weight: 600;
     transition: all var(--aura-transition-fast);
 }
+.aura-lesson-controls button i { font-size: 0.72rem; }
 .aura-lesson-controls button:hover {
     background: var(--aura-accent-violet);
     border-color: var(--aura-accent-violet);
@@ -800,6 +806,16 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
     background: var(--aura-accent-emerald);
     border-color: var(--aura-accent-emerald);
     color: white;
+}
+@media (max-width: 768px) {
+    .aura-lesson-controls .aura-control-label { display: none; }
+    .aura-lesson-controls button {
+        width: 32px;
+        min-width: 32px;
+        padding: 0;
+        justify-content: center;
+        border-radius: 50%;
+    }
 }
 
 /* ── Micro-interactions & Animations (Framer Motion style) ──────────────── */
@@ -866,20 +882,33 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
 }
 .aura-history-actions form { margin: 0; }
 .aura-history-btn {
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
+    min-height: 30px;
+    border-radius: 999px;
     border: 1px solid var(--aura-border);
     background: var(--aura-bg-glass);
     color: var(--aura-text-secondary);
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 6px;
+    padding: 0 10px;
+    font-size: 0.66rem;
+    font-weight: 600;
     transition: all var(--aura-transition-fast);
 }
+.aura-history-btn i { font-size: 0.68rem; }
 .aura-history-btn:hover {
     color: var(--aura-text-primary);
     border-color: var(--aura-border-glow);
+}
+@media (max-width: 768px) {
+    .aura-history-btn-label { display: none; }
+    .aura-history-btn {
+        width: 30px;
+        min-width: 30px;
+        padding: 0;
+        border-radius: 8px;
+    }
 }
 
 /* Scroll styling */
@@ -1043,6 +1072,7 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
                             {% csrf_token %}
                             <button type="submit" class="aura-history-btn" title="Delete">
                                 <i class="fas fa-trash-alt"></i>
+                                <span class="aura-history-btn-label">Delete</span>
                             </button>
                         </form>
                     </div>
@@ -1166,9 +1196,11 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
         <div class="aura-lesson-controls">
             <button id="lessonPlayBtn" title="Start Lesson Timer">
                 <i class="fas fa-play"></i>
+                <span class="aura-control-label">Start</span>
             </button>
             <button id="lessonResetBtn" title="Reset Timer">
                 <i class="fas fa-redo"></i>
+                <span class="aura-control-label">Reset</span>
             </button>
         </div>
     </div>
@@ -1489,7 +1521,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (elapsedSeconds >= totalSeconds) {
             clearInterval(timerInterval);
             timerInterval = null;
-            playBtn.innerHTML = '<i class="fas fa-check"></i>';
+            playBtn.innerHTML = '<i class="fas fa-check"></i><span class="aura-control-label">Done</span>';
             playBtn.classList.add('active');
         }
         elapsedTimeEl.textContent = formatTime(elapsedSeconds);
@@ -1500,11 +1532,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (timerInterval) {
             clearInterval(timerInterval);
             timerInterval = null;
-            playBtn.innerHTML = '<i class="fas fa-play"></i>';
+            playBtn.innerHTML = '<i class="fas fa-play"></i><span class="aura-control-label">Start</span>';
             playBtn.classList.remove('active');
         } else {
             timerInterval = setInterval(updateTimer, 1000);
-            playBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            playBtn.innerHTML = '<i class="fas fa-pause"></i><span class="aura-control-label">Pause</span>';
             playBtn.classList.add('active');
         }
     });
@@ -1515,7 +1547,7 @@ document.addEventListener('DOMContentLoaded', () => {
         elapsedSeconds = 0;
         elapsedTimeEl.textContent = '00:00';
         progressFill.style.width = '0%';
-        playBtn.innerHTML = '<i class="fas fa-play"></i>';
+        playBtn.innerHTML = '<i class="fas fa-play"></i><span class="aura-control-label">Start</span>';
         playBtn.classList.remove('active');
     });
     
