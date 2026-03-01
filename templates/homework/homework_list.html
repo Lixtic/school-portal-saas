@@ -36,39 +36,144 @@
         {% endif %}
     </div>
 
+    <!-- Homework Folders View -->
+    {% if not is_teacher %}
+        {% regroup homeworks by subject as subject_list %}
+        
+        {% if homeworks %}
+        <div id="folders-view">
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 mb-4">
+                {% for subject_grp in subject_list %}
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0 folder-card position-relative" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onclick="showSubject('{{ subject_grp.grouper.id }}')" onmouseover="this.style.transform='translateY(-5px)'; this.classList.add('shadow');" onmouseout="this.style.transform='none'; this.classList.remove('shadow');">
+                        <div class="card-body text-center p-4">
+                            <div class="mb-3">
+                                <i class="bi bi-folder-fill" style="font-size: 3.5rem; color: #fbbf24;"></i>
+                            </div>
+                            <h5 class="card-title fw-bold text-dark">{{ subject_grp.grouper.name }}</h5>
+                            <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 py-2 mt-2">
+                                {{ subject_grp.list|length }} Assignment{{ subject_grp.list|length|pluralize }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div id="subject-details-view" style="display: none;">
+            <div class="mb-3">
+                <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="showFolders()">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Subjects
+                </button>
+            </div>
+            
+            {% for subject_grp in subject_list %}
+            <div class="card shadow-sm border-0 subject-list-container" id="subject-list-{{ subject_grp.grouper.id }}" style="display: none;">
+                <div class="card-header py-3 border-bottom d-flex align-items-center bg-white">
+                    <i class="bi bi-folder2-open text-warning me-2 fs-4"></i>
+                    <h5 class="m-0 fw-bold text-dark">{{ subject_grp.grouper.name }} Assignments</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Title</th>
+                                    <th>Target Class</th>
+                                    <th>Due Date</th>
+                                    <th>Teacher</th>
+                                    <th class="text-end pe-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for homework in subject_grp.list %}
+                                <tr>
+                                    <td class="ps-4 fw-medium">{{ homework.title }}</td>
+                                    <td><span class="badge bg-secondary bg-opacity-10 text-secondary">{{ homework.target_class.name }}</span></td>
+                                    <td>
+                                        <i class="bi bi-calendar-event me-1 text-muted"></i>
+                                        {{ homework.due_date|date:"j M, Y" }}
+                                    </td>
+                                    <td>{{ homework.teacher.user.get_full_name }}</td>
+                                    <td class="text-end pe-4">
+                                        <a href="{% url 'homework:homework_detail' pk=homework.pk %}" class="btn btn-primary btn-sm rounded-pill px-3">
+                                            Open <i class="bi bi-arrow-right ms-1"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <script>
+        function showSubject(id) {
+            document.getElementById('folders-view').style.display = 'none';
+            document.getElementById('subject-details-view').style.display = 'block';
+            
+            document.querySelectorAll('.subject-list-container').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            const target = document.getElementById('subject-list-' + id);
+            if(target) target.style.display = 'block';
+        }
+
+        function showFolders() {
+            document.getElementById('subject-details-view').style.display = 'none';
+            document.getElementById('folders-view').style.display = 'block';
+        }
+        </script>
+        {% else %}
+        <div class="card shadow-sm border-0">
+            <div class="card-body text-center py-5">
+                <div class="mb-3"><i class="bi bi-journal-x fs-1 opacity-25"></i></div>
+                <h5 class="text-muted">No Assignments Found</h5>
+                <p class="text-muted mb-0">There are no active homework assignments at the moment.</p>
+            </div>
+        </div>
+        {% endif %}
+
+    {% else %}
+    <!-- Teacher View (Table) -->
     <div class="card shadow-sm border-0">
-        <div class="card-header py-3 border-bottom">
+        <div class="card-header py-3 border-bottom bg-white">
             <h6 class="m-0 fw-bold text-primary">Assignments List</h6>
         </div>
-        <div class="card-body">
+        <div class="card-body p-0">
             {% if homeworks %}
             <div class="table-responsive">
-                <table class="table table-hover" id="homeworkTable" width="100%" cellspacing="0">
-                    <thead>
+                <table class="table table-hover mb-0 align-middle" id="homeworkTable" width="100%" cellspacing="0">
+                    <thead class="table-light">
                         <tr>
-                            <th>Subject</th>
+                            <th class="ps-4">Subject</th>
                             <th>Title</th>
                             <th>Target Class</th>
                             <th>Due Date</th>
                             <th>Teacher</th>
-                            <th>Actions</th>
+                            <th class="text-end pe-4">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for homework in homeworks %}
                         <tr>
-                            <td><span class="badge bg-secondary">{{ homework.subject.name }}</span></td>
-                            <td>{{ homework.title }}</td>
+                            <td class="ps-4"><span class="badge bg-secondary bg-opacity-10 text-secondary">{{ homework.subject.name }}</span></td>
+                            <td class="fw-medium">{{ homework.title }}</td>
                             <td>{{ homework.target_class.name }}</td>
-                            <td>{{ homework.due_date|date:"M d, Y" }}</td>
+                            <td>{{ homework.due_date|date:"j M, Y" }}</td>
                             <td>{{ homework.teacher.user.get_full_name }}</td>
-                            <td>
-                                <a href="{% url 'homework:homework_detail' pk=homework.pk %}" class="btn btn-info btn-sm">
-                                    <i class="bi bi-eye me-1"></i>View
+                            <td class="text-end pe-4">
+                                <a href="{% url 'homework:homework_detail' pk=homework.pk %}" class="btn btn-light btn-sm border shadow-sm me-1" title="View">
+                                    <i class="bi bi-eye text-primary"></i>
                                 </a>
-                                {% if is_teacher and homework.teacher.user == request.user %}
-                                <a href="{% url 'homework:homework_delete' pk=homework.pk %}" class="btn btn-danger btn-sm">
-                                    <i class="bi bi-trash me-1"></i>Delete
+                                {% if homework.teacher.user == request.user %}
+                                <a href="{% url 'homework:homework_delete' pk=homework.pk %}" class="btn btn-light btn-sm border shadow-sm text-danger" title="Delete">
+                                    <i class="bi bi-trash"></i>
                                 </a>
                                 {% endif %}
                             </td>
@@ -88,5 +193,6 @@
             {% endif %}
         </div>
     </div>
+    {% endif %}
 </div>
 {% endblock %}

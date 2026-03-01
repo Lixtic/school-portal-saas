@@ -117,14 +117,19 @@
             </div>
 
             <div id="studentList" style="display: none;">
-                <div class="d-flex align-items-center p-3 mb-3 bg-primary-subtle text-primary rounded-3 border border-primary-subtle">
-                    <i class="bi bi-calculator fs-4 me-3"></i>
-                    <div>
-                        <div class="fw-bold">Grading Logic</div>
-                        <div class="small">Class Work (30%) + Exams (70%) = Total (100%). Grades are auto-calculated.</div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex align-items-center p-3 bg-primary-subtle text-primary rounded-3 border border-primary-subtle flex-grow-1 me-3">
+                        <i class="bi bi-calculator fs-4 me-3"></i>
+                        <div>
+                            <div class="fw-bold">Grading Logic</div>
+                            <div class="small">Class Work (30%) + Exams (70%) = Total (100%). Grades are auto-calculated.</div>
+                        </div>
                     </div>
+                    <button type="button" class="btn btn-outline-primary shadow-sm h-100 py-3" data-bs-toggle="modal" data-bs-target="#aiScanModal" style="white-space: nowrap;">
+                        <i class="bi bi-camera me-2"></i>Scan Print Sheet
+                    </button>
                 </div>
-                
+
                 <div class="table-responsive rounded-3 border">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="bg-light text-secondary">
@@ -151,6 +156,35 @@
                 </div>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- AI Scan Modal -->
+<div class="modal fade" id="aiScanModal" tabindex="-1" aria-labelledby="aiScanModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold" id="aiScanModalLabel"><i class="bi bi-magic me-2 text-primary"></i>AI Grade Scanner</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted mb-4">Upload a photo of your handwritten or printed grade sheet. The AI will extract the names and grades and auto-fill the form below.</p>
+                
+                <div class="mb-3">
+                    <label for="gradeSheetImage" class="form-label fw-bold small text-secondary text-uppercase ls-1">Select Image</label>
+                    <input type="file" id="gradeSheetImage" class="form-control" accept="image/*" capture="environment">
+                </div>
+                
+                <div id="scanStatus" class="d-none text-center py-4 bg-light rounded-3">
+                    <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+                    <span class="ms-2 fw-medium text-dark" id="scanMessage">Analyzing image with Aura...</span>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0 pt-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="btnScanImage" class="btn btn-primary px-4"><i class="bi bi-cpu me-2"></i>Process Sheet</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -358,5 +392,123 @@ function calculateTotal(studentId) {
         select.value = presetCs;
     }
 })();
+
+// AI Scan Logic
+document.getElementById('btnScanImage').addEventListener('click', function() {
+    const fileInput = document.getElementById('gradeSheetImage');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        showToast('Please select an image file first.', 'warning');
+        return;
+    }
+    
+    // Check if students are loaded
+    const tbody = document.getElementById('studentTableBody');
+    if (tbody.children.length === 0) {
+        showToast('Please load students for a class before scanning.', 'warning');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+    const scanStatus = document.getElementById('scanStatus');
+    const scanMessage = document.getElementById('scanMessage');
+    const btn = this;
+    
+    btn.disabled = true;
+    scanStatus.classList.remove('d-none');
+    scanMessage.textContent = 'Extracting data with Aura AI... This may take up to 20 seconds.';
+    
+    fetch("{% url 'teachers:scan_grades_sheet' %}", {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            const extractedGrades = data.data;
+            let matchCount = 0;
+            
+            // Collect all current student rows
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            extractedGrades.forEach(aiRecord => {
+                if (!aiRecord.name) return;
+                
+                const aiName = aiRecord.name.toLowerCase().trim();
+                
+                // Find best matching row (simple substring match for now)
+                const matchedRow = rows.find(row => {
+                    const studentNameCell = row.querySelector('td:nth-child(3)');
+                    if (!studentNameCell) return false;
+                    const dbName = studentNameCell.textContent.toLowerCase().trim();
+                    
+                    // Match if AI name is in DB name or vice-versa
+                    return dbName.includes(aiName) || aiName.includes(dbName);
+                });
+                
+                if (matchedRow) {
+                    const studentId = matchedRow.querySelector('input[type="hidden"]').value;
+                    const overallInput = matchedRow.querySelector(`input[name="overall_score_${studentId}"]`);
+                    const classInput = matchedRow.querySelector(`input[name="class_score_${studentId}"]`);
+                    const examInput = matchedRow.querySelector(`input[name="exams_score_${studentId}"]`);
+                    
+                    if (aiRecord.class_score !== null && aiRecord.exams_score !== null) {
+                        // AI provided specific breakdown
+                        classInput.value = aiRecord.class_score;
+                        examInput.value = aiRecord.exams_score;
+                        const total = (parseFloat(aiRecord.class_score) + parseFloat(aiRecord.exams_score)).toFixed(1);
+                        overallInput.value = total;
+                        overallInput.classList.add('bg-success-subtle');
+                        classInput.classList.add('bg-success-subtle');
+                        examInput.classList.add('bg-success-subtle');
+                        calculateTotal(studentId);
+                        matchCount++;
+                    } else if (aiRecord.overall_score !== null) {
+                        // AI provided just overall score
+                        overallInput.value = aiRecord.overall_score;
+                        overallInput.classList.add('bg-success-subtle');
+                        // Trigger the smart split logic
+                        overallInput.dispatchEvent(new Event('input'));
+                        matchCount++;
+                    }
+                    
+                    // Remove highlight after a delay
+                    setTimeout(() => {
+                        overallInput.classList.remove('bg-success-subtle');
+                        classInput.classList.remove('bg-success-subtle');
+                        examInput.classList.remove('bg-success-subtle');
+                    }, 5000);
+                }
+            });
+            
+            const modal = bootstrap.Modal.getInstance(document.getElementById('aiScanModal'));
+            modal.hide();
+            
+            if (matchCount > 0) {
+                showToast(`Successfully matched and auto-filled grades for ${matchCount} students!`, 'success');
+            } else {
+                showToast('AI extracted data but could not match names with the current class list.', 'warning');
+            }
+        } else {
+            showToast(data.message || 'Error processing image', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('OCR Error:', error);
+        showToast('A network or server error occurred.', 'danger');
+    })
+    .finally(() => {
+        btn.disabled = false;
+        scanStatus.classList.add('d-none');
+        fileInput.value = '';
+    });
+});
 </script>
 {% endblock %}

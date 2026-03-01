@@ -16,6 +16,7 @@ urlpatterns = [
     path('my-classes/', views.teacher_classes, name='my_classes'),
     path('schedule/', views.teacher_schedule, name='schedule'),
     path('grades/enter/', views.enter_grades, name='enter_grades'),
+    path('grades/scan/', views.scan_grades_sheet, name='scan_grades_sheet'),
     path('get-students/<int:class_id>/', views.get_students, name='get_students'),
     path('duty-roster/', views.print_duty_roster, name='duty_roster'),
     # Exercises

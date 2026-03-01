@@ -509,6 +509,87 @@ def enter_grades(request):
 
 
 @login_required
+@require_POST
+def scan_grades_sheet(request):
+    if request.user.user_type != 'teacher':
+        return JsonResponse({'status': 'error', 'message': 'Access denied'}, status=403)
+        
+    if 'image' not in request.FILES:
+        return JsonResponse({'status': 'error', 'message': 'No image provided'}, status=400)
+        
+    try:
+        import base64
+        import json
+        from academics.ai_tutor import _post_chat_completion
+        
+        image_file = request.FILES['image']
+        image_b64 = base64.b64encode(image_file.read()).decode('utf-8')
+        mime_type = image_file.content_type
+        
+        prompt = """You are an AI assistant helping a teacher digitize a handwritten or printed student grade sheet.
+Please extract the list of student names and their corresponding grades. 
+Look for either 'overall_score', or specific 'class_score' and 'exams_score' if broken down.
+Return ONLY valid JSON in the following format:
+[
+  {
+     "name": "Student Full Name",
+     "overall_score": 85,
+     "class_score": 25,
+     "exams_score": 60
+  }
+]
+If a score is missing or unable to be read, set it to null. Ensure the response contains no markdown formatting around the output, just raw JSON text. No '''json.
+"""
+
+        payload = {
+            "model": "gpt-4o-mini",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:{mime_type};base64,{image_b64}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            "temperature": 0.1,
+            "max_tokens": 1000
+        }
+
+        response_data = _post_chat_completion(payload)
+        
+        if 'error' in response_data:
+             return JsonResponse({'status': 'error', 'message': f"AI Error: {response_data['error']}"}, status=500)
+
+        choices = response_data.get('choices', [])
+        if not choices:
+            return JsonResponse({'status': 'error', 'message': 'Failed to process image. No response from AI.'}, status=500)
+            
+        content = choices[0]['message']['content'].strip()
+        
+        # Strip potential markdown formatting
+        if content.startswith('```json'):
+            content = content[7:]
+        if content.startswith('```'):
+            content = content[3:]
+        if content.endswith('```'):
+            content = content[:-3]
+            
+        grades_data = json.loads(content.strip())
+        return JsonResponse({'status': 'success', 'data': grades_data})
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'AI returned malformed data format. Please try again.'}, status=500)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Server error: {str(e)}'}, status=500)
+
+
+@login_required
 def get_students(request, class_id):
     subject_id = request.GET.get('subject_id')
     term = normalize_term(request.GET.get('term', 'first'))
