@@ -623,6 +623,44 @@
     .sg-complete .sg-title { color: #059669; }
     [data-bs-theme="dark"] .sg-complete .sg-title { color: #34d399; }
     .sg-complete .sg-badge { background: #059669; }
+
+    /* ===== Onboarding Banner ===== */
+    .onboarding-banner {
+        background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+        border-radius: 16px;
+        padding: 1.25rem 1.5rem;
+    }
+    .onboarding-icon {
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, #3b82f6 0%, #22c55e 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .onboarding-title {
+        font-weight: 700;
+        margin-bottom: 0.375rem;
+        color: #111827;
+    }
+    .onboarding-desc {
+        font-size: 0.8rem;
+        color: #6b7280;
+        margin-bottom: 0.75rem;
+    }
+    .sg-pending {
+        color: #9ca3af;
+        font-size: 1rem;
+    }
+    [data-bs-theme="dark"] .onboarding-banner {
+        background: linear-gradient(135deg, rgba(59,130,246,0.18) 0%, rgba(34,197,94,0.16) 100%);
+    }
+    [data-bs-theme="dark"] .onboarding-title { color: #e2e8f0; }
+    [data-bs-theme="dark"] .onboarding-desc { color: #94a3b8; }
+    [data-bs-theme="dark"] .sg-pending { color: #64748b; }
+
     /* Mobile responsive */
     @media (max-width: 640px) {
         .sg-steps { grid-template-columns: 1fr; }
@@ -753,7 +791,7 @@
                     {% if step.done %}
                     <span class="sg-check"><i class="bi bi-check-circle-fill"></i></span>
                     {% else %}
-                    <span style="color:#9ca3af; font-size:1rem;"><i class="bi bi-circle"></i></span>
+                    <span class="sg-pending"><i class="bi bi-circle"></i></span>
                     {% endif %}
                 </div>
             </div>
@@ -768,14 +806,14 @@
     <div class="admin-main">
         <!-- Onboarding Banner for New Schools -->
         {% if total_students == 0 and total_teachers == 0 %}
-        <div class="alert border-0 mb-4" style="background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border-radius: 16px; padding: 1.25rem 1.5rem;">
+        <div class="alert border-0 mb-4 onboarding-banner">
             <div class="d-flex align-items-start gap-3">
-                <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #3b82f6 0%, #22c55e 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <div class="onboarding-icon">
                     <i class="bi bi-rocket-takeoff-fill text-white" style="font-size: 1.25rem;"></i>
                 </div>
                 <div class="flex-grow-1">
-                    <h6 style="font-weight: 700; margin-bottom: 0.375rem; color: #111827;">Welcome! Let's set up your school</h6>
-                    <p style="font-size: 0.8rem; color: #6b7280; margin-bottom: 0.75rem;">Get started by adding teachers and students to unlock the full potential of your dashboard.</p>
+                    <h6 class="onboarding-title">Welcome! Let's set up your school</h6>
+                    <p class="onboarding-desc">Get started by adding teachers and students to unlock the full potential of your dashboard.</p>
                     <div class="d-flex flex-wrap gap-2">
                         <a href="{% url 'teachers:add_teacher' %}" class="btn btn-primary btn-sm" style="font-size: 0.75rem;"><i class="bi bi-person-plus-fill me-1"></i>Add Teacher</a>
                         <a href="{% url 'students:add_student' %}" class="btn btn-outline-primary btn-sm" style="font-size: 0.75rem;"><i class="bi bi-person-plus me-1"></i>Add Student</a>

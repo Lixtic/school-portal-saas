@@ -87,6 +87,18 @@
         width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0;
         display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
     }
+    .sd-action-icon-ai {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: #fff;
+    }
+    .sd-action-icon-voice {
+        background: linear-gradient(135deg, #0dcaf0, #0d6efd);
+        color: #fff;
+    }
+    .sd-action-icon-timetable {
+        background: var(--sd-si-blue);
+        color: var(--sd-accent-blue);
+    }
     .sd-action-label { font-weight: 600; font-size: .875rem; color: var(--sd-heading); line-height: 1.2; }
     .sd-action-sub   { font-size: .75rem; color: var(--sd-muted); }
 
@@ -121,6 +133,10 @@
         width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
         display: flex; align-items: center; justify-content: center; font-size: .9rem; margin-top: .05rem;
     }
+    .sd-item-icon-notice {
+        background: var(--sd-si-amber);
+        color: var(--sd-accent-amber);
+    }
     .sd-item-label { font-weight: 600; font-size: .82rem; color: var(--sd-heading); margin-bottom: .1rem; }
     .sd-item-sub   { font-size: .75rem; color: var(--sd-muted); }
     .sd-empty { padding: 2rem 1rem; text-align: center; color: var(--sd-muted); }
@@ -143,6 +159,16 @@
         background: var(--sd-si-blue); color: var(--sd-accent-blue);
         display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
         border: 2px solid var(--sd-border);
+    }
+    .sd-status-online {
+        position: absolute;
+        bottom: 2px;
+        right: 2px;
+        width: 12px;
+        height: 12px;
+        background: #22c55e;
+        border-radius: 50%;
+        border: 2px solid var(--sd-surface);
     }
 
     /* ===== Quote card ===== */
@@ -286,7 +312,7 @@
         <div class="sd-section-heading">Academic Tools</div>
         <div class="sd-tools-grid">
             <a href="{% url 'academics:ai_tutor' %}" class="sd-action-card">
-                <div class="sd-action-icon" style="background:linear-gradient(135deg,#667eea,#764ba2); color:#fff;">
+                <div class="sd-action-icon sd-action-icon-ai">
                     <i class="bi bi-robot"></i>
                 </div>
                 <div>
@@ -295,7 +321,7 @@
                 </div>
             </a>
             <a href="{% url 'students:aura_voice' %}" class="sd-action-card">
-                <div class="sd-action-icon" style="background:linear-gradient(135deg,#0dcaf0,#0d6efd); color:#fff;">
+                <div class="sd-action-icon sd-action-icon-voice">
                     <i class="bi bi-mic-fill"></i>
                 </div>
                 <div>
@@ -312,7 +338,7 @@
                 <i class="bi bi-arrow-right ms-auto" style="color:var(--sd-muted);"></i>
             </a>
             <a href="{% url 'academics:timetable' %}" class="sd-action-card">
-                <div class="sd-action-icon" style="background:#f0f9ff; color:#0ea5e9;"><i class="bi bi-calendar-week"></i></div>
+                <div class="sd-action-icon sd-action-icon-timetable"><i class="bi bi-calendar-week"></i></div>
                 <div>
                     <div class="sd-action-label">Timetable</div>
                     <div class="sd-action-sub">View weekly schedule</div>
@@ -385,7 +411,7 @@
         <div class="sd-card">
             {% for notice in notices %}
             <div class="sd-item">
-                <div class="sd-item-icon" style="background:#fef9c3; color:#ca8a04;"><i class="bi bi-megaphone-fill"></i></div>
+                <div class="sd-item-icon sd-item-icon-notice"><i class="bi bi-megaphone-fill"></i></div>
                 <div class="flex-grow-1" style="min-width:0;">
                     <div class="d-flex justify-content-between align-items-start gap-2">
                         <div class="sd-item-label">{{ notice.title }}</div>
@@ -414,7 +440,7 @@
                     <i class="bi bi-person"></i>
                 </div>
                 {% endif %}
-                <span style="position:absolute;bottom:2px;right:2px;width:12px;height:12px;background:#22c55e;border-radius:50%;border:2px solid var(--sd-surface);"></span>
+                <span class="sd-status-online"></span>
             </div>
             <div style="font-weight:700; font-size:.95rem; color:var(--sd-heading);">{{ student.user.get_full_name }}</div>
             <div style="font-size:.75rem; color:var(--sd-muted); margin-bottom:.75rem;">Student</div>

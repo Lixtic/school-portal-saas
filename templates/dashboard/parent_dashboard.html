@@ -56,6 +56,24 @@
     .pd-action:hover { border-color:rgba(0,0,0,.12); box-shadow:0 3px 10px rgba(0,0,0,.07); color:inherit; transform:translateY(-1px); }
     [data-bs-theme="dark"] .pd-action:hover { border-color:rgba(255,255,255,.16); box-shadow:0 3px 10px rgba(0,0,0,.3); }
     .pd-action-icon { width:40px; height:40px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:1.05rem; }
+    .pd-fee-alert-icon {
+        width:40px;
+        height:40px;
+        border-radius:10px;
+        background: rgba(239,68,68,.15);
+        color: #dc2626;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:1.1rem;
+        flex-shrink:0;
+    }
+    [data-bs-theme="dark"] .pd-fee-alert-icon {
+        background: rgba(239,68,68,.2);
+        color: #fca5a5;
+    }
+    .pd-action-icon-amber { background: var(--pd-si-amber); color: #ca8a04; }
+    [data-bs-theme="dark"] .pd-action-icon-amber { color: #fcd34d; }
     .pd-child { background:var(--pd-surface); border:1px solid var(--pd-border); border-radius:12px; padding:1rem; transition:all .18s; cursor:pointer; }
     .pd-child:hover { box-shadow:0 3px 10px rgba(0,0,0,.07); }
     .pd-child:active { transform:scale(0.97); box-shadow:0 1px 4px rgba(0,0,0,.1); }
@@ -68,6 +86,22 @@
     .pd-fin-row:last-child { border-bottom:none; padding-bottom:0; }
     .pd-fin-label { color:var(--pd-muted); }
     .pd-fin-val   { font-weight:700; color:var(--pd-heading); }
+    .pd-empty-state-note {
+        background: var(--pd-si-blue);
+        border: 1px solid #bfdbfe;
+        border-radius: 10px;
+        padding: 1rem;
+        color: var(--pd-blue);
+        font-size: .855rem;
+    }
+    [data-bs-theme="dark"] .pd-empty-state-note {
+        border-color: rgba(96,165,250,.35);
+        color: #93c5fd;
+    }
+    .pd-value-danger { font-size:1.5rem; font-weight:800; color:#dc2626; }
+    .pd-value-success { font-size:1.4rem; font-weight:800; color:#16a34a; }
+    [data-bs-theme="dark"] .pd-value-danger { color:#fca5a5; }
+    [data-bs-theme="dark"] .pd-value-success { color:#86efac; }
     .pd-top-grid { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; }
     @media(max-width:560px){ .pd-top-grid{ grid-template-columns:1fr; } }
     .pd-main-grid { display:grid; grid-template-columns:1fr 300px; gap:1.1rem; }
@@ -89,7 +123,7 @@
 <!-- Fee alert banner -->
 {% if finance_stats.outstanding > 0 %}
 <div style="background:linear-gradient(135deg,rgba(239,68,68,.07),rgba(220,38,38,.1));border:1px solid rgba(239,68,68,.25);border-radius:12px;padding:.85rem 1.1rem;margin-bottom:1.1rem;display:flex;align-items:center;gap:.9rem;">
-    <div style="width:40px;height:40px;border-radius:10px;background:rgba(239,68,68,.15);color:#dc2626;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;">
+    <div class="pd-fee-alert-icon">
         <i class="bi bi-exclamation-circle-fill"></i>
     </div>
     <div class="flex-grow-1">
@@ -113,7 +147,7 @@
         <i class="bi bi-chevron-right ms-auto" style="color:var(--pd-muted);font-size:.75rem;"></i>
     </a>
     <a href="#notices" class="pd-action">
-        <div class="pd-action-icon" style="background:var(--pd-si-amber);color:#ca8a04;"><i class="bi bi-bell-fill"></i></div>
+        <div class="pd-action-icon pd-action-icon-amber"><i class="bi bi-bell-fill"></i></div>
         <div>
             <div style="font-weight:700;font-size:.875rem;color:var(--pd-heading);">Announcements</div>
             <div style="font-size:.75rem;color:var(--pd-muted);">{{ notices|length }} notice{{ notices|length|pluralize }}</div>
@@ -152,7 +186,7 @@
             </div>
             {% empty %}
             <div style="grid-column:1/-1;">
-                <div style="background:var(--pd-si-blue);border:1px solid #bfdbfe;border-radius:10px;padding:1rem;color:var(--pd-blue);font-size:.855rem;">
+                <div class="pd-empty-state-note">
                     <i class="bi bi-info-circle me-2"></i>No children linked yet. Contact the school administrator.
                 </div>
             </div>
@@ -164,7 +198,7 @@
         <div class="pd-card">
             {% for notice in notices %}
             <div class="pd-item">
-                <div class="pd-item-icon" style="background:var(--pd-si-amber);color:#ca8a04;"><i class="bi bi-bell-fill"></i></div>
+                <div class="pd-item-icon pd-action-icon-amber"><i class="bi bi-bell-fill"></i></div>
                 <div class="flex-grow-1" style="min-width:0;">
                     <div class="d-flex justify-content-between align-items-start gap-2">
                         <div class="pd-item-label">{{ notice.title }}</div>
@@ -191,10 +225,10 @@
             <div class="pd-card-pad">
                 <div style="text-align:center;margin-bottom:.9rem;">
                     {% if finance_stats.outstanding > 0 %}
-                    <div style="font-size:1.5rem;font-weight:800;color:#dc2626;">₵{{ finance_stats.outstanding|floatformat:2|intcomma }}</div>
+                    <div class="pd-value-danger">₵{{ finance_stats.outstanding|floatformat:2|intcomma }}</div>
                     <span class="pd-pill pill-red">Outstanding balance</span>
                     {% else %}
-                    <div style="font-size:1.4rem;font-weight:800;color:#16a34a;">All Cleared</div>
+                    <div class="pd-value-success">All Cleared</div>
                     <span class="pd-pill pill-green"><i class="bi bi-check-circle-fill" style="font-size:.6rem;"></i> Up to date</span>
                     {% endif %}
                 </div>
