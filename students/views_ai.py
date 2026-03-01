@@ -249,71 +249,39 @@ def process_voice_interaction(request):
         # Generator function for streaming response
         def generate_audio_stream():
             try:
-                # 1. Try to find a working LLM stream
-                response_llm_stream = None
-                for llm_url in HF_LLM_MODELS:
-                    try:
-                        resp = requests.post(llm_url, headers=headers, json=payload_llm, stream=True)
-                        if resp.status_code == 200:
-                            response_llm_stream = resp
-                            break
-                    except:
-                        continue
-                
-                if not response_llm_stream:
-                    # All LLMs failed
-                    return
+                import openai
+                client = openai.OpenAI(api_key=get_openai_api_key())
 
-                buffer = ""
-                sentence_endings = {'.', '!', '?'}
+                # Step 2: Get LLM text strictly via OpenAI instead of LLama 3 and TTS via OpenAI
+                res = client.chat.completions.create(
+                    model='gpt-4o-mini',
+                    messages=[
+                        {'role': 'system', 'content': system_prompt},
+                        {'role': 'user', 'content': user_text}
+                    ],
+                    temperature=0.7,
+                    max_tokens=150
+                )
                 
-                for line in response_llm_stream.iter_lines():
-                    if line:
-                        # Parse SSE format "data: {...}"
-                        decoded_line = line.decode('utf-8')
-                        if decoded_line.startswith('data:'):
-                            try:
-                                json_data = json.loads(decoded_line[5:])
-                                token = json_data['token']['text']
-                                buffer += token
-                                
-                                # Check for sentence end
-                                if any(token.endswith(p) for p in sentence_endings) and len(buffer.strip()) > 5:
-                                    # Send sentence to TTS with fallback
-                                    tts_payload = {"inputs": buffer.strip()}
-                                    
-                                    # Try TTS models
-                                    for tts_url in HF_TTS_MODELS:
-                                        try:
-                                            tts_resp = requests.post(tts_url, headers=headers, json=tts_payload)
-                                            if tts_resp.status_code == 200:
-                                                yield tts_resp.content
-                                                break
-                                        except:
-                                            continue
-                                            
-                                    buffer = "" # Reset buffer
-                            except:
-                                pass
-                
-                # Process remaining buffer
-                if buffer.strip():
-                     tts_payload = {"inputs": buffer.strip()}
-                     for tts_url in HF_TTS_MODELS:
-                        try:
-                            tts_resp = requests.post(tts_url, headers=headers, json=tts_payload)
-                            if tts_resp.status_code == 200:
-                                yield tts_resp.content
-                                break
-                        except:
-                            continue
+                text_response = res.choices[0].message.content.strip()
+
+                # Step 3: Stream OpenAI TTS
+                if text_response:
+                    tts_resp = client.audio.speech.create(
+                        model='tts-1',
+                        voice='nova',
+                        input=text_response,
+                        response_format='mp3'
+                    )
+                    
+                    for chunk in tts_resp.iter_bytes():
+                        if chunk:
+                            yield chunk
 
             except Exception as e:
-                # Log error or yield slight silence
-                pass
-
-        # Return the generator as a stream
-        return StreamingHttpResponse(generate_audio_stream(), content_type='audio/mpeg')
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Aura Voice Stream Error: {str(e)}")
 
     except Exception as e:
         return JsonResponse({"error":str(e)}, status=500)
