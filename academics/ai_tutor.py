@@ -283,10 +283,11 @@ def _post_chat_completion(payload, api_key):
 
 def _stream_chat_completion(payload, api_key):
     payload = _with_resolved_model(payload)
+    stream_model = str(payload.get("model") or "")
 
     if not api_key:
-        fallback_text, _ = _call_hf_fallback(payload)
-        yield "data: " + json.dumps({"provider": "huggingface", "content": fallback_text}) + "\n\n"
+        fallback_text, fallback_model = _call_hf_fallback(payload)
+        yield "data: " + json.dumps({"provider": "huggingface", "model": fallback_model, "content": fallback_text}) + "\n\n"
         yield "data: [DONE]\n\n"
         return
 
@@ -309,7 +310,6 @@ def _stream_chat_completion(payload, api_key):
                     continue
                 data = line[6:].strip()
                 if data == "[DONE]":
-                    yield "data: [DONE]\n\n"
                     break
 
                 try:
@@ -318,7 +318,8 @@ def _stream_chat_completion(payload, api_key):
                     content_piece = delta.get("content")
                     if content_piece:
                         streamed_any_content = True
-                        yield "data: " + json.dumps({"provider": "openai", "content": content_piece}) + "\n\n"
+                        chunk_model = parsed.get("model") or stream_model
+                        yield "data: " + json.dumps({"provider": "openai", "model": chunk_model, "content": content_piece}) + "\n\n"
                 except Exception:
                     continue
 
@@ -328,24 +329,27 @@ def _stream_chat_completion(payload, api_key):
             response_data = _post_chat_completion(fallback_payload, api_key)
             text = _extract_assistant_text_from_completion(response_data).strip()
             provider = response_data.get("provider", "openai") if isinstance(response_data, dict) else "openai"
+            model = response_data.get("model") if isinstance(response_data, dict) else stream_model
             if text:
-                yield "data: " + json.dumps({"provider": provider, "content": text}) + "\n\n"
+                yield "data: " + json.dumps({"provider": provider, "model": model, "content": text}) + "\n\n"
                 yield "data: [DONE]\n\n"
                 return
+        else:
+            yield "data: [DONE]\n\n"
     except HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="ignore") if exc.fp else str(exc)
         original_error = f"OpenAI HTTP {exc.code}: {detail}"
         if _should_try_hf_fallback(original_error):
-            fallback_text, _ = _call_hf_fallback(payload)
-            yield "data: " + json.dumps({"provider": "huggingface", "content": fallback_text}) + "\n\n"
+            fallback_text, fallback_model = _call_hf_fallback(payload)
+            yield "data: " + json.dumps({"provider": "huggingface", "model": fallback_model, "content": fallback_text}) + "\n\n"
             yield "data: [DONE]\n\n"
             return
         raise RuntimeError(original_error)
     except URLError as exc:
         original_error = f"Network error: {exc.reason}"
         if _should_try_hf_fallback(original_error):
-            fallback_text, _ = _call_hf_fallback(payload)
-            yield "data: " + json.dumps({"provider": "huggingface", "content": fallback_text}) + "\n\n"
+            fallback_text, fallback_model = _call_hf_fallback(payload)
+            yield "data: " + json.dumps({"provider": "huggingface", "model": fallback_model, "content": fallback_text}) + "\n\n"
             yield "data: [DONE]\n\n"
             return
         raise RuntimeError(original_error)

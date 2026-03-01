@@ -5,16 +5,55 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 import json
 import requests
+import os
 from huggingface_hub import InferenceClient
 
 # Initialize Inference Client (Assuming settings.HUGGINGFACE_API_TOKEN is set)
 # If using dedicated endpoints, use the specific URL. If using free inference API, use model ID.
 HF_TOKEN = getattr(settings, 'HUGGINGFACE_API_TOKEN', None)
+OPENAI_AUDIO_TRANSCRIPTIONS_URL = "https://api.openai.com/v1/audio/transcriptions"
+OPENAI_WHISPER_MODEL = os.environ.get("OPENAI_WHISPER_MODEL", "whisper-1")
 
 # Model Endpoints (Replace with your actual Endpoint URLs for production speed)
 ASR_URL = "https://api-inference.huggingface.co/models/openai/whisper-large-v3"
 LLM_MODEL = "meta-llama/Meta-Llama-3-8B-Instruct" 
 TTS_URL = "https://api-inference.huggingface.co/models/parler-tts/parler-tts-mini-v1"
+
+
+def get_openai_api_key():
+    configured = getattr(settings, 'OPENAI_API_KEY', None)
+    if configured:
+        return configured
+    return os.environ.get("OPENAI_API_KEY")
+
+
+def transcribe_with_openai_whisper(audio_data, filename="recording.webm", content_type="audio/webm"):
+    api_key = get_openai_api_key()
+    if not api_key:
+        raise RuntimeError("Missing OPENAI_API_KEY")
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+    }
+    files = {
+        "file": (filename, audio_data, content_type or "audio/webm"),
+    }
+    data = {
+        "model": OPENAI_WHISPER_MODEL,
+        "response_format": "json",
+    }
+
+    response = requests.post(
+        OPENAI_AUDIO_TRANSCRIPTIONS_URL,
+        headers=headers,
+        files=files,
+        data=data,
+        timeout=120,
+    )
+    if response.status_code != 200:
+        raise RuntimeError(f"OpenAI Whisper HTTP {response.status_code}: {response.text[:400]}")
+
+    return (response.json().get("text") or "").strip()
 
 @login_required
 def aura_interaction_view(request):
@@ -28,7 +67,7 @@ def aura_interaction_view(request):
 def process_audio_interaction(request):
     """
     Orchestrates the S2S pipeline:
-    1. ASR: User Audio -> Text (Whisper)
+    1. ASR: User Audio -> Text (OpenAI Whisper primary, HF Whisper fallback)
     2. LLM: Text -> AI Text (Llama 3)
     3. TTS: AI Text -> Audio (Parler-TTS)
     """
@@ -42,20 +81,28 @@ def process_audio_interaction(request):
             return JsonResponse({"error": "No audio file provided"}, status=400)
 
         # 2. ASR (Speech-to-Text)
-        # Using Hugging Face Inference API for Whisper
-        headers = {"Authorization": f"Bearer {HF_TOKEN}"}
-        
-        # Read file content
+        headers = {"Authorization": f"Bearer {HF_TOKEN}"} if HF_TOKEN else {}
+
         audio_data = audio_file.read()
-        
-        # Call ASR
-        asr_response = requests.post(ASR_URL, headers=headers, data=audio_data)
-        if asr_response.status_code != 200:
-             return JsonResponse({"error": f"ASR Error: {asr_response.text}"}, status=500)
-        
-        user_text = asr_response.json().get("text", "")
+        user_text = ""
+        openai_error = None
+
+        try:
+            user_text = transcribe_with_openai_whisper(
+                audio_data,
+                filename=getattr(audio_file, 'name', 'recording.webm') or 'recording.webm',
+                content_type=getattr(audio_file, 'content_type', 'audio/webm') or 'audio/webm',
+            )
+        except Exception as exc:
+            openai_error = str(exc)
+
+        if not user_text and HF_TOKEN:
+            asr_response = requests.post(ASR_URL, headers=headers, data=audio_data)
+            if asr_response.status_code == 200:
+                user_text = (asr_response.json().get("text") or "").strip()
+
         if not user_text:
-             return JsonResponse({"error": "Could not transcribe audio"}, status=500)
+             return JsonResponse({"error": "Could not transcribe audio", "openai_error": openai_error}, status=500)
 
         # 3. LLM (Text Generation)
         # Using huggingface_hub InferenceClient for easier text generation

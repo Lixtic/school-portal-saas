@@ -8,6 +8,10 @@ from django.http import JsonResponse, StreamingHttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 
+
+OPENAI_AUDIO_TRANSCRIPTIONS_URL = "https://api.openai.com/v1/audio/transcriptions"
+OPENAI_WHISPER_MODEL = os.environ.get("OPENAI_WHISPER_MODEL", "whisper-1")
+
 # Configuration - should be in settings.py
 # HF_API_URL_WHISPER = "https://api-inference.huggingface.co/models/openai/whisper-large-v3-turbo" # Faster, good accuracy -- 410 Error
 # Use lists for fallbacks
@@ -38,6 +42,45 @@ HF_TTS_MODELS = [
     "https://api-inference.huggingface.co/models/parler-tts/parler-tts-mini-v1",
     "https://api-inference.huggingface.co/models/facebook/mms-tts-eng"
 ]
+
+
+def get_openai_api_key():
+    configured = getattr(settings, 'OPENAI_API_KEY', None)
+    if configured:
+        return configured
+    return os.environ.get("OPENAI_API_KEY")
+
+
+def transcribe_with_openai_whisper(audio_content, filename="recording.webm", content_type="audio/webm"):
+    api_key = get_openai_api_key()
+    if not api_key:
+        raise RuntimeError("Missing OPENAI_API_KEY")
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+    }
+    files = {
+        "file": (filename, audio_content, content_type or "audio/webm"),
+    }
+    data = {
+        "model": OPENAI_WHISPER_MODEL,
+        "response_format": "json",
+    }
+
+    response = requests.post(
+        OPENAI_AUDIO_TRANSCRIPTIONS_URL,
+        headers=headers,
+        files=files,
+        data=data,
+        timeout=120,
+    )
+
+    if response.status_code != 200:
+        detail = response.text[:400]
+        raise RuntimeError(f"OpenAI Whisper HTTP {response.status_code}: {detail}")
+
+    parsed = response.json()
+    return (parsed.get("text") or "").strip()
 
 def get_hf_headers():
     token = os.environ.get("HUGGINGFACE_API_TOKEN")
@@ -136,7 +179,8 @@ def aura_voice_view(request):
 def process_voice_interaction(request):
     """
     Orchestrate the S2S pipeline:
-    Audio (Frontend) -> Whisper (API) -> Llama 3 (API) -> Parler-TTS (API) -> Audio Stream (Frontend)
+    Audio (Frontend) -> OpenAI Whisper (primary) / HF Whisper (fallback)
+    -> Llama 3 (API) -> Parler-TTS (API) -> Audio Stream (Frontend)
     """
     if request.method != "POST":
         return JsonResponse({"error": "Method not allowed"}, status=405)
@@ -146,26 +190,44 @@ def process_voice_interaction(request):
         if not audio_file:
             return JsonResponse({"error": "No audio file provided"}, status=400)
 
-        # 1. ASR - Whisper
-        headers = get_hf_headers()
-        if not headers:
-            return JsonResponse({"error": "ASR Unavailable: Missing HUGGINGFACE_API_TOKEN"}, status=503)
-        
+        # 1. ASR - OpenAI Whisper (primary), Hugging Face Whisper (fallback)
+        user_text = ""
+        audio_content = audio_file.read()
+        openai_error = None
+        hf_error = None
+
         try:
-            # Read audio content for potential retries
-            audio_content = audio_file.read()
-
-            # Use optional dedicated endpoint first, then router models
-            asr_urls = [HF_ASR_ENDPOINT] if HF_ASR_ENDPOINT else []
-            asr_urls.extend(HF_WHISPER_MODELS)
-            response_asr = query_hf_inference(asr_urls, headers, data=audio_content)
-            user_text = response_asr.json().get('text')
+            user_text = transcribe_with_openai_whisper(
+                audio_content=audio_content,
+                filename=getattr(audio_file, 'name', 'recording.webm') or 'recording.webm',
+                content_type=getattr(audio_file, 'content_type', 'audio/webm') or 'audio/webm',
+            )
         except Exception as e:
-            return JsonResponse({"error": f"ASR Unavailable: {str(e)}"}, status=503)
-        
-        if not user_text:
-             return JsonResponse({"error": "Could not transcribe audio"}, status=500)
+            openai_error = str(e)
 
+        if not user_text:
+            headers = get_hf_headers()
+            if not headers:
+                hf_error = "Missing HUGGINGFACE_API_TOKEN"
+            else:
+                try:
+                    asr_urls = [HF_ASR_ENDPOINT] if HF_ASR_ENDPOINT else []
+                    asr_urls.extend(HF_WHISPER_MODELS)
+                    response_asr = query_hf_inference(asr_urls, headers, data=audio_content)
+                    user_text = (response_asr.json().get('text') or '').strip()
+                except Exception as e:
+                    hf_error = str(e)
+
+        if not user_text:
+            return JsonResponse(
+                {
+                    "error": "ASR Unavailable: Could not transcribe audio",
+                    "openai_error": openai_error,
+                    "hf_error": hf_error,
+                },
+                status=503,
+            )
+        
         # 2. LLM - Llama 3 (Streaming & Buffering)
         system_prompt = (
             "You are Aura, a helpful and friendly AI tutor. "
