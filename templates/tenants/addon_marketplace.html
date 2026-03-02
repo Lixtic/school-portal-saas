@@ -1,113 +1,560 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Add-on Marketplace{% endblock %}
+{% block title %}Add-on Marketplace - {{ subscription.plan.name }} Plan{% endblock %}
 
 {% block extra_css %}
 <style>
+    /* Background */
     .page-bg-fixed {
         position: fixed; inset: 0; width: 100vw; height: 100vh;
-        background-image: url('https://img.freepik.com/free-vector/ginkgo-leaf-frame-design-colorful-background_53876-120237.jpg?semt=ais_user_personalization&w=740&q=80');
-        background-size: cover; background-position: center;
-        opacity: 0.12; pointer-events: none; z-index: 0;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%);
+        pointer-events: none; z-index: 0;
     }
-    [data-bs-theme="dark"] .page-bg-fixed { opacity: 0.05; filter: grayscale(0.5); }
+    [data-bs-theme="dark"] .page-bg-fixed { 
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.02) 0%, rgba(168, 85, 247, 0.02) 100%);
+    }
     .content-wrapper { position: relative; z-index: 1; }
     
+    /* Hero Section */
+    .marketplace-hero {
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        border-radius: 24px;
+        padding: 3rem 2rem;
+        color: white;
+        margin-bottom: 3rem;
+        box-shadow: 0 20px 60px rgba(99, 102, 241, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+    .marketplace-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 500px;
+        height: 500px;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+    .hero-content { position: relative; z-index: 1; }
+    .hero-stats {
+        display: flex;
+        gap: 2rem;
+        margin-top: 2rem;
+        flex-wrap: wrap;
+    }
+    .hero-stat {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .hero-stat h3 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin: 0;
+    }
+    .hero-stat p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 0.875rem;
+    }
+    
+    /* Filter Bar */
+    .filter-bar {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    [data-bs-theme="dark"] .filter-bar {
+        background: var(--surface-white);
+        border: 1px solid rgba(255,255,255,0.08);
+    }
+    .filter-bar input {
+        flex: 1;
+        min-width: 250px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+    }
+    [data-bs-theme="dark"] .filter-bar input {
+        background: rgba(255,255,255,0.05);
+        border-color: rgba(255,255,255,0.1);
+        color: #e2e8f0;
+    }
+    
+    /* Category Pills */
+    .category-pills {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+    .category-pill {
+        padding: 0.5rem 1.25rem;
+        border-radius: 999px;
+        background: white;
+        border: 2px solid #e5e7eb;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 500;
+    }
+    .category-pill:hover {
+        border-color: #6366f1;
+        color: #6366f1;
+        transform: translateY(-2px);
+    }
+    .category-pill.active {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: white;
+        border-color: transparent;
+    }
+    [data-bs-theme="dark"] .category-pill {
+        background: rgba(255,255,255,0.05);
+        border-color: rgba(255,255,255,0.1);
+    }
+    
+    /* Addon Cards */
     .addon-card {
-        transition: transform 0.2s, box-shadow 0.2s;
+        background: white;
+        border-radius: 20px;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        height: 100%;
+        border: 2px solid transparent;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        position: relative;
     }
     .addon-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 24px rgba(0,0,0,0.12) !important;
+        transform: translateY(-8px);
+        box-shadow: 0 12px 40px rgba(99, 102, 241, 0.15);
+        border-color: #6366f1;
     }
-    [data-bs-theme="dark"] .card {
+    .addon-card.active {
+        border-color: #10b981;
+        background: linear-gradient(to bottom, white, #f0fdf4);
+    }
+    [data-bs-theme="dark"] .addon-card {
         background: var(--surface-white);
         border-color: rgba(255,255,255,0.08);
     }
-    [data-bs-theme="dark"] .card-body { color: #e2e8f0; }
-    [data-bs-theme="dark"] .badge.bg-light {
-        background: rgba(255,255,255,0.1) !important;
-        color: #e2e8f0 !important;
+    [data-bs-theme="dark"] .addon-card.active {
+        background: linear-gradient(to bottom, var(--surface-white), rgba(16, 185, 129, 0.05));
+    }
+    [data-bs-theme="dark"] .addon-card:hover {
+        border-color: #6366f1;
+    }
+    
+    /* Addon Header */
+    .addon-header {
+        padding: 2rem;
+        text-align: center;
+        background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+        border-bottom: 1px solid #e5e7eb;
+    }
+    [data-bs-theme="dark"] .addon-header {
+        background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+        border-bottom-color: rgba(255,255,255,0.08);
+    }
+    .addon-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 1rem;
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        color: white;
+        box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
+    }
+    .addon-name {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: #111827;
+    }
+    [data-bs-theme="dark"] .addon-name { color: #e2e8f0; }
+    
+    /* Addon Body */
+    .addon-body {
+        padding: 1.5rem 2rem 2rem;
+    }
+    .addon-description {
+        color: #6b7280;
+        line-height: 1.6;
+        margin-bottom: 1.5rem;
+        min-height: 60px;
+    }
+    [data-bs-theme="dark"] .addon-description { color: #9ca3af; }
+    
+    /* Features List */
+    .addon-features {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 1.5rem 0;
+    }
+    .addon-features li {
+        padding: 0.5rem 0;
+        display: flex;
+        align-items: start;
+        gap: 0.5rem;
+        color: #374151;
+        font-size: 0.875rem;
+    }
+    [data-bs-theme="dark"] .addon-features li { color: #d1d5db; }
+    .addon-features li i {
+        color: #10b981;
+        margin-top: 0.125rem;
+    }
+    
+    /* Pricing */
+    .addon-pricing {
+        background: #f9fafb;
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+    [data-bs-theme="dark"] .addon-pricing {
+        background: rgba(255,255,255,0.03);
+    }
+    .addon-price {
+        font-size: 2.25rem;
+        font-weight: 800;
+        color: #6366f1;
+        margin: 0;
+    }
+    .addon-price small {
+        font-size: 1rem;
+        font-weight: 500;
+        color: #6b7280;
+    }
+    .addon-billing { 
+        color: #6b7280; 
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+    [data-bs-theme="dark"] .addon-billing { color: #9ca3af; }
+    
+    /* Plan Badges */
+    .plan-badges {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+        justify-content: center;
+    }
+    .plan-badge {
+        background: #ede9fe;
+        color: #7c3aed;
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    [data-bs-theme="dark"] .plan-badge {
+        background: rgba(124, 58, 237, 0.2);
+        color: #c4b5fd;
+    }
+    
+    /* Action Buttons */
+    .addon-action {
+        width: 100%;
+        padding: 0.875rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.2s;
+        border: none;
+    }
+    .addon-action.primary {
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        color: white;
+    }
+    .addon-action.primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+    }
+    .addon-action.danger {
+        background: white;
+        color: #ef4444;
+        border: 2px solid #ef4444;
+    }
+    .addon-action.danger:hover {
+        background: #ef4444;
+        color: white;
+    }
+    .addon-status {
+        padding: 0.875rem;
+        text-align: center;
+        border-radius: 12px;
+        font-weight: 600;
+    }
+    .addon-status.active {
+        background: #ecfdf5;
+        color: #059669;
+    }
+    [data-bs-theme="dark"] .addon-status.active {
+        background: rgba(16, 185, 129, 0.1);
+        color: #34d399;
+    }
+    .addon-status.locked {
+        background: #f3f4f6;
+        color: #6b7280;
+    }
+    [data-bs-theme="dark"] .addon-status.locked {
+        background: rgba(255,255,255,0.05);
+        color: #9ca3af;
+    }
+    
+    /* Badge Indicators */
+    .badge-indicator {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        z-index: 10;
+    }
+    .badge-indicator.recommended {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+    }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    }
+    [data-bs-theme="dark"] .empty-state {
+        background: var(--surface-white);
+    }
+    .empty-state i {
+        font-size: 4rem;
+        color: #d1d5db;
+        margin-bottom: 1.5rem;
+    }
+    
+    /* Category Sections */
+    .category-section {
+        margin-bottom: 3rem;
+    }
+    .category-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    [data-bs-theme="dark"] .category-header {
+        border-bottom-color: rgba(255,255,255,0.1);
+    }
+    .category-icon {
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5rem;
+    }
+    .category-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+        color: #111827;
+    }
+    [data-bs-theme="dark"] .category-title { color: #e2e8f0; }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .marketplace-hero {
+            padding: 2rem 1.5rem;
+        }
+        .hero-stats {
+            gap: 1rem;
+        }
+        .hero-stat {
+            padding: 0.75rem 1rem;
+        }
+        .addon-icon {
+            width: 60px;
+            height: 60px;
+            font-size: 2rem;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="page-bg-fixed"></div>
-<div class="container py-5 content-wrapper">
-    <div class="text-center mb-5">
-        <h1 class="fw-bold mb-3">🚀 Add-on Marketplace</h1>
-        <p class="lead text-muted">Enhance your school management system with powerful add-ons</p>
-        <div class="alert alert-info d-inline-block">
-            <strong>Current Plan:</strong> {{ subscription.plan.name }} | 
-            <strong>Total Add-on Cost:</strong> ₵{{ total_addon_cost|floatformat:2 }}/mo
+<div class="container-fluid px-3 px-lg-5 py-4 content-wrapper">
+    
+    <!-- Hero Section -->
+    <div class="marketplace-hero">
+        <div class="hero-content">
+            <div class="text-center mb-4">
+                <h1 class="display-5 fw-bold mb-3">🚀 Add-on Marketplace</h1>
+                <p class="lead mb-0">Extend your school's capabilities with premium features</p>
+            </div>
+            
+            <div class="hero-stats justify-content-center">
+                <div class="hero-stat">
+                    <h3>{{ subscription.plan.name }}</h3>
+                    <p>Current Plan</p>
+                </div>
+                <div class="hero-stat">
+                    <h3>{{ addons_by_category|length }}</h3>
+                    <p>Categories</p>
+                </div>
+                <div class="hero-stat">
+                    <h3>₵{{ total_addon_cost|floatformat:2 }}</h3>
+                    <p>Monthly Add-ons</p>
+                </div>
+            </div>
+            
+            {% if not can_manage_addons %}
+            <div class="alert alert-light border-0 mt-4" style="background: rgba(255,255,255,0.9);">
+                <i class="bi bi-info-circle me-2"></i>
+                <strong>Viewing Mode:</strong> Only school administrators can purchase or cancel add-ons. 
+                Contact your admin to request new features.
+            </div>
+            {% endif %}
         </div>
-        {% if not can_manage_addons %}
-        <div class="alert alert-warning mt-3 d-inline-block">
-            <i class="bi bi-info-circle me-2"></i><strong>Note:</strong> Only school administrators can purchase or cancel add-ons
-        </div>
-        {% endif %}
     </div>
-
+    
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+        <i class="bi bi-search text-muted"></i>
+        <input 
+            type="text" 
+            id="addonSearch" 
+            class="border-0" 
+            placeholder="Search add-ons by name or features..."
+            onkeyup="filterAddons()"
+        >
+        <span class="badge bg-primary rounded-pill" id="resultCount"></span>
+    </div>
+    
+    <!-- Category Pills -->
+    <div class="category-pills">
+        <button class="category-pill active" onclick="filterByCategory('all')">
+            <i class="bi bi-grid me-1"></i> All Add-ons
+        </button>
+        {% for category in addons_by_category.keys %}
+        <button class="category-pill" onclick="filterByCategory('{{ category }}')">
+            {{ category }}
+        </button>
+        {% endfor %}
+    </div>
+    
+    <!-- Add-ons Grid -->
     {% for category, addons in addons_by_category.items %}
-    <div class="mb-5">
-        <h3 class="mb-4">
-            <i class="bi bi-folder me-2"></i>{{ category }}
-        </h3>
+    <div class="category-section" data-category="{{ category }}">
+        <div class="category-header">
+            <div class="category-icon">
+                <i class="bi bi-{% if 'Academ' in category %}book{% elif 'Commun' in category %}chat-dots{% elif 'Finance' in category %}wallet2{% elif 'Analytics' in category %}graph-up{% else %}puzzle{% endif %}"></i>
+            </div>
+            <h2 class="category-title">{{ category }}</h2>
+        </div>
+        
         <div class="row g-4">
             {% for addon in addons %}
-            <div class="col-md-4">
-                <div class="card h-100 border-0 shadow-sm addon-card {% if addon.is_purchased %}border-success border-2{% endif %}">
+            <div class="col-lg-4 col-md-6 addon-item" data-category="{{ category }}" data-name="{{ addon.name|lower }}" data-description="{{ addon.description|lower }}">
+                <div class="addon-card {% if addon.is_purchased %}active{% endif %}">
+                    
+                    <!-- Active Badge -->
                     {% if addon.is_purchased %}
-                        <div class="position-absolute top-0 end-0 m-2">
-                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Active</span>
-                        </div>
+                    <div class="badge-indicator">
+                        <i class="bi bi-check-circle-fill"></i>
+                        ACTIVE
+                    </div>
                     {% endif %}
-                    <div class="card-body">
-                        <div class="text-center mb-3">
-                            <i class="{{ addon.icon }} fs-1 text-primary"></i>
+                    
+                    <!-- Header -->
+                    <div class="addon-header">
+                        <div class="addon-icon">
+                            <i class="{{ addon.icon }}"></i>
                         </div>
-                        <h5 class="card-title text-center">{{ addon.name }}</h5>
-                        <p class="card-text text-muted small">{{ addon.description }}</p>
-                        <div class="d-flex flex-wrap gap-1 mb-2">
+                        <h3 class="addon-name">{{ addon.name }}</h3>
+                        <div class="plan-badges">
                             {% for plan_code in addon.available_for_plans %}
-                                <span class="badge bg-light text-dark border">{{ plan_code|title }}</span>
+                            <span class="plan-badge">{{ plan_code|upper }}</span>
                             {% endfor %}
                         </div>
+                    </div>
+                    
+                    <!-- Body -->
+                    <div class="addon-body">
+                        <p class="addon-description">{{ addon.description }}</p>
                         
-                        <div class="text-center my-3">
-                            <h3 class="text-primary mb-0">
+                        <!-- Pricing -->
+                        <div class="addon-pricing">
+                            <p class="addon-price">
                                 ₵{{ addon.monthly_price|floatformat:2 }}
-                                {% if not addon.is_one_time %}<small class="text-muted">/mo</small>{% endif %}
-                            </h3>
-                            <small class="text-muted">{% if addon.is_one_time %}One-time setup{% else %}Recurring add-on{% endif %}</small>
+                                {% if not addon.is_one_time %}<small>/month</small>{% endif %}
+                            </p>
+                            <p class="addon-billing mb-0">
+                                {% if addon.is_one_time %}
+                                    <i class="bi bi-clock-history me-1"></i>One-time payment
+                                {% else %}
+                                    <i class="bi bi-arrow-repeat me-1"></i>Recurring monthly
+                                {% endif %}
+                            </p>
                         </div>
-
+                        
+                        <!-- Action Button -->
                         {% if can_manage_addons %}
                             {% if addon.is_purchased %}
-                                <form method="post" action="{% url 'tenants:cancel_addon' addon.id %}" class="d-grid">
+                                <form method="post" action="{% url 'tenants:cancel_addon' addon.id %}">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Cancel this add-on?')">
-                                        <i class="bi bi-x-circle me-1"></i>Cancel
+                                    <button 
+                                        type="submit" 
+                                        class="addon-action danger"
+                                        onclick="return confirm('Are you sure you want to cancel {{ addon.name }}? You will lose access at the end of your billing cycle.')">
+                                        <i class="bi bi-x-circle me-2"></i>Cancel Subscription
                                     </button>
                                 </form>
                             {% else %}
-                                <form method="post" action="{% url 'tenants:purchase_addon' addon.id %}" class="d-grid">
+                                <form method="post" action="{% url 'tenants:purchase_addon' addon.id %}">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="bi bi-cart-plus me-1"></i>Purchase
+                                    <button type="submit" class="addon-action primary">
+                                        <i class="bi bi-cart-plus me-2"></i>Add to School
                                     </button>
                                 </form>
                             {% endif %}
                         {% else %}
-                            <div class="text-center text-muted small">
-                                {% if addon.is_purchased %}
-                                    <i class="bi bi-check-circle-fill text-success me-1"></i>Already subscribed
-                                {% else %}
-                                    <i class="bi bi-lock me-1"></i>Contact admin to purchase
-                                {% endif %}
-                            </div>
+                            {% if addon.is_purchased %}
+                                <div class="addon-status active">
+                                    <i class="bi bi-check-circle-fill me-2"></i>Subscribed
+                                </div>
+                            {% else %}
+                                <div class="addon-status locked">
+                                    <i class="bi bi-lock-fill me-2"></i>Contact Admin
+                                </div>
+                            {% endif %}
                         {% endif %}
                     </div>
                 </div>
@@ -116,15 +563,76 @@
         </div>
     </div>
     {% empty %}
-    <div class="alert alert-warning text-center">
-        <i class="bi bi-info-circle me-2"></i>No add-ons available for your current plan.
+    <div class="empty-state">
+        <i class="bi bi-inbox"></i>
+        <h3>No Add-ons Available</h3>
+        <p class="text-muted">There are currently no add-ons available for your plan.</p>
     </div>
     {% endfor %}
-
-    <div class="text-center mt-5">
-        <a href="{% url 'dashboard' %}" class="btn btn-lg btn-outline-secondary">
+    
+    <!-- Back Button -->
+    <div class="text-center mt-5 pt-4 border-top">
+        <a href="{% url 'dashboard' %}" class="btn btn-lg btn-outline-secondary rounded-pill px-5">
             <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
         </a>
     </div>
 </div>
+
+<script>
+// Filter functionality
+let currentCategory = 'all';
+
+function filterByCategory(category) {
+    currentCategory = category;
+    
+    // Update pill styles
+    document.querySelectorAll('.category-pill').forEach(pill => {
+        pill.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // Show/hide sections
+    document.querySelectorAll('.category-section').forEach(section => {
+        if (category === 'all' || section.dataset.category === category) {
+            section.style.display = 'block';
+        } else {
+            section.style.display = 'none';
+        }
+    });
+    
+    updateResultCount();
+}
+
+function filterAddons() {
+    const searchTerm = document.getElementById('addonSearch').value.toLowerCase();
+    let visibleCount = 0;
+    
+    document.querySelectorAll('.addon-item').forEach(item => {
+        const name = item.dataset.name;
+        const description = item.dataset.description;
+        const category = item.dataset.category;
+        
+        const matchesSearch = name.includes(searchTerm) || description.includes(searchTerm);
+        const matchesCategory = currentCategory === 'all' || category === currentCategory;
+        
+        if (matchesSearch && matchesCategory) {
+            item.style.display = 'block';
+            visibleCount++;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    
+    updateResultCount();
+}
+
+function updateResultCount() {
+    const visible = document.querySelectorAll('.addon-item[style="display: block;"], .addon-item:not([style*="display: none"])').length;
+    const total = document.querySelectorAll('.addon-item').length;
+    document.getElementById('resultCount').textContent = `${visible} of ${total}`;
+}
+
+// Initialize count
+document.addEventListener('DOMContentLoaded', updateResultCount);
+</script>
 {% endblock %}
