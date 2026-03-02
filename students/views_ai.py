@@ -188,7 +188,7 @@ def create_realtime_session(request):
     try:
         import json
         data = json.loads(request.body) if request.body else {}
-        voice = data.get('voice', 'nova')
+        voice = data.get('voice', 'coral')
         instructions = data.get('instructions', 
             "You are Aura, a helpful and friendly AI tutor. "
             "Keep answers concise and conversational. "
@@ -252,9 +252,9 @@ def process_voice_interaction(request):
         speech_speed = float(request.POST.get('speed', 1.0))
         
         # Validate voice type
-        valid_voices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer']
+        valid_voices = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse', 'marin', 'cedar']
         if voice_type not in valid_voices:
-            voice_type = 'nova'
+            voice_type = 'coral'
         
         # Validate speed (0.25 to 4.0 per OpenAI docs, but we limit to 0.5-1.5 in UI)
         speech_speed = max(0.5, min(1.5, speech_speed))
