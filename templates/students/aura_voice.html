@@ -201,6 +201,486 @@ document.addEventListener("DOMContentLoaded", function() {
     const speedValue = document.getElementById("speedValue");
     const saveSettingsBtn = document.getElementById("saveSettingsBtn");
     
+    // Realtime API Variables
+    let realtimeWs = null;
+    let audioContext = null;
+    let mediaStream = null;
+    let source = null;
+    let processor = null;
+    let isConnected = false;
+    
+    // Audio playback
+    let audioPlaybackContext = null;
+    let audioQueue = [];
+    let isPlayingAudio = false;
+    
+    // Conversation tracking
+    let currentUserText = "";
+    let currentAuraText = "";
+    
+    // States: IDLE, CONNECTING, READY, LISTENING, THINKING, SPEAKING
+    let state = 'IDLE'; 
+    let conversationHistory = JSON.parse(localStorage.getItem('auraVoiceHistory') || '[]');
+    let retryCount = 0;
+    const MAX_RETRIES = 2;
+    
+    // Voice settings (stored in localStorage)
+    let voiceSettings = JSON.parse(localStorage.getItem('auraVoiceSettings') || '{"voice": "nova", "speed": 1.0}');
+    
+    // Initialize settings UI
+    voiceSelect.value = voiceSettings.voice;
+    speedSlider.value = voiceSettings.speed;
+    speedValue.textContent = voiceSettings.speed + 'x';
+    
+    // Update conversation history display
+    function updateHistoryDisplay() {
+        if (conversationHistory.length === 0) {
+            historyContent.innerHTML = `
+                <div class="text-center text-white-50 py-5">
+                    <i class="fas fa-comment-slash fa-3x mb-3 opacity-25"></i>
+                    <p>No conversation yet. Start talking to Aura!</p>
+                </div>
+            `;
+            clearBtn.classList.add('d-none');
+        } else {
+            historyContent.innerHTML = conversationHistory.map((item, index) => `
+                <div class="border border-secondary border-opacity-25 rounded-3 p-3 bg-dark bg-opacity-50">
+                    <div class="text-white-50 small mb-2">
+                        <i class="fas fa-clock me-1"></i>${item.timestamp}
+                    </div>
+                    <div class="mb-2">
+                        <div class="text-white-50 small"><i class="fas fa-user me-2"></i>You:</div>
+                        <div class="text-white">${item.userText}</div>
+                    </div>
+                    <div>
+                        <div class="text-info small"><i class="fas fa-robot me-2"></i>Aura:</div>
+                        <div class="text-white">${item.auraText}</div>
+                    </div>
+                </div>
+            `).join('');
+            clearBtn.classList.remove('d-none');
+        }
+    }
+    
+    // Save conversation to history
+    function saveToHistory(userText, auraText) {
+        const timestamp = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        conversationHistory.push({ userText, auraText, timestamp });
+        localStorage.setItem('auraVoiceHistory', JSON.stringify(conversationHistory));
+        updateHistoryDisplay();
+    }
+    
+    // Clear history
+    clearBtn.addEventListener('click', () => {
+        if (confirm('Clear all conversation history?')) {
+            conversationHistory = [];
+            localStorage.removeItem('auraVoiceHistory');
+            updateHistoryDisplay();
+        }
+    });
+    
+    // Settings panel controls
+    settingsBtn.addEventListener('click', () => {
+        settingsPanel.classList.remove('d-none');
+    });
+    
+    closeSettingsBtn.addEventListener('click', () => {
+        settingsPanel.classList.add('d-none');
+    });
+    
+    speedSlider.addEventListener('input', (e) => {
+        speedValue.textContent = e.target.value + 'x';
+    });
+    
+    saveSettingsBtn.addEventListener('click', () => {
+        voiceSettings.voice = voiceSelect.value;
+        voiceSettings.speed = parseFloat(speedSlider.value);
+        localStorage.setItem('auraVoiceSettings', JSON.stringify(voiceSettings));
+        settingsPanel.classList.add('d-none');
+        
+        // Reconnect if already connected to apply new settings
+        if (isConnected) {
+            disconnectRealtime();
+            setTimeout(() => connectRealtime(), 500);
+        }
+        
+        // Show success feedback
+        const originalText = saveSettingsBtn.innerHTML;
+        saveSettingsBtn.innerHTML = '<i class="fas fa-check me-2"></i>Saved!';
+        setTimeout(() => {
+            saveSettingsBtn.innerHTML = originalText;
+        }, 1500);
+    });
+    
+    // History panel controls
+    historyBtn.addEventListener('click', () => {
+        updateHistoryDisplay();
+        historyPanel.classList.remove('d-none');
+    });
+    
+    closeHistoryBtn.addEventListener('click', () => {
+        historyPanel.classList.add('d-none');
+    });
+
+    function updateState(newState) {
+        state = newState;
+        document.body.classList.remove('is-recording', 'is-thinking', 'is-speaking');
+        
+        switch (state) {
+            case 'IDLE':
+                statusText.innerText = "Hi, I'm Aura.";
+                substatusText.innerText = "Tap the orb to start a real-time conversation.";
+                voiceIcon.className = "fas fa-microphone fa-3x text-white";
+                transcriptBox.classList.add('d-none');
+                break;
+            case 'CONNECTING':
+                statusText.innerText = "Connecting...";
+                substatusText.innerText = "Establishing secure voice channel...";
+                voiceIcon.className = "fas fa-circle-notch fa-spin fa-3x text-white";
+                break;
+            case 'READY':
+                statusText.innerText = "Connected!";
+                substatusText.innerText = "Tap to start speaking or just start talking...";
+                voiceIcon.className = "fas fa-microphone fa-3x text-success";
+                break;
+            case 'LISTENING':
+                document.body.classList.add('is-recording');
+                statusText.innerText = "Listening...";
+                substatusText.innerText = "I'm hearing you in real-time...";
+                voiceIcon.className = "fas fa-waveform-lines fa-3x text-white";
+                break;
+            case 'THINKING':
+                document.body.classList.add('is-thinking');
+                statusText.innerText = "Thinking...";
+                substatusText.innerText = "Processing your question...";
+                voiceIcon.className = "fas fa-brain fa-3x text-white";
+                break;
+            case 'SPEAKING':
+                document.body.classList.add('is-speaking');
+                statusText.innerText = "Aura is speaking";
+                substatusText.innerText = "Tap to interrupt or let me finish...";
+                voiceIcon.className = "fas fa-volume-up fa-3x text-white";
+                transcriptBox.classList.remove('d-none');
+                break;
+            case 'ERROR':
+                statusText.innerText = "Connection Error";
+                substatusText.innerText = retryCount < MAX_RETRIES ? "Retrying... Please wait." : "Tap orb to try again.";
+                voiceIcon.className = "fas fa-exclamation-triangle fa-3x text-warning";
+                setTimeout(() => {
+                    if (state === 'ERROR') updateState('IDLE');
+                }, 3000);
+                break;
+        }
+    }
+    
+    // Connect to OpenAI Realtime API
+    async function connectRealtime() {
+        updateState('CONNECTING');
+        
+        try {
+            // Step 1: Create session and get ephemeral token
+            const sessionResponse = await fetch("{% url 'students:create_realtime_session' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    voice: voiceSettings.voice,
+                    instructions: "You are Aura, a helpful and friendly AI tutor for students. Keep answers concise and conversational."
+                })
+            });
+            
+            if (!sessionResponse.ok) {
+                throw new Error(`Failed to create session: ${sessionResponse.status}`);
+            }
+            
+            const sessionData = await sessionResponse.json();
+            const { client_secret } = sessionData;
+            
+            // Step 2: Connect to OpenAI WebSocket
+            const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01`;
+            realtimeWs = new WebSocket(wsUrl, ['realtime', `openai-insecure-api-key.${client_secret}`]);
+            
+            realtimeWs.onopen = () => {
+                console.log('Realtime WebSocket connected');
+                isConnected = true;
+                
+                // Configure session
+                sendRealtimeEvent({
+                    type: 'session.update',
+                    session: {
+                        modalities: ['text', 'audio'],
+                        instructions: "You are Aura, a helpful and friendly AI tutor. Keep answers concise.",
+                        voice: voiceSettings.voice,
+                        input_audio_format: 'pcm16',
+                        output_audio_format: 'pcm16',
+                        input_audio_transcription: { model: 'whisper-1' },
+                        turn_detection: {
+                            type: 'server_vad',
+                            threshold: 0.5,
+                            prefix_padding_ms: 300,
+                            silence_duration_ms: 500
+                        }
+                    }
+                });
+                
+                startAudioCapture();
+                updateState('READY');
+            };
+            
+            realtimeWs.onmessage = (event) => {
+                handleRealtimeMessage(JSON.parse(event.data));
+            };
+            
+            realtimeWs.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                updateState('ERROR');
+            };
+            
+            realtimeWs.onclose = () => {
+                console.log('WebSocket closed');
+                isConnected = false;
+                stopAudioCapture();
+                if (state !== 'IDLE' && state !== 'ERROR') {
+                    updateState('IDLE');
+                }
+            };
+            
+        } catch (error) {
+            console.error('Connection error:', error);
+            updateState('ERROR');
+        }
+    }
+    
+    // Disconnect from Realtime API
+    function disconnectRealtime() {
+        if (realtimeWs) {
+            realtimeWs.close();
+            realtimeWs = null;
+        }
+        stopAudioCapture();
+        isConnected = false;
+        updateState('IDLE');
+    }
+    
+    // Send event to Realtime API
+    function sendRealtimeEvent(event) {
+        if (realtimeWs && realtimeWs.readyState === WebSocket.OPEN) {
+            realtimeWs.send(JSON.stringify(event));
+        }
+    }
+    
+    // Handle incoming Realtime API messages
+    function handleRealtimeMessage(message) {
+        console.log('Realtime message:', message.type);
+        
+        switch (message.type) {
+            case 'session.created':
+            case 'session.updated':
+                console.log('Session ready');
+                break;
+                
+            case 'input_audio_buffer.speech_started':
+                updateState('LISTENING');
+                currentUserText = "";
+                break;
+                
+            case 'input_audio_buffer.speech_stopped':
+                updateState('THINKING');
+                break;
+                
+            case 'conversation.item.input_audio_transcription.completed':
+                currentUserText = message.transcript;
+                userTranscript.textContent = currentUserText;
+                break;
+                
+            case 'response.audio_transcript.delta':
+                if (!isPlayingAudio) {
+                    updateState('SPEAKING');
+                    isPlayingAudio = true;
+                }
+                currentAuraText += message.delta;
+                auraTranscript.textContent = currentAuraText;
+                break;
+                
+            case 'response.audio.delta':
+                playAudioChunk(message.delta);
+                break;
+                
+            case 'response.audio.done':
+            case 'response.done':
+                if (currentUserText && currentAuraText) {
+                    saveToHistory(currentUserText, currentAuraText);
+                }
+                currentAuraText = "";
+                isPlayingAudio = false;
+                updateState('READY');
+                break;
+                
+            case 'error':
+                console.error('Realtime API error:', message.error);
+                updateState('ERROR');
+                break;
+        }
+    }
+    
+    // Start capturing audio from microphone
+    async function startAudioCapture() {
+        try {
+            mediaStream = await navigator.mediaDevices.getUserMedia({ 
+                audio: {
+                    sampleRate: 24000,
+                    channelCount: 1,
+                    echoCancellation: true,
+                    noiseSuppression: true
+                } 
+            });
+            
+            audioContext = new AudioContext({ sampleRate: 24000 });
+            source = audioContext.createMediaStreamSource(mediaStream);
+            processor = audioContext.createScriptProcessor(4096, 1, 1);
+            
+            processor.onaudioprocess = (e) => {
+                if (isConnected && realtimeWs.readyState === WebSocket.OPEN) {
+                    const inputData = e.inputBuffer.getChannelData(0);
+                    const pcm16 = floatTo16BitPCM(inputData);
+                    const base64Audio = arrayBufferToBase64(pcm16.buffer);
+                    
+                    sendRealtimeEvent({
+                        type: 'input_audio_buffer.append',
+                        audio: base64Audio
+                    });
+                }
+            };
+            
+            source.connect(processor);
+            processor.connect(audioContext.destination);
+            
+        } catch (error) {
+            console.error('Microphone access error:', error);
+            updateState('ERROR');
+        }
+    }
+    
+    // Stop audio capture
+    function stopAudioCapture() {
+        if (processor) {
+            processor.disconnect();
+            processor = null;
+        }
+        if (source) {
+            source.disconnect();
+            source = null;
+        }
+        if (audioContext) {
+            audioContext.close();
+            audioContext = null;
+        }
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(track => track.stop());
+            mediaStream = null;
+        }
+    }
+    
+    // Play audio chunk from Realtime API
+    function playAudioChunk(base64Audio) {
+        try {
+            if (!audioPlaybackContext || audioPlaybackContext.state === 'closed') {
+                audioPlaybackContext = new AudioContext({ sampleRate: 24000 });
+            }
+            
+            const audioData = base64ToArrayBuffer(base64Audio);
+            const pcm16Array = new Int16Array(audioData);
+            const float32Array = pcm16ToFloat(pcm16Array);
+            
+            const audioBuffer = audioPlaybackContext.createBuffer(1, float32Array.length, 24000);
+            audioBuffer.getChannelData(0).set(float32Array);
+            
+ const bufferSource = audioPlaybackContext.createBufferSource();
+            bufferSource.buffer = audioBuffer;
+            bufferSource.connect(audioPlaybackContext.destination);
+            bufferSource.start();
+            
+        } catch (error) {
+            console.error('Audio playback error:', error);
+        }
+    }
+    
+    // Audio conversion utilities
+    function floatTo16BitPCM(float32Array) {
+        const buffer = new ArrayBuffer(float32Array.length * 2);
+        const view = new DataView(buffer);
+        let offset = 0;
+        for (let i = 0; i < float32Array.length; i++, offset += 2) {
+            let s = Math.max(-1, Math.min(1, float32Array[i]));
+            view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+        }
+        return new Int16Array(buffer);
+    }
+    
+    function pcm16ToFloat(int16Array) {
+        const float32Array = new Float32Array(int16Array.length);
+        for (let i = 0; i < int16Array.length; i++) {
+            float32Array[i] = int16Array[i] / (int16Array[i] < 0 ? 0x8000 : 0x7FFF);
+        }
+        return float32Array;
+    }
+    
+    function arrayBufferToBase64(buffer) {
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
+    }
+    
+    function base64ToArrayBuffer(base64) {
+        const binaryString = atob(base64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes.buffer;
+    }
+
+    // Orb click handler
+    voiceOrb.addEventListener("click", () => {
+        if (state === 'IDLE' || state === 'ERROR') {
+            connectRealtime();
+        } else if (state === 'READY' || state === 'LISTENING' || state === 'THINKING' || state === 'SPEAKING') {
+            disconnectRealtime();
+        }
+    });
+
+    // Init UI
+    updateState('IDLE');
+    updateHistoryDisplay();
+    
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+        disconnectRealtime();
+    });
+});
+</script>
+    
+    // Panel controls
+    const settingsBtn = document.getElementById("settingsBtn");
+    const settingsPanel = document.getElementById("settingsPanel");
+    const closeSettingsBtn = document.getElementById("closeSettingsBtn");
+    const historyBtn = document.getElementById("historyBtn");
+    const historyPanel = document.getElementById("historyPanel");
+    const closeHistoryBtn = document.getElementById("closeHistoryBtn");
+    const historyContent = document.getElementById("historyContent");
+    const clearBtn = document.getElementById("clearBtn");
+    
+    // Settings controls
+    const voiceSelect = document.getElementById("voiceSelect");
+    const speedSlider = document.getElementById("speedSlider");
+    const speedValue = document.getElementById("speedValue");
+    const saveSettingsBtn = document.getElementById("saveSettingsBtn");
+    
     // States: IDLE, RECORDING, THINKING, SPEAKING
     let state = 'IDLE'; 
     let mediaRecorder = null;

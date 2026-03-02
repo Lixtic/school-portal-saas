@@ -172,8 +172,65 @@ def query_hf_inference(model_urls, headers, data=None, json_payload=None):
     raise Exception("Unknown error in HF query")
 
 def aura_voice_view(request):
-    """Render the voice interface."""
+    """Render the voice interface with Realtime API support."""
     return render(request, 'students/aura_voice.html')
+
+
+@csrf_exempt
+def create_realtime_session(request):
+    """
+    Create an ephemeral token for OpenAI Realtime API.
+    Frontend will use this to establish WebSocket connection directly to OpenAI.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+    try:
+        import json
+        data = json.loads(request.body) if request.body else {}
+        voice = data.get('voice', 'nova')
+        instructions = data.get('instructions', 
+            "You are Aura, a helpful and friendly AI tutor. "
+            "Keep answers concise and conversational. "
+            "You're speaking to a student, so be encouraging and supportive.")
+        
+        import requests
+        api_key = get_openai_api_key()
+        
+        if not api_key:
+            return JsonResponse({"error": "OpenAI API key not configured"}, status=500)
+        
+        # Create ephemeral token for Realtime API
+        # The client will use this to connect directly to OpenAI WebSocket
+        response = requests.post(
+            "https://api.openai.com/v1/realtime/sessions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "gpt-4o-realtime-preview-2024-10-01",
+                "voice": voice
+            },
+            timeout=30
+        )
+        
+        if response.status_code != 200:
+            return JsonResponse({
+                "error": f"Failed to create session: {response.text}"
+            }, status=response.status_code)
+        
+        session_data = response.json()
+        
+        return JsonResponse({
+            "client_secret": session_data.get("client_secret", {}).get("value", "")
+        })
+        
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Realtime Session Error: {str(e)}")
+        return JsonResponse({"error": str(e)}, status=500)
 
 @csrf_exempt
 def process_voice_interaction(request):
