@@ -380,11 +380,142 @@
     display: flex; gap: 16px;
 }
 
-/* Mobile adjustments */
+/* ── Exit Button ── */
+#exitBtn {
+    background: rgba(255,60,60,0.08);
+    border: 1px solid rgba(255,60,60,0.15);
+    color: rgba(255,100,100,0.8);
+}
+#exitBtn:hover {
+    background: rgba(255,60,60,0.2);
+    border-color: rgba(255,60,60,0.35);
+    color: #ff6b6b;
+}
+
+/* ── Exit Confirm Dialog ── */
+#exitConfirm {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 30;
+    display: none;
+    align-items: center; justify-content: center;
+}
+#exitConfirm.visible { display: flex; }
+#exitConfirmBox {
+    background: rgba(18,18,30,0.98);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px; padding: 32px;
+    text-align: center; max-width: 320px; width: 85%;
+}
+#exitConfirmBox h4 {
+    font-size: 17px; font-weight: 500; color: #e0e0e0;
+    margin: 0 0 8px;
+}
+#exitConfirmBox p {
+    font-size: 13px; color: rgba(255,255,255,0.35);
+    margin: 0 0 24px; line-height: 1.5;
+}
+.exit-actions { display: flex; gap: 10px; }
+.exit-actions button {
+    flex: 1; padding: 12px; border-radius: 12px;
+    font-size: 14px; font-weight: 500; cursor: pointer;
+    border: none; transition: all 0.2s;
+}
+#exitCancel {
+    background: rgba(255,255,255,0.06); color: #ccc;
+}
+#exitCancel:hover { background: rgba(255,255,255,0.12); }
+#exitConfirmBtn {
+    background: rgba(255,60,60,0.2); color: #ff6b6b;
+}
+#exitConfirmBtn:hover { background: rgba(255,60,60,0.35); }
+
+/* ═══ MOBILE RESPONSIVE ═══ */
+
+/* Tablets & large phones */
+@media (max-width: 768px) {
+    #topHUD { padding: 12px 14px; }
+    .hud-btn { padding: 7px 10px; font-size: 12px; }
+    .hud-btn.icon-only { width: 36px; height: 36px; }
+    .hud-badge { padding: 5px 10px; font-size: 11px; }
+    #ambientGlow { width: 350px; height: 350px; }
+    #centerStatus { transform: translate(-50%, 45px); }
+    #statusText { font-size: 20px; }
+    #substatusText { font-size: 12px; }
+    .slide-panel { max-width: 100%; width: 100%; }
+}
+
+/* Phones */
 @media (max-width: 480px) {
+    #topHUD {
+        padding: 10px 12px;
+        padding-top: max(10px, env(safe-area-inset-top, 10px));
+    }
+    .hud-btn { padding: 6px 8px; font-size: 11px; border-radius: 10px; }
+    .hud-btn.icon-only { width: 34px; height: 34px; font-size: 14px; }
+    .hud-badge { padding: 4px 8px; font-size: 10px; letter-spacing: 0.3px; }
+    .hud-badge .dot { width: 5px; height: 5px; }
+
+    #ambientGlow { width: 280px; height: 280px; }
+
+    #centerStatus { transform: translate(-50%, 35px); }
     #statusText { font-size: 18px; }
-    #transcriptFeed { bottom: 90px; max-height: 140px; }
-    #bottomControls { padding-bottom: 20px; }
+    #substatusText { font-size: 11px; }
+
+    #transcriptFeed {
+        bottom: 95px; max-height: 130px;
+        width: 94%; max-width: none;
+    }
+    .transcript-line { padding: 8px 12px; font-size: 12px; border-radius: 12px; }
+    .transcript-line .label { font-size: 9px; }
+
+    #bottomControls {
+        gap: 10px;
+        padding: 14px 14px;
+        padding-bottom: max(18px, env(safe-area-inset-bottom, 18px));
+    }
+    #interruptZone { width: 58px; height: 58px; }
+    #interruptZone .icon { font-size: 20px; }
+    .side-btn { width: 40px; height: 40px; font-size: 14px; }
+
+    #whiteboardOverlay { width: 92%; padding: 20px; border-radius: 16px; }
+    #whiteboardContent { font-size: 14px; }
+
+    .slide-panel { padding: 18px; }
+    .panel-header { margin-bottom: 20px; padding-bottom: 12px; }
+    .panel-header h3 { font-size: 15px; }
+    .aura-select { padding: 9px 12px; font-size: 13px; }
+    .aura-btn-primary { padding: 11px; font-size: 13px; }
+
+    #exitConfirmBox { padding: 24px; }
+    #exitConfirmBox h4 { font-size: 16px; }
+    .exit-actions button { padding: 11px; font-size: 13px; }
+}
+
+/* Very small phones (iPhone SE, etc.) */
+@media (max-width: 360px) {
+    #ambientGlow { width: 220px; height: 220px; }
+    #centerStatus { transform: translate(-50%, 28px); }
+    #statusText { font-size: 16px; }
+    #transcriptFeed { bottom: 88px; max-height: 110px; }
+    .transcript-line { padding: 6px 10px; font-size: 11px; }
+    #bottomControls { gap: 8px; }
+    #interruptZone { width: 52px; height: 52px; }
+    .side-btn { width: 36px; height: 36px; font-size: 13px; }
+}
+
+/* Landscape mobile */
+@media (max-height: 500px) and (orientation: landscape) {
+    #ambientGlow { width: 200px; height: 200px; transform: translate(-50%, -50%); }
+    #centerStatus { transform: translate(-50%, 25px); }
+    #statusText { font-size: 16px; }
+    #transcriptFeed { max-height: 80px; bottom: 70px; }
+    #bottomControls { padding: 8px 14px 12px; }
+    #interruptZone { width: 48px; height: 48px; }
+    .side-btn { width: 36px; height: 36px; }
+    #topHUD { padding: 6px 12px; }
 }
 </style>
 {% endblock %}
@@ -417,11 +548,16 @@
 
     <!-- Top HUD -->
     <div id="topHUD">
-        <a href="{% url 'students:aura_arena' %}" class="hud-btn">
-            <i class="fas fa-keyboard"></i> <span class="d-none d-sm-inline">Text</span>
-        </a>
+        <div style="display:flex;gap:8px;align-items:center">
+            <button id="exitBtn" class="hud-btn icon-only" title="Exit Aura Voice">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <a href="{% url 'students:aura_arena' %}" class="hud-btn">
+                <i class="fas fa-keyboard"></i> <span class="d-none d-sm-inline">Text</span>
+            </a>
+        </div>
         <div class="hud-badge">
-            <span class="dot"></span> Aura Voice
+            <span class="dot"></span> <span class="d-none d-sm-inline">Aura </span>Voice
         </div>
         <button id="settingsBtn" class="hud-btn icon-only" title="Settings">
             <i class="fas fa-sliders-h"></i>
@@ -510,6 +646,18 @@
         <button id="saveSettingsBtn" class="aura-btn-primary">
             <i class="fas fa-check" style="margin-right:6px"></i>Save Settings
         </button>
+    </div>
+
+    <!-- Exit Confirmation Dialog -->
+    <div id="exitConfirm">
+        <div id="exitConfirmBox">
+            <h4><i class="fas fa-door-open" style="margin-right:8px;color:rgba(255,100,100,0.7)"></i>Leave Aura Voice?</h4>
+            <p>Your session will end and you'll return to your dashboard.</p>
+            <div class="exit-actions">
+                <button id="exitCancel">Stay</button>
+                <button id="exitConfirmBtn"><i class="fas fa-sign-out-alt" style="margin-right:4px"></i>Leave</button>
+            </div>
+        </div>
     </div>
 
     <!-- History Panel Backdrop -->
@@ -1435,6 +1583,52 @@ interruptZone.addEventListener('click', () => {
         case 'THINKING':
             disconnectRealtime();
             break;
+    }
+});
+
+// ═══════════════════════════════════════════════════════════
+// 17. EXIT CONTROLS
+// ═══════════════════════════════════════════════════════════
+
+const exitBtn = document.getElementById('exitBtn');
+const exitConfirm = document.getElementById('exitConfirm');
+const exitCancel = document.getElementById('exitCancel');
+const exitConfirmBtn = document.getElementById('exitConfirmBtn');
+
+function exitAuraVoice() {
+    disconnectRealtime();
+    if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+    // Navigate back - try history first, fallback to dashboard
+    if (document.referrer && document.referrer.includes(window.location.hostname)) {
+        window.history.back();
+    } else {
+        window.location.href = window.location.pathname.replace(/students\/aura\/voice\/$/, '') + 'dashboard/';
+    }
+}
+
+exitBtn.addEventListener('click', () => {
+    if (isConnected) {
+        // Show confirmation if session is active
+        exitConfirm.classList.add('visible');
+    } else {
+        exitAuraVoice();
+    }
+});
+
+exitCancel.addEventListener('click', () => exitConfirm.classList.remove('visible'));
+exitConfirmBtn.addEventListener('click', () => { exitConfirm.classList.remove('visible'); exitAuraVoice(); });
+exitConfirm.addEventListener('click', (e) => { if (e.target === exitConfirm) exitConfirm.classList.remove('visible'); });
+
+// Escape key to exit
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        // Close any open panel first
+        if (settingsPanel.classList.contains('open')) { closePanel(settingsPanel, settingsBackdrop); return; }
+        if (historyPanel.classList.contains('open')) { closePanel(historyPanel, historyBackdrop); return; }
+        if (whiteboardOverlay.classList.contains('visible')) { whiteboardOverlay.classList.remove('visible'); return; }
+        if (cameraOverlay.classList.contains('visible')) { closeCameraBtn.click(); return; }
+        // Then exit
+        exitBtn.click();
     }
 });
 
