@@ -852,15 +852,24 @@ def import_students_csv(request):
                 
                 for row_num, row in enumerate(reader, start=2):  # Start at 2 (header is row 1)
                     try:
-                        first_name = row.get('first_name', '').strip()
-                        last_name = row.get('last_name', '').strip()
-                        class_name = row.get('class_name', '').strip()
-                        age = row.get('age', '').strip()
+                        # Handle both naming conventions: "First Name" or "first_name"
+                        first_name = (row.get('First Name') or row.get('first_name') or '').strip()
+                        last_name = (row.get('Last Name') or row.get('last_name') or '').strip()
+                        admission_no = (row.get('Admission No') or row.get('admission_number') or row.get('admission_no') or '').strip()
+                        class_name = (row.get('Class') or row.get('class_name') or row.get('class') or '').strip()
+                        roll_no = (row.get('Roll No') or row.get('roll_no') or row.get('roll_number') or '').strip()
+                        email = (row.get('Email') or row.get('email') or '').strip()
+                        emergency_contact = (row.get('Emergency Contact') or row.get('emergency_contact') or '').strip()
+                        age = (row.get('age') or row.get('Age') or '').strip()
                         
-                        if not first_name or not last_name:
-                            errors.append(f"Row {row_num}: Missing first_name or last_name")
+                        if not first_name:
+                            errors.append(f"Row {row_num}: Missing first name")
                             skipped_count += 1
                             continue
+                        
+                        # Last name is optional - some students might only have first name
+                        if not last_name:
+                            last_name = ''
                         
                         # Determine class
                         student_class = None
@@ -885,34 +894,59 @@ def import_students_csv(request):
                             student_age = 10
                         
                         # Generate username
-                        base_username = f"{first_name.lower()}.{last_name.lower()}"
-                        username = base_username.replace(' ', '')
+                        if last_name:
+                            base_username = f"{first_name.lower()}.{last_name.lower()}"
+                        else:
+                            base_username = first_name.lower()
+                        username = base_username.replace(' ', '').replace('-', '')
                         counter = 1
                         while User.objects.filter(username=username).exists():
-                            username = f"{base_username.replace(' ', '')}{counter}"
+                            username = f"{base_username.replace(' ', '').replace('-', '')}{counter}"
                             counter += 1
                         
-                        # Generate admission number
-                        prefix = 'ADM'
+                        # Use provided admission number or generate one
                         admission_number = None
-                        for _ in range(100):  # Try up to 100 times
-                            suffix = ''.join(random.choices(string.digits, k=4))
-                            candidate = f"{prefix}{suffix}"
-                            if not Student.objects.filter(admission_number=candidate).exists():
-                                admission_number = candidate
-                                break
+                        if admission_no and admission_no.upper() not in ['N/A', 'NA', '']:
+                            # Clean up admission number
+                            admission_number = admission_no.strip().replace(' ', '')
+                            # Check if it already exists
+                            if Student.objects.filter(admission_number=admission_number).exists():
+                                errors.append(f"Row {row_num}: Admission number '{admission_number}' already exists")
+                                skipped_count += 1
+                                continue
+                        else:
+                            # Generate admission number
+                            prefix = 'ADM'
+                            for _ in range(100):  # Try up to 100 times
+                                suffix = ''.join(random.choices(string.digits, k=4))
+                                candidate = f"{prefix}{suffix}"
+                                if not Student.objects.filter(admission_number=candidate).exists():
+                                    admission_number = candidate
+                                    break
                         
                         if not admission_number:
                             errors.append(f"Row {row_num}: Could not generate unique admission number")
                             skipped_count += 1
                             continue
                         
+                        # Prepare email
+                        if not email or email.upper() in ['N/A', 'NA', '']:
+                            email = f"{username}@school.local"
+                        
+                        # Check if user with this email already exists
+                        if User.objects.filter(email=email).exists():
+                            email = f"{username}{random.randint(1, 999)}@school.local"
+                        
+                        # Prepare emergency contact
+                        if not emergency_contact or emergency_contact.upper() in ['N/A', 'NA', '']:
+                            emergency_contact = 'N/A'
+                        
                         # Create user
                         user = User.objects.create(
                             username=username,
                             first_name=first_name,
                             last_name=last_name,
-                            email=f"{username}@school.local",
+                            email=email,
                             user_type='student'
                         )
                         user.set_unusable_password()
@@ -923,15 +957,23 @@ def import_students_csv(request):
                         date_of_birth = date(dob_year, 1, 1)
                         
                         # Create student
-                        Student.objects.create(
+                        student = Student.objects.create(
                             user=user,
                             admission_number=admission_number,
                             date_of_birth=date_of_birth,
                             gender='male',  # Default, can be updated later
                             date_of_admission=date.today(),
                             current_class=student_class,
-                            emergency_contact='N/A'
+                            emergency_contact=emergency_contact
                         )
+                        
+                        # Set roll number if provided
+                        if roll_no and roll_no.upper() not in ['N/A', 'NA', '']:
+                            try:
+                                student.roll_number = int(roll_no)
+                                student.save()
+                            except (ValueError, AttributeError):
+                                pass  # Skip if roll number is invalid or field doesn't exist
                         
                         imported_count += 1
                         
