@@ -184,8 +184,10 @@
             backdrop-filter: blur(12px);
             height: var(--header-height);
             box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            position: sticky;
+            position: fixed;
             top: 0;
+            left: 0;
+            right: 0;
             z-index: 1000;
             display: flex;
             align-items: center;
@@ -477,14 +479,52 @@
             width: var(--sidebar-width);
             position: fixed;
             left: 0;
-            top: var(--header-height);
-            height: calc(100vh - var(--header-height));
+            top: 0;
+            height: 100vh;
             z-index: 999;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             overflow-y: auto;
-            padding-top: 2rem;
+            padding-top: calc(var(--header-height) + 2rem);
             display: flex;
             flex-direction: column;
+        }
+        
+        /* Auto-hide scrollbar in sidebar */
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 3px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .sidebar:hover::-webkit-scrollbar-thumb {
+            opacity: 1;
+        }
+        
+        [data-bs-theme="dark"] .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        /* Firefox scrollbar auto-hide */
+        .sidebar {
+            scrollbar-width: thin;
+            scrollbar-color: transparent transparent;
+        }
+        
+        .sidebar:hover {
+            scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+        }
+        
+        [data-bs-theme="dark"] .sidebar:hover {
+            scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
         }
 
         /* Tenant Dashboard Sidebar */
@@ -572,7 +612,8 @@
         /* Main Content Area */
         .main-content {
             margin-left: var(--sidebar-width);
-            min-height: 100vh;
+            margin-top: var(--header-height);
+            min-height: calc(100vh - var(--header-height));
             padding: 2.5rem;
             transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -877,7 +918,7 @@
             .sidebar {
                 top: 0;
                 height: 100vh;
-                padding-top: 5rem;
+                padding-top: calc(var(--header-height) + 1rem);
                 transform: translateX(-100%);
             }
             .sidebar.show {
@@ -885,13 +926,17 @@
             }
             .main-content {
                 margin-left: 0;
+                margin-top: var(--header-height);
                 padding: 1.25rem 1rem;
                 overflow-x: hidden;
             }
         }
 
         @media (max-width: 576px) {
-            .main-content { padding: 1rem 0.875rem; }
+            .main-content { 
+                padding: 1rem 0.875rem;
+                margin-top: var(--header-height);
+            }
             body { overflow-x: hidden; }
         }
 
@@ -958,7 +1003,7 @@
                             <span class="d-block d-sm-none text-truncate" style="max-width: 140px; font-size: 0.85rem;">{{ school_name|default:"School Portal" }}</span>
                         </a>
 
-                        <div class="dropdown header-app-menu d-none d-lg-block ms-2">
+                        <div class="dropdown header-app-menu d-none ms-2" style="display: none !important;">
                             <button class="btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-grid"></i> Menu
                             </button>
