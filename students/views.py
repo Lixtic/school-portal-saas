@@ -336,7 +336,7 @@ def student_detail_page(request, student_id):
     
     # Recent grades
     recent_grades = Grade.objects.filter(student=student).select_related(
-        'class_subject__subject', 'class_subject__class_name', 'academic_year'
+        'subject', 'academic_year', 'student__current_class'
     ).order_by('-academic_year__start_date', '-created_at')[:10]
     
     # Calculate average grade
