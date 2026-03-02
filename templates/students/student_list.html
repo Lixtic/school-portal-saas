@@ -34,10 +34,42 @@
         background: #fff;
         transition: all 0.2s;
         margin-bottom: 0.75rem;
+        cursor: pointer;
+        position: relative;
     }
     .student-card:hover {
         border-color: #3b82f6;
         box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08);
+        transform: translateY(-1px);
+    }
+    .student-card-link {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1;
+        text-decoration: none;
+    }
+    .student-row {
+        position: relative;
+        z-index: 2;
+    }
+    .student-checkbox,
+    .student-actions,
+    .student-actions * {
+        position: relative;
+        z-index: 3;
+    }
+    .student-info {
+        flex-grow: 1;
+        min-width: 0;
+    }
+    .student-info:hover .student-name {
+        color: #3b82f6;
+    }
+    .student-name {
+        transition: color 0.2s;
     }
     .avatar-sm {
         width: 42px;
@@ -143,6 +175,13 @@
     }
     [data-bs-theme="dark"] .btn-close {
         filter: invert(1) grayscale(100%) brightness(200%);
+    }
+    [data-bs-theme="dark"] .student-card:hover {
+        border-color: #3b82f6;
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+    }
+    [data-bs-theme="dark"] .student-info:hover .student-name {
+        color: #60a5fa;
     }
 
     /* Mobile layout refinements */
@@ -304,11 +343,13 @@
     <!-- Students List -->
     <div>
         {% for student in students %}
-        <div class="student-card">
+        <div class="student-card" onclick="window.location.href='{% url 'students:student_detail_page' student.id %}'">
+            <a href="{% url 'students:student_detail_page' student.id %}" class="student-card-link" aria-label="View {{ student.user.get_full_name }} details"></a>
             <div class="d-flex align-items-center gap-3 student-row">
                 <input type="checkbox" class="student-checkbox form-check-input" 
                        value="{{ student.id }}" 
-                       onchange="updateSelectedCount()">
+                       onchange="updateSelectedCount()" 
+                       onclick="event.stopPropagation()">
                 
                 {% if student.user.profile_picture %}
                     <img src="{{ student.user.profile_picture.url }}" class="avatar-sm">
@@ -318,8 +359,8 @@
                     </div>
                 {% endif %}
                 
-                <div class="flex-grow-1 min-w-0">
-                    <div class="fw-semibold text-truncate mb-1">{{ student.user.get_full_name }}</div>
+                <div class="student-info">
+                    <div class="fw-semibold text-truncate mb-1 student-name">{{ student.user.get_full_name }}</div>
                     <div class="small text-muted">{{ student.admission_number }}</div>
                 </div>
 
@@ -335,21 +376,21 @@
 
                 <div class="d-flex gap-1 student-actions">
                     <a href="{% url 'students:edit_student' student.id %}" 
-                       class="btn-icon" title="Edit">
+                       class="btn-icon" title="Edit" onclick="event.stopPropagation()">
                         <i class="bi bi-pencil"></i>
                     </a>
                     <a href="{% url 'finance:student_fees' student.id %}" 
-                       class="btn-icon" title="Fees">
+                       class="btn-icon" title="Fees" onclick="event.stopPropagation()">
                         <i class="bi bi-wallet2"></i>
                     </a>
                     <a href="{% url 'students:report_card' student.id %}" 
-                       class="btn-icon" title="Report" target="_blank">
+                       class="btn-icon" title="Report" target="_blank" onclick="event.stopPropagation()">
                         <i class="bi bi-file-text"></i>
                     </a>
-                    <button type="button" class="btn-icon" 
-                            onclick="viewDetails({{ student.id }})" title="View">
+                    <a href="{% url 'students:student_detail_page' student.id %}" 
+                       class="btn-icon" title="View Details" onclick="event.stopPropagation()">
                         <i class="bi bi-eye"></i>
-                    </button>
+                    </a>
                 </div>
             </div>
         </div>
