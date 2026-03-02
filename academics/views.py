@@ -37,6 +37,10 @@ def about_us(request):
     }
     return render(request, 'academics/about_us.html', context)
 
+def system_about(request):
+    """About the School Portal SaaS system"""
+    return render(request, 'academics/system_about.html')
+
 def apply_admission(request):
     """Public admission application page"""
     school_info = SchoolInfo.objects.first()
