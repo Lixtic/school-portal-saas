@@ -62,8 +62,8 @@ def manage_classes(request):
     # Filter by academic year if specified
     year_filter = request.GET.get('year', '')
     classes_qs = Class.objects.select_related('academic_year', 'class_teacher', 'class_teacher__user').annotate(
-        student_count=Count('student'),
-        subject_count=Count('classsubject'),
+        student_count=Count('student', distinct=True),
+        subject_count=Count('classsubject', distinct=True),
     )
     if year_filter:
         classes_qs = classes_qs.filter(academic_year_id=year_filter)
