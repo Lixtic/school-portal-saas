@@ -1,669 +1,1452 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Aura 2.0 Voice{% endblock %}
+{% block title %}Aura Voice{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ═══════════════════════════════════════════════════════
+   AURA VOICE — "Living Presence" UI
+   Full-screen immersive voice interface
+   ═══════════════════════════════════════════════════════ */
+
+/* Reset container padding from base */
+#aura-universe { 
+    position: fixed; inset: 0; z-index: 1050;
+    background: #06060f;
+    overflow: hidden;
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: #e0e0e0;
+}
+
+/* ── WebGL Canvas ── */
+#orbCanvas {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+}
+
+/* ── Ambient Glow behind orb ── */
+#ambientGlow {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -55%);
+    width: 500px; height: 500px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(56,120,255,0.12) 0%, transparent 70%);
+    filter: blur(60px);
+    pointer-events: none;
+    z-index: 1;
+    transition: all 1.5s ease;
+}
+
+/* ── Session Progress Ring ── */
+#progressRing {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    z-index: 2;
+}
+#progressRing svg {
+    width: 100%; height: 100%;
+}
+#progressRing circle.track {
+    fill: none; stroke: rgba(255,255,255,0.03); stroke-width: 2;
+}
+#progressRing circle.fill {
+    fill: none; stroke: url(#progressGradient); stroke-width: 2;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s ease;
+    filter: drop-shadow(0 0 6px rgba(56,120,255,0.4));
+}
+
+/* ── Top HUD Bar ── */
+#topHUD {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 20px;
+    z-index: 10;
+    opacity: 0.85;
+    transition: opacity 0.3s;
+}
+#topHUD:hover { opacity: 1; }
+
+.hud-btn {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    color: #ccc; border-radius: 12px;
+    padding: 8px 14px; font-size: 13px;
+    cursor: pointer; transition: all 0.25s;
+    display: flex; align-items: center; gap: 6px;
+}
+.hud-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+.hud-btn.icon-only { padding: 8px 10px; border-radius: 50%; width: 38px; height: 38px; justify-content: center; }
+
+.hud-badge {
+    background: rgba(56,120,255,0.15);
+    border: 1px solid rgba(56,120,255,0.25);
+    color: rgba(56,120,255,0.9);
+    padding: 6px 14px; border-radius: 20px;
+    font-size: 12px; font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
+    letter-spacing: 0.5px;
+}
+.hud-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #3878ff; animation: dotPulse 2s ease infinite; }
+@keyframes dotPulse { 0%,100%{opacity:0.4;transform:scale(1)} 50%{opacity:1;transform:scale(1.3)} }
+
+/* ── Center Status ── */
+#centerStatus {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, 60px);
+    text-align: center;
+    z-index: 5;
+    pointer-events: none;
+    width: 90%;
+    max-width: 400px;
+}
+#statusText {
+    font-size: 22px; font-weight: 300;
+    color: rgba(255,255,255,0.9);
+    margin: 0 0 6px;
+    letter-spacing: 0.3px;
+    transition: all 0.4s;
+}
+#substatusText {
+    font-size: 13px; color: rgba(255,255,255,0.35);
+    margin: 0; line-height: 1.5;
+    transition: all 0.4s;
+}
+
+/* ── Live Transcript Feed ── */
+#transcriptFeed {
+    position: absolute;
+    bottom: 100px; left: 50%;
+    transform: translateX(-50%);
+    width: 90%; max-width: 460px;
+    z-index: 8;
+    display: flex; flex-direction: column; gap: 6px;
+    max-height: 180px; overflow-y: auto;
+    mask-image: linear-gradient(transparent, black 20%, black 80%, transparent);
+    -webkit-mask-image: linear-gradient(transparent, black 20%, black 80%, transparent);
+    scrollbar-width: none;
+    opacity: 0;
+    transition: opacity 0.5s;
+    pointer-events: none;
+}
+#transcriptFeed.visible { opacity: 1; pointer-events: auto; }
+#transcriptFeed::-webkit-scrollbar { display: none; }
+
+.transcript-line {
+    padding: 10px 16px; border-radius: 14px;
+    font-size: 13px; line-height: 1.5;
+    animation: fadeSlideUp 0.4s ease forwards;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+.transcript-line.user {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.7);
+    align-self: flex-end; max-width: 85%;
+    border-bottom-right-radius: 4px;
+}
+.transcript-line.aura {
+    background: rgba(56,120,255,0.08);
+    border: 1px solid rgba(56,120,255,0.12);
+    color: rgba(200,215,255,0.85);
+    align-self: flex-start; max-width: 85%;
+    border-bottom-left-radius: 4px;
+}
+.transcript-line .label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 3px; display: block;
+}
+.transcript-line.user .label { color: rgba(255,255,255,0.3); }
+.transcript-line.aura .label { color: rgba(56,120,255,0.5); }
+
+@keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Whiteboard Overlay ── */
+#whiteboardOverlay {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 85%; max-width: 500px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    padding: 28px;
+    z-index: 12;
+    opacity: 0; visibility: hidden;
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+}
+#whiteboardOverlay.visible {
+    opacity: 1; visibility: visible; pointer-events: auto;
+}
+#whiteboardContent {
+    color: rgba(255,255,255,0.85);
+    font-size: 16px; line-height: 1.8;
+    font-family: 'KaTeX_Main', 'Times New Roman', serif;
+}
+#whiteboardClose {
+    position: absolute; top: 12px; right: 12px;
+    background: rgba(255,255,255,0.08); border: none;
+    color: #999; width: 30px; height: 30px;
+    border-radius: 50%; font-size: 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+}
+#whiteboardClose:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+/* ── Bottom Controls ── */
+#bottomControls {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    display: flex; justify-content: center; align-items: center; gap: 16px;
+    padding: 20px 20px 28px;
+    z-index: 10;
+}
+
+/* Main Tap-to-Interrupt Zone */
+#interruptZone {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    border: 2px solid rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.3s;
+    position: relative;
+}
+#interruptZone:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.2); }
+#interruptZone:active { transform: scale(0.92); }
+#interruptZone .icon { font-size: 22px; transition: all 0.3s; color: rgba(255,255,255,0.7); }
+
+/* Connecting spinner ring */
+#interruptZone.connecting { border-color: rgba(56,120,255,0.5); animation: spinBorder 1.2s linear infinite; }
+@keyframes spinBorder {
+    0%   { box-shadow: 0 0 0 2px rgba(56,120,255,0.3); }
+    50%  { box-shadow: 0 0 12px 2px rgba(56,120,255,0.5); }
+    100% { box-shadow: 0 0 0 2px rgba(56,120,255,0.3); }
+}
+
+/* Active listening pulse */
+#interruptZone.listening {
+    border-color: rgba(0,220,130,0.5);
+    animation: listenPulse 1.5s ease infinite;
+    background: rgba(0,220,130,0.08);
+}
+@keyframes listenPulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(0,220,130,0.3); }
+    50%     { box-shadow: 0 0 20px 4px rgba(0,220,130,0.15); }
+}
+
+/* Speaking glow */
+#interruptZone.speaking {
+    border-color: rgba(56,120,255,0.5);
+    background: rgba(56,120,255,0.08);
+}
+
+/* Side buttons */
+.side-btn {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.25s;
+    color: rgba(255,255,255,0.4);
+    font-size: 16px;
+}
+.side-btn:hover { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.8); }
+.side-btn.active { background: rgba(56,120,255,0.15); border-color: rgba(56,120,255,0.3); color: rgba(56,120,255,0.9); }
+
+/* ── Settings / History Panel ── */
+.slide-panel {
+    position: absolute; top: 0; right: -100%; width: 90%; max-width: 380px; height: 100%;
+    background: rgba(12,12,20,0.97);
+    border-left: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    z-index: 20;
+    transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow-y: auto;
+    padding: 24px;
+    scrollbar-width: none;
+}
+.slide-panel::-webkit-scrollbar { display: none; }
+.slide-panel.open { right: 0; }
+
+.panel-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 28px; padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.panel-header h3 {
+    font-size: 16px; font-weight: 500; color: #e0e0e0; margin: 0;
+}
+.panel-close {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(255,255,255,0.06); border: none;
+    color: #888; font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+}
+.panel-close:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+/* Panel backdrop */
+.panel-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 15; opacity: 0; visibility: hidden;
+    transition: all 0.3s;
+}
+.panel-backdrop.visible { opacity: 1; visibility: visible; }
+
+/* Form elements inside panels */
+.aura-select {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #ccc; border-radius: 12px;
+    padding: 10px 14px; font-size: 14px;
+    appearance: none; cursor: pointer;
+    outline: none;
+}
+.aura-select:focus { border-color: rgba(56,120,255,0.4); }
+.aura-select option { background: #111; color: #ccc; }
+
+.aura-range {
+    width: 100%; height: 4px;
+    appearance: none; background: rgba(255,255,255,0.08);
+    border-radius: 4px; outline: none;
+}
+.aura-range::-webkit-slider-thumb {
+    appearance: none; width: 18px; height: 18px;
+    border-radius: 50%; background: #3878ff;
+    border: 2px solid #0a0a18;
+    cursor: pointer;
+}
+
+.aura-label {
+    font-size: 11px; text-transform: uppercase;
+    letter-spacing: 1.2px; color: rgba(255,255,255,0.3);
+    margin-bottom: 8px; display: block;
+}
+
+.aura-btn-primary {
+    width: 100%; padding: 12px;
+    background: linear-gradient(135deg, #3878ff, #6c3bff);
+    border: none; border-radius: 12px;
+    color: #fff; font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: all 0.25s;
+}
+.aura-btn-primary:hover { filter: brightness(1.15); transform: translateY(-1px); }
+
+/* History Items */
+.history-item {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 14px; padding: 14px;
+    margin-bottom: 10px;
+    transition: background 0.2s;
+}
+.history-item:hover { background: rgba(255,255,255,0.06); }
+.history-time { font-size: 10px; color: rgba(255,255,255,0.25); margin-bottom: 8px; }
+.history-user { font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 4px; }
+.history-aura { font-size: 13px; color: rgba(200,215,255,0.7); }
+
+/* ── Utility ── */
+.hidden { display: none !important; }
+
+/* ── Camera Overlay ── */
+#cameraOverlay {
+    position: absolute; inset: 0;
+    background: #000;
+    z-index: 25;
+    display: none;
+}
+#cameraOverlay.visible { display: flex; flex-direction: column; }
+#cameraVideo {
+    flex: 1; width: 100%; object-fit: cover;
+}
+#cameraControls {
+    position: absolute; bottom: 30px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; gap: 16px;
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+    #statusText { font-size: 18px; }
+    #transcriptFeed { bottom: 90px; max-height: 140px; }
+    #bottomControls { padding-bottom: 20px; }
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="d-flex flex-column justify-content-center align-items-center bg-dark text-white shadow-lg mx-auto mt-4" style="border-radius: 20px; position: relative; overflow: hidden; min-height: 80vh; max-width: 600px; border: 1px solid rgba(255,255,255,0.1);">
-    
-    <!-- Background pulse effect -->
-    <div id="orbBackground" class="position-absolute w-100 h-100 d-flex justify-content-center align-items-center opacity-50 pe-none" style="z-index: 0;">
-        <div class="shadow-pulse" style="width: 350px; height: 350px; background: radial-gradient(circle, rgba(111,66,193,0.3) 0%, rgba(0,0,0,0) 70%); border-radius: 50%; filter: blur(30px); transition: all 1s ease;"></div>
+<!-- ═══════════════════════════════ AURA UNIVERSE ═══════════════════════════════ -->
+<div id="aura-universe">
+
+    <!-- WebGL 3D Orb Canvas -->
+    <canvas id="orbCanvas"></canvas>
+
+    <!-- Ambient Glow -->
+    <div id="ambientGlow"></div>
+
+    <!-- Session Progress Ring -->
+    <div id="progressRing">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+            <defs>
+                <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#3878ff" />
+                    <stop offset="100%" stop-color="#a855f7" />
+                </linearGradient>
+            </defs>
+            <circle class="track" cx="50" cy="50" r="49" />
+            <circle class="fill" cx="50" cy="50" r="49" 
+                stroke-dasharray="307.88" stroke-dashoffset="307.88"
+                transform="rotate(-90 50 50)" />
+        </svg>
     </div>
 
-    <!-- Header / Exit -->
-    <div class="position-absolute top-0 w-100 p-4 d-flex justify-content-between align-items-center" style="z-index: 2;">
-        <a href="{% url 'students:aura_arena' %}" class="btn btn-outline-light rounded-pill btn-sm d-flex align-items-center gap-2 px-3 py-2 bg-dark bg-opacity-50 blur-backdrop border-secondary">
-            <i class="fas fa-keyboard"></i> Text Mode
+    <!-- Top HUD -->
+    <div id="topHUD">
+        <a href="{% url 'students:aura_arena' %}" class="hud-btn">
+            <i class="fas fa-keyboard"></i> <span class="d-none d-sm-inline">Text</span>
         </a>
-        <div class="badge bg-primary bg-opacity-25 border border-primary px-3 py-2 rounded-pill d-flex align-items-center gap-2">
-            <i class="fas fa-magic text-primary"></i> <span class="fw-semibold">Aura 2.0</span>
+        <div class="hud-badge">
+            <span class="dot"></span> Aura Voice
         </div>
-        <button id="settingsBtn" class="btn btn-outline-light rounded-circle btn-sm d-flex align-items-center justify-content-center bg-dark bg-opacity-50 blur-backdrop border-secondary" style="width: 40px; height: 40px;" title="Voice Settings">
-            <i class="fas fa-cog"></i>
+        <button id="settingsBtn" class="hud-btn icon-only" title="Settings">
+            <i class="fas fa-sliders-h"></i>
         </button>
     </div>
 
-    <!-- Conversation History Panel (Collapsible) -->
-    <div id="historyPanel" class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-95 d-none" style="z-index: 10; overflow-y: auto; backdrop-filter: blur(10px);">
-        <div class="p-4">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h5 class="mb-0"><i class="fas fa-history me-2"></i>Conversation History</h5>
-                <button id="closeHistoryBtn" class="btn btn-sm btn-outline-light rounded-circle" style="width: 35px; height: 35px;">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div id="historyContent" class="d-flex flex-column gap-3">
-                <div class="text-center text-white-50 py-5">
-                    <i class="fas fa-comment-slash fa-3x mb-3 opacity-25"></i>
-                    <p>No conversation yet. Start talking to Aura!</p>
-                </div>
-            </div>
-        </div>
+    <!-- Center Status Text (below orb) -->
+    <div id="centerStatus">
+        <p id="statusText">Aura</p>
+        <p id="substatusText">Tap to begin a conversation</p>
     </div>
 
-    <!-- Settings Panel -->
-    <div id="settingsPanel" class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-95 d-none" style="z-index: 10; overflow-y: auto; backdrop-filter: blur(10px);">
-        <div class="p-4">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Voice Settings</h5>
-                <button id="closeSettingsBtn" class="btn btn-sm btn-outline-light rounded-circle" style="width: 35px; height: 35px;">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            
-            <!-- Voice Selection -->
-            <div class="mb-4">
-                <label class="form-label text-white-50 small mb-2">Voice Type</label>
-                <select id="voiceSelect" class="form-select bg-dark text-white border-secondary">
-                    <option value="coral" selected>Coral (Default - Warm Female)</option>
-                    <option value="alloy">Alloy (Neutral)</option>
-                    <option value="ash">Ash (Soft Male)</option>
-                    <option value="ballad">Ballad (Expressive)</option>
-                    <option value="echo">Echo (Male)</option>
-                    <option value="sage">Sage (Calm Female)</option>
-                    <option value="shimmer">Shimmer (Soft Female)</option>
-                    <option value="verse">Verse (Dynamic)</option>
-                </select>
-            </div>
+    <!-- Live Transcript Feed -->
+    <div id="transcriptFeed"></div>
 
-            <!-- Speed Control -->
-            <div class="mb-4">
-                <label class="form-label text-white-50 small mb-2">Speech Speed: <span id="speedValue">1.0x</span></label>
-                <input type="range" class="form-range" id="speedSlider" min="0.5" max="1.5" step="0.1" value="1.0">
-                <div class="d-flex justify-content-between text-white-50 small">
-                    <span>0.5x Slow</span>
-                    <span>1.5x Fast</span>
-                </div>
-            </div>
-
-            <!-- Save Settings -->
-            <button id="saveSettingsBtn" class="btn btn-primary w-100 rounded-pill">
-                <i class="fas fa-check me-2"></i>Save Settings
-            </button>
-        </div>
-    </div>
-
-    <!-- Main Active Area (The Orb) -->
-    <div class="text-center z-2 d-flex flex-column align-items-center position-relative" style="flex: 1;">
-        <!-- Visualizer -->
-        <div class="mb-4 position-relative" style="width: 150px; height: 150px; user-select: none;">
-            <div id="voiceOrb" class="rounded-circle d-flex align-items-center justify-content-center bg-gradient-voice w-100 h-100 shadow-lg" style="transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; z-index: 5;">
-                <i id="voiceIcon" class="fas fa-microphone fa-3x text-white" style="transition: all 0.3s ease;"></i>
-            </div>
-            <div id="orbRing1" class="position-absolute top-50 start-50 translate-middle rounded-circle border border-primary opacity-50" style="width: 100%; height: 100%; z-index: 1;"></div>
-            <div id="orbRing2" class="position-absolute top-50 start-50 translate-middle rounded-circle border border-info opacity-25" style="width: 100%; height: 100%; z-index: 0;"></div>
-        </div>
-
-        <!-- Status text -->
-        <h3 id="statusText" class="fw-light mb-2">Hi, I'm Aura.</h3>
-        <p id="substatusText" class="text-white-50 px-4 mb-3" style="max-width: 320px; font-size: 0.95rem; line-height: 1.5;">Tap the orb to start a conversation. I'm ready to listen.</p>
-        
-        <!-- Live Transcript Display -->
-        <div id="transcriptBox" class="bg-dark bg-opacity-50 rounded-3 p-3 mx-4 border border-secondary border-opacity-25 d-none" style="max-width: 500px; max-height: 120px; overflow-y: auto; backdrop-filter: blur(10px);">
-            <div class="text-white-50 small mb-1"><i class="fas fa-user me-2"></i>You said:</div>
-            <div id="userTranscript" class="text-white mb-2"></div>
-            <div class="text-info small mb-1"><i class="fas fa-robot me-2"></i>Aura's response:</div>
-            <div id="auraTranscript" class="text-white"></div>
-        </div>
+    <!-- Whiteboard Ghost Overlay -->
+    <div id="whiteboardOverlay">
+        <button id="whiteboardClose"><i class="fas fa-times"></i></button>
+        <div id="whiteboardContent"></div>
     </div>
 
     <!-- Bottom Controls -->
-    <div class="w-100 p-3 d-flex justify-content-center gap-3 z-2" style="position: relative;">
-        <button id="historyBtn" class="btn btn-outline-light rounded-pill btn-sm px-3 py-2" title="View History">
-            <i class="fas fa-history me-2"></i>History
+    <div id="bottomControls">
+        <button id="historyBtn" class="side-btn" title="History">
+            <i class="fas fa-clock-rotate-left"></i>
         </button>
-        <button id="clearBtn" class="btn btn-outline-danger rounded-pill btn-sm px-3 py-2 d-none" title="Clear Conversation">
-            <i class="fas fa-trash me-2"></i>Clear
+        <button id="cameraBtn" class="side-btn" title="Show Aura your notebook">
+            <i class="fas fa-camera"></i>
         </button>
+        <div id="interruptZone" title="Tap to start / Tap to interrupt">
+            <i class="icon fas fa-microphone"></i>
+        </div>
+        <button id="muteBtn" class="side-btn" title="Mute microphone">
+            <i class="fas fa-microphone-slash"></i>
+        </button>
+        <button id="clearBtn" class="side-btn hidden" title="Clear history">
+            <i class="fas fa-trash-can"></i>
+        </button>
+    </div>
+
+    <!-- Camera Overlay -->
+    <div id="cameraOverlay">
+        <video id="cameraVideo" autoplay playsinline></video>
+        <div id="cameraControls">
+            <button class="hud-btn" id="captureBtn"><i class="fas fa-circle"></i> Capture</button>
+            <button class="hud-btn" id="closeCameraBtn"><i class="fas fa-times"></i> Close</button>
+        </div>
+    </div>
+
+    <!-- Settings Panel Backdrop -->
+    <div class="panel-backdrop" id="settingsBackdrop"></div>
+
+    <!-- Settings Panel -->
+    <div class="slide-panel" id="settingsPanel">
+        <div class="panel-header">
+            <h3><i class="fas fa-sliders-h" style="margin-right:8px; color:rgba(56,120,255,0.7)"></i>Settings</h3>
+            <button class="panel-close" id="closeSettingsBtn"><i class="fas fa-times"></i></button>
+        </div>
+
+        <label class="aura-label">Voice</label>
+        <select id="voiceSelect" class="aura-select" style="margin-bottom:20px">
+            <option value="coral" selected>Coral — Warm</option>
+            <option value="alloy">Alloy — Neutral</option>
+            <option value="ash">Ash — Soft</option>
+            <option value="ballad">Ballad — Expressive</option>
+            <option value="echo">Echo — Clear</option>
+            <option value="sage">Sage — Calm</option>
+            <option value="shimmer">Shimmer — Gentle</option>
+            <option value="verse">Verse — Dynamic</option>
+        </select>
+
+        <label class="aura-label">Speed <span id="speedValue" style="color:rgba(56,120,255,0.7)">1.0x</span></label>
+        <input type="range" class="aura-range" id="speedSlider" min="0.5" max="1.5" step="0.1" value="1.0" style="margin-bottom:6px">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,0.2);margin-bottom:24px">
+            <span>0.5x</span><span>1.5x</span>
+        </div>
+
+        <label class="aura-label">Session Length</label>
+        <select id="sessionLength" class="aura-select" style="margin-bottom:28px">
+            <option value="15">15 minutes</option>
+            <option value="30">30 minutes</option>
+            <option value="45" selected>45 minutes</option>
+            <option value="60">60 minutes</option>
+        </select>
+
+        <button id="saveSettingsBtn" class="aura-btn-primary">
+            <i class="fas fa-check" style="margin-right:6px"></i>Save Settings
+        </button>
+    </div>
+
+    <!-- History Panel Backdrop -->
+    <div class="panel-backdrop" id="historyBackdrop"></div>
+
+    <!-- History Panel -->
+    <div class="slide-panel" id="historyPanel">
+        <div class="panel-header">
+            <h3><i class="fas fa-clock-rotate-left" style="margin-right:8px; color:rgba(56,120,255,0.7)"></i>History</h3>
+            <button class="panel-close" id="closeHistoryBtn"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="historyContent">
+            <div style="text-align:center;padding:40px 0;color:rgba(255,255,255,0.2)">
+                <i class="fas fa-comment-slash" style="font-size:30px;margin-bottom:12px;display:block;opacity:0.3"></i>
+                No conversations yet
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- Audio element for TTS playback -->
-<audio id="ttsAudio" class="d-none" autoplay></audio>
-
-<style>
-/* Glassmorphism utilities */
-.blur-backdrop { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
-
-/* Core orb gradient */
-.bg-gradient-voice {
-    background: linear-gradient(135deg, #6f42c1, #0d6efd, #0dcaf0);
-    background-size: 300% 300%;
-    animation: gradientShift 6s ease infinite;
-}
-
-@keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-
-/* Hover effect */
-#voiceOrb:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 30px rgba(111, 66, 193, 0.6);
-}
-
-/* State: Recording */
-@keyframes pulseRecording {
-    0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; border-color: #dc3545; }
-    100% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; border-color: #dc3545; }
-}
-.is-recording #orbRing1 { animation: pulseRecording 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
-.is-recording #orbRing2 { animation: pulseRecording 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite 0.75s; }
-.is-recording #voiceOrb { 
-    transform: scale(0.95); 
-    background: linear-gradient(135deg, #dc3545, #fd7e14) !important; 
-    box-shadow: 0 0 40px rgba(220, 53, 69, 0.6) !important;
-}
-
-/* State: Thinking */
-.is-thinking #voiceOrb {
-    background: linear-gradient(135deg, #6c757d, #343a40) !important;
-    transform: scale(0.9);
-}
-
-/* State: Speaking */
-@keyframes orbSpeakPulse {
-    0% { transform: scale(1); box-shadow: 0 0 20px rgba(13, 202, 240, 0.4); }
-    50% { transform: scale(1.15); box-shadow: 0 0 60px rgba(13, 202, 240, 0.8); }
-    100% { transform: scale(1); box-shadow: 0 0 20px rgba(13, 202, 240, 0.4); }
-}
-.is-speaking #voiceOrb {
-    animation: orbSpeakPulse 1s ease-in-out infinite alternate;
-    background: linear-gradient(135deg, #0dcaf0, #0d6efd) !important;
-}
-</style>
+<!-- Hidden audio element -->
+<audio id="ttsAudio" class="hidden" autoplay></audio>
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    const voiceOrb = document.getElementById("voiceOrb");
-    const statusText = document.getElementById("statusText");
-    const substatusText = document.getElementById("substatusText");
-    const voiceIcon = document.getElementById("voiceIcon");
-    const ttsAudio = document.getElementById("ttsAudio");
-    const transcriptBox = document.getElementById("transcriptBox");
-    const userTranscript = document.getElementById("userTranscript");
-    const auraTranscript = document.getElementById("auraTranscript");
-    
-    // Panel controls
-    const settingsBtn = document.getElementById("settingsBtn");
-    const settingsPanel = document.getElementById("settingsPanel");
-    const closeSettingsBtn = document.getElementById("closeSettingsBtn");
-    const historyBtn = document.getElementById("historyBtn");
-    const historyPanel = document.getElementById("historyPanel");
-    const closeHistoryBtn = document.getElementById("closeHistoryBtn");
-    const historyContent = document.getElementById("historyContent");
-    const clearBtn = document.getElementById("clearBtn");
-    
-    // Settings controls
-    const voiceSelect = document.getElementById("voiceSelect");
-    const speedSlider = document.getElementById("speedSlider");
-    const speedValue = document.getElementById("speedValue");
-    const saveSettingsBtn = document.getElementById("saveSettingsBtn");
-    
-    // Realtime API Variables
-    let realtimeWs = null;
-    let audioContext = null;
-    let mediaStream = null;
-    let source = null;
-    let processor = null;
-    let isConnected = false;
-    
-    // Audio playback
-    let audioPlaybackContext = null;
-    let audioQueue = [];
-    let isPlayingAudio = false;
-    
-    // Conversation tracking
-    let currentUserText = "";
-    let currentAuraText = "";
-    
-    // States: IDLE, CONNECTING, READY, LISTENING, THINKING, SPEAKING
-    let state = 'IDLE'; 
-    let conversationHistory = JSON.parse(localStorage.getItem('auraVoiceHistory') || '[]');
-    let retryCount = 0;
-    const MAX_RETRIES = 2;
-    
-    // Voice settings (stored in localStorage)
-    let voiceSettings = JSON.parse(localStorage.getItem('auraVoiceSettings') || '{"voice": "coral", "speed": 1.0}');
-    
-    // Initialize settings UI
-    voiceSelect.value = voiceSettings.voice;
-    speedSlider.value = voiceSettings.speed;
-    speedValue.textContent = voiceSettings.speed + 'x';
-    
-    // Update conversation history display
-    function updateHistoryDisplay() {
-        if (conversationHistory.length === 0) {
-            historyContent.innerHTML = `
-                <div class="text-center text-white-50 py-5">
-                    <i class="fas fa-comment-slash fa-3x mb-3 opacity-25"></i>
-                    <p>No conversation yet. Start talking to Aura!</p>
-                </div>
-            `;
-            clearBtn.classList.add('d-none');
-        } else {
-            historyContent.innerHTML = conversationHistory.map((item, index) => `
-                <div class="border border-secondary border-opacity-25 rounded-3 p-3 bg-dark bg-opacity-50">
-                    <div class="text-white-50 small mb-2">
-                        <i class="fas fa-clock me-1"></i>${item.timestamp}
-                    </div>
-                    <div class="mb-2">
-                        <div class="text-white-50 small"><i class="fas fa-user me-2"></i>You:</div>
-                        <div class="text-white">${item.userText}</div>
-                    </div>
-                    <div>
-                        <div class="text-info small"><i class="fas fa-robot me-2"></i>Aura:</div>
-                        <div class="text-white">${item.auraText}</div>
-                    </div>
-                </div>
-            `).join('');
-            clearBtn.classList.remove('d-none');
-        }
-    }
-    
-    // Save conversation to history
-    function saveToHistory(userText, auraText) {
-        const timestamp = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-        conversationHistory.push({ userText, auraText, timestamp });
-        localStorage.setItem('auraVoiceHistory', JSON.stringify(conversationHistory));
-        updateHistoryDisplay();
-    }
-    
-    // Clear history
-    clearBtn.addEventListener('click', () => {
-        if (confirm('Clear all conversation history?')) {
-            conversationHistory = [];
-            localStorage.removeItem('auraVoiceHistory');
-            updateHistoryDisplay();
-        }
-    });
-    
-    // Settings panel controls
-    settingsBtn.addEventListener('click', () => {
-        settingsPanel.classList.remove('d-none');
-    });
-    
-    closeSettingsBtn.addEventListener('click', () => {
-        settingsPanel.classList.add('d-none');
-    });
-    
-    speedSlider.addEventListener('input', (e) => {
-        speedValue.textContent = e.target.value + 'x';
-    });
-    
-    saveSettingsBtn.addEventListener('click', () => {
-        voiceSettings.voice = voiceSelect.value;
-        voiceSettings.speed = parseFloat(speedSlider.value);
-        localStorage.setItem('auraVoiceSettings', JSON.stringify(voiceSettings));
-        settingsPanel.classList.add('d-none');
-        
-        // Reconnect if already connected to apply new settings
-        if (isConnected) {
-            disconnectRealtime();
-            setTimeout(() => connectRealtime(), 500);
-        }
-        
-        // Show success feedback
-        const originalText = saveSettingsBtn.innerHTML;
-        saveSettingsBtn.innerHTML = '<i class="fas fa-check me-2"></i>Saved!';
-        setTimeout(() => {
-            saveSettingsBtn.innerHTML = originalText;
-        }, 1500);
-    });
-    
-    // History panel controls
-    historyBtn.addEventListener('click', () => {
-        updateHistoryDisplay();
-        historyPanel.classList.remove('d-none');
-    });
-    
-    closeHistoryBtn.addEventListener('click', () => {
-        historyPanel.classList.add('d-none');
-    });
 
-    function updateState(newState) {
-        state = newState;
-        document.body.classList.remove('is-recording', 'is-thinking', 'is-speaking');
-        
-        switch (state) {
-            case 'IDLE':
-                statusText.innerText = "Hi, I'm Aura.";
-                substatusText.innerText = "Tap the orb to start a real-time conversation.";
-                voiceIcon.className = "fas fa-microphone fa-3x text-white";
-                transcriptBox.classList.add('d-none');
-                break;
-            case 'CONNECTING':
-                statusText.innerText = "Connecting...";
-                substatusText.innerText = "Establishing secure voice channel...";
-                voiceIcon.className = "fas fa-circle-notch fa-spin fa-3x text-white";
-                break;
-            case 'READY':
-                statusText.innerText = "Connected!";
-                substatusText.innerText = "Tap to start speaking or just start talking...";
-                voiceIcon.className = "fas fa-microphone fa-3x text-success";
-                break;
-            case 'LISTENING':
-                document.body.classList.add('is-recording');
-                statusText.innerText = "Listening...";
-                substatusText.innerText = "I'm hearing you in real-time...";
-                voiceIcon.className = "fas fa-waveform-lines fa-3x text-white";
-                break;
-            case 'THINKING':
-                document.body.classList.add('is-thinking');
-                statusText.innerText = "Thinking...";
-                substatusText.innerText = "Processing your question...";
-                voiceIcon.className = "fas fa-brain fa-3x text-white";
-                break;
-            case 'SPEAKING':
-                document.body.classList.add('is-speaking');
-                statusText.innerText = "Aura is speaking";
-                substatusText.innerText = "Tap to interrupt or let me finish...";
-                voiceIcon.className = "fas fa-volume-up fa-3x text-white";
-                transcriptBox.classList.remove('d-none');
-                break;
-            case 'ERROR':
-                statusText.innerText = "Connection Error";
-                substatusText.innerText = retryCount < MAX_RETRIES ? "Retrying... Please wait." : "Tap orb to try again.";
-                voiceIcon.className = "fas fa-exclamation-triangle fa-3x text-warning";
-                setTimeout(() => {
-                    if (state === 'ERROR') updateState('IDLE');
-                }, 3000);
-                break;
+// ═══════════════════════════════════════════════════════════
+// 1. WEBGL 3D LIVING ORB
+// ═══════════════════════════════════════════════════════════
+
+const canvas = document.getElementById('orbCanvas');
+const gl = canvas.getContext('webgl', { alpha: true, antialias: true, premultipliedAlpha: false });
+
+let orbProgram, orbVao;
+let uTime, uResolution, uOrbState, uSentiment, uAudioLevel, uColorShift;
+
+// State values for orb
+let orbState = 0.0;      // 0=idle, 1=listening, 2=thinking, 3=speaking
+let sentiment = 0.0;     // -1=negative, 0=neutral, 1=positive
+let audioLevel = 0.0;    // 0-1 microphone or playback level
+let colorShift = 0.0;    // hue shift for emotion
+let targetOrbState = 0.0;
+let targetSentiment = 0.0;
+let targetAudioLevel = 0.0;
+
+function initWebGL() {
+    if (!gl) { console.warn('WebGL not supported, falling back to CSS orb'); return false; }
+
+    const vsSource = `
+        attribute vec2 aPosition;
+        void main() { gl_Position = vec4(aPosition, 0.0, 1.0); }
+    `;
+
+    const fsSource = `
+        precision highp float;
+        uniform float uTime;
+        uniform vec2 uResolution;
+        uniform float uOrbState;
+        uniform float uSentiment;
+        uniform float uAudioLevel;
+        uniform float uColorShift;
+
+        // Simplex-like noise
+        vec3 mod289(vec3 x) { return x - floor(x * (1.0/289.0)) * 289.0; }
+        vec2 mod289(vec2 x) { return x - floor(x * (1.0/289.0)) * 289.0; }
+        vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
+
+        float snoise(vec2 v) {
+            const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
+            vec2 i = floor(v + dot(v, C.yy));
+            vec2 x0 = v - i + dot(i, C.xx);
+            vec2 i1 = (x0.x > x0.y) ? vec2(1.0,0.0) : vec2(0.0,1.0);
+            vec4 x12 = x0.xyxy + C.xxzz;
+            x12.xy -= i1;
+            i = mod289(i);
+            vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0)) + i.x + vec3(0.0, i1.x, 1.0));
+            vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
+            m = m*m; m = m*m;
+            vec3 x = 2.0 * fract(p * C.www) - 1.0;
+            vec3 h = abs(x) - 0.5;
+            vec3 ox = floor(x + 0.5);
+            vec3 a0 = x - ox;
+            m *= 1.79284291400159 - 0.85373472095314 * (a0*a0+h*h);
+            vec3 g;
+            g.x = a0.x*x0.x + h.x*x0.y;
+            g.yz = a0.yz*x12.xz + h.yz*x12.yw;
+            return 130.0 * dot(m, g);
         }
-    }
-    
-    // Connect to OpenAI Realtime API
-    async function connectRealtime() {
-        updateState('CONNECTING');
-        
-        try {
-            // Step 1: Create session and get ephemeral token
-            const sessionResponse = await fetch("{% url 'students:create_realtime_session' %}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({
-                    voice: voiceSettings.voice,
-                    instructions: "You are Aura, a helpful and friendly AI tutor for students. Keep answers concise and conversational."
-                })
-            });
-            
-            if (!sessionResponse.ok) {
-                throw new Error(`Failed to create session: ${sessionResponse.status}`);
+
+        void main() {
+            vec2 uv = (gl_FragCoord.xy - 0.5 * uResolution) / min(uResolution.x, uResolution.y);
+
+            // Sphere SDF
+            float d = length(uv);
+            float baseRadius = 0.22;
+
+            // Breathing + audio reactive size
+            float breathe = sin(uTime * 0.8) * 0.008;
+            float audioExpand = uAudioLevel * 0.04;
+            float stateExpand = 0.0;
+            if (uOrbState > 2.5) stateExpand = 0.03; // speaking: slightly larger
+
+            float radius = baseRadius + breathe + audioExpand + stateExpand;
+
+            // Noise deformation
+            float noiseSpeed = 0.3 + uAudioLevel * 0.8 + uOrbState * 0.15;
+            float noiseAmp = 0.015 + uAudioLevel * 0.025;
+            float n = snoise(uv * 4.0 + uTime * noiseSpeed) * noiseAmp;
+            float sphere = smoothstep(radius + n, radius + n - 0.06, d);
+
+            // Color palette based on state and sentiment
+            vec3 idleCol1 = vec3(0.15, 0.35, 1.0);
+            vec3 idleCol2 = vec3(0.25, 0.75, 0.95);
+
+            // Shift colors by sentiment: positive=green-blue, negative=warm
+            vec3 sentPos = vec3(0.1, 0.85, 0.55);
+            vec3 sentNeg = vec3(0.95, 0.35, 0.25);
+
+            vec3 col1 = mix(idleCol1, mix(sentNeg, sentPos, uSentiment * 0.5 + 0.5), abs(uSentiment) * 0.6);
+            vec3 col2 = mix(idleCol2, mix(vec3(0.9,0.5,0.2), vec3(0.2,0.9,0.7), uSentiment * 0.5 + 0.5), abs(uSentiment) * 0.4);
+
+            // Listening state: green tint
+            if (uOrbState > 0.5 && uOrbState < 1.5) {
+                col1 = mix(col1, vec3(0.0, 0.85, 0.5), 0.5);
+                col2 = mix(col2, vec3(0.1, 0.95, 0.6), 0.4);
             }
-            
-            const sessionData = await sessionResponse.json();
-            const { client_secret } = sessionData;
-            
-            // Step 2: Connect to OpenAI WebSocket
-            const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01`;
-            realtimeWs = new WebSocket(wsUrl, ['realtime', `openai-insecure-api-key.${client_secret}`]);
-            
-            realtimeWs.onopen = () => {
-                console.log('Realtime WebSocket connected');
-                isConnected = true;
-                
-                // Configure session
-                sendRealtimeEvent({
-                    type: 'session.update',
-                    session: {
-                        modalities: ['text', 'audio'],
-                        instructions: "You are Aura, a helpful and friendly AI tutor. Keep answers concise.",
-                        voice: voiceSettings.voice,
-                        input_audio_format: 'pcm16',
-                        output_audio_format: 'pcm16',
-                        input_audio_transcription: { model: 'whisper-1' },
-                        turn_detection: {
-                            type: 'server_vad',
-                            threshold: 0.5,
-                            prefix_padding_ms: 300,
-                            silence_duration_ms: 500
-                        }
-                    }
-                });
-                
-                startAudioCapture();
-                updateState('READY');
-            };
-            
-            realtimeWs.onmessage = (event) => {
-                handleRealtimeMessage(JSON.parse(event.data));
-            };
-            
-            realtimeWs.onerror = (error) => {
-                console.error('WebSocket error:', error);
-                updateState('ERROR');
-            };
-            
-            realtimeWs.onclose = () => {
-                console.log('WebSocket closed');
-                isConnected = false;
-                stopAudioCapture();
-                if (state !== 'IDLE' && state !== 'ERROR') {
-                    updateState('IDLE');
-                }
-            };
-            
-        } catch (error) {
-            console.error('Connection error:', error);
-            updateState('ERROR');
-        }
-    }
-    
-    // Disconnect from Realtime API
-    function disconnectRealtime() {
-        if (realtimeWs) {
-            realtimeWs.close();
-            realtimeWs = null;
-        }
-        stopAudioCapture();
-        isConnected = false;
-        updateState('IDLE');
-    }
-    
-    // Send event to Realtime API
-    function sendRealtimeEvent(event) {
-        if (realtimeWs && realtimeWs.readyState === WebSocket.OPEN) {
-            realtimeWs.send(JSON.stringify(event));
-        }
-    }
-    
-    // Handle incoming Realtime API messages
-    function handleRealtimeMessage(message) {
-        console.log('Realtime message:', message.type);
-        
-        switch (message.type) {
-            case 'session.created':
-            case 'session.updated':
-                console.log('Session ready');
-                break;
-                
-            case 'input_audio_buffer.speech_started':
-                updateState('LISTENING');
-                currentUserText = "";
-                break;
-                
-            case 'input_audio_buffer.speech_stopped':
-                updateState('THINKING');
-                break;
-                
-            case 'conversation.item.input_audio_transcription.completed':
-                currentUserText = message.transcript;
-                userTranscript.textContent = currentUserText;
-                break;
-                
-            case 'response.audio_transcript.delta':
-                if (!isPlayingAudio) {
-                    updateState('SPEAKING');
-                    isPlayingAudio = true;
-                }
-                currentAuraText += message.delta;
-                auraTranscript.textContent = currentAuraText;
-                break;
-                
-            case 'response.audio.delta':
-                playAudioChunk(message.delta);
-                break;
-                
-            case 'response.audio.done':
-            case 'response.done':
-                if (currentUserText && currentAuraText) {
-                    saveToHistory(currentUserText, currentAuraText);
-                }
-                currentAuraText = "";
-                isPlayingAudio = false;
-                updateState('READY');
-                break;
-                
-            case 'error':
-                console.error('Realtime API error:', message.error);
-                updateState('ERROR');
-                break;
-        }
-    }
-    
-    // Start capturing audio from microphone
-    async function startAudioCapture() {
-        try {
-            mediaStream = await navigator.mediaDevices.getUserMedia({ 
-                audio: {
-                    sampleRate: 24000,
-                    channelCount: 1,
-                    echoCancellation: true,
-                    noiseSuppression: true
-                } 
-            });
-            
-            audioContext = new AudioContext({ sampleRate: 24000 });
-            source = audioContext.createMediaStreamSource(mediaStream);
-            processor = audioContext.createScriptProcessor(4096, 1, 1);
-            
-            processor.onaudioprocess = (e) => {
-                if (isConnected && realtimeWs.readyState === WebSocket.OPEN) {
-                    const inputData = e.inputBuffer.getChannelData(0);
-                    const pcm16 = floatTo16BitPCM(inputData);
-                    const base64Audio = arrayBufferToBase64(pcm16.buffer);
-                    
-                    sendRealtimeEvent({
-                        type: 'input_audio_buffer.append',
-                        audio: base64Audio
-                    });
-                }
-            };
-            
-            source.connect(processor);
-            processor.connect(audioContext.destination);
-            
-        } catch (error) {
-            console.error('Microphone access error:', error);
-            updateState('ERROR');
-        }
-    }
-    
-    // Stop audio capture
-    function stopAudioCapture() {
-        if (processor) {
-            processor.disconnect();
-            processor = null;
-        }
-        if (source) {
-            source.disconnect();
-            source = null;
-        }
-        if (audioContext) {
-            audioContext.close();
-            audioContext = null;
-        }
-        if (mediaStream) {
-            mediaStream.getTracks().forEach(track => track.stop());
-            mediaStream = null;
-        }
-    }
-    
-    // Play audio chunk from Realtime API
-    function playAudioChunk(base64Audio) {
-        try {
-            if (!audioPlaybackContext || audioPlaybackContext.state === 'closed') {
-                audioPlaybackContext = new AudioContext({ sampleRate: 24000 });
+            // Thinking state: purple pulse
+            if (uOrbState > 1.5 && uOrbState < 2.5) {
+                col1 = mix(col1, vec3(0.5, 0.2, 0.9), 0.6);
+                col2 = mix(col2, vec3(0.7, 0.3, 1.0), 0.5);
             }
-            
-            const audioData = base64ToArrayBuffer(base64Audio);
-            const pcm16Array = new Int16Array(audioData);
-            const float32Array = pcm16ToFloat(pcm16Array);
-            
-            const audioBuffer = audioPlaybackContext.createBuffer(1, float32Array.length, 24000);
-            audioBuffer.getChannelData(0).set(float32Array);
-            
- const bufferSource = audioPlaybackContext.createBufferSource();
-            bufferSource.buffer = audioBuffer;
-            bufferSource.connect(audioPlaybackContext.destination);
-            bufferSource.start();
-            
-        } catch (error) {
-            console.error('Audio playback error:', error);
+            // Speaking state: vibrant blue-cyan
+            if (uOrbState > 2.5) {
+                col1 = mix(col1, vec3(0.2, 0.4, 1.0), 0.5);
+                col2 = mix(col2, vec3(0.0, 0.85, 0.95), 0.5);
+            }
+
+            // Internal gradient and noise
+            float angle = atan(uv.y, uv.x);
+            float noiseColor = snoise(uv * 6.0 + uTime * 0.4) * 0.5 + 0.5;
+            float gradient = (sin(angle * 2.0 + uTime * 0.5) * 0.5 + 0.5);
+            vec3 orbColor = mix(col1, col2, mix(gradient, noiseColor, 0.4));
+
+            // Fresnel glow at edge
+            float fresnel = pow(1.0 - smoothstep(radius * 0.5, radius + n, d), 1.5);
+            vec3 fresnelColor = mix(col2, vec3(1.0), 0.3);
+            orbColor = mix(orbColor, fresnelColor, fresnel * 0.4);
+
+            // Inner light highlight
+            float highlight = pow(max(0.0, 1.0 - length(uv - vec2(-0.04, 0.05)) / radius), 4.0);
+            orbColor += vec3(highlight * 0.3);
+
+            // Outer glow
+            float outerGlow = exp(-d * 3.5) * 0.15;
+            float outerGlow2 = exp(-d * 1.8) * 0.06;
+            vec3 glowColor = mix(col1, col2, 0.5);
+
+            // Speaking: emit fluid light waves
+            float wave = 0.0;
+            if (uOrbState > 2.5) {
+                wave = sin(d * 30.0 - uTime * 4.0) * 0.5 + 0.5;
+                wave *= exp(-d * 6.0) * uAudioLevel * 0.12;
+            }
+
+            // Compose
+            vec3 finalColor = orbColor * sphere;
+            finalColor += glowColor * (outerGlow + outerGlow2);
+            finalColor += glowColor * wave;
+
+            float alpha = sphere + outerGlow * 2.0 + outerGlow2 + wave;
+            alpha = clamp(alpha, 0.0, 1.0);
+
+            gl_FragColor = vec4(finalColor, alpha);
         }
-    }
-    
-    // Audio conversion utilities
-    function floatTo16BitPCM(float32Array) {
-        const buffer = new ArrayBuffer(float32Array.length * 2);
-        const view = new DataView(buffer);
-        let offset = 0;
-        for (let i = 0; i < float32Array.length; i++, offset += 2) {
-            let s = Math.max(-1, Math.min(1, float32Array[i]));
-            view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    `;
+
+    function createShader(type, source) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            console.error('Shader error:', gl.getShaderInfoLog(shader));
+            gl.deleteShader(shader); return null;
         }
-        return new Int16Array(buffer);
-    }
-    
-    function pcm16ToFloat(int16Array) {
-        const float32Array = new Float32Array(int16Array.length);
-        for (let i = 0; i < int16Array.length; i++) {
-            float32Array[i] = int16Array[i] / (int16Array[i] < 0 ? 0x8000 : 0x7FFF);
-        }
-        return float32Array;
-    }
-    
-    function arrayBufferToBase64(buffer) {
-        const bytes = new Uint8Array(buffer);
-        let binary = '';
-        for (let i = 0; i < bytes.byteLength; i++) {
-            binary += String.fromCharCode(bytes[i]);
-        }
-        return btoa(binary);
-    }
-    
-    function base64ToArrayBuffer(base64) {
-        const binaryString = atob(base64);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-        }
-        return bytes.buffer;
+        return shader;
     }
 
-    // Orb click handler
-    voiceOrb.addEventListener("click", () => {
-        if (state === 'IDLE' || state === 'ERROR') {
-            connectRealtime();
-        } else if (state === 'READY' || state === 'LISTENING' || state === 'THINKING' || state === 'SPEAKING') {
-            disconnectRealtime();
-        }
-    });
+    const vs = createShader(gl.VERTEX_SHADER, vsSource);
+    const fs = createShader(gl.FRAGMENT_SHADER, fsSource);
+    if (!vs || !fs) return false;
 
-    // Init UI
-    updateState('IDLE');
+    orbProgram = gl.createProgram();
+    gl.attachShader(orbProgram, vs);
+    gl.attachShader(orbProgram, fs);
+    gl.linkProgram(orbProgram);
+    if (!gl.getProgramParameter(orbProgram, gl.LINK_STATUS)) {
+        console.error('Link error:', gl.getProgramInfoLog(orbProgram));
+        return false;
+    }
+
+    // Full-screen quad
+    const verts = new Float32Array([-1,-1, 1,-1, -1,1, 1,1]);
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, verts, gl.STATIC_DRAW);
+
+    const aPos = gl.getAttribLocation(orbProgram, 'aPosition');
+    gl.enableVertexAttribArray(aPos);
+    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+    uTime = gl.getUniformLocation(orbProgram, 'uTime');
+    uResolution = gl.getUniformLocation(orbProgram, 'uResolution');
+    uOrbState = gl.getUniformLocation(orbProgram, 'uOrbState');
+    uSentiment = gl.getUniformLocation(orbProgram, 'uSentiment');
+    uAudioLevel = gl.getUniformLocation(orbProgram, 'uAudioLevel');
+    uColorShift = gl.getUniformLocation(orbProgram, 'uColorShift');
+
+    gl.useProgram(orbProgram);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+    return true;
+}
+
+function resizeCanvas() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = canvas.clientWidth * dpr;
+    canvas.height = canvas.clientHeight * dpr;
+    if (gl) gl.viewport(0, 0, canvas.width, canvas.height);
+}
+
+let animStartTime = performance.now();
+let webglOk = false;
+
+function renderOrb() {
+    if (!webglOk) { requestAnimationFrame(renderOrb); return; }
+
+    // Smooth interpolation
+    orbState += (targetOrbState - orbState) * 0.08;
+    sentiment += (targetSentiment - sentiment) * 0.05;
+    audioLevel += (targetAudioLevel - audioLevel) * 0.15;
+
+    const t = (performance.now() - animStartTime) / 1000;
+
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.useProgram(orbProgram);
+    gl.uniform1f(uTime, t);
+    gl.uniform2f(uResolution, canvas.width, canvas.height);
+    gl.uniform1f(uOrbState, orbState);
+    gl.uniform1f(uSentiment, sentiment);
+    gl.uniform1f(uAudioLevel, audioLevel);
+    gl.uniform1f(uColorShift, colorShift);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // Update ambient glow color
+    const glow = document.getElementById('ambientGlow');
+    if (orbState < 0.5) {
+        glow.style.background = 'radial-gradient(circle, rgba(56,120,255,0.1) 0%, transparent 70%)';
+    } else if (orbState < 1.5) {
+        glow.style.background = 'radial-gradient(circle, rgba(0,220,130,0.12) 0%, transparent 70%)';
+    } else if (orbState < 2.5) {
+        glow.style.background = 'radial-gradient(circle, rgba(120,50,220,0.12) 0%, transparent 70%)';
+    } else {
+        glow.style.background = 'radial-gradient(circle, rgba(56,120,255,0.15) 0%, transparent 70%)';
+    }
+
+    requestAnimationFrame(renderOrb);
+}
+
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+webglOk = initWebGL();
+requestAnimationFrame(renderOrb);
+
+
+// ═══════════════════════════════════════════════════════════
+// 2. DOM REFS & STATE
+// ═══════════════════════════════════════════════════════════
+
+const statusText = document.getElementById('statusText');
+const substatusText = document.getElementById('substatusText');
+const transcriptFeed = document.getElementById('transcriptFeed');
+const interruptZone = document.getElementById('interruptZone');
+const interruptIcon = interruptZone.querySelector('.icon');
+const clearBtn = document.getElementById('clearBtn');
+const historyBtn = document.getElementById('historyBtn');
+const historyPanel = document.getElementById('historyPanel');
+const historyBackdrop = document.getElementById('historyBackdrop');
+const closeHistoryBtn = document.getElementById('closeHistoryBtn');
+const historyContent = document.getElementById('historyContent');
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsPanel = document.getElementById('settingsPanel');
+const settingsBackdrop = document.getElementById('settingsBackdrop');
+const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+const voiceSelect = document.getElementById('voiceSelect');
+const speedSlider = document.getElementById('speedSlider');
+const speedValue = document.getElementById('speedValue');
+const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+const sessionLengthSelect = document.getElementById('sessionLength');
+const progressFill = document.querySelector('#progressRing circle.fill');
+const cameraBtn = document.getElementById('cameraBtn');
+const cameraOverlay = document.getElementById('cameraOverlay');
+const cameraVideo = document.getElementById('cameraVideo');
+const captureBtn = document.getElementById('captureBtn');
+const closeCameraBtn = document.getElementById('closeCameraBtn');
+const muteBtn = document.getElementById('muteBtn');
+const whiteboardOverlay = document.getElementById('whiteboardOverlay');
+const whiteboardContent = document.getElementById('whiteboardContent');
+const whiteboardClose = document.getElementById('whiteboardClose');
+
+// Realtime API
+let realtimeWs = null;
+let audioContext = null;
+let mediaStream = null;
+let source = null;
+let processor = null;
+let isConnected = false;
+let isMuted = false;
+
+// Audio playback
+let audioPlaybackContext = null;
+let playbackQueue = [];
+let isPlayingAudio = false;
+let nextPlaybackTime = 0;
+
+// Audio analysis (for orb visualization)
+let analyser = null;
+let analyserData = null;
+
+// State
+let state = 'IDLE';
+let currentUserText = '';
+let currentAuraText = '';
+let conversationHistory = JSON.parse(localStorage.getItem('auraVoiceHistory') || '[]');
+let retryCount = 0;
+const MAX_RETRIES = 2;
+
+// Settings
+let voiceSettings = JSON.parse(localStorage.getItem('auraVoiceSettings') || '{"voice":"coral","speed":1.0}');
+let sessionMinutes = parseInt(localStorage.getItem('auraSessionLength') || '45');
+
+// Timer
+let sessionStartTime = null;
+
+// Init settings UI
+voiceSelect.value = voiceSettings.voice;
+speedSlider.value = voiceSettings.speed;
+speedValue.textContent = voiceSettings.speed + 'x';
+sessionLengthSelect.value = sessionMinutes;
+
+
+// ═══════════════════════════════════════════════════════════
+// 3. STATE MANAGEMENT
+// ═══════════════════════════════════════════════════════════
+
+function updateState(newState) {
+    state = newState;
+    interruptZone.className = '';
+    interruptZone.id = 'interruptZone';
+
+    switch (state) {
+        case 'IDLE':
+            statusText.textContent = 'Aura';
+            substatusText.textContent = 'Tap to begin a conversation';
+            interruptIcon.className = 'icon fas fa-microphone';
+            targetOrbState = 0;
+            transcriptFeed.classList.remove('visible');
+            break;
+        case 'CONNECTING':
+            statusText.textContent = 'Connecting';
+            substatusText.textContent = 'Establishing secure voice channel...';
+            interruptIcon.className = 'icon fas fa-circle-notch fa-spin';
+            interruptZone.classList.add('connecting');
+            targetOrbState = 0.3;
+            break;
+        case 'READY':
+            statusText.textContent = 'Ready';
+            substatusText.textContent = 'Start speaking — I\'m listening';
+            interruptIcon.className = 'icon fas fa-waveform';
+            interruptZone.classList.add('listening');
+            targetOrbState = 0.5;
+            if (!sessionStartTime) sessionStartTime = Date.now();
+            break;
+        case 'LISTENING':
+            statusText.textContent = 'Listening';
+            substatusText.textContent = '';
+            interruptIcon.className = 'icon fas fa-waveform';
+            interruptZone.classList.add('listening');
+            targetOrbState = 1.0;
+            transcriptFeed.classList.add('visible');
+            break;
+        case 'THINKING':
+            statusText.textContent = 'Thinking';
+            substatusText.textContent = '';
+            interruptIcon.className = 'icon fas fa-brain';
+            interruptZone.classList.add('connecting');
+            targetOrbState = 2.0;
+            break;
+        case 'SPEAKING':
+            statusText.textContent = 'Aura';
+            substatusText.textContent = 'Tap to interrupt';
+            interruptIcon.className = 'icon fas fa-hand';
+            interruptZone.classList.add('speaking');
+            targetOrbState = 3.0;
+            transcriptFeed.classList.add('visible');
+            break;
+        case 'ERROR':
+            statusText.textContent = 'Connection lost';
+            substatusText.textContent = retryCount < MAX_RETRIES ? 'Retrying...' : 'Tap to reconnect';
+            interruptIcon.className = 'icon fas fa-rotate-right';
+            targetOrbState = 0;
+            targetSentiment = -0.5;
+            setTimeout(() => { if (state === 'ERROR') { updateState('IDLE'); targetSentiment = 0; } }, 4000);
+            break;
+    }
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// 4. TRANSCRIPT FEED
+// ═══════════════════════════════════════════════════════════
+
+function addTranscriptLine(text, role) {
+    if (!text || !text.trim()) return;
+    const div = document.createElement('div');
+    div.className = `transcript-line ${role}`;
+    div.innerHTML = `<span class="label">${role === 'user' ? 'You' : 'Aura'}</span>${escapeHtml(text)}`;
+    transcriptFeed.appendChild(div);
+    transcriptFeed.scrollTop = transcriptFeed.scrollHeight;
+
+    // Trim old lines
+    while (transcriptFeed.children.length > 20) transcriptFeed.removeChild(transcriptFeed.firstChild);
+}
+
+// Live update for streaming aura text
+let liveAuraDiv = null;
+function updateLiveAuraText(text) {
+    if (!liveAuraDiv) {
+        liveAuraDiv = document.createElement('div');
+        liveAuraDiv.className = 'transcript-line aura';
+        liveAuraDiv.innerHTML = '<span class="label">Aura</span><span class="live-text"></span>';
+        transcriptFeed.appendChild(liveAuraDiv);
+    }
+    liveAuraDiv.querySelector('.live-text').textContent = text;
+    transcriptFeed.scrollTop = transcriptFeed.scrollHeight;
+}
+
+function finalizeLiveAuraText() {
+    liveAuraDiv = null; // Next response creates new element
+}
+
+function escapeHtml(text) {
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// 5. SESSION PROGRESS RING
+// ═══════════════════════════════════════════════════════════
+
+const CIRCUMFERENCE = 2 * Math.PI * 49; // ~307.88
+progressFill.style.strokeDasharray = CIRCUMFERENCE;
+progressFill.style.strokeDashoffset = CIRCUMFERENCE;
+
+function updateProgressRing() {
+    if (!sessionStartTime) return;
+    const elapsed = (Date.now() - sessionStartTime) / 1000 / 60; // minutes
+    const pct = Math.min(elapsed / sessionMinutes, 1);
+    progressFill.style.strokeDashoffset = CIRCUMFERENCE * (1 - pct);
+
+    if (pct >= 1 && state !== 'IDLE') {
+        substatusText.textContent = 'Session time complete';
+    }
+}
+setInterval(updateProgressRing, 5000);
+
+
+// ═══════════════════════════════════════════════════════════
+// 6. CONVERSATION HISTORY
+// ═══════════════════════════════════════════════════════════
+
+function updateHistoryDisplay() {
+    if (conversationHistory.length === 0) {
+        historyContent.innerHTML = `
+            <div style="text-align:center;padding:40px 0;color:rgba(255,255,255,0.2)">
+                <i class="fas fa-comment-slash" style="font-size:30px;margin-bottom:12px;display:block;opacity:0.3"></i>
+                No conversations yet
+            </div>`;
+        clearBtn.classList.add('hidden');
+    } else {
+        historyContent.innerHTML = conversationHistory.map(item => `
+            <div class="history-item">
+                <div class="history-time"><i class="fas fa-clock" style="margin-right:4px"></i>${item.timestamp}</div>
+                <div class="history-user"><i class="fas fa-user" style="margin-right:4px;opacity:0.5"></i>${escapeHtml(item.userText)}</div>
+                <div class="history-aura"><i class="fas fa-sparkles" style="margin-right:4px;opacity:0.5"></i>${escapeHtml(item.auraText)}</div>
+            </div>`).join('');
+        clearBtn.classList.remove('hidden');
+    }
+}
+
+function saveToHistory(userText, auraText) {
+    if (!userText || !auraText) return;
+    const timestamp = new Date().toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+    conversationHistory.push({ userText, auraText, timestamp });
+    localStorage.setItem('auraVoiceHistory', JSON.stringify(conversationHistory));
     updateHistoryDisplay();
-    
-    // Cleanup on page unload
-    window.addEventListener('beforeunload', () => {
-        disconnectRealtime();
-    });
+}
+
+updateHistoryDisplay();
+
+
+// ═══════════════════════════════════════════════════════════
+// 7. PANEL CONTROLS
+// ═══════════════════════════════════════════════════════════
+
+function openPanel(panel, backdrop) {
+    panel.classList.add('open');
+    backdrop.classList.add('visible');
+}
+function closePanel(panel, backdrop) {
+    panel.classList.remove('open');
+    backdrop.classList.remove('visible');
+}
+
+settingsBtn.addEventListener('click', () => openPanel(settingsPanel, settingsBackdrop));
+closeSettingsBtn.addEventListener('click', () => closePanel(settingsPanel, settingsBackdrop));
+settingsBackdrop.addEventListener('click', () => closePanel(settingsPanel, settingsBackdrop));
+
+historyBtn.addEventListener('click', () => { updateHistoryDisplay(); openPanel(historyPanel, historyBackdrop); });
+closeHistoryBtn.addEventListener('click', () => closePanel(historyPanel, historyBackdrop));
+historyBackdrop.addEventListener('click', () => closePanel(historyPanel, historyBackdrop));
+
+clearBtn.addEventListener('click', () => {
+    if (confirm('Clear all conversation history?')) {
+        conversationHistory = [];
+        localStorage.removeItem('auraVoiceHistory');
+        updateHistoryDisplay();
+    }
+});
+
+speedSlider.addEventListener('input', (e) => { speedValue.textContent = e.target.value + 'x'; });
+
+saveSettingsBtn.addEventListener('click', () => {
+    voiceSettings.voice = voiceSelect.value;
+    voiceSettings.speed = parseFloat(speedSlider.value);
+    sessionMinutes = parseInt(sessionLengthSelect.value);
+    localStorage.setItem('auraVoiceSettings', JSON.stringify(voiceSettings));
+    localStorage.setItem('auraSessionLength', sessionMinutes);
+    closePanel(settingsPanel, settingsBackdrop);
+
+    if (isConnected) { disconnectRealtime(); setTimeout(() => connectRealtime(), 500); }
+
+    saveSettingsBtn.textContent = 'Saved!';
+    setTimeout(() => { saveSettingsBtn.innerHTML = '<i class="fas fa-check" style="margin-right:6px"></i>Save Settings'; }, 1200);
+});
+
+
+// ═══════════════════════════════════════════════════════════
+// 8. CAMERA / MULTI-MODAL
+// ═══════════════════════════════════════════════════════════
+
+let cameraStream = null;
+cameraBtn.addEventListener('click', async () => {
+    try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        cameraVideo.srcObject = cameraStream;
+        cameraOverlay.classList.add('visible');
+    } catch(e) {
+        console.error('Camera error:', e);
+        substatusText.textContent = 'Camera access denied';
+    }
+});
+
+closeCameraBtn.addEventListener('click', () => {
+    if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+    cameraOverlay.classList.remove('visible');
+});
+
+captureBtn.addEventListener('click', () => {
+    const c = document.createElement('canvas');
+    c.width = cameraVideo.videoWidth;
+    c.height = cameraVideo.videoHeight;
+    c.getContext('2d').drawImage(cameraVideo, 0, 0);
+    const dataUrl = c.toDataURL('image/jpeg', 0.8);
+    // Close camera
+    if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+    cameraOverlay.classList.remove('visible');
+    // TODO: Send image to vision API endpoint
+    substatusText.textContent = 'Image captured — vision analysis coming soon';
+    setTimeout(() => { if (state === 'READY') substatusText.textContent = 'Start speaking — I\'m listening'; }, 3000);
+});
+
+
+// ═══════════════════════════════════════════════════════════
+// 9. WHITEBOARD
+// ═══════════════════════════════════════════════════════════
+
+function showWhiteboard(content) {
+    whiteboardContent.innerHTML = content;
+    whiteboardOverlay.classList.add('visible');
+}
+whiteboardClose.addEventListener('click', () => whiteboardOverlay.classList.remove('visible'));
+
+// Simple sentiment estimation from text
+function estimateSentiment(text) {
+    if (!text) return 0;
+    const lower = text.toLowerCase();
+    const positive = ['great', 'good', 'awesome', 'excellent', 'correct', 'right', 'perfect', 'well done', 'nice', 'yes', 'thanks', 'wonderful', 'amazing'];
+    const negative = ['wrong', 'no', 'bad', 'incorrect', 'mistake', 'confused', 'hard', 'difficult', 'fail', 'help', 'stuck', 'frustrated'];
+    let score = 0;
+    positive.forEach(w => { if (lower.includes(w)) score += 0.3; });
+    negative.forEach(w => { if (lower.includes(w)) score -= 0.3; });
+    return Math.max(-1, Math.min(1, score));
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// 10. MUTE TOGGLE
+// ═══════════════════════════════════════════════════════════
+
+muteBtn.addEventListener('click', () => {
+    isMuted = !isMuted;
+    muteBtn.classList.toggle('active', isMuted);
+    if (mediaStream) {
+        mediaStream.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
+    }
+    muteBtn.querySelector('i').className = isMuted ? 'fas fa-microphone-slash' : 'fas fa-microphone';
+    substatusText.textContent = isMuted ? 'Microphone muted' : 'Microphone unmuted';
+});
+
+
+// ═══════════════════════════════════════════════════════════
+// 11. REALTIME API — CONNECTION
+// ═══════════════════════════════════════════════════════════
+
+async function connectRealtime() {
+    updateState('CONNECTING');
+    try {
+        const sessionResponse = await fetch("{% url 'students:create_realtime_session' %}", {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json', 'X-CSRFToken':'{{ csrf_token }}' },
+            body: JSON.stringify({
+                voice: voiceSettings.voice,
+                instructions: "You are Aura, a helpful and friendly AI tutor for students. Keep answers concise and conversational. Be encouraging and supportive."
+            })
+        });
+        if (!sessionResponse.ok) throw new Error('Session creation failed: ' + sessionResponse.status);
+        const { client_secret } = await sessionResponse.json();
+
+        realtimeWs = new WebSocket(
+            'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01',
+            ['realtime', `openai-insecure-api-key.${client_secret}`]
+        );
+
+        realtimeWs.onopen = () => {
+            isConnected = true;
+            sendRealtimeEvent({
+                type: 'session.update',
+                session: {
+                    modalities: ['text','audio'],
+                    instructions: "You are Aura, a helpful and friendly AI tutor. Keep answers concise. If you explain math or a formula, prefix it with [WHITEBOARD] on its own line, followed by the content.",
+                    voice: voiceSettings.voice,
+                    input_audio_format: 'pcm16',
+                    output_audio_format: 'pcm16',
+                    input_audio_transcription: { model: 'whisper-1' },
+                    turn_detection: { type:'server_vad', threshold:0.5, prefix_padding_ms:300, silence_duration_ms:500 }
+                }
+            });
+            startAudioCapture();
+            updateState('READY');
+            retryCount = 0;
+        };
+
+        realtimeWs.onmessage = (e) => handleRealtimeMessage(JSON.parse(e.data));
+        realtimeWs.onerror = () => updateState('ERROR');
+        realtimeWs.onclose = () => {
+            isConnected = false;
+            stopAudioCapture();
+            if (state !== 'IDLE' && state !== 'ERROR') updateState('IDLE');
+        };
+    } catch(err) {
+        console.error('Connect error:', err);
+        updateState('ERROR');
+    }
+}
+
+function disconnectRealtime() {
+    if (realtimeWs) { realtimeWs.close(); realtimeWs = null; }
+    stopAudioCapture();
+    isConnected = false;
+    sessionStartTime = null;
+    progressFill.style.strokeDashoffset = CIRCUMFERENCE;
+    updateState('IDLE');
+}
+
+function sendRealtimeEvent(evt) {
+    if (realtimeWs && realtimeWs.readyState === WebSocket.OPEN) realtimeWs.send(JSON.stringify(evt));
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// 12. REALTIME API — MESSAGE HANDLER
+// ═══════════════════════════════════════════════════════════
+
+function handleRealtimeMessage(msg) {
+    switch (msg.type) {
+        case 'session.created':
+        case 'session.updated':
+            break;
+
+        case 'input_audio_buffer.speech_started':
+            updateState('LISTENING');
+            currentUserText = '';
+            break;
+
+        case 'input_audio_buffer.speech_stopped':
+            updateState('THINKING');
+            break;
+
+        case 'conversation.item.input_audio_transcription.completed':
+            currentUserText = msg.transcript || '';
+            if (currentUserText) {
+                addTranscriptLine(currentUserText, 'user');
+                targetSentiment = estimateSentiment(currentUserText);
+            }
+            break;
+
+        case 'response.audio_transcript.delta':
+            if (!isPlayingAudio) { updateState('SPEAKING'); isPlayingAudio = true; }
+            currentAuraText += (msg.delta || '');
+            updateLiveAuraText(currentAuraText);
+
+            // Check for whiteboard content
+            if (currentAuraText.includes('[WHITEBOARD]')) {
+                const parts = currentAuraText.split('[WHITEBOARD]');
+                if (parts[1] && parts[1].trim().length > 10) {
+                    showWhiteboard(escapeHtml(parts[1].trim()));
+                }
+            }
+            break;
+
+        case 'response.audio.delta':
+            playAudioChunk(msg.delta);
+            break;
+
+        case 'response.audio.done':
+        case 'response.done':
+            if (currentUserText && currentAuraText) saveToHistory(currentUserText, currentAuraText);
+            finalizeLiveAuraText();
+            currentAuraText = '';
+            isPlayingAudio = false;
+            nextPlaybackTime = 0;
+            if (isConnected) updateState('READY');
+            break;
+
+        case 'error':
+            console.error('Realtime error:', msg.error);
+            updateState('ERROR');
+            break;
+    }
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// 13. AUDIO CAPTURE
+// ═══════════════════════════════════════════════════════════
+
+async function startAudioCapture() {
+    try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+            audio: { sampleRate:24000, channelCount:1, echoCancellation:true, noiseSuppression:true }
+        });
+
+        if (isMuted) mediaStream.getAudioTracks().forEach(t => { t.enabled = false; });
+
+        audioContext = new AudioContext({ sampleRate: 24000 });
+        source = audioContext.createMediaStreamSource(mediaStream);
+
+        // Analyser for orb
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        analyserData = new Uint8Array(analyser.frequencyBinCount);
+        source.connect(analyser);
+
+        processor = audioContext.createScriptProcessor(4096, 1, 1);
+        processor.onaudioprocess = (e) => {
+            if (!isConnected || !realtimeWs || realtimeWs.readyState !== WebSocket.OPEN) return;
+
+            // Update orb audio level from analyser
+            if (analyser) {
+                analyser.getByteFrequencyData(analyserData);
+                let sum = 0;
+                for (let i = 0; i < analyserData.length; i++) sum += analyserData[i];
+                targetAudioLevel = (sum / analyserData.length) / 255;
+            }
+
+            const input = e.inputBuffer.getChannelData(0);
+            const pcm16 = floatTo16BitPCM(input);
+            sendRealtimeEvent({ type:'input_audio_buffer.append', audio: arrayBufferToBase64(pcm16.buffer) });
+        };
+
+        source.connect(processor);
+        processor.connect(audioContext.destination);
+
+    } catch(err) {
+        console.error('Mic error:', err);
+        statusText.textContent = 'Mic Error';
+        substatusText.textContent = 'Please allow microphone access';
+    }
+}
+
+function stopAudioCapture() {
+    if (processor) { processor.disconnect(); processor = null; }
+    if (analyser) { analyser.disconnect(); analyser = null; }
+    if (source) { source.disconnect(); source = null; }
+    if (audioContext) { audioContext.close().catch(()=>{}); audioContext = null; }
+    if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+    targetAudioLevel = 0;
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// 14. AUDIO PLAYBACK (gapless queue)
+// ═══════════════════════════════════════════════════════════
+
+function playAudioChunk(base64Audio) {
+    try {
+        if (!audioPlaybackContext || audioPlaybackContext.state === 'closed') {
+            audioPlaybackContext = new AudioContext({ sampleRate: 24000 });
+            nextPlaybackTime = 0;
+        }
+
+        const raw = base64ToArrayBuffer(base64Audio);
+        const pcm = new Int16Array(raw);
+        const floats = pcm16ToFloat(pcm);
+
+        const buf = audioPlaybackContext.createBuffer(1, floats.length, 24000);
+        buf.getChannelData(0).set(floats);
+
+        const src = audioPlaybackContext.createBufferSource();
+        src.buffer = buf;
+        src.connect(audioPlaybackContext.destination);
+
+        // Schedule gapless
+        const now = audioPlaybackContext.currentTime;
+        const startAt = Math.max(now, nextPlaybackTime);
+        src.start(startAt);
+        nextPlaybackTime = startAt + buf.duration;
+
+        // Simulate audio level for orb while speaking
+        targetAudioLevel = Math.min(1, floats.length / 4096);
+        src.onended = () => { if (!isPlayingAudio) targetAudioLevel = 0; };
+
+    } catch(err) { console.error('Playback error:', err); }
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// 15. AUDIO CONVERSION UTILS
+// ═══════════════════════════════════════════════════════════
+
+function floatTo16BitPCM(f32) {
+    const buf = new ArrayBuffer(f32.length * 2);
+    const view = new DataView(buf);
+    for (let i = 0, off = 0; i < f32.length; i++, off += 2) {
+        let s = Math.max(-1, Math.min(1, f32[i]));
+        view.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    }
+    return new Int16Array(buf);
+}
+
+function pcm16ToFloat(i16) {
+    const f32 = new Float32Array(i16.length);
+    for (let i = 0; i < i16.length; i++) f32[i] = i16[i] / (i16[i] < 0 ? 0x8000 : 0x7FFF);
+    return f32;
+}
+
+function arrayBufferToBase64(buf) {
+    const bytes = new Uint8Array(buf);
+    let bin = '';
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+}
+
+function base64ToArrayBuffer(b64) {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes.buffer;
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// 16. MAIN INTERACTION HANDLER
+// ═══════════════════════════════════════════════════════════
+
+interruptZone.addEventListener('click', () => {
+    switch (state) {
+        case 'IDLE':
+        case 'ERROR':
+            connectRealtime();
+            break;
+        case 'SPEAKING':
+            // Interrupt — tell API to stop generating
+            sendRealtimeEvent({ type: 'response.cancel' });
+            finalizeLiveAuraText();
+            currentAuraText = '';
+            isPlayingAudio = false;
+            nextPlaybackTime = 0;
+            // Close playback context to stop audio immediately
+            if (audioPlaybackContext) {
+                audioPlaybackContext.close().catch(()=>{});
+                audioPlaybackContext = null;
+            }
+            updateState('READY');
+            break;
+        case 'CONNECTING':
+        case 'READY':
+        case 'LISTENING':
+        case 'THINKING':
+            disconnectRealtime();
+            break;
+    }
+});
+
+// Init
+updateState('IDLE');
+
+// Cleanup
+window.addEventListener('beforeunload', () => {
+    disconnectRealtime();
+    if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
+});
+
 });
 </script>
 {% endblock %}
