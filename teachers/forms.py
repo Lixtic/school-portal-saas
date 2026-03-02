@@ -228,3 +228,12 @@ class TeacherEditForm(forms.ModelForm):
             self.save_m2m()
         
         return teacher
+
+
+class TeacherCSVImportForm(forms.Form):
+    """Form for importing teachers from CSV file"""
+    csv_file = forms.FileField(
+        label='CSV File',
+        help_text='Upload a CSV file with teacher information',
+        widget=forms.FileInput(attrs={'class': 'form-control', 'accept': '.csv'})
+    )

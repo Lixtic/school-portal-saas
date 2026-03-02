@@ -10,11 +10,15 @@ from django.http import JsonResponse, HttpResponse
 from decimal import Decimal, InvalidOperation
 from django.utils import timezone
 import os
+import csv
+import random
+import string
+from datetime import date
 from teachers.models import Teacher, DutyWeek, LessonPlan
 from academics.models import ClassSubject, AcademicYear, Timetable, SchoolInfo, Resource, Class, Subject
 from students.models import Student, Grade, ClassExercise, StudentExerciseScore
 from students.utils import normalize_term
-from .forms import ResourceForm, LessonPlanForm, TeacherCreateForm #, HomeworkForm
+from .forms import ResourceForm, LessonPlanForm, TeacherCreateForm, TeacherCSVImportForm #, HomeworkForm
 from .models import LessonGenerationSession
 from accounts.models import User
 from academics.tutor_models import generate_teacher_id_card, export_id_card_to_pdf, export_multiple_id_cards_to_pdf, TutorSession
@@ -204,6 +208,179 @@ def teacher_list(request):
         'classes': classes,
     }
     return render(request, 'teachers/teacher_list.html', context)
+
+
+@login_required
+def import_teachers_csv(request):
+    """Import teachers from CSV file"""
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied. Only admins can import teachers.')
+        return redirect('teachers:teacher_list')
+    
+    if request.method == 'POST':
+        form = TeacherCSVImportForm(request.POST, request.FILES)
+        if form.is_valid():
+            csv_file = request.FILES['csv_file']
+            
+            # Validate file extension
+            if not csv_file.name.endswith('.csv'):
+                messages.error(request, 'Please upload a valid CSV file.')
+                return redirect('teachers:import_csv')
+            
+            # Read and process CSV
+            try:
+                decoded_file = csv_file.read().decode('utf-8').splitlines()
+                reader = csv.DictReader(decoded_file)
+                
+                imported_count = 0
+                skipped_count = 0
+                errors = []
+                
+                for row_num, row in enumerate(reader, start=2):  # Start at 2 (header is row 1)
+                    try:
+                        # Handle both naming conventions: "First Name" or "first_name"
+                        first_name = (row.get('First Name') or row.get('first_name') or '').strip()
+                        last_name = (row.get('Last Name') or row.get('last_name') or '').strip()
+                        employee_id = (row.get('Employee ID') or row.get('employee_id') or '').strip()
+                        email = (row.get('Email') or row.get('email') or '').strip()
+                        phone = (row.get('Phone') or row.get('phone') or '').strip()
+                        qualification = (row.get('Qualification') or row.get('qualification') or '').strip()
+                        date_of_joining = (row.get('Date of Joining') or row.get('date_of_joining') or '').strip()
+                        age = (row.get('Age') or row.get('age') or '').strip()
+                        
+                        if not first_name:
+                            errors.append(f"Row {row_num}: Missing first name")
+                            skipped_count += 1
+                            continue
+                        
+                        # Last name is optional
+                        if not last_name:
+                            last_name = ''
+                        
+                        # Generate username
+                        if last_name:
+                            base_username = f"{first_name.lower()}.{last_name.lower()}"
+                        else:
+                            base_username = first_name.lower()
+                        username = base_username.replace(' ', '').replace('-', '')
+                        counter = 1
+                        while User.objects.filter(username=username).exists():
+                            username = f"{base_username.replace(' ', '').replace('-', '')}{counter}"
+                            counter += 1
+                        
+                        # Use provided employee ID or generate one
+                        if employee_id and employee_id.upper() not in ['N/A', 'NA', '']:
+                            # Clean up employee ID
+                            employee_id = employee_id.strip().replace(' ', '')
+                            # Check if it already exists
+                            if Teacher.objects.filter(employee_id=employee_id).exists():
+                                errors.append(f"Row {row_num}: Employee ID '{employee_id}' already exists")
+                                skipped_count += 1
+                                continue
+                        else:
+                            # Generate employee ID
+                            prefix = 'TCH'
+                            for _ in range(100):  # Try up to 100 times
+                                suffix = ''.join(random.choices(string.digits, k=4))
+                                candidate = f"{prefix}{suffix}"
+                                if not Teacher.objects.filter(employee_id=candidate).exists():
+                                    employee_id = candidate
+                                    break
+                        
+                        if not employee_id:
+                            errors.append(f"Row {row_num}: Could not generate unique employee ID")
+                            skipped_count += 1
+                            continue
+                        
+                        # Prepare email
+                        if not email or email.upper() in ['N/A', 'NA', '']:
+                            email = f"{username}@school.local"
+                        
+                        # Check if user with this email already exists
+                        if User.objects.filter(email=email).exists():
+                            email = f"{username}{random.randint(1, 999)}@school.local"
+                        
+                        # Parse age for date of birth
+                        try:
+                            teacher_age = int(age) if age else 30
+                        except ValueError:
+                            teacher_age = 30
+                        
+                        # Calculate date of birth
+                        dob_year = max(1900, date.today().year - teacher_age)
+                        date_of_birth = date(dob_year, 1, 1)
+                        
+                        # Parse date of joining
+                        if date_of_joining and date_of_joining.upper() not in ['N/A', 'NA', '']:
+                            try:
+                                # Try parsing common date formats
+                                from datetime import datetime
+                                for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%d-%m-%Y']:
+                                    try:
+                                        joining_date = datetime.strptime(date_of_joining, fmt).date()
+                                        break
+                                    except ValueError:
+                                        continue
+                                else:
+                                    joining_date = date.today()
+                            except:
+                                joining_date = date.today()
+                        else:
+                            joining_date = date.today()
+                        
+                        # Prepare qualification
+                        if not qualification or qualification.upper() in ['N/A', 'NA', '']:
+                            qualification = 'Bachelor of Education'
+                        
+                        # Create user
+                        user = User.objects.create(
+                            username=username,
+                            first_name=first_name,
+                            last_name=last_name,
+                            email=email,
+                            user_type='teacher'
+                        )
+                        user.set_unusable_password()
+                        user.save()
+                        
+                        # Create teacher
+                        teacher = Teacher.objects.create(
+                            user=user,
+                            employee_id=employee_id,
+                            date_of_birth=date_of_birth,
+                            date_of_joining=joining_date,
+                            qualification=qualification
+                        )
+                        
+                        imported_count += 1
+                        
+                    except Exception as e:
+                        errors.append(f"Row {row_num}: {str(e)}")
+                        skipped_count += 1
+                        continue
+                
+                # Show results
+                if imported_count > 0:
+                    messages.success(request, f'Successfully imported {imported_count} teacher(s).')
+                
+                if skipped_count > 0:
+                    messages.warning(request, f'Skipped {skipped_count} row(s) due to errors.')
+                
+                if errors and len(errors) <= 10:
+                    for error in errors:
+                        messages.error(request, error)
+                elif errors:
+                    messages.error(request, f'{len(errors)} errors occurred. First 10: {", ".join(errors[:10])}')
+                
+                return redirect('teachers:teacher_list')
+                
+            except Exception as e:
+                messages.error(request, f'Error processing CSV file: {str(e)}')
+                return redirect('teachers:import_csv')
+    else:
+        form = TeacherCSVImportForm()
+    
+    return render(request, 'teachers/import_csv.html', {'form': form})
 
 
 @login_required

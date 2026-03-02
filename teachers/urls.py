@@ -11,6 +11,7 @@ urlpatterns = [
     path('analytics/generate-lesson/', views.generate_remedial_lesson, name='generate_remedial_lesson'),
     path('<int:teacher_id>/', views.teacher_detail, name='teacher_detail'),
     path('add/', views.add_teacher, name='add_teacher'),
+    path('import-csv/', views.import_teachers_csv, name='import_csv'),
     path('edit/<int:teacher_id>/', views.edit_teacher, name='edit_teacher'),
     path('assign-class/<int:class_id>/', views.assign_class_teacher, name='assign_class_teacher'),
     path('my-classes/', views.teacher_classes, name='my_classes'),

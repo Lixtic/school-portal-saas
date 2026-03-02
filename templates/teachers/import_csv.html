@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<style>
+    .info-card {
+        padding: 1.5rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        background: #fff;
+    }
+    .code-block {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1rem;
+        font-family: monospace;
+        font-size: 0.875rem;
+    }
+    [data-bs-theme="dark"] .info-card {
+        background: var(--surface-white);
+        border-color: rgba(255,255,255,0.08);
+    }
+    [data-bs-theme="dark"] .code-block {
+        background: rgba(255,255,255,0.05);
+        border-color: rgba(255,255,255,0.08);
+    }
+</style>
+
+<div class="container-fluid px-3 px-md-4 py-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="mb-0 fw-semibold">Import Teachers from CSV</h4>
+        <a href="{% url 'teachers:teacher_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Back to List
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="info-card mb-4">
+                <h6 class="fw-semibold mb-3">Upload CSV File</h6>
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <button type="submit" class="btn btn-primary w-100 mt-3">
+                        <i class="bi bi-upload me-1"></i> Import Teachers
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="info-card mb-4">
+                <h6 class="fw-semibold mb-3">CSV Format Instructions</h6>
+                <p class="text-muted small mb-3">Your CSV file should have the following columns:</p>
+                
+                <div class="table-responsive mb-3">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Column</th>
+                                <th>Required</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>first_name</code> or <code>First Name</code></td>
+                                <td><span class="badge bg-danger">Required</span></td>
+                                <td>Teacher's first name</td>
+                            </tr>
+                            <tr>
+                                <td><code>last_name</code> or <code>Last Name</code></td>
+                                <td><span class="badge bg-secondary">Optional</span></td>
+                                <td>Teacher's last name</td>
+                            </tr>
+                            <tr>
+                                <td><code>employee_id</code> or <code>Employee ID</code></td>
+                                <td><span class="badge bg-secondary">Optional</span></td>
+                                <td>Employee ID (auto-generated if blank)</td>
+                            </tr>
+                            <tr>
+                                <td><code>email</code> or <code>Email</code></td>
+                                <td><span class="badge bg-secondary">Optional</span></td>
+                                <td>Email address (auto-generated if blank)</td>
+                            </tr>
+                            <tr>
+                                <td><code>phone</code> or <code>Phone</code></td>
+                                <td><span class="badge bg-secondary">Optional</span></td>
+                                <td>Phone number</td>
+                            </tr>
+                            <tr>
+                                <td><code>qualification</code> or <code>Qualification</code></td>
+                                <td><span class="badge bg-secondary">Optional</span></td>
+                                <td>Academic qualification (default: Bachelor of Education)</td>
+                            </tr>
+                            <tr>
+                                <td><code>age</code> or <code>Age</code></td>
+                                <td><span class="badge bg-secondary">Optional</span></td>
+                                <td>Age in years (default: 30)</td>
+                            </tr>
+                            <tr>
+                                <td><code>date_of_joining</code> or <code>Date of Joining</code></td>
+                                <td><span class="badge bg-secondary">Optional</span></td>
+                                <td>Date joined (YYYY-MM-DD format, default: today)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h6 class="fw-semibold mb-2">Example CSV:</h6>
+                <div class="code-block">
+First Name,Last Name,Employee ID,Email,Qualification,Age,Date of Joining
+John,Doe,TCH001,john.doe@school.com,Master of Education,35,2020-01-15
+Jane,Smith,,jane.smith@school.com,Bachelor of Science,28,2021-09-01
+Michael,Johnson,TCH003,,PhD in Mathematics,42,2019-03-10
+Sarah,Williams,,,Bachelor of Education,30,
+</div>
+
+                <div class="alert alert-info mt-3 small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    <strong>Flexible Format:</strong> The import supports both space-separated column names (like "First Name") and underscore-separated names (like "first_name"). Missing values will be auto-generated where applicable.
+                </div>
+
+                <div class="alert alert-warning mt-2 small">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    <strong>Important:</strong> Employee IDs must be unique. If an employee ID already exists in the system, that row will be skipped.
+                </div>
+
+                <div class="mt-3">
+                    <a href="data:text/csv;charset=utf-8,First%20Name%2CLast%20Name%2CEmployee%20ID%2CEmail%2CQualification%2CAge%2CDate%20of%20Joining%0AJohn%2CDoe%2CTCH001%2Cjohn.doe%40school.com%2CMaster%20of%20Education%2C35%2C2020-01-15%0AJane%2CSmith%2C%2Cjane.smith%40school.com%2CBachelor%20of%20Science%2C28%2C2021-09-01%0AMichael%2CJohnson%2CTCH003%2C%2CPhD%20in%20Mathematics%2C42%2C2019-03-10%0ASarah%2CWilliams%2C%2C%2CBachelor%20of%20Education%2C30%2C" 
+                       download="teachers_template.csv" 
+                       class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-download me-1"></i> Download Template
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
