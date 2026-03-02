@@ -14,6 +14,7 @@ urlpatterns = [
     path('schedule/', views.student_schedule, name='student_schedule'),
     path('report-card/bulk/', views.bulk_report_cards, name='bulk_report_cards'),
     path('report-card/<int:student_id>/', views.generate_report_card, name='report_card'),
+    path('detail/<int:student_id>/', views.student_detail_page, name='student_detail_page'),
     path('details/<int:student_id>/', views.student_details_ajax, name='student_details'),
     path('bulk-assign-class/', views.bulk_assign_class, name='bulk_assign_class'),
     path('export/', views.export_students, name='export_students'),

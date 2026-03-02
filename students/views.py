@@ -278,6 +278,93 @@ def student_details_ajax(request, student_id):
 
 
 @login_required
+def student_detail_page(request, student_id):
+    """Full student detail page with attendance calendar"""
+    student = get_object_or_404(Student, id=student_id)
+    
+    # Access control
+    if request.user.user_type == 'student':
+        if request.user != student.user:
+            messages.error(request, 'Access denied.')
+            return redirect('dashboard')
+    elif request.user.user_type not in ['admin', 'teacher']:
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    # Get current year and date filter
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    selected_year = request.GET.get('year', timezone.now().year)
+    try:
+        selected_year = int(selected_year)
+    except:
+        selected_year = timezone.now().year
+    
+    # Get all attendance records for the selected year
+    attendance_records = Attendance.objects.filter(
+        student=student,
+        date__year=selected_year
+    ).order_by('date')
+    
+    # Calculate attendance stats
+    total_present = attendance_records.filter(status='present').count()
+    total_late = attendance_records.filter(status='late').count()
+    total_absent = attendance_records.filter(status='absent').count()
+    total_holiday = 0  # You could add holiday tracking if needed
+    
+    # Build attendance calendar data (all 12 months)
+    attendance_calendar = {}
+    for month in range(1, 13):
+        month_name = calendar.month_name[month]
+        # Get days in month
+        _, days_in_month = calendar.monthrange(selected_year, month)
+        
+        # Get attendance for this month
+        month_attendance = attendance_records.filter(date__month=month)
+        attendance_dict = {record.date.day: record.status for record in month_attendance}
+        
+        # Build days array
+        days = []
+        for day in range(1, days_in_month + 1):
+            status = attendance_dict.get(day, None)
+            days.append({
+                'day': day,
+                'status': status,
+                'display': 'P' if status == 'present' else 'A' if status == 'absent' else 'L' if status == 'late' else 'H' if status == 'excused' else ''
+            })
+        
+        attendance_calendar[month_name] = days
+    
+    # Recent grades
+    recent_grades = Grade.objects.filter(student=student).select_related(
+        'class_subject__subject', 'class_subject__class_name', 'academic_year'
+    ).order_by('-academic_year__start_date', '-created_at')[:10]
+    
+    # Calculate average grade
+    grades = Grade.objects.filter(student=student)
+    average_grade = 0
+    if grades.exists():
+        total_score = sum([g.percentage() for g in grades if g.percentage() > 0])
+        count = len([g for g in grades if g.percentage() > 0])
+        if count > 0:
+            average_grade = round(total_score / count, 2)
+    
+    context = {
+        'student': student,
+        'current_year': current_year,
+        'selected_year': selected_year,
+        'total_present': total_present,
+        'total_late': total_late,
+        'total_absent': total_absent,
+        'total_holiday': total_holiday,
+        'attendance_calendar': attendance_calendar,
+        'recent_grades': recent_grades,
+        'average_grade': average_grade,
+    }
+    
+    return render(request, 'students/student_detail.html', context)
+
+
+@login_required
 def bulk_assign_class(request):
     """Bulk assign students to a class"""
     if request.user.user_type not in ['admin', 'teacher']:
