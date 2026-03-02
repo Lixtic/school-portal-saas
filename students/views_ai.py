@@ -180,7 +180,7 @@ def process_voice_interaction(request):
     """
     Orchestrate the S2S pipeline:
     Audio (Frontend) -> OpenAI Whisper (primary) / HF Whisper (fallback)
-    -> Llama 3 (API) -> Parler-TTS (API) -> Audio Stream (Frontend)
+    -> GPT-4o-mini (LLM) -> OpenAI TTS-1 (with voice & speed settings) -> Audio Stream (Frontend)
     """
     if request.method != "POST":
         return JsonResponse({"error": "Method not allowed"}, status=405)
@@ -189,6 +189,18 @@ def process_voice_interaction(request):
         audio_file = request.FILES.get('audio')
         if not audio_file:
             return JsonResponse({"error": "No audio file provided"}, status=400)
+        
+        # Get voice settings from request (defaults: nova, 1.0)
+        voice_type = request.POST.get('voice', 'nova')
+        speech_speed = float(request.POST.get('speed', 1.0))
+        
+        # Validate voice type
+        valid_voices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer']
+        if voice_type not in valid_voices:
+            voice_type = 'nova'
+        
+        # Validate speed (0.25 to 4.0 per OpenAI docs, but we limit to 0.5-1.5 in UI)
+        speech_speed = max(0.5, min(1.5, speech_speed))
 
         # 1. ASR - OpenAI Whisper (primary), Hugging Face Whisper (fallback)
         user_text = ""
@@ -228,23 +240,11 @@ def process_voice_interaction(request):
                 status=503,
             )
         
-        # 2. LLM - Llama 3 (Streaming & Buffering)
+        # 2. LLM - GPT-4o-mini for response generation
         system_prompt = (
             "You are Aura, a helpful and friendly AI tutor. "
             "Keep answers concise (max 2 sentences), conversational, and no markdown."
         )
-        
-        prompt = f"<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{user_text}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
-        
-        payload_llm = {
-            "inputs": prompt,
-            "parameters": {
-                "max_new_tokens": 150,
-                "return_full_text": False,
-                "temperature": 0.7,
-            },
-            "stream": True  # Enable streaming from LLM
-        }
 
         # Generator function for streaming response
         def generate_audio_stream():
@@ -252,7 +252,7 @@ def process_voice_interaction(request):
                 import openai
                 client = openai.OpenAI(api_key=get_openai_api_key())
 
-                # Step 2: Get LLM text strictly via OpenAI instead of LLama 3 and TTS via OpenAI
+                # Step 2: Get LLM text response
                 res = client.chat.completions.create(
                     model='gpt-4o-mini',
                     messages=[
@@ -265,12 +265,13 @@ def process_voice_interaction(request):
                 
                 text_response = res.choices[0].message.content.strip()
 
-                # Step 3: Stream OpenAI TTS
+                # Step 3: Stream OpenAI TTS with voice and speed settings
                 if text_response:
                     tts_resp = client.audio.speech.create(
                         model='tts-1',
-                        voice='nova',
+                        voice=voice_type,
                         input=text_response,
+                        speed=speech_speed,
                         response_format='mp3'
                     )
                     
@@ -282,15 +283,61 @@ def process_voice_interaction(request):
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.error(f"Aura Voice Stream Error: {str(e)}")
-
-        return StreamingHttpResponse(
-            generate_audio_stream(),
-            content_type="audio/mpeg",
-            headers={"Content-Disposition": "inline; filename=\"aura.mp3\""},
+        
+        # Get the text response for headers (run LLM once before streaming)
+        import openai
+        client = openai.OpenAI(api_key=get_openai_api_key())
+        
+        res = client.chat.completions.create(
+            model='gpt-4o-mini',
+            messages=[
+                {'role': 'system', 'content': system_prompt},
+                {'role': 'user', 'content': user_text}
+            ],
+            temperature=0.7,
+            max_tokens=150
         )
+        
+        aura_text = res.choices[0].message.content.strip()
+        
+        # Create TTS stream
+        def tts_audio_stream():
+            try:
+                tts_resp = client.audio.speech.create(
+                    model='tts-1',
+                    voice=voice_type,
+                    input=aura_text,
+                    speed=speech_speed,
+                    response_format='mp3'
+                )
+                
+                for chunk in tts_resp.iter_bytes():
+                    if chunk:
+                        yield chunk
+                        
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"TTS Error: {str(e)}")
+        
+        # Return streaming response with transcript headers
+        from urllib.parse import quote
+        response = StreamingHttpResponse(
+            tts_audio_stream(),
+            content_type="audio/mpeg",
+            headers={
+                "Content-Disposition": "inline; filename=\"aura.mp3\"",
+                "X-User-Text": quote(user_text),
+                "X-Aura-Text": quote(aura_text),
+            },
+        )
+        return response
 
     except Exception as e:
-        return JsonResponse({"error":str(e)}, status=500)
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Voice Interaction Error: {str(e)}")
+        return JsonResponse({"error": str(e)}, status=500)
 
 
 from django.contrib.auth.decorators import login_required

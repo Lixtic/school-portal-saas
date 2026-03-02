@@ -19,13 +19,73 @@
         <div class="badge bg-primary bg-opacity-25 border border-primary px-3 py-2 rounded-pill d-flex align-items-center gap-2">
             <i class="fas fa-magic text-primary"></i> <span class="fw-semibold">Aura 2.0</span>
         </div>
-        <div style="width: 90px;"><!-- spacer --></div>
+        <button id="settingsBtn" class="btn btn-outline-light rounded-circle btn-sm d-flex align-items-center justify-content-center bg-dark bg-opacity-50 blur-backdrop border-secondary" style="width: 40px; height: 40px;" title="Voice Settings">
+            <i class="fas fa-cog"></i>
+        </button>
+    </div>
+
+    <!-- Conversation History Panel (Collapsible) -->
+    <div id="historyPanel" class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-95 d-none" style="z-index: 10; overflow-y: auto; backdrop-filter: blur(10px);">
+        <div class="p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="mb-0"><i class="fas fa-history me-2"></i>Conversation History</h5>
+                <button id="closeHistoryBtn" class="btn btn-sm btn-outline-light rounded-circle" style="width: 35px; height: 35px;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="historyContent" class="d-flex flex-column gap-3">
+                <div class="text-center text-white-50 py-5">
+                    <i class="fas fa-comment-slash fa-3x mb-3 opacity-25"></i>
+                    <p>No conversation yet. Start talking to Aura!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div id="settingsPanel" class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-95 d-none" style="z-index: 10; overflow-y: auto; backdrop-filter: blur(10px);">
+        <div class="p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Voice Settings</h5>
+                <button id="closeSettingsBtn" class="btn btn-sm btn-outline-light rounded-circle" style="width: 35px; height: 35px;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- Voice Selection -->
+            <div class="mb-4">
+                <label class="form-label text-white-50 small mb-2">Voice Type</label>
+                <select id="voiceSelect" class="form-select bg-dark text-white border-secondary">
+                    <option value="nova" selected>Nova (Default - Friendly Female)</option>
+                    <option value="alloy">Alloy (Gender-Neutral)</option>
+                    <option value="echo">Echo (Male)</option>
+                    <option value="fable">Fable (British Male)</option>
+                    <option value="onyx">Onyx (Deep Male)</option>
+                    <option value="shimmer">Shimmer (Soft Female)</option>
+                </select>
+            </div>
+
+            <!-- Speed Control -->
+            <div class="mb-4">
+                <label class="form-label text-white-50 small mb-2">Speech Speed: <span id="speedValue">1.0x</span></label>
+                <input type="range" class="form-range" id="speedSlider" min="0.5" max="1.5" step="0.1" value="1.0">
+                <div class="d-flex justify-content-between text-white-50 small">
+                    <span>0.5x Slow</span>
+                    <span>1.5x Fast</span>
+                </div>
+            </div>
+
+            <!-- Save Settings -->
+            <button id="saveSettingsBtn" class="btn btn-primary w-100 rounded-pill">
+                <i class="fas fa-check me-2"></i>Save Settings
+            </button>
+        </div>
     </div>
 
     <!-- Main Active Area (The Orb) -->
-    <div class="text-center z-2 d-flex flex-column align-items-center">
+    <div class="text-center z-2 d-flex flex-column align-items-center position-relative" style="flex: 1;">
         <!-- Visualizer -->
-        <div class="mb-5 position-relative" style="width: 150px; height: 150px; user-select: none;">
+        <div class="mb-4 position-relative" style="width: 150px; height: 150px; user-select: none;">
             <div id="voiceOrb" class="rounded-circle d-flex align-items-center justify-content-center bg-gradient-voice w-100 h-100 shadow-lg" style="transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; z-index: 5;">
                 <i id="voiceIcon" class="fas fa-microphone fa-3x text-white" style="transition: all 0.3s ease;"></i>
             </div>
@@ -34,12 +94,27 @@
         </div>
 
         <!-- Status text -->
-        <h3 id="statusText" class="fw-light mb-3">Hi, I'm Aura.</h3>
-        <p id="substatusText" class="text-white-50 px-4" style="max-width: 320px; font-size: 0.95rem; line-height: 1.5;">Tap the orb to start a conversation. I'm ready to listen.</p>
+        <h3 id="statusText" class="fw-light mb-2">Hi, I'm Aura.</h3>
+        <p id="substatusText" class="text-white-50 px-4 mb-3" style="max-width: 320px; font-size: 0.95rem; line-height: 1.5;">Tap the orb to start a conversation. I'm ready to listen.</p>
+        
+        <!-- Live Transcript Display -->
+        <div id="transcriptBox" class="bg-dark bg-opacity-50 rounded-3 p-3 mx-4 border border-secondary border-opacity-25 d-none" style="max-width: 500px; max-height: 120px; overflow-y: auto; backdrop-filter: blur(10px);">
+            <div class="text-white-50 small mb-1"><i class="fas fa-user me-2"></i>You said:</div>
+            <div id="userTranscript" class="text-white mb-2"></div>
+            <div class="text-info small mb-1"><i class="fas fa-robot me-2"></i>Aura's response:</div>
+            <div id="auraTranscript" class="text-white"></div>
+        </div>
     </div>
 
-    <!-- Sub Controls -->
-    <!-- Removed for true minimalist GPT voice style, but keeping logic -->
+    <!-- Bottom Controls -->
+    <div class="w-100 p-3 d-flex justify-content-center gap-3 z-2" style="position: relative;">
+        <button id="historyBtn" class="btn btn-outline-light rounded-pill btn-sm px-3 py-2" title="View History">
+            <i class="fas fa-history me-2"></i>History
+        </button>
+        <button id="clearBtn" class="btn btn-outline-danger rounded-pill btn-sm px-3 py-2 d-none" title="Clear Conversation">
+            <i class="fas fa-trash me-2"></i>Clear
+        </button>
+    </div>
 </div>
 
 <!-- Audio element for TTS playback -->
@@ -106,11 +181,127 @@ document.addEventListener("DOMContentLoaded", function() {
     const substatusText = document.getElementById("substatusText");
     const voiceIcon = document.getElementById("voiceIcon");
     const ttsAudio = document.getElementById("ttsAudio");
+    const transcriptBox = document.getElementById("transcriptBox");
+    const userTranscript = document.getElementById("userTranscript");
+    const auraTranscript = document.getElementById("auraTranscript");
+    
+    // Panel controls
+    const settingsBtn = document.getElementById("settingsBtn");
+    const settingsPanel = document.getElementById("settingsPanel");
+    const closeSettingsBtn = document.getElementById("closeSettingsBtn");
+    const historyBtn = document.getElementById("historyBtn");
+    const historyPanel = document.getElementById("historyPanel");
+    const closeHistoryBtn = document.getElementById("closeHistoryBtn");
+    const historyContent = document.getElementById("historyContent");
+    const clearBtn = document.getElementById("clearBtn");
+    
+    // Settings controls
+    const voiceSelect = document.getElementById("voiceSelect");
+    const speedSlider = document.getElementById("speedSlider");
+    const speedValue = document.getElementById("speedValue");
+    const saveSettingsBtn = document.getElementById("saveSettingsBtn");
     
     // States: IDLE, RECORDING, THINKING, SPEAKING
     let state = 'IDLE'; 
     let mediaRecorder = null;
     let audioChunks = [];
+    let conversationHistory = JSON.parse(localStorage.getItem('auraVoiceHistory') || '[]');
+    let currentUserText = "";
+    let currentAuraText = "";
+    let retryCount = 0;
+    const MAX_RETRIES = 2;
+    
+    // Voice settings (stored in localStorage)
+    let voiceSettings = JSON.parse(localStorage.getItem('auraVoiceSettings') || '{"voice": "nova", "speed": 1.0}');
+    
+    // Initialize settings UI
+    voiceSelect.value = voiceSettings.voice;
+    speedSlider.value = voiceSettings.speed;
+    speedValue.textContent = voiceSettings.speed + 'x';
+    
+    // Update conversation history display
+    function updateHistoryDisplay() {
+        if (conversationHistory.length === 0) {
+            historyContent.innerHTML = `
+                <div class="text-center text-white-50 py-5">
+                    <i class="fas fa-comment-slash fa-3x mb-3 opacity-25"></i>
+                    <p>No conversation yet. Start talking to Aura!</p>
+                </div>
+            `;
+            clearBtn.classList.add('d-none');
+        } else {
+            historyContent.innerHTML = conversationHistory.map((item, index) => `
+                <div class="border border-secondary border-opacity-25 rounded-3 p-3 bg-dark bg-opacity-50">
+                    <div class="text-white-50 small mb-2">
+                        <i class="fas fa-clock me-1"></i>${item.timestamp}
+                    </div>
+                    <div class="mb-2">
+                        <div class="text-white-50 small"><i class="fas fa-user me-2"></i>You:</div>
+                        <div class="text-white">${item.userText}</div>
+                    </div>
+                    <div>
+                        <div class="text-info small"><i class="fas fa-robot me-2"></i>Aura:</div>
+                        <div class="text-white">${item.auraText}</div>
+                    </div>
+                </div>
+            `).join('');
+            clearBtn.classList.remove('d-none');
+        }
+    }
+    
+    // Save conversation to history
+    function saveToHistory(userText, auraText) {
+        const timestamp = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        conversationHistory.push({ userText, auraText, timestamp });
+        localStorage.setItem('auraVoiceHistory', JSON.stringify(conversationHistory));
+        updateHistoryDisplay();
+    }
+    
+    // Clear history
+    clearBtn.addEventListener('click', () => {
+        if (confirm('Clear all conversation history?')) {
+            conversationHistory = [];
+            localStorage.removeItem('auraVoiceHistory');
+            updateHistoryDisplay();
+        }
+    });
+    
+    // Settings panel controls
+    settingsBtn.addEventListener('click', () => {
+        settingsPanel.classList.remove('d-none');
+    });
+    
+    closeSettingsBtn.addEventListener('click', () => {
+        settingsPanel.classList.add('d-none');
+    });
+    
+    speedSlider.addEventListener('input', (e) => {
+        speedValue.textContent = e.target.value + 'x';
+    });
+    
+    saveSettingsBtn.addEventListener('click', () => {
+        voiceSettings.voice = voiceSelect.value;
+        voiceSettings.speed = parseFloat(speedSlider.value);
+        localStorage.setItem('auraVoiceSettings', JSON.stringify(voiceSettings));
+        settingsPanel.classList.add('d-none');
+        
+        // Show success feedback
+        const originalText = saveSettingsBtn.innerHTML;
+        saveSettingsBtn.innerHTML = '<i class="fas fa-check me-2"></i>Saved!';
+        setTimeout(() => {
+            saveSettingsBtn.innerHTML = originalText;
+        }, 1500);
+    });
+    
+    // History panel controls
+    historyBtn.addEventListener('click', () => {
+        updateHistoryDisplay();
+        historyPanel.classList.remove('d-none');
+    });
+    
+    closeHistoryBtn.addEventListener('click', () => {
+        historyPanel.classList.add('d-none');
+    });
 
     function updateState(newState) {
         state = newState;
@@ -121,11 +312,12 @@ document.addEventListener("DOMContentLoaded", function() {
                 statusText.innerText = "Hi, I'm Aura.";
                 substatusText.innerText = "Tap the orb to start speaking.";
                 voiceIcon.className = "fas fa-microphone fa-3x text-white";
+                transcriptBox.classList.add('d-none');
                 break;
             case 'RECORDING':
                 document.body.classList.add('is-recording');
                 statusText.innerText = "Listening...";
-                substatusText.innerText = "Tap the orb again to stream your message.";
+                substatusText.innerText = "Tap the orb again to send your message.";
                 voiceIcon.className = "fas fa-stop fa-3x text-white";
                 break;
             case 'THINKING':
@@ -139,6 +331,15 @@ document.addEventListener("DOMContentLoaded", function() {
                 statusText.innerText = "Aura";
                 substatusText.innerText = "Speaking (Tap orb to interrupt)";
                 voiceIcon.className = "fas fa-volume-up fa-3x text-white";
+                transcriptBox.classList.remove('d-none');
+                break;
+            case 'ERROR':
+                statusText.innerText = "Connection Error";
+                substatusText.innerText = retryCount < MAX_RETRIES ? "Retrying... Please wait." : "Tap orb to try again.";
+                voiceIcon.className = "fas fa-exclamation-triangle fa-3x text-warning";
+                setTimeout(() => {
+                    if (state === 'ERROR') updateState('IDLE');
+                }, 3000);
                 break;
         }
     }
@@ -170,39 +371,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     return;
                 }
 
-                updateState('THINKING');
-
-                const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
-                const formData = new FormData();
-                formData.append('audio', audioBlob, 'voice_input.webm');
-
-                try {
-                    const response = await fetch("{% url 'students:process_voice' %}", {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRFToken': '{{ csrf_token }}'
-                        },
-                        body: formData
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`Server returned ${response.status}`);
-                    }
-
-                    // Turn binary stream into blob URL for the audio element
-                    const responseBlob = await response.blob();
-                    const audioUrl = URL.createObjectURL(responseBlob);
-                    
-                    ttsAudio.src = audioUrl;
-                    updateState('SPEAKING');
-                    await ttsAudio.play();
-
-                } catch (err) {
-                    console.error("Voice processing error:", err);
-                    statusText.innerText = "Connection lost.";
-                    substatusText.innerText = "Sorry, I couldn't reach the servers. Please try again.";
-                    setTimeout(() => updateState('IDLE'), 3000);
-                }
+                await processAudio();
             };
 
             updateState('RECORDING');
@@ -214,6 +383,92 @@ document.addEventListener("DOMContentLoaded", function() {
             substatusText.innerText = "Please allow microphone access to use Aura Voice.";
         }
     }
+    
+    async function processAudio(isRetry = false) {
+        if (!isRetry) {
+            retryCount = 0;
+        }
+        
+        updateState('THINKING');
+
+        const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'voice_input.webm');
+        formData.append('voice', voiceSettings.voice);
+        formData.append('speed', voiceSettings.speed);
+
+        try {
+            const response = await fetch("{% url 'students:process_voice' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server returned ${response.status}`);
+            }
+
+            // Check if response is JSON (error) or audio
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Unknown error occurred');
+            }
+
+            // Get transcript from response headers if available
+            const userTextHeader = response.headers.get('X-User-Text');
+            const auraTextHeader = response.headers.get('X-Aura-Text');
+            
+            if (userTextHeader) currentUserText = decodeURIComponent(userTextHeader);
+            if (auraTextHeader) currentAuraText = decodeURIComponent(auraTextHeader);
+            
+            // Display transcripts
+            if (currentUserText) {
+                userTranscript.textContent = currentUserText;
+            }
+            if (currentAuraText) {
+                auraTranscript.textContent = currentAuraText;
+            }
+
+            // Turn binary stream into blob URL for the audio element
+            const responseBlob = await response.blob();
+            const audioUrl = URL.createObjectURL(responseBlob);
+            
+            ttsAudio.src = audioUrl;
+            updateState('SPEAKING');
+            await ttsAudio.play();
+            
+            // Save to history after successful interaction
+            if (currentUserText && currentAuraText) {
+                saveToHistory(currentUserText, currentAuraText);
+            }
+            
+            retryCount = 0; // Reset retry count on success
+
+        } catch (err) {
+            console.error("Voice processing error:", err);
+            
+            // Retry logic
+            if (retryCount < MAX_RETRIES) {
+                retryCount++;
+                statusText.innerText = `Connection Error (Retry ${retryCount}/${MAX_RETRIES})`;
+                substatusText.innerText = "Retrying automatically...";
+                setTimeout(() => processAudio(true), 2000);
+            } else {
+                updateState('ERROR');
+                // Show detailed error message
+                if (err.message.includes('503')) {
+                    substatusText.innerText = "AI service is busy. Please try again in a moment.";
+                } else if (err.message.includes('401') || err.message.includes('403')) {
+                    substatusText.innerText = "Authentication error. Please refresh the page.";
+                } else {
+                    substatusText.innerText = err.message || "Connection failed. Tap to retry.";
+                }
+            }
+        }
+    }
 
     // Stop speaking automatically when TTS ends
     ttsAudio.addEventListener('ended', () => {
@@ -221,7 +476,7 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     voiceOrb.addEventListener("click", () => {
-        if (state === 'IDLE') {
+        if (state === 'IDLE' || state === 'ERROR') {
             startRecording();
         } else if (state === 'RECORDING') {
             mediaRecorder.stop();
@@ -235,6 +490,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Init UI
     updateState('IDLE');
+    updateHistoryDisplay();
 });
 </script>
 {% endblock %}
