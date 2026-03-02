@@ -5,6 +5,15 @@
 
 {% block extra_css %}
 <style>
+    .page-bg-fixed {
+        position: fixed; inset: 0; width: 100vw; height: 100vh;
+        background-image: url('https://img.freepik.com/free-vector/ginkgo-leaf-frame-design-colorful-background_53876-120237.jpg?semt=ais_user_personalization&w=740&q=80');
+        background-size: cover; background-position: center;
+        opacity: 0.12; pointer-events: none; z-index: 0;
+    }
+    [data-bs-theme="dark"] .page-bg-fixed { opacity: 0.05; filter: grayscale(0.5); }
+    .content-wrapper { position: relative; z-index: 1; }
+
     :root {
         --card-bg: #ffffff; --card-border: #e2e8f0;
         --text-heading: #0f172a; --text-body: #475569; --text-muted: #94a3b8;
@@ -95,7 +104,8 @@
 {% endblock %}
 
 {% block content %}
-<div class="page-container">
+<div class="page-bg-fixed"></div>
+<div class="page-container content-wrapper">
     <!-- Back Button -->
     <div class="d-flex align-items-center gap-2 mb-3">
         <a href="{% url 'academics:manage_classes' %}" class="btn btn-outline-secondary btn-sm">

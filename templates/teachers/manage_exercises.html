@@ -1,8 +1,17 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
 
-{% block content %}
+{% block extra_css %}
 <style>
+    .page-bg-fixed {
+        position: fixed; inset: 0; width: 100vw; height: 100vh;
+        background-image: url('https://img.freepik.com/free-vector/ginkgo-leaf-frame-design-colorful-background_53876-120237.jpg?semt=ais_user_personalization&w=740&q=80');
+        background-size: cover; background-position: center;
+        opacity: 0.12; pointer-events: none; z-index: 0;
+    }
+    [data-bs-theme="dark"] .page-bg-fixed { opacity: 0.05; filter: grayscale(0.5); }
+    .content-wrapper { position: relative; z-index: 1; }
+
     [data-bs-theme="dark"] .card {
         background-color: var(--surface-card, #1e293b);
         border-color: rgba(255,255,255,0.05);
@@ -47,6 +56,11 @@
         color: #94a3b8 !important;
     }
 </style>
+{% endblock %}
+
+{% block content %}
+<div class="page-bg-fixed"></div>
+<div class="content-wrapper">
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h2 class="h3 mb-0">Class Exercises</h2>
@@ -137,5 +151,6 @@
             </div>
         </div>
     </div>
+</div>
 </div>
 {% endblock %}

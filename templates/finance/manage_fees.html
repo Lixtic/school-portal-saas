@@ -1,8 +1,17 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
 
-{% block content %}
+{% block extra_css %}
 <style>
+    .page-bg-fixed {
+        position: fixed; inset: 0; width: 100vw; height: 100vh;
+        background-image: url('https://img.freepik.com/free-vector/ginkgo-leaf-frame-design-colorful-background_53876-120237.jpg?semt=ais_user_personalization&w=740&q=80');
+        background-size: cover; background-position: center;
+        opacity: 0.12; pointer-events: none; z-index: 0;
+    }
+    [data-bs-theme="dark"] .page-bg-fixed { opacity: 0.05; filter: grayscale(0.5); }
+    .content-wrapper { position: relative; z-index: 1; }
+
     .fee-card {
         padding: 1rem;
         border: 1px solid #e5e7eb;
@@ -41,8 +50,11 @@
         color: #d1d5db;
     }
 </style>
+{% endblock %}
 
-<div class="container-fluid px-3 px-md-4 py-3">
+{% block content %}
+<div class="page-bg-fixed"></div>
+<div class="container-fluid px-3 px-md-4 py-3 content-wrapper">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="mb-0 fw-semibold">Manage Fees</h4>
         <a href="{% url 'finance:create_fee_structure' %}" class="btn btn-primary btn-sm px-3">
