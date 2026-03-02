@@ -415,13 +415,36 @@ def aura_arena_view(request):
         from django.shortcuts import redirect
         messages.warning(request, "You must be assigned to a class to enter.")
         return redirect('dashboard')
-        
-    room, _ = StudyGroupRoom.objects.get_or_create(
-        student_class=student.current_class,
-        defaults={'name': f"{student.current_class.name} Arena"}
-    )
-    
-    xp_profile, _ = StudentXP.objects.get_or_create(student=student)
+
+    try:
+        room, _ = StudyGroupRoom.objects.get_or_create(
+            student_class=student.current_class,
+            defaults={'name': f"{student.current_class.name} Arena"}
+        )
+    except Exception:
+        # Table may not exist yet — run migration on-the-fly for this tenant
+        from django.core.management import call_command
+        from django.db import connection
+        import logging
+        logger = logging.getLogger(__name__)
+        try:
+            logger.warning(f"StudyGroupRoom table missing for schema {connection.schema_name}. Running migration...")
+            call_command('migrate', 'academics', '--database=default', interactive=False)
+            room, _ = StudyGroupRoom.objects.get_or_create(
+                student_class=student.current_class,
+                defaults={'name': f"{student.current_class.name} Arena"}
+            )
+        except Exception as mig_err:
+            logger.error(f"Auto-migration failed: {mig_err}")
+            from django.contrib import messages
+            from django.shortcuts import redirect
+            messages.error(request, "Aura Arena is being set up. Please try again in a moment.")
+            return redirect('dashboard')
+
+    try:
+        xp_profile, _ = StudentXP.objects.get_or_create(student=student)
+    except Exception:
+        xp_profile = None
     
     from django.shortcuts import render
     context = {

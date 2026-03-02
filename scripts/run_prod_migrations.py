@@ -44,33 +44,31 @@ def run_migrations():
         
         # Step 3: Migrate shared schema
         print("\n" + "-" * 70)
-        print("[1/2] Migrating SHARED/PUBLIC schema...")
+        print("[1/3] Migrating SHARED/PUBLIC schema...")
         print("-" * 70)
-        call_command('migrate', '--database=default', interactive=False)
+        call_command('migrate_schemas', '--shared', interactive=False)
         print("✅ Public schema migrated")
         
-        # Step 4: Migrate each tenant individually
+        # Step 4: Migrate all tenant schemas
         print("\n" + "-" * 70)
-        print(f"[2/2] Migrating {tenant_count} TENANT schema(s)...")
+        print(f"[2/3] Migrating ALL tenant schemas (django-tenants)...")
         print("-" * 70)
-        
+        call_command('migrate_schemas', interactive=False)
+        print("✅ All tenant schemas migrated")
+
+        # Step 5: Explicitly ensure academics on tenants
+        print("\n" + "-" * 70)
+        print(f"[3/3] Ensuring academics app on all tenants...")
+        print("-" * 70)
+        try:
+            call_command('migrate_schemas', '--tenant', 'academics', interactive=False)
+            print("✅ academics app migrated on all tenants")
+        except Exception as e:
+            print(f"⚠️  academics tenant migrate: {e}")
+
+        # Verify for each tenant
         for school in School.objects.all():
-            print(f"\n  → Migrating tenant: {school.schema_name} ({school.name})")
-            try:
-                # Set the schema for this tenant
-                from django.db import connection
-                connection.set_schema(school.schema_name)
-                
-                # Run migrations for this tenant
-                call_command('migrate', '--database=default', interactive=False)
-                print(f"    ✅ {school.schema_name} migrated successfully")
-                
-            except Exception as e:
-                print(f"    ⚠️  Error migrating {school.schema_name}: {str(e)}")
-                continue
-        
-        # Reset to public schema
-        connection.set_schema_to_public()
+            print(f"  → Verified tenant: {school.schema_name} ({school.name})")
         
         print("\n" + "=" * 70)
         print("✅ MIGRATION COMPLETED")

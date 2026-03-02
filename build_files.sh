@@ -31,15 +31,22 @@ python3 manage.py migrate_schemas --shared || {
 
 # Run migrations - All tenant schemas
 echo ""
-echo "[4/5] Migrating tenant schemas..."
+echo "[4/6] Migrating tenant schemas..."
 python3 manage.py migrate_schemas || {
     echo "❌ Failed to migrate tenant schemas"
     exit 1
 }
 
+# Explicitly ensure academics migrations are applied to all tenants
+echo ""
+echo "[5/6] Ensuring academics app migrations on all tenants..."
+python3 manage.py migrate_schemas --tenant academics || {
+    echo "⚠️  Warning: academics tenant migration returned non-zero"
+}
+
 # Setup tenants (public + domains)
 echo ""
-echo "[5/5] Setting up tenants..."
+echo "[6/6] Setting up tenants..."
 python3 scripts/setup_tenants.py || {
     echo "⚠️  Warning: Failed to setup tenants (may already exist)"
 }
