@@ -1066,12 +1066,20 @@ function updateState(newState) {
             transcriptFeed.classList.add('visible');
             break;
         case 'ERROR':
-            statusText.textContent = 'Connection lost';
-            substatusText.textContent = retryCount < MAX_RETRIES ? 'Retrying...' : 'Tap to reconnect';
+            statusText.textContent = 'Connection Issue';
+            // substatusText is set by the caller with specific error details
+            if (!substatusText.textContent || substatusText.textContent === 'Establishing secure voice channel...') {
+                substatusText.textContent = 'Tap to reconnect';
+            }
             interruptIcon.className = 'icon fas fa-rotate-right';
             targetOrbState = 0;
             targetSentiment = -0.5;
-            setTimeout(() => { if (state === 'ERROR') { updateState('IDLE'); targetSentiment = 0; } }, 4000);
+            // Only auto-recover to IDLE if no retry is happening
+            setTimeout(() => {
+                if (state === 'ERROR' && retryCount >= MAX_RETRIES) {
+                    targetSentiment = 0;
+                }
+            }, 5000);
             break;
     }
 }
@@ -1307,12 +1315,24 @@ async function connectRealtime() {
                 instructions: "You are Aura, a helpful and friendly AI tutor for students. Keep answers concise and conversational. Be encouraging and supportive."
             })
         });
-        if (!sessionResponse.ok) throw new Error('Session creation failed: ' + sessionResponse.status);
-        const { client_secret } = await sessionResponse.json();
+
+        if (!sessionResponse.ok) {
+            let detail = '';
+            try { const errData = await sessionResponse.json(); detail = errData.detail || errData.error || ''; } catch(e) {}
+            throw new Error(`Session creation failed (${sessionResponse.status})${detail ? ': ' + detail.substring(0, 120) : ''}`);
+        }
+
+        const sessionData = await sessionResponse.json();
+        const clientSecret = sessionData.client_secret;
+        const model = sessionData.model || 'gpt-4o-realtime-preview-2024-12-17';
+
+        if (!clientSecret) {
+            throw new Error('Server returned empty client_secret. Check API key configuration.');
+        }
 
         realtimeWs = new WebSocket(
-            'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01',
-            ['realtime', `openai-insecure-api-key.${client_secret}`]
+            `wss://api.openai.com/v1/realtime?model=${model}`,
+            ['realtime', `openai-insecure-api-key.${clientSecret}`]
         );
 
         realtimeWs.onopen = () => {
@@ -1335,15 +1355,46 @@ async function connectRealtime() {
         };
 
         realtimeWs.onmessage = (e) => handleRealtimeMessage(JSON.parse(e.data));
-        realtimeWs.onerror = () => updateState('ERROR');
-        realtimeWs.onclose = () => {
+
+        realtimeWs.onerror = (evt) => {
+            console.error('WebSocket error:', evt);
+            // Don't update state here — onclose will fire right after and handle retry
+        };
+
+        realtimeWs.onclose = (evt) => {
             isConnected = false;
             stopAudioCapture();
-            if (state !== 'IDLE' && state !== 'ERROR') updateState('IDLE');
+            console.log(`WebSocket closed: code=${evt.code} reason=${evt.reason}`);
+
+            if (state === 'IDLE') return; // intentional disconnect
+
+            // Auto-retry on unexpected close
+            if (retryCount < MAX_RETRIES) {
+                retryCount++;
+                updateState('ERROR');
+                const delay = retryCount * 2000; // 2s, 4s
+                substatusText.textContent = `Reconnecting (attempt ${retryCount}/${MAX_RETRIES})...`;
+                setTimeout(() => {
+                    if (state === 'ERROR') connectRealtime();
+                }, delay);
+            } else {
+                updateState('ERROR');
+                substatusText.textContent = 'Connection failed. Tap to try again.';
+            }
         };
     } catch(err) {
         console.error('Connect error:', err);
-        updateState('ERROR');
+        if (retryCount < MAX_RETRIES) {
+            retryCount++;
+            updateState('ERROR');
+            substatusText.textContent = `${err.message.substring(0, 80)} — retrying (${retryCount}/${MAX_RETRIES})...`;
+            setTimeout(() => {
+                if (state === 'ERROR') connectRealtime();
+            }, retryCount * 2000);
+        } else {
+            updateState('ERROR');
+            substatusText.textContent = err.message.substring(0, 100) || 'Connection failed. Tap to try again.';
+        }
     }
 }
 
@@ -1561,6 +1612,7 @@ interruptZone.addEventListener('click', () => {
     switch (state) {
         case 'IDLE':
         case 'ERROR':
+            retryCount = 0; // reset retries on manual tap
             connectRealtime();
             break;
         case 'SPEAKING':

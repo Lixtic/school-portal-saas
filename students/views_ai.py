@@ -209,21 +209,36 @@ def create_realtime_session(request):
                 "Content-Type": "application/json"
             },
             json={
-                "model": "gpt-4o-realtime-preview-2024-10-01",
+                "model": "gpt-4o-realtime-preview-2024-12-17",
                 "voice": voice
             },
             timeout=30
         )
         
         if response.status_code != 200:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Realtime session API error {response.status_code}: {response.text[:500]}")
             return JsonResponse({
-                "error": f"Failed to create session: {response.text}"
+                "error": f"OpenAI API error ({response.status_code})",
+                "detail": response.text[:300]
             }, status=response.status_code)
         
         session_data = response.json()
+        client_secret = session_data.get("client_secret", {}).get("value", "")
+        
+        if not client_secret:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Realtime session response missing client_secret: {session_data}")
+            return JsonResponse({
+                "error": "No client_secret in response",
+                "detail": str(session_data)[:300]
+            }, status=500)
         
         return JsonResponse({
-            "client_secret": session_data.get("client_secret", {}).get("value", "")
+            "client_secret": client_secret,
+            "model": session_data.get("model", "gpt-4o-realtime-preview-2024-12-17")
         })
         
     except Exception as e:
