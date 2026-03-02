@@ -24,7 +24,12 @@ from teachers.models import Teacher
 def about_us(request):
     """Public about us page"""
     school_info = SchoolInfo.objects.first()
-    activities = Activity.objects.filter(is_active=True).order_by('-date')[:5]
+    
+    activities = []
+    try:
+        activities = Activity.objects.filter(is_active=True).order_by('-date')[:5]
+    except Exception:
+        pass  # Table doesn't exist
     
     context = {
         'school_info': school_info,
@@ -1235,7 +1240,11 @@ def manage_activities(request):
 	staff_queryset = User.objects.filter(user_type__in=['admin', 'teacher']).order_by('first_name', 'last_name')
 
 	# Admins see all activities
-	activities = Activity.objects.all()
+	try:
+		activities = Activity.objects.all()
+	except Exception:
+		activities = []
+		messages.warning(request, 'Activities table not initialized. Please run migrations.')
 
 	if request.method == 'POST':
 		activity_id = request.POST.get('activity_id')
@@ -1358,7 +1367,13 @@ def preview_homepage(request):
     
     # Prepare context similar to homepage view
     from academics.models import Activity, GalleryImage
-    activities = Activity.objects.all().order_by('-date')[:5]
+    
+    activities = []
+    try:
+        activities = Activity.objects.all().order_by('-date')[:5]
+    except Exception:
+        pass  # Table doesn't exist
+    
     gallery_images = GalleryImage.objects.all().order_by('?')[:6]
     hero_images = GalleryImage.objects.all().order_by('-created_at')[:3]
     

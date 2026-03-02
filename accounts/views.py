@@ -242,16 +242,23 @@ def homepage(request):
     #     return redirect('login') 
     
     # ... Continue with existing logic for school home ...
-    activities_qs = Activity.objects.filter(is_active=True).order_by('date')[:12]
-    activities = [
-        {
-            'title': a.title,
-            'date': a.date,
-            'summary': a.summary,
-            'tag': a.tag,
-        }
-        for a in activities_qs
-    ]
+    activities = []
+    
+    # Safely query activities (table may not exist if migrations aren't run)
+    try:
+        activities_qs = Activity.objects.filter(is_active=True).order_by('date')[:12]
+        activities = [
+            {
+                'title': a.title,
+                'date': a.date,
+                'summary': a.summary,
+                'tag': a.tag,
+            }
+            for a in activities_qs
+        ]
+    except Exception:
+        # Table doesn't exist or query failed - use fallback
+        pass
 
     # Fallback if no activities in DB
     if not activities:

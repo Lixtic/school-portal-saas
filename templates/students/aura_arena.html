@@ -561,6 +561,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const sendBtn = document.getElementById('sendBtn');
     let lastMessageId = 0;
     let pollInterval;
+    let hasLoadedMessages = false;
     
     // Initialize chat polling
     function startChatPolling() {
@@ -575,6 +576,12 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const data = await response.json();
             if (data.messages && data.messages.length > 0) {
+                // Remove placeholder on first message
+                if (!hasLoadedMessages) {
+                    textMode.innerHTML = '';
+                    hasLoadedMessages = true;
+                }
+                
                 data.messages.forEach(msg => {
                     appendMessage(msg);
                     lastMessageId = Math.max(lastMessageId, msg.id);
@@ -592,16 +599,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const isAura = msg.is_aura;
         const isUser = msg.is_me;
         
+        // Parse content for markdown
+        let content = msg.content || '';
+        content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        content = content.replace(/\n/g, '<br>');
+        
         messageDiv.innerHTML = `
-            <div class=\"message-avatar ${isAura ? 'aura' : 'user'}\">
-                <i class=\"fas fa-${isAura ? 'magic' : 'user'}\"></i>
+            <div class="message-avatar ${isAura ? 'aura' : 'user'}">
+                <i class="fas fa-${isAura ? 'magic' : 'user'}"></i>
             </div>
-            <div class=\"message-content\">
-                <div class=\"message-sender\">${msg.sender}</div>
-                <div class=\"message-text ${msg.is_battle ? 'battle-message' : ''}\">
-                    ${msg.content}
+            <div class="message-content">
+                <div class="message-sender">${msg.sender || 'Unknown'}</div>
+                <div class="message-text ${msg.is_battle ? 'battle-message' : ''}">
+                    ${content}
                 </div>
-                <div class=\"message-time\">${msg.time}</div>
+                <div class="message-time">${msg.time || ''}</div>
             </div>
         `;
         
@@ -773,6 +785,166 @@ document.addEventListener('DOMContentLoaded', function() {
     if (currentMode === 'text') {
         startChatPolling();
     }
+});
+</script>
+{% endblock %}
+
+<style>
+/* CSS to make chat bubbles look cleaner and less crowded */
+.chat-bubble {
+    max-width: 85%;
+    padding: 12px 18px;
+    border-radius: 18px;
+    margin-bottom: 2px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    word-wrap: break-word;
+}
+.chat-me {
+    background-color: #0d6efd;
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+.chat-other {
+    background-color: #f1f3f5;
+    color: #212529;
+    border-bottom-left-radius: 4px;
+}
+.chat-aura {
+    background-color: #f8f9fa;
+    color: #495057;
+    border: 1px solid #e9ecef;
+    border-left: 4px solid #6f42c1;
+    border-radius: 12px;
+}
+.battle-q {
+    background-color: #fff3cd;
+    border: 2px dashed #ffc107;
+}
+.win-msg {
+    color: #155724;
+    font-weight: bold;
+}
+.msg-container-me {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+.msg-container-other {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const chatWindow = document.getElementById("chatWindow");
+    const chatForm = document.getElementById("chatForm");
+    const chatInput = document.getElementById("chatInput");
+    
+    let lastId = 0;
+    
+    function scrollToBottom() {
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    function renderMessage(msg) {
+        let alignClass = msg.is_me ? "msg-container-me" : "msg-container-other";
+        let colorClass = msg.is_me ? "chat-me" : "chat-other";
+        if(msg.is_aura) {
+            colorClass = msg.is_battle ? "chat-aura battle-q" : "chat-aura";
+            alignClass = "msg-container-other w-100"; // center Aura usually, or left
+        }
+        
+        let senderNameHTML = '';
+        if(!msg.is_me && !msg.is_aura) {
+            senderNameHTML = `<small class="text-muted ms-2 mb-1" style="font-size:0.7rem;">${msg.sender}</small>`;
+        } else if (msg.is_aura) {
+            senderNameHTML = `<small class="mb-1 fw-bold" style="font-size:0.7rem; color: #6f42c1;"><i class="fas fa-magic"></i> Aura-T</small>`;
+        }
+        
+        // Render content
+        let contentHTML = msg.content;
+        // Parse bold markdown
+        contentHTML = contentHTML.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        contentHTML = contentHTML.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        
+        let parsedDate = msg.time;
+
+        const el = document.createElement("div");
+        el.className = `w-100 mb-4 ${alignClass}`;
+        el.innerHTML = `
+            ${senderNameHTML}
+            <div class="chat-bubble ${colorClass}">
+                ${contentHTML.replace(/\n/g, '<br>')}
+            </div>
+            <small class="text-muted mt-1" style="font-size:0.65rem;">${parsedDate}</small>
+        `;
+        chatWindow.appendChild(el);
+    }
+    
+    async function fetchMessages() {
+        try {
+            const apiUrl = "{% url 'students:aura_arena_api' %}";
+            const resp = await fetch(`${apiUrl}?last_id=${lastId}`);
+            if(resp.ok) {
+                const data = await resp.json();
+                if(data.messages && data.messages.length > 0) {
+                    let shouldScroll = (chatWindow.scrollTop + chatWindow.clientHeight) >= chatWindow.scrollHeight - 50;
+                    data.messages.forEach(m => {
+                        renderMessage(m);
+                        lastId = m.id;
+                    });
+                    if(shouldScroll){ scrollToBottom(); }
+                }
+            }
+        } catch(e) {
+            console.error("Chat fetch error:", e);
+        }
+    }
+    
+    // Initial fetch and poll
+    fetchMessages().then(scrollToBottom);
+    setInterval(fetchMessages, 3000); // Check every 3 seconds
+    
+    // Post message
+    chatForm.addEventListener("submit", async function(e) {
+        e.preventDefault();
+        const text = chatInput.value.trim();
+        if(!text) return;
+        
+        chatInput.value = "";
+        
+        try {
+            const apiUrl = "{% url 'students:aura_arena_api' %}";
+            const res = await fetch(apiUrl, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ content: text })
+            });
+            
+            if(res.ok) {
+                const data = await res.json();
+                if(data.status === 'success') {
+                    if(data.is_winner) {
+                        // User won, trigger confeti or just instantly fetch
+                        // Using a manual fetch to show message instantly
+                    }
+                    await fetchMessages();
+                    scrollToBottom();
+                } else {
+                    console.error("Error sending:", data.error);
+                }
+            }
+        } catch(e) {
+            console.error("Failed to post message", e);
+        }
+    });
 });
 </script>
 {% endblock %}

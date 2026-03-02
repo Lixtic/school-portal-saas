@@ -40,13 +40,16 @@ def build_academic_calendar_widget(limit=5):
         for title, when, tag in term_markers:
             events.append({'title': title, 'date': when, 'tag': tag})
 
-    upcoming_activities = Activity.objects.filter(is_active=True, date__gte=today).order_by('date')[:limit]
-    for activity in upcoming_activities:
-        events.append({
-            'title': activity.title,
-            'date': activity.date,
-            'tag': activity.tag or 'Activity',
-        })
+    try:
+        upcoming_activities = Activity.objects.filter(is_active=True, date__gte=today).order_by('date')[:limit]
+        for activity in upcoming_activities:
+            events.append({
+                'title': activity.title,
+                'date': activity.date,
+                'tag': activity.tag or 'Activity',
+            })
+    except Exception:
+        pass  # Table doesn't exist or query failed
 
     events.sort(key=lambda item: item['date'])
 
