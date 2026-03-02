@@ -59,7 +59,12 @@
                         {% csrf_token %}
                         
                         <div class="mb-4">
-                            <label for="teacher_id" class="form-label fw-semibold" style="color: var(--text-primary);">Select Teacher</label>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label for="teacher_id" class="form-label fw-semibold mb-0" style="color: var(--text-primary);">Select Teacher</label>
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addTeacherModal">
+                                    <i class="bi bi-plus-circle me-1"></i>Add New Teacher
+                                </button>
+                            </div>
                             <select name="teacher_id" id="teacher_id" class="form-select" style="background: var(--surface-elevated); color: var(--text-primary); border-color: var(--border-color);">
                                 <option value="">-- Remove Class Teacher --</option>
                                 {% for teacher in teachers %}
@@ -96,4 +101,165 @@
         </div>
     </div>
 </div>
+
+<!-- Add Teacher Modal -->
+<div class="modal fade" id="addTeacherModal" tabindex="-1" aria-labelledby="addTeacherModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="background: var(--surface-card); border: 1px solid var(--border-color);">
+            <div class="modal-header" style="background: var(--surface-elevated); border-bottom: 1px solid var(--border-color);">
+                <h5 class="modal-title" id="addTeacherModalLabel" style="color: var(--text-primary);">
+                    <i class="bi bi-person-plus-fill me-2"></i>Add New Teacher
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addTeacherForm">
+                    {% csrf_token %}
+                    <div class="alert alert-info mb-3">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <small>The new teacher will be added and automatically selected in the dropdown.</small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="first_name" class="form-label fw-semibold" style="color: var(--text-primary);">First Name *</label>
+                            <input type="text" class="form-control" id="first_name" name="first_name" required style="background: var(--surface-elevated); color: var(--text-primary); border-color: var(--border-color);">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="last_name" class="form-label fw-semibold" style="color: var(--text-primary);">Last Name *</label>
+                            <input type="text" class="form-control" id="last_name" name="last_name" required style="background: var(--surface-elevated); color: var(--text-primary); border-color: var(--border-color);">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label fw-semibold" style="color: var(--text-primary);">Email *</label>
+                            <input type="email" class="form-control" id="email" name="email" required style="background: var(--surface-elevated); color: var(--text-primary); border-color: var(--border-color);">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="phone" class="form-label fw-semibold" style="color: var(--text-primary);">Phone</label>
+                            <input type="text" class="form-control" id="phone" name="phone" style="background: var(--surface-elevated); color: var(--text-primary); border-color: var(--border-color);">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="employee_id" class="form-label fw-semibold" style="color: var(--text-primary);">Employee ID</label>
+                            <input type="text" class="form-control" id="employee_id" name="employee_id" placeholder="Auto-generated if blank" style="background: var(--surface-elevated); color: var(--text-primary); border-color: var(--border-color);">
+                            <small class="form-text text-muted">Leave blank to auto-generate</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="qualification" class="form-label fw-semibold" style="color: var(--text-primary);">Qualification</label>
+                            <input type="text" class="form-control" id="qualification" name="qualification" placeholder="e.g., B.Ed, M.Sc" style="background: var(--surface-elevated); color: var(--text-primary); border-color: var(--border-color);">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="date_of_birth" class="form-label fw-semibold" style="color: var(--text-primary);">Date of Birth</label>
+                            <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" style="background: var(--surface-elevated); color: var(--text-primary); border-color: var(--border-color);">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="date_of_joining" class="form-label fw-semibold" style="color: var(--text-primary);">Date of Joining</label>
+                            <input type="date" class="form-control" id="date_of_joining" name="date_of_joining" value="{{ today }}" style="background: var(--surface-elevated); color: var(--text-primary); border-color: var(--border-color);">
+                        </div>
+                    </div>
+                    
+                    <div id="addTeacherError" class="alert alert-danger d-none"></div>
+                    <div id="addTeacherSuccess" class="alert alert-success d-none"></div>
+                </form>
+            </div>
+            <div class="modal-footer" style="background: var(--surface-elevated); border-top: 1px solid var(--border-color);">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="submitAddTeacher">
+                    <i class="bi bi-check-lg me-2"></i>Add Teacher
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const addTeacherForm = document.getElementById('addTeacherForm');
+    const submitBtn = document.getElementById('submitAddTeacher');
+    const errorDiv = document.getElementById('addTeacherError');
+    const successDiv = document.getElementById('addTeacherSuccess');
+    const teacherSelect = document.getElementById('teacher_id');
+    const modal = document.getElementById('addTeacherModal');
+    const bsModal = new bootstrap.Modal(modal);
+    
+    submitBtn.addEventListener('click', function() {
+        // Validate form
+        if (!addTeacherForm.checkValidity()) {
+            addTeacherForm.reportValidity();
+            return;
+        }
+        
+        // Disable button and show loading
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Adding...';
+        errorDiv.classList.add('d-none');
+        successDiv.classList.add('d-none');
+        
+        // Prepare form data
+        const formData = new FormData(addTeacherForm);
+        formData.append('action', 'add_teacher');
+        
+        // Submit via AJAX
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                successDiv.textContent = data.message;
+                successDiv.classList.remove('d-none');
+                
+                // Add new teacher to select dropdown
+                const option = document.createElement('option');
+                option.value = data.teacher_id;
+                option.textContent = `${data.teacher_name} (${data.employee_id})`;
+                option.selected = true;
+                teacherSelect.appendChild(option);
+                
+                // Reset form
+                addTeacherForm.reset();
+                
+                // Close modal after 1 second
+                setTimeout(() => {
+                    bsModal.hide();
+                    successDiv.classList.add('d-none');
+                }, 1000);
+            } else {
+                // Show error
+                errorDiv.textContent = data.error || 'An error occurred while adding the teacher.';
+                errorDiv.classList.remove('d-none');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            errorDiv.textContent = 'Network error. Please try again.';
+            errorDiv.classList.remove('d-none');
+        })
+        .finally(() => {
+            // Re-enable button
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-check-lg me-2"></i>Add Teacher';
+        });
+    });
+    
+    // Reset form when modal is hidden
+    modal.addEventListener('hidden.bs.modal', function() {
+        addTeacherForm.reset();
+        errorDiv.classList.add('d-none');
+        successDiv.classList.add('d-none');
+    });
+});
+</script>
 {% endblock %}

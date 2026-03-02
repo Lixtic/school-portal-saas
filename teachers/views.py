@@ -541,6 +541,92 @@ def assign_class_teacher(request, class_id):
     class_obj = get_object_or_404(Class, id=class_id)
     
     if request.method == 'POST':
+        # Check if this is an AJAX request to add a new teacher
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.POST.get('action') == 'add_teacher':
+            from django.http import JsonResponse
+            import random
+            import string
+            
+            try:
+                # Extract form data
+                first_name = request.POST.get('first_name', '').strip()
+                last_name = request.POST.get('last_name', '').strip()
+                email = request.POST.get('email', '').strip()
+                phone = request.POST.get('phone', '').strip()
+                employee_id = request.POST.get('employee_id', '').strip()
+                qualification = request.POST.get('qualification', '').strip()
+                date_of_birth = request.POST.get('date_of_birth', '').strip()
+                date_of_joining = request.POST.get('date_of_joining', '').strip()
+                
+                # Validate required fields
+                if not first_name or not last_name or not email:
+                    return JsonResponse({'success': False, 'error': 'First name, last name, and email are required'})
+                
+                # Auto-generate Employee ID if not provided
+                if not employee_id:
+                    while True:
+                        suffix = ''.join(random.choices(string.digits, k=4))
+                        employee_id = f"TCH{suffix}"
+                        if not Teacher.objects.filter(employee_id=employee_id).exists() and not User.objects.filter(username=employee_id).exists():
+                            break
+                
+                # Check if username already exists
+                username = employee_id
+                if User.objects.filter(username=username).exists():
+                    return JsonResponse({'success': False, 'error': f'Employee ID {employee_id} already exists'})
+                
+                # Check if email already exists
+                if User.objects.filter(email=email).exists():
+                    return JsonResponse({'success': False, 'error': f'Email {email} already exists'})
+                
+                # Create user
+                user = User.objects.create_user(
+                    username=username,
+                    email=email,
+                    password=username,  # Default password is employee ID
+                    first_name=first_name,
+                    last_name=last_name,
+                    user_type='teacher',
+                    phone=phone
+                )
+                
+                # Create teacher
+                from datetime import datetime, date
+                teacher = Teacher(
+                    user=user,
+                    employee_id=employee_id,
+                    qualification=qualification or 'Not provided'
+                )
+                
+                # Set dates if provided
+                if date_of_birth:
+                    try:
+                        teacher.date_of_birth = datetime.strptime(date_of_birth, '%Y-%m-%d').date()
+                    except ValueError:
+                        pass
+                
+                if date_of_joining:
+                    try:
+                        teacher.date_of_joining = datetime.strptime(date_of_joining, '%Y-%m-%d').date()
+                    except ValueError:
+                        teacher.date_of_joining = date.today()
+                else:
+                    teacher.date_of_joining = date.today()
+                
+                teacher.save()
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': f'Teacher {user.get_full_name()} added successfully',
+                    'teacher_id': teacher.id,
+                    'teacher_name': user.get_full_name(),
+                    'employee_id': employee_id
+                })
+                
+            except Exception as e:
+                return JsonResponse({'success': False, 'error': str(e)})
+        
+        # Regular form submission for assigning teacher
         teacher_id = request.POST.get('teacher_id')
         if teacher_id:
             try:
@@ -559,9 +645,11 @@ def assign_class_teacher(request, class_id):
     
     teachers = Teacher.objects.select_related('user').order_by('user__first_name', 'user__last_name')
     
+    from datetime import date
     context = {
         'class_obj': class_obj,
-        'teachers': teachers
+        'teachers': teachers,
+        'today': date.today().strftime('%Y-%m-%d')
     }
     return render(request, 'teachers/assign_class_teacher.html', context)
 
