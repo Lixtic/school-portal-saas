@@ -1,17 +1,53 @@
-{% extends 'admin/admin_base.html' %}
+{% extends 'base.html' %}
 {% load static %}
 
 {% block title %}Add-on Marketplace{% endblock %}
 
-{% block admin_content %}
-<div class="container py-5">
+{% block extra_css %}
+<style>
+    .page-bg-fixed {
+        position: fixed; inset: 0; width: 100vw; height: 100vh;
+        background-image: url('https://img.freepik.com/free-vector/ginkgo-leaf-frame-design-colorful-background_53876-120237.jpg?semt=ais_user_personalization&w=740&q=80');
+        background-size: cover; background-position: center;
+        opacity: 0.12; pointer-events: none; z-index: 0;
+    }
+    [data-bs-theme="dark"] .page-bg-fixed { opacity: 0.05; filter: grayscale(0.5); }
+    .content-wrapper { position: relative; z-index: 1; }
+    
+    .addon-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .addon-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12) !important;
+    }
+    [data-bs-theme="dark"] .card {
+        background: var(--surface-white);
+        border-color: rgba(255,255,255,0.08);
+    }
+    [data-bs-theme="dark"] .card-body { color: #e2e8f0; }
+    [data-bs-theme="dark"] .badge.bg-light {
+        background: rgba(255,255,255,0.1) !important;
+        color: #e2e8f0 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-bg-fixed"></div>
+<div class="container py-5 content-wrapper">
     <div class="text-center mb-5">
-        <h1 class="fw-bold">🚀 Add-on Marketplace</h1>
+        <h1 class="fw-bold mb-3">🚀 Add-on Marketplace</h1>
         <p class="lead text-muted">Enhance your school management system with powerful add-ons</p>
         <div class="alert alert-info d-inline-block">
             <strong>Current Plan:</strong> {{ subscription.plan.name }} | 
-            <strong>Total Add-on Cost:</strong> ${{ total_addon_cost|floatformat:2 }}/mo
+            <strong>Total Add-on Cost:</strong> ₵{{ total_addon_cost|floatformat:2 }}/mo
         </div>
+        {% if not can_manage_addons %}
+        <div class="alert alert-warning mt-3 d-inline-block">
+            <i class="bi bi-info-circle me-2"></i><strong>Note:</strong> Only school administrators can purchase or cancel add-ons
+        </div>
+        {% endif %}
     </div>
 
     {% for category, addons in addons_by_category.items %}
@@ -22,7 +58,7 @@
         <div class="row g-4">
             {% for addon in addons %}
             <div class="col-md-4">
-                <div class="card h-100 border-0 shadow-sm {% if addon.is_purchased %}border-success{% endif %}">
+                <div class="card h-100 border-0 shadow-sm addon-card {% if addon.is_purchased %}border-success border-2{% endif %}">
                     {% if addon.is_purchased %}
                         <div class="position-absolute top-0 end-0 m-2">
                             <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Active</span>
@@ -36,7 +72,7 @@
                         <p class="card-text text-muted small">{{ addon.description }}</p>
                         <div class="d-flex flex-wrap gap-1 mb-2">
                             {% for plan_code in addon.available_for_plans %}
-                                <span class="badge bg-light border">{{ plan_code|title }}</span>
+                                <span class="badge bg-light text-dark border">{{ plan_code|title }}</span>
                             {% endfor %}
                         </div>
                         
@@ -48,20 +84,30 @@
                             <small class="text-muted">{% if addon.is_one_time %}One-time setup{% else %}Recurring add-on{% endif %}</small>
                         </div>
 
-                        {% if addon.is_purchased %}
-                            <form method="post" action="{% url 'tenants:cancel_addon' addon.id %}" class="d-grid">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Cancel this add-on?')">
-                                    <i class="bi bi-x-circle me-1"></i>Cancel
-                                </button>
-                            </form>
+                        {% if can_manage_addons %}
+                            {% if addon.is_purchased %}
+                                <form method="post" action="{% url 'tenants:cancel_addon' addon.id %}" class="d-grid">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Cancel this add-on?')">
+                                        <i class="bi bi-x-circle me-1"></i>Cancel
+                                    </button>
+                                </form>
+                            {% else %}
+                                <form method="post" action="{% url 'tenants:purchase_addon' addon.id %}" class="d-grid">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-cart-plus me-1"></i>Purchase
+                                    </button>
+                                </form>
+                            {% endif %}
                         {% else %}
-                            <form method="post" action="{% url 'tenants:purchase_addon' addon.id %}" class="d-grid">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="bi bi-cart-plus me-1"></i>Purchase
-                                </button>
-                            </form>
+                            <div class="text-center text-muted small">
+                                {% if addon.is_purchased %}
+                                    <i class="bi bi-check-circle-fill text-success me-1"></i>Already subscribed
+                                {% else %}
+                                    <i class="bi bi-lock me-1"></i>Contact admin to purchase
+                                {% endif %}
+                            </div>
                         {% endif %}
                     </div>
                 </div>
@@ -81,4 +127,4 @@
         </a>
     </div>
 </div>
-{% endblock admin_content %}
+{% endblock %}

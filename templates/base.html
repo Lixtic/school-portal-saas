@@ -1274,7 +1274,6 @@
                 <div class="mobile-nav-label">Settings</div>
                 <ul class="mobile-bubble-list">
                     <li class="mobile-bubble-item"><a href="{% url 'academics:school_settings' %}"><i class="bi bi-gear"></i>School Settings</a></li>
-                    <li class="mobile-bubble-item"><a href="{% url 'tenants:addon_marketplace' %}"><i class="bi bi-puzzle"></i>Add-ons</a></li>
                 </ul>
                 {% endif %}
 
@@ -1316,6 +1315,12 @@
                     <li class="mobile-bubble-item"><a href="{% url 'communication:inbox' %}"><i class="bi bi-envelope"></i>Messages</a></li>
                 </ul>
                 {% endif %}
+
+                <!-- Universal: Add-ons (All tenant users) -->
+                <div class="mobile-nav-label">Add-ons</div>
+                <ul class="mobile-bubble-list">
+                    <li class="mobile-bubble-item"><a href="{% url 'tenants:addon_marketplace' %}"><i class="bi bi-shop"></i>Marketplace</a></li>
+                </ul>
 
             </div><!-- end mobile-drawer-body -->
 
@@ -1601,12 +1606,6 @@
                     <span>School Settings</span>
                 </a>
             </div>
-            <div class="nav-item">
-                <a href="{% url 'tenants:addon_marketplace' %}" class="nav-link {% if request.resolver_match.url_name == 'addon_marketplace' %}active{% endif %}" title="Add-on Marketplace">
-                    <i class="bi bi-puzzle"></i>
-                    <span>Add-ons</span>
-                </a>
-            </div>
             {% endif %}
             
             {% if user.user_type == 'teacher' %}
@@ -1764,6 +1763,15 @@
                 </a>
             </div>
             {% endif %}
+            
+            <!-- UNIVERSAL: ADD-ONS (Available to all tenant users) -->
+            <h4 class="mb-2 mt-4"><i class="bi bi-puzzle me-2" style="font-size: 0.85rem;"></i>Add-ons</h4>
+            <div class="nav-item">
+                <a href="{% url 'tenants:addon_marketplace' %}" class="nav-link {% if request.resolver_match.url_name == 'addon_marketplace' %}active{% endif %}" title="Add-on Marketplace">
+                    <i class="bi bi-shop"></i>
+                    <span>Marketplace</span>
+                </a>
+            </div>
             
             {% endif %} {# End of landlord vs regular tenant conditional #}
             

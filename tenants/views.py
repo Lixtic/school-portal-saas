@@ -774,16 +774,22 @@ def revenue_analytics(request):
 
 @login_required
 def addon_marketplace(request):
-    """Add-on marketplace for school admins"""
+    """Add-on marketplace - universally accessible for all school users"""
     from .models import AddOn, SchoolSubscription, SchoolAddOn
+    
+    # Block super admins from accessing marketplace
+    if request.user.is_staff and (not hasattr(request, 'tenant') or request.tenant.schema_name == 'public'):
+        messages.error(request, "Add-on marketplace is for school tenants only. Super admins cannot access this area.")
+        return redirect('tenants:landlord_dashboard')
+    
+    # Ensure user is in a tenant schema
+    if not hasattr(request, 'tenant') or request.tenant.schema_name == 'public':
+        messages.error(request, "Marketplace only available for school tenants")
+        return redirect('home')
     
     # Get school's subscription
     try:
-        if hasattr(request, 'tenant') and request.tenant.schema_name != 'public':
-            subscription = SchoolSubscription.objects.get(school=request.tenant)
-        else:
-            messages.error(request, "Marketplace only available for school tenants")
-            return redirect('home')
+        subscription = SchoolSubscription.objects.get(school=request.tenant)
     except SchoolSubscription.DoesNotExist:
         messages.error(request, "No active subscription found")
         return redirect('dashboard')
@@ -818,6 +824,7 @@ def addon_marketplace(request):
             for addon in available_addons 
             if addon.id in purchased_addon_ids and not addon.is_one_time
         ),
+        'can_manage_addons': request.user.user_type == 'admin',  # Only admins can purchase/cancel
     }
     
     return render(request, 'tenants/addon_marketplace.html', context)
@@ -825,8 +832,13 @@ def addon_marketplace(request):
 
 @login_required
 def purchase_addon(request, addon_id):
-    """Purchase an add-on"""
+    """Purchase an add-on (admin only)"""
     from .models import AddOn, SchoolSubscription, SchoolAddOn
+    
+    # Restrict to school admins only
+    if request.user.user_type != 'admin':
+        messages.error(request, "Only school administrators can purchase add-ons")
+        return redirect('tenants:addon_marketplace')
     
     if request.method != 'POST':
         return redirect('tenants:addon_marketplace')
@@ -862,8 +874,13 @@ def purchase_addon(request, addon_id):
 
 @login_required
 def cancel_addon(request, addon_id):
-    """Cancel an add-on subscription"""
+    """Cancel an add-on subscription (admin only)"""
     from .models import SchoolSubscription, SchoolAddOn
+    
+    # Restrict to school admins only
+    if request.user.user_type != 'admin':
+        messages.error(request, "Only school administrators can cancel add-ons")
+        return redirect('tenants:addon_marketplace')
     
     if request.method != 'POST':
         return redirect('tenants:addon_marketplace')
