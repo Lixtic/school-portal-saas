@@ -294,6 +294,89 @@
         color: #60a5fa;
     }
     
+    /* Resize Handle */
+    .widget-resize-handle {
+        position: absolute;
+        top: 0.75rem;
+        right: 3.25rem;
+        width: 28px;
+        height: 28px;
+        border-radius: 7px;
+        background: rgba(0,0,0,0.03);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 10;
+        color: #6b7280;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+    }
+    .widget-item:hover .widget-resize-handle {
+        display: flex;
+    }
+    .widget-resize-handle:hover {
+        background: rgba(34,197,94,0.15);
+        color: #22c55e;
+        transform: scale(1.1);
+    }
+    [data-bs-theme="dark"] .widget-resize-handle {
+        background: rgba(255,255,255,0.08);
+        color: #94a3b8;
+    }
+    [data-bs-theme="dark"] .widget-resize-handle:hover {
+        background: rgba(34,197,94,0.25);
+        color: #4ade80;
+    }
+    
+    /* Resize Dropdown Menu */
+    .resize-dropdown {
+        position: absolute;
+        top: 3rem;
+        right: 3.25rem;
+        background: var(--surface-card, #fff);
+        border: 1px solid rgba(0,0,0,0.1);
+        border-radius: 10px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        padding: 0.5rem;
+        z-index: 100;
+        min-width: 140px;
+        display: none;
+    }
+    .resize-dropdown.show {
+        display: block;
+    }
+    .resize-option {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.15s;
+        color: var(--text-primary, #1f2937);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .resize-option:hover {
+        background: rgba(59,130,246,0.1);
+        color: #3b82f6;
+    }
+    .resize-option.active {
+        background: rgba(59,130,246,0.15);
+        color: #3b82f6;
+        font-weight: 600;
+    }
+    .resize-option i {
+        font-size: 1rem;
+        width: 18px;
+    }
+    [data-bs-theme="dark"] .resize-dropdown {
+        background: var(--surface-card, #1e293b);
+        border-color: rgba(255,255,255,0.1);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    }
+    
     /* Widget Size Classes */
     .widget-compact { grid-column: span 4; }
     .widget-normal { grid-column: span 6; }
@@ -1066,6 +1149,13 @@
     <!-- Announcements Widget -->
     <div class="widget-item" id="widget-announcements" data-widget="announcements">
         <div class="widget-drag-handle"><i class="bi bi-grip-vertical"></i></div>
+        <div class="widget-resize-handle" title="Resize Widget"><i class="bi bi-arrows-angle-expand"></i></div>
+        <div class="resize-dropdown" id="resize-dropdown-announcements">
+            <div class="resize-option" data-size="4"><i class="bi bi-window-sidebar"></i>Compact</div>
+            <div class="resize-option" data-size="6"><i class="bi bi-window"></i>Normal</div>
+            <div class="resize-option" data-size="8"><i class="bi bi-window-fullscreen"></i>Wide</div>
+            <div class="resize-option" data-size="12"><i class="bi bi-arrows-fullscreen"></i>Full Width</div>
+        </div>
         <div class="section-heading">
             Recent Announcements
             <a href="{% url 'announcements:manage' %}" class="btn btn-link btn-sm text-decoration-none p-0" style="font-size: 0.8125rem;">View All</a>
@@ -1096,6 +1186,13 @@
     <!-- Attendance Chart Widget -->
     <div class="widget-item" id="widget-chart-attendance" data-widget="chart-attendance">
         <div class="widget-drag-handle"><i class="bi bi-grip-vertical"></i></div>
+        <div class="widget-resize-handle" title="Resize Widget"><i class="bi bi-arrows-angle-expand"></i></div>
+        <div class="resize-dropdown" id="resize-dropdown-chart-attendance">
+            <div class="resize-option" data-size="3"><i class="bi bi-window-sidebar"></i>Compact</div>
+            <div class="resize-option" data-size="4"><i class="bi bi-window-stack"></i>Small</div>
+            <div class="resize-option" data-size="6"><i class="bi bi-window"></i>Normal</div>
+            <div class="resize-option" data-size="8"><i class="bi bi-window-fullscreen"></i>Wide</div>
+        </div>
         <div class="section-heading">Attendance Trend</div>
         <div class="chart-card">
             <canvas id="attendanceChart" height="200"></canvas>
@@ -1105,6 +1202,13 @@
     <!-- Class Distribution Chart Widget -->
     <div class="widget-item" id="widget-chart-classes" data-widget="chart-classes">
         <div class="widget-drag-handle"><i class="bi bi-grip-vertical"></i></div>
+        <div class="widget-resize-handle" title="Resize Widget"><i class="bi bi-arrows-angle-expand"></i></div>
+        <div class="resize-dropdown" id="resize-dropdown-chart-classes">
+            <div class="resize-option" data-size="3"><i class="bi bi-window-sidebar"></i>Compact</div>
+            <div class="resize-option" data-size="4"><i class="bi bi-window-stack"></i>Small</div>
+            <div class="resize-option" data-size="6"><i class="bi bi-window"></i>Normal</div>
+            <div class="resize-option" data-size="8"><i class="bi bi-window-fullscreen"></i>Wide</div>
+        </div>
         <div class="section-heading">Class Distribution</div>
         <div class="chart-card">
             <canvas id="classChart" height="200"></canvas>
@@ -1114,6 +1218,13 @@
     <!-- Messages Widget -->
     <div class="widget-item" id="widget-messages" data-widget="messages">
         <div class="widget-drag-handle"><i class="bi bi-grip-vertical"></i></div>
+        <div class="widget-resize-handle" title="Resize Widget"><i class="bi bi-arrows-angle-expand"></i></div>
+        <div class="resize-dropdown" id="resize-dropdown-messages">
+            <div class="resize-option" data-size="3"><i class="bi bi-window-sidebar"></i>Compact</div>
+            <div class="resize-option" data-size="4"><i class="bi bi-window-stack"></i>Small</div>
+            <div class="resize-option" data-size="6"><i class="bi bi-window"></i>Normal</div>
+            <div class="resize-option" data-size="8"><i class="bi bi-window-fullscreen"></i>Wide</div>
+        </div>
         <div class="section-heading">
             Messages
             <a href="{% url 'communication:inbox' %}" class="btn btn-link btn-sm text-decoration-none p-0" style="font-size: 0.8125rem;">Open Inbox</a>
@@ -1139,12 +1250,26 @@
     <!-- Calendar Widget -->
     <div class="widget-item" id="calendar-widget" data-widget="calendar">
         <div class="widget-drag-handle"><i class="bi bi-grip-vertical"></i></div>
+        <div class="widget-resize-handle" title="Resize Widget"><i class="bi bi-arrows-angle-expand"></i></div>
+        <div class="resize-dropdown" id="resize-dropdown-calendar">
+            <div class="resize-option" data-size="3"><i class="bi bi-window-sidebar"></i>Compact</div>
+            <div class="resize-option" data-size="4"><i class="bi bi-window-stack"></i>Small</div>
+            <div class="resize-option" data-size="6"><i class="bi bi-window"></i>Normal</div>
+            <div class="resize-option" data-size="8"><i class="bi bi-window-fullscreen"></i>Wide</div>
+        </div>
         {% include 'dashboard/components/academic_calendar_widget.html' %}
     </div>
 
     <!-- Quick Actions Widget -->
     <div class="widget-item" id="widget-quick-actions" data-widget="quick-actions">
         <div class="widget-drag-handle"><i class="bi bi-grip-vertical"></i></div>
+        <div class="widget-resize-handle" title="Resize Widget"><i class="bi bi-arrows-angle-expand"></i></div>
+        <div class="resize-dropdown" id="resize-dropdown-quick-actions">
+            <div class="resize-option" data-size="3"><i class="bi bi-window-sidebar"></i>Compact</div>
+            <div class="resize-option" data-size="4"><i class="bi bi-window-stack"></i>Small</div>
+            <div class="resize-option" data-size="6"><i class="bi bi-window"></i>Normal</div>
+            <div class="resize-option" data-size="8"><i class="bi bi-window-fullscreen"></i>Wide</div>
+        </div>
         <div class="section-heading">Quick Actions</div>
         <div class="qa-minimal-wrap">
             <div class="qa-minimal-grid">
@@ -1258,12 +1383,86 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    /* ===== Widget Resize Functionality ===== */
+    const RESIZE_KEY = 'dashboard_sizes_admin_{{ user.id }}';
+    let widgetSizes = JSON.parse(localStorage.getItem(RESIZE_KEY)) || {};
+    
+    // Apply saved sizes
+    Object.keys(widgetSizes).forEach(widgetId => {
+        const widget = document.getElementById(widgetId);
+        if (widget) {
+            widget.style.gridColumn = `span ${widgetSizes[widgetId]}`;
+        }
+    });
+    
+    // Setup resize functionality for all widgets
+    document.querySelectorAll('.widget-resize-handle').forEach(handle => {
+        const widget = handle.closest('.widget-item');
+        const widgetId = widget.id;
+        const dropdown = widget.querySelector('.resize-dropdown');
+        
+        if (!dropdown) return;
+        
+        // Toggle dropdown on click
+        handle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            
+            // Close all other dropdowns
+            document.querySelectorAll('.resize-dropdown').forEach(d => {
+                if (d !== dropdown) d.classList.remove('show');
+            });
+            
+            dropdown.classList.toggle('show');
+            
+            // Update active state
+            const currentSize = widget.style.gridColumn.match(/\d+/);
+            const currentSpan = currentSize ? parseInt(currentSize[0]) : 6;
+            dropdown.querySelectorAll('.resize-option').forEach(opt => {
+                opt.classList.toggle('active', parseInt(opt.dataset.size) === currentSpan);
+            });
+        });
+        
+        // Handle resize option clicks
+        dropdown.querySelectorAll('.resize-option').forEach(option => {
+            option.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const size = parseInt(this.dataset.size);
+                
+                // Apply size
+                widget.style.gridColumn = `span ${size}`;
+                
+                // Save to localStorage
+                widgetSizes[widgetId] = size;
+                localStorage.setItem(RESIZE_KEY, JSON.stringify(widgetSizes));
+                
+                // Update active state
+                dropdown.querySelectorAll('.resize-option').forEach(opt => {
+                    opt.classList.remove('active');
+                });
+                this.classList.add('active');
+                
+                // Close dropdown
+                dropdown.classList.remove('show');
+            });
+        });
+    });
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.widget-resize-handle') && !e.target.closest('.resize-dropdown')) {
+            document.querySelectorAll('.resize-dropdown').forEach(d => {
+                d.classList.remove('show');
+            });
+        }
+    });
 
     /* ===== Layout Controls ===== */
     document.getElementById('btn-reset-layout')?.addEventListener('click', function() {
-        if (confirm('Reset dashboard to default layout? This will clear your custom arrangement.')) {
+        if (confirm('Reset dashboard to default layout? This will clear your custom arrangement and widget sizes.')) {
             localStorage.removeItem(LAYOUT_KEY);
             localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem(RESIZE_KEY);
             location.reload();
         }
     });
