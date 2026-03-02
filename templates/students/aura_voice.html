@@ -4,6 +4,8 @@
 {% block title %}Aura Voice{% endblock %}
 
 {% block extra_css %}
+<!-- Font Awesome 6 Free -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <style>
 /* ═══════════════════════════════════════════════════════
    AURA VOICE — "Living Presence" UI
@@ -15,8 +17,13 @@
     position: fixed; inset: 0; z-index: 1050;
     background: #06060f;
     overflow: hidden;
-    font-family: 'Inter', -apple-system, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     color: #e0e0e0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 /* ── WebGL Canvas ── */
@@ -79,8 +86,10 @@
     padding: 8px 14px; font-size: 13px;
     cursor: pointer; transition: all 0.25s;
     display: flex; align-items: center; gap: 6px;
+    text-decoration: none;
+    white-space: nowrap;
 }
-.hud-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+.hud-btn:hover { background: rgba(255,255,255,0.12); color: #fff; text-decoration: none; }
 .hud-btn.icon-only { padding: 8px 10px; border-radius: 50%; width: 38px; height: 38px; justify-content: center; }
 
 .hud-badge {
@@ -110,13 +119,14 @@
     font-size: 22px; font-weight: 300;
     color: rgba(255,255,255,0.9);
     margin: 0 0 6px;
-    letter-spacing: 0.3px;
-    transition: all 0.4s;
+    letter-spacing: 0.5px;
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    text-shadow: 0 0 30px rgba(56,120,255,0.15);
 }
 #substatusText {
     font-size: 13px; color: rgba(255,255,255,0.35);
     margin: 0; line-height: 1.5;
-    transition: all 0.4s;
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ── Live Transcript Feed ── */
@@ -144,6 +154,7 @@
     animation: fadeSlideUp 0.4s ease forwards;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+    transition: background 0.2s;
 }
 .transcript-line.user {
     background: rgba(255,255,255,0.06);
@@ -152,6 +163,7 @@
     align-self: flex-end; max-width: 85%;
     border-bottom-right-radius: 4px;
 }
+.transcript-line.user:hover { background: rgba(255,255,255,0.09); }
 .transcript-line.aura {
     background: rgba(56,120,255,0.08);
     border: 1px solid rgba(56,120,255,0.12);
@@ -159,6 +171,7 @@
     align-self: flex-start; max-width: 85%;
     border-bottom-left-radius: 4px;
 }
+.transcript-line.aura:hover { background: rgba(56,120,255,0.12); }
 .transcript-line .label {
     font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
     margin-bottom: 3px; display: block;
@@ -220,19 +233,20 @@
     background: rgba(255,255,255,0.06);
     border: 2px solid rgba(255,255,255,0.1);
     display: flex; align-items: center; justify-content: center;
-    cursor: pointer; transition: all 0.3s;
+    cursor: pointer; transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04);
 }
-#interruptZone:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.2); }
+#interruptZone:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.2); transform: scale(1.05); }
 #interruptZone:active { transform: scale(0.92); }
-#interruptZone .icon { font-size: 22px; transition: all 0.3s; color: rgba(255,255,255,0.7); }
+#interruptZone .icon { font-size: 22px; transition: all 0.3s; color: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center; }
 
 /* Connecting spinner ring */
 #interruptZone.connecting { border-color: rgba(56,120,255,0.5); animation: spinBorder 1.2s linear infinite; }
 @keyframes spinBorder {
-    0%   { box-shadow: 0 0 0 2px rgba(56,120,255,0.3); }
-    50%  { box-shadow: 0 0 12px 2px rgba(56,120,255,0.5); }
-    100% { box-shadow: 0 0 0 2px rgba(56,120,255,0.3); }
+    0%   { box-shadow: 0 0 0 2px rgba(56,120,255,0.3), 0 4px 24px rgba(0,0,0,0.3); }
+    50%  { box-shadow: 0 0 16px 3px rgba(56,120,255,0.45), 0 4px 24px rgba(0,0,0,0.3); }
+    100% { box-shadow: 0 0 0 2px rgba(56,120,255,0.3), 0 4px 24px rgba(0,0,0,0.3); }
 }
 
 /* Active listening pulse */
@@ -242,14 +256,15 @@
     background: rgba(0,220,130,0.08);
 }
 @keyframes listenPulse {
-    0%,100% { box-shadow: 0 0 0 0 rgba(0,220,130,0.3); }
-    50%     { box-shadow: 0 0 20px 4px rgba(0,220,130,0.15); }
+    0%,100% { box-shadow: 0 0 0 0 rgba(0,220,130,0.3), 0 4px 24px rgba(0,0,0,0.3); }
+    50%     { box-shadow: 0 0 24px 6px rgba(0,220,130,0.18), 0 4px 24px rgba(0,0,0,0.3); }
 }
 
 /* Speaking glow */
 #interruptZone.speaking {
     border-color: rgba(56,120,255,0.5);
     background: rgba(56,120,255,0.08);
+    box-shadow: 0 0 20px 4px rgba(56,120,255,0.15), 0 4px 24px rgba(0,0,0,0.3);
 }
 
 /* Side buttons */
@@ -262,8 +277,10 @@
     cursor: pointer; transition: all 0.25s;
     color: rgba(255,255,255,0.4);
     font-size: 16px;
+    -webkit-tap-highlight-color: transparent;
 }
 .side-btn:hover { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.8); }
+.side-btn:active { transform: scale(0.92); }
 .side-btn.active { background: rgba(56,120,255,0.15); border-color: rgba(56,120,255,0.3); color: rgba(56,120,255,0.9); }
 
 /* ── Settings / History Panel ── */
@@ -343,9 +360,11 @@
     background: linear-gradient(135deg, #3878ff, #6c3bff);
     border: none; border-radius: 12px;
     color: #fff; font-size: 14px; font-weight: 500;
-    cursor: pointer; transition: all 0.25s;
+    cursor: pointer; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 16px rgba(56,120,255,0.2);
 }
-.aura-btn-primary:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.aura-btn-primary:hover { filter: brightness(1.15); transform: translateY(-2px); box-shadow: 0 6px 24px rgba(56,120,255,0.3); }
+.aura-btn-primary:active { transform: translateY(0); box-shadow: 0 2px 8px rgba(56,120,255,0.15); }
 
 /* History Items */
 .history-item {
@@ -353,12 +372,12 @@
     border: 1px solid rgba(255,255,255,0.05);
     border-radius: 14px; padding: 14px;
     margin-bottom: 10px;
-    transition: background 0.2s;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.history-item:hover { background: rgba(255,255,255,0.06); }
-.history-time { font-size: 10px; color: rgba(255,255,255,0.25); margin-bottom: 8px; }
-.history-user { font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 4px; }
-.history-aura { font-size: 13px; color: rgba(200,215,255,0.7); }
+.history-item:hover { background: rgba(255,255,255,0.06); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+.history-time { font-size: 10px; color: rgba(255,255,255,0.25); margin-bottom: 8px; letter-spacing: 0.3px; }
+.history-user { font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 4px; line-height: 1.4; }
+.history-aura { font-size: 13px; color: rgba(200,215,255,0.7); line-height: 1.5; }
 
 /* ── Utility ── */
 .hidden { display: none !important; }
@@ -385,11 +404,13 @@
     background: rgba(255,60,60,0.08);
     border: 1px solid rgba(255,60,60,0.15);
     color: rgba(255,100,100,0.8);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 #exitBtn:hover {
     background: rgba(255,60,60,0.2);
     border-color: rgba(255,60,60,0.35);
     color: #ff6b6b;
+    box-shadow: 0 0 12px rgba(255,60,60,0.15);
 }
 
 /* ── Exit Confirm Dialog ── */
@@ -408,6 +429,12 @@
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 20px; padding: 32px;
     text-align: center; max-width: 320px; width: 85%;
+    animation: dialogSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+}
+@keyframes dialogSlideUp {
+    from { opacity: 0; transform: translateY(20px) scale(0.95); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 #exitConfirmBox h4 {
     font-size: 17px; font-weight: 500; color: #e0e0e0;
@@ -421,16 +448,16 @@
 .exit-actions button {
     flex: 1; padding: 12px; border-radius: 12px;
     font-size: 14px; font-weight: 500; cursor: pointer;
-    border: none; transition: all 0.2s;
+    border: none; transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 #exitCancel {
     background: rgba(255,255,255,0.06); color: #ccc;
 }
-#exitCancel:hover { background: rgba(255,255,255,0.12); }
+#exitCancel:hover { background: rgba(255,255,255,0.15); transform: translateY(-1px); }
 #exitConfirmBtn {
     background: rgba(255,60,60,0.2); color: #ff6b6b;
 }
-#exitConfirmBtn:hover { background: rgba(255,60,60,0.35); }
+#exitConfirmBtn:hover { background: rgba(255,60,60,0.35); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(255,60,60,0.15); }
 
 /* ═══ MOBILE RESPONSIVE ═══ */
 
@@ -550,17 +577,17 @@
     <div id="topHUD">
         <div style="display:flex;gap:8px;align-items:center">
             <button id="exitBtn" class="hud-btn icon-only" title="Exit Aura Voice">
-                <i class="fas fa-arrow-left"></i>
+                <i class="fa-solid fa-arrow-left"></i>
             </button>
             <a href="{% url 'students:aura_arena' %}" class="hud-btn">
-                <i class="fas fa-keyboard"></i> <span class="d-none d-sm-inline">Text</span>
+                <i class="fa-solid fa-keyboard"></i> <span class="d-none d-sm-inline">Text</span>
             </a>
         </div>
         <div class="hud-badge">
             <span class="dot"></span> <span class="d-none d-sm-inline">Aura </span>Voice
         </div>
         <button id="settingsBtn" class="hud-btn icon-only" title="Settings">
-            <i class="fas fa-sliders-h"></i>
+            <i class="fa-solid fa-sliders"></i>
         </button>
     </div>
 
@@ -575,26 +602,26 @@
 
     <!-- Whiteboard Ghost Overlay -->
     <div id="whiteboardOverlay">
-        <button id="whiteboardClose"><i class="fas fa-times"></i></button>
+        <button id="whiteboardClose"><i class="fa-solid fa-xmark"></i></button>
         <div id="whiteboardContent"></div>
     </div>
 
     <!-- Bottom Controls -->
     <div id="bottomControls">
         <button id="historyBtn" class="side-btn" title="History">
-            <i class="fas fa-clock-rotate-left"></i>
+            <i class="fa-solid fa-clock-rotate-left"></i>
         </button>
         <button id="cameraBtn" class="side-btn" title="Show Aura your notebook">
-            <i class="fas fa-camera"></i>
+            <i class="fa-solid fa-camera"></i>
         </button>
         <div id="interruptZone" title="Tap to start / Tap to interrupt">
-            <i class="icon fas fa-microphone"></i>
+            <i class="icon fa-solid fa-microphone"></i>
         </div>
         <button id="muteBtn" class="side-btn" title="Mute microphone">
-            <i class="fas fa-microphone-slash"></i>
+            <i class="fa-solid fa-microphone-slash"></i>
         </button>
         <button id="clearBtn" class="side-btn hidden" title="Clear history">
-            <i class="fas fa-trash-can"></i>
+            <i class="fa-solid fa-trash-can"></i>
         </button>
     </div>
 
@@ -602,8 +629,8 @@
     <div id="cameraOverlay">
         <video id="cameraVideo" autoplay playsinline></video>
         <div id="cameraControls">
-            <button class="hud-btn" id="captureBtn"><i class="fas fa-circle"></i> Capture</button>
-            <button class="hud-btn" id="closeCameraBtn"><i class="fas fa-times"></i> Close</button>
+            <button class="hud-btn" id="captureBtn"><i class="fa-solid fa-circle"></i> Capture</button>
+            <button class="hud-btn" id="closeCameraBtn"><i class="fa-solid fa-xmark"></i> Close</button>
         </div>
     </div>
 
@@ -613,8 +640,8 @@
     <!-- Settings Panel -->
     <div class="slide-panel" id="settingsPanel">
         <div class="panel-header">
-            <h3><i class="fas fa-sliders-h" style="margin-right:8px; color:rgba(56,120,255,0.7)"></i>Settings</h3>
-            <button class="panel-close" id="closeSettingsBtn"><i class="fas fa-times"></i></button>
+            <h3><i class="fa-solid fa-sliders" style="margin-right:8px; color:rgba(56,120,255,0.7)"></i>Settings</h3>
+            <button class="panel-close" id="closeSettingsBtn"><i class="fa-solid fa-xmark"></i></button>
         </div>
 
         <label class="aura-label">Voice</label>
@@ -644,18 +671,18 @@
         </select>
 
         <button id="saveSettingsBtn" class="aura-btn-primary">
-            <i class="fas fa-check" style="margin-right:6px"></i>Save Settings
+            <i class="fa-solid fa-check" style="margin-right:6px"></i>Save Settings
         </button>
     </div>
 
     <!-- Exit Confirmation Dialog -->
     <div id="exitConfirm">
         <div id="exitConfirmBox">
-            <h4><i class="fas fa-door-open" style="margin-right:8px;color:rgba(255,100,100,0.7)"></i>Leave Aura Voice?</h4>
+            <h4><i class="fa-solid fa-door-open" style="margin-right:8px;color:rgba(255,100,100,0.7)"></i>Leave Aura Voice?</h4>
             <p>Your session will end and you'll return to your dashboard.</p>
             <div class="exit-actions">
                 <button id="exitCancel">Stay</button>
-                <button id="exitConfirmBtn"><i class="fas fa-sign-out-alt" style="margin-right:4px"></i>Leave</button>
+                <button id="exitConfirmBtn"><i class="fa-solid fa-right-from-bracket" style="margin-right:4px"></i>Leave</button>
             </div>
         </div>
     </div>
@@ -666,12 +693,12 @@
     <!-- History Panel -->
     <div class="slide-panel" id="historyPanel">
         <div class="panel-header">
-            <h3><i class="fas fa-clock-rotate-left" style="margin-right:8px; color:rgba(56,120,255,0.7)"></i>History</h3>
-            <button class="panel-close" id="closeHistoryBtn"><i class="fas fa-times"></i></button>
+            <h3><i class="fa-solid fa-clock-rotate-left" style="margin-right:8px; color:rgba(56,120,255,0.7)"></i>History</h3>
+            <button class="panel-close" id="closeHistoryBtn"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div id="historyContent">
             <div style="text-align:center;padding:40px 0;color:rgba(255,255,255,0.2)">
-                <i class="fas fa-comment-slash" style="font-size:30px;margin-bottom:12px;display:block;opacity:0.3"></i>
+                <i class="fa-solid fa-comment-slash" style="font-size:30px;margin-bottom:12px;display:block;opacity:0.3"></i>
                 No conversations yet
             </div>
         </div>
@@ -1023,21 +1050,21 @@ function updateState(newState) {
         case 'IDLE':
             statusText.textContent = 'Aura';
             substatusText.textContent = 'Tap to begin a conversation';
-            interruptIcon.className = 'icon fas fa-microphone';
+            interruptIcon.className = 'icon fa-solid fa-microphone';
             targetOrbState = 0;
             transcriptFeed.classList.remove('visible');
             break;
         case 'CONNECTING':
             statusText.textContent = 'Connecting';
             substatusText.textContent = 'Establishing secure voice channel...';
-            interruptIcon.className = 'icon fas fa-circle-notch fa-spin';
+            interruptIcon.className = 'icon fa-solid fa-circle-notch fa-spin';
             interruptZone.classList.add('connecting');
             targetOrbState = 0.3;
             break;
         case 'READY':
             statusText.textContent = 'Ready';
             substatusText.textContent = 'Start speaking — I\'m listening';
-            interruptIcon.className = 'icon fas fa-waveform';
+            interruptIcon.className = 'icon fa-solid fa-wave-square';
             interruptZone.classList.add('listening');
             targetOrbState = 0.5;
             if (!sessionStartTime) sessionStartTime = Date.now();
@@ -1045,7 +1072,7 @@ function updateState(newState) {
         case 'LISTENING':
             statusText.textContent = 'Listening';
             substatusText.textContent = '';
-            interruptIcon.className = 'icon fas fa-waveform';
+            interruptIcon.className = 'icon fa-solid fa-wave-square';
             interruptZone.classList.add('listening');
             targetOrbState = 1.0;
             transcriptFeed.classList.add('visible');
@@ -1053,14 +1080,14 @@ function updateState(newState) {
         case 'THINKING':
             statusText.textContent = 'Thinking';
             substatusText.textContent = '';
-            interruptIcon.className = 'icon fas fa-brain';
+            interruptIcon.className = 'icon fa-solid fa-brain';
             interruptZone.classList.add('connecting');
             targetOrbState = 2.0;
             break;
         case 'SPEAKING':
             statusText.textContent = 'Aura';
             substatusText.textContent = 'Tap to interrupt';
-            interruptIcon.className = 'icon fas fa-hand';
+            interruptIcon.className = 'icon fa-solid fa-hand';
             interruptZone.classList.add('speaking');
             targetOrbState = 3.0;
             transcriptFeed.classList.add('visible');
@@ -1071,7 +1098,7 @@ function updateState(newState) {
             if (!substatusText.textContent || substatusText.textContent === 'Establishing secure voice channel...') {
                 substatusText.textContent = 'Tap to reconnect';
             }
-            interruptIcon.className = 'icon fas fa-rotate-right';
+            interruptIcon.className = 'icon fa-solid fa-rotate-right';
             targetOrbState = 0;
             targetSentiment = -0.5;
             // Only auto-recover to IDLE if no retry is happening
@@ -1154,16 +1181,16 @@ function updateHistoryDisplay() {
     if (conversationHistory.length === 0) {
         historyContent.innerHTML = `
             <div style="text-align:center;padding:40px 0;color:rgba(255,255,255,0.2)">
-                <i class="fas fa-comment-slash" style="font-size:30px;margin-bottom:12px;display:block;opacity:0.3"></i>
+                <i class="fa-solid fa-comment-slash" style="font-size:30px;margin-bottom:12px;display:block;opacity:0.3"></i>
                 No conversations yet
             </div>`;
         clearBtn.classList.add('hidden');
     } else {
         historyContent.innerHTML = conversationHistory.map(item => `
             <div class="history-item">
-                <div class="history-time"><i class="fas fa-clock" style="margin-right:4px"></i>${item.timestamp}</div>
-                <div class="history-user"><i class="fas fa-user" style="margin-right:4px;opacity:0.5"></i>${escapeHtml(item.userText)}</div>
-                <div class="history-aura"><i class="fas fa-sparkles" style="margin-right:4px;opacity:0.5"></i>${escapeHtml(item.auraText)}</div>
+                <div class="history-time"><i class="fa-regular fa-clock" style="margin-right:4px"></i>${item.timestamp}</div>
+                <div class="history-user"><i class="fa-solid fa-user" style="margin-right:4px;opacity:0.5"></i>${escapeHtml(item.userText)}</div>
+                <div class="history-aura"><i class="fa-solid fa-wand-magic-sparkles" style="margin-right:4px;opacity:0.5"></i>${escapeHtml(item.auraText)}</div>
             </div>`).join('');
         clearBtn.classList.remove('hidden');
     }
@@ -1222,7 +1249,7 @@ saveSettingsBtn.addEventListener('click', () => {
     if (isConnected) { disconnectRealtime(); setTimeout(() => connectRealtime(), 500); }
 
     saveSettingsBtn.textContent = 'Saved!';
-    setTimeout(() => { saveSettingsBtn.innerHTML = '<i class="fas fa-check" style="margin-right:6px"></i>Save Settings'; }, 1200);
+    setTimeout(() => { saveSettingsBtn.innerHTML = '<i class="fa-solid fa-check" style="margin-right:6px"></i>Save Settings'; }, 1200);
 });
 
 
@@ -1295,7 +1322,7 @@ muteBtn.addEventListener('click', () => {
     if (mediaStream) {
         mediaStream.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
     }
-    muteBtn.querySelector('i').className = isMuted ? 'fas fa-microphone-slash' : 'fas fa-microphone';
+    muteBtn.querySelector('i').className = isMuted ? 'fa-solid fa-microphone-slash' : 'fa-solid fa-microphone';
     substatusText.textContent = isMuted ? 'Microphone muted' : 'Microphone unmuted';
 });
 
