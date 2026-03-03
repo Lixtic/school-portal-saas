@@ -202,20 +202,80 @@
 [data-bs-theme="dark"] .ad-icon-red   { background: rgba(239,68,68,.2); }
 [data-bs-theme="dark"] .ad-icon-green { background: rgba(34,197,94,.2); }
 
-/* Mobile heatmap */
+/* ── Heatmap content wrapper (transparent on desktop) ── */
+.hm-card-content { display: block; }
+
+/* Mobile heatmap – card view on sm (576-767px) */
 @media (max-width: 767.98px) {
-    .hm-card .hm-body { padding: .55rem .45rem .5rem; }
-    .hm-avatar { width: 34px; height: 34px; font-size: .82rem; }
-    .hm-name { font-size: .72rem; }
-    .hm-mastery-pct { font-size: .88rem; }
+    .hm-card .hm-body { padding: .55rem .5rem .5rem; }
+    .hm-avatar { width: 36px; height: 36px; font-size: .85rem; }
+    .hm-name { font-size: .74rem; }
+    .hm-mastery-pct { font-size: .9rem; }
     .hm-badge { font-size: .58rem; padding: .15em .45em; }
-    .hm-boost-btn { font-size: .65rem; padding: .18rem .5rem; }
+    .hm-boost-btn { font-size: .65rem; padding: .2rem .55rem; }
     .hm-last-active { font-size: .58rem; }
 }
+
+/* Mobile heatmap – HORIZONTAL LIST view on xs (<576px) */
 @media (max-width: 575.98px) {
-    .hm-legend { gap: .3rem .5rem; width: 100%; }
-    .hm-legend-item { font-size: .65rem; }
+    /* Legend: single scrollable row, no wrapping */
+    .hm-legend {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 2px;
+        width: 100%;
+        scrollbar-width: none;
+    }
+    .hm-legend::-webkit-scrollbar { display: none; }
+    .hm-legend-item { white-space: nowrap; flex-shrink: 0; font-size: .65rem; }
     .hm-legend-dot { width: 7px; height: 7px; }
+
+    /* Top colour bar becomes a left accent strip */
+    .hm-top-bar {
+        height: 100% !important;
+        width: 4px !important;
+        position: absolute;
+        top: 0; left: 0;
+        border-radius: .6rem 0 0 .6rem;
+    }
+
+    /* Row layout: avatar | content | — */
+    .hm-card .hm-body {
+        display: flex !important;
+        align-items: center !important;
+        text-align: left !important;
+        padding: .55rem .7rem .55rem .9rem !important;
+        gap: .55rem;
+    }
+    .hm-avatar {
+        width: 38px; height: 38px;
+        font-size: .9rem;
+        flex-shrink: 0;
+        margin: 0;
+    }
+    .hm-card-content {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: .1rem;
+    }
+    .hm-name { font-size: .8rem; margin-bottom: 0; white-space: normal; }
+    .hm-mastery-pct { font-size: 1rem; margin-bottom: .1rem; }
+    .hm-bar { margin-bottom: .15rem; height: 4px; }
+    .hm-badge { font-size: .6rem; }
+    .hm-boost-btn {
+        display: inline-block;
+        width: auto;
+        margin-top: .2rem;
+        font-size: .68rem;
+        padding: .22rem .65rem;
+    }
+    .hm-last-active { font-size: .6rem; margin-top: .1rem; }
+    .hm-misconception-dot { top: 6px; right: 6px; }
+
+    /* Analytics header & stat cards */
     .ad-header { padding: 1.1rem 1rem; border-radius: .75rem; }
     .ad-header-title { font-size: 1.05rem; }
     .ad-stat-value { font-size: 1.05rem; }
@@ -332,7 +392,7 @@
     <!-- Student Heat Map -->
     <div class="col-lg-8">
         <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between gap-2 flex-wrap">
+            <div class="card-header py-3 d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-2">
                 <h6 class="m-0 font-weight-bold text-primary">Student Mastery Heat Map</h6>
                 <div class="hm-legend">
                     <span class="hm-legend-item"><span class="hm-legend-dot" style="background:#22c55e"></span>On Track</span>
@@ -345,7 +405,7 @@
             <div class="card-body pb-2">
                 <div class="row g-2">
                     {% for student in students_data %}
-                    <div class="col-6 col-sm-4 col-md-3 col-xl-2">
+                    <div class="col-12 col-sm-6 col-md-3 col-xl-2">
                         <div class="hm-card shadow-sm {% if student.status == 'secondary' %}hm-status-no-data{% elif student.status == 'red' %}hm-status-needs-help{% elif student.status == 'yellow' %}hm-status-progressing{% else %}hm-status-on-track{% endif %}"
                              data-bs-toggle="tooltip"
                              data-bs-placement="top"
@@ -353,32 +413,34 @@
                             <div class="hm-top-bar"></div>
                             <div class="hm-body">
                                 <div class="hm-avatar">{{ student.name|make_list|first }}</div>
-                                <div class="hm-name" title="{{ student.name }}">{{ student.name }}</div>
+                                <div class="hm-card-content">
+                                    <div class="hm-name" title="{{ student.name }}">{{ student.name }}</div>
 
-                                {% if student.status != 'secondary' %}
-                                <div class="hm-mastery-pct">{{ student.mastery }}%</div>
-                                <div class="hm-bar">
-                                    <div class="hm-bar-fill" style="width:{{ student.mastery }}%"></div>
+                                    {% if student.status != 'secondary' %}
+                                    <div class="hm-mastery-pct">{{ student.mastery }}%</div>
+                                    <div class="hm-bar">
+                                        <div class="hm-bar-fill" style="width:{{ student.mastery }}%"></div>
+                                    </div>
+                                    {% endif %}
+
+                                    {% if student.status == 'secondary' %}
+                                    <span class="hm-badge">No sessions</span>
+                                    {% elif student.status == 'red' %}
+                                    <span class="hm-badge">Needs Help</span>
+                                    <button class="btn btn-sm btn-danger hm-boost-btn"
+                                            onclick="triggerIntervention('{{ student.id }}', '{{ student.name|escapejs }}', '{{ student.intervention|escapejs }}')">
+                                        <i class="fas fa-bolt me-1"></i>Boost
+                                    </button>
+                                    {% elif student.status == 'yellow' %}
+                                    <span class="hm-badge">Progressing</span>
+                                    {% else %}
+                                    <span class="hm-badge">On Track</span>
+                                    {% endif %}
+
+                                    {% if student.last_active %}
+                                    <div class="hm-last-active">{{ student.last_active }}</div>
+                                    {% endif %}
                                 </div>
-                                {% endif %}
-
-                                {% if student.status == 'secondary' %}
-                                <span class="hm-badge">No sessions</span>
-                                {% elif student.status == 'red' %}
-                                <span class="hm-badge">Needs Help</span>
-                                <button class="btn btn-sm btn-danger hm-boost-btn"
-                                        onclick="triggerIntervention('{{ student.id }}', '{{ student.name|escapejs }}', '{{ student.intervention|escapejs }}')">
-                                    <i class="fas fa-bolt me-1"></i>Boost
-                                </button>
-                                {% elif student.status == 'yellow' %}
-                                <span class="hm-badge">Progressing</span>
-                                {% else %}
-                                <span class="hm-badge">On Track</span>
-                                {% endif %}
-
-                                {% if student.last_active %}
-                                <div class="hm-last-active">{{ student.last_active }}</div>
-                                {% endif %}
                             </div>
                             {% if student.misconception %}
                             <div class="hm-misconception-dot"
