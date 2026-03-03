@@ -12,8 +12,11 @@ import base64
 from huggingface_hub import InferenceClient
 from django.db import connection, ProgrammingError
 from django.db.models import Q, Count, Max
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.utils import timezone
+import logging
+
+logger = logging.getLogger(__name__)
 from accounts.models import User
 from announcements.models import Announcement
 from .models import Activity, GalleryImage, SchoolInfo, Class, Timetable, ClassSubject, Resource, AcademicYear, Subject
@@ -708,12 +711,21 @@ def activities_public(request):
     return render(request, 'academics/activities_public.html', context)
 
 
-@csrf_exempt
+@ensure_csrf_cookie
 def admissions_assistant(request):
-    print(f"[CHATBOT] Request method: {request.method}, Content-Type: {request.content_type}")
+    logger.debug("Admissions assistant: %s %s", request.method, request.content_type)
     
     if request.method != 'POST':
         return JsonResponse({'error': 'Invalid request'}, status=405)
+
+    # Basic IP-based rate limiting (20 requests per 60s window)
+    from django.core.cache import cache
+    ip = request.META.get('REMOTE_ADDR', 'unknown')
+    rate_key = f"chatbot_rate_{ip}"
+    hits = cache.get(rate_key, 0)
+    if hits >= 20:
+        return JsonResponse({'error': 'Too many requests. Please wait a moment.'}, status=429)
+    cache.set(rate_key, hits + 1, 60)
 
     try:
         # Parse request body
@@ -722,11 +734,11 @@ def admissions_assistant(request):
         else:
             payload = request.POST.dict()
     except Exception as e:
-        print(f"[CHATBOT] Payload parsing error: {e}")
+        logger.warning("Chatbot payload parsing error: %s", e)
         return JsonResponse({'error': 'Invalid payload', 'details': str(e)}, status=400)
 
     question = (payload.get('question') or '').strip()
-    print(f"[CHATBOT] Question received: {question}")
+    logger.debug("Chatbot question received: %s", question[:120])
     
     if not question:
         return JsonResponse({'answer': 'Please ask a question about admissions, fees, or term dates.'})
@@ -734,9 +746,9 @@ def admissions_assistant(request):
     # Safely get school info
     try:
         school_info = SchoolInfo.objects.first()
-        print(f"[CHATBOT] School info found: {school_info.name if school_info else 'None'}")
+        logger.debug("Chatbot school info: %s", school_info.name if school_info else 'None')
     except Exception as e:
-        print(f"[CHATBOT] Error getting school info: {e}")
+        logger.warning("Chatbot error getting school info: %s", e)
         school_info = None
 
     def fallback_answer():
@@ -759,11 +771,11 @@ def admissions_assistant(request):
 
     # Try OpenAI API first with streaming response
     from django.conf import settings
-    print(f"[CHATBOT] OpenAI API key configured: {bool(settings.OPENAI_API_KEY)}")
+    logger.debug("Chatbot OpenAI API key configured: %s", bool(settings.OPENAI_API_KEY))
     
     if settings.OPENAI_API_KEY:
         try:
-            print("[CHATBOT] Calling OpenAI API via REST...")
+            logger.debug("Chatbot calling OpenAI API via REST")
             from academics.ai_tutor import _stream_chat_completion_text, get_openai_chat_model
             
             # Build context from school info
@@ -803,23 +815,18 @@ Please provide helpful, concise answers about admissions, fees, term dates, and 
                     for chunk in _stream_chat_completion_text(payload, settings.OPENAI_API_KEY):
                         yield chunk
                 except Exception as e:
-                    print(f"[CHATBOT] Streaming error: {e}")
-                    import traceback
-                    traceback.print_exc()
+                    logger.error("Chatbot streaming error: %s", e, exc_info=True)
                 
             return StreamingHttpResponse(stream_chat(), content_type='text/plain; charset=utf-8')
         except Exception as e:
             # Fall back to FAQ if OpenAI fails
-            print(f"[CHATBOT] OpenAI API error: {str(e)}")
-            import traceback
-            traceback.print_exc()
+            logger.error("Chatbot OpenAI API error: %s", e, exc_info=True)
 
     # Fallback FAQ system (plain text)
     fallback_text = fallback_answer()
     return HttpResponse(fallback_text, content_type='text/plain; charset=utf-8')
 
 
-@csrf_exempt
 @login_required
 def copilot_history(request):
     if request.method != 'GET':
@@ -844,12 +851,22 @@ def copilot_history(request):
     return JsonResponse({'conversation_id': conversation.id, 'messages': messages})
 
 
-@csrf_exempt
+@ensure_csrf_cookie
 def copilot_assistant(request):
-    print(f"[COPILOT] Request method: {request.method}, Content-Type: {request.content_type}")
+    logger.debug("Copilot assistant: %s %s", request.method, request.content_type)
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Invalid request'}, status=405)
+
+    # Rate limiting for unauthenticated users (30 requests per 60s window)
+    if not request.user.is_authenticated:
+        from django.core.cache import cache
+        ip = request.META.get('REMOTE_ADDR', 'unknown')
+        rate_key = f"copilot_rate_{ip}"
+        hits = cache.get(rate_key, 0)
+        if hits >= 30:
+            return JsonResponse({'error': 'Too many requests. Please wait a moment.'}, status=429)
+        cache.set(rate_key, hits + 1, 60)
 
     def violates_school_policy(text: str) -> bool:
         if not text:
@@ -875,7 +892,7 @@ def copilot_assistant(request):
         else:
             payload = request.POST.dict()
     except Exception as e:
-        print(f"[COPILOT] Payload parsing error: {e}")
+        logger.warning("Copilot payload parsing error: %s", e)
         return JsonResponse({'error': 'Invalid payload', 'details': str(e)}, status=400)
 
     question = (payload.get('question') or '').strip()
@@ -885,7 +902,7 @@ def copilot_assistant(request):
     if not user_role and request.user.is_authenticated:
         user_role = getattr(request.user, 'user_type', '') or ''
 
-    print(f"[COPILOT] Role: {user_role}, Question: {question}")
+    logger.debug("Copilot role=%s question=%s", user_role, question[:120])
 
     if violates_school_policy(question):
         return HttpResponse('This assistant cannot discuss that topic. Please ask about schoolwork, schedules, grades, or fees.', content_type='text/plain; charset=utf-8', status=400)
@@ -934,7 +951,7 @@ def copilot_assistant(request):
             conversation.updated_at = timezone.now()
             conversation.save(update_fields=['updated_at'])
         except Exception as persistence_err:
-            print(f"[COPILOT] Could not persist user message: {persistence_err}")
+            logger.warning("Copilot could not persist user message: %s", persistence_err)
 
     def build_data_snapshot():
         if not request.user.is_authenticated:
@@ -1078,7 +1095,7 @@ def copilot_assistant(request):
                     pass
 
         except Exception as ctx_err:
-            print(f"[COPILOT] Data snapshot error: {ctx_err}")
+            logger.warning("Copilot data snapshot error: %s", ctx_err)
 
         return "\n".join(snapshot_lines)
 
@@ -1158,7 +1175,7 @@ Context Initialization:
                 conversation.updated_at = timezone.now()
                 conversation.save(update_fields=['updated_at'])
             except Exception as persistence_err:
-                print(f"[COPILOT] Could not persist assistant message: {persistence_err}")
+                logger.warning("Copilot could not persist assistant message: %s", persistence_err)
 
         def stream_and_store(generator):
             full_text = ''
@@ -1221,16 +1238,12 @@ Context Initialization:
                 for chunk in _stream_chat_completion_text(payload, settings.OPENAI_API_KEY):
                     yield chunk
             except Exception as e:
-                print(f"[COPILOT] Streaming error: {e}")
-                import traceback
-                traceback.print_exc()
+                logger.error("Copilot streaming error: %s", e, exc_info=True)
 
         return build_stream_response(stream_via_rest())
     except Exception as e:
         err_msg = f"Copilot error: {e}"
-        print(err_msg)
-        import traceback
-        traceback.print_exc()
+        logger.error(err_msg, exc_info=True)
         return build_plain_response(err_msg, status=502)
 
 
@@ -1749,7 +1762,7 @@ def _persist_to_learner_memory(student, summary_payload):
         memory.ingest_session_summary(summary_payload)
     except Exception as e:
         # Non-critical — log but don't break the response
-        print(f"[LEARNER_MEMORY] Failed to persist for {student}: {e}")
+        logger.warning("LearnerMemory failed to persist for %s: %s", student, e)
 
 
 def _extract_session_summary_payload(text):
@@ -1946,11 +1959,10 @@ def _process_xp_awards(student, full_text):
             leveled_up = profile.add_xp(total_awarded)
             profile.update_streak()
             
-            print(f"[GAMIFICATION] Awarded {total_awarded} XP to {student}. New Level: {profile.level}")
+            logger.info("Awarded %d XP to %s. New Level: %d", total_awarded, student, profile.level)
             return total_awarded, leveled_up
     except Exception as e:
-        print(f"[GAMIFICATION ERROR] {e}")
-        pass
+        logger.error("Gamification error: %s", e)
         
     return 0, False
 
@@ -2256,7 +2268,6 @@ def tutor_sessions(request):
         return redirect('dashboard')
 
 
-@csrf_exempt
 @login_required
 def generate_tutor_image(request):
     """Generate image based on prompt using HF API (FLUX.1-schnell)"""

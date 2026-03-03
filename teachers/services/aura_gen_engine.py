@@ -1,4 +1,5 @@
 import json
+import logging
 import random
 import re
 from typing import Dict, List, Optional
@@ -6,6 +7,8 @@ from django.utils import timezone
 from django.conf import settings
 from teachers.models import LessonPlan, Teacher
 from academics.ai_tutor import _post_chat_completion, get_openai_chat_model
+
+logger = logging.getLogger(__name__)
 
 class AuraGenEngine:
     """
@@ -102,7 +105,7 @@ class AuraGenEngine:
             }
             
         except Exception as e:
-            print(f"AI Generation failed: {e}")
+            logger.error("AI assignment generation failed: %s", e)
             # Fallback to mock if AI fails
             return AuraGenEngine._generate_mock_fallback(topic, subject, grade_level)
 
@@ -182,7 +185,7 @@ Return a full lesson plan using the exact template below. Do not use markdown ta
                 "lesson_plan": content
             }
         except Exception as e:
-            print(f"Lesson plan generation failed: {e}")
+            logger.error("Lesson plan generation failed: %s", e)
             return {
                 "meta": {
                     "topic": topic,
@@ -245,7 +248,7 @@ Rules:
                 "activities": activities,
             }
         except Exception as e:
-            print(f"Slides generation failed: {e}")
+            logger.error("Slides generation failed: %s", e)
             return {
                 "meta": {
                     "topic": topic,
@@ -436,7 +439,7 @@ Rules:
                 "exercises": exercises
             }
         except Exception as e:
-            print(f"Exercise generation failed: {e}")
+            logger.error("Exercise generation failed: %s", e)
             return {
                 "meta": {
                     "topic": topic,

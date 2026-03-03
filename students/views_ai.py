@@ -196,7 +196,6 @@ def aura_arena_view(request):
     return render(request, 'students/aura_arena.html', context)
 
 
-@csrf_exempt
 @login_required
 def aura_arena_api(request):
     if request.user.user_type != 'student':
