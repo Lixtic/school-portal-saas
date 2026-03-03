@@ -123,9 +123,7 @@ def create_realtime_session(request):
             },
             json={
                 "session": {
-                    "type": "realtime",
                     "model": model,
-                    "voice": voice,
                     "modalities": ["text", "audio"],
                     "input_audio_transcription": {
                         "model": "gpt-4o-transcribe"
