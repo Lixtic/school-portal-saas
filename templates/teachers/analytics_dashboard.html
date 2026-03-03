@@ -163,6 +163,45 @@
 .hm-legend-item { display:flex; align-items:center; gap:.3rem; font-size:.72rem; color:#64748b; }
 .hm-legend-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
 
+/* ── Analytics Page Header ─────────────────────────────── */
+.ad-header {
+    background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 60%, #0ea5e9 100%);
+    border-radius: 1rem;
+    color: #fff;
+    padding: 1.5rem 1.75rem;
+}
+.ad-header-title { font-size: 1.45rem; font-weight: 700; margin-bottom: .15rem; letter-spacing: -.01em; }
+.ad-header-sub   { font-size: .88rem; opacity: .82; margin: 0; }
+
+/* ── Analytics Stat Cards ──────────────────────────────── */
+.ad-stat-card { border-radius: .75rem; border: none; }
+.ad-stat-icon {
+    width: 38px; height: 38px;
+    border-radius: .55rem;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .9rem; flex-shrink: 0;
+}
+.ad-stat-label {
+    font-size: .66rem; text-transform: uppercase;
+    letter-spacing: .05em; color: #64748b;
+    font-weight: 600; margin-bottom: .1rem;
+}
+.ad-stat-value {
+    font-size: 1.35rem; font-weight: 700;
+    color: #1e293b; line-height: 1.1;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ad-icon-blue    { background: rgba(59,130,246,.12); color: #2563eb; }
+.ad-icon-red     { background: rgba(239,68,68,.12);  color: #dc2626; }
+.ad-icon-green   { background: rgba(34,197,94,.12);  color: #16a34a; }
+
+[data-bs-theme="dark"] .ad-stat-card { background: #1e293b !important; }
+[data-bs-theme="dark"] .ad-stat-label { color: #94a3b8; }
+[data-bs-theme="dark"] .ad-stat-value { color: #e2e8f0; }
+[data-bs-theme="dark"] .ad-icon-blue  { background: rgba(59,130,246,.2); }
+[data-bs-theme="dark"] .ad-icon-red   { background: rgba(239,68,68,.2); }
+[data-bs-theme="dark"] .ad-icon-green { background: rgba(34,197,94,.2); }
+
 /* Mobile heatmap */
 @media (max-width: 767.98px) {
     .hm-card .hm-body { padding: .55rem .45rem .5rem; }
@@ -177,20 +216,28 @@
     .hm-legend { gap: .3rem .5rem; width: 100%; }
     .hm-legend-item { font-size: .65rem; }
     .hm-legend-dot { width: 7px; height: 7px; }
+    .ad-header { padding: 1.1rem 1rem; border-radius: .75rem; }
+    .ad-header-title { font-size: 1.05rem; }
+    .ad-stat-value { font-size: 1.05rem; }
+    .ad-stat-card .card-body { padding: .55rem .75rem !important; }
+    .ad-stat-icon { width: 32px; height: 32px; font-size: .78rem; border-radius: .4rem; }
 }
 </style>
-<div class="row mb-4">
-    <div class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <h2 class="h3 mb-0 text-gray-800">Class Analytics & AI Insights</h2>
-        <div class="dropdown">
-            <button class="btn btn-primary dropdown-toggle" type="button" id="classDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+<div class="ad-header mb-4">
+    <div class="d-flex align-items-start align-items-sm-center justify-content-between flex-wrap gap-2">
+        <div>
+            <div class="ad-header-title">📊 Class Analytics &amp; AI Insights</div>
+            <p class="ad-header-sub d-none d-sm-block">Track mastery, interventions and AI engagement for your class.</p>
+        </div>
+        <div class="dropdown mt-1 mt-sm-0">
+            <button class="btn btn-light btn-sm dropdown-toggle fw-semibold px-3" type="button" id="classDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                 {% if selected_class %}
-                    <i class="fas fa-chalkboard me-2"></i>{{ selected_class.name }}
+                    <i class="fas fa-chalkboard me-2 text-primary"></i>{{ selected_class.name }}
                 {% else %}
-                    Select Class
+                    <i class="fas fa-chalkboard me-2 opacity-50"></i>Select Class
                 {% endif %}
             </button>
-            <ul class="dropdown-menu" aria-labelledby="classDropdown">
+            <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="classDropdown">
                 {% for cls in classes %}
                 <li><a class="dropdown-item" href="?class_id={{ cls.id }}">{{ cls.name }}</a></li>
                 {% endfor %}
@@ -201,53 +248,42 @@
 
 {% if selected_class %}
 <!-- Top Stats Cards -->
-<div class="row mb-4">
-    <div class="col-md-4">
-        <div class="card border-left-primary shadow h-100 py-2">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                            Average Mastery (Class)</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ avg_mastery }}%</div>
-                    </div>
-                    <div class="col-auto">
-                        <i class="fas fa-chart-line fa-2x text-gray-300"></i>
-                    </div>
+<div class="row g-2 mb-4">
+    <div class="col-12 col-sm-4">
+        <div class="card ad-stat-card shadow-sm h-100">
+            <div class="card-body p-3 d-flex align-items-center gap-3">
+                <div class="ad-stat-icon ad-icon-blue">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="min-w-0">
+                    <div class="ad-stat-label">Avg Mastery</div>
+                    <div class="ad-stat-value">{{ avg_mastery }}%</div>
                 </div>
             </div>
         </div>
     </div>
-
-    <div class="col-md-4">
-        <div class="card border-left-danger shadow h-100 py-2">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                            Interventions Needed</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ intervention_count }} Students</div>
-                    </div>
-                    <div class="col-auto">
-                        <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
-                    </div>
+    <div class="col-12 col-sm-4">
+        <div class="card ad-stat-card shadow-sm h-100">
+            <div class="card-body p-3 d-flex align-items-center gap-3">
+                <div class="ad-stat-icon ad-icon-red">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="min-w-0">
+                    <div class="ad-stat-label">Interventions</div>
+                    <div class="ad-stat-value">{{ intervention_count }} Students</div>
                 </div>
             </div>
         </div>
     </div>
-
-    <div class="col-md-4">
-        <div class="card border-left-success shadow h-100 py-2">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                            Top Concept Strength</div>
-                        <div class="text-sm font-weight-bold text-gray-800">{% if top_strength %}{{ top_strength }}{% else %}—{% endif %}</div>
-                    </div>
-                    <div class="col-auto">
-                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
-                    </div>
+    <div class="col-12 col-sm-4">
+        <div class="card ad-stat-card shadow-sm h-100">
+            <div class="card-body p-3 d-flex align-items-center gap-3">
+                <div class="ad-stat-icon ad-icon-green">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="min-w-0">
+                    <div class="ad-stat-label">Top Strength</div>
+                    <div class="ad-stat-value">{% if top_strength %}{{ top_strength }}{% else %}—{% endif %}</div>
                 </div>
             </div>
         </div>
@@ -266,7 +302,7 @@
                         </div>
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-uppercase mb-1" style="color:#7c3aed;">Power Words — Command Center</div>
-                            <div class="text-sm text-gray-800">Track academic vocabulary students master via Aura. See word clouds, verb trends &amp; Aura-T insights per student.</div>
+                            <div class="text-sm text-gray-800 d-none d-sm-block">Track academic vocabulary students master via Aura. See word clouds, verb trends &amp; Aura-T insights per student.</div>
                         </div>
                         <div class="col-auto">
                             <span class="btn btn-sm text-white fw-bold" style="background:#7c3aed;">Open →</span>
@@ -395,8 +431,20 @@
     </div>
 </div>
 {% else %}
-<div class="alert alert-info">
-    Please select a class to view analytics.
+<div class="text-center py-5 px-3">
+    <div style="font-size:3rem;margin-bottom:.75rem;">📊</div>
+    <h5 class="fw-semibold mb-1">Select a class to begin</h5>
+    <p class="text-muted mb-3" style="max-width:340px;margin:0 auto .75rem;">Choose a class from the dropdown above to view mastery data, AI insights, and intervention alerts.</p>
+    <div class="dropdown d-inline-block">
+        <button class="btn btn-primary dropdown-toggle px-4" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fas fa-chalkboard me-2"></i>Pick a Class
+        </button>
+        <ul class="dropdown-menu shadow">
+            {% for cls in classes %}
+            <li><a class="dropdown-item" href="?class_id={{ cls.id }}">{{ cls.name }}</a></li>
+            {% endfor %}
+        </ul>
+    </div>
 </div>
 {% endif %}
 
