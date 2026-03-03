@@ -276,56 +276,88 @@
         color: #cbd5e1 !important;
     }
     [data-bs-theme="dark"] #widget-aura-reminder .text-muted { color: #94a3b8 !important; }
+
+    /* ── Page Header Banner ─────────────────────────────────── */
+    .td-header {
+        background: linear-gradient(135deg, #0f766e 0%, #0ea5e9 100%);
+        border-radius: 1rem;
+        color: #fff;
+        padding: 1.5rem 1.75rem;
+    }
+    .td-header-title { font-size: 1.4rem; font-weight: 800; margin-bottom: .1rem; letter-spacing: -.01em; }
+    .td-header-sub   { font-size: .87rem; opacity: .88; margin: 0; }
+    [data-bs-theme="dark"] .td-header { background: linear-gradient(135deg, #0d6b63 0%, #0369a1 100%); }
+
+    /* ── Search bar ─────────────────────────────────────────── */
+    [data-bs-theme="dark"] .td-search-card { background: var(--surface-card, #1e293b) !important; }
+    [data-bs-theme="dark"] .td-search-card .form-control { background: rgba(255,255,255,.06) !important; color: #e2e8f0; }
+    [data-bs-theme="dark"] .td-search-card .form-control::placeholder { color: #64748b; }
+
+    /* ── Mobile ─────────────────────────────────────────────── */
+    @media (max-width: 575.98px) {
+        .td-header { padding: 1.1rem 1rem; border-radius: .75rem; }
+        .td-header-title { font-size: 1.1rem; }
+        .td-header-sub   { font-size: .78rem; }
+        .stat-card { padding: 1rem; }
+        .stat-value { font-size: 1.7rem; }
+    }
+    @media (max-width: 767.98px) {
+        .schedule-duration-badge { display: none !important; }
+    }
 </style>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h2 class="fw-bold mb-1">Teacher Dashboard</h2>
-        <p class="text-muted mb-0">Welcome back, {{ user.get_full_name }}! Manage your classes and students.</p>
-    </div>
-    <div class="d-flex gap-2 align-items-center">
-        <div class="dropdown d-inline-block">
-            <button class="btn btn-outline-secondary rounded-pill px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-layout-wtf me-2"></i><span class="d-none d-sm-inline">Customize</span>
-            </button>
-            <ul class="dropdown-menu p-3 shadow-lg border-0 dropdown-menu-end" style="width: 250px;" onclick="event.stopPropagation()">
-                <li><h6 class="dropdown-header text-uppercase small fw-bold">Visible Widgets</h6></li>
-                <li><hr class="dropdown-divider"></li>
-                <li class="form-check form-switch mb-2">
-                    <input class="form-check-input widget-toggle" type="checkbox" role="switch" id="toggle-stat-classes" data-target="widget-stat-classes" checked>
-                    <label class="form-check-label" for="toggle-stat-classes">Class Count</label>
-                </li>
-                <li class="form-check form-switch mb-2">
-                    <input class="form-check-input widget-toggle" type="checkbox" role="switch" id="toggle-stat-students" data-target="widget-stat-students" checked>
-                    <label class="form-check-label" for="toggle-stat-students">Total Students</label>
-                </li>
-                <li class="form-check form-switch mb-2">
-                    <input class="form-check-input widget-toggle" type="checkbox" role="switch" id="toggle-stat-today" data-target="widget-stat-today" checked>
-                    <label class="form-check-label" for="toggle-stat-today">Remaining Classes</label>
-                </li>
-                <li><hr class="dropdown-divider"></li>
-                <li class="form-check form-switch mb-2">
-                    <input class="form-check-input widget-toggle" type="checkbox" role="switch" id="toggle-schedule" data-target="widget-schedule" checked>
-                    <label class="form-check-label" for="toggle-schedule">Today's Schedule</label>
-                </li>
-                <li class="form-check form-switch mb-2">
-                    <input class="form-check-input widget-toggle" type="checkbox" role="switch" id="toggle-recent-uploads" data-target="widget-recent-uploads" checked>
-                    <label class="form-check-label" for="toggle-recent-uploads">Recent Uploads</label>
-                </li>
-                 <li class="form-check form-switch mb-2">
-                    <input class="form-check-input widget-toggle" type="checkbox" role="switch" id="toggle-school-board" data-target="widget-school-board" checked>
-                    <label class="form-check-label" for="toggle-school-board">School Board</label>
-                </li>
-                 <li><hr class="dropdown-divider"></li>
-                <li class="form-check form-switch mb-2">
-                    <input class="form-check-input widget-toggle" type="checkbox" role="switch" id="toggle-teaching-tools" data-target="widget-teaching-tools" checked>
-                    <label class="form-check-label" for="toggle-teaching-tools">Teaching Tools</label>
-                </li>
-            </ul>
+<div class="td-header mb-4">
+    <div class="d-flex align-items-start align-items-sm-center justify-content-between flex-wrap gap-2">
+        <div>
+            <div class="td-header-title">👨‍🏫 Teacher Dashboard</div>
+            <p class="td-header-sub d-none d-sm-block">Welcome back, {{ user.get_full_name }}! Manage your classes and students.</p>
+            <p class="td-header-sub d-sm-none mb-0">{{ user.get_full_name }}</p>
         </div>
-        <span class="badge bg-light text-dark border px-3 py-2 rounded-pill d-none d-md-block">
-            <i class="bi bi-clock me-1"></i> {% now "l, F j, Y" %}
-        </span>
+        <div class="d-flex gap-2 align-items-center mt-1 mt-sm-0">
+            <span class="badge px-3 py-2 rounded-pill d-none d-md-flex align-items-center gap-1"
+                  style="background:rgba(255,255,255,.22);color:#fff;border:1px solid rgba(255,255,255,.3);">
+                <i class="bi bi-clock me-1"></i> {% now "l, F j, Y" %}
+            </span>
+            <div class="dropdown d-inline-block">
+                <button class="btn btn-sm btn-light fw-semibold px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-layout-wtf me-1"></i>Widgets
+                </button>
+                <ul class="dropdown-menu p-3 shadow-lg border-0 dropdown-menu-end" style="width: 250px;" onclick="event.stopPropagation()">
+                    <li><h6 class="dropdown-header text-uppercase small fw-bold">Visible Widgets</h6></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li class="form-check form-switch mb-2">
+                        <input class="form-check-input widget-toggle" type="checkbox" role="switch" id="toggle-stat-classes" data-target="widget-stat-classes" checked>
+                        <label class="form-check-label" for="toggle-stat-classes">Class Count</label>
+                    </li>
+                    <li class="form-check form-switch mb-2">
+                        <input class="form-check-input widget-toggle" type="checkbox" role="switch" id="toggle-stat-students" data-target="widget-stat-students" checked>
+                        <label class="form-check-label" for="toggle-stat-students">Total Students</label>
+                    </li>
+                    <li class="form-check form-switch mb-2">
+                        <input class="form-check-input widget-toggle" type="checkbox" role="switch" id="toggle-stat-today" data-target="widget-stat-today" checked>
+                        <label class="form-check-label" for="toggle-stat-today">Remaining Classes</label>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li class="form-check form-switch mb-2">
+                        <input class="form-check-input widget-toggle" type="checkbox" role="switch" id="toggle-schedule" data-target="widget-schedule" checked>
+                        <label class="form-check-label" for="toggle-schedule">Today's Schedule</label>
+                    </li>
+                    <li class="form-check form-switch mb-2">
+                        <input class="form-check-input widget-toggle" type="checkbox" role="switch" id="toggle-recent-uploads" data-target="widget-recent-uploads" checked>
+                        <label class="form-check-label" for="toggle-recent-uploads">Recent Uploads</label>
+                    </li>
+                    <li class="form-check form-switch mb-2">
+                        <input class="form-check-input widget-toggle" type="checkbox" role="switch" id="toggle-school-board" data-target="widget-school-board" checked>
+                        <label class="form-check-label" for="toggle-school-board">School Board</label>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li class="form-check form-switch mb-2">
+                        <input class="form-check-input widget-toggle" type="checkbox" role="switch" id="toggle-teaching-tools" data-target="widget-teaching-tools" checked>
+                        <label class="form-check-label" for="toggle-teaching-tools">Teaching Tools</label>
+                    </li>
+                </ul>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -529,7 +561,7 @@
                                     </div>
                                     {% endif %}
                                 </div>
-                                <div class="text-end">
+                                <div class="text-end schedule-duration-badge">
                                     <span class="badge bg-light text-secondary border rounded-pill">{{ period.duration_minutes }} min</span>
                                 </div>
                             </div>
