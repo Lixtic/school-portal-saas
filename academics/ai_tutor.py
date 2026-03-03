@@ -636,8 +636,23 @@ LOCALIZED FINAL ASSESSMENT LOGIC
     # ── CONTINUOUS CONTEXT AWARENESS: Timetable / Daily Schedule ──────
     context += _build_schedule_context(student)
 
+    # ── LINGUISTIC CHAMELEON — voice, culture, cognitive stage ────────
+    # Augment with the richer Aura Linguistic Profile built in views_ai
+    try:
+        from students.views_ai import _build_student_context
+        linguistic_profile = _build_student_context(student)
+        if linguistic_profile:
+            context += (
+                "\n\n─── AURA LINGUISTIC CHAMELEON PROFILE ───\n"
+                "Use every line below to tutor in a culturally resonant, "
+                "cognitively calibrated way throughout the entire session.\n"
+                + linguistic_profile
+            )
+    except Exception:
+        pass  # never block on this
+
     context += "\n\nAlways maintain an encouraging, supportive tone. Keep responses concise, structured, and cognitively active."
-    
+
     return context
 
 
