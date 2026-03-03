@@ -299,15 +299,23 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'School Admin <noreply
 # =====================
 # VERCEL / PRODUCTION SECURITY
 # =====================
-# Always trust X-Forwarded-Proto header for Vercel
+# Trust X-Forwarded-Proto header from Vercel / Railway reverse proxy
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 if not DEBUG:
-    SECURE_SSL_REDIRECT = True
+    # HTTPS-only cookies — required when serving behind HTTPS
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+
+    # Security headers
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
+
+    # NOTE: SECURE_SSL_REDIRECT is intentionally NOT set.
+    # Vercel / Railway handle HTTP→HTTPS redirect at the edge/CDN layer.
+    # Enabling it here causes SecurityMiddleware to short-circuit the
+    # middleware chain (Session, Auth) on every request if the proxy
+    # header isn't perfectly forwarded, resulting in session loss.
 # =====================
 # ERROR HANDLER CONFIGURATION
 # =====================
