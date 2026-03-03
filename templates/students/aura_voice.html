@@ -1714,29 +1714,43 @@ async function connectRealtime() {
             const fullInstructions = studentContext
                 ? baseInstructions + '\n\n' + studentContext
                 : baseInstructions;
+
+            // Configure session with GA Realtime API flat format
             sendRealtimeEvent({
                 type: 'session.update',
                 session: {
-                    type: 'realtime',
-                    output_modalities: ['text','audio'],
+                    modalities: ['text', 'audio'],
                     instructions: fullInstructions,
-                    audio: {
-                        input: {
-                            format: { type: 'audio/pcm', rate: 24000 },
-                            transcription: { model: 'gpt-4o-transcribe' },
-                            noise_reduction: { type: 'near_field' },
-                            turn_detection: { type: 'server_vad', threshold: 0.5, prefix_padding_ms: 300, silence_duration_ms: 500 }
-                        },
-                        output: {
-                            format: { type: 'audio/pcm', rate: 24000 },
-                            voice: voiceSettings.voice
-                        }
+                    voice: voiceSettings.voice,
+                    input_audio_format: 'pcm16',
+                    output_audio_format: 'pcm16',
+                    input_audio_transcription: { model: 'gpt-4o-transcribe' },
+                    turn_detection: {
+                        type: 'server_vad',
+                        threshold: 0.5,
+                        prefix_padding_ms: 300,
+                        silence_duration_ms: 500
                     }
                 }
             });
+
             startAudioCapture();
             updateState('READY');
             retryCount = 0;
+
+            // Send welcome message — Aura greets the student
+            setTimeout(() => {
+                if (!isConnected) return;
+                sendRealtimeEvent({
+                    type: 'conversation.item.create',
+                    item: {
+                        type: 'message',
+                        role: 'user',
+                        content: [{ type: 'input_text', text: '[SYSTEM] The student just connected. Greet them warmly in 1-2 short sentences as their AI tutor Aura. Mention you\'re ready to help with any subject. Be enthusiastic but brief.' }]
+                    }
+                });
+                sendRealtimeEvent({ type: 'response.create' });
+            }, 600);
         };
 
         realtimeWs.onmessage = (e) => handleRealtimeMessage(JSON.parse(e.data));
@@ -1806,7 +1820,14 @@ function sendRealtimeEvent(evt) {
 function handleRealtimeMessage(msg) {
     switch (msg.type) {
         case 'session.created':
+            console.log('Realtime session created:', msg.session?.id);
+            break;
         case 'session.updated':
+            console.log('Session configured:', msg.session?.modalities, 'voice:', msg.session?.voice);
+            break;
+
+        case 'response.created':
+            // Response generation started — ensure we're ready
             break;
 
         case 'input_audio_buffer.speech_started':
@@ -1820,7 +1841,7 @@ function handleRealtimeMessage(msg) {
 
         case 'conversation.item.input_audio_transcription.completed':
             currentUserText = msg.transcript || '';
-            if (currentUserText) {
+            if (currentUserText && !currentUserText.startsWith('[SYSTEM]')) {
                 addTranscriptLine(currentUserText, 'user');
                 targetSentiment = estimateSentiment(currentUserText);
             }
@@ -1838,6 +1859,13 @@ function handleRealtimeMessage(msg) {
                     showWhiteboard(escapeHtml(parts[1].trim()));
                 }
             }
+            break;
+
+        // Text-only response deltas (for text input when no audio)
+        case 'response.text.delta':
+            if (!isPlayingAudio) { updateState('SPEAKING'); isPlayingAudio = true; }
+            currentAuraText += (msg.delta || '');
+            updateLiveAuraText(currentAuraText);
             break;
 
         case 'response.audio.delta':

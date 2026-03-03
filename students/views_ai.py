@@ -116,21 +116,15 @@ def create_realtime_session(request):
             return JsonResponse({"error": "OpenAI API key not configured"}, status=500)
         
         response = http_requests.post(
-            "https://api.openai.com/v1/realtime/client_secrets",
+            "https://api.openai.com/v1/realtime/sessions",
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json"
             },
             json={
-                "session": {
-                    "type": "realtime",
-                    "model": model,
-                    "audio": {
-                        "output": {
-                            "voice": voice
-                        }
-                    }
-                }
+                "model": model,
+                "modalities": ["text", "audio"],
+                "voice": voice,
             },
             timeout=30
         )
@@ -143,8 +137,17 @@ def create_realtime_session(request):
             }, status=response.status_code)
         
         session_data = response.json()
-        # GA endpoint returns {value, expires_at, session} at top level
-        client_secret = session_data.get("value", "")
+        # /v1/realtime/sessions returns {id, client_secret: {value, expires_at}, model, ...}
+        client_secret_obj = session_data.get("client_secret", {})
+        if isinstance(client_secret_obj, dict):
+            client_secret = client_secret_obj.get("value", "")
+        else:
+            # Fallback: if client_secret is returned as a string directly
+            client_secret = str(client_secret_obj) if client_secret_obj else ""
+        
+        if not client_secret:
+            # Also try top-level "value" (older endpoint format)
+            client_secret = session_data.get("value", "")
         
         if not client_secret:
             logger.error(f"Realtime client_secret response missing value: {session_data}")
@@ -153,10 +156,9 @@ def create_realtime_session(request):
                 "detail": str(session_data)[:300]
             }, status=500)
         
-        session_info = session_data.get("session", {})
         return JsonResponse({
             "client_secret": client_secret,
-            "model": session_info.get("model", model),
+            "model": session_data.get("model", model),
             "student_context": student_context,
         })
         
