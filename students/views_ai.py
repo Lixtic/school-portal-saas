@@ -39,30 +39,337 @@ MODEL_MIGRATION_MAP = {
 DEFAULT_REALTIME_MODEL = 'gpt-realtime'
 
 
+def _map_class_to_cognitive_stage(class_name):
+    """
+    Map a class name to a cognitive/intellectual stage descriptor.
+    Handles Ghana GES naming: Primary 1-6, Basic 1-9, JHS 1-3, SHS 1-3, Form N.
+    Returns (stage_label, complexity_level, exam_context).
+    complexity_level: 1 (youngest) → 6 (university prep)
+    """
+    if not class_name:
+        return ("General Level", 3, "")
+
+    name = class_name.strip().upper()
+
+    # SHS / Form 4-6 → Senior High
+    if any(x in name for x in ['SHS 3', 'FORM 6', 'SHS3', 'GRADE 12']):
+        return ("Senior High School 3 — University Preparation", 6,
+                "The student is preparing for WASSCE. Use exam-focused, analytical language.")
+    if any(x in name for x in ['SHS 2', 'FORM 5', 'SHS2', 'GRADE 11']):
+        return ("Senior High School 2 — Advanced Specialisation", 5, "")
+    if any(x in name for x in ['SHS 1', 'FORM 4', 'SHS1', 'GRADE 10']):
+        return ("Senior High School 1 — Subject Specialisation Entry", 5, "")
+
+    # JHS / Basic 7-9 → Junior High
+    if any(x in name for x in ['JHS 3', 'BASIC 9', 'FORM 3', 'GRADE 9', 'JHS3']):
+        return ("JHS 3 / Basic 9 — Logic Stage Senior", 4,
+                "The student may be preparing for BECE. Use exam-ready, analytical language.")
+    if any(x in name for x in ['JHS 2', 'BASIC 8', 'FORM 2', 'GRADE 8', 'JHS2']):
+        return ("JHS 2 / Basic 8 — Logic Stage Mid", 3, "")
+    if any(x in name for x in ['JHS 1', 'BASIC 7', 'FORM 1', 'GRADE 7', 'JHS1']):
+        return ("JHS 1 / Basic 7 — Logic Stage Entry", 3, "")
+
+    # Upper Primary / Basic 4-6
+    if any(x in name for x in ['PRIMARY 6', 'BASIC 6', 'GRADE 6']):
+        return ("Primary 6 / Basic 6 — Upper Primary", 2, "")
+    if any(x in name for x in ['PRIMARY 5', 'BASIC 5', 'GRADE 5']):
+        return ("Primary 5 / Basic 5 — Upper Primary", 2, "")
+    if any(x in name for x in ['PRIMARY 4', 'BASIC 4', 'GRADE 4']):
+        return ("Primary 4 / Basic 4 — Mid Primary", 2, "")
+
+    # Lower Primary
+    if any(x in name for x in ['PRIMARY 3', 'BASIC 3', 'GRADE 3']):
+        return ("Primary 3 / Basic 3 — Lower Primary", 1, "")
+    if any(x in name for x in ['PRIMARY 2', 'BASIC 2', 'GRADE 2', 'PRIMARY 1', 'BASIC 1', 'GRADE 1']):
+        return ("Primary 1-2 / Basic 1-2 — Foundation", 1, "")
+
+    # Fallback — just return the raw name
+    return (class_name, 3, "")
+
+
+def _get_complexity_instruction(level):
+    """Return sentence complexity and vocabulary guidance based on level 1-6."""
+    guides = {
+        1: "Use very short, simple sentences (5-8 words). Concrete nouns only. Avoid abstract ideas. Use pictures and physical examples in your descriptions.",
+        2: "Use short to medium sentences (8-12 words). Mostly concrete examples. Introduce ONE new concept at a time. Use 'because', 'so that', 'for example' to build logic.",
+        3: "Use medium sentences (10-15 words). Balance concrete and abstract. Use compound sentences. Introduce academic vocabulary with immediate plain-English definitions.",
+        4: "Use medium-complex sentences. Blend concrete and abstract reasoning. Use academic language naturally. Introduce subject-specific terminology with brief explanations.",
+        5: "Use complex, compound sentences. High use of abstract nouns and academic verbs (analyse, synthesise, evaluate). Introduce discipline vocabulary without always defining it.",
+        6: "Use sophisticated, analytical prose. Assume strong academic vocabulary. Use critical thinking frameworks. Challenge with 'Analyse X', 'Evaluate the evidence for Y', 'Compare and contrast'.",
+    }
+    return guides.get(level, guides[3])
+
+
+def _get_academic_performance_level(student):
+    """
+    Query recent grades to assess academic performance level.
+    Returns (label, numeric_avg, guidance_note).
+    """
+    try:
+        from students.models import Grade
+        from academics.models import AcademicYear
+        current_year = AcademicYear.objects.filter(is_current=True).first()
+        if not current_year:
+            return ("Unknown", None, "")
+
+        recent_grades = Grade.objects.filter(
+            student=student,
+            academic_year=current_year
+        ).values_list('total_score', flat=True)[:10]
+
+        if not recent_grades:
+            return ("No recent grades", None, "")
+
+        avg = float(sum(recent_grades) / len(recent_grades))
+
+        if avg >= 80:
+            return ("High Achiever", avg,
+                    "Student is a HIGH achiever. Push them with advanced vocabulary, challenging follow-up questions, and 'Power Word' introductions.")
+        elif avg >= 65:
+            return ("Above Average", avg,
+                    "Student is ABOVE AVERAGE. Balance accessibility with intellectual stretch. Introduce one advanced concept per exchange.")
+        elif avg >= 50:
+            return ("Average", avg,
+                    "Student performs at AVERAGE level. Use clear foundations, then build upward. Check for understanding frequently.")
+        else:
+            return ("Needs Support", avg,
+                    "Student may need extra support. Be extra patient, use more analogies, break down every step, and celebrate small wins loudly.")
+    except Exception:
+        return ("Unknown", None, "")
+
+
+def _get_cultural_context(student):
+    """
+    Build a cultural reference frame from the student's region and city.
+    Returns a string of relevant local examples to use as teaching anchors.
+    """
+    region = (student.region or '').lower()
+    city = (student.city or '').lower()
+    location = f"{city} {region}".strip()
+
+    # Ghana-specific cultural reference frames
+    contexts = []
+
+    if any(x in location for x in ['accra', 'greater accra', 'tema']):
+        contexts = [
+            "Use Accra traffic (e.g., Kwame Nkrumah Circle) to explain bottlenecks, flow, and efficiency.",
+            "Use Makola Market for supply, demand, and trade concepts.",
+            "Use Flagstaff House / Jubilee House for government and power.",
+            "Use Accra Mall or the Accra skyline for modern development topics.",
+            "Affirm with 'Chale' or 'Ayekoo!' naturally in conversation.",
+        ]
+    elif any(x in location for x in ['kumasi', 'ashanti', 'asante']):
+        contexts = [
+            "Use Kejetia Market to explain economic concepts like supply and demand.",
+            "Use Kente weaving patterns to explain sequences, algorithms, or structure.",
+            "Use the Asantehene and Manhyia Palace for history and governance topics.",
+            "Use cocoa farming to explain biology, chemistry, or economics.",
+            "Affirm with 'Ayekoo!' or 'Charlie, you dey!' naturally.",
+        ]
+    elif any(x in location for x in ['tamale', 'northern', 'dagbon']):
+        contexts = [
+            "Use Tamale's dry season/wet season cycle for biology and climate topics.",
+            "Use Bolgatanga Market for economics and trade concepts.",
+            "Use guinea corn farming and irrigation to explain biology or agriculture.",
+            "Reference the Overlord of Dagbon for history and governance topics.",
+        ]
+    elif any(x in location for x in ['takoradi', 'western', 'sekondi']):
+        contexts = [
+            "Use Ghana's oil and gas industry (Jubilee Field) for energy and economics topics.",
+            "Use cocoa and timber production for biology and economics.",
+            "Use Cape Three Points lighthouse for navigation and direction concepts.",
+        ]
+    elif any(x in location for x in ['ho', 'volta', 'ewe']):
+        contexts = [
+            "Use Lake Volta (the world's largest artificial lake) for geography and engineering topics.",
+            "Use Akosombo Dam for electricity, energy, and engineering concepts.",
+            "Use kente from Kpetoe for art and culture references.",
+        ]
+    elif any(x in location for x in ['cape coast', 'central']):
+        contexts = [
+            "Use Cape Coast Castle for history topics.",
+            "Use the University of Cape Coast (UCC) as an aspirational reference.",
+            "Use fishing and the Atlantic Ocean for science and economics topics.",
+        ]
+    elif any(x in location for x in ['sunyani', 'brong', 'bono']):
+        contexts = [
+            "Use cocoa farming and the agriculture sector for science and economics.",
+            "Use the Bono region's forests for environmental science topics.",
+        ]
+
+    # Fallbacks for non-Ghana or unknown locations
+    if not contexts:
+        if any(x in location for x in ['london', 'uk', 'england']):
+            contexts = [
+                "Use the London Underground (Tube) map for network/graph topics.",
+                "Use Premier League football statistics for data and math topics.",
+            ]
+        elif any(x in location for x in ['nairobi', 'kenya']):
+            contexts = [
+                "Use the Nairobi matatu culture for flow and efficiency topics.",
+                "Use the Maasai Mara for biology and ecology topics.",
+            ]
+        else:
+            # Generic
+            contexts = [
+                "Use universally relatable references: football, cooking, building construction, farming.",
+            ]
+
+    return contexts
+
+
+def _get_interest_anchors(interests):
+    """Convert student interests into teaching metaphor suggestions."""
+    if not interests:
+        return []
+
+    anchors = []
+    interest_map = {
+        'football': "Use football tactics, player stats, and match strategies as analogies for math, logic, and strategy.",
+        'soccer': "Use football concepts as analogies for math, logic, and teamwork.",
+        'music': "Use musical rhythm and structure to explain patterns, sequences, and fractions.",
+        'highlife': "Use Highlife rhythm and song structure to explain patterns and sequences.",
+        'afrobeats': "Use Afrobeats production and rhythm to explain waves, frequencies, and math patterns.",
+        'technology': "Freely use technology metaphors: coding logic, circuits, app development.",
+        'coding': "Use programming concepts (loops, functions, variables) as cross-subject analogies.",
+        'science': "Lean into scientific curiosity — frame everything as an experiment or discovery.",
+        'art': "Use visual art and composition to explain geometry, proportions, and colour theory (light).",
+        'cooking': "Use cooking recipes to explain sequences, ratios, chemistry reactions.",
+        'farming': "Use farming cycles, soil chemistry, and weather for biology, chemistry, and geography.",
+        'fashion': "Use fabric, patterns, and design for geometry, measurement, and art topics.",
+        'gaming': "Use video game mechanics (levels, scores, strategy) to explain math and logic.",
+        'dance': "Use dance rhythm and choreography to explain patterns and sequences.",
+        'reading': "Link topics to books, stories, and narratives the student might relate to.",
+        'history': "Draw connections between current topics and historical events the student enjoys.",
+    }
+
+    for interest in (interests if isinstance(interests, list) else []):
+        key = interest.strip().lower()
+        for keyword, anchor in interest_map.items():
+            if keyword in key:
+                anchors.append(anchor)
+                break
+        else:
+            # Generic anchor for unrecognised interest
+            anchors.append(f"When possible, connect topics to the student's interest in {interest}.")
+
+    return anchors
+
+
 def _build_student_context(student):
-    """Build context-aware instruction string for a student."""
-    parts = []
-    
+    """
+    Build a rich Aura Linguistic Profile for this student.
+    This is injected into the Realtime API system instructions to prime
+    Aura's vocabulary, cultural references, and pedagogical approach.
+    """
+    lines = []
+
+    student_name = student.user.get_full_name() or student.user.username
+
+    # ── 1. Learner Identity ──────────────────────────────────────────
+    lines.append(f"STUDENT: {student_name}")
+
+    # ── 2. Class / Cognitive Stage ───────────────────────────────────
     if student.current_class:
-        parts.append(f"The student is in {student.current_class.name}.")
-        
-        # Get subjects for this class
-        from academics.models import ClassSubject
-        subjects = ClassSubject.objects.filter(
-            class_name=student.current_class
-        ).select_related('subject').values_list('subject__name', flat=True)
-        if subjects:
-            parts.append(f"Their subjects are: {', '.join(subjects)}.")
-    
+        stage_label, complexity_level, exam_note = _map_class_to_cognitive_stage(student.current_class.name)
+        lines.append(f"CLASS: {student.current_class.name} — {stage_label}")
+        if exam_note:
+            lines.append(f"EXAM CONTEXT: {exam_note}")
+    else:
+        complexity_level = 3
+
+    # ── 3. Curriculum ────────────────────────────────────────────────
     if student.curriculum:
-        parts.append(f"They follow the {student.curriculum} curriculum.")
-    
-    if student.interests:
-        interests = student.interests if isinstance(student.interests, list) else []
-        if interests:
-            parts.append(f"Their interests include: {', '.join(interests)}.")
-    
-    return " ".join(parts)
+        lines.append(f"CURRICULUM: {student.curriculum}")
+
+    # ── 4. Academic Performance (from grades) ────────────────────────
+    perf_label, perf_avg, perf_guidance = _get_academic_performance_level(student)
+    if perf_avg is not None:
+        lines.append(f"ACADEMIC LEVEL: {perf_label} (avg {perf_avg:.1f}%)")
+    if perf_guidance:
+        lines.append(f"PERFORMANCE GUIDANCE: {perf_guidance}")
+
+    # ── 5. Language & Accent ─────────────────────────────────────────
+    lang = getattr(student, 'preferred_language', 'english')
+    lang_display = dict([
+        ('english', 'English'), ('twi', 'Twi/Akan'), ('hausa', 'Hausa'),
+        ('ewe', 'Ewe'), ('ga', 'Ga'), ('dagbani', 'Dagbani'),
+        ('french', 'French'), ('other', 'Other'),
+    ]).get(lang, 'English')
+    lines.append(f"LANGUAGE: {lang_display} — Speak West African Professional English: clear, warm, rhythmic. Pronounce technical terms slowly.")
+
+    # ── 6. Subjects ──────────────────────────────────────────────────
+    if student.current_class:
+        try:
+            from academics.models import ClassSubject
+            subjects = list(ClassSubject.objects.filter(
+                class_name=student.current_class
+            ).select_related('subject').values_list('subject__name', flat=True))
+            if subjects:
+                lines.append(f"SUBJECTS: {', '.join(subjects)}")
+        except Exception:
+            pass
+
+    # ── 7. Cultural / Geographic Context ────────────────────────────
+    cultural_refs = _get_cultural_context(student)
+    if cultural_refs:
+        location = ' / '.join(filter(None, [student.city, student.region]))
+        if location:
+            lines.append(f"LOCATION: {location}")
+        lines.append("CULTURAL REFERENCE FRAMES (use these as teaching anchors):")
+        for ref in cultural_refs[:4]:  # cap to 4 to keep prompt lean
+            lines.append(f"  • {ref}")
+
+    # ── 8. Interest-Based Metaphors ──────────────────────────────────
+    interest_anchors = _get_interest_anchors(student.interests)
+    if interest_anchors:
+        interests_str = ', '.join(student.interests[:5]) if isinstance(student.interests, list) else ''
+        if interests_str:
+            lines.append(f"INTERESTS: {interests_str}")
+        lines.append("INTEREST ANCHORS (connect topics to these):")
+        for anchor in interest_anchors[:3]:
+            lines.append(f"  • {anchor}")
+
+    # ── 9. Sentence Complexity Calibration ──────────────────────────
+    lines.append(f"SENTENCE COMPLEXITY: {_get_complexity_instruction(complexity_level)}")
+
+    # ── 10. Vygotsky ZPD Rule ────────────────────────────────────────
+    lines.append(
+        "VYGOTSKY ZPD RULE: Always speak ONE intellectual level above the student's apparent current mastery — "
+        "stretch them upward without losing them. If they speak in simple sentences, use clear but slightly "
+        "more complex sentences. If they use academic vocabulary, match and gently exceed their level."
+    )
+
+    # ── 11. Adaptive Vocabulary Protocol ────────────────────────────
+    lines.append(
+        "ADAPTIVE VOCABULARY PROTOCOL: Every 3 exchanges, silently assess the student's word complexity. "
+        "If they struggle (very short answers, 'I don't understand', repetition) → simplify your next responses by 20%. "
+        "If they excel (complex sentences, subject-specific terms, follow-up questions) → introduce 2 'Power Words' "
+        "relevant to the topic with brief natural definitions. "
+        "NEVER use jargon without an immediate plain-language definition in 10 words or fewer."
+    )
+
+    # ── 12. Engagement & Affirmation Style ──────────────────────────
+    lines.append(
+        "ENGAGEMENT STYLE: Be warm, enthusiastic, and encouraging. Celebrate correct answers genuinely. "
+        "Use Ghanaian affirmations naturally when appropriate: 'Ayekoo!', 'Chale, that's sharp!', "
+        "'You're thinking like a scholar!', 'Exactly — that's the logic!'. "
+        "Never be condescending. Frame mistakes as learning steps: 'Good try — let's refine it.'"
+    )
+
+    # ── 13. Whiteboard Rule ──────────────────────────────────────────
+    lines.append(
+        "WHITEBOARD RULE: When explaining a formula, equation, diagram, or step-by-step process, "
+        "prefix it with [WHITEBOARD] on its own line, followed by the content. Use this for math, science formulas, "
+        "and any structured multi-step explanation."
+    )
+
+    # ── 14. Teacher Notes for Aura ───────────────────────────────────
+    aura_notes = getattr(student, 'aura_notes', '').strip()
+    if aura_notes:
+        lines.append(f"TEACHER NOTES: {aura_notes}")
+
+    return "\n".join(lines)
 
 
 @login_required
@@ -101,13 +408,28 @@ def create_realtime_session(request):
         
         # Build context-aware instructions for this student
         student_context = ""
+        system_instructions = ""
         try:
             from students.models import Student
-            student = Student.objects.select_related('current_class').filter(user=request.user).first()
+            student = Student.objects.select_related('current_class', 'user').filter(user=request.user).first()
             if student:
                 student_context = _build_student_context(student)
         except Exception:
             pass  # gracefully degrade — generic instructions still work
+
+        # Build the full system instructions for the Realtime API
+        base_instructions = (
+            "You are Aura, an intelligent AI tutor built into a school management system. "
+            "Your role is to guide students through their learning with warmth, patience, and precision. "
+            "Keep responses concise and conversational for voice. "
+            "Never give a lecture — have a dialogue. Ask follow-up questions to check understanding. "
+            "If you explain a formula, equation, or step-by-step process, prefix it with [WHITEBOARD] "
+            "on its own line, then the content — this triggers the whiteboard display for the student."
+        )
+        system_instructions = (
+            base_instructions + "\n\n─── AURA LINGUISTIC PROFILE ───\n" + student_context
+            if student_context else base_instructions
+        )
         
         import requests as http_requests
         api_key = get_openai_api_key()
@@ -165,6 +487,7 @@ def create_realtime_session(request):
             "model": session_info.get("model", model),
             "voice": voice,
             "student_context": student_context,
+            "system_instructions": system_instructions,
         })
         
     except Exception as e:

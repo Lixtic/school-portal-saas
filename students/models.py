@@ -22,6 +22,25 @@ class Student(models.Model):
     city = models.CharField(max_length=100, blank=True, default='')
     curriculum = models.CharField(max_length=150, blank=True, default='')
     interests = models.JSONField(default=list, blank=True)
+
+    LANGUAGE_CHOICES = (
+        ('english', 'English'),
+        ('twi', 'Twi / Akan'),
+        ('hausa', 'Hausa'),
+        ('ewe', 'Ewe'),
+        ('ga', 'Ga'),
+        ('dagbani', 'Dagbani'),
+        ('french', 'French'),
+        ('other', 'Other'),
+    )
+    preferred_language = models.CharField(
+        max_length=20, choices=LANGUAGE_CHOICES, default='english', blank=True,
+        help_text="Student's primary spoken language (informs Aura's vocabulary style)"
+    )
+    aura_notes = models.TextField(
+        blank=True, default='',
+        help_text="Teacher/admin notes for Aura — e.g. 'struggles with fractions', 'preparing for BECE', 'gifted in science'"
+    )
     
     def __str__(self):
         return f"{self.user.get_full_name()} ({self.admission_number})"

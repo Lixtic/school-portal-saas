@@ -4,9 +4,26 @@ from .forms import StudentQuickAddForm
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ['admission_number', 'get_full_name', 'gender', 'current_class', 'roll_number']
+    list_display = ['admission_number', 'get_full_name', 'gender', 'current_class', 'roll_number', 'preferred_language']
     search_fields = ['admission_number', 'user__first_name', 'user__last_name']
-    list_filter = ['current_class', 'date_of_admission', 'gender']
+    list_filter = ['current_class', 'date_of_admission', 'gender', 'preferred_language']
+
+    fieldsets = (
+        (None, {
+            'fields': ('user', 'admission_number', 'roll_number', 'current_class', 'date_of_admission',
+                       'date_of_birth', 'gender', 'blood_group', 'emergency_contact')
+        }),
+        ('Location & Background', {
+            'fields': ('region', 'city', 'curriculum', 'interests'),
+        }),
+        ('Aura AI Profile', {
+            'description': (
+                'These fields personalise Aura\'s vocabulary, accent style, and teaching approach '
+                'for this student. The more detail you provide, the more tailored Aura becomes.'
+            ),
+            'fields': ('preferred_language', 'aura_notes'),
+        }),
+    )
 
     def get_form(self, request, obj=None, **kwargs):
         # For new students, present a minimal quick-add form

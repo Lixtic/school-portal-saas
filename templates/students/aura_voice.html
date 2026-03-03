@@ -1696,6 +1696,10 @@ async function connectRealtime() {
         const ephemeralKey = sessionData.client_secret;
         const model = sessionData.model || 'gpt-realtime';
         const studentContext = sessionData.student_context || '';
+        const systemInstructions = sessionData.system_instructions || (
+            "You are Aura, an intelligent AI tutor. Be warm, concise, and conversational. " +
+            "Prefix formulas and step-by-step explanations with [WHITEBOARD] on its own line."
+        );
 
         if (!ephemeralKey) {
             throw new Error('Server returned empty client_secret. Check API key configuration.');
@@ -1746,17 +1750,12 @@ async function connectRealtime() {
             isConnected = true;
             updateTextInputState();
 
-            // Configure session
-            const baseInstructions = "You are Aura, a helpful and friendly AI tutor. Keep answers concise. If you explain math or a formula, prefix it with [WHITEBOARD] on its own line, followed by the content.";
-            const fullInstructions = studentContext
-                ? baseInstructions + '\n\n' + studentContext
-                : baseInstructions;
-
+            // Configure session with the pre-built linguistic profile from backend
             sendRealtimeEvent({
                 type: 'session.update',
                 session: {
                     modalities: ['text', 'audio'],
-                    instructions: fullInstructions,
+                    instructions: systemInstructions,
                     voice: voiceSettings.voice,
                     input_audio_transcription: { model: 'gpt-4o-transcribe' },
                     turn_detection: {
