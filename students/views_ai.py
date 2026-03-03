@@ -189,10 +189,19 @@ def create_realtime_session(request):
         import json
         data = json.loads(request.body) if request.body else {}
         voice = data.get('voice', 'coral')
+        model = data.get('model', 'gpt-4o-realtime-preview-2024-12-17')
         instructions = data.get('instructions', 
             "You are Aura, a helpful and friendly AI tutor. "
             "Keep answers concise and conversational. "
             "You're speaking to a student, so be encouraging and supportive.")
+        
+        # Validate model
+        ALLOWED_REALTIME_MODELS = [
+            'gpt-4o-realtime-preview-2024-12-17',
+            'gpt-4o-mini-realtime-preview-2024-12-17',
+        ]
+        if model not in ALLOWED_REALTIME_MODELS:
+            model = 'gpt-4o-realtime-preview-2024-12-17'
         
         import requests
         api_key = get_openai_api_key()
@@ -209,7 +218,7 @@ def create_realtime_session(request):
                 "Content-Type": "application/json"
             },
             json={
-                "model": "gpt-4o-realtime-preview-2024-12-17",
+                "model": model,
                 "voice": voice
             },
             timeout=30

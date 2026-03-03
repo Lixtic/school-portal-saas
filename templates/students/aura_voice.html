@@ -644,6 +644,12 @@
             <button class="panel-close" id="closeSettingsBtn"><i class="fa-solid fa-xmark"></i></button>
         </div>
 
+        <label class="aura-label">Model</label>
+        <select id="modelSelect" class="aura-select" style="margin-bottom:20px">
+            <option value="gpt-4o-realtime-preview-2024-12-17" selected>GPT-4o Realtime — Best quality</option>
+            <option value="gpt-4o-mini-realtime-preview-2024-12-17">GPT-4o Mini Realtime — Faster &amp; lighter</option>
+        </select>
+
         <label class="aura-label">Voice</label>
         <select id="voiceSelect" class="aura-select" style="margin-bottom:20px">
             <option value="coral" selected>Coral — Warm</option>
@@ -981,6 +987,7 @@ const settingsPanel = document.getElementById('settingsPanel');
 const settingsBackdrop = document.getElementById('settingsBackdrop');
 const closeSettingsBtn = document.getElementById('closeSettingsBtn');
 const voiceSelect = document.getElementById('voiceSelect');
+const modelSelect = document.getElementById('modelSelect');
 const speedSlider = document.getElementById('speedSlider');
 const speedValue = document.getElementById('speedValue');
 const saveSettingsBtn = document.getElementById('saveSettingsBtn');
@@ -1024,7 +1031,7 @@ let retryCount = 0;
 const MAX_RETRIES = 2;
 
 // Settings
-let voiceSettings = JSON.parse(localStorage.getItem('auraVoiceSettings') || '{"voice":"coral","speed":1.0}');
+let voiceSettings = JSON.parse(localStorage.getItem('auraVoiceSettings') || '{"voice":"coral","speed":1.0,"model":"gpt-4o-realtime-preview-2024-12-17"}');
 let sessionMinutes = parseInt(localStorage.getItem('auraSessionLength') || '45');
 
 // Timer
@@ -1032,6 +1039,7 @@ let sessionStartTime = null;
 
 // Init settings UI
 voiceSelect.value = voiceSettings.voice;
+modelSelect.value = voiceSettings.model || 'gpt-4o-realtime-preview-2024-12-17';
 speedSlider.value = voiceSettings.speed;
 speedValue.textContent = voiceSettings.speed + 'x';
 sessionLengthSelect.value = sessionMinutes;
@@ -1241,6 +1249,7 @@ speedSlider.addEventListener('input', (e) => { speedValue.textContent = e.target
 saveSettingsBtn.addEventListener('click', () => {
     voiceSettings.voice = voiceSelect.value;
     voiceSettings.speed = parseFloat(speedSlider.value);
+    voiceSettings.model = modelSelect.value;
     sessionMinutes = parseInt(sessionLengthSelect.value);
     localStorage.setItem('auraVoiceSettings', JSON.stringify(voiceSettings));
     localStorage.setItem('auraSessionLength', sessionMinutes);
@@ -1339,6 +1348,7 @@ async function connectRealtime() {
             headers: { 'Content-Type':'application/json', 'X-CSRFToken':'{{ csrf_token }}' },
             body: JSON.stringify({
                 voice: voiceSettings.voice,
+                model: voiceSettings.model || 'gpt-4o-realtime-preview-2024-12-17',
                 instructions: "You are Aura, a helpful and friendly AI tutor for students. Keep answers concise and conversational. Be encouraging and supportive."
             })
         });
