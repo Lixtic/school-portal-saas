@@ -1,0 +1,413 @@
+{% extends 'base.html' %}
+{% load static humanize %}
+
+{% block title %}My Power Words — {{ student.user.get_full_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Token base ──────────────────────────────────────── */
+:root {
+    --pw-purple: #7c3aed;
+    --pw-indigo: #4f46e5;
+    --pw-light:  #f3e8ff;
+    --pw-verb:   #6d28d9;
+}
+
+/* ── Page header ─────────────────────────────────────── */
+.pw-s-header {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 60%, #a855f7 100%);
+    border-radius: 1rem;
+    color: #fff;
+    padding: 1.6rem 1.75rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+.pw-s-header::before {
+    content: '💡';
+    font-size: 6rem;
+    position: absolute;
+    right: 1.5rem; bottom: -1rem;
+    opacity: .1;
+    pointer-events: none;
+}
+.pw-s-header-title { font-size: 1.5rem; font-weight: 800; letter-spacing: -.02em; }
+.pw-s-header-sub   { font-size: .88rem; opacity: .85; margin-top: .2rem; }
+
+/* ── Stat tiles ──────────────────────────────────────── */
+.pw-tile {
+    border-radius: .85rem;
+    border: none;
+    padding: 1.1rem 1.25rem;
+    background: #fff;
+    box-shadow: 0 1px 6px rgba(0,0,0,.06);
+    transition: transform .18s, box-shadow .18s;
+    height: 100%;
+}
+.pw-tile:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.09); }
+.pw-tile-icon {
+    width: 40px; height: 40px; border-radius: .6rem;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .95rem; flex-shrink: 0;
+}
+.ti-purple { background: rgba(124,58,237,.12); color: var(--pw-purple); }
+.ti-green  { background: rgba(34,197,94,.12);  color: #16a34a; }
+.ti-blue   { background: rgba(59,130,246,.12); color: #2563eb; }
+.ti-amber  { background: rgba(245,158,11,.12); color: #d97706; }
+.pw-tile-label {
+    font-size: .65rem; text-transform: uppercase; letter-spacing: .06em;
+    font-weight: 700; color: #94a3b8; margin-bottom: .15rem;
+}
+.pw-tile-value {
+    font-size: 1.5rem; font-weight: 800; color: #1e293b; line-height: 1;
+}
+.pw-tile-sub { font-size: .72rem; color: #94a3b8; margin-top: .2rem; }
+.delta-up   { color: #16a34a; font-size: .7rem; font-weight: 700; }
+.delta-down { color: #dc2626; font-size: .7rem; font-weight: 700; }
+.delta-flat { color: #94a3b8; font-size: .7rem; }
+
+/* Dark mode tiles */
+[data-bs-theme="dark"] .pw-tile { background: #1e293b; box-shadow: none; border: 1px solid rgba(255,255,255,.07); }
+[data-bs-theme="dark"] .pw-tile-value { color: #e2e8f0; }
+[data-bs-theme="dark"] .pw-tile-label, [data-bs-theme="dark"] .pw-tile-sub { color: #64748b; }
+
+/* ── Word cloud card ─────────────────────────────────── */
+.wc-container {
+    display: flex; flex-wrap: wrap; gap: .5rem .6rem;
+    align-items: center; padding: 1.25rem 1.5rem;
+    min-height: 120px;
+}
+.wc-word {
+    display: inline-block;
+    background: rgba(79,70,229,.08);
+    color: var(--pw-indigo);
+    border-radius: 999px;
+    padding: .2em .75em;
+    font-weight: 600;
+    cursor: default;
+    transition: background .15s, transform .15s;
+    line-height: 1.5;
+}
+.wc-word:hover { background: rgba(79,70,229,.18); transform: scale(1.07); }
+.wc-word.is-verb {
+    background: rgba(109,40,217,.13);
+    color: var(--pw-verb);
+}
+.wc-word.is-verb:hover { background: rgba(109,40,217,.24); }
+.wc-empty { color: #94a3b8; font-size: .9rem; text-align: center; padding: 1.5rem; width: 100%; }
+
+/* Dark mode cloud */
+[data-bs-theme="dark"] .wc-word      { background: rgba(79,70,229,.2);  color: #a5b4fc; }
+[data-bs-theme="dark"] .wc-word.is-verb { background: rgba(109,40,217,.25); color: #c4b5fd; }
+
+/* ── Weekly history bars ─────────────────────────────── */
+.wh-row {
+    display: flex; align-items: center; gap: .75rem;
+    padding: .45rem 0;
+    border-bottom: 1px solid rgba(0,0,0,.05);
+}
+.wh-row:last-child { border-bottom: none; }
+[data-bs-theme="dark"] .wh-row { border-color: rgba(255,255,255,.06); }
+.wh-label {
+    font-size: .72rem; font-weight: 600; color: #64748b;
+    width: 58px; flex-shrink: 0; text-align: right;
+}
+.wh-bar-track {
+    flex: 1; height: 8px; border-radius: 999px;
+    background: #f1f5f9; overflow: hidden;
+}
+[data-bs-theme="dark"] .wh-bar-track { background: rgba(255,255,255,.07); }
+.wh-bar-fill {
+    height: 100%; border-radius: 999px;
+    background: linear-gradient(90deg, var(--pw-indigo), var(--pw-purple));
+    transition: width .5s;
+}
+.wh-count {
+    font-size: .72rem; font-weight: 700; color: #475569;
+    width: 22px; text-align: right; flex-shrink: 0;
+}
+[data-bs-theme="dark"] .wh-count { color: #94a3b8; }
+.wh-current .wh-label { color: var(--pw-purple); }
+.wh-current .wh-count { color: var(--pw-purple); }
+
+/* ── Subject breakdown ───────────────────────────────── */
+.sb-row {
+    display: flex; align-items: center; gap: .6rem;
+    padding: .4rem 0; font-size: .82rem;
+    border-bottom: 1px solid rgba(0,0,0,.05);
+}
+.sb-row:last-child { border-bottom: none; }
+[data-bs-theme="dark"] .sb-row { border-color: rgba(255,255,255,.06); }
+.sb-subject { flex: 1; color: #1e293b; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+[data-bs-theme="dark"] .sb-subject { color: #e2e8f0; }
+.sb-bar-track { width: 80px; height: 6px; border-radius: 999px; background: #f1f5f9; overflow: hidden; flex-shrink: 0; }
+[data-bs-theme="dark"] .sb-bar-track { background: rgba(255,255,255,.07); }
+.sb-bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #22c55e, #16a34a); }
+.sb-count { font-size: .72rem; font-weight: 700; color: #64748b; flex-shrink: 0; }
+
+/* ── Recent words table ──────────────────────────────── */
+.rw-badge {
+    font-size: .64rem; font-weight: 700;
+    padding: .2em .55em; border-radius: 999px; vertical-align: middle;
+}
+.rw-verb    { background: rgba(109,40,217,.12); color: #6d28d9; }
+.rw-voice   { background: rgba(59,130,246,.1);  color: #2563eb; }
+.rw-text    { background: rgba(148,163,184,.15); color: #475569; }
+.rw-confirm { background: rgba(34,197,94,.12);  color: #16a34a; }
+[data-bs-theme="dark"] .rw-verb    { background: rgba(109,40,217,.25); color: #c4b5fd; }
+[data-bs-theme="dark"] .rw-voice   { background: rgba(59,130,246,.2);  color: #93c5fd; }
+[data-bs-theme="dark"] .rw-text    { background: rgba(148,163,184,.1); color: #94a3b8; }
+[data-bs-theme="dark"] .rw-confirm { background: rgba(34,197,94,.15);  color: #86efac; }
+
+/* ── Empty state ─────────────────────────────────────── */
+.pw-empty {
+    text-align: center; padding: 3rem 1rem;
+    color: #94a3b8;
+}
+.pw-empty-icon { font-size: 3.5rem; margin-bottom: .75rem; }
+
+/* ── Mobile ──────────────────────────────────────────── */
+@media (max-width: 575.98px) {
+    .pw-s-header { padding: 1.1rem 1rem; border-radius: .75rem; }
+    .pw-s-header-title { font-size: 1.15rem; }
+    .pw-tile { padding: .85rem 1rem; }
+    .pw-tile-value { font-size: 1.25rem; }
+    .wc-container { padding: .9rem 1rem; gap: .4rem .45rem; }
+    .sb-bar-track { width: 55px; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 py-4">
+
+  <!-- Header -->
+  <div class="pw-s-header">
+    <div class="d-flex align-items-start align-items-sm-center justify-content-between flex-wrap gap-2">
+      <div>
+        <div class="pw-s-header-title">💡 My Power Words</div>
+        <div class="pw-s-header-sub">Academic vocabulary you've mastered through Aura AI — Week {{ current_week }}, {{ current_year }}</div>
+      </div>
+      <a href="{% url 'students:student_dashboard' %}" class="btn btn-sm btn-light fw-semibold px-3 mt-1 mt-sm-0">
+        <i class="fas fa-arrow-left me-1 opacity-75"></i>Dashboard
+      </a>
+    </div>
+  </div>
+
+  <!-- Stat Tiles -->
+  <div class="row g-2 mb-4">
+    <div class="col-6 col-sm-3">
+      <div class="pw-tile d-flex align-items-center gap-3">
+        <div class="pw-tile-icon ti-purple"><i class="fas fa-star"></i></div>
+        <div>
+          <div class="pw-tile-label">Total Words</div>
+          <div class="pw-tile-value">{{ total_unique }}</div>
+          <div class="pw-tile-sub">{{ total_uses }} total uses</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-sm-3">
+      <div class="pw-tile d-flex align-items-center gap-3">
+        <div class="pw-tile-icon ti-green"><i class="fas fa-bolt"></i></div>
+        <div>
+          <div class="pw-tile-label">This Week</div>
+          <div class="pw-tile-value">{{ new_this_week }}</div>
+          <div class="pw-tile-sub">
+            {% if week_delta > 0 %}
+              <span class="delta-up">↑ {{ week_delta }} vs last week</span>
+            {% elif week_delta < 0 %}
+              <span class="delta-down">↓ {{ week_delta|stringformat:"d"|slice:"1:" }} vs last week</span>
+            {% else %}
+              <span class="delta-flat">Same as last week</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-sm-3">
+      <div class="pw-tile d-flex align-items-center gap-3">
+        <div class="pw-tile-icon ti-blue"><i class="fas fa-brain"></i></div>
+        <div>
+          <div class="pw-tile-label">Academic Verbs</div>
+          <div class="pw-tile-value">{{ verb_pct }}<span style="font-size:.9rem;font-weight:500">%</span></div>
+          <div class="pw-tile-sub">of your words</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-sm-3">
+      <div class="pw-tile d-flex align-items-center gap-3">
+        <div class="pw-tile-icon ti-amber"><i class="fas fa-microphone"></i></div>
+        <div>
+          <div class="pw-tile-label">Voice Sessions</div>
+          <div class="pw-tile-value">{{ voice_count }}</div>
+          <div class="pw-tile-sub">{{ text_count }} via text chat</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if total_unique == 0 %}
+  <!-- Empty state -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-body pw-empty">
+      <div class="pw-empty-icon">🌱</div>
+      <h5 class="fw-bold mb-1">No Power Words yet</h5>
+      <p class="mb-3" style="max-width:320px; margin: 0 auto .9rem;">Start a session with Aura AI and use academic vocabulary — your Power Words will appear here!</p>
+      <a href="{% url 'students:aura_voice' %}" class="btn btn-sm me-2" style="background:var(--pw-purple);color:#fff;">
+        <i class="fas fa-microphone me-1"></i>Aura Voice
+      </a>
+    </div>
+  </div>
+
+  {% else %}
+
+  <!-- Word Cloud -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header py-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <h6 class="m-0 fw-bold" style="color:var(--pw-purple);">
+        <i class="fas fa-cloud me-2"></i>Word Cloud
+      </h6>
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <span style="font-size:.7rem; color:#64748b;">
+          <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--pw-indigo);margin-right:.3rem;"></span>Regular word
+        </span>
+        <span style="font-size:.7rem; color:#64748b;">
+          <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--pw-verb);margin-right:.3rem;"></span>Academic verb
+        </span>
+        <span class="text-muted" style="font-size:.68rem;">Size = how often you used it</span>
+      </div>
+    </div>
+    <div class="wc-container">
+      {% if word_cloud %}
+        {% for item in word_cloud %}
+        <span class="wc-word {% if item.is_verb %}is-verb{% endif %}"
+              style="font-size:{{ item.font_size }}px;"
+              data-bs-toggle="tooltip"
+              title="{{ item.word }}{% if item.subject %} · {{ item.subject }}{% endif %} · used {{ item.used_count }}×">
+          {{ item.word }}
+        </span>
+        {% endfor %}
+      {% else %}
+        <div class="wc-empty">No words yet. Chat with Aura to earn Power Words!</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Weekly History + Subject Breakdown -->
+  <div class="row g-3 mb-4">
+    <!-- Weekly History -->
+    <div class="col-12 col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header py-3">
+          <h6 class="m-0 fw-bold text-primary"><i class="fas fa-calendar-week me-2"></i>Weekly Progress</h6>
+        </div>
+        <div class="card-body py-3 px-4">
+          {% if weekly_history %}
+            {% for week in weekly_history %}
+            <div class="wh-row {% if week.is_current %}wh-current{% endif %}">
+              <div class="wh-label">Wk {{ week.week }}{% if week.is_current %} ✦{% endif %}</div>
+              <div class="wh-bar-track">
+                <div class="wh-bar-fill"
+                     style="width:{% widthratio week.count weekly_max 100 %}%"></div>
+              </div>
+              <div class="wh-count">{{ week.count }}</div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <p class="text-muted small text-center py-3">No weekly data yet.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Subject Breakdown -->
+    <div class="col-12 col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header py-3">
+          <h6 class="m-0 fw-bold text-success"><i class="fas fa-book me-2"></i>By Subject</h6>
+        </div>
+        <div class="card-body py-3 px-4">
+          {% if subject_breakdown %}
+            {% with top=subject_breakdown|first %}
+            {% for item in subject_breakdown %}
+            <div class="sb-row">
+              <div class="sb-subject" title="{{ item.subject }}">{{ item.subject }}</div>
+              <div class="sb-bar-track">
+                <div class="sb-bar-fill"
+                     style="width:{% widthratio item.count top.count 100 %}%"></div>
+              </div>
+              <div class="sb-count">{{ item.count }}</div>
+            </div>
+            {% endfor %}
+            {% endwith %}
+          {% else %}
+            <p class="text-muted small text-center py-3">No subject data yet.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Words Table -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header py-3 d-flex align-items-center justify-content-between">
+      <h6 class="m-0 fw-bold text-primary"><i class="fas fa-list me-2"></i>Recent Words</h6>
+      <span class="badge bg-primary bg-opacity-10 text-primary fw-semibold" style="font-size:.72rem;">Last 20</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle" style="font-size:.84rem;">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-4">Word</th>
+              <th class="d-none d-sm-table-cell">Subject</th>
+              <th class="d-none d-md-table-cell">Week</th>
+              <th>Session</th>
+              <th class="d-none d-sm-table-cell">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for w in recent_words %}
+            <tr>
+              <td class="ps-4 fw-semibold" style="color:#4f46e5;">
+                {{ w.word }}
+                {% if w.is_verb %}
+                <span class="rw-badge rw-verb ms-1">verb</span>
+                {% endif %}
+              </td>
+              <td class="d-none d-sm-table-cell text-muted">{{ w.subject }}</td>
+              <td class="d-none d-md-table-cell text-muted">Wk {{ w.week }}, {{ w.year }}</td>
+              <td>
+                {% if w.session_type == 'Aura Voice' %}
+                <span class="rw-badge rw-voice"><i class="fas fa-microphone me-1"></i>Voice</span>
+                {% else %}
+                <span class="rw-badge rw-text"><i class="fas fa-comment me-1"></i>Text</span>
+                {% endif %}
+              </td>
+              <td class="d-none d-sm-table-cell">
+                {% if w.confirmed %}
+                <span class="rw-badge rw-confirm"><i class="fas fa-check me-1"></i>Confirmed</span>
+                {% else %}
+                <span class="rw-badge rw-text">Pending</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Tooltips
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
+        new bootstrap.Tooltip(el);
+    });
+});
+</script>
+{% endblock %}

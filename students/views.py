@@ -1228,3 +1228,136 @@ def update_aura_preferences(request):
         return JsonResponse({'success': False, 'message': 'Invalid data.', 'errors': form.errors}, status=400)
 
     return JsonResponse({'success': False, 'message': 'POST required.'}, status=405)
+
+
+@login_required
+def student_power_words(request):
+    """
+    Student-facing Power Words history page.
+    Shows lifetime word cloud, weekly progress, subject breakdown and recent log.
+    """
+    if request.user.user_type != 'student':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    from collections import defaultdict
+    from academics.tutor_models import PowerWord
+    from django.utils import timezone as tz
+
+    student = Student.objects.filter(user=request.user).select_related('user').first()
+    if not student:
+        messages.error(request, 'Student profile not found.')
+        return redirect('login')
+
+    ACADEMIC_VERBS = {
+        'analyze', 'analyse', 'compare', 'evaluate', 'synthesize', 'synthesise',
+        'describe', 'explain', 'justify', 'identify', 'classify', 'predict',
+        'infer', 'conclude', 'hypothesize', 'hypothesise', 'illustrate',
+        'summarize', 'summarise', 'argue', 'debate', 'interpret', 'calculate',
+        'demonstrate', 'apply', 'construct', 'define', 'distinguish',
+    }
+
+    now = tz.now()
+    iso = now.isocalendar()
+    current_year, current_week = iso[0], iso[1]
+    last_week = current_week - 1 if current_week > 1 else 52
+    last_week_year = current_year if current_week > 1 else current_year - 1
+
+    # All power words, newest first
+    all_words = list(
+        PowerWord.objects.filter(student=student).order_by('-last_heard')
+    )
+
+    # ── Headline stats ────────────────────────────────────────
+    total_unique = len(all_words)
+    total_uses   = sum(w.used_count for w in all_words)
+    this_week_words = [w for w in all_words if w.year == current_year and w.week == current_week]
+    last_week_words = [w for w in all_words if w.year == last_week_year and w.week == last_week]
+    new_this_week = len(this_week_words)
+
+    total_verbs = sum(1 for w in all_words if w.word.lower() in ACADEMIC_VERBS)
+    verb_pct = round(total_verbs / total_unique * 100) if total_unique else 0
+
+    voice_count = sum(1 for w in all_words if w.session_type == 'voice')
+    text_count  = total_unique - voice_count
+
+    # Week-on-week delta
+    week_delta = new_this_week - len(last_week_words)
+
+    # ── Word cloud (top 50 by used_count) ─────────────────────
+    sorted_cloud = sorted(all_words, key=lambda w: -w.used_count)[:50]
+    max_count = sorted_cloud[0].used_count if sorted_cloud else 1
+    word_cloud = [
+        {
+            'word': w.word.title(),
+            'used_count': w.used_count,
+            'subject': w.subject,
+            'font_size': max(13, min(36, int(13 + (w.used_count / max_count) * 23))),
+            'is_verb': w.word.lower() in ACADEMIC_VERBS,
+            'session_type': w.session_type,
+        }
+        for w in sorted_cloud
+    ]
+
+    # ── Weekly history (last 10 weeks) ─────────────────────────
+    by_week = defaultdict(list)
+    for w in all_words:
+        by_week[(w.year, w.week)].append(w)
+
+    # Build sorted list of weeks (most recent first)
+    week_keys_sorted = sorted(by_week.keys(), reverse=True)[:10]
+    weekly_history = []
+    for (yr, wk) in week_keys_sorted:
+        wlist = by_week[(yr, wk)]
+        weekly_history.append({
+            'year': yr,
+            'week': wk,
+            'count': len(wlist),
+            'is_current': (yr == current_year and wk == current_week),
+            'sample': ', '.join(w.word.title() for w in wlist[:4]),
+        })
+
+    # ── Subject breakdown ──────────────────────────────────────
+    by_subject = defaultdict(int)
+    for w in all_words:
+        subj = w.subject.strip() if w.subject else 'General'
+        by_subject[subj] += 1
+
+    subject_breakdown = sorted(
+        [{'subject': s, 'count': c} for s, c in by_subject.items()],
+        key=lambda x: -x['count']
+    )[:8]
+
+    # ── Recent 20 words ────────────────────────────────────────
+    recent_words = [
+        {
+            'word': w.word.title(),
+            'subject': w.subject or '—',
+            'session_type': w.get_session_type_display(),
+            'is_verb': w.word.lower() in ACADEMIC_VERBS,
+            'confirmed': w.confirmed_by_teacher,
+            'week': w.week,
+            'year': w.year,
+            'last_heard': w.last_heard,
+        }
+        for w in all_words[:20]
+    ]
+
+    context = {
+        'student': student,
+        'total_unique': total_unique,
+        'total_uses': total_uses,
+        'new_this_week': new_this_week,
+        'week_delta': week_delta,
+        'verb_pct': verb_pct,
+        'voice_count': voice_count,
+        'text_count': text_count,
+        'current_week': current_week,
+        'current_year': current_year,
+        'word_cloud': word_cloud,
+        'weekly_history': weekly_history,
+        'weekly_max': max((w['count'] for w in weekly_history), default=1),
+        'subject_breakdown': subject_breakdown,
+        'recent_words': recent_words,
+    }
+    return render(request, 'students/power_words_history.html', context)

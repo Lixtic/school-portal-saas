@@ -36,4 +36,7 @@ urlpatterns = [
 
     # Aura Preferences (student self-service)
     path('aura/preferences/', views.update_aura_preferences, name='update_aura_preferences'),
+
+    # Power Words history (student view)
+    path('power-words/', views.student_power_words, name='power_words_history'),
 ]
