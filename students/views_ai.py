@@ -123,6 +123,7 @@ def create_realtime_session(request):
             },
             json={
                 "session": {
+                    "type": "realtime",
                     "model": model,
                     "modalities": ["text", "audio"],
                     "input_audio_transcription": {
