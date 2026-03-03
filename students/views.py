@@ -10,7 +10,7 @@ import csv
 import random
 import string
 from .models import Student, Attendance, Grade
-from .forms import StudentForm, CSVImportForm
+from .forms import StudentForm, CSVImportForm, AuraPreferencesForm
 from accounts.models import User
 
 from .utils import calculate_class_position, normalize_term, term_filter_values
@@ -1203,3 +1203,28 @@ def bulk_student_id_cards_pdf(request):
     except Exception as e:
         messages.error(request, f'Error generating ID cards: {str(e)}')
         return redirect('students:student_list')
+
+@login_required
+def update_aura_preferences(request):
+    """Student self-service endpoint to update preferred language and interests."""
+    if request.user.user_type != 'student':
+        return JsonResponse({'success': False, 'message': 'Access denied.'}, status=403)
+
+    student = Student.objects.filter(user=request.user).first()
+    if not student:
+        return JsonResponse({'success': False, 'message': 'Student profile not found.'}, status=404)
+
+    if request.method == 'POST':
+        form = AuraPreferencesForm(request.POST, instance=student)
+        if form.is_valid():
+            form.save()
+            lang_display = dict(student._meta.get_field('preferred_language').choices).get(
+                form.cleaned_data['preferred_language'], form.cleaned_data['preferred_language']
+            )
+            return JsonResponse({
+                'success': True,
+                'message': f'Aura preferences updated. Language set to {lang_display}.',
+            })
+        return JsonResponse({'success': False, 'message': 'Invalid data.', 'errors': form.errors}, status=400)
+
+    return JsonResponse({'success': False, 'message': 'POST required.'}, status=405)

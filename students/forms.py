@@ -124,3 +124,31 @@ class CSVImportForm(forms.Form):
         help_text='If no class specified in CSV, assign to this class',
         widget=forms.Select(attrs={'class': 'form-select'})
     )
+
+
+class AuraPreferencesForm(forms.ModelForm):
+    """Student self-service form to update Aura AI preferences."""
+
+    interests = forms.CharField(
+        required=False,
+        label='Interests',
+        help_text='Comma-separated, e.g. football, music, coding',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g. football, music, maths puzzles',
+        }),
+    )
+
+    class Meta:
+        model = Student
+        fields = ['preferred_language', 'interests']
+        widgets = {
+            'preferred_language': forms.Select(attrs={'class': 'form-select'}),
+        }
+
+    def clean_interests(self):
+        """Return a cleaned list stored as JSON."""
+        raw = self.cleaned_data.get('interests', '')
+        if raw:
+            return [item.strip() for item in raw.split(',') if item.strip()]
+        return []

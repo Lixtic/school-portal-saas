@@ -320,6 +320,7 @@
                     <div class="sd-action-sub">24/7 learning help</div>
                 </div>
             </a>
+            <div style="position:relative;">
             <a href="{% url 'students:aura_voice' %}" class="sd-action-card">
                 <div class="sd-action-icon sd-action-icon-voice">
                     <i class="bi bi-mic-fill"></i>
@@ -329,6 +330,10 @@
                     <div class="sd-action-sub">Voice Practice</div>
                 </div>
             </a>
+            <button id="aura-prefs-toggle" title="Aura Preferences"
+                onclick="var p=document.getElementById('aura-prefs-bar');p.style.display=p.style.display==='none'||!p.style.display?'block':'none';"
+                style="position:absolute;top:6px;right:6px;background:rgba(108,71,255,0.15);border:none;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;z-index:1;color:#6c47ff;">⚙</button>
+            </div>
             <a href="{% url 'students:report_card' student.id %}" target="_blank" class="sd-action-card">
                 <div class="sd-action-icon si-blue"><i class="bi bi-award"></i></div>
                 <div>
@@ -354,6 +359,67 @@
                 <i class="bi bi-arrow-right ms-auto" style="color:var(--sd-muted);"></i>
             </a>
         </div>
+
+        <!-- Aura Preferences Panel -->
+        <div id="aura-prefs-bar" style="display:none;margin-top:-4px;margin-bottom:14px;">
+            <div class="sd-card" style="padding:14px 18px;border-top:3px solid #6c47ff;">
+                <p style="font-size:0.82rem;color:var(--sd-muted);margin:0 0 10px;">
+                    <i class="bi bi-stars" style="color:#6c47ff;"></i>&nbsp;Personalise how Aura speaks &amp; teaches you
+                </p>
+                <form id="aura-prefs-form" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
+                    {% csrf_token %}
+                    <div style="flex:1;min-width:150px;">
+                        <label style="font-size:0.78rem;font-weight:600;margin-bottom:3px;display:block;">Language</label>
+                        <select name="preferred_language" class="form-select form-select-sm">
+                            <option value="english" {% if student.preferred_language == 'english' %}selected{% endif %}>English</option>
+                            <option value="twi" {% if student.preferred_language == 'twi' %}selected{% endif %}>Twi / Akan</option>
+                            <option value="hausa" {% if student.preferred_language == 'hausa' %}selected{% endif %}>Hausa</option>
+                            <option value="ewe" {% if student.preferred_language == 'ewe' %}selected{% endif %}>Ewe</option>
+                            <option value="ga" {% if student.preferred_language == 'ga' %}selected{% endif %}>Ga</option>
+                            <option value="dagbani" {% if student.preferred_language == 'dagbani' %}selected{% endif %}>Dagbani</option>
+                            <option value="french" {% if student.preferred_language == 'french' %}selected{% endif %}>French</option>
+                            <option value="other" {% if student.preferred_language == 'other' %}selected{% endif %}>Other</option>
+                        </select>
+                    </div>
+                    <div style="flex:2;min-width:180px;">
+                        <label style="font-size:0.78rem;font-weight:600;margin-bottom:3px;display:block;">Interests <span style="font-weight:400;color:var(--sd-muted);">(comma-separated)</span></label>
+                        <input type="text" name="interests" class="form-control form-control-sm"
+                            value="{{ student.interests|join:', ' }}"
+                            placeholder="e.g. football, music, coding">
+                    </div>
+                    <button type="submit" class="btn btn-sm" style="background:#6c47ff;color:#fff;border:none;white-space:nowrap;">
+                        <i class="bi bi-check2"></i> Save
+                    </button>
+                </form>
+                <div id="aura-prefs-msg" style="font-size:0.8rem;margin-top:6px;min-height:18px;"></div>
+            </div>
+        </div>
+        <script>
+        (function(){
+            var form = document.getElementById('aura-prefs-form');
+            if (!form) return;
+            form.addEventListener('submit', function(e){
+                e.preventDefault();
+                var data = new FormData(form);
+                fetch("{% url 'students:update_aura_preferences' %}", {method:'POST', body:data})
+                    .then(function(r){ return r.json(); })
+                    .then(function(d){
+                        var msg = document.getElementById('aura-prefs-msg');
+                        msg.style.color = d.success ? '#22c55e' : '#ef4444';
+                        msg.textContent = d.message;
+                        if (d.success) {
+                            setTimeout(function(){
+                                document.getElementById('aura-prefs-bar').style.display = 'none';
+                                msg.textContent = '';
+                            }, 1800);
+                        }
+                    })
+                    .catch(function(){
+                        document.getElementById('aura-prefs-msg').textContent = 'Error saving preferences.';
+                    });
+            });
+        })();
+        </script>
 
         <!-- Homework + Resources -->
         <div class="sd-content-grid">

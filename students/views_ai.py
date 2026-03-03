@@ -619,8 +619,10 @@ def aura_arena_api(request):
                     import openai
                     client = openai.OpenAI(api_key=api_key)
                     
+                    curriculum_note = f" ({student.curriculum} curriculum)" if getattr(student, 'curriculum', None) else ""
                     prompt = (
-                        f"You are a strict JSON generator. Generate a short educational trivia question for a {student.current_class.name} class. "
+                        f"You are a strict JSON generator. Generate a short educational trivia question for a {student.current_class.name}{curriculum_note} class. "
+                        f"Use culturally relevant examples where appropriate (region: {getattr(student, 'region', 'West Africa') or 'West Africa'}). "
                         f"Return ONLY a valid JSON object with keys 'question' and 'answer'. No markdown, no other text."
                     )
                     
@@ -654,7 +656,13 @@ def aura_arena_api(request):
                     import openai
                     client = openai.OpenAI(api_key=api_key)
                     
-                    system_prompt = "You are Aura-T, a helpful AI tutor for students. Do NOT use headings, phases, or labels like 'Phase A', 'Hook', or 'Nugget'. Use 'tiny scaffolds' (very short, single-step conversational hints). Keep answers fun, extremely concise, and under 3 sentences."
+                    student_profile = _build_student_context(student)
+                    system_prompt = (
+                        f"You are Aura-T, a helpful AI tutor. {student_profile}\n"
+                        "Do NOT use headings, phases, or labels like 'Phase A', 'Hook', or 'Nugget'. "
+                        "Use 'tiny scaffolds' (very short, single-step conversational hints). "
+                        "Keep answers fun, extremely concise, and under 3 sentences."
+                    )
                     
                     res = client.chat.completions.create(
                         model='gpt-4o-mini',
