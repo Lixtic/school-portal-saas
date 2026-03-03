@@ -939,20 +939,20 @@
         </div>
     </div>
 
-    <div class="phase-step active" id="phase-diagnostic">
-        <i class="bi bi-activity me-1"></i> Diagnostic
+    <div class="phase-step active" id="phase-hook">
+        <i class="bi bi-lightning-charge me-1"></i> Hook
     </div>
     <div class="phase-arrow"><i class="bi bi-chevron-right"></i></div>
-    <div class="phase-step" id="phase-instruction">
-        <i class="bi bi-lightbulb me-1"></i> Instruction
+    <div class="phase-step" id="phase-learning">
+        <i class="bi bi-lightbulb me-1"></i> <span id="phase-learning-label">Learning</span>
     </div>
     <div class="phase-arrow"><i class="bi bi-chevron-right"></i></div>
-    <div class="phase-step" id="phase-practice">
-        <i class="bi bi-pencil-square me-1"></i> Practice
+    <div class="phase-step" id="phase-stress-test">
+        <i class="bi bi-trophy me-1"></i> Stress Test
     </div>
     <div class="phase-arrow"><i class="bi bi-chevron-right"></i></div>
-    <div class="phase-step" id="phase-assessment">
-        <i class="bi bi-trophy me-1"></i> Assessment
+    <div class="phase-step" id="phase-done">
+        <i class="bi bi-check-circle me-1"></i> Done
     </div>
 </div>
 
@@ -1398,6 +1398,37 @@
                 insightBadge.style.display = 'none';
             }, 300);
         }, 4000);
+    }
+
+    // --- Lesson State Machine Tracker ---
+    const _phaseOrder = ['phase-hook', 'phase-learning', 'phase-stress-test', 'phase-done'];
+    let _currentPhaseIdx = 0;
+    let _nuggetCount = 0;
+
+    function updateLessonState(state) {
+        let targetIdx = null;
+        if (state === 'HOOK') { targetIdx = 0; }
+        else if (state.startsWith('NUGGET')) {
+            targetIdx = 1;
+            // Extract the number from NUGGET_1, NUGGET_2, etc.
+            const nMatch = state.match(/(\d+)$/);
+            if (nMatch) {
+                _nuggetCount = parseInt(nMatch[1]);
+                const labelEl = document.getElementById('phase-learning-label');
+                if (labelEl) labelEl.textContent = `Nugget ${_nuggetCount}`;
+            }
+        }
+        else if (state === 'STRESS_TEST') { targetIdx = 2; }
+        else if (state === 'DONE') { targetIdx = 3; }
+        if (targetIdx === null || targetIdx <= _currentPhaseIdx) return; // only advance
+        _currentPhaseIdx = targetIdx;
+        _phaseOrder.forEach((id, idx) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.classList.remove('active', 'completed');
+            if (idx < targetIdx) el.classList.add('completed');
+            else if (idx === targetIdx) el.classList.add('active');
+        });
     }
 
     // --- Core Logic ---
@@ -2046,6 +2077,14 @@
             fullText = fullText.replace(/\[POWER_WORDS:\s*[^\]]+\]/gi, '');
         }
 
+        // 1.56 Extract [LESSON_STATE: X] tokens — update phase tracker silently
+        const _lsRe = /\[LESSON_STATE:\s*([\w_]+)\]/i;
+        const _lsM = fullText.match(_lsRe);
+        if (_lsM) {
+            updateLessonState(_lsM[1].trim().toUpperCase());
+            fullText = fullText.replace(/\[LESSON_STATE:\s*[^\]]*\]/gi, '');
+        }
+
         // 1.6 Extract [WB_DIAGRAM: Title] ... [/WB_DIAGRAM] blocks
         const diagrams = [];
         const _diagScan = fullText;
@@ -2144,6 +2183,8 @@
         text = text.replace(/\[DRAW:\s*.*?\]/gi, '');
         // Remove [POWER_WORDS: ...] tokens
         text = text.replace(/\[POWER_WORDS:\s*[^\]]*\]/gi, '');
+        // Remove [LESSON_STATE: ...] tokens
+        text = text.replace(/\[LESSON_STATE:\s*[^\]]*\]/gi, '');
         // Remove complete [WB_DIAGRAM: ...] ... [/WB_DIAGRAM] blocks
         text = text.replace(/\[WB_DIAGRAM:\s*[^\]]*\][\s\S]*?\[\/WB_DIAGRAM\]/gi, '');
         // Remove partial / still-streaming [WB_DIAGRAM block (no closing tag yet)

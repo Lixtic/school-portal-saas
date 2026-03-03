@@ -418,18 +418,34 @@ def create_realtime_session(request):
             pass  # gracefully degrade — generic instructions still work
 
         # Build the full system instructions for the Realtime API
-        base_instructions = (
-            "You are Aura, an intelligent AI tutor built into a school management system. "
-            "Your role is to guide students through their learning with warmth, patience, and precision. "
-            "Keep responses concise and conversational for voice. "
-            "Never give a lecture — have a dialogue. Ask follow-up questions to check understanding. "
-            "If you explain a formula, equation, or step-by-step process, prefix it with [WHITEBOARD] "
-            "on its own line, then the content — this triggers the whiteboard display for the student."
+        # Voice-mode rules prepended to the full Aura 2.0 State-Machine prompt
+        voice_prefix = (
+            "VOICE MODE ADAPTATIONS (strictly apply these on top of all other rules):\n"
+            "- This is a VOICE session. Keep EVERY response to 2-3 sentences maximum.\n"
+            "- Never read out long lists; speak them as natural sentences and offer to elaborate.\n"
+            "- Do NOT emit [WB_DIAGRAM] or [DRAW] tokens in voice mode.\n"
+            "- Do NOT emit [POWER_WORDS] tokens in voice mode.\n"
+            "- DO emit [LESSON_STATE: X] tokens even in voice mode (they are silent to the student).\n"
+            "- Speak warmly and naturally — no robotic phrasing.\n"
+            "- Pause naturally by ending the response; do not add filler like 'Ok so...' or 'Alright'.\n\n"
         )
-        system_instructions = (
-            base_instructions + "\n\n─── AURA LINGUISTIC PROFILE ───\n" + student_context
-            if student_context else base_instructions
-        )
+        if student:
+            try:
+                from academics.ai_tutor import get_tutor_system_prompt
+                system_instructions = voice_prefix + get_tutor_system_prompt(student)
+            except Exception:
+                system_instructions = (
+                    voice_prefix +
+                    "You are Aura, an intelligent AI tutor. Be warm and conversational. "
+                    "Never lecture — ask one question per turn and wait for the student's response. "
+                    + ("\n\n─── STUDENT PROFILE ───\n" + student_context if student_context else "")
+                )
+        else:
+            system_instructions = (
+                voice_prefix +
+                "You are Aura, an intelligent AI tutor. Be warm and conversational. "
+                "Never lecture — ask one question per turn and wait for the student's response."
+            )
         
         import requests as http_requests
         api_key = get_openai_api_key()
