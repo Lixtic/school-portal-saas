@@ -1362,6 +1362,7 @@ async function connectRealtime() {
         const sessionData = await sessionResponse.json();
         const clientSecret = sessionData.client_secret;
         const model = sessionData.model || 'gpt-4o-realtime-preview-2024-12-17';
+        const studentContext = sessionData.student_context || '';
 
         if (!clientSecret) {
             throw new Error('Server returned empty client_secret. Check API key configuration.');
@@ -1374,11 +1375,15 @@ async function connectRealtime() {
 
         realtimeWs.onopen = () => {
             isConnected = true;
+            const baseInstructions = "You are Aura, a helpful and friendly AI tutor. Keep answers concise. If you explain math or a formula, prefix it with [WHITEBOARD] on its own line, followed by the content.";
+            const fullInstructions = studentContext
+                ? baseInstructions + '\n\n' + studentContext
+                : baseInstructions;
             sendRealtimeEvent({
                 type: 'session.update',
                 session: {
                     modalities: ['text','audio'],
-                    instructions: "You are Aura, a helpful and friendly AI tutor. Keep answers concise. If you explain math or a formula, prefix it with [WHITEBOARD] on its own line, followed by the content.",
+                    instructions: fullInstructions,
                     voice: voiceSettings.voice,
                     input_audio_format: 'pcm16',
                     output_audio_format: 'pcm16',
