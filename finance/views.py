@@ -6,6 +6,7 @@ from .models import FeeHead, FeeStructure, StudentFee, Payment
 from .forms import FeeHeadForm, FeeStructureForm, PaymentForm
 from students.models import Student
 from academics.models import Class, AcademicYear, SchoolInfo
+from announcements.models import Notification
 
 @login_required
 def finance_dashboard(request):
@@ -215,3 +216,72 @@ def print_receipt(request, payment_id):
         'payment': payment,
         'school_info': school_info
     })
+
+
+@login_required
+def send_fee_reminders(request):
+    """Allow admin to send bulk fee reminder notifications to all students with outstanding fees."""
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    pending_fees = (
+        StudentFee.objects
+        .filter(status__in=['unpaid', 'partial'])
+        .select_related('student', 'student__user', 'fee_structure', 'fee_structure__head')
+        .order_by('student__user__last_name')
+    )
+
+    if request.method == 'POST':
+        from django.urls import reverse as url_reverse
+        created = 0
+        skipped = 0
+        for fee in pending_fees:
+            student = fee.student
+            user = student.user
+            balance = fee.balance
+            head_name = fee.fee_structure.head.name
+            try:
+                link = url_reverse('finance:student_fees', args=[student.id])
+            except Exception:
+                link = '/finance/'
+
+            message = (
+                f"Fee Reminder: You have an outstanding balance of ₵{balance:.2f} "
+                f"for {head_name}. Please make payment at your earliest convenience."
+            )
+
+            already_pending = Notification.objects.filter(
+                recipient=user,
+                alert_type='general',
+                is_read=False,
+                message__startswith="Fee Reminder:",
+                link=link,
+            ).exists()
+
+            if already_pending:
+                skipped += 1
+                continue
+
+            Notification.objects.create(
+                recipient=user,
+                message=message,
+                alert_type='general',
+                link=link,
+            )
+            created += 1
+
+        messages.success(
+            request,
+            f"Sent {created} fee reminder notification(s). Skipped {skipped} student(s) who already have a pending reminder."
+        )
+        return redirect('finance:dashboard')
+
+    # GET — show confirmation page
+    total_balance = sum(fee.balance for fee in pending_fees)
+    context = {
+        'pending_fees': pending_fees,
+        'total_balance': total_balance,
+        'student_count': pending_fees.count(),
+    }
+    return render(request, 'finance/send_reminders.html', context)

@@ -259,6 +259,7 @@ class Resource(models.Model):
     class Meta:
         ordering = ['-uploaded_at']
 
+
 # Import AI Tutor/Copilot models
 from .tutor_models import (
     TutorSession,
