@@ -3,38 +3,165 @@
 
 {% block content %}
 <style>
-    [data-bs-theme="dark"] .card {
-        background: var(--surface-card, #1e293b);
-        border-color: rgba(255,255,255,0.08);
-    }
-    [data-bs-theme="dark"] .card-header,
-    [data-bs-theme="dark"] .modal-header.bg-primary.text-white {
-        border-color: rgba(255,255,255,0.08);
-    }
-    [data-bs-theme="dark"] .modal-content {
-        background: var(--surface-card, #1e293b);
-        border-color: rgba(255,255,255,0.08);
-    }
-    [data-bs-theme="dark"] .modal-footer,
-    [data-bs-theme="dark"] .modal-body {
-        border-color: rgba(255,255,255,0.08);
-        color: #e2e8f0;
-    }
-    [data-bs-theme="dark"] .card.bg-light,
-    [data-bs-theme="dark"] .alert.alert-info {
-        background: rgba(255,255,255,0.05) !important;
-        color: #e2e8f0;
-        border-color: rgba(255,255,255,0.1);
-    }
-    [data-bs-theme="dark"] .text-gray-300,
-    [data-bs-theme="dark"] .text-gray-400 {
-        color: #64748b !important;
-    }
-    [data-bs-theme="dark"] .btn-light.text-primary {
-        color: #93c5fd !important;
-        background: rgba(59,130,246,0.12);
-        border-color: rgba(59,130,246,0.2);
-    }
+/* ── Base Card Dark Mode ───────────────────────────────── */
+[data-bs-theme="dark"] .card {
+    background: var(--surface-card, #1e293b);
+    border-color: rgba(255,255,255,0.08);
+}
+[data-bs-theme="dark"] .card-header,
+[data-bs-theme="dark"] .modal-header.bg-primary.text-white {
+    border-color: rgba(255,255,255,0.08);
+}
+[data-bs-theme="dark"] .modal-content {
+    background: var(--surface-card, #1e293b);
+    border-color: rgba(255,255,255,0.08);
+}
+[data-bs-theme="dark"] .modal-footer,
+[data-bs-theme="dark"] .modal-body {
+    border-color: rgba(255,255,255,0.08);
+    color: #e2e8f0;
+}
+[data-bs-theme="dark"] .card.bg-light,
+[data-bs-theme="dark"] .alert.alert-info {
+    background: rgba(255,255,255,0.05) !important;
+    color: #e2e8f0;
+    border-color: rgba(255,255,255,0.1);
+}
+[data-bs-theme="dark"] .text-gray-300,
+[data-bs-theme="dark"] .text-gray-400 { color: #64748b !important; }
+[data-bs-theme="dark"] .btn-light.text-primary {
+    color: #93c5fd !important;
+    background: rgba(59,130,246,0.12);
+    border-color: rgba(59,130,246,0.2);
+}
+
+/* ── Heatmap Student Cards ─────────────────────────────── */
+.hm-card {
+    border: none;
+    border-radius: .75rem;
+    overflow: hidden;
+    transition: transform .18s, box-shadow .18s;
+    cursor: default;
+    position: relative;
+}
+.hm-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,.13) !important;
+    z-index: 2;
+}
+.hm-top-bar {
+    height: 5px;
+    width: 100%;
+}
+.hm-card .hm-body {
+    padding: .65rem .6rem .55rem;
+    text-align: center;
+}
+.hm-avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: .95rem;
+    margin: 0 auto .45rem;
+    flex-shrink: 0;
+}
+.hm-name {
+    font-size: .78rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #1e293b;
+    margin-bottom: .2rem;
+    line-height: 1.2;
+}
+.hm-mastery-pct {
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: .3rem;
+}
+.hm-bar {
+    height: 5px;
+    border-radius: 999px;
+    background: #e9ecef;
+    overflow: hidden;
+    margin-bottom: .35rem;
+}
+.hm-bar-fill { height: 100%; border-radius: 999px; transition: width .4s; }
+.hm-badge {
+    display: inline-block;
+    font-size: .62rem;
+    font-weight: 600;
+    padding: .18em .55em;
+    border-radius: 999px;
+    letter-spacing: .02em;
+    line-height: 1.4;
+}
+.hm-last-active {
+    font-size: .62rem;
+    color: #94a3b8;
+    margin-top: .2rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.hm-boost-btn {
+    font-size: .7rem;
+    padding: .2rem .6rem;
+    border-radius: 999px;
+    width: 100%;
+    margin-top: .35rem;
+}
+.hm-misconception-dot {
+    position: absolute;
+    top: 9px; right: 8px;
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: #ef4444;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px rgba(239,68,68,.3);
+}
+
+/* Status colour maps */
+.hm-status-on-track    .hm-top-bar { background: #22c55e; }
+.hm-status-on-track    .hm-avatar  { background: linear-gradient(135deg,#16a34a,#22c55e); color:#fff; }
+.hm-status-on-track    .hm-mastery-pct { color: #16a34a; }
+.hm-status-on-track    .hm-bar-fill    { background: #22c55e; }
+.hm-status-on-track    .hm-badge   { background:#dcfce7; color:#15803d; }
+
+.hm-status-progressing .hm-top-bar { background: #f59e0b; }
+.hm-status-progressing .hm-avatar  { background: linear-gradient(135deg,#d97706,#f59e0b); color:#fff; }
+.hm-status-progressing .hm-mastery-pct { color: #d97706; }
+.hm-status-progressing .hm-bar-fill    { background: #f59e0b; }
+.hm-status-progressing .hm-badge   { background:#fef9c3; color:#92400e; }
+
+.hm-status-needs-help  .hm-top-bar { background: #ef4444; }
+.hm-status-needs-help  .hm-avatar  { background: linear-gradient(135deg,#dc2626,#ef4444); color:#fff; }
+.hm-status-needs-help  .hm-mastery-pct { color: #dc2626; }
+.hm-status-needs-help  .hm-bar-fill    { background: #ef4444; }
+.hm-status-needs-help  .hm-badge   { background:#fee2e2; color:#991b1b; }
+
+.hm-status-no-data     .hm-top-bar { background: #cbd5e1; }
+.hm-status-no-data     .hm-avatar  { background: linear-gradient(135deg,#94a3b8,#cbd5e1); color:#fff; }
+.hm-status-no-data     .hm-mastery-pct { color: #94a3b8; }
+.hm-status-no-data     .hm-bar-fill    { background: #cbd5e1; }
+.hm-status-no-data     .hm-badge   { background:#f1f5f9; color:#475569; }
+
+/* Dark mode heatmap */
+[data-bs-theme="dark"] .hm-card { background: #1e293b; }
+[data-bs-theme="dark"] .hm-name { color: #e2e8f0; }
+[data-bs-theme="dark"] .hm-bar  { background: rgba(255,255,255,.1); }
+[data-bs-theme="dark"] .hm-misconception-dot { border-color: #1e293b; }
+[data-bs-theme="dark"] .hm-status-on-track    .hm-badge { background:rgba(34,197,94,.15); color:#86efac; }
+[data-bs-theme="dark"] .hm-status-progressing .hm-badge { background:rgba(245,158,11,.15); color:#fcd34d; }
+[data-bs-theme="dark"] .hm-status-needs-help  .hm-badge { background:rgba(239,68,68,.15); color:#fca5a5; }
+[data-bs-theme="dark"] .hm-status-no-data     .hm-badge { background:rgba(148,163,184,.1); color:#94a3b8; }
+
+/* Legend */
+.hm-legend { display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; }
+.hm-legend-item { display:flex; align-items:center; gap:.3rem; font-size:.72rem; color:#64748b; }
+.hm-legend-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
 </style>
 <div class="row mb-4">
     <div class="col-12 d-flex justify-content-between align-items-center">
@@ -153,50 +280,58 @@
     <!-- Student Heat Map -->
     <div class="col-lg-8">
         <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between gap-2 flex-wrap">
                 <h6 class="m-0 font-weight-bold text-primary">Student Mastery Heat Map</h6>
-                <div class="dropdown no-arrow">
-                    <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
-                    </a>
+                <div class="hm-legend">
+                    <span class="hm-legend-item"><span class="hm-legend-dot" style="background:#22c55e"></span>On Track</span>
+                    <span class="hm-legend-item"><span class="hm-legend-dot" style="background:#f59e0b"></span>Progressing</span>
+                    <span class="hm-legend-item"><span class="hm-legend-dot" style="background:#ef4444"></span>Needs Help</span>
+                    <span class="hm-legend-item"><span class="hm-legend-dot" style="background:#cbd5e1"></span>No Data</span>
+                    <span class="hm-legend-item"><span class="hm-legend-dot" style="background:#ef4444; box-shadow:0 0 0 2px rgba(239,68,68,.3)"></span>Misconception</span>
                 </div>
             </div>
-            <div class="card-body">
+            <div class="card-body pb-2">
                 <div class="row g-2">
                     {% for student in students_data %}
-                    <div class="col-6 col-md-4 col-lg-3">
-                        <div class="card h-100 border-{{ student.status }} shadow-sm student-card position-relative" 
-                             data-bs-toggle="tooltip" title="Mastery: {{ student.mastery }}%{% if student.last_active %} · Last active: {{ student.last_active }}{% endif %}">
-                             
-                            <div class="card-body p-2 text-center">
-                                <div class="avatar-circle mb-2 mx-auto bg-{{ student.status }} text-white">
-                                    {{ student.name|make_list|first }}
+                    <div class="col-6 col-sm-4 col-md-3 col-xl-2">
+                        <div class="hm-card shadow-sm {% if student.status == 'secondary' %}hm-status-no-data{% elif student.status == 'red' %}hm-status-needs-help{% elif student.status == 'yellow' %}hm-status-progressing{% else %}hm-status-on-track{% endif %}"
+                             data-bs-toggle="tooltip"
+                             data-bs-placement="top"
+                             title="{% if student.status != 'secondary' %}Mastery: {{ student.mastery }}%{% else %}No sessions yet{% endif %}{% if student.misconception %} · ⚠ {{ student.misconception }}{% endif %}{% if student.last_active %} · Last active: {{ student.last_active }}{% endif %}">
+                            <div class="hm-top-bar"></div>
+                            <div class="hm-body">
+                                <div class="hm-avatar">{{ student.name|make_list|first }}</div>
+                                <div class="hm-name" title="{{ student.name }}">{{ student.name }}</div>
+
+                                {% if student.status != 'secondary' %}
+                                <div class="hm-mastery-pct">{{ student.mastery }}%</div>
+                                <div class="hm-bar">
+                                    <div class="hm-bar-fill" style="width:{{ student.mastery }}%"></div>
                                 </div>
-                                <h6 class="card-title text-truncate mb-1" style="font-size: 0.9rem;">{{ student.name }}</h6>
-                                {% if student.last_active %}<div class="text-muted" style="font-size:0.65rem;">{{ student.last_active }}</div>{% endif %}
-                                
+                                {% endif %}
+
                                 {% if student.status == 'secondary' %}
-                                    <span class="badge bg-secondary mb-1" style="font-size: 0.7rem;">No Data</span>
-                                    <div class="text-muted small mt-1">No AI sessions yet</div>
+                                <span class="hm-badge">No sessions</span>
                                 {% elif student.status == 'red' %}
-                                    <span class="badge bg-danger mb-1" style="font-size: 0.7rem;">Needs Help</span>
-                                    <button class="btn btn-sm btn-outline-danger w-100 mt-2 py-0" 
-                                            onclick="triggerIntervention('{{ student.id }}', '{{ student.name|escapejs }}', '{{ student.intervention|escapejs }}')">
-                                        <i class="fas fa-bolt me-1"></i>Boost
-                                    </button>
+                                <span class="hm-badge">Needs Help</span>
+                                <button class="btn btn-sm btn-danger hm-boost-btn"
+                                        onclick="triggerIntervention('{{ student.id }}', '{{ student.name|escapejs }}', '{{ student.intervention|escapejs }}')">
+                                    <i class="fas fa-bolt me-1"></i>Boost
+                                </button>
                                 {% elif student.status == 'yellow' %}
-                                    <div class="progress mt-2" style="height: 5px;">
-                                        <div class="progress-bar bg-warning" role="progressbar" style="width: {{ student.mastery }}%;"></div>
-                                    </div>
+                                <span class="hm-badge">Progressing</span>
                                 {% else %}
-                                    <div class="text-success small mt-2"><i class="fas fa-check-circle me-1"></i>On Track</div>
+                                <span class="hm-badge">On Track</span>
+                                {% endif %}
+
+                                {% if student.last_active %}
+                                <div class="hm-last-active">{{ student.last_active }}</div>
                                 {% endif %}
                             </div>
-
                             {% if student.misconception %}
-                            <div class="position-absolute header-indicator" style="top: 5px; right: 5px; width: 15px; height: 15px; border-radius: 50%; background-color: #e74a3b;" 
-                                 title="Misconception: {{ student.misconception }}" data-bs-toggle="tooltip">
-                            </div>
+                            <div class="hm-misconception-dot"
+                                 data-bs-toggle="tooltip"
+                                 title="⚠ {{ student.misconception }}"></div>
                             {% endif %}
                         </div>
                     </div>
@@ -283,11 +418,6 @@
         </div>
     </div>
 </div>
-
-<style>
-/* ... existing styles ... */
-</style>
-
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
