@@ -178,6 +178,23 @@
     .btn-report { background: #1e1e3a; color: #a5b4fc; border-color: #4f46e5; }
     .btn-report:hover { background: #2d2d5a; color: #c7d2fe; }
 }
+
+/* Mobile */
+@media (max-width: 575.98px) {
+    .pw-header { padding: 1.25rem 1rem; border-radius: .75rem; margin-bottom: 1rem; }
+    .pw-header h1 { font-size: 1.1rem; }
+    .pw-header p  { font-size: .8rem; }
+    .pw-card-header { flex-wrap: wrap; row-gap: .4rem; padding: .75rem 1rem; }
+    .pw-card-header .ms-auto { margin-left: 0 !important; width: 100%; }
+    .verb-trend { font-size: .66rem; }
+    .pw-stat-value { font-size: 1.05rem; }
+    .pw-stat { min-width: 60px; }
+    .btn-pw-action { font-size: .72rem; padding: .3rem .65rem; flex: 1; text-align: center; }
+    .word-cloud { padding: .6rem .9rem; }
+    .pw-new-words { padding: 0 .9rem .55rem; }
+    .pw-insight   { margin: 0 .9rem .55rem; font-size: .82rem; padding: .6rem .75rem; }
+    .pw-actions   { padding: .55rem .9rem .75rem; }
+}
 </style>
 {% endblock %}
 
@@ -234,7 +251,7 @@
             {% if card.verb_delta > 5 %}
             <span class="verb-trend up">↑ {{ card.verb_delta }}% verbs</span>
             {% elif card.verb_delta < -5 %}
-            <span class="verb-trend down">↓ {{ card.verb_delta|abs }}% verbs</span>
+            <span class="verb-trend down">↓ {{ card.verb_delta|stringformat:"d"|slice:"1:" }}% verbs</span>
             {% elif card.total_words > 0 %}
             <span class="verb-trend flat">{{ card.verb_pct_this }}% verbs</span>
             {% endif %}
