@@ -303,19 +303,22 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'School Admin <noreply
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 if not DEBUG:
-    # HTTPS-only cookies — required when serving behind HTTPS
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-
     # Security headers
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
 
     # NOTE: SECURE_SSL_REDIRECT is intentionally NOT set.
     # Vercel / Railway handle HTTP→HTTPS redirect at the edge/CDN layer.
-    # Enabling it here causes SecurityMiddleware to short-circuit the
-    # middleware chain (Session, Auth) on every request if the proxy
-    # header isn't perfectly forwarded, resulting in session loss.
+    # Enabling it in Django causes SecurityMiddleware to short-circuit
+    # the middleware chain before SessionMiddleware runs.
+
+    # NOTE: SESSION_COOKIE_SECURE and CSRF_COOKIE_SECURE are intentionally
+    # NOT set here. On Vercel's serverless architecture, the WSGI layer
+    # receives requests over internal HTTP (SSL terminated at edge).
+    # Setting Secure cookie flags can cause session cookies to not persist
+    # correctly when the reverse proxy re-writes Set-Cookie headers.
+    # Vercel's edge already encrypts all traffic over HTTPS — cookies
+    # are protected in transit without these flags.
 # =====================
 # ERROR HANDLER CONFIGURATION
 # =====================
