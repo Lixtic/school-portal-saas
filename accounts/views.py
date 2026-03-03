@@ -751,6 +751,74 @@ from io import StringIO
 import sys
 import os
 
+
+def session_debug(request):
+    """
+    Lightweight session diagnostic endpoint for debugging on Vercel.
+    No login required so we can test even when sessions fail.
+    Access: /{tenant}/debug/session/ or /debug/session/
+    """
+    from django.db import connection as db_conn
+    from django.conf import settings as _settings
+    import os as _os
+
+    # Check if django_session table exists in current schema
+    session_table_exists = False
+    session_row_count = None
+    try:
+        with db_conn.cursor() as cursor:
+            tables = db_conn.introspection.table_names(cursor)
+            session_table_exists = 'django_session' in tables
+            if session_table_exists:
+                cursor.execute("SELECT COUNT(*) FROM django_session")
+                session_row_count = cursor.fetchone()[0]
+    except Exception as e:
+        session_table_exists = f"ERROR: {e}"
+
+    # Check static files
+    static_root = str(_settings.STATIC_ROOT)
+    static_files_count = 0
+    try:
+        for _root, _dirs, _files in _os.walk(static_root):
+            static_files_count += len(_files)
+    except Exception:
+        static_files_count = -1
+
+    data = {
+        'debug_mode': _settings.DEBUG,
+        'db_schema': getattr(db_conn, 'schema_name', 'unknown'),
+        'tenant': str(getattr(request, 'tenant', 'none')),
+        'tenant_schema': getattr(getattr(request, 'tenant', None), 'schema_name', 'none'),
+        'authenticated': request.user.is_authenticated,
+        'username': str(request.user),
+        'session_key': request.session.session_key,
+        'session_cookie_in_request': 'sessionid' in request.COOKIES,
+        'session_cookie_value_prefix': request.COOKIES.get('sessionid', '')[:8] + '...' if request.COOKIES.get('sessionid') else None,
+        'session_data_keys': list(request.session.keys()) if request.session.session_key else [],
+        'session_table_exists': session_table_exists,
+        'session_row_count': session_row_count,
+        'session_settings': {
+            'SESSION_COOKIE_SECURE': getattr(_settings, 'SESSION_COOKIE_SECURE', False),
+            'SESSION_COOKIE_SAMESITE': getattr(_settings, 'SESSION_COOKIE_SAMESITE', 'Lax'),
+            'SESSION_SAVE_EVERY_REQUEST': getattr(_settings, 'SESSION_SAVE_EVERY_REQUEST', False),
+            'CSRF_COOKIE_SECURE': getattr(_settings, 'CSRF_COOKIE_SECURE', False),
+            'SECURE_SSL_REDIRECT': getattr(_settings, 'SECURE_SSL_REDIRECT', False),
+        },
+        'request_meta': {
+            'HTTP_X_FORWARDED_PROTO': request.META.get('HTTP_X_FORWARDED_PROTO'),
+            'SCRIPT_NAME': request.META.get('SCRIPT_NAME'),
+            'PATH_INFO': request.META.get('PATH_INFO'),
+            'HTTP_HOST': request.META.get('HTTP_HOST'),
+            'is_secure': request.is_secure(),
+        },
+        'static_root': static_root,
+        'static_files_count': static_files_count,
+        'vercel': _os.environ.get('VERCEL', 'not set'),
+        'allowed_hosts': _settings.ALLOWED_HOSTS,
+    }
+    return JsonResponse(data, json_dumps_params={'indent': 2})
+
+
 @login_required
 def debug_status(request):
     """

@@ -297,6 +297,14 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'School Admin <noreply@school.com>')
 
 # =====================
+# SESSION PERSISTENCE (critical for serverless / Vercel)
+# =====================
+# Save session on every request so the cookie is always refreshed.
+# Without this, serverless cold starts can lose sessions when the
+# session is not explicitly modified by the view.
+SESSION_SAVE_EVERY_REQUEST = True
+
+# =====================
 # VERCEL / PRODUCTION SECURITY
 # =====================
 # Trust X-Forwarded-Proto header from Vercel / Railway reverse proxy
@@ -307,18 +315,11 @@ if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
 
-    # NOTE: SECURE_SSL_REDIRECT is intentionally NOT set.
-    # Vercel / Railway handle HTTP→HTTPS redirect at the edge/CDN layer.
-    # Enabling it in Django causes SecurityMiddleware to short-circuit
-    # the middleware chain before SessionMiddleware runs.
-
-    # NOTE: SESSION_COOKIE_SECURE and CSRF_COOKIE_SECURE are intentionally
-    # NOT set here. On Vercel's serverless architecture, the WSGI layer
-    # receives requests over internal HTTP (SSL terminated at edge).
-    # Setting Secure cookie flags can cause session cookies to not persist
-    # correctly when the reverse proxy re-writes Set-Cookie headers.
-    # Vercel's edge already encrypts all traffic over HTTPS — cookies
-    # are protected in transit without these flags.
+    # NOTE: SECURE_SSL_REDIRECT, SESSION_COOKIE_SECURE, and
+    # CSRF_COOKIE_SECURE are intentionally NOT set here.
+    # Vercel / Railway handle HTTPS at the edge layer.
+    # Setting these flags in Django's WSGI layer (which receives
+    # internal HTTP from the reverse proxy) causes session loss.
 # =====================
 # ERROR HANDLER CONFIGURATION
 # =====================
