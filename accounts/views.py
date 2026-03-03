@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 from academics.models import Class, AcademicYear, ClassSubject, Activity, Timetable, GalleryImage, Resource, SchoolInfo, Subject
-from teachers.models import Teacher, DutyAssignment
+from teachers.models import Teacher, DutyAssignment, DutyWeek, LessonPlan
 from students.models import Student, Attendance
 from announcements.models import Announcement, Notification
 from django.db.models import Q, Count
@@ -612,6 +612,51 @@ def dashboard(request):
         for p in todays_classes:
             p.is_ongoing = p.start_time <= current_time <= p.end_time
 
+        # === Aura-T Lesson Reminders ===
+        # Match today's timetable entries with lesson plans for the current week
+        next_class_reminder = None
+        try:
+            current_date_for_week = timezone.now().date()
+            current_duty_week = DutyWeek.objects.filter(
+                academic_year=current_year,
+                start_date__lte=current_date_for_week,
+                end_date__gte=current_date_for_week
+            ).first() if current_year else None
+
+            if current_duty_week and teacher_profile:
+                week_num = current_duty_week.week_number
+                # Fetch all lesson plans for this teacher this week
+                week_plans = LessonPlan.objects.filter(
+                    teacher=teacher_profile,
+                    week_number=week_num
+                ).select_related('subject', 'school_class')
+
+                # Build lookup: (subject_id, class_id) → lesson plan
+                plan_lookup = {}
+                for plan in week_plans:
+                    key = (plan.subject_id, plan.school_class_id)
+                    plan_lookup[key] = plan
+
+                # Attach lesson topic to each timetable period
+                for p in todays_classes:
+                    key = (p.class_subject.subject_id, p.class_subject.class_name_id)
+                    plan = plan_lookup.get(key)
+                    if plan:
+                        p.lesson_topic = plan.topic
+                        p.lesson_objectives = plan.objectives
+                    else:
+                        p.lesson_topic = None
+                        p.lesson_objectives = None
+
+                # Find the next upcoming class (or ongoing) for the Aura-T banner
+                for p in todays_classes:
+                    if p.is_ongoing or p.start_time > current_time:
+                        if p.lesson_topic:
+                            next_class_reminder = p
+                        break
+        except Exception:
+            pass  # Gracefully degrade — schedule still shows without topics
+
         # Calculate Student Count (Restored)
         teacher_students_count = Student.objects.filter(current_class__id__in=class_ids).distinct().count()
         
@@ -647,6 +692,7 @@ def dashboard(request):
             'notices': teacher_notices,
             'next_duty': next_duty,
             'todays_classes': todays_classes,
+            'next_class_reminder': next_class_reminder,
             'recent_resources': recent_resources,
             'resource_fields_available': resource_fields_available,
             **calendar_widget,
