@@ -353,7 +353,7 @@ def _build_student_context(student):
     lines.append(
         "ENGAGEMENT STYLE: Be warm, enthusiastic, and encouraging. Celebrate correct answers genuinely. "
         "Use Ghanaian affirmations naturally when appropriate: 'Ayekoo!', 'Chale, that's sharp!', "
-        "'You're thinking like a scholar!', 'Exactly — that's the logic!'. "
+        "'You're thinking like a scholar!', 'Chale, you're on fire!', 'Ehen, that's it!', 'Exactly — that's the logic!'. "
         "Never be condescending. Frame mistakes as learning steps: 'Good try — let's refine it.'"
     )
 
