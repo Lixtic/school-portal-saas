@@ -129,58 +129,206 @@
     transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* ── Live Transcript Feed ── */
-#transcriptFeed {
+/* ── Transcript Drawer ── */
+#transcriptDrawer {
     position: absolute;
-    bottom: 100px; left: 50%;
-    transform: translateX(-50%);
-    width: 90%; max-width: 460px;
-    z-index: 8;
-    display: flex; flex-direction: column; gap: 6px;
-    max-height: 180px; overflow-y: auto;
-    mask-image: linear-gradient(transparent, black 20%, black 80%, transparent);
-    -webkit-mask-image: linear-gradient(transparent, black 20%, black 80%, transparent);
-    scrollbar-width: none;
-    opacity: 0;
-    transition: opacity 0.5s;
+    bottom: 112px; left: 0; right: 0;
+    z-index: 9;
+    display: flex; flex-direction: column;
+    max-height: 45vh;
+    background: linear-gradient(180deg, rgba(6,6,15,0.0) 0%, rgba(6,6,15,0.88) 24px, rgba(6,6,15,0.96) 100%);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    transition: opacity 0.4s ease, max-height 0.45s cubic-bezier(0.16, 1, 0.3, 1);
     pointer-events: none;
+    opacity: 0;
 }
-#transcriptFeed.visible { opacity: 1; pointer-events: auto; }
-#transcriptFeed::-webkit-scrollbar { display: none; }
+#transcriptDrawer.visible {
+    pointer-events: auto;
+    opacity: 1;
+}
+#transcriptDrawer.expanded {
+    max-height: 65vh;
+}
 
-.transcript-line {
-    padding: 10px 16px; border-radius: 14px;
-    font-size: 13px; line-height: 1.5;
-    animation: fadeSlideUp 0.4s ease forwards;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+/* Drawer drag handle */
+#drawerHandle {
+    display: flex; justify-content: center; align-items: center;
+    padding: 8px 0 4px;
+    cursor: grab; flex-shrink: 0;
+}
+#drawerHandle .handle-bar {
+    width: 36px; height: 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.15);
     transition: background 0.2s;
 }
-.transcript-line.user {
-    background: rgba(255,255,255,0.06);
+#drawerHandle:hover .handle-bar { background: rgba(255,255,255,0.3); }
+
+/* Drawer header with toggle */
+#drawerHeader {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 4px 16px 8px;
+    flex-shrink: 0;
+}
+#drawerHeader .drawer-title {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px;
+    color: rgba(255,255,255,0.25); font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
+}
+#drawerHeader .drawer-title .msg-count {
+    background: rgba(56,120,255,0.2); color: rgba(56,120,255,0.8);
+    padding: 1px 7px; border-radius: 10px; font-size: 10px;
+    min-width: 18px; text-align: center;
+}
+.drawer-actions { display: flex; gap: 4px; }
+.drawer-action-btn {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.35); border-radius: 8px;
+    padding: 4px 8px; font-size: 11px; cursor: pointer;
+    transition: all 0.2s; display: flex; align-items: center; gap: 4px;
+}
+.drawer-action-btn:hover { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); }
+.drawer-action-btn.active { background: rgba(56,120,255,0.15); border-color: rgba(56,120,255,0.3); color: rgba(56,120,255,0.8); }
+
+/* Message Feed */
+#transcriptFeed {
+    flex: 1; overflow-y: auto;
+    padding: 4px 16px 8px;
+    display: flex; flex-direction: column; gap: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.08) transparent;
+    scroll-behavior: smooth;
+}
+#transcriptFeed::-webkit-scrollbar { width: 4px; }
+#transcriptFeed::-webkit-scrollbar-track { background: transparent; }
+#transcriptFeed::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+#transcriptFeed::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
+/* Message bubbles */
+.transcript-msg {
+    display: flex; gap: 10px;
+    animation: msgFadeIn 0.35s ease forwards;
+    max-width: 90%;
+}
+.transcript-msg.user { flex-direction: row-reverse; align-self: flex-end; }
+.transcript-msg.aura { align-self: flex-start; }
+
+.msg-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; flex-shrink: 0; margin-top: 2px;
+}
+.transcript-msg.user .msg-avatar {
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.5);
+}
+.transcript-msg.aura .msg-avatar {
+    background: linear-gradient(135deg, rgba(56,120,255,0.25), rgba(168,85,247,0.25));
+    color: rgba(140,170,255,0.9);
+}
+
+.msg-bubble {
+    padding: 10px 14px; border-radius: 16px;
+    font-size: 13px; line-height: 1.55;
+    position: relative;
+    transition: background 0.2s;
+}
+.transcript-msg.user .msg-bubble {
+    background: rgba(255,255,255,0.07);
     border: 1px solid rgba(255,255,255,0.06);
-    color: rgba(255,255,255,0.7);
-    align-self: flex-end; max-width: 85%;
+    color: rgba(255,255,255,0.75);
     border-bottom-right-radius: 4px;
 }
-.transcript-line.user:hover { background: rgba(255,255,255,0.09); }
-.transcript-line.aura {
+.transcript-msg.aura .msg-bubble {
     background: rgba(56,120,255,0.08);
-    border: 1px solid rgba(56,120,255,0.12);
-    color: rgba(200,215,255,0.85);
-    align-self: flex-start; max-width: 85%;
+    border: 1px solid rgba(56,120,255,0.10);
+    color: rgba(200,218,255,0.88);
     border-bottom-left-radius: 4px;
 }
-.transcript-line.aura:hover { background: rgba(56,120,255,0.12); }
-.transcript-line .label {
-    font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
-    margin-bottom: 3px; display: block;
-}
-.transcript-line.user .label { color: rgba(255,255,255,0.3); }
-.transcript-line.aura .label { color: rgba(56,120,255,0.5); }
 
-@keyframes fadeSlideUp {
-    from { opacity: 0; transform: translateY(10px); }
+.msg-meta {
+    display: flex; align-items: center; gap: 6px;
+    margin-top: 4px;
+}
+.msg-time {
+    font-size: 9px; color: rgba(255,255,255,0.18);
+    letter-spacing: 0.3px;
+}
+.msg-copy-btn {
+    background: none; border: none; color: rgba(255,255,255,0.12);
+    font-size: 10px; cursor: pointer; padding: 2px 4px;
+    border-radius: 4px; transition: all 0.15s;
+    opacity: 0;
+}
+.transcript-msg:hover .msg-copy-btn { opacity: 1; }
+.msg-copy-btn:hover { color: rgba(56,120,255,0.7); background: rgba(56,120,255,0.08); }
+.msg-copy-btn.copied { color: rgba(0,200,100,0.7); }
+
+/* Typing indicator */
+.typing-indicator {
+    display: flex; gap: 4px; padding: 12px 14px; align-items: center;
+}
+.typing-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(56,120,255,0.4);
+    animation: typingBounce 1.2s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.typing-dot:nth-child(3) { animation-delay: 0.3s; }
+@keyframes typingBounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-6px); opacity: 1; }
+}
+
+/* Scroll-to-bottom indicator */
+#scrollToBottom {
+    position: absolute; bottom: 60px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(56,120,255,0.2); border: 1px solid rgba(56,120,255,0.3);
+    color: rgba(56,120,255,0.9); border-radius: 20px;
+    padding: 4px 14px; font-size: 11px; cursor: pointer;
+    display: none; align-items: center; gap: 4px;
+    transition: all 0.25s; z-index: 2;
+    backdrop-filter: blur(12px);
+}
+#scrollToBottom.visible { display: flex; }
+#scrollToBottom:hover { background: rgba(56,120,255,0.3); }
+
+/* Text Input Bar */
+#textInputBar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px 12px;
+    flex-shrink: 0;
+    border-top: 1px solid rgba(255,255,255,0.04);
+}
+#textInputBar input {
+    flex: 1;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #ddd; border-radius: 22px;
+    padding: 9px 16px; font-size: 13px;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+#textInputBar input::placeholder { color: rgba(255,255,255,0.2); }
+#textInputBar input:focus { border-color: rgba(56,120,255,0.4); }
+#textInputBar input:disabled { opacity: 0.4; cursor: not-allowed; }
+#textSendBtn {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, #3878ff, #6c3bff);
+    border: none; color: #fff; font-size: 14px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.25s; flex-shrink: 0;
+    opacity: 0.5;
+}
+#textSendBtn:hover { filter: brightness(1.2); transform: scale(1.05); }
+#textSendBtn.active { opacity: 1; }
+
+@keyframes msgFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -223,7 +371,8 @@
     position: absolute; bottom: 0; left: 0; right: 0;
     display: flex; justify-content: center; align-items: center; gap: 16px;
     padding: 20px 20px 28px;
-    z-index: 10;
+    z-index: 11;
+    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Main Tap-to-Interrupt Zone */
@@ -491,12 +640,13 @@
     #statusText { font-size: 18px; }
     #substatusText { font-size: 11px; }
 
-    #transcriptFeed {
-        bottom: 95px; max-height: 130px;
-        width: 94%; max-width: none;
+    #transcriptDrawer {
+        max-height: 48vh;
+        bottom: 92px;
     }
-    .transcript-line { padding: 8px 12px; font-size: 12px; border-radius: 12px; }
-    .transcript-line .label { font-size: 9px; }
+    #textInputBar input { font-size: 13px; padding: 8px 14px; }
+    .msg-bubble { padding: 8px 12px; font-size: 12px; }
+    .msg-avatar { width: 24px; height: 24px; font-size: 10px; }
 
     #bottomControls {
         gap: 10px;
@@ -526,8 +676,8 @@
     #ambientGlow { width: 220px; height: 220px; }
     #centerStatus { transform: translate(-50%, 28px); }
     #statusText { font-size: 16px; }
-    #transcriptFeed { bottom: 88px; max-height: 110px; }
-    .transcript-line { padding: 6px 10px; font-size: 11px; }
+    #transcriptDrawer { max-height: 45vh; bottom: 82px; }
+    .msg-bubble { padding: 7px 10px; font-size: 11px; }
     #bottomControls { gap: 8px; }
     #interruptZone { width: 52px; height: 52px; }
     .side-btn { width: 36px; height: 36px; font-size: 13px; }
@@ -538,7 +688,7 @@
     #ambientGlow { width: 200px; height: 200px; transform: translate(-50%, -50%); }
     #centerStatus { transform: translate(-50%, 25px); }
     #statusText { font-size: 16px; }
-    #transcriptFeed { max-height: 80px; bottom: 70px; }
+    #transcriptDrawer { max-height: 40vh; bottom: 72px; }
     #bottomControls { padding: 8px 14px 12px; }
     #interruptZone { width: 48px; height: 48px; }
     .side-btn { width: 36px; height: 36px; }
@@ -597,8 +747,27 @@
         <p id="substatusText">Tap to begin a conversation</p>
     </div>
 
-    <!-- Live Transcript Feed -->
-    <div id="transcriptFeed"></div>
+    <!-- Transcript Drawer -->
+    <div id="transcriptDrawer">
+        <div id="drawerHandle"><div class="handle-bar"></div></div>
+        <div id="drawerHeader">
+            <div class="drawer-title">
+                <i class="fa-solid fa-message" style="font-size:10px"></i>
+                Transcript <span class="msg-count" id="msgCount">0</span>
+            </div>
+            <div class="drawer-actions">
+                <button class="drawer-action-btn" id="expandDrawerBtn" title="Expand transcript">
+                    <i class="fa-solid fa-up-right-and-down-left-from-center" style="font-size:10px"></i>
+                </button>
+            </div>
+        </div>
+        <div id="transcriptFeed"></div>
+        <button id="scrollToBottom"><i class="fa-solid fa-arrow-down" style="font-size:10px"></i> New messages</button>
+        <div id="textInputBar">
+            <input type="text" id="textInput" placeholder="Type a message to Aura..." autocomplete="off">
+            <button id="textSendBtn"><i class="fa-solid fa-arrow-up"></i></button>
+        </div>
+    </div>
 
     <!-- Whiteboard Ghost Overlay -->
     <div id="whiteboardOverlay">
@@ -619,6 +788,9 @@
         </div>
         <button id="muteBtn" class="side-btn" title="Mute microphone">
             <i class="fa-solid fa-microphone-slash"></i>
+        </button>
+        <button id="transcriptToggle" class="side-btn" title="Toggle transcript">
+            <i class="fa-solid fa-message"></i>
         </button>
         <button id="clearBtn" class="side-btn hidden" title="Clear history">
             <i class="fa-solid fa-trash-can"></i>
@@ -973,6 +1145,7 @@ requestAnimationFrame(renderOrb);
 
 const statusText = document.getElementById('statusText');
 const substatusText = document.getElementById('substatusText');
+const transcriptDrawer = document.getElementById('transcriptDrawer');
 const transcriptFeed = document.getElementById('transcriptFeed');
 const interruptZone = document.getElementById('interruptZone');
 const interruptIcon = interruptZone.querySelector('.icon');
@@ -1002,6 +1175,12 @@ const muteBtn = document.getElementById('muteBtn');
 const whiteboardOverlay = document.getElementById('whiteboardOverlay');
 const whiteboardContent = document.getElementById('whiteboardContent');
 const whiteboardClose = document.getElementById('whiteboardClose');
+const expandDrawerBtn = document.getElementById('expandDrawerBtn');
+const msgCount = document.getElementById('msgCount');
+const scrollToBottomBtn = document.getElementById('scrollToBottom');
+const textInput = document.getElementById('textInput');
+const textSendBtn = document.getElementById('textSendBtn');
+const transcriptToggle = document.getElementById('transcriptToggle');
 
 // Realtime API
 let realtimeWs = null;
@@ -1069,7 +1248,7 @@ function updateState(newState) {
             substatusText.textContent = 'Tap to begin a conversation';
             interruptIcon.className = 'icon fa-solid fa-microphone';
             targetOrbState = 0;
-            transcriptFeed.classList.remove('visible');
+            transcriptDrawer.classList.remove('visible');
             break;
         case 'CONNECTING':
             statusText.textContent = 'Connecting';
@@ -1085,6 +1264,7 @@ function updateState(newState) {
             interruptZone.classList.add('listening');
             targetOrbState = 0.5;
             if (!sessionStartTime) sessionStartTime = Date.now();
+            transcriptDrawer.classList.add('visible');
             break;
         case 'LISTENING':
             statusText.textContent = 'Listening';
@@ -1092,7 +1272,7 @@ function updateState(newState) {
             interruptIcon.className = 'icon fa-solid fa-wave-square';
             interruptZone.classList.add('listening');
             targetOrbState = 1.0;
-            transcriptFeed.classList.add('visible');
+            transcriptDrawer.classList.add('visible');
             break;
         case 'THINKING':
             statusText.textContent = 'Thinking';
@@ -1107,7 +1287,7 @@ function updateState(newState) {
             interruptIcon.className = 'icon fa-solid fa-hand';
             interruptZone.classList.add('speaking');
             targetOrbState = 3.0;
-            transcriptFeed.classList.add('visible');
+            transcriptDrawer.classList.add('visible');
             break;
         case 'ERROR':
             statusText.textContent = 'Connection Issue';
@@ -1133,16 +1313,70 @@ function updateState(newState) {
 // 4. TRANSCRIPT FEED
 // ═══════════════════════════════════════════════════════════
 
+let transcriptMsgCount = 0;
+let autoScroll = true;
+
+// Smart scroll detection
+transcriptFeed.addEventListener('scroll', () => {
+    const { scrollTop, scrollHeight, clientHeight } = transcriptFeed;
+    const atBottom = scrollHeight - scrollTop - clientHeight < 40;
+    autoScroll = atBottom;
+    scrollToBottomBtn.classList.toggle('visible', !atBottom && transcriptMsgCount > 3);
+});
+scrollToBottomBtn.addEventListener('click', () => {
+    transcriptFeed.scrollTop = transcriptFeed.scrollHeight;
+    autoScroll = true;
+    scrollToBottomBtn.classList.remove('visible');
+});
+
+function scrollFeedToBottom() {
+    if (autoScroll) transcriptFeed.scrollTop = transcriptFeed.scrollHeight;
+}
+
+function getTimeString() {
+    return new Date().toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+}
+
+function createMsgElement(text, role, time) {
+    const div = document.createElement('div');
+    div.className = `transcript-msg ${role}`;
+    const avatarIcon = role === 'user' ? 'fa-user' : 'fa-wand-magic-sparkles';
+    div.innerHTML = `
+        <div class="msg-avatar"><i class="fa-solid ${avatarIcon}"></i></div>
+        <div>
+            <div class="msg-bubble">
+                <span class="msg-text">${escapeHtml(text)}</span>
+            </div>
+            <div class="msg-meta">
+                <span class="msg-time">${time || getTimeString()}</span>
+                <button class="msg-copy-btn" title="Copy"><i class="fa-regular fa-copy"></i></button>
+            </div>
+        </div>`;
+    // Copy button handler
+    div.querySelector('.msg-copy-btn').addEventListener('click', function() {
+        const msgText = div.querySelector('.msg-text').textContent;
+        navigator.clipboard.writeText(msgText).then(() => {
+            this.innerHTML = '<i class="fa-solid fa-check"></i>';
+            this.classList.add('copied');
+            setTimeout(() => {
+                this.innerHTML = '<i class="fa-regular fa-copy"></i>';
+                this.classList.remove('copied');
+            }, 1500);
+        });
+    });
+    return div;
+}
+
 function addTranscriptLine(text, role) {
     if (!text || !text.trim()) return;
-    const div = document.createElement('div');
-    div.className = `transcript-line ${role}`;
-    div.innerHTML = `<span class="label">${role === 'user' ? 'You' : 'Aura'}</span>${escapeHtml(text)}`;
+    const div = createMsgElement(text, role, getTimeString());
     transcriptFeed.appendChild(div);
-    transcriptFeed.scrollTop = transcriptFeed.scrollHeight;
+    transcriptMsgCount++;
+    msgCount.textContent = transcriptMsgCount;
+    scrollFeedToBottom();
 
-    // Trim old lines
-    while (transcriptFeed.children.length > 20) transcriptFeed.removeChild(transcriptFeed.firstChild);
+    // Trim old messages (keep last 50)
+    while (transcriptFeed.children.length > 50) transcriptFeed.removeChild(transcriptFeed.firstChild);
 }
 
 // Live update for streaming aura text
@@ -1150,12 +1384,35 @@ let liveAuraDiv = null;
 function updateLiveAuraText(text) {
     if (!liveAuraDiv) {
         liveAuraDiv = document.createElement('div');
-        liveAuraDiv.className = 'transcript-line aura';
-        liveAuraDiv.innerHTML = '<span class="label">Aura</span><span class="live-text"></span>';
+        liveAuraDiv.className = 'transcript-msg aura';
+        liveAuraDiv.innerHTML = `
+            <div class="msg-avatar"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+            <div>
+                <div class="msg-bubble">
+                    <span class="msg-text live-text"></span>
+                </div>
+                <div class="msg-meta">
+                    <span class="msg-time">${getTimeString()}</span>
+                    <button class="msg-copy-btn" title="Copy"><i class="fa-regular fa-copy"></i></button>
+                </div>
+            </div>`;
+        liveAuraDiv.querySelector('.msg-copy-btn').addEventListener('click', function() {
+            const msgText = liveAuraDiv.querySelector('.live-text').textContent;
+            navigator.clipboard.writeText(msgText).then(() => {
+                this.innerHTML = '<i class="fa-solid fa-check"></i>';
+                this.classList.add('copied');
+                setTimeout(() => {
+                    this.innerHTML = '<i class="fa-regular fa-copy"></i>';
+                    this.classList.remove('copied');
+                }, 1500);
+            });
+        });
         transcriptFeed.appendChild(liveAuraDiv);
+        transcriptMsgCount++;
+        msgCount.textContent = transcriptMsgCount;
     }
     liveAuraDiv.querySelector('.live-text').textContent = text;
-    transcriptFeed.scrollTop = transcriptFeed.scrollHeight;
+    scrollFeedToBottom();
 }
 
 function finalizeLiveAuraText() {
@@ -1166,6 +1423,74 @@ function escapeHtml(text) {
     const d = document.createElement('div');
     d.textContent = text;
     return d.innerHTML;
+}
+
+// Expand/collapse drawer
+let drawerExpanded = false;
+expandDrawerBtn.addEventListener('click', () => {
+    drawerExpanded = !drawerExpanded;
+    transcriptDrawer.classList.toggle('expanded', drawerExpanded);
+    expandDrawerBtn.classList.toggle('active', drawerExpanded);
+    expandDrawerBtn.innerHTML = drawerExpanded
+        ? '<i class="fa-solid fa-down-left-and-up-right-to-center" style="font-size:10px"></i>'
+        : '<i class="fa-solid fa-up-right-and-down-left-from-center" style="font-size:10px"></i>';
+    scrollFeedToBottom();
+});
+
+// Transcript toggle button
+transcriptToggle.addEventListener('click', () => {
+    const isVisible = transcriptDrawer.classList.contains('visible');
+    transcriptDrawer.classList.toggle('visible', !isVisible);
+    transcriptToggle.classList.toggle('active', !isVisible);
+    if (!isVisible) scrollFeedToBottom();
+});
+
+// Text input — send text messages to Realtime API
+textInput.addEventListener('input', () => {
+    textSendBtn.classList.toggle('active', textInput.value.trim().length > 0);
+});
+textInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendTextMessage(); }
+});
+textSendBtn.addEventListener('click', sendTextMessage);
+
+function sendTextMessage() {
+    const text = textInput.value.trim();
+    if (!text || !isConnected) return;
+    
+    // Show in transcript
+    addTranscriptLine(text, 'user');
+    currentUserText = text;
+    targetSentiment = estimateSentiment(text);
+    
+    // Send to Realtime API as a conversation item
+    sendRealtimeEvent({
+        type: 'conversation.item.create',
+        item: {
+            type: 'message',
+            role: 'user',
+            content: [{ type: 'input_text', text: text }]
+        }
+    });
+    // Trigger a response
+    sendRealtimeEvent({ type: 'response.create' });
+    
+    textInput.value = '';
+    textSendBtn.classList.remove('active');
+    transcriptDrawer.classList.add('visible');
+}
+
+// Update text input enabled state based on connection
+function updateTextInputState() {
+    if (isConnected) {
+        textInput.disabled = false;
+        textInput.placeholder = 'Type a message to Aura...';
+        textSendBtn.style.pointerEvents = 'auto';
+    } else {
+        textInput.disabled = true;
+        textInput.placeholder = 'Connect to Aura first...';
+        textSendBtn.style.pointerEvents = 'none';
+    }
 }
 
 
@@ -1384,6 +1709,7 @@ async function connectRealtime() {
 
         realtimeWs.onopen = () => {
             isConnected = true;
+            updateTextInputState();
             const baseInstructions = "You are Aura, a helpful and friendly AI tutor. Keep answers concise. If you explain math or a formula, prefix it with [WHITEBOARD] on its own line, followed by the content.";
             const fullInstructions = studentContext
                 ? baseInstructions + '\n\n' + studentContext
@@ -1422,6 +1748,7 @@ async function connectRealtime() {
 
         realtimeWs.onclose = (evt) => {
             isConnected = false;
+            updateTextInputState();
             stopAudioCapture();
             console.log(`WebSocket closed: code=${evt.code} reason=${evt.reason}`);
 
@@ -1461,6 +1788,7 @@ function disconnectRealtime() {
     if (realtimeWs) { realtimeWs.close(); realtimeWs = null; }
     stopAudioCapture();
     isConnected = false;
+    updateTextInputState();
     sessionStartTime = null;
     progressFill.style.strokeDashoffset = CIRCUMFERENCE;
     updateState('IDLE');
