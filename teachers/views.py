@@ -462,15 +462,22 @@ def analytics_dashboard(request):
         except (OperationalError, ProgrammingError):
             pass  # Table may not exist yet
         
-        # Prefetch last TutorSession per student
+        # Prefetch last TutorSession per student — single aggregated query
         last_session_map = {}
         session_count_map = {}
         try:
-            for s in students:
-                last = TutorSession.objects.filter(student=s).order_by('-started_at').first()
-                if last:
-                    last_session_map[s.id] = last.started_at
-                    session_count_map[s.id] = TutorSession.objects.filter(student=s).count()
+            from django.db.models import Max
+            session_stats = (
+                TutorSession.objects.filter(student__in=students)
+                .values('student_id')
+                .annotate(
+                    last_started=Max('started_at'),
+                    total_sessions=Count('id'),
+                )
+            )
+            for row in session_stats:
+                last_session_map[row['student_id']] = row['last_started']
+                session_count_map[row['student_id']] = row['total_sessions']
         except (OperationalError, ProgrammingError):
             pass
         
@@ -2254,11 +2261,6 @@ def ai_sessions_list(request):
     from academics.ai_tutor import get_openai_chat_model
 
     active_ai_model = get_openai_chat_model()
-    hf_fallback_model = (
-        os.environ.get('HF_FALLBACK_MODEL')
-        or os.environ.get('HUGGINGFACE_FALLBACK_MODEL')
-        or 'google/flan-t5-large'
-    )
 
     context = {
         'sessions': sessions,
@@ -2269,7 +2271,6 @@ def ai_sessions_list(request):
         'student_count': total_students,
         'current_time': now,
         'active_ai_model': active_ai_model,
-        'hf_fallback_model': hf_fallback_model,
     }
     return render(request, 'teachers/ai_sessions_list.html', context)
 
