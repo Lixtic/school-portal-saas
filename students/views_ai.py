@@ -125,15 +125,10 @@ def create_realtime_session(request):
                 "session": {
                     "type": "realtime",
                     "model": model,
-                    "modalities": ["text", "audio"],
-                    "input_audio_transcription": {
-                        "model": "gpt-4o-transcribe"
-                    },
-                    "turn_detection": {
-                        "type": "server_vad",
-                        "threshold": 0.5,
-                        "prefix_padding_ms": 300,
-                        "silence_duration_ms": 500
+                    "audio": {
+                        "output": {
+                            "voice": voice
+                        }
                     }
                 }
             },
@@ -168,6 +163,7 @@ def create_realtime_session(request):
         return JsonResponse({
             "client_secret": client_secret,
             "model": session_info.get("model", model),
+            "voice": voice,
             "student_context": student_context,
         })
         
