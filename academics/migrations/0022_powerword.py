@@ -6,7 +6,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('academics', '0021_studygrouproom_studygroupmessage'),
-        ('students', '0006_student_interests_and_more'),
+        ('students', '0007_add_preferred_language_and_aura_notes'),
     ]
 
     operations = [
