@@ -78,8 +78,8 @@ def aura_voice_view(request):
 @login_required
 def create_realtime_session(request):
     """
-    Create an ephemeral token for OpenAI Realtime API.
-    Frontend will use this to establish WebSocket connection directly to OpenAI.
+    Create an ephemeral token for OpenAI Realtime API (WebRTC).
+    Frontend uses this to establish a WebRTC peer connection directly to OpenAI.
     Requires authenticated student user.
     """
     if request.method != "POST":
@@ -116,15 +116,27 @@ def create_realtime_session(request):
             return JsonResponse({"error": "OpenAI API key not configured"}, status=500)
         
         response = http_requests.post(
-            "https://api.openai.com/v1/realtime/sessions",
+            "https://api.openai.com/v1/realtime/client_secrets",
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json"
             },
             json={
-                "model": model,
-                "modalities": ["text", "audio"],
-                "voice": voice,
+                "session": {
+                    "type": "realtime",
+                    "model": model,
+                    "voice": voice,
+                    "modalities": ["text", "audio"],
+                    "input_audio_transcription": {
+                        "model": "gpt-4o-transcribe"
+                    },
+                    "turn_detection": {
+                        "type": "server_vad",
+                        "threshold": 0.5,
+                        "prefix_padding_ms": 300,
+                        "silence_duration_ms": 500
+                    }
+                }
             },
             timeout=30
         )
@@ -137,17 +149,14 @@ def create_realtime_session(request):
             }, status=response.status_code)
         
         session_data = response.json()
-        # /v1/realtime/sessions returns {id, client_secret: {value, expires_at}, model, ...}
-        client_secret_obj = session_data.get("client_secret", {})
-        if isinstance(client_secret_obj, dict):
-            client_secret = client_secret_obj.get("value", "")
-        else:
-            # Fallback: if client_secret is returned as a string directly
-            client_secret = str(client_secret_obj) if client_secret_obj else ""
+        # /v1/realtime/client_secrets returns {value, expires_at, session} at top level
+        client_secret = session_data.get("value", "")
         
         if not client_secret:
-            # Also try top-level "value" (older endpoint format)
-            client_secret = session_data.get("value", "")
+            # Fallback: try nested client_secret.value format
+            client_secret_obj = session_data.get("client_secret", {})
+            if isinstance(client_secret_obj, dict):
+                client_secret = client_secret_obj.get("value", "")
         
         if not client_secret:
             logger.error(f"Realtime client_secret response missing value: {session_data}")
@@ -156,9 +165,10 @@ def create_realtime_session(request):
                 "detail": str(session_data)[:300]
             }, status=500)
         
+        session_info = session_data.get("session", {})
         return JsonResponse({
             "client_secret": client_secret,
-            "model": session_data.get("model", model),
+            "model": session_info.get("model", model),
             "student_context": student_context,
         })
         

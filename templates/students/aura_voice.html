@@ -883,8 +883,9 @@
     </div>
 </div>
 
-<!-- Hidden audio element -->
+<!-- Hidden audio elements -->
 <audio id="ttsAudio" class="hidden" autoplay></audio>
+<audio id="remoteAudio" autoplay style="display:none"></audio>
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
@@ -1182,24 +1183,21 @@ const textInput = document.getElementById('textInput');
 const textSendBtn = document.getElementById('textSendBtn');
 const transcriptToggle = document.getElementById('transcriptToggle');
 
-// Realtime API
-let realtimeWs = null;
-let audioContext = null;
-let mediaStream = null;
-let source = null;
-let processor = null;
+// Realtime API — WebRTC
+let peerConnection = null;
+let dataChannel = null;
+let localStream = null;      // microphone MediaStream
+const remoteAudioEl = document.getElementById('remoteAudio');
 let isConnected = false;
 let isMuted = false;
-
-// Audio playback
-let audioPlaybackContext = null;
-let playbackQueue = [];
 let isPlayingAudio = false;
-let nextPlaybackTime = 0;
 
 // Audio analysis (for orb visualization)
+let audioContext = null;
 let analyser = null;
 let analyserData = null;
+let remoteAnalyser = null;
+let remoteAnalyserData = null;
 
 // State
 let state = 'IDLE';
@@ -1662,8 +1660,8 @@ function estimateSentiment(text) {
 muteBtn.addEventListener('click', () => {
     isMuted = !isMuted;
     muteBtn.classList.toggle('active', isMuted);
-    if (mediaStream) {
-        mediaStream.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
+    if (localStream) {
+        localStream.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
     }
     muteBtn.querySelector('i').className = isMuted ? 'fa-solid fa-microphone-slash' : 'fa-solid fa-microphone';
     substatusText.textContent = isMuted ? 'Microphone muted' : 'Microphone unmuted';
@@ -1671,12 +1669,13 @@ muteBtn.addEventListener('click', () => {
 
 
 // ═══════════════════════════════════════════════════════════
-// 11. REALTIME API — CONNECTION
+// 11. REALTIME API — CONNECTION (WebRTC)
 // ═══════════════════════════════════════════════════════════
 
 async function connectRealtime() {
     updateState('CONNECTING');
     try {
+        // 1. Get ephemeral token from our backend
         const sessionResponse = await fetch("{% url 'students:create_realtime_session' %}", {
             method: 'POST',
             headers: { 'Content-Type':'application/json', 'X-CSRFToken':'{{ csrf_token }}' },
@@ -1694,36 +1693,71 @@ async function connectRealtime() {
         }
 
         const sessionData = await sessionResponse.json();
-        const clientSecret = sessionData.client_secret;
+        const ephemeralKey = sessionData.client_secret;
         const model = sessionData.model || 'gpt-realtime';
         const studentContext = sessionData.student_context || '';
 
-        if (!clientSecret) {
+        if (!ephemeralKey) {
             throw new Error('Server returned empty client_secret. Check API key configuration.');
         }
 
-        realtimeWs = new WebSocket(
-            `wss://api.openai.com/v1/realtime?model=${model}`,
-            ['realtime', `openai-insecure-api-key.${clientSecret}`]
-        );
+        // 2. Get microphone
+        localStream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true }
+        });
+        if (isMuted) localStream.getAudioTracks().forEach(t => { t.enabled = false; });
 
-        realtimeWs.onopen = () => {
+        // 3. Create RTCPeerConnection
+        peerConnection = new RTCPeerConnection();
+
+        // Add microphone track
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+        // 4. Set up local audio analyser for orb visualization
+        audioContext = new AudioContext();
+        const localSource = audioContext.createMediaStreamSource(localStream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        analyserData = new Uint8Array(analyser.frequencyBinCount);
+        localSource.connect(analyser);
+
+        // 5. Handle remote audio track (Aura's voice)
+        peerConnection.ontrack = (event) => {
+            console.log('Remote audio track received');
+            remoteAudioEl.srcObject = event.streams[0];
+
+            // Set up remote audio analyser for orb visualization during speech
+            try {
+                const remoteSource = audioContext.createMediaStreamSource(event.streams[0]);
+                remoteAnalyser = audioContext.createAnalyser();
+                remoteAnalyser.fftSize = 256;
+                remoteAnalyserData = new Uint8Array(remoteAnalyser.frequencyBinCount);
+                remoteSource.connect(remoteAnalyser);
+            } catch(e) {
+                console.warn('Could not create remote analyser:', e);
+            }
+        };
+
+        // 6. Create data channel for sending/receiving events
+        dataChannel = peerConnection.createDataChannel('oai-events');
+
+        dataChannel.onopen = () => {
+            console.log('Data channel open — session ready');
             isConnected = true;
             updateTextInputState();
+
+            // Configure session
             const baseInstructions = "You are Aura, a helpful and friendly AI tutor. Keep answers concise. If you explain math or a formula, prefix it with [WHITEBOARD] on its own line, followed by the content.";
             const fullInstructions = studentContext
                 ? baseInstructions + '\n\n' + studentContext
                 : baseInstructions;
 
-            // Configure session with GA Realtime API flat format
             sendRealtimeEvent({
                 type: 'session.update',
                 session: {
                     modalities: ['text', 'audio'],
                     instructions: fullInstructions,
                     voice: voiceSettings.voice,
-                    input_audio_format: 'pcm16',
-                    output_audio_format: 'pcm16',
                     input_audio_transcription: { model: 'gpt-4o-transcribe' },
                     turn_detection: {
                         type: 'server_vad',
@@ -1734,7 +1768,6 @@ async function connectRealtime() {
                 }
             });
 
-            startAudioCapture();
             updateState('READY');
             retryCount = 0;
 
@@ -1753,37 +1786,53 @@ async function connectRealtime() {
             }, 600);
         };
 
-        realtimeWs.onmessage = (e) => handleRealtimeMessage(JSON.parse(e.data));
-
-        realtimeWs.onerror = (evt) => {
-            console.error('WebSocket error:', evt);
-            // Don't update state here — onclose will fire right after and handle retry
-        };
-
-        realtimeWs.onclose = (evt) => {
-            isConnected = false;
-            updateTextInputState();
-            stopAudioCapture();
-            console.log(`WebSocket closed: code=${evt.code} reason=${evt.reason}`);
-
-            if (state === 'IDLE') return; // intentional disconnect
-
-            // Auto-retry on unexpected close
-            if (retryCount < MAX_RETRIES) {
-                retryCount++;
-                updateState('ERROR');
-                const delay = retryCount * 2000; // 2s, 4s
-                substatusText.textContent = `Reconnecting (attempt ${retryCount}/${MAX_RETRIES})...`;
-                setTimeout(() => {
-                    if (state === 'ERROR') connectRealtime();
-                }, delay);
-            } else {
-                updateState('ERROR');
-                substatusText.textContent = 'Connection failed. Tap to try again.';
+        dataChannel.onmessage = (e) => {
+            try {
+                handleRealtimeMessage(JSON.parse(e.data));
+            } catch(err) {
+                console.error('Error parsing data channel message:', err);
             }
         };
+
+        dataChannel.onclose = () => {
+            console.log('Data channel closed');
+            handleConnectionClosed();
+        };
+
+        peerConnection.oniceconnectionstatechange = () => {
+            const iceState = peerConnection.iceConnectionState;
+            console.log('ICE state:', iceState);
+            if (iceState === 'failed' || iceState === 'disconnected' || iceState === 'closed') {
+                handleConnectionClosed();
+            }
+        };
+
+        // 7. Create SDP offer and exchange with OpenAI
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+
+        const sdpResponse = await fetch('https://api.openai.com/v1/realtime/calls', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${ephemeralKey}`,
+                'Content-Type': 'application/sdp'
+            },
+            body: offer.sdp
+        });
+
+        if (!sdpResponse.ok) {
+            const errText = await sdpResponse.text();
+            throw new Error(`SDP exchange failed (${sdpResponse.status}): ${errText.substring(0, 200)}`);
+        }
+
+        const answerSdp = await sdpResponse.text();
+        await peerConnection.setRemoteDescription({ type: 'answer', sdp: answerSdp });
+
+        console.log('WebRTC connection established');
+
     } catch(err) {
         console.error('Connect error:', err);
+        cleanupWebRTC();
         if (retryCount < MAX_RETRIES) {
             retryCount++;
             updateState('ERROR');
@@ -1798,9 +1847,40 @@ async function connectRealtime() {
     }
 }
 
+function handleConnectionClosed() {
+    if (state === 'IDLE') return; // intentional disconnect
+    isConnected = false;
+    updateTextInputState();
+
+    if (retryCount < MAX_RETRIES) {
+        retryCount++;
+        updateState('ERROR');
+        const delay = retryCount * 2000;
+        substatusText.textContent = `Reconnecting (attempt ${retryCount}/${MAX_RETRIES})...`;
+        setTimeout(() => {
+            if (state === 'ERROR') connectRealtime();
+        }, delay);
+    } else {
+        updateState('ERROR');
+        substatusText.textContent = 'Connection failed. Tap to try again.';
+    }
+}
+
+function cleanupWebRTC() {
+    if (dataChannel) { try { dataChannel.close(); } catch(e) {} dataChannel = null; }
+    if (peerConnection) { try { peerConnection.close(); } catch(e) {} peerConnection = null; }
+    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+    if (audioContext) { audioContext.close().catch(()=>{}); audioContext = null; }
+    analyser = null;
+    analyserData = null;
+    remoteAnalyser = null;
+    remoteAnalyserData = null;
+    isConnected = false;
+    targetAudioLevel = 0;
+}
+
 function disconnectRealtime() {
-    if (realtimeWs) { realtimeWs.close(); realtimeWs = null; }
-    stopAudioCapture();
+    cleanupWebRTC();
     isConnected = false;
     updateTextInputState();
     sessionStartTime = null;
@@ -1809,7 +1889,9 @@ function disconnectRealtime() {
 }
 
 function sendRealtimeEvent(evt) {
-    if (realtimeWs && realtimeWs.readyState === WebSocket.OPEN) realtimeWs.send(JSON.stringify(evt));
+    if (dataChannel && dataChannel.readyState === 'open') {
+        dataChannel.send(JSON.stringify(evt));
+    }
 }
 
 
@@ -1827,7 +1909,7 @@ function handleRealtimeMessage(msg) {
             break;
 
         case 'response.created':
-            // Response generation started — ensure we're ready
+            // Response generation started
             break;
 
         case 'input_audio_buffer.speech_started':
@@ -1868,9 +1950,8 @@ function handleRealtimeMessage(msg) {
             updateLiveAuraText(currentAuraText);
             break;
 
-        case 'response.audio.delta':
-            playAudioChunk(msg.delta);
-            break;
+        // Audio playback is handled natively by WebRTC — no manual decoding needed
+        // response.audio.delta events are not sent over WebRTC data channel
 
         case 'response.audio.done':
         case 'response.done':
@@ -1878,7 +1959,6 @@ function handleRealtimeMessage(msg) {
             finalizeLiveAuraText();
             currentAuraText = '';
             isPlayingAudio = false;
-            nextPlaybackTime = 0;
             if (isConnected) updateState('READY');
             break;
 
@@ -1891,132 +1971,40 @@ function handleRealtimeMessage(msg) {
 
 
 // ═══════════════════════════════════════════════════════════
-// 13. AUDIO CAPTURE
+// 13. AUDIO LEVEL MONITORING (for orb visualization)
 // ═══════════════════════════════════════════════════════════
+// WebRTC handles audio capture/playback natively.
+// We only need to monitor audio levels for the orb animation.
 
-async function startAudioCapture() {
-    try {
-        mediaStream = await navigator.mediaDevices.getUserMedia({
-            audio: { sampleRate:24000, channelCount:1, echoCancellation:true, noiseSuppression:true }
-        });
+function updateAudioLevels() {
+    if (!isConnected) return;
 
-        if (isMuted) mediaStream.getAudioTracks().forEach(t => { t.enabled = false; });
-
-        audioContext = new AudioContext({ sampleRate: 24000 });
-        source = audioContext.createMediaStreamSource(mediaStream);
-
-        // Analyser for orb
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 256;
-        analyserData = new Uint8Array(analyser.frequencyBinCount);
-        source.connect(analyser);
-
-        processor = audioContext.createScriptProcessor(4096, 1, 1);
-        processor.onaudioprocess = (e) => {
-            if (!isConnected || !realtimeWs || realtimeWs.readyState !== WebSocket.OPEN) return;
-
-            // Update orb audio level from analyser
-            if (analyser) {
-                analyser.getByteFrequencyData(analyserData);
-                let sum = 0;
-                for (let i = 0; i < analyserData.length; i++) sum += analyserData[i];
-                targetAudioLevel = (sum / analyserData.length) / 255;
-            }
-
-            const input = e.inputBuffer.getChannelData(0);
-            const pcm16 = floatTo16BitPCM(input);
-            sendRealtimeEvent({ type:'input_audio_buffer.append', audio: arrayBufferToBase64(pcm16.buffer) });
-        };
-
-        source.connect(processor);
-        processor.connect(audioContext.destination);
-
-    } catch(err) {
-        console.error('Mic error:', err);
-        statusText.textContent = 'Mic Error';
-        substatusText.textContent = 'Please allow microphone access';
+    // Local mic level (while user is speaking)
+    if (analyser && analyserData) {
+        analyser.getByteFrequencyData(analyserData);
+        let sum = 0;
+        for (let i = 0; i < analyserData.length; i++) sum += analyserData[i];
+        const micLevel = (sum / analyserData.length) / 255;
+        if (!isPlayingAudio) targetAudioLevel = micLevel;
     }
-}
 
-function stopAudioCapture() {
-    if (processor) { processor.disconnect(); processor = null; }
-    if (analyser) { analyser.disconnect(); analyser = null; }
-    if (source) { source.disconnect(); source = null; }
-    if (audioContext) { audioContext.close().catch(()=>{}); audioContext = null; }
-    if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
-    targetAudioLevel = 0;
-}
-
-
-// ═══════════════════════════════════════════════════════════
-// 14. AUDIO PLAYBACK (gapless queue)
-// ═══════════════════════════════════════════════════════════
-
-function playAudioChunk(base64Audio) {
-    try {
-        if (!audioPlaybackContext || audioPlaybackContext.state === 'closed') {
-            audioPlaybackContext = new AudioContext({ sampleRate: 24000 });
-            nextPlaybackTime = 0;
-        }
-
-        const raw = base64ToArrayBuffer(base64Audio);
-        const pcm = new Int16Array(raw);
-        const floats = pcm16ToFloat(pcm);
-
-        const buf = audioPlaybackContext.createBuffer(1, floats.length, 24000);
-        buf.getChannelData(0).set(floats);
-
-        const src = audioPlaybackContext.createBufferSource();
-        src.buffer = buf;
-        src.connect(audioPlaybackContext.destination);
-
-        // Schedule gapless
-        const now = audioPlaybackContext.currentTime;
-        const startAt = Math.max(now, nextPlaybackTime);
-        src.start(startAt);
-        nextPlaybackTime = startAt + buf.duration;
-
-        // Simulate audio level for orb while speaking
-        targetAudioLevel = Math.min(1, floats.length / 4096);
-        src.onended = () => { if (!isPlayingAudio) targetAudioLevel = 0; };
-
-    } catch(err) { console.error('Playback error:', err); }
-}
-
-
-// ═══════════════════════════════════════════════════════════
-// 15. AUDIO CONVERSION UTILS
-// ═══════════════════════════════════════════════════════════
-
-function floatTo16BitPCM(f32) {
-    const buf = new ArrayBuffer(f32.length * 2);
-    const view = new DataView(buf);
-    for (let i = 0, off = 0; i < f32.length; i++, off += 2) {
-        let s = Math.max(-1, Math.min(1, f32[i]));
-        view.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    // Remote audio level (while Aura is speaking)
+    if (remoteAnalyser && remoteAnalyserData && isPlayingAudio) {
+        remoteAnalyser.getByteFrequencyData(remoteAnalyserData);
+        let sum = 0;
+        for (let i = 0; i < remoteAnalyserData.length; i++) sum += remoteAnalyserData[i];
+        targetAudioLevel = (sum / remoteAnalyserData.length) / 255;
     }
-    return new Int16Array(buf);
-}
 
-function pcm16ToFloat(i16) {
-    const f32 = new Float32Array(i16.length);
-    for (let i = 0; i < i16.length; i++) f32[i] = i16[i] / (i16[i] < 0 ? 0x8000 : 0x7FFF);
-    return f32;
+    requestAnimationFrame(updateAudioLevels);
 }
+// Start the audio level loop (orb visualization reads targetAudioLevel)
+requestAnimationFrame(updateAudioLevels);
 
-function arrayBufferToBase64(buf) {
-    const bytes = new Uint8Array(buf);
-    let bin = '';
-    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-    return btoa(bin);
-}
 
-function base64ToArrayBuffer(b64) {
-    const bin = atob(b64);
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    return bytes.buffer;
-}
+// ═══════════════════════════════════════════════════════════
+// 14-15. REMOVED — WebRTC handles audio encode/decode natively
+// ═══════════════════════════════════════════════════════════
 
 
 // ═══════════════════════════════════════════════════════════
@@ -2036,12 +2024,7 @@ interruptZone.addEventListener('click', () => {
             finalizeLiveAuraText();
             currentAuraText = '';
             isPlayingAudio = false;
-            nextPlaybackTime = 0;
-            // Close playback context to stop audio immediately
-            if (audioPlaybackContext) {
-                audioPlaybackContext.close().catch(()=>{});
-                audioPlaybackContext = null;
-            }
+            targetAudioLevel = 0;
             updateState('READY');
             break;
         case 'CONNECTING':
