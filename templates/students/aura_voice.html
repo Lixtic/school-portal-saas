@@ -646,8 +646,8 @@
 
         <label class="aura-label">Model</label>
         <select id="modelSelect" class="aura-select" style="margin-bottom:20px">
-            <option value="gpt-4o-realtime-preview-2024-12-17" selected>GPT-4o Realtime — Best quality</option>
-            <option value="gpt-4o-mini-realtime-preview-2024-12-17">GPT-4o Mini Realtime — Faster &amp; lighter</option>
+            <option value="gpt-realtime" selected>GPT Realtime — Best quality</option>
+            <option value="gpt-realtime-mini">GPT Realtime Mini — Faster &amp; lighter</option>
         </select>
 
         <label class="aura-label">Voice</label>
@@ -1031,7 +1031,16 @@ let retryCount = 0;
 const MAX_RETRIES = 2;
 
 // Settings
-let voiceSettings = JSON.parse(localStorage.getItem('auraVoiceSettings') || '{"voice":"coral","speed":1.0,"model":"gpt-4o-realtime-preview-2024-12-17"}');
+let voiceSettings = JSON.parse(localStorage.getItem('auraVoiceSettings') || '{"voice":"coral","speed":1.0,"model":"gpt-realtime"}');
+// Migrate legacy model names from localStorage
+const _modelMigration = {
+    'gpt-4o-realtime-preview-2024-12-17': 'gpt-realtime',
+    'gpt-4o-mini-realtime-preview-2024-12-17': 'gpt-realtime-mini'
+};
+if (_modelMigration[voiceSettings.model]) {
+    voiceSettings.model = _modelMigration[voiceSettings.model];
+    localStorage.setItem('auraVoiceSettings', JSON.stringify(voiceSettings));
+}
 let sessionMinutes = parseInt(localStorage.getItem('auraSessionLength') || '45');
 
 // Timer
@@ -1039,7 +1048,7 @@ let sessionStartTime = null;
 
 // Init settings UI
 voiceSelect.value = voiceSettings.voice;
-modelSelect.value = voiceSettings.model || 'gpt-4o-realtime-preview-2024-12-17';
+modelSelect.value = voiceSettings.model || 'gpt-realtime';
 speedSlider.value = voiceSettings.speed;
 speedValue.textContent = voiceSettings.speed + 'x';
 sessionLengthSelect.value = sessionMinutes;
@@ -1348,7 +1357,7 @@ async function connectRealtime() {
             headers: { 'Content-Type':'application/json', 'X-CSRFToken':'{{ csrf_token }}' },
             body: JSON.stringify({
                 voice: voiceSettings.voice,
-                model: voiceSettings.model || 'gpt-4o-realtime-preview-2024-12-17',
+                model: voiceSettings.model || 'gpt-realtime',
                 instructions: "You are Aura, a helpful and friendly AI tutor for students. Keep answers concise and conversational. Be encouraging and supportive."
             })
         });
@@ -1361,7 +1370,7 @@ async function connectRealtime() {
 
         const sessionData = await sessionResponse.json();
         const clientSecret = sessionData.client_secret;
-        const model = sessionData.model || 'gpt-4o-realtime-preview-2024-12-17';
+        const model = sessionData.model || 'gpt-realtime';
         const studentContext = sessionData.student_context || '';
 
         if (!clientSecret) {
@@ -1382,13 +1391,21 @@ async function connectRealtime() {
             sendRealtimeEvent({
                 type: 'session.update',
                 session: {
-                    modalities: ['text','audio'],
+                    type: 'realtime',
+                    output_modalities: ['text','audio'],
                     instructions: fullInstructions,
-                    voice: voiceSettings.voice,
-                    input_audio_format: 'pcm16',
-                    output_audio_format: 'pcm16',
-                    input_audio_transcription: { model: 'whisper-1' },
-                    turn_detection: { type:'server_vad', threshold:0.5, prefix_padding_ms:300, silence_duration_ms:500 }
+                    audio: {
+                        input: {
+                            format: { type: 'audio/pcm', rate: 24000 },
+                            transcription: { model: 'gpt-4o-transcribe' },
+                            noise_reduction: { type: 'near_field' },
+                            turn_detection: { type: 'server_vad', threshold: 0.5, prefix_padding_ms: 300, silence_duration_ms: 500 }
+                        },
+                        output: {
+                            format: { type: 'audio/pcm', rate: 24000 },
+                            voice: voiceSettings.voice
+                        }
+                    }
                 }
             });
             startAudioCapture();

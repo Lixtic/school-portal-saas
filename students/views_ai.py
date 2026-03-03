@@ -23,11 +23,20 @@ def get_openai_api_key():
 # Allowed Realtime API models
 # ═══════════════════════════════════════════════════════════
 ALLOWED_REALTIME_MODELS = [
+    'gpt-realtime',
+    'gpt-realtime-mini',
+    # Legacy names (mapped to GA equivalents)
     'gpt-4o-realtime-preview-2024-12-17',
     'gpt-4o-mini-realtime-preview-2024-12-17',
 ]
 
-DEFAULT_REALTIME_MODEL = 'gpt-4o-realtime-preview-2024-12-17'
+# Map legacy model names to GA equivalents
+MODEL_MIGRATION_MAP = {
+    'gpt-4o-realtime-preview-2024-12-17': 'gpt-realtime',
+    'gpt-4o-mini-realtime-preview-2024-12-17': 'gpt-realtime-mini',
+}
+
+DEFAULT_REALTIME_MODEL = 'gpt-realtime'
 
 
 def _build_student_context(student):
@@ -87,6 +96,9 @@ def create_realtime_session(request):
         if model not in ALLOWED_REALTIME_MODELS:
             model = DEFAULT_REALTIME_MODEL
         
+        # Migrate legacy model names to GA equivalents
+        model = MODEL_MIGRATION_MAP.get(model, model)
+        
         # Build context-aware instructions for this student
         student_context = ""
         try:
@@ -104,14 +116,21 @@ def create_realtime_session(request):
             return JsonResponse({"error": "OpenAI API key not configured"}, status=500)
         
         response = http_requests.post(
-            "https://api.openai.com/v1/realtime/sessions",
+            "https://api.openai.com/v1/realtime/client_secrets",
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json"
             },
             json={
-                "model": model,
-                "voice": voice
+                "session": {
+                    "type": "realtime",
+                    "model": model,
+                    "audio": {
+                        "output": {
+                            "voice": voice
+                        }
+                    }
+                }
             },
             timeout=30
         )
@@ -124,18 +143,20 @@ def create_realtime_session(request):
             }, status=response.status_code)
         
         session_data = response.json()
-        client_secret = session_data.get("client_secret", {}).get("value", "")
+        # GA endpoint returns {value, expires_at, session} at top level
+        client_secret = session_data.get("value", "")
         
         if not client_secret:
-            logger.error(f"Realtime session response missing client_secret: {session_data}")
+            logger.error(f"Realtime client_secret response missing value: {session_data}")
             return JsonResponse({
                 "error": "No client_secret in response",
                 "detail": str(session_data)[:300]
             }, status=500)
         
+        session_info = session_data.get("session", {})
         return JsonResponse({
             "client_secret": client_secret,
-            "model": session_data.get("model", DEFAULT_REALTIME_MODEL),
+            "model": session_info.get("model", model),
             "student_context": student_context,
         })
         
