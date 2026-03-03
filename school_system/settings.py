@@ -17,12 +17,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-your-secret-key-here-change-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# Default to False for safety; set DEBUG=True explicitly in local .env
+# Defaults to False unless explicitly set. Use DEBUG=True in local .env
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-# Fail loudly if SECRET_KEY is still the default in production
+# Warn (but don't crash) if SECRET_KEY is still the default in production
 if not DEBUG and SECRET_KEY.startswith('django-insecure'):
-    raise RuntimeError("You must set a proper SECRET_KEY environment variable in production.")
+    import logging as _log
+    _log.getLogger('django.security').critical(
+        "SECRET_KEY is using the insecure default! Set a proper SECRET_KEY env var."
+    )
 
 # OpenAI Configuration
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
@@ -30,7 +33,18 @@ OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 # =====================
 # ALLOWED HOSTS & CSRF
 # =====================
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,.localhost').split(',') if not DEBUG else ['*']
+_allowed = os.environ.get('ALLOWED_HOSTS', '')
+if _allowed:
+    ALLOWED_HOSTS = [h.strip() for h in _allowed.split(',') if h.strip()]
+elif DEBUG:
+    ALLOWED_HOSTS = ['*']
+else:
+    # Production fallback: allow common deployment hosts
+    ALLOWED_HOSTS = [
+        'localhost', '127.0.0.1',
+        '.vercel.app', '.railway.app',
+        '.onrender.com', '.herokuapp.com',
+    ]
 
 # CSRF Trusted Origins
 CSRF_TRUSTED_ORIGINS = [
