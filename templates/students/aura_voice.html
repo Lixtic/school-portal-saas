@@ -2119,6 +2119,10 @@ function handleRealtimeMessage(msg) {
         case 'response.done':
             if (currentUserText && currentAuraText) saveToHistory(currentUserText, currentAuraText);
             finalizeLiveAuraText();
+
+            // ── Power Word Tracking ─────────────────────────────────
+            _logVoicePowerWords(currentAuraText);
+
             currentAuraText = '';
             isPlayingAudio = false;
             if (isConnected) updateState('READY');
@@ -2129,6 +2133,40 @@ function handleRealtimeMessage(msg) {
             updateState('ERROR');
             break;
     }
+}
+
+
+// ─── Power Word Logger (Voice) ────────────────────────────────────────────
+/**
+ * Parse [POWER_WORDS: word1, word2] tokens from an Aura voice response,
+ * POST them to the backend logger, and show a brief celebration toast.
+ */
+function _logVoicePowerWords(responseText) {
+    if (!responseText) return;
+    const pwRe = /\[POWER_WORDS:\s*([^\]]+)\]/gi;
+    const allWords = [];
+    let m;
+    while ((m = pwRe.exec(responseText)) !== null) {
+        const words = m[1].split(',').map(w => w.trim()).filter(Boolean);
+        allWords.push(...words);
+    }
+    if (allWords.length === 0) return;
+
+    fetch('{% url "students:log_power_words" %}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({ words: allWords, session_type: 'voice', subject: '' })
+    }).then(r => r.json()).then(data => {
+        if (data.logged > 0) {
+            const toast = document.createElement('div');
+            toast.className = 'position-fixed bottom-0 start-50 translate-middle-x mb-5 px-4 py-2 rounded-pill text-white fw-semibold small';
+            toast.style.cssText = 'z-index:9999;background:linear-gradient(135deg,#7c3aed,#4f46e5);box-shadow:0 4px 20px rgba(79,70,229,.4);animation:fadeIn .4s ease';
+            const wordList = data.words.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' · ');
+            toast.innerHTML = `💡 Power Words: <strong>${wordList}</strong>`;
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity .6s'; setTimeout(() => toast.remove(), 700); }, 4000);
+        }
+    }).catch(() => {});
 }
 
 

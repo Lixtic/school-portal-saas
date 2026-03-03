@@ -1751,6 +1751,28 @@
             if (processed.diagrams && processed.diagrams.length > 0) {
                 processed.diagrams.forEach(d => loadMermaidDiagram(d.title, d.source));
             }
+
+            // Log Power Words to backend if any were emitted
+            if (processed.powerWords && processed.powerWords.length > 0) {
+                const subjectId = document.getElementById('subjectSelect') ? document.getElementById('subjectSelect').value : '';
+                const subjectLabel = document.getElementById('subjectSelect') ?
+                    (document.getElementById('subjectSelect').selectedOptions[0] ? document.getElementById('subjectSelect').selectedOptions[0].text : '') : '';
+                fetch('{% url "students:log_power_words" %}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                    body: JSON.stringify({ words: processed.powerWords, session_type: 'text', subject: subjectLabel })
+                }).then(r => r.json()).then(d => {
+                    if (d.logged > 0) {
+                        // Brief celebration toast
+                        const toast = document.createElement('div');
+                        toast.className = 'position-fixed bottom-0 end-0 m-3 p-2 rounded bg-success text-white small';
+                        toast.style.cssText = 'z-index:9999;animation:fadeIn .3s ease';
+                        toast.innerHTML = `💡 <strong>+${d.logged} Power Word${d.logged > 1 ? 's' : ''}!</strong> <em>${d.words.map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(', ')}</em>`;
+                        document.body.appendChild(toast);
+                        setTimeout(() => toast.remove(), 4000);
+                    }
+                }).catch(() => {});
+            }
             
             // Add to history (cleaned text only to save context tokens)
             conversationHistory.push({ role: 'assistant', content: processed.text });
@@ -2012,6 +2034,18 @@
             showXPAnimation(xpAward);
         }
 
+        // 1.55 Extract [POWER_WORDS: word1, word2] tokens
+        const powerWordsTokens = [];
+        const _pwRe = /\[POWER_WORDS:\s*([^\]]+)\]/gi;
+        let _pwM;
+        while ((_pwM = _pwRe.exec(fullText)) !== null) {
+            const words = _pwM[1].split(',').map(w => w.trim()).filter(Boolean);
+            powerWordsTokens.push(...words);
+        }
+        if (powerWordsTokens.length > 0) {
+            fullText = fullText.replace(/\[POWER_WORDS:\s*[^\]]+\]/gi, '');
+        }
+
         // 1.6 Extract [WB_DIAGRAM: Title] ... [/WB_DIAGRAM] blocks
         const diagrams = [];
         const _diagScan = fullText;
@@ -2029,7 +2063,7 @@
         const tagEnd = '</suggested_responses>';
         
         const startIdx = fullText.indexOf(tagStart);
-        if (startIdx === -1) return { text: stripInternalBlocks(fullText), suggestions: [], visualizationPrompt, diagrams };
+        if (startIdx === -1) return { text: stripInternalBlocks(fullText), suggestions: [], visualizationPrompt, diagrams, powerWords: powerWordsTokens };
         
         const endIdx = fullText.indexOf(tagEnd);
         let suggestions = [];
@@ -2049,7 +2083,8 @@
             text: stripInternalBlocks(fullText.substring(0, startIdx).trim()), 
             suggestions: suggestions,
             visualizationPrompt: visualizationPrompt,
-            diagrams: diagrams
+            diagrams: diagrams,
+            powerWords: powerWordsTokens
         };
     }
 
@@ -2107,6 +2142,8 @@
         text = text.replace(/\[AWARD_XP:\s*\d+\]/gi, '');
         // Remove [DRAW: ...] tokens
         text = text.replace(/\[DRAW:\s*.*?\]/gi, '');
+        // Remove [POWER_WORDS: ...] tokens
+        text = text.replace(/\[POWER_WORDS:\s*[^\]]*\]/gi, '');
         // Remove complete [WB_DIAGRAM: ...] ... [/WB_DIAGRAM] blocks
         text = text.replace(/\[WB_DIAGRAM:\s*[^\]]*\][\s\S]*?\[\/WB_DIAGRAM\]/gi, '');
         // Remove partial / still-streaming [WB_DIAGRAM block (no closing tag yet)

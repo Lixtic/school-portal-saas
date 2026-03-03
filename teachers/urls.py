@@ -52,6 +52,10 @@ urlpatterns = [
     path('id-card/<int:teacher_id>/png/', views.teacher_id_card, name='id_card_png'),
     path('id-card/<int:teacher_id>/pdf/', views.teacher_id_card_pdf, name='id_card_pdf'),
     path('id-cards/bulk-pdf/', views.bulk_teacher_id_cards_pdf, name='bulk_id_cards_pdf'),
+
+    # Power Words — Teacher Command Center
+    path('power-words/', views.power_words_dashboard, name='power_words_dashboard'),
+    path('power-words/action/', views.power_words_action, name='power_words_action'),
 ]
 
 

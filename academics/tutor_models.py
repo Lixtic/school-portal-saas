@@ -285,6 +285,97 @@ class LearnerMemory(models.Model):
         return "\n".join(lines)
 
 
+class PowerWord(models.Model):
+    """
+    Tracks academic vocabulary words that Aura has successfully taught a student.
+
+    Every time the student correctly uses a Power Word (a domain-specific academic term
+    they learned during an Aura session), this record is updated. Teachers see a clean
+    word-cloud / list per student in the Command Center showing weekly vocabulary growth.
+    """
+
+    SESSION_VOICE = 'voice'
+    SESSION_TEXT = 'text'
+    SESSION_CHOICES = [
+        (SESSION_VOICE, 'Aura Voice'),
+        (SESSION_TEXT, 'Text Chat'),
+    ]
+
+    student = models.ForeignKey(
+        'students.Student',
+        on_delete=models.CASCADE,
+        related_name='power_words',
+    )
+    word = models.CharField(max_length=120)
+    session_type = models.CharField(
+        max_length=10,
+        choices=SESSION_CHOICES,
+        default=SESSION_TEXT,
+    )
+    subject = models.CharField(max_length=200, blank=True)
+
+    # Usage frequency — incremented each time the word appears in a session
+    used_count = models.IntegerField(default=1)
+
+    # ISO week / year for weekly aggregation in the Teacher Command Center
+    week = models.IntegerField(default=0, db_index=True)
+    year = models.IntegerField(default=0, db_index=True)
+
+    # Timestamps
+    first_heard = models.DateTimeField(auto_now_add=True)
+    last_heard = models.DateTimeField(auto_now=True)
+
+    # Teacher can manually confirm a word is genuinely mastered
+    confirmed_by_teacher = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = 'Power Word'
+        verbose_name_plural = 'Power Words'
+        unique_together = ('student', 'word', 'year', 'week')
+        ordering = ['-last_heard']
+
+    def __str__(self):
+        return f"{self.student.user.get_full_name()} — {self.word} (×{self.used_count})"
+
+    @classmethod
+    def log(cls, student, words, session_type=SESSION_TEXT, subject=''):
+        """
+        Upsert a list of word strings for a given student + ISO week.
+
+        Returns the list of (PowerWord instance, created) tuples.
+        """
+        from django.utils import timezone as tz
+
+        now = tz.now()
+        iso = now.isocalendar()  # (year, week, weekday)
+        year, week = iso[0], iso[1]
+
+        results = []
+        for raw_word in words:
+            word = str(raw_word).strip().lower()
+            if not word or len(word) > 120:
+                continue
+            obj, created = cls.objects.get_or_create(
+                student=student,
+                word=word,
+                year=year,
+                week=week,
+                defaults={
+                    'session_type': session_type,
+                    'subject': subject[:200],
+                    'used_count': 1,
+                },
+            )
+            if not created:
+                obj.used_count += 1
+                obj.session_type = session_type
+                if subject:
+                    obj.subject = subject[:200]
+                obj.save(update_fields=['used_count', 'session_type', 'subject', 'last_heard'])
+            results.append((obj, created))
+        return results
+
+
 class CopilotConversation(models.Model):
     """Conversation thread for the global Portals Copilot assistant."""
     user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='copilot_conversations')

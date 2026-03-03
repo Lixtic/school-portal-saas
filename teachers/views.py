@@ -2086,6 +2086,228 @@ from django.views.decorators.http import require_POST
 from communication.models import Conversation, Message
 from parents.models import Parent
 
+
+# ─── Power Words — Teacher Command Center ──────────────────────────────────
+
+@login_required
+def power_words_dashboard(request):
+    """
+    Teacher Command Center: per-student Power Word clouds, weekly growth,
+    Aura-T academic verb trend insights, and one-click action buttons.
+
+    Access: teacher (own classes) or admin (all classes).
+    """
+    if request.user.user_type not in ['teacher', 'admin']:
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    from collections import defaultdict
+    from academics.tutor_models import PowerWord
+    from django.utils import timezone as tz
+
+    teacher = None
+    if request.user.user_type == 'teacher':
+        teacher = Teacher.objects.filter(user=request.user).first()
+
+    # ── Select class ────────────────────────────────────────────────
+    if teacher:
+        classes = Class.objects.filter(classsubject__teacher=teacher).distinct().order_by('name')
+    else:
+        classes = Class.objects.all().order_by('name')
+
+    class_id = request.GET.get('class_id')
+    selected_class = None
+    if class_id:
+        selected_class = get_object_or_404(Class, id=class_id)
+    elif classes.exists():
+        selected_class = classes.first()
+
+    # ── Derive week numbers for "this week" and "last week" ──────────
+    now = tz.now()
+    iso = now.isocalendar()
+    current_year, current_week = iso[0], iso[1]
+    last_week = current_week - 1 if current_week > 1 else 52
+    last_week_year = current_year if current_week > 1 else current_year - 1
+
+    # ── Academic verbs to detect in Power Words ──────────────────────
+    ACADEMIC_VERBS = {
+        'analyze', 'analyse', 'compare', 'evaluate', 'synthesize', 'synthesise',
+        'describe', 'explain', 'justify', 'identify', 'classify', 'predict',
+        'infer', 'conclude', 'hypothesize', 'hypothesise', 'illustrate',
+        'summarize', 'summarise', 'argue', 'debate', 'interpret', 'calculate',
+        'demonstrate', 'apply', 'construct', 'define', 'distinguish',
+    }
+
+    student_cards = []
+
+    if selected_class:
+        students = Student.objects.filter(
+            current_class=selected_class
+        ).select_related('user').order_by('user__last_name', 'user__first_name')
+
+        # Bulk-fetch Power Words for all students in the class
+        all_words = PowerWord.objects.filter(
+            student__in=students
+        ).select_related('student').order_by('-last_heard')
+
+        # Group by student
+        words_by_student = defaultdict(list)
+        for pw in all_words:
+            words_by_student[pw.student_id].append(pw)
+
+        for student in students:
+            student_words = words_by_student.get(student.id, [])
+
+            # This-week and last-week splits
+            this_week_words = [
+                w for w in student_words
+                if w.year == current_year and w.week == current_week
+            ]
+            last_week_words = [
+                w for w in student_words
+                if w.year == last_week_year and w.week == last_week
+            ]
+
+            # Academic verb percentage (this week vs last week)
+            def verb_pct(word_list):
+                if not word_list:
+                    return 0
+                verbs = sum(1 for w in word_list if w.word.lower() in ACADEMIC_VERBS)
+                return round(verbs / len(word_list) * 100)
+
+            verb_pct_this = verb_pct(this_week_words)
+            verb_pct_last = verb_pct(last_week_words)
+            verb_delta = verb_pct_this - verb_pct_last
+
+            # Aura-T insight string
+            aura_insight = None
+            all_historical_verbs = sum(1 for w in student_words if w.word.lower() in ACADEMIC_VERBS)
+            total = len(student_words)
+            if total >= 3:
+                overall_verb_pct = round(all_historical_verbs / total * 100)
+                if verb_delta > 10:
+                    aura_insight = (
+                        f"{student.user.first_name} is using academic verbs (Analyze, Compare) "
+                        f"{verb_delta}% more often than last week."
+                    )
+                elif verb_delta < -10:
+                    aura_insight = (
+                        f"{student.user.first_name}'s academic verb usage dropped {abs(verb_delta)}% "
+                        "this week — may need a vocabulary review."
+                    )
+                elif overall_verb_pct >= 30:
+                    aura_insight = (
+                        f"{student.user.first_name} consistently uses academic verbs in {overall_verb_pct}% "
+                        "of Power Words — strong academic language command!"
+                    )
+
+            # Word cloud: (word, font_size) pairs sized by used_count
+            max_count = max((w.used_count for w in student_words), default=1)
+            word_cloud = [
+                {
+                    'word': w.word.title(),
+                    'used_count': w.used_count,
+                    'subject': w.subject,
+                    'font_size': max(12, min(32, int(12 + (w.used_count / max_count) * 20))),
+                    'is_verb': w.word.lower() in ACADEMIC_VERBS,
+                    'session_type': w.session_type,
+                }
+                for w in student_words[:30]  # cap at 30 for display
+            ]
+
+            student_cards.append({
+                'student': student,
+                'total_words': total,
+                'new_this_week': len(this_week_words),
+                'new_this_week_list': [w.word.title() for w in this_week_words[:8]],
+                'verb_pct_this': verb_pct_this,
+                'verb_delta': verb_delta,
+                'aura_insight': aura_insight,
+                'word_cloud': word_cloud,
+            })
+
+    context = {
+        'classes': classes,
+        'selected_class': selected_class,
+        'student_cards': student_cards,
+        'current_week': current_week,
+        'current_year': current_year,
+    }
+    return render(request, 'teachers/power_words_dashboard.html', context)
+
+
+@require_POST
+@login_required
+def power_words_action(request):
+    """
+    Handle teacher actions on the Power Words dashboard:
+      - send_congratulations: Creates an in-app notification for the student.
+      - add_to_report:         Flags the student's top Power Words for term report.
+    """
+    if request.user.user_type not in ['teacher', 'admin']:
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    try:
+        body = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    action = body.get('action')
+    student_id = body.get('student_id')
+
+    if not action or not student_id:
+        return JsonResponse({'error': 'action and student_id required'}, status=400)
+
+    try:
+        student = Student.objects.select_related('user').get(id=student_id)
+    except Student.DoesNotExist:
+        return JsonResponse({'error': 'Student not found'}, status=404)
+
+    from academics.tutor_models import PowerWord
+    from django.utils import timezone as tz
+    from announcements.models import Notification
+
+    if action == 'send_congratulations':
+        # Build uplifting note based on top 3 recent words
+        recent_words = PowerWord.objects.filter(student=student).order_by('-last_heard')[:3]
+        word_list = ', '.join(w.word.title() for w in recent_words) if recent_words else 'your Power Words'
+        teacher_name = request.user.get_full_name() or request.user.username
+        msg = (
+            f"🌟 Great work, {student.user.first_name}! "
+            f"{teacher_name} noticed you've been mastering academic vocabulary: "
+            f"{word_list}. Keep it up!"
+        )
+        try:
+            Notification.objects.create(
+                recipient=student.user,
+                message=msg,
+                alert_type='general',
+            )
+            return JsonResponse({'status': 'ok', 'message': 'Congratulations note sent!'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    elif action == 'add_to_report':
+        # Mark recent Power Words as confirmed by teacher so they appear in reports
+        try:
+            from django.utils import timezone as tz
+            iso = tz.now().isocalendar()
+            updated = PowerWord.objects.filter(
+                student=student,
+                year=iso[0],
+                week=iso[1],
+            ).update(confirmed_by_teacher=True)
+            return JsonResponse({
+                'status': 'ok',
+                'message': f"{updated} Power Word(s) flagged for term report.",
+                'count': updated,
+            })
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': f"Unknown action: {action}"}, status=400)
+
+
 @require_POST
 @login_required
 def boost_intervention(request):

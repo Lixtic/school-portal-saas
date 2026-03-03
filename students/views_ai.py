@@ -687,3 +687,55 @@ def aura_arena_api(request):
 
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 
+
+# ─── Power Word Logger ──────────────────────────────────────────────────────
+@login_required
+def log_power_words(request):
+    """
+    POST endpoint: record academic Power Words that Aura taught during a session.
+
+    Expected JSON payload:
+        {
+            "words":        ["photosynthesis", "stomata", "chlorophyll"],
+            "session_type": "voice" | "text",   // optional, default "text"
+            "subject":      "Science"            // optional
+        }
+
+    Returns:
+        { "logged": 3, "words": ["photosynthesis", "stomata", "chlorophyll"] }
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST only'}, status=405)
+
+    if request.user.user_type != 'student':
+        return JsonResponse({'error': 'Students only'}, status=403)
+
+    try:
+        body = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    words_raw = body.get('words') or []
+    session_type = str(body.get('session_type') or 'text').strip().lower()
+    if session_type not in ('voice', 'text'):
+        session_type = 'text'
+    subject = str(body.get('subject') or '').strip()
+
+    if not isinstance(words_raw, list) or not words_raw:
+        return JsonResponse({'error': 'words must be a non-empty list'}, status=400)
+
+    try:
+        from students.models import Student
+        student = Student.objects.select_related('current_class').get(user=request.user)
+    except Student.DoesNotExist:
+        return JsonResponse({'error': 'Student profile not found'}, status=404)
+
+    try:
+        from academics.tutor_models import PowerWord
+        results = PowerWord.log(student, words_raw, session_type=session_type, subject=subject)
+    except Exception as e:
+        logger.error('log_power_words error: %s', e)
+        return JsonResponse({'error': str(e)}, status=500)
+
+    logged_words = [obj.word for obj, _ in results]
+    return JsonResponse({'logged': len(results), 'words': logged_words})

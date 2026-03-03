@@ -539,6 +539,29 @@ WHITEBOARD DIAGRAM PROTOCOL
       Note over You,Wall: Equal in magnitude, opposite in direction
   [/WB_DIAGRAM]
 
+POWER WORD TRACKING PROTOCOL
+Aura is a vocabulary-acquisition engine as much as a tutor. During every session you MUST track academic words the student uses correctly.
+
+- A "Power Word" is any domain-specific academic or technical term the student demonstrates understanding of during the session.
+  Examples: "photosynthesis", "denominator", "tectonic", "analyze", "hypothesis", "coefficient".
+
+- At the natural END of a tutoring exchange (when a concept is wrapped up or the student demonstrates mastery), emit the
+  following token on a NEW line:
+
+  [POWER_WORDS: word1, word2, word3]
+
+- Rules:
+  * Only include words the student ACTIVELY USED or CONFIRMED UNDERSTANDING OF — do not list words you merely mentioned.
+  * List 1-5 words per token emission; do not emit for every single message.
+  * Emit the token silently — do NOT say "I am logging your Power Words" or anything similar. The UI handles the notification.
+  * Use the base/root form of the word ("photosynthesis" not "photosynthesises").
+  * Academic verbs ("analyze", "compare", "evaluate", "synthesize") count as Power Words.
+
+- Example (after student correctly uses 'osmosis' and 'diffusion'):
+  [POWER_WORDS: osmosis, diffusion]
+
+- These tokens are stripped from the visible chat text automatically.
+
 SUGGESTED RESPONSES (PREVENT BLANK PAGE SYNDROME)
 At the very end of EVERY message, you MUST append a hidden block of "Suggested Responses" to help the student reply.
 These chips should reflect the Student's Cognitive State.
@@ -692,6 +715,9 @@ LOCALIZED FINAL ASSESSMENT LOGIC
     # ── CONTINUOUS CONTEXT AWARENESS: Learner Memory Brief ───────────
     context += _build_learner_memory_context(student)
 
+    # ── CONTINUOUS CONTEXT AWARENESS: Power Word Warmup ──────────────
+    context += _build_power_word_warmup_context(student)
+
     # ── CONTINUOUS CONTEXT AWARENESS: Timetable / Daily Schedule ──────
     context += _build_schedule_context(student)
 
@@ -794,6 +820,52 @@ def _build_learner_memory_context(student):
 
         brief = memory.build_memory_brief()
         return f"\n\n{brief}"
+    except Exception:
+        return ""
+
+
+def _build_power_word_warmup_context(student):
+    """
+    Pull the student's most recent Power Words and return a warmup brief
+    for injection into the session opener system prompt.
+
+    Teachers see the same list in their Command Center.  Aura uses these
+    words deliberately in the first 2-3 exchanges of a new session so the
+    student hears/uses them again (spaced repetition in action).
+    """
+    try:
+        from .tutor_models import PowerWord
+        from django.utils import timezone as tz
+
+        # Grab the 12 most recently heard words
+        recent_words = (
+            PowerWord.objects
+            .filter(student=student)
+            .order_by('-last_heard')
+            .values_list('word', 'subject', 'used_count')[:12]
+        )
+        if not recent_words:
+            return ""
+
+        word_parts = []
+        for word, subject, count in recent_words:
+            entry = word.title()
+            if subject:
+                entry += f" ({subject})"
+            word_parts.append(entry)
+
+        lines = ["\n\nPOWER WORD WARMUP — LONG-TERM MEMORY ACTIVATION"]
+        lines.append("The student has previously mastered the following academic vocabulary:")
+        lines.append("  " + ", ".join(word_parts))
+        lines.append("")
+        lines.append("WARMUP DIRECTIVE:")
+        lines.append("- Open the session by naturally weaving 1-2 of these words into your greeting.")
+        lines.append("  Example: 'Hey! Last time we talked about photosynthesis — can you still describe")
+        lines.append("  what happens in the chloroplast before we start today?'")
+        lines.append("- Do NOT simply recite the list. Use the words organically to trigger recall.")
+        lines.append("- If the student uses a Power Word correctly during today's session, celebrate it briefly.")
+
+        return "\n".join(lines)
     except Exception:
         return ""
 

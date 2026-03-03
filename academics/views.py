@@ -1765,6 +1765,33 @@ def _persist_to_learner_memory(student, summary_payload):
         logger.warning("LearnerMemory failed to persist for %s: %s", student, e)
 
 
+def _log_session_power_words(student, full_text, subject_name=''):
+    """
+    Parse [POWER_WORDS: word1, word2] tokens from an assistant response
+    and upsert them into the PowerWord table via PowerWord.log().
+    Non-critical — failures are logged but never surface to the student.
+    """
+    if not full_text:
+        return
+    try:
+        import re as _re
+        from .tutor_models import PowerWord
+
+        pattern = r'\[POWER_WORDS:\s*([^\]]+)\]'
+        all_words = []
+        for match in _re.finditer(pattern, full_text, flags=_re.IGNORECASE):
+            raw = match.group(1)
+            words = [w.strip() for w in raw.split(',') if w.strip()]
+            all_words.extend(words)
+
+        if all_words:
+            PowerWord.log(student, all_words, session_type='text', subject=subject_name)
+            logger.info("Power Words logged for %s: %s", student, all_words)
+    except Exception as e:
+        logger.warning("_log_session_power_words failed for %s: %s", student, e)
+
+
+
 def _extract_session_summary_payload(text):
     if not text:
         return None
@@ -2066,6 +2093,9 @@ def ai_tutor_chat(request):
                     )
                     # ── Continuous Context Awareness: Persist to LearnerMemory ──
                     _persist_to_learner_memory(student, summary_payload)
+
+                # ── Power Word Tracking ──────────────────────────────────────
+                _log_session_power_words(student, full_assistant_message, subject_name=subject.name if subject else '')
         
         # Stream response
         response = StreamingHttpResponse(

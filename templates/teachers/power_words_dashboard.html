@@ -1,0 +1,378 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Power Words — Teacher Command Center{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Page Layout ──────────────────────────────────────────── */
+.pw-header {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    border-radius: 1rem;
+    color: #fff;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+}
+.pw-header h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: .25rem; }
+.pw-header p  { opacity: .85; margin: 0; }
+
+/* ── Student Cards ─────────────────────────────────────────── */
+.pw-card {
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 1rem;
+    overflow: hidden;
+    transition: box-shadow .2s, transform .2s;
+}
+.pw-card:hover { box-shadow: 0 8px 32px rgba(79,70,229,.12); transform: translateY(-2px); }
+
+.pw-card-header {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #f3f4f6;
+    background: #f8f9ff;
+}
+.pw-avatar {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(135deg,#4f46e5,#7c3aed);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: .95rem;
+    flex-shrink: 0;
+}
+.pw-student-name { font-weight: 600; color: #1e293b; font-size: .95rem; }
+.pw-class-badge  { font-size: .7rem; color: #64748b; }
+
+.pw-stats {
+    display: flex;
+    gap: .75rem;
+    padding: .75rem 1.25rem;
+    border-bottom: 1px solid #f3f4f6;
+    background: #fdfdff;
+    flex-wrap: wrap;
+}
+.pw-stat { text-align: center; flex: 1; min-width: 70px; }
+.pw-stat-value { font-size: 1.3rem; font-weight: 700; color: #4f46e5; }
+.pw-stat-label { font-size: .68rem; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+
+/* ── Word Cloud ────────────────────────────────────────────── */
+.word-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+    padding: 1rem 1.25rem;
+    min-height: 70px;
+    align-items: center;
+}
+.wc-word {
+    display: inline-block;
+    padding: .2em .55em;
+    border-radius: 999px;
+    font-weight: 600;
+    cursor: default;
+    transition: transform .15s;
+    background: rgba(79,70,229,.08);
+    color: #312e81;
+}
+.wc-word.is-verb {
+    background: rgba(124,58,237,.12);
+    color: #6d28d9;
+    border: 1px solid rgba(124,58,237,.25);
+}
+.wc-word:hover { transform: scale(1.08); }
+.wc-word[data-type="voice"]::after { content: " 🎙"; font-size: .65em; }
+
+/* ── Insights ──────────────────────────────────────────────── */
+.pw-insight {
+    margin: 0 1.25rem .75rem;
+    padding: .65rem .9rem;
+    border-radius: .6rem;
+    background: linear-gradient(135deg, rgba(79,70,229,.06), rgba(124,58,237,.06));
+    border-left: 3px solid #7c3aed;
+    font-size: .82rem;
+    color: #374151;
+}
+.pw-insight strong { color: #4f46e5; }
+
+/* ── New Words This Week ───────────────────────────────────── */
+.pw-new-words {
+    padding: 0 1.25rem .75rem;
+    font-size: .82rem;
+}
+.pw-new-words .badge-word {
+    display: inline-block;
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #6ee7b7;
+    border-radius: 999px;
+    padding: .15em .6em;
+    margin: .15rem .15rem 0 0;
+    font-size: .8rem;
+    font-weight: 600;
+}
+
+/* ── Actions ───────────────────────────────────────────────── */
+.pw-actions {
+    display: flex;
+    gap: .5rem;
+    padding: .75rem 1.25rem 1rem;
+    border-top: 1px solid #f3f4f6;
+    flex-wrap: wrap;
+}
+.btn-pw-action {
+    font-size: .8rem;
+    padding: .35rem .85rem;
+    border-radius: 999px;
+    font-weight: 600;
+    transition: all .2s;
+}
+.btn-congrats {
+    background: linear-gradient(135deg,#f59e0b,#f97316);
+    color: #fff;
+    border: none;
+}
+.btn-congrats:hover { opacity: .9; color: #fff; transform: scale(1.03); }
+.btn-report {
+    background: #f0f4ff;
+    color: #4f46e5;
+    border: 1px solid #c7d2fe;
+}
+.btn-report:hover { background: #e0e7ff; color: #3730a3; transform: scale(1.03); }
+
+/* ── Empty State ───────────────────────────────────────────── */
+.pw-empty {
+    text-align: center;
+    padding: 3.5rem 1rem;
+    color: #94a3b8;
+}
+.pw-empty .empty-icon { font-size: 3rem; margin-bottom: .75rem; }
+
+/* ── Verb trend badge ─────────────────────────────────────── */
+.verb-trend {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    font-size: .72rem;
+    font-weight: 600;
+    padding: .18em .55em;
+    border-radius: 999px;
+}
+.verb-trend.up   { background: #d1fae5; color: #065f46; }
+.verb-trend.down { background: #fee2e2; color: #991b1b; }
+.verb-trend.flat { background: #f1f5f9; color: #475569; }
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+    .pw-card { background: #1e1e2e; border-color: rgba(255,255,255,.07); }
+    .pw-card-header { background: #16162a; border-color: rgba(255,255,255,.06); }
+    .pw-stats { background: #1a1a2e; border-color: rgba(255,255,255,.06); }
+    .pw-student-name { color: #e2e8f0; }
+    .pw-class-badge { color: #94a3b8; }
+    .wc-word { background: rgba(79,70,229,.15); color: #a5b4fc; }
+    .wc-word.is-verb { background: rgba(124,58,237,.2); color: #c4b5fd; }
+    .pw-insight { background: rgba(79,70,229,.1); color: #cbd5e1; }
+    .pw-new-words .badge-word { background: #022c22; color: #6ee7b7; border-color: #065f46; }
+    .btn-report { background: #1e1e3a; color: #a5b4fc; border-color: #4f46e5; }
+    .btn-report:hover { background: #2d2d5a; color: #c7d2fe; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 py-4">
+
+  <!-- Page Header -->
+  <div class="pw-header">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div>
+        <h1>💡 Power Words — Teacher Command Center</h1>
+        <p>Academic vocabulary mastered by your students via Aura AI. Week {{ current_week }}, {{ current_year }}.</p>
+      </div>
+      {% if selected_class %}
+      <span class="badge bg-white text-primary fw-bold fs-6 px-3 py-2">{{ selected_class.name }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Class Selector -->
+  {% if classes %}
+  <div class="mb-4 d-flex align-items-center gap-2 flex-wrap">
+    <label class="fw-semibold text-secondary small me-1">Class:</label>
+    {% for cls in classes %}
+    <a href="?class_id={{ cls.id }}"
+       class="btn btn-sm {% if selected_class and selected_class.id == cls.id %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill">
+      {{ cls.name }}
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Student Cards Grid -->
+  {% if student_cards %}
+  <div class="row g-3">
+    {% for card in student_cards %}
+    <div class="col-12 col-md-6 col-xl-4">
+      <div class="pw-card h-100" id="card-student-{{ card.student.id }}">
+
+        <!-- Card Header -->
+        <div class="pw-card-header">
+          <div class="pw-avatar">
+            {{ card.student.user.first_name|first|upper }}{{ card.student.user.last_name|first|upper }}
+          </div>
+          <div>
+            <div class="pw-student-name">{{ card.student.user.get_full_name }}</div>
+            <div class="pw-class-badge">
+              {{ card.student.admission_number }}
+              {% if card.student.current_class %} · {{ card.student.current_class.name }}{% endif %}
+            </div>
+          </div>
+          <div class="ms-auto d-flex gap-2 align-items-center">
+            <!-- Verb trend badge -->
+            {% if card.verb_delta > 5 %}
+            <span class="verb-trend up">↑ {{ card.verb_delta }}% verbs</span>
+            {% elif card.verb_delta < -5 %}
+            <span class="verb-trend down">↓ {{ card.verb_delta|abs }}% verbs</span>
+            {% elif card.total_words > 0 %}
+            <span class="verb-trend flat">{{ card.verb_pct_this }}% verbs</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="pw-stats">
+          <div class="pw-stat">
+            <div class="pw-stat-value">{{ card.total_words }}</div>
+            <div class="pw-stat-label">Total Words</div>
+          </div>
+          <div class="pw-stat">
+            <div class="pw-stat-value text-success">{{ card.new_this_week }}</div>
+            <div class="pw-stat-label">New This Week</div>
+          </div>
+          <div class="pw-stat">
+            <div class="pw-stat-value" style="color:#7c3aed">{{ card.verb_pct_this }}%</div>
+            <div class="pw-stat-label">Acad. Verbs</div>
+          </div>
+        </div>
+
+        <!-- New This Week Badges -->
+        {% if card.new_this_week_list %}
+        <div class="pw-new-words">
+          <span class="text-secondary fw-semibold me-1" style="font-size:.75rem">📅 This week:</span>
+          {% for w in card.new_this_week_list %}
+          <span class="badge-word">{{ w }}</span>
+          {% endfor %}
+          {% if card.new_this_week > card.new_this_week_list|length %}
+          <span class="text-muted" style="font-size:.72rem"> +{{ card.new_this_week|add:"-8" }} more</span>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Aura-T Insight -->
+        {% if card.aura_insight %}
+        <div class="pw-insight">
+          🤖 <strong>Aura-T:</strong> {{ card.aura_insight }}
+        </div>
+        {% endif %}
+
+        <!-- Word Cloud -->
+        {% if card.word_cloud %}
+        <div class="word-cloud">
+          {% for wc in card.word_cloud %}
+          <span class="wc-word {% if wc.is_verb %}is-verb{% endif %}"
+                data-type="{{ wc.session_type }}"
+                style="font-size:{{ wc.font_size }}px"
+                title="{{ wc.subject|default:'General' }} — used {{ wc.used_count }}×">
+            {{ wc.word }}
+          </span>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-3 text-muted small">No Power Words yet — session data is populating.</div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div class="pw-actions">
+          <button class="btn btn-pw-action btn-congrats"
+                  onclick="pwAction('send_congratulations', {{ card.student.id }}, this)">
+            🌟 Send Congratulations
+          </button>
+          <button class="btn btn-pw-action btn-report"
+                  onclick="pwAction('add_to_report', {{ card.student.id }}, this)">
+            📋 Add to Term Report
+          </button>
+        </div>
+
+      </div><!-- /.pw-card -->
+    </div><!-- /.col -->
+    {% endfor %}
+  </div><!-- /.row -->
+
+  {% elif selected_class %}
+  <div class="pw-empty">
+    <div class="empty-icon">📚</div>
+    <h5 class="fw-bold">No Power Words tracked yet</h5>
+    <p class="mb-0">Students in {{ selected_class.name }} haven't had an Aura session yet,<br>or sessions are still loading.</p>
+  </div>
+  {% else %}
+  <div class="pw-empty">
+    <div class="empty-icon">🏫</div>
+    <h5>Select a class above to see Power Word data.</h5>
+  </div>
+  {% endif %}
+
+</div><!-- /.container-fluid -->
+
+<!-- Toast Container -->
+<div id="pwToastArea" class="position-fixed bottom-0 end-0 m-3" style="z-index:9999;min-width:280px;"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const PW_ACTION_URL = '{% url "teachers:power_words_action" %}';
+const CSRF_TOKEN    = '{{ csrf_token }}';
+
+function pwAction(action, studentId, btn) {
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> …';
+
+    fetch(PW_ACTION_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type':  'application/json',
+            'X-CSRFToken':   CSRF_TOKEN,
+        },
+        body: JSON.stringify({ action: action, student_id: studentId }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.innerHTML = original;
+        btn.disabled = false;
+        if (data.error) {
+            showPwToast('danger', '❌ ' + data.error);
+        } else {
+            const icons = { send_congratulations: '🌟', add_to_report: '📋' };
+            showPwToast('success', (icons[action] || '✅') + ' ' + data.message);
+        }
+    })
+    .catch(err => {
+        btn.innerHTML = original;
+        btn.disabled = false;
+        showPwToast('danger', '❌ Network error: ' + err.message);
+    });
+}
+
+function showPwToast(type, msg) {
+    const Area = document.getElementById('pwToastArea');
+    const el = document.createElement('div');
+    el.className = `alert alert-${type} alert-dismissible fade show shadow-sm mb-2 py-2 px-3`;
+    el.role = 'alert';
+    el.innerHTML = msg + `<button type="button" class="btn-close btn-sm" data-bs-dismiss="alert"></button>`;
+    Area.appendChild(el);
+    setTimeout(() => { if (el.parentNode) el.remove(); }, 5000);
+}
+</script>
+{% endblock %}

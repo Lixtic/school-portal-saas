@@ -31,6 +31,9 @@ urlpatterns = [
     path('aura/arena/', views_ai.aura_arena_view, name='aura_arena'),
     path('aura/arena/api/', views_ai.aura_arena_api, name='aura_arena_api'),
 
+    # Power Word tracking
+    path('aura/log-power-words/', views_ai.log_power_words, name='log_power_words'),
+
     # Aura Preferences (student self-service)
     path('aura/preferences/', views.update_aura_preferences, name='update_aura_preferences'),
 ]
