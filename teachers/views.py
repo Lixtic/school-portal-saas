@@ -442,39 +442,134 @@ def analytics_dashboard(request):
         selected_class = get_object_or_404(Class, id=class_id)
     elif classes.exists():
         selected_class = classes.first()
-        
+    
+    # Aggregated class-level insights
+    top_strength = None
+    common_misconceptions_list = []
+    ai_engagement_count = 0
+    
     if selected_class:
-        # Generate mock analytics data for the selected class
+        from academics.tutor_models import LearnerMemory
+        from collections import Counter
+        
         students = Student.objects.filter(current_class=selected_class).select_related('user')
+        
+        # Prefetch LearnerMemory and last session in bulk
+        memory_map = {}
+        try:
+            memories = LearnerMemory.objects.filter(student__in=students)
+            memory_map = {m.student_id: m for m in memories}
+        except (OperationalError, ProgrammingError):
+            pass  # Table may not exist yet
+        
+        # Prefetch last TutorSession per student
+        last_session_map = {}
+        session_count_map = {}
+        try:
+            for s in students:
+                last = TutorSession.objects.filter(student=s).order_by('-started_at').first()
+                if last:
+                    last_session_map[s.id] = last.started_at
+                    session_count_map[s.id] = TutorSession.objects.filter(student=s).count()
+        except (OperationalError, ProgrammingError):
+            pass
+        
+        # Prefetch average grade per student (current academic year)
+        current_year = AcademicYear.objects.filter(is_current=True).first()
+        grade_avg_map = {}
+        if current_year:
+            grade_avgs = (
+                Grade.objects.filter(
+                    student__in=students,
+                    academic_year=current_year,
+                    total_score__gt=0,
+                )
+                .values('student_id')
+                .annotate(avg_score=Avg('total_score'))
+            )
+            grade_avg_map = {g['student_id']: float(g['avg_score']) for g in grade_avgs}
+        
+        # Collect class-wide topics for aggregation
+        all_mastered = []
+        all_misconceptions = []
+        
         for student in students:
-            # Mock logic: Randomized mastery for demo purposes
-            # In production, this would query an AI analytics model
-            import random
-            # Use student ID to seed random content so it feels persistent
-            random.seed(student.id)
+            memory = memory_map.get(student.id)
+            grade_avg = grade_avg_map.get(student.id)
+            last_session_time = last_session_map.get(student.id)
+            sessions = session_count_map.get(student.id, 0)
             
-            mastery = random.randint(40, 100)
-            status = 'green' if mastery >= 80 else 'yellow' if mastery >= 60 else 'red'
+            has_ai_data = memory is not None and (memory.total_sessions_analysed or 0) > 0
+            has_grade_data = grade_avg is not None
+            
+            # ── Calculate mastery score ──
+            mastery = None
             misconception = None
             suggested_intervention = None
             
-            if status == 'red':
-                misconceptions_list = [
-                    "Confuses area with perimeter",
-                    "Difficulty with negative numbers",
-                    "Fraction addition errors",
-                    "Linear equation variable isolation"
-                ]
-                misconception = random.choice(misconceptions_list)
-                suggested_intervention = "Assign 'Foundations of Geometry' module"
-            elif status == 'yellow':
-                misconceptions_list = [
-                    "Minor calculation errors",
-                    "Needs more practice with word problems",
-                    "Inconsistent with unit conversion"
-                ]
-                misconception = random.choice(misconceptions_list)
-                suggested_intervention = "Review session on unit conversion"
+            if has_ai_data:
+                mastered = list(memory.mastered_topics or [])
+                misconceptions = list(memory.active_misconceptions or [])
+                weaknesses = list(memory.weaknesses or [])
+                strengths = list(memory.strengths or [])
+                
+                all_mastered.extend(mastered)
+                all_misconceptions.extend(misconceptions)
+                
+                # AI mastery heuristic: ratio of mastered to total known topics
+                total_signals = len(mastered) + len(misconceptions) + len(weaknesses)
+                if total_signals > 0:
+                    ai_mastery = round(len(mastered) / total_signals * 100)
+                else:
+                    ai_mastery = 70  # Sessions exist but no clear signals yet
+                
+                # Blend with grade average if available
+                if has_grade_data:
+                    mastery = round(ai_mastery * 0.4 + grade_avg * 0.6)
+                else:
+                    mastery = ai_mastery
+                
+                # Pick top misconception/weakness for intervention
+                if misconceptions:
+                    misconception = misconceptions[0]
+                    suggested_intervention = f"Focus on: {misconceptions[0]}"
+                elif weaknesses:
+                    misconception = weaknesses[0]
+                    suggested_intervention = f"Review: {weaknesses[0]}"
+            elif has_grade_data:
+                mastery = round(grade_avg)
+            
+            # Determine status
+            if mastery is not None:
+                if mastery >= 80:
+                    status = 'green'
+                elif mastery >= 60:
+                    status = 'yellow'
+                    if not misconception and has_grade_data and grade_avg < 70:
+                        suggested_intervention = "Grades trending down — consider review session"
+                else:
+                    status = 'red'
+                    if not suggested_intervention:
+                        suggested_intervention = "Low performance — schedule 1-on-1 review"
+            else:
+                status = 'secondary'  # No data at all
+                mastery = 0
+            
+            if has_ai_data or last_session_time:
+                ai_engagement_count += 1
+            
+            # Format "last active"
+            last_active = None
+            if last_session_time:
+                delta = timezone.now() - last_session_time
+                if delta.days > 0:
+                    last_active = f"{delta.days}d ago"
+                elif delta.seconds >= 3600:
+                    last_active = f"{delta.seconds // 3600}h ago"
+                elif delta.seconds >= 60:
+                    last_active = f"{delta.seconds // 60}m ago"
+                else:
+                    last_active = "just now"
             
             students_data.append({
                 'name': student.user.get_full_name(),
@@ -483,16 +578,27 @@ def analytics_dashboard(request):
                 'status': status,
                 'misconception': misconception,
                 'intervention': suggested_intervention,
-                'last_active': "2 mins ago" if random.random() > 0.5 else "1 hour ago"
+                'last_active': last_active,
+                'has_ai_data': has_ai_data,
+                'session_count': sessions,
             })
+        
+        # ── Class-wide aggregated insights ──
+        if all_mastered:
+            strength_counts = Counter(all_mastered).most_common(1)
+            top_strength = strength_counts[0][0] if strength_counts else None
+        
+        if all_misconceptions:
+            misc_counts = Counter(all_misconceptions).most_common(5)
+            common_misconceptions_list = [{'topic': t, 'count': c} for t, c in misc_counts]
             
     # Calculate class aggregate stats
     avg_mastery = 0
     intervention_count = 0
-    if students_data:
-        avg_mastery = sum(s['mastery'] for s in students_data) / len(students_data)
+    scored_students = [s for s in students_data if s['status'] != 'secondary']
+    if scored_students:
+        avg_mastery = sum(s['mastery'] for s in scored_students) / len(scored_students)
         intervention_count = sum(1 for s in students_data if s['status'] == 'red')
-
 
     context = {
         'classes': classes,
@@ -500,6 +606,10 @@ def analytics_dashboard(request):
         'students_data': students_data,
         'avg_mastery': round(avg_mastery, 1),
         'intervention_count': intervention_count,
+        'top_strength': top_strength,
+        'common_misconceptions_list': common_misconceptions_list,
+        'ai_engagement_count': ai_engagement_count,
+        'total_students': len(students_data),
     }
     return render(request, 'teachers/analytics_dashboard.html', context)
 
