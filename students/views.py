@@ -296,7 +296,7 @@ def student_detail_page(request, student_id):
     selected_year = request.GET.get('year', timezone.now().year)
     try:
         selected_year = int(selected_year)
-    except:
+    except Exception:
         selected_year = timezone.now().year
     
     # Get all attendance records for the selected year
@@ -1185,7 +1185,7 @@ def bulk_student_id_cards_pdf(request):
             try:
                 card = generate_student_id_card(student)
                 card_list.append((student.user.get_full_name(), card))
-            except:
+            except Exception:
                 pass  # Skip students with errors
         
         if not card_list:

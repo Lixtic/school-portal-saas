@@ -12,6 +12,9 @@ from academics.models import SchoolInfo, AcademicYear, Class, Subject, ClassSubj
 from django.utils import timezone
 from datetime import timedelta
 from .email_notifications import send_submission_confirmation, send_approval_notification
+import logging
+
+logger = logging.getLogger(__name__)
 
 def school_signup(request):
     if request.method == 'POST':
@@ -36,7 +39,7 @@ def school_signup(request):
             
             try:
                 # 1. Create Tenant in PENDING status (no schema yet)
-                print(f"DEBUG SIGNUP: Starting creation for {schema_name}")
+                logger.info("Starting school creation for %s", schema_name)
                 
                 tenant = School(
                     schema_name=schema_name, 
@@ -61,7 +64,7 @@ def school_signup(request):
                 tenant.auto_create_schema = False 
                 tenant.save()
                 
-                print(f"DEBUG SIGNUP: Tenant record saved (Pending approval)")
+                logger.info("Tenant record saved (pending approval): %s", schema_name)
                 
                 domain = Domain()
                 # Support both development (.local) and production domains via settings
@@ -73,7 +76,7 @@ def school_signup(request):
                 domain.tenant = tenant
                 domain.is_primary = True
                 domain.save()
-                print(f"DEBUG SIGNUP: Domain saved")
+                logger.debug("Domain saved for %s", schema_name)
                 
                 # Send submission confirmation email
                 send_submission_confirmation(tenant)
@@ -86,7 +89,7 @@ def school_signup(request):
                 })
                     
             except Exception as e:
-                print(f"DEBUG SIGNUP CRITICAL FAILURE: {e}")
+                logger.error("Signup critical failure for %s: %s", schema_name, e)
                 connection.set_schema_to_public()
                 
                 # Try to clean up orphan tenant if schemas failed?
@@ -479,10 +482,9 @@ def review_school(request, school_id):
                         'admin_username': 'admin',
                     }
                     
-                    print(f"DEBUG: About to send approval email to {school.contact_person_email}")
-                    print(f"DEBUG: School: {school.name}, Status: {school.approval_status}, On Trial: {school.on_trial}")
+                    logger.debug("Sending approval email to %s for %s", school.contact_person_email, school.name)
                     email_sent = send_approval_notification(school, status_changed_by=request.user, extra_context=context)
-                    print(f"DEBUG: Email send result: {email_sent}")
+                    logger.debug("Email send result: %s", email_sent)
                     
                     if email_sent:
                         messages.success(request, f"✅ School '{school.name}' approved and activated! Login credentials sent to {school.contact_person_email}.")
@@ -491,7 +493,7 @@ def review_school(request, school_id):
                     
                 except Exception as e:
                     connection.set_schema_to_public()
-                    print(f"DEBUG: Exception during approval: {e}")
+                    logger.error("Exception during approval for %s: %s", school.schema_name, e)
                     messages.error(request, f"Approval saved but schema creation failed: {e}")
                     school.approval_status = 'requires_info'
                     school.admin_notes = f"Schema creation error: {e}"
@@ -500,7 +502,7 @@ def review_school(request, school_id):
                     try:
                         send_approval_notification(school, status_changed_by=request.user)
                     except Exception as email_err:
-                        print(f"DEBUG: Failed to send requires_info email: {email_err}")
+                        logger.warning("Failed to send requires_info email: %s", email_err)
             else:
                 school.save()
                 
@@ -550,9 +552,9 @@ def resend_school_credentials(request, school_id):
             admin_user = User.objects.get(username='admin')
             admin_user.set_password(temp_password)
             admin_user.save()
-            print(f"DEBUG: Updated admin password for school {school.schema_name}")
+            logger.info("Updated admin password for school %s", school.schema_name)
         except User.DoesNotExist:
-            print(f"DEBUG: No admin user found for school {school.schema_name}, creating one")
+            logger.info("No admin user found for %s, creating one", school.schema_name)
             admin_user = User.objects.create_superuser(
                 username='admin',
                 email=school.contact_person_email or 'admin@example.com',
@@ -574,13 +576,13 @@ def resend_school_credentials(request, school_id):
         email_sent = send_approval_notification(school, status_changed_by=request.user, extra_context=context)
         
         if email_sent:
-            messages.success(request, f"✅ Credentials resent to {school.contact_person_email}. New temporary password: {temp_password}")
+            messages.success(request, f"✅ Credentials resent to {school.contact_person_email}.")
         else:
-            messages.warning(request, f"⚠️ Failed to send email, but password was reset. New temporary password: {temp_password}")
+            messages.warning(request, f"⚠️ Failed to send email, but password was reset. Please send credentials manually to {school.contact_person_email}.")
         
     except Exception as e:
         connection.set_schema_to_public()
-        print(f"DEBUG: Error resending credentials: {e}")
+        logger.error("Error resending credentials for %s: %s", school.schema_name, e)
         messages.error(request, f"Error resending credentials: {e}")
     
     return redirect('tenants:approval_queue')

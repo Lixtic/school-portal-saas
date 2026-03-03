@@ -8,12 +8,15 @@ https://docs.djangoproject.com/en/5.0/howto/deployment/wsgi/
 """
 
 import os
+import logging
 
 from django.core.wsgi import get_wsgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'school_system.settings')
 
 application = get_wsgi_application()
+
+logger = logging.getLogger('school_system.wsgi')
 
 # --- Vercel Auto-Migration Hook (Improved) ---
 try:
@@ -28,41 +31,41 @@ try:
     db_tables = connection.introspection.table_names()
     
     if 'tenants_school' not in db_tables:
-        print(">>> WSGI: 'tenants_school' table not found. Starting initialization...")
+        logger.info("'tenants_school' table not found. Starting initialization...")
         
         # 1. Run Shared Migrations
-        print(">>> WSGI: Running migrate_schemas --shared")
+        logger.info("Running migrate_schemas --shared")
         call_command('migrate_schemas', shared=True, interactive=False)
         
         # 2. Setup Tenants
-        print(">>> WSGI: Running setup_tenants")
+        logger.info("Running setup_tenants")
         sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         from scripts.setup_tenants import setup_tenants
         setup_tenants()
         
-        print(">>> WSGI: Initialization Complete.")
+        logger.info("Initialization complete.")
     else:
         # Check for pending migrations
         # ALWAYS RUN MIGRATIONS ON VERCEL INIT to catch new fields like 'homepage_template'
-        print(">>> WSGI: Checking for migrations...")
+        logger.info("Checking for migrations...")
         try:
              # Run migrations for both shared and tenants to be safe
              call_command('migrate_schemas', interactive=False)
-             print(">>> WSGI: Migrations applied successfully.")
+             logger.info("Migrations applied successfully.")
         except Exception as mig_e:
-             print(f">>> WSGI MIGRATION ERROR: {mig_e}")
+             logger.error("Migration error: %s", mig_e)
              
         # Double check if public tenant exists
 
         from tenants.models import School
         if not School.objects.filter(schema_name='public').exists():
-             print(">>> WSGI: Public tenant missing! Running setup_tenants...")
+             logger.warning("Public tenant missing! Running setup_tenants...")
              sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
              from scripts.setup_tenants import setup_tenants
              setup_tenants()
 
 except Exception as e:
-    print(f">>> WSGI INIT ERROR: {e}")
+    logging.getLogger('school_system.wsgi').error("WSGI init error: %s", e)
 # ------------------------------------------
 
 app = application

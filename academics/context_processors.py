@@ -4,7 +4,7 @@ from django.db import connection
 def school_info(request):
     try:
         info = SchoolInfo.objects.first()
-    except:
+    except Exception:
         info = None
         
     if not info:
@@ -27,7 +27,7 @@ def school_info(request):
     def has_column(model, column_name):
         try:
             return column_name in [f.name for f in model._meta.get_fields()]
-        except:
+        except Exception:
             return False
     
     # Helper function to safely get attribute with default
@@ -37,7 +37,7 @@ def school_info(request):
         try:
             value = getattr(obj, attr, default)
             return value if value is not None else default
-        except:
+        except Exception:
             return default
         
     base_context = {

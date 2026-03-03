@@ -323,7 +323,7 @@ def import_teachers_csv(request):
                                         continue
                                 else:
                                     joining_date = date.today()
-                            except:
+                            except Exception:
                                 joining_date = date.today()
                         else:
                             joining_date = date.today()
@@ -2062,7 +2062,7 @@ def bulk_teacher_id_cards_pdf(request):
             try:
                 card = generate_teacher_id_card(teacher)
                 card_list.append((teacher.user.get_full_name(), card))
-            except:
+            except Exception:
                 pass  # Skip teachers with errors
         
         if not card_list:
@@ -2382,7 +2382,7 @@ When generating a lesson plan, ALWAYS structure your output to exactly match thi
                         new_title = title_resp.get("choices", [{}])[0].get("message", {}).get("content", "").strip().strip('"')
                         if new_title:
                             session.title = new_title
-                    except:
+                    except Exception:
                         pass
                 
                 session.save()

@@ -4,6 +4,9 @@ from django.http import Http404
 from django.urls import set_urlconf, set_script_prefix
 from django_tenants.middleware.main import TenantMainMiddleware
 from tenants.models import School
+import logging
+
+logger = logging.getLogger(__name__)
 
 class TenantPathMiddleware(TenantMainMiddleware):
     def process_request(self, request):
@@ -28,14 +31,14 @@ class TenantPathMiddleware(TenantMainMiddleware):
         ]
         
         if possible_schema and possible_schema != 'public' and possible_schema not in reserved_paths:
-            print(f"DEBUG MIDDLEWARE: Checking tenant candidate: {possible_schema}")
+            logger.debug("Checking tenant candidate: %s", possible_schema)
             # Try to find the school
             try:
                 # Need to use the model class explicitly to avoid UnboundLocalError
                 from tenants.models import School
                 tenant = School.objects.filter(schema_name=possible_schema).first()
             except Exception as e:
-                print(f"DEBUG MIDDLEWARE: DB Lookup Error: {e}")
+                logger.error("Tenant DB lookup error for %s: %s", possible_schema, e)
                 if settings.DEBUG:
                      # Re-raise to see the actual database error (e.g. missing column)
                      raise e
@@ -45,7 +48,7 @@ class TenantPathMiddleware(TenantMainMiddleware):
             # If no tenant is found, it's a 404. We shouldn't fall back to Public
             # because 'kings' isn't a valid page on the public site either.
             if not tenant:
-                print(f"DEBUG MIDDLEWARE: Tenant '{possible_schema}' looked up but returned None.")
+                logger.debug("Tenant '%s' looked up but returned None", possible_schema)
                 if settings.DEBUG:
                      # List available tenants to help user debug
                      all_tenants = list(School.objects.values_list('schema_name', flat=True))
@@ -55,9 +58,8 @@ class TenantPathMiddleware(TenantMainMiddleware):
         if tenant:
 
             # === TENANT FOUND ===
-            print(f"DEBUG MIDDLEWARE: Tenant '{possible_schema}' found. Rewriting URLs.")
-            print(f"DEBUG MIDDLEWARE: Original PATH_INFO: {request.path_info}")
-            print(f"DEBUG MIDDLEWARE: Original SCRIPT_NAME: {request.META.get('SCRIPT_NAME')}")
+            logger.debug("Tenant '%s' found. Rewriting URLs.", possible_schema)
+            logger.debug("Original PATH_INFO=%s SCRIPT_NAME=%s", request.path_info, request.META.get('SCRIPT_NAME'))
             
             request.tenant = tenant
             connection.set_tenant(request.tenant)
@@ -82,13 +84,12 @@ class TenantPathMiddleware(TenantMainMiddleware):
                 if not request.path_info.startswith('/'):
                     request.path_info = '/' + request.path_info
                 
-                print(f"DEBUG MIDDLEWARE: New PATH_INFO: {request.path_info}")
-                print(f"DEBUG MIDDLEWARE: New SCRIPT_NAME: {request.META['SCRIPT_NAME']}")
+                logger.debug("New PATH_INFO=%s SCRIPT_NAME=%s", request.path_info, request.META['SCRIPT_NAME'])
 
                 # Activate
                 set_script_prefix(f"/{possible_schema}")
             else:
-                 print(f"DEBUG MIDDLEWARE: Path '{request.path}' did not start with '/{possible_schema}'? Strange.")
+                 logger.warning("Path '%s' did not start with '/%s'", request.path, possible_schema)
 
         else:
             # === TENANT NOT FOUND ===
@@ -101,7 +102,7 @@ class TenantPathMiddleware(TenantMainMiddleware):
             ]
             # Ensure we don't treat root path (empty string) as a missing tenant
             if possible_schema and possible_schema not in reserved_paths and possible_schema != 'public':
-                print(f"DEBUG MIDDLEWARE: Tenant '{possible_schema}' not found and not reserved.")
+                logger.debug("Tenant '%s' not found and not reserved", possible_schema)
                 raise Http404(f"School '{possible_schema}' does not exist.")
 
             # === PUBLIC CONTEXT ===

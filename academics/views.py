@@ -1367,9 +1367,9 @@ def preview_homepage(request):
                 for field in base_obj._meta.fields:
                     try:
                         setattr(self, field.name, getattr(base_obj, field.name, ''))
-                    except:
+                    except Exception:
                         setattr(self, field.name, '')
-            except:
+            except Exception:
                 pass
             # Override with preview data
             for key, value in preview_data.items():

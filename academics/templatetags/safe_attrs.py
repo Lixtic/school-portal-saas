@@ -10,7 +10,7 @@ def safe_attr(obj, attr_name):
     try:
         value = getattr(obj, attr_name, '')
         return value if value is not None else ''
-    except:
+    except Exception:
         return ''
 
 @register.filter
@@ -24,5 +24,5 @@ def safe_attr_with_default(obj, args):
         default = parts[1] if len(parts) > 1 else ''
         value = getattr(obj, attr_name, default)
         return value if value is not None else default
-    except:
+    except Exception:
         return parts[1] if len(parts) > 1 else ''

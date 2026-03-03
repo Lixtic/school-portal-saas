@@ -17,8 +17,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-your-secret-key-here-change-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# Default to True for local development, set to False in production
-DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+# Default to False for safety; set DEBUG=True explicitly in local .env
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+
+# Fail loudly if SECRET_KEY is still the default in production
+if not DEBUG and SECRET_KEY.startswith('django-insecure'):
+    raise RuntimeError("You must set a proper SECRET_KEY environment variable in production.")
 
 # OpenAI Configuration
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
@@ -26,7 +30,7 @@ OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 # =====================
 # ALLOWED HOSTS & CSRF
 # =====================
-ALLOWED_HOSTS = ['*']  # Allow all hosts for now
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,.localhost').split(',') if not DEBUG else ['*']
 
 # CSRF Trusted Origins
 CSRF_TRUSTED_ORIGINS = [
