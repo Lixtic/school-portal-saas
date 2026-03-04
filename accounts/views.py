@@ -1095,7 +1095,7 @@ def school_analytics(request):
     try:
         recent_payments = Payment.objects.select_related(
             'student_fee__student__user'
-        ).order_by('-payment_date')[:10]
+        ).order_by('-date')[:10]
     except Exception:
         recent_payments = []
 
