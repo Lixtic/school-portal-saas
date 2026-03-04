@@ -563,11 +563,13 @@ def student_dashboard_view(request):
     # Get homework and resources
     from homework.models import Homework
     from academics.models import Resource
-    
-    homework_list = Homework.objects.filter(
-        target_class=student.current_class
-    ).order_by('-created_at')[:5]
 
+    try:
+        homework_list = Homework.objects.filter(
+            target_class=student.current_class
+        ).order_by('-created_at')[:5]
+    except Exception:
+        homework_list = []
     
     resource_fields_available = False
     try:
