@@ -116,6 +116,14 @@ def build_academic_calendar_widget(limit=5):
     }
 
 
+def _safe_count(model):
+    """Return model.objects.count() safely, returning 0 on any DB error."""
+    try:
+        return model.objects.count()
+    except Exception:
+        return 0
+
+
 def build_onboarding_checklist():
     """Compute the 8-step getting-started checklist for school admins."""
     from finance.models import FeeStructure
@@ -495,7 +503,10 @@ def dashboard(request):
             pass
 
     # Base query without slicing
-    base_notices = Announcement.objects.filter(is_active=True).order_by('-created_at')
+    try:
+        base_notices = Announcement.objects.filter(is_active=True).order_by('-created_at')
+    except (OperationalError, ProgrammingError):
+        base_notices = Announcement.objects.none()
     calendar_widget = build_academic_calendar_widget()
     
     if user.user_type == 'admin':
@@ -511,39 +522,45 @@ def dashboard(request):
             message_notifications = []
         
         # Analytics Data
-        
-        # 1. Students per Class (Top 5 largest classes)
-        # Using current academic year would be precise, but for now simple grouping
-        students_per_class = Student.objects.values('current_class__name').annotate(
-            count=Count('id')
-        ).order_by('-count')[:5]
-        
-        chart_labels_classes = [item['current_class__name'] or 'Unassigned' for item in students_per_class]
-        chart_data_classes = [item['count'] for item in students_per_class]
+        chart_labels_classes = []
+        chart_data_classes = []
+        try:
+            # 1. Students per Class (Top 5 largest classes)
+            students_per_class = Student.objects.values('current_class__name').annotate(
+                count=Count('id')
+            ).order_by('-count')[:5]
+            chart_labels_classes = [item['current_class__name'] or 'Unassigned' for item in students_per_class]
+            chart_data_classes = [item['count'] for item in students_per_class]
+        except (OperationalError, ProgrammingError, Exception):
+            pass
 
         # 2. Daily Attendance (Last 7 days)
         today = timezone.now().date()
         date_7_days_ago = today - datetime.timedelta(days=6)
-        
-        attendance_stats = Attendance.objects.filter(
-            date__gte=date_7_days_ago, 
-            status='present'
-        ).values('date').annotate(
-            present_count=Count('id')
-        ).order_by('date')
-
-        # Fill in missing dates with 0
-        daily_presence = {}
-        for item in attendance_stats:
-            daily_presence[item['date']] = item['present_count']
-        
         chart_labels_attendance = []
         chart_data_attendance = []
-        
-        for i in range(7):
-            d = date_7_days_ago + datetime.timedelta(days=i)
-            chart_labels_attendance.append(d.strftime("%a")) # Mon, Tue...
-            chart_data_attendance.append(daily_presence.get(d, 0))
+        try:
+            attendance_stats = Attendance.objects.filter(
+                date__gte=date_7_days_ago,
+                status='present'
+            ).values('date').annotate(
+                present_count=Count('id')
+            ).order_by('date')
+
+            # Fill in missing dates with 0
+            daily_presence = {}
+            for item in attendance_stats:
+                daily_presence[item['date']] = item['present_count']
+
+            for i in range(7):
+                d = date_7_days_ago + datetime.timedelta(days=i)
+                chart_labels_attendance.append(d.strftime("%a"))  # Mon, Tue...
+                chart_data_attendance.append(daily_presence.get(d, 0))
+        except (OperationalError, ProgrammingError, Exception):
+            for i in range(7):
+                d = date_7_days_ago + datetime.timedelta(days=i)
+                chart_labels_attendance.append(d.strftime("%a"))
+                chart_data_attendance.append(0)
 
         try:
             onboarding = build_onboarding_checklist()
@@ -557,8 +574,8 @@ def dashboard(request):
             'chart_data_classes': json.dumps(chart_data_classes),
             'chart_labels_attendance': json.dumps(chart_labels_attendance),
             'chart_data_attendance': json.dumps(chart_data_attendance),
-            'total_students': Student.objects.count(),
-            'total_teachers': Teacher.objects.count(),
+            'total_students': _safe_count(Student),
+            'total_teachers': _safe_count(Teacher),
             'onboarding': onboarding,
             'message_notifications': message_notifications,
             **calendar_widget,
@@ -682,7 +699,10 @@ def dashboard(request):
             resource_fields_available = False
 
         # Filter notices for teacher
-        teacher_notices = base_notices.filter(target_audience__in=['all', 'staff', 'teachers'])[:5]
+        try:
+            teacher_notices = base_notices.filter(target_audience__in=['all', 'staff', 'teachers'])[:5]
+        except Exception:
+            teacher_notices = []
 
         teacher_context = {
             'user': user,
@@ -706,7 +726,10 @@ def dashboard(request):
         from finance.models import StudentFee
         from students.models import Attendance, Grade
         from academics.models import AcademicYear
-        parent_notices = base_notices.filter(target_audience__in=['all', 'parents'])
+        try:
+            parent_notices = base_notices.filter(target_audience__in=['all', 'parents'])
+        except Exception:
+            parent_notices = base_notices
         
         # Calculate fees for all children
         try:

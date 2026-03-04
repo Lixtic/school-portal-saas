@@ -602,7 +602,10 @@ def student_dashboard_view(request):
     balance = val = total_payable - total_paid
     
     # Get gamification data
-    student_xp, _ = StudentXP.objects.get_or_create(student=student)
+    try:
+        student_xp, _ = StudentXP.objects.get_or_create(student=student)
+    except Exception:
+        student_xp = None
 
     context = {
         'student': student,
