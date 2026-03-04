@@ -186,13 +186,17 @@ def _allowed_recipients(user):
 # ═══════════════════════════════
 
 @login_required
+@login_required
 def api_unread_count(request):
-    user = request.user
-    count = Message.objects.filter(
-        conversation__in=Conversation.for_user(user),
-        is_read=False,
-    ).exclude(sender=user).count()
-    return JsonResponse({'unread': count})
+    try:
+        user = request.user
+        count = Message.objects.filter(
+            conversation__in=Conversation.for_user(user),
+            is_read=False,
+        ).exclude(sender=user).count()
+        return JsonResponse({'unread': count})
+    except Exception:
+        return JsonResponse({'unread': 0})
 
 
 # ═══════════════════════════════
