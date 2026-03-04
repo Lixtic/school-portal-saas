@@ -3,6 +3,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
+from django.views.generic import RedirectView
 from accounts import views as account_views
 from accounts.views import TenantPasswordResetView
 from tenants import views as tenant_views
@@ -13,6 +14,9 @@ admin.site.index_title = "Welcome to School Management System"
 
 
 urlpatterns = [
+    # Favicon — serve before tenant middleware can intercept
+    path('favicon.ico', RedirectView.as_view(url='/static/img/logo.png', permanent=True)),
+    path('favicon.png', RedirectView.as_view(url='/static/img/logo.png', permanent=True)),
     path('admin/', admin.site.urls),
     path('', account_views.homepage, name='home'),
     path('find-school/', account_views.find_school, name='find_school'),

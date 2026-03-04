@@ -25,9 +25,10 @@ class TenantPathMiddleware(TenantMainMiddleware):
         # 3. Check if the first segment matches a valid School schema (excluding 'public')
         # Add common global paths to exclude from tenant lookup
         reserved_paths = [
-            'static', 'media', 'admin', 'accounts', 
-            'signup', 'login', 'logout', 'debug', 'favicon.ico', 'dashboard', 'tenants',
-            'find-school'
+            'static', 'media', 'admin', 'accounts',
+            'signup', 'login', 'logout', 'debug', 'favicon.ico', 'favicon.png',
+            'favicon.svg', 'favicon.ico', 'robots.txt', 'sitemap.xml',
+            'dashboard', 'tenants', 'find-school'
         ]
         
         if possible_schema and possible_schema != 'public' and possible_schema not in reserved_paths:
