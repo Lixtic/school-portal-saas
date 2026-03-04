@@ -1063,7 +1063,7 @@ def school_analytics(request):
         'unpaid': StudentFee.objects.filter(status='unpaid').count(),
     }
     fee_total_expected = StudentFee.objects.aggregate(
-        total=Sum('amount')
+        total=Sum('amount_payable')
     )['total'] or 0
     fee_total_collected = Payment.objects.aggregate(
         total=Sum('amount')
