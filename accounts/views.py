@@ -725,7 +725,6 @@ def dashboard(request):
     elif user.user_type == 'parent':
         from finance.models import StudentFee
         from students.models import Attendance, Grade
-        from academics.models import AcademicYear
         try:
             parent_notices = base_notices.filter(target_audience__in=['all', 'parents'])
         except Exception:
