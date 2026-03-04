@@ -323,7 +323,7 @@ def bulk_assign_fees(request):
                     _, created = StudentFee.objects.get_or_create(
                         student=student,
                         fee_structure=structure,
-                        defaults={'amount_due': structure.amount, 'status': 'unpaid'},
+                        defaults={'amount_payable': structure.amount, 'status': 'unpaid'},
                     )
                     if created:
                         assigned += 1
@@ -361,8 +361,8 @@ def payment_receipt_pdf(request, payment_id):
     payment = get_object_or_404(Payment, id=payment_id)
     if request.user.user_type not in ['admin', 'teacher']:
         if not (request.user.user_type == 'student' and
-                hasattr(request.user, 'student_profile') and
-                request.user.student_profile == payment.student_fee.student):
+                hasattr(request.user, 'student') and
+                request.user.student == payment.student_fee.student):
             messages.error(request, 'Access denied.')
             return redirect('dashboard')
 
