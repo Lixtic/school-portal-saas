@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Notification Centre – {{ school_name }}{% endblock %}
+
+{% block content %}
+<style>
+    .nc-header {
+        background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
+        color: #fff;
+        padding: 2rem 1.5rem 3rem;
+        margin: -1.5rem -1.5rem 0;
+    }
+    .nc-header h1 { font-size: 1.4rem; font-weight: 700; margin: 0; }
+    .nc-header p  { opacity: .8; font-size: .85rem; margin: .25rem 0 0; }
+
+    .nc-tabs { display: flex; gap: .5rem; margin-top: 1rem; }
+    .nc-tab {
+        padding: .35rem .9rem;
+        border-radius: 20px;
+        font-size: .78rem;
+        font-weight: 600;
+        text-decoration: none;
+        border: 1px solid rgba(255,255,255,.35);
+        color: rgba(255,255,255,.8);
+        transition: all .2s;
+    }
+    .nc-tab.active, .nc-tab:hover {
+        background: rgba(255,255,255,.2);
+        color: #fff;
+        border-color: rgba(255,255,255,.6);
+    }
+
+    .nc-body {
+        background: var(--bs-body-bg, #f8fafc);
+        min-height: 60vh;
+        padding: 1rem 1rem 2rem;
+    }
+    .nc-list {
+        max-width: 740px;
+        margin: 0 auto;
+    }
+
+    .nc-item {
+        display: flex;
+        gap: .875rem;
+        padding: .9rem 1rem;
+        background: var(--bs-white, #fff);
+        border-radius: 12px;
+        margin-bottom: .6rem;
+        border: 1px solid var(--bs-border-color, #e5e7eb);
+        text-decoration: none;
+        color: inherit;
+        transition: box-shadow .2s, border-color .2s;
+    }
+    .nc-item:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,.07);
+        border-color: #93c5fd;
+        color: inherit;
+    }
+    .nc-item.was-unread { border-left: 3px solid #3b82f6; }
+
+    .nc-icon {
+        width: 38px; height: 38px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0; font-size: 1.1rem;
+    }
+    .ic-announcement { background: #fef3c7; color: #d97706; }
+    .ic-message      { background: #d1fae5; color: #059669; }
+    .ic-10_min       { background: #fee2e2; color: #dc2626; }
+    .ic-45_min       { background: #dbeafe; color: #2563eb; }
+    .ic-fee          { background: #ede9fe; color: #7c3aed; }
+    .ic-default      { background: #f3f4f6; color: #6b7280; }
+
+    .nc-msg  { font-size: .88rem; font-weight: 500; color: var(--bs-body-color, #111827); line-height: 1.45; }
+    .nc-time { font-size: .72rem; color: var(--bs-secondary-color, #6b7280); margin-top: .2rem; }
+
+    .nc-empty {
+        text-align: center;
+        padding: 4rem 1rem;
+        color: var(--bs-secondary-color, #9ca3af);
+    }
+    .nc-empty i { font-size: 3rem; opacity: .4; display: block; margin-bottom: .75rem; }
+
+    [data-bs-theme="dark"] .nc-item { background: #1e293b; border-color: #334155; }
+    [data-bs-theme="dark"] .nc-item:hover { border-color: #3b82f6; }
+</style>
+
+<!-- Header band -->
+<div class="nc-header">
+    <div style="max-width:740px; margin:0 auto;">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h1><i class="bi bi-bell-fill me-2" style="font-size:1.1rem;"></i>Notification Centre</h1>
+                <p>All your notifications in one place</p>
+            </div>
+            {% if unread_count_before > 0 %}
+            <span class="badge bg-white text-primary fw-bold px-3 py-2 rounded-pill" style="font-size:.8rem;">
+                {{ unread_count_before }} marked as read
+            </span>
+            {% endif %}
+        </div>
+        <div class="nc-tabs">
+            <a href="?tab=all" class="nc-tab {% if active_tab == 'all' %}active{% endif %}">All</a>
+            <a href="?tab=unread" class="nc-tab {% if active_tab == 'unread' %}active{% endif %}">Unread only</a>
+        </div>
+    </div>
+</div>
+
+<!-- Notification list -->
+<div class="nc-body">
+    <div class="nc-list">
+        {% for notif in notifications %}
+        {% with was_unread=notif.id|stringformat:"s" %}
+        <a href="{% url 'announcements:mark_read' notif.id %}"
+           class="nc-item{% if notif.id in unread_ids_before %} was-unread{% endif %}"
+           title="{{ notif.message }}">
+            <div class="nc-icon
+                {% if notif.alert_type == 'announcement' %}ic-announcement
+                {% elif notif.alert_type == 'message' %}ic-message
+                {% elif notif.alert_type == '10_min' %}ic-10_min
+                {% elif notif.alert_type == '45_min' %}ic-45_min
+                {% elif notif.alert_type == 'fee' %}ic-fee
+                {% else %}ic-default{% endif %}">
+                {% if notif.alert_type == 'announcement' %}<i class="bi bi-megaphone-fill"></i>
+                {% elif notif.alert_type == 'message' %}<i class="bi bi-chat-fill"></i>
+                {% elif notif.alert_type == '10_min' %}<i class="bi bi-exclamation-circle-fill"></i>
+                {% elif notif.alert_type == '45_min' %}<i class="bi bi-info-circle-fill"></i>
+                {% elif notif.alert_type == 'fee' %}<i class="bi bi-wallet2"></i>
+                {% else %}<i class="bi bi-bell-fill"></i>{% endif %}
+            </div>
+            <div class="flex-grow-1" style="min-width:0;">
+                <div class="nc-msg">{{ notif.message }}</div>
+                <div class="nc-time">
+                    <i class="bi bi-clock me-1"></i>{{ notif.created_at|timesince }} ago
+                </div>
+            </div>
+            <i class="bi bi-chevron-right" style="color:#d1d5db; align-self:center; font-size:.8rem;"></i>
+        </a>
+        {% endwith %}
+        {% empty %}
+        <div class="nc-empty">
+            <i class="bi bi-bell-slash"></i>
+            <div style="font-size:1rem; font-weight:600; margin-bottom:.4rem;">You're all caught up!</div>
+            <p style="font-size:.85rem;">No notifications to show{% if active_tab == 'unread' %} — try "All" tab{% endif %}.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

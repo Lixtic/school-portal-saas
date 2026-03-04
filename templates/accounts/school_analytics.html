@@ -1,0 +1,318 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}School Analytics – {{ school_name }}{% endblock %}
+
+{% block content %}
+<style>
+    .an-header {
+        background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+        color: #fff;
+        padding: 1.75rem 1.5rem 2.5rem;
+        margin: -1.5rem -1.5rem 0;
+    }
+    .an-header h1 { font-size: 1.4rem; font-weight: 700; margin: 0; }
+    .an-header p  { opacity: .7; font-size: .85rem; margin: .25rem 0 0; }
+    .an-header .back-link {
+        color: rgba(255,255,255,.65);
+        font-size: .8rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        margin-bottom: .75rem;
+    }
+    .an-header .back-link:hover { color: #fff; }
+
+    .an-body { padding: 1.25rem; }
+
+    /* Stat cards */
+    .an-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .an-stat {
+        background: var(--bs-white, #fff);
+        border: 1px solid var(--bs-border-color, #e5e7eb);
+        border-radius: 14px;
+        padding: 1.1rem 1rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,.03);
+    }
+    .an-stat-label {
+        font-size: .68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: var(--bs-secondary-color, #6b7280);
+        margin-bottom: .35rem;
+    }
+    .an-stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        line-height: 1.1;
+        color: var(--bs-body-color, #111827);
+    }
+    .an-stat-sub {
+        font-size: .72rem;
+        color: var(--bs-secondary-color, #9ca3af);
+        margin-top: .2rem;
+    }
+
+    /* Chart card */
+    .an-card {
+        background: var(--bs-white, #fff);
+        border: 1px solid var(--bs-border-color, #e5e7eb);
+        border-radius: 14px;
+        padding: 1.25rem;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,.03);
+    }
+    .an-card-title {
+        font-size: .78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: var(--bs-secondary-color, #6b7280);
+        margin-bottom: .85rem;
+    }
+    .an-charts-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem;
+        margin-bottom: 1.25rem;
+    }
+    @media (max-width: 640px) { .an-charts-grid { grid-template-columns: 1fr; } }
+
+    /* Fee pills */
+    .fee-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        padding: .3rem .75rem;
+        border-radius: 20px;
+        font-size: .78rem;
+        font-weight: 600;
+    }
+    .fee-paid    { background: #d1fae5; color: #065f46; }
+    .fee-partial { background: #fef3c7; color: #92400e; }
+    .fee-unpaid  { background: #fee2e2; color: #991b1b; }
+
+    /* Payments table */
+    .an-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    .an-table th { font-size: .68rem; text-transform: uppercase; letter-spacing:.04em; color:var(--bs-secondary-color,#6b7280); padding: .5rem .75rem; border-bottom: 2px solid var(--bs-border-color,#e5e7eb); text-align:left; }
+    .an-table td { padding: .55rem .75rem; border-bottom: 1px solid var(--bs-border-color,#f3f4f6); }
+    .an-table tr:last-child td { border-bottom: none; }
+
+    [data-bs-theme="dark"] .an-stat,
+    [data-bs-theme="dark"] .an-card { background: #1e293b; border-color: #334155; }
+    [data-bs-theme="dark"] .an-table td { border-color: #334155; }
+    [data-bs-theme="dark"] .an-table th { border-color: #334155; }
+</style>
+
+<!-- Header -->
+<div class="an-header">
+    <a href="{% url 'dashboard' %}" class="back-link"><i class="bi bi-arrow-left"></i> Dashboard</a>
+    <h1><i class="bi bi-bar-chart-line-fill me-2"></i>School Analytics</h1>
+    <p>{% if current_year %}{{ current_year }} · {% endif %}School-wide performance overview</p>
+</div>
+
+<div class="an-body">
+
+    <!-- Stat cards -->
+    <div class="an-stats-grid">
+        <div class="an-stat">
+            <div class="an-stat-label">Total Students</div>
+            <div class="an-stat-value" style="color:#2563eb;">{{ total_students }}</div>
+            <div class="an-stat-sub">enrolled</div>
+        </div>
+        <div class="an-stat">
+            <div class="an-stat-label">Total Teachers</div>
+            <div class="an-stat-value" style="color:#7c3aed;">{{ total_teachers }}</div>
+            <div class="an-stat-sub">staff members</div>
+        </div>
+        <div class="an-stat">
+            <div class="an-stat-label">Fees Paid</div>
+            <div class="an-stat-value" style="color:#059669;">{{ fee_status.paid }}</div>
+            <div class="an-stat-sub">student fees</div>
+        </div>
+        <div class="an-stat">
+            <div class="an-stat-label">Outstanding</div>
+            <div class="an-stat-value" style="color:#dc2626;">{{ fee_status.unpaid }}</div>
+            <div class="an-stat-sub">unpaid fees</div>
+        </div>
+        <div class="an-stat">
+            <div class="an-stat-label">Total Collected</div>
+            <div class="an-stat-value" style="color:#d97706;">₵{{ fee_total_collected|floatformat:0 }}</div>
+            <div class="an-stat-sub">of ₵{{ fee_total_expected|floatformat:0 }}</div>
+        </div>
+    </div>
+
+    <!-- Charts row -->
+    <div class="an-charts-grid">
+        <!-- Enrollment by class -->
+        <div class="an-card">
+            <div class="an-card-title"><i class="bi bi-people-fill me-1"></i>Enrollment by Class</div>
+            <canvas id="classChart" height="200"></canvas>
+        </div>
+
+        <!-- Fee status distribution -->
+        <div class="an-card">
+            <div class="an-card-title"><i class="bi bi-wallet2 me-1"></i>Fee Status</div>
+            <canvas id="feeChart" height="200"></canvas>
+            <div class="d-flex gap-2 flex-wrap mt-2">
+                <span class="fee-pill fee-paid"><i class="bi bi-check-circle-fill"></i> Paid: {{ fee_status.paid }}</span>
+                <span class="fee-pill fee-partial"><i class="bi bi-dash-circle-fill"></i> Partial: {{ fee_status.partial }}</span>
+                <span class="fee-pill fee-unpaid"><i class="bi bi-x-circle-fill"></i> Unpaid: {{ fee_status.unpaid }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 30-day attendance heatmap -->
+    <div class="an-card">
+        <div class="an-card-title"><i class="bi bi-calendar-check me-1"></i>30-Day Attendance (present count)</div>
+        <canvas id="heatmapChart" height="100"></canvas>
+    </div>
+
+    <!-- Average grade per class -->
+    <div class="an-card">
+        <div class="an-card-title"><i class="bi bi-graph-up me-1"></i>Average Score by Class</div>
+        <canvas id="gradeChart" height="110"></canvas>
+    </div>
+
+    <!-- Recent payments -->
+    {% if recent_payments %}
+    <div class="an-card">
+        <div class="an-card-title"><i class="bi bi-receipt me-1"></i>Recent Payments</div>
+        <div style="overflow-x:auto;">
+            <table class="an-table">
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th>Method</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in recent_payments %}
+                    <tr>
+                        <td>{{ p.student_fee.student.user.get_full_name }}</td>
+                        <td><strong>₵{{ p.amount|floatformat:2 }}</strong></td>
+                        <td>{{ p.payment_date|date:"M d, Y" }}</td>
+                        <td>{{ p.get_payment_method_display|default:p.payment_method }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(function () {
+    const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    const gridColor = isDark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.05)';
+    const tickColor = isDark ? '#94a3b8' : '#6b7280';
+    const fontFamily = "'Manrope', sans-serif";
+
+    Chart.defaults.font.family = fontFamily;
+    Chart.defaults.color = tickColor;
+
+    // ── Enrollment by class ──
+    new Chart(document.getElementById('classChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ class_labels|safe }},
+            datasets: [{
+                label: 'Students',
+                data: {{ class_data|safe }},
+                backgroundColor: 'rgba(59,130,246,.7)',
+                borderRadius: 6,
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: gridColor }, ticks: { stepSize: 1 } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // ── Fee status doughnut ──
+    new Chart(document.getElementById('feeChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Paid', 'Partial', 'Unpaid'],
+            datasets: [{
+                data: [{{ fee_status.paid }}, {{ fee_status.partial }}, {{ fee_status.unpaid }}],
+                backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                borderWidth: 2,
+                borderColor: isDark ? '#1e293b' : '#fff',
+            }]
+        },
+        options: {
+            cutout: '65%',
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    // ── 30-day attendance line ──
+    new Chart(document.getElementById('heatmapChart'), {
+        type: 'line',
+        data: {
+            labels: {{ heatmap_labels|safe }},
+            datasets: [{
+                label: 'Present',
+                data: {{ heatmap_data|safe }},
+                fill: true,
+                tension: 0.4,
+                borderColor: '#6366f1',
+                backgroundColor: 'rgba(99,102,241,.12)',
+                pointRadius: 2,
+                pointHoverRadius: 5,
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: gridColor } },
+                x: {
+                    grid: { display: false },
+                    ticks: {
+                        maxTicksLimit: 10,
+                        maxRotation: 45,
+                    }
+                }
+            }
+        }
+    });
+
+    // ── Average grade per class ──
+    new Chart(document.getElementById('gradeChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ grade_labels|safe }},
+            datasets: [{
+                label: 'Avg Score',
+                data: {{ grade_data|safe }},
+                backgroundColor: 'rgba(16,185,129,.7)',
+                borderRadius: 6,
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, max: 100, grid: { color: gridColor } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+})();
+</script>
+{% endblock %}

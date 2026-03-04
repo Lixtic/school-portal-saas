@@ -1,10 +1,14 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Announcement, Notification
+from .models import Announcement, Notification, PushSubscription
 from .forms import AnnouncementForm
 from django.db.models import Q
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST, require_http_methods
 from accounts.models import User
+import json
 
 
 def _create_announcement_notifications(announcement):
@@ -122,3 +126,99 @@ def mark_all_notifications_read(request):
     request.user.notifications.filter(is_read=False).update(is_read=True)
     return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
 
+
+# ---------------------------------------------------------------------------
+# Notification Centre
+# ---------------------------------------------------------------------------
+
+@login_required
+def notification_centre(request):
+    """Full inbox — all notifications for the logged-in user, newest first."""
+    filter_tab = request.GET.get('tab', 'all')  # 'all' | 'unread'
+
+    qs = Notification.objects.filter(recipient=request.user).order_by('-created_at')
+
+    if filter_tab == 'unread':
+        qs = qs.filter(is_read=False)
+
+    # Mark all fetched notifications as read (passive auto-read)
+    unread_ids = list(qs.filter(is_read=False).values_list('id', flat=True))
+    if unread_ids:
+        Notification.objects.filter(id__in=unread_ids).update(is_read=True)
+
+    return render(request, 'announcements/notification_centre.html', {
+        'notifications': qs,
+        'active_tab': filter_tab,
+        'unread_count_before': len(unread_ids),
+    })
+
+
+# ---------------------------------------------------------------------------
+# PWA Push Subscriptions
+# ---------------------------------------------------------------------------
+
+@login_required
+@require_POST
+def push_subscribe(request):
+    """Save / update a browser push subscription for the current user."""
+    from django.conf import settings
+    try:
+        data = json.loads(request.body)
+        endpoint = data.get('endpoint', '').strip()
+        p256dh = data.get('keys', {}).get('p256dh', '').strip()
+        auth_key = data.get('keys', {}).get('auth', '').strip()
+    except (ValueError, KeyError):
+        return JsonResponse({'ok': False, 'error': 'Invalid JSON'}, status=400)
+
+    if not endpoint:
+        return JsonResponse({'ok': False, 'error': 'Missing endpoint'}, status=400)
+
+    PushSubscription.objects.update_or_create(
+        endpoint=endpoint,
+        defaults={'user': request.user, 'p256dh': p256dh, 'auth': auth_key},
+    )
+    return JsonResponse({'ok': True, 'public_key': settings.VAPID_PUBLIC_KEY})
+
+
+@login_required
+@require_http_methods(['POST', 'DELETE'])
+def push_unsubscribe(request):
+    """Remove a push subscription."""
+    try:
+        data = json.loads(request.body)
+        endpoint = data.get('endpoint', '').strip()
+    except (ValueError, KeyError):
+        return JsonResponse({'ok': False, 'error': 'Invalid JSON'}, status=400)
+
+    PushSubscription.objects.filter(user=request.user, endpoint=endpoint).delete()
+    return JsonResponse({'ok': True})
+
+
+def send_push_notification(user, title, body, url='/'):
+    """
+    Helper to send a web-push notification to all of a user's subscriptions.
+    Call from signal handlers or management commands.
+    """
+    from django.conf import settings
+    from pywebpush import webpush, WebPushException
+    import json as _json
+
+    subscriptions = PushSubscription.objects.filter(user=user)
+    private_key_pem = settings.VAPID_PRIVATE_KEY_PEM
+    claims = settings.VAPID_CLAIMS
+
+    for sub in subscriptions:
+        try:
+            webpush(
+                subscription_info={
+                    'endpoint': sub.endpoint,
+                    'keys': {'p256dh': sub.p256dh, 'auth': sub.auth},
+                },
+                data=_json.dumps({'title': title, 'body': body, 'url': url}),
+                vapid_private_key=private_key_pem,
+                vapid_claims=claims,
+            )
+        except WebPushException as ex:
+            # Subscription expired — clean up
+            if ex.response and ex.response.status_code in (404, 410):
+                sub.delete()

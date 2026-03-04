@@ -1361,3 +1361,73 @@ def student_power_words(request):
         'recent_words': recent_words,
     }
     return render(request, 'students/power_words_history.html', context)
+
+
+# ---------------------------------------------------------------------------
+# XP Leaderboard API (JSON)
+# ---------------------------------------------------------------------------
+
+@login_required
+def class_leaderboard_json(request):
+    """
+    Returns top-20 classmates ranked by Aura XP for the logged-in student.
+    The student's own entry is included and marked with `is_me: true`.
+    """
+    from academics.gamification_models import StudentXP
+    from django.http import JsonResponse
+
+    if request.user.user_type != 'student':
+        return JsonResponse({'error': 'Forbidden'}, status=403)
+
+    student = Student.objects.filter(user=request.user).select_related('current_class').first()
+    if not student or not student.current_class:
+        return JsonResponse({'leaderboard': [], 'my_rank': None})
+
+    # All classmates including self
+    classmates = Student.objects.filter(
+        current_class=student.current_class
+    ).select_related('user')
+
+    # Fetch XP records; default to 0 if missing
+    xp_map = {
+        xp.student_id: xp
+        for xp in StudentXP.objects.filter(student__in=classmates)
+    }
+
+    rows = []
+    for s in classmates:
+        xp = xp_map.get(s.id)
+        rows.append({
+            'id': s.id,
+            'name': s.user.get_full_name() or s.user.username,
+            'total_xp': xp.total_xp if xp else 0,
+            'level': xp.level if xp else 1,
+            'level_progress': xp.level_progress if xp else 0,
+            'current_streak': xp.current_streak if xp else 0,
+            'is_me': s.id == student.id,
+        })
+
+    # Sort by XP descending
+    rows.sort(key=lambda r: r['total_xp'], reverse=True)
+
+    # Assign ranks (tied XP shares the same rank)
+    my_rank = None
+    current_rank = 0
+    prev_xp = None
+    for i, row in enumerate(rows):
+        if row['total_xp'] != prev_xp:
+            current_rank = i + 1
+            prev_xp = row['total_xp']
+        row['rank'] = current_rank
+        if row['is_me']:
+            my_rank = current_rank
+
+    # Return top 20; always include the user's own entry if outside top 20
+    top20 = rows[:20]
+    me_in_top20 = any(r['is_me'] for r in top20)
+    if not me_in_top20:
+        me_row = next((r for r in rows if r['is_me']), None)
+        if me_row:
+            top20.append(me_row)
+
+    return JsonResponse({'leaderboard': top20, 'my_rank': my_rank})

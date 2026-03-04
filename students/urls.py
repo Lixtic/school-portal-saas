@@ -39,4 +39,7 @@ urlpatterns = [
 
     # Power Words history (student view)
     path('power-words/', views.student_power_words, name='power_words_history'),
+
+    # XP Leaderboard API
+    path('aura/leaderboard/', views.class_leaderboard_json, name='class_leaderboard_json'),
 ]

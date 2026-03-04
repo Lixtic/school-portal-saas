@@ -30,3 +30,48 @@ self.addEventListener('fetch', (event) => {
       event.respondWith(fetch(event.request));
   }
 });
+// ── Web Push Handlers ──────────────────────────────────────────────────────
+
+self.addEventListener('push', (event) => {
+  let data = { title: 'School Portal', body: 'You have a new notification.', url: '/' };
+  if (event.data) {
+    try {
+      data = Object.assign(data, JSON.parse(event.data.text()));
+    } catch (e) {
+      data.body = event.data.text();
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: '/static/img/logo.png',
+    badge: '/static/img/logo.png',
+    data: { url: data.url || '/' },
+    vibrate: [150, 80, 150],
+    requireInteraction: false,
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) ? event.notification.data.url : '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Focus existing tab if found
+      for (const client of clientList) {
+        if (client.url.includes(targetUrl) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // Otherwise open a new tab
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
+});

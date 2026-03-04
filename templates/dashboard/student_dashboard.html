@@ -572,6 +572,19 @@
         </div>
         {% endif %}
 
+        <!-- Class Leaderboard -->
+        <div class="sd-card mb-3">
+            <div class="sd-card-header" role="button" id="leaderboard-toggle" style="cursor:pointer;" onclick="toggleLeaderboard()">
+                <span class="sd-card-title"><i class="bi bi-trophy-fill text-warning me-1"></i>Class Leaderboard</span>
+                <i class="bi bi-chevron-down" id="leaderboard-chevron" style="color:var(--sd-muted); font-size:.85rem; transition:transform .25s;"></i>
+            </div>
+            <div id="leaderboard-body" style="display:none;">
+                <div id="leaderboard-list">
+                    <div class="sd-empty" id="leaderboard-loading"><i class="bi bi-hourglass-split"></i>Loading…</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Quote -->
         <div class="sd-quote">
             <div style="font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--sd-accent-blue); margin-bottom:.5rem;">Today's Quote</div>
@@ -580,4 +593,59 @@
         </div>
     </div>
 </div>
+
+<script>
+// ── Class Leaderboard ────────────────────────────────────────────────────
+let leaderboardLoaded = false;
+function toggleLeaderboard() {
+    const body = document.getElementById('leaderboard-body');
+    const chevron = document.getElementById('leaderboard-chevron');
+    const isOpen = body.style.display !== 'none';
+    body.style.display = isOpen ? 'none' : '';
+    chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+    if (!isOpen && !leaderboardLoaded) {
+        leaderboardLoaded = true;
+        fetchLeaderboard();
+    }
+}
+
+function fetchLeaderboard() {
+    fetch("{% url 'students:class_leaderboard_json' %}")
+        .then(r => r.json())
+        .then(data => {
+            const list = document.getElementById('leaderboard-list');
+            if (!data.leaderboard || data.leaderboard.length === 0) {
+                list.innerHTML = '<div class="sd-empty"><i class="bi bi-emoji-neutral"></i>No XP data yet</div>';
+                return;
+            }
+            let html = '';
+            data.leaderboard.forEach(function(row) {
+                const medal = row.rank === 1 ? '🥇' : row.rank === 2 ? '🥈' : row.rank === 3 ? '🥉' : `#${row.rank}`;
+                const highlight = row.is_me ? 'background:var(--sd-si-purple);border-left:3px solid var(--sd-accent-purple);' : '';
+                html += `
+                <div class="sd-item" style="${highlight} padding:.55rem .75rem;">
+                    <div style="width:1.8rem; font-size:.8rem; text-align:center; flex-shrink:0;">${medal}</div>
+                    <div style="width:32px;height:32px;border-radius:50%;background:var(--sd-si-blue);color:var(--sd-accent-blue);
+                                display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;flex-shrink:0;">
+                        ${row.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div class="flex-grow-1" style="min-width:0;">
+                        <div class="sd-item-label text-truncate" style="font-size:.82rem;">${row.name}${row.is_me ? ' <span style="font-size:.65rem;color:var(--sd-accent-purple);">(you)</span>' : ''}</div>
+                        <div style="display:flex;align-items:center;gap:.5rem;margin-top:2px;">
+                            <div style="flex:1;height:4px;border-radius:4px;background:var(--sd-border);overflow:hidden;">
+                                <div style="width:${row.level_progress}%;height:100%;background:var(--sd-accent-purple);border-radius:4px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="font-size:.75rem;font-weight:700;color:var(--sd-accent-purple);flex-shrink:0;">${row.total_xp.toLocaleString()} XP</div>
+                </div>`;
+            });
+            list.innerHTML = html;
+        })
+        .catch(() => {
+            document.getElementById('leaderboard-list').innerHTML = '<div class="sd-empty"><i class="bi bi-exclamation-circle"></i>Could not load leaderboard</div>';
+        });
+}
+</script>
+
 {% endblock %}

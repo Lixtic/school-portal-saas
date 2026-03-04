@@ -30,6 +30,18 @@ if not DEBUG and SECRET_KEY.startswith('django-insecure'):
 # OpenAI Configuration
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 
+# Web Push / VAPID Configuration
+# Generate new keys: python -c "from py_vapid import Vapid; v=Vapid(); v.generate_keys(); ..."
+VAPID_PUBLIC_KEY = os.environ.get(
+    'VAPID_PUBLIC_KEY',
+    'BKuDGCc0mEhuW5kDr-xnrZ2CLSMHv6po1vhtrbFnMEBhJNJhiqsHYWkNsrEDmlXsJNQ_4fbjX8gewbwfqconYVo'
+)
+VAPID_PRIVATE_KEY_PEM = os.environ.get(
+    'VAPID_PRIVATE_KEY_PEM',
+    '-----BEGIN PRIVATE KEY-----\nMIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgPjsGsJ/jLvM00vUZ\nYvsTepEUiwFt+2UpV+q9RLg43mOhRANCAASrgxgnNJhIbluZA6/sZ62dgi0jB7+q\naNb4ba2xZzBAYSTSYYqrB2FpDbKxA5pV7CTUP+H241/IHsG8H6nKJ2Fa\n-----END PRIVATE KEY-----'
+)
+VAPID_CLAIMS = {'sub': os.environ.get('VAPID_ADMIN_EMAIL', 'mailto:admin@schoolportal.app')}
+
 # =====================
 # ALLOWED HOSTS & CSRF
 # =====================

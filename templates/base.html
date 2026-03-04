@@ -1145,6 +1145,11 @@
                                     <div>No new notifications</div>
                                 </li>
                                 {% endfor %}
+                                <li class="p-2 border-top bg-light rounded-bottom-4 text-center">
+                                    <a href="{% url 'announcements:notification_centre' %}" class="small text-decoration-none fw-semibold text-primary">
+                                        <i class="bi bi-inbox me-1"></i>View all notifications
+                                    </a>
+                                </li>
                             </ul>
                         </div>
                         {% endif %}
@@ -2979,6 +2984,87 @@
             input.focus();
         }
     });
+})();
+</script>
+{% endif %}
+
+{% if user.is_authenticated %}
+<script>
+// ── Service Worker + Push Notification Bootstrap ──────────────────────────
+(function () {
+  'use strict';
+
+  const VAPID_PUBLIC_KEY = "{{ vapid_public_key|escapejs }}";
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw = atob(base64);
+    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+  }
+
+  async function subscribeToPush() {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      let existing = await reg.pushManager.getSubscription();
+      if (existing) return; // already subscribed
+
+      // Fetch the real public key from the server (also acts as auth check)
+      const keyRes = await fetch("{% url 'announcements:push_subscribe' %}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({ endpoint: '' })  // probe for key only
+      });
+      let pubKey = VAPID_PUBLIC_KEY;
+      if (keyRes.ok) {
+        const json = await keyRes.json();
+        if (json.public_key) pubKey = json.public_key;
+      }
+      if (!pubKey) return;
+
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(pubKey),
+      });
+
+      // Send subscription to server
+      await fetch("{% url 'announcements:push_subscribe' %}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify(sub.toJSON()),
+      });
+    } catch (err) {
+      // Push permission denied or browser doesn't support — silently ignore
+      console.debug('[Push]', err.message);
+    }
+  }
+
+  if ('serviceWorker' in navigator && 'PushManager' in window) {
+    window.addEventListener('load', async () => {
+      try {
+        const reg = await navigator.serviceWorker.register("{% static 'sw.js' %}", { scope: '/' });
+        if (Notification.permission === 'granted') {
+          subscribeToPush();
+        } else if (Notification.permission !== 'denied') {
+          // Don't auto-prompt; let the user trigger via the bell button
+        }
+      } catch (err) {
+        console.debug('[SW register]', err.message);
+      }
+    });
+  } else if ('serviceWorker' in navigator) {
+    // Register SW for caching even without push support
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register("{% static 'sw.js' %}", { scope: '/' }).catch(() => {});
+    });
+  }
+
+  // Expose helper so the UI can request permission + subscribe on demand
+  window.requestPushPermission = async function () {
+    if (!('Notification' in window)) return;
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') await subscribeToPush();
+  };
 })();
 </script>
 {% endif %}
