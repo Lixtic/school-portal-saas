@@ -13,4 +13,6 @@ urlpatterns = [
     path('payment/add/<int:fee_id>/', views.record_payment, name='record_payment'),
     path('receipt/<int:payment_id>/', views.print_receipt, name='print_receipt'),
     path('send-reminders/', views.send_fee_reminders, name='send_fee_reminders'),
+    path('bulk-assign/', views.bulk_assign_fees, name='bulk_assign_fees'),
+    path('receipt/<int:payment_id>/pdf/', views.payment_receipt_pdf, name='receipt_pdf'),
 ]

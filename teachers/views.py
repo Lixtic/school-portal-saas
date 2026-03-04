@@ -607,6 +607,52 @@ def analytics_dashboard(request):
         avg_mastery = sum(s['mastery'] for s in scored_students) / len(scored_students)
         intervention_count = sum(1 for s in students_data if s['status'] == 'red')
 
+    # ── Grade distribution for the selected class ──
+    grade_distribution = {'A': 0, 'B': 0, 'C': 0, 'D': 0, 'F': 0}
+    if selected_class and current_year:
+        for s in students_data:
+            m = s.get('mastery', 0)
+            if s['status'] != 'secondary':
+                if m >= 80:   grade_distribution['A'] += 1
+                elif m >= 70: grade_distribution['B'] += 1
+                elif m >= 60: grade_distribution['C'] += 1
+                elif m >= 50: grade_distribution['D'] += 1
+                else:         grade_distribution['F'] += 1
+
+    # ── Class-level attendance rate (last 30 days) ──
+    class_attendance_rate = None
+    if selected_class:
+        from students.models import Attendance as _Att
+        import datetime as _dt
+        thirty_ago = timezone.now().date() - _dt.timedelta(days=30)
+        att_total = _Att.objects.filter(
+            student__current_class=selected_class, date__gte=thirty_ago
+        ).count()
+        att_present = _Att.objects.filter(
+            student__current_class=selected_class, date__gte=thirty_ago, status='present'
+        ).count()
+        class_attendance_rate = round(att_present / att_total * 100, 1) if att_total else None
+
+    # ── Lesson plan completion (current week) ──
+    lesson_plan_completion = None
+    if teacher and selected_class:
+        try:
+            iso = timezone.now().isocalendar()
+            current_week_num = iso[1]
+            submitted = LessonPlan.objects.filter(
+                teacher=teacher, school_class=selected_class, week_number=current_week_num
+            ).count()
+            expected = ClassSubject.objects.filter(
+                teacher=teacher, class_name=selected_class
+            ).count()
+            lesson_plan_completion = {
+                'submitted': submitted,
+                'expected': expected,
+                'rate': round(submitted / expected * 100) if expected > 0 else 0,
+            }
+        except Exception:
+            pass
+
     context = {
         'classes': classes,
         'selected_class': selected_class,
@@ -617,6 +663,9 @@ def analytics_dashboard(request):
         'common_misconceptions_list': common_misconceptions_list,
         'ai_engagement_count': ai_engagement_count,
         'total_students': len(students_data),
+        'grade_distribution': grade_distribution,
+        'class_attendance_rate': class_attendance_rate,
+        'lesson_plan_completion': lesson_plan_completion,
     }
     return render(request, 'teachers/analytics_dashboard.html', context)
 

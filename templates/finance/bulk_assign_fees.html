@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block title %}Bulk Assign Fees{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+
+      <!-- Page Header -->
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <div class="p-3 rounded-4" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);">
+          <i class="bi bi-cash-stack fs-4 text-white"></i>
+        </div>
+        <div>
+          <h4 class="mb-0 fw-bold">Bulk Assign Fees</h4>
+          <small class="text-muted">Assign a fee structure to all students in a class at once</small>
+        </div>
+        <a href="{% url 'finance:dashboard' %}" class="btn btn-outline-secondary ms-auto">
+          <i class="bi bi-arrow-left"></i> Back
+        </a>
+      </div>
+
+      {% if messages %}
+        {% for msg in messages %}
+          <div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
+            {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <!-- Form Card -->
+      <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-4">
+          <h6 class="fw-semibold text-primary mb-3">
+            <i class="bi bi-calendar3 me-2"></i>
+            Academic Year: {{ academic_year|default:"N/A" }}
+          </h6>
+
+          <form method="post">
+            {% csrf_token %}
+
+            <!-- Select Class -->
+            <div class="mb-4">
+              <label for="class_id" class="form-label fw-semibold">
+                <i class="bi bi-people me-1"></i> Select Class
+              </label>
+              <select name="class_id" id="class_id" class="form-select form-select-lg" required>
+                <option value="">-- Choose a class --</option>
+                {% for cls in classes %}
+                  <option value="{{ cls.id }}">{{ cls.name }}</option>
+                {% endfor %}
+              </select>
+              <div class="form-text">All students currently assigned to this class will be targeted.</div>
+            </div>
+
+            <!-- Select Fee Structures (multi) -->
+            <div class="mb-4">
+              <label class="form-label fw-semibold">
+                <i class="bi bi-tag me-1"></i> Select Fee Structures
+              </label>
+              <div class="border rounded-3 p-3" style="max-height:280px;overflow-y:auto;">
+                {% for structure in structures %}
+                  <div class="form-check py-1 border-bottom">
+                    <input class="form-check-input" type="checkbox"
+                           name="structure_ids" value="{{ structure.id }}"
+                           id="fs_{{ structure.id }}">
+                    <label class="form-check-label w-100" for="fs_{{ structure.id }}">
+                      <span class="fw-semibold">{{ structure.head.name }}</span>
+                      <span class="badge bg-primary ms-2">₵{{ structure.amount }}</span>
+                      <span class="badge bg-secondary ms-1">{{ structure.term|title }} Term</span>
+                    </label>
+                  </div>
+                {% empty %}
+                  <p class="text-muted mb-0">No fee structures found for the current academic year.</p>
+                {% endfor %}
+              </div>
+              <div class="form-text">Tick all fee items to assign. Students who already have the fee will be skipped.</div>
+            </div>
+
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary px-4">
+                <i class="bi bi-lightning-charge-fill me-1"></i> Assign Now
+              </button>
+              <button type="button" class="btn btn-outline-secondary" onclick="history.back()">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Info Card -->
+      <div class="card border-0 bg-light rounded-4 mt-3">
+        <div class="card-body px-4 py-3">
+          <h6 class="text-muted mb-2"><i class="bi bi-info-circle me-1"></i> How it works</h6>
+          <ul class="mb-0 small text-muted ps-3">
+            <li>Pick a class — all enrolled students are targeted automatically.</li>
+            <li>Tick one or more fee structures (items like tuition, sports levy, etc.).</li>
+            <li>Click <strong>Assign Now</strong> — new <code>StudentFee</code> records are created for anyone who doesn't already have that fee.</li>
+            <li>Students who already have the fee assigned are safely skipped.</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

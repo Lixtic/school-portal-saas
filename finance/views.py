@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Sum, Q
@@ -285,3 +286,131 @@ def send_fee_reminders(request):
         'student_count': pending_fees.count(),
     }
     return render(request, 'finance/send_reminders.html', context)
+
+
+@login_required
+def bulk_assign_fees(request):
+    """Bulk-assign an existing FeeStructure to all students in a class who don't have it yet."""
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    academic_year = AcademicYear.objects.filter(is_current=True).first()
+    classes = Class.objects.filter(academic_year=academic_year).order_by('name') if academic_year else Class.objects.none()
+    structures = FeeStructure.objects.filter(academic_year=academic_year).select_related('head') if academic_year else FeeStructure.objects.none()
+
+    assigned = 0
+    skipped = 0
+
+    if request.method == 'POST':
+        class_id = request.POST.get('class_id')
+        structure_ids = request.POST.getlist('structure_ids')
+
+        if not class_id or not structure_ids:
+            messages.error(request, 'Please select a class and at least one fee structure.')
+        else:
+            target_class = get_object_or_404(Class, id=class_id)
+            students_in_class = Student.objects.filter(current_class=target_class).select_related('user')
+
+            for structure_id in structure_ids:
+                try:
+                    structure = FeeStructure.objects.get(id=structure_id)
+                except FeeStructure.DoesNotExist:
+                    continue
+                for student in students_in_class:
+                    _, created = StudentFee.objects.get_or_create(
+                        student=student,
+                        fee_structure=structure,
+                        defaults={'amount_due': structure.amount, 'status': 'unpaid'},
+                    )
+                    if created:
+                        assigned += 1
+                    else:
+                        skipped += 1
+
+            messages.success(
+                request,
+                f"Bulk assignment complete — {assigned} new fee record(s) created, "
+                f"{skipped} already existed (skipped)."
+            )
+            return redirect('finance:dashboard')
+
+    context = {
+        'classes': classes,
+        'structures': structures,
+        'academic_year': academic_year,
+        'assigned': assigned,
+        'skipped': skipped,
+    }
+    return render(request, 'finance/bulk_assign_fees.html', context)
+
+
+@login_required
+def payment_receipt_pdf(request, payment_id):
+    """Download a payment receipt as a PDF using ReportLab."""
+    from io import BytesIO
+    from reportlab.lib.pagesizes import A5
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+
+    payment = get_object_or_404(Payment, id=payment_id)
+    if request.user.user_type not in ['admin', 'teacher']:
+        if not (request.user.user_type == 'student' and
+                hasattr(request.user, 'student_profile') and
+                request.user.student_profile == payment.student_fee.student):
+            messages.error(request, 'Access denied.')
+            return redirect('dashboard')
+
+    buf = BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A5, leftMargin=1.5*cm, rightMargin=1.5*cm,
+                            topMargin=1.2*cm, bottomMargin=1.2*cm)
+    styles = getSampleStyleSheet()
+    BLUE   = colors.HexColor('#1d4ed8')
+    GREEN  = colors.HexColor('#059669')
+    LIGHT  = colors.HexColor('#eff6ff')
+    BORDER = colors.HexColor('#d1d5db')
+
+    ctr  = ParagraphStyle('c', parent=styles['Normal'], fontSize=11, alignment=TA_CENTER, fontName='Helvetica-Bold')
+    sub  = ParagraphStyle('s', parent=styles['Normal'], fontSize=8,  alignment=TA_CENTER, textColor=colors.HexColor('#555555'))
+    body = ParagraphStyle('b', parent=styles['Normal'], fontSize=9)
+
+    story = []
+    sf = payment.student_fee
+    student = sf.student
+
+    story.append(Paragraph('PAYMENT RECEIPT', ctr))
+    story.append(Spacer(1, 6))
+    story.append(HRFlowable(width='100%', thickness=2, color=BLUE, spaceAfter=8))
+
+    data = [
+        ['Receipt No.:', f'RCT-{payment.id:05d}', 'Date:', payment.date_paid.strftime('%d %b %Y')],
+        ['Student:', student.user.get_full_name(), 'Class:', student.current_class.name if student.current_class else 'N/A'],
+        ['Fee Item:', sf.fee_structure.head.name, 'Term:', sf.fee_structure.term.title()],
+        ['Amount Paid:', f'₵{payment.amount_paid:.2f}', 'Balance After:', f'₵{sf.balance:.2f}'],
+        ['Payment Status:', sf.get_status_display(), 'Method:', payment.payment_method if hasattr(payment, 'payment_method') else 'N/A'],
+    ]
+    table = Table(data, colWidths=[3*cm, 4.5*cm, 2.5*cm, 4*cm])
+    table.setStyle(TableStyle([
+        ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+        ('FONTSIZE', (0,0), (-1,-1), 8.5),
+        ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
+        ('FONTNAME', (2,0), (2,-1), 'Helvetica-Bold'),
+        ('BACKGROUND', (0,0), (-1,-1), LIGHT),
+        ('GRID', (0,0), (-1,-1), 0.4, BORDER),
+        ('TOPPADDING', (0,0), (-1,-1), 4),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+    ]))
+    story.append(table)
+    story.append(Spacer(1, 14))
+    story.append(HRFlowable(width='100%', thickness=0.5, color=BORDER, spaceAfter=4))
+    story.append(Paragraph('Thank you for your payment. Keep this receipt for your records.', sub))
+
+    doc.build(story)
+    buf.seek(0)
+    fname = f"receipt_{student.user.last_name}_{payment.id}.pdf".replace(' ', '_')
+    response = HttpResponse(buf, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{fname}"'
+    return response

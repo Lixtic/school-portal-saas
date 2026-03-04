@@ -704,6 +704,8 @@ def dashboard(request):
         return redirect('students:student_dashboard')
     elif user.user_type == 'parent':
         from finance.models import StudentFee
+        from students.models import Attendance, Grade
+        from academics.models import AcademicYear
         parent_notices = base_notices.filter(target_audience__in=['all', 'parents'])
         
         # Calculate fees for all children
@@ -715,21 +717,55 @@ def dashboard(request):
                  parent_profile = Parent.objects.filter(user=user).first()
             
             if parent_profile:
-                children = parent_profile.children.all()
+                children = parent_profile.children.select_related('user', 'current_class').all()
                 total_outstanding = 0
                 total_paid = 0
+                
+                academic_year = AcademicYear.objects.filter(is_current=True).first()
+                children_data = []
+
                 for child in children:
+                    # Fee summary
                     fees = StudentFee.objects.filter(student=child)
-                    for fee in fees:
-                        total_outstanding += fee.balance
-                        total_paid += fee.total_paid
+                    child_balance = sum(f.balance for f in fees)
+                    child_paid = sum(f.total_paid for f in fees)
+                    total_outstanding += child_balance
+                    total_paid += child_paid
+
+                    # Attendance percentage (last 30 days)
+                    import datetime as _dt
+                    thirty_ago = timezone.now().date() - _dt.timedelta(days=30)
+                    att_qs = Attendance.objects.filter(student=child, date__gte=thirty_ago)
+                    att_total = att_qs.count()
+                    att_present = att_qs.filter(status='present').count()
+                    att_pct = round((att_present / att_total * 100) if att_total > 0 else 0, 1)
+
+                    # Recent grades (latest 5)
+                    recent_grades = (
+                        Grade.objects
+                        .filter(student=child, academic_year=academic_year)
+                        .select_related('subject')
+                        .order_by('-id')[:5]
+                    )
+
+                    children_data.append({
+                        'student': child,
+                        'balance': child_balance,
+                        'paid': child_paid,
+                        'att_pct': att_pct,
+                        'att_present': att_present,
+                        'att_total': att_total,
+                        'recent_grades': list(recent_grades),
+                    })
             else:
                 children = []
+                children_data = []
                 total_outstanding = 0
                 total_paid = 0
 
         except Exception as e:
             children = []
+            children_data = []
             total_outstanding = 0
             total_paid = 0
 
@@ -737,6 +773,7 @@ def dashboard(request):
             'user': user, 
             'notices': parent_notices,
             'children': children,
+            'children_data': children_data,
             'finance_stats': {
                 'outstanding': total_outstanding,
                 'paid': total_paid

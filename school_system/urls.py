@@ -51,6 +51,7 @@ urlpatterns = [
     path('communication/', include('communication.urls')),
     path('finance/', include('finance.urls')),
     path('tenants/', include('tenants.urls')),
+    path('i18n/', include('django.conf.urls.i18n')),  # Language switcher
     # path('debug/migrate/', account_views.debug_migrate, name='debug_migrate'),
     path('debug/status/', account_views.debug_status, name='debug_status'),
     path('debug/session/', account_views.session_debug, name='session_debug'),

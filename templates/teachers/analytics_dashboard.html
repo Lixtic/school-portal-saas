@@ -374,6 +374,95 @@
     </div>
 </div>
 
+<!-- New Metrics Row: Attendance · Grade Distribution · Lesson Plan Completion -->
+<div class="row g-2 mb-4">
+    <!-- Attendance Rate -->
+    <div class="col-12 col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body p-3">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="ad-stat-icon ad-icon-blue"><i class="fas fa-calendar-check"></i></div>
+                    <div class="fw-semibold small">Class Attendance Rate <span class="text-muted">(30d)</span></div>
+                </div>
+                {% if class_attendance_rate is not None %}
+                <div class="d-flex align-items-end gap-2 mb-1">
+                    <span style="font-size:1.75rem;font-weight:800;
+                        color:{% if class_attendance_rate >= 80 %}#16a34a{% elif class_attendance_rate >= 60 %}#d97706{% else %}#dc2626{% endif %};">
+                        {{ class_attendance_rate|floatformat:1 }}%
+                    </span>
+                </div>
+                <div class="progress" style="height:6px;border-radius:4px;">
+                    <div class="progress-bar {% if class_attendance_rate >= 80 %}bg-success{% elif class_attendance_rate >= 60 %}bg-warning{% else %}bg-danger{% endif %}"
+                         style="width:{{ class_attendance_rate }}%;"></div>
+                </div>
+                {% else %}
+                <div class="text-muted small mt-2">No attendance data available</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Grade Distribution -->
+    <div class="col-12 col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body p-3">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="ad-stat-icon ad-icon-green"><i class="fas fa-chart-pie"></i></div>
+                    <div class="fw-semibold small">Grade Distribution</div>
+                </div>
+                {% if grade_distribution %}
+                <div class="d-flex gap-1 flex-wrap">
+                    {% for grade, count in grade_distribution.items %}
+                    {% if count > 0 %}
+                    <div class="text-center" style="min-width:38px;">
+                        <div class="rounded-2 py-1 fw-bold small
+                            {% if grade == 'A' %}bg-success text-white
+                            {% elif grade == 'B' %}bg-primary text-white
+                            {% elif grade == 'C' %}bg-warning text-dark
+                            {% elif grade == 'D' %}bg-secondary text-white
+                            {% else %}bg-danger text-white{% endif %}"
+                            style="font-size:.85rem;">{{ count }}</div>
+                        <div style="font-size:.7rem;color:#6b7280;margin-top:.15rem;">{{ grade }}</div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-muted small mt-2">No grade data yet</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Lesson Plan Completion -->
+    <div class="col-12 col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body p-3">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="ad-stat-icon ad-icon-red"><i class="fas fa-tasks"></i></div>
+                    <div class="fw-semibold small">Lesson Plans <span class="text-muted">(this week)</span></div>
+                </div>
+                {% if lesson_plan_completion %}
+                <div class="d-flex align-items-end gap-1 mb-1">
+                    <span style="font-size:1.75rem;font-weight:800;
+                        color:{% if lesson_plan_completion.rate >= 80 %}#16a34a{% elif lesson_plan_completion.rate >= 40 %}#d97706{% else %}#dc2626{% endif %};">
+                        {{ lesson_plan_completion.submitted }}
+                    </span>
+                    <span class="text-muted mb-1">/ {{ lesson_plan_completion.expected }} submitted</span>
+                </div>
+                <div class="progress" style="height:6px;border-radius:4px;">
+                    <div class="progress-bar {% if lesson_plan_completion.rate >= 80 %}bg-success{% elif lesson_plan_completion.rate >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
+                         style="width:{{ lesson_plan_completion.rate }}%;"></div>
+                </div>
+                <div class="mt-1" style="font-size:.72rem;color:#6b7280;">{{ lesson_plan_completion.rate|floatformat:0 }}% complete</div>
+                {% else %}
+                <div class="text-muted small mt-2">No lesson plan data</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- AI Engagement Banner -->
 <div class="row mb-4">
     <div class="col-12">

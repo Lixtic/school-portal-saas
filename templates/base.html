@@ -1090,6 +1090,40 @@
                             <i class="bi bi-moon fs-5" id="themeIcon"></i>
                         </button>
 
+                        <!-- Language Switcher -->
+                        {% load i18n %}
+                        {% get_current_language as LANGUAGE_CODE %}
+                        <div class="dropdown d-none d-lg-block">
+                            <button class="header-action-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Switch Language">
+                                <i class="bi bi-translate fs-5"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-2 py-1" style="min-width:130px;">
+                                <li><div class="dropdown-header small text-muted px-3 py-1">Language</div></li>
+                                <form action="{% url 'set_language' %}" method="post" id="langForm">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                    <li>
+                                        <button type="submit" name="language" value="en"
+                                            class="dropdown-item d-flex align-items-center gap-2 {% if LANGUAGE_CODE == 'en' %}fw-bold text-primary{% endif %}">
+                                            🇬🇧 English
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button type="submit" name="language" value="fr"
+                                            class="dropdown-item d-flex align-items-center gap-2 {% if LANGUAGE_CODE == 'fr' %}fw-bold text-primary{% endif %}">
+                                            🇫🇷 Français
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button type="submit" name="language" value="tw"
+                                            class="dropdown-item d-flex align-items-center gap-2 {% if LANGUAGE_CODE == 'tw' %}fw-bold text-primary{% endif %}">
+                                            🇬🇭 Twi
+                                        </button>
+                                    </li>
+                                </form>
+                            </ul>
+                        </div>
+
                         <!-- Search Trigger -->
                         <button class="header-action-btn" data-bs-toggle="modal" data-bs-target="#searchModal" title="Search (Ctrl+K)">
                             <i class="bi bi-search fs-5"></i>

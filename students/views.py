@@ -768,6 +768,177 @@ def generate_report_card(request, student_id):
 
 
 @login_required
+def generate_report_card_pdf(request, student_id):
+    """Download a PDF version of the report card using ReportLab."""
+    from io import BytesIO
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+
+    student = get_object_or_404(Student, id=student_id)
+
+    # Permission check (same as generate_report_card)
+    if request.user.user_type == 'student':
+        sp = get_object_or_404(Student, user=request.user)
+        if sp.id != student_id:
+            messages.error(request, 'You can only download your own report card')
+            return redirect('dashboard')
+    elif request.user.user_type == 'parent':
+        from parents.models import Parent
+        parent = get_object_or_404(Parent, user=request.user)
+        if student not in parent.children.all():
+            messages.error(request, 'Access denied')
+            return redirect('parents:my_children')
+    elif request.user.user_type not in ['admin', 'teacher']:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    academic_year = AcademicYear.objects.filter(is_current=True).first()
+    raw_term = request.GET.get('term', 'first')
+    term = normalize_term(raw_term)
+    ctx = _get_student_report_context(student, academic_year, term, raw_term)
+
+    # ─── Build PDF ────────────────────────────────────────────────────────
+    buf = BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=1.8*cm, rightMargin=1.8*cm,
+                            topMargin=1.5*cm, bottomMargin=1.5*cm)
+    styles = getSampleStyleSheet()
+    W, H = A4
+    usable_w = W - 3.6*cm
+
+    head_bold   = ParagraphStyle('hb', parent=styles['Heading1'], fontSize=14,
+                                  alignment=TA_CENTER, spaceAfter=2)
+    sub_style   = ParagraphStyle('sub', parent=styles['Normal'], fontSize=9,
+                                  alignment=TA_CENTER, textColor=colors.HexColor('#555555'), spaceAfter=2)
+    section_hdr = ParagraphStyle('sh', parent=styles['Normal'], fontSize=9, fontName='Helvetica-Bold',
+                                  textColor=colors.HexColor('#1d4ed8'), spaceBefore=10, spaceAfter=4)
+    body_sm     = ParagraphStyle('bs', parent=styles['Normal'], fontSize=8.5)
+    footer_st   = ParagraphStyle('ft', parent=styles['Normal'], fontSize=7.5,
+                                  alignment=TA_CENTER, textColor=colors.HexColor('#888888'))
+
+    GREEN  = colors.HexColor('#059669')
+    BLUE   = colors.HexColor('#1d4ed8')
+    LIGHT  = colors.HexColor('#eff6ff')
+    BORDER = colors.HexColor('#d1d5db')
+
+    story = []
+
+    # Header
+    story.append(Paragraph(ctx['school_name'], head_bold))
+    story.append(Paragraph(ctx.get('school_address', ''), sub_style))
+    story.append(Paragraph(f"Tel: {ctx.get('school_phone','')} | {ctx.get('school_email','')}", sub_style))
+    story.append(HRFlowable(width='100%', thickness=2, color=BLUE, spaceAfter=8))
+
+    story.append(Paragraph('STUDENT REPORT CARD', ParagraphStyle(
+        'rc', parent=styles['Normal'], fontSize=11, fontName='Helvetica-Bold',
+        alignment=TA_CENTER, textColor=BLUE, spaceAfter=6)))
+
+    # Student info table
+    yr_display = str(ctx['academic_year']) if ctx['academic_year'] else 'N/A'
+    info_data = [
+        ['Student Name:', ctx['student'].user.get_full_name(),
+         'Term:', ctx.get('term_display', ctx['term'])],
+        ['Class:', ctx['student'].current_class.name if ctx['student'].current_class else 'N/A',
+         'Academic Year:', yr_display],
+        ['Student ID:', str(ctx['student'].id),
+         'Class Position:', str(ctx.get('class_position', 'N/A'))],
+    ]
+    info_table = Table(info_data, colWidths=[3.2*cm, 6*cm, 3*cm, 5*cm])
+    info_table.setStyle(TableStyle([
+        ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+        ('FONTSIZE', (0,0), (-1,-1), 8.5),
+        ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
+        ('FONTNAME', (2,0), (2,-1), 'Helvetica-Bold'),
+        ('BACKGROUND', (0,0), (-1,-1), LIGHT),
+        ('GRID', (0,0), (-1,-1), 0.4, BORDER),
+        ('TOPPADDING', (0,0), (-1,-1), 4),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+    ]))
+    story.append(info_table)
+    story.append(Spacer(1, 8))
+
+    # Grades table
+    story.append(Paragraph('Academic Performance', section_hdr))
+    grade_header = ['Subject', 'Class Score\n(/30)', 'Exams\n(/70)', 'Total\n(/100)', 'Grade', 'Remarks']
+    grade_rows = [grade_header]
+    for g in ctx['grades']:
+        grade_rows.append([
+            g.subject.name,
+            f"{g.class_score:.1f}",
+            f"{g.exams_score:.1f}",
+            f"{g.total_score:.1f}",
+            g.grade or '-',
+            g.remarks or '-',
+        ])
+    # Totals row
+    grade_rows.append([
+        'TOTALS',
+        f"{ctx['total_class_work']:.1f}",
+        f"{ctx['total_exams']:.1f}",
+        f"{ctx['grand_total']:.1f}",
+        ctx['overall_grade'],
+        ctx['overall_remarks'],
+    ])
+
+    col_widths = [5.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2*cm, 2.2*cm]
+    grade_table = Table(grade_rows, colWidths=col_widths, repeatRows=1)
+    grade_table.setStyle(TableStyle([
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,-1), 8),
+        ('ALIGN', (1,0), (-1,-1), 'CENTER'),
+        ('BACKGROUND', (0,0), (-1,0), BLUE),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+        ('BACKGROUND', (0,-1), (-1,-1), LIGHT),
+        ('FONTNAME', (0,-1), (-1,-1), 'Helvetica-Bold'),
+        ('GRID', (0,0), (-1,-1), 0.4, BORDER),
+        ('ROWBACKGROUNDS', (0,1), (-1,-2), [colors.white, colors.HexColor('#f9fafb')]),
+        ('TOPPADDING', (0,0), (-1,-1), 3),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+    ]))
+    story.append(grade_table)
+    story.append(Spacer(1, 8))
+
+    # Summary + attendance side by side
+    att = ctx['attendance_stats']
+    summary_data = [
+        ['Average Score:', f"{ctx['average_percentage']:.1f}%", 'Days Present:', str(att['present'])],
+        ['Overall Grade:', ctx['overall_grade'], 'Days Absent:', str(att['absent'])],
+        ['Overall Remarks:', ctx['overall_remarks'], 'Attendance:', f"{att['percentage']:.1f}%"],
+    ]
+    summary_table = Table(summary_data, colWidths=[3.5*cm, 5*cm, 3.5*cm, 5.2*cm])
+    summary_table.setStyle(TableStyle([
+        ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+        ('FONTSIZE', (0,0), (-1,-1), 8.5),
+        ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
+        ('FONTNAME', (2,0), (2,-1), 'Helvetica-Bold'),
+        ('GRID', (0,0), (-1,-1), 0.4, BORDER),
+        ('BACKGROUND', (0,0), (-1,-1), LIGHT),
+        ('TOPPADDING', (0,0), (-1,-1), 4),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+    ]))
+    story.append(Paragraph('Summary', section_hdr))
+    story.append(summary_table)
+    story.append(Spacer(1, 14))
+
+    # Footer
+    story.append(HRFlowable(width='100%', thickness=0.5, color=BORDER, spaceAfter=4))
+    story.append(Paragraph(
+        f"Generated on {ctx['report_date'].strftime('%B %d, %Y')} | {ctx['school_name']} | "
+        f"Motto: {ctx.get('school_motto', '')}",
+        footer_st))
+
+    doc.build(story)
+    buf.seek(0)
+    fname = f"report_card_{ctx['student'].user.last_name}_{ctx.get('term', 'term')}.pdf".replace(' ', '_')
+    response = HttpResponse(buf, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{fname}"'
+    return response
+
+
+@login_required
 def bulk_report_cards(request):
     """Generate bulk report cards for printing"""
     if request.user.user_type not in ['admin', 'teacher']:

@@ -2336,3 +2336,86 @@ def generate_tutor_image(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
+@login_required
+def timetable_conflicts(request):
+    """Detect teacher double-bookings and class overlaps in the timetable."""
+    if request.user.user_type not in ['admin', 'teacher']:
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    academic_year = AcademicYear.objects.filter(is_current=True).first()
+
+    # Fetch all timetable entries with related data
+    entries = (
+        Timetable.objects
+        .select_related(
+            'class_subject__teacher__user',
+            'class_subject__class_name',
+            'class_subject__subject',
+        )
+        .filter(class_subject__class_name__academic_year=academic_year)
+        .order_by('day', 'start_time')
+    )
+
+    DAY_NAMES = {0: 'Monday', 1: 'Tuesday', 2: 'Wednesday',
+                 3: 'Thursday', 4: 'Friday', 5: 'Saturday', 6: 'Sunday'}
+
+    def times_overlap(s1, e1, s2, e2):
+        """Return True if (s1,e1) and (s2,e2) overlap (exclusive end)."""
+        return s1 < e2 and s2 < e1
+
+    teacher_conflicts = []
+    class_conflicts = []
+    checked_pairs = set()
+
+    entry_list = list(entries)
+
+    for i, a in enumerate(entry_list):
+        for j in range(i + 1, len(entry_list)):
+            b = entry_list[j]
+            if a.day != b.day:
+                continue  # different day — no conflict possible
+            if not times_overlap(a.start_time, a.end_time, b.start_time, b.end_time):
+                continue  # no time overlap
+
+            pair_key = (min(a.id, b.id), max(a.id, b.id))
+            if pair_key in checked_pairs:
+                continue
+            checked_pairs.add(pair_key)
+
+            a_teacher = a.class_subject.teacher
+            b_teacher = b.class_subject.teacher
+            a_class   = a.class_subject.class_name
+            b_class   = b.class_subject.class_name
+
+            # Teacher in two places at once
+            if a_teacher and b_teacher and a_teacher == b_teacher and a_class != b_class:
+                teacher_conflicts.append({
+                    'day': DAY_NAMES.get(a.day, a.day),
+                    'time': f"{a.start_time.strftime('%H:%M')} – {a.end_time.strftime('%H:%M')}",
+                    'teacher': a_teacher.user.get_full_name() if a_teacher.user else str(a_teacher),
+                    'class_a': str(a_class),
+                    'subject_a': str(a.class_subject.subject),
+                    'class_b': str(b_class),
+                    'subject_b': str(b.class_subject.subject),
+                })
+
+            # Same class double-booked
+            if a_class == b_class:
+                class_conflicts.append({
+                    'day': DAY_NAMES.get(a.day, a.day),
+                    'time': f"{a.start_time.strftime('%H:%M')} – {a.end_time.strftime('%H:%M')}",
+                    'class_name': str(a_class),
+                    'subject_a': str(a.class_subject.subject),
+                    'teacher_a': a_teacher.user.get_full_name() if a_teacher and a_teacher.user else 'N/A',
+                    'subject_b': str(b.class_subject.subject),
+                    'teacher_b': b_teacher.user.get_full_name() if b_teacher and b_teacher.user else 'N/A',
+                })
+
+    context = {
+        'teacher_conflicts': teacher_conflicts,
+        'class_conflicts': class_conflicts,
+        'total_conflicts': len(teacher_conflicts) + len(class_conflicts),
+        'academic_year': academic_year,
+    }
+    return render(request, 'academics/timetable_conflicts.html', context)

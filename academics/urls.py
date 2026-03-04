@@ -43,6 +43,7 @@ urlpatterns = [
     path('settings/preview/', views.preview_homepage, name='preview_homepage'),
     path('timetable/', views.timetable_view, name='timetable'),
     path('timetable/edit/<int:class_id>/', views.edit_timetable, name='edit_timetable'),
+    path('timetable/conflicts/', views.timetable_conflicts, name='timetable_conflicts'),
     path('global-search/', views.global_search, name='global_search'),
     path('about/', views.about_us, name='about_us'),
     path('system-about/', views.system_about, name='system_about'),

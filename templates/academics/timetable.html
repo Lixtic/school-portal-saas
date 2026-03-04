@@ -88,6 +88,12 @@
         </a>
         {% endif %}
 
+        {% if request.user.user_type == 'admin' %}
+        <a href="{% url 'academics:timetable_conflicts' %}" class="btn btn-outline-danger">
+            <i class="bi bi-exclamation-triangle me-1"></i>Check Conflicts
+        </a>
+        {% endif %}
+
         {% if not is_teacher_schedule %}
         <form class="d-flex gap-2" method="get">
             <select name="class_id" class="form-select" onchange="this.form.submit()">

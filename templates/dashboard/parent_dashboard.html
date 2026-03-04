@@ -162,19 +162,48 @@
         <!-- Children -->
         <div class="pd-section-h">My Wards <a href="{% url 'parents:my_children' %}">All children</a></div>
         <div class="pd-children-grid mb-4">
-            {% for child in children %}
+            {% for cd in children_data %}
+            {% with child=cd.student %}
             <div class="pd-child" onclick="if(!event.target.closest('a,button')) window.location='{% url 'parents:child_details' child.id %}';">
                 <div class="d-flex align-items-center gap-3 mb-3">
                     {% if child.passport_photo %}
-                    <img src="{{ child.passport_photo.url }}" alt="{{ child.get_full_name }}" class="pd-child-avatar">
+                    <img src="{{ child.passport_photo.url }}" alt="{{ child.user.get_full_name }}" class="pd-child-avatar">
                     {% else %}
-                    <div class="pd-child-initials">{{ child.first_name|first }}{{ child.last_name|first }}</div>
+                    <div class="pd-child-initials">{{ child.user.first_name|first }}{{ child.user.last_name|first }}</div>
                     {% endif %}
                     <div style="min-width:0;">
-                        <div style="font-weight:700;font-size:.875rem;color:var(--pd-heading);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ child.get_full_name }}</div>
+                        <div style="font-weight:700;font-size:.875rem;color:var(--pd-heading);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ child.user.get_full_name }}</div>
                         <span class="pd-pill pill-blue">{{ child.current_class.name|default:"No Class" }}</span>
                     </div>
                 </div>
+
+                <!-- Per-child stats row -->
+                <div class="d-flex gap-2 mb-3 flex-wrap">
+                    <div class="text-center flex-fill" style="background:var(--pd-si-blue);border-radius:8px;padding:.4rem .3rem;">
+                        <div style="font-size:.7rem;color:var(--pd-muted);">Attendance</div>
+                        <div style="font-weight:700;font-size:.95rem;color:{% if cd.att_pct >= 75 %}var(--pd-green){% else %}#dc2626{% endif %};">{{ cd.att_pct }}%</div>
+                    </div>
+                    <div class="text-center flex-fill" style="background:var(--pd-si-green);border-radius:8px;padding:.4rem .3rem;">
+                        <div style="font-size:.7rem;color:var(--pd-muted);">Balance</div>
+                        <div style="font-weight:700;font-size:.95rem;color:{% if cd.balance > 0 %}#dc2626{% else %}var(--pd-green){% endif %};">₵{{ cd.balance|floatformat:0 }}</div>
+                    </div>
+                </div>
+
+                <!-- Recent grades -->
+                {% if cd.recent_grades %}
+                <div class="mb-2">
+                    <div style="font-size:.7rem;color:var(--pd-muted);margin-bottom:.3rem;">Recent Grades</div>
+                    <div class="d-flex flex-wrap gap-1">
+                        {% for g in cd.recent_grades %}
+                        <span class="badge {% if g.total_score >= 80 %}bg-success{% elif g.total_score >= 60 %}bg-primary{% elif g.total_score >= 50 %}bg-warning text-dark{% else %}bg-danger{% endif %}"
+                              style="font-size:.65rem;" title="{{ g.subject.name }}: {{ g.total_score }}">
+                            {{ g.grade|default:"-" }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
                 <div class="d-grid gap-1">
                     <a href="{% url 'parents:child_details' child.id %}" class="btn btn-sm btn-outline-secondary text-start" style="font-size:.78rem;">
                         <i class="bi bi-person me-1"></i> Profile &amp; Grades
@@ -184,6 +213,7 @@
                     </a>
                 </div>
             </div>
+            {% endwith %}
             {% empty %}
             <div style="grid-column:1/-1;">
                 <div class="pd-empty-state-note">
