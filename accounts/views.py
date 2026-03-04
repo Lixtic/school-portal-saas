@@ -1089,7 +1089,7 @@ def school_analytics(request):
         student__current_class__isnull=True
     )
     grade_labels = [r['student__current_class__name'] for r in grade_qs]
-    grade_data = [round(r['avg'], 1) if r['avg'] else 0 for r in grade_qs]
+    grade_data = [round(float(r['avg']), 1) if r['avg'] else 0 for r in grade_qs]
 
     # --- Recent 10 payments ---
     try:
