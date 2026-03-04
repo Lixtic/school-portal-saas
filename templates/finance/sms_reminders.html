@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Send SMS Fee Reminders{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h2 class="h4 fw-bold mb-0"><i class="fas fa-sms me-2 text-info"></i>Bulk SMS Fee Reminders</h2>
+    <a href="{% url 'finance:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i>Back to Finance
+    </a>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show" role="alert">
+      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="row g-4">
+    <div class="col-md-8">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-info text-white">
+          <i class="fas fa-info-circle me-2"></i>Send Summary
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-sm-5">Students with outstanding fees</dt>
+            <dd class="col-sm-7"><span class="badge bg-danger fs-6">{{ pending_count }}</span></dd>
+            <dt class="col-sm-5">Total outstanding balance</dt>
+            <dd class="col-sm-7 text-danger fw-bold">₵{{ total_balance|floatformat:2 }}</dd>
+            <dt class="col-sm-5">Students without phone number</dt>
+            <dd class="col-sm-7"><span class="badge bg-warning text-dark">{{ phones_missing }}</span> (will be skipped)</dd>
+            <dt class="col-sm-5">SMS will be sent to</dt>
+            <dd class="col-sm-7"><span class="badge bg-success">{{ pending_count|add:"-"|add:phones_missing }}</span> contacts</dd>
+          </dl>
+        </div>
+        <div class="card-footer">
+          <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-info text-white"
+              onclick="return confirm('Send SMS reminders to {{ pending_count }} students? Standard SMS rates apply.')">
+              <i class="fas fa-paper-plane me-1"></i>Send SMS Reminders Now
+            </button>
+            <a href="{% url 'finance:dashboard' %}" class="btn btn-secondary ms-2">Cancel</a>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-warning shadow-sm">
+        <div class="card-body">
+          <h6 class="fw-bold text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Important</h6>
+          <ul class="small text-muted mb-0">
+            <li>SMS is sent to the <strong>emergency contact</strong> phone number stored for each student.</li>
+            <li>Students without an emergency contact number will be skipped.</li>
+            <li>Standard SMS charges apply via your Africa's Talking account.</li>
+            <li>Make sure your <code>AT_USERNAME</code> and <code>AT_API_KEY</code> env vars are set.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

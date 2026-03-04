@@ -23,6 +23,16 @@ urlpatterns = [
     path('id-card/<int:student_id>/pdf/', views.student_id_card_pdf, name='id_card_pdf'),
     path('id-cards/bulk-pdf/', views.bulk_student_id_cards_pdf, name='bulk_id_cards_pdf'),
     path('at-risk/', views.at_risk_students, name='at_risk_students'),
+
+    # Gradebook CSV import / export
+    path('grades/export/', views.export_grades_csv, name='export_grades_csv'),
+    path('grades/import/', views.import_grades_csv, name='import_grades_csv'),
+
+    # Bulk report cards ZIP
+    path('report-card/class/<int:class_id>/zip/', views.bulk_report_cards_zip, name='bulk_report_cards_zip'),
+
+    # Student Promotion
+    path('promote/', views.promote_students, name='promote_students'),
     
     # AI Voice Interface
     path('aura/voice/', views_ai.aura_voice_view, name='aura_voice'),

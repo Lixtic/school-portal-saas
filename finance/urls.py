@@ -15,4 +15,10 @@ urlpatterns = [
     path('send-reminders/', views.send_fee_reminders, name='send_fee_reminders'),
     path('bulk-assign/', views.bulk_assign_fees, name='bulk_assign_fees'),
     path('receipt/<int:payment_id>/pdf/', views.payment_receipt_pdf, name='receipt_pdf'),
+    # Paystack online payment
+    path('paystack/pay/<int:fee_id>/', views.initiate_paystack_payment, name='paystack_pay'),
+    path('paystack/callback/', views.paystack_callback, name='paystack_callback'),
+    path('paystack/webhook/', views.paystack_webhook, name='paystack_webhook'),
+    # SMS fee reminders
+    path('sms-reminders/', views.send_sms_fee_reminders, name='sms_fee_reminders'),
 ]

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Import Grades CSV{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h2 class="h4 fw-bold mb-0"><i class="fas fa-file-csv me-2 text-success"></i>Gradebook CSV Import / Export</h2>
+    <a href="{% url 'students:student_list' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i>Back to Students
+    </a>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show" role="alert">
+      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="row g-4">
+    <!-- Export Card -->
+    <div class="col-md-6">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-header bg-primary text-white">
+          <i class="fas fa-download me-2"></i>Export Grades
+        </div>
+        <div class="card-body">
+          <p class="text-muted small">Download grades for a class and term as a CSV spreadsheet.</p>
+          <form method="get" action="{% url 'students:export_grades_csv' %}">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Class</label>
+              <select name="class_id" class="form-select form-select-sm">
+                <option value="">All Classes</option>
+                {% for cls in classes %}
+                  <option value="{{ cls.id }}">{{ cls.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Term</label>
+              <select name="term" class="form-select form-select-sm">
+                <option value="first">First Term</option>
+                <option value="second">Second Term</option>
+                <option value="third">Third Term</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-download me-1"></i>Download CSV
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Import Card -->
+    <div class="col-md-6">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-header bg-success text-white">
+          <i class="fas fa-upload me-2"></i>Import Grades
+        </div>
+        <div class="card-body">
+          <p class="text-muted small">
+            Upload a CSV with columns:
+            <code>Admission No., Student Name, Subject, Term, Class Score (/30), Exam Score (/70), Total (/100), Grade, Remarks</code>.
+            Grades will be created or updated and auto-calculated.
+          </p>
+          <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label fw-semibold">CSV File</label>
+              <input type="file" name="csv_file" accept=".csv" class="form-control form-control-sm" required>
+            </div>
+            <button type="submit" class="btn btn-success">
+              <i class="fas fa-upload me-1"></i>Import CSV
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Template Download -->
+  <div class="mt-4 p-3 bg-light rounded border">
+    <strong><i class="fas fa-info-circle text-info me-1"></i>CSV Format Guide</strong><br>
+    <p class="mb-1 small text-muted">Required columns: <code>Admission No., Subject, Term, Class Score (/30), Exam Score (/70)</code></p>
+    <p class="mb-0 small text-muted">Optional columns: <code>Student Name, Total (/100), Grade, Remarks</code> (auto-calculated on import)</p>
+  </div>
+</div>
+{% endblock %}

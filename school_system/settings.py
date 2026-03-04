@@ -30,6 +30,14 @@ if not DEBUG and SECRET_KEY.startswith('django-insecure'):
 # OpenAI Configuration
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 
+# Paystack Payment Gateway
+PAYSTACK_SECRET_KEY = os.environ.get('PAYSTACK_SECRET_KEY', '')
+PAYSTACK_PUBLIC_KEY = os.environ.get('PAYSTACK_PUBLIC_KEY', '')
+
+# Africa's Talking SMS
+AFRICASTALKING_USERNAME = os.environ.get('AT_USERNAME', 'sandbox')
+AFRICASTALKING_API_KEY  = os.environ.get('AT_API_KEY', '')
+
 # Web Push / VAPID Configuration
 # Generate new keys: python -c "from py_vapid import Vapid; v=Vapid(); v.generate_keys(); ..."
 VAPID_PUBLIC_KEY = os.environ.get(

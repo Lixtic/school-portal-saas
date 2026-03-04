@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Promote Students{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <div>
+      <h2 class="h4 fw-bold mb-0"><i class="fas fa-level-up-alt me-2 text-warning"></i>Student Promotion</h2>
+      <p class="text-muted small mb-0">
+        Year-end rollover — map each source class to a target class and promote all students in one click.
+        {% if current_year %}Current year: <strong>{{ current_year }}</strong>{% endif %}
+      </p>
+    </div>
+    <a href="{% url 'students:student_list' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i>Back
+    </a>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show" role="alert">
+      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+  {% endif %}
+
+  {% if not all_classes %}
+    <div class="alert alert-warning">No classes found for the current academic year.</div>
+  {% else %}
+  <form method="post">
+    {% csrf_token %}
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-warning text-dark fw-semibold">
+        <i class="fas fa-exchange-alt me-2"></i>Class Mapping
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-striped table-hover mb-0 align-middle">
+            <thead class="table-light">
+              <tr>
+                <th><input type="checkbox" id="checkAll"> Select</th>
+                <th>Source Class</th>
+                <th>Students</th>
+                <th>Promote To</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for cls in all_classes %}
+              <tr>
+                <td>
+                  <input type="checkbox" name="source_class_ids" value="{{ cls.id }}" class="row-check">
+                </td>
+                <td class="fw-semibold">{{ cls.name }}</td>
+                <td>
+                  <span class="badge bg-secondary">{{ cls.students.count }}</span>
+                </td>
+                <td>
+                  <select name="target_{{ cls.id }}" class="form-select form-select-sm" style="max-width:200px;">
+                    <option value="">— keep in same class —</option>
+                    {% for target in all_classes %}
+                      {% if target.id != cls.id %}
+                        <option value="{{ target.id }}">{{ target.name }}</option>
+                      {% endif %}
+                    {% endfor %}
+                  </select>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card-footer d-flex gap-2 align-items-center">
+        <button type="submit" class="btn btn-warning"
+          onclick="return confirm('This will move students to their new class. Proceed?')">
+          <i class="fas fa-level-up-alt me-1"></i>Promote Selected Students
+        </button>
+        <span class="text-muted small">
+          <i class="fas fa-exclamation-circle text-danger me-1"></i>
+          This action updates students' current class immediately. Ensure your class mapping is correct.
+        </span>
+      </div>
+    </div>
+  </form>
+  {% endif %}
+</div>
+
+<script>
+document.getElementById('checkAll').addEventListener('change', function() {
+  document.querySelectorAll('.row-check').forEach(cb => cb.checked = this.checked);
+});
+</script>
+{% endblock %}

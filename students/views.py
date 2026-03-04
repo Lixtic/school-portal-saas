@@ -467,6 +467,14 @@ def mark_attendance(request):
                     'marked_by': request.user
                 }
             )
+
+            # SMS alert for absences (non-blocking — failure does not break attendance saving)
+            if status == 'absent':
+                try:
+                    from announcements.sms_service import send_attendance_alert
+                    send_attendance_alert(student, status, str(date_str))
+                except Exception:
+                    pass
         
         messages.success(request, f'Attendance marked successfully for {len(student_ids)} students')
         return redirect('students:mark_attendance')
@@ -1602,3 +1610,367 @@ def class_leaderboard_json(request):
             top20.append(me_row)
 
     return JsonResponse({'leaderboard': top20, 'my_rank': my_rank})
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GRADEBOOK CSV IMPORT / EXPORT
+# ─────────────────────────────────────────────────────────────────────────────
+
+@login_required
+def export_grades_csv(request):
+    """Export grades for a class + term as a downloadable CSV file."""
+    if request.user.user_type not in ['admin', 'teacher']:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    class_id = request.GET.get('class_id')
+    raw_term  = request.GET.get('term', 'first')
+    year_id   = request.GET.get('year_id')
+
+    # Resolve academic year
+    if year_id:
+        academic_year = AcademicYear.objects.filter(id=year_id).first()
+    else:
+        academic_year = AcademicYear.objects.filter(is_current=True).first()
+
+    if not academic_year:
+        messages.error(request, 'No academic year found')
+        return redirect('students:student_list')
+
+    term = normalize_term(raw_term)
+
+    # Build queryset
+    qs = Grade.objects.select_related(
+        'student__user', 'subject'
+    ).filter(academic_year=academic_year)
+
+    # Optional term filter
+    if term:
+        term_values = term_filter_values(term)
+        qs = qs.filter(term__in=term_values)
+
+    if class_id:
+        qs = qs.filter(student__current_class_id=class_id)
+        cls = Class.objects.filter(id=class_id).first()
+        cls_name = cls.name if cls else 'all'
+    else:
+        cls_name = 'all'
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = (
+        f'attachment; filename="grades_{cls_name}_{raw_term}_{academic_year.name}.csv"'
+        .replace(' ', '_')
+    )
+
+    writer = csv.writer(response)
+    writer.writerow([
+        'Admission No.', 'Student Name', 'Subject', 'Term',
+        'Class Score (/30)', 'Exam Score (/70)', 'Total (/100)', 'Grade', 'Remarks',
+    ])
+
+    for g in qs.order_by('student__user__last_name', 'subject__name'):
+        writer.writerow([
+            g.student.admission_number,
+            g.student.user.get_full_name(),
+            g.subject.name,
+            g.term,
+            g.class_score,
+            g.exams_score,
+            g.total_score,
+            g.grade or '',
+            g.remarks or '',
+        ])
+
+    return response
+
+
+@login_required
+def import_grades_csv(request):
+    """Upload a CSV file to bulk-create or update Grade records."""
+    if request.user.user_type not in ['admin', 'teacher']:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    academic_year = AcademicYear.objects.filter(is_current=True).first()
+    classes       = Class.objects.filter(academic_year=academic_year).order_by('name')
+
+    if request.method == 'POST':
+        csv_file = request.FILES.get('csv_file')
+        if not csv_file or not csv_file.name.endswith('.csv'):
+            messages.error(request, 'Please upload a valid .csv file')
+            return redirect('students:import_grades_csv')
+
+        decoded = csv_file.read().decode('utf-8').splitlines()
+        reader  = csv.DictReader(decoded)
+
+        created = updated = skipped = 0
+        errors  = []
+
+        from academics.models import Subject
+
+        for row_num, row in enumerate(reader, start=2):
+            try:
+                admission_no = (
+                    row.get('Admission No.') or row.get('Admission No') or
+                    row.get('admission_number') or ''
+                ).strip()
+                subject_name = (row.get('Subject') or row.get('subject') or '').strip()
+                raw_term     = (row.get('Term')    or row.get('term')    or 'first').strip().lower()
+                class_score_raw = (row.get('Class Score (/30)') or row.get('class_score') or '0').strip()
+                exam_score_raw  = (row.get('Exam Score (/70)')  or row.get('exams_score') or '0').strip()
+
+                if not admission_no or not subject_name:
+                    errors.append(f'Row {row_num}: Missing admission number or subject name — skipped')
+                    skipped += 1
+                    continue
+
+                student = Student.objects.filter(admission_number=admission_no).first()
+                if not student:
+                    errors.append(f'Row {row_num}: Student "{admission_no}" not found — skipped')
+                    skipped += 1
+                    continue
+
+                subject = Subject.objects.filter(name__iexact=subject_name).first()
+                if not subject:
+                    errors.append(f'Row {row_num}: Subject "{subject_name}" not found — skipped')
+                    skipped += 1
+                    continue
+
+                term = normalize_term(raw_term) or 'first'
+
+                grade_obj, was_created = Grade.objects.get_or_create(
+                    student=student,
+                    subject=subject,
+                    academic_year=academic_year,
+                    term=term,
+                )
+                grade_obj.class_score  = float(class_score_raw)
+                grade_obj.exams_score  = float(exam_score_raw)
+                grade_obj.save()   # triggers auto-calc of total_score, grade, remarks
+
+                if was_created:
+                    created += 1
+                else:
+                    updated += 1
+
+            except Exception as exc:
+                errors.append(f'Row {row_num}: {exc}')
+                skipped += 1
+
+        summary = f'Import complete — {created} created, {updated} updated, {skipped} skipped.'
+        if errors:
+            summary += f' First error: {errors[0]}'
+        messages.success(request, summary)
+        return redirect('students:import_grades_csv')
+
+    return render(request, 'students/import_grades.html', {
+        'academic_year': academic_year,
+        'classes': classes,
+    })
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BULK REPORT CARD ZIP  (all students in a class → one ZIP of PDFs)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@login_required
+def bulk_report_cards_zip(request, class_id):
+    """Generate PDF report cards for every student in a class and return them as a ZIP."""
+    import zipfile
+    from io import BytesIO
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER
+
+    if request.user.user_type not in ['admin', 'teacher']:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    cls = get_object_or_404(Class, id=class_id)
+    academic_year = AcademicYear.objects.filter(is_current=True).first()
+    raw_term = request.GET.get('term', 'first')
+    term     = normalize_term(raw_term)
+
+    students = Student.objects.filter(current_class=cls).select_related('user', 'current_class')
+    if not students.exists():
+        messages.warning(request, f'No students found in {cls.name}')
+        return redirect('students:student_list')
+
+    def _build_pdf_bytes(student):
+        ctx = _get_student_report_context(student, academic_year, term, raw_term)
+        buf = BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4,
+                                leftMargin=1.8*cm, rightMargin=1.8*cm,
+                                topMargin=1.5*cm, bottomMargin=1.5*cm)
+        styles = getSampleStyleSheet()
+        W, H = A4
+
+        head_bold   = ParagraphStyle('hb', parent=styles['Heading1'], fontSize=14, alignment=TA_CENTER, spaceAfter=2)
+        sub_style   = ParagraphStyle('sub', parent=styles['Normal'], fontSize=9, alignment=TA_CENTER,
+                                     textColor=colors.HexColor('#555555'), spaceAfter=2)
+        section_hdr = ParagraphStyle('sh', parent=styles['Normal'], fontSize=9, fontName='Helvetica-Bold',
+                                     textColor=colors.HexColor('#1d4ed8'), spaceBefore=10, spaceAfter=4)
+        footer_st   = ParagraphStyle('ft', parent=styles['Normal'], fontSize=7.5,
+                                     alignment=TA_CENTER, textColor=colors.HexColor('#888888'))
+
+        BLUE   = colors.HexColor('#1d4ed8')
+        LIGHT  = colors.HexColor('#eff6ff')
+        BORDER = colors.HexColor('#d1d5db')
+
+        story = []
+        story.append(Paragraph(ctx['school_name'], head_bold))
+        story.append(Paragraph(ctx.get('school_address', ''), sub_style))
+        story.append(Paragraph(f"Tel: {ctx.get('school_phone','')} | {ctx.get('school_email','')}", sub_style))
+        story.append(HRFlowable(width='100%', thickness=2, color=BLUE, spaceAfter=8))
+        story.append(Paragraph('STUDENT REPORT CARD', ParagraphStyle(
+            'rc', parent=styles['Normal'], fontSize=11, fontName='Helvetica-Bold',
+            alignment=TA_CENTER, textColor=BLUE, spaceAfter=6)))
+
+        yr_display = str(ctx['academic_year']) if ctx['academic_year'] else 'N/A'
+        info_data = [
+            ['Student Name:', ctx['student'].user.get_full_name(), 'Term:', ctx.get('term_display', ctx['term'])],
+            ['Class:', ctx['student'].current_class.name if ctx['student'].current_class else 'N/A', 'Academic Year:', yr_display],
+            ['Student ID:', str(ctx['student'].id), 'Class Position:', str(ctx.get('class_position', 'N/A'))],
+        ]
+        info_table = Table(info_data, colWidths=[3.2*cm, 6*cm, 3*cm, 5*cm])
+        info_table.setStyle(TableStyle([
+            ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+            ('FONTSIZE', (0,0), (-1,-1), 8.5),
+            ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
+            ('FONTNAME', (2,0), (2,-1), 'Helvetica-Bold'),
+            ('BACKGROUND', (0,0), (-1,-1), LIGHT),
+            ('GRID', (0,0), (-1,-1), 0.4, BORDER),
+            ('TOPPADDING', (0,0), (-1,-1), 4),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ]))
+        story.append(info_table)
+        story.append(Spacer(1, 8))
+
+        story.append(Paragraph('Academic Performance', section_hdr))
+        grade_header = ['Subject', 'Class\n(/30)', 'Exams\n(/70)', 'Total\n(/100)', 'Grade', 'Remarks']
+        grade_rows = [grade_header]
+        for g in ctx['grades']:
+            grade_rows.append([
+                g.subject.name, f"{g.class_score:.1f}",
+                f"{g.exams_score:.1f}", f"{g.total_score:.1f}",
+                g.grade or '-', g.remarks or '-',
+            ])
+        grade_rows.append([
+            'TOTALS', f"{ctx['total_class_work']:.1f}", f"{ctx['total_exams']:.1f}",
+            f"{ctx['grand_total']:.1f}", ctx['overall_grade'], ctx['overall_remarks'],
+        ])
+        grade_table = Table(grade_rows, colWidths=[5.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2*cm, 2.2*cm], repeatRows=1)
+        grade_table.setStyle(TableStyle([
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,-1), 8),
+            ('ALIGN', (1,0), (-1,-1), 'CENTER'),
+            ('BACKGROUND', (0,0), (-1,0), BLUE),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+            ('BACKGROUND', (0,-1), (-1,-1), LIGHT),
+            ('FONTNAME', (0,-1), (-1,-1), 'Helvetica-Bold'),
+            ('GRID', (0,0), (-1,-1), 0.4, BORDER),
+            ('ROWBACKGROUNDS', (0,1), (-1,-2), [colors.white, colors.HexColor('#f9fafb')]),
+            ('TOPPADDING', (0,0), (-1,-1), 3),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+        ]))
+        story.append(grade_table)
+        story.append(Spacer(1, 8))
+
+        att = ctx['attendance_stats']
+        summary_data = [
+            ['Average Score:', f"{ctx['average_percentage']:.1f}%", 'Days Present:', str(att['present'])],
+            ['Overall Grade:', ctx['overall_grade'], 'Days Absent:', str(att['absent'])],
+            ['Overall Remarks:', ctx['overall_remarks'], 'Attendance:', f"{att['percentage']:.1f}%"],
+        ]
+        summary_table = Table(summary_data, colWidths=[3.5*cm, 5*cm, 3.5*cm, 5.2*cm])
+        summary_table.setStyle(TableStyle([
+            ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+            ('FONTSIZE', (0,0), (-1,-1), 8.5),
+            ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
+            ('FONTNAME', (2,0), (2,-1), 'Helvetica-Bold'),
+            ('GRID', (0,0), (-1,-1), 0.4, BORDER),
+            ('BACKGROUND', (0,0), (-1,-1), LIGHT),
+            ('TOPPADDING', (0,0), (-1,-1), 4),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ]))
+        story.append(Paragraph('Summary', section_hdr))
+        story.append(summary_table)
+        story.append(Spacer(1, 14))
+        story.append(HRFlowable(width='100%', thickness=0.5, color=BORDER, spaceAfter=4))
+        story.append(Paragraph(
+            f"Generated on {ctx['report_date'].strftime('%B %d, %Y')} | {ctx['school_name']}",
+            footer_st))
+
+        doc.build(story)
+        buf.seek(0)
+        return buf.read()
+
+    # Build ZIP in memory
+    zip_buf = BytesIO()
+    with zipfile.ZipFile(zip_buf, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
+        for student in students:
+            try:
+                pdf_bytes = _build_pdf_bytes(student)
+                filename  = f"report_{student.user.last_name}_{student.user.first_name}_{raw_term}.pdf".replace(' ', '_')
+                zf.writestr(filename, pdf_bytes)
+            except Exception:
+                pass  # skip one bad student rather than aborting the whole ZIP
+
+    zip_buf.seek(0)
+    zip_name = f"report_cards_{cls.name}_{raw_term}.zip".replace(' ', '_')
+    response = HttpResponse(zip_buf, content_type='application/zip')
+    response['Content-Disposition'] = f'attachment; filename="{zip_name}"'
+    return response
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STUDENT PROMOTION / YEAR-END ROLLOVER
+# ─────────────────────────────────────────────────────────────────────────────
+
+@login_required
+def promote_students(request):
+    """Admin tool — bulk-promote students from their current class to a target class."""
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied. Admins only.')
+        return redirect('dashboard')
+
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    all_classes  = Class.objects.filter(academic_year=current_year).order_by('name')
+
+    if request.method == 'POST':
+        promoted_total = 0
+        errors = []
+
+        source_class_ids = request.POST.getlist('source_class_ids')
+        for src_id in source_class_ids:
+            target_id = request.POST.get(f'target_{src_id}')
+            if not target_id:
+                continue
+            src_cls = Class.objects.filter(id=src_id).first()
+            tgt_cls = Class.objects.filter(id=target_id).first()
+            if not src_cls or not tgt_cls:
+                errors.append(f'Class id {src_id}/{target_id} not found')
+                continue
+            if src_cls == tgt_cls:
+                continue
+
+            count = Student.objects.filter(current_class=src_cls).update(current_class=tgt_cls)
+            promoted_total += count
+
+        if promoted_total:
+            msg = f'Successfully promoted {promoted_total} student(s).'
+            if errors:
+                msg += f' Some errors: {"; ".join(errors[:3])}'
+            messages.success(request, msg)
+        else:
+            messages.warning(request, 'No students were promoted. Check your class selections.')
+
+        return redirect('students:promote_students')
+
+    return render(request, 'students/promote_students.html', {
+        'current_year': current_year,
+        'all_classes': all_classes,
+    })

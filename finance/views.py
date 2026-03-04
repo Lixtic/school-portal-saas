@@ -1,8 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
 from django.db.models import Sum, Q
+from django.conf import settings
 from .models import FeeHead, FeeStructure, StudentFee, Payment
 from .forms import FeeHeadForm, FeeStructureForm, PaymentForm
 from students.models import Student
@@ -386,11 +388,12 @@ def payment_receipt_pdf(request, payment_id):
     story.append(HRFlowable(width='100%', thickness=2, color=BLUE, spaceAfter=8))
 
     data = [
-        ['Receipt No.:', f'RCT-{payment.id:05d}', 'Date:', payment.date_paid.strftime('%d %b %Y')],
+        ['Receipt No.:', f'RCT-{payment.id:05d}', 'Date:', payment.date.strftime('%d %b %Y')],
         ['Student:', student.user.get_full_name(), 'Class:', student.current_class.name if student.current_class else 'N/A'],
         ['Fee Item:', sf.fee_structure.head.name, 'Term:', sf.fee_structure.term.title()],
-        ['Amount Paid:', f'₵{payment.amount_paid:.2f}', 'Balance After:', f'₵{sf.balance:.2f}'],
-        ['Payment Status:', sf.get_status_display(), 'Method:', payment.payment_method if hasattr(payment, 'payment_method') else 'N/A'],
+        ['Amount Paid:', f'₵{payment.amount:.2f}', 'Balance After:', f'₵{sf.balance:.2f}'],
+        ['Payment Status:', sf.get_status_display(), 'Method:', payment.method],
+
     ]
     table = Table(data, colWidths=[3*cm, 4.5*cm, 2.5*cm, 4*cm])
     table.setStyle(TableStyle([
@@ -414,3 +417,245 @@ def payment_receipt_pdf(request, payment_id):
     response = HttpResponse(buf, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{fname}"'
     return response
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PAYSTACK ONLINE PAYMENT INTEGRATION
+# ─────────────────────────────────────────────────────────────────────────────
+
+@login_required
+def initiate_paystack_payment(request, fee_id):
+    """Redirect the user to Paystack's hosted payment page for a StudentFee."""
+    import requests as req_lib
+    import uuid
+
+    fee = get_object_or_404(StudentFee, id=fee_id)
+
+    # Only the student, a parent, or an admin can initiate
+    allowed = False
+    if request.user.user_type == 'admin':
+        allowed = True
+    elif request.user.user_type == 'student':
+        try:
+            from students.models import Student as _S
+            if _S.objects.get(user=request.user) == fee.student:
+                allowed = True
+        except Exception:
+            pass
+    elif request.user.user_type == 'parent':
+        from parents.models import Parent
+        try:
+            parent = Parent.objects.get(user=request.user)
+            if fee.student in parent.children.all():
+                allowed = True
+        except Exception:
+            pass
+
+    if not allowed:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    if fee.status == 'paid':
+        messages.info(request, 'This fee has already been fully paid.')
+        return redirect('finance:student_fees', student_id=fee.student.id)
+
+    secret_key = getattr(settings, 'PAYSTACK_SECRET_KEY', '')
+    if not secret_key:
+        messages.error(request, 'Paystack is not configured. Please contact admin.')
+        return redirect('finance:student_fees', student_id=fee.student.id)
+
+    reference = f"SPS-{fee.id}-{uuid.uuid4().hex[:8].upper()}"
+    amount_kobo = int(fee.balance * 100)  # Paystack uses smallest currency unit
+    email = fee.student.user.email
+
+    callback_url = request.build_absolute_uri(
+        f"/{''.join(request.path.split('/')[:2])}/finance/paystack/callback/"
+        if request.tenant
+        else '/finance/paystack/callback/'
+    )
+    # Build tenant-aware callback URL
+    from django.urls import reverse as _rev
+    try:
+        callback_url = request.build_absolute_uri(_rev('finance:paystack_callback'))
+    except Exception:
+        pass
+
+    payload = {
+        'email': email or f"student{fee.student.id}@schoolportal.app",
+        'amount': amount_kobo,
+        'reference': reference,
+        'callback_url': callback_url,
+        'metadata': {
+            'fee_id': fee.id,
+            'student_id': fee.student.id,
+            'custom_fields': [
+                {'display_name': 'Student', 'variable_name': 'student', 'value': fee.student.user.get_full_name()},
+                {'display_name': 'Fee Item', 'variable_name': 'fee_item', 'value': fee.fee_structure.head.name},
+            ]
+        }
+    }
+
+    try:
+        resp = req_lib.post(
+            'https://api.paystack.co/transaction/initialize',
+            json=payload,
+            headers={
+                'Authorization': f'Bearer {secret_key}',
+                'Content-Type': 'application/json',
+            },
+            timeout=15,
+        )
+        data = resp.json()
+        if data.get('status'):
+            return redirect(data['data']['authorization_url'])
+        else:
+            messages.error(request, f"Paystack error: {data.get('message', 'Unknown error')}")
+    except Exception as exc:
+        messages.error(request, f"Payment gateway unavailable: {exc}")
+
+    return redirect('finance:student_fees', student_id=fee.student.id)
+
+
+@login_required
+def paystack_callback(request):
+    """Handle redirect from Paystack after payment (success or cancel)."""
+    import requests as req_lib
+
+    reference = request.GET.get('reference')
+    if not reference:
+        messages.error(request, 'Invalid payment reference.')
+        return redirect('finance:dashboard')
+
+    secret_key = getattr(settings, 'PAYSTACK_SECRET_KEY', '')
+    try:
+        resp = req_lib.get(
+            f"https://api.paystack.co/transaction/verify/{reference}",
+            headers={'Authorization': f'Bearer {secret_key}'},
+            timeout=15,
+        )
+        data = resp.json()
+    except Exception as exc:
+        messages.error(request, f"Could not verify payment: {exc}")
+        return redirect('finance:dashboard')
+
+    if not data.get('status') or data['data']['status'] != 'success':
+        messages.warning(request, 'Payment was not completed or verification failed.')
+        return redirect('finance:dashboard')
+
+    trx     = data['data']
+    meta    = trx.get('metadata', {})
+    fee_id  = meta.get('fee_id')
+
+    if fee_id:
+        fee = StudentFee.objects.filter(id=fee_id).first()
+        if fee and not Payment.objects.filter(reference=reference).exists():
+            amount_paid = trx['amount'] / 100
+            Payment.objects.create(
+                student_fee=fee,
+                amount=amount_paid,
+                reference=reference,
+                method='Bank Transfer',
+                recorded_by=request.user,
+            )
+            messages.success(request, f'Payment of ₵{amount_paid:.2f} verified and recorded. Thank you!')
+            return redirect('finance:student_fees', student_id=fee.student.id)
+        elif fee:
+            messages.info(request, 'Payment already recorded.')
+            return redirect('finance:student_fees', student_id=fee.student.id)
+
+    messages.success(request, 'Payment verified successfully.')
+    return redirect('finance:dashboard')
+
+
+@csrf_exempt
+def paystack_webhook(request):
+    """Receive Paystack charge.success webhook and auto-record the payment."""
+    import hmac
+    import hashlib
+    import json as _json
+
+    if request.method != 'POST':
+        return HttpResponse(status=405)
+
+    secret_key = getattr(settings, 'PAYSTACK_SECRET_KEY', '')
+    signature  = request.META.get('HTTP_X_PAYSTACK_SIGNATURE', '')
+    body       = request.body
+
+    # Verify HMAC-SHA512 signature
+    expected = hmac.new(secret_key.encode(), body, hashlib.sha512).hexdigest()
+    if not hmac.compare_digest(expected, signature):
+        return HttpResponse(status=400)
+
+    try:
+        payload = _json.loads(body)
+    except Exception:
+        return HttpResponse(status=400)
+
+    if payload.get('event') != 'charge.success':
+        return HttpResponse(status=200)
+
+    trx       = payload['data']
+    reference = trx.get('reference', '')
+    meta      = trx.get('metadata', {})
+    fee_id    = meta.get('fee_id')
+
+    if fee_id and reference:
+        fee = StudentFee.objects.filter(id=fee_id).first()
+        if fee and not Payment.objects.filter(reference=reference).exists():
+            amount_paid = trx['amount'] / 100
+            Payment.objects.create(
+                student_fee=fee,
+                amount=amount_paid,
+                reference=reference,
+                method='Bank Transfer',
+            )
+
+    return HttpResponse(status=200)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SMS FEE REMINDERS  (Africa's Talking)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@login_required
+def send_sms_fee_reminders(request):
+    """Bulk-send SMS fee reminders to students with outstanding balances."""
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    pending_fees = (
+        StudentFee.objects
+        .filter(status__in=['unpaid', 'partial'])
+        .select_related('student', 'student__user', 'fee_structure', 'fee_structure__head')
+    )
+
+    if request.method == 'POST':
+        from announcements.sms_service import send_fee_sms_reminder
+        sent = failed = skipped = 0
+        for fee in pending_fees:
+            student = fee.student
+            phone = getattr(student, 'emergency_contact', '').strip()
+            if not phone:
+                skipped += 1
+                continue
+            result = send_fee_sms_reminder(student, fee)
+            if result.get('sent'):
+                sent += 1
+            else:
+                failed += 1
+
+        messages.success(
+            request,
+            f'SMS reminders: {sent} sent, {failed} failed, {skipped} skipped (no phone number).'
+        )
+        return redirect('finance:dashboard')
+
+    # GET — confirmation page
+    total_balance  = sum(f.balance for f in pending_fees)
+    phones_missing = sum(1 for f in pending_fees if not getattr(f.student, 'emergency_contact', '').strip())
+    return render(request, 'finance/sms_reminders.html', {
+        'pending_count': pending_fees.count(),
+        'total_balance': total_balance,
+        'phones_missing': phones_missing,
+    })
