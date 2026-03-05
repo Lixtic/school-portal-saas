@@ -1045,59 +1045,72 @@ def school_analytics(request):
     today = timezone.now().date()
     current_year = AcademicYear.objects.filter(is_current=True).first()
 
-    # --- Totals ---
-    total_students = Student.objects.count()
-    total_teachers = Teacher.objects.count()
-
-    # --- Students per class (current year) ---
-    class_qs = Student.objects.values('current_class__name').annotate(
-        count=Count('id')
-    ).order_by('-count').exclude(current_class__isnull=True)
-    class_labels = [r['current_class__name'] for r in class_qs]
-    class_data = [r['count'] for r in class_qs]
-
-    # --- Fee collection summary ---
-    fee_status = {
-        'paid': StudentFee.objects.filter(status='paid').count(),
-        'partial': StudentFee.objects.filter(status='partial').count(),
-        'unpaid': StudentFee.objects.filter(status='unpaid').count(),
-    }
-    fee_total_expected = StudentFee.objects.aggregate(
-        total=Sum('amount_payable')
-    )['total'] or 0
-    fee_total_collected = Payment.objects.aggregate(
-        total=Sum('amount')
-    )['total'] or 0
-
-    # --- 30-day attendance heatmap (present count per day) ---
-    date_30_ago = today - datetime.timedelta(days=29)
-    attendance_qs = Attendance.objects.filter(
-        date__gte=date_30_ago, status='present'
-    ).values('date').annotate(count=Count('id')).order_by('date')
-    attendance_map = {r['date']: r['count'] for r in attendance_qs}
+    # Safe defaults
+    total_students = 0
+    total_teachers = 0
+    class_labels = []
+    class_data = []
+    fee_status = {'paid': 0, 'partial': 0, 'unpaid': 0}
+    fee_total_expected = 0
+    fee_total_collected = 0
     heatmap_labels = []
     heatmap_data = []
-    for i in range(30):
-        d = date_30_ago + datetime.timedelta(days=i)
-        heatmap_labels.append(d.strftime('%b %d'))
-        heatmap_data.append(attendance_map.get(d, 0))
+    grade_labels = []
+    grade_data = []
+    recent_payments = []
 
-    # --- Average grade per class ---
-    grade_qs = Grade.objects.values(
-        'student__current_class__name'
-    ).annotate(avg=Avg('total_score')).order_by('-avg').exclude(
-        student__current_class__isnull=True
-    )
-    grade_labels = [r['student__current_class__name'] for r in grade_qs]
-    grade_data = [round(float(r['avg']), 1) if r['avg'] else 0 for r in grade_qs]
-
-    # --- Recent 10 payments ---
     try:
-        recent_payments = Payment.objects.select_related(
+        # --- Totals ---
+        total_students = Student.objects.count()
+        total_teachers = Teacher.objects.count()
+
+        # --- Students per class ---
+        class_qs = Student.objects.values('current_class__name').annotate(
+            count=Count('id')
+        ).order_by('-count').exclude(current_class__isnull=True)
+        class_labels = [r['current_class__name'] for r in class_qs]
+        class_data = [r['count'] for r in class_qs]
+
+        # --- Fee collection summary ---
+        fee_status = {
+            'paid': StudentFee.objects.filter(status='paid').count(),
+            'partial': StudentFee.objects.filter(status='partial').count(),
+            'unpaid': StudentFee.objects.filter(status='unpaid').count(),
+        }
+        fee_total_expected = StudentFee.objects.aggregate(
+            total=Sum('amount_payable')
+        )['total'] or 0
+        fee_total_collected = Payment.objects.aggregate(
+            total=Sum('amount')
+        )['total'] or 0
+
+        # --- 30-day attendance heatmap (present count per day) ---
+        date_30_ago = today - datetime.timedelta(days=29)
+        attendance_qs = Attendance.objects.filter(
+            date__gte=date_30_ago, status='present'
+        ).values('date').annotate(count=Count('id')).order_by('date')
+        attendance_map = {r['date']: r['count'] for r in attendance_qs}
+        for i in range(30):
+            d = date_30_ago + datetime.timedelta(days=i)
+            heatmap_labels.append(d.strftime('%b %d'))
+            heatmap_data.append(attendance_map.get(d, 0))
+
+        # --- Average grade per class ---
+        grade_qs = Grade.objects.values(
+            'student__current_class__name'
+        ).annotate(avg=Avg('total_score')).order_by('-avg').exclude(
+            student__current_class__isnull=True
+        )
+        grade_labels = [r['student__current_class__name'] for r in grade_qs]
+        grade_data = [round(float(r['avg']), 1) if r['avg'] else 0 for r in grade_qs]
+
+        # --- Recent 10 payments ---
+        recent_payments = list(Payment.objects.select_related(
             'student_fee__student__user'
-        ).order_by('-date')[:10]
-    except Exception:
-        recent_payments = []
+        ).order_by('-date')[:10])
+
+    except Exception as e:
+        messages.warning(request, f'Some analytics data could not be loaded: {e}')
 
     context = {
         'total_students': total_students,
