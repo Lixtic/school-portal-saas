@@ -923,6 +923,10 @@
               style="background:rgba(52,211,153,0.12);border-color:rgba(52,211,153,0.35);color:#6ee7b7;padding:4px 10px;">
             <i class="fa-solid fa-book-open" style="font-size:10px;"></i>&nbsp;L<span id="voiceVocabLevel">3</span>
         </span>
+        <span id="voiceModelChip" class="hud-badge d-none d-sm-flex" title="Active model"
+              style="background:rgba(99,102,241,0.12);border-color:rgba(99,102,241,0.3);color:#a5b4fc;padding:4px 10px;font-size:10px;">
+            <i class="fa-solid fa-microchip" style="font-size:9px;"></i>&nbsp;<span id="voiceModelLabel">GPT Realtime</span>
+        </span>
         <div style="display:flex;gap:6px;align-items:center">
             <button id="boardToggleBtn" class="hud-btn icon-only" title="Visualization Board">
                 <i class="fa-solid fa-chalkboard"></i>
@@ -1461,6 +1465,14 @@ modelSelect.value = voiceSettings.model || 'gpt-realtime';
 speedSlider.value = voiceSettings.speed;
 speedValue.textContent = voiceSettings.speed + 'x';
 sessionLengthSelect.value = sessionMinutes;
+// Seed HUD model chip from persisted setting
+(function() {
+    const _chip = document.getElementById('voiceModelLabel');
+    if (_chip) {
+        const _ml = { 'gpt-realtime': 'GPT Realtime', 'gpt-realtime-mini': 'Mini' };
+        _chip.textContent = _ml[voiceSettings.model] || voiceSettings.model || 'GPT Realtime';
+    }
+})();
 
 
 // ═══════════════════════════════════════════════════════════
@@ -1823,6 +1835,12 @@ saveSettingsBtn.addEventListener('click', () => {
     voiceSettings.voice = voiceSelect.value;
     voiceSettings.speed = parseFloat(speedSlider.value);
     voiceSettings.model = modelSelect.value;
+    // Update HUD model chip
+    const _chip = document.getElementById('voiceModelLabel');
+    if (_chip) {
+        const _mlabels = { 'gpt-realtime': 'GPT Realtime', 'gpt-realtime-mini': 'Mini' };
+        _chip.textContent = _mlabels[voiceSettings.model] || voiceSettings.model;
+    }
     sessionMinutes = parseInt(sessionLengthSelect.value);
     localStorage.setItem('auraVoiceSettings', JSON.stringify(voiceSettings));
     localStorage.setItem('auraSessionLength', sessionMinutes);
@@ -1891,6 +1909,8 @@ function stripVoiceTokens(text) {
     text = text.replace(/\[LESSON_STATE:\s*[^\]]*\]/gi, '');
     // Remove [VOCAB_LEVEL: ...] tokens
     text = text.replace(/\[VOCAB_LEVEL:\s*\d\]/gi, '');
+    // Remove [MOOD: ...] tokens
+    text = text.replace(/\[MOOD:\s*\w+\]/gi, '');
     // Remove [AWARD_XP: ...] tokens
     text = text.replace(/\[AWARD_XP:\s*\d+\]/gi, '');
     // Remove [POWER_WORDS: ...] tokens
@@ -2555,6 +2575,14 @@ function _syncAuraState(diagramText, sentimentValue) {
         patchBody.vocab_level = newLevel;
         const vld = document.getElementById('voiceVocabLevel');
         if (vld) vld.textContent = newLevel;
+    }
+
+    // Parse mood from [MOOD: X] token if emitted this session
+    const _mdMatch = diagramText.match(/\[MOOD:\s*(\w+)\]/i);
+    if (_mdMatch) {
+        const moodVal = _mdMatch[1].trim().toLowerCase();
+        if (['positive','neutral','negative','frustrated'].includes(moodVal))
+            patchBody.mood = moodVal;
     }
 
     fetch('{% url "academics:aura_session_state" %}', {

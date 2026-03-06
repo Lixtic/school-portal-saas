@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import AcademicYear, Class, Subject, ClassSubject, Activity, Timetable, SchoolInfo, GalleryImage
+from .gamification_models import AuraSessionState
 
 
 def _reset_broken_transaction():
@@ -206,3 +207,12 @@ class PracticeQuestionSetAdmin(admin.ModelAdmin):
     list_filter = ('subject', 'difficulty', 'generated_at')
     search_fields = ('student__user__first_name', 'student__user__last_name', 'topic')
     readonly_fields = ('generated_at',)
+
+
+@admin.register(AuraSessionState)
+class AuraSessionStateAdmin(admin.ModelAdmin):
+    list_display  = ('student', 'lesson_state', 'vocab_level', 'mood', 'updated_by', 'updated_at')
+    list_filter   = ('lesson_state', 'mood', 'updated_by')
+    search_fields = ('student__user__first_name', 'student__user__last_name')
+    readonly_fields = ('updated_at',)
+    ordering = ('-updated_at',)

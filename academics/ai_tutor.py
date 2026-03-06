@@ -723,6 +723,22 @@ Rules:
   signals in the same direction before adjusting.
 - This token is stripped from visible chat by the UI — never mention it to the student.
 - Emit even on VOICE sessions.
+
+MOOD SIGNAL TOKEN (OPTIONAL — signals detected emotional state)
+If you detect a CLEAR, SUSTAINED emotional signal from the student messages
+(pattern across 2+ consecutive turns), emit:
+  [MOOD: positive]    ← engaged, confident, enthusiastic
+  [MOOD: neutral]     ← default; no strong signal
+  [MOOD: negative]    ← bored, disengaged, or mildly discouraged
+  [MOOD: frustrated]  ← clearly stuck or irritated despite your help
+
+Rules:
+- Only emit when there is CLEAR EVIDENCE across multiple turns.
+- Emit at most ONCE per Knowledge Check cycle.
+- Place on its own line after [LESSON_STATE] if both are emitted together.
+- Stripped from visible chat by the UI — never mention to the student.
+- Emit even on VOICE sessions.
+──────────────────────────────────────────────────────────────────────────
 ──────────────────────────────────────────────────────────────────────────
 
 PHASE 0 — HOOK (STATE 0)

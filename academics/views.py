@@ -2168,6 +2168,21 @@ def aura_session_state(request):
                     except Exception as e:
                         logger.warning('vocab_level persist failed: %s', e)
 
+                # ── Shared State Manager: persist MOOD token ────────────────
+                _md = re.search(r'\[MOOD:\s*(\w+)\]', full_assistant_message, re.I)
+                if _md:
+                    _mood_val = _md.group(1).strip().lower()
+                    _allowed_moods = {'positive', 'neutral', 'negative', 'frustrated'}
+                    if _mood_val in _allowed_moods:
+                        try:
+                            from .gamification_models import AuraSessionState
+                            _aura_state, _ = AuraSessionState.objects.get_or_create(student=student)
+                            _aura_state.mood = _mood_val
+                            _aura_state.updated_by = 'text'
+                            _aura_state.save(update_fields=['mood', 'updated_by', 'updated_at'])
+                        except Exception as e:
+                            logger.warning('mood persist failed: %s', e)
+
                 TutorMessage.objects.create(
                     session=session,
                     role='assistant',

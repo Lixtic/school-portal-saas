@@ -167,6 +167,13 @@ class AuraSessionState(models.Model):
                 f'from HOOK. Continue from where you left off.'
             )
         lines.append(f'Student Vocabulary Level: {self.vocab_level}/6 (last assessed).')
+        lines.append(
+            f'  → Keep language pitched at this level (scale: 1=simplest, 3=intermediate, 6=expert).'
+        )
+        lines.append(
+            f'  → Only emit [VOCAB_LEVEL: N] if you observe clear competence shift '
+            f'(2+ consecutive signals).'
+        )
         if self.mood in ('negative', 'frustrated'):
             lines.append(
                 f'Student mood was {self.mood} in the last session — be extra encouraging today.'

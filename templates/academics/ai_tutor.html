@@ -2431,6 +2431,14 @@
             fullText = fullText.replace(/\[VOCAB_LEVEL:\s*\d\]/gi, '');
         }
 
+        // 1.58 Extract [MOOD: X] tokens — PATCH state silently
+        const _mdRe = /\[MOOD:\s*(\w+)\]/i;
+        const _mdM = fullText.match(_mdRe);
+        if (_mdM) {
+            _patchAuraState({ mood: _mdM[1].trim().toLowerCase() });
+            fullText = fullText.replace(/\[MOOD:\s*\w+\]/gi, '');
+        }
+
         // 1.6 Extract [WB_DIAGRAM: Title] ... [/WB_DIAGRAM] blocks
         const diagrams = [];
         const _diagScan = fullText;
@@ -2537,6 +2545,8 @@
         text = text.replace(/\[LESSON_STATE:\s*[^\]]*\]/gi, '');
         // Remove [VOCAB_LEVEL: ...] tokens
         text = text.replace(/\[VOCAB_LEVEL:\s*\d\]/gi, '');
+        // Remove [MOOD: ...] tokens
+        text = text.replace(/\[MOOD:\s*\w+\]/gi, '');
         // Remove leaked internal step/state labels (Core idea:, Hint:, Step N:, Rung N:, etc.)
         text = text.replace(/^(Core\s+idea|Hint|Step\s+\d+|Rung\s+\d+|Phase\s+\d+|State\s+\d+)\s*:\s*/gim, '');
         // Remove hallucinated structural delimiters (<END OF NUGGET>, <NUGGET>, </NUGGET>, etc.)
