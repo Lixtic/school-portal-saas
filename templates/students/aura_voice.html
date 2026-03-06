@@ -919,6 +919,10 @@
         <div class="hud-badge">
             <span class="dot"></span> <span class="d-none d-sm-inline">Aura </span>Voice
         </div>
+        <span id="voiceVocabBadge" class="hud-badge" title="Vocabulary level"
+              style="background:rgba(52,211,153,0.12);border-color:rgba(52,211,153,0.35);color:#6ee7b7;padding:4px 10px;">
+            <i class="fa-solid fa-book-open" style="font-size:10px;"></i>&nbsp;L<span id="voiceVocabLevel">3</span>
+        </span>
         <div style="display:flex;gap:6px;align-items:center">
             <button id="boardToggleBtn" class="hud-btn icon-only" title="Visualization Board">
                 <i class="fa-solid fa-chalkboard"></i>
@@ -1885,6 +1889,8 @@ function stripVoiceTokens(text) {
     text = text.replace(/\[DRAW:\s*[^\]]*\]/gi, '');
     // Remove [LESSON_STATE: ...] tokens
     text = text.replace(/\[LESSON_STATE:\s*[^\]]*\]/gi, '');
+    // Remove [VOCAB_LEVEL: ...] tokens
+    text = text.replace(/\[VOCAB_LEVEL:\s*\d\]/gi, '');
     // Remove [AWARD_XP: ...] tokens
     text = text.replace(/\[AWARD_XP:\s*\d+\]/gi, '');
     // Remove [POWER_WORDS: ...] tokens
@@ -2521,13 +2527,16 @@ function _loadAuraState() {
                     setTimeout(() => { substatusText.textContent = ''; }, 4000);
                 }
             }
+            // Sync vocab level badge
+            const vld = document.getElementById('voiceVocabLevel');
+            if (vld && data.vocab_level) vld.textContent = data.vocab_level;
         })
         .catch(() => {});
 }
 
 function _syncAuraState(diagramText, sentimentValue) {
-    /** Parse the final [LESSON_STATE:X] token and sentiment float,
-     *  then PATCH the Shared State Manager so text-chat can resume. */
+    /** Parse the final [LESSON_STATE:X] and [VOCAB_LEVEL:N] tokens,
+     *  derive mood from sentiment float, then PATCH the Shared State Manager. */
     const _lsMatch = diagramText.match(/\[LESSON_STATE:\s*([\w_]+)\]/i);
     if (!_lsMatch) return;
     const lessonState = _lsMatch[1].trim().toUpperCase();
@@ -2537,13 +2546,24 @@ function _syncAuraState(diagramText, sentimentValue) {
     else if (sentimentValue < -0.35) mood = 'negative';
     else if (sentimentValue < -0.65) mood = 'frustrated';
 
+    const patchBody = { lesson_state: lessonState, mood, updated_by: 'voice' };
+
+    // Parse vocab level if emitted this session
+    const _vlMatch = diagramText.match(/\[VOCAB_LEVEL:\s*(\d)\]/i);
+    if (_vlMatch) {
+        const newLevel = Math.max(1, Math.min(parseInt(_vlMatch[1], 10), 6));
+        patchBody.vocab_level = newLevel;
+        const vld = document.getElementById('voiceVocabLevel');
+        if (vld) vld.textContent = newLevel;
+    }
+
     fetch('{% url "academics:aura_session_state" %}', {
         method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': '{{ csrf_token }}',
         },
-        body: JSON.stringify({ lesson_state: lessonState, mood, updated_by: 'voice' }),
+        body: JSON.stringify(patchBody),
     }).catch(() => {});
 }
 

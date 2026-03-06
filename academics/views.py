@@ -2156,6 +2156,18 @@ def aura_session_state(request):
                 if _ls:
                     _save_lesson_state(student, _ls.group(1).strip().upper(), updated_by='text')
 
+                # ── Shared State Manager: persist VOCAB_LEVEL token ──────────
+                _vl = re.search(r'\[VOCAB_LEVEL:\s*(\d)\]', full_assistant_message, re.I)
+                if _vl:
+                    try:
+                        from .gamification_models import AuraSessionState
+                        _aura_state, _ = AuraSessionState.objects.get_or_create(student=student)
+                        _aura_state.vocab_level = max(1, min(int(_vl.group(1)), 6))
+                        _aura_state.updated_by = 'text'
+                        _aura_state.save(update_fields=['vocab_level', 'updated_by', 'updated_at'])
+                    except Exception as e:
+                        logger.warning('vocab_level persist failed: %s', e)
+
                 TutorMessage.objects.create(
                     session=session,
                     role='assistant',
