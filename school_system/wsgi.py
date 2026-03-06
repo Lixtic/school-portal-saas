@@ -45,15 +45,22 @@ try:
         
         logger.info("Initialization complete.")
     else:
-        # Check for pending migrations
-        # ALWAYS RUN MIGRATIONS ON VERCEL INIT to catch new fields like 'homepage_template'
+        # Only run migrate_schemas when there are actually pending migrations.
+        # Running it unconditionally on every cold-start is slow and also
+        # triggered the duplicate auth_permission crash on multi-tenant DBs.
         logger.info("Checking for migrations...")
         try:
-             # Run migrations for both shared and tenants to be safe
-             call_command('migrate_schemas', interactive=False)
-             logger.info("Migrations applied successfully.")
+            from django.db.migrations.executor import MigrationExecutor
+            executor = MigrationExecutor(connection)
+            pending = executor.migration_plan(executor.loader.graph.leaf_nodes())
+            if pending:
+                logger.info("=== Starting migration")
+                call_command('migrate_schemas', interactive=False)
+                logger.info("Migrations applied successfully.")
+            else:
+                logger.info("No pending migrations — skipping migrate_schemas.")
         except Exception as mig_e:
-             logger.error("Migration error: %s", mig_e)
+            logger.error("Migration error: %s", mig_e)
              
         # Double check if public tenant exists
 
