@@ -332,39 +332,74 @@
     to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Whiteboard Overlay ── */
+/* ── Visualization Board ── */
 #whiteboardOverlay {
     position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: 85%; max-width: 500px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 20px;
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    padding: 28px;
+    bottom: 100px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    width: 90%; max-width: 520px;
+    background: rgba(8,8,22,0.94);
+    border: 1px solid rgba(56,120,255,0.22);
+    border-radius: 18px;
+    backdrop-filter: blur(36px);
+    -webkit-backdrop-filter: blur(36px);
     z-index: 12;
     opacity: 0; visibility: hidden;
-    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
     pointer-events: none;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.03) inset;
+    overflow: hidden;
 }
 #whiteboardOverlay.visible {
     opacity: 1; visibility: visible; pointer-events: auto;
+    transform: translateX(-50%) translateY(0);
 }
-#whiteboardContent {
-    color: rgba(255,255,255,0.85);
-    font-size: 16px; line-height: 1.8;
-    font-family: 'KaTeX_Main', 'Times New Roman', serif;
+/* Board header bar */
+#boardHeader {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px 9px;
+    border-bottom: 1px solid rgba(255,255,255,0.055);
+    background: rgba(56,120,255,0.06);
+    flex-shrink: 0;
 }
-#whiteboardClose {
-    position: absolute; top: 12px; right: 12px;
-    background: rgba(255,255,255,0.08); border: none;
-    color: #999; width: 30px; height: 30px;
-    border-radius: 50%; font-size: 14px; cursor: pointer;
+.board-header-left { display: flex; align-items: center; gap: 8px; }
+.board-icon {
+    width: 24px; height: 24px; border-radius: 7px;
+    background: rgba(56,120,255,0.15); border: 1px solid rgba(56,120,255,0.25);
     display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: rgba(120,180,255,0.9); flex-shrink: 0;
 }
-#whiteboardClose:hover { background: rgba(255,255,255,0.15); color: #fff; }
+#boardTitle {
+    font-size: 12px; font-weight: 500; color: rgba(190,215,255,0.8);
+    letter-spacing: 0.3px; max-width: 220px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.board-header-right { display: flex; gap: 4px; }
+.board-btn {
+    width: 26px; height: 26px; border-radius: 6px;
+    background: transparent; border: none;
+    color: rgba(255,255,255,0.3); font-size: 11px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+}
+.board-btn:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); }
+.board-btn.active { background: rgba(56,120,255,0.15); color: rgba(100,160,255,0.9); }
+/* Board content */
+#whiteboardContent {
+    padding: 14px 16px 16px;
+    max-height: 340px; overflow-y: auto;
+    color: rgba(220,230,255,0.88);
+    font-size: 14px; line-height: 1.7;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+#whiteboardContent::-webkit-scrollbar { width: 4px; }
+#whiteboardContent::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
+/* Mermaid diagram wrapper */
+.wb-diagram-wrap { width: 100%; overflow-x: auto; text-align: center; }
+.wb-diagram-wrap svg { width: 100% !important; height: auto !important; max-width: 100%; }
+.wb-loading { color: rgba(180,200,255,0.4); font-size: 12px; text-align: center; padding: 20px 0; }
+.wb-error { color: #f87171; font-size: 11px; white-space: pre-wrap; }
 
 /* ── Bottom Controls ── */
 #bottomControls {
@@ -657,8 +692,9 @@
     #interruptZone .icon { font-size: 20px; }
     .side-btn { width: 40px; height: 40px; font-size: 14px; }
 
-    #whiteboardOverlay { width: 92%; padding: 20px; border-radius: 16px; }
-    #whiteboardContent { font-size: 14px; }
+    #whiteboardOverlay { width: 92%; border-radius: 14px; bottom: 90px; }
+    #whiteboardContent { font-size: 13px; max-height: 280px; }
+    #boardTitle { max-width: 140px; }
 
     .slide-panel { padding: 18px; }
     .panel-header { margin-bottom: 20px; padding-bottom: 12px; }
@@ -756,13 +792,17 @@
     #interruptZone .icon { font-size: 26px !important; }
     .side-btn { width: 48px !important; height: 48px !important; font-size: 18px !important; }
 
-    /* Whiteboard: float in left pane */
+    /* Visualization Board: dock to bottom of left pane */
     #whiteboardOverlay {
+        bottom: 110px !important; top: auto !important;
         left: 20px !important; right: 360px !important;
-        top: 50% !important;
-        transform: translateY(-50%) !important;
-        width: auto !important; max-width: none !important;
+        max-width: none !important; width: auto !important;
+        transform: translateY(20px) !important;
     }
+    #whiteboardOverlay.visible {
+        transform: translateY(0) !important;
+    }
+    #boardTitle { max-width: 280px; }
 
     /* Scroll-to-bottom badge: inside the sidebar, above text input */
     #scrollToBottom { left: auto !important; right: 344px !important; transform: none !important; }
@@ -923,9 +963,22 @@
         </div>
     </div>
 
-    <!-- Whiteboard Ghost Overlay -->
+    <!-- Visualization Board -->
     <div id="whiteboardOverlay">
-        <button id="whiteboardClose"><i class="fa-solid fa-xmark"></i></button>
+        <div id="boardHeader">
+            <div class="board-header-left">
+                <div class="board-icon"><i class="fa-solid fa-chalkboard"></i></div>
+                <span id="boardTitle">Visualization Board</span>
+            </div>
+            <div class="board-header-right">
+                <button id="boardPinBtn" class="board-btn" title="Pin board open">
+                    <i class="fa-regular fa-thumbtack"></i>
+                </button>
+                <button id="whiteboardClose" class="board-btn" title="Close">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        </div>
         <div id="whiteboardContent"></div>
     </div>
 
@@ -1040,6 +1093,9 @@
 <!-- Hidden audio elements -->
 <audio id="ttsAudio" class="hidden" autoplay></audio>
 <audio id="remoteAudio" autoplay style="display:none"></audio>
+
+<!-- Mermaid.js for Visualization Board -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
@@ -1330,6 +1386,8 @@ const muteBtn = document.getElementById('muteBtn');
 const whiteboardOverlay = document.getElementById('whiteboardOverlay');
 const whiteboardContent = document.getElementById('whiteboardContent');
 const whiteboardClose = document.getElementById('whiteboardClose');
+const boardTitle = document.getElementById('boardTitle');
+const boardPinBtn = document.getElementById('boardPinBtn');
 const expandDrawerBtn = document.getElementById('expandDrawerBtn');
 const msgCount = document.getElementById('msgCount');
 const scrollToBottomBtn = document.getElementById('scrollToBottom');
@@ -1563,7 +1621,7 @@ function updateLiveAuraText(text) {
         transcriptMsgCount++;
         msgCount.textContent = transcriptMsgCount;
     }
-    liveAuraDiv.querySelector('.live-text').textContent = text;
+    liveAuraDiv.querySelector('.live-text').textContent = stripVoiceTokens(text);
     scrollFeedToBottom();
 }
 
@@ -1794,14 +1852,87 @@ captureBtn.addEventListener('click', () => {
 
 
 // ═══════════════════════════════════════════════════════════
-// 9. WHITEBOARD
+// 9. VISUALIZATION BOARD
 // ═══════════════════════════════════════════════════════════
 
-function showWhiteboard(content) {
-    whiteboardContent.innerHTML = content;
+let boardPinned = false;
+let _lastRenderedDiagramKey = null;
+
+// Strip all internal system tokens from text before showing in transcript
+function stripVoiceTokens(text) {
+    if (!text) return text;
+    // Remove complete [WB_DIAGRAM: ...] ... [/WB_DIAGRAM] blocks
+    text = text.replace(/\[WB_DIAGRAM:\s*[^\]]*\][\s\S]*?\[\/WB_DIAGRAM\]/gi, '');
+    // Remove partial [WB_DIAGRAM block still streaming (no closing tag yet)
+    text = text.replace(/\[WB_DIAGRAM:[\s\S]*$/gi, '');
+    // Remove [DRAW: ...] tokens
+    text = text.replace(/\[DRAW:\s*[^\]]*\]/gi, '');
+    // Remove [LESSON_STATE: ...] tokens
+    text = text.replace(/\[LESSON_STATE:\s*[^\]]*\]/gi, '');
+    // Remove [AWARD_XP: ...] tokens
+    text = text.replace(/\[AWARD_XP:\s*\d+\]/gi, '');
+    // Remove [POWER_WORDS: ...] tokens
+    text = text.replace(/\[POWER_WORDS:\s*[^\]]*\]/gi, '');
+    // Remove legacy [WHITEBOARD] token
+    text = text.replace(/\[WHITEBOARD\][^\n]*/gi, '');
+    return text.trim();
+}
+
+// Watch for a complete [WB_DIAGRAM] block in streaming text and render it
+function checkAndRenderDiagram(text) {
+    const wbRe = /\[WB_DIAGRAM:\s*([^\]]+)\]\s*([\s\S]*?)\s*\[\/WB_DIAGRAM\]/i;
+    const match = text.match(wbRe);
+    if (match && match[2] && match[2].trim().length > 5) {
+        const title = match[1].trim();
+        const code  = match[2].trim();
+        const key   = title + '|' + code.substring(0, 60);
+        if (key !== _lastRenderedDiagramKey) {
+            _lastRenderedDiagramKey = key;
+            renderMermaidOnBoard(code, title);
+        }
+    }
+}
+
+async function renderMermaidOnBoard(code, title) {
+    boardTitle.textContent = title || 'Visualization';
+    whiteboardContent.innerHTML = '<div class="wb-loading"><i class="fa-solid fa-spinner fa-spin"></i> Drawing…</div>';
+    whiteboardOverlay.classList.add('visible');
+    const id = 'wb-' + Date.now();
+    try {
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: 'dark',
+            darkMode: true,
+            themeVariables: { background: 'transparent', primaryTextColor: '#e0e0e0', lineColor: '#6ea8fe' }
+        });
+        const { svg } = await mermaid.render(id, code);
+        whiteboardContent.innerHTML = `<div class="wb-diagram-wrap">${svg}</div>`;
+    } catch(e) {
+        whiteboardContent.innerHTML = `<pre class="wb-error">${escapeHtml(e.message || 'Diagram error')}</pre>`;
+    }
+}
+
+// Show plain text / HTML content on the board
+function showBoard(html, title) {
+    boardTitle.textContent = title || 'Notes';
+    whiteboardContent.innerHTML = html;
     whiteboardOverlay.classList.add('visible');
 }
-whiteboardClose.addEventListener('click', () => whiteboardOverlay.classList.remove('visible'));
+
+// Board pin toggle
+boardPinBtn.addEventListener('click', () => {
+    boardPinned = !boardPinned;
+    boardPinBtn.classList.toggle('active', boardPinned);
+    boardPinBtn.title = boardPinned ? 'Unpin board' : 'Pin board open';
+    boardPinBtn.querySelector('i').className = boardPinned ? 'fa-solid fa-thumbtack' : 'fa-regular fa-thumbtack';
+});
+
+whiteboardClose.addEventListener('click', () => {
+    whiteboardOverlay.classList.remove('visible');
+    boardPinned = false;
+    boardPinBtn.classList.remove('active');
+    boardPinBtn.querySelector('i').className = 'fa-regular fa-thumbtack';
+});
 
 // Simple sentiment estimation from text
 function estimateSentiment(text) {
@@ -2095,14 +2226,8 @@ function handleRealtimeMessage(msg) {
             if (!isPlayingAudio) { updateState('SPEAKING'); isPlayingAudio = true; }
             currentAuraText += (msg.delta || '');
             updateLiveAuraText(currentAuraText);
-
-            // Check for whiteboard content
-            if (currentAuraText.includes('[WHITEBOARD]')) {
-                const parts = currentAuraText.split('[WHITEBOARD]');
-                if (parts[1] && parts[1].trim().length > 10) {
-                    showWhiteboard(escapeHtml(parts[1].trim()));
-                }
-            }
+            // Render diagram as soon as the full [WB_DIAGRAM]...[/WB_DIAGRAM] token arrives
+            checkAndRenderDiagram(currentAuraText);
             break;
 
         // Text-only response deltas (for text input when no audio)
@@ -2122,6 +2247,14 @@ function handleRealtimeMessage(msg) {
 
             // ── Power Word Tracking ─────────────────────────────────
             _logVoicePowerWords(currentAuraText);
+
+            // Auto-hide board after 10s unless student pinned it
+            if (!boardPinned && whiteboardOverlay.classList.contains('visible')) {
+                setTimeout(() => {
+                    if (!boardPinned) whiteboardOverlay.classList.remove('visible');
+                }, 10000);
+            }
+            _lastRenderedDiagramKey = null;
 
             currentAuraText = '';
             isPlayingAudio = false;

@@ -421,9 +421,13 @@ def create_realtime_session(request):
         # Voice-mode rules prepended to the full Aura 2.0 State-Machine prompt
         voice_prefix = (
             "VOICE MODE ADAPTATIONS (strictly apply these on top of all other rules):\n"
-            "- This is a VOICE session. Keep EVERY response to 2-3 sentences maximum.\n"
+            "- This is a VOICE session. Keep EVERY spoken response to 2-3 sentences maximum.\n"
             "- Never read out long lists; speak them as natural sentences and offer to elaborate.\n"
-            "- Do NOT emit [WB_DIAGRAM] or [DRAW] tokens in voice mode.\n"
+            "- For spoken content, do NOT read out diagram code or token syntax aloud.\n"
+            "- You HAVE a live Visualization Board the student can see. Use [WB_DIAGRAM] tokens\n"
+            "  whenever a diagram, flowchart, timeline, or mind map would help explain a concept.\n"
+            "  Emit the diagram token silently alongside your spoken explanation — keep diagrams brief.\n"
+            "- [DRAW: <prompt>] tokens are also supported for photorealistic visuals.\n"
             "- Do NOT emit [POWER_WORDS] tokens in voice mode.\n"
             "- DO emit [LESSON_STATE: X] tokens even in voice mode (they are silent to the student).\n"
             "- Speak warmly and naturally — no robotic phrasing.\n"
