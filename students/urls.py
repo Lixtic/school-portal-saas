@@ -45,6 +45,9 @@ urlpatterns = [
     # Power Word tracking
     path('aura/log-power-words/', views_ai.log_power_words, name='log_power_words'),
 
+    # Voice XP Award
+    path('aura/voice/award-xp/', views_ai.voice_award_xp, name='voice_award_xp'),
+
     # Aura Preferences (student self-service)
     path('aura/preferences/', views.update_aura_preferences, name='update_aura_preferences'),
 

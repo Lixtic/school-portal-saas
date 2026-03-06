@@ -1101,6 +1101,15 @@
 
 <!-- Mermaid.js for Visualization Board -->
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+// Initialise Mermaid once at page load (NOT per-render) so theme is stable
+mermaid.initialize({
+    startOnLoad: false,
+    theme: 'dark',
+    darkMode: true,
+    themeVariables: { background: 'transparent', primaryTextColor: '#e0e0e0', lineColor: '#6ea8fe' }
+});
+</script>
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
@@ -1908,12 +1917,6 @@ async function renderMermaidOnBoard(code, title) {
     code = code.replace(/^```(?:mermaid)?\s*/i, '').replace(/\s*```$/i, '').trim();
     const id = 'wb-' + Date.now();
     try {
-        mermaid.initialize({
-            startOnLoad: false,
-            theme: 'dark',
-            darkMode: true,
-            themeVariables: { background: 'transparent', primaryTextColor: '#e0e0e0', lineColor: '#6ea8fe' }
-        });
         const { svg } = await mermaid.render(id, code);
         whiteboardContent.innerHTML = `<div class="wb-diagram-wrap">${svg}</div>`;
     } catch(e) {
@@ -2275,6 +2278,10 @@ function handleRealtimeMessage(msg) {
         // response.audio.delta events are not sent over WebRTC data channel
 
         case 'response.audio.done':
+            // Audio stream ended — do NOT reset buffers yet; response.done follows
+            isPlayingAudio = false;
+            break;
+
         case 'response.done': {
             // In text-only mode currentAuraText is empty; fall back to stripped text stream
             const _displayText = currentAuraText || stripVoiceTokens(currentDiagramText);
@@ -2283,6 +2290,9 @@ function handleRealtimeMessage(msg) {
 
             // ── Power Word Tracking ─────────────────────────────────
             _logVoicePowerWords(_displayText);
+
+            // ── XP Award ───────────────────────────────────────────
+            _logVoiceAwardXP(currentDiagramText);
 
             // Final diagram check — catch any complete block in the last text delta
             checkAndRenderDiagram(currentDiagramText);
@@ -2340,6 +2350,42 @@ function _logVoicePowerWords(responseText) {
             document.body.appendChild(toast);
             setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity .6s'; setTimeout(() => toast.remove(), 700); }, 4000);
         }
+    }).catch(() => {});
+}
+
+
+// ─── Voice XP Award ──────────────────────────────────────────────────────
+/**
+ * Parse [AWARD_XP: N] token from the full text output stream and POST to
+ * the backend to persist the XP. Shows a brief +N XP toast on success.
+ */
+function _logVoiceAwardXP(responseText) {
+    if (!responseText) return;
+    const m = /\[AWARD_XP:\s*(\d+)\]/i.exec(responseText);
+    if (!m) return;
+    const amount = parseInt(m[1], 10);
+    if (!amount || amount < 1) return;
+
+    fetch('{% url "students:voice_award_xp" %}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({ amount })
+    }).then(r => r.json()).then(data => {
+        if (!data.xp_earned) return;
+        const toast = document.createElement('div');
+        toast.style.cssText = [
+            'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:9999;',
+            'background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;',
+            'padding:10px 22px;border-radius:20px;font-size:13px;font-weight:700;',
+            'box-shadow:0 4px 24px rgba(245,158,11,.45);white-space:nowrap;',
+            'animation:fadeIn .35s ease;pointer-events:none;'
+        ].join('');
+        toast.textContent = `+${data.xp_earned} XP ⚡`;
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = '0'; toast.style.transition = 'opacity .5s';
+            setTimeout(() => toast.remove(), 600);
+        }, 3000);
     }).catch(() => {});
 }
 

@@ -433,6 +433,9 @@ def create_realtime_session(request):
             "  or other types — they are not supported and will show an error to the student.\n"
             "- Do NOT emit [POWER_WORDS] tokens in voice mode.\n"
             "- DO emit [LESSON_STATE: X] tokens even in voice mode (they are silent to the student).\n"
+            "- Emit [AWARD_XP: N] (N = 5–20) at the END of responses where the student demonstrates\n"
+            "  clear understanding, answers a question correctly, or makes meaningful progress.\n"
+            "  Only award XP once per response, silently — never read the token aloud.\n"
             "- Speak warmly and naturally — no robotic phrasing.\n"
             "- Pause naturally by ending the response; do not add filler like 'Ok so...' or 'Alright'.\n\n"
         )
@@ -709,6 +712,46 @@ def aura_arena_api(request):
 
 
     return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+# ─── Voice XP Award ─────────────────────────────────────────────────────────
+@login_required
+def voice_award_xp(request):
+    """
+    POST endpoint: award XP earned during an Aura Voice session.
+    Called by the frontend when it detects a [AWARD_XP: N] token.
+
+    Expected JSON:  { "amount": <int> }
+    Returns:        { "xp_earned": N, "total_xp": T, "level": L }
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST only'}, status=405)
+    if request.user.user_type != 'student':
+        return JsonResponse({'error': 'Students only'}, status=403)
+    try:
+        body = json.loads(request.body.decode('utf-8'))
+        amount = int(body.get('amount', 0))
+    except (ValueError, TypeError, Exception):
+        return JsonResponse({'error': 'Invalid payload'}, status=400)
+
+    # Clamp to reasonable per-turn bounds
+    amount = max(1, min(amount, 50))
+
+    try:
+        from students.models import Student
+        student = Student.objects.get(user=request.user)
+    except Student.DoesNotExist:
+        return JsonResponse({'error': 'Student profile not found'}, status=404)
+
+    from academics.gamification_models import StudentXP
+    xp_profile, _ = StudentXP.objects.get_or_create(student=student)
+    xp_profile.add_xp(amount)
+
+    return JsonResponse({
+        'xp_earned': amount,
+        'total_xp': xp_profile.total_xp,
+        'level': xp_profile.level,
+    })
 
 
 # ─── Power Word Logger ──────────────────────────────────────────────────────
