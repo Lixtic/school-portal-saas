@@ -100,6 +100,90 @@ class StudentAchievement(models.Model):
         return f"{self.student} unlocked {self.achievement.name}"
 
 
+ACHIEVEMENT_CATALOG = [
+    # slug, name, description, icon, xp_reward, category, condition_field, threshold
+    ('first-steps',   'First Steps',        'Complete your first Aura session',         '🌱', 10,  'General',  'total_xp',       1),
+    ('homework-ace',  'Homework Ace',        'Score 90%+ on a homework assignment',      '🎯', 25,  'Homework', None,             None),
+    ('streak-3',      '3-Day Streak',        'Log in and learn 3 days in a row',         '🔥', 15,  'Streaks',  'current_streak', 3),
+    ('streak-7',      'Week Warrior',        'Maintain a 7-day learning streak',         '⚡', 30,  'Streaks',  'current_streak', 7),
+    ('streak-30',     'Iron Scholar',        'Maintain a 30-day learning streak',        '💎', 100, 'Streaks',  'current_streak', 30),
+    ('level-5',       'Level 5 Learner',     'Reach Level 5',                            '⭐', 50,  'Levels',   'level',          5),
+    ('level-10',      'Level Master',        'Reach Level 10 — top of the class!',       '🏆', 100, 'Levels',   'level',          10),
+    ('xp-500',        'XP Collector',        'Earn a total of 500 XP',                   '💫', 50,  'XP',       'total_xp',       500),
+    ('xp-1000',       'XP Legend',           'Earn a total of 1000 XP',                 '🌟', 100, 'XP',       'total_xp',       1000),
+]
+
+
+def check_and_unlock_achievements(student, profile, extra_slugs=None):
+    """
+    Check the student's XP profile against the achievement catalog.
+    Unlocks any newly-earned badges and sends a bell notification.
+
+    Args:
+        student: Student instance
+        profile: StudentXP instance
+        extra_slugs: optional list of achievement slugs to force-unlock
+                     (e.g. ['homework-ace'] after a high-scoring submission)
+    """
+    try:
+        from announcements.models import Notification
+
+        # Ensure all catalog achievements exist in DB
+        for slug, name, description, icon, xp_reward, category, _, _ in ACHIEVEMENT_CATALOG:
+            Achievement.objects.get_or_create(
+                slug=slug,
+                defaults={
+                    'name': name,
+                    'description': description,
+                    'icon': icon,
+                    'xp_reward': xp_reward,
+                    'category': category,
+                }
+            )
+
+        # Already-unlocked slugs for this student
+        unlocked_slugs = set(
+            StudentAchievement.objects.filter(student=student)
+            .values_list('achievement__slug', flat=True)
+        )
+
+        to_unlock = []
+
+        # Catalog-driven conditions on the XP profile fields
+        for slug, _, _, _, _, _, condition_field, threshold in ACHIEVEMENT_CATALOG:
+            if slug in unlocked_slugs:
+                continue
+            if condition_field is None:
+                continue
+            if getattr(profile, condition_field, 0) >= threshold:
+                to_unlock.append(slug)
+
+        # Any extra slugs (e.g. 'homework-ace') passed in by caller
+        if extra_slugs:
+            for slug in extra_slugs:
+                if slug not in unlocked_slugs:
+                    to_unlock.append(slug)
+
+        for slug in to_unlock:
+            try:
+                achievement = Achievement.objects.get(slug=slug)
+                _, created = StudentAchievement.objects.get_or_create(
+                    student=student,
+                    achievement=achievement,
+                )
+                if created:
+                    Notification.objects.create(
+                        recipient=student.user,
+                        message=f'{achievement.icon} Achievement unlocked: {achievement.name} — {achievement.description} (+{achievement.xp_reward} XP)',
+                        alert_type='general',
+                        link='../../students/aura-portfolio/',
+                    )
+            except Achievement.DoesNotExist:
+                pass
+    except Exception:
+        pass  # Gamification must never break core flows
+
+
 class AuraSessionState(models.Model):
     """
     Shared State Manager — the Redux-style single source of truth for all

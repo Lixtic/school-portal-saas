@@ -2040,11 +2040,22 @@ def _process_xp_awards(student, full_text):
                 pass
                 
         if total_awarded > 0:
-            from .gamification_models import StudentXP
+            from .gamification_models import StudentXP, check_and_unlock_achievements
             profile, created = StudentXP.objects.get_or_create(student=student)
             leveled_up = profile.add_xp(total_awarded)
             profile.update_streak()
-            
+            check_and_unlock_achievements(student, profile)
+            if leveled_up:
+                try:
+                    from announcements.models import Notification
+                    Notification.objects.create(
+                        recipient=student.user,
+                        message=f'⭐ Level Up! You reached Level {profile.level} — keep learning with Aura!',
+                        alert_type='general',
+                        link='../../students/aura-portfolio/',
+                    )
+                except Exception:
+                    pass
             logger.info("Awarded %d XP to %s. New Level: %d", total_awarded, student, profile.level)
             return total_awarded, leveled_up
     except Exception as e:

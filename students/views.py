@@ -364,12 +364,14 @@ def student_detail_page(request, student_id):
     # ── Aura Learning Profile (LearnerMemory + AuraSessionState) ─────────
     try:
         from academics.tutor_models import LearnerMemory
-        from academics.gamification_models import AuraSessionState
+        from academics.gamification_models import AuraSessionState, StudentXP
         context['learner_memory'] = LearnerMemory.objects.filter(student=student).first()
         context['aura_state'] = AuraSessionState.objects.filter(student=student).first()
+        context['xp_profile'] = StudentXP.objects.filter(student=student).first()
     except Exception:
         context['learner_memory'] = None
         context['aura_state'] = None
+        context['xp_profile'] = None
 
     return render(request, 'students/student_detail.html', context)
 

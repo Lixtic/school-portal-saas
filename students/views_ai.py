@@ -652,8 +652,10 @@ def aura_arena_api(request):
                 active_battle.battle_winner = request.user
                 active_battle.save()
                 
+                from academics.gamification_models import StudentXP, check_and_unlock_achievements
                 xp_profile, _ = StudentXP.objects.get_or_create(student=student)
-                xp_profile.add_xp(20) 
+                _leveled_up = xp_profile.add_xp(20)
+                check_and_unlock_achievements(student, xp_profile)
                 is_winner = True
                 xp_earned = 20
                 
@@ -769,10 +771,22 @@ def voice_award_xp(request):
     except Student.DoesNotExist:
         return JsonResponse({'error': 'Student profile not found'}, status=404)
 
-    from academics.gamification_models import StudentXP
+    from academics.gamification_models import StudentXP, check_and_unlock_achievements
     xp_profile, _ = StudentXP.objects.get_or_create(student=student)
-    xp_profile.add_xp(amount)
+    leveled_up = xp_profile.add_xp(amount)
     xp_profile.update_streak()  # keep voice streak in sync with text-chat streak
+    check_and_unlock_achievements(student, xp_profile)
+    if leveled_up:
+        try:
+            from announcements.models import Notification
+            Notification.objects.create(
+                recipient=request.user,
+                message=f'⭐ Level Up! You reached Level {xp_profile.level} — your Aura voice sessions are paying off!',
+                alert_type='general',
+                link='../../students/aura-portfolio/',
+            )
+        except Exception:
+            pass
 
     return JsonResponse({
         'xp_earned': amount,

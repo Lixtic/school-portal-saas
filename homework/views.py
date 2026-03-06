@@ -420,7 +420,32 @@ def homework_solve(request, pk):
         
         submission.score = total_score
         submission.save()
-        
+
+        # ── Gamification: award XP for homework completion ────────────────
+        try:
+            _hw_total_points = homework.questions.aggregate(total=Sum('points'))['total'] or 0
+            if _hw_total_points > 0:
+                _pct = float(total_score) / float(_hw_total_points) * 100
+                if _pct >= 50:
+                    _xp_amount = max(5, min(25, int(_pct / 4)))  # 12–25 XP range
+                    from academics.gamification_models import StudentXP, check_and_unlock_achievements
+                    from announcements.models import Notification
+                    _xp_profile, _ = StudentXP.objects.get_or_create(student=student)
+                    _leveled_up = _xp_profile.add_xp(_xp_amount)
+                    _xp_profile.update_streak()
+                    _extra = ['homework-ace'] if _pct >= 90 else []
+                    check_and_unlock_achievements(student, _xp_profile, extra_slugs=_extra)
+                    if _leveled_up:
+                        Notification.objects.create(
+                            recipient=student.user,
+                            message=f'⭐ Level Up! You reached Level {_xp_profile.level} — keep it up!',
+                            alert_type='general',
+                            link='../../students/aura-portfolio/',
+                        )
+        except Exception:
+            pass  # Gamification must never break homework submission
+        # ────────────────────────────────────────────────────────────────────
+
         messages.success(request, f"Homework submitted! Your score: {total_score}")
         return redirect('homework:homework_results', pk=pk)
 
@@ -445,6 +470,75 @@ def homework_results(request, pk):
         'percentage': round(percentage, 1),
         'total_points': total_points,
         'answers': submission.answers.select_related('question', 'selected_choice')
+    })
+
+
+@login_required
+def homework_class_results(request, pk):
+    """Teacher-only view: class-wide results for a homework assignment."""
+    homework = get_object_or_404(Homework, pk=pk)
+
+    # Access control: teacher who owns the HW, or admin
+    if request.user.user_type == 'teacher':
+        try:
+            teacher = Teacher.objects.get(user=request.user)
+            if homework.teacher != teacher:
+                messages.error(request, "You can only view results for your own assignments.")
+                return redirect('homework:homework_detail', pk=pk)
+        except Teacher.DoesNotExist:
+            return redirect('homework:homework_list')
+    elif request.user.user_type != 'admin':
+        messages.error(request, "Access denied.")
+        return redirect('homework:homework_detail', pk=pk)
+
+    total_points = homework.questions.aggregate(total=Sum('points'))['total'] or 0
+
+    submissions = Submission.objects.filter(homework=homework).select_related('student__user')
+    
+    results = []
+    for sub in submissions:
+        pct = round(float(sub.score) / float(total_points) * 100, 1) if total_points > 0 else 0
+        results.append({
+            'student': sub.student,
+            'score': sub.score,
+            'percentage': pct,
+            'submitted_at': sub.submitted_at,
+            'grade': ('A' if pct >= 80 else 'B' if pct >= 70 else 'C' if pct >= 60 else 'D' if pct >= 50 else 'F'),
+        })
+
+    # Sort by percentage descending
+    results.sort(key=lambda r: r['percentage'], reverse=True)
+
+    # Class-wide stats
+    class_size = homework.target_class.student_set.count() if homework.target_class else 0
+    submission_count = len(results)
+    avg_pct = round(sum(r['percentage'] for r in results) / submission_count, 1) if submission_count else 0
+    top_score_pct = results[0]['percentage'] if results else 0
+    pass_count = sum(1 for r in results if r['percentage'] >= 50)
+
+    # Per-question stats: correct-answer rate
+    questions = homework.questions.prefetch_related('choices').all()
+    question_stats = []
+    for q in questions:
+        correct = q.answer_set.filter(is_correct=True).count()
+        attempts = q.answer_set.count()
+        question_stats.append({
+            'question': q,
+            'correct': correct,
+            'attempts': attempts,
+            'rate': round(correct / attempts * 100, 0) if attempts else 0,
+        })
+
+    return render(request, 'homework/class_results.html', {
+        'homework': homework,
+        'results': results,
+        'total_points': total_points,
+        'class_size': class_size,
+        'submission_count': submission_count,
+        'avg_pct': avg_pct,
+        'top_score_pct': top_score_pct,
+        'pass_count': pass_count,
+        'question_stats': question_stats,
     })
 
 
