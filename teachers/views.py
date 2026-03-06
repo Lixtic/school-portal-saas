@@ -2791,8 +2791,13 @@ def scheme_of_work_upload(request):
             # Extract topics using GPT-4 Vision (async-style: do it inline for simplicity)
             try:
                 from academics.ai_tutor import extract_scheme_of_work_topics
-                image_path = scheme.image.path
-                topics = extract_scheme_of_work_topics(image_path)
+                # Use absolute path for local storage; fall back to URL for remote
+                # backends (Cloudinary etc.) that don't support .path
+                try:
+                    image_ref = scheme.image.path
+                except (NotImplementedError, AttributeError, ValueError):
+                    image_ref = scheme.image.url
+                topics = extract_scheme_of_work_topics(image_ref)
                 import json
                 scheme.extracted_topics = json.dumps(topics)
                 scheme.save(update_fields=['extracted_topics'])
