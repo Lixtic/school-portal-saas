@@ -2259,23 +2259,30 @@ function handleRealtimeMessage(msg) {
             break;
 
         // Text output stream — carries [WB_DIAGRAM] tokens (silent, not spoken)
+        // Also drives the live bubble in text-only mode (student typed, no audio)
         case 'response.text.delta':
             if (!isPlayingAudio) { updateState('SPEAKING'); isPlayingAudio = true; }
             currentDiagramText += (msg.delta || '');
-            // Check for a complete diagram block as it streams in
             checkAndRenderDiagram(currentDiagramText);
+            // In text-only mode there are no audio_transcript deltas, so currentAuraText
+            // stays empty — feed the stripped text into the live bubble instead
+            if (!currentAuraText) {
+                updateLiveAuraText(stripVoiceTokens(currentDiagramText));
+            }
             break;
 
         // Audio playback is handled natively by WebRTC — no manual decoding needed
         // response.audio.delta events are not sent over WebRTC data channel
 
         case 'response.audio.done':
-        case 'response.done':
-            if (currentUserText && currentAuraText) saveToHistory(currentUserText, currentAuraText);
+        case 'response.done': {
+            // In text-only mode currentAuraText is empty; fall back to stripped text stream
+            const _displayText = currentAuraText || stripVoiceTokens(currentDiagramText);
+            if (currentUserText && _displayText) saveToHistory(currentUserText, _displayText);
             finalizeLiveAuraText();
 
             // ── Power Word Tracking ─────────────────────────────────
-            _logVoicePowerWords(currentAuraText);
+            _logVoicePowerWords(_displayText);
 
             // Final diagram check — catch any complete block in the last text delta
             checkAndRenderDiagram(currentDiagramText);
@@ -2293,6 +2300,7 @@ function handleRealtimeMessage(msg) {
             isPlayingAudio = false;
             if (isConnected) updateState('READY');
             break;
+        }
 
         case 'error':
             console.error('Realtime error:', msg.error);
