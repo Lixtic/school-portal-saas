@@ -260,6 +260,50 @@ class Resource(models.Model):
         ordering = ['-uploaded_at']
 
 
+class SchemeOfWork(models.Model):
+    """Teacher-uploaded termly scheme of work screenshot. Aura uses the extracted topics to guide lessons."""
+    TERM_CHOICES = (
+        ('first', 'First Term'),
+        ('second', 'Second Term'),
+        ('third', 'Third Term'),
+    )
+    class_subject = models.ForeignKey(
+        ClassSubject, on_delete=models.CASCADE, related_name='schemes_of_work'
+    )
+    academic_year = models.ForeignKey(
+        AcademicYear, on_delete=models.CASCADE, related_name='schemes_of_work'
+    )
+    term = models.CharField(max_length=15, choices=TERM_CHOICES)
+    image = models.ImageField(upload_to='schemes_of_work/')
+    # JSON list of topic strings extracted by GPT-4 Vision
+    extracted_topics = models.TextField(blank=True, default='[]',
+                                        help_text='JSON array of topic strings extracted from the image')
+    uploaded_by = models.ForeignKey(
+        'teachers.Teacher', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='schemes_of_work'
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-uploaded_at']
+        unique_together = ['class_subject', 'term', 'academic_year']
+        verbose_name = 'Scheme of Work'
+        verbose_name_plural = 'Schemes of Work'
+
+    def __str__(self):
+        return f"{self.class_subject} — {self.get_term_display()} {self.academic_year}"
+
+    def get_topics(self):
+        """Return the extracted topics as a Python list."""
+        import json
+        try:
+            topics = json.loads(self.extracted_topics)
+            return topics if isinstance(topics, list) else []
+        except Exception:
+            return []
+
+
 # Import AI Tutor/Copilot models
 from .tutor_models import (
     TutorSession,

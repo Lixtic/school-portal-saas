@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import AcademicYear, Class, Subject, ClassSubject, Activity, Timetable, SchoolInfo, GalleryImage
+from .models import AcademicYear, Class, Subject, ClassSubject, Activity, Timetable, SchoolInfo, GalleryImage, SchemeOfWork
 from .gamification_models import AuraSessionState
 
 
@@ -216,3 +216,11 @@ class AuraSessionStateAdmin(admin.ModelAdmin):
     search_fields = ('student__user__first_name', 'student__user__last_name')
     readonly_fields = ('updated_at',)
     ordering = ('-updated_at',)
+
+
+@admin.register(SchemeOfWork)
+class SchemeOfWorkAdmin(admin.ModelAdmin):
+    list_display = ('class_subject', 'term', 'academic_year', 'uploaded_by', 'uploaded_at')
+    list_filter = ('term', 'academic_year')
+    search_fields = ('class_subject__class_name__name', 'class_subject__subject__name')
+    readonly_fields = ('uploaded_at', 'updated_at')

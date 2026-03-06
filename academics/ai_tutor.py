@@ -11,6 +11,7 @@ from django.utils import timezone
 
 
 OPENAI_CHAT_COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions"
+OPENAI_VISION_MODEL = "gpt-4o"  # supports vision
 HF_INFERENCE_API_URL = "https://router.huggingface.co/v1/models"
 HF_DEFAULT_FALLBACK_MODEL = "google/flan-t5-large"
 OPENAI_CHAT_MODELS = [
@@ -19,6 +20,80 @@ OPENAI_CHAT_MODELS = [
     "gpt-4o",
     "gpt-4o-mini",
 ]
+
+
+def extract_scheme_of_work_topics(image_path_or_url: str) -> list:
+    """
+    Use GPT-4o Vision to extract an ordered list of topic strings from a
+    scheme-of-work screenshot uploaded by a teacher.
+    Returns a Python list of strings (may be empty on failure).
+    """
+    import base64, re as _re, json as _json
+
+    api_key = _get_openai_api_key() if callable(globals().get('_get_openai_api_key')) else (
+        getattr(settings, 'OPENAI_API_KEY', None) or os.environ.get('OPENAI_API_KEY')
+    )
+    if not api_key:
+        return []
+
+    try:
+        if str(image_path_or_url).startswith(('http://', 'https://')):
+            image_block = {"type": "image_url", "image_url": {"url": image_path_or_url}}
+        else:
+            ext = str(image_path_or_url).lower().rsplit('.', 1)[-1]
+            mime = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
+                    'png': 'image/png', 'webp': 'image/webp',
+                    'gif': 'image/gif'}.get(ext, 'image/jpeg')
+            with open(image_path_or_url, 'rb') as fh:
+                b64 = base64.b64encode(fh.read()).decode('utf-8')
+            image_block = {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}}
+    except Exception:
+        return []
+
+    payload = {
+        "model": OPENAI_VISION_MODEL,
+        "messages": [{
+            "role": "user",
+            "content": [
+                image_block,
+                {
+                    "type": "text",
+                    "text": (
+                        "This image is a school Scheme of Work (curriculum plan). "
+                        "Extract every teaching topic / strand / sub-strand listed, "
+                        "in the order they appear.\n"
+                        "Return ONLY a valid JSON array of short topic name strings. "
+                        "Do NOT include week numbers, dates, or any other metadata — "
+                        "just the topic names.\n"
+                        "Example: [\"Integers and Number Lines\", \"Fractions\", "
+                        "\"Algebraic Expressions\"]\n"
+                        "If the image is unreadable, return []"
+                    ),
+                },
+            ],
+        }],
+        "max_tokens": 1024,
+    }
+
+    try:
+        req = urllib_request.Request(
+            OPENAI_CHAT_COMPLETIONS_URL,
+            data=_json.dumps(payload).encode('utf-8'),
+            headers={'Authorization': f'Bearer {api_key}',
+                     'Content-Type': 'application/json'},
+            method='POST',
+        )
+        with urllib_request.urlopen(req, timeout=60) as resp:
+            result = _json.loads(resp.read().decode('utf-8'))
+        content = result['choices'][0]['message']['content'].strip()
+        match = _re.search(r'\[.*?\]', content, _re.DOTALL)
+        if match:
+            topics = _json.loads(match.group(0))
+            if isinstance(topics, list):
+                return [str(t).strip() for t in topics if str(t).strip()]
+    except Exception:
+        pass
+    return []
 
 
 def _resolve_openai_model(payload):
@@ -997,6 +1072,37 @@ LOCALIZED FINAL ASSESSMENT LOGIC
         pass
 
     context += "\n\nAlways maintain an encouraging, supportive tone. Keep responses concise, structured, and cognitively active."
+
+    # ── SCHEME OF WORK: curriculum topic sequence for this class/subject ─────
+    try:
+        from .models import SchemeOfWork, AcademicYear as _AY, ClassSubject as _CS
+        _cy = _AY.objects.filter(is_current=True).first()
+        if _cy and subject and student.current_class:
+            _cs = _CS.objects.filter(
+                class_name=student.current_class, subject=subject
+            ).first()
+            if _cs:
+                _scheme = SchemeOfWork.objects.filter(
+                    class_subject=_cs, academic_year=_cy
+                ).order_by('-uploaded_at').first()
+                if _scheme:
+                    _topics = _scheme.get_topics()
+                    if _topics:
+                        context += (
+                            "\n\n─── TEACHER'S TERMLY SCHEME OF WORK ───\n"
+                            "The teacher has uploaded their official scheme of work for this class and subject.\n"
+                            "You MUST follow this topic sequence when deciding what to teach.\n"
+                            "Do not skip ahead or introduce topics not in this list without student mastery of prior topics.\n"
+                            "Topics (in order):\n"
+                        )
+                        for _i, _t in enumerate(_topics, 1):
+                            context += f"  {_i}. {_t}\n"
+                        context += (
+                            "When the student starts a new session, pick up from the topic they are most \n"
+                            "likely to be studying based on the current week of term.\n"
+                        )
+    except Exception:
+        pass
 
     return context
 

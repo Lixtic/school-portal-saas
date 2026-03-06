@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %}Scheme of Work{% endblock %}
+
+{% block content %}
+<style>
+    .sow-card { border-radius:12px; overflow:hidden; }
+    .topic-chip { display:inline-block; background:rgba(99,102,241,.12); color:#6366f1;
+                  border-radius:20px; padding:2px 10px; font-size:11px; margin:2px; }
+    [data-bs-theme="dark"] .topic-chip { background:rgba(99,102,241,.2); color:#a5b4fc; }
+    [data-bs-theme="dark"] .card { background:var(--surface-white); border-color:rgba(255,255,255,.07); }
+    [data-bs-theme="dark"] .table { color:var(--text-main); }
+    [data-bs-theme="dark"] .text-muted { color:#94a3b8 !important; }
+</style>
+
+<div class="container py-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold">
+            <i class="bi bi-journals me-2 text-primary"></i>Schemes of Work
+        </h2>
+        <a href="{% url 'teachers:scheme_of_work_upload' %}" class="btn btn-primary rounded-pill">
+            <i class="bi bi-cloud-upload me-1"></i> Upload Scheme
+        </a>
+    </div>
+
+    <div class="card shadow-sm border-0 sow-card mb-4">
+        <div class="card-body p-3">
+            <p class="text-muted mb-0 small">
+                <i class="bi bi-lightbulb-fill text-warning me-1"></i>
+                Upload a screenshot of your termly scheme of work. <strong>Aura</strong> will read your topics
+                and automatically align lessons to your curriculum sequence.
+            </p>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for msg in messages %}
+        <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show rounded-3" role="alert">
+            {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if schemes %}
+    <div class="row g-3">
+        {% for scheme in schemes %}
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="card shadow-sm border-0 sow-card h-100">
+                <!-- Thumbnail -->
+                {% if scheme.image %}
+                <a href="{{ scheme.image.url }}" target="_blank">
+                    <img src="{{ scheme.image.url }}" alt="Scheme preview"
+                         class="card-img-top" style="height:160px;object-fit:cover;object-position:top;">
+                </a>
+                {% endif %}
+                <div class="card-body">
+                    <h6 class="fw-bold mb-1">{{ scheme.class_subject.class_name.name }}</h6>
+                    <div class="text-muted small mb-2">
+                        {{ scheme.class_subject.subject.name }} &mdash; {{ scheme.get_term_display }}
+                        &bull; {{ scheme.academic_year.name }}
+                    </div>
+
+                    {% with topics=scheme.get_topics %}
+                    {% if topics %}
+                    <div class="mb-2">
+                        <span class="badge bg-success-subtle text-success border border-success-subtle me-1">
+                            <i class="bi bi-check-circle-fill me-1"></i>{{ topics|length }} topics extracted
+                        </span>
+                    </div>
+
+                    <!-- Collapsible topic list -->
+                    <div class="collapse" id="topics-{{ scheme.pk }}">
+                        <div class="mt-2">
+                            {% for topic in topics %}
+                            <span class="topic-chip">{{ forloop.counter }}. {{ topic }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <button class="btn btn-link btn-sm p-0 text-decoration-none mt-1"
+                            data-bs-toggle="collapse" data-bs-target="#topics-{{ scheme.pk }}">
+                        <i class="bi bi-eye me-1"></i>Show/Hide topics
+                    </button>
+                    {% else %}
+                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+                        <i class="bi bi-exclamation-triangle me-1"></i>No topics extracted
+                    </span>
+                    {% endif %}
+                    {% endwith %}
+                </div>
+                <div class="card-footer border-0 bg-transparent d-flex justify-content-between align-items-center pt-0 pb-3 px-3">
+                    <small class="text-muted">Uploaded {{ scheme.uploaded_at|date:"d M Y" }}</small>
+                    <form method="post" action="{% url 'teachers:scheme_of_work_delete' scheme.pk %}"
+                          onsubmit="return confirm('Delete this scheme of work?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">
+                            <i class="bi bi-trash3"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="bi bi-journals" style="font-size:3rem;opacity:.3;"></i>
+        <p class="text-muted mt-3">No schemes of work uploaded yet.<br>
+            <a href="{% url 'teachers:scheme_of_work_upload' %}">Upload your first one</a> to help Aura follow your curriculum.
+        </p>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

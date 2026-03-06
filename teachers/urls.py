@@ -56,6 +56,11 @@ urlpatterns = [
     # Power Words — Teacher Command Center
     path('power-words/', views.power_words_dashboard, name='power_words_dashboard'),
     path('power-words/action/', views.power_words_action, name='power_words_action'),
+
+    # Scheme of Work
+    path('scheme-of-work/', views.scheme_of_work_list, name='scheme_of_work_list'),
+    path('scheme-of-work/upload/', views.scheme_of_work_upload, name='scheme_of_work_upload'),
+    path('scheme-of-work/<int:pk>/delete/', views.scheme_of_work_delete, name='scheme_of_work_delete'),
 ]
 
 

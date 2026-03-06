@@ -15,7 +15,7 @@ import random
 import string
 from datetime import date
 from teachers.models import Teacher, DutyWeek, LessonPlan
-from academics.models import ClassSubject, AcademicYear, Timetable, SchoolInfo, Resource, Class, Subject
+from academics.models import ClassSubject, AcademicYear, Timetable, SchoolInfo, Resource, Class, Subject, SchemeOfWork
 from students.models import Student, Grade, ClassExercise, StudentExerciseScore
 from students.utils import normalize_term
 from .forms import ResourceForm, LessonPlanForm, TeacherCreateForm, TeacherCSVImportForm #, HomeworkForm
@@ -2715,3 +2715,116 @@ def assignment_creator(request):
         'subjects': subjects
     })
 
+
+# ─────────────────────────────────────────────────────────────
+# SCHEME OF WORK — upload, list, delete
+# ─────────────────────────────────────────────────────────────
+
+@login_required
+def scheme_of_work_list(request):
+    """List all schemes of work for the logged-in teacher."""
+    if request.user.user_type not in ['admin', 'teacher']:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    teacher = get_object_or_404(Teacher, user=request.user)
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+
+    class_subjects = ClassSubject.objects.filter(
+        teacher=teacher,
+        class_name__academic_year=current_year
+    ).select_related('class_name', 'subject') if current_year else ClassSubject.objects.filter(teacher=teacher).select_related('class_name', 'subject')
+
+    schemes = SchemeOfWork.objects.filter(
+        class_subject__in=class_subjects
+    ).select_related('class_subject__class_name', 'class_subject__subject', 'academic_year').order_by('-uploaded_at')
+
+    return render(request, 'teachers/scheme_of_work.html', {
+        'schemes': schemes,
+        'class_subjects': class_subjects,
+        'current_year': current_year,
+    })
+
+
+@login_required
+def scheme_of_work_upload(request):
+    """Upload or replace a scheme of work for a class/subject/term."""
+    if request.user.user_type not in ['admin', 'teacher']:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    teacher = get_object_or_404(Teacher, user=request.user)
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+
+    if not current_year:
+        messages.error(request, 'No active academic year found.')
+        return redirect('teachers:scheme_of_work_list')
+
+    class_subjects = ClassSubject.objects.filter(
+        teacher=teacher, class_name__academic_year=current_year
+    ).select_related('class_name', 'subject')
+
+    if request.method == 'POST':
+        cs_id = request.POST.get('class_subject')
+        term = request.POST.get('term')
+        image = request.FILES.get('image')
+
+        if not cs_id or not term or not image:
+            messages.error(request, 'Please fill all fields and upload an image.')
+        else:
+            cs = get_object_or_404(ClassSubject, id=cs_id, teacher=teacher)
+
+            # Upsert — one scheme per class/subject/term/year
+            scheme, created = SchemeOfWork.objects.get_or_create(
+                class_subject=cs,
+                term=term,
+                academic_year=current_year,
+                defaults={'uploaded_by': teacher, 'image': image, 'extracted_topics': '[]'},
+            )
+            if not created:
+                # Replace image
+                scheme.image = image
+                scheme.extracted_topics = '[]'
+                scheme.uploaded_by = teacher
+                scheme.save()
+
+            # Extract topics using GPT-4 Vision (async-style: do it inline for simplicity)
+            try:
+                from academics.ai_tutor import extract_scheme_of_work_topics
+                image_path = scheme.image.path
+                topics = extract_scheme_of_work_topics(image_path)
+                import json
+                scheme.extracted_topics = json.dumps(topics)
+                scheme.save(update_fields=['extracted_topics'])
+                topic_count = len(topics)
+                if topic_count > 0:
+                    messages.success(request, f'Scheme of work uploaded! {topic_count} topics extracted for Aura.')
+                else:
+                    messages.warning(request, 'Scheme uploaded but Aura could not extract topics from the image. You can re-upload a clearer image.')
+            except Exception as exc:
+                messages.warning(request, f'Scheme saved but topic extraction failed: {exc}')
+
+            return redirect('teachers:scheme_of_work_list')
+
+    return render(request, 'teachers/scheme_of_work_upload.html', {
+        'class_subjects': class_subjects,
+        'term_choices': SchemeOfWork.TERM_CHOICES,
+    })
+
+
+@login_required
+def scheme_of_work_delete(request, pk):
+    """Delete a scheme of work."""
+    if request.user.user_type not in ['admin', 'teacher']:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    teacher = get_object_or_404(Teacher, user=request.user)
+    scheme = get_object_or_404(
+        SchemeOfWork,
+        pk=pk,
+        class_subject__teacher=teacher
+    )
+    scheme.delete()
+    messages.success(request, 'Scheme of work deleted.')
+    return redirect('teachers:scheme_of_work_list')
