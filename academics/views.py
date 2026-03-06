@@ -2089,6 +2089,7 @@ def aura_session_state(request):
         messages_list = data.get('messages', [])
         subject_id = data.get('subject_id')
         session_id = data.get('session_id')
+        requested_model = data.get('model') or None
 
         if not isinstance(messages_list, list):
             return JsonResponse({'error': 'Invalid messages payload'}, status=400)
@@ -2128,7 +2129,7 @@ def aura_session_state(request):
 
         def _stream_and_persist():
             assistant_chunks = []
-            for chunk in stream_tutor_response(messages_list, student, subject):
+            for chunk in stream_tutor_response(messages_list, student, subject, model=requested_model):
                 if chunk.startswith('data: '):
                     payload = chunk[6:].strip()
                     if payload and payload != '[DONE]':

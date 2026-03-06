@@ -15,6 +15,8 @@ HF_INFERENCE_API_URL = "https://router.huggingface.co/v1/models"
 HF_DEFAULT_FALLBACK_MODEL = "google/flan-t5-large"
 OPENAI_CHAT_MODELS = [
     "gpt-5-nano",
+    "gpt-5-mini",
+    "gpt-4o",
     "gpt-4o-mini",
 ]
 
@@ -1277,9 +1279,10 @@ def get_student_schedule_data(student):
         return None
 
 
-def stream_tutor_response(messages, student, subject=None):
+def stream_tutor_response(messages, student, subject=None, model=None):
     """
-    Stream AI tutor responses using OpenAI
+    Stream AI tutor responses using OpenAI.
+    Pass *model* to override the server default (must be in OPENAI_CHAT_MODELS).
     """
     api_key = _get_openai_api_key()
     
@@ -1290,8 +1293,12 @@ def stream_tutor_response(messages, student, subject=None):
         ]
         conversation.extend(messages)
 
+        resolved_model = (
+            model if (model and model in OPENAI_CHAT_MODELS)
+            else get_openai_chat_model()
+        )
         payload = {
-            "model": get_openai_chat_model(),
+            "model": resolved_model,
             "messages": conversation,
             "stream": True,
             "temperature": 0.7,

@@ -575,7 +575,15 @@
         font-size: 0.7rem;
         font-weight: 700;
         line-height: 1;
+        cursor: pointer;
+        user-select: none;
+        transition: background 0.15s, border-color 0.15s;
     }
+    .aura-model-chip:hover {
+        background: #dbeafe;
+        border-color: #93c5fd;
+    }
+    .aura-model-chip .bi-chevron-down { font-size: 0.6rem; }
 
     [data-bs-theme="dark"] .aura-model-chip {
         border-color: rgba(59, 130, 246, 0.35);
@@ -1168,7 +1176,20 @@
                         <span class="position-absolute bottom-0 end-0 bg-success border border-white rounded-circle" style="width: 10px; height: 10px;"></span>
                     </div>
                     <span class="fw-bold" style="font-size: 0.95rem;">Aura 2.0</span>
-                    <span class="aura-model-chip" id="auraModelChip" title="Active AI model: {{ active_ai_model }}">{{ active_ai_model }}</span>
+                    <div class="dropdown" id="modelPickerDropdown">
+                        <span class="aura-model-chip" id="auraModelChip"
+                              data-bs-toggle="dropdown" aria-expanded="false"
+                              title="Click to change AI model">
+                            <span id="auraModelChipLabel">{{ active_ai_model }}</span>
+                            <i class="bi bi-chevron-down"></i>
+                        </span>
+                        <ul class="dropdown-menu dropdown-menu-start shadow-sm border-0 py-1" id="modelPickerMenu" style="min-width:170px;">
+                            <li><span class="dropdown-header" style="font-size:0.7rem;">Switch AI Model</span></li>
+                            <li><button class="dropdown-item model-pick-btn" data-model="gpt-5-nano"><i class="bi bi-lightning-charge-fill me-2 text-warning"></i>GPT-5 Nano <small class="text-muted ms-1">fastest</small></button></li>
+                            <li><button class="dropdown-item model-pick-btn" data-model="gpt-5-mini"><i class="bi bi-stars me-2 text-primary"></i>GPT-5 Mini <small class="text-muted ms-1">balanced</small></button></li>
+                            <li><button class="dropdown-item model-pick-btn" data-model="gpt-4o"><i class="bi bi-cpu me-2 text-success"></i>GPT-4o <small class="text-muted ms-1">most capable</small></button></li>
+                        </ul>
+                    </div>
                     <span class="aura-provider-chip" id="auraProviderChip" title="Active AI provider: {{ active_ai_provider }}">{{ active_ai_provider }}</span>
                     <button class="btn btn-sm btn-light border ms-2" data-bs-toggle="offcanvas" data-bs-target="#sessionsSidebar" aria-controls="sessionsSidebar">
                         <i class="bi bi-list-ul"></i> Sessions
@@ -1419,21 +1440,41 @@
     const insightBadge = document.getElementById('insightBadge');
     const typingIndicator = document.getElementById('typingIndicator');
     const auraModelChip = document.getElementById('auraModelChip');
+    const auraModelChipLabel = document.getElementById('auraModelChipLabel');
     const auraProviderChip = document.getElementById('auraProviderChip');
+
+    // ── Model Picker ────────────────────────────────────────────
+    // Seed from what the backend resolved (env / default)
+    let selectedModel = (aiTutorBootstrap.active_ai_model || 'gpt-5-nano').trim();
+
+    document.querySelectorAll('.model-pick-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            selectedModel = btn.dataset.model;
+            setAuraModelLabel(selectedModel);
+        });
+    });
+    // Mark the currently-active item
+    function _highlightActiveModel(model) {
+        document.querySelectorAll('.model-pick-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.model === model);
+        });
+    }
 
         function updateAuraAiTooltips() {
             if (!auraModelChip || !auraProviderChip) return;
-            const modelText = (auraModelChip.textContent || '').trim();
+            const modelText = (auraModelChipLabel ? auraModelChipLabel.textContent : (auraModelChip.textContent || '')).trim();
             const providerText = (auraProviderChip.textContent || '').trim();
             auraModelChip.title = providerText ? `Active AI model: ${modelText} via ${providerText}` : `Active AI model: ${modelText}`;
             auraProviderChip.title = modelText ? `Active AI provider: ${providerText} (${modelText})` : `Active AI provider: ${providerText}`;
         }
 
         function setAuraModelLabel(model) {
-            if (!auraModelChip || !model) return;
+            if (!auraModelChipLabel || !model) return;
             const normalized = String(model).trim();
             if (!normalized) return;
-            auraModelChip.textContent = normalized;
+            auraModelChipLabel.textContent = normalized;
+            selectedModel = normalized;
+            _highlightActiveModel(normalized);
             updateAuraAiTooltips();
         }
 
@@ -1883,7 +1924,8 @@
                 method: 'POST',
                 body: JSON.stringify({ 
                     messages: conversationHistory,
-                    session_id: currentSessionId || new URLSearchParams(window.location.search).get('session')
+                    session_id: currentSessionId || new URLSearchParams(window.location.search).get('session'),
+                    model: selectedModel,
                 }),
                 headers: { 
                     'Content-Type': 'application/json', 
