@@ -383,7 +383,86 @@ def aura_voice_view(request):
 
 
 @login_required
-def create_realtime_session(request):
+def voice_board_generate(request):
+    """
+    POST { "user_text": "...", "aura_text": "..." }
+    Calls gpt-4o-mini to decide whether a Mermaid diagram would help,
+    and if so returns { "diagram": "mermaid_code", "title": "..." }.
+    Returns { "diagram": null } if no diagram is needed.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST only'}, status=405)
+    if request.user.user_type != 'student':
+        return JsonResponse({'error': 'Students only'}, status=403)
+
+    try:
+        body = json.loads(request.body.decode('utf-8'))
+        user_text = (body.get('user_text') or '').strip()[:600]
+        aura_text = (body.get('aura_text') or '').strip()[:1200]
+    except Exception:
+        return JsonResponse({'error': 'Invalid payload'}, status=400)
+
+    if not (user_text or aura_text):
+        return JsonResponse({'diagram': None})
+
+    api_key = get_openai_api_key()
+    if not api_key:
+        return JsonResponse({'diagram': None})
+
+    system_prompt = (
+        "You are a diagram generator for an AI tutoring assistant called Aura. "
+        "Given a short tutor-student conversation, decide if a visual diagram would SIGNIFICANTLY "
+        "help understanding. Only generate a diagram if it genuinely adds value — don't create one "
+        "for casual chitchat, greetings, or simple factual answers.\n\n"
+        "If a diagram is warranted, respond with ONLY a raw JSON object (no markdown fences, no prose):\n"
+        '{"title": "Diagram title (max 40 chars)", "diagram": "<mermaid code here>"}\n\n'
+        "STRICT MERMAID RULES:\n"
+        "- Only use these diagram types: flowchart TD, sequenceDiagram, mindmap, timeline, classDiagram\n"
+        "- Keep diagrams concise: ≤12 nodes or steps\n"
+        "- flowchart: use --> for arrows, wrap labels with spaces in quotes e.g. A[\"Label\"]\n"
+        "- mindmap: root title on first line, indent children with spaces (NOT tabs)\n"
+        "- Do NOT use: xychart, sankey, pie, gitGraph, quadrantChart, erDiagram, gantt\n"
+        "- Do NOT include ```mermaid fences — raw code only\n\n"
+        "If NO diagram is needed, respond with ONLY: {\"title\": null, \"diagram\": null}"
+    )
+
+    user_prompt = f"Student said: {user_text}\n\nAura (tutor) replied: {aura_text}"
+
+    try:
+        import requests as http_requests
+        resp = http_requests.post(
+            'https://api.openai.com/v1/chat/completions',
+            headers={'Authorization': f'Bearer {api_key}', 'Content-Type': 'application/json'},
+            json={
+                'model': 'gpt-4o-mini',
+                'messages': [
+                    {'role': 'system', 'content': system_prompt},
+                    {'role': 'user', 'content': user_prompt},
+                ],
+                'temperature': 0.3,
+                'max_tokens': 600,
+                'response_format': {'type': 'json_object'},
+            },
+            timeout=20,
+        )
+        if resp.status_code != 200:
+            logger.warning('voice_board_generate API error %s', resp.status_code)
+            return JsonResponse({'diagram': None})
+
+        content = resp.json()['choices'][0]['message']['content']
+        data = json.loads(content)
+        diagram = (data.get('diagram') or '').strip()
+        title = (data.get('title') or 'Visualization').strip()
+        if not diagram or diagram.lower() == 'null':
+            return JsonResponse({'diagram': None})
+        # Strip any accidental fences
+        diagram = diagram.strip('`').strip()
+        if diagram.lower().startswith('mermaid'):
+            diagram = diagram[7:].strip()
+        return JsonResponse({'diagram': diagram, 'title': title})
+    except Exception as e:
+        logger.warning('voice_board_generate error: %s', e)
+        return JsonResponse({'diagram': None})
     """
     Create an ephemeral token for OpenAI Realtime API (WebRTC).
     Frontend uses this to establish a WebRTC peer connection directly to OpenAI.

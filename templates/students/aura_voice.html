@@ -1922,6 +1922,7 @@ function stripVoiceTokens(text) {
 }
 
 // Watch for a complete [WB_DIAGRAM] block in streaming text and render it
+// Returns true if a diagram was found and rendered.
 function checkAndRenderDiagram(text) {
     const wbRe = /\[WB_DIAGRAM:\s*([^\]]+)\]\s*([\s\S]*?)\s*\[\/WB_DIAGRAM\]/i;
     const match = text.match(wbRe);
@@ -1933,6 +1934,44 @@ function checkAndRenderDiagram(text) {
             _lastRenderedDiagramKey = key;
             renderMermaidOnBoard(code, title);
         }
+        return true;
+    }
+    return false;
+}
+
+// ── Backend-driven board generation ──────────────────────────────────────
+// Called when the realtime text channel didn't carry an inline [WB_DIAGRAM].
+// Sends user + Aura text to gpt-4o-mini; renders diagram if one is generated.
+let _boardGenController = null;  // abort any in-flight request from previous turn
+
+async function _generateVoiceBoard(userText, auraText) {
+    if (!userText && !auraText) return;
+    // Cancel previous in-flight board call
+    if (_boardGenController) { try { _boardGenController.abort(); } catch(e) {} }
+    _boardGenController = new AbortController();
+
+    try {
+        const resp = await fetch('{% url "students:voice_board_generate" %}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ user_text: userText || '', aura_text: auraText || '' }),
+            signal: _boardGenController.signal,
+        });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (!data.diagram) return;
+
+        // A diagram was generated — render it on the board
+        await renderMermaidOnBoard(data.diagram, data.title || 'Visualization');
+
+        // Auto-hide after 12 seconds unless pinned
+        if (!boardPinned) {
+            setTimeout(() => {
+                if (!boardPinned) whiteboardOverlay.classList.remove('visible');
+            }, 12000);
+        }
+    } catch(e) {
+        if (e.name !== 'AbortError') console.warn('Board gen error:', e);
     }
 }
 
@@ -2325,14 +2364,20 @@ function handleRealtimeMessage(msg) {
             // ── Shared State Manager write-back (voice side) ───────
             _syncAuraState(currentDiagramText, targetSentiment);
 
-            // Final diagram check — catch any complete block in the last text delta
-            checkAndRenderDiagram(currentDiagramText);
+            // ── Visualization Board: try inline token first, fall back to backend ──
+            // First try: did the realtime text channel carry a [WB_DIAGRAM] block?
+            const _hadInlineDiagram = checkAndRenderDiagram(currentDiagramText);
+            // Second try: call backend with the full conversation turn
+            if (!_hadInlineDiagram && (currentUserText || _displayText)) {
+                _generateVoiceBoard(currentUserText, _displayText);
+            }
 
-            // Auto-hide board after 10s unless student pinned it
+            // Auto-hide board after 12s unless student pinned it
+            // (timeout is set inside _generateVoiceBoard to avoid race)
             if (!boardPinned && whiteboardOverlay.classList.contains('visible')) {
                 setTimeout(() => {
                     if (!boardPinned) whiteboardOverlay.classList.remove('visible');
-                }, 10000);
+                }, 12000);
             }
             _lastRenderedDiagramKey = null;
 

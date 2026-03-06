@@ -37,6 +37,7 @@ urlpatterns = [
     # AI Voice Interface
     path('aura/voice/', views_ai.aura_voice_view, name='aura_voice'),
     path('aura/realtime-session/', views_ai.create_realtime_session, name='create_realtime_session'),
+    path('aura/voice/board/', views_ai.voice_board_generate, name='voice_board_generate'),
     
     # Aura Arena
     path('aura/arena/', views_ai.aura_arena_view, name='aura_arena'),
