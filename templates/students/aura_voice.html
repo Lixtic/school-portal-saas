@@ -919,9 +919,14 @@
         <div class="hud-badge">
             <span class="dot"></span> <span class="d-none d-sm-inline">Aura </span>Voice
         </div>
-        <button id="settingsBtn" class="hud-btn icon-only" title="Settings">
-            <i class="fa-solid fa-sliders"></i>
-        </button>
+        <div style="display:flex;gap:6px;align-items:center">
+            <button id="boardToggleBtn" class="hud-btn icon-only" title="Visualization Board">
+                <i class="fa-solid fa-chalkboard"></i>
+            </button>
+            <button id="settingsBtn" class="hud-btn icon-only" title="Settings">
+                <i class="fa-solid fa-sliders"></i>
+            </button>
+        </div>
     </div>
 
     <!-- Center Status Text (below orb) -->
@@ -1388,6 +1393,7 @@ const whiteboardContent = document.getElementById('whiteboardContent');
 const whiteboardClose = document.getElementById('whiteboardClose');
 const boardTitle = document.getElementById('boardTitle');
 const boardPinBtn = document.getElementById('boardPinBtn');
+const boardToggleBtn = document.getElementById('boardToggleBtn');
 const expandDrawerBtn = document.getElementById('expandDrawerBtn');
 const msgCount = document.getElementById('msgCount');
 const scrollToBottomBtn = document.getElementById('scrollToBottom');
@@ -1414,7 +1420,8 @@ let remoteAnalyserData = null;
 // State
 let state = 'IDLE';
 let currentUserText = '';
-let currentAuraText = '';
+let currentAuraText = '';    // audio transcript stream (speech → display)
+let currentDiagramText = ''; // text output stream (contains [WB_DIAGRAM] tokens)
 let conversationHistory = JSON.parse(localStorage.getItem('auraVoiceHistory') || '[]');
 let retryCount = 0;
 const MAX_RETRIES = 2;
@@ -1936,6 +1943,26 @@ whiteboardClose.addEventListener('click', () => {
     boardPinBtn.querySelector('i').className = 'fa-regular fa-thumbtack';
 });
 
+// Board toggle button in HUD — lets student manually open/close the board
+boardToggleBtn.addEventListener('click', () => {
+    if (whiteboardOverlay.classList.contains('visible')) {
+        whiteboardOverlay.classList.remove('visible');
+        boardPinned = false;
+        boardPinBtn.classList.remove('active');
+        boardPinBtn.querySelector('i').className = 'fa-regular fa-thumbtack';
+    } else {
+        // Show board; if empty, show a placeholder so student knows it exists
+        if (!whiteboardContent.innerHTML.trim()) {
+            whiteboardContent.innerHTML =
+                '<div style="text-align:center;padding:28px 0;color:rgba(180,200,255,0.35)">' +
+                '<i class="fa-solid fa-chalkboard" style="font-size:30px;margin-bottom:12px;display:block;opacity:0.35"></i>' +
+                '<div style="font-size:13px;line-height:1.6">Ask Aura to explain something with a<br>diagram, flowchart, or mind map.</div>' +
+                '</div>';
+        }
+        whiteboardOverlay.classList.add('visible');
+    }
+});
+
 // Simple sentiment estimation from text
 function estimateSentiment(text) {
     if (!text) return 0;
@@ -2225,18 +2252,18 @@ function handleRealtimeMessage(msg) {
             break;
 
         case 'response.audio_transcript.delta':
+            // Spoken words only — no diagram tokens here
             if (!isPlayingAudio) { updateState('SPEAKING'); isPlayingAudio = true; }
             currentAuraText += (msg.delta || '');
             updateLiveAuraText(currentAuraText);
-            // Render diagram as soon as the full [WB_DIAGRAM]...[/WB_DIAGRAM] token arrives
-            checkAndRenderDiagram(currentAuraText);
             break;
 
-        // Text-only response deltas (for text input when no audio)
+        // Text output stream — carries [WB_DIAGRAM] tokens (silent, not spoken)
         case 'response.text.delta':
             if (!isPlayingAudio) { updateState('SPEAKING'); isPlayingAudio = true; }
-            currentAuraText += (msg.delta || '');
-            updateLiveAuraText(currentAuraText);
+            currentDiagramText += (msg.delta || '');
+            // Check for a complete diagram block as it streams in
+            checkAndRenderDiagram(currentDiagramText);
             break;
 
         // Audio playback is handled natively by WebRTC — no manual decoding needed
@@ -2250,6 +2277,9 @@ function handleRealtimeMessage(msg) {
             // ── Power Word Tracking ─────────────────────────────────
             _logVoicePowerWords(currentAuraText);
 
+            // Final diagram check — catch any complete block in the last text delta
+            checkAndRenderDiagram(currentDiagramText);
+
             // Auto-hide board after 10s unless student pinned it
             if (!boardPinned && whiteboardOverlay.classList.contains('visible')) {
                 setTimeout(() => {
@@ -2259,6 +2289,7 @@ function handleRealtimeMessage(msg) {
             _lastRenderedDiagramKey = null;
 
             currentAuraText = '';
+            currentDiagramText = '';
             isPlayingAudio = false;
             if (isConnected) updateState('READY');
             break;
