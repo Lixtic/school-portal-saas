@@ -2223,6 +2223,36 @@ def ai_tutor_chat(request):
                 # Process Gamification (XP Awards)
                 _process_xp_awards(student, full_assistant_message)
 
+                # ── Always update study streak (even when no XP was awarded) ────
+                try:
+                    from .gamification_models import StudentXP as _SXP
+                    _xp_s, _ = _SXP.objects.get_or_create(student=student)
+                    _prev_streak = _xp_s.current_streak
+                    _prev_date = _xp_s.last_activity_date
+                    _xp_s.update_streak()
+                    # Streak-break notification — fires once when student returns after gap
+                    if _prev_date and _prev_streak > 1:
+                        from django.utils import timezone as _tz
+                        _gap = (_tz.now().date() - _prev_date).days
+                        if _gap > 1:
+                            try:
+                                from announcements.models import Notification as _Notif
+                                already = _Notif.objects.filter(
+                                    recipient=student.user,
+                                    message__startswith='🔥 Welcome back!',
+                                    created_at__date=_tz.now().date(),
+                                ).exists()
+                                if not already:
+                                    _Notif.objects.create(
+                                        recipient=student.user,
+                                        message=f'🔥 Welcome back! Your {_prev_streak}-day streak was broken. Start a new one today!',
+                                        alert_type='general',
+                                    )
+                            except Exception:
+                                pass
+                except Exception as _se:
+                    logger.warning('streak update failed: %s', _se)
+
                 # ── Shared State Manager: persist LESSON_STATE token ──────────
                 _ls = re.search(r'\[LESSON_STATE:\s*([\w_]+)\]', full_assistant_message, re.I)
                 if _ls:
@@ -2812,3 +2842,110 @@ def help_chat_api(request):
         "I'm not sure about that specific question. Try checking the relevant section in the "
         "navigation menu, or ask your school administrator for assistance."
     )})
+
+
+@login_required
+def assign_practice_as_homework(request, practice_set_id):
+    """
+    Convert an AI-generated PracticeQuestionSet into a Homework record.
+    POST body: { "due_date": "YYYY-MM-DD" }   (optional — defaults to 7 days from now)
+    Returns: { "ok": true, "homework_id": <id>, "title": "..." }
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST only'}, status=405)
+
+    try:
+        student, _subjects, error_message = _get_student_tutor_context(
+            request.user, getattr(request, 'tenant', None)
+        )
+        if error_message:
+            return JsonResponse({'error': error_message}, status=403)
+
+        from .tutor_models import PracticeQuestionSet
+        practice_set = get_object_or_404(PracticeQuestionSet, id=practice_set_id, student=student)
+
+        # Resolve the subject teacher for this student's class
+        from .models import ClassSubject
+        class_subject = ClassSubject.objects.filter(
+            class_name=student.current_class,
+            subject=practice_set.subject,
+        ).select_related('teacher').first()
+
+        teacher = class_subject.teacher if class_subject else None
+        if not teacher:
+            return JsonResponse({
+                'error': f'No teacher found for {practice_set.subject.name} in your class. Ask your teacher to assign homework directly.'
+            }, status=400)
+
+        # Parse due_date from request
+        import datetime
+        try:
+            body = json.loads(request.body.decode('utf-8') or '{}')
+            due_date_str = body.get('due_date', '')
+            due_date = datetime.date.fromisoformat(due_date_str) if due_date_str else None
+        except Exception:
+            due_date = None
+        if not due_date:
+            due_date = timezone.now().date() + datetime.timedelta(days=7)
+
+        # Build homework title
+        title = f"AI Practice: {practice_set.topic or practice_set.subject.name}"
+        if practice_set.difficulty:
+            title += f" ({practice_set.difficulty.title()})"
+
+        from homework.models import Homework, Question, Choice
+        homework = Homework.objects.create(
+            title=title[:200],
+            description=(
+                f"AI-generated practice set from Aura Tutor.\n"
+                f"Subject: {practice_set.subject.name}\n"
+                f"Topic: {practice_set.topic}\n"
+                f"Difficulty: {practice_set.get_difficulty_display() if hasattr(practice_set, 'get_difficulty_display') else practice_set.difficulty.title()}"
+            ),
+            teacher=teacher,
+            subject=practice_set.subject,
+            target_class=student.current_class,
+            due_date=due_date,
+        )
+
+        # Create Question + Choice rows from the JSONField
+        questions_data = practice_set.questions
+        if isinstance(questions_data, dict):
+            questions_data = questions_data.get('questions', [])
+
+        for q_data in (questions_data or []):
+            if not isinstance(q_data, dict):
+                continue
+            q_type_raw = str(q_data.get('type', 'mcq')).lower()
+            q_type = 'mcq' if 'choice' in q_type_raw or 'mcq' in q_type_raw else (
+                'essay' if 'essay' in q_type_raw else 'short'
+            )
+            question = Question.objects.create(
+                homework=homework,
+                text=str(q_data.get('question', ''))[:2000],
+                question_type=q_type,
+                correct_answer=str(q_data.get('correct_answer', '') or q_data.get('answer', ''))[:500],
+                points=1,
+                dok_level=2,
+            )
+            # For MCQ, create choices
+            options = q_data.get('options') or []
+            correct_raw = str(q_data.get('correct_answer', '')).strip().upper()
+            for idx, opt in enumerate(options):
+                label = chr(65 + idx)  # A, B, C, D …
+                Choice.objects.create(
+                    question=question,
+                    text=str(opt)[:200],
+                    is_correct=(label == correct_raw or str(opt).strip() == correct_raw),
+                )
+
+        return JsonResponse({
+            'ok': True,
+            'homework_id': homework.id,
+            'title': homework.title,
+            'due_date': due_date.isoformat(),
+        })
+
+    except Exception as e:
+        logger.error('assign_practice_as_homework error: %s', e, exc_info=True)
+        return JsonResponse({'error': str(e)}, status=500)

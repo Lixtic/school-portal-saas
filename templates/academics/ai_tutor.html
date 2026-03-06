@@ -1405,6 +1405,42 @@
                     <button class="action-btn" onclick="quickActionTrigger('Give me a hint')">
                         <i class="bi bi-magic"></i> Hint
                     </button>
+                    <button class="action-btn" id="practiceToggleBtn" onclick="togglePracticePanel()">
+                        <i class="bi bi-lightning-charge-fill text-warning"></i> Practice Quiz
+                    </button>
+                </div>
+
+                <!-- Practice Quiz Panel -->
+                <div id="practicePanel" style="display:none;border:1px solid rgba(99,102,241,0.25);border-radius:12px;padding:14px 16px;margin-bottom:8px;background:rgba(99,102,241,0.04);">
+                    <div style="font-weight:700;font-size:13px;margin-bottom:10px;"><i class="bi bi-lightning-charge-fill text-warning me-1"></i>Generate Practice Quiz</div>
+                    <div id="practiceSetup">
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+                            <div style="flex:2;min-width:120px;">
+                                <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:3px;">Topic</label>
+                                <input id="practiceTopicInput" type="text" class="form-control form-control-sm" placeholder="e.g. Photosynthesis">
+                            </div>
+                            <div style="min-width:110px;">
+                                <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:3px;">Difficulty</label>
+                                <select id="practiceDifficulty" class="form-select form-select-sm">
+                                    <option value="easy">Easy</option>
+                                    <option value="medium" selected>Medium</option>
+                                    <option value="hard">Hard</option>
+                                </select>
+                            </div>
+                            <div style="min-width:70px;">
+                                <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:3px;">Questions</label>
+                                <select id="practiceCount" class="form-select form-select-sm">
+                                    <option value="3">3</option>
+                                    <option value="5" selected>5</option>
+                                    <option value="8">8</option>
+                                </select>
+                            </div>
+                            <button onclick="startPracticeQuiz()" id="generatePracticeBtn" class="btn btn-sm" style="background:#6366f1;color:#fff;border:none;height:31px;white-space:nowrap;">
+                                <i class="bi bi-play-fill"></i> Generate
+                            </button>
+                        </div>
+                    </div>
+                    <div id="practiceQuizArea" style="display:none;margin-top:10px;"></div>
                 </div>
                 
                 <!-- Math Keyboard -->
@@ -2985,5 +3021,162 @@
             }
         }
     }
+
+    // ── Practice Quiz Panel ─────────────────────────────────────────────
+    let _currentPracticeSetId = null;
+    let _practiceQuestions     = [];
+    let _practiceUserAnswers   = {};
+
+    function togglePracticePanel() {
+        const panel = document.getElementById('practicePanel');
+        const btn   = document.getElementById('practiceToggleBtn');
+        if (panel.style.display === 'none') {
+            panel.style.display = 'block';
+            btn.classList.add('active');
+        } else {
+            panel.style.display = 'none';
+            btn.classList.remove('active');
+        }
+    }
+
+    async function startPracticeQuiz() {
+        const topic      = document.getElementById('practiceTopicInput').value.trim();
+        const difficulty = document.getElementById('practiceDifficulty').value;
+        const count      = parseInt(document.getElementById('practiceCount').value, 10);
+        const genBtn     = document.getElementById('generatePracticeBtn');
+        const quizArea   = document.getElementById('practiceQuizArea');
+        const subjectEl  = document.getElementById('subjectSelect');
+        const subjectId  = subjectEl ? parseInt(subjectEl.value || '0', 10) : 0;
+
+        if (!subjectId) {
+            alert('Please select a subject first.');
+            return;
+        }
+
+        genBtn.disabled = true;
+        genBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Generating…';
+        quizArea.style.display = 'none';
+        quizArea.innerHTML = '';
+
+        try {
+            const resp = await fetch("{% url 'academics:generate_practice' %}", {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+                body: JSON.stringify({ subject_id: subjectId, topic, difficulty, count }),
+            });
+            const data = await resp.json();
+
+            if (data.error) {
+                quizArea.innerHTML = `<div class="text-danger small">${data.error}</div>`;
+                quizArea.style.display = 'block';
+                return;
+            }
+
+            _currentPracticeSetId = data.practice_set_id || null;
+            _practiceQuestions    = (data.questions || []);
+            _practiceUserAnswers  = {};
+            renderPracticeQuestions(quizArea);
+        } catch (e) {
+            quizArea.innerHTML = `<div class="text-danger small">Error: ${e.message}</div>`;
+            quizArea.style.display = 'block';
+        } finally {
+            genBtn.disabled = false;
+            genBtn.innerHTML = '<i class="bi bi-play-fill"></i> Generate';
+        }
+    }
+
+    function renderPracticeQuestions(container) {
+        if (!_practiceQuestions.length) {
+            container.innerHTML = '<div class="text-muted small">No questions returned.</div>';
+            container.style.display = 'block';
+            return;
+        }
+
+        let html = '';
+        _practiceQuestions.forEach((q, idx) => {
+            const opts = q.options || [];
+            const qType = (q.type || 'short').toLowerCase();
+            html += `<div class="mb-3 p-3 rounded" style="background:rgba(255,255,255,0.04);border:1px solid rgba(99,102,241,0.15);">
+                <div style="font-size:12px;font-weight:700;color:#6366f1;margin-bottom:4px;">Q${idx+1}</div>
+                <div style="font-size:13px;margin-bottom:8px;">${q.question || ''}</div>`;
+            if (opts.length > 0) {
+                opts.forEach((opt, oi) => {
+                    const label = String.fromCharCode(65 + oi);
+                    html += `<label style="display:flex;gap:6px;align-items:flex-start;cursor:pointer;font-size:12px;margin-bottom:3px;">
+                        <input type="radio" name="pq_${idx}" value="${label}" onchange="_practiceUserAnswers[${idx}]='${label}'" style="margin-top:2px;flex-shrink:0;">
+                        <span><strong>${label}.</strong> ${opt}</span>
+                    </label>`;
+                });
+            } else {
+                html += `<textarea class="form-control form-control-sm" rows="2" placeholder="Your answer…"
+                    oninput="_practiceUserAnswers[${idx}]=this.value" style="font-size:12px;"></textarea>`;
+            }
+            html += `</div>`;
+        });
+
+        html += `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+            <button onclick="scorePracticeQuiz()" class="btn btn-sm" style="background:#10b981;color:#fff;border:none;">
+                <i class="bi bi-check2-circle me-1"></i>Score &amp; see answers
+            </button>`;
+        if (_currentPracticeSetId) {
+            html += `<button onclick="showAssignHWDialog()" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-journal-plus me-1"></i>Assign as Homework
+            </button>`;
+        }
+        html += `</div>
+        <div id="practiceResults" style="margin-top:10px;display:none;"></div>`;
+
+        container.innerHTML = html;
+        container.style.display = 'block';
+    }
+
+    function scorePracticeQuiz() {
+        let correct = 0;
+        const resultLines = _practiceQuestions.map((q, idx) => {
+            const userAns = (_practiceUserAnswers[idx] || '').trim().toUpperCase();
+            const correctAns = (q.correct_answer || '').trim().toUpperCase();
+            const isRight = userAns && userAns === correctAns;
+            if (isRight) correct++;
+            const line = isRight
+                ? `<div class="text-success small mb-1">✅ Q${idx+1}: Correct! ${q.explanation ? `<em>${q.explanation}</em>` : ''}</div>`
+                : `<div class="text-danger small mb-1">❌ Q${idx+1}: Correct answer: <strong>${correctAns}</strong>${q.explanation ? ` — ${q.explanation}` : ''}</div>`;
+            return line;
+        });
+        const pct = Math.round((correct / _practiceQuestions.length) * 100);
+        const scoreColor = pct >= 80 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444';
+        const resultsEl = document.getElementById('practiceResults');
+        resultsEl.innerHTML = `<div style="padding:10px;border-radius:8px;background:rgba(0,0,0,0.05);border:1px solid rgba(0,0,0,0.1);">
+            <div style="font-size:16px;font-weight:700;color:${scoreColor};margin-bottom:6px;">Score: ${correct}/${_practiceQuestions.length} (${pct}%)</div>
+            ${resultLines.join('')}
+        </div>`;
+        resultsEl.style.display = 'block';
+    }
+
+    function showAssignHWDialog() {
+        const due = prompt('Assign as homework — enter due date (YYYY-MM-DD):',
+            new Date(Date.now() + 7*24*60*60*1000).toISOString().slice(0,10));
+        if (!due) return;
+        assignPracticeAsHW(_currentPracticeSetId, due);
+    }
+
+    async function assignPracticeAsHW(practiceSetId, dueDate) {
+        const url = `{% url 'academics:assign_practice_as_homework' 9999 %}`.replace('9999', practiceSetId);
+        try {
+            const resp = await fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+                body: JSON.stringify({ due_date: dueDate }),
+            });
+            const data = await resp.json();
+            if (data.ok) {
+                alert(`✅ Homework assigned: "${data.title}"\nDue: ${data.due_date}`);
+            } else {
+                alert(`Error: ${data.error || 'Unknown error'}`);
+            }
+        } catch (e) {
+            alert(`Error: ${e.message}`);
+        }
+    }
+    // ────────────────────────────────────────────────────────────────────
 </script>
 {% endblock %}

@@ -396,6 +396,28 @@ body { background: var(--arena-bg); }
             </a>
         </div>
 
+        {% if top_students %}
+        <div class="sidebar-section">
+            <div class="tips-title">Class Leaderboard 🏆</div>
+            {% for entry in top_students %}
+            <div class="tip-row" style="align-items:center; gap:8px; padding:4px 0;">
+                <span style="font-size:11px; font-weight:700; width:16px; text-align:right; color:
+                    {% if forloop.counter == 1 %}#f59e0b{% elif forloop.counter == 2 %}#94a3b8{% elif forloop.counter == 3 %}#cd7f32{% else %}var(--arena-muted){% endif %};">
+                    {{ forloop.counter }}
+                </span>
+                <div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#3878ff);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0;">
+                    {{ entry.student.user.first_name|first|upper }}{{ entry.student.user.last_name|first|upper }}
+                </div>
+                <span class="tip-desc" style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+                    {% if entry.student == student %}color:#a78bfa;font-weight:600;{% endif %}">
+                    {{ entry.student.user.get_full_name }}{% if entry.student == student %} (you){% endif %}
+                </span>
+                <span style="font-size:10px; color:var(--arena-gold); font-weight:700; flex-shrink:0;">{{ entry.total_xp }} XP</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
     </aside>
 
     <!-- Main pane -->

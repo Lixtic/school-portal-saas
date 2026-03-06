@@ -120,7 +120,18 @@ def child_details(request, student_id):
         target_class=student.current_class
     ).order_by('-created_at')[:10]
 
-    
+    # Aura AI Learning Profile
+    try:
+        from academics.gamification_models import StudentXP, AuraSessionState
+        from academics.tutor_models import LearnerMemory
+        xp = StudentXP.objects.filter(student=student).first()
+        learner_memory = LearnerMemory.objects.filter(student=student).first()
+        aura_state = AuraSessionState.objects.filter(student=student).first()
+    except Exception:
+        xp = None
+        learner_memory = None
+        aura_state = None
+
     context = {
         'student': student,
         'attendances': attendances,
@@ -129,6 +140,9 @@ def child_details(request, student_id):
         'average_percentage': average_percentage,
         'overall_grade': overall_grade,
         'homework': homework,
+        'xp': xp,
+        'learner_memory': learner_memory,
+        'aura_state': aura_state,
     }
     
     return render(request, 'parents/child_details.html', context)

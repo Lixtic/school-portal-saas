@@ -578,11 +578,23 @@ def aura_arena_view(request):
         xp_profile, _ = StudentXP.objects.get_or_create(student=student)
     except Exception:
         xp_profile = None
-    
+
+    # Class leaderboard — top 10 students in same class by total XP
+    try:
+        top_students = (
+            StudentXP.objects
+            .filter(student__current_class=student.current_class)
+            .select_related('student__user')
+            .order_by('-total_xp')[:10]
+        )
+    except Exception:
+        top_students = []
+
     context = {
         'room': room,
         'student': student,
-        'xp': xp_profile
+        'xp': xp_profile,
+        'top_students': top_students,
     }
     return render(request, 'students/aura_arena.html', context)
 

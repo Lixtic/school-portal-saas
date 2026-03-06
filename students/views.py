@@ -619,9 +619,27 @@ def student_dashboard_view(request):
     except Exception:
         student_xp = None
 
+    # Aura Resume card data
+    try:
+        from academics.gamification_models import AuraSessionState
+        from academics.tutor_models import TutorSession
+        aura_state = AuraSessionState.objects.filter(student=student).first()
+        last_session = (
+            TutorSession.objects
+            .filter(student=student)
+            .select_related('subject')
+            .order_by('-started_at')
+            .first()
+        )
+    except Exception:
+        aura_state = None
+        last_session = None
+
     context = {
         'student': student,
         'gamification': student_xp,
+        'aura_state': aura_state,
+        'last_session': last_session,
         'recent_attendance': recent_attendance,
         'attendance_stats': attendance_stats,
         'grades': grades,

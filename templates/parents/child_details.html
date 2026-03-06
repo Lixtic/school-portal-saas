@@ -171,6 +171,12 @@
                 <i class="bi bi-journal-text"></i> Homework
             </button>
         </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="aura-tab" data-bs-toggle="tab" 
+                    data-bs-target="#aura" type="button">
+                <i class="bi bi-stars"></i> Aura AI
+            </button>
+        </li>
     </ul>
 
     <div class="tab-content" id="childTabsContent">
@@ -354,6 +360,114 @@
                     {% endif %}
                 </div>
             </div>
+        </div>
+        <!-- Aura AI Tab -->
+        <div class="tab-pane fade" id="aura" role="tabpanel">
+            {% if xp or learner_memory or aura_state %}
+            <div class="row g-3">
+                <!-- XP & Streak card -->
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header" style="background:linear-gradient(135deg,#7c3aed,#3878ff);color:#fff;border-radius:8px 8px 0 0;">
+                            <h6 class="mb-0"><i class="bi bi-trophy-fill me-1"></i> Aura Learning Stats</h6>
+                        </div>
+                        <div class="card-body">
+                            {% if xp %}
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted small">Level</span>
+                                <strong>{{ xp.level }}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted small">Total XP</span>
+                                <strong class="text-purple">{{ xp.total_xp|default:0 }}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted small">Study Streak</span>
+                                <strong><i class="bi bi-fire text-danger"></i> {{ xp.current_streak }} day{{ xp.current_streak|pluralize }}</strong>
+                            </div>
+                            <div class="progress mt-2 mb-1" style="height:6px;">
+                                <div class="progress-bar" style="width:{{ xp.level_progress }}%;background:linear-gradient(135deg,#7c3aed,#3878ff);"></div>
+                            </div>
+                            <div class="text-muted" style="font-size:10px;">{{ xp.xp_to_next_level }} XP to Level {{ xp.level|add:1 }}</div>
+                            {% else %}
+                            <p class="text-muted small mb-0">No AI tutor activity recorded yet.</p>
+                            {% endif %}
+                            {% if aura_state %}
+                            <hr class="my-2">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted small">Vocab Level</span>
+                                <span class="badge bg-primary bg-opacity-10 text-primary">L{{ aura_state.vocab_level }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted small">Mood</span>
+                                <span class="badge bg-light text-secondary border">{{ aura_state.mood|title|default:"—" }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mastered topics & misconceptions -->
+                <div class="col-md-8">
+                    {% if learner_memory %}
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-body">
+                            <h6 class="fw-bold mb-2"><i class="bi bi-check-circle-fill text-success me-1"></i>Mastered Topics</h6>
+                            {% if learner_memory.mastered_topics %}
+                            <div class="d-flex flex-wrap gap-2">
+                                {% for topic in learner_memory.mastered_topics %}
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success" style="font-size:12px;">{{ topic }}</span>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <p class="text-muted small mb-0">No mastered topics yet.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if learner_memory.active_misconceptions %}
+                    <div class="card border-0 shadow-sm mb-3" style="border-left:3px solid #ef4444!important;">
+                        <div class="card-body">
+                            <h6 class="fw-bold mb-2"><i class="bi bi-exclamation-triangle-fill text-danger me-1"></i>Active Misconceptions</h6>
+                            <ul class="list-unstyled mb-0">
+                                {% for item in learner_memory.active_misconceptions %}
+                                <li class="text-muted small mb-1"><i class="bi bi-dot"></i>{{ item }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if learner_memory.review_queue %}
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <h6 class="fw-bold mb-2"><i class="bi bi-calendar-event text-warning me-1"></i>Spaced Repetition Queue</h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% for item in learner_memory.review_queue|slice:":6" %}
+                                <span class="badge bg-warning bg-opacity-10 text-warning border" style="font-size:11px;">
+                                    {{ item.topic }} <span class="text-muted fw-normal">· {{ item.due_date }}</span>
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center py-4">
+                            <i class="bi bi-robots fs-1 opacity-25 d-block mb-2"></i>
+                            <p class="text-muted mb-0">Aura hasn't analysed enough sessions yet.</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-stars fs-1 opacity-25 d-block mb-3"></i>
+                    <p class="text-muted mb-0">{{ student.user.first_name }} hasn't used Aura AI Tutor yet.</p>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
