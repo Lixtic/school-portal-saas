@@ -120,15 +120,38 @@ class TenantsConfig(AppConfig):
                     to_create, ignore_conflicts=True
                 )
 
-        # Replace create_contenttypes (connected without dispatch_uid)
-        post_migrate.disconnect(create_contenttypes)
-        post_migrate.connect(_safe_create_contenttypes)
+        def _patch_signal_handlers():
+            """Disconnect Django's built-in handlers and swap in safe wrappers.
 
-        # Replace create_permissions (connected with dispatch_uid)
-        post_migrate.disconnect(
-            dispatch_uid='django.contrib.auth.management.create_permissions'
-        )
-        post_migrate.connect(
-            _safe_create_permissions,
-            dispatch_uid='django.contrib.auth.management.create_permissions',
-        )
+            Called once immediately (in case 'tenants' comes after auth in
+            INSTALLED_APPS) AND deferred via the first post_migrate so that
+            if auth.ready() connects create_permissions AFTER us, we catch it
+            before any migrations fire.
+            """
+            # Replace create_contenttypes (connected without dispatch_uid)
+            post_migrate.disconnect(create_contenttypes)
+            post_migrate.connect(_safe_create_contenttypes)
+
+            # Replace create_permissions (connected with dispatch_uid)
+            post_migrate.disconnect(
+                dispatch_uid='django.contrib.auth.management.create_permissions'
+            )
+            post_migrate.connect(
+                _safe_create_permissions,
+                dispatch_uid='django.contrib.auth.management.create_permissions',
+            )
+
+        # Apply immediately — works when 'tenants' is after auth in INSTALLED_APPS.
+        _patch_signal_handlers()
+
+        # Belt-and-suspenders: re-apply on the very first post_migrate signal
+        # so that even if auth connects create_permissions after us (e.g. due to
+        # app ordering changes), we overwrite it before the second schema runs.
+        _patch_applied = [False]
+
+        def _ensure_patch(sender, **kwargs):
+            if not _patch_applied[0]:
+                _patch_applied[0] = True
+                _patch_signal_handlers()
+
+        post_migrate.connect(_ensure_patch)

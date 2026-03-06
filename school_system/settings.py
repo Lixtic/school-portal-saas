@@ -84,8 +84,7 @@ SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000').rstrip('/')
 
 SHARED_APPS = [
     'django_tenants',
-    'tenants',
-    
+
     # Shared administrative + auth apps (Needed for Public Schema Admin)
     'django.contrib.admin',
     'django.contrib.auth',
@@ -94,6 +93,11 @@ SHARED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
+
+    # 'tenants' MUST come after django.contrib.auth so TenantsConfig.ready()
+    # runs after AuthConfig.ready() and can successfully disconnect/replace
+    # the create_permissions post_migrate handler with the ignore_conflicts version.
+    'tenants',
     
     # Third party shared
     'cloudinary_storage',
