@@ -1,0 +1,461 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Aura Portfolio – {{ portfolio_student.user.get_full_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Layout ── */
+.ap-wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 3rem;
+}
+
+/* ── Hero banner ── */
+.ap-hero {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%);
+    border-radius: 20px;
+    padding: 2rem 1.75rem;
+    color: #fff;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+.ap-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 80% 20%, rgba(139,92,246,.4) 0%, transparent 60%);
+    pointer-events: none;
+}
+.ap-hero-top {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    position: relative;
+    z-index: 1;
+}
+.ap-avatar {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.15);
+    border: 3px solid rgba(255,255,255,.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.9rem; font-weight: 700; color: #fff;
+    overflow: hidden; flex-shrink: 0;
+}
+.ap-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.ap-name { font-size: 1.3rem; font-weight: 800; margin: 0; }
+.ap-meta { font-size: .8rem; opacity: .75; margin: .2rem 0 0; }
+
+.ap-stats-row {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.25rem;
+    flex-wrap: wrap;
+    position: relative;
+    z-index: 1;
+}
+.ap-stat-chip {
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 12px;
+    padding: .55rem .9rem;
+    display: flex; align-items: center; gap: .5rem;
+    font-size: .8rem;
+    backdrop-filter: blur(4px);
+}
+.ap-stat-chip .label { opacity: .7; }
+.ap-stat-chip .val { font-weight: 700; font-size: .9rem; }
+
+/* XP progress bar */
+.ap-xp-bar-wrap {
+    margin-top: 1rem;
+    position: relative;
+    z-index: 1;
+}
+.ap-xp-bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: .72rem;
+    margin-bottom: .3rem;
+    opacity: .8;
+}
+.ap-xp-bar {
+    height: 8px;
+    background: rgba(255,255,255,.15);
+    border-radius: 99px;
+    overflow: hidden;
+}
+.ap-xp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #a78bfa, #818cf8);
+    border-radius: 99px;
+    transition: width .6s cubic-bezier(.4,0,.2,1);
+}
+
+/* ── Section cards ── */
+.ap-card {
+    background: var(--bs-white, #fff);
+    border: 1px solid var(--bs-border-color, #e5e7eb);
+    border-radius: 16px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+[data-bs-theme="dark"] .ap-card {
+    background: #1e293b;
+    border-color: #334155;
+}
+.ap-card-title {
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--bs-secondary-color, #6b7280);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+}
+
+/* ── Power words cloud ── */
+.ap-words-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+.ap-word-chip {
+    padding: .3rem .75rem;
+    border-radius: 99px;
+    font-size: .78rem;
+    font-weight: 600;
+    border: 1.5px solid;
+}
+
+/* ── Topics list ── */
+.ap-topic-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .25rem .65rem;
+    border-radius: 20px;
+    font-size: .75rem;
+    font-weight: 600;
+    margin: .2rem .15rem;
+}
+
+/* ── Homework table ── */
+.ap-hw-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.ap-hw-table th {
+    font-size: .67rem; text-transform: uppercase;
+    letter-spacing: .04em; color: var(--bs-secondary-color, #6b7280);
+    padding: .4rem .6rem; border-bottom: 2px solid var(--bs-border-color, #e5e7eb);
+}
+.ap-hw-table td {
+    padding: .5rem .6rem;
+    border-bottom: 1px solid var(--bs-border-color, #f3f4f6);
+}
+.ap-hw-table tr:last-child td { border-bottom: none; }
+[data-bs-theme="dark"] .ap-hw-table th,
+[data-bs-theme="dark"] .ap-hw-table td { border-color: #334155; }
+
+/* ── Sessions list ── */
+.ap-session-item {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .65rem 0;
+    border-bottom: 1px solid var(--bs-border-color, #f3f4f6);
+}
+.ap-session-item:last-child { border-bottom: none; }
+.ap-session-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: #ede9fe; color: #7c3aed;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: .9rem;
+}
+[data-bs-theme="dark"] .ap-session-icon { background: #312e81; color: #a78bfa; }
+
+/* ── Score gauge pill ── */
+.score-good  { background: #d1fae5; color: #065f46; }
+.score-ok    { background: #fef3c7; color: #92400e; }
+.score-low   { background: #fee2e2; color: #991b1b; }
+[data-bs-theme="dark"] .score-good  { background: #064e3b; color: #6ee7b7; }
+[data-bs-theme="dark"] .score-ok    { background: #78350f; color: #fde68a; }
+[data-bs-theme="dark"] .score-low   { background: #7f1d1d; color: #fca5a5; }
+
+/* ── Level badge ── */
+.ap-level-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #fff;
+    border-radius: 99px;
+    padding: .3rem .85rem;
+    font-size: .78rem;
+    font-weight: 700;
+    margin-top: .6rem;
+}
+
+/* ── Empty state ── */
+.ap-empty {
+    text-align: center;
+    padding: 1.5rem;
+    color: var(--bs-secondary-color, #9ca3af);
+    font-size: .82rem;
+}
+.ap-empty i { font-size: 1.5rem; opacity: .4; display: block; margin-bottom: .4rem; }
+
+@media (max-width: 600px) {
+    .ap-hero { padding: 1.5rem 1.25rem; }
+    .ap-name { font-size: 1.1rem; }
+    .ap-stats-row { gap: .6rem; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ap-wrap">
+
+    <!-- Back nav -->
+    <div class="mb-3">
+        {% if is_own %}
+        <a href="{% url 'students:student_dashboard' %}" class="text-decoration-none text-muted" style="font-size:.82rem;">
+            <i class="bi bi-arrow-left me-1"></i>Dashboard
+        </a>
+        {% else %}
+        <a href="{% url 'students:student_list' %}" class="text-decoration-none text-muted" style="font-size:.82rem;">
+            <i class="bi bi-arrow-left me-1"></i>Students
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- ── Hero ── -->
+    <div class="ap-hero">
+        <div class="ap-hero-top">
+            <div class="ap-avatar">
+                {% if portfolio_student.user.profile_picture %}
+                    <img src="{{ portfolio_student.user.profile_picture.url }}" alt="avatar">
+                {% else %}
+                    {{ portfolio_student.user.first_name|slice:":1"|upper }}{{ portfolio_student.user.last_name|slice:":1"|upper }}
+                {% endif %}
+            </div>
+            <div>
+                <p class="ap-name">{{ portfolio_student.user.get_full_name }}</p>
+                <p class="ap-meta">
+                    {% if portfolio_student.current_class %}{{ portfolio_student.current_class.name }}{% endif %}
+                    {% if portfolio_student.admission_number %} · {{ portfolio_student.admission_number }}{% endif %}
+                </p>
+                {% if xp %}
+                <span class="ap-level-badge"><i class="fa-solid fa-star"></i> Level {{ xp.level }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="ap-stats-row">
+            <div class="ap-stat-chip">
+                <i class="fa-solid fa-bolt" style="color:#fbbf24;"></i>
+                <span class="label">Total XP</span>
+                <span class="val">{{ xp.total_xp|default:"0" }}</span>
+            </div>
+            <div class="ap-stat-chip">
+                <i class="fa-solid fa-fire" style="color:#fb923c;"></i>
+                <span class="label">Streak</span>
+                <span class="val">{{ xp.current_streak|default:"0" }} day{{ xp.current_streak|default:"0"|pluralize }}</span>
+            </div>
+            <div class="ap-stat-chip">
+                <i class="fa-solid fa-comments" style="color:#a78bfa;"></i>
+                <span class="label">Sessions</span>
+                <span class="val">{{ total_sessions }}</span>
+            </div>
+            {% if aura_state %}
+            <div class="ap-stat-chip">
+                <i class="fa-solid fa-book-open" style="color:#34d399;"></i>
+                <span class="label">Vocab Level</span>
+                <span class="val">{{ aura_state.vocab_level }}/6</span>
+            </div>
+            {% endif %}
+            {% if avg_hw_score %}
+            <div class="ap-stat-chip">
+                <i class="fa-solid fa-graduation-cap" style="color:#60a5fa;"></i>
+                <span class="label">Avg HW Score</span>
+                <span class="val">{{ avg_hw_score }}%</span>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if xp %}
+        <div class="ap-xp-bar-wrap">
+            <div class="ap-xp-bar-label">
+                <span>Level {{ xp.level }} — {{ xp.level_progress }} XP</span>
+                <span>{{ xp.xp_to_next_level }} XP to Level {{ xp.level|add:"1" }}</span>
+            </div>
+            <div class="ap-xp-bar">
+                <div class="ap-xp-fill" style="width:{{ xp.level_progress }}%"></div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- ── 2-col grid ── -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-bottom:1.25rem;">
+
+        <!-- Mastered Topics -->
+        <div class="ap-card">
+            <div class="ap-card-title"><i class="bi bi-check-circle-fill text-success"></i> Mastered Topics</div>
+            {% if memory and memory.mastered_topics %}
+                <div>
+                    {% for topic in memory.mastered_topics %}
+                    <span class="ap-topic-pill" style="background:#d1fae5; color:#065f46;">
+                        <i class="bi bi-check2"></i> {{ topic }}
+                    </span>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="ap-empty"><i class="bi bi-journal"></i>No topics mastered yet — keep going!</div>
+            {% endif %}
+        </div>
+
+        <!-- Strengths -->
+        <div class="ap-card">
+            <div class="ap-card-title"><i class="bi bi-lightning-fill text-warning"></i> Strengths</div>
+            {% if memory and memory.strengths %}
+                <div>
+                    {% for s in memory.strengths %}
+                    <span class="ap-topic-pill" style="background:#fef3c7; color:#92400e;">
+                        <i class="bi bi-award"></i> {{ s }}
+                    </span>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="ap-empty"><i class="bi bi-stars"></i>Strengths will appear as Aura gets to know you.</div>
+            {% endif %}
+        </div>
+
+    </div>
+
+    <!-- ── Power Words cloud ── -->
+    <div class="ap-card">
+        <div class="ap-card-title"><i class="fa-solid fa-wand-magic-sparkles" style="color:#8b5cf6;"></i> Power Vocabulary ({{ power_words|length }} words)</div>
+        {% if power_words %}
+        <div class="ap-words-cloud">
+            {% for pw in power_words %}
+            {% with freq=pw.used_count %}
+            {% if freq >= 5 %}
+                <span class="ap-word-chip" style="background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; font-size:1rem;">{{ pw.word }}</span>
+            {% elif freq >= 3 %}
+                <span class="ap-word-chip" style="background:#f5f3ff; color:#6d28d9; border-color:#ddd6fe; font-size:.9rem;">{{ pw.word }}</span>
+            {% else %}
+                <span class="ap-word-chip" style="background:#f9fafb; color:#4b5563; border-color:#e5e7eb; font-size:.78rem;">{{ pw.word }}</span>
+            {% endif %}
+            {% endwith %}
+            {% endfor %}
+        </div>
+        <p class="text-muted mt-2 mb-0" style="font-size:.7rem;">Word size reflects frequency of use. Larger = used more often.</p>
+        {% else %}
+        <div class="ap-empty"><i class="bi bi-alphabet"></i>No vocabulary words logged yet. Start a chat session with Aura!</div>
+        {% endif %}
+    </div>
+
+    <!-- ── Active Misconceptions ── -->
+    {% if memory and memory.active_misconceptions %}
+    <div class="ap-card" style="border-color:#fca5a5;">
+        <div class="ap-card-title"><i class="bi bi-exclamation-triangle-fill text-danger"></i> Active Misconceptions to Resolve</div>
+        <div>
+            {% for m in memory.active_misconceptions %}
+            <span class="ap-topic-pill" style="background:#fee2e2; color:#991b1b;">
+                <i class="bi bi-x-circle"></i> {{ m }}
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ── Recent Sessions ── -->
+    <div class="ap-card">
+        <div class="ap-card-title"><i class="fa-solid fa-comments" style="color:#6366f1;"></i> Recent Aura Sessions</div>
+        {% if sessions %}
+        {% for session in sessions %}
+        <div class="ap-session-item">
+            <div class="ap-session-icon">
+                {% if session.subject %}<i class="bi bi-book"></i>{% else %}<i class="bi bi-chat-dots"></i>{% endif %}
+            </div>
+            <div class="flex-grow-1" style="min-width:0;">
+                <div class="fw-semibold text-truncate" style="font-size:.88rem;">{{ session.get_display_title }}</div>
+                <div class="text-muted" style="font-size:.72rem;">
+                    {{ session.started_at|date:"M d, Y" }}
+                    {% if session.message_count %} · {{ session.message_count }} messages{% endif %}
+                </div>
+            </div>
+            {% if is_own %}
+            <a href="{% url 'academics:ai_tutor' %}?session_id={{ session.id }}"
+               class="btn btn-sm" style="background:#f5f3ff; color:#6d28d9; border:none; font-size:.72rem; white-space:nowrap;">
+                Continue <i class="bi bi-arrow-right"></i>
+            </a>
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% if total_sessions > 5 %}
+        <p class="text-muted text-center mt-2 mb-0" style="font-size:.75rem;">+ {{ total_sessions|add:"-5" }} more session{{ total_sessions|add:"-5"|pluralize }}</p>
+        {% endif %}
+        {% else %}
+        <div class="ap-empty"><i class="bi bi-robot"></i>No sessions yet. <a href="{% url 'academics:ai_tutor' %}">Start your first session →</a></div>
+        {% endif %}
+    </div>
+
+    <!-- ── Homework Results ── -->
+    {% if submissions %}
+    <div class="ap-card">
+        <div class="ap-card-title"><i class="bi bi-pencil-square text-primary"></i> Recent Homework Results</div>
+        <div style="overflow-x:auto;">
+            <table class="ap-hw-table">
+                <thead>
+                    <tr>
+                        <th>Assignment</th>
+                        <th>Subject</th>
+                        <th>Score</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in submissions %}
+                    <tr>
+                        <td class="fw-semibold">{{ item.sub.homework.title|truncatechars:40 }}</td>
+                        <td>{{ item.sub.homework.subject.name }}</td>
+                        <td>
+                            <span class="ap-topic-pill {% if item.pct >= 70 %}score-good{% elif item.pct >= 50 %}score-ok{% else %}score-low{% endif %}">
+                                {{ item.pct }}%
+                            </span>
+                        </td>
+                        <td class="text-muted" style="font-size:.75rem;">{{ item.sub.submitted_at|date:"M d" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ── Review Queue (spaced repetition) ── -->
+    {% if memory and memory.review_queue %}
+    {% with due=memory.get_due_reviews %}
+    {% if due %}
+    <div class="ap-card" style="border-color:#bfdbfe;">
+        <div class="ap-card-title"><i class="bi bi-calendar-check text-primary"></i> Due for Review Today</div>
+        <div>
+            {% for item in due %}
+            <span class="ap-topic-pill" style="background:#dbeafe; color:#1e40af;">
+                <i class="bi bi-clock"></i> {{ item.topic }}{% if item.subject %} <span style="opacity:.65;">· {{ item.subject }}</span>{% endif %}
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+    {% endif %}
+
+</div>
+{% endblock %}

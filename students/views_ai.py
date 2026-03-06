@@ -772,11 +772,13 @@ def voice_award_xp(request):
     from academics.gamification_models import StudentXP
     xp_profile, _ = StudentXP.objects.get_or_create(student=student)
     xp_profile.add_xp(amount)
+    xp_profile.update_streak()  # keep voice streak in sync with text-chat streak
 
     return JsonResponse({
         'xp_earned': amount,
         'total_xp': xp_profile.total_xp,
         'level': xp_profile.level,
+        'current_streak': xp_profile.current_streak,
     })
 
 

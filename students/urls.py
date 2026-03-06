@@ -48,6 +48,9 @@ urlpatterns = [
     # Voice XP Award
     path('aura/voice/award-xp/', views_ai.voice_award_xp, name='voice_award_xp'),
 
+    # Aura Portfolio (student + teacher/parent view)
+    path('aura/portfolio/', views.aura_portfolio, name='aura_portfolio'),
+
     # Aura Preferences (student self-service)
     path('aura/preferences/', views.update_aura_preferences, name='update_aura_preferences'),
 

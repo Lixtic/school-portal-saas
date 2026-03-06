@@ -181,6 +181,47 @@
         <canvas id="gradeChart" height="110"></canvas>
     </div>
 
+    <!-- Aura AI Analytics -->
+    <div class="an-card" style="border-left: 4px solid #8b5cf6;">
+        <div class="an-card-title"><i class="fa-solid fa-wand-magic-sparkles me-1" style="color:#8b5cf6;"></i>Aura AI Activity</div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px,1fr)); gap:.85rem; margin-bottom:1.25rem;">
+            <div class="an-stat" style="border-color:#e9d5ff;">
+                <div class="an-stat-label">Total Sessions</div>
+                <div class="an-stat-value" style="color:#7c3aed;">{{ aura_total_sessions }}</div>
+                <div class="an-stat-sub">all time</div>
+            </div>
+            <div class="an-stat" style="border-color:#e9d5ff;">
+                <div class="an-stat-label">Active Students</div>
+                <div class="an-stat-value" style="color:#7c3aed;">{{ aura_active_30d }}</div>
+                <div class="an-stat-sub">last 30 days</div>
+            </div>
+            <div class="an-stat" style="border-color:#e9d5ff;">
+                <div class="an-stat-label">Avg Streak</div>
+                <div class="an-stat-value" style="color:#7c3aed;">{{ aura_avg_streak }}</div>
+                <div class="an-stat-sub">days</div>
+            </div>
+        </div>
+        {% if aura_top_xp %}
+        <div class="an-card-title" style="margin-top:.25rem;"><i class="fa-solid fa-ranking-star me-1" style="color:#f59e0b;"></i>Top XP Leaders</div>
+        <div style="display:flex; flex-direction:column; gap:.5rem;">
+            {% for entry in aura_top_xp %}
+            <div style="display:flex; align-items:center; gap:.75rem;">
+                <span style="width:20px; text-align:right; font-size:.75rem; color:var(--bs-secondary-color,#6b7280); font-weight:700;">{{ forloop.counter }}</span>
+                <div style="flex:1; min-width:0;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                        <span style="font-size:.82rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ entry.student.user.get_full_name }}</span>
+                        <span style="font-size:.75rem; color:#7c3aed; font-weight:700; white-space:nowrap; margin-left:.5rem;">Lv {{ entry.level }} · {{ entry.total_xp }} XP</span>
+                    </div>
+                    <div style="height:5px; background:var(--bs-border-color,#e5e7eb); border-radius:99px; overflow:hidden;">
+                        <div style="height:100%; border-radius:99px; background:linear-gradient(90deg,#a78bfa,#818cf8); width:{{ entry.level_progress }}%;"></div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
     <!-- Recent payments -->
     {% if recent_payments %}
     <div class="an-card">

@@ -1109,6 +1109,22 @@ def school_analytics(request):
             'student_fee__student__user'
         ).order_by('-date')[:10])
 
+        # --- Aura AI activity ---
+        from academics.tutor_models import TutorSession as _TS
+        from academics.gamification_models import StudentXP as _SXPA
+        from django.db.models import Avg as _AvgA
+        date_30_ago_aura = today - datetime.timedelta(days=30)
+        aura_total_sessions = _TS.objects.count()
+        aura_active_30d = _TS.objects.filter(
+            started_at__date__gte=date_30_ago_aura
+        ).values('student').distinct().count()
+        aura_avg_streak = round(
+            float(_SXPA.objects.aggregate(a=_AvgA('current_streak'))['a'] or 0), 1
+        )
+        aura_top_xp = list(
+            _SXPA.objects.select_related('student__user').order_by('-total_xp')[:5]
+        )
+
     except Exception as e:
         messages.warning(request, f'Some analytics data could not be loaded: {e}')
 
@@ -1126,5 +1142,10 @@ def school_analytics(request):
         'grade_data': json.dumps(grade_data),
         'recent_payments': recent_payments,
         'current_year': current_year,
+        # Aura AI
+        'aura_total_sessions': locals().get('aura_total_sessions', 0),
+        'aura_active_30d': locals().get('aura_active_30d', 0),
+        'aura_avg_streak': locals().get('aura_avg_streak', 0),
+        'aura_top_xp': locals().get('aura_top_xp', []),
     }
     return render(request, 'accounts/school_analytics.html', context)

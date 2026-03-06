@@ -2007,3 +2007,105 @@ def promote_students(request):
         'current_year': current_year,
         'all_classes': all_classes,
     })
+
+
+# ─── Aura Portfolio ─────────────────────────────────────────────────────────
+
+
+@login_required
+def aura_portfolio(request):
+    """
+    Student Aura Portfolio — motivational showcase of a student's AI learning journey.
+    Accessible by the student (own portfolio) and by teachers/admins (?student_id=N).
+    Parents access via ?student_id=N after verifying ownership.
+    """
+    user = request.user
+
+    if user.user_type == 'student':
+        try:
+            student = Student.objects.select_related('user', 'current_class').get(user=user)
+        except Student.DoesNotExist:
+            messages.error(request, "Student profile not found.")
+            return redirect('dashboard')
+        is_own = True
+
+    elif user.user_type in ('teacher', 'admin'):
+        student_id = request.GET.get('student_id')
+        if not student_id:
+            messages.error(request, "No student specified.")
+            return redirect('students:student_list')
+        student = get_object_or_404(
+            Student.objects.select_related('user', 'current_class'), id=student_id
+        )
+        is_own = False
+
+    elif user.user_type == 'parent':
+        from parents.models import Parent
+        try:
+            parent = Parent.objects.get(user=user)
+        except Exception:
+            messages.error(request, "Parent profile not found.")
+            return redirect('dashboard')
+        student_id = request.GET.get('student_id')
+        if student_id:
+            qs = Student.objects.select_related('user', 'current_class').filter(id=student_id)
+            # Verify parent link
+            qs = qs.filter(parents=parent)
+            student = get_object_or_404(qs)
+        else:
+            student = parent.children.select_related('user', 'current_class').first()
+        if not student:
+            messages.error(request, "No linked student found.")
+            return redirect('dashboard')
+        is_own = False
+
+    else:
+        return redirect('dashboard')
+
+    from academics.gamification_models import StudentXP, AuraSessionState
+    from academics.tutor_models import TutorSession, PowerWord, LearnerMemory
+
+    xp = StudentXP.objects.filter(student=student).first()
+    aura_state = AuraSessionState.objects.filter(student=student).first()
+    memory = LearnerMemory.objects.filter(student=student).first()
+
+    sessions = TutorSession.objects.filter(student=student).order_by('-started_at')[:5]
+    total_sessions = TutorSession.objects.filter(student=student).count()
+
+    power_words = list(PowerWord.objects.filter(student=student).order_by('-used_count')[:24])
+
+    # Homework submission history with percentage scores
+    from homework.models import Submission as HWSubmission, Question as HWQuestion
+    from django.db.models import Sum as _Sum
+    hw_submissions_raw = (
+        HWSubmission.objects
+        .filter(student=student)
+        .select_related('homework')
+        .order_by('-submitted_at')[:10]
+    )
+    submissions = []
+    total_pct_sum = 0
+    for sub in hw_submissions_raw:
+        total_pts = (
+            HWQuestion.objects
+            .filter(homework=sub.homework)
+            .aggregate(t=_Sum('points'))['t'] or 0
+        )
+        pct = round(float(sub.score) / float(total_pts) * 100, 1) if total_pts else 0
+        total_pct_sum += pct
+        submissions.append({'sub': sub, 'pct': pct, 'total_pts': total_pts})
+    avg_hw_score = round(total_pct_sum / len(submissions), 1) if submissions else 0
+
+    context = {
+        'portfolio_student': student,
+        'is_own': is_own,
+        'xp': xp,
+        'aura_state': aura_state,
+        'memory': memory,
+        'sessions': sessions,
+        'total_sessions': total_sessions,
+        'power_words': power_words,
+        'submissions': submissions,
+        'avg_hw_score': avg_hw_score,
+    }
+    return render(request, 'students/aura_portfolio.html', context)
