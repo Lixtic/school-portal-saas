@@ -1149,6 +1149,41 @@ def get_student_schedule_data(student):
         # First upcoming (not-yet-done) lesson today
         next_lesson = next((l for l in today_lessons if not l['done']), None)
 
+        # Time-phase for welcome greeting
+        any_done = any(l['done'] for l in today_lessons) if today_lessons else False
+        if is_after_school:
+            time_phase = 'after_school'
+        elif today_lessons and not any_done:
+            time_phase = 'pre_school'       # before first class of the day
+        elif today_lessons and any_done:
+            time_phase = 'between_classes'  # some done, some still to come
+        else:
+            time_phase = 'no_school'
+
+        # Try to attach a LessonPlan topic to next_lesson
+        if next_lesson:
+            try:
+                from teachers.models import LessonPlan
+                lp = (
+                    LessonPlan.objects
+                    .filter(
+                        school_class=student.current_class,
+                        subject__name=next_lesson['subject'],
+                    )
+                    .order_by('-week_number', '-date_added')
+                    .first()
+                )
+                if lp:
+                    next_lesson['topic'] = lp.topic
+                    # Short teaser from objectives (first sentence, max 100 chars)
+                    obj = (lp.objectives or '').split('.')[0].strip()
+                    next_lesson['objective_teaser'] = obj[:100] if obj else ''
+            except Exception:
+                pass
+
+        # How many classes are already done today (for between_classes greeting)
+        done_count = sum(1 for l in today_lessons if l['done'])
+
         # Build auto-prompt message
         auto_prompt = None
         if is_after_school:
@@ -1164,7 +1199,10 @@ def get_student_schedule_data(student):
             'today_lessons': today_lessons,
             'tomorrow_lessons': tomorrow_lessons,
             'is_after_school': is_after_school,
+            'time_phase': time_phase,
             'next_lesson': next_lesson,
+            'done_count': done_count,
+            'total_count': len(today_lessons),
             'auto_prompt': auto_prompt,
         }
     except Exception:

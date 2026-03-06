@@ -1198,67 +1198,111 @@
                     <!-- Schedule-Aware Onboarding Bubble -->
                     <div class="message assistant">
                         <div class="message-bubble">
-                            Hi <strong>{{ student.user.first_name }}</strong>! 👋 I'm ready to help.
 
-                            {% if schedule_data %}
-                                {% if schedule_data.is_after_school %}
-                                    <div class="mt-2 p-2 rounded-3" style="background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2);">
-                                        <strong>🏫 School's out!</strong> Here's what you covered today ({{ schedule_data.today_name }}):
-                                        <ul class="mt-1 mb-1 ps-3 small">
-                                            {% for lesson in schedule_data.today_lessons %}
-                                                <li>{{ lesson.subject }} ({{ lesson.start }} – {{ lesson.end }})</li>
-                                            {% endfor %}
-                                        </ul>
-                                        {% if schedule_data.tomorrow_lessons %}
-                                            <div class="mt-1 small"><strong>📅 Tomorrow ({{ schedule_data.tomorrow_name }}):</strong>
-                                                {% for lesson in schedule_data.tomorrow_lessons %}
-                                                    {{ lesson.subject }}{% if not forloop.last %}, {% endif %}
-                                                {% endfor %}
-                                            </div>
-                                        {% endif %}
-                                        <div class="mt-2">
-                                            <em>Tap the button below and I'll review today's lessons with you!</em>
-                                        </div>
-                                    </div>
-                                {% elif schedule_data.today_lessons %}
-                                    <div class="mt-2 p-2 rounded-3" style="background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.15);">
-                                        <strong>📋 Today's schedule ({{ schedule_data.today_name }}):</strong>
-                                        <ul class="mt-1 mb-0 ps-3 small">
-                                            {% for lesson in schedule_data.today_lessons %}
-                                                <li>
-                                                    {% if lesson.done %}✅{% else %}⏳{% endif %}
-                                                    {{ lesson.subject }} ({{ lesson.start }} – {{ lesson.end }})
-                                                </li>
-                                            {% endfor %}
-                                        </ul>
-                                    </div>
-                                {% endif %}
-                            {% endif %}
+                            {# ── PRE-SCHOOL: before first class ── #}
+                            {% if schedule_data.time_phase == 'pre_school' and schedule_data.next_lesson %}
 
-                            {% if schedule_data.is_after_school %}
-                                <div class="mt-3 small text-body-secondary">
-                                    Tap one to get started:
-                                    <ul class="mt-1 mb-0 ps-3">
-                                        <li><a href="#" class="text-decoration-none" data-prompt="Review today's lessons with me." onclick="sendQuickPromptFromEl(this); return false;">Review today&rsquo;s lessons with me</a></li>
-                                        <li><a href="#" class="text-decoration-none" data-prompt="Help me prepare for tomorrow's classes." onclick="sendQuickPromptFromEl(this); return false;">Help me prepare for tomorrow</a></li>
-                                        <li><a href="#" class="text-decoration-none" data-prompt="Quiz me on what I learned today." onclick="sendQuickPromptFromEl(this); return false;">Quiz me on what I learned today</a></li>
-                                    </ul>
-                                </div>
-                            {% elif schedule_data.next_lesson %}
+                                Hi <strong>{{ student.user.first_name }}</strong>! 👋 Ready for a great {{ schedule_data.today_name }}?
+
                                 <div class="mt-3">
-                                    Want to look at <strong>{{ schedule_data.next_lesson.subject }}</strong> first?
+                                    You have <strong>{{ schedule_data.next_lesson.subject }}</strong> first
+                                    — at <strong>{{ schedule_data.next_lesson.start }}</strong>.
+                                    {% if schedule_data.next_lesson.topic %}
+                                        <div class="mt-1 text-body-secondary small fst-italic">
+                                            Today&rsquo;s focus: &ldquo;{{ schedule_data.next_lesson.topic }}&rdquo;
+                                        </div>
+                                    {% endif %}
+                                    {% if schedule_data.next_lesson.objective_teaser %}
+                                        <div class="mt-1 small text-body-secondary">
+                                            {{ schedule_data.next_lesson.objective_teaser }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mt-3">
+                                    {% if schedule_data.next_lesson.topic %}
+                                        Want a quick 1-minute intro to <em>&ldquo;{{ schedule_data.next_lesson.topic }}&rdquo;</em> before you head out?
+                                        <a href="#"
+                                           class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1 text-decoration-none d-inline-block mt-2"
+                                           data-prompt="I have {{ schedule_data.next_lesson.subject }} at {{ schedule_data.next_lesson.start }} today. The topic is '{{ schedule_data.next_lesson.topic }}'. Give me a short, simple 2-sentence overview to warm up my brain — keep it easy to understand."
+                                           onclick="sendQuickPromptFromEl(this); return false;">
+                                            Warm up my brain 🧠
+                                        </a>
+                                    {% else %}
+                                        Want a quick warm-up on <strong>{{ schedule_data.next_lesson.subject }}</strong> before you head out?
+                                        <a href="#"
+                                           class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1 text-decoration-none d-inline-block mt-2"
+                                           data-prompt="I have {{ schedule_data.next_lesson.subject }} coming up at {{ schedule_data.next_lesson.start }}. Give me one interesting thing to think about before class — keep it short and simple."
+                                           onclick="sendQuickPromptFromEl(this); return false;">
+                                            Warm up my brain 🧠
+                                        </a>
+                                    {% endif %}
+                                </div>
+
+                            {# ── BETWEEN CLASSES: some done, next one coming ── #}
+                            {% elif schedule_data.time_phase == 'between_classes' and schedule_data.next_lesson %}
+
+                                Hi <strong>{{ student.user.first_name }}</strong>! 👋
+
+                                <div class="mt-3">
+                                    Up next: <strong>{{ schedule_data.next_lesson.subject }}</strong>
+                                    at <strong>{{ schedule_data.next_lesson.start }}</strong>.
+                                    {% if schedule_data.next_lesson.topic %}
+                                        <div class="mt-1 text-body-secondary small fst-italic">
+                                            Topic: &ldquo;{{ schedule_data.next_lesson.topic }}&rdquo;
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mt-3">
+                                    Shall we do a quick warm-up before it starts?
                                     <a href="#"
-                                       class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1 text-decoration-none ms-1"
-                                       data-prompt="Let's work on {{ schedule_data.next_lesson.subject }} together. Start with a brief, simple explanation I can understand."
+                                       class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1 text-decoration-none d-inline-block mt-2"
+                                       data-prompt="I have {{ schedule_data.next_lesson.subject }} next at {{ schedule_data.next_lesson.start }}{% if schedule_data.next_lesson.topic %}, topic: '{{ schedule_data.next_lesson.topic }}'{% endif %}. Give me one quick thing to think about before the class begins."
                                        onclick="sendQuickPromptFromEl(this); return false;">
-                                        Let&rsquo;s go &nbsp;👉
+                                        Quick warm-up ⚡
                                     </a>
                                 </div>
-                            {% elif schedule_data %}
-                                <div class="mt-3 text-body-secondary small">What would you like to work on today?</div>
+
+                            {# ── AFTER SCHOOL: all classes done ── #}
+                            {% elif schedule_data.is_after_school %}
+
+                                Hi <strong>{{ student.user.first_name }}</strong>! 👋 Great job getting through today.
+
+                                <div class="mt-2 p-2 rounded-3" style="background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2);">
+                                    <strong>🏫 School's out!</strong> You covered:
+                                    <ul class="mt-1 mb-1 ps-3 small">
+                                        {% for lesson in schedule_data.today_lessons %}
+                                            <li>{{ lesson.subject }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                    {% if schedule_data.tomorrow_lessons %}
+                                        <div class="mt-1 small">
+                                            <strong>📅 Tomorrow:</strong>
+                                            {% for lesson in schedule_data.tomorrow_lessons %}
+                                                {{ lesson.subject }}{% if not forloop.last %}, {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mt-3 small text-body-secondary">
+                                    What do you want to do?
+                                    <ul class="mt-1 mb-0 ps-3">
+                                        <li><a href="#" class="text-decoration-none" data-prompt="Review today's lessons with me." onclick="sendQuickPromptFromEl(this); return false;">Review today&rsquo;s lessons</a></li>
+                                        <li><a href="#" class="text-decoration-none" data-prompt="Help me prepare for tomorrow's classes." onclick="sendQuickPromptFromEl(this); return false;">Prepare for tomorrow</a></li>
+                                        <li><a href="#" class="text-decoration-none" data-prompt="Quiz me on what I learned today." onclick="sendQuickPromptFromEl(this); return false;">Quiz me on today</a></li>
+                                    </ul>
+                                </div>
+
+                            {# ── FALLBACK: no schedule / weekend ── #}
                             {% else %}
+
+                                Hi <strong>{{ student.user.first_name }}</strong>! 👋 I&rsquo;m ready to help.
                                 <div class="mt-3 text-body-secondary small">What would you like to work on today?</div>
+
                             {% endif %}
+
                         </div>
                     </div>
 
