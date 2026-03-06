@@ -463,6 +463,10 @@ def voice_board_generate(request):
     except Exception as e:
         logger.warning('voice_board_generate error: %s', e)
         return JsonResponse({'diagram': None})
+
+
+@login_required
+def create_realtime_session(request):
     """
     Create an ephemeral token for OpenAI Realtime API (WebRTC).
     Frontend uses this to establish a WebRTC peer connection directly to OpenAI.
