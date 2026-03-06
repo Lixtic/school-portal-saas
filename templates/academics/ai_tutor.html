@@ -1224,7 +1224,7 @@
                                         Want a quick 1-minute intro to <em>&ldquo;{{ schedule_data.next_lesson.topic }}&rdquo;</em> before you head out?
                                         <a href="#"
                                            class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1 text-decoration-none d-inline-block mt-2"
-                                           data-prompt="I have {{ schedule_data.next_lesson.subject }} at {{ schedule_data.next_lesson.start }} today. The topic is '{{ schedule_data.next_lesson.topic }}'. Give me a short, simple 2-sentence overview to warm up my brain — keep it easy to understand."
+                                           data-prompt="[PRE_CLASS_TEASER] I'm about to head to {{ schedule_data.next_lesson.subject }} class at {{ schedule_data.next_lesson.start }}. The topic is '{{ schedule_data.next_lesson.topic }}'. Give me ONE short sentence — a hook idea or a curious fact — to get me thinking before I walk in. Do NOT ask me any questions and do NOT start a lesson. Just the teaser."
                                            onclick="sendQuickPromptFromEl(this); return false;">
                                             Warm up my brain 🧠
                                         </a>
@@ -1232,7 +1232,7 @@
                                         Want a quick warm-up on <strong>{{ schedule_data.next_lesson.subject }}</strong> before you head out?
                                         <a href="#"
                                            class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1 text-decoration-none d-inline-block mt-2"
-                                           data-prompt="I have {{ schedule_data.next_lesson.subject }} coming up at {{ schedule_data.next_lesson.start }}. Give me one interesting thing to think about before class — keep it short and simple."
+                                           data-prompt="[PRE_CLASS_TEASER] I'm heading to {{ schedule_data.next_lesson.subject }} class at {{ schedule_data.next_lesson.start }}. Drop me one interesting thing to think about before I walk in. Do NOT ask me any questions and do NOT start a lesson. Just one curious idea."
                                            onclick="sendQuickPromptFromEl(this); return false;">
                                             Warm up my brain 🧠
                                         </a>
@@ -1258,7 +1258,7 @@
                                     Shall we do a quick warm-up before it starts?
                                     <a href="#"
                                        class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1 text-decoration-none d-inline-block mt-2"
-                                       data-prompt="I have {{ schedule_data.next_lesson.subject }} next at {{ schedule_data.next_lesson.start }}{% if schedule_data.next_lesson.topic %}, topic: '{{ schedule_data.next_lesson.topic }}'{% endif %}. Give me one quick thing to think about before the class begins."
+                                       data-prompt="[PRE_CLASS_TEASER] I have {{ schedule_data.next_lesson.subject }} next at {{ schedule_data.next_lesson.start }}{% if schedule_data.next_lesson.topic %}, topic: '{{ schedule_data.next_lesson.topic }}'{% endif %}. Give me one thought to carry into class — a hook or a quick connection to real life. Do NOT ask me questions and do NOT start a full lesson."
                                        onclick="sendQuickPromptFromEl(this); return false;">
                                         Quick warm-up ⚡
                                     </a>
@@ -2399,6 +2399,10 @@
         text = text.replace(/\[POWER_WORDS:\s*[^\]]*\]/gi, '');
         // Remove [LESSON_STATE: ...] tokens
         text = text.replace(/\[LESSON_STATE:\s*[^\]]*\]/gi, '');
+        // Remove hallucinated structural delimiters (<END OF NUGGET>, <NUGGET>, </NUGGET>, etc.)
+        text = text.replace(/<\/?END\s+OF\s+NUGGET>/gi, '');
+        text = text.replace(/<\/?NUGGET[^>]*>/gi, '');
+        text = text.replace(/<\/?END\s+OF\s+[A-Z_\s]+>/gi, '');
         // Remove complete [WB_DIAGRAM: ...] ... [/WB_DIAGRAM] blocks
         text = text.replace(/\[WB_DIAGRAM:\s*[^\]]*\][\s\S]*?\[\/WB_DIAGRAM\]/gi, '');
         // Remove partial / still-streaming [WB_DIAGRAM block (no closing tag yet)
