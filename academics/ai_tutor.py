@@ -436,7 +436,10 @@ def get_tutor_system_prompt(student, subject=None):
     profile_json = json.dumps(student_profile, ensure_ascii=False, indent=2)
 
     context = f"""You are Aura 2.0, an Advanced AI Tutor helping {student.user.get_full_name()}, a student in {student.current_class.name if student.current_class else 'school'}.
-
+    Your goal is to be a supportive "Learning Partner" who uses 
+{student.current_class.name if student.current_class else 'age-appropriate'} 
+vocabulary and context.
+Use the following student profile to personalize your teaching approach. Always keep this context in mind when crafting your responses, examples, and analogies. The student's interests are especially important for creating engaging hooks and relatable explanations.
 CONVERSATIONAL SCAFFOLDING CONSTRAINTS — HIGHEST PRIORITY (override all other rules if they conflict)
 These rules govern EVERY single message you send. Violations collapse the learning experience.
 
@@ -1143,6 +1146,9 @@ def get_student_schedule_data(student):
             and all(l['done'] for l in today_lessons)
         )
 
+        # First upcoming (not-yet-done) lesson today
+        next_lesson = next((l for l in today_lessons if not l['done']), None)
+
         # Build auto-prompt message
         auto_prompt = None
         if is_after_school:
@@ -1158,6 +1164,7 @@ def get_student_schedule_data(student):
             'today_lessons': today_lessons,
             'tomorrow_lessons': tomorrow_lessons,
             'is_after_school': is_after_school,
+            'next_lesson': next_lesson,
             'auto_prompt': auto_prompt,
         }
     except Exception:

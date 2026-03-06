@@ -1235,19 +1235,30 @@
                                 {% endif %}
                             {% endif %}
 
-                            <br>
-                            Try asking:
-                            <ul class="mt-2 mb-0 ps-3">
-                                {% if schedule_data.is_after_school %}
-                                    <li>"Review today's lessons with me"</li>
-                                    <li>"Help me prepare for tomorrow"</li>
-                                    <li>"Quiz me on what I learned today"</li>
-                                {% else %}
-                                    <li>"Help me understand the quadratic formula"</li>
-                                    <li>"Map of Kejetia Market vs. Circle"</li>
-                                    <li>"Practice quiz for JHS Science"</li>
-                                {% endif %}
-                            </ul>
+                            {% if schedule_data.is_after_school %}
+                                <div class="mt-3 small text-body-secondary">
+                                    Tap one to get started:
+                                    <ul class="mt-1 mb-0 ps-3">
+                                        <li><a href="#" class="text-decoration-none" data-prompt="Review today's lessons with me." onclick="sendQuickPromptFromEl(this); return false;">Review today&rsquo;s lessons with me</a></li>
+                                        <li><a href="#" class="text-decoration-none" data-prompt="Help me prepare for tomorrow's classes." onclick="sendQuickPromptFromEl(this); return false;">Help me prepare for tomorrow</a></li>
+                                        <li><a href="#" class="text-decoration-none" data-prompt="Quiz me on what I learned today." onclick="sendQuickPromptFromEl(this); return false;">Quiz me on what I learned today</a></li>
+                                    </ul>
+                                </div>
+                            {% elif schedule_data.next_lesson %}
+                                <div class="mt-3">
+                                    Want to look at <strong>{{ schedule_data.next_lesson.subject }}</strong> first?
+                                    <a href="#"
+                                       class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1 text-decoration-none ms-1"
+                                       data-prompt="Let's work on {{ schedule_data.next_lesson.subject }} together. Start with a brief, simple explanation I can understand."
+                                       onclick="sendQuickPromptFromEl(this); return false;">
+                                        Let&rsquo;s go &nbsp;👉
+                                    </a>
+                                </div>
+                            {% elif schedule_data %}
+                                <div class="mt-3 text-body-secondary small">What would you like to work on today?</div>
+                            {% else %}
+                                <div class="mt-3 text-body-secondary small">What would you like to work on today?</div>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -1437,6 +1448,14 @@
             messageInput.dispatchEvent(new Event('input'));
             sendMessage();
         }
+    }
+
+    function sendQuickPromptFromEl(el) {
+        const prompt = el.getAttribute('data-prompt');
+        if (!prompt || !messageInput) return;
+        messageInput.value = prompt;
+        messageInput.dispatchEvent(new Event('input'));
+        sendMessage();
     }
 
     // Auto-scroll on load
