@@ -549,14 +549,18 @@ def student_dashboard_view(request):
         return redirect('login')
     
     # Get recent attendance (last 10 records)
-    recent_attendance = Attendance.objects.filter(
-        student=student
-    ).order_by('-date')[:10]
-    
-    # Calculate attendance stats
-    total_attendance = Attendance.objects.filter(student=student).count()
-    present_count = Attendance.objects.filter(student=student, status='present').count()
-    absent_count = Attendance.objects.filter(student=student, status='absent').count()
+    try:
+        recent_attendance = Attendance.objects.filter(
+            student=student
+        ).order_by('-date')[:10]
+
+        # Calculate attendance stats
+        total_attendance = Attendance.objects.filter(student=student).count()
+        present_count = Attendance.objects.filter(student=student, status='present').count()
+        absent_count = Attendance.objects.filter(student=student, status='absent').count()
+    except Exception:
+        recent_attendance = []
+        total_attendance = present_count = absent_count = 0
     
     attendance_percentage = 0
     if total_attendance > 0:
@@ -570,8 +574,11 @@ def student_dashboard_view(request):
     }
     
     # Get all grades
-    grades = Grade.objects.filter(student=student).select_related('subject').order_by('-created_at')
-    
+    try:
+        grades = list(Grade.objects.filter(student=student).select_related('subject').order_by('-created_at'))
+    except Exception:
+        grades = []
+
     # Get homework and resources
     from homework.models import Homework
     from academics.models import Resource
