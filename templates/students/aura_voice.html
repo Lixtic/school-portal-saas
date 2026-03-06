@@ -1439,6 +1439,7 @@ let state = 'IDLE';
 let currentUserText = '';
 let currentAuraText = '';    // audio transcript stream (speech → display)
 let currentDiagramText = ''; // text output stream (contains [WB_DIAGRAM] tokens)
+let voiceDbSessionId = null; // Django TutorSession ID for this voice session
 let conversationHistory = JSON.parse(localStorage.getItem('auraVoiceHistory') || '[]');
 let retryCount = 0;
 const MAX_RETRIES = 2;
@@ -1911,6 +1912,8 @@ function stripVoiceTokens(text) {
     text = text.replace(/\[VOCAB_LEVEL:\s*\d\]/gi, '');
     // Remove [MOOD: ...] tokens
     text = text.replace(/\[MOOD:\s*\w+\]/gi, '');
+    // Remove [SESSION_TITLE: ...] tokens
+    text = text.replace(/\[SESSION_TITLE:\s*[^\]]*\]/gi, '');
     // Remove [AWARD_XP: ...] tokens
     text = text.replace(/\[AWARD_XP:\s*\d+\]/gi, '');
     // Remove [POWER_WORDS: ...] tokens
@@ -2045,6 +2048,7 @@ async function connectRealtime() {
         }
 
         const sessionData = await sessionResponse.json();
+        voiceDbSessionId = sessionData.db_session_id || null;
         const ephemeralKey = sessionData.client_secret;
         const model = sessionData.model || 'gpt-realtime';
         const studentContext = sessionData.student_context || '';
@@ -2583,6 +2587,20 @@ function _syncAuraState(diagramText, sentimentValue) {
         const moodVal = _mdMatch[1].trim().toLowerCase();
         if (['positive','neutral','negative','frustrated'].includes(moodVal))
             patchBody.mood = moodVal;
+    }
+
+    // Auto-rename session from [SESSION_TITLE: X] token
+    const _stMatch = diagramText.match(/\[SESSION_TITLE:\s*([^\]]+)\]/i);
+    if (_stMatch && voiceDbSessionId) {
+        const _stTitle = _stMatch[1].trim();
+        if (_stTitle) {
+            const _renameVoiceBase = "{% url 'academics:tutor_sessions' %}".replace(/\/?$/, '');
+            fetch(`${_renameVoiceBase}/${voiceDbSessionId}/rename/`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify({ title: _stTitle })
+            }).catch(() => {});
+        }
     }
 
     fetch('{% url "academics:aura_session_state" %}', {

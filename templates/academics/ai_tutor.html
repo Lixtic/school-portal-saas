@@ -896,6 +896,8 @@
         background: var(--bs-tertiary-bg);
         color: inherit;
     }
+    .session-item:hover .sess-rename-btn { opacity: 0.45 !important; }
+    .sess-rename-btn:hover { opacity: 1 !important; color: #6366f1 !important; }
     .session-item.active-session {
         background: rgba(99, 102, 241, 0.08);
         border-left: 3px solid var(--chat-primary, #6366f1);
@@ -2439,6 +2441,20 @@
             fullText = fullText.replace(/\[MOOD:\s*\w+\]/gi, '');
         }
 
+        // 1.59 Extract [SESSION_TITLE: X] — auto-rename session in history sidebar
+        const _stM = fullText.match(/\[SESSION_TITLE:\s*([^\]]+)\]/i);
+        if (_stM && typeof currentSessionId !== 'undefined' && currentSessionId) {
+            const _stTitle = _stM[1].trim();
+            if (_stTitle) {
+                fetch(`${_renameBase}/${currentSessionId}/rename/`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                    body: JSON.stringify({ title: _stTitle })
+                }).catch(() => {});
+            }
+            fullText = fullText.replace(/\[SESSION_TITLE:\s*[^\]]*\]/gi, '');
+        }
+
         // 1.6 Extract [WB_DIAGRAM: Title] ... [/WB_DIAGRAM] blocks
         const diagrams = [];
         const _diagScan = fullText;
@@ -2664,6 +2680,8 @@
     
     // Track the active session ID (may be set by backend or first chat response)
     let currentSessionId = '{{ selected_session_id|escapejs }}' || null;
+    // Base URL for session rename API  — strips trailing slash
+    const _renameBase = "{% url 'academics:tutor_sessions' %}".replace(/\/?$/, '');
 
     async function createNewChatSession() {
         // POST to create a real new session, then navigate to it so the page
@@ -2775,12 +2793,18 @@
                 const sc = getSubjectColor(s.subject || 'General');
                 const topicLine = s.topic ? `<span class="text-truncate d-block">${s.topic}</span>` : '';
                 html += `
-                    <a href="?session=${s.id}" class="session-item ${activeClass}">
+                    <a href="?session=${s.id}" class="session-item ${activeClass}" id="sess-item-${s.id}">
                         <div class="session-icon" style="background:${sc.bg};color:${sc.fg};">
                             <i class="bi ${sc.icon}"></i>
                         </div>
                         <div class="session-item-body">
-                            <div class="session-item-title">${s.title || s.subject || 'General Chat'}</div>
+                            <div class="session-item-title d-flex align-items-center gap-1" id="sess-title-${s.id}">
+                                <span class="sess-title-text text-truncate">${s.title || s.subject || 'General Chat'}</span>
+                                <button class="btn p-0 border-0 opacity-0 sess-rename-btn flex-shrink-0"
+                                        style="font-size:0.6rem;color:inherit;background:none;line-height:1;"
+                                        onclick="startRename(event,${s.id},this)"
+                                        title="Rename"><i class="bi bi-pencil"></i></button>
+                            </div>
                             <div class="session-item-meta">${topicLine}${s.date}</div>
                         </div>
                         <span class="session-msg-badge">${s.msg_count}</span>
@@ -2789,6 +2813,48 @@
             });
         });
         list.innerHTML = html;
+    }
+
+    function startRename(event, sessionId, btn) {
+        event.preventDefault();
+        event.stopPropagation();
+        const titleEl = document.getElementById(`sess-title-${sessionId}`);
+        if (!titleEl) return;
+        const textSpan = titleEl.querySelector('.sess-title-text');
+        if (!textSpan) return;
+        const currentTitle = textSpan.textContent.trim();
+        textSpan.style.display = 'none';
+        btn.style.display = 'none';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentTitle;
+        input.maxLength = 120;
+        input.style.cssText = 'flex:1;font-size:0.8rem;padding:1px 4px;border:1px solid #6366f1;border-radius:4px;background:transparent;color:inherit;outline:none;min-width:0;';
+        titleEl.appendChild(input);
+        input.focus();
+        input.select();
+        const doSave = async () => {
+            const newTitle = input.value.trim();
+            if (newTitle && newTitle !== currentTitle) {
+                try {
+                    const resp = await fetch(`${_renameBase}/${sessionId}/rename/`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                        body: JSON.stringify({ title: newTitle })
+                    });
+                    const data = await resp.json();
+                    if (data.ok) textSpan.textContent = data.title;
+                } catch(e) {}
+            }
+            input.remove();
+            textSpan.style.display = '';
+            btn.style.display = '';
+        };
+        input.addEventListener('blur', doSave);
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+            if (e.key === 'Escape') { input.value = currentTitle; input.blur(); }
+        });
     }
     
     // ── Whiteboard Diagram History ──────────────────────────────────────

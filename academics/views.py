@@ -1765,6 +1765,65 @@ def _persist_to_learner_memory(student, summary_payload):
         logger.warning("LearnerMemory failed to persist for %s: %s", student, e)
 
 
+def _check_and_send_review_reminders(student):
+    """
+    After a session ends, look at the student's LearnerMemory review_queue
+    for any items due today or overdue and create one Notification if there
+    are items due and none has been sent today.
+    """
+    try:
+        import datetime
+        from .tutor_models import LearnerMemory
+        from announcements.models import Notification
+
+        memory = LearnerMemory.objects.filter(student=student).first()
+        if not memory or not memory.review_queue:
+            return
+
+        from django.utils import timezone as tz
+        today = tz.localdate()
+
+        due_topics = []
+        for item in memory.review_queue:
+            if not isinstance(item, dict):
+                continue
+            due_str = item.get('due_date')
+            if not due_str:
+                continue
+            try:
+                due_date = datetime.date.fromisoformat(str(due_str))
+                if due_date <= today:
+                    due_topics.append(item.get('topic', 'a topic'))
+            except ValueError:
+                continue
+
+        if not due_topics:
+            return
+
+        # One notification per student per day — deduplicate
+        already_sent = Notification.objects.filter(
+            recipient=student.user,
+            alert_type='general',
+            message__startswith='⏰ Time to review',
+            created_at__date=today,
+        ).exists()
+        if already_sent:
+            return
+
+        topic_list = ', '.join(due_topics[:3])
+        if len(due_topics) > 3:
+            topic_list += f' +{len(due_topics) - 3} more'
+
+        Notification.objects.create(
+            recipient=student.user,
+            message=f'⏰ Time to review: {topic_list}. Open Aura to continue!',
+            alert_type='general',
+            link='../../academics/ai-tutor/',
+        )
+    except Exception as e:
+        logger.warning('review reminder check failed: %s', e)
+
+
 def _log_session_power_words(student, full_text, subject_name=''):
     """
     Parse [POWER_WORDS: word1, word2] tokens from an assistant response
@@ -2196,6 +2255,14 @@ def ai_tutor_chat(request):
                         except Exception as e:
                             logger.warning('mood persist failed: %s', e)
 
+                # ── Session auto-title from [SESSION_TITLE: X] token ────────
+                _st = re.search(r'\[SESSION_TITLE:\s*([^\]]+)\]', full_assistant_message, re.I)
+                if _st and session.title in ('General Chat', 'Voice Session', ''):
+                    _title_val = _st.group(1).strip()[:200]
+                    if _title_val:
+                        session.title = _title_val
+                        session.save(update_fields=['title'])
+
                 TutorMessage.objects.create(
                     session=session,
                     role='assistant',
@@ -2213,6 +2280,8 @@ def ai_tutor_chat(request):
                     )
                     # ── Continuous Context Awareness: Persist to LearnerMemory ──
                     _persist_to_learner_memory(student, summary_payload)
+                    # ── Spaced-rep review reminders ──────────────────────
+                    _check_and_send_review_reminders(student)
 
                 # ── Power Word Tracking ──────────────────────────────────────
                 _log_session_power_words(student, full_assistant_message, subject_name=subject.name if subject else '')
@@ -2275,6 +2344,32 @@ def ai_tutor_new_session(request):
         return JsonResponse({'session_id': str(session.id), 'title': session.title})
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def rename_tutor_session(request, session_id):
+    """PATCH a tutor session title. The authenticated student must own the session."""
+    if request.method != 'PATCH':
+        return JsonResponse({'error': 'PATCH only'}, status=405)
+    try:
+        from .models import TutorSession
+        student, _subjects, error_message = _get_student_tutor_context(
+            request.user, getattr(request, 'tenant', None)
+        )
+        if error_message:
+            return JsonResponse({'error': error_message}, status=403)
+        session = TutorSession.objects.get(id=session_id, student=student)
+        data = json.loads(request.body)
+        title = str(data.get('title', '')).strip()[:200]
+        if not title:
+            return JsonResponse({'error': 'Title is required'}, status=400)
+        session.title = title
+        session.save(update_fields=['title'])
+        return JsonResponse({'ok': True, 'title': session.title})
+    except TutorSession.DoesNotExist:
+        return JsonResponse({'error': 'Session not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 

@@ -651,6 +651,59 @@
                         <strong style="color: var(--text-dark);">Average Grade:</strong> 
                         <span style="color: var(--primary-blue); font-weight: 700; font-size: 1.25rem;">{{ average_grade }}%</span>
                     </div>
+
+                    {% if learner_memory and learner_memory.total_sessions_analysed > 0 %}
+                    <div style="margin-top:1.5rem;padding:1.25rem;background:linear-gradient(135deg,rgba(99,102,241,.06),rgba(168,85,247,.06));border-radius:12px;border:1px solid rgba(99,102,241,.15);">
+                        <h5 style="font-size:.95rem;font-weight:700;margin-bottom:1rem;color:var(--text-dark);display:flex;align-items:center;gap:.5rem;">
+                            <i class="bi bi-robot text-primary"></i> Aura Learning Profile
+                            <small style="font-weight:400;font-size:.75rem;color:var(--text-muted);">{{ learner_memory.total_sessions_analysed }} session{{ learner_memory.total_sessions_analysed|pluralize }} analysed</small>
+                        </h5>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+                            {% if learner_memory.mastered_topics %}
+                            <div style="background:rgba(16,185,129,.07);border-radius:8px;padding:.75rem;">
+                                <div style="font-size:.7rem;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem;">✅ Mastered</div>
+                                {% for topic in learner_memory.mastered_topics|slice:":5" %}
+                                <span style="display:inline-block;background:rgba(16,185,129,.15);color:#065f46;border-radius:20px;padding:1px 8px;font-size:.72rem;margin:1px;">{{ topic }}</span>
+                                {% endfor %}
+                                {% if learner_memory.mastered_topics|length > 5 %}
+                                <span style="font-size:.7rem;color:var(--text-muted);">+{{ learner_memory.mastered_topics|length|add:"-5" }} more</span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            {% if learner_memory.active_misconceptions %}
+                            <div style="background:rgba(239,68,68,.06);border-radius:8px;padding:.75rem;">
+                                <div style="font-size:.7rem;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem;">⚠️ Needs Work</div>
+                                {% for m in learner_memory.active_misconceptions|slice:":3" %}
+                                <span style="display:inline-block;background:rgba(239,68,68,.1);color:#7f1d1d;border-radius:20px;padding:1px 8px;font-size:.72rem;margin:1px;">{{ m }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            {% if learner_memory.strengths %}
+                            <div style="background:rgba(99,102,241,.06);border-radius:8px;padding:.75rem;">
+                                <div style="font-size:.7rem;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem;">💡 Strengths</div>
+                                {% for s in learner_memory.strengths|slice:":3" %}
+                                <span style="display:inline-block;background:rgba(99,102,241,.1);color:#3730a3;border-radius:20px;padding:1px 8px;font-size:.72rem;margin:1px;">{{ s }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            {% if learner_memory.review_queue %}
+                            <div style="background:rgba(245,158,11,.06);border-radius:8px;padding:.75rem;">
+                                <div style="font-size:.7rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem;">⏰ Review Queue</div>
+                                <span style="font-size:.85rem;font-weight:700;color:#92400e;">{{ learner_memory.review_queue|length }} topic{{ learner_memory.review_queue|length|pluralize }} queued</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% if aura_state %}
+                        <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap;font-size:.75rem;">
+                            <span style="background:rgba(99,102,241,.1);border-radius:20px;padding:2px 10px;color:#4338ca;"><i class="bi bi-book-half me-1"></i>Vocab L{{ aura_state.vocab_level }}</span>
+                            {% if aura_state.mood and aura_state.mood != 'neutral' %}
+                            <span style="background:rgba(168,85,247,.1);border-radius:20px;padding:2px 10px;color:#7e22ce;">{% if aura_state.mood == 'positive' %}😊{% elif aura_state.mood == 'frustrated' %}😤{% else %}😞{% endif %} {{ aura_state.mood|capfirst }}</span>
+                            {% endif %}
+                            <span style="color:var(--text-muted);">Last: {{ aura_state.updated_by|capfirst }} · {{ aura_state.updated_at|timesince }} ago</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
                 </div>
 
                 <!-- Attendance Tab -->

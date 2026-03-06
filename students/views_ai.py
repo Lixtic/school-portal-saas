@@ -450,6 +450,19 @@ def create_realtime_session(request):
                     "Never lecture — ask one question per turn and wait for the student's response. "
                     + ("\n\n─── STUDENT PROFILE ───\n" + student_context if student_context else "")
                 )
+
+        # Create a TutorSession log row for this voice session
+        db_session_id = None
+        if student:
+            try:
+                from academics.tutor_models import TutorSession
+                _voice_session = TutorSession.objects.create(
+                    student=student,
+                    title='Voice Session',
+                )
+                db_session_id = str(_voice_session.id)
+            except Exception as ex:
+                logger.warning('Voice TutorSession create failed: %s', ex)
         else:
             system_instructions = (
                 voice_prefix +
@@ -514,6 +527,7 @@ def create_realtime_session(request):
             "voice": voice,
             "student_context": student_context,
             "system_instructions": system_instructions,
+            "db_session_id": db_session_id,
         })
         
     except Exception as e:

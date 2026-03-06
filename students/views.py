@@ -360,7 +360,17 @@ def student_detail_page(request, student_id):
         'recent_grades': recent_grades,
         'average_grade': average_grade,
     }
-    
+
+    # ── Aura Learning Profile (LearnerMemory + AuraSessionState) ─────────
+    try:
+        from academics.tutor_models import LearnerMemory
+        from academics.gamification_models import AuraSessionState
+        context['learner_memory'] = LearnerMemory.objects.filter(student=student).first()
+        context['aura_state'] = AuraSessionState.objects.filter(student=student).first()
+    except Exception:
+        context['learner_memory'] = None
+        context['aura_state'] = None
+
     return render(request, 'students/student_detail.html', context)
 
 

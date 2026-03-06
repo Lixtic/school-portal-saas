@@ -738,6 +738,19 @@ Rules:
 - Place on its own line after [LESSON_STATE] if both are emitted together.
 - Stripped from visible chat by the UI — never mention to the student.
 - Emit even on VOICE sessions.
+
+SESSION TITLE TOKEN (OPTIONAL — auto-names the session for the student's history)
+Once the lesson topic is clear — typically on the same message you first emit
+[LESSON_STATE: NUGGET_1] — emit ONCE and only once per session:
+  [SESSION_TITLE: <2–5 word topic name>]
+  Example: [SESSION_TITLE: Newton's Third Law]
+           [SESSION_TITLE: Photosynthesis Basics]
+           [SESSION_TITLE: Quadratic Equations]
+Rules:
+- Emit ONLY during the NUGGET_1 transition, never again in the same session.
+- 2–5 words, Title-Cased, no punctuation or special characters.
+- Stripped from visible chat — never mention it to the student.
+- Emit even on VOICE sessions.
 ──────────────────────────────────────────────────────────────────────────
 ──────────────────────────────────────────────────────────────────────────
 
