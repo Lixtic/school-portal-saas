@@ -2103,15 +2103,24 @@ def ai_tutor_chat(request):
         # Get or create session
         if session_id:
             session = TutorSession.objects.get(id=session_id, student=student)
+            # Backfill title if missing and subject is now known
+            if not session.title and session.subject_id:
+                session.title = session.subject.name
+                session.save(update_fields=['title'])
         else:
             subject_pk = None
+            session_title = 'General Chat'
             if subject_id:
                 if str(subject_id) not in allowed_subject_ids:
                     return JsonResponse({'error': 'Invalid subject selected'}, status=400)
                 subject_pk = subject_id
+                matched = next((s for s in subjects if str(s.id) == str(subject_id)), None)
+                if matched:
+                    session_title = matched.name
             session = TutorSession.objects.create(
                 student=student,
-                subject_id=subject_pk
+                subject_id=subject_pk,
+                title=session_title,
             )
         
         # Save user message
@@ -2252,12 +2261,18 @@ def ai_tutor_new_session(request):
                 return JsonResponse({'error': 'Invalid subject selected'}, status=400)
             subject_pk = subject_id
 
+        session_title = 'General Chat'
+        if subject_pk:
+            matched = next((s for s in subjects if str(s.id) == str(subject_pk)), None)
+            if matched:
+                session_title = matched.name
         session = TutorSession.objects.create(
             student=student,
             subject_id=subject_pk,
+            title=session_title,
         )
 
-        return JsonResponse({'session_id': str(session.id)})
+        return JsonResponse({'session_id': str(session.id), 'title': session.title})
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
     except Exception as e:
@@ -2387,9 +2402,11 @@ def tutor_sessions(request):
                 topics = s.topics_discussed if isinstance(s.topics_discussed, list) else []
                 topic_text = ", ".join([str(t) for t in topics[:2]])
                 
+                display_title = s.title or (s.subject.name if s.subject else 'General Chat')
                 data.append({
                     'id': s.id,
-                    'subject': s.subject.name if s.subject else 'General',
+                    'title': display_title,
+                    'subject': s.subject.name if s.subject else None,
                     'topic': topic_text,
                     'date': s.started_at.strftime('%b %d, %I:%M %p'),
                     'started_at_iso': s.started_at.isoformat(),

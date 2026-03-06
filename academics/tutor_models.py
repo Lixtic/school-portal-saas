@@ -18,7 +18,8 @@ class TutorSession(models.Model):
     """Track AI tutor chat sessions"""
     student = models.ForeignKey('students.Student', on_delete=models.CASCADE, related_name='tutor_sessions')
     subject = models.ForeignKey('academics.Subject', on_delete=models.SET_NULL, null=True, blank=True)
-    
+    title = models.CharField(max_length=200, blank=True, default='')
+
     started_at = models.DateTimeField(default=timezone.now)
     ended_at = models.DateTimeField(null=True, blank=True)
     
@@ -27,9 +28,20 @@ class TutorSession(models.Model):
     
     class Meta:
         ordering = ['-started_at']
-    
+
+    def get_display_title(self):
+        """Return title, falling back to subject name or 'General Chat'."""
+        if self.title:
+            return self.title
+        if self.subject_id:
+            try:
+                return self.subject.name
+            except Exception:
+                pass
+        return 'General Chat'
+
     def __str__(self):
-        return f"{self.student.user.get_full_name()} - {self.started_at.date()}"
+        return f"{self.student.user.get_full_name()} — {self.get_display_title()} ({self.started_at.date()})"
 
 
 class TutorMessage(models.Model):
