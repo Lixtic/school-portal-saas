@@ -2177,6 +2177,10 @@
         text = text.replace(/\n?```json\s*\{[\s\S]*?\}\s*```/g, '');
         // Remove partial ```json block at the end (still streaming)
         text = text.replace(/\n?```json\s*\{[\s\S]*$/g, '');
+        // Remove complete <suggested_responses>...</suggested_responses> blocks
+        text = text.replace(/<suggested_responses>[\s\S]*?<\/suggested_responses>/gi, '');
+        // Remove partial <suggested_responses> block (still streaming — no closing tag yet)
+        text = text.replace(/<suggested_responses>[\s\S]*$/gi, '');
         // Remove [AWARD_XP: ...] tokens
         text = text.replace(/\[AWARD_XP:\s*\d+\]/gi, '');
         // Remove [DRAW: ...] tokens
