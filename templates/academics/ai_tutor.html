@@ -2399,6 +2399,8 @@
         text = text.replace(/\[POWER_WORDS:\s*[^\]]*\]/gi, '');
         // Remove [LESSON_STATE: ...] tokens
         text = text.replace(/\[LESSON_STATE:\s*[^\]]*\]/gi, '');
+        // Remove leaked internal step/state labels (Core idea:, Hint:, Step N:, Rung N:, etc.)
+        text = text.replace(/^(Core\s+idea|Hint|Step\s+\d+|Rung\s+\d+|Phase\s+\d+|State\s+\d+)\s*:\s*/gim, '');
         // Remove hallucinated structural delimiters (<END OF NUGGET>, <NUGGET>, </NUGGET>, etc.)
         text = text.replace(/<\/?END\s+OF\s+NUGGET>/gi, '');
         text = text.replace(/<\/?NUGGET[^>]*>/gi, '');
