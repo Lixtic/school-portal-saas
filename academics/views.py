@@ -2071,6 +2071,10 @@ def aura_session_state(request):
         return JsonResponse(state.as_dict())
 
     return JsonResponse({'error': 'GET or PATCH only'}, status=405)
+
+
+@login_required
+def ai_tutor_chat(request):
     from .ai_tutor import stream_tutor_response
     from .models import TutorSession, TutorMessage, Subject
     
