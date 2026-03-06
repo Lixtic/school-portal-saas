@@ -2419,3 +2419,171 @@ def timetable_conflicts(request):
         'academic_year': academic_year,
     }
     return render(request, 'academics/timetable_conflicts.html', context)
+
+
+# ---------------------------------------------------------------------------
+# Help Chat API  (authenticated, role-aware AI assistant)
+# ---------------------------------------------------------------------------
+
+HELP_ROLE_PROMPTS = {
+    'admin': (
+        "You help school admins use the School Management System.\n"
+        "Key sections they manage:\n"
+        "- Students: enroll, edit, import via CSV, promote, view report cards\n"
+        "- Teachers: add, edit, assign classes\n"
+        "- Classes & Subjects: create classes, assign subjects and class teachers\n"
+        "- Finance: fee structures, assign fees to students, record payments, send reminders\n"
+        "- Attendance: mark daily attendance per class\n"
+        "- Timetable: build and view weekly schedules\n"
+        "- Homework: create assignments with AI-generated questions\n"
+        "- Announcements: post notices to all or specific roles\n"
+        "- Analytics: enrollment, fee collection, attendance heatmap, grade averages\n"
+        "- Settings: school name, logo, term dates, academic year\n"
+        "- AI Tools: Aura AI tutor for students, teacher AI lesson assistant\n"
+    ),
+    'teacher': (
+        "You help teachers use the School Management System.\n"
+        "Key features available:\n"
+        "- Enter Grades: input class scores and exam scores; system auto-calculates totals\n"
+        "- My Classes: see assigned subjects and classes\n"
+        "- Attendance: mark daily attendance for your classes\n"
+        "- Lesson Plans: create, edit, print and AI-generate lesson plans\n"
+        "- AI Command Centre: Aura T – AI that helps plan lessons and generate assignments\n"
+        "- Homework: create homework with AI-generated questions for students\n"
+        "- Timetable: view the school timetable\n"
+        "- Schedule: view your personal teaching schedule\n"
+        "- Duty Roster: view duty week assignments\n"
+        "- Curriculum Library: store and retrieve teaching resources\n"
+        "- Analytics: view class performance insights and at-risk students\n"
+    ),
+    'student': (
+        "You help students use the School Management System.\n"
+        "Key features available:\n"
+        "- Dashboard: quick overview of grades, attendance, upcoming homework\n"
+        "- Report Card: view term report cards\n"
+        "- Schedule: view your personal class timetable\n"
+        "- AI Tutor (Aura): chat with an AI tutor for help with subjects\n"
+        "- Aura Arena: competitive AI quiz battle with classmates\n"
+        "- Aura Voice: voice-based AI learning assistant\n"
+        "- Homework: view and submit assigned homework\n"
+        "- Announcements: read school notices\n"
+        "- Messages: communicate with teachers and staff\n"
+    ),
+    'parent': (
+        "You help parents use the School Management System.\n"
+        "Key features available:\n"
+        "- My Children: view profile, attendance, and grades for each child\n"
+        "- Fees: check fee balances, payment history, and download receipts\n"
+        "- Report Cards: view and print your child's report cards\n"
+        "- Homework: see homework assigned to your children\n"
+        "- Announcements: read school notices\n"
+        "- Messages: contact teachers or school administration\n"
+    ),
+}
+
+HELP_FALLBACK_FAQ = [
+    (['grade', 'score', 'result', 'mark'], "Grades are entered by teachers under **Enter Grades**. Each student gets a class score and exam score; the system calculates the total and assigns a grade automatically."),
+    (['attendance', 'absent', 'present'], "Attendance is marked daily per class. Go to **Mark Attendance**, select the class and date, then mark each student's status."),
+    (['fee', 'payment', 'balance', 'receipt'], "Go to **Finance → Manage Fees** to view fee structures, assign fees to students, and record payments. Students/parents can see balances under their portal."),
+    (['report card', 'report'], "Report cards are generated per student per term. Go to **Students → Report Card** and select the student and term."),
+    (['timetable', 'schedule', 'period'], "The timetable is managed under **Academics → Timetable**. Teachers can view their personal schedule under **My Schedule**."),
+    (['homework', 'assignment', 'task'], "Homework is created under the **Homework** section. You can add questions manually or use AI to generate them. Students see assigned work in their portal."),
+    (['password', 'login', 'access', 'sign in'], "Passwords can be changed under your profile (top-right menu → Change Password). Admins can reset any user's password from **Manage Users**."),
+    (['class', 'subject', 'enroll'], "Classes and subjects are managed under **Academics → Manage Classes** and **Manage Subjects**. Assign subjects to classes and teachers via **Class Subjects**."),
+    (['announcement', 'notice', 'notification'], "Post announcements under **Announcements → Manage**. Set the audience to All, Admin, Teachers, Students, or Parents."),
+    (['setting', 'logo', 'school name', 'term', 'academic year'], "School settings (name, logo, motto, term dates) are under **Academics → School Settings**."),
+]
+
+
+@login_required
+def help_chat_api(request):
+    """Role-aware AI help assistant for all authenticated users."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    # Rate limiting: 30 requests per minute per user
+    from django.core.cache import cache
+    rate_key = f"help_chat_{request.user.pk}"
+    hits = cache.get(rate_key, 0)
+    if hits >= 30:
+        return JsonResponse({'error': 'Too many requests. Please wait a moment.'}, status=429)
+    cache.set(rate_key, hits + 1, 60)
+
+    try:
+        payload = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    question = (payload.get('question') or '').strip()
+    history = payload.get('history') or []  # [{role, content}, ...]
+
+    if not question:
+        return JsonResponse({'answer': 'Please ask a question and I\'ll do my best to help!'})
+
+    user_role = getattr(request.user, 'user_type', 'admin')
+    role_context = HELP_ROLE_PROMPTS.get(user_role, HELP_ROLE_PROMPTS['admin'])
+
+    try:
+        school_info = SchoolInfo.objects.first()
+        school_name = school_info.name if school_info else (request.tenant.name if hasattr(request, 'tenant') else 'your school')
+    except Exception:
+        school_name = 'your school'
+
+    system_prompt = (
+        f"You are the friendly help assistant for {school_name}'s School Management System. "
+        f"Your job is to guide users step-by-step.\n\n"
+        f"{role_context}\n"
+        "Rules:\n"
+        "- Be concise (2–4 sentences max unless a step-by-step list is needed).\n"
+        "- Use **bold** for menu names and button labels.\n"
+        "- If unsure of a school-specific detail, say so and point to the relevant section.\n"
+        "- Never make up data about the school."
+    )
+
+    api_key = getattr(settings, 'OPENAI_API_KEY', '') or os.environ.get('OPENAI_API_KEY', '')
+
+    if api_key:
+        try:
+            from academics.ai_tutor import get_openai_chat_model, OPENAI_CHAT_COMPLETIONS_URL
+            import urllib.request as _urllib_req
+            messages = [{"role": "system", "content": system_prompt}]
+            # Include last 6 turns of history to keep context
+            for turn in history[-6:]:
+                if turn.get('role') in ('user', 'assistant') and turn.get('content'):
+                    messages.append({"role": turn['role'], "content": str(turn['content'])[:500]})
+            messages.append({"role": "user", "content": question})
+
+            req_payload = json.dumps({
+                "model": get_openai_chat_model(),
+                "messages": messages,
+                "max_tokens": 300,
+                "temperature": 0.4,
+            }).encode('utf-8')
+
+            req = _urllib_req.Request(
+                OPENAI_CHAT_COMPLETIONS_URL,
+                data=req_payload,
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                method="POST",
+            )
+            with _urllib_req.urlopen(req, timeout=15) as resp:
+                result = json.loads(resp.read().decode('utf-8'))
+            answer = result['choices'][0]['message']['content'].strip()
+            return JsonResponse({'answer': answer})
+        except Exception as e:
+            logger.warning("help_chat_api OpenAI error: %s", e)
+            # fall through to FAQ
+
+    # --- Static FAQ fallback ---
+    q_lower = question.lower()
+    for keywords, response in HELP_FALLBACK_FAQ:
+        if any(k in q_lower for k in keywords):
+            return JsonResponse({'answer': response})
+
+    return JsonResponse({'answer': (
+        "I'm not sure about that specific question. Try checking the relevant section in the "
+        "navigation menu, or ask your school administrator for assistance."
+    )})

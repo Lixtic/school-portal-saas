@@ -7,6 +7,7 @@ urlpatterns = [
     path('copilot/', views.copilot_assistant, name='copilot_assistant'),
     path('copilot/history/', views.copilot_history, name='copilot_history'),
     path('admissions/assistant/', views.admissions_assistant, name='admissions_assistant'),
+    path('help/chat/', views.help_chat_api, name='help_chat'),
     path('activities/', views.activities_public, name='activities'),
     path('activities/manage/', views.manage_activities, name='manage_activities'),
     
