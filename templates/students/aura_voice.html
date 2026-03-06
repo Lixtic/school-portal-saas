@@ -1897,6 +1897,8 @@ async function renderMermaidOnBoard(code, title) {
     boardTitle.textContent = title || 'Visualization';
     whiteboardContent.innerHTML = '<div class="wb-loading"><i class="fa-solid fa-spinner fa-spin"></i> Drawing…</div>';
     whiteboardOverlay.classList.add('visible');
+    // Strip ```mermaid ... ``` fences that the model may add inside the token
+    code = code.replace(/^```(?:mermaid)?\s*/i, '').replace(/\s*```$/i, '').trim();
     const id = 'wb-' + Date.now();
     try {
         mermaid.initialize({
