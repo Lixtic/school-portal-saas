@@ -1415,6 +1415,15 @@
                     <div style="font-weight:700;font-size:13px;margin-bottom:10px;"><i class="bi bi-lightning-charge-fill text-warning me-1"></i>Generate Practice Quiz</div>
                     <div id="practiceSetup">
                         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+                            <div style="min-width:140px;">
+                                <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:3px;">Subject</label>
+                                <select id="practiceSubjectSelect" class="form-select form-select-sm">
+                                    <option value="">— choose subject —</option>
+                                    {% for subject in subjects %}
+                                    <option value="{{ subject.id }}">{{ subject.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                             <div style="flex:2;min-width:120px;">
                                 <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:3px;">Topic</label>
                                 <input id="practiceTopicInput" type="text" class="form-control form-control-sm" placeholder="e.g. Photosynthesis">
@@ -3045,7 +3054,7 @@
         const count      = parseInt(document.getElementById('practiceCount').value, 10);
         const genBtn     = document.getElementById('generatePracticeBtn');
         const quizArea   = document.getElementById('practiceQuizArea');
-        const subjectEl  = document.getElementById('subjectSelect');
+        const subjectEl  = document.getElementById('practiceSubjectSelect');
         const subjectId  = subjectEl ? parseInt(subjectEl.value || '0', 10) : 0;
 
         if (!subjectId) {
