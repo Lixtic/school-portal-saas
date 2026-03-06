@@ -2294,6 +2294,9 @@ function handleRealtimeMessage(msg) {
             // ── XP Award ───────────────────────────────────────────
             _logVoiceAwardXP(currentDiagramText);
 
+            // ── Shared State Manager write-back (voice side) ───────
+            _syncAuraState(currentDiagramText, targetSentiment);
+
             // Final diagram check — catch any complete block in the last text delta
             checkAndRenderDiagram(currentDiagramText);
 
@@ -2504,6 +2507,45 @@ document.addEventListener('keydown', (e) => {
 
 // Init
 updateState('IDLE');
+_loadAuraState();  // Shared State Manager: resume cross-session lesson context
+
+// ── Shared State Manager helpers (voice side) ─────────────────────────
+function _loadAuraState() {
+    fetch('{% url "academics:aura_session_state" %}')
+        .then(r => r.json())
+        .then(data => {
+            if (data.lesson_state && data.lesson_state !== 'IDLE') {
+                // Show resume hint in sub-status bar
+                if (typeof substatusText !== 'undefined' && substatusText) {
+                    substatusText.textContent = `Resuming from ${data.lesson_state.replace('_', ' ')}…`;
+                    setTimeout(() => { substatusText.textContent = ''; }, 4000);
+                }
+            }
+        })
+        .catch(() => {});
+}
+
+function _syncAuraState(diagramText, sentimentValue) {
+    /** Parse the final [LESSON_STATE:X] token and sentiment float,
+     *  then PATCH the Shared State Manager so text-chat can resume. */
+    const _lsMatch = diagramText.match(/\[LESSON_STATE:\s*([\w_]+)\]/i);
+    if (!_lsMatch) return;
+    const lessonState = _lsMatch[1].trim().toUpperCase();
+
+    let mood = 'neutral';
+    if      (sentimentValue >  0.35) mood = 'positive';
+    else if (sentimentValue < -0.35) mood = 'negative';
+    else if (sentimentValue < -0.65) mood = 'frustrated';
+
+    fetch('{% url "academics:aura_session_state" %}', {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: JSON.stringify({ lesson_state: lessonState, mood, updated_by: 'voice' }),
+    }).catch(() => {});
+}
 
 // Cleanup
 window.addEventListener('beforeunload', () => {

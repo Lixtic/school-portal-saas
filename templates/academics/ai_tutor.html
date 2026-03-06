@@ -1545,11 +1545,34 @@
         
         initCanvas();
         updateXPDisplay();
+        _fetchAuraState();   // Shared State Manager: restore cross-session lesson context
     };
 
     function updateXPDisplay() {
         if(xpBar) xpBar.style.width = currentProgress + '%';
         if(xpLevel) xpLevel.innerText = currentLevel;
+    }
+
+    // ── Shared State Manager helpers (text-chat side) ──────────────────────────
+    function _fetchAuraState() {
+        fetch('{% url "academics:aura_session_state" %}')
+            .then(r => r.json())
+            .then(data => {
+                if (data.lesson_state && data.lesson_state !== 'IDLE')
+                    updateLessonState(data.lesson_state);
+            })
+            .catch(() => {});
+    }
+
+    function _patchAuraState(updates) {
+        fetch('{% url "academics:aura_session_state" %}', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: JSON.stringify({ ...updates, updated_by: 'text' }),
+        }).catch(() => {});
     }
 
     function showXPAnimation(amount) {
@@ -2291,7 +2314,9 @@
         const _lsRe = /\[LESSON_STATE:\s*([\w_]+)\]/i;
         const _lsM = fullText.match(_lsRe);
         if (_lsM) {
-            updateLessonState(_lsM[1].trim().toUpperCase());
+            const _lsVal = _lsM[1].trim().toUpperCase();
+            updateLessonState(_lsVal);
+            _patchAuraState({ lesson_state: _lsVal });  // Shared State Manager write-back
             fullText = fullText.replace(/\[LESSON_STATE:\s*[^\]]*\]/gi, '');
         }
 

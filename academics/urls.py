@@ -58,4 +58,7 @@ urlpatterns = [
     path('ai-tutor/practice/', views.generate_practice, name='generate_practice'),
     path('ai-tutor/explain/', views.explain_concept, name='explain_concept'),
     path('ai-tutor/sessions/', views.tutor_sessions, name='tutor_sessions'),
+
+    # Shared State Manager (cross-session: text ↔ voice)
+    path('aura/state/', views.aura_session_state, name='aura_session_state'),
 ]

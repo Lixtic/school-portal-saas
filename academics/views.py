@@ -1994,9 +1994,83 @@ def _process_xp_awards(student, full_text):
     return 0, False
 
 
+def _save_lesson_state(student, lesson_state, updated_by='text'):
+    """
+    Persist the student's current Lesson State to AuraSessionState.
+    Safe to call on every response — uses get_or_create + update_fields.
+    """
+    try:
+        from .gamification_models import AuraSessionState
+        state, _ = AuraSessionState.objects.get_or_create(student=student)
+        state.lesson_state = lesson_state
+        state.updated_by = updated_by
+        state.save(update_fields=['lesson_state', 'updated_by', 'updated_at'])
+    except Exception as e:
+        logger.warning('_save_lesson_state failed: %s', e)
+
+
 @login_required
-def ai_tutor_chat(request):
-    """Stream AI tutor responses"""
+def aura_session_state(request):
+    """
+    Shared State Manager endpoint — Redux-style single source of truth.
+    Both text-chat (ai_tutor.html) and voice (aura_voice.html) read/write here.
+
+    GET  → returns the student's current state as JSON
+    PATCH → updates one or more fields and returns the updated state
+    """
+    if request.user.user_type != 'student':
+        return JsonResponse({'error': 'Students only'}, status=403)
+
+    from .gamification_models import AuraSessionState
+    try:
+        from students.models import Student
+        student = Student.objects.get(user=request.user)
+    except Student.DoesNotExist:
+        return JsonResponse({'error': 'Student profile not found'}, status=404)
+
+    state, _ = AuraSessionState.objects.get_or_create(
+        student=student,
+        defaults={'vocab_level': 3},
+    )
+
+    if request.method == 'GET':
+        return JsonResponse(state.as_dict())
+
+    if request.method == 'PATCH':
+        try:
+            body = json.loads(request.body.decode('utf-8'))
+        except Exception:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+        changed = []
+        if 'lesson_state' in body:
+            val = str(body['lesson_state']).strip().upper()
+            if val:
+                state.lesson_state = val
+                changed.append('lesson_state')
+        if 'vocab_level' in body:
+            try:
+                v = int(body['vocab_level'])
+                state.vocab_level = max(1, min(v, 6))
+                changed.append('vocab_level')
+            except (ValueError, TypeError):
+                pass
+        if 'mood' in body:
+            val = str(body['mood']).strip().lower()
+            allowed = {c[0] for c in AuraSessionState.MOOD_CHOICES}
+            if val in allowed:
+                state.mood = val
+                changed.append('mood')
+        if 'updated_by' in body:
+            val = str(body['updated_by']).strip().lower()
+            if val in ('text', 'voice'):
+                state.updated_by = val
+                changed.append('updated_by')
+        if changed:
+            state.save(update_fields=changed + ['updated_at'])
+        return JsonResponse(state.as_dict())
+
+    return JsonResponse({'error': 'GET or PATCH only'}, status=405)
     from .ai_tutor import stream_tutor_response
     from .models import TutorSession, TutorMessage, Subject
     
@@ -2075,6 +2149,11 @@ def ai_tutor_chat(request):
                 
                 # Process Gamification (XP Awards)
                 _process_xp_awards(student, full_assistant_message)
+
+                # ── Shared State Manager: persist LESSON_STATE token ──────────
+                _ls = re.search(r'\[LESSON_STATE:\s*([\w_]+)\]', full_assistant_message, re.I)
+                if _ls:
+                    _save_lesson_state(student, _ls.group(1).strip().upper(), updated_by='text')
 
                 TutorMessage.objects.create(
                     session=session,

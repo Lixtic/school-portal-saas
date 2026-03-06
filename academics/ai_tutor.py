@@ -932,6 +932,15 @@ LOCALIZED FINAL ASSESSMENT LOGIC
     except Exception:
         pass  # never block on this
 
+    # ── SHARED STATE MANAGER: resume cross-session lesson progress ──────────────────
+    try:
+        from .gamification_models import AuraSessionState
+        _aura_state = AuraSessionState.objects.filter(student=student).first()
+        if _aura_state:
+            context += _aura_state.as_prompt_injection()
+    except Exception:
+        pass
+
     context += "\n\nAlways maintain an encouraging, supportive tone. Keep responses concise, structured, and cognitively active."
 
     return context
