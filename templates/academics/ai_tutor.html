@@ -2448,9 +2448,35 @@
     // Track the active session ID (may be set by backend or first chat response)
     let currentSessionId = '{{ selected_session_id|escapejs }}' || null;
 
-    function createNewChatSession() {
-        // Navigate to AI tutor without session param to start fresh
-        window.location.href = "{% url 'academics:ai_tutor' %}";
+    async function createNewChatSession() {
+        // POST to create a real new session, then navigate to it so the page
+        // loads clean (no old messages). A bare navigate to ai_tutor would
+        // auto-load the latest existing session instead.
+        const btn = document.querySelector('[onclick="createNewChatSession()"]');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>'; }
+        try {
+            const res = await fetch("{% url 'academics:ai_tutor_new_session' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: JSON.stringify({
+                    subject_id: (document.getElementById('subjectSelect') || {}).value || null
+                })
+            });
+            if (!res.ok) throw new Error('Server error ' + res.status);
+            const data = await res.json();
+            if (data.session_id) {
+                window.location.href = "{% url 'academics:ai_tutor' %}" + '?session=' + data.session_id;
+            } else {
+                throw new Error(data.error || 'No session_id returned');
+            }
+        } catch (e) {
+            console.error('Failed to create new session:', e);
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-plus-lg me-1"></i> New Session'; }
+            alert('Could not create a new session. Please try again.');
+        }
     }
 
     // Sessions Sidebar Logic

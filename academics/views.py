@@ -2115,6 +2115,7 @@ def ai_tutor_chat(request):
 
 
 @login_required
+@login_required
 def ai_tutor_new_session(request):
     """Create a new AI Tutor session for the current student."""
     from .models import TutorSession
@@ -2241,6 +2242,7 @@ def explain_concept(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
+@login_required
 @login_required
 def tutor_sessions(request):
     """View all tutor sessions"""
