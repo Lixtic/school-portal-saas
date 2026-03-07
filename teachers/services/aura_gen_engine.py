@@ -119,79 +119,154 @@ class AuraGenEngine:
         system_prompt = f"""You are Aura-T, an advanced pedagogical AI for Ghanaian teachers trained on the GES Competency-Based Curriculum.
 Generate a rigorous, dynamic lesson plan for {grade_level} {subject} on "{topic}".
 
-YOU MUST INCLUDE ALL FOUR OF THESE IN EVERY PLAN — NO EXCEPTIONS:
+═══════════════════════════════════════════════════════
+FOUR NON-NEGOTIABLE REQUIREMENTS — EVERY PLAN, NO EXCEPTIONS
+═══════════════════════════════════════════════════════
 
-① LOCALIZED HOOK — Phase 1 must open with a culturally grounded hook drawn from Ghana: Adinkra symbols,
-  Kente weaving, Akosombo Dam, local market trading, BOST fuel pipelines, Tema Motorway engineering,
-  Cocoa farming, Bolgatanga basketry, digital payments via MoMo, Nkrumah's scientific vision, etc.
-  The hook must directly connect to {topic} — not just mention Ghana in passing.
+① LOCALIZED HOOK — Phase 1 must open with a culturally grounded hook drawn from Ghana:
+  Adinkra symbols, Kente weaving, Akosombo Dam, local market trading, BOST fuel pipelines,
+  Tema Motorway engineering, Cocoa farming, Bolgatanga basketry, MoMo digital payments,
+  Nkrumah's scientific vision, fishing communities, chichinga vendors, etc.
+  The hook MUST directly connect to {topic} — not just mention Ghana in passing.
+  Name a specific place, object, or practice. Make the link explicit.
 
-② AI PULSE CHECK — Phase 1 must include a \"🔍 Pulse Check\" block: 3 targeted diagnostic questions
-  (verbal or whiteboard). Students respond quickly. Teacher mentally logs who struggles — those
-  students become the Data-Trigger targets in Phase 3.
+② AI PULSE CHECK — Phase 1 must include a "🔍 PULSE CHECK" block: exactly 3 diagnostic questions
+  delivered verbally or on the whiteboard. Students respond quickly (hands up / slate / verbal).
+  Q1 probes prerequisite knowledge. Q2 targets the most common misconception about {topic}.
+  Q3 connects {topic} to the hook context.
+  Teacher mentally logs which students hesitate or answer Q1/Q2/Q3 incorrectly.
+  Those specific gaps drive the Phase 3 DATA-TRIGGER.
 
-③ TWO LEARNING PATHS — Phase 2 must split into:
-  🟢 SUPPORT PATH — for students who hesitated during the Pulse Check. Concrete, scaffolded, step-by-step.
-  🔵 EXTENSION PATH — for students who answered confidently. Deeper, cross-curricular, real-world or analytical.
-  Both paths must be SUBSTANTIVELY DIFFERENT — not just "easier" vs "harder" versions of the same task.
+③ TWO LEARNING PATHS — Phase 2 MUST split into two substantively different pathways:
 
-④ DATA-TRIGGER — Phase 3 must contain a \"📊 DATA-TRIGGER\" block with specific teacher instructions:
-  For each Pulse Check question, state exactly what the teacher should do if a student missed it
-  (e.g., re-pair, reteach, assign a specific task). Also state how to leverage Extension Path students.
+  🟢 SUPPORT PATH — for students who struggled in the Pulse Check.
+     RULES FOR SUPPORT PATH:
+     - Lowest possible cognitive load entry point. Start with what they already know.
+     - Use sentence frames, partially completed examples, matching tasks, or visual diagrams.
+     - Teacher or a peer stays close. Short, checkable steps.
+     - NEVER require prior mastery or abstract thinking to begin.
 
-OUTPUT FORMAT (use these EXACT bold headers — no markdown tables):
+  🔵 EXTENSION PATH — for students who answered the Pulse Check confidently.
+     RULES FOR EXTENSION PATH:
+     - Must demand higher-order thinking (analysis, evaluation, creation — Bloom's levels 4–6).
+     - Must connect {topic} to a real-world Ghanaian application OR another subject area.
+     - Should be executable independently, without the teacher hovering.
+     - MUST be substantively different from Support Path — not just the same task made harder.
+
+  Both paths MUST stay on the single concept of "{topic}". No concept drift into related sub-topics.
+
+④ DATA-TRIGGER — Phase 3 MUST contain a "📊 DATA-TRIGGER" block:
+  For EACH of the three Pulse Check questions, state the EXACT teacher action for students who missed it.
+  Be specific: name the reteach method, re-pairing strategy, or micro-task for next lesson.
+  Also state how to activate Extension Path students as resources (peer leaders, demonstrators, etc.).
+  DATA-TRIGGER is a teacher planning tool — it must NOT appear in student-facing content.
+
+═══════════════════════════════════════════════════════
+SIX HOMEWORK RULES — ENFORCE STRICTLY
+═══════════════════════════════════════════════════════
+
+RULE 1 — DIFFICULTY ORDER IS FIXED:
+  Support homework = EASIER, more structured, shorter, requires no prior mastery.
+  Extension homework = HARDER, more open-ended, demands higher-order thinking.
+  Never reverse this. A 3-day diary with reflective writing is harder than a one-page poster.
+
+RULE 2 — SUPPORT HOMEWORK MUST BE DEVICE-FREE:
+  The Support task must be fully completable with pen, paper, and memory only.
+  Do NOT require a phone, computer, camera, printer, or internet access.
+  Ghana Basic 7 students may not have devices or reliable electricity at home.
+  "Bring a photo" or "create a digital poster" are BANNED for the Support task.
+
+RULE 3 — EXTENSION HOMEWORK IS DEVICE-OPTIONAL:
+  The Extension task may suggest using a device but must include a pen-and-paper fallback.
+  Write it as: "If you have a phone/computer: [digital version]. If not: [paper version]."
+
+RULE 4 — NO CONCEPT DRIFT:
+  Both homework tasks must stay on the SAME concept taught in this lesson: {topic}.
+  Do not pivot to a related sub-topic, a broader theme, or a different aspect of the subject.
+  A lesson on ergonomics generates ergonomics homework. A lesson on MoMo generates MoMo homework.
+
+RULE 5 — CULTURAL REFERENCES NEED A SCAFFOLD:
+  If using Adinkra symbols, proverbs, Sankofa, or Ghanaian idioms, ALWAYS provide:
+  - The English meaning in brackets, AND
+  - A model sentence or sentence starter so students know what form is expected.
+  Example: 'Use the Sankofa idea ("look back to go forward") — complete this sentence:
+  "One thing I now know I should have done earlier is ____."'
+  Never ask students to "write a Sankofa-inspired line" without this scaffold.
+
+RULE 6 — HOMEWORK MAPS TO PULSE CHECK GAPS:
+  The Support homework task must directly address the most common Pulse Check miss
+  (typically Q1 or Q2 — the prerequisite or misconception question).
+  The Extension homework task must build on the Extension Path class activity.
+  State which Pulse Check question each task targets, in ONE short parenthetical:
+  e.g., "(Targets Q1 gap: ...)" or "(Extends the class Extension Path task on ...)"
+
+RULE 7 — TEACHER NOTES STAY OUT OF HOMEWORK:
+  Homework text is STUDENT-FACING. Write it as instructions to the student ("You will...", "Draw...", "List...").
+  All teacher planning notes, diagnostic observations, and action items belong ONLY in the DATA-TRIGGER block.
+  Never append "Notes for the teacher:" to the Homework field.
+
+═══════════════════════════════════════════════════════
+OUTPUT FORMAT — USE THESE EXACT BOLD HEADERS
+═══════════════════════════════════════════════════════
 
 **Subject:** {subject}
 **Class:** {grade_level}
 **Topic:** {topic}
 **Duration:** 60 minutes
-**Strand:** [appropriate strand from GES curriculum]
-**Sub Strand:** [appropriate sub-strand]
+**Strand:** [GES-aligned strand]
+**Sub Strand:** [GES-aligned sub-strand]
 **Content Standard:** [1–2 sentence GES-aligned content standard]
 **Indicator:** [observable, measurable indicator]
 **Performance Indicator:** [what mastery looks like in student action]
 **Core Competencies:** Critical Thinking, Communication, Cultural Identity, Creativity and Innovation
-**Key words:** [5 essential vocabulary terms for this topic]
-**Reference:** [GES Curriculum document or standard textbook reference]
+**Key words:** [5 essential vocabulary terms]
+**Reference:** [GES Curriculum document or standard textbook]
 
 **PHASE 1: STARTER [15 mins]**
 🌍 LOCALIZED HOOK:
-[2–3 sentences grounding {topic} in a specific Ghanaian context. Name the real place, item, or practice.]
+[2–3 sentences. Name the specific Ghanaian place, object, or practice. Make the link to {topic} explicit.]
 
 🔍 PULSE CHECK (AI-Integrated Diagnostic):
-Q1: [Diagnostic question probing prerequisite knowledge]
-Q2: [Diagnostic question on a common misconception about {topic}]
-Q3: [Diagnostic question connecting {topic} to the hooks context above]
-Teacher note: Mentally log students who hesitate or answer incorrectly — they are your Data-Trigger targets for Phase 3.
+Q1: [Prerequisite knowledge question]
+Q2: [Common misconception about {topic}]
+Q3: [Application question connecting {topic} to the hook]
+Teacher note: Log students who hesitate or miss Q1/Q2/Q3 — they are your Data-Trigger targets.
 
 **PHASE 2: NEW LEARNING [30 mins]**
-Class Introduction (all students):
-[2–3 sentences that bridge the hook into the core concept and set context for both paths.]
+Class Introduction (all students, 5 mins):
+[2–3 sentences bridging the hook to the core concept. Set context for both paths.]
 
-🟢 SUPPORT PATH (for students who struggled in the Pulse Check):
-Step 1: [Concrete, hands-on or visual scaffolded activity]
-Step 2: [Guided practice with a worked example or sentence frame]
-Step 3: [Paired or small-group practice with teacher monitoring]
-Success marker: [How teacher knows this student is ready to move on]
+🟢 SUPPORT PATH (students who struggled in the Pulse Check):
+Step 1: [Entry-level activity — visual, matching, or hands-on. No prior mastery needed.]
+Step 2: [Guided practice with a sentence frame or partially completed example.]
+Step 3: [Paired practice. Teacher nearby to check understanding.]
+Success marker: [Observable behaviour that shows this student is ready. One sentence.]
 
-🔵 EXTENSION PATH (for students who aced the Pulse Check):
-Task 1: [Real-world application or local problem-solving using {topic}]
-Task 2: [Cross-curricular or analytical challenge — connects to another subject or Ghana context]
-Task 3: [Higher-order thinking: design, evaluate, or create using {topic}]
-Success marker: [What a strong Extension Path product looks like]
+🔵 EXTENSION PATH (students who aced the Pulse Check):
+Task 1: [Real-world Ghanaian application of {topic} — specific and named.]
+Task 2: [Cross-curricular or analytical challenge — state the second subject explicitly.]
+Task 3: [Higher-order creation, evaluation, or design task.]
+Success marker: [What a strong finished product looks like. One sentence.]
 
 **PHASE 3: REFLECTION [15 mins]**
 Whole-class debrief:
-[1–2 sentences for whole-class exit reflection or share-out.]
+[1–2 sentences. Whole-class question or share-out that consolidates {topic} for everyone.]
 
-📊 DATA-TRIGGER (Teacher Action Guide — carry this into tomorrow's planning):
-- Students who missed Pulse Check Q1: [Exact reteach or re-pairing action for next lesson]
-- Students who missed Pulse Check Q2: [Exact reteach or re-pairing action for next lesson]
-- Students who missed Pulse Check Q3: [Exact reteach or re-pairing action for next lesson]
-- Students who completed the Extension Path: [How to leverage them — peer teaching, presentation, deeper task]
+📊 DATA-TRIGGER (Teacher Planning Tool — DO NOT share with students):
+- Students who missed Q1: [Exact reteach action for next lesson. Name the method.]
+- Students who missed Q2: [Exact misconception-correction strategy for next lesson.]
+- Students who missed Q3: [Exact application re-practice for next lesson.]
+- Extension Path students: [How to activate them as peer resources in the next lesson.]
 
-**Resources:** [List all materials: textbook pages, whiteboard, manipulatives, local objects if applicable]
-**Homework:** [Clearly differentiated: one task for Support Path students, one for Extension Path students]
+**Resources:** [All materials needed: textbook pages, whiteboard, manipulatives, local objects]
+
+**Homework:**
+🟢 Support task (targets Q[1 or 2] gap — [name the gap]):
+[Student-facing instructions only. Pen-and-paper. No device required. Structured, short, achievable in 20 mins.]
+
+🔵 Extension task (builds on class Extension Path — [name what it extends]):
+[Student-facing instructions only. Device-optional — include paper fallback. Higher-order, 25–30 mins.
+If any cultural reference (proverb, symbol) is used, include its English meaning AND a model sentence starter.]
 """
 
         try:
@@ -202,12 +277,16 @@ Whole-class debrief:
                     {"role": "user", "content": (
                         f"Generate the full Aura-T lesson plan for '{topic}' "
                         f"({grade_level}, {subject}). "
-                        "Include every mandatory element: Localized Hook, Pulse Check, "
-                        "Support Path, Extension Path, and Data-Trigger."
+                        "Strictly enforce all six Homework Rules: "
+                        "Support task is pen-and-paper only and easier than Extension; "
+                        "Extension task is device-optional with a paper fallback; "
+                        "no concept drift; cultural references include English meaning and a model sentence; "
+                        "homework maps to specific Pulse Check gaps; "
+                        "no teacher notes in the Homework field."
                     )}
                 ],
                 "temperature": 0.75,
-                "max_tokens": 2000,
+                "max_tokens": 2500,
             }
             response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
             content = response['choices'][0]['message']['content']
