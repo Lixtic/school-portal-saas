@@ -3,6 +3,75 @@
 
 {% block title %}Class Results — {{ homework.title }}{% endblock %}
 
+{% block extra_css %}
+<style>
+/* ── Dark-mode-aware stat tiles ── */
+.cr-stat {
+    padding: 1rem;
+    border-radius: 12px;
+    text-align: center;
+    background: var(--cr-stat-bg, rgba(99,102,241,.08));
+    border: 1px solid var(--cr-stat-border, transparent);
+}
+[data-bs-theme="dark"] .cr-stat {
+    border-color: rgba(255,255,255,.06);
+}
+
+/* header divider */
+.card-header {
+    border-bottom: 1px solid rgba(var(--bs-border-color-rgb, 0,0,0),.1) !important;
+}
+[data-bs-theme="dark"] .card-header {
+    border-bottom-color: rgba(255,255,255,.07) !important;
+}
+
+/* table thead */
+.cr-thead th {
+    background: var(--surface-bg, #f3f4f6);
+    color: var(--text-muted, #6b7280);
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    border-bottom: 1px solid rgba(0,0,0,.06);
+}
+[data-bs-theme="dark"] .cr-thead th {
+    background: rgba(255,255,255,.04);
+    border-bottom-color: rgba(255,255,255,.07);
+}
+
+/* table rows */
+.table tbody tr:hover td {
+    background: rgba(99,102,241,.05);
+}
+[data-bs-theme="dark"] .table tbody tr:hover td {
+    background: rgba(99,102,241,.1);
+}
+
+/* neutral badge (replaces bg-light text-dark) */
+.badge-neutral {
+    background: rgba(107,114,128,.12);
+    color: var(--text-muted, #6b7280);
+    border: 1px solid rgba(107,114,128,.2);
+    font-weight: 500;
+}
+[data-bs-theme="dark"] .badge-neutral {
+    background: rgba(255,255,255,.08);
+    color: #9ca3af;
+    border-color: rgba(255,255,255,.1);
+}
+
+/* question rows */
+.q-row + .q-row {
+    border-top: 1px solid rgba(0,0,0,.05);
+    padding-top: .85rem;
+    margin-top: .85rem;
+}
+[data-bs-theme="dark"] .q-row + .q-row {
+    border-top-color: rgba(255,255,255,.06);
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid py-4">
     <div class="row justify-content-center">
@@ -19,16 +88,16 @@
                 <span class="text-muted small"><i class="bi bi-chevron-right"></i> Class Results</span>
             </div>
 
-            <!-- Header -->
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between border-bottom">
+            <!-- Header card -->
+            <div class="card mb-4">
+                <div class="card-header d-flex flex-row align-items-center justify-content-between flex-wrap gap-2">
                     <div>
                         <h6 class="m-0 fw-bold text-primary">
                             <i class="bi bi-bar-chart-fill me-2"></i>Class Results
                         </h6>
                         <small class="text-muted">{{ homework.title }} — {{ homework.target_class.name }}</small>
                     </div>
-                    <div class="d-flex gap-2 align-items-center">
+                    <div class="d-flex gap-2 align-items-center flex-wrap">
                         <span class="badge bg-secondary">{{ homework.subject.name }}</span>
                         {% if results %}
                         <a href="{% url 'homework:homework_push_grades' homework.id %}"
@@ -43,30 +112,30 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <!-- Summary stats row -->
+                    <!-- Stat tiles -->
                     <div class="row g-3 mb-2">
                         <div class="col-6 col-md-3">
-                            <div class="p-3 rounded-3 text-center" style="background:rgba(99,102,241,.08);">
+                            <div class="cr-stat" style="--cr-stat-bg:rgba(99,102,241,.08);">
                                 <div class="h2 fw-bold text-primary mb-0">{{ submission_count }}</div>
                                 <div class="small text-muted">Submitted</div>
                                 <div class="small text-muted">of {{ class_size }} students</div>
                             </div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="p-3 rounded-3 text-center" style="background:rgba(16,185,129,.08);">
+                            <div class="cr-stat" style="--cr-stat-bg:rgba(16,185,129,.08);">
                                 <div class="h2 fw-bold text-success mb-0">{{ avg_pct }}%</div>
                                 <div class="small text-muted">Class Average</div>
                             </div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="p-3 rounded-3 text-center" style="background:rgba(245,158,11,.08);">
+                            <div class="cr-stat" style="--cr-stat-bg:rgba(245,158,11,.08);">
                                 <div class="h2 fw-bold text-warning mb-0">{{ top_score_pct }}%</div>
                                 <div class="small text-muted">Top Score</div>
                             </div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="p-3 rounded-3 text-center" style="background:rgba(52,211,153,.08);">
-                                <div class="h2 fw-bold" style="color:#059669;" mb-0>{{ pass_count }}</div>
+                            <div class="cr-stat" style="--cr-stat-bg:rgba(52,211,153,.08);">
+                                <div class="h2 fw-bold mb-0" style="color:#059669;">{{ pass_count }}</div>
                                 <div class="small text-muted">Passed (&ge;50%)</div>
                             </div>
                         </div>
@@ -77,8 +146,8 @@
             <div class="row g-4">
                 <!-- Student Results Table -->
                 <div class="col-lg-7">
-                    <div class="card shadow-sm border-0 h-100">
-                        <div class="card-header py-2 border-bottom">
+                    <div class="card h-100">
+                        <div class="card-header">
                             <h6 class="m-0 fw-bold">
                                 <i class="bi bi-people me-2"></i>Individual Results
                             </h6>
@@ -87,8 +156,8 @@
                             {% if results %}
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle mb-0">
-                                    <thead class="table-light">
-                                        <tr>
+                                    <thead>
+                                        <tr class="cr-thead">
                                             <th class="ps-3">#</th>
                                             <th>Student</th>
                                             <th class="text-center">Score</th>
@@ -143,8 +212,8 @@
 
                 <!-- Per-Question Stats -->
                 <div class="col-lg-5">
-                    <div class="card shadow-sm border-0 h-100">
-                        <div class="card-header py-2 border-bottom">
+                    <div class="card h-100">
+                        <div class="card-header">
                             <h6 class="m-0 fw-bold">
                                 <i class="bi bi-list-check me-2"></i>Question Difficulty
                             </h6>
@@ -152,7 +221,7 @@
                         <div class="card-body">
                             {% if question_stats %}
                             {% for qs in question_stats %}
-                            <div class="mb-3">
+                            <div class="q-row">
                                 <div class="d-flex justify-content-between align-items-start mb-1">
                                     <div class="small fw-semibold" style="max-width:75%;">
                                         Q{{ forloop.counter }}. {{ qs.question.text|truncatechars:70 }}
@@ -167,7 +236,7 @@
                                 </div>
                                 <div class="small text-muted mt-1">
                                     {{ qs.correct }} / {{ qs.attempts }} correct
-                                    <span class="badge bg-light text-dark border ms-1" style="font-size:.65rem;">
+                                    <span class="badge badge-neutral ms-1" style="font-size:.65rem;">
                                         {{ qs.question.get_dok_level_display }}
                                     </span>
                                 </div>
