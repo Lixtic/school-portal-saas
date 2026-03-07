@@ -235,6 +235,25 @@ def homework_detail(request, pk):
 
 
 @login_required
+def homework_edit(request, pk):
+    homework = get_object_or_404(Homework, pk=pk)
+    if request.user.user_type != 'teacher' or homework.teacher.user != request.user:
+        messages.error(request, "Access denied. You can only edit your own assignments.")
+        return redirect('homework:homework_list')
+
+    if request.method == 'POST':
+        form = HomeworkForm(request.POST, request.FILES, instance=homework, teacher=request.user.teacher)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Assignment updated successfully.")
+            return redirect('homework:homework_detail', pk=homework.pk)
+    else:
+        form = HomeworkForm(instance=homework, teacher=request.user.teacher)
+
+    return render(request, 'homework/homework_form.html', {'form': form, 'homework': homework})
+
+
+@login_required
 def homework_delete(request, pk):
     homework = get_object_or_404(Homework, pk=pk)
     if request.user.user_type != 'teacher' or homework.teacher.user != request.user:
