@@ -315,27 +315,88 @@
             color: var(--text-main);
         }
 
+        /* ── Navbar Brand ── */
         .header .navbar-brand {
-            font-family: 'Manrope', sans-serif;
-            font-weight: 800;
-            font-size: 1.4rem;
-            color: var(--primary-brand) !important;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
+            text-decoration: none;
+            min-width: 0;
+            flex-shrink: 1;
         }
-        
         .header-brand-icon {
-            width: 40px;
-            height: 40px;
+            width: 38px;
+            height: 38px;
+            flex-shrink: 0;
+            border-radius: 10px;
             background: linear-gradient(135deg, var(--primary-brand), var(--secondary-brand));
-            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.1rem;
-            box-shadow: 0 4px 6px -1px rgba(67, 97, 238, 0.3);
+            font-size: 1rem;
+            color: #fff;
+            overflow: hidden;
+            box-shadow: 0 3px 8px rgba(67, 97, 238, 0.28);
         }
+        .header-brand-icon img {
+            width: 100%; height: 100%; object-fit: cover; border-radius: 10px;
+        }
+        .header-brand-text {
+            min-width: 0;
+        }
+        .header-brand-name {
+            font-family: 'Manrope', sans-serif;
+            font-weight: 800;
+            font-size: 0.95rem;
+            color: var(--primary-brand);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
+            line-height: 1.2;
+        }
+        .header-brand-sub {
+            font-size: 0.6rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        /* Current-school chip (right side, desktop only) */
+        .header-school-chip {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            line-height: 1.25;
+            padding: 4px 12px;
+            border-radius: 10px;
+            background: rgba(67, 97, 238, 0.06);
+            border: 1px solid rgba(67, 97, 238, 0.12);
+            min-width: 0;
+            max-width: 200px;
+        }
+        [data-bs-theme="dark"] .header-school-chip {
+            background: rgba(96, 165, 250, 0.08);
+            border-color: rgba(96, 165, 250, 0.15);
+        }
+        .header-school-chip__label {
+            font-size: 0.58rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+        }
+        .header-school-chip__name {
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: var(--primary-brand);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 190px;
+        }
+        [data-bs-theme="dark"] .header-school-chip__name { color: #93c5fd; }
 
         .header-action-btn {
             width: 42px;
@@ -530,23 +591,25 @@
         /* Mobile Header Tweaks */
         @media (max-width: 768px) {
             .header {
-                padding-left: 1rem !important;
-                padding-right: 1rem !important;
+                padding-left: 0.75rem !important;
+                padding-right: 0.75rem !important;
             }
             .user-info {
                 padding: 0;
                 gap: 0;
                 border: none;
-                margin-left: 0.5rem !important;
+                margin-left: 0.25rem !important;
             }
             .header-brand-icon {
-                width: 32px;
-                height: 32px;
+                width: 34px;
+                height: 34px;
                 border-radius: 8px;
             }
-            .header .navbar-brand {
-                font-size: 0.85rem;
-            }
+            /* On mobile: show icon only, hide text */
+            .header-brand-text { display: none; }
+        }
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .header-brand-name { max-width: 120px; }
         }
 
         /* Sidebar Base Layout */
@@ -1066,6 +1129,21 @@
                             <i class="bi bi-list fs-3"></i>
                         </button>
 
+                        <!-- Navbar School Brand -->
+                        <a href="{% url 'dashboard' %}" class="navbar-brand ms-1 me-2">
+                            <div class="header-brand-icon">
+                                {% if school_logo %}
+                                    <img src="{{ school_logo.url }}" alt="{{ school_name|default:'School' }}">
+                                {% else %}
+                                    <i class="bi bi-building text-white"></i>
+                                {% endif %}
+                            </div>
+                            <div class="header-brand-text">
+                                <div class="header-brand-name">{{ school_name|default:"School Portal" }}</div>
+                                <div class="header-brand-sub">{{ user.user_type|capfirst }} Portal</div>
+                            </div>
+                        </a>
+
                         <div class="dropdown header-app-menu d-none ms-2" style="display: none !important;">
                             <button class="btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-grid"></i> Menu
@@ -1148,6 +1226,12 @@
                     </div>
 
                     <div class="d-flex align-items-center gap-2">
+                        <!-- Current School Chip (desktop only) -->
+                        <div class="header-school-chip d-none d-xl-flex me-1">
+                            <span class="header-school-chip__label">Current School</span>
+                            <span class="header-school-chip__name">{{ school_name|default:request.tenant.name }}</span>
+                        </div>
+
                         <!-- Desktop Theme Toggle -->
                         <button class="header-action-btn d-none d-lg-flex" onclick="toggleTheme()" title="Toggle Dark Mode">
                             <i class="bi bi-moon fs-5" id="themeIcon"></i>
