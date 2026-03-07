@@ -139,6 +139,16 @@
             q.querySelector('.card-header span').textContent = `Question ${questionCount}`;
             q.querySelector('textarea').name = `question_text_${questionCount}`;
             q.querySelector('.btn-outline-danger').setAttribute('onclick', `removeQuestion(${questionCount})`);
+
+            // Reindex question_type and dok_level selects
+            const typeSelect = q.querySelector('select[name^="question_type_"]');
+            if (typeSelect) typeSelect.name = `question_type_${questionCount}`;
+            const dokSelect = q.querySelector('select[name^="dok_level_"]');
+            if (dokSelect) dokSelect.name = `dok_level_${questionCount}`;
+
+            // Reindex expected_answer textarea
+            const expectedTextarea = q.querySelector('textarea[name^="expected_answer_"]');
+            if (expectedTextarea) expectedTextarea.name = `expected_answer_${questionCount}`;
             
             const choiceContainer = q.querySelector('[id^="choices-container-"]');
             choiceContainer.id = `choices-container-${questionCount}`;
@@ -225,7 +235,13 @@
         const rubricAnswer = document.getElementById(`rubric-answer-${qId}`);
         const rubricLabel = document.getElementById(`rubric-label-${qId}`);
         if (val !== 'mcq') {
-            if (choicesContainer) choicesContainer.classList.add('d-none');
+            if (choicesContainer) {
+                choicesContainer.classList.add('d-none');
+                // Disable required inputs so browser won't block submission
+                choicesContainer.querySelectorAll('input[required], textarea[required]').forEach(el => {
+                    el.disabled = true;
+                });
+            }
             if (addBtn) addBtn.classList.add('d-none');
             if (rubricAnswer) rubricAnswer.classList.remove('d-none');
             if (rubricLabel) {
@@ -234,7 +250,13 @@
                     : 'Expected Answer (for AI grading)';
             }
         } else {
-            if (choicesContainer) choicesContainer.classList.remove('d-none');
+            if (choicesContainer) {
+                choicesContainer.classList.remove('d-none');
+                // Re-enable choice inputs
+                choicesContainer.querySelectorAll('input, textarea').forEach(el => {
+                    el.disabled = false;
+                });
+            }
             if (addBtn) addBtn.classList.remove('d-none');
             if (rubricAnswer) rubricAnswer.classList.add('d-none');
         }
