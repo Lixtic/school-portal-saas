@@ -291,3 +291,40 @@ def child_fees(request, student_id):
         'total_paid': total_paid,
         'total_balance': total_balance,
     })
+
+
+@login_required
+def send_message_to_school(request):
+    """Parent sends a message/query to all admins via Notification."""
+    if request.user.user_type != 'parent':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        subject = request.POST.get('subject', '').strip()
+        body = request.POST.get('body', '').strip()
+
+        if not subject or not body:
+            messages.error(request, 'Please fill in both subject and message.')
+            return redirect('parents:my_children')
+
+        try:
+            parent = Parent.objects.get(user=request.user)
+            parent_name = request.user.get_full_name() or request.user.username
+        except Parent.DoesNotExist:
+            parent_name = request.user.get_full_name() or request.user.username
+
+        from announcements.models import Notification
+        admin_users = User.objects.filter(user_type='admin')
+        for admin in admin_users:
+            Notification.objects.create(
+                recipient=admin,
+                message=f"📬 Parent Query — {subject} | From: {parent_name}: {body[:180]}",
+                alert_type='message',
+                link='/dashboard/',
+            )
+
+        messages.success(request, 'Your message has been sent to the school administration.')
+        return redirect('parents:my_children')
+
+    return redirect('parents:my_children')

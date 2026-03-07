@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Push to Gradebook — {{ homework.title }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow border-0">
+                <div class="card-header py-3 border-bottom d-flex align-items-center gap-2">
+                    <i class="bi bi-journal-check fs-5 text-success"></i>
+                    <div>
+                        <h6 class="mb-0 fw-bold">Push Scores to Gradebook</h6>
+                        <small class="text-muted">{{ homework.title }} — {{ homework.subject.name }}</small>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info border-0 rounded-3 mb-4" role="alert">
+                        <i class="bi bi-info-circle me-2"></i>
+                        This will write each student's homework score (scaled to <strong>30 pts</strong> class-work
+                        contribution) into the gradebook. Existing entries for the same student/subject/term/year
+                        will be <strong>updated</strong>.
+                        <br><span class="text-muted small">{{ submission_count }} submission(s) will be pushed.</span>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Select Term</label>
+                            <select name="term" class="form-select" required>
+                                {% for value, label in term_choices %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success px-4">
+                                <i class="bi bi-cloud-upload me-2"></i>Push to Gradebook
+                            </button>
+                            <a href="{% url 'homework:homework_class_results' homework.id %}"
+                               class="btn btn-outline-secondary px-4">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

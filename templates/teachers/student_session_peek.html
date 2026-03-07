@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AI Session — {{ student.user.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Breadcrumb -->
+            <div class="mb-3 d-flex align-items-center gap-2 flex-wrap">
+                <a href="{% url 'teachers:teacher_ai_insights' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> AI Insights
+                </a>
+                <span class="text-muted small"><i class="bi bi-chevron-right"></i> Student Session Transcript</span>
+            </div>
+
+            <!-- Session header -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body d-flex align-items-start gap-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:48px;height:48px;background:linear-gradient(135deg,#6c47ff,#3b82f6);">
+                        <i class="bi bi-person-fill text-white fs-5"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h5 class="fw-bold mb-0">{{ student.user.get_full_name }}</h5>
+                        <div class="text-muted small">
+                            {{ student.admission_number }}
+                            {% if student.current_class %} &middot; {{ student.current_class.name }}{% endif %}
+                        </div>
+                        <div class="mt-2 d-flex gap-2 flex-wrap">
+                            <span class="badge bg-light text-dark border">
+                                <i class="bi bi-chat-dots me-1"></i>{{ session.get_display_title }}
+                            </span>
+                            {% if session.subject %}
+                            <span class="badge bg-light text-dark border">
+                                <i class="bi bi-book me-1"></i>{{ session.subject.name }}
+                            </span>
+                            {% endif %}
+                            <span class="badge bg-light text-dark border">
+                                <i class="bi bi-calendar3 me-1"></i>{{ session.started_at|date:"M d, Y" }}
+                            </span>
+                            <span class="badge bg-light text-dark border">
+                                <i class="bi bi-chat-text me-1"></i>{{ chat_messages|length }} messages
+                            </span>
+                        </div>
+                    </div>
+                    <div class="ms-auto">
+                        <span class="badge rounded-pill" style="background:rgba(108,71,255,.12); color:#6c47ff; padding:.5em .9em;">
+                            <i class="bi bi-eye-fill me-1"></i>Read Only
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transcript -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header py-2 border-bottom">
+                    <h6 class="m-0 fw-bold"><i class="bi bi-chat-left-text me-2"></i>Session Transcript</h6>
+                </div>
+                <div class="card-body p-3" style="max-height:60vh; overflow-y:auto;">
+                    {% if chat_messages %}
+                    <div class="d-flex flex-column gap-3">
+                        {% for msg in chat_messages %}
+                        <div class="d-flex {% if msg.role == 'user' %}justify-content-end{% else %}justify-content-start{% endif %}">
+                            {% if msg.role == 'assistant' %}
+                            <div class="rounded-circle d-flex align-items-center justify-content-center me-2 flex-shrink-0"
+                                 style="width:32px;height:32px;background:linear-gradient(135deg,#6c47ff,#3b82f6);align-self:flex-end;">
+                                <i class="bi bi-stars text-white" style="font-size:.75rem;"></i>
+                            </div>
+                            {% endif %}
+                            <div class="py-2 px-3 rounded-4"
+                                 style="max-width:75%;{% if msg.role == 'user' %}background:#e8e3ff;color:#1a1a2e;{% else %}background:#f3f4f6;color:#1f2937;{% endif %} font-size:.9rem; white-space:pre-wrap; line-height:1.55;">{{ msg.content }}</div>
+                            {% if msg.role == 'user' %}
+                            <div class="rounded-circle d-flex align-items-center justify-content-center ms-2 flex-shrink-0"
+                                 style="width:32px;height:32px;background:#e8e3ff;align-self:flex-end;">
+                                <i class="bi bi-person-fill" style="color:#6c47ff;font-size:.75rem;"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="text-muted" style="font-size:.7rem; {% if msg.role == 'user' %}text-align:right;{% endif %} padding: 0 44px;">
+                            {{ msg.created_at|date:"H:i" }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-chat-dots fs-1 d-block mb-2 opacity-25"></i>
+                        No messages in this session.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

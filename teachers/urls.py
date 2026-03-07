@@ -63,6 +63,12 @@ urlpatterns = [
     path('scheme-of-work/<int:pk>/delete/', views.scheme_of_work_delete, name='scheme_of_work_delete'),
     path('scheme-of-work/<int:pk>/topics/', views.scheme_of_work_update_topics, name='scheme_of_work_update_topics'),
     path('scheme-of-work/<int:pk>/re-extract/', views.scheme_of_work_reextract, name='scheme_of_work_reextract'),
+
+    # Student session peek (read-only tutor transcript for teacher)
+    path('student-session/<int:session_id>/', views.student_session_peek, name='student_session_peek'),
+
+    # Submit to HoD
+    path('submit-to-hod/', views.submit_to_hod, name='submit_to_hod'),
 ]
 
 

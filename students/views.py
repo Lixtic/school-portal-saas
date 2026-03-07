@@ -655,6 +655,7 @@ def student_dashboard_view(request):
         'homework_list': homework_list,
         'resources': resources,
         'notices': notices,
+        'today': date.today(),
         'finance_stats': {
             'payable': total_payable,
             'paid': total_paid,
@@ -2118,3 +2119,64 @@ def aura_portfolio(request):
         'avg_hw_score': avg_hw_score,
     }
     return render(request, 'students/aura_portfolio.html', context)
+
+
+@login_required
+def class_analytics(request):
+    """
+    Admin/teacher analytics dashboard: per-class summary of grades, attendance, fees.
+    """
+    if request.user.user_type not in ['admin', 'teacher']:
+        messages.error(request, "Access denied.")
+        return redirect('dashboard')
+
+    from django.db.models import Sum as _Sum, Avg as _Avg, Count as _Count
+    from finance.models import StudentFee
+
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    classes = Class.objects.filter(academic_year=current_year) if current_year else Class.objects.all()
+
+    analytics = []
+    for cls in classes.prefetch_related('teacher_set'):
+        students_qs = Student.objects.filter(current_class=cls)
+        student_count = students_qs.count()
+
+        # Average grade (total_score) for this class/year
+        grade_avg = Grade.objects.filter(
+            student__current_class=cls,
+            academic_year=current_year,
+        ).aggregate(avg=_Avg('total_score'))['avg'] if current_year else None
+
+        # Attendance rate (present / total records)
+        total_att = Attendance.objects.filter(student__current_class=cls).count()
+        present_att = Attendance.objects.filter(student__current_class=cls, status='present').count()
+        att_rate = round(present_att / total_att * 100, 1) if total_att else None
+
+        # Fee collection: total paid vs total payable
+        fees = StudentFee.objects.filter(student__current_class=cls)
+        total_payable = sum(f.amount_payable for f in fees)
+        total_paid = sum(f.total_paid for f in fees)
+        fee_rate = round(total_paid / total_payable * 100, 1) if total_payable else None
+
+        # Class teacher name
+        try:
+            class_teacher = cls.teacher_set.first()
+            teacher_name = class_teacher.user.get_full_name() if class_teacher else '—'
+        except Exception:
+            teacher_name = '—'
+
+        analytics.append({
+            'cls': cls,
+            'student_count': student_count,
+            'grade_avg': round(grade_avg, 1) if grade_avg is not None else None,
+            'att_rate': att_rate,
+            'fee_rate': fee_rate,
+            'total_payable': total_payable,
+            'total_paid': total_paid,
+            'teacher_name': teacher_name,
+        })
+
+    return render(request, 'students/class_analytics.html', {
+        'analytics': analytics,
+        'current_year': current_year,
+    })

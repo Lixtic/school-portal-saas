@@ -21,7 +21,7 @@ from students.utils import normalize_term
 from .forms import ResourceForm, LessonPlanForm, TeacherCreateForm, TeacherCSVImportForm #, HomeworkForm
 from .models import LessonGenerationSession
 from accounts.models import User
-from academics.tutor_models import generate_teacher_id_card, export_id_card_to_pdf, export_multiple_id_cards_to_pdf, TutorSession
+from academics.tutor_models import generate_teacher_id_card, export_id_card_to_pdf, export_multiple_id_cards_to_pdf, TutorSession, TutorMessage
 from parents.models import Parent
 from communication.models import Conversation, Message
 from django.views.decorators.http import require_POST
@@ -2540,33 +2540,63 @@ def ai_sessions_list(request):
     student_data = []
     struggling_count = 0
     total_students = 0
-    
+
     if active_class:
         # Get up to 40 students for the visualization grid
-        students = Student.objects.filter(current_class=active_class).select_related('user')[:40]
-        total_students = students.count()
-        
-        for i, s in enumerate(students):
-            # Simulation Logic for Demo Purposes (Replace with Real-Time Analytics later)
-            # Deterministic pseudo-random status based on ID
-            # Statuses: 'active' (Green/Engaged), 'struggling' (Red/Need Help), 'idle' (Amber), 'offline' (Grey)
-            status_seed = (s.id * 7 + i) % 10
-            
-            if status_seed == 0: 
+        students = list(Student.objects.filter(current_class=active_class).select_related('user')[:40])
+        student_ids = [s.id for s in students]
+        total_students = len(students)
+
+        # Real engagement: query today's TutorSession activity
+        from datetime import date as _date
+        today = _date.today()
+        active_today_ids = set(
+            TutorSession.objects.filter(
+                student_id__in=student_ids,
+                started_at__date=today
+            ).values_list('student_id', flat=True)
+        )
+        # Recent sessions (last 3 days) for "idle" — logged in but not today
+        recent_ids = set(
+            TutorSession.objects.filter(
+                student_id__in=student_ids,
+                started_at__date__gte=today - timezone.timedelta(days=3)
+            ).values_list('student_id', flat=True)
+        ) - active_today_ids
+
+        # Struggling: students with last session showing low engagement (msg_count < 4)
+        struggling_set = set(
+            TutorSession.objects.filter(
+                student_id__in=student_ids,
+                message_count__lt=4,
+                started_at__date=today
+            ).values_list('student_id', flat=True)
+        )
+
+        # Latest session ID per student (for "peek" link)
+        latest_sessions = {}
+        for ts in TutorSession.objects.filter(
+            student_id__in=student_ids
+        ).order_by('student_id', '-started_at').distinct('student_id').values('student_id', 'id'):
+            latest_sessions[ts['student_id']] = ts['id']
+
+        for s in students:
+            if s.id in struggling_set:
                 status = 'struggling'
                 struggling_count += 1
-            elif status_seed < 6: 
+            elif s.id in active_today_ids:
                 status = 'active'
-            elif status_seed < 8: 
+            elif s.id in recent_ids:
                 status = 'idle'
-            else: 
+            else:
                 status = 'offline'
-                
+
             student_data.append({
                 'id': s.id,
                 'name': s.user.get_full_name() or s.user.username,
                 'status': status,
-                'tooltip': f"{s.admission_number} | {status.title()}"
+                'tooltip': f"{s.admission_number} | {status.title()}",
+                'latest_session_id': latest_sessions.get(s.id),
             })
     
     from academics.ai_tutor import get_openai_chat_model
@@ -2916,3 +2946,74 @@ def scheme_of_work_reextract(request, pk):
         return JsonResponse({'ok': True, 'count': len(topics), 'topics': topics})
     except Exception as exc:
         return JsonResponse({'error': str(exc)}, status=500)
+
+
+@login_required
+def student_session_peek(request, session_id):
+    """
+    Teacher-only read-only view of a student's AI Tutor session transcript.
+    Access is permitted only if the teacher teaches or manages the student's class.
+    """
+    if request.user.user_type not in ['teacher', 'admin']:
+        messages.error(request, "Access restricted to teachers.")
+        return redirect('dashboard')
+
+    session = get_object_or_404(TutorSession, id=session_id)
+    student = session.student
+
+    if request.user.user_type == 'teacher':
+        teacher = get_object_or_404(Teacher, user=request.user)
+        # Check teacher teaches or manages this student's class
+        teaches_class = (
+            student.current_class and (
+                teacher.managed_classes.filter(id=student.current_class_id).exists() or
+                ClassSubject.objects.filter(
+                    teacher=teacher,
+                    class_name=student.current_class
+                ).exists()
+            )
+        )
+        if not teaches_class:
+            messages.error(request, "You do not have access to this student's session.")
+            return redirect('teachers:teacher_ai_insights')
+
+    messages_qs = TutorMessage.objects.filter(session=session).order_by('created_at')
+
+    return render(request, 'teachers/student_session_peek.html', {
+        'session': session,
+        'student': student,
+        'chat_messages': messages_qs,
+    })
+
+
+@login_required
+@require_POST
+def submit_to_hod(request):
+    """
+    Submit a lesson plan / summary to the Head of Department (school admin).
+    Creates a Notification for all admin users.
+    """
+    if request.user.user_type != 'teacher':
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    teacher = get_object_or_404(Teacher, user=request.user)
+    lesson_title = request.POST.get('lesson_title', '').strip() or 'Untitled Lesson Plan'
+    lesson_body = request.POST.get('lesson_body', '').strip()
+
+    from announcements.models import Notification
+    admin_users = User.objects.filter(user_type='admin')
+    created = 0
+    for admin_user in admin_users:
+        Notification.objects.create(
+            user=admin_user,
+            title=f"Lesson Plan Submitted: {lesson_title}",
+            message=(
+                f"Teacher {teacher.user.get_full_name()} submitted a lesson plan for your review.\n\n"
+                f"{lesson_body[:500]}" if lesson_body else
+                f"Teacher {teacher.user.get_full_name()} submitted a lesson plan for your review."
+            ),
+            notification_type='announcement',
+        )
+        created += 1
+
+    return JsonResponse({'ok': True, 'notified': created, 'message': f'Submitted to {created} admin(s).'})

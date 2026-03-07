@@ -60,4 +60,7 @@ urlpatterns = [
 
     # XP Leaderboard API
     path('aura/leaderboard/', views.class_leaderboard_json, name='class_leaderboard_json'),
+
+    # Class Analytics
+    path('class-analytics/', views.class_analytics, name='class_analytics'),
 ]

@@ -8,10 +8,12 @@ from django.db.models import Sum
 import json
 import re
 import math
+from decimal import Decimal
 from .models import Homework, Question, Choice, Submission, Answer
 from .forms import HomeworkForm
 from teachers.models import Teacher
-from students.models import Student
+from students.models import Student, Grade
+from academics.models import AcademicYear
 from academics.ai_tutor import _post_chat_completion, get_openai_chat_model
 
 
@@ -185,7 +187,27 @@ def homework_create(request):
             messages.success(request, "Homework assigned successfully.")
             return redirect('homework:homework_list')
     else:
-        form = HomeworkForm(teacher=request.user.teacher)
+        # Pre-populate from SOW topic link: ?topic=...&class_id=...&subject_id=...
+        initial = {}
+        pre_topic = request.GET.get('topic', '').strip()
+        pre_class = request.GET.get('class_id', '').strip()
+        pre_subject = request.GET.get('subject_id', '').strip()
+        if pre_topic:
+            initial['title'] = pre_topic
+            initial['description'] = f"Complete exercises related to the topic: {pre_topic}"
+        if pre_class:
+            try:
+                from academics.models import Class as AClass
+                initial['target_class'] = AClass.objects.get(pk=int(pre_class))
+            except Exception:
+                pass
+        if pre_subject:
+            try:
+                from academics.models import Subject as ASubject
+                initial['subject'] = ASubject.objects.get(pk=int(pre_subject))
+            except Exception:
+                pass
+        form = HomeworkForm(initial=initial, teacher=request.user.teacher)
         
     return render(request, 'homework/homework_form.html', {'form': form})
 
@@ -540,5 +562,77 @@ def homework_class_results(request, pk):
         'pass_count': pass_count,
         'question_stats': question_stats,
     })
+
+
+@login_required
+def homework_push_grades(request, pk):
+    """Push homework scores into the Grade gradebook (class_score, scaled to 30 pts)."""
+    homework = get_object_or_404(Homework, pk=pk)
+
+    # Access: teacher owner or admin
+    if request.user.user_type == 'teacher':
+        try:
+            teacher = Teacher.objects.get(user=request.user)
+            if homework.teacher != teacher:
+                messages.error(request, "You can only push grades for your own assignments.")
+                return redirect('homework:homework_class_results', pk=pk)
+        except Teacher.DoesNotExist:
+            return redirect('homework:homework_list')
+    elif request.user.user_type != 'admin':
+        messages.error(request, "Access denied.")
+        return redirect('homework:homework_class_results', pk=pk)
+
+    TERM_CHOICES = [('first', 'First Term'), ('second', 'Second Term'), ('third', 'Third Term')]
+
+    if request.method == 'POST':
+        term = request.POST.get('term', 'first')
+        if term not in dict(TERM_CHOICES):
+            messages.error(request, "Invalid term selected.")
+            return redirect('homework:homework_push_grades', pk=pk)
+
+        academic_year = AcademicYear.objects.filter(is_current=True).first()
+        if not academic_year:
+            messages.error(request, "No active academic year found. Please set one in Academics.")
+            return redirect('homework:homework_class_results', pk=pk)
+
+        total_points = homework.questions.aggregate(total=Sum('points'))['total'] or 0
+        submissions = Submission.objects.filter(homework=homework).select_related('student')
+
+        pushed = 0
+        updated = 0
+        for sub in submissions:
+            pct = float(sub.score) / float(total_points) * 100 if total_points > 0 else 0
+            # Scale to 30-point class-work contribution (Ghana curriculum: class 30%, exams 70%)
+            class_score_value = Decimal(str(round(pct * 30 / 100, 2)))
+
+            _, created = Grade.objects.update_or_create(
+                student=sub.student,
+                subject=homework.subject,
+                academic_year=academic_year,
+                term=term,
+                defaults={
+                    'class_score': class_score_value,
+                    'created_by': request.user,
+                }
+            )
+            if created:
+                pushed += 1
+            else:
+                updated += 1
+
+        messages.success(
+            request,
+            f"Grades pushed to gradebook: {pushed} new, {updated} updated "
+            f"({term.title()} Term, {academic_year.name})."
+        )
+        return redirect('homework:homework_class_results', pk=pk)
+
+    # GET: show confirmation form with term selector
+    context = {
+        'homework': homework,
+        'term_choices': TERM_CHOICES,
+        'submission_count': Submission.objects.filter(homework=homework).count(),
+    }
+    return render(request, 'homework/push_grades_confirm.html', context)
 
 

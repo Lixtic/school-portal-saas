@@ -523,7 +523,11 @@
                             <div class="sd-item-sub">{{ hw.description|truncatechars:50 }}</div>
                             <div class="d-flex gap-2 mt-1 flex-wrap">
                                 <span class="sd-pill" style="background:var(--sd-si-blue); color:var(--sd-accent-blue);">{{ hw.subject.name }}</span>
+                                {% if hw.due_date < today %}
+                                <span class="sd-pill" style="background:#fef2f2; color:#dc2626; font-weight:700;">⚠ OVERDUE ({{ hw.due_date|date:"M d" }})</span>
+                                {% else %}
                                 <span class="sd-pill pill-red">Due {{ hw.due_date|date:"M d" }}</span>
+                                {% endif %}
                             </div>
                         </div>
                         <i class="bi bi-chevron-right ms-1" style="color:var(--sd-muted);"></i>

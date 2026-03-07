@@ -28,7 +28,15 @@
                         </h6>
                         <small class="text-muted">{{ homework.title }} — {{ homework.target_class.name }}</small>
                     </div>
-                    <span class="badge bg-secondary">{{ homework.subject.name }}</span>
+                    <div class="d-flex gap-2 align-items-center">
+                        <span class="badge bg-secondary">{{ homework.subject.name }}</span>
+                        {% if results %}
+                        <a href="{% url 'homework:homework_push_grades' homework.id %}"
+                           class="btn btn-sm btn-outline-success">
+                            <i class="bi bi-journal-check me-1"></i>Push to Gradebook
+                        </a>
+                        {% endif %}
+                    </div>
                 </div>
                 <div class="card-body">
                     <!-- Summary stats row -->
