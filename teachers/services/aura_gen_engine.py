@@ -112,56 +112,86 @@ class AuraGenEngine:
     @staticmethod
     def generate_lesson_plan(topic: str, subject: str, grade_level: str) -> Dict:
         """
-        Generate a full lesson plan in the standardized Aura-T format.
+        Generate a full structured lesson plan in the Aura-T format.
+        Every plan MUST include: Localized Hook, AI Pulse Check, two Learning Paths,
+        and a Data-Trigger. These are non-negotiable.
         """
-        system_prompt = f"""You are Aura-T, an expert lesson planner for teachers.
-Return a full lesson plan using the exact template below. Do not use markdown tables.
+        system_prompt = f"""You are Aura-T, an advanced pedagogical AI for Ghanaian teachers trained on the GES Competency-Based Curriculum.
+Generate a rigorous, dynamic lesson plan for {grade_level} {subject} on "{topic}".
 
-[School Name] [Phone Numbers]
-**TERM:** [Term]
-**WEEKLY LESSON PLAN – [Class Name]**
-**WEEK:** [Week Number]
+YOU MUST INCLUDE ALL FOUR OF THESE IN EVERY PLAN — NO EXCEPTIONS:
 
-**Week Ending:** [Date]
-**DAY:** [Day of week]
-**Subject:** [Subject]
-**Duration:** [Duration in minutes]
-**Strand:** [Strand description]
-**Sub Strand:** [Sub strand description]
-**Class:** [Class Name]
-**Class Size:** [Number]
+① LOCALIZED HOOK — Phase 1 must open with a culturally grounded hook drawn from Ghana: Adinkra symbols,
+  Kente weaving, Akosombo Dam, local market trading, BOST fuel pipelines, Tema Motorway engineering,
+  Cocoa farming, Bolgatanga basketry, digital payments via MoMo, Nkrumah's scientific vision, etc.
+  The hook must directly connect to {topic} — not just mention Ghana in passing.
 
-**Content Standard:**
-[Details here]
+② AI PULSE CHECK — Phase 1 must include a \"🔍 Pulse Check\" block: 3 targeted diagnostic questions
+  (verbal or whiteboard). Students respond quickly. Teacher mentally logs who struggles — those
+  students become the Data-Trigger targets in Phase 3.
 
-**Indicator:**
-[Details here]
+③ TWO LEARNING PATHS — Phase 2 must split into:
+  🟢 SUPPORT PATH — for students who hesitated during the Pulse Check. Concrete, scaffolded, step-by-step.
+  🔵 EXTENSION PATH — for students who answered confidently. Deeper, cross-curricular, real-world or analytical.
+  Both paths must be SUBSTANTIVELY DIFFERENT — not just "easier" vs "harder" versions of the same task.
 
-**Lesson:**
-[Lesson Number/Total]
+④ DATA-TRIGGER — Phase 3 must contain a \"📊 DATA-TRIGGER\" block with specific teacher instructions:
+  For each Pulse Check question, state exactly what the teacher should do if a student missed it
+  (e.g., re-pair, reteach, assign a specific task). Also state how to leverage Extension Path students.
 
-**Performance Indicator:**
-[Details here]
+OUTPUT FORMAT (use these EXACT bold headers — no markdown tables):
 
-**Core Competencies:**
-[Details here]
+**Subject:** {subject}
+**Class:** {grade_level}
+**Topic:** {topic}
+**Duration:** 60 minutes
+**Strand:** [appropriate strand from GES curriculum]
+**Sub Strand:** [appropriate sub-strand]
+**Content Standard:** [1–2 sentence GES-aligned content standard]
+**Indicator:** [observable, measurable indicator]
+**Performance Indicator:** [what mastery looks like in student action]
+**Core Competencies:** Critical Thinking, Communication, Cultural Identity, Creativity and Innovation
+**Key words:** [5 essential vocabulary terms for this topic]
+**Reference:** [GES Curriculum document or standard textbook reference]
 
-**Key words:**
-[Keywords here]
+**PHASE 1: STARTER [15 mins]**
+🌍 LOCALIZED HOOK:
+[2–3 sentences grounding {topic} in a specific Ghanaian context. Name the real place, item, or practice.]
 
-**Reference:**
-[Reference book or curriculum link]
+🔍 PULSE CHECK (AI-Integrated Diagnostic):
+Q1: [Diagnostic question probing prerequisite knowledge]
+Q2: [Diagnostic question on a common misconception about {topic}]
+Q3: [Diagnostic question connecting {topic} to the hooks context above]
+Teacher note: Mentally log students who hesitate or answer incorrectly — they are your Data-Trigger targets for Phase 3.
 
-**Phase/Duration** | **Learners Activities** | **Resources**
+**PHASE 2: NEW LEARNING [30 mins]**
+Class Introduction (all students):
+[2–3 sentences that bridge the hook into the core concept and set context for both paths.]
 
-**PHASE 1: STARTER [Time]**
-[Provide starter activity details here...]
+🟢 SUPPORT PATH (for students who struggled in the Pulse Check):
+Step 1: [Concrete, hands-on or visual scaffolded activity]
+Step 2: [Guided practice with a worked example or sentence frame]
+Step 3: [Paired or small-group practice with teacher monitoring]
+Success marker: [How teacher knows this student is ready to move on]
 
-**PHASE 2: NEW LEARNING [Time]**
-[Provide main teaching activity details here...]
+🔵 EXTENSION PATH (for students who aced the Pulse Check):
+Task 1: [Real-world application or local problem-solving using {topic}]
+Task 2: [Cross-curricular or analytical challenge — connects to another subject or Ghana context]
+Task 3: [Higher-order thinking: design, evaluate, or create using {topic}]
+Success marker: [What a strong Extension Path product looks like]
 
-**PHASE 3: REFLECTION [Time]**
-[Provide reflection and summary details here...]
+**PHASE 3: REFLECTION [15 mins]**
+Whole-class debrief:
+[1–2 sentences for whole-class exit reflection or share-out.]
+
+📊 DATA-TRIGGER (Teacher Action Guide — carry this into tomorrow's planning):
+- Students who missed Pulse Check Q1: [Exact reteach or re-pairing action for next lesson]
+- Students who missed Pulse Check Q2: [Exact reteach or re-pairing action for next lesson]
+- Students who missed Pulse Check Q3: [Exact reteach or re-pairing action for next lesson]
+- Students who completed the Extension Path: [How to leverage them — peer teaching, presentation, deeper task]
+
+**Resources:** [List all materials: textbook pages, whiteboard, manipulatives, local objects if applicable]
+**Homework:** [Clearly differentiated: one task for Support Path students, one for Extension Path students]
 """
 
         try:
@@ -169,9 +199,15 @@ Return a full lesson plan using the exact template below. Do not use markdown ta
                 "model": get_openai_chat_model(),
                 "messages": [
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Create a full lesson plan on '{topic}' for {grade_level} {subject}."}
+                    {"role": "user", "content": (
+                        f"Generate the full Aura-T lesson plan for '{topic}' "
+                        f"({grade_level}, {subject}). "
+                        "Include every mandatory element: Localized Hook, Pulse Check, "
+                        "Support Path, Extension Path, and Data-Trigger."
+                    )}
                 ],
-                "temperature": 0.7
+                "temperature": 0.75,
+                "max_tokens": 2000,
             }
             response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
             content = response['choices'][0]['message']['content']
@@ -193,7 +229,8 @@ Return a full lesson plan using the exact template below. Do not use markdown ta
                     "grade": grade_level,
                     "generated_at": timezone.now().isoformat()
                 },
-                "lesson_plan": f"Lesson plan generation failed. Please try again for {topic}."
+                "lesson_plan": None,
+                "error": str(e)
             }
 
     @staticmethod
