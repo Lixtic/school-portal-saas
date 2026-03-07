@@ -56,6 +56,7 @@ urlpatterns = [
     path('ai-tutor/generate-image/', views.generate_tutor_image, name='generate_tutor_image'),
     path('ai-tutor/session/new/', views.ai_tutor_new_session, name='ai_tutor_new_session'),
     path('ai-tutor/practice/', views.generate_practice, name='generate_practice'),
+    path('ai-tutor/scheme-topic/', views.scheme_topic_suggest, name='scheme_topic_suggest'),
     path('ai-tutor/practice/<int:practice_set_id>/assign-homework/', views.assign_practice_as_homework, name='assign_practice_as_homework'),
     path('ai-tutor/explain/', views.explain_concept, name='explain_concept'),
     path('ai-tutor/sessions/', views.tutor_sessions, name='tutor_sessions'),

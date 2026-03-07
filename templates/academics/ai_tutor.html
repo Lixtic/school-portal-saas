@@ -1417,7 +1417,7 @@
                         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
                             <div style="min-width:140px;">
                                 <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:3px;">Subject</label>
-                                <select id="practiceSubjectSelect" class="form-select form-select-sm">
+                                <select id="practiceSubjectSelect" class="form-select form-select-sm" onchange="fetchSchemeTopic(this.value)">
                                     <option value="">— choose subject —</option>
                                     {% for subject in subjects %}
                                     <option value="{{ subject.id }}">{{ subject.name }}</option>
@@ -3046,6 +3046,21 @@
             panel.style.display = 'none';
             btn.classList.remove('active');
         }
+    }
+
+    async function fetchSchemeTopic(subjectId) {
+        if (!subjectId) return;
+        const inp = document.getElementById('practiceTopicInput');
+        if (!inp || inp.value.trim()) return; // don't overwrite if user typed something
+        try {
+            const resp = await fetch(`{% url 'academics:scheme_topic_suggest' %}?subject_id=${subjectId}`);
+            const data = await resp.json();
+            if (data.suggested && inp && !inp.value.trim()) {
+                inp.value = data.suggested;
+                inp.style.borderColor = 'rgba(99,102,241,0.5)';
+                inp.title = `Auto-filled from scheme of work (${data.topics ? data.topics.length : 1} topics available)`;
+            }
+        } catch(e) { /* silent fail */ }
     }
 
     async function startPracticeQuiz() {

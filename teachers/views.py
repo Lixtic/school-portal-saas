@@ -144,9 +144,48 @@ def teacher_ai_insights(request):
     
     from collections import Counter
     topic_counts = Counter(all_topics).most_common(8)
-    
+
     # 4. Recent Activity Feed
     recent_activity = sessions_qs.order_by('-started_at')[:10]
+
+    # 5. Scheme Progress: cross-reference session topics against SchemeOfWork topics
+    scheme_progress = []
+    try:
+        if request.user.user_type == 'teacher':
+            teacher_schemes = SchemeOfWork.objects.filter(
+                class_subject__teacher=teacher,
+                class_subject__class_name__academic_year=current_year,
+            ).select_related('class_subject__subject', 'class_subject__class_name')
+        else:
+            teacher_schemes = SchemeOfWork.objects.filter(
+                academic_year=current_year,
+            ).select_related('class_subject__subject', 'class_subject__class_name')[:20]
+
+        all_session_content = set()
+        for s in recent_sessions:
+            if s.title:
+                all_session_content.add(s.title.lower())
+            if isinstance(s.topics_discussed, list):
+                for t in s.topics_discussed:
+                    all_session_content.add(str(t).lower())
+
+        for scheme in teacher_schemes:
+            topics = scheme.get_topics()
+            if not topics:
+                continue
+            covered = sum(
+                1 for t in topics
+                if any(t.lower() in content or content in t.lower() for content in all_session_content)
+            )
+            scheme_progress.append({
+                'scheme': scheme,
+                'topics': topics,
+                'total': len(topics),
+                'covered': covered,
+                'pct': round(covered / len(topics) * 100) if topics else 0,
+            })
+    except Exception:
+        pass
 
     context = {
         'total_sessions': total_sessions,
@@ -155,6 +194,7 @@ def teacher_ai_insights(request):
         'top_students': top_students,
         'common_topics': topic_counts,
         'recent_activity': recent_activity,
+        'scheme_progress': scheme_progress,
     }
     return render(request, 'teachers/ai_insights.html', context)
 
@@ -2833,3 +2873,46 @@ def scheme_of_work_delete(request, pk):
     scheme.delete()
     messages.success(request, 'Scheme of work deleted.')
     return redirect('teachers:scheme_of_work_list')
+
+
+@login_required
+@require_POST
+def scheme_of_work_update_topics(request, pk):
+    """AJAX: replace extracted_topics list for a scheme."""
+    if request.user.user_type not in ['admin', 'teacher']:
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    teacher = get_object_or_404(Teacher, user=request.user)
+    scheme = get_object_or_404(SchemeOfWork, pk=pk, class_subject__teacher=teacher)
+    try:
+        payload = json.loads(request.body)
+        topics = payload.get('topics', [])
+        if not isinstance(topics, list):
+            raise ValueError('topics must be a list')
+        topics = [str(t).strip() for t in topics if str(t).strip()]
+        scheme.extracted_topics = json.dumps(topics)
+        scheme.save(update_fields=['extracted_topics'])
+        return JsonResponse({'ok': True, 'count': len(topics)})
+    except Exception as exc:
+        return JsonResponse({'error': str(exc)}, status=400)
+
+
+@login_required
+@require_POST
+def scheme_of_work_reextract(request, pk):
+    """Re-run GPT-4o Vision extraction on the stored image."""
+    if request.user.user_type not in ['admin', 'teacher']:
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    teacher = get_object_or_404(Teacher, user=request.user)
+    scheme = get_object_or_404(SchemeOfWork, pk=pk, class_subject__teacher=teacher)
+    try:
+        from academics.ai_tutor import extract_scheme_of_work_topics
+        try:
+            image_ref = scheme.image.path
+        except (NotImplementedError, AttributeError, ValueError):
+            image_ref = scheme.image.url
+        topics = extract_scheme_of_work_topics(image_ref)
+        scheme.extracted_topics = json.dumps(topics)
+        scheme.save(update_fields=['extracted_topics'])
+        return JsonResponse({'ok': True, 'count': len(topics), 'topics': topics})
+    except Exception as exc:
+        return JsonResponse({'error': str(exc)}, status=500)

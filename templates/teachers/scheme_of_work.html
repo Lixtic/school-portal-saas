@@ -4,12 +4,18 @@
 {% block content %}
 <style>
     .sow-card { border-radius:12px; overflow:hidden; }
-    .topic-chip { display:inline-block; background:rgba(99,102,241,.12); color:#6366f1;
-                  border-radius:20px; padding:2px 10px; font-size:11px; margin:2px; }
+    .topic-chip { display:inline-flex; align-items:center; gap:4px; background:rgba(99,102,241,.12);
+                  color:#6366f1; border-radius:20px; padding:2px 10px; font-size:11px; margin:2px; }
+    .topic-chip .rm { cursor:pointer; font-size:13px; opacity:.55; line-height:1; }
+    .topic-chip .rm:hover { opacity:1; color:#ef4444; }
+    .topic-add-input { font-size:12px; border:1px dashed rgba(99,102,241,.4); border-radius:20px;
+                       padding:2px 10px; outline:none; background:transparent; color:inherit; width:150px; }
+    .topic-add-input:focus { border-color:#6366f1; }
     [data-bs-theme="dark"] .topic-chip { background:rgba(99,102,241,.2); color:#a5b4fc; }
     [data-bs-theme="dark"] .card { background:var(--surface-white); border-color:rgba(255,255,255,.07); }
     [data-bs-theme="dark"] .table { color:var(--text-main); }
     [data-bs-theme="dark"] .text-muted { color:#94a3b8 !important; }
+    [data-bs-theme="dark"] .topic-add-input { color:#e2e8f0; }
 </style>
 
 <div class="container py-4">
@@ -29,6 +35,7 @@
                 <i class="bi bi-lightbulb-fill text-warning me-1"></i>
                 Upload a screenshot of your termly scheme of work. <strong>Aura</strong> will read your topics
                 and automatically align lessons to your curriculum sequence.
+                Edit topics inline or re-run AI extraction any time.
             </p>
         </div>
     </div>
@@ -61,30 +68,40 @@
                     </div>
 
                     {% with topics=scheme.get_topics %}
-                    {% if topics %}
-                    <div class="mb-2">
-                        <span class="badge bg-success-subtle text-success border border-success-subtle me-1">
-                            <i class="bi bi-check-circle-fill me-1"></i>{{ topics|length }} topics extracted
+                    <div class="mb-2 d-flex flex-wrap gap-2 align-items-center">
+                        {% if topics %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                            <i class="bi bi-check-circle-fill me-1"></i><span id="count-{{ scheme.pk }}">{{ topics|length }}</span> topics
                         </span>
+                        {% else %}
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle" id="count-{{ scheme.pk }}">No topics</span>
+                        {% endif %}
+                        <button class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-0" style="font-size:11px;"
+                                onclick="reExtract({{ scheme.pk }},this,'{% url 'teachers:scheme_of_work_reextract' scheme.pk %}')">
+                            <i class="bi bi-arrow-repeat me-1"></i>Re-extract
+                        </button>
                     </div>
 
-                    <!-- Collapsible topic list -->
-                    <div class="collapse" id="topics-{{ scheme.pk }}">
-                        <div class="mt-2">
-                            {% for topic in topics %}
-                            <span class="topic-chip">{{ forloop.counter }}. {{ topic }}</span>
-                            {% endfor %}
-                        </div>
+                    <!-- Inline topic editor -->
+                    <div id="chips-{{ scheme.pk }}" class="mb-2">
+                        {% for topic in topics %}
+                        <span class="topic-chip" data-topic="{{ topic|escapejs }}">
+                            <span class="text-muted me-1" style="font-size:10px;">{{ forloop.counter }}.</span>
+                            {{ topic }}
+                            <span class="rm" onclick="removeTopic({{ scheme.pk }},this)">&#x2715;</span>
+                        </span>
+                        {% endfor %}
                     </div>
-                    <button class="btn btn-link btn-sm p-0 text-decoration-none mt-1"
-                            data-bs-toggle="collapse" data-bs-target="#topics-{{ scheme.pk }}">
-                        <i class="bi bi-eye me-1"></i>Show/Hide topics
-                    </button>
-                    {% else %}
-                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
-                        <i class="bi bi-exclamation-triangle me-1"></i>No topics extracted
-                    </span>
-                    {% endif %}
+                    <div class="d-flex gap-2 align-items-center flex-wrap">
+                        <input type="text" class="topic-add-input" id="add-input-{{ scheme.pk }}"
+                               placeholder="Add topic…"
+                               onkeydown="if(event.key==='Enter'){addTopic({{ scheme.pk }});event.preventDefault();}">
+                        <button class="btn btn-sm btn-outline-primary rounded-pill px-2 py-0" style="font-size:11px;"
+                                onclick="addTopic({{ scheme.pk }})"><i class="bi bi-plus"></i> Add</button>
+                        <button class="btn btn-sm btn-success rounded-pill px-2 py-0" id="save-btn-{{ scheme.pk }}"
+                                style="font-size:11px;display:none;"
+                                onclick="saveTopics({{ scheme.pk }},'{% url 'teachers:scheme_of_work_update_topics' scheme.pk %}')">&#10003; Save</button>
+                    </div>
                     {% endwith %}
                 </div>
                 <div class="card-footer border-0 bg-transparent d-flex justify-content-between align-items-center pt-0 pb-3 px-3">
@@ -111,4 +128,53 @@
     {% endif %}
 
 </div>
+
+<script>
+const CSRF = '{{ csrf_token }}';
+
+function getTopics(id) {
+    return Array.from(document.querySelectorAll(`#chips-${id} .topic-chip`)).map(c => c.dataset.topic);
+}
+function rerenderChips(id, topics) {
+    document.getElementById(`chips-${id}`).innerHTML = topics.map((t,i) =>
+        `<span class="topic-chip" data-topic="${t.replace(/"/g,'&quot;')}">
+            <span class="text-muted me-1" style="font-size:10px;">${i+1}.</span>${t}
+            <span class="rm" onclick="removeTopic(${id},this)">&#x2715;</span></span>`
+    ).join('');
+}
+function markDirty(id) { document.getElementById(`save-btn-${id}`).style.display=''; }
+function removeTopic(id, btn) {
+    btn.closest('.topic-chip').remove();
+    rerenderChips(id, getTopics(id));
+    markDirty(id);
+}
+function addTopic(id) {
+    const inp = document.getElementById(`add-input-${id}`);
+    const v = inp.value.trim(); if(!v) return;
+    rerenderChips(id, [...getTopics(id), v]);
+    inp.value=''; markDirty(id);
+}
+async function saveTopics(id, url) {
+    const btn = document.getElementById(`save-btn-${id}`);
+    btn.disabled=true; btn.textContent='…';
+    const resp = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},body:JSON.stringify({topics:getTopics(id)})});
+    const d = await resp.json();
+    if(d.ok){btn.textContent='✓ Saved';setTimeout(()=>{btn.style.display='none';btn.textContent='✓ Save';btn.disabled=false;},1500);}
+    else{alert('Save failed: '+(d.error||'?'));btn.disabled=false;btn.textContent='✓ Save';}
+}
+async function reExtract(id, btn, url) {
+    if(!confirm('Re-run AI extraction? This will replace the current topic list.')) return;
+    const orig=btn.innerHTML; btn.disabled=true;
+    btn.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span>Extracting…';
+    const resp = await fetch(url,{method:'POST',headers:{'X-CSRFToken':CSRF}});
+    const d = await resp.json();
+    if(d.ok){
+        rerenderChips(id, d.topics);
+        document.getElementById(`count-${id}`).textContent = d.count+' topics';
+        markDirty(id);
+        btn.innerHTML=`<i class="bi bi-check2 me-1"></i>${d.count} extracted`;
+        setTimeout(()=>{btn.innerHTML=orig;btn.disabled=false;},2000);
+    } else { alert('Failed: '+(d.error||'?')); btn.innerHTML=orig; btn.disabled=false; }
+}
+</script>
 {% endblock %}

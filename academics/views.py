@@ -2468,6 +2468,43 @@ def generate_practice(request):
 
 
 @login_required
+def scheme_topic_suggest(request):
+    """Return scheme-of-work topics for a given subject (student's current class).
+    GET ?subject_id=<int>  → {topics: [...], suggested: "..."} """
+    from .models import SchemeOfWork, ClassSubject, AcademicYear
+    subject_id = request.GET.get('subject_id')
+    if not subject_id:
+        return JsonResponse({'topics': [], 'suggested': ''})
+
+    # Resolve student's class
+    student_class = None
+    if request.user.user_type == 'student':
+        try:
+            from students.models import Student
+            student = Student.objects.select_related('current_class').get(user=request.user)
+            student_class = student.current_class
+        except Exception:
+            pass
+
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    qs = SchemeOfWork.objects.filter(class_subject__subject_id=subject_id)
+    if student_class:
+        qs = qs.filter(class_subject__class_name=student_class)
+    if current_year:
+        qs = qs.filter(academic_year=current_year)
+
+    topics = []
+    for scheme in qs[:3]:
+        topics.extend(scheme.get_topics())
+
+    # Deduplicate (preserve order)
+    seen = set()
+    unique_topics = [t for t in topics if t and not (t in seen or seen.add(t))]
+    suggested = unique_topics[0] if unique_topics else ''
+    return JsonResponse({'topics': unique_topics, 'suggested': suggested})
+
+
+@login_required
 def explain_concept(request):
     """Get AI explanation of a concept"""
     from .ai_tutor import explain_concept as get_explanation
