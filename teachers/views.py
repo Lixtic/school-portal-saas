@@ -1552,6 +1552,9 @@ def lesson_plan_create(request):
     
     ai_content = request.POST.get('ai_content') or request.GET.get('ai_content')
     topic = request.GET.get('topic') # Legacy/Simple Fallback
+    # Pre-fill subject/class when coming from Scheme of Work topic chip
+    prefill_subject_id = request.GET.get('subject_id')
+    prefill_class_id   = request.GET.get('class_id')
 
     if ai_content:
         # PARSING LOGIC: Extract fields from the Aura-T standardized format
@@ -1585,7 +1588,6 @@ def lesson_plan_create(request):
 
     elif topic:
         # CASE 2: Simpler generation (Old method)
-        # Simulate AI generation
         initial_data = {
             'topic': topic,
             'objectives': f"By the end of the lesson, students will be able to:\n1. Understand the core concepts of {topic}.\n2. Apply {topic} to solve simple problems.\n3. Analyze real-world examples of {topic}.",
@@ -1596,7 +1598,13 @@ def lesson_plan_create(request):
             'teaching_materials': f"Textbook, Whiteboard, Marker, Projector (optional), Handouts on {topic}"
         }
         messages.info(request, f"AI has drafted a lesson plan block for '{topic}'. Please review and edit.")
-    
+
+    # Pre-select subject / class when redirected from Scheme of Work
+    if prefill_subject_id and not initial_data.get('subject'):
+        initial_data['subject'] = prefill_subject_id
+    if prefill_class_id and not initial_data.get('school_class'):
+        initial_data['school_class'] = prefill_class_id
+
     if request.method == 'POST' and 'topic' in request.POST: # Standard form submit
         form = LessonPlanForm(request.POST, teacher=teacher)
         if form.is_valid():

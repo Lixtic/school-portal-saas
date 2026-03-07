@@ -83,7 +83,11 @@
                     </div>
 
                     <!-- Inline topic editor -->
-                    <div id="chips-{{ scheme.pk }}" class="mb-2">
+                    <div id="chips-{{ scheme.pk }}" class="mb-2"
+                         data-subject-id="{{ scheme.class_subject.subject.id }}"
+                         data-class-id="{{ scheme.class_subject.class_name.id }}"
+                         data-hw-url="{% url 'homework:homework_create' %}"
+                         data-lp-url="{% url 'teachers:lesson_plan_create' %}">
                         {% for topic in topics %}
                         <span class="topic-chip" data-topic="{{ topic|escapejs }}">
                             <span class="text-muted me-1" style="font-size:10px;">{{ forloop.counter }}.</span>
@@ -92,7 +96,11 @@
                             <a href="{% url 'homework:homework_create' %}?topic={{ topic|urlencode }}&class_id={{ scheme.class_subject.class_name.id }}&subject_id={{ scheme.class_subject.subject.id }}"
                                title="Create homework on this topic"
                                class="ms-1 text-decoration-none"
-                               style="font-size:11px;opacity:.6;" target="_blank">📝</a>
+                               style="font-size:11px;opacity:.6;">📝</a>
+                            <a href="{% url 'teachers:lesson_plan_create' %}?topic={{ topic|urlencode }}&subject_id={{ scheme.class_subject.subject.id }}&class_id={{ scheme.class_subject.class_name.id }}"
+                               title="Create lesson plan for this topic"
+                               class="ms-1 text-decoration-none"
+                               style="font-size:11px;opacity:.6;">📋</a>
                         </span>
                         {% endfor %}
                     </div>
@@ -140,11 +148,20 @@ function getTopics(id) {
     return Array.from(document.querySelectorAll(`#chips-${id} .topic-chip`)).map(c => c.dataset.topic);
 }
 function rerenderChips(id, topics) {
-    document.getElementById(`chips-${id}`).innerHTML = topics.map((t,i) =>
-        `<span class="topic-chip" data-topic="${t.replace(/"/g,'&quot;')}">
+    const container = document.getElementById(`chips-${id}`);
+    const subjectId = container.dataset.subjectId || '';
+    const classId   = container.dataset.classId   || '';
+    const hwBase    = container.dataset.hwUrl      || '';
+    const lpBase    = container.dataset.lpUrl      || '';
+    container.innerHTML = topics.map((t, i) => {
+        const enc = encodeURIComponent(t);
+        const esc = t.replace(/"/g, '&quot;');
+        const hwLink = hwBase ? `<a href="${hwBase}?topic=${enc}&class_id=${classId}&subject_id=${subjectId}" title="Create homework" class="ms-1 text-decoration-none" style="font-size:11px;opacity:.6;">📝</a>` : '';
+        const lpLink = lpBase ? `<a href="${lpBase}?topic=${enc}&subject_id=${subjectId}&class_id=${classId}" title="Create lesson plan" class="ms-1 text-decoration-none" style="font-size:11px;opacity:.6;">📋</a>` : '';
+        return `<span class="topic-chip" data-topic="${esc}">
             <span class="text-muted me-1" style="font-size:10px;">${i+1}.</span>${t}
-            <span class="rm" onclick="removeTopic(${id},this)">&#x2715;</span></span>`
-    ).join('');
+            <span class="rm" onclick="removeTopic(${id},this)">&#x2715;</span>${hwLink}${lpLink}</span>`;
+    }).join('');
 }
 function markDirty(id) { document.getElementById(`save-btn-${id}`).style.display=''; }
 function removeTopic(id, btn) {
