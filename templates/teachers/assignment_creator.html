@@ -331,16 +331,21 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             
             if (data.status === 'success') {
-                renderResults(data.data);
+                // Reveal container first so any render error still shows a partial result
                 emptyState.classList.add('d-none');
                 resultContainer.classList.remove('d-none');
+                try {
+                    renderResults(data.data);
+                } catch (renderErr) {
+                    console.error('Render error:', renderErr);
+                }
             } else {
-                alert('Generation failed: ' + data.message);
+                alert('Generation failed: ' + (data.message || 'Unknown error'));
             }
             
         } catch (error) {
             console.error('Error:', error);
-            alert('An error occurred during generation.');
+            alert('An error occurred during generation. Please try again.');
         } finally {
             resetBtn();
         }
@@ -353,53 +358,64 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     function renderResults(data) {
+        const asgn = data.assignment || {};
+        const content = asgn.content || {};
+        const meta = data.meta || {};
+        const diff = data.differentiation || {};
+        const rubric = Array.isArray(data.rubric) ? data.rubric : [];
+
         // 1. Core
-        document.getElementById('resTitle').textContent = data.assignment.title;
-        document.getElementById('resDesc').textContent = data.assignment.description;
-        document.getElementById('resVisual').textContent = data.assignment.content.visual_prompt;
-        document.getElementById('metaBadge').textContent = `${data.meta.subject} • ${data.meta.grade} • ${data.meta.topic}`;
-        
+        document.getElementById('resTitle').textContent = asgn.title || '';
+        document.getElementById('resDesc').textContent = asgn.description || '';
+        document.getElementById('resVisual').textContent = content.visual_prompt || '';
+        document.getElementById('metaBadge').textContent =
+            [meta.subject, meta.grade, meta.topic].filter(Boolean).join(' • ') || 'Generated';
+
+        const questions = Array.isArray(content.questions) ? content.questions : [];
         const qList = document.getElementById('resQuestions');
         qList.innerHTML = '';
-        data.assignment.content.questions.forEach(q => {
-            const li = document.createElement('li');
-            li.className = 'list-group-item bg-transparent px-0 py-2';
-            li.innerHTML = `<i class="bi bi-dot me-2"></i>${q}`;
-            qList.appendChild(li);
-        });
-        
+        if (questions.length === 0) {
+            qList.innerHTML = '<li class="list-group-item bg-transparent px-0 py-2 text-muted">No questions returned.</li>';
+        } else {
+            questions.forEach((q, i) => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item bg-transparent px-0 py-2';
+                li.innerHTML = `<span class="fw-semibold me-2">${i + 1}.</span>${q}`;
+                qList.appendChild(li);
+            });
+        }
+
         // 2. Differentiation
-        // Support
-        document.getElementById('diffSupportDesc').textContent = data.differentiation.support.description;
+        const support = diff.support || {};
+        document.getElementById('diffSupportDesc').textContent = support.description || '';
         const supList = document.getElementById('diffSupportList');
         supList.innerHTML = '';
-        data.differentiation.support.modifications.forEach(m => supList.innerHTML += `<li>${m}</li>`);
-        
-        // Standard
-        document.getElementById('diffStandardDesc').textContent = data.differentiation.standard.description;
+        (support.modifications || []).forEach(m => supList.innerHTML += `<li>${m}</li>`);
+
+        const standard = diff.standard || {};
+        document.getElementById('diffStandardDesc').textContent = standard.description || '';
         const stdList = document.getElementById('diffStandardList');
-        stdList.innerHTML = ''; // Usually same as questions, handle gracefully
-        if (data.differentiation.standard.content) {
-             data.differentiation.standard.content.forEach(m => stdList.innerHTML += `<li>${m}</li>`);
-        }
-        
-        // Challenge
-        document.getElementById('diffChallengeDesc').textContent = data.differentiation.challenge.description;
+        stdList.innerHTML = '';
+        (standard.content || []).forEach(m => stdList.innerHTML += `<li>${m}</li>`);
+
+        const challenge = diff.challenge || {};
+        document.getElementById('diffChallengeDesc').textContent = challenge.description || '';
         const chaList = document.getElementById('diffChallengeList');
         chaList.innerHTML = '';
-        data.differentiation.challenge.modifications.forEach(m => chaList.innerHTML += `<li>${m}</li>`);
-        
+        (challenge.modifications || []).forEach(m => chaList.innerHTML += `<li>${m}</li>`);
+
         // 3. Rubric
         const rubricBody = document.getElementById('rubricBody');
         rubricBody.innerHTML = '';
-        data.rubric.forEach(r => {
+        rubric.forEach(r => {
+            const lvl = r.levels || {};
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td class="fw-bold text-dark">${r.criteria} <br><small class="text-muted font-weight-normal">Weight: ${r.weight}</small></td>
-                <td>${r.levels.excellent}</td>
-                <td>${r.levels.proficient}</td>
-                <td>${r.levels.basic}</td>
-                <td class="text-muted">${r.levels.limited}</td>
+                <td class="fw-bold">${r.criteria || ''}<br><small class="text-muted fw-normal">Weight: ${r.weight || ''}</small></td>
+                <td>${lvl.excellent || ''}</td>
+                <td>${lvl.proficient || ''}</td>
+                <td>${lvl.basic || ''}</td>
+                <td class="text-muted">${lvl.limited || ''}</td>
             `;
             rubricBody.appendChild(tr);
         });
