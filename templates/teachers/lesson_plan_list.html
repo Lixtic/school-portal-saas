@@ -86,6 +86,10 @@
     [data-bs-theme="dark"] .form-control,
     [data-bs-theme="dark"] .form-select { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); color: #e2e8f0; }
 
+    /* Chevron rotation */
+    [aria-expanded="true"] .collapse-chevron  { transform: rotate(180deg); }
+    .collapse-chevron { transition: transform 0.2s ease; }
+
     @media (max-width: 575.98px) {
         .lp-header { padding: 1rem; border-radius: .75rem; }
         .lp-header-title { font-size: 1.1rem; }
@@ -148,7 +152,19 @@
 
 <!-- Filter Card -->
 <div class="card shadow-sm border-0 mb-4 rounded-4 slide-in delay-1">
-    <div class="card-body p-3 p-md-4">
+    <button class="card-header btn d-flex align-items-center justify-content-between w-100 text-start px-4 py-3 border-0 bg-transparent"
+            type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse"
+            aria-expanded="{% if selected_week or selected_subject or selected_class or selected_query or selected_teacher %}true{% else %}false{% endif %}" aria-controls="filterCollapse">
+        <span class="fw-semibold" style="font-size:.875rem;">
+            <i class="bi bi-funnel me-2 text-muted"></i>Filters
+            {% if selected_week or selected_subject or selected_class or selected_query or selected_teacher %}
+            <span class="badge rounded-pill ms-2" style="background:rgba(124,58,237,0.12);color:#7c3aed;border:1px solid rgba(124,58,237,0.2);font-size:.7rem;">Active</span>
+            {% endif %}
+        </span>
+        <i class="bi bi-chevron-down text-muted small collapse-chevron"></i>
+    </button>
+    <div class="collapse {% if selected_week or selected_subject or selected_class or selected_query or selected_teacher %}show{% endif %}" id="filterCollapse">
+    <div class="card-body p-3 p-md-4 pt-0 pt-md-0">
         <form method="get" class="row g-3 align-items-end">
             <div class="col-6 col-md-2">
                 <label for="week" class="form-label small fw-semibold text-muted text-uppercase" style="font-size:.7rem;letter-spacing:.05em;">Week</label>
@@ -201,6 +217,7 @@
             </div>
         </form>
     </div>
+    </div><!-- /.collapse -->
 </div>
 
 <!-- Plans List -->
