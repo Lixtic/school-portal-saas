@@ -4,13 +4,206 @@
 {% block title %}Add Questions - {{ homework.title }}{% endblock %}
 
 {% block content %}
+<style>
+    .ai-panel {
+        background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
+        border: 1.5px solid #c7d2fe;
+        border-radius: 16px;
+        overflow: hidden;
+    }
+    [data-bs-theme="dark"] .ai-panel {
+        background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.08));
+        border-color: rgba(99,102,241,0.3);
+    }
+    .ai-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.9rem 1.2rem;
+        cursor: pointer;
+        user-select: none;
+    }
+    .ai-panel-title {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: #4f46e5;
+    }
+    [data-bs-theme="dark"] .ai-panel-title { color: #a5b4fc; }
+    .ai-badge-new {
+        font-size: 0.6rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        background: linear-gradient(90deg, #6366f1, #8b5cf6);
+        color: #fff;
+        padding: 0.15rem 0.5rem;
+        border-radius: 99px;
+    }
+    .ai-panel-body { padding: 0 1.2rem 1.2rem; }
+    .ai-spinner-overlay {
+        display: none;
+        position: absolute;
+        inset: 0;
+        background: rgba(255,255,255,0.82);
+        border-radius: 12px;
+        z-index: 10;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        font-weight: 600;
+        color: #4f46e5;
+    }
+    [data-bs-theme="dark"] .ai-spinner-overlay {
+        background: rgba(15,23,42,0.82);
+        color: #a5b4fc;
+    }
+    .ai-spinner-overlay.active { display: flex; }
+    .ai-gen-card {
+        position: relative;
+        background: #fff;
+        border: 1px solid #e0e7ff;
+        border-radius: 12px;
+        padding: 1rem 1.1rem;
+    }
+    [data-bs-theme="dark"] .ai-gen-card {
+        background: var(--surface-card, #1e293b);
+        border-color: rgba(99,102,241,0.2);
+    }
+    .ai-preview-item {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 0.65rem 0.85rem;
+        margin-bottom: 0.5rem;
+        font-size: 0.82rem;
+    }
+    [data-bs-theme="dark"] .ai-preview-item {
+        background: rgba(255,255,255,0.04);
+        border-color: rgba(255,255,255,0.08);
+    }
+    .ai-preview-item .q-text { font-weight: 600; margin-bottom: 0.3rem; }
+    .ai-preview-item .q-meta { color: var(--text-muted); font-size: 0.72rem; }
+    .ai-preview-item .badge { font-size: 0.65rem; }
+</style>
+
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="h3 fw-bold">Manage Questions for: {{ homework.title }}</h2>
-        <a href="{% url 'homework:homework_detail' homework.id %}" class="btn btn-outline-secondary">
+        <h2 class="h3 fw-bold">Manage Questions: <span class="text-primary">{{ homework.title }}</span></h2>
+        <a href="{% url 'homework:homework_detail' homework.id %}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-left"></i> Back
         </a>
     </div>
+
+    <!-- ===== AI Assignment Creator Panel ===== -->
+    <div class="ai-panel mb-4 shadow-sm">
+        <div class="ai-panel-header" onclick="toggleAiPanel()">
+            <div class="ai-panel-title">
+                <i class="bi bi-stars" style="font-size:1.1rem;"></i>
+                AI Assignment Creator
+                <span class="ai-badge-new">New</span>
+            </div>
+            <i class="bi bi-chevron-down" id="aiPanelChevron" style="color:#6366f1;transition:transform 0.2s;"></i>
+        </div>
+
+        <div class="ai-panel-body" id="aiPanelBody">
+            <p class="text-muted small mb-3" style="font-size:0.78rem;">
+                Describe what you want to test and let AI generate a full set of questions. Review and edit them before saving.
+            </p>
+
+            <div class="ai-gen-card">
+                <div class="ai-spinner-overlay" id="aiSpinner">
+                    <div class="spinner-border" style="width:2rem;height:2rem;border-width:3px;" role="status"></div>
+                    <span id="aiSpinnerMsg">Generating questions…</span>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small">Topic / Learning Objective <span class="text-danger">*</span></label>
+                        <input type="text" id="ai-topic" class="form-control form-control-sm"
+                               placeholder="e.g. Fractions and Decimals, Civil Rights Movement…">
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <label class="form-label fw-semibold small">Subject</label>
+                        <input type="text" id="ai-subject" class="form-control form-control-sm"
+                               value="{{ homework.subject.name }}" placeholder="Mathematics">
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <label class="form-label fw-semibold small">Grade / Class</label>
+                        <input type="text" id="ai-grade" class="form-control form-control-sm"
+                               value="{{ homework.target_class.name }}" placeholder="Basic 7">
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3 col-6">
+                        <label class="form-label fw-semibold small">No. of Questions</label>
+                        <select id="ai-num" class="form-select form-select-sm">
+                            <option value="5">5</option>
+                            <option value="8">8</option>
+                            <option value="10" selected>10</option>
+                            <option value="12">12</option>
+                            <option value="15">15</option>
+                            <option value="20">20</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <label class="form-label fw-semibold small">Question Types</label>
+                        <select id="ai-type" class="form-select form-select-sm">
+                            <option value="mixed" selected>Mixed (MCQ + Short + Essay)</option>
+                            <option value="mcq">Multiple Choice only</option>
+                            <option value="short">Short Answer only</option>
+                            <option value="essay">Essay only</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <label class="form-label fw-semibold small">Min DOK Level</label>
+                        <select id="ai-dok-min" class="form-select form-select-sm">
+                            <option value="1" selected>DOK 1 – Recall</option>
+                            <option value="2">DOK 2 – Skills</option>
+                            <option value="3">DOK 3 – Strategic</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <label class="form-label fw-semibold small">Max DOK Level</label>
+                        <select id="ai-dok-max" class="form-select form-select-sm">
+                            <option value="1">DOK 1 – Recall</option>
+                            <option value="2" selected>DOK 2 – Skills</option>
+                            <option value="3">DOK 3 – Strategic</option>
+                            <option value="4">DOK 4 – Extended</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 align-items-center">
+                    <button type="button" class="btn btn-primary btn-sm px-4" onclick="runAiGenerate()">
+                        <i class="bi bi-stars me-1"></i> Generate Questions
+                    </button>
+                    <span class="text-muted small" id="aiStatusText"></span>
+                </div>
+            </div>
+
+            <!-- Preview of generated questions -->
+            <div id="aiPreview" class="mt-3 d-none">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="fw-semibold small" id="aiPreviewTitle"></span>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearAiPreview()">
+                            <i class="bi bi-x-circle me-1"></i>Discard
+                        </button>
+                        <button type="button" class="btn btn-success btn-sm px-3" onclick="injectAiQuestions()">
+                            <i class="bi bi-arrow-down-circle me-1"></i>Add to Form
+                        </button>
+                    </div>
+                </div>
+                <div id="aiPreviewList"></div>
+            </div>
+        </div>
+    </div>
+    <!-- ===== End AI Panel ===== -->
 
     <form method="post" id="questionsForm">
         {% csrf_token %}
@@ -35,17 +228,26 @@
             </div>
         </div>
         {% endif %}
-        
-        <div id="questions-container">
-            <!-- Existing questions will be loaded here if any (future enhancement) -->
-            <!-- For now, we assume adding new questions -->
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0">New Questions</h5>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-primary btn-sm" onclick="addQuestion()">
+                    <i class="bi bi-plus-lg"></i> Add Manually
+                </button>
+                <button type="submit" class="btn btn-success btn-sm px-4">
+                    <i class="bi bi-save"></i> Save All
+                </button>
+            </div>
         </div>
 
-        <div class="d-grid gap-2 d-md-flex justify-content-md-start mb-4">
-            <button type="button" class="btn btn-info text-white" onclick="addQuestion()">
-                <i class="bi bi-plus-lg"></i> Add Question
+        <div id="questions-container"></div>
+
+        <div class="d-flex gap-2 mt-3">
+            <button type="button" class="btn btn-outline-primary" onclick="addQuestion()">
+                <i class="bi bi-plus-lg"></i> Add Another Question
             </button>
-            <button type="submit" class="btn btn-success">
+            <button type="submit" class="btn btn-success px-5">
                 <i class="bi bi-save"></i> Save All Questions
             </button>
         </div>
@@ -53,41 +255,49 @@
 </div>
 
 <script>
+    // ===== Panel toggle =====
+    function toggleAiPanel() {
+        const body = document.getElementById('aiPanelBody');
+        const icon = document.getElementById('aiPanelChevron');
+        const open = body.style.display !== 'none';
+        body.style.display = open ? 'none' : '';
+        icon.style.transform = open ? 'rotate(-90deg)' : 'rotate(0)';
+    }
+
+    // ===== Question builder helpers (unchanged logic) =====
     let questionCount = 0;
 
-    function addQuestion() {
+    function addQuestion(prefill) {
         questionCount++;
         const container = document.getElementById('questions-container');
-        
         const card = document.createElement('div');
         card.className = 'card mb-4 shadow-sm border-0 question-block';
         card.id = `question-${questionCount}`;
-        
+        const qn = questionCount;
         card.innerHTML = `
             <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                <span class="fw-bold">Question ${questionCount}</span>
-                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeQuestion(${questionCount})">
+                <span class="fw-bold">Question ${qn}</span>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeQuestion(${qn})">
                     <i class="bi bi-trash"></i>
                 </button>
             </div>
             <div class="card-body">
                 <div class="mb-3">
                     <label class="form-label">Question Text</label>
-                    <textarea name="question_text_${questionCount}" class="form-control" rows="2" required></textarea>
+                    <textarea name="question_text_${qn}" class="form-control" rows="2" required></textarea>
                 </div>
-
                 <div class="row g-2 mb-3">
                     <div class="col-md-6">
                         <label class="form-label">Question Type</label>
-                        <select name="question_type_${questionCount}" class="form-select" onchange="toggleQuestionType(${questionCount}, this.value)">
-                            <option value="mcq" selected>Multiple Choice</option>
+                        <select name="question_type_${qn}" class="form-select" onchange="toggleQuestionType(${qn}, this.value)">
+                            <option value="mcq">Multiple Choice</option>
                             <option value="short">Short Answer</option>
                             <option value="essay">Essay</option>
                         </select>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">DOK Level</label>
-                        <select name="dok_level_${questionCount}" class="form-select">
+                        <select name="dok_level_${qn}" class="form-select">
                             <option value="1">DOK 1: Recall</option>
                             <option value="2">DOK 2: Skills/Concepts</option>
                             <option value="3">DOK 3: Strategic Thinking</option>
@@ -95,38 +305,45 @@
                         </select>
                     </div>
                 </div>
-                
-                <h6 class="text-muted small text-uppercase fw-bold mb-3">Choices</h6>
-                <div id="choices-container-${questionCount}">
-                    <!-- Choices go here -->
+                <h6 class="text-muted small text-uppercase fw-bold mb-2">Choices</h6>
+                <div id="choices-container-${qn}"></div>
+                <div id="rubric-answer-${qn}" class="d-none mb-3">
+                    <label class="form-label" id="rubric-label-${qn}">Expected Answer (for AI grading)</label>
+                    <textarea name="expected_answer_${qn}" class="form-control" rows="2"></textarea>
                 </div>
-
-                <div id="rubric-answer-${questionCount}" class="d-none mb-3">
-                    <label class="form-label" id="rubric-label-${questionCount}">Expected Answer (for AI grading)</label>
-                    <textarea name="expected_answer_${questionCount}" class="form-control" rows="2" placeholder="What should a good answer include?"></textarea>
-                </div>
-                
-                <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addChoice(${questionCount})">
+                <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addChoice(${qn})">
                     <i class="bi bi-plus"></i> Add Choice
                 </button>
-            </div>
-        `;
-        
+            </div>`;
         container.appendChild(card);
-        
-        // Add initial 2 choices
-        addChoice(questionCount);
-        addChoice(questionCount);
+
+        if (prefill) {
+            card.querySelector(`textarea[name="question_text_${qn}"]`).value = prefill.text || '';
+            const typeSelect = card.querySelector(`select[name="question_type_${qn}"]`);
+            typeSelect.value = prefill.type || 'mcq';
+            const dokSelect = card.querySelector(`select[name="dok_level_${qn}"]`);
+            dokSelect.value = String(prefill.dok_level || 1);
+
+            if (prefill.type !== 'mcq') {
+                toggleQuestionType(qn, prefill.type);
+                const rubricTA = card.querySelector(`textarea[name="expected_answer_${qn}"]`);
+                if (rubricTA) rubricTA.value = prefill.correct_answer || '';
+            } else {
+                const choices = prefill.choices || [];
+                choices.forEach((c, ci) => {
+                    addChoice(qn, c, ci === (prefill.correct_index || 0));
+                });
+                if (!choices.length) { addChoice(qn); addChoice(qn); }
+            }
+        } else {
+            addChoice(qn);
+            addChoice(qn);
+        }
     }
 
     function removeQuestion(id) {
         const el = document.getElementById(`question-${id}`);
-        el.remove();
-        // Note: Renumbering logic is omitted for simplicity; backend should handle gaps or front-end should re-index.
-        // For this simple implementation, backend loops blindly or we need to ensure indices are consecutive? 
-        // The view code: `while True: i+=1 ... get(...)`. It expects consecutive integers starting from 1.
-        // So we must re-index on submit or keep indices consecutive.
-        // Let's simple re-index on remove.
+        if (el) el.remove();
         reindexQuestions();
     }
 
@@ -137,95 +354,63 @@
             questionCount++;
             q.id = `question-${questionCount}`;
             q.querySelector('.card-header span').textContent = `Question ${questionCount}`;
-            q.querySelector('textarea').name = `question_text_${questionCount}`;
+            q.querySelector('textarea[name^="question_text_"]').name = `question_text_${questionCount}`;
             q.querySelector('.btn-outline-danger').setAttribute('onclick', `removeQuestion(${questionCount})`);
-
-            // Reindex question_type and dok_level selects
             const typeSelect = q.querySelector('select[name^="question_type_"]');
             if (typeSelect) typeSelect.name = `question_type_${questionCount}`;
             const dokSelect = q.querySelector('select[name^="dok_level_"]');
             if (dokSelect) dokSelect.name = `dok_level_${questionCount}`;
-
-            // Reindex expected_answer textarea
-            const expectedTextarea = q.querySelector('textarea[name^="expected_answer_"]');
-            if (expectedTextarea) expectedTextarea.name = `expected_answer_${questionCount}`;
-            
+            const expectedTA = q.querySelector('textarea[name^="expected_answer_"]');
+            if (expectedTA) expectedTA.name = `expected_answer_${questionCount}`;
             const choiceContainer = q.querySelector('[id^="choices-container-"]');
-            choiceContainer.id = `choices-container-${questionCount}`;
-            
+            if (choiceContainer) choiceContainer.id = `choices-container-${questionCount}`;
             const addChoiceBtn = q.querySelector('.btn-outline-primary');
-            addChoiceBtn.setAttribute('onclick', `addChoice(${questionCount})`);
-
-            const rubricAnswerEl = q.querySelector('[id^="rubric-answer-"]');
-            if (rubricAnswerEl) {
-                rubricAnswerEl.id = `rubric-answer-${questionCount}`;
-            }
-            const rubricLabelEl = q.querySelector('[id^="rubric-label-"]');
-            if (rubricLabelEl) {
-                rubricLabelEl.id = `rubric-label-${questionCount}`;
-            }
-            
-            // Reindex choices
-            const choices = choiceContainer.querySelectorAll('.choice-row');
+            if (addChoiceBtn) addChoiceBtn.setAttribute('onclick', `addChoice(${questionCount})`);
+            const rubricEl = q.querySelector('[id^="rubric-answer-"]');
+            if (rubricEl) rubricEl.id = `rubric-answer-${questionCount}`;
+            const rubricLbl = q.querySelector('[id^="rubric-label-"]');
+            if (rubricLbl) rubricLbl.id = `rubric-label-${questionCount}`;
+            const choices = choiceContainer ? choiceContainer.querySelectorAll('.choice-row') : [];
             let cCount = 0;
             choices.forEach(c => {
                 cCount++;
-                const checkbox = c.querySelector('input[type="checkbox"]');
-                const text = c.querySelector('input[type="text"]');
-                const removeChoiceBtn = c.querySelector('button');
-                
-                if(checkbox) checkbox.name = `is_correct_${questionCount}_${cCount}`;
-                if(text) {
-                    text.name = `choice_text_${questionCount}_${cCount}`;
-                    text.placeholder = `Choice ${cCount}`;
-                }
-                if(removeChoiceBtn) {
-                    removeChoiceBtn.setAttribute('onclick', `this.parentElement.remove(); reindexChoices(${questionCount})`);
-                }
+                const cb = c.querySelector('input[type="checkbox"]');
+                const txt = c.querySelector('input[type="text"]');
+                if (cb) cb.name = `is_correct_${questionCount}_${cCount}`;
+                if (txt) { txt.name = `choice_text_${questionCount}_${cCount}`; txt.placeholder = `Choice ${cCount}`; }
             });
         });
     }
 
-    function addChoice(qId) {
+    function addChoice(qId, text, isCorrect) {
         const container = document.getElementById(`choices-container-${qId}`);
-        // Count existing rows to set initial index
+        if (!container) return;
         const count = container.children.length + 1;
-        
         const div = document.createElement('div');
         div.className = 'input-group mb-2 choice-row';
-        // Add choice HTML
         div.innerHTML = `
             <div class="input-group-text">
-                <input class="form-check-input mt-0" type="checkbox" name="is_correct_${qId}_${count}" aria-label="Correct answer">
+                <input class="form-check-input mt-0" type="checkbox" name="is_correct_${qId}_${count}" aria-label="Correct">
             </div>
             <input type="text" class="form-control" name="choice_text_${qId}_${count}" placeholder="Choice ${count}">
             <button class="btn btn-outline-secondary" type="button" onclick="this.parentElement.remove(); reindexChoices(${qId})">
                 <i class="bi bi-x"></i>
-            </button>
-        `;
+            </button>`;
         container.appendChild(div);
+        if (text !== undefined) div.querySelector('input[type="text"]').value = text;
+        if (isCorrect) div.querySelector('input[type="checkbox"]').checked = true;
     }
-    
+
     function reindexChoices(qId) {
         const container = document.getElementById(`choices-container-${qId}`);
-        const choices = container.querySelectorAll('.choice-row');
+        if (!container) return;
         let count = 0;
-        choices.forEach(c => {
+        container.querySelectorAll('.choice-row').forEach(c => {
             count++;
-            const checkbox = c.querySelector('input[type="checkbox"]');
-            const text = c.querySelector('input[type="text"]');
-            const btn = c.querySelector('button');
-            
-            if(checkbox) checkbox.name = `is_correct_${qId}_${count}`;
-            if(text) {
-               text.name = `choice_text_${qId}_${count}`;
-               text.placeholder = `Choice ${count}`;
-            }
-             if(btn) {
-                // Ensure the button still points to the correct question ID 
-                // in case this was called after question reordering? 
-                // Actually reindexQuestions handles the qId, this handles local index inside qId.
-            }
+            const cb = c.querySelector('input[type="checkbox"]');
+            const txt = c.querySelector('input[type="text"]');
+            if (cb) cb.name = `is_correct_${qId}_${count}`;
+            if (txt) { txt.name = `choice_text_${qId}_${count}`; txt.placeholder = `Choice ${count}`; }
         });
     }
 
@@ -235,34 +420,129 @@
         const rubricAnswer = document.getElementById(`rubric-answer-${qId}`);
         const rubricLabel = document.getElementById(`rubric-label-${qId}`);
         if (val !== 'mcq') {
-            if (choicesContainer) {
-                choicesContainer.classList.add('d-none');
-                // Disable required inputs so browser won't block submission
-                choicesContainer.querySelectorAll('input[required], textarea[required]').forEach(el => {
-                    el.disabled = true;
-                });
-            }
+            if (choicesContainer) { choicesContainer.classList.add('d-none'); choicesContainer.querySelectorAll('input, textarea').forEach(el => el.disabled = true); }
             if (addBtn) addBtn.classList.add('d-none');
             if (rubricAnswer) rubricAnswer.classList.remove('d-none');
-            if (rubricLabel) {
-                rubricLabel.textContent = val === 'essay'
-                    ? 'Rubric / Answer Key (for AI grading)'
-                    : 'Expected Answer (for AI grading)';
-            }
+            if (rubricLabel) rubricLabel.textContent = val === 'essay' ? 'Rubric / Answer Key (for AI grading)' : 'Expected Answer (for AI grading)';
         } else {
-            if (choicesContainer) {
-                choicesContainer.classList.remove('d-none');
-                // Re-enable choice inputs
-                choicesContainer.querySelectorAll('input, textarea').forEach(el => {
-                    el.disabled = false;
-                });
-            }
+            if (choicesContainer) { choicesContainer.classList.remove('d-none'); choicesContainer.querySelectorAll('input, textarea').forEach(el => el.disabled = false); }
             if (addBtn) addBtn.classList.remove('d-none');
             if (rubricAnswer) rubricAnswer.classList.add('d-none');
         }
     }
 
-    // Initialize with one empty question
+    // ===== AI Generation =====
+    let _aiGeneratedQuestions = [];
+
+    const TYPE_LABELS = { mcq: 'MCQ', short: 'Short Answer', essay: 'Essay' };
+    const DOK_LABELS  = { 1: 'DOK 1', 2: 'DOK 2', 3: 'DOK 3', 4: 'DOK 4' };
+    const TYPE_COLORS = { mcq: 'bg-primary', short: 'bg-info', essay: 'bg-warning text-dark' };
+
+    async function runAiGenerate() {
+        const topic = document.getElementById('ai-topic').value.trim();
+        if (!topic) {
+            document.getElementById('ai-topic').focus();
+            document.getElementById('aiStatusText').textContent = '⚠ Please enter a topic.';
+            return;
+        }
+        document.getElementById('aiStatusText').textContent = '';
+        document.getElementById('aiSpinner').classList.add('active');
+        document.getElementById('aiPreview').classList.add('d-none');
+
+        const payload = {
+            topic,
+            subject:        document.getElementById('ai-subject').value.trim(),
+            grade_level:    document.getElementById('ai-grade').value.trim(),
+            num_questions:  document.getElementById('ai-num').value,
+            question_type:  document.getElementById('ai-type').value,
+            dok_min:        document.getElementById('ai-dok-min').value,
+            dok_max:        document.getElementById('ai-dok-max').value,
+        };
+
+        try {
+            const resp = await fetch('{% url "homework:homework_ai_generate" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                },
+                body: JSON.stringify(payload),
+            });
+            const data = await resp.json();
+
+            if (!resp.ok || data.error) throw new Error(data.error || 'Unknown error');
+
+            _aiGeneratedQuestions = data.questions || [];
+            renderAiPreview(_aiGeneratedQuestions);
+
+        } catch (err) {
+            document.getElementById('aiStatusText').textContent = '✗ ' + err.message;
+        } finally {
+            document.getElementById('aiSpinner').classList.remove('active');
+        }
+    }
+
+    function renderAiPreview(questions) {
+        const preview = document.getElementById('aiPreview');
+        const list    = document.getElementById('aiPreviewList');
+        const title   = document.getElementById('aiPreviewTitle');
+
+        title.textContent = `${questions.length} question${questions.length !== 1 ? 's' : ''} generated — review before adding:`;
+        list.innerHTML = '';
+
+        questions.forEach((q, i) => {
+            const item = document.createElement('div');
+            item.className = 'ai-preview-item';
+            const typeLabel  = TYPE_LABELS[q.type] || q.type;
+            const typeColor  = TYPE_COLORS[q.type] || 'bg-secondary';
+            const dokLabel   = DOK_LABELS[q.dok_level] || `DOK ${q.dok_level}`;
+
+            let choicesHtml = '';
+            if (q.type === 'mcq' && q.choices && q.choices.length) {
+                const letters = ['A', 'B', 'C', 'D', 'E'];
+                choicesHtml = '<ol class="mb-0 ps-3 mt-1" style="font-size:0.77rem;list-style:none;">' +
+                    q.choices.map((c, ci) =>
+                        `<li class="${ci === q.correct_index ? 'text-success fw-semibold' : ''}">${letters[ci] || (ci+1)}. ${c}${ci === q.correct_index ? ' ✓' : ''}</li>`
+                    ).join('') + '</ol>';
+            } else if (q.correct_answer) {
+                choicesHtml = `<div class="mt-1 text-muted" style="font-size:0.75rem;"><em>Key: ${q.correct_answer.substring(0, 120)}${q.correct_answer.length > 120 ? '…' : ''}</em></div>`;
+            }
+
+            item.innerHTML = `
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div class="q-text flex-grow-1">${i+1}. ${q.text}</div>
+                    <div class="d-flex gap-1 flex-shrink-0">
+                        <span class="badge ${typeColor}">${typeLabel}</span>
+                        <span class="badge bg-secondary">${dokLabel}</span>
+                        <span class="badge bg-light text-dark border">${q.points}pt</span>
+                    </div>
+                </div>
+                ${choicesHtml}`;
+            list.appendChild(item);
+        });
+
+        preview.classList.remove('d-none');
+    }
+
+    function clearAiPreview() {
+        _aiGeneratedQuestions = [];
+        document.getElementById('aiPreview').classList.add('d-none');
+        document.getElementById('aiStatusText').textContent = '';
+    }
+
+    function injectAiQuestions() {
+        if (!_aiGeneratedQuestions.length) return;
+        _aiGeneratedQuestions.forEach(q => addQuestion(q));
+        document.getElementById('aiStatusText').textContent = `✓ ${_aiGeneratedQuestions.length} questions added to form.`;
+        clearAiPreview();
+        // Scroll to the first injected question
+        const qs = document.querySelectorAll('.question-block');
+        if (qs.length) qs[qs.length - _aiGeneratedQuestions.length < 0 ? 0 : qs.length - 1].scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // ===== Django template filter workaround for split =====
+    // (The |split filter used in the select options is not built-in; replace with static options)
+
     document.addEventListener('DOMContentLoaded', () => {
         addQuestion();
     });

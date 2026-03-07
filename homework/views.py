@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import HttpResponseForbidden, HttpResponse
+from django.http import HttpResponseForbidden, HttpResponse, JsonResponse
 from django.utils import timezone
 from django.conf import settings
 from django.db.models import Sum
@@ -282,6 +282,112 @@ def homework_delete(request, pk):
         return redirect('homework:homework_list')
     # Show a simple confirmation page for deletion
     return render(request, 'homework/confirm_delete.html', {'homework': homework})
+
+@login_required
+def homework_ai_generate(request):
+    """AJAX endpoint: generate questions via AI for a given topic/settings."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    if request.user.user_type != 'teacher':
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    data = json.loads(request.body or '{}')
+    topic        = (data.get('topic') or '').strip()
+    subject      = (data.get('subject') or '').strip()
+    grade_level  = (data.get('grade_level') or '').strip()
+    num_q        = min(max(int(data.get('num_questions') or 5), 1), 20)
+    q_type       = (data.get('question_type') or 'mixed').strip().lower()
+    dok_min      = int(data.get('dok_min') or 1)
+    dok_max      = int(data.get('dok_max') or 2)
+    curriculum   = (data.get('curriculum') or 'GES').strip()
+
+    # Build type distribution description
+    type_desc = {
+        'mcq':   f'{num_q} multiple-choice questions (4 options each, exactly 1 correct)',
+        'short': f'{num_q} short-answer questions',
+        'essay': f'{num_q} essay / open-ended questions',
+        'mixed': (
+            f'a mix of question types: roughly 60% multiple-choice (4 options, 1 correct), '
+            f'25% short-answer, 15% essay. Total: {num_q} questions'
+        ),
+    }.get(q_type, f'{num_q} multiple-choice questions (4 options each, exactly 1 correct)')
+
+    system_msg = (
+        'You are an expert curriculum designer for the {curriculum} school system. '
+        'Generate quiz/assignment questions that are age-appropriate, pedagogically sound, '
+        'and aligned to the specified DOK (Depth of Knowledge) levels.\n'
+        'CRITICAL: Return ONLY a valid JSON object — no markdown, no prose, no code fences.'
+    ).format(curriculum=curriculum)
+
+    user_msg = (
+        f'Generate {type_desc} on the topic "{topic}"\n'
+        f'Subject: {subject or "General"}\n'
+        f'Grade / Class: {grade_level or "Not specified"}\n'
+        f'DOK levels: {dok_min} – {dok_max} (distribute questions across this range)\n'
+        f'Curriculum: {curriculum}\n\n'
+        'Return a JSON object with this exact schema:\n'
+        '{\n'
+        '  "questions": [\n'
+        '    {\n'
+        '      "text": "<question text>",\n'
+        '      "type": "mcq" | "short" | "essay",\n'
+        '      "dok_level": 1-4,\n'
+        '      "points": 1-5,\n'
+        '      "choices": ["A", "B", "C", "D"],  // only for mcq, else []\n'
+        '      "correct_index": 0,               // 0-based index, only for mcq\n'
+        '      "correct_answer": "<rubric/key>"   // for short and essay\n'
+        '    }\n'
+        '  ]\n'
+        '}'
+    )
+
+    api_key = getattr(settings, 'OPENAI_API_KEY', None)
+    payload = {
+        'model': get_openai_chat_model(),
+        'messages': [
+            {'role': 'system', 'content': system_msg},
+            {'role': 'user',   'content': user_msg},
+        ],
+        'response_format': {'type': 'json_object'},
+        'temperature': 0.7,
+        'max_tokens': 3000,
+    }
+
+    try:
+        response = _post_chat_completion(payload, api_key)
+        raw = response['choices'][0]['message']['content']
+        result = _extract_json_payload(raw)
+        questions = result.get('questions', [])
+
+        # Normalise and validate each question
+        cleaned = []
+        for i, q in enumerate(questions):
+            q_type_out = q.get('type', 'mcq')
+            if q_type_out not in ('mcq', 'short', 'essay'):
+                q_type_out = 'mcq'
+            dok = int(q.get('dok_level') or 1)
+            if dok not in (1, 2, 3, 4):
+                dok = 1
+            choices = q.get('choices') or []
+            correct_index = int(q.get('correct_index') or 0)
+            if correct_index >= len(choices):
+                correct_index = 0
+            cleaned.append({
+                'text':          q.get('text', f'Question {i+1}'),
+                'type':          q_type_out,
+                'dok_level':     dok,
+                'points':        min(max(int(q.get('points') or 1), 1), 10),
+                'choices':       choices,
+                'correct_index': correct_index,
+                'correct_answer': q.get('correct_answer', ''),
+            })
+
+        return JsonResponse({'questions': cleaned})
+
+    except Exception as exc:
+        return JsonResponse({'error': str(exc)}, status=500)
+
 
 @login_required
 def homework_add_questions(request, pk):
