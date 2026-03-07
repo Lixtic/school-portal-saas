@@ -13,4 +13,5 @@ urlpatterns = [
     path('<int:pk>/results/', views.homework_results, name='homework_results'),
     path('<int:pk>/class-results/', views.homework_class_results, name='homework_class_results'),
     path('<int:pk>/push-grades/', views.homework_push_grades, name='homework_push_grades'),
+    path('<int:pk>/export-csv/', views.homework_export_csv, name='homework_export_csv'),
 ]

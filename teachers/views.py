@@ -3017,3 +3017,49 @@ def submit_to_hod(request):
         created += 1
 
     return JsonResponse({'ok': True, 'notified': created, 'message': f'Submitted to {created} admin(s).'})
+
+
+@login_required
+def save_aura_t_plan(request):
+    """Save the Aura-T command centre lesson plan preview as a LessonPlan record."""
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'error': 'POST required'}, status=405)
+    if request.user.user_type != 'teacher':
+        return JsonResponse({'ok': False, 'error': 'Teachers only'}, status=403)
+
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+    except Teacher.DoesNotExist:
+        return JsonResponse({'ok': False, 'error': 'Teacher profile not found'}, status=404)
+
+    lesson_title = request.POST.get('lesson_title', '').strip() or 'Aura-T Lesson Plan'
+    lesson_body = request.POST.get('lesson_body', '').strip()
+
+    # Parse from body using the same section extractor as lesson_plan_create
+    import re as _re
+
+    def _extract(header, text):
+        pat = _re.compile(rf"\*\*{_re.escape(header)}.*?\*\*\s*(.*?)(?=\n\*\*|\Z)", _re.DOTALL | _re.IGNORECASE)
+        m = pat.search(text)
+        return m.group(1).strip() if m else ''
+
+    topic = _extract('Sub Strand', lesson_body) or _extract('Strand', lesson_body) or lesson_title
+
+    # Get first class the teacher is associated with
+    from academics.models import ClassSubject
+    class_subject = ClassSubject.objects.filter(teacher=teacher).select_related('school_class', 'subject').first()
+
+    plan = LessonPlan.objects.create(
+        teacher=teacher,
+        subject=class_subject.subject if class_subject else None,
+        school_class=class_subject.school_class if class_subject else None,
+        week_number=1,
+        topic=topic,
+        objectives=_extract('Content Standard', lesson_body) + '\n' + _extract('Indicator', lesson_body),
+        introduction=_extract('PHASE 1: STARTER', lesson_body),
+        presentation=_extract('PHASE 2: NEW LEARNING', lesson_body) or _extract('PHASE 2', lesson_body),
+        evaluation=_extract('PHASE 3: REFLECTION', lesson_body) or _extract('Assessment', lesson_body),
+        homework=_extract('Homework', lesson_body) or 'Refer to textbook exercises.',
+    )
+
+    return JsonResponse({'ok': True, 'plan_id': plan.id, 'detail_url': f'/lesson-plans/{plan.id}/'})

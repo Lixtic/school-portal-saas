@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}XP Leaderboard – {{ scope_label }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.lb-wrap { max-width: 860px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+
+.lb-hero {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #0f172a 100%);
+    border-radius: 20px;
+    padding: 2rem 2rem 1.5rem;
+    color: #fff;
+    margin-bottom: 1.75rem;
+    position: relative;
+    overflow: hidden;
+}
+.lb-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 70% 20%, rgba(99,102,241,.4) 0%, transparent 60%);
+    pointer-events: none;
+}
+.lb-hero h1 { font-size: 1.6rem; font-weight: 800; margin: 0; }
+.lb-hero .scope { font-size: .82rem; color: #a5b4fc; margin-top: .25rem; }
+
+.lb-stat { text-align: center; }
+.lb-stat .n { font-size: 2rem; font-weight: 800; }
+.lb-stat .lbl { font-size: .72rem; opacity: .7; text-transform: uppercase; letter-spacing: .06em; }
+
+/* Row */
+.lb-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: .85rem 1rem;
+    border-radius: 14px;
+    margin-bottom: .5rem;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    transition: box-shadow .15s;
+}
+.lb-row:hover { box-shadow: 0 4px 16px rgba(99,102,241,.1); }
+.lb-row.is-me { background: linear-gradient(135deg, rgba(99,102,241,.08), rgba(168,85,247,.08)); border-color: rgba(99,102,241,.3); }
+
+.rank-badge {
+    font-size: .95rem;
+    font-weight: 800;
+    width: 36px;
+    text-align: center;
+    flex-shrink: 0;
+    color: #6b7280;
+}
+.rank-badge.gold { color: #f59e0b; font-size: 1.25rem; }
+.rank-badge.silver { color: #9ca3af; font-size: 1.2rem; }
+.rank-badge.bronze { color: #cd7c42; font-size: 1.15rem; }
+
+.avatar-circle {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.xp-bar-wrap { flex: 1; min-width: 0; }
+.xp-bar-track {
+    height: 6px; border-radius: 4px;
+    background: #e5e7eb;
+    margin-top: 4px;
+}
+.xp-bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #6366f1, #8b5cf6); }
+
+.level-pill {
+    background: linear-gradient(135deg, #1e1b4b, #4338ca);
+    color: #a5b4fc;
+    font-size: .7rem;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+.streak-pill {
+    font-size: .73rem;
+    color: #f97316;
+    white-space: nowrap;
+}
+
+@media (max-width: 576px) {
+    .lb-row { gap: .6rem; padding: .7rem .75rem; }
+    .xp-bar-wrap { min-width: 100px; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="lb-wrap">
+
+    <!-- Hero -->
+    <div class="lb-hero">
+        <div class="row align-items-center g-3">
+            <div class="col-md-7">
+                <h1><i class="bi bi-trophy-fill me-2" style="color:#fbbf24;"></i> XP Leaderboard</h1>
+                <div class="scope">{{ scope_label }}</div>
+            </div>
+            <div class="col-md-5">
+                <div class="row g-3 text-white">
+                    <div class="col-4 lb-stat">
+                        <div class="n">{{ total_count }}</div>
+                        <div class="lbl">Students</div>
+                    </div>
+                    {% if my_rank %}
+                    <div class="col-4 lb-stat">
+                        <div class="n">#{{ my_rank }}</div>
+                        <div class="lbl">Your rank</div>
+                    </div>
+                    {% endif %}
+                    {% if rows %}
+                    <div class="col-4 lb-stat">
+                        <div class="n">{{ rows.0.total_xp }}</div>
+                        <div class="lbl">Top XP</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rows -->
+    {% if rows %}
+    <div>
+        {% for row in rows %}
+        <div class="lb-row {% if row.is_me %}is-me{% endif %}">
+            <!-- Rank -->
+            <div class="rank-badge {% if row.rank == 1 %}gold{% elif row.rank == 2 %}silver{% elif row.rank == 3 %}bronze{% endif %}">
+                {% if row.rank == 1 %}🥇{% elif row.rank == 2 %}🥈{% elif row.rank == 3 %}🥉{% else %}#{{ row.rank }}{% endif %}
+            </div>
+
+            <!-- Avatar -->
+            {% if row.student.profile_picture %}
+            <img src="{{ row.student.profile_picture.url }}" alt="" class="avatar-circle" style="object-fit:cover;">
+            {% else %}
+            <div class="avatar-circle">{{ row.student.user.first_name|first|upper }}</div>
+            {% endif %}
+
+            <!-- Name + XP bar -->
+            <div class="xp-bar-wrap">
+                <div class="d-flex align-items-center justify-content-between gap-1 flex-wrap">
+                    <span class="fw-semibold" style="font-size:.9rem;">
+                        {{ row.student.user.get_full_name }}
+                        {% if row.is_me %}<span class="badge bg-primary ms-1" style="font-size:.65rem;">You</span>{% endif %}
+                    </span>
+                    <span style="font-size:.82rem;color:#6366f1;font-weight:700;">{{ row.total_xp }} XP</span>
+                </div>
+                <div class="xp-bar-track mt-1">
+                    <div class="xp-bar-fill" style="width:{{ row.level_progress }}%;"></div>
+                </div>
+            </div>
+
+            <!-- Level -->
+            <span class="level-pill">Lv {{ row.level }}</span>
+
+            <!-- Streak -->
+            {% if row.current_streak > 0 %}
+            <span class="streak-pill" title="{{ row.current_streak }}-day streak">
+                🔥 {{ row.current_streak }}d
+            </span>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+        <i class="bi bi-star fs-1 d-block mb-3 opacity-25"></i>
+        No XP data yet. Start learning sessions to earn XP!
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

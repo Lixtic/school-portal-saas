@@ -374,6 +374,91 @@
     </div>
     {% endif %}
 
+    <!-- ── Activity Heatmap ── -->
+    {% if heatmap_json %}
+    <div class="ap-card">
+        <div class="ap-card-title"><i class="bi bi-calendar3 text-primary"></i> Learning Activity – Past Year</div>
+        <div id="aura-heatmap" style="overflow-x:auto;padding-bottom:.25rem;"></div>
+        <div class="d-flex justify-content-between mt-2" style="font-size:.65rem;color:#9ca3af;">
+            <span>Less</span>
+            <span style="display:flex;align-items:center;gap:3px;">
+                <span style="width:11px;height:11px;border-radius:2px;background:#e5e7eb;display:inline-block;"></span>
+                <span style="width:11px;height:11px;border-radius:2px;background:#c4b5fd;display:inline-block;"></span>
+                <span style="width:11px;height:11px;border-radius:2px;background:#8b5cf6;display:inline-block;"></span>
+                <span style="width:11px;height:11px;border-radius:2px;background:#5b21b6;display:inline-block;"></span>
+            </span>
+            <span>More</span>
+        </div>
+    </div>
+    <script>
+    (function(){
+        const data = {{ heatmap_json|safe }};
+        const startDate = new Date("{{ heatmap_start }}");
+        const container = document.getElementById('aura-heatmap');
+        if(!container) return;
+
+        const WEEKS = 53;
+        const DAYS  = 7;
+        const SZ = 13; // cell size px
+        const GAP = 2;
+
+        const monthLabel = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const colors = ['#e5e7eb','#c4b5fd','#8b5cf6','#5b21b6'];
+
+        const totalW = WEEKS * (SZ + GAP);
+        const totalH = DAYS  * (SZ + GAP) + 16; // +16 for month labels
+
+        const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+        svg.setAttribute('width', totalW);
+        svg.setAttribute('height', totalH);
+        svg.style.display = 'block';
+
+        // Month labels
+        let prevMonth = -1;
+        for(let w=0; w<WEEKS; w++){
+            const d = new Date(startDate);
+            d.setDate(d.getDate() + w*7);
+            const m = d.getMonth();
+            if(m !== prevMonth){
+                const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+                t.setAttribute('x', w*(SZ+GAP));
+                t.setAttribute('y', 10);
+                t.setAttribute('font-size','9');
+                t.setAttribute('fill','#9ca3af');
+                t.textContent = monthLabel[m];
+                svg.appendChild(t);
+                prevMonth = m;
+            }
+        }
+
+        // Cells
+        for(let w=0; w<WEEKS; w++){
+            for(let d=0; d<DAYS; d++){
+                const cellDate = new Date(startDate);
+                cellDate.setDate(cellDate.getDate() + w*7 + d);
+                const key = cellDate.toISOString().slice(0,10);
+                const count = data[key] || 0;
+                const ci = count === 0 ? 0 : count === 1 ? 1 : count <= 3 ? 2 : 3;
+                const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+                rect.setAttribute('x', w*(SZ+GAP));
+                rect.setAttribute('y', 16 + d*(SZ+GAP));
+                rect.setAttribute('width', SZ);
+                rect.setAttribute('height', SZ);
+                rect.setAttribute('rx', 2);
+                rect.setAttribute('fill', colors[ci]);
+                if(count > 0){
+                    rect.setAttribute('title', `${key}: ${count} session${count>1?'s':''}`);
+                    rect.style.cursor = 'default';
+                }
+                svg.appendChild(rect);
+            }
+        }
+
+        container.appendChild(svg);
+    })();
+    </script>
+    {% endif %}
+
     <!-- ── Recent Sessions ── -->
     <div class="ap-card">
         <div class="ap-card-title"><i class="fa-solid fa-comments" style="color:#6366f1;"></i> Recent Aura Sessions</div>

@@ -1,13 +1,14 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, HttpResponse
 from django.utils import timezone
 from django.conf import settings
 from django.db.models import Sum
 import json
 import re
 import math
+import csv
 from decimal import Decimal
 from .models import Homework, Question, Choice, Submission, Answer
 from .forms import HomeworkForm
@@ -635,4 +636,44 @@ def homework_push_grades(request, pk):
     }
     return render(request, 'homework/push_grades_confirm.html', context)
 
+
+@login_required
+def homework_export_csv(request, pk):
+    """Download class results for a homework assignment as a CSV file."""
+    homework = get_object_or_404(Homework, pk=pk)
+
+    # Access control — same as class_results
+    if request.user.user_type == 'teacher':
+        try:
+            teacher = Teacher.objects.get(user=request.user)
+            if homework.teacher != teacher:
+                messages.error(request, "You can only export results for your own assignments.")
+                return redirect('homework:homework_class_results', pk=pk)
+        except Teacher.DoesNotExist:
+            return redirect('homework:homework_list')
+    elif request.user.user_type != 'admin':
+        messages.error(request, "Access denied.")
+        return redirect('homework:homework_class_results', pk=pk)
+
+    total_points = homework.questions.aggregate(total=Sum('points'))['total'] or 0
+    submissions = Submission.objects.filter(homework=homework).select_related('student__user')
+
+    response = HttpResponse(content_type='text/csv')
+    safe_title = re.sub(r'[^\w\s-]', '', homework.title)[:40].strip().replace(' ', '_')
+    response['Content-Disposition'] = f'attachment; filename="results_{safe_title}.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(['Student Name', 'Admission No', 'Score', 'Total Points', 'Percentage', 'Grade', 'Submitted At'])
+
+    rows = []
+    for sub in submissions:
+        pct = round(float(sub.score) / float(total_points) * 100, 1) if total_points > 0 else 0
+        grade_letter = 'A' if pct >= 80 else 'B' if pct >= 70 else 'C' if pct >= 60 else 'D' if pct >= 50 else 'F'
+        rows.append((sub.student.user.get_full_name(), getattr(sub.student, 'admission_number', ''), sub.score, total_points, pct, grade_letter, sub.submitted_at.strftime('%Y-%m-%d %H:%M')))
+
+    rows.sort(key=lambda r: r[4], reverse=True)
+    for row in rows:
+        writer.writerow(row)
+
+    return response
 

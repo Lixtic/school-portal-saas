@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from parents.models import Parent
-from homework.models import Homework
+from homework.models import Homework, Submission
 from .forms import ParentForm
 from accounts.models import User
 
@@ -120,6 +120,17 @@ def child_details(request, student_id):
         target_class=student.current_class
     ).order_by('-created_at')[:10]
 
+    # Map homework → submission result for this student
+    hw_ids = [hw.id for hw in homework]
+    submissions_qs = Submission.objects.filter(student=student, homework_id__in=hw_ids)
+    hw_submission_map = {sub.homework_id: sub for sub in submissions_qs}
+
+    # Precompute homework + result pairs for template
+    hw_with_results = [
+        {'hw': hw_obj, 'sub': hw_submission_map.get(hw_obj.id)}
+        for hw_obj in homework
+    ]
+
     # Aura AI Learning Profile
     try:
         from academics.gamification_models import StudentXP, AuraSessionState
@@ -140,6 +151,8 @@ def child_details(request, student_id):
         'average_percentage': average_percentage,
         'overall_grade': overall_grade,
         'homework': homework,
+        'hw_with_results': hw_with_results,
+        'hw_submission_map': hw_submission_map,
         'xp': xp,
         'learner_memory': learner_memory,
         'aura_state': aura_state,

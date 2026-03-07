@@ -63,4 +63,7 @@ urlpatterns = [
 
     # Class Analytics
     path('class-analytics/', views.class_analytics, name='class_analytics'),
+
+    # XP Leaderboard full page
+    path('aura/leaderboard-page/', views.xp_leaderboard, name='xp_leaderboard'),
 ]

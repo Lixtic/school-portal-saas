@@ -373,6 +373,46 @@ def student_detail_page(request, student_id):
         context['aura_state'] = None
         context['xp_profile'] = None
 
+    # ── Grade trend chart data (per-subject, sorted by term/year) ────────
+    import json as _json2
+    try:
+        all_grades = (
+            Grade.objects.filter(student=student)
+            .select_related('subject', 'academic_year')
+            .order_by('academic_year__start_date', 'term')
+        )
+        from collections import defaultdict as _ddef
+        subject_series = _ddef(list)
+        labels_set = []
+        labels_seen = set()
+        for g in all_grades:
+            lbl = f"{g.get_term_display()} {g.academic_year.name}"
+            if lbl not in labels_seen:
+                labels_set.append(lbl)
+                labels_seen.add(lbl)
+            subject_series[g.subject.name].append({
+                'label': lbl,
+                'score': float(g.total_score),
+            })
+        # Build datasets suitable for Chart.js
+        PALETTE = ['#6366f1','#10b981','#f59e0b','#ef4444','#3b82f6','#8b5cf6','#06b6d4','#f43f5e']
+        datasets = []
+        for idx, (subj, points) in enumerate(subject_series.items()):
+            score_map = {p['label']: p['score'] for p in points}
+            datasets.append({
+                'label': subj,
+                'data': [score_map.get(lbl) for lbl in labels_set],
+                'borderColor': PALETTE[idx % len(PALETTE)],
+                'backgroundColor': PALETTE[idx % len(PALETTE)] + '22',
+                'tension': 0.35,
+                'fill': False,
+                'pointRadius': 5,
+                'spanGaps': True,
+            })
+        context['grades_chart_json'] = _json2.dumps({'labels': labels_set, 'datasets': datasets})
+    except Exception:
+        context['grades_chart_json'] = 'null'
+
     return render(request, 'students/student_detail.html', context)
 
 
@@ -2074,6 +2114,8 @@ def aura_portfolio(request):
 
     from academics.gamification_models import StudentXP, AuraSessionState
     from academics.tutor_models import TutorSession, PowerWord, LearnerMemory
+    from datetime import timedelta, date as _date
+    from django.db.models.functions import TruncDate as _TruncDate
 
     xp = StudentXP.objects.filter(student=student).first()
     aura_state = AuraSessionState.objects.filter(student=student).first()
@@ -2106,6 +2148,21 @@ def aura_portfolio(request):
         submissions.append({'sub': sub, 'pct': pct, 'total_pts': total_pts})
     avg_hw_score = round(total_pct_sum / len(submissions), 1) if submissions else 0
 
+    # Activity heatmap: sessions per day for the past 52 weeks
+    today_d = _date.today()
+    one_year_ago = today_d - timedelta(days=364)
+    heat_qs = (
+        TutorSession.objects
+        .filter(student=student, started_at__date__gte=one_year_ago)
+        .annotate(_day=_TruncDate('started_at'))
+        .values('_day')
+        .annotate(_count=Count('id'))
+    )
+    heatmap_data = {str(row['_day']): row['_count'] for row in heat_qs}
+    import json as _json
+    heatmap_json = _json.dumps(heatmap_data)
+    heatmap_start = str(one_year_ago)
+
     context = {
         'portfolio_student': student,
         'is_own': is_own,
@@ -2117,6 +2174,8 @@ def aura_portfolio(request):
         'power_words': power_words,
         'submissions': submissions,
         'avg_hw_score': avg_hw_score,
+        'heatmap_json': heatmap_json,
+        'heatmap_start': heatmap_start,
     }
     return render(request, 'students/aura_portfolio.html', context)
 
@@ -2179,4 +2238,70 @@ def class_analytics(request):
     return render(request, 'students/class_analytics.html', {
         'analytics': analytics,
         'current_year': current_year,
+    })
+
+
+@login_required
+def xp_leaderboard(request):
+    """Full XP leaderboard page — class-level for students, school-wide for admin/teacher."""
+    from academics.gamification_models import StudentXP
+
+    if request.user.user_type == 'student':
+        try:
+            me = Student.objects.get(user=request.user)
+        except Student.DoesNotExist:
+            messages.error(request, "Student profile not found.")
+            return redirect('dashboard')
+        if not me.current_class:
+            messages.error(request, "You are not assigned to a class.")
+            return redirect('dashboard')
+        scope_label = f"Class: {me.current_class.name}"
+        classmates = Student.objects.filter(current_class=me.current_class).select_related('user')
+    elif request.user.user_type in ['teacher', 'admin']:
+        me = None
+        # Show all students with XP records
+        current_year = AcademicYear.objects.filter(is_current=True).first()
+        classmates = Student.objects.filter(
+            current_class__academic_year=current_year
+        ).select_related('user', 'current_class') if current_year else Student.objects.select_related('user', 'current_class').all()
+        scope_label = f"School-Wide ({current_year.name if current_year else 'All'})"
+    else:
+        return redirect('dashboard')
+
+    xp_map = {
+        xp.student_id: xp
+        for xp in StudentXP.objects.filter(student__in=classmates)
+    }
+
+    rows = []
+    for s in classmates:
+        xp = xp_map.get(s.id)
+        rows.append({
+            'student': s,
+            'total_xp': xp.total_xp if xp else 0,
+            'level': xp.level if xp else 1,
+            'level_progress': xp.level_progress if xp else 0,
+            'current_streak': xp.current_streak if xp else 0,
+            'is_me': me and s.id == me.id,
+        })
+
+    rows.sort(key=lambda r: r['total_xp'], reverse=True)
+
+    # Assign ranks
+    current_rank = 0
+    prev_xp = None
+    my_rank = None
+    for i, row in enumerate(rows):
+        if row['total_xp'] != prev_xp:
+            current_rank = i + 1
+            prev_xp = row['total_xp']
+        row['rank'] = current_rank
+        if row['is_me']:
+            my_rank = current_rank
+
+    return render(request, 'students/xp_leaderboard.html', {
+        'rows': rows,
+        'my_rank': my_rank,
+        'scope_label': scope_label,
+        'total_count': len(rows),
     })
