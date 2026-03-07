@@ -139,6 +139,12 @@
                                 <div class="small text-muted">Passed (&ge;50%)</div>
                             </div>
                         </div>
+                        <div class="col-6 col-md-3">
+                            <div class="cr-stat" style="--cr-stat-bg:rgba(245,158,11,.08);">
+                                <div class="h2 fw-bold text-warning mb-0">{{ late_count }}</div>
+                                <div class="small text-muted">Late Submissions</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -215,11 +221,17 @@
                     <div class="card h-100">
                         <div class="card-header">
                             <h6 class="m-0 fw-bold">
-                                <i class="bi bi-list-check me-2"></i>Question Difficulty
+                                <i class="bi bi-bar-chart-fill me-2"></i>Question Analytics
                             </h6>
                         </div>
                         <div class="card-body">
                             {% if question_stats %}
+                            <!-- Chart.js stacked bar chart -->
+                            <div class="mb-3" style="position:relative;height:220px;">
+                                <canvas id="qChart"></canvas>
+                            </div>
+                            <hr class="my-3 opacity-10">
+                            <!-- Detailed list -->
                             {% for qs in question_stats %}
                             <div class="q-row">
                                 <div class="d-flex justify-content-between align-items-start mb-1">
@@ -242,6 +254,40 @@
                                 </div>
                             </div>
                             {% endfor %}
+
+                            <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+                            <script>
+                            (function () {
+                                var raw = {{ q_chart_json|safe }};
+                                if (!raw.length) return;
+                                var labels   = raw.map(function(d,i){ return 'Q'+(i+1); });
+                                var correct  = raw.map(function(d){ return d.correct; });
+                                var wrong    = raw.map(function(d){ return d.incorrect; });
+                                var dark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+                                var gridCol  = dark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)';
+                                var tickCol  = dark ? '#94a3b8' : '#6b7280';
+                                var ctx = document.getElementById('qChart').getContext('2d');
+                                new Chart(ctx, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: labels,
+                                        datasets: [
+                                            { label: 'Correct',   data: correct, backgroundColor: 'rgba(16,185,129,.75)', borderRadius: 4 },
+                                            { label: 'Incorrect', data: wrong,   backgroundColor: 'rgba(239,68,68,.55)',  borderRadius: 4 }
+                                        ]
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        plugins: { legend: { labels: { color: tickCol, boxWidth: 12 } } },
+                                        scales: {
+                                            x: { stacked: true, grid: { color: gridCol }, ticks: { color: tickCol } },
+                                            y: { stacked: true, grid: { color: gridCol }, ticks: { color: tickCol, stepSize: 1 } }
+                                        }
+                                    }
+                                });
+                            })();
+                            </script>
                             {% else %}
                             <div class="text-center text-muted py-4">
                                 <i class="bi bi-question-circle fs-2 d-block mb-2 opacity-25"></i>

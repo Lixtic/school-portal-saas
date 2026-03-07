@@ -11,13 +11,20 @@ class HomeworkForm(forms.ModelForm):
     
     class Meta:
         model = Homework
-        fields = ['title', 'target_class', 'subject', 'due_date', 'description', 'attachment']
+        fields = ['title', 'target_class', 'subject', 'due_date', 'description', 'attachment', 'allow_retry']
         widgets = {
             'description': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
             'title': forms.TextInput(attrs={'class': 'form-control'}),
             'target_class': forms.Select(attrs={'class': 'form-select'}),
             'subject': forms.Select(attrs={'class': 'form-select'}),
             'attachment': forms.FileInput(attrs={'class': 'form-control'}),
+            'allow_retry': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+        labels = {
+            'allow_retry': 'Allow retry if score < 50%',
+        }
+        help_texts = {
+            'allow_retry': 'Students who score below 50% will see a "Retry Now" button.',
         }
 
     def __init__(self, *args, **kwargs):

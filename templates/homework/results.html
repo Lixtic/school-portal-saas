@@ -32,6 +32,14 @@
     [data-bs-theme="dark"] .text-success {
         color: #86efac !important;
     }
+    [data-bs-theme="dark"] .table-secondary {
+        --bs-table-bg: rgba(255,255,255,0.04);
+        --bs-table-border-color: rgba(255,255,255,0.08);
+        color: #cbd5e1;
+    }
+    [data-bs-theme="dark"] .attempt-row td {
+        border-color: rgba(255,255,255,0.06);
+    }
 </style>
 {% endblock %}
 
@@ -49,8 +57,62 @@
                 <div class="card-header {% if percentage >= 50 %}bg-success{% else %}bg-danger{% endif %} text-white text-center py-5">
                     <h1 class="display-1 fw-bold mb-0">{{ percentage }}%</h1>
                     <p class="fs-4 mb-0 opacity-75">Your Review for {{ homework.title }}</p>
+                    {% if submission.is_late %}
+                    <span class="badge bg-warning text-dark mt-2 fs-6">
+                        <i class="bi bi-clock me-1"></i>Late Submission
+                    </span>
+                    {% endif %}
+                    {% if all_attempts|length > 1 %}
+                    <div class="mt-2 opacity-75 small">Attempt #{{ submission.attempt_number }} &bull; Best score shown</div>
+                    {% endif %}
                 </div>
-                
+
+                {% if can_retry %}
+                <div class="py-4 px-4 text-center" style="background:rgba(245,158,11,.08);border-bottom:1px solid rgba(245,158,11,.2);">
+                    <p class="mb-2 fw-semibold">You scored below 50%. Your teacher allows a retry!</p>
+                    <a href="{% url 'homework:homework_solve' homework.id %}" class="btn btn-warning fw-bold px-4">
+                        <i class="bi bi-arrow-repeat me-2"></i>Retry Now
+                    </a>
+                </div>
+                {% endif %}
+
+                {% if all_attempts|length > 1 %}
+                <div class="px-4 pt-4 pb-0">
+                    <h6 class="fw-bold text-muted text-uppercase small mb-2">Attempt History</h6>
+                    <div class="table-responsive mb-0">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr class="table-secondary">
+                                    <th class="ps-2">Attempt</th>
+                                    <th class="text-center">Score</th>
+                                    <th class="text-center">%</th>
+                                    <th class="text-end pe-2">Submitted</th>
+                                    <th class="text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for a in all_attempts %}
+                                <tr class="attempt-row {% if a.attempt_number == submission.attempt_number %}fw-bold{% endif %}">
+                                    <td class="ps-2">
+                                        #{{ a.attempt_number }}
+                                        {% if a.attempt_number == submission.attempt_number %}<span class="badge bg-primary ms-1" style="font-size:.65rem;">Best</span>{% endif %}
+                                    </td>
+                                    <td class="text-center">{{ a.score }}</td>
+                                    <td class="text-center">
+                                        {% widthratio a.score homework.total_points 100 %}%
+                                    </td>
+                                    <td class="text-end pe-2 small text-muted">{{ a.submitted_at|date:"M d, H:i" }}</td>
+                                    <td class="text-center">
+                                        {% if a.is_late %}<span class="badge bg-warning text-dark" style="font-size:.65rem;"><i class="bi bi-clock me-1"></i>Late</span>{% else %}<span class="badge bg-success" style="font-size:.65rem;">On time</span>{% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+
                 <div class="card-body p-4 p-md-5">
                     <h4 class="mb-4 fw-bold border-bottom pb-2">Question Breakdown</h4>
                     
@@ -106,6 +168,11 @@
                 </div>
                 
                 <div class="card-footer bg-light p-4 text-center">
+                    {% if can_retry %}
+                    <a href="{% url 'homework:homework_solve' homework.id %}" class="btn btn-warning btn-lg me-2">
+                        <i class="bi bi-arrow-repeat me-2"></i>Retry
+                    </a>
+                    {% endif %}
                     <a href="{% url 'homework:homework_list' %}" class="btn btn-primary btn-lg">
                         Continue to Assignments <i class="bi bi-chevron-right ms-2"></i>
                     </a>

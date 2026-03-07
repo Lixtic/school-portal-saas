@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 from accounts.models import User
 
 class Homework(models.Model):
@@ -9,6 +10,7 @@ class Homework(models.Model):
     target_class = models.ForeignKey('academics.Class', on_delete=models.CASCADE, related_name='assignments')
     due_date = models.DateField()
     attachment = models.FileField(upload_to='homework_attachments/', blank=True, null=True)
+    allow_retry = models.BooleanField(default=False, help_text="Allow students to retry if they scored below 50%")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -56,9 +58,21 @@ class Submission(models.Model):
     student = models.ForeignKey('students.Student', on_delete=models.CASCADE, related_name='homework_submissions')
     score = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     submitted_at = models.DateTimeField(auto_now_add=True)
-    
+    is_late = models.BooleanField(default=False)
+    attempt_number = models.PositiveSmallIntegerField(default=1)
+
     class Meta:
-        unique_together = ['homework', 'student']
+        # Allow multiple attempts; unique on (homework, student, attempt_number)
+        unique_together = ['homework', 'student', 'attempt_number']
+
+    @property
+    def is_best(self):
+        """True if this is the highest-scoring attempt."""
+        best = (
+            Submission.objects.filter(homework=self.homework, student=self.student)
+            .order_by('-score').first()
+        )
+        return best and best.pk == self.pk
 
 class Answer(models.Model):
     submission = models.ForeignKey(Submission, on_delete=models.CASCADE, related_name='answers')

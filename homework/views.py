@@ -338,23 +338,40 @@ def homework_add_questions(request, pk):
 def homework_solve(request, pk):
     homework = get_object_or_404(Homework, pk=pk)
     questions = homework.questions.prefetch_related('choices').all()
-    
+
     # Ensure student context
     if request.user.user_type != 'student':
         messages.error(request, "Only students can solve homework.")
         return redirect('homework:homework_detail', pk=pk)
-        
+
     student = request.user.student
-    
-    # Check if already submitted
-    existing_submission = Submission.objects.filter(homework=homework, student=student).first()
-    if existing_submission:
-        return redirect('homework:homework_results', pk=pk)
-        
+    from django.utils import timezone as _tz
+
+    # Determine if this is a retry attempt
+    existing_submissions = Submission.objects.filter(homework=homework, student=student).order_by('-attempt_number')
+    latest = existing_submissions.first()
+
+    # Allow fresh attempt if retry is permitted and last score was below 50%
+    is_retry = False
+    attempt_number = 1
+    if latest:
+        total_pts = homework.questions.aggregate(total=Sum('points'))['total'] or 0
+        last_pct = float(latest.score) / float(total_pts) * 100 if total_pts > 0 else 0
+        if homework.allow_retry and last_pct < 50:
+            is_retry = True
+            attempt_number = latest.attempt_number + 1
+        else:
+            return redirect('homework:homework_results', pk=pk)
+
+    # Mark late if past due date
+    _is_late = homework.due_date < _tz.localdate()
+
     if request.method == 'POST':
         submission = Submission.objects.create(
             homework=homework,
-            student=student
+            student=student,
+            is_late=_is_late,
+            attempt_number=attempt_number,
         )
         
         total_score = 0
@@ -475,24 +492,41 @@ def homework_solve(request, pk):
     return render(request, 'homework/solve_homework.html', {
         'homework': homework,
         'questions': questions,
+        'is_retry': is_retry,
+        'attempt_number': attempt_number,
+        'is_late': _is_late,
     })
 
 @login_required
 def homework_results(request, pk):
     homework = get_object_or_404(Homework, pk=pk)
     student = request.user.student
-    submission = get_object_or_404(Submission, homework=homework, student=student)
-    
-    # Calculate percentage
+
+    # Get best (highest-scoring) submission for display
+    submissions = Submission.objects.filter(homework=homework, student=student).order_by('-score')
+    submission = submissions.first()
+    if not submission:
+        return redirect('homework:homework_solve', pk=pk)
+
     total_points = homework.questions.aggregate(total=Sum('points'))['total'] or 0
-    percentage = (submission.score / total_points * 100) if total_points > 0 else 0
-    
+    percentage = float(submission.score) / float(total_points) * 100 if total_points > 0 else 0
+
+    # Can retry?
+    can_retry = homework.allow_retry and percentage < 50
+
+    # All attempts (for attempt history)
+    all_attempts = list(submissions.order_by('attempt_number').values(
+        'attempt_number', 'score', 'submitted_at', 'is_late'
+    ))
+
     return render(request, 'homework/results.html', {
         'homework': homework,
         'submission': submission,
         'percentage': round(percentage, 1),
         'total_points': total_points,
-        'answers': submission.answers.select_related('question', 'selected_choice')
+        'answers': submission.answers.select_related('question', 'selected_choice'),
+        'can_retry': can_retry,
+        'all_attempts': all_attempts,
     })
 
 
@@ -562,6 +596,13 @@ def homework_class_results(request, pk):
         'top_score_pct': top_score_pct,
         'pass_count': pass_count,
         'question_stats': question_stats,
+        'late_count': sum(1 for s in Submission.objects.filter(homework=homework) if s.is_late),
+        'q_chart_json': json.dumps([{
+            'label': f'Q{i+1}',
+            'correct': qs_item['correct'],
+            'incorrect': qs_item['attempts'] - qs_item['correct'],
+            'rate': qs_item['rate'],
+        } for i, qs_item in enumerate(question_stats)]),
     })
 
 
