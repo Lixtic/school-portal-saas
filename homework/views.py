@@ -232,20 +232,26 @@ def homework_create(request):
 def homework_detail(request, pk):
     homework = get_object_or_404(Homework, pk=pk)
     has_submitted = False
-    
+    best_submission = None
+
     if request.user.user_type == 'student':
         try:
-             submission = Submission.objects.get(homework=homework, student=request.user.student)
-             has_submitted = True
-             return redirect('homework:homework_results', pk=pk)
-        except Submission.DoesNotExist:
-             pass
-             
+            best_submission = (
+                Submission.objects.filter(homework=homework, student=request.user.student)
+                .order_by('-score')
+                .first()
+            )
+            has_submitted = best_submission is not None
+        except Exception:
+            pass
+
     context = {
         'homework': homework,
-        'today': timezone.now().date(), 
+        'today': timezone.now().date(),
         'questions_count': homework.questions.count(),
-        'has_submitted': has_submitted
+        'has_submitted': has_submitted,
+        'best_submission': best_submission,
+        'questions': homework.questions.prefetch_related('choices').all(),
     }
     return render(request, 'homework/homework_detail.html', context)
 

@@ -107,34 +107,53 @@
                             {% endif %}
                         </div>
 
-                        {% if homework.questions.exists %}
-                            <div class="alert alert-info d-flex align-items-center" role="alert">
-                                <i class="bi bi-ui-checks me-3 fs-4"></i>
-                                <div>
-                                    <p class="mb-1 fw-bold">This assignment includes an interactive quiz.</p>
-                                    <p class="mb-0 small">{{ homework.questions.count }} questions available.</p>
-                                </div>
-                                {% if user.user_type == 'student' %}
-                                    <a href="{% url 'homework:homework_solve' homework.id %}" class="btn btn-primary ms-auto">
-                                        Start Quiz <i class="bi bi-arrow-right ms-2"></i>
-                                    </a>
+                        {% if questions %}
+                            <!-- Student action bar -->
+                            {% if user.user_type == 'student' %}
+                            <div class="d-flex flex-wrap gap-2 mb-4">
+                                {% if has_submitted %}
+                                <a href="{% url 'homework:homework_results' homework.id %}" class="btn btn-success">
+                                    <i class="bi bi-bar-chart-line me-1"></i> View My Results
+                                </a>
+                                {% if homework.allow_retry and best_submission %}
+                                <a href="{% url 'homework:homework_solve' homework.id %}" class="btn btn-outline-warning">
+                                    <i class="bi bi-arrow-repeat me-1"></i> Retry Quiz
+                                </a>
+                                {% endif %}
+                                {% else %}
+                                <a href="{% url 'homework:homework_solve' homework.id %}" class="btn btn-primary">
+                                    <i class="bi bi-play-circle me-1"></i> Start Quiz
+                                </a>
                                 {% endif %}
                             </div>
+                            {% endif %}
 
-                            <div class="mt-3">
-                                <h6 class="fw-bold mb-2">Question Preview</h6>
-                                <ul class="list-group list-group-flush">
-                                    {% for q in homework.questions.all|slice:":10" %}
-                                    <li class="list-group-item px-0 d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <div class="fw-semibold">{{ forloop.counter }}. {{ q.text|truncatechars:120 }}</div>
-                                            <small class="text-muted">{{ q.get_question_type_display }}</small>
-                                        </div>
-                                        <span class="badge bg-dark-subtle text-dark border">{{ q.get_dok_level_display }}</span>
-                                    </li>
+                            <!-- Questions preview with choices -->
+                            <div class="vstack gap-3">
+                            {% for q in questions %}
+                            <div class="border rounded-3 p-3">
+                                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                    <div class="fw-semibold">{{ forloop.counter }}. {{ q.text }}</div>
+                                    <div class="d-flex gap-1 flex-shrink-0">
+                                        <span class="badge bg-secondary" style="font-size:0.65rem;">{{ q.get_question_type_display }}</span>
+                                        <span class="badge bg-light text-dark border" style="font-size:0.65rem;">{{ q.get_dok_level_display }}</span>
+                                    </div>
+                                </div>
+                                {% if q.question_type == 'mcq' and q.choices.exists %}
+                                <ol class="mb-0 ps-4" style="font-size:0.85rem;list-style-type:upper-alpha;">
+                                    {% for choice in q.choices.all %}
+                                    <li class="text-muted">{{ choice.text }}</li>
                                     {% endfor %}
-                                </ul>
+                                </ol>
+                                {% elif q.question_type == 'short' %}
+                                <div class="mt-1 text-muted small"><i class="bi bi-pencil me-1"></i>Short answer response required</div>
+                                {% elif q.question_type == 'essay' %}
+                                <div class="mt-1 text-muted small"><i class="bi bi-justify-left me-1"></i>Essay / extended response required</div>
+                                {% endif %}
                             </div>
+                            {% endfor %}
+                            </div>
+
                         {% else %}
                             {% if user.user_type == 'teacher' %}
                             <div class="p-4 bg-light rounded text-center text-muted border border-dashed">
@@ -142,6 +161,8 @@
                                 <span class="d-block mb-3">No interactive questions added yet.</span>
                                 <a href="{% url 'homework:homework_add_questions' homework.id %}" class="btn btn-outline-primary btn-sm">Add Questions</a>
                             </div>
+                            {% else %}
+                            <p class="text-muted">No exercises have been added to this assignment yet.</p>
                             {% endif %}
                         {% endif %}
                     </div>
