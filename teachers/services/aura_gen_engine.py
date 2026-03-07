@@ -120,6 +120,182 @@ class AuraGenEngine:
 Generate a rigorous, dynamic lesson plan for {grade_level} {subject} on "{topic}".
 
 ═══════════════════════════════════════════════════════
+CONTEXT PILLARS — ANALYZE THESE BEFORE DRAFTING THE PLAN
+═══════════════════════════════════════════════════════
+Before writing a single instructional line, lock in all three pillars.
+The plan's depth, hook, Pulse Check questions, paths, and homework must
+be shaped by this analysis — not lifted from a generic template.
+
+┌─────────────────────────────────────────────────────┐
+│ PILLAR 1 — LEARNER DNA                              │
+└─────────────────────────────────────────────────────┘
+Mastery baseline for {grade_level} students on {topic} in {subject}:
+  · Assume roughly 60 % are at grade level, 25 % need scaffolding, 15 % are ready to extend.
+  · Identify the ONE prior concept that 30–40 % of students have NOT yet internalized.
+    This gap drives your SUPPORT PATH and Q1 of the Pulse Check.
+  · Enumerate the 2–3 most frequent misconceptions or procedural errors students make
+    when first encountering {topic}. These shape Q2 of the Pulse Check and DATA-TRIGGER.
+
+Common stuck-point patterns (use whichever apply to {topic}):
+  — Confusing correlation with causation in data tasks
+  — Reversing input/output roles in functions and processes
+  — Overgeneralizing a rule from the last lesson to an unrelated context
+  — Skipping intermediate steps when they have seen the answer format before
+  — Translating real-world contexts into abstract notation (or vice versa)
+  — Misreading scale or units in graphs, maps, and measurement tasks
+  — Surface-feature matching: treating problems as identical because they look similar
+
+Top regional interests — weave at least ONE into the lesson (hook, example, or homework):
+  • Azonto dance and its geometric, rhythmic, and call-and-response patterns
+  • Cocoa, cashew, and yam farming cycles — seasonality, soil, yield, and income
+  • Digital Trading: MoMo transfers, airtime resale, Jumia deliveries, Tonaton listings
+  • Football academies and performance analytics (Right to Dream, Asante Kotoko SC)
+  • Jollof, waakye, and kenkey — measurement, chemistry, and cultural identity in cooking
+  • Kente and batik micro-enterprise — weaving geometry, dyeing chemistry, pricing
+  • Susu savings groups and rotating credit — financial mathematics in community life
+  • Nollywood/Ghallywood storytelling — narrative structure, editing, marketing
+  • Krobo beadwork and Bolgatanga pottery — craft geometry, symmetry, cultural heritage
+  • Informal tech economy — phone repair, charging stations, SIM-card micro-trade
+  • School choral festivals and concert band culture — rhythm, notation, teamwork
+  • Community health campaigns — NHIS enrolment, malaria nets, vaccination data
+  • Timber and furniture carpentry workshops in Kumasi and Cape Coast
+  • Canoe fishing, trawlers, and cold-chain storage in Takoradi and Keta
+  • Shea butter and groundnut oil processing in the Northern and Upper Regions
+  • Radio and TV broadcasting — GBC, Adom FM, UTV — media literacy and persuasion
+  • Nkrumah Circle, Oguaa Fetu Ahoolie, and Homowo festival logistics and organization
+
+┌─────────────────────────────────────────────────────┐
+│ PILLAR 2 — GES STANDARDS MAPPING                   │
+└─────────────────────────────────────────────────────┘
+Every plan MUST map to an EXACT GES CBC indicator code.
+Format: B[grade].[strand].[sub-strand].[content-standard].[indicator]
+
+COMPUTING / ICT:
+  B7.1.1.1.1 — Identify and describe hardware components and their functions
+  B7.1.1.1.2 — Distinguish between input, processing, output, and storage devices
+  B7.1.2.1.1 — Apply file management: create, save, rename, and organize folders
+  B7.1.2.2.1 — Use word processing tools to type, format, and print documents
+  B7.1.3.1.1 — Identify internet safety, netiquette, and responsible digital citizenship
+  B7.2.1.1.1 — Create basic spreadsheets; apply SUM, AVERAGE, and simple formulas
+  B7.2.2.1.1 — Use presentation software to organize and present information with slides
+  B8.1.1.1.1 — Describe types of software: system, application, and programming languages
+  B8.1.2.1.1 — Apply advanced word processing: tables, headers, footers, mail merge
+  B8.1.2.2.1 — Create and format spreadsheets with conditional formulas (IF, COUNT, MAX)
+  B8.1.3.1.1 — Design a basic web page using HTML structure and semantic tags
+  B8.2.1.1.1 — Demonstrate email, cloud tools, and online collaboration safely
+  B8.2.2.1.1 — Create multimedia presentations integrating images, audio, and transitions
+  B9.1.1.1.1 — Differentiate programming paradigms; design algorithms using flowcharts
+  B9.1.2.1.1 — Write basic programs using sequence, selection, and iteration constructs
+  B9.1.3.1.1 — Evaluate digital security threats: phishing, malware, and identity theft
+  B9.2.1.1.1 — Analyze and visualize data using charts and graphs in spreadsheet software
+  B9.2.2.1.1 — Design and critically evaluate a complete digital project (website, app, or database)
+
+MATHEMATICS:
+  B7.1.1.1.1 — Classify and operate on whole numbers, integers, and fractions
+  B7.1.2.1.1 — Apply properties of ratio and proportion in real-life contexts
+  B7.1.3.1.1 — Solve problems involving percentages, profit, and loss
+  B7.2.1.1.1 — Identify and classify 2D shapes; calculate perimeter and area
+  B7.2.2.1.1 — Collect, organize, and represent data using tables, bar charts, and pie charts
+  B7.3.1.1.1 — Use algebraic expressions to model and solve word problems
+  B8.1.1.1.1 — Extend operations to rational and irrational numbers
+  B8.1.2.1.1 — Apply percentage applications: discount, commission, tax, simple interest
+  B8.2.1.1.1 — Calculate surface area and volume of 3D solids
+  B8.2.2.1.1 — Interpret and analyze data from frequency tables and histograms
+  B8.3.1.1.1 — Solve linear equations and simultaneous equations in two variables
+  B9.1.1.1.1 — Operate on indices, surds, and standard form
+  B9.1.2.1.1 — Apply Pythagoras' theorem and basic trigonometric ratios (sin, cos, tan)
+  B9.2.1.1.1 — Compute probability of single and combined events
+  B9.2.2.1.1 — Construct and interpret scatter graphs; calculate mean, median, mode, range
+  B9.3.1.1.1 — Solve quadratic equations by factorisation and the quadratic formula
+
+ENGLISH LANGUAGE:
+  B7.1.1.1.1 — Demonstrate active listening and responding strategies in academic discussions
+  B7.2.1.1.1 — Apply reading comprehension: inference, main idea, context vocabulary
+  B7.3.1.1.1 — Write structured paragraphs with topic, supporting, and concluding sentences
+  B7.3.2.1.1 — Identify and use nouns, pronouns, verbs, and adjectives correctly
+  B7.4.1.1.1 — Deliver short oral presentations using clear pronunciation and body language
+  B8.1.1.1.1 — Distinguish fact from opinion in spoken and written texts
+  B8.2.1.1.1 — Analyze literary devices: simile, metaphor, personification, alliteration
+  B8.3.1.1.1 — Write narrative, expository, and argumentative essays
+  B8.3.2.1.1 — Apply grammar: tense consistency, subject-verb agreement, punctuation
+  B9.1.1.1.1 — Evaluate persuasive techniques in speech and writing
+  B9.2.1.1.1 — Compare texts across genres; analyze author's purpose and audience
+  B9.3.1.1.1 — Produce extended writing: reports, formal letters, and creative fiction
+  B9.4.1.1.1 — Conduct and present research using credible primary and secondary sources
+
+SCIENCE:
+  B7.1.1.1.1 — Identify characteristics and classify living and non-living things
+  B7.1.2.1.1 — Describe cell structure and function; compare plant and animal cells
+  B7.2.1.1.1 — Investigate properties of matter: states, particle model, and changes of state
+  B7.2.2.1.1 — Classify pure substances and mixtures; describe separation methods
+  B7.3.1.1.1 — Describe forces: gravity, friction, and magnetic force and their effects
+  B7.3.2.1.1 — Investigate forms of energy: light, heat, sound, electrical, and kinetic
+  B8.1.1.1.1 — Describe nutrition, the digestive system, and balanced diet in humans
+  B8.1.2.1.1 — Investigate reproduction in plants and animals; explain pollination and fertilization
+  B8.2.1.1.1 — Explain chemical changes: reactants, products, and indicators of reaction
+  B8.3.1.1.1 — Apply work, power, and simple machines: levers, pulleys, inclined planes, gears
+  B9.1.1.1.1 — Analyze ecosystems: food chains, food webs, energy flow, and biodiversity
+  B9.2.1.1.1 — Describe atomic structure, elements, compounds, and the Periodic Table
+  B9.3.1.1.1 — Apply Ohm's Law: investigate voltage, current, and resistance in circuits
+  B9.3.2.1.1 — Investigate the solar system, Earth's rotation, revolution, and the seasons
+
+SOCIAL STUDIES:
+  B7.1.1.1.1 — Describe Ghana's physical features: relief, drainage, climate, and vegetation zones
+  B7.1.2.1.1 — Analyze population distribution and settlement patterns in Ghana
+  B7.2.1.1.1 — Explain Ghana's pre-colonial history and formation of major states
+  B7.3.1.1.1 — Describe Ghana's governance structure and the functions of the three arms
+  B8.1.1.1.1 — Analyze the impact of colonialism and Ghana's independence struggle
+  B8.2.1.1.1 — Apply map-reading skills: scale, coordinates, direction, and conventional symbols
+  B8.3.1.1.1 — Describe West African integration: ECOWAS, AU, and key global institutions
+  B9.1.1.1.1 — Evaluate environmental issues: deforestation, galamsey, and coastal erosion
+  B9.2.1.1.1 — Analyze Ghana's economic sectors: agriculture, mining, manufacturing, services
+  B9.3.1.1.1 — Discuss democracy, elections, human rights, and civic responsibility in Ghana
+
+FRENCH:
+  B7.1.1.1.1 — Use basic greetings, introductions, and classroom vocabulary in French
+  B7.2.1.1.1 — Apply être and avoir in present tense; describe people and objects
+  B8.1.1.1.1 — Use regular -er, -ir, -re verbs and reflexive verbs in conversational context
+  B8.2.1.1.1 — Describe daily routines using time expressions and frequency adverbs
+  B9.1.1.1.1 — Write and respond to short formal and informal letters in French
+  B9.2.1.1.1 — Use passé composé and imparfait to narrate and describe past events
+
+RELIGIOUS & MORAL EDUCATION (RME):
+  B7.1.1.1.1 — Describe the nature and attributes of God in Christianity, Islam, and African Religion
+  B7.2.1.1.1 — Apply moral virtues: honesty, respect, responsibility, compassion, and tolerance
+  B8.1.1.1.1 — Analyze rites of passage: birth, puberty, marriage, and death across three religions
+  B9.1.1.1.1 — Evaluate the role of religion in national development and peaceful coexistence
+
+PHYSICAL EDUCATION (PE):
+  B7.1.1.1.1 — Demonstrate fundamental movement skills: locomotor, non-locomotor, manipulative
+  B7.2.1.1.1 — Apply rules and team strategies in invasion games: football, basketball, handball
+  B8.1.1.1.1 — Execute athletics skills: sprint start, relay baton-passing, long jump approach
+  B9.1.1.1.1 — Design a personal fitness plan targeting cardiovascular endurance and flexibility
+
+MATCH {topic} in {subject} for {grade_level} to the MOST SPECIFIC code above.
+If the match is not exact, adapt the nearest code and note the adaptation in one clause.
+The plan header MUST show the real code in format B7.2.2.1.1 — NOT a vague description.
+
+┌─────────────────────────────────────────────────────┐
+│ PILLAR 3 — CORE COMPETENCIES MAPPING               │
+└─────────────────────────────────────────────────────┘
+For EVERY plan, tag the exact PHASE and ACTIVITY where each competency is developed.
+
+GES CBC CORE COMPETENCIES:
+  🧠 Critical Thinking & Problem Solving — Where students analyse, compare, infer, or solve
+  💡 Creativity & Innovation — Where students design, produce, or invent something original
+  🗣️ Communication & Collaboration — Where students discuss, present, peer-teach, or debate
+  💻 Digital Literacy — Where technology is used, modelled, or critically examined
+  🌍 Cultural Identity & Global Citizenship — Where Ghanaian context, values, or global links appear
+  🏆 Personal Development & Leadership — Students show self-management, initiative, or peer leadership
+  💰 Financial Literacy — Money decisions, budgeting, pricing, or economic reasoning featured
+
+MINIMUM REQUIREMENT — EVERY PLAN:
+  💻 Digital Literacy    — MUST appear. No exceptions.
+  🧠 Critical Thinking   — MUST appear. No exceptions.
+  🌍 Cultural Identity   — MUST appear. No exceptions (this is always the hook + paths).
+  Add any others that are genuinely triggered — do NOT manufacture connections.
+
+═══════════════════════════════════════════════════════
 FOUR NON-NEGOTIABLE REQUIREMENTS — EVERY PLAN, NO EXCEPTIONS
 ═══════════════════════════════════════════════════════
 
@@ -258,18 +434,32 @@ RULE 7 — TEACHER NOTES STAY OUT OF HOMEWORK:
 OUTPUT FORMAT — USE THESE EXACT BOLD HEADERS
 ═══════════════════════════════════════════════════════
 
+**🧠 CONTEXT PILLARS ANALYSIS**
+Learner DNA: [2 sentences: mastery baseline for this class on {topic}, the ONE prior-concept gap most likely to surface, and the specific misconception that shapes Q2.]
+GES Standards: [Exact strand name → sub-strand name → indicator code e.g. B7.2.2.1.1. If adapted, state why in one clause.]
+Core Competencies Active:
+  💻 Digital Literacy — [Phase and specific activity where it appears]
+  🧠 Critical Thinking — [Phase and specific activity where it appears]
+  🌍 Cultural Identity — [Phase and specific activity — always the hook and its echoes]
+  [Add others that are genuinely triggered, each with phase/activity. Omit if not present.]
+
 **Subject:** {subject}
 **Class:** {grade_level}
 **Topic:** {topic}
 **Duration:** 60 minutes
-**Strand:** [GES-aligned strand]
-**Sub Strand:** [GES-aligned sub-strand]
+**Strand:** [Exact GES strand name]
+**Sub Strand:** [Exact GES sub-strand name]
+**Indicator Code:** [e.g., B7.2.2.1.1]
 **Content Standard:** [1–2 sentence GES-aligned content standard]
-**Indicator:** [observable, measurable indicator]
+**Indicator:** [observable, measurable indicator statement]
 **Performance Indicator:** [what mastery looks like in student action]
-**Core Competencies:** Critical Thinking, Communication, Cultural Identity, Creativity and Innovation
-**Key words:** [5 essential vocabulary terms]
-**Reference:** [GES Curriculum document or standard textbook]
+**Core Competencies:**
+  💻 Digital Literacy: [specific moment in this lesson where it is explicitly developed]
+  🧠 Critical Thinking: [specific moment — Pulse Check, Extension Path, or debrief]
+  🌍 Cultural Identity: [specific moment — hook, paths, or homework cultural reference]
+  [Add 💡 Creativity | 🗣️ Communication | 🏆 Personal Development | 💰 Financial Literacy if triggered]
+**Key words:** [5 essential vocabulary terms with one-line definitions]
+**Reference:** [GES CBC code + document name + page, e.g., "GES CBC B7 ICT Curriculum (2019), B7.2.2.1.1, p. 24"]
 
 **PHASE 1: STARTER [15 mins]**
 🌍 LOCALIZED HOOK:
@@ -326,16 +516,18 @@ If any cultural reference (proverb, symbol) is used, include its English meaning
                     {"role": "user", "content": (
                         f"Generate the full Aura-T lesson plan for '{topic}' "
                         f"({grade_level}, {subject}). "
-                        "Strictly enforce all six Homework Rules: "
-                        "Support task is pen-and-paper only and easier than Extension; "
-                        "Extension task is device-optional with a paper fallback; "
-                        "no concept drift; cultural references include English meaning and a model sentence; "
-                        "homework maps to specific Pulse Check gaps; "
-                        "no teacher notes in the Homework field."
+                        "STEP 1 — Context Pillars: Analyse Learner DNA (mastery baseline, prior-concept gap, top misconception), "
+                        "map the exact GES CBC indicator code, and tag the three mandatory core competencies with phase/activity. "
+                        "Output this as the 🧠 CONTEXT PILLARS ANALYSIS block at the top. "
+                        "STEP 2 — Plan: Draft the full plan shaped by that analysis. "
+                        "Enforce all seven Homework Rules strictly: "
+                        "Support task pen-and-paper only and easier; Extension device-optional with paper fallback; "
+                        "no concept drift; cultural references include English meaning + model sentence starter; "
+                        "homework maps to specific Pulse Check gaps; no teacher notes in Homework field."
                     )}
                 ],
                 "temperature": 0.75,
-                "max_tokens": 2500,
+                "max_tokens": 3200,
             }
             response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
             content = response['choices'][0]['message']['content']
