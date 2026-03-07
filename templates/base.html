@@ -463,25 +463,68 @@
             color: #bfdbfe;
         }
 
-        .school-context-link {
-            transition: background-color 0.2s ease, color 0.2s ease;
+        /* ── Sidebar School Brand ── */
+        .sidebar-school-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 1.1rem 1.1rem;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(0,0,0,0.07);
+            text-decoration: none;
+            overflow: hidden;
+        }
+        [data-bs-theme="dark"] .sidebar-school-brand {
+            border-bottom-color: rgba(255,255,255,0.07);
+        }
+        .sidebar-school-brand__logo {
+            width: 42px;
+            height: 42px;
             border-radius: 10px;
-            cursor: pointer;
-            padding-top: 0.2rem;
-            padding-bottom: 0.2rem;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, var(--primary-brand), #3a0ca3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 1.15rem;
+            overflow: hidden;
+            box-shadow: 0 3px 8px rgba(67,97,238,0.28);
         }
-        .school-context-link:hover,
-        .school-context-link:focus-visible {
-            background: rgba(67, 97, 238, 0.08);
-            outline: none;
+        .sidebar-school-brand__logo img {
+            width: 100%; height: 100%; object-fit: cover; border-radius: 10px;
         }
-        .school-context-link:hover .school-context-name,
-        .school-context-link:focus-visible .school-context-name {
-            color: var(--primary-brand) !important;
+        .sidebar-school-brand__text {
+            overflow: hidden;
+            transition: opacity 0.2s, width 0.3s;
         }
-        [data-bs-theme="dark"] .school-context-link:hover,
-        [data-bs-theme="dark"] .school-context-link:focus-visible {
-            background: rgba(76, 201, 240, 0.12);
+        .sidebar-school-brand__name {
+            font-weight: 800;
+            font-size: 0.92rem;
+            color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.25;
+        }
+        .sidebar-school-brand__sub {
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        /* Hide text when sidebar is collapsed */
+        body.sidebar-collapsed .sidebar-school-brand__text {
+            opacity: 0;
+            width: 0;
+            pointer-events: none;
+        }
+        body.sidebar-collapsed .sidebar-school-brand {
+            padding-left: 0;
+            padding-right: 0;
+            justify-content: center;
         }
 
         /* Mobile Header Tweaks */
@@ -1023,18 +1066,6 @@
                             <i class="bi bi-list fs-3"></i>
                         </button>
 
-                        <a href="{% url 'dashboard' %}" class="navbar-brand m-0 text-decoration-none" aria-label="Go to dashboard">
-                            <div class="header-brand-icon">
-                                {% if school_logo %}
-                                    <img src="{{ school_logo.url }}" alt="Logo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
-                                {% else %}
-                                    <i class="bi bi-building"></i>
-                                {% endif %}
-                            </div>
-                            <span class="d-none d-sm-block">{{ school_name|default:"School Portal" }}</span>
-                            <span class="d-block d-sm-none text-truncate" style="max-width: 140px; font-size: 0.85rem;">{{ school_name|default:"School Portal" }}</span>
-                        </a>
-
                         <div class="dropdown header-app-menu d-none ms-2" style="display: none !important;">
                             <button class="btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-grid"></i> Menu
@@ -1218,14 +1249,6 @@
                                 </li>
                             </ul>
                         </div>
-                        {% endif %}
-
-                        <!-- School Name Context Indicator -->
-                        {% if user.is_authenticated and school_name %}
-                        <a href="{% url 'dashboard' %}" class="school-context-link d-none d-xl-block me-2 text-end lh-sm border-end pe-3 text-decoration-none" style="border-color: rgba(0,0,0,0.1) !important;" aria-label="Go to dashboard">
-                            <div class="text-muted text-uppercase" style="font-size: 0.6rem; letter-spacing: 0.5px; font-weight: 600;">Current School</div>
-                            <div class="school-context-name fw-bold text-dark" style="font-size: 0.85rem;">{{ school_name }}</div>
-                        </a>
                         {% endif %}
 
                         <!-- Profile Dropdown -->
@@ -1413,6 +1436,23 @@
 
         <!-- Sidebar -->
         <nav class="sidebar {% if not user.is_staff or request.resolver_match.app_name != 'tenants' or request.tenant.schema_name != 'public' %}tenant-sidebar{% endif %}" id="sidebar">
+
+            <!-- School Brand -->
+            {% if user.is_authenticated %}
+            <a href="{% url 'dashboard' %}" class="sidebar-school-brand" title="{{ school_name|default:'School Portal' }}">
+                <div class="sidebar-school-brand__logo">
+                    {% if school_logo %}
+                        <img src="{{ school_logo.url }}" alt="Logo">
+                    {% else %}
+                        <i class="bi bi-building"></i>
+                    {% endif %}
+                </div>
+                <div class="sidebar-school-brand__text">
+                    <div class="sidebar-school-brand__name">{{ school_name|default:"School Portal" }}</div>
+                    <div class="sidebar-school-brand__sub">{{ user.user_type|capfirst }} Portal</div>
+                </div>
+            </a>
+            {% endif %}
             
             {% if user.is_staff and request.resolver_match.app_name == 'tenants' and request.tenant.schema_name == 'public' %}
             <!-- LANDLORD DASHBOARD -->
