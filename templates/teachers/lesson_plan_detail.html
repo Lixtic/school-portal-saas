@@ -105,6 +105,27 @@
         background: rgba(255,255,255,0.05);
     }
 
+    /* ── v2 Page Header ───────────────────────────────────────── */
+    .lp-header {
+        background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+        border-radius: 1rem; color: #fff;
+        padding: 1.25rem 1.75rem; margin-bottom: 1.25rem;
+    }
+    [data-bs-theme="dark"] .lp-header { background: linear-gradient(135deg, #6d28d9 0%, #4338ca 100%); }
+
+    /* ── Info Pills ─────────────────────────────────────────────── */
+    .lp-pill {
+        display: inline-flex; align-items: center; gap: .4rem;
+        padding: .35rem .85rem; border-radius: 999px;
+        font-size: .8rem; font-weight: 500;
+        border: 1px solid rgba(0,0,0,0.09); background: #fff; color: #374151;
+    }
+    .lp-pill .lp-pill-icon {
+        width: 22px; height: 22px; border-radius: 6px;
+        display: flex; align-items: center; justify-content: center; font-size: .75rem;
+    }
+    [data-bs-theme="dark"] .lp-pill { background: var(--surface-card, #1e293b); border-color: rgba(255,255,255,0.1); color: #cbd5e1; }
+
     /* Print Styles */
     @media print {
         @page { size: portrait; margin: 1cm; }
@@ -149,28 +170,59 @@
 <div class="container py-4">
     <div class="row justify-content-center">
         <div class="col-lg-11 col-xl-10">
-            <!-- Action Bar -->
-            <div class="d-flex justify-content-between align-items-center mb-4 print-hide {% if print_mode %}d-none{% endif %}">
-                <a href="{% url 'teachers:lesson_plan_list' %}" class="btn btn-outline-secondary rounded-pill">
-                    <i class="bi bi-arrow-left me-2"></i>Back to List
-                </a>
-                <div class="d-flex gap-2">
-                    <div class="dropdown">
-                        <button class="btn btn-outline-dark rounded-pill dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-printer me-2"></i>Format
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li><h6 class="dropdown-header">Select Template</h6></li>
-                            <li><a class="dropdown-item" href="#" onclick="window.print()">Standard GES (Current)</a></li>
-                            <li><a class="dropdown-item" href="{% url 'teachers:lesson_plan_print' lesson_plan.pk %}?template=b7">New B7 Weekly</a></li>
-                        </ul>
+
+            <!-- v2 Header Banner -->
+            <div class="lp-header print-hide {% if print_mode %}d-none{% endif %}">
+                <div class="d-flex align-items-start justify-content-between flex-wrap gap-2">
+                    <div>
+                        <div style="font-size:1.25rem;font-weight:800;letter-spacing:-.01em;">
+                            <i class="bi bi-journal-text me-2"></i>Weekly Lesson Plan
+                        </div>
+                        <p style="font-size:.85rem;opacity:.87;margin:.2rem 0 0;" class="d-none d-sm-block">
+                            {{ lesson_plan.subject.name }} &mdash; {{ lesson_plan.school_class.name }} &mdash; Week {{ lesson_plan.week_number }}
+                        </p>
                     </div>
-                    {% if not is_admin %}
-                    <a href="{% url 'teachers:lesson_plan_edit' lesson_plan.pk %}" class="btn btn-primary rounded-pill">
-                        <i class="bi bi-pencil me-2"></i>Edit
-                    </a>
-                    {% endif %}
+                    <div class="d-flex gap-2 align-items-center flex-wrap mt-1 mt-sm-0">
+                        <a href="{% url 'teachers:lesson_plan_list' %}" class="btn btn-light rounded-pill fw-semibold px-3">
+                            <i class="bi bi-arrow-left me-1"></i>Back
+                        </a>
+                        <div class="dropdown">
+                            <button class="btn btn-light rounded-pill fw-semibold px-3 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-printer me-1"></i>Print
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                                <li><h6 class="dropdown-header">Select Template</h6></li>
+                                <li><a class="dropdown-item" href="#" onclick="window.print()"><i class="bi bi-file-text me-2"></i>Standard GES (Current)</a></li>
+                                <li><a class="dropdown-item" href="{% url 'teachers:lesson_plan_print' lesson_plan.pk %}?template=b7"><i class="bi bi-calendar-week me-2"></i>New B7 Weekly</a></li>
+                            </ul>
+                        </div>
+                        {% if not is_admin %}
+                        <a href="{% url 'teachers:lesson_plan_edit' lesson_plan.pk %}" class="btn btn-light rounded-pill fw-semibold px-3">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </a>
+                        {% endif %}
+                    </div>
                 </div>
+            </div>
+
+            <!-- Info Pills Strip -->
+            <div class="d-flex flex-wrap gap-2 mb-3 print-hide {% if print_mode %}d-none{% endif %}">
+                <span class="lp-pill">
+                    <span class="lp-pill-icon" style="background:#f5f3ff;color:#7c3aed;"><i class="bi bi-calendar3"></i></span>
+                    Week {{ lesson_plan.week_number }}
+                </span>
+                <span class="lp-pill">
+                    <span class="lp-pill-icon" style="background:#f0fdf4;color:#22c55e;"><i class="bi bi-people"></i></span>
+                    {{ lesson_plan.school_class.name }}
+                </span>
+                <span class="lp-pill">
+                    <span class="lp-pill-icon" style="background:#eff6ff;color:#3b82f6;"><i class="bi bi-book"></i></span>
+                    {{ lesson_plan.subject.name }}
+                </span>
+                <span class="lp-pill">
+                    <span class="lp-pill-icon" style="background:#fffbeb;color:#f59e0b;"><i class="bi bi-tag"></i></span>
+                    {{ lesson_plan.topic }}
+                </span>
             </div>
 
             {% if print_mode %}

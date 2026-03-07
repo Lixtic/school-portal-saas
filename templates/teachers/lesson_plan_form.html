@@ -9,9 +9,9 @@
         position: fixed; inset: 0; width: 100vw; height: 100vh;
         background-image: url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=2070');
         background-size: cover; background-position: center;
-        opacity: 0.12; pointer-events: none; z-index: 0;
+        opacity: 0.08; pointer-events: none; z-index: 0;
     }
-    [data-bs-theme="dark"] .page-bg-fixed { opacity: 0.05; filter: grayscale(0.5); }
+    [data-bs-theme="dark"] .page-bg-fixed { opacity: 0.04; filter: grayscale(0.5); }
     .content-wrapper { position: relative; z-index: 1; }
 </style>
 {% endblock %}
@@ -20,106 +20,149 @@
 <div class="page-bg-fixed"></div>
 <div class="content-wrapper">
 <style>
-    [data-bs-theme="dark"] .card {
-        background-color: var(--surface-card, #1e293b);
-        border-color: rgba(255,255,255,0.05);
-        color: var(--text-main);
+    /* ── Page Header ─────────────────────────────────────────── */
+    .lp-header {
+        background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+        border-radius: 1rem; color: #fff;
+        padding: 1.25rem 1.75rem; margin-bottom: 1.5rem;
     }
-    [data-bs-theme="dark"] .form-label, 
-    [data-bs-theme="dark"] h5.border-bottom {
-        color: var(--text-main);
-        border-color: rgba(255,255,255,0.1) !important;
+    [data-bs-theme="dark"] .lp-header { background: linear-gradient(135deg, #6d28d9 0%, #4338ca 100%); }
+
+    /* ── Section Labels ──────────────────────────────────────── */
+    .section-label {
+        display: flex; align-items: center; gap: .5rem;
+        font-size: .7rem; font-weight: 700; letter-spacing: .07em;
+        text-transform: uppercase; color: #6b7280;
+        margin-bottom: .75rem; padding-bottom: .5rem;
+        border-bottom: 1px solid rgba(0,0,0,0.07);
     }
+    .section-label .sl-icon {
+        width: 22px; height: 22px; border-radius: 6px;
+        display: flex; align-items: center; justify-content: center; font-size: .75rem;
+    }
+
+    /* ── Dark Mode ───────────────────────────────────────────── */
+    [data-bs-theme="dark"] .section-label { color: #64748b; border-bottom-color: rgba(255,255,255,0.07); }
+    [data-bs-theme="dark"] .card { background-color: var(--surface-card, #1e293b); border-color: rgba(255,255,255,0.06); }
     [data-bs-theme="dark"] .form-control,
     [data-bs-theme="dark"] .form-select,
     [data-bs-theme="dark"] textarea {
-        background-color: rgba(255,255,255,0.03);
-        border-color: rgba(255,255,255,0.12);
-        color: #e2e8f0;
+        background-color: rgba(255,255,255,0.04);
+        border-color: rgba(255,255,255,0.1); color: #e2e8f0;
     }
     [data-bs-theme="dark"] .form-control::placeholder,
-    [data-bs-theme="dark"] textarea::placeholder {
-        color: #94a3b8;
-    }
+    [data-bs-theme="dark"] textarea::placeholder { color: #94a3b8; }
+    [data-bs-theme="dark"] .form-label { color: var(--text-main); }
 </style>
-<div class="container py-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2 class="fw-bold">{{ title }}</h2>
-                <a href="{% url 'teachers:lesson_plan_list' %}" class="btn btn-outline-secondary rounded-pill">
-                    <i class="bi bi-arrow-left me-2"></i>Back to List
-                </a>
+
+<!-- Page Header Banner -->
+<div class="lp-header">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div>
+            <div style="font-size:1.25rem;font-weight:800;letter-spacing:-.01em;">
+                <i class="bi bi-journal-plus me-2"></i>{{ title }}
             </div>
+            <p style="font-size:.85rem;opacity:.87;margin:0;" class="d-none d-sm-block">
+                Fill in the details below to create a structured GES weekly lesson plan.
+            </p>
+        </div>
+        <a href="{% url 'teachers:lesson_plan_list' %}" class="btn btn-light fw-semibold rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+    </div>
+</div>
 
-            <div class="card shadow-sm border-0 rounded-4">
-                <div class="card-body p-4">
-                    <form method="post">
-                        {% csrf_token %}
-                        
-                        {% if messages %}
-                            {% for message in messages %}
-                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                                    {% if 'AI has drafted' in message.message %}
-                                        <i class="bi bi-robot me-2"></i>
-                                    {% endif %}
-                                    {{ message }}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                </div>
-                            {% endfor %}
-                        {% endif %}
-                        
+<div class="row justify-content-center">
+    <div class="col-lg-9 col-xl-8">
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+
+                    {% if messages %}
+                        {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show rounded-3" role="alert">
+                            {% if 'AI has drafted' in message.message %}<i class="bi bi-robot me-2"></i>{% endif %}
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Section: Plan Identity -->
+                    <div class="section-label">
+                        <span class="sl-icon" style="background:#f5f3ff;color:#7c3aed;"><i class="bi bi-info-circle"></i></span>
+                        Plan Details
+                    </div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">{{ form.week_number|as_crispy_field }}</div>
+                        <div class="col-md-5">{{ form.subject|as_crispy_field }}</div>
+                        <div class="col-md-4">{{ form.school_class|as_crispy_field }}</div>
+                        <div class="col-12">{{ form.topic|as_crispy_field }}</div>
+                    </div>
+
+                    <!-- Section: Objectives -->
+                    <div class="section-label">
+                        <span class="sl-icon" style="background:#eff6ff;color:#3b82f6;"><i class="bi bi-bullseye"></i></span>
+                        Learning Objectives &amp; Resources
+                    </div>
+                    <div class="mb-4">
+                        {{ form.objectives|as_crispy_field }}
+                        {{ form.teaching_materials|as_crispy_field }}
+                    </div>
+
+                    <!-- Section: 3-Phase Lesson Procedure -->
+                    <div class="section-label">
+                        <span class="sl-icon" style="background:#f0fdf4;color:#22c55e;"><i class="bi bi-diagram-3"></i></span>
+                        Lesson Procedure — 3 Phases
+                    </div>
+                    <div class="mb-4">
                         <div class="row g-3">
-                            <div class="col-md-3">
-                                {{ form.week_number|as_crispy_field }}
-                            </div>
-                            <div class="col-md-5">
-                                {{ form.subject|as_crispy_field }}
-                            </div>
-                            <div class="col-md-4">
-                                {{ form.school_class|as_crispy_field }}
-                            </div>
-
                             <div class="col-12">
-                                {{ form.topic|as_crispy_field }}
+                                <div class="p-3 rounded-3 mb-2" style="background:rgba(59,130,246,0.04);border:1px solid rgba(59,130,246,0.1);">
+                                    <div class="small fw-bold text-primary mb-2">
+                                        <i class="bi bi-1-circle me-1"></i>Phase 1 — Starter (Preparing the brain)
+                                    </div>
+                                    {{ form.introduction|as_crispy_field }}
+                                </div>
                             </div>
-
                             <div class="col-12">
-                                {{ form.objectives|as_crispy_field }}
+                                <div class="p-3 rounded-3 mb-2" style="background:rgba(34,197,94,0.04);border:1px solid rgba(34,197,94,0.1);">
+                                    <div class="small fw-bold mb-2" style="color:#15803d;">
+                                        <i class="bi bi-2-circle me-1"></i>Phase 2 — Main (New learning &amp; assessment)
+                                    </div>
+                                    {{ form.presentation|as_crispy_field }}
+                                </div>
                             </div>
-
                             <div class="col-12">
-                                {{ form.teaching_materials|as_crispy_field }}
-                            </div>
-
-                            <h5 class="mt-4 mb-3 border-bottom pb-2">Lesson Procedure</h5>
-                            
-                            <div class="col-12">
-                                {{ form.introduction|as_crispy_field }}
-                            </div>
-
-                            <div class="col-12">
-                                {{ form.presentation|as_crispy_field }}
-                            </div>
-
-                            <div class="col-12">
-                                {{ form.evaluation|as_crispy_field }}
-                            </div>
-                            
-                            <div class="col-12">
-                                {{ form.homework|as_crispy_field }}
+                                <div class="p-3 rounded-3 mb-2" style="background:rgba(245,158,11,0.04);border:1px solid rgba(245,158,11,0.1);">
+                                    <div class="small fw-bold mb-2" style="color:#b45309;">
+                                        <i class="bi bi-3-circle me-1"></i>Phase 3 — Reflection (Learner &amp; teacher)
+                                    </div>
+                                    {{ form.evaluation|as_crispy_field }}
+                                </div>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="d-grid gap-2 mt-4">
-                            <button type="submit" class="btn btn-primary btn-lg rounded-pill">
-                                <i class="bi bi-save me-2"></i>Save Lesson Plan
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                    <!-- Section: Homework -->
+                    <div class="section-label">
+                        <span class="sl-icon" style="background:#fffbeb;color:#f59e0b;"><i class="bi bi-pencil-square"></i></span>
+                        Homework / Assignment
+                    </div>
+                    <div class="mb-4">
+                        {{ form.homework|as_crispy_field }}
+                    </div>
+
+                    <div class="d-grid mt-2">
+                        <button type="submit" class="btn btn-primary btn-lg rounded-pill fw-semibold">
+                            <i class="bi bi-save me-2"></i>Save Lesson Plan
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
+</div>
 </div>
 {% endblock %}

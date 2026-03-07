@@ -1,169 +1,290 @@
 {% extends 'base.html' %}
 
-{% block title %}My Lesson Plans{% endblock %}
+{% block title %}{% if is_admin %}All Lesson Plans{% else %}My Lesson Plans{% endif %}{% endblock %}
 
 {% block content %}
 <style>
-    [data-bs-theme="dark"] .card {
-        background-color: var(--surface-white);
-        border: 1px solid rgba(255,255,255,0.05); /* Ensure border visibility */
-        color: var(--text-main);
-    }
-    [data-bs-theme="dark"] .table {
-        color: var(--text-main);
-    }
-    [data-bs-theme="dark"] .bg-white {
-        background-color: var(--surface-white) !important;
-    }
-    [data-bs-theme="dark"] .table thead.bg-light {
-        background-color: #2c3344 !important;
-        color: #e2e8f0;
-    }
-    [data-bs-theme="dark"] .table tbody tr:hover {
-        background-color: rgba(255,255,255,0.05);
+    /* ── Page Header ─────────────────────────────────────────── */
+    .lp-header {
+        background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+        border-radius: 1rem;
         color: #fff;
+        padding: 1.5rem 1.75rem;
+        margin-bottom: 1.5rem;
     }
-    [data-bs-theme="dark"] .text-secondary {
-        color: #94a3b8 !important;
+    .lp-header-title { font-size: 1.4rem; font-weight: 800; margin-bottom: .1rem; letter-spacing: -.01em; }
+    .lp-header-sub   { font-size: .87rem; opacity: .88; margin: 0; }
+    [data-bs-theme="dark"] .lp-header { background: linear-gradient(135deg, #6d28d9 0%, #4338ca 100%); }
+
+    /* ── Stat Cards ──────────────────────────────────────────── */
+    .stat-card {
+        padding: 1.25rem;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        background: #fff;
+        transition: all 0.18s;
     }
-    [data-bs-theme="dark"] .badge.bg-info {
-        background-color: rgba(13, 202, 240, 0.15) !important;
-        border-color: rgba(13, 202, 240, 0.3) !important;
-        color: #6edff6 !important;
+    .stat-label { font-size: .72rem; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; margin-bottom: .35rem; }
+    .stat-value { font-size: 1.75rem; font-weight: 700; color: #111827; }
+    .stat-icon  { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+    .icon-purple { background: #f5f3ff; color: #7c3aed; }
+    .icon-blue   { background: #eff6ff; color: #3b82f6; }
+    .icon-green  { background: #f0fdf4; color: #22c55e; }
+
+    /* ── Plan Items ──────────────────────────────────────────── */
+    .plan-item {
+        border: 1px solid rgba(0,0,0,0.07);
+        border-radius: 12px;
+        background: #fff;
+        padding: 1rem 1.25rem;
+        transition: border-color 0.18s, box-shadow 0.18s;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: .625rem;
+    }
+    .plan-item:hover { border-color: #7c3aed; box-shadow: 0 2px 12px rgba(124,58,237,0.09); }
+    .plan-week-badge {
+        min-width: 52px;
+        height: 52px;
+        border-radius: 12px;
+        background: #f5f3ff;
+        color: #7c3aed;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: .75rem;
+        flex-shrink: 0;
+        line-height: 1;
+    }
+    .plan-week-badge .wk-num { font-size: 1.25rem; }
+    .plan-topic { font-weight: 600; font-size: .9375rem; color: #111827; margin-bottom: 2px; }
+    .plan-meta  { font-size: .75rem; color: #9ca3af; }
+
+    /* ── Animations ──────────────────────────────────────────── */
+    @keyframes slideInUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .slide-in { animation: slideInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+    .delay-1 { animation-delay: .08s; }
+    .delay-2 { animation-delay: .16s; }
+    .delay-3 { animation-delay: .24s; }
+
+    /* ── Dark Mode ───────────────────────────────────────────── */
+    [data-bs-theme="dark"] .stat-card { background: var(--surface-card, #1e293b); border-color: rgba(255,255,255,0.08); }
+    [data-bs-theme="dark"] .stat-value { color: #f3f4f6; }
+    [data-bs-theme="dark"] .stat-label { color: #9ca3af; }
+    [data-bs-theme="dark"] .icon-purple { background: rgba(124,58,237,0.15); color: #a78bfa; }
+    [data-bs-theme="dark"] .icon-blue   { background: rgba(59,130,246,0.15);  color: #60a5fa; }
+    [data-bs-theme="dark"] .icon-green  { background: rgba(34,197,94,0.15);   color: #4ade80; }
+    [data-bs-theme="dark"] .plan-item { background: var(--surface-card, #1e293b); border-color: rgba(255,255,255,0.07); }
+    [data-bs-theme="dark"] .plan-item:hover { border-color: #a78bfa; box-shadow: 0 2px 12px rgba(139,92,246,0.15); }
+    [data-bs-theme="dark"] .plan-week-badge { background: rgba(124,58,237,0.18); color: #a78bfa; }
+    [data-bs-theme="dark"] .plan-topic { color: #f1f5f9; }
+    [data-bs-theme="dark"] .plan-meta  { color: #64748b; }
+    [data-bs-theme="dark"] .card { background: var(--surface-card, #1e293b) !important; border-color: rgba(255,255,255,0.07) !important; }
+    [data-bs-theme="dark"] .form-control,
+    [data-bs-theme="dark"] .form-select { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); color: #e2e8f0; }
+
+    @media (max-width: 575.98px) {
+        .lp-header { padding: 1rem; border-radius: .75rem; }
+        .lp-header-title { font-size: 1.1rem; }
     }
 </style>
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold">
-            <i class="bi bi-journal-text me-2"></i>{% if is_admin %}Lesson Plans{% else %}My Lesson Plans{% endif %}
-        </h2>
-        {% if is_teacher %}
-        <a href="{% url 'teachers:lesson_plan_create' %}" class="btn btn-primary rounded-pill">
-            <i class="bi bi-plus-lg me-2"></i>Create New Plan
-        </a>
-        {% endif %}
-    </div>
 
-    <!-- Filter -->
-    <div class="card shadow-sm border-0 mb-4 rounded-4">
-        <div class="card-body">
-            <form method="get" class="row g-3 align-items-end">
-                <div class="col-sm-6 col-md-2">
-                    <label for="week" class="form-label fw-bold">Week</label>
-                    <input type="number" id="week" name="week" class="form-control"
-                           value="{{ selected_week|default:'' }}" placeholder="e.g. 6">
-                </div>
-                {% if is_admin %}
-                <div class="col-sm-6 col-md-3">
-                    <label for="teacher" class="form-label fw-bold">Teacher</label>
-                    <select id="teacher" name="teacher" class="form-select">
-                        <option value="">All Teachers</option>
-                        {% for teacher in teacher_list %}
-                        <option value="{{ teacher.id }}" {% if selected_teacher == teacher.id|stringformat:"s" %}selected{% endif %}>
-                            {{ teacher.user.get_full_name|default:teacher.user.username }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                {% endif %}
-                <div class="col-sm-6 col-md-3">
-                    <label for="subject" class="form-label fw-bold">Subject</label>
-                    <select id="subject" name="subject" class="form-select">
-                        <option value="">All Subjects</option>
-                        {% for subject in teacher_subjects %}
-                        <option value="{{ subject.id }}" {% if selected_subject == subject.id|stringformat:"s" %}selected{% endif %}>{{ subject.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-sm-6 col-md-3">
-                    <label for="school_class" class="form-label fw-bold">Class</label>
-                    <select id="school_class" name="school_class" class="form-select">
-                        <option value="">All Classes</option>
-                        {% for school_class in teacher_classes %}
-                        <option value="{{ school_class.id }}" {% if selected_class == school_class.id|stringformat:"s" %}selected{% endif %}>{{ school_class.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-sm-6 col-md-2">
-                    <label for="q" class="form-label fw-bold">Topic Search</label>
-                    <input type="text" id="q" name="q" class="form-control" value="{{ selected_query|default:'' }}" placeholder="e.g. Fractions">
-                </div>
-                <div class="col-sm-12 col-md-2 d-flex gap-2">
-                    <button type="submit" class="btn btn-secondary w-100">Filter</button>
-                    {% if selected_week or selected_subject or selected_class or selected_query or selected_teacher %}
-                    <a href="{% url 'teachers:lesson_plan_list' %}" class="btn btn-outline-secondary ms-2">Clear</a>
-                    {% endif %}
-                </div>
-            </form>
+<!-- Page Header Banner -->
+<div class="lp-header">
+    <div class="d-flex align-items-start justify-content-between flex-wrap gap-2">
+        <div>
+            <div class="lp-header-title">📋 {% if is_admin %}All Lesson Plans{% else %}My Lesson Plans{% endif %}</div>
+            <p class="lp-header-sub d-none d-sm-block">
+                {% if is_admin %}Review and manage lesson plans submitted by teachers.{% else %}Plan, create and manage your weekly GES lesson plans.{% endif %}
+            </p>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <span class="badge px-3 py-2 rounded-pill d-none d-md-flex align-items-center gap-1"
+                  style="background:rgba(255,255,255,.22);color:#fff;border:1px solid rgba(255,255,255,.3);">
+                <i class="bi bi-journals me-1"></i>{{ lesson_plans|length }} plan{{ lesson_plans|length|pluralize }}
+            </span>
+            {% if is_teacher %}
+            <a href="{% url 'teachers:lesson_plan_create' %}" class="btn btn-light fw-semibold px-4 rounded-pill">
+                <i class="bi bi-plus-lg me-1"></i>Create Plan
+            </a>
+            {% endif %}
         </div>
     </div>
+</div>
 
-    {% if lesson_plans %}
-        <div class="table-responsive bg-white rounded-4 shadow-sm">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light">
-                    <tr>
-                        <th class="ps-4">Week</th>
-                        <th>Subject</th>
-                        {% if is_admin %}
-                        <th>Teacher</th>
-                        {% endif %}
-                        <th>Class</th>
-                        <th>Topic</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for plan in lesson_plans %}
-                    <tr>
-                        <td class="ps-4 fw-bold text-secondary">Week {{ plan.week_number }}</td>
-                        <td>
-                            <span class="badge bg-info bg-opacity-10 text-info border border-info px-3 py-2 rounded-pill">
-                                {{ plan.subject.name }}
-                            </span>
-                        </td>
-                        {% if is_admin %}
-                        <td>{{ plan.teacher.user.get_full_name|default:plan.teacher.user.username }}</td>
-                        {% endif %}
-                        <td>{{ plan.school_class.name }}</td>
-                        <td>{{ plan.topic }}</td>
-                        <td>
-                            <div class="btn-group">
-                                <a href="{% url 'teachers:lesson_plan_detail' plan.pk %}" class="btn btn-sm btn-outline-primary" title="View">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                                {% if is_teacher %}
-                                <a href="{% url 'teachers:lesson_plan_edit' plan.pk %}" class="btn btn-sm btn-outline-secondary" title="Edit">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                <a href="{% url 'teachers:lesson_plan_duplicate' plan.pk %}" class="btn btn-sm btn-outline-success" title="Duplicate">
-                                    <i class="bi bi-files"></i>
-                                </a>
-                                {% endif %}
-                                <a href="{% url 'teachers:lesson_plan_print' plan.pk %}" class="btn btn-sm btn-outline-dark" title="Print">
-                                    <i class="bi bi-printer"></i>
-                                </a>
-                                {% if is_teacher %}
-                                <a href="{% url 'teachers:lesson_plan_delete' plan.pk %}" class="btn btn-sm btn-outline-danger" title="Delete">
-                                    <i class="bi bi-trash"></i>
-                                </a>
-                                {% endif %}
-                            </div>
-                        </td>
-                    </tr>
+<!-- Stats Row -->
+<div class="row g-3 mb-4 slide-in">
+    <div class="col-6 col-md-4">
+        <div class="stat-card d-flex align-items-center gap-3">
+            <div class="stat-icon icon-purple"><i class="bi bi-journals"></i></div>
+            <div>
+                <div class="stat-label">Total Plans</div>
+                <div class="stat-value">{{ lesson_plans|length }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="stat-card d-flex align-items-center gap-3">
+            <div class="stat-icon icon-blue"><i class="bi bi-book"></i></div>
+            <div>
+                <div class="stat-label">Subjects</div>
+                <div class="stat-value">{{ teacher_subjects|length }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="stat-card d-flex align-items-center gap-3">
+            <div class="stat-icon icon-green"><i class="bi bi-people"></i></div>
+            <div>
+                <div class="stat-label">Classes</div>
+                <div class="stat-value">{{ teacher_classes|length }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card shadow-sm border-0 mb-4 rounded-4 slide-in delay-1">
+    <div class="card-body p-3 p-md-4">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-6 col-md-2">
+                <label for="week" class="form-label small fw-semibold text-muted text-uppercase" style="font-size:.7rem;letter-spacing:.05em;">Week</label>
+                <input type="number" id="week" name="week" class="form-control" value="{{ selected_week|default:'' }}" placeholder="e.g. 6">
+            </div>
+            {% if is_admin %}
+            <div class="col-6 col-md-2">
+                <label for="teacher" class="form-label small fw-semibold text-muted text-uppercase" style="font-size:.7rem;letter-spacing:.05em;">Teacher</label>
+                <select id="teacher" name="teacher" class="form-select">
+                    <option value="">All Teachers</option>
+                    {% for teacher in teacher_list %}
+                    <option value="{{ teacher.id }}" {% if selected_teacher == teacher.id|stringformat:"s" %}selected{% endif %}>
+                        {{ teacher.user.get_full_name|default:teacher.user.username }}
+                    </option>
                     {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% else %}
-        <div class="text-center py-5">
-            <i class="bi bi-journal-x display-1 text-muted mb-3"></i>
-            <h4 class="text-muted">No lesson plans found.</h4>
-            <p class="text-secondary">Get started by creating your first lesson plan.</p>
-                {% if is_teacher %}
-            <a href="{% url 'teachers:lesson_plan_create' %}" class="btn btn-primary mt-3">Create Plan</a>
+                </select>
+            </div>
+            {% endif %}
+            <div class="col-6 col-md-3">
+                <label for="subject" class="form-label small fw-semibold text-muted text-uppercase" style="font-size:.7rem;letter-spacing:.05em;">Subject</label>
+                <select id="subject" name="subject" class="form-select">
+                    <option value="">All Subjects</option>
+                    {% for subject in teacher_subjects %}
+                    <option value="{{ subject.id }}" {% if selected_subject == subject.id|stringformat:"s" %}selected{% endif %}>{{ subject.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-3">
+                <label for="school_class" class="form-label small fw-semibold text-muted text-uppercase" style="font-size:.7rem;letter-spacing:.05em;">Class</label>
+                <select id="school_class" name="school_class" class="form-select">
+                    <option value="">All Classes</option>
+                    {% for school_class in teacher_classes %}
+                    <option value="{{ school_class.id }}" {% if selected_class == school_class.id|stringformat:"s" %}selected{% endif %}>{{ school_class.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label for="q" class="form-label small fw-semibold text-muted text-uppercase" style="font-size:.7rem;letter-spacing:.05em;">Topic</label>
+                <input type="text" id="q" name="q" class="form-control" value="{{ selected_query|default:'' }}" placeholder="Search topic...">
+            </div>
+            <div class="col-6 col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary w-100 rounded-pill">
+                    <i class="bi bi-search me-1"></i>Filter
+                </button>
+                {% if selected_week or selected_subject or selected_class or selected_query or selected_teacher %}
+                <a href="{% url 'teachers:lesson_plan_list' %}" class="btn btn-outline-secondary rounded-pill flex-shrink-0" title="Clear filters">
+                    <i class="bi bi-x-lg"></i>
+                </a>
                 {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Plans List -->
+{% if lesson_plans %}
+<div class="slide-in delay-2">
+    {% for plan in lesson_plans %}
+    <div class="plan-item">
+        <!-- Week Badge -->
+        <div class="plan-week-badge">
+            <span class="wk-num">{{ plan.week_number }}</span>
+            <span>WK</span>
         </div>
+
+        <!-- Info -->
+        <div class="flex-grow-1" style="min-width:0;">
+            <div class="plan-topic text-truncate">{{ plan.topic }}</div>
+            <div class="plan-meta d-flex flex-wrap align-items-center gap-2 mt-1">
+                <span><i class="bi bi-book me-1"></i>{{ plan.subject.name }}</span>
+                <span class="d-none d-sm-inline vr mx-1"></span>
+                <span class="d-none d-sm-inline"><i class="bi bi-people me-1"></i>{{ plan.school_class.name }}</span>
+                {% if is_admin %}
+                <span class="d-none d-md-inline vr mx-1"></span>
+                <span class="d-none d-md-inline"><i class="bi bi-person me-1"></i>{{ plan.teacher.user.get_full_name|default:plan.teacher.user.username }}</span>
+                {% endif %}
+                <span class="d-none d-sm-inline vr mx-1"></span>
+                <span class="d-none d-sm-inline"><i class="bi bi-calendar3 me-1"></i>{{ plan.date_added|date:"M d, Y" }}</span>
+            </div>
+        </div>
+
+        <!-- Class badge (mobile only) -->
+        <span class="badge d-sm-none flex-shrink-0"
+              style="background:rgba(124,58,237,0.1);color:#7c3aed;border:1px solid rgba(124,58,237,0.2);font-size:.72rem;padding:.35rem .65rem;border-radius:8px;">
+            {{ plan.school_class.name }}
+        </span>
+
+        <!-- Actions -->
+        <div class="d-flex gap-1 align-items-center flex-shrink-0">
+            <a href="{% url 'teachers:lesson_plan_detail' plan.pk %}" class="btn btn-sm btn-outline-primary rounded-3" title="View">
+                <i class="bi bi-eye"></i>
+            </a>
+            {% if is_teacher %}
+            <a href="{% url 'teachers:lesson_plan_edit' plan.pk %}" class="btn btn-sm btn-outline-secondary rounded-3" title="Edit">
+                <i class="bi bi-pencil"></i>
+            </a>
+            <a href="{% url 'teachers:lesson_plan_duplicate' plan.pk %}" class="btn btn-sm btn-outline-success rounded-3 d-none d-sm-inline-flex" title="Duplicate">
+                <i class="bi bi-files"></i>
+            </a>
+            {% endif %}
+            <a href="{% url 'teachers:lesson_plan_print' plan.pk %}" class="btn btn-sm btn-outline-dark rounded-3 d-none d-sm-inline-flex" title="Print">
+                <i class="bi bi-printer"></i>
+            </a>
+            {% if is_teacher %}
+            <a href="{% url 'teachers:lesson_plan_delete' plan.pk %}" class="btn btn-sm btn-outline-danger rounded-3" title="Delete">
+                <i class="bi bi-trash"></i>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5 slide-in delay-2">
+    <div class="mx-auto mb-4 d-flex align-items-center justify-content-center"
+         style="width:80px;height:80px;border-radius:20px;background:#f5f3ff;">
+        <i class="bi bi-journal-x" style="font-size:2rem;color:#7c3aed;"></i>
+    </div>
+    <h4 class="fw-bold mb-2">No lesson plans found</h4>
+    <p class="text-muted mb-4">
+        {% if selected_week or selected_subject or selected_class or selected_query %}
+            No plans match your current filters.
+        {% else %}
+            Get started by creating your first lesson plan.
+        {% endif %}
+    </p>
+    {% if selected_week or selected_subject or selected_class or selected_query %}
+    <a href="{% url 'teachers:lesson_plan_list' %}" class="btn btn-outline-secondary rounded-pill me-2">
+        <i class="bi bi-x-lg me-1"></i>Clear Filters
+    </a>
+    {% endif %}
+    {% if is_teacher %}
+    <a href="{% url 'teachers:lesson_plan_create' %}" class="btn btn-primary rounded-pill px-4">
+        <i class="bi bi-plus-lg me-2"></i>Create Plan
+    </a>
     {% endif %}
 </div>
+{% endif %}
 {% endblock %}
