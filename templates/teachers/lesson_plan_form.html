@@ -277,6 +277,12 @@
             const lp = json.data.lesson_plan;
 
             // ── Parse and populate ──────────────────────────────────
+            // Context Pillars block (before **Subject:**) — save to objectives so detail view can render it
+            const pillarsMatch = lp.match(/\*\*[\s\S]*?CONTEXT PILLARS ANALYSIS[\s\S]*?\*\*([\s\S]*?)(?=\*\*Subject:)/i);
+            const pillarsBlock = pillarsMatch
+                ? ('CONTEXT PILLARS ANALYSIS\n' + pillarsMatch[1]).trim()
+                : '';
+
             // objectives = Content Standard + Indicator
             const contentStd = extractSection(lp, 'Content Standard');
             const indicator  = extractSection(lp, 'Indicator');
@@ -291,7 +297,10 @@
             const resources = extractSection(lp, 'Resources');
             const homework  = extractSection(lp, 'Homework');
 
-            fillField('objectives',         objectives || lp.substring(0, 600));
+            // objectives = pillars block (if present) + GES mapping
+            const fullObjectives = [pillarsBlock, objectives || lp.substring(0, 600)].filter(Boolean).join('\n\n');
+
+            fillField('objectives',         fullObjectives);
             fillField('teaching_materials', resources);
             fillField('introduction',       phase1);
             fillField('presentation',       phase2);
