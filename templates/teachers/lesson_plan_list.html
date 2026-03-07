@@ -63,6 +63,44 @@
     .plan-topic { font-weight: 600; font-size: .9375rem; color: #111827; margin-bottom: 2px; }
     .plan-meta  { font-size: .75rem; color: #9ca3af; }
 
+    /* ── Aura-T badges ───────────────────────────────────────── */
+    .aura-badge-cluster { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+    .aura-badge {
+        display: inline-flex; align-items: center; gap: 3px;
+        font-size: .67rem; font-weight: 600; letter-spacing: .02em;
+        padding: 2px 7px; border-radius: 20px;
+        line-height: 1.5;
+    }
+    .aura-badge-main  { background: rgba(124,58,237,0.1);  color: #7c3aed; border: 1px solid rgba(124,58,237,0.2); }
+    .aura-badge-pulse { background: rgba(14,165,233,0.1);  color: #0284c7; border: 1px solid rgba(14,165,233,0.2); }
+    .aura-badge-paths { background: rgba(34,197,94,0.08);  color: #15803d; border: 1px solid rgba(34,197,94,0.2); }
+    .aura-badge-trigger { background: rgba(245,158,11,0.1); color: #b45309; border: 1px solid rgba(245,158,11,0.25); }
+    .aura-badge-hook  { background: rgba(239,68,68,0.08);  color: #b91c1c; border: 1px solid rgba(239,68,68,0.18); }
+    [data-bs-theme="dark"] .aura-badge-main    { background: rgba(124,58,237,0.18);  color: #a78bfa; border-color: rgba(124,58,237,0.35); }
+    [data-bs-theme="dark"] .aura-badge-pulse   { background: rgba(14,165,233,0.15);  color: #38bdf8; border-color: rgba(14,165,233,0.3); }
+    [data-bs-theme="dark"] .aura-badge-paths   { background: rgba(34,197,94,0.12);   color: #4ade80; border-color: rgba(34,197,94,0.3); }
+    [data-bs-theme="dark"] .aura-badge-trigger { background: rgba(245,158,11,0.15);  color: #fbbf24; border-color: rgba(245,158,11,0.35); }
+    [data-bs-theme="dark"] .aura-badge-hook    { background: rgba(239,68,68,0.12);   color: #f87171; border-color: rgba(239,68,68,0.3); }
+
+    /* Aura-T stat card accent */
+    .icon-aura { background: linear-gradient(135deg,#f5f3ff,#eff6ff); color: #7c3aed; }
+    [data-bs-theme="dark"] .icon-aura { background: rgba(124,58,237,0.2); color: #a78bfa; }
+
+    /* Aura-only filter chip */
+    .aura-filter-chip {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 5px 12px; border-radius: 20px; cursor: pointer;
+        border: 1.5px solid rgba(124,58,237,0.25);
+        background: rgba(124,58,237,0.05); color: #7c3aed;
+        font-size: .8rem; font-weight: 600; user-select: none;
+        transition: background .15s, border-color .15s;
+    }
+    .aura-filter-chip:has(input:checked),
+    .aura-filter-chip.active {
+        background: rgba(124,58,237,0.15); border-color: #7c3aed;
+    }
+    [data-bs-theme="dark"] .aura-filter-chip { color: #a78bfa; border-color: rgba(167,139,250,0.3); background: rgba(124,58,237,0.08); }
+
     /* ── Animations ──────────────────────────────────────────── */
     @keyframes slideInUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     .slide-in { animation: slideInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
@@ -121,7 +159,7 @@
 
 <!-- Stats Row -->
 <div class="row g-3 mb-4 slide-in">
-    <div class="col-6 col-md-4">
+    <div class="col-6 col-md-3">
         <div class="stat-card d-flex align-items-center gap-3">
             <div class="stat-icon icon-purple"><i class="bi bi-journals"></i></div>
             <div>
@@ -130,7 +168,7 @@
             </div>
         </div>
     </div>
-    <div class="col-6 col-md-4">
+    <div class="col-6 col-md-3">
         <div class="stat-card d-flex align-items-center gap-3">
             <div class="stat-icon icon-blue"><i class="bi bi-book"></i></div>
             <div>
@@ -139,12 +177,21 @@
             </div>
         </div>
     </div>
-    <div class="col-12 col-md-4">
+    <div class="col-6 col-md-3">
         <div class="stat-card d-flex align-items-center gap-3">
             <div class="stat-icon icon-green"><i class="bi bi-people"></i></div>
             <div>
                 <div class="stat-label">Classes</div>
                 <div class="stat-value">{{ teacher_classes|length }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card d-flex align-items-center gap-3">
+            <div class="stat-icon icon-aura"><i class="bi bi-robot"></i></div>
+            <div>
+                <div class="stat-label">Aura-T Drafted</div>
+                <div class="stat-value">{{ aura_drafted_count }}</div>
             </div>
         </div>
     </div>
@@ -205,15 +252,21 @@
                 <label for="q" class="form-label small fw-semibold text-muted text-uppercase" style="font-size:.7rem;letter-spacing:.05em;">Topic</label>
                 <input type="text" id="q" name="q" class="form-control" value="{{ selected_query|default:'' }}" placeholder="Search topic...">
             </div>
-            <div class="col-6 col-md-2 d-flex gap-2">
+            <div class="col-12 col-md-2 d-flex gap-2 align-items-end">
                 <button type="submit" class="btn btn-primary w-100 rounded-pill">
                     <i class="bi bi-search me-1"></i>Filter
                 </button>
-                {% if selected_week or selected_subject or selected_class or selected_query or selected_teacher %}
+                {% if selected_week or selected_subject or selected_class or selected_query or selected_teacher or selected_aura_only %}
                 <a href="{% url 'teachers:lesson_plan_list' %}" class="btn btn-outline-secondary rounded-pill flex-shrink-0" title="Clear filters">
                     <i class="bi bi-x-lg"></i>
                 </a>
                 {% endif %}
+            </div>
+            <div class="col-12">
+                <label class="aura-filter-chip {% if selected_aura_only %}active{% endif %}">
+                    <input type="checkbox" name="aura_only" value="1" class="d-none" {% if selected_aura_only %}checked{% endif %} onchange="this.closest('form').submit()">
+                    <i class="bi bi-robot"></i> Aura-T plans only
+                </label>
             </div>
         </form>
     </div>
@@ -245,6 +298,21 @@
                 <span class="d-none d-sm-inline vr mx-1"></span>
                 <span class="d-none d-sm-inline"><i class="bi bi-calendar3 me-1"></i>{{ plan.date_added|date:"M d, Y" }}</span>
             </div>
+            {% if "PULSE CHECK" in plan.introduction %}
+            <div class="aura-badge-cluster">
+                <span class="aura-badge aura-badge-main"><i class="bi bi-robot"></i> Aura-T</span>
+                {% if "LOCALIZED HOOK" in plan.introduction %}
+                <span class="aura-badge aura-badge-hook">🌍 Hook</span>
+                {% endif %}
+                <span class="aura-badge aura-badge-pulse">🔍 Pulse Check</span>
+                {% if "SUPPORT PATH" in plan.presentation %}
+                <span class="aura-badge aura-badge-paths">🟢🔵 Paths</span>
+                {% endif %}
+                {% if "DATA-TRIGGER" in plan.evaluation %}
+                <span class="aura-badge aura-badge-trigger">📊 Data-Trigger</span>
+                {% endif %}
+            </div>
+            {% endif %}
         </div>
 
         <!-- Class badge (mobile only) -->

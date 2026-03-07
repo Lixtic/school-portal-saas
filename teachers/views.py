@@ -1468,6 +1468,7 @@ def lesson_plan_list(request):
     subject_id = request.GET.get('subject', '').strip()
     class_id = request.GET.get('school_class', '').strip()
     query = request.GET.get('q', '').strip()
+    aura_only = request.GET.get('aura_only', '').strip()
 
     teacher_subjects = []
     teacher_classes = []
@@ -1512,20 +1513,26 @@ def lesson_plan_list(request):
                 Q(objectives__icontains=query) |
                 Q(presentation__icontains=query)
             )
+        if aura_only:
+            lesson_plans_qs = lesson_plans_qs.filter(introduction__icontains='PULSE CHECK')
         lesson_plans = list(lesson_plans_qs)
+        aura_drafted_count = sum(1 for p in lesson_plans if 'PULSE CHECK' in (p.introduction or ''))
     except (OperationalError, ProgrammingError):
         lesson_plans = []
         teacher_subjects = []
         teacher_classes = []
+        aura_drafted_count = 0
         messages.warning(request, "Lesson Plan system is initializing. Please try again later.")
         
     return render(request, 'teachers/lesson_plan_list.html', {
         'lesson_plans': lesson_plans,
+        'aura_drafted_count': aura_drafted_count,
         'selected_week': week,
         'selected_subject': subject_id,
         'selected_class': class_id,
         'selected_teacher': selected_teacher,
         'selected_query': query,
+        'selected_aura_only': aura_only,
         'teacher_subjects': teacher_subjects,
         'teacher_classes': teacher_classes,
         'teacher_list': teacher_list,
