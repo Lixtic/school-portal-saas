@@ -168,7 +168,8 @@ def homework_list(request):
         
     context = {
         'homeworks': homeworks,
-        'is_teacher': user.user_type == 'teacher'
+        'is_teacher': user.user_type == 'teacher',
+        'today': timezone.now().date(),
     }
     return render(request, 'homework/homework_list.html', context)
 
@@ -185,6 +186,21 @@ def homework_create(request):
             homework = form.save(commit=False)
             homework.teacher = request.user.teacher
             homework.save()
+            # Notify all students in the target class
+            from announcements.models import Notification as HWNotification
+            students_in_class = Student.objects.filter(
+                current_class=homework.target_class
+            ).select_related('user')
+            hw_notifications = [
+                HWNotification(
+                    recipient=s.user,
+                    message=f"\U0001f4da New assignment: \u201c{homework.title}\u201d \u2013 due {homework.due_date.strftime('%b %d')}",
+                    alert_type='announcement',
+                )
+                for s in students_in_class
+            ]
+            if hw_notifications:
+                HWNotification.objects.bulk_create(hw_notifications, ignore_conflicts=True)
             messages.success(request, "Homework assigned successfully.")
             return redirect('homework:homework_list')
     else:

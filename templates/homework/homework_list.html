@@ -94,6 +94,7 @@
                                     <td>
                                         <i class="bi bi-calendar-event me-1 text-muted"></i>
                                         {{ homework.due_date|date:"j M, Y" }}
+                                        {% if homework.due_date < today %}<span class="badge bg-danger ms-1" style="font-size:0.65rem;">Overdue</span>{% endif %}
                                     </td>
                                     <td>{{ homework.teacher.user.get_full_name }}</td>
                                     <td class="text-end pe-4" onclick="event.stopPropagation()">
@@ -165,7 +166,7 @@
                             <td class="ps-4"><span class="badge bg-secondary bg-opacity-10 text-secondary">{{ homework.subject.name }}</span></td>
                             <td class="fw-medium">{{ homework.title }}</td>
                             <td>{{ homework.target_class.name }}</td>
-                            <td>{{ homework.due_date|date:"j M, Y" }}</td>
+                            <td>{{ homework.due_date|date:"j M, Y" }} {% if homework.due_date < today %}<span class="badge bg-danger" style="font-size:0.65rem;">Overdue</span>{% endif %}</td>
                             <td>{{ homework.teacher.user.get_full_name }}</td>
                             <td class="text-end pe-4" onclick="event.stopPropagation()">
                                 <a href="{% url 'homework:homework_detail' pk=homework.pk %}" class="btn btn-light btn-sm border shadow-sm me-1" title="View">
