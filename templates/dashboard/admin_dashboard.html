@@ -912,8 +912,11 @@
         margin-bottom: 0.75rem;
     }
     .sg-pending {
-        color: #9ca3af;
+        display: inline-flex;
+        align-items: center;
         font-size: 1rem;
+        color: #cbd5e1;
+        margin-top: 0.15rem;
     }
     [data-bs-theme="dark"] .onboarding-banner {
         background: linear-gradient(135deg, rgba(59,130,246,0.18) 0%, rgba(34,197,94,0.16) 100%);
@@ -1007,8 +1010,8 @@
 <!-- ===== Getting Started Guide ===== -->
 {% if onboarding %}
 {% if onboarding.all_done %}
-<div id="sg-widget" class="sg-widget sg-complete mb-4" style="display:none" data-sg-key="sg_dismissed_v2">
-    <div class="sg-header" onclick="sgToggle()">
+<div id="sg-widget" class="sg-widget sg-complete mb-4" style="display:none" data-sg-key="sg_complete_v2">
+    <div class="sg-header">
         <div class="sg-title">
             <i class="bi bi-patch-check-fill"></i>
             All set — school is fully configured!
@@ -1081,8 +1084,8 @@
 {% endif %}
 {% endif %}
 
-<!-- Onboarding Banner for New Schools -->
-{% if total_students == 0 and total_teachers == 0 %}
+<!-- Onboarding Banner for New Schools — only shown when checklist guide is absent -->
+{% if total_students == 0 and total_teachers == 0 and not onboarding %}
 <div class="alert border-0 mb-4 onboarding-banner">
     <div class="d-flex align-items-start gap-3">
         <div class="onboarding-icon">
@@ -1610,8 +1613,22 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!widget) return;
 
         const sgKey = widget.dataset.sgKey || 'sg_dismissed_v2';
-        const body  = document.getElementById('sgBody');
-        const icon  = document.getElementById('sgChevronIcon');
+        const isComplete = widget.classList.contains('sg-complete');
+
+        /* "All done" celebration: separate key so it shows even if guide was dismissed */
+        if (isComplete) {
+            if (localStorage.getItem(sgKey) !== '1') {
+                widget.style.display = '';
+                setTimeout(() => {
+                    widget.style.display = 'none';
+                    localStorage.setItem(sgKey, '1');
+                }, 12000);
+            }
+            return;
+        }
+
+        const body = document.getElementById('sgBody');
+        const icon = document.getElementById('sgChevronIcon');
 
         /* If dismissed previously, hide entirely */
         if (localStorage.getItem(sgKey) === '1') {
@@ -1624,12 +1641,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (collapsed && body) {
             body.style.display = 'none';
             if (icon) { icon.className = 'bi bi-chevron-down'; }
-        }
-
-        /* For the "all done" variant, show it briefly then auto-hide after 10 s */
-        if (widget.classList.contains('sg-complete')) {
-            widget.style.display = '';
-            setTimeout(() => { widget.style.display = 'none'; }, 10000);
         }
     })();
 });
