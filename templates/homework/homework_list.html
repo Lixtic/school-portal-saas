@@ -88,7 +88,7 @@
                             </thead>
                             <tbody>
                                 {% for homework in subject_grp.list %}
-                                <tr>
+                                <tr class="hw-row" style="cursor:pointer;" onclick="window.location='{% url 'homework:homework_detail' pk=homework.pk %}'" onmouseover="this.classList.add('table-active')" onmouseout="this.classList.remove('table-active')">
                                     <td class="ps-4 fw-medium">{{ homework.title }}</td>
                                     <td><span class="badge bg-secondary bg-opacity-10 text-secondary">{{ homework.target_class.name }}</span></td>
                                     <td>
@@ -96,7 +96,7 @@
                                         {{ homework.due_date|date:"j M, Y" }}
                                     </td>
                                     <td>{{ homework.teacher.user.get_full_name }}</td>
-                                    <td class="text-end pe-4">
+                                    <td class="text-end pe-4" onclick="event.stopPropagation()">
                                         <a href="{% url 'homework:homework_detail' pk=homework.pk %}" class="btn btn-primary btn-sm rounded-pill px-3">
                                             Open <i class="bi bi-arrow-right ms-1"></i>
                                         </a>
@@ -161,13 +161,13 @@
                     </thead>
                     <tbody>
                         {% for homework in homeworks %}
-                        <tr>
+                        <tr style="cursor:pointer;" onclick="window.location='{% url 'homework:homework_detail' pk=homework.pk %}'" onmouseover="this.classList.add('table-active')" onmouseout="this.classList.remove('table-active')">
                             <td class="ps-4"><span class="badge bg-secondary bg-opacity-10 text-secondary">{{ homework.subject.name }}</span></td>
                             <td class="fw-medium">{{ homework.title }}</td>
                             <td>{{ homework.target_class.name }}</td>
                             <td>{{ homework.due_date|date:"j M, Y" }}</td>
                             <td>{{ homework.teacher.user.get_full_name }}</td>
-                            <td class="text-end pe-4">
+                            <td class="text-end pe-4" onclick="event.stopPropagation()">
                                 <a href="{% url 'homework:homework_detail' pk=homework.pk %}" class="btn btn-light btn-sm border shadow-sm me-1" title="View">
                                     <i class="bi bi-eye text-primary"></i>
                                 </a>
