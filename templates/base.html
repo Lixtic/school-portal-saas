@@ -1521,22 +1521,6 @@
         <!-- Sidebar -->
         <nav class="sidebar {% if not user.is_staff or request.resolver_match.app_name != 'tenants' or request.tenant.schema_name != 'public' %}tenant-sidebar{% endif %}" id="sidebar">
 
-            <!-- School Brand -->
-            {% if user.is_authenticated %}
-            <a href="{% url 'dashboard' %}" class="sidebar-school-brand" title="{{ school_name|default:'School Portal' }}">
-                <div class="sidebar-school-brand__logo">
-                    {% if school_logo %}
-                        <img src="{{ school_logo.url }}" alt="Logo">
-                    {% else %}
-                        <i class="bi bi-building"></i>
-                    {% endif %}
-                </div>
-                <div class="sidebar-school-brand__text">
-                    <div class="sidebar-school-brand__name">{{ school_name|default:"School Portal" }}</div>
-                    <div class="sidebar-school-brand__sub">{{ user.user_type|capfirst }} Portal</div>
-                </div>
-            </a>
-            {% endif %}
             
             {% if user.is_staff and request.resolver_match.app_name == 'tenants' and request.tenant.schema_name == 'public' %}
             <!-- LANDLORD DASHBOARD -->
