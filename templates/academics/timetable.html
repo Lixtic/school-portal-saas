@@ -78,34 +78,76 @@
     }
 </style>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>{% if is_teacher_schedule %}My Timetable{% else %}Class Timetable{% endif %}</h2>
-    
-    <div class="d-flex align-items-center gap-2">
-        {% if request.user.user_type == 'admin' and selected_class and not is_teacher_schedule %}
-        <a href="{% url 'academics:edit_timetable' selected_class.id %}" class="btn btn-primary">
-            <i class="bi bi-pencil-square"></i> Edit
-        </a>
-        {% endif %}
-
-        {% if request.user.user_type == 'admin' %}
-        <a href="{% url 'academics:timetable_conflicts' %}" class="btn btn-outline-danger">
-            <i class="bi bi-exclamation-triangle me-1"></i>Check Conflicts
-        </a>
-        {% endif %}
-
-        {% if not is_teacher_schedule %}
-        <form class="d-flex gap-2" method="get">
-            <select name="class_id" class="form-select" onchange="this.form.submit()">
-                <option value="">Select Class...</option>
-                {% for cls in classes %}
-                <option value="{{ cls.id }}" {% if selected_class.id == cls.id %}selected{% endif %}>
-                    {{ cls.name }}
-                </option>
-                {% endfor %}
-            </select>
-        </form>
-        {% endif %}
+<!-- ── Timetable gradient header ──────────────────────── -->
+<style>
+.tt-header {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 50%, #0369a1 100%);
+    border-radius: 16px;
+    padding: 1.75rem 2rem;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 1.75rem;
+}
+.tt-header::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    pointer-events: none;
+}
+.tt-header .tt-title { font-size: 1.5rem; font-weight: 700; margin: 0; }
+.tt-header .tt-sub { opacity: .88; font-size: .9rem; margin: .3rem 0 0; }
+.tt-header .form-select {
+    border: 1.5px solid rgba(255,255,255,0.35);
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border-radius: 20px;
+    padding-right: 2rem;
+    min-width: 160px;
+    font-size: .9rem;
+    backdrop-filter: blur(4px);
+}
+.tt-header .form-select option { color: #1e293b; background: #fff; }
+.tt-header .form-select:focus { box-shadow: 0 0 0 3px rgba(255,255,255,0.25); }
+</style>
+<div class="tt-header">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <h1 class="tt-title">
+                <i class="bi bi-calendar3-week me-2 opacity-75"></i>
+                {% if is_teacher_schedule %}My Timetable{% else %}Class Timetable{% endif %}
+            </h1>
+            <p class="tt-sub">
+                {% if is_teacher_schedule %}Your weekly teaching schedule.{% else %}Weekly class schedule.{% endif %}
+            </p>
+        </div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            {% if not is_teacher_schedule %}
+            <form class="d-flex" method="get">
+                <select name="class_id" class="form-select" onchange="this.form.submit()">
+                    <option value="">Select Class...</option>
+                    {% for cls in classes %}
+                    <option value="{{ cls.id }}" {% if selected_class.id == cls.id %}selected{% endif %}>
+                        {{ cls.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </form>
+            {% endif %}
+            {% if request.user.user_type == 'admin' and selected_class and not is_teacher_schedule %}
+            <a href="{% url 'academics:edit_timetable' selected_class.id %}" class="btn btn-sm fw-semibold" style="background:rgba(255,255,255,0.2);color:#fff;border:none;border-radius:20px;">
+                <i class="bi bi-pencil-square me-1"></i>Edit
+            </a>
+            {% endif %}
+            {% if request.user.user_type == 'admin' %}
+            <a href="{% url 'academics:timetable_conflicts' %}" class="btn btn-sm fw-semibold" style="background:rgba(239,68,68,0.25);color:#fff;border:none;border-radius:20px;">
+                <i class="bi bi-exclamation-triangle me-1"></i>Conflicts
+            </a>
+            {% endif %}
+        </div>
     </div>
 </div>
 

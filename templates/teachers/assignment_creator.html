@@ -502,6 +502,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const title = document.getElementById('resTitle').textContent.trim() || 'AI Generated Assignment';
         const desc  = document.getElementById('resDesc').textContent.trim()  || '';
 
+        // Collect rendered questions
+        const qEls = document.querySelectorAll('#resQuestions li.list-group-item');
+        const questions = Array.from(qEls)
+            .map(li => li.textContent.replace(/^\d+\.\s*/, '').trim())
+            .filter(Boolean);
+
         const btn = this;
         btn.disabled = true;
         btn.querySelector('.save-normal').classList.add('d-none');
@@ -515,7 +521,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     action: 'save_assignment_package',
                     title, description: desc,
                     class_id: classId, subject_id: subjId,
-                    due_date: dueDate
+                    due_date: dueDate,
+                    questions,
                 })
             });
             const json = await resp.json();

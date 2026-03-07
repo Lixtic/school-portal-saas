@@ -2031,6 +2031,21 @@ def aura_t_api(request):
                     target_class=school_class,
                     due_date=due_date,
                 )
+
+                # Persist AI-generated questions as Question objects
+                from homework.models import Question as HWQuestion
+                questions_payload = data.get('questions', [])
+                if isinstance(questions_payload, list):
+                    for i, q_text in enumerate(questions_payload):
+                        if isinstance(q_text, str) and q_text.strip():
+                            HWQuestion.objects.create(
+                                homework=hw,
+                                text=q_text.strip(),
+                                question_type='short',
+                                dok_level=1,
+                                points=1,
+                            )
+
                 schema = request.tenant.schema_name
                 return JsonResponse({
                     "status": "success",

@@ -154,11 +154,26 @@
                         {{ form.homework|as_crispy_field }}
                     </div>
 
-                    <div class="d-grid mt-2">
-                        <button type="submit" class="btn btn-primary btn-lg rounded-pill fw-semibold">
+                    <div class="d-flex gap-2 mt-2">
+                        <button type="submit" class="btn btn-primary btn-lg rounded-pill fw-semibold flex-grow-1">
                             <i class="bi bi-save me-2"></i>Save Lesson Plan
                         </button>
+                        <button type="button" id="aiDraftBtn" class="btn btn-outline-primary btn-lg rounded-pill fw-semibold px-4" title="Pre-fill form with AI-generated content">
+                            <i class="bi bi-robot me-2"></i>AI Draft
+                        </button>
                     </div>
+                    <script>
+                    document.getElementById('aiDraftBtn').addEventListener('click', function() {
+                        const topicField = document.querySelector('[name="topic"]');
+                        const topic = topicField ? topicField.value.trim() : '';
+                        if (!topic) {
+                            topicField && topicField.focus();
+                            alert('Please enter a topic first.');
+                            return;
+                        }
+                        window.location.href = "{% url 'teachers:lesson_plan_create' %}?ai=true&topic=" + encodeURIComponent(topic);
+                    });
+                    </script>
                 </form>
             </div>
         </div>

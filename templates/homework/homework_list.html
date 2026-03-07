@@ -1,57 +1,163 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Homework Assignments{% endblock %}
+{% block title %}Homework & Assignments{% endblock %}
 
 {% block extra_css %}
 <style>
-    [data-bs-theme="dark"] .card {
-        background: var(--card-bg, #1e293b);
-        border-color: rgba(255,255,255,0.08);
-    }
-    [data-bs-theme="dark"] .card-header {
-        background: var(--card-bg, #1e293b) !important;
-        border-color: rgba(255,255,255,0.08);
-    }
-    [data-bs-theme="dark"] .card-body { color: #e2e8f0; }
-    [data-bs-theme="dark"] .table { color: #e2e8f0; }
-    [data-bs-theme="dark"] .table th { color: #cbd5e1; }
-    [data-bs-theme="dark"] .table-hover tbody tr:hover { background: rgba(255,255,255,0.03); }
-    [data-bs-theme="dark"] .text-gray-800,
-    [data-bs-theme="dark"] .text-gray-600,
-    [data-bs-theme="dark"] .text-gray-500,
-    [data-bs-theme="dark"] .text-gray-300 { color: #94a3b8 !important; }
-    [data-bs-theme="dark"] .btn-info { background: #0ea5e9; border-color: #0ea5e9; }
+/* ── Gradient header banner ─────────────────────────────── */
+.hw-header {
+    background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+    border-radius: 16px;
+    padding: 2rem 2rem 1.75rem;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 1.75rem;
+}
+.hw-header::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    pointer-events: none;
+}
+.hw-header::after {
+    content: '';
+    position: absolute;
+    bottom: -60px; left: -20px;
+    width: 160px; height: 160px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    pointer-events: none;
+}
+.hw-header .hw-title { font-size: 1.75rem; font-weight: 700; margin: 0; }
+.hw-header .hw-subtitle { opacity: .88; font-size: .93rem; margin: .35rem 0 0; }
+.hw-header .hw-badge {
+    background: rgba(255,255,255,0.22);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: .82rem;
+    color: #fff;
+    backdrop-filter: blur(4px);
+}
+
+/* ── Folder cards (student view) ────────────────────────── */
+.folder-card {
+    transition: transform .2s, box-shadow .2s;
+    cursor: pointer;
+    border-radius: 14px !important;
+}
+.folder-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 28px rgba(245,158,11,.18) !important;
+}
+[data-bs-theme="dark"] .folder-card {
+    background: #1e293b;
+    border-color: rgba(255,255,255,0.08) !important;
+}
+[data-bs-theme="dark"] .folder-card .card-title { color: #e2e8f0 !important; }
+
+/* ── hw-item cards ──────────────────────────────────────── */
+.hw-item {
+    border-radius: 12px;
+    border: 1px solid rgba(0,0,0,.07);
+    transition: box-shadow .2s, transform .15s;
+}
+.hw-item:hover { box-shadow: 0 6px 20px rgba(0,0,0,.09); transform: translateY(-2px); }
+[data-bs-theme="dark"] .hw-item {
+    background: #1e293b;
+    border-color: rgba(255,255,255,0.08);
+    color: #e2e8f0;
+}
+[data-bs-theme="dark"] .hw-item .text-muted { color: #94a3b8 !important; }
+
+/* ── Subject section header ─────────────────────────────── */
+.subject-section-header {
+    background: linear-gradient(90deg, rgba(245,158,11,.1), transparent);
+    border-left: 4px solid #f59e0b;
+    border-radius: 0 8px 8px 0;
+    padding: .6rem 1rem;
+    margin-bottom: 1rem;
+}
+[data-bs-theme="dark"] .subject-section-header { background: linear-gradient(90deg, rgba(245,158,11,.15), transparent); }
+
+/* ── Overdue badge ──────────────────────────────────────── */
+.badge-overdue { font-size: .68rem; vertical-align: middle; }
+
+/* ── Slide-in animation ─────────────────────────────────── */
+@keyframes slideInUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.hw-anim { animation: slideInUp .35s ease both; }
+.hw-anim:nth-child(1)  { animation-delay: .04s; }
+.hw-anim:nth-child(2)  { animation-delay: .08s; }
+.hw-anim:nth-child(3)  { animation-delay: .12s; }
+.hw-anim:nth-child(4)  { animation-delay: .16s; }
+.hw-anim:nth-child(5)  { animation-delay: .20s; }
+.hw-anim:nth-child(n+6){ animation-delay: .24s; }
+
+[data-bs-theme="dark"] .table { color: #e2e8f0; }
+[data-bs-theme="dark"] .table th { color: #cbd5e1; background: #1e293b !important; }
+[data-bs-theme="dark"] .table-hover tbody tr:hover { background: rgba(255,255,255,0.03); }
+[data-bs-theme="dark"] .card-header.bg-white { background: #1e293b !important; border-color: rgba(255,255,255,0.08) !important; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0 fw-bold">Homework & Assignments</h1>
-        {% if is_teacher %}
-        <a href="{% url 'homework:homework_create' %}" class="btn btn-primary">
-            <i class="bi bi-plus-lg me-2"></i>Assign Homework
-        </a>
-        {% endif %}
+
+    <!-- ── Gradient Header ──────────────────────────────────── -->
+    <div class="hw-header hw-anim">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h1 class="hw-title">
+                    <i class="bi bi-journal-bookmark-fill me-2 opacity-75"></i>
+                    {% if is_teacher %}Assignments{% else %}My Homework{% endif %}
+                </h1>
+                <p class="hw-subtitle">
+                    {% if is_teacher %}
+                        Manage and track homework assigned to your students.
+                    {% else %}
+                        View your assignments organised by subject.
+                    {% endif %}
+                </p>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                {% if homeworks %}
+                <span class="hw-badge">
+                    <i class="bi bi-stack me-1"></i>{{ homeworks|length }} Assignment{{ homeworks|length|pluralize }}
+                </span>
+                {% endif %}
+                {% if is_teacher %}
+                <a href="{% url 'homework:homework_create' %}" class="btn btn-light rounded-pill px-4 fw-semibold shadow-sm">
+                    <i class="bi bi-plus-lg me-1"></i>Assign Homework
+                </a>
+                {% endif %}
+            </div>
+        </div>
     </div>
 
-    <!-- Homework Folders View -->
+    <!-- ── Student View ─────────────────────────────────────── -->
     {% if not is_teacher %}
         {% regroup homeworks by subject as subject_list %}
-        
+
         {% if homeworks %}
+        <!-- Folder Grid -->
         <div id="folders-view">
-            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 mb-4">
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 mb-2">
                 {% for subject_grp in subject_list %}
-                <div class="col">
-                    <div class="card h-100 shadow-sm border-0 folder-card position-relative" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onclick="showSubject('{{ subject_grp.grouper.id }}')" onmouseover="this.style.transform='translateY(-5px)'; this.classList.add('shadow');" onmouseout="this.style.transform='none'; this.classList.remove('shadow');">
+                <div class="col hw-anim">
+                    <div class="card border-0 shadow-sm folder-card h-100" onclick="showSubject('{{ subject_grp.grouper.id }}')">
                         <div class="card-body text-center p-4">
                             <div class="mb-3">
-                                <i class="bi bi-folder-fill" style="font-size: 3.5rem; color: #fbbf24;"></i>
+                                <i class="bi bi-folder-fill" style="font-size:3.2rem;color:#f59e0b;"></i>
                             </div>
-                            <h5 class="card-title fw-bold text-dark">{{ subject_grp.grouper.name }}</h5>
-                            <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 py-2 mt-2">
+                            <h6 class="fw-bold mb-2">{{ subject_grp.grouper.name }}</h6>
+                            <span class="badge rounded-pill" style="background:rgba(245,158,11,.15);color:#d97706;">
                                 {{ subject_grp.list|length }} Assignment{{ subject_grp.list|length|pluralize }}
                             </span>
                         </div>
@@ -61,52 +167,42 @@
             </div>
         </div>
 
-        <div id="subject-details-view" style="display: none;">
+        <!-- Subject Detail View -->
+        <div id="subject-details-view" style="display:none;">
             <div class="mb-3">
                 <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="showFolders()">
-                    <i class="bi bi-arrow-left me-1"></i> Back to Subjects
+                    <i class="bi bi-arrow-left me-1"></i>Back to Subjects
                 </button>
             </div>
-            
+
             {% for subject_grp in subject_list %}
-            <div class="card shadow-sm border-0 subject-list-container" id="subject-list-{{ subject_grp.grouper.id }}" style="display: none;">
-                <div class="card-header py-3 border-bottom d-flex align-items-center bg-white">
-                    <i class="bi bi-folder2-open text-warning me-2 fs-4"></i>
-                    <h5 class="m-0 fw-bold text-dark">{{ subject_grp.grouper.name }} Assignments</h5>
+            <div class="subject-list-container" id="subject-list-{{ subject_grp.grouper.id }}" style="display:none;">
+                <div class="subject-section-header mb-3">
+                    <span class="fw-bold fs-6">
+                        <i class="bi bi-folder2-open text-warning me-2"></i>{{ subject_grp.grouper.name }}
+                    </span>
                 </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0 align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th class="ps-4">Title</th>
-                                    <th>Target Class</th>
-                                    <th>Due Date</th>
-                                    <th>Teacher</th>
-                                    <th class="text-end pe-4">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for homework in subject_grp.list %}
-                                <tr class="hw-row" style="cursor:pointer;" onclick="window.location='{% url 'homework:homework_detail' pk=homework.pk %}'" onmouseover="this.classList.add('table-active')" onmouseout="this.classList.remove('table-active')">
-                                    <td class="ps-4 fw-medium">{{ homework.title }}</td>
-                                    <td><span class="badge bg-secondary bg-opacity-10 text-secondary">{{ homework.target_class.name }}</span></td>
-                                    <td>
-                                        <i class="bi bi-calendar-event me-1 text-muted"></i>
-                                        {{ homework.due_date|date:"j M, Y" }}
-                                        {% if homework.due_date < today %}<span class="badge bg-danger ms-1" style="font-size:0.65rem;">Overdue</span>{% endif %}
-                                    </td>
-                                    <td>{{ homework.teacher.user.get_full_name }}</td>
-                                    <td class="text-end pe-4" onclick="event.stopPropagation()">
-                                        <a href="{% url 'homework:homework_detail' pk=homework.pk %}" class="btn btn-primary btn-sm rounded-pill px-3">
-                                            Open <i class="bi bi-arrow-right ms-1"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                <div class="d-flex flex-column gap-3 mb-4">
+                    {% for homework in subject_grp.list %}
+                    <div class="hw-item card border-0 shadow-sm hw-anim" style="cursor:pointer;" onclick="window.location='{% url 'homework:homework_detail' pk=homework.pk %}'">
+                        <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2 py-3 px-4">
+                            <div>
+                                <div class="fw-semibold mb-1">{{ homework.title }}</div>
+                                <div class="small text-muted">
+                                    <i class="bi bi-people me-1"></i>{{ homework.target_class.name }}
+                                    <span class="mx-2">·</span>
+                                    <i class="bi bi-calendar-event me-1"></i>{{ homework.due_date|date:"j M, Y" }}
+                                    {% if homework.due_date < today %}
+                                    <span class="badge bg-danger badge-overdue ms-1">Overdue</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <a href="{% url 'homework:homework_detail' pk=homework.pk %}" class="btn btn-sm rounded-pill px-3" style="background:linear-gradient(90deg,#f59e0b,#ef4444);color:#fff;border:none;" onclick="event.stopPropagation()">
+                                Open <i class="bi bi-arrow-right ms-1"></i>
+                            </a>
+                        </div>
                     </div>
+                    {% endfor %}
                 </div>
             </div>
             {% endfor %}
@@ -116,87 +212,83 @@
         function showSubject(id) {
             document.getElementById('folders-view').style.display = 'none';
             document.getElementById('subject-details-view').style.display = 'block';
-            
-            document.querySelectorAll('.subject-list-container').forEach(el => {
-                el.style.display = 'none';
-            });
-            
-            const target = document.getElementById('subject-list-' + id);
-            if(target) target.style.display = 'block';
+            document.querySelectorAll('.subject-list-container').forEach(el => el.style.display = 'none');
+            const t = document.getElementById('subject-list-' + id);
+            if (t) t.style.display = 'block';
         }
-
         function showFolders() {
             document.getElementById('subject-details-view').style.display = 'none';
             document.getElementById('folders-view').style.display = 'block';
         }
         </script>
+
         {% else %}
-        <div class="card shadow-sm border-0">
-            <div class="card-body text-center py-5">
-                <div class="mb-3"><i class="bi bi-journal-x fs-1 opacity-25"></i></div>
-                <h5 class="text-muted">No Assignments Found</h5>
-                <p class="text-muted mb-0">There are no active homework assignments at the moment.</p>
-            </div>
+        <!-- Empty student state -->
+        <div class="card border-0 shadow-sm hw-anim text-center py-5">
+            <div class="mb-3"><i class="bi bi-journal-x" style="font-size:3rem;opacity:.2;"></i></div>
+            <h5 class="text-muted">No Assignments Yet</h5>
+            <p class="text-muted mb-0">Check back later for homework from your teachers.</p>
         </div>
         {% endif %}
 
+    <!-- ── Teacher View ─────────────────────────────────────── -->
     {% else %}
-    <!-- Teacher View (Table) -->
-    <div class="card shadow-sm border-0">
-        <div class="card-header py-3 border-bottom bg-white">
-            <h6 class="m-0 fw-bold text-primary">Assignments List</h6>
-        </div>
-        <div class="card-body p-0">
-            {% if homeworks %}
-            <div class="table-responsive">
-                <table class="table table-hover mb-0 align-middle" id="homeworkTable" width="100%" cellspacing="0">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="ps-4">Subject</th>
-                            <th>Title</th>
-                            <th>Target Class</th>
-                            <th>Due Date</th>
-                            <th>Teacher</th>
-                            <th class="text-end pe-4">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for homework in homeworks %}
-                        <tr style="cursor:pointer;" onclick="window.location='{% url 'homework:homework_detail' pk=homework.pk %}'" onmouseover="this.classList.add('table-active')" onmouseout="this.classList.remove('table-active')">
-                            <td class="ps-4"><span class="badge bg-secondary bg-opacity-10 text-secondary">{{ homework.subject.name }}</span></td>
-                            <td class="fw-medium">{{ homework.title }}</td>
-                            <td>{{ homework.target_class.name }}</td>
-                            <td>{{ homework.due_date|date:"j M, Y" }} {% if homework.due_date < today %}<span class="badge bg-danger" style="font-size:0.65rem;">Overdue</span>{% endif %}</td>
-                            <td>{{ homework.teacher.user.get_full_name }}</td>
-                            <td class="text-end pe-4" onclick="event.stopPropagation()">
-                                <a href="{% url 'homework:homework_detail' pk=homework.pk %}" class="btn btn-light btn-sm border shadow-sm me-1" title="View">
-                                    <i class="bi bi-eye text-primary"></i>
-                                </a>
-                                {% if homework.teacher.user == request.user %}
-                                <a href="{% url 'homework:homework_edit' pk=homework.pk %}" class="btn btn-light btn-sm border shadow-sm me-1 text-warning" title="Edit">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                <a href="{% url 'homework:homework_delete' pk=homework.pk %}" class="btn btn-light btn-sm border shadow-sm text-danger" title="Delete">
-                                    <i class="bi bi-trash"></i>
-                                </a>
+        {% if homeworks %}
+        <div class="d-flex flex-column gap-3">
+            {% for homework in homeworks %}
+            <div class="hw-item card border-0 shadow-sm hw-anim" style="cursor:pointer;" onclick="window.location='{% url 'homework:homework_detail' pk=homework.pk %}'">
+                <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2 py-3 px-4">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
+                             style="width:44px;height:44px;background:linear-gradient(135deg,#f59e0b,#ef4444);">
+                            <i class="bi bi-journal-text text-white fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="fw-semibold mb-1">{{ homework.title }}</div>
+                            <div class="small text-muted">
+                                <span class="badge rounded-pill me-1" style="background:rgba(245,158,11,.12);color:#d97706;">{{ homework.subject.name }}</span>
+                                <i class="bi bi-people me-1"></i>{{ homework.target_class.name }}
+                                <span class="mx-2">·</span>
+                                <i class="bi bi-person me-1"></i>{{ homework.teacher.user.get_full_name }}
+                                <span class="mx-2">·</span>
+                                <i class="bi bi-calendar-event me-1"></i>{{ homework.due_date|date:"j M, Y" }}
+                                {% if homework.due_date < today %}
+                                <span class="badge bg-danger badge-overdue ms-1">Overdue</span>
                                 {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="text-center py-5">
-                <div class="mb-3">
-                    <i class="bi bi-journal-x fs-1 opacity-25"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2" onclick="event.stopPropagation()">
+                        <a href="{% url 'homework:homework_detail' pk=homework.pk %}" class="btn btn-sm btn-outline-primary rounded-pill px-3" title="View">
+                            <i class="bi bi-eye me-1"></i>View
+                        </a>
+                        {% if homework.teacher.user == request.user %}
+                        <a href="{% url 'homework:homework_edit' pk=homework.pk %}" class="btn btn-sm btn-outline-warning rounded-pill px-3" title="Edit">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </a>
+                        <a href="{% url 'homework:homework_delete' pk=homework.pk %}" class="btn btn-sm btn-outline-danger rounded-pill px-3" title="Delete">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                        {% endif %}
+                    </div>
                 </div>
-                <h5 class="text-muted">No Assignments Found</h5>
-                <p class="text-muted mb-0">There are no active homework assignments at the moment.</p>
             </div>
-            {% endif %}
+            {% endfor %}
         </div>
-    </div>
+        {% else %}
+        <!-- Empty teacher state -->
+        <div class="card border-0 shadow-sm hw-anim text-center py-5">
+            <div class="mb-3"><i class="bi bi-journal-x" style="font-size:3rem;opacity:.2;"></i></div>
+            <h4 class="fw-bold mb-2">No Assignments Yet</h4>
+            <p class="text-muted mb-4">Create your first homework assignment to get started.</p>
+            <div>
+                <a href="{% url 'homework:homework_create' %}" class="btn btn-primary rounded-pill px-4">
+                    <i class="bi bi-plus-lg me-2"></i>Assign Homework
+                </a>
+            </div>
+        </div>
+        {% endif %}
     {% endif %}
+
 </div>
 {% endblock %}
