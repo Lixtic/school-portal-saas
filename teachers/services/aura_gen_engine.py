@@ -123,12 +123,61 @@ Generate a rigorous, dynamic lesson plan for {grade_level} {subject} on "{topic}
 FOUR NON-NEGOTIABLE REQUIREMENTS — EVERY PLAN, NO EXCEPTIONS
 ═══════════════════════════════════════════════════════
 
-① LOCALIZED HOOK — Phase 1 must open with a culturally grounded hook drawn from Ghana:
-  Adinkra symbols, Kente weaving, Akosombo Dam, local market trading, BOST fuel pipelines,
-  Tema Motorway engineering, Cocoa farming, Bolgatanga basketry, MoMo digital payments,
-  Nkrumah's scientific vision, fishing communities, chichinga vendors, etc.
-  The hook MUST directly connect to {topic} — not just mention Ghana in passing.
-  Name a specific place, object, or practice. Make the link explicit.
+① LOCALIZED HOOK — Phase 1 must open with a culturally grounded hook drawn from Ghana.
+
+  ══ HOOK DIVERSITY RULE — READ CAREFULLY ══
+  You have a known bias toward "a trader in [market] uses [device]…" — this pattern is BANNED.
+  Do NOT write a hook where a market trader, market stall owner, or market vendor is the protagonist.
+  Do NOT use Kumasi Central Market, Makola Market, Kejetia, Kaneshie, or any market setting.
+  Do NOT describe someone selling, pricing, or buying goods as the hook scenario.
+  These patterns are overused and no longer relevant or novel for students.
+
+  INSTEAD, choose one of the following rich Ghanaian contexts that is ACTUALLY RELEVANT to {topic}:
+
+  SCIENCE & ENGINEERING contexts:
+  - Akosombo Dam hydroelectric turbines and electrical generation
+  - BOST (Bulk Oil Storage and Transportation) fuel pipeline network
+  - Tema Motorway construction and road engineering
+  - Ghana Space Science and Technology Institute (GSSTI) satellite imaging
+  - Tema Shipyard dry-dock mechanics
+  - Bauxite/gold mining operations in Obuasi or Tarkwa
+  - Cocoa fermentation and drying science on a farm in Ashanti Region
+
+  ARTS, CULTURE & LANGUAGE contexts:
+  - Adinkra symbol printing on cloth in Ntonso, near Kumasi
+  - Kente strip weaving on a hand loom in Bonwire
+  - Kpanlogo drumming pattern structures in Accra
+  - Larabanga Mosque architectural symmetry (oldest mosque in Ghana)
+  - Nkyinkyim movement in Ghanaian dance (adaptability)
+
+  DIGITAL & INNOVATION contexts:
+  - MoMo (Mobile Money) transaction flow and digital security
+  - Zipline drone delivery network in the Upper West Region
+  - mPedigree medicine-authentication SMS system
+  - MEST incubator startup pitches in Accra
+  - GhanaPostGPS digital address system
+
+  CIVIC & ENVIRONMENTAL contexts:
+  - Volta River Authority water management decisions
+  - Savannah tree-planting initiatives in the Northern Region
+  - Bolgatanga basketry cooperative and sustainable materials
+  - Fishing communities and seasonal patterns in Elmina or Keta
+  - National Service Scheme deployment logistics
+
+  HISTORICAL & INTELLECTUAL contexts:
+  - Nkrumah's Atoms for Peace nuclear vision and GAEC founding
+  - J.B. Danquah's legal writing and argument structure
+  - Efua Sutherland's storytelling architecture in drama
+  - The Manhyia Palace oral archive and record-keeping
+
+  SELECTION RULE: Pick the ONE context from the list above that creates the most natural,
+  specific, and intellectually honest bridge to {topic}. Do not force a weak connection.
+  If the topic is about slides/presentations, use a context where someone in Ghana actually
+  communicates structured information visually — e.g. GSSTI analysts presenting satellite data,
+  a Zipline operations briefing, an Akosombo engineer's maintenance diagram, NOT a trader.
+
+  The hook MUST name a specific Ghanaian place, organisation, role, or object.
+  Make the conceptual link to {topic} explicit in 2–3 sentences — do not let students guess it.
 
 ② AI PULSE CHECK — Phase 1 must include a "🔍 PULSE CHECK" block: exactly 3 diagnostic questions
   delivered verbally or on the whiteboard. Students respond quickly (hands up / slate / verbal).
@@ -229,7 +278,7 @@ OUTPUT FORMAT — USE THESE EXACT BOLD HEADERS
 🔍 PULSE CHECK (AI-Integrated Diagnostic):
 Q1: [Prerequisite knowledge question]
 Q2: [Common misconception about {topic}]
-Q3: [Application question connecting {topic} to the hook]
+Q3: [Application question — must reference the SPECIFIC Ghanaian context you chose in the hook above, not a different or generic Ghanaian example]
 Teacher note: Log students who hesitate or miss Q1/Q2/Q3 — they are your Data-Trigger targets.
 
 **PHASE 2: NEW LEARNING [30 mins]**
@@ -243,7 +292,7 @@ Step 3: [Paired practice. Teacher nearby to check understanding.]
 Success marker: [Observable behaviour that shows this student is ready. One sentence.]
 
 🔵 EXTENSION PATH (students who aced the Pulse Check):
-Task 1: [Real-world Ghanaian application of {topic} — specific and named.]
+Task 1: [Real-world application of {topic} — must use the SAME Ghanaian context as the hook, not a different one. Be specific: name the organisation, location, or role.]
 Task 2: [Cross-curricular or analytical challenge — state the second subject explicitly.]
 Task 3: [Higher-order creation, evaluation, or design task.]
 Success marker: [What a strong finished product looks like. One sentence.]
