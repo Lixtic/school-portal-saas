@@ -254,12 +254,59 @@
                 
                 <!-- Actions -->
                 <div class="text-end mt-4 mb-5">
-                    <button class="btn btn-outline-dark me-2"><i class="bi bi-printer me-2"></i>Print Worksheet</button>
-                    <button class="btn btn-success"><i class="bi bi-save me-2"></i>Save to Assignments</button>
+                    <button class="btn btn-outline-dark me-2" onclick="window.print()"><i class="bi bi-printer me-2"></i>Print Worksheet</button>
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#saveModal">
+                        <i class="bi bi-save me-2"></i>Save to Assignments
+                    </button>
                 </div>
             </div>
         </div>
     </div>
+</div>
+
+<!-- ── Save Assignment Modal ──────────────────────────────────── -->
+<div class="modal fade" id="saveModal" tabindex="-1" aria-labelledby="saveModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="saveModalLabel"><i class="bi bi-save me-2 text-success"></i>Save to Assignments</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small mb-3">Published to your Homework list so students can access and attempt it.</p>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Class <span class="text-danger">*</span></label>
+          <select class="form-select" id="saveClassSelect">
+            <option value="" disabled selected>Select class…</option>
+            {% for class in classes %}
+            <option value="{{ class.id }}">{{ class.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Subject <span class="text-danger">*</span></label>
+          <select class="form-select" id="saveSubjectSelect">
+            <option value="" disabled selected>Select subject…</option>
+            {% for subject in subjects %}
+            <option value="{{ subject.id }}">{{ subject.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Due Date</label>
+          <input type="date" class="form-control" id="saveDueDate">
+        </div>
+        <div id="saveError" class="alert alert-danger d-none py-2"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" id="confirmSaveBtn">
+          <span class="save-normal"><i class="bi bi-check-lg me-1"></i>Save &amp; View</span>
+          <span class="save-loading d-none"><span class="spinner-border spinner-border-sm me-1" role="status"></span>Saving…</span>
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
@@ -420,6 +467,75 @@ document.addEventListener('DOMContentLoaded', function() {
             rubricBody.appendChild(tr);
         });
     }
+
+    // ── Pre-fill save modal fields from the generation form ───────────────
+    document.getElementById('saveModal').addEventListener('show.bs.modal', function() {
+        const sourceType = document.querySelector('input[name="sourceType"]:checked').value;
+        if (sourceType === 'topic') {
+            const cSel = document.getElementById('classSelect');
+            const sSel = document.getElementById('subjectSelect');
+            document.getElementById('saveClassSelect').value   = cSel.value   || '';
+            document.getElementById('saveSubjectSelect').value = sSel.value   || '';
+        }
+        // Default due date = 1 week from today
+        if (!document.getElementById('saveDueDate').value) {
+            const d = new Date(); d.setDate(d.getDate() + 7);
+            document.getElementById('saveDueDate').value = d.toISOString().split('T')[0];
+        }
+    });
+
+    // ── Confirm Save ───────────────────────────────────────────────────────
+    document.getElementById('confirmSaveBtn').addEventListener('click', async function() {
+        const errEl   = document.getElementById('saveError');
+        const classId = document.getElementById('saveClassSelect').value;
+        const subjId  = document.getElementById('saveSubjectSelect').value;
+        const dueDate = document.getElementById('saveDueDate').value;
+
+        errEl.classList.add('d-none');
+        if (!classId || !subjId) {
+            errEl.textContent = 'Please select both a class and a subject.';
+            errEl.classList.remove('d-none');
+            return;
+        }
+
+        // Grab the last rendered assignment title/description
+        const title = document.getElementById('resTitle').textContent.trim() || 'AI Generated Assignment';
+        const desc  = document.getElementById('resDesc').textContent.trim()  || '';
+
+        const btn = this;
+        btn.disabled = true;
+        btn.querySelector('.save-normal').classList.add('d-none');
+        btn.querySelector('.save-loading').classList.remove('d-none');
+
+        try {
+            const resp = await fetch("{% url 'teachers:aura_t_api' %}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify({
+                    action: 'save_assignment_package',
+                    title, description: desc,
+                    class_id: classId, subject_id: subjId,
+                    due_date: dueDate
+                })
+            });
+            const json = await resp.json();
+            if (json.status === 'success') {
+                window.location.href = json.redirect_url;
+            } else {
+                errEl.textContent = json.message || 'Save failed.';
+                errEl.classList.remove('d-none');
+                btn.disabled = false;
+                btn.querySelector('.save-normal').classList.remove('d-none');
+                btn.querySelector('.save-loading').classList.add('d-none');
+            }
+        } catch (e) {
+            errEl.textContent = 'Network error — please try again.';
+            errEl.classList.remove('d-none');
+            btn.disabled = false;
+            btn.querySelector('.save-normal').classList.remove('d-none');
+            btn.querySelector('.save-loading').classList.add('d-none');
+        }
+    });
 });
 </script>
 {% endblock %}

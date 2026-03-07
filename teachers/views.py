@@ -1999,7 +1999,45 @@ def aura_t_api(request):
                     "status": "success", 
                     "data": result
                 })
-                
+
+            elif action == 'save_assignment_package':
+                from homework.models import Homework as HW
+                from academics.models import Class, Subject
+                from datetime import datetime, timedelta
+                from django.utils import timezone as tz
+
+                title        = data.get('title', '').strip() or 'AI Generated Assignment'
+                description  = data.get('description', '').strip() or ''
+                class_id     = data.get('class_id')
+                subject_id   = data.get('subject_id')
+                due_date_str = data.get('due_date', '')
+
+                if not class_id or not subject_id:
+                    return JsonResponse({"status": "error", "message": "Class and subject are required."}, status=400)
+
+                school_class = get_object_or_404(Class, pk=class_id)
+                subject      = get_object_or_404(Subject, pk=subject_id)
+
+                try:
+                    due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
+                except (ValueError, TypeError):
+                    due_date = tz.now().date() + timedelta(days=7)
+
+                hw = HW.objects.create(
+                    title=title,
+                    description=description,
+                    teacher=teacher,
+                    subject=subject,
+                    target_class=school_class,
+                    due_date=due_date,
+                )
+                schema = request.tenant.schema_name
+                return JsonResponse({
+                    "status": "success",
+                    "homework_id": hw.pk,
+                    "redirect_url": f"/{schema}/homework/{hw.pk}/",
+                })
+
             return JsonResponse({"status": "error", "message": "Unknown action"}, status=400)
             
         except Exception as e:
