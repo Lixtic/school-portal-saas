@@ -7,6 +7,24 @@ from django.views.generic import RedirectView
 from accounts import views as account_views
 from accounts.views import TenantPasswordResetView
 from tenants import views as tenant_views
+import os
+from django.http import FileResponse, Http404
+
+
+def sw_view(request):
+    """Serve sw.js from the root path with Service-Worker-Allowed: / header."""
+    # Try static source first, then staticfiles dir
+    candidates = [
+        os.path.join(settings.BASE_DIR, 'static', 'sw.js'),
+        os.path.join(settings.BASE_DIR, 'staticfiles', 'sw.js'),
+    ]
+    for path_candidate in candidates:
+        if os.path.exists(path_candidate):
+            response = FileResponse(open(path_candidate, 'rb'), content_type='application/javascript')
+            response['Service-Worker-Allowed'] = '/'
+            response['Cache-Control'] = 'no-cache'
+            return response
+    raise Http404('sw.js not found')
 
 admin.site.site_header = "School Portal Administration"
 admin.site.site_title = "School Admin"
@@ -17,6 +35,7 @@ urlpatterns = [
     # Favicon — serve before tenant middleware can intercept
     path('favicon.ico', RedirectView.as_view(url='/static/img/logo.png', permanent=True)),
     path('favicon.png', RedirectView.as_view(url='/static/img/logo.png', permanent=True)),
+    path('sw.js', sw_view, name='sw'),
     path('admin/', admin.site.urls),
     path('', account_views.homepage, name='home'),
     path('find-school/', account_views.find_school, name='find_school'),

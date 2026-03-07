@@ -2170,14 +2170,21 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     
     <script>
-        // PWA Service Worker Registration
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register("{% static 'sw.js' %}")
-                    .then(reg => console.log('Service Worker registered'))
-                    .catch(err => console.log('Service Worker registration failed: ', err));
-            });
-        }
+        // Safe localStorage shim — Edge Tracking Prevention compatibility
+        const _ls = (() => {
+            try {
+                window.localStorage.setItem('__t', '1');
+                window.localStorage.removeItem('__t');
+                return window.localStorage;
+            } catch (e) {
+                const _m = {};
+                return {
+                    getItem:    k => (_m[k] !== undefined ? _m[k] : null),
+                    setItem:    (k, v) => { _m[k] = String(v); },
+                    removeItem: k => { delete _m[k]; },
+                };
+            }
+        })();
 
         // Dark Mode Logic
         function toggleTheme() {
@@ -2187,7 +2194,7 @@
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
             
             html.setAttribute('data-bs-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
+            _ls.setItem('theme', newTheme);
             
             // Update Icon
             icon.className = newTheme === 'dark' ? 'bi bi-sun fs-5' : 'bi bi-moon fs-5';
@@ -2195,7 +2202,7 @@
 
         // Initialize Theme
         (function() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
+            const savedTheme = _ls.getItem('theme') || 'light';
             document.documentElement.setAttribute('data-bs-theme', savedTheme);
             const icon = document.getElementById('themeIcon');
             if(icon) icon.className = savedTheme === 'dark' ? 'bi bi-sun fs-5' : 'bi bi-moon fs-5';
@@ -2300,7 +2307,7 @@
         function toggleSidebar() {
             if (window.innerWidth >= 993) {
                 document.body.classList.toggle('sidebar-collapsed');
-                localStorage.setItem('sidebarCollapsed', document.body.classList.contains('sidebar-collapsed'));
+                _ls.setItem('sidebarCollapsed', document.body.classList.contains('sidebar-collapsed'));
                 
                 // Trigger resize event after transition to update Charts
                 setTimeout(() => {
@@ -2317,7 +2324,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             if (window.innerWidth >= 993 && window.innerWidth < 1200) {
                 document.body.classList.add('sidebar-collapsed');
-            } else if (localStorage.getItem('sidebarCollapsed') === 'true' && window.innerWidth >= 993) {
+            } else if (_ls.getItem('sidebarCollapsed') === 'true' && window.innerWidth >= 993) {
                 document.body.classList.add('sidebar-collapsed');
             }
 
@@ -2366,7 +2373,7 @@
                 // Restore collapsed state on resize to desktop or auto-collapse for tablets
                 if (window.innerWidth < 1200) {
                     document.body.classList.add('sidebar-collapsed');
-                } else if (localStorage.getItem('sidebarCollapsed') === 'true') {
+                } else if (_ls.getItem('sidebarCollapsed') === 'true') {
                     document.body.classList.add('sidebar-collapsed');
                 } else {
                     document.body.classList.remove('sidebar-collapsed');
@@ -2685,11 +2692,11 @@
                 const theme = mode === 'dark' ? 'dark' : 'light';
                 root.setAttribute('data-bs-theme', theme);
                 document.body.classList.toggle('dark-theme', theme === 'dark');
-                localStorage.setItem('theme', theme);
+                _ls.setItem('theme', theme);
                 syncToggleLabels(theme);
             };
 
-            const stored = localStorage.getItem('theme');
+            const stored = _ls.getItem('theme');
             const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
             const initial = stored || (prefersDark ? 'dark' : 'light');
             applyTheme(initial);
@@ -2704,7 +2711,7 @@
             // Auto-sync with system preference when user has no explicit choice
             if (window.matchMedia) {
                 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-                    const hasManualChoice = !!localStorage.getItem('theme');
+                    const hasManualChoice = !!_ls.getItem('theme');
                     if (!hasManualChoice) {
                         applyTheme(e.matches ? 'dark' : 'light');
                     }
@@ -2727,7 +2734,7 @@
             if (!el) return;
 
             // Restore order
-            const savedOrder = JSON.parse(localStorage.getItem(storageKey));
+            const savedOrder = JSON.parse(_ls.getItem(storageKey));
             if (savedOrder && Array.isArray(savedOrder)) {
                 
                 const currentChildren = {};
@@ -2753,7 +2760,7 @@
                     const order = Array.from(el.children)
                         .map(child => child.id)
                         .filter(id => id);
-                    localStorage.setItem(storageKey, JSON.stringify(order));
+                    _ls.setItem(storageKey, JSON.stringify(order));
                 }
             });
         }
@@ -3223,7 +3230,7 @@
   if ('serviceWorker' in navigator && 'PushManager' in window) {
     window.addEventListener('load', async () => {
       try {
-        const reg = await navigator.serviceWorker.register("{% static 'sw.js' %}", { scope: '/' });
+        const reg = await navigator.serviceWorker.register('/sw.js');
         if (Notification.permission === 'granted') {
           subscribeToPush();
         } else if (Notification.permission !== 'denied') {
@@ -3236,7 +3243,7 @@
   } else if ('serviceWorker' in navigator) {
     // Register SW for caching even without push support
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register("{% static 'sw.js' %}", { scope: '/' }).catch(() => {});
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
     });
   }
 
