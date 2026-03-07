@@ -118,18 +118,34 @@ def child_details(request, student_id):
     # Get homework for the student's class
     homework = Homework.objects.filter(
         target_class=student.current_class
-    ).order_by('-created_at')[:10]
+    ).prefetch_related('questions').order_by('-created_at')[:10]
 
-    # Map homework → submission result for this student
+    # Map homework → best submission for this student
+    # Order by -score so the first encountered per homework_id is the best
     hw_ids = [hw.id for hw in homework]
-    submissions_qs = Submission.objects.filter(student=student, homework_id__in=hw_ids)
-    hw_submission_map = {sub.homework_id: sub for sub in submissions_qs}
+    submissions_qs = (
+        Submission.objects
+        .filter(student=student, homework_id__in=hw_ids)
+        .order_by('homework_id', '-score')
+    )
+    hw_submission_map = {}
+    for sub in submissions_qs:
+        if sub.homework_id not in hw_submission_map:
+            hw_submission_map[sub.homework_id] = sub  # keeps highest score
 
-    # Precompute homework + result pairs for template
-    hw_with_results = [
-        {'hw': hw_obj, 'sub': hw_submission_map.get(hw_obj.id)}
-        for hw_obj in homework
-    ]
+    # Precompute homework + result pairs + max_pts for template
+    from django.db.models import Sum as _Sum
+    hw_with_results = []
+    for hw_obj in homework:
+        # Sum of question points (defaults to 1 per question if not customised)
+        max_pts = hw_obj.questions.aggregate(total=_Sum('points'))['total']
+        if not max_pts:
+            max_pts = hw_obj.questions.count() or 1
+        hw_with_results.append({
+            'hw': hw_obj,
+            'sub': hw_submission_map.get(hw_obj.id),
+            'max_pts': max_pts,
+        })
 
     # Aura AI Learning Profile
     try:
