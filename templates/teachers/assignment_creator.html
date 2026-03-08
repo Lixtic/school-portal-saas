@@ -20,6 +20,7 @@
         font-weight: 800;
     }
     
+    .diff-extension { border-left-color: #f59e0b; }
     .differentiation-card {
         border-left: 4px solid transparent;
         transition: transform 0.2s;
@@ -29,7 +30,7 @@
     }
     .diff-support { border-left-color: #10b981; }
     .diff-standard { border-left-color: #3b82f6; }
-    .diff-challenge { border-left-color: #f59e0b; }
+    /* .diff-challenge kept for graceful fallback */
     
     .rubric-table th {
         background-color: #f8fafc;
@@ -181,51 +182,62 @@
                         <span class="badge bg-light text-dark border" id="metaBadge">Generated just now</span>
                     </div>
                     <div class="card-body">
-                        <h4 id="resTitle" class="fw-bold mb-3"></h4>
-                        <p id="resDesc" class="lead fs-6 mb-4"></p>
-                        
-                        <div class="bg-light p-3 rounded mb-3 border">
-                            <h6 class="fw-bold small text-uppercase text-muted mb-2">Visual Prompt / Resource</h6>
-                            <p id="resVisual" class="mb-0 fst-italic text-primary"></p>
+                        <h4 id="resTitle" class="fw-bold mb-2"></h4>
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle" id="resGesIndicator"></span>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle" id="resGhanaContext"></span>
                         </div>
-
-                        <h6 class="fw-bold mt-4">Task Questions:</h6>
-                        <ul id="resQuestions" class="list-group list-group-flush mb-0"></ul>
+                        <p id="resDesc" class="text-muted mb-0"></p>
                     </div>
                 </div>
 
-                <!-- 2. Differentiation -->
-                <div class="row mb-4">
+                <!-- 2. Differentiation: Support + Extension -->
+                <div class="row mb-4 g-3">
                     <div class="col-12">
-                        <h6 class="fw-bold text-muted mb-3"><i class="bi bi-diagram-3 me-2"></i>Adaptive Differentiation</h6>
+                        <h6 class="fw-bold text-muted mb-1"><i class="bi bi-diagram-3 me-2"></i>Differentiated Tasks</h6>
                     </div>
-                    <!-- Support -->
-                    <div class="col-md-4">
+                    <!-- Support Task -->
+                    <div class="col-md-6">
                         <div class="card h-100 border-0 shadow-sm differentiation-card diff-support">
+                            <div class="card-header bg-success-subtle border-0 py-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="fw-bold text-success mb-0"><i class="bi bi-pencil me-1"></i>Support Task</h6>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle small">DOK 1–2 &bull; Pen &amp; Paper</span>
+                                </div>
+                                <div class="small text-success-emphasis mt-1" id="supportGapTargeted"></div>
+                            </div>
                             <div class="card-body">
-                                <h6 class="fw-bold text-success mb-2">Support</h6>
-                                <p class="small text-muted mb-3" id="diffSupportDesc"></p>
-                                <ul class="small ps-3 mb-0" id="diffSupportList"></ul>
+                                <p class="small mb-2" id="supportInstructions"></p>
+                                <div class="text-muted small fst-italic" id="supportGhanaContextLink"></div>
+                                <div class="mt-2 text-muted small"><i class="bi bi-clock me-1"></i><span id="supportTime"></span></div>
                             </div>
                         </div>
                     </div>
-                    <!-- Standard -->
-                    <div class="col-md-4">
-                        <div class="card h-100 border-0 shadow-sm differentiation-card diff-standard">
-                            <div class="card-body">
-                                <h6 class="fw-bold text-primary mb-2">Standard</h6>
-                                <p class="small text-muted mb-3" id="diffStandardDesc"></p>
-                                <ul class="small ps-3 mb-0" id="diffStandardList"></ul>
+                    <!-- Extension Task -->
+                    <div class="col-md-6">
+                        <div class="card h-100 border-0 shadow-sm differentiation-card diff-extension">
+                            <div class="card-header bg-warning-subtle border-0 py-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="fw-bold text-warning mb-0"><i class="bi bi-lightning-charge me-1"></i>Extension Task</h6>
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle small">DOK 3–4 &bull; Device-optional</span>
+                                </div>
+                                <div class="small text-warning-emphasis mt-1" id="extensionBuildsOn"></div>
                             </div>
-                        </div>
-                    </div>
-                    <!-- Challenge -->
-                    <div class="col-md-4">
-                        <div class="card h-100 border-0 shadow-sm differentiation-card diff-challenge">
                             <div class="card-body">
-                                <h6 class="fw-bold text-warning mb-2">Challenge</h6>
-                                <p class="small text-muted mb-3" id="diffChallengeDesc"></p>
-                                <ul class="small ps-3 mb-0" id="diffChallengeList"></ul>
+                                <ul class="nav nav-tabs nav-tabs-sm mb-2" id="extTabs">
+                                    <li class="nav-item">
+                                        <button class="nav-link active small py-1 px-2" data-bs-toggle="tab" data-bs-target="#extTabDigital"><i class="bi bi-phone me-1"></i>Digital</button>
+                                    </li>
+                                    <li class="nav-item">
+                                        <button class="nav-link small py-1 px-2" data-bs-toggle="tab" data-bs-target="#extTabPaper"><i class="bi bi-pencil me-1"></i>Paper fallback</button>
+                                    </li>
+                                </ul>
+                                <div class="tab-content">
+                                    <div class="tab-pane fade show active small" id="extTabDigital"><p id="extensionDigital" class="mb-0"></p></div>
+                                    <div class="tab-pane fade small" id="extTabPaper"><p id="extensionPaper" class="mb-0"></p></div>
+                                </div>
+                                <div class="text-muted small fst-italic mt-2" id="extensionGhanaContextLink"></div>
+                                <div class="mt-2 text-muted small"><i class="bi bi-clock me-1"></i><span id="extensionTime"></span></div>
                             </div>
                         </div>
                     </div>
@@ -405,67 +417,63 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     function renderResults(data) {
-        const asgn = data.assignment || {};
-        const content = asgn.content || {};
-        const meta = data.meta || {};
-        const diff = data.differentiation || {};
-        const rubric = Array.isArray(data.rubric) ? data.rubric : [];
+        const asgn    = data.assignment    || {};
+        const sp      = data.support_task  || {};
+        const ex      = data.extension_task|| {};
+        const meta    = data.meta          || {};
+        const rubric  = Array.isArray(data.rubric) ? data.rubric : [];
 
-        // 1. Core
+        // 1. Core Assignment header
         document.getElementById('resTitle').textContent = asgn.title || '';
-        document.getElementById('resDesc').textContent = asgn.description || '';
-        document.getElementById('resVisual').textContent = content.visual_prompt || '';
+        document.getElementById('resDesc').textContent  = asgn.description || '';
+        const gesEl = document.getElementById('resGesIndicator');
+        const ctxEl = document.getElementById('resGhanaContext');
+        if (asgn.ges_indicator) {
+            gesEl.textContent = '\uD83D\uDCCC ' + asgn.ges_indicator;
+            gesEl.classList.remove('d-none');
+        } else { gesEl.classList.add('d-none'); }
+        if (asgn.ghana_context) {
+            ctxEl.textContent = '\uD83C\uDDEC\uD83C\uDDED ' + asgn.ghana_context;
+            ctxEl.classList.remove('d-none');
+        } else { ctxEl.classList.add('d-none'); }
         document.getElementById('metaBadge').textContent =
-            [meta.subject, meta.grade, meta.topic].filter(Boolean).join(' • ') || 'Generated';
+            [meta.subject, meta.grade, meta.topic].filter(Boolean).join(' \u2022 ') || 'Generated';
 
-        const questions = Array.isArray(content.questions) ? content.questions : [];
-        const qList = document.getElementById('resQuestions');
-        qList.innerHTML = '';
-        if (questions.length === 0) {
-            qList.innerHTML = '<li class="list-group-item bg-transparent px-0 py-2 text-muted">No questions returned.</li>';
-        } else {
-            questions.forEach((q, i) => {
-                const li = document.createElement('li');
-                li.className = 'list-group-item bg-transparent px-0 py-2';
-                li.innerHTML = `<span class="fw-semibold me-2">${i + 1}.</span>${q}`;
-                qList.appendChild(li);
-            });
-        }
+        // 2. Support Task
+        document.getElementById('supportInstructions').textContent   = sp.instructions        || '';
+        document.getElementById('supportGapTargeted').textContent    =
+            sp.gap_targeted ? '\uD83C\uDFAF Targets: ' + sp.gap_targeted : '';
+        document.getElementById('supportGhanaContextLink').textContent = sp.ghana_context_link || '';
+        document.getElementById('supportTime').textContent            = sp.estimated_time     || '';
 
-        // 2. Differentiation
-        const support = diff.support || {};
-        document.getElementById('diffSupportDesc').textContent = support.description || '';
-        const supList = document.getElementById('diffSupportList');
-        supList.innerHTML = '';
-        (support.modifications || []).forEach(m => supList.innerHTML += `<li>${m}</li>`);
+        // 3. Extension Task
+        document.getElementById('extensionBuildsOn').textContent        =
+            ex.builds_on ? '\u26A1 Builds on: ' + ex.builds_on : '';
+        document.getElementById('extensionDigital').textContent         = ex.instructions_digital || '';
+        document.getElementById('extensionPaper').textContent           = ex.instructions_paper   || '';
+        document.getElementById('extensionGhanaContextLink').textContent= ex.ghana_context_link   || '';
+        document.getElementById('extensionTime').textContent            = ex.estimated_time        || '';
 
-        const standard = diff.standard || {};
-        document.getElementById('diffStandardDesc').textContent = standard.description || '';
-        const stdList = document.getElementById('diffStandardList');
-        stdList.innerHTML = '';
-        (standard.content || []).forEach(m => stdList.innerHTML += `<li>${m}</li>`);
-
-        const challenge = diff.challenge || {};
-        document.getElementById('diffChallengeDesc').textContent = challenge.description || '';
-        const chaList = document.getElementById('diffChallengeList');
-        chaList.innerHTML = '';
-        (challenge.modifications || []).forEach(m => chaList.innerHTML += `<li>${m}</li>`);
-
-        // 3. Rubric
+        // 4. Rubric
         const rubricBody = document.getElementById('rubricBody');
         rubricBody.innerHTML = '';
-        rubric.forEach(r => {
-            const lvl = r.levels || {};
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td class="fw-bold">${r.criteria || ''}<br><small class="text-muted fw-normal">Weight: ${r.weight || ''}</small></td>
-                <td>${lvl.excellent || ''}</td>
-                <td>${lvl.proficient || ''}</td>
-                <td>${lvl.basic || ''}</td>
-                <td class="text-muted">${lvl.limited || ''}</td>
-            `;
-            rubricBody.appendChild(tr);
-        });
+        if (rubric.length === 0) {
+            rubricBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">No rubric returned.</td></tr>';
+        } else {
+            rubric.forEach(r => {
+                const lvl = r.levels || {};
+                const tr  = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-bold">${r.criteria || ''}<br>
+                        <small class="text-muted fw-normal">Weight: ${r.weight || ''}%</small></td>
+                    <td>${lvl.excellent  || ''}</td>
+                    <td>${lvl.proficient || ''}</td>
+                    <td>${lvl.basic      || ''}</td>
+                    <td class="text-muted">${lvl.limited || ''}</td>
+                `;
+                rubricBody.appendChild(tr);
+            });
+        }
     }
 
     // ── Pre-fill save modal fields from the generation form ───────────────
