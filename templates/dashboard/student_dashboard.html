@@ -782,4 +782,447 @@ function fetchLeaderboard() {
 }
 </script>
 
+<!-- ═══════════════════════════════════════════════════════════════════════
+     DIGITAL PULSE — Student Interrupt Overlay
+     ═══════════════════════════════════════════════════════════════════════ -->
+<style>
+/* ── Shimmer streak ─────────────────────────────────────────────────────── */
+#pulseStreak {
+    position: fixed; top: 0; left: -100%; z-index: 8990;
+    width: 100%; height: 4px;
+    background: linear-gradient(90deg, transparent 0%,
+        rgba(124,58,237,.6) 25%, rgba(56,120,255,.85) 50%,
+        rgba(6,182,212,.9) 75%, transparent 100%);
+    animation: streakRun .65s cubic-bezier(.4,0,.2,1) forwards;
+}
+@keyframes streakRun { from{left:-100%;} to{left:100%;} }
+
+/* ── Notification toast ─────────────────────────────────────────────────── */
+#pulseToast {
+    position: fixed; top: 1rem; left: 50%; transform: translateX(-50%) translateY(-80px);
+    z-index: 8991; background: linear-gradient(135deg,#4c1d95,#1e40af);
+    color: #e0e7ff; padding: .7rem 1.4rem; border-radius: 50px;
+    font-weight: 700; font-size: .88rem; white-space: nowrap;
+    box-shadow: 0 6px 24px rgba(0,0,0,.35); transition: transform .4s cubic-bezier(.175,.885,.32,1.275);
+    display: flex; align-items: center; gap: .5rem;
+}
+#pulseToast.show { transform: translateX(-50%) translateY(0); }
+
+/* ── Full overlay ───────────────────────────────────────────────────────── */
+#pulseOverlay {
+    position: fixed; inset: 0; z-index: 9000;
+    background: rgba(15,10,40,.88);
+    backdrop-filter: blur(12px);
+    display: none; align-items: center; justify-content: center;
+    padding: 1rem;
+}
+#pulseOverlay.active { display: flex; }
+
+.pulse-card {
+    background: #1e1b4b; border-radius: 22px;
+    border: 1px solid rgba(139,92,246,.35);
+    box-shadow: 0 20px 60px rgba(0,0,0,.6);
+    width: 100%; max-width: 480px; padding: 1.75rem 1.5rem;
+    color: #e0e7ff; text-align: center;
+}
+.pulse-topic {
+    font-size: .72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: #818cf8; margin-bottom: .3rem;
+}
+.pulse-q {
+    font-size: 1.05rem; font-weight: 700; color: #f1f5f9;
+    line-height: 1.45; margin-bottom: 1.25rem; min-height: 3rem;
+}
+.pulse-q-num {
+    display: inline-block; font-size: .65rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .06em;
+    color: #7c3aed; background: rgba(124,58,237,.2);
+    border-radius: 20px; padding: .15rem .6rem; margin-bottom: .6rem;
+}
+
+/* True/False tiles */
+.pulse-tf-row { display: flex; gap: 1rem; justify-content: center; margin-bottom: .5rem; }
+.pulse-tf-tile {
+    flex: 1; max-width: 180px; height: 80px; border-radius: 16px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 1.5rem; font-weight: 900; cursor: pointer;
+    border: 2px solid transparent; transition: transform .12s, border-color .15s, box-shadow .15s;
+    user-select: none;
+}
+.pulse-tf-tile.tf-true  { background: rgba(34,197,94,.14); color: #4ade80; border-color: rgba(34,197,94,.25); }
+.pulse-tf-tile.tf-false { background: rgba(239,68,68,.14);  color: #f87171; border-color: rgba(239,68,68,.25); }
+.pulse-tf-tile:active   { transform: scale(.93); }
+.pulse-tf-tile.selected { border-color: currentColor; box-shadow: 0 0 0 3px currentColor; opacity:1; }
+.pulse-tf-tile:not(.selected) { opacity: .7; }
+.pulse-tf-label { font-size: .7rem; font-weight: 800; letter-spacing: .04em; margin-top: .2rem; }
+
+/* Q3 Carousel chips */
+.pulse-chip-viewport { overflow: hidden; position: relative; }
+.pulse-chip-track { display: flex; transition: transform .35s cubic-bezier(.4,0,.2,1); }
+.pulse-chip {
+    min-width: 100%; box-sizing: border-box; padding: 1rem 1.25rem;
+    background: rgba(139,92,246,.12); border: 2px solid rgba(139,92,246,.25);
+    border-radius: 14px; font-size: .92rem; font-weight: 600; color: #c4b5fd;
+    text-align: center; cursor: pointer; transition: border-color .15s, background .15s;
+}
+.pulse-chip.selected { border-color: #7c3aed; background: rgba(124,58,237,.28); color: #fff; }
+.pulse-nav-row { display: flex; justify-content: center; align-items: center; gap: .75rem; margin-top: .7rem; }
+.pulse-nav-btn {
+    background: rgba(139,92,246,.2); border: none; color: #a78bfa;
+    width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+    font-size: .9rem; transition: background .15s;
+}
+.pulse-nav-btn:hover { background: rgba(139,92,246,.38); }
+.pulse-chip-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.2); }
+.pulse-chip-dot.active { background: #7c3aed; }
+
+/* Progress / submit row */
+.pulse-progress { display: flex; gap: .4rem; margin: 1.1rem auto .85rem; justify-content: center; }
+.pp-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.15); transition: background .3s; }
+.pp-dot.done { background: #22c55e; }
+.pp-dot.current { background: #7c3aed; animation: pgBlink 1s infinite; }
+
+.pulse-next-btn, .pulse-submit-btn {
+    display: inline-flex; align-items: center; gap: .5rem;
+    padding: .7rem 2rem; border-radius: 50px; font-weight: 800;
+    font-size: .9rem; border: none; cursor: pointer; transition: opacity .15s, transform .1s;
+}
+.pulse-next-btn { background: linear-gradient(135deg,#4c1d95,#2563eb); color: #fff; }
+.pulse-submit-btn { background: linear-gradient(135deg,#059669,#0284c7); color: #fff; }
+.pulse-next-btn:active, .pulse-submit-btn:active { transform: scale(.96); }
+.pulse-next-btn:disabled, .pulse-submit-btn:disabled { opacity: .5; cursor: default; }
+
+/* Success ring */
+#pulseSuccess {
+    position: fixed; inset: 0; z-index: 9500;
+    background: rgba(15,10,40,.92); display: none;
+    align-items: center; justify-content: center;
+}
+#pulseSuccess.active { display: flex; }
+.success-ring-wrap { text-align: center; }
+.success-ring {
+    width: 120px; height: 120px; border-radius: 50%;
+    border: 5px solid transparent;
+    background:
+        linear-gradient(#1e1b4b, #1e1b4b) padding-box,
+        linear-gradient(135deg, #7c3aed, #06b6d4) border-box;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.5rem;
+    animation: ringPop .5s cubic-bezier(.175,.885,.32,1.275);
+    margin: 0 auto 1rem;
+}
+@keyframes ringPop { from{transform:scale(0.4);opacity:0;} to{transform:scale(1);opacity:1;} }
+.success-msg { color: #f1f5f9; font-weight: 800; font-size: 1.1rem; margin-bottom: .4rem; }
+.success-sub { color: #818cf8; font-size: .83rem; }
+</style>
+
+<!-- Shimmer streak element (injected dynamically, also pre-rendered) -->
+<div id="pulseStreak" style="display:none;"></div>
+
+<!-- Notification toast -->
+<div id="pulseToast">
+    <i class="bi bi-broadcast"></i>
+    <span>Pulse Incoming!</span>
+</div>
+
+<!-- Main overlay -->
+<div id="pulseOverlay">
+  <div class="pulse-card">
+    <div class="pulse-topic" id="pTopic">Pulse Check</div>
+
+    <!-- Step indicator -->
+    <div class="pulse-progress">
+        <div class="pp-dot current" id="pDot0"></div>
+        <div class="pp-dot" id="pDot1"></div>
+        <div class="pp-dot" id="pDot2"></div>
+    </div>
+
+    <!-- Step 0: Q1 True/False -->
+    <div id="pStep0">
+        <div class="pulse-q-num">Q1 — True or False?</div>
+        <div class="pulse-q" id="pQ1Text">Loading…</div>
+        <div class="pulse-tf-row">
+            <div class="pulse-tf-tile tf-true" id="pQ1True" onclick="selectTF(1,'true')">
+                <span>✓</span><span class="pulse-tf-label">TRUE</span>
+            </div>
+            <div class="pulse-tf-tile tf-false" id="pQ1False" onclick="selectTF(1,'false')">
+                <span>✗</span><span class="pulse-tf-label">FALSE</span>
+            </div>
+        </div>
+        <button class="pulse-next-btn mt-3" id="pNext0" onclick="goStep(1)" disabled>
+            Next <i class="bi bi-arrow-right"></i>
+        </button>
+    </div>
+
+    <!-- Step 1: Q2 True/False -->
+    <div id="pStep1" style="display:none;">
+        <div class="pulse-q-num">Q2 — True or False?</div>
+        <div class="pulse-q" id="pQ2Text">Loading…</div>
+        <div class="pulse-tf-row">
+            <div class="pulse-tf-tile tf-true" id="pQ2True" onclick="selectTF(2,'true')">
+                <span>✓</span><span class="pulse-tf-label">TRUE</span>
+            </div>
+            <div class="pulse-tf-tile tf-false" id="pQ2False" onclick="selectTF(2,'false')">
+                <span>✗</span><span class="pulse-tf-label">FALSE</span>
+            </div>
+        </div>
+        <button class="pulse-next-btn mt-3" id="pNext1" onclick="goStep(2)" disabled>
+            Next <i class="bi bi-arrow-right"></i>
+        </button>
+    </div>
+
+    <!-- Step 2: Q3 Carousel chips -->
+    <div id="pStep2" style="display:none;">
+        <div class="pulse-q-num">Q3 — Which plan fits?</div>
+        <div class="pulse-q" id="pQ3Text">Loading…</div>
+        <div class="pulse-chip-viewport">
+            <div class="pulse-chip-track" id="pChipTrack"></div>
+        </div>
+        <div class="pulse-nav-row">
+            <button class="pulse-nav-btn" onclick="carouselMove(-1)">&#8592;</button>
+            <div id="pChipDots" style="display:flex;gap:.4rem;"></div>
+            <button class="pulse-nav-btn" onclick="carouselMove(1)">&#8594;</button>
+        </div>
+        <button class="pulse-submit-btn mt-3" id="pSubmit" onclick="submitPulse()" disabled>
+            <i class="bi bi-send-fill"></i> Submit
+        </button>
+    </div>
+  </div>
+</div>
+
+<!-- Success ring -->
+<div id="pulseSuccess">
+    <div class="success-ring-wrap">
+        <div class="success-ring">✓</div>
+        <div class="success-msg">Response received!</div>
+        <div class="success-sub">Your answer is safely with the teacher.</div>
+    </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// DIGITAL PULSE — Student JS
+// ══════════════════════════════════════════════════════════
+(function () {
+    var POLL_URL    = "{% url 'students:pulse_poll' %}";
+    var SUBMIT_BASE = "{% url 'students:pulse_submit' 0 %}".replace('/0/', '/');
+    var CSRF_TOKEN  = '{{ csrf_token }}';
+
+    var _pollTimer  = null;
+    var _sessionId  = null;
+    var _chips      = [];
+    var _q1ans      = null;
+    var _q2ans      = null;
+    var _q3ans      = null;
+    var _chipIdx    = 0;
+    var _step       = 0;
+    var _cachedSub  = null;   // offline cache
+
+    // ── Polling ──────────────────────────────────────────
+    function startPolling() {
+        if (_pollTimer) return;
+        _pollTimer = setInterval(doPoll, 3000);
+        doPoll();
+    }
+
+    function doPoll() {
+        fetch(POLL_URL)
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+            if (d.session) {
+                clearInterval(_pollTimer); _pollTimer = null;
+                triggerInterrupt(d.session);
+            }
+        })
+        .catch(function(){});
+    }
+
+    // ── Interrupt sequence ───────────────────────────────
+    function triggerInterrupt(session) {
+        _sessionId = session.id;
+        _chips     = session.chips || [];
+        _q1ans = _q2ans = _q3ans = null;
+        _chipIdx = 0; _step = 0;
+
+        // Streak bar
+        var streak = document.getElementById('pulseStreak');
+        streak.style.display = '';
+        setTimeout(function(){ streak.style.display='none'; }, 750);
+
+        // Toast notification
+        var toast = document.getElementById('pulseToast');
+        toast.classList.add('show');
+        setTimeout(function(){
+            toast.classList.remove('show');
+            openOverlay(session);
+        }, 1200);
+    }
+
+    function openOverlay(session) {
+        // Populate text
+        document.getElementById('pTopic').textContent = session.topic || 'Pulse Check';
+        document.getElementById('pQ1Text').textContent = session.q1 || '—';
+        document.getElementById('pQ2Text').textContent = session.q2 || '—';
+        document.getElementById('pQ3Text').textContent = session.q3 || '—';
+
+        // Build carousel chips
+        var track = document.getElementById('pChipTrack');
+        var dots  = document.getElementById('pChipDots');
+        track.innerHTML = ''; dots.innerHTML = '';
+        _chips.forEach(function(chip, i) {
+            var el = document.createElement('div');
+            el.className = 'pulse-chip'; el.textContent = chip;
+            el.addEventListener('click', function(){ selectChip(i); });
+            track.appendChild(el);
+            var dot = document.createElement('div');
+            dot.className = 'pulse-chip-dot' + (i===0?' active':'');
+            dot.id = 'pChipDot'+i;
+            dots.appendChild(dot);
+        });
+        updateChipTrack();
+
+        // Reset T/F buttons
+        ['pQ1True','pQ1False','pQ2True','pQ2False'].forEach(function(id){
+            document.getElementById(id).classList.remove('selected');
+        });
+        ['pNext0','pNext1','pSubmit'].forEach(function(id){
+            document.getElementById(id).disabled = true;
+        });
+
+        // Reset progress dots
+        for (var i=0;i<3;i++) {
+            var d = document.getElementById('pDot'+i);
+            d.classList.remove('done','current');
+        }
+        document.getElementById('pDot0').classList.add('current');
+
+        showStep(0);
+        document.getElementById('pulseOverlay').classList.add('active');
+    }
+
+    // ── Step navigation ──────────────────────────────────
+    window.goStep = function(n) {
+        document.getElementById('pDot'+_step).classList.replace('current','done');
+        _step = n;
+        document.getElementById('pDot'+n).classList.replace('done','current');
+        document.getElementById('pDot'+n).classList.add('current');
+        showStep(n);
+    };
+
+    function showStep(n) {
+        [0,1,2].forEach(function(i){
+            document.getElementById('pStep'+i).style.display = (i===n) ? '' : 'none';
+        });
+    }
+
+    // ── T/F selection ─────────────────────────────────────
+    window.selectTF = function(q, val) {
+        var t = document.getElementById('pQ'+q+'True');
+        var f = document.getElementById('pQ'+q+'False');
+        t.classList.toggle('selected', val==='true');
+        f.classList.toggle('selected', val==='false');
+        if (q===1) {
+            _q1ans = (val==='true');
+            document.getElementById('pNext0').disabled = false;
+        } else {
+            _q2ans = (val==='true');
+            document.getElementById('pNext1').disabled = false;
+        }
+        // haptics
+        if (navigator.vibrate) navigator.vibrate(40);
+    };
+
+    // ── Carousel ──────────────────────────────────────────
+    window.carouselMove = function(dir) {
+        var max = _chips.length - 1;
+        _chipIdx = Math.max(0, Math.min(max, _chipIdx + dir));
+        updateChipTrack();
+    };
+
+    function updateChipTrack() {
+        document.getElementById('pChipTrack').style.transform = 'translateX(-' + (_chipIdx * 100) + '%)';
+        _chips.forEach(function(_, i) {
+            var dot = document.getElementById('pChipDot'+i);
+            if (dot) dot.classList.toggle('active', i===_chipIdx);
+        });
+    }
+
+    window.selectChip = function(i) {
+        _chipIdx = i; _q3ans = _chips[i];
+        updateChipTrack();
+        var chips = document.querySelectorAll('.pulse-chip');
+        chips.forEach(function(c, ci){ c.classList.toggle('selected', ci===i); });
+        document.getElementById('pSubmit').disabled = false;
+        if (navigator.vibrate) navigator.vibrate(40);
+    };
+
+    // ── Submit ────────────────────────────────────────────
+    window.submitPulse = function() {
+        var btn = document.getElementById('pSubmit');
+        btn.disabled = true;
+
+        var payload = {
+            q1: _q1ans,
+            q2: _q2ans,
+            q3: _q3ans || ''
+        };
+
+        function doSubmit() {
+            fetch(SUBMIT_BASE + _sessionId + '/submit/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': CSRF_TOKEN
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+                if (d.ok) showSuccess();
+                else btn.disabled = false;
+            })
+            .catch(function(){
+                // Offline — cache and retry
+                _cachedSub = payload;
+                showSuccess('Answer cached — sending when back online');
+                window.addEventListener('online', retryCached, {once:true});
+            });
+        }
+
+        if (!navigator.onLine) {
+            _cachedSub = payload;
+            showSuccess('Answer cached — sending when back online');
+            window.addEventListener('online', retryCached, {once:true});
+        } else {
+            doSubmit();
+        }
+    };
+
+    function retryCached() {
+        if (!_cachedSub || !_sessionId) return;
+        fetch(SUBMIT_BASE + _sessionId + '/submit/', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json','X-CSRFToken':CSRF_TOKEN},
+            body: JSON.stringify(_cachedSub)
+        }).then(function(){ _cachedSub = null; });
+    }
+
+    function showSuccess(msg) {
+        document.getElementById('pulseOverlay').classList.remove('active');
+        var s = document.getElementById('pulseSuccess');
+        if (msg) document.querySelector('#pulseSuccess .success-sub').textContent = msg;
+        s.classList.add('active');
+        // Auto-dismiss after 2.8 s, restart polling
+        setTimeout(function(){
+            s.classList.remove('active');
+            _sessionId = null;
+            startPolling();
+        }, 2800);
+    }
+
+    // ── Boot ──────────────────────────────────────────────
+    startPolling();
+})();
+</script>
+
 {% endblock %}

@@ -74,6 +74,11 @@ urlpatterns = [
 
     # Submit to HoD
     path('submit-to-hod/', views.submit_to_hod, name='submit_to_hod'),
+
+    # Digital Pulse
+    path('pulse/launch/<int:plan_pk>/', views.pulse_launch, name='pulse_launch'),
+    path('pulse/<int:session_id>/live/', views.pulse_live, name='pulse_live'),
+    path('pulse/<int:session_id>/close/', views.pulse_close, name='pulse_close'),
 ]
 
 

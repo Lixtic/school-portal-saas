@@ -2321,3 +2321,104 @@ def xp_leaderboard(request):
         'scope_label': scope_label,
         'total_count': len(rows),
     })
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DIGITAL PULSE — student-facing endpoints
+# ─────────────────────────────────────────────────────────────────────────────
+
+@login_required
+def pulse_poll(request):
+    """
+    Student polling endpoint — returns the active pulse for the student's class,
+    or null if none exists / the student has already submitted.
+    Called every 3 s from the student dashboard JS.
+    """
+    if request.user.user_type != 'student':
+        return JsonResponse({'session': None})
+
+    try:
+        from academics.pulse_models import PulseSession, PulseResponse
+        student = Student.objects.get(user=request.user)
+    except Exception:
+        return JsonResponse({'session': None})
+
+    if not student.current_class:
+        return JsonResponse({'session': None})
+
+    session = (
+        PulseSession.objects
+        .filter(lesson_plan__school_class=student.current_class, status='active')
+        .order_by('-created_at')
+        .first()
+    )
+
+    if not session:
+        return JsonResponse({'session': None})
+
+    # Already submitted?
+    already_done = PulseResponse.objects.filter(
+        session=session, student=student, submitted_at__isnull=False
+    ).exists()
+    if already_done:
+        return JsonResponse({'session': None})
+
+    # Mark as typing (viewing the card) — upsert the response row
+    PulseResponse.objects.get_or_create(session=session, student=student)
+    PulseResponse.objects.filter(session=session, student=student).update(is_typing=True)
+
+    return JsonResponse({
+        'session': {
+            'id': session.pk,
+            'topic': session.lesson_plan.topic,
+            'q1': session.q1_text,
+            'q2': session.q2_text,
+            'q3': session.q3_text,
+            'chips': session.q3_chips,
+        }
+    })
+
+
+@login_required
+def pulse_submit(request, session_id):
+    """Student submits their pulse answers."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    if request.user.user_type != 'student':
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    try:
+        from academics.pulse_models import PulseSession, PulseResponse
+        import json
+        student = Student.objects.get(user=request.user)
+    except Exception:
+        return JsonResponse({'error': 'Error'}, status=500)
+
+    session = get_object_or_404(PulseSession, pk=session_id, status='active')
+
+    try:
+        data = json.loads(request.body)
+    except Exception:
+        data = request.POST
+
+    def parse_bool(val):
+        if val is True or val == 'true' or val == 'True': return True
+        if val is False or val == 'false' or val == 'False': return False
+        return None
+
+    q1 = parse_bool(data.get('q1'))
+    q2 = parse_bool(data.get('q2'))
+    q3 = str(data.get('q3', ''))[:200]
+
+    PulseResponse.objects.update_or_create(
+        session=session, student=student,
+        defaults={
+            'q1_answer': q1,
+            'q2_answer': q2,
+            'q3_answer': q3,
+            'is_typing': False,
+            'submitted_at': timezone.now(),
+        }
+    )
+    return JsonResponse({'ok': True})
+

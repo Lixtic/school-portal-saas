@@ -66,4 +66,8 @@ urlpatterns = [
 
     # XP Leaderboard full page
     path('aura/leaderboard-page/', views.xp_leaderboard, name='xp_leaderboard'),
+
+    # Digital Pulse (student side)
+    path('pulse/poll/', views.pulse_poll, name='pulse_poll'),
+    path('pulse/<int:session_id>/submit/', views.pulse_submit, name='pulse_submit'),
 ]

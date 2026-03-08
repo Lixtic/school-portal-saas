@@ -3342,3 +3342,109 @@ def save_aura_t_plan(request):
     )
 
     return JsonResponse({'ok': True, 'plan_id': plan.id, 'detail_url': f'/lesson-plans/{plan.id}/'})
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DIGITAL PULSE — real-time class engagement
+# ─────────────────────────────────────────────────────────────────────────────
+
+@login_required
+@require_POST
+def pulse_launch(request, plan_pk):
+    """Teacher launches a pulse for a lesson plan.  Returns JSON {session_id}."""
+    if request.user.user_type not in ('teacher', 'admin'):
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    try:
+        from academics.pulse_models import PulseSession, parse_pulse_questions, parse_q3_chips
+    except ImportError:
+        return JsonResponse({'error': 'Pulse feature not available'}, status=500)
+
+    teacher = None
+    if request.user.user_type == 'teacher':
+        teacher = get_object_or_404(Teacher, user=request.user)
+        plan = get_object_or_404(LessonPlan, pk=plan_pk, teacher=teacher)
+    else:
+        plan = get_object_or_404(LessonPlan, pk=plan_pk)
+        teacher = plan.teacher
+
+    # Close any previous active sessions for this plan
+    PulseSession.objects.filter(lesson_plan=plan, status='active').update(status='closed')
+
+    q1, q2, q3 = parse_pulse_questions(plan.introduction or '')
+    chips       = parse_q3_chips(plan)
+
+    session = PulseSession.objects.create(
+        lesson_plan=plan,
+        teacher=teacher,
+        q1_text=q1,
+        q2_text=q2,
+        q3_text=q3,
+        q3_chips=chips,
+    )
+    return JsonResponse({
+        'session_id': session.pk,
+        'q1': q1, 'q2': q2, 'q3': q3,
+        'chips': chips,
+        'total_students': session.total_students,
+    })
+
+
+@login_required
+def pulse_live(request, session_id):
+    """Polling endpoint — teacher gets live response count + who's typing."""
+    if request.user.user_type not in ('teacher', 'admin'):
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    try:
+        from academics.pulse_models import PulseSession
+    except ImportError:
+        return JsonResponse({'error': 'unavailable'}, status=500)
+
+    session = get_object_or_404(PulseSession, pk=session_id)
+
+    responded = session.responded_count
+    total     = session.total_students
+    typing    = [f'{fn} {ln}'.strip() for fn, ln in session.typing_students]
+
+    # Build aggregate for Q1 / Q2
+    q1_true = q1_false = q2_true = q2_false = 0
+    q3_counts = {}
+    for r in session.responses.filter(submitted_at__isnull=False):
+        if r.q1_answer is True:  q1_true  += 1
+        if r.q1_answer is False: q1_false += 1
+        if r.q2_answer is True:  q2_true  += 1
+        if r.q2_answer is False: q2_false += 1
+        if r.q3_answer:
+            q3_counts[r.q3_answer] = q3_counts.get(r.q3_answer, 0) + 1
+
+    return JsonResponse({
+        'status': session.status,
+        'responded': responded,
+        'total': total,
+        'typing': typing,
+        'q1': {'true': q1_true, 'false': q1_false},
+        'q2': {'true': q2_true, 'false': q2_false},
+        'q3_counts': q3_counts,
+    })
+
+
+@login_required
+@require_POST
+def pulse_close(request, session_id):
+    """Teacher closes an active pulse session."""
+    if request.user.user_type not in ('teacher', 'admin'):
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    try:
+        from academics.pulse_models import PulseSession
+    except ImportError:
+        return JsonResponse({'error': 'unavailable'}, status=500)
+
+    session = get_object_or_404(PulseSession, pk=session_id)
+    if session.status == 'active':
+        session.status   = 'closed'
+        session.closed_at = timezone.now()
+        session.save(update_fields=['status', 'closed_at'])
+
+    return JsonResponse({'ok': True})

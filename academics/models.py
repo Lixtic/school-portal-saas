@@ -325,3 +325,9 @@ from .arena_models import (
     StudyGroupRoom,
     StudyGroupMessage,
 )
+
+# Import Digital Pulse models
+from .pulse_models import (
+    PulseSession,
+    PulseResponse,
+)
