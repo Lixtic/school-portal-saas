@@ -6,11 +6,24 @@ from .forms import TeacherQuickAddForm
 
 @admin.register(Teacher)
 class TeacherAdmin(admin.ModelAdmin):
-    list_display = ['employee_id', 'get_full_name', 'date_of_joining', 'qualification']
-    search_fields = ['employee_id', 'user__first_name', 'user__last_name']
-    list_filter = ['date_of_joining']
+    list_display = ['employee_id', 'get_full_name', 'gender', 'region', 'city', 'preferred_language', 'date_of_joining', 'qualification']
+    search_fields = ['employee_id', 'user__first_name', 'user__last_name', 'city', 'hometown']
+    list_filter = ['region', 'gender', 'preferred_language', 'date_of_joining']
     filter_horizontal = ['subjects']
     actions = ['reset_teacher_passwords']
+
+    fieldsets = (
+        (None, {
+            'fields': ('user', 'employee_id', 'qualification', 'subjects')
+        }),
+        ('Personal', {
+            'fields': ('date_of_birth', 'gender', 'date_of_joining')
+        }),
+        ('Location & Demographics', {
+            'fields': ('region', 'city', 'hometown', 'preferred_language'),
+            'description': 'Used for Aura-T cultural grounding and school demographic reporting.',
+        }),
+    )
 
     def get_form(self, request, obj=None, **kwargs):
         if obj is None:

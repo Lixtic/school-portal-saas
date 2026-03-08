@@ -3,13 +3,69 @@ from django.db import models
 from accounts.models import User
 
 class Teacher(models.Model):
+    GENDER_CHOICES = (
+        ('male', 'Male'),
+        ('female', 'Female'),
+        ('other', 'Other'),
+    )
+
+    LANGUAGE_CHOICES = (
+        ('english', 'English'),
+        ('twi', 'Twi / Akan'),
+        ('hausa', 'Hausa'),
+        ('ewe', 'Ewe'),
+        ('ga', 'Ga'),
+        ('dagbani', 'Dagbani'),
+        ('french', 'French'),
+        ('other', 'Other'),
+    )
+
+    GHANA_REGIONS = (
+        ('greater_accra', 'Greater Accra'),
+        ('ashanti', 'Ashanti'),
+        ('central', 'Central'),
+        ('western', 'Western'),
+        ('eastern', 'Eastern'),
+        ('volta', 'Volta'),
+        ('oti', 'Oti'),
+        ('bono', 'Bono'),
+        ('bono_east', 'Bono East'),
+        ('ahafo', 'Ahafo'),
+        ('northern', 'Northern'),
+        ('north_east', 'North East'),
+        ('savannah', 'Savannah'),
+        ('upper_east', 'Upper East'),
+        ('upper_west', 'Upper West'),
+        ('western_north', 'Western North'),
+        ('other', 'Other / Outside Ghana'),
+    )
+
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     employee_id = models.CharField(max_length=20, unique=True)
     date_of_birth = models.DateField()
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='male', blank=True)
     date_of_joining = models.DateField()
     qualification = models.CharField(max_length=200)
     subjects = models.ManyToManyField('academics.Subject', blank=True)
-    
+
+    # Location & demographic fields
+    region = models.CharField(
+        max_length=50, choices=GHANA_REGIONS, blank=True, default='',
+        help_text="Region where the teacher is currently based / teaches"
+    )
+    city = models.CharField(
+        max_length=100, blank=True, default='',
+        help_text="Town or city of current residence/posting"
+    )
+    hometown = models.CharField(
+        max_length=150, blank=True, default='',
+        help_text="Teacher's hometown / town of origin (informs cultural context)"
+    )
+    preferred_language = models.CharField(
+        max_length=20, choices=LANGUAGE_CHOICES, default='english', blank=True,
+        help_text="Teacher's primary spoken language"
+    )
+
     def __str__(self):
         return f"{self.user.get_full_name()} ({self.employee_id})"
 
