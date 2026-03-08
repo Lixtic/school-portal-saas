@@ -1,0 +1,406 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+/* ── Dark Mode Base ──────────────────────────────────────── */
+[data-bs-theme="dark"] .card {
+    background: var(--surface-card, #1e293b);
+    border-color: rgba(255,255,255,.08);
+}
+[data-bs-theme="dark"] .table { color: #e2e8f0; }
+[data-bs-theme="dark"] .table thead th { border-color: rgba(255,255,255,.1); color: #94a3b8; }
+[data-bs-theme="dark"] .table tbody tr { border-color: rgba(255,255,255,.06); }
+[data-bs-theme="dark"] .table-hover > tbody > tr:hover > td { background: rgba(255,255,255,.04); }
+[data-bs-theme="dark"] .pr-segment { background: rgba(255,255,255,.05) !important; border-color: rgba(255,255,255,.1) !important; }
+
+/* ── Stat Cards ──────────────────────────────────────────── */
+.pr-stat {
+    border-radius: .9rem;
+    padding: 1.1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: .9rem;
+}
+.pr-stat-icon {
+    width: 44px; height: 44px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.25rem; flex-shrink: 0;
+}
+.pr-stat-val { font-size: 1.7rem; font-weight: 800; line-height: 1; }
+.pr-stat-label { font-size: .78rem; color: #64748b; font-weight: 500; }
+
+/* ── Q bars ─────────────────────────────────────────────── */
+.pr-qbar { height: 28px; border-radius: .5rem; overflow: hidden; display: flex; gap: 3px; }
+.pr-qbar-seg {
+    display: flex; align-items: center; justify-content: center;
+    font-size: .7rem; font-weight: 700; color: #fff; border-radius: .4rem;
+    transition: width .5s cubic-bezier(.4,0,.2,1);
+    min-width: 0; overflow: hidden; white-space: nowrap;
+}
+.pr-qbar-true  { background: #22c55e; }
+.pr-qbar-false { background: #ef4444; }
+.pr-qbar-skip  { background: #94a3b8; }
+[data-bs-theme="dark"] .pr-qbar-skip { background: #475569; }
+
+/* ── Q3 chips ────────────────────────────────────────────── */
+.pr-chip {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .35em .85em;
+    border-radius: 999px; font-size: .8rem; font-weight: 600;
+    border: 1.5px solid transparent;
+}
+.pr-chip-0 { background: rgba(34,197,94,.12);  border-color: rgba(34,197,94,.3);  color: #16a34a; }
+.pr-chip-1 { background: rgba(59,130,246,.12); border-color: rgba(59,130,246,.3); color: #2563eb; }
+.pr-chip-2 { background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.3); color: #d97706; }
+.pr-chip-x { background: rgba(148,163,184,.12);border-color: rgba(148,163,184,.3);color: #64748b; }
+[data-bs-theme="dark"] .pr-chip-0 { color: #4ade80; }
+[data-bs-theme="dark"] .pr-chip-1 { color: #93c5fd; }
+[data-bs-theme="dark"] .pr-chip-2 { color: #fbbf24; }
+[data-bs-theme="dark"] .pr-chip-x { color: #94a3b8; }
+
+/* ── Answer badges in table ──────────────────────────────── */
+.ans-t  { background: rgba(34,197,94,.15);  color: #16a34a; }
+.ans-f  { background: rgba(239,68,68,.15);  color: #dc2626; }
+.ans-sk { background: rgba(148,163,184,.15);color: #64748b; }
+[data-bs-theme="dark"] .ans-t  { color: #4ade80; }
+[data-bs-theme="dark"] .ans-f  { color: #f87171; }
+[data-bs-theme="dark"] .ans-sk { color: #94a3b8; }
+
+/* ── Row risk highlight ──────────────────────────────────── */
+.row-risk td:first-child { border-left: 3px solid #ef4444; }
+
+/* ── Avatar ─────────────────────────────────────────────── */
+.pr-avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: .72rem; font-weight: 700; flex-shrink: 0;
+}
+</style>
+
+<div class="container-fluid py-4 px-3 px-md-4" style="max-width:1100px">
+
+  <!-- ── Breadcrumb / back ─────────────────────────────────── -->
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb mb-0" style="font-size:.8rem">
+      <li class="breadcrumb-item"><a href="{% url 'teachers:lesson_plan_list' %}">Lesson Plans</a></li>
+      <li class="breadcrumb-item">
+        <a href="{% url 'teachers:aura_command_center' %}">Command Center</a>
+      </li>
+      <li class="breadcrumb-item active">Pulse Results</li>
+    </ol>
+  </nav>
+
+  <!-- ── Header ────────────────────────────────────────────── -->
+  <div class="d-flex flex-wrap align-items-start gap-3 mb-4">
+    <div class="flex-grow-1">
+      <h4 class="fw-bold mb-1" style="font-size:1.25rem">
+        🔍 Pulse Results
+        <span class="badge rounded-pill ms-2
+          {% if session.status == 'active' %}bg-success{% else %}bg-secondary{% endif %}"
+          style="font-size:.65rem;vertical-align:middle">
+          {{ session.status|capfirst }}
+        </span>
+      </h4>
+      <p class="text-muted mb-0" style="font-size:.88rem">
+        <strong>{{ plan.topic }}</strong> &nbsp;·&nbsp; {{ school_class }}
+        &nbsp;·&nbsp; {{ session.created_at|date:"N j, Y, g:i a" }}
+        {% if session.closed_at %}
+          &ndash; {{ session.closed_at|date:"g:i a" }}
+        {% endif %}
+      </p>
+    </div>
+    <a href="{% url 'teachers:aura_command_center' %}" class="btn btn-sm btn-outline-secondary">
+      ← Back to Command Center
+    </a>
+  </div>
+
+  <!-- ── Stat row ──────────────────────────────────────────── -->
+  <div class="row g-3 mb-4">
+    <!-- Response Rate -->
+    <div class="col-12 col-sm-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body p-3">
+          <div class="pr-stat">
+            <div class="pr-stat-icon" style="background:rgba(34,197,94,.12)">📊</div>
+            <div>
+              <div class="pr-stat-val" style="color:#22c55e">{{ response_pct }}%</div>
+              <div class="pr-stat-label">Response Rate</div>
+              <div style="font-size:.72rem;color:#94a3b8">{{ responded }} / {{ total }} students</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- At-Risk -->
+    <div class="col-12 col-sm-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body p-3">
+          <div class="pr-stat">
+            <div class="pr-stat-icon" style="background:rgba(239,68,68,.12)">⚠️</div>
+            <div>
+              <div class="pr-stat-val" style="color:#ef4444">{{ at_risk_count }}</div>
+              <div class="pr-stat-label">At-Risk Students</div>
+              <div style="font-size:.72rem;color:#94a3b8">missed Q1, Q2, or didn't respond</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- No-shows -->
+    <div class="col-12 col-sm-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body p-3">
+          <div class="pr-stat">
+            <div class="pr-stat-icon" style="background:rgba(148,163,184,.12)">🚫</div>
+            <div>
+              <div class="pr-stat-val" style="color:#64748b">{{ no_show_count }}</div>
+              <div class="pr-stat-label">No Response</div>
+              <div style="font-size:.72rem;color:#94a3b8">absent or offline</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Q1 / Q2 bars + Q3 chips ──────────────────────────── -->
+  <div class="row g-3 mb-4">
+
+    <!-- Q1 -->
+    <div class="col-12 col-md-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body p-3">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <span class="fw-semibold" style="font-size:.85rem">Q1 — Prerequisite</span>
+            <span class="badge rounded-pill bg-secondary" style="font-size:.62rem">True / False</span>
+          </div>
+          {% if plan.introduction %}
+          <p class="text-muted mb-2" style="font-size:.76rem;line-height:1.45">
+            {{ session.q1_text|truncatechars:120 }}
+          </p>
+          {% endif %}
+          {% with tot=total %}
+          <div class="pr-qbar mb-1">
+            {% if q1_true %}
+            <div class="pr-qbar-seg pr-qbar-true"
+                 style="flex:{{ q1_true }}">
+              ✓ {{ q1_true }}
+            </div>
+            {% endif %}
+            {% if q1_false %}
+            <div class="pr-qbar-seg pr-qbar-false"
+                 style="flex:{{ q1_false }}">
+              ✗ {{ q1_false }}
+            </div>
+            {% endif %}
+            {% if q1_skip %}
+            <div class="pr-qbar-seg pr-qbar-skip"
+                 style="flex:{{ q1_skip }}">
+              — {{ q1_skip }}
+            </div>
+            {% endif %}
+          </div>
+          {% endwith %}
+          <div class="d-flex gap-2 mt-1" style="font-size:.7rem">
+            <span class="text-success fw-semibold">True: {{ q1_true }}</span>
+            <span class="text-danger fw-semibold">False: {{ q1_false }}</span>
+            <span class="text-muted">Skip: {{ q1_skip }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q2 -->
+    <div class="col-12 col-md-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body p-3">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <span class="fw-semibold" style="font-size:.85rem">Q2 — Misconception</span>
+            <span class="badge rounded-pill bg-secondary" style="font-size:.62rem">True / False</span>
+          </div>
+          {% if plan.introduction %}
+          <p class="text-muted mb-2" style="font-size:.76rem;line-height:1.45">
+            {{ session.q2_text|truncatechars:120 }}
+          </p>
+          {% endif %}
+          <div class="pr-qbar mb-1">
+            {% if q2_true %}
+            <div class="pr-qbar-seg pr-qbar-true" style="flex:{{ q2_true }}">✓ {{ q2_true }}</div>
+            {% endif %}
+            {% if q2_false %}
+            <div class="pr-qbar-seg pr-qbar-false" style="flex:{{ q2_false }}">✗ {{ q2_false }}</div>
+            {% endif %}
+            {% if q2_skip %}
+            <div class="pr-qbar-seg pr-qbar-skip" style="flex:{{ q2_skip }}">— {{ q2_skip }}</div>
+            {% endif %}
+          </div>
+          <div class="d-flex gap-2 mt-1" style="font-size:.7rem">
+            <span class="text-success fw-semibold">True: {{ q2_true }}</span>
+            <span class="text-danger fw-semibold">False: {{ q2_false }}</span>
+            <span class="text-muted">Skip: {{ q2_skip }}</span>
+          </div>
+          <p class="text-muted mt-2 mb-0" style="font-size:.68rem">
+            ⚠ Misconception confirmed = answered <strong>True</strong>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q3 chips -->
+    <div class="col-12 col-md-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body p-3">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <span class="fw-semibold" style="font-size:.85rem">Q3 — Self-Placement</span>
+            <span class="badge rounded-pill bg-secondary" style="font-size:.62rem">Chip choice</span>
+          </div>
+          {% if session.q3_text %}
+          <p class="text-muted mb-2" style="font-size:.76rem;line-height:1.45">
+            {{ session.q3_text|truncatechars:120 }}
+          </p>
+          {% endif %}
+
+          {% if q3_counts %}
+            {% for chip, cnt in q3_counts %}
+              {% with idx=forloop.counter0 %}
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="pr-chip
+                  {% if idx == 0 %}pr-chip-0{% elif idx == 1 %}pr-chip-1{% elif idx == 2 %}pr-chip-2{% else %}pr-chip-x{% endif %}">
+                  {{ chip|truncatechars:50 }}
+                </span>
+                <span class="fw-bold ms-auto" style="font-size:.85rem">{{ cnt }}</span>
+              </div>
+              {% endwith %}
+            {% endfor %}
+          {% else %}
+            <p class="text-muted mb-0" style="font-size:.8rem">No responses yet.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Per-student table ──────────────────────────────────── -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent py-3 d-flex align-items-center gap-2">
+      <span class="fw-semibold">Student Breakdown</span>
+      <span class="badge rounded-pill bg-secondary ms-1" style="font-size:.68rem">
+        {{ total }} students
+      </span>
+      <span class="ms-auto" style="font-size:.75rem;color:#64748b">
+        🔴 = at-risk &nbsp;·&nbsp; Q1 correct = <strong>True</strong>
+        &nbsp;·&nbsp; Q2 correct = <strong>False</strong>
+      </span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle" style="font-size:.8rem">
+        <thead>
+          <tr>
+            <th style="width:36px">#</th>
+            <th>Student</th>
+            <th class="text-center" style="width:90px">Status</th>
+            <th class="text-center" style="width:80px">Q1</th>
+            <th class="text-center" style="width:80px">Q2</th>
+            <th>Q3 Chip</th>
+            <th class="text-center" style="width:70px">Risk</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr class="{% if row.at_risk %}row-risk{% endif %}">
+            <td class="text-muted">{{ forloop.counter }}</td>
+            <td>
+              {% with u=row.student.user %}
+              <div class="d-flex align-items-center gap-2">
+                <div class="pr-avatar"
+                     style="background:{% cycle '#dbeafe' '#dcfce7' '#fef9c3' '#fce7f3' '#f3e8ff' %}; color:#1e293b">
+                  {{ u.first_name|first|upper }}{{ u.last_name|first|upper }}
+                </div>
+                <span class="fw-medium">{{ u.get_full_name }}</span>
+              </div>
+              {% endwith %}
+            </td>
+            <td class="text-center">
+              {% if row.submitted %}
+                <span class="badge rounded-pill"
+                      style="background:rgba(34,197,94,.15);color:#16a34a;font-size:.65rem">
+                  ✓ Responded
+                </span>
+              {% else %}
+                <span class="badge rounded-pill"
+                      style="background:rgba(148,163,184,.15);color:#64748b;font-size:.65rem">
+                  No show
+                </span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              {% if row.q1 is True %}
+                <span class="badge rounded-pill ans-t" style="font-size:.65rem">True ✓</span>
+              {% elif row.q1 is False %}
+                <span class="badge rounded-pill ans-f" style="font-size:.65rem">False ✗</span>
+              {% else %}
+                <span class="badge rounded-pill ans-sk" style="font-size:.65rem">—</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              {% if row.q2 is True %}
+                <span class="badge rounded-pill ans-t" style="font-size:.65rem">True ✓</span>
+              {% elif row.q2 is False %}
+                <span class="badge rounded-pill ans-f" style="font-size:.65rem">False ✗</span>
+              {% else %}
+                <span class="badge rounded-pill ans-sk" style="font-size:.65rem">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if row.q3 %}
+                {% with q3v=row.q3 %}
+                <span class="pr-chip
+                  {% if '🟢' in q3v %}pr-chip-0
+                  {% elif '🔵' in q3v %}pr-chip-1
+                  {% elif '🤔' in q3v %}pr-chip-2
+                  {% else %}pr-chip-x{% endif %}"
+                  style="font-size:.7rem">
+                  {{ q3v|truncatechars:45 }}
+                </span>
+                {% endwith %}
+              {% else %}
+                <span class="text-muted" style="font-size:.72rem">—</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              {% if row.at_risk %}
+                <span title="Needs follow-up" style="font-size:1rem">🔴</span>
+              {% else %}
+                <span title="On track" style="font-size:1rem">🟢</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center text-muted py-4">
+              No students found for this class.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Footer actions ────────────────────────────────────── -->
+  <div class="d-flex flex-wrap gap-2 pb-4">
+    <a href="{% url 'teachers:aura_command_center' %}" class="btn btn-primary">
+      ← Back to Command Center
+    </a>
+    <a href="{% url 'teachers:lesson_plan_list' %}" class="btn btn-outline-secondary">
+      All Lesson Plans
+    </a>
+    <button class="btn btn-outline-secondary ms-auto" onclick="window.print()">
+      🖨 Print Results
+    </button>
+  </div>
+
+</div>
+{% endblock %}

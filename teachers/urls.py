@@ -79,6 +79,7 @@ urlpatterns = [
     path('pulse/launch/<int:plan_pk>/', views.pulse_launch, name='pulse_launch'),
     path('pulse/<int:session_id>/live/', views.pulse_live, name='pulse_live'),
     path('pulse/<int:session_id>/close/', views.pulse_close, name='pulse_close'),
+    path('pulse/<int:session_id>/results/', views.pulse_results, name='pulse_results'),
 ]
 
 

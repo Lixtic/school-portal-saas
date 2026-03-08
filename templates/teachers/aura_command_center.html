@@ -443,15 +443,29 @@ function stopPollUI() {
 }
 
 function closePulse() {
-    if (_pulseSessionId) {
-        fetch("{% url 'teachers:pulse_close' 0 %}".replace('/0/', '/' + _pulseSessionId + '/'), {
-            method: 'POST',
-            headers: { 'X-CSRFToken': getCsrfToken() }
-        });
+    if (!_pulseSessionId) {
+        document.getElementById('pulseGhost').style.display = 'none';
+        return;
     }
-    stopPollUI();
-    _pulseSessionId = null;
-    document.getElementById('pulseGhost').style.display = 'none';
+    const sid = _pulseSessionId;
+    fetch("{% url 'teachers:pulse_close' 0 %}".replace('/0/', '/' + sid + '/'), {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrfToken() }
+    })
+    .then(r => r.json())
+    .then(data => {
+        stopPollUI();
+        _pulseSessionId = null;
+        document.getElementById('pulseGhost').style.display = 'none';
+        if (data.redirect) {
+            window.location.href = data.redirect;
+        }
+    })
+    .catch(() => {
+        stopPollUI();
+        _pulseSessionId = null;
+        document.getElementById('pulseGhost').style.display = 'none';
+    });
 }
 
 function esc(s) {

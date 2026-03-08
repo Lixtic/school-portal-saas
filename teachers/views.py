@@ -3443,8 +3443,118 @@ def pulse_close(request, session_id):
 
     session = get_object_or_404(PulseSession, pk=session_id)
     if session.status == 'active':
-        session.status   = 'closed'
+        session.status    = 'closed'
         session.closed_at = timezone.now()
         session.save(update_fields=['status', 'closed_at'])
 
-    return JsonResponse({'ok': True})
+    from django.urls import reverse
+    results_url = reverse('teachers:pulse_results', args=[session_id])
+    return JsonResponse({'ok': True, 'redirect': results_url})
+
+
+@login_required
+def pulse_results(request, session_id):
+    """Post-session Pulse results summary for the teacher."""
+    if request.user.user_type not in ('teacher', 'admin'):
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    try:
+        from academics.pulse_models import PulseSession, PulseResponse
+    except ImportError:
+        messages.error(request, 'Pulse feature not available.')
+        return redirect('teachers:lesson_plan_list')
+
+    session = get_object_or_404(PulseSession, pk=session_id)
+
+    # Ensure the requesting teacher owns the session (admins bypass)
+    if request.user.user_type == 'teacher':
+        teacher = get_object_or_404(Teacher, user=request.user)
+        if session.teacher != teacher:
+            messages.error(request, 'Access denied.')
+            return redirect('teachers:lesson_plan_list')
+
+    # ── All students in the target class ───────────────────────────────────
+    school_class = session.lesson_plan.school_class
+    all_students = (
+        Student.objects.filter(current_class=school_class, user__is_active=True)
+        .select_related('user')
+        .order_by('user__last_name', 'user__first_name')
+    )
+
+    # ── Index responses by student_id ──────────────────────────────────────
+    response_map = {
+        r.student_id: r
+        for r in session.responses.select_related('student__user').all()
+    }
+
+    # ── Build per-student rows ─────────────────────────────────────────────
+    rows = []
+    q1_true = q1_false = q1_skip = 0
+    q2_true = q2_false = q2_skip = 0
+    q3_counts = {}
+    no_show_count = 0
+
+    for stu in all_students:
+        resp = response_map.get(stu.pk)
+        submitted = resp is not None and resp.submitted_at is not None
+
+        if resp and resp.q1_answer is True:   q1_true  += 1
+        elif resp and resp.q1_answer is False: q1_false += 1
+        else:                                  q1_skip  += 1
+
+        if resp and resp.q2_answer is True:   q2_true  += 1
+        elif resp and resp.q2_answer is False: q2_false += 1
+        else:                                  q2_skip  += 1
+
+        q3_val = (resp.q3_answer or '').strip() if resp else ''
+        if q3_val:
+            q3_counts[q3_val] = q3_counts.get(q3_val, 0) + 1
+
+        if not submitted:
+            no_show_count += 1
+
+        # ── At-risk logic ──────────────────────────────────────────────
+        # Q1 = prerequisite (correct = True), Q2 = misconception (correct = False)
+        # Flag if: didn't respond, OR answered Q1 False, OR answered Q2 True
+        at_risk = (
+            not submitted
+            or (resp and resp.q1_answer is False)
+            or (resp and resp.q2_answer is True)
+        )
+
+        rows.append({
+            'student': stu,
+            'submitted': submitted,
+            'q1': resp.q1_answer if resp else None,
+            'q2': resp.q2_answer if resp else None,
+            'q3': q3_val,
+            'at_risk': at_risk,
+        })
+
+    total = len(rows)
+    responded = total - no_show_count
+    response_pct = round(responded / total * 100) if total else 0
+
+    # Q3 sorted by frequency
+    q3_sorted = sorted(q3_counts.items(), key=lambda x: -x[1])
+
+    # At-risk count
+    at_risk_count = sum(1 for r in rows if r['at_risk'])
+
+    context = {
+        'session': session,
+        'plan': session.lesson_plan,
+        'rows': rows,
+        'total': total,
+        'responded': responded,
+        'response_pct': response_pct,
+        'no_show_count': no_show_count,
+        'at_risk_count': at_risk_count,
+        'q1_true': q1_true, 'q1_false': q1_false, 'q1_skip': q1_skip,
+        'q2_true': q2_true, 'q2_false': q2_false, 'q2_skip': q2_skip,
+        'q3_counts': q3_sorted,
+        'q3_chips': session.q3_chips,
+        'school_class': school_class,
+    }
+    return render(request, 'teachers/pulse_results.html', context)
