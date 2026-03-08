@@ -4,6 +4,68 @@
 {% block title %}AI Tutor Student Insights{% endblock %}
 
 {% block content %}
+<style>
+/* ── AI Insights dark-mode fixes ───────────────────────────── */
+
+/* Card headers: transparent so they inherit the card surface */
+.card-header {
+    background: transparent;
+}
+
+/* Trending topic pills */
+.topic-pill {
+    background: rgba(99,102,241,.12);
+    color: #4f46e5;
+    border-color: rgba(99,102,241,.25) !important;
+}
+[data-bs-theme="dark"] .topic-pill {
+    background: rgba(129,140,248,.18);
+    color: #a5b4fc;
+    border-color: rgba(129,140,248,.3) !important;
+}
+
+/* Recent-activity subject badge (was bg-light which stays white in dark mode) */
+.subject-badge {
+    background: var(--bs-secondary-bg);
+    color: var(--bs-body-color);
+    border-color: var(--bs-border-color) !important;
+}
+
+/* Scheme-of-work topic tags */
+.sow-topic-tag {
+    background: rgba(99,102,241,.12);
+    color: #4f46e5;
+}
+[data-bs-theme="dark"] .sow-topic-tag {
+    background: rgba(129,140,248,.2);
+    color: #a5b4fc;
+}
+
+/* Scheme-of-work progress cards — border + surface */
+.sow-card {
+    border-color: var(--bs-border-color) !important;
+    background: var(--bs-body-bg);
+}
+[data-bs-theme="dark"] .sow-card {
+    background: rgba(255,255,255,.03);
+}
+
+/* Table header row */
+[data-bs-theme="dark"] .table thead th {
+    color: var(--bs-secondary-color);
+    border-color: var(--bs-border-color);
+}
+
+/* List-group items in dark mode */
+[data-bs-theme="dark"] .list-group-item-action:hover,
+[data-bs-theme="dark"] .list-group-item-action:focus {
+    background: rgba(255,255,255,.04);
+}
+[data-bs-theme="dark"] .list-group-item {
+    background: transparent;
+    border-color: var(--bs-border-color) !important;
+}
+</style>
 <div class="container-fluid py-4">
 
     <!-- Header -->
@@ -89,7 +151,7 @@
                     {% if common_topics %}
                     <div class="d-flex flex-wrap gap-2">
                         {% for topic, count in common_topics %}
-                        <span class="badge rounded-pill bg-secondary-subtle text-body border p-2 px-3 fw-normal" style="font-size: 0.95rem;">
+                        <span class="badge rounded-pill topic-pill border p-2 px-3 fw-normal" style="font-size: 0.95rem;">
                             {{ topic|title }} <span class="ms-2 badge bg-secondary rounded-circle">{{ count }}</span>
                         </span>
                         {% endfor %}
@@ -150,7 +212,7 @@
                                 <small class="text-muted">{{ session.started_at|date:"M d, H:i" }}</small>
                             </div>
                             <div class="d-flex justify-content-between align-items-center">
-                                <span class="badge bg-light text-body border fw-normal mb-1">
+                                <span class="badge subject-badge border fw-normal mb-1">
                                     {{ session.subject.name|default:"General" }}
                                 </span>
                                 <small class="text-muted">{{ session.message_count }} msgs <i class="bi bi-arrow-right ms-1"></i></small>
@@ -184,7 +246,7 @@
                     <div class="row g-3">
                     {% for sp in scheme_progress %}
                     <div class="col-md-6 col-lg-4">
-                        <div class="border rounded-3 p-3 h-100">
+                        <div class="sow-card border rounded-3 p-3 h-100">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <span class="fw-bold text-body" style="font-size:.85rem;">
                                     {{ sp.scheme.class_subject.subject }} &mdash; {{ sp.scheme.class_subject.class_name }}
@@ -200,8 +262,8 @@
                             <div class="small text-muted mb-2">{{ sp.covered }}/{{ sp.total }} topics discussed &bull; {{ sp.scheme.get_term_display }}</div>
                             <div class="d-flex flex-wrap gap-1">
                                 {% for topic in sp.topics|slice:":8" %}
-                                <span class="badge rounded-pill p-1 px-2 fw-normal"
-                                      style="font-size:.68rem;background:rgba(99,102,241,.1);color:#4f46e5;">
+                                <span class="badge rounded-pill sow-topic-tag p-1 px-2 fw-normal"
+                                      style="font-size:.68rem;">
                                     {{ topic|truncatechars:28 }}
                                 </span>
                                 {% endfor %}
