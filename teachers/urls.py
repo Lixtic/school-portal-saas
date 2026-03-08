@@ -33,6 +33,7 @@ urlpatterns = [
     # Lesson Plans
     path('lesson-plans/', views.lesson_plan_list, name='lesson_plan_list'),
     path('lesson-plans/command-center/', views.aura_command_center, name='aura_command_center'),
+    path('lesson-plans/flight-manual/', views.aura_flight_manual, name='aura_flight_manual'),
     path('lesson-plans/create/', views.lesson_plan_create, name='lesson_plan_create'),
     path('lesson-plans/aura-t-api/', views.aura_t_api, name='aura_t_api'),
     path('lesson-plans/save-aura-t/', views.save_aura_t_plan, name='save_aura_t_plan'),

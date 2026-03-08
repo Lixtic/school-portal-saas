@@ -1,0 +1,618 @@
+{% extends 'base.html' %}
+{% block title %}Aura-T Flight Manual{% endblock %}
+
+{% block content %}
+<style>
+/* ─── Reset & Vars ─────────────────────────────────────────── */
+:root {
+    --fm-navy:   #0a0f1e;
+    --fm-ink:    #1e293b;
+    --fm-muted:  #64748b;
+    --fm-line:   rgba(0,0,0,.07);
+    --fm-white:  #fff;
+}
+[data-bs-theme="dark"] {
+    --fm-line:  rgba(255,255,255,.07);
+    --fm-muted: #475569;
+}
+
+/* ─── Page Hero ────────────────────────────────────────────── */
+.fm-hero {
+    background: linear-gradient(135deg, #0a0f1e 0%, #0f172a 55%, #0c1a2e 100%);
+    border-radius: 1.25rem;
+    padding: 2.25rem 2rem 1.75rem;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+    color: #fff;
+}
+.fm-hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 28px,
+        rgba(255,255,255,.018) 28px,
+        rgba(255,255,255,.018) 29px
+    );
+    pointer-events: none;
+}
+.fm-hero-kicker {
+    font-size: .72rem; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: #38bdf8; margin-bottom: .6rem;
+    display: flex; align-items: center; gap: .4rem;
+}
+.fm-hero-title {
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    font-weight: 900; letter-spacing: -.03em; line-height: 1.1;
+    margin-bottom: .5rem;
+}
+.fm-hero-title span { color: #38bdf8; }
+.fm-hero-sub {
+    font-size: .92rem; color: rgba(255,255,255,.65);
+    max-width: 480px; line-height: 1.6;
+}
+.fm-hero-actions { margin-top: 1.25rem; display: flex; gap: .6rem; flex-wrap: wrap; }
+.fm-link {
+    font-size: .8rem; font-weight: 700; padding: .45rem 1rem;
+    border-radius: 7px; text-decoration: none; display: inline-flex;
+    align-items: center; gap: .35rem; transition: opacity .15s;
+}
+.fm-link:hover { opacity: .82; }
+.fm-link-primary { background: #38bdf8; color: #0a0f1e; }
+.fm-link-ghost   { background: rgba(255,255,255,.1); color: #fff;
+    border: 1px solid rgba(255,255,255,.2); }
+
+.fm-badge-cluster {
+    position: absolute; top: 1.75rem; right: 1.75rem;
+    display: flex; flex-direction: column; align-items: flex-end; gap: .4rem;
+}
+@media(max-width: 600px){ .fm-badge-cluster { display: none; } }
+.fm-badge {
+    font-size: .65rem; font-weight: 800; letter-spacing: .06em;
+    text-transform: uppercase; border-radius: 6px;
+    padding: .2rem .6rem; white-space: nowrap;
+}
+.fb-1 { background: rgba(56,189,248,.2);  color: #38bdf8; }
+.fb-2 { background: rgba(34,197,94,.2);   color: #4ade80; }
+.fb-3 { background: rgba(168,85,247,.2);  color: #c084fc; }
+.fb-4 { background: rgba(251,191,36,.2);  color: #fbbf24; }
+
+/* ─── Section titles ───────────────────────────────────────── */
+.fm-section-title {
+    font-size: .68rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: .1em; color: var(--fm-muted);
+    margin-bottom: .9rem; padding-bottom: .4rem;
+    border-bottom: 1px solid var(--fm-line);
+    display: flex; align-items: center; gap: .4rem;
+}
+
+/* ─── Phase Cards ──────────────────────────────────────────── */
+.phase-card {
+    border-radius: 14px; overflow: hidden;
+    border: 1px solid var(--fm-line);
+    margin-bottom: 1rem;
+    transition: box-shadow .18s;
+}
+.phase-card:hover { box-shadow: 0 4px 24px rgba(0,0,0,.08); }
+[data-bs-theme="dark"] .phase-card:hover { box-shadow: 0 4px 24px rgba(0,0,0,.35); }
+
+.phase-header {
+    padding: .9rem 1.2rem;
+    display: flex; align-items: center; gap: .85rem;
+}
+.phase-num {
+    width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; font-weight: 900; line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+.phase-header-text {}
+.phase-hdg {
+    font-size: .95rem; font-weight: 800; letter-spacing: -.01em;
+    line-height: 1.2;
+}
+.phase-sub {
+    font-size: .75rem; font-style: italic; opacity: .7; margin-top: .05rem;
+}
+.phase-timing {
+    margin-left: auto; flex-shrink: 0;
+    font-size: .68rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .06em; border-radius: 20px; padding: .18rem .65rem;
+}
+.phase-body {
+    background: var(--fm-white); padding: 1rem 1.2rem;
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .85rem;
+}
+[data-bs-theme="dark"] .phase-body { background: rgba(255,255,255,.025); }
+@media(max-width:700px){ .phase-body { grid-template-columns: 1fr; } }
+
+.phase-col {}
+.col-label {
+    font-size: .63rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: .08em; margin-bottom: .4rem;
+    display: flex; align-items: center; gap: .3rem;
+}
+.col-text {
+    font-size: .86rem; color: #374151; line-height: 1.6;
+}
+[data-bs-theme="dark"] .col-text { color: #cbd5e1; }
+
+/* Colour themes per phase */
+.p1 .phase-header { background: linear-gradient(90deg,#ecfdf5,#d1fae5); }
+.p1 .phase-num    { background: #dcfce7; color: #15803d; }
+.p1 .phase-timing { background: #dcfce7; color: #15803d; }
+.p1 .col-label    { color: #059669; }
+
+.p2 .phase-header { background: linear-gradient(90deg,#ecfeff,#cffafe); }
+.p2 .phase-num    { background: #cffafe; color: #0891b2; }
+.p2 .phase-timing { background: #cffafe; color: #0891b2; }
+.p2 .col-label    { color: #0891b2; }
+
+.p3 .phase-header { background: linear-gradient(90deg,#f5f3ff,#ede9fe); }
+.p3 .phase-num    { background: #ede9fe; color: #6d28d9; }
+.p3 .phase-timing { background: #ede9fe; color: #6d28d9; }
+.p3 .col-label    { color: #6d28d9; }
+
+.p4 .phase-header { background: linear-gradient(90deg,#fffbeb,#fef3c7); }
+.p4 .phase-num    { background: #fef3c7; color: #b45309; }
+.p4 .phase-timing { background: #fef3c7; color: #b45309; }
+.p4 .col-label    { color: #b45309; }
+
+[data-bs-theme="dark"] .p1 .phase-header { background: rgba(5,150,105,.12); }
+[data-bs-theme="dark"] .p1 .phase-num    { background: rgba(22,163,74,.2);  color: #4ade80; }
+[data-bs-theme="dark"] .p1 .phase-timing { background: rgba(22,163,74,.15); color: #4ade80; }
+[data-bs-theme="dark"] .p2 .phase-header { background: rgba(6,182,212,.1);  }
+[data-bs-theme="dark"] .p2 .phase-num    { background: rgba(6,182,212,.2);  color: #22d3ee; }
+[data-bs-theme="dark"] .p2 .phase-timing { background: rgba(6,182,212,.15); color: #22d3ee; }
+[data-bs-theme="dark"] .p3 .phase-header { background: rgba(109,40,217,.12); }
+[data-bs-theme="dark"] .p3 .phase-num    { background: rgba(109,40,217,.25); color: #a78bfa; }
+[data-bs-theme="dark"] .p3 .phase-timing { background: rgba(109,40,217,.2);  color: #a78bfa; }
+[data-bs-theme="dark"] .p4 .phase-header { background: rgba(245,158,11,.1);  }
+[data-bs-theme="dark"] .p4 .phase-num    { background: rgba(245,158,11,.2);  color: #fbbf24; }
+[data-bs-theme="dark"] .p4 .phase-timing { background: rgba(245,158,11,.15); color: #fbbf24; }
+
+/* ─── Highlight callout inside a col ──────────────────────── */
+.fm-callout {
+    background: #f8fafc; border-radius: 8px;
+    border-left: 3px solid; padding: .55rem .75rem;
+    font-size: .83rem; color: #374151; margin-top: .5rem;
+    line-height: 1.55;
+}
+[data-bs-theme="dark"] .fm-callout { background: rgba(255,255,255,.04); color: #94a3b8; }
+.fm-callout.green  { border-color: #22c55e; }
+.fm-callout.cyan   { border-color: #06b6d4; }
+.fm-callout.violet { border-color: #8b5cf6; }
+.fm-callout.amber  { border-color: #f59e0b; }
+.fm-callout.red    { border-color: #ef4444; }
+
+/* ─── Inline code / label chips ───────────────────────────── */
+.fm-chip {
+    display: inline-block; font-size: .71rem; font-weight: 700;
+    border-radius: 5px; padding: .08rem .4rem;
+    vertical-align: middle;
+}
+.fc-green  { background: #dcfce7; color: #15803d; }
+.fc-red    { background: #fee2e2; color: #b91c1c; }
+.fc-amber  { background: #fef3c7; color: #92400e; }
+.fc-violet { background: #ede9fe; color: #5b21b6; }
+.fc-cyan   { background: #cffafe; color: #0e7490; }
+.fc-gray   { background: #f1f5f9; color: #475569; }
+[data-bs-theme="dark"] .fc-green  { background: rgba(22,163,74,.2);  color: #86efac; }
+[data-bs-theme="dark"] .fc-red    { background: rgba(220,38,38,.2);  color: #fca5a5; }
+[data-bs-theme="dark"] .fc-amber  { background: rgba(245,158,11,.2); color: #fde68a; }
+[data-bs-theme="dark"] .fc-violet { background: rgba(109,40,217,.2); color: #c4b5fd; }
+[data-bs-theme="dark"] .fc-cyan   { background: rgba(6,182,212,.2);  color: #67e8f9; }
+[data-bs-theme="dark"] .fc-gray   { background: rgba(255,255,255,.07); color: #94a3b8; }
+
+/* ─── Golden Rules ─────────────────────────────────────────── */
+.golden-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: .75rem; margin-bottom: 1rem;
+}
+@media(max-width:700px){ .golden-grid { grid-template-columns: 1fr; } }
+.golden-card {
+    background: linear-gradient(135deg, #fffbeb, #fef3c7);
+    border: 1px solid #fde68a; border-radius: 12px;
+    padding: .9rem 1rem;
+}
+[data-bs-theme="dark"] .golden-card {
+    background: rgba(245,158,11,.07); border-color: rgba(253,230,138,.15);
+}
+.golden-icon { font-size: 1.5rem; margin-bottom: .35rem; }
+.golden-title {
+    font-size: .85rem; font-weight: 800; color: #92400e;
+    margin-bottom: .3rem;
+}
+[data-bs-theme="dark"] .golden-title { color: #fbbf24; }
+.golden-body { font-size: .82rem; color: #78350f; line-height: 1.55; }
+[data-bs-theme="dark"] .golden-body { color: #fde68a; opacity: .8; }
+
+/* ─── Certification card ───────────────────────────────────── */
+.cert-card {
+    background: linear-gradient(135deg, #0a0f1e 0%, #0f172a 60%, #0c1a2e 100%);
+    border-radius: 14px; padding: 1.5rem 1.75rem;
+    display: flex; align-items: center; gap: 1.5rem;
+    color: #fff; flex-wrap: wrap; position: relative; overflow: hidden;
+}
+.cert-card::before {
+    content: '';
+    position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(
+        -45deg, transparent, transparent 28px,
+        rgba(255,255,255,.015) 28px, rgba(255,255,255,.015) 29px
+    );
+}
+.cert-badge {
+    width: 70px; height: 70px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.9rem; box-shadow: 0 0 0 4px rgba(251,191,36,.25);
+}
+.cert-title {
+    font-size: 1.05rem; font-weight: 900; letter-spacing: -.01em;
+    margin-bottom: .2rem;
+}
+.cert-title .highlight { color: #fbbf24; }
+.cert-body  { font-size: .85rem; color: rgba(255,255,255,.65); line-height: 1.55; }
+.cert-pill  {
+    display: inline-flex; align-items: center; gap: .35rem;
+    background: rgba(251,191,36,.18); border: 1px solid rgba(251,191,36,.35);
+    color: #fbbf24; border-radius: 20px; font-size: .72rem; font-weight: 700;
+    padding: .2rem .7rem; margin-top: .5rem;
+}
+
+/* ─── Print ────────────────────────────────────────────────── */
+@media print {
+    .fm-hero-actions, .print-hide { display: none !important; }
+    .phase-card { break-inside: avoid; }
+}
+</style>
+
+<div class="container py-4">
+<div class="row justify-content-center"><div class="col-lg-11 col-xl-10">
+
+<!-- ── Hero ─────────────────────────────────────────────────── -->
+<div class="fm-hero">
+    <div class="fm-badge-cluster">
+        <span class="fm-badge fb-1">🛰️ Aura-T v3</span>
+        <span class="fm-badge fb-2">Ghana CBC Aligned</span>
+        <span class="fm-badge fb-3">AI-Integrated</span>
+        <span class="fm-badge fb-4">45-Min Lesson</span>
+    </div>
+
+    <div class="fm-hero-kicker">✈️ Quick-Start Flight Manual</div>
+    <h1 class="fm-hero-title">🚀 Aura-T: <span>Teacher</span><br>Flight Manual</h1>
+    <p class="fm-hero-sub">Mastering the AI-Integrated 45-Minute Lesson. Five phases. Every tool. Zero paper-marking.</p>
+
+    <div class="fm-hero-actions print-hide">
+        <a href="{% url 'teachers:lesson_plan_create' %}" class="fm-link fm-link-primary">
+            <i class="bi bi-plus-lg"></i>Generate First Draft
+        </a>
+        <a href="{% url 'teachers:aura_command_center' %}" class="fm-link fm-link-ghost">
+            <i class="bi bi-robot"></i>Command Center
+        </a>
+        <a href="#" onclick="window.print();return false;" class="fm-link fm-link-ghost">
+            <i class="bi bi-printer"></i>Print Manual
+        </a>
+    </div>
+</div>
+
+<!-- ── Quick Reference Bar ───────────────────────────────────── -->
+<div class="card border-0 shadow-sm rounded-3 mb-4 px-3 py-2 print-hide">
+    <div class="d-flex flex-wrap gap-2 align-items-center" style="font-size:.75rem;">
+        <span style="font-weight:700;color:var(--fm-muted);text-transform:uppercase;letter-spacing:.05em;font-size:.67rem;">Jump to:</span>
+        <a href="#phase1" class="fm-chip fc-green">① Morning Sync</a>
+        <a href="#phase2" class="fm-chip fc-cyan">② Digital Pulse</a>
+        <a href="#phase3" class="fm-chip fc-violet">③ Co-Pilot Mode</a>
+        <a href="#phase4" class="fm-chip fc-amber">④ Evidence</a>
+        <a href="#golden" class="fm-chip fc-gray">Golden Rules</a>
+        <a href="#cert"   class="fm-chip" style="background:#fef3c7;color:#92400e;">🏆 Certification</a>
+    </div>
+</div>
+
+<!-- ── Phases ─────────────────────────────────────────────────── -->
+<div class="fm-section-title">✈️ Mission Phases</div>
+
+<!-- Phase 0 — Morning Sync -->
+<div class="phase-card p1" id="phase1">
+    <div class="phase-header">
+        <div class="phase-num">☀️</div>
+        <div class="phase-header-text">
+            <div class="phase-hdg">The Morning Sync</div>
+            <div class="phase-sub">Don't start from scratch. Let Aura-T do the heavy lifting.</div>
+        </div>
+        <span class="phase-timing">Prep · 2 mins</span>
+    </div>
+    <div class="phase-body">
+        <div class="phase-col">
+            <div class="col-label">⚡ Action</div>
+            <div class="col-text">
+                Tap <strong>"Generate Draft"</strong> in your Lesson Planner. Select your class, subject,
+                and topic — Aura-T drafts the full 45-minute plan in under 30 seconds.
+            </div>
+            <div class="fm-callout green">
+                <strong>No blank page.</strong> Every plan comes pre-loaded with a Localized Hook,
+                Pulse Check diagnostics, dual learning paths, and a Mastery Sprint.
+            </div>
+        </div>
+        <div class="phase-col">
+            <div class="col-label">🧠 The Secret</div>
+            <div class="col-text">
+                Aura-T has already scanned your students' mastery baseline. If they struggled with
+                <em>Fractions</em> last week, today's <em>Algebra</em> plan automatically includes
+                a refresher in Phase 1's Pulse Check.
+            </div>
+            <div class="fm-callout green">
+                The <strong>Learner DNA</strong> block at the top tells you the one prior-concept
+                gap most likely to surface — read it before class.
+            </div>
+        </div>
+        <div class="phase-col">
+            <div class="col-label">✅ Check</div>
+            <div class="col-text">
+                Before leaving the staffroom, confirm:
+            </div>
+            <div class="fm-callout green" style="margin-top:.4rem;">
+                <span class="fm-chip fc-green">GES Indicator</span>&nbsp;matches your Scheme of Work
+                (e.g., <strong>B7.2.1.1</strong>)
+            </div>
+            <div class="fm-callout green" style="margin-top:.4rem;">
+                <span class="fm-chip fc-green">Localized Hook</span>&nbsp;names a real Ghanaian
+                place, person, or practice your class will recognise
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Phase 1 — Digital Pulse -->
+<div class="phase-card p2" id="phase2">
+    <div class="phase-header">
+        <div class="phase-num">📲</div>
+        <div class="phase-header-text">
+            <div class="phase-hdg">Phase 1: The Digital Pulse</div>
+            <div class="phase-sub">Stop asking "Does everyone understand?" — start seeing the data.</div>
+        </div>
+        <span class="phase-timing">0 – 5 mins</span>
+    </div>
+    <div class="phase-body">
+        <div class="phase-col">
+            <div class="col-label">⚡ Action</div>
+            <div class="col-text">
+                Switch to <strong>Aura-T View</strong> on your tablet. Read the three
+                <span class="fm-chip fc-cyan">Pulse Check</span> questions aloud (or project them).
+                Students raise hands, show whiteboards, or tap their response.
+            </div>
+            <div class="fm-callout cyan">
+                Tap <strong>📲 Digital Pulse</strong> to display the questions as full-screen
+                interactive cards — no login required for students.
+            </div>
+        </div>
+        <div class="phase-col">
+            <div class="col-label">👁️ The Look</div>
+            <div class="col-text">
+                Your screen shows the three questions formatted as
+                <span class="fm-chip fc-green">True / False</span>&nbsp;+
+                <span class="fm-chip fc-cyan">Open</span> cards.
+                Mentally log — or physically note — which students hesitate on Q1 or Q2.
+            </div>
+            <div class="fm-callout cyan">
+                <strong>Q1</strong> targets the prerequisite gap.<br>
+                <strong>Q2</strong> targets the most common misconception.<br>
+                <strong>Q3</strong> tests real-world transfer.
+            </div>
+        </div>
+        <div class="phase-col">
+            <div class="col-label">🚦 The Gate</div>
+            <div class="col-text">
+                If <strong>&lt;50 % of students</strong> answer Q1 correctly —
+                <span class="fm-chip fc-red">STOP</span>. Do not move to Phase 2.
+            </div>
+            <div class="fm-callout red">
+                Use a <strong>Market Analogy</strong> to close the prerequisite gap immediately.
+                Two minutes of re-teaching now saves twenty minutes of confusion later.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Phase 2 — Co-Pilot Mode -->
+<div class="phase-card p3" id="phase3">
+    <div class="phase-header">
+        <div class="phase-num">🧭</div>
+        <div class="phase-header-text">
+            <div class="phase-hdg">Phase 2: Co-Pilot Mode</div>
+            <div class="phase-sub">Stop lecturing. Start mentoring. The room is your cockpit.</div>
+        </div>
+        <span class="phase-timing">5 – 35 mins</span>
+    </div>
+    <div class="phase-body">
+        <div class="phase-col">
+            <div class="col-label">⚡ Action</div>
+            <div class="col-text">
+                <strong>Move around the room.</strong> Tablet in hand.
+                Students who hesitated on Q1/Q2 are now on the
+                <span class="fm-chip fc-green">Support Path</span> —
+                structured steps, sentence frames, and a peer partner.
+                Students who aced the Pulse Check are on the
+                <span class="fm-chip fc-violet">Extension Path</span>&nbsp;(Junior Innovator).
+                <br><br>
+                Check progress with the three
+                <span class="fm-chip fc-amber">Checkpoint Questions</span> — read them aloud
+                at the midpoint. The Heatmap tells you Red / Amber / Green per student.
+            </div>
+        </div>
+        <div class="phase-col">
+            <div class="col-label">🟥 The Heatmap</div>
+            <div class="col-text">
+                Your screen shows the
+                <span class="fm-chip fc-green">🟢 Green Tiles</span> —
+                leave them; Aura is feeding them Extension Challenges.<br><br>
+                <span class="fm-chip fc-red">🔴 Red / Amber Tiles</span> are your priority.
+                Walk directly to those desks. Aura has already flagged the specific
+                misconception (e.g., <em>"Kofi is confused about the variable"</em>).
+            </div>
+            <div class="fm-callout violet">
+                <strong>Rule:</strong> never shout across the room.
+                Every student who sees you walking <em>toward them</em> knows you care.
+            </div>
+        </div>
+        <div class="phase-col">
+            <div class="col-label">🏆 The Pro Move</div>
+            <div class="col-text">
+                Use the <strong>"Push Hint"</strong> button to send a visual clue to a
+                struggling group <em>without saying a word</em> — so you don't disrupt
+                the students already in flow.
+            </div>
+            <div class="fm-callout violet">
+                <strong>Bimodal Delivery view</strong> gives you the exact <em>Teacher Script</em>
+                for each path — what to say, what to write on the board, step by step.
+                Print the <strong>Student Nugget cards</strong> and hand them face-down before class.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Phase 3 — Evidence -->
+<div class="phase-card p4" id="phase4">
+    <div class="phase-header">
+        <div class="phase-num">🏁</div>
+        <div class="phase-header-text">
+            <div class="phase-hdg">Phase 3: The Evidence</div>
+            <div class="phase-sub">No more marking 40 notebooks at home. The data comes to you.</div>
+        </div>
+        <span class="phase-timing">35 – 45 mins</span>
+    </div>
+    <div class="phase-body">
+        <div class="phase-col">
+            <div class="col-label">⚡ Action</div>
+            <div class="col-text">
+                Call <strong>"Mastery Sprint."</strong><br>
+                Students work <em>solo</em> — no hints, no discussion.
+                Three targeted questions:
+                <span class="fm-chip fc-violet">MS1 Recall</span>&nbsp;
+                <span class="fm-chip fc-violet">MS2 Concept</span>&nbsp;
+                <span class="fm-chip fc-violet">MS3 Application</span>.
+                <br><br>
+                Distribute the printed <strong>✂ Student Cards</strong> (cut-and-distribute strip)
+                or project the exit questions from the Aura-T view.
+            </div>
+        </div>
+        <div class="phase-col">
+            <div class="col-label">📊 The Data</div>
+            <div class="col-text">
+                The <span class="fm-chip fc-amber">🤖 Teacher Insight</span> card updates automatically.
+                It tells you:
+            </div>
+            <div class="fm-callout amber">
+                <strong>At-Risk Profile</strong> — who will need 1-on-1 tomorrow<br>
+                <strong>Tomorrow's Action</strong> — the exact first 5-minute intervention<br>
+                <strong>Monitor Signals</strong> — what to watch for at the door
+            </div>
+        </div>
+        <div class="phase-col">
+            <div class="col-label">📣 The Wrap-Up Script</div>
+            <div class="col-text">
+                Read Aura-T's <strong>"Tomorrow's Focus"</strong> to the class before the bell:
+            </div>
+            <div class="fm-callout amber">
+                <em>"Great job today! Tomorrow, we tackle
+                <strong>[Tomorrow's Focus topic]</strong> — that's where we tripped up today.
+                Come ready."</em>
+            </div>
+            <div class="col-text" style="margin-top:.5rem;font-size:.8rem;color:var(--fm-muted);">
+                Students leave knowing exactly what's next. No ambiguity. No homework surprises.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Golden Rules ───────────────────────────────────────────── -->
+<div class="fm-section-title mt-4" id="golden">⭐ The Golden Rules of Aura-T</div>
+<div class="golden-grid">
+    <div class="golden-card">
+        <div class="golden-icon">📡</div>
+        <div class="golden-title">Trust the Data</div>
+        <div class="golden-body">
+            If Aura flags a student in <span class="fm-chip fc-red">Red</span>, believe it.
+            They are stuck, even if they look fine. The data doesn't lie.
+        </div>
+    </div>
+    <div class="golden-card">
+        <div class="golden-icon">🚶</div>
+        <div class="golden-title">Stay Mobile</div>
+        <div class="golden-body">
+            The Command Center is on your phone/tablet so you can be <em>with</em> your students —
+            not behind a desk. The desk is for marking. The floor is for teaching.
+        </div>
+    </div>
+    <div class="golden-card">
+        <div class="golden-icon">🌍</div>
+        <div class="golden-title">Localize</div>
+        <div class="golden-body">
+            Aura-T provides the <em>Hook</em>, but <strong>you provide the Soul.</strong>
+            Change the analogies to fit your town, your students' parents' jobs, your classroom jokes.
+            The AI gives you the scaffold; you add the culture.
+        </div>
+    </div>
+</div>
+
+<!-- ── Certification ─────────────────────────────────────────── -->
+<div id="cert" class="mb-4">
+    <div class="fm-section-title">🏆 Aura-T Certification</div>
+    <div class="cert-card">
+        <div class="cert-badge">🏅</div>
+        <div style="flex:1;min-width:0;position:relative;z-index:1;">
+            <div class="cert-title">Earn the <span class="highlight">Digital Architect</span> Badge</div>
+            <div class="cert-body">
+                Complete <strong>5 Aura-T sessions</strong> with <strong>&gt;80% class mastery</strong>
+                and the <em>Digital Architect</em> badge is permanently added to your professional profile
+                in the School Management System — visible to your Head of Department and School Principal.
+            </div>
+            <div class="cert-pill">
+                <i class="bi bi-shield-check"></i>&nbsp;5 sessions · &gt;80% Mastery · Permanent Badge
+            </div>
+        </div>
+        <div style="position:relative;z-index:1;" class="print-hide">
+            <a href="{% url 'teachers:aura_command_center' %}" class="fm-link fm-link-primary">
+                <i class="bi bi-rocket-takeoff"></i>Open Command Center
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- ── Cheat Sheet ─────────────────────────────────────────────── -->
+<div class="card border-0 shadow-sm rounded-3 p-3 mb-4">
+    <div class="fm-section-title mb-2">⚡ One-Page Cheat Sheet</div>
+    <div class="row g-2" style="font-size:.83rem;">
+        <div class="col-md-6">
+            <table class="table table-sm table-borderless mb-0" style="font-size:.82rem;">
+                <thead><tr><th style="width:38%;color:var(--fm-muted);font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;">Situation</th><th style="color:var(--fm-muted);font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;">Aura-T Tool</th></tr></thead>
+                <tbody>
+                    <tr><td>Need a lesson plan</td><td><span class="fm-chip fc-green">Generate Draft</span></td></tr>
+                    <tr><td>Old plan on new engine</td><td><span class="fm-chip fc-cyan">Regenerate</span></td></tr>
+                    <tr><td>See all plan scores</td><td><span class="fm-chip fc-violet">Command Center</span></td></tr>
+                    <tr><td>Display questions to class</td><td><span class="fm-chip fc-cyan">Digital Pulse</span></td></tr>
+                    <tr><td>Check who's stuck mid-lesson</td><td><span class="fm-chip fc-amber">Checkpoint Heatmap</span></td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="col-md-6">
+            <table class="table table-sm table-borderless mb-0" style="font-size:.82rem;">
+                <thead><tr><th style="width:38%;color:var(--fm-muted);font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;">Situation</th><th style="color:var(--fm-muted);font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;">Aura-T Tool</th></tr></thead>
+                <tbody>
+                    <tr><td>Run silent exit test</td><td><span class="fm-chip fc-violet">Mastery Sprint</span></td></tr>
+                    <tr><td>Know who needs help tomorrow</td><td><span class="fm-chip fc-green">Teacher Insight JSON</span></td></tr>
+                    <tr><td>Hand out student tasks</td><td><span class="fm-chip fc-amber">Print Cards ✂</span></td></tr>
+                    <tr><td>Tell students what to say back</td><td><span class="fm-chip fc-violet">Student Nugget card</span></td></tr>
+                    <tr><td>Word-for-word board script</td><td><span class="fm-chip fc-red">Teacher Script</span></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+</div></div>
+</div>
+{% endblock %}

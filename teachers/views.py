@@ -2240,6 +2240,22 @@ def aura_command_center(request):
 
 
 @login_required
+def aura_flight_manual(request):
+    """
+    Aura-T Teacher Flight Manual — quick-start guide for the AI-integrated lesson.
+    """
+    is_teacher = request.user.user_type == 'teacher'
+    is_admin   = request.user.user_type == 'admin'
+    if not is_teacher and not is_admin:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+    return render(request, 'teachers/aura_flight_manual.html', {
+        'is_teacher': is_teacher,
+        'is_admin': is_admin,
+    })
+
+
+@login_required
 def lesson_plan_cards_print(request, pk):
     """
     Printable Student Nuggets + Mastery Sprint cards for a lesson plan.
