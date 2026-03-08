@@ -22,24 +22,35 @@
     
     .ges-table th {
         font-weight: bold;
-        background-color: #f0f0f0; /* Light gray for screen, white for print */
-    }
-    
-    /* Make textareas blend seamlessly */
-    .ges-table textarea {
-        font-family: 'Times New Roman', Times, serif;
-        font-size: 11pt;
-        color: inherit;
-        background: transparent;
-        padding: 4px; /* Match cell padding visually */
-        min-height: 40px;
-    }
-    .ges-table textarea:focus {
-        background: #f8f9fa;
-        outline: none;
-        box-shadow: none;
-    }
+            background-color: #f0f0f0; /* Light gray for screen */
+        }
+        
+        /* Make textareas blend seamlessly */
+        .ges-table textarea {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 11pt;
+            color: inherit;
+            background: transparent;
+            padding: 4px;
+            min-height: 40px;
+        }
+        .ges-table textarea:focus {
+            background: rgba(0,0,0,.03);
+            outline: none;
+            box-shadow: none;
+        }
 
+        /* GES document card — white on screen, always white in print */
+        .ges-doc-card {
+            background: #fff;
+            color: #000;
+        }
+        [data-bs-theme="dark"] .ges-doc-card {
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+        [data-bs-theme="dark"] .ges-doc-card .ges-header {
+            color: #e2e8f0;
     .ges-header {
         text-align: center;
         font-weight: bold;
@@ -444,7 +455,7 @@
             white-space: pre-wrap;
         }
         
-        .ges-table th { background-color: transparent !important; }
+        .ges-table th { background-color: transparent !important; color: #000 !important; }
         .print-hide { display: none !important; }
         
         /* Force single page break avoidance if possible */
@@ -545,7 +556,7 @@
                 <input type="hidden" name="topic" value="{{ lesson_plan.topic }}">
 
                 <div class="card border rounded-0 shadow-sm" id="printableArea">
-                    <div class="card-body p-4 p-md-5 bg-white text-black">
+                    <div class="card-body p-4 p-md-5 ges-doc-card">
                         
                         <div class="ges-header">
                             <h4>{{ lesson_plan.school_class.name }}</h4>
@@ -643,8 +654,8 @@
                     </div>
                 </div>
 
-                <div class="text-center mt-4 print-hide fixed-bottom bg-white p-3 border-top shadow-lg d-none" id="saveBar">
-                    <span class="me-3 fw-bold text-dark">You have unsaved changes</span>
+                <div class="text-center mt-4 print-hide fixed-bottom bg-body p-3 border-top shadow-lg d-none" id="saveBar">
+                    <span class="me-3 fw-bold text-body">You have unsaved changes</span>
                     <button type="submit" class="btn btn-success px-4 rounded-pill">
                         <i class="bi bi-check-circle me-2"></i>Save Changes
                     </button>
