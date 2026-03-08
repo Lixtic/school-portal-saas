@@ -417,7 +417,7 @@ FOUR NON-NEGOTIABLE REQUIREMENTS — EVERY PLAN, NO EXCEPTIONS
   delivered verbally or on the whiteboard. Students respond quickly (hands up / slate / verbal).
   Q1 = a TRUE/FALSE STATEMENT that probes prerequisite knowledge about {topic}.
        MUST be phrased as a declarative statement students can answer True or False — NOT a "What is..." or "How..." question.
-       Example format: "{Topic} is [a clear factual claim] — True or False?"
+       Example format: "{topic} is [a clear factual claim] — True or False?"
   Q2 = a TRUE/FALSE STATEMENT that targets the most common misconception about {topic}.
        MUST be phrased as a statement containing a common wrong belief — the correct answer should be False.
        Example format: "Students often believe [misconception]. True or false? If false, correct it."
@@ -559,7 +559,7 @@ Core Competencies Active:
 [2–3 sentences. Name the specific Ghanaian place, object, or practice. Make the link to {topic} explicit.]
 
 🔍 PULSE CHECK (AI-Integrated Diagnostic):
-Q1: [TRUE/FALSE STATEMENT — prerequisite knowledge. Phrased as a declarative claim students answer True or False. E.g. "{Topic} is [factual claim about prerequisite] — True or False?"]
+Q1: [TRUE/FALSE STATEMENT — prerequisite knowledge. Phrased as a declarative claim students answer True or False. E.g. "{topic} is [factual claim about prerequisite] — True or False?"]
 Q2: [TRUE/FALSE STATEMENT — common misconception. Phrase the misconception as a statement; correct answer should be False. E.g. "[Misconception about {topic}]. True or false? If false, give a quick example that contradicts this."]
 Q3: [OPEN QUESTION — Application. Must reference the SPECIFIC Ghanaian context from the hook above. Not a True/False — students give a short verbal or written response.]
 Teacher note: Log students who hesitate or miss Q1/Q2/Q3 — they are your Data-Trigger targets.
