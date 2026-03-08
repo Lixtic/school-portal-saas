@@ -1129,46 +1129,116 @@ def teacher_schedule(request):
 
 @login_required
 def print_duty_roster(request):
-    # Only Admin or Teachers can see this? Assuming Admin/Staff.
-    # if request.user.user_type not in ['admin', 'teacher']: ...
-    
     current_year = AcademicYear.objects.filter(is_current=True).first()
     if not current_year:
         current_year = AcademicYear.objects.first()
 
-    from django.utils import timezone
     today = timezone.now().date()
-    # Auto-detect term if not provided
+
     req_term = request.GET.get('term')
     if req_term:
         term = req_term
     else:
-        # Default based on active duty week
-        current_week = DutyWeek.objects.filter(
+        current_duty = DutyWeek.objects.filter(
             academic_year=current_year,
             start_date__lte=today,
             end_date__gte=today
         ).first()
-        term = current_week.term if current_week else ('second' if 1 <= today.month <= 4 else ('third' if 5 <= today.month <= 8 else 'first'))
+        term = current_duty.term if current_duty else (
+            'second' if 1 <= today.month <= 4 else
+            ('third' if 5 <= today.month <= 8 else 'first')
+        )
 
     year_id = request.GET.get('year', current_year.id if current_year else None)
-    
-    if year_id:
-        year = get_object_or_404(AcademicYear, id=year_id)
-    else:
-        year = None
+    year = get_object_or_404(AcademicYear, id=year_id) if year_id else None
 
-    weeks = DutyWeek.objects.filter(academic_year=year, term=term).prefetch_related('assignments', 'assignments__teacher', 'assignments__teacher__user').order_by('week_number')
-    
+    weeks = DutyWeek.objects.filter(
+        academic_year=year, term=term
+    ).prefetch_related(
+        'assignments', 'assignments__teacher', 'assignments__teacher__user'
+    ).order_by('week_number')
+
+    # Personalised "My Duty" banner
+    my_next_duty = None
+    teacher = getattr(request.user, 'teacher', None)
+    if teacher:
+        # Currently on duty this week?
+        my_next_duty = DutyWeek.objects.filter(
+            assignments__teacher=teacher,
+            start_date__lte=today,
+            end_date__gte=today,
+        ).prefetch_related('assignments__teacher__user').first()
+        # Otherwise, next upcoming duty
+        if not my_next_duty:
+            my_next_duty = DutyWeek.objects.filter(
+                assignments__teacher=teacher,
+                start_date__gt=today,
+            ).prefetch_related('assignments__teacher__user').order_by('start_date').first()
+
     context = {
         'weeks': weeks,
         'year': year,
         'term': term,
+        'today': today,
+        'teacher': teacher,
+        'my_next_duty': my_next_duty,
         'school_info': SchoolInfo.objects.first(),
         'available_terms': ['first', 'second', 'third'],
         'academic_years': AcademicYear.objects.all(),
     }
     return render(request, 'teachers/duty_roster_pdf.html', context)
+
+
+@login_required
+def generate_duty_weeks(request):
+    """Admin-only: auto-create DutyWeek rows for a full term."""
+    if request.user.user_type != 'admin':
+        messages.error(request, "Only admins can generate duty weeks.")
+        return redirect('teachers:duty_roster')
+
+    if request.method != 'POST':
+        return redirect('teachers:duty_roster')
+
+    from datetime import timedelta
+    from django.urls import reverse as url_reverse
+
+    year_id   = request.POST.get('year')
+    term      = request.POST.get('term', 'first')
+    start_str = request.POST.get('start_date', '')
+    try:
+        num_weeks = max(1, min(int(request.POST.get('num_weeks') or 13), 20))
+    except (ValueError, TypeError):
+        num_weeks = 13
+
+    year = get_object_or_404(AcademicYear, id=year_id)
+
+    try:
+        start = date.fromisoformat(start_str)
+    except (ValueError, TypeError):
+        messages.error(request, "Invalid start date.")
+        return redirect(f"{url_reverse('teachers:duty_roster')}?term={term}&year={year_id}")
+
+    created = skipped = 0
+    for i in range(num_weeks):
+        week_start = start + timedelta(weeks=i)
+        week_end   = week_start + timedelta(days=4)   # Mon → Fri
+        _, was_created = DutyWeek.objects.get_or_create(
+            academic_year=year,
+            term=term,
+            week_number=i + 1,
+            defaults={'start_date': week_start, 'end_date': week_end},
+        )
+        if was_created:
+            created += 1
+        else:
+            skipped += 1
+
+    if created:
+        messages.success(request, f"{created} duty week(s) generated for {term.title()} Term {year.name}.")
+    if skipped:
+        messages.info(request, f"{skipped} week(s) already existed and were skipped.")
+
+    return redirect(f"{url_reverse('teachers:duty_roster')}?term={term}&year={year_id}")
 
 
 @login_required

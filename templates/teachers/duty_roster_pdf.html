@@ -3,164 +3,349 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Duty Roster - {{ year }}</title>
+    <title>Duty Roster — {{ term|title }} Term {{ year.name }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        body { font-family: 'Times New Roman', serif; }
-        .header { text-align: center; margin-bottom: 2rem; }
-        .school-name { font-size: 24px; font-weight: bold; text-transform: uppercase; }
-        .roster-title { font-size: 20px; font-weight: bold; text-decoration: underline; margin-top: 10px; }
-        .table-bordered th, .table-bordered td { border: 1px solid black !important; vertical-align: middle; }
-        
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f8f9fa; }
+        .week-current   { background-color: #d1e7dd !important; }
+        .week-my-duty   { background-color: #fff3cd !important; }
+        .week-current.week-my-duty { background-color: #d1e7dd !important; }
+        .week-past td, .week-past .badge { opacity: .55; }
+        .teacher-chip   { font-size: .8rem; font-weight: 500; }
+        .role-note      { font-size: .68rem; opacity: .7; }
+        .print-only     { display: none; }
         @media print {
-            .no-print { display: none !important; }
-            body { -webkit-print-color-adjust: exact; padding: 0 !important; }
-            .container-fluid { padding: 0 !important; }
-            
-            /* Force table view on print */
-            .desktop-view { display: block !important; }
-            .mobile-view { display: none !important; }
+            body       { background: #fff !important; font-family: 'Times New Roman', Times, serif; }
+            .no-print  { display: none !important; }
+            .print-only{ display: block !important; }
+            .week-past td { opacity: 1 !important; }
+            .week-past .badge { opacity: 1 !important; }
+            .card      { border: 1px solid #999 !important; box-shadow: none !important; border-radius: 0 !important; }
+            .card .card-header { background: #f0f0f0 !important; color: #000 !important; }
+            table      { border-collapse: collapse !important; }
+            th, td     { border: 1px solid #555 !important; }
+            .d-md-none { display: none !important; }
+            .d-none.d-md-block { display: block !important; }
         }
     </style>
 </head>
-<body class="p-3 p-md-4">
-    <div class="container-fluid">
-        <div class="no-print mb-3 d-flex flex-wrap gap-2 justify-content-center justify-content-md-start">
-            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">← Back</a>
-            <button onclick="window.print()" class="btn btn-primary">Print Roster</button>
-            <a href="{% url 'admin:teachers_dutyweek_changelist' %}" class="btn btn-outline-dark">Manage (Admin)</a>
-            <form class="d-flex gap-2 align-items-center" method="get">
-                <select name="year" class="form-select w-auto">
+<body class="py-3 px-3 px-md-4">
+<div class="container-fluid" style="max-width:1100px;">
+
+    {# ── Controls bar (screen only) ── #}
+    <div class="no-print mb-3">
+        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+            <a href="{% url 'dashboard' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Back
+            </a>
+            <button onclick="window.print()" class="btn btn-sm btn-primary">
+                <i class="bi bi-printer me-1"></i>Print
+            </button>
+            {% if request.user.user_type == 'admin' %}
+            <a href="{% url 'admin:teachers_dutyweek_changelist' %}" class="btn btn-sm btn-outline-dark">
+                <i class="bi bi-gear me-1"></i>Admin
+            </a>
+            <button class="btn btn-sm btn-outline-success" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#generatePanel">
+                <i class="bi bi-calendar-plus me-1"></i>Generate Weeks
+            </button>
+            {% endif %}
+            <form class="d-flex flex-wrap gap-2 align-items-center ms-auto" method="get">
+                <select name="year" class="form-select form-select-sm w-auto">
                     {% for y in academic_years %}
-                    <option value="{{ y.id }}" {% if y.id == year.id %}selected{% endif %}>{{ y.name }}</option>
+                    <option value="{{ y.id }}" {% if year and y.id == year.id %}selected{% endif %}>{{ y.name }}</option>
                     {% endfor %}
                 </select>
-                <select name="term" class="form-select w-auto">
+                <select name="term" class="form-select form-select-sm w-auto">
                     {% for t in available_terms %}
                     <option value="{{ t }}" {% if t == term %}selected{% endif %}>{{ t|title }} Term</option>
                     {% endfor %}
                 </select>
-                <button type="submit" class="btn btn-secondary">Go</button>
+                <button type="submit" class="btn btn-sm btn-secondary">View</button>
             </form>
         </div>
 
-        <div class="header">
-            {% if school_info.logo %}
-            <img src="{{ school_info.logo.url }}" alt="Logo" style="height: 60px; max-width: 100%;" class="mb-2">
+        {# ── Generate Weeks Panel (admin only) ── #}
+        {% if request.user.user_type == 'admin' %}
+        <div class="collapse" id="generatePanel">
+            <div class="card card-body border-success-subtle bg-light mb-3">
+                <h6 class="mb-3 fw-bold text-success">
+                    <i class="bi bi-calendar-range me-2"></i>Auto-generate Duty Weeks
+                </h6>
+                <form method="post" action="{% url 'teachers:generate_duty_weeks' %}" class="row g-2 align-items-end">
+                    {% csrf_token %}
+                    <div class="col-sm-auto">
+                        <label class="form-label form-label-sm mb-1 fw-semibold">Academic Year</label>
+                        <select name="year" class="form-select form-select-sm">
+                            {% for y in academic_years %}
+                            <option value="{{ y.id }}" {% if year and y.id == year.id %}selected{% endif %}>{{ y.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-sm-auto">
+                        <label class="form-label form-label-sm mb-1 fw-semibold">Term</label>
+                        <select name="term" class="form-select form-select-sm">
+                            {% for t in available_terms %}
+                            <option value="{{ t }}" {% if t == term %}selected{% endif %}>{{ t|title }} Term</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-sm-auto">
+                        <label class="form-label form-label-sm mb-1 fw-semibold">First Monday</label>
+                        <input type="date" name="start_date" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="col-sm-auto">
+                        <label class="form-label form-label-sm mb-1 fw-semibold">Weeks</label>
+                        <input type="number" name="num_weeks" class="form-control form-control-sm"
+                               value="13" min="1" max="20" style="width:75px;">
+                    </div>
+                    <div class="col-sm-auto">
+                        <button type="submit" class="btn btn-sm btn-success">
+                            <i class="bi bi-lightning-charge me-1"></i>Generate
+                        </button>
+                    </div>
+                </form>
+                <p class="mb-0 mt-2 small text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Weeks that already exist are <strong>skipped</strong> — not overwritten.
+                    Assign teachers via Admin after generation.
+                </p>
+            </div>
+        </div>
+        {% endif %}
+
+        {# Flash messages from generate action #}
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible py-2 mb-2 small">
+            {{ message }}
+            <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+
+    {# ── Print-only school header ── #}
+    <div class="print-only text-center mb-4">
+        {% if school_info.logo %}
+        <img src="{{ school_info.logo.url }}" alt="" style="height:55px;" class="mb-2 d-block mx-auto">
+        {% endif %}
+        <div style="font-size:20px;font-weight:bold;text-transform:uppercase;">
+            {{ school_info.name|default:"School" }}
+        </div>
+        <div style="font-size:12px;">{{ school_info.address }}</div>
+        <div style="font-size:16px;font-weight:bold;text-decoration:underline;margin-top:6px;">
+            {{ term|upper }} TERM DUTY ROSTER &mdash; {{ year.name }}
+        </div>
+    </div>
+
+    {# ── Screen page heading ── #}
+    <div class="no-print d-flex align-items-start gap-3 mb-3">
+        <div>
+            <h5 class="mb-0 fw-bold">{{ term|title }} Term Duty Roster</h5>
+            <small class="text-muted">
+                {{ year.name }}{% if school_info.name %} &middot; {{ school_info.name }}{% endif %}
+            </small>
+        </div>
+        <div class="ms-auto">
+            <span class="badge bg-light text-dark border small">{{ weeks.count }} week{{ weeks.count|pluralize }}</span>
+        </div>
+    </div>
+
+    {# ── My Duty Banner ── #}
+    {% if my_next_duty %}
+    <div class="no-print mb-4 p-3 rounded-3 d-flex align-items-start gap-3
+        {% if my_next_duty.start_date <= today and today <= my_next_duty.end_date %}
+        bg-success text-white shadow-sm
+        {% else %}
+        border border-warning-subtle bg-warning-subtle
+        {% endif %}" style="border-radius:12px!important;">
+        <div class="fs-1 lh-1 mt-1">
+            {% if my_next_duty.start_date <= today and today <= my_next_duty.end_date %}
+            <i class="bi bi-person-check-fill"></i>
+            {% else %}
+            <i class="bi bi-calendar-event text-warning"></i>
             {% endif %}
-            <div class="school-name fs-4 fs-md-3">{{ school_info.name|default:"St. Peter's Methodist JHS" }}</div>
-            <div class="small">{{ school_info.address }}</div>
-            <div class="roster-title fs-5 mt-2">{{ term|upper }} TERM DUTY ROSTER - {{ year.name }}</div>
         </div>
-
-        <!-- Desktop Table View -->
-        <div class="desktop-view d-none d-md-block">
-            <table class="table table-bordered">
-                <thead class="table-light">
-                    <tr>
-                        <th style="width: 10%;" class="text-center">Week</th>
-                        <th style="width: 25%;" class="text-center">Date</th>
-                        <th class="text-center">Teacher(s) on Duty</th>
-                        <th style="width: 20%;" class="text-center">Remarks</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for week in weeks %}
-                    <tr class="{% for assign in week.assignments.all %}{% if assign.teacher.user == user %}table-warning border-warning{% endif %}{% endfor %}">
-                        <td class="text-center fw-bold">{{ week.week_number }}</td>
-                        <td class="text-center">{{ week.start_date|date:"d M" }} - {{ week.end_date|date:"d M, Y" }}</td>
-                        <td>
-                            <ul class="list-unstyled mb-0">
-                            {% for assign in week.assignments.all %}
-                                <li class="mb-1">
-                                    {% if assign.teacher.user == user %}
-                                        <div class="p-1 rounded bg-warning text-dark border border-dark">
-                                            <i class="bi bi-person-check-fill me-1"></i>
-                                            <strong>{{ assign.teacher.user.get_full_name }} (You)</strong>
-                                        </div>
-                                    {% else %}
-                                        <strong>{{ assign.teacher.user.get_full_name }}</strong> 
-                                    {% endif %}
-                                    
-                                    {% if assign.role and assign.role != 'Member' %}
-                                    <span class="badge bg-secondary text-white small" style="font-size: 0.7em;">{{ assign.role }}</span>
-                                    {% endif %}
-                                </li>
-                            {% empty %}
-                                <em class="text-muted">No teachers assigned</em>
-                            {% endfor %}
-                            </ul>
-                        </td>
-                        <td>{{ week.remarks|default:""|linebreaksbr }}</td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="4" class="text-center py-5">
-                            <p class="mb-0">No duty roster entries found.</p>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Mobile Card View -->
-        <div class="mobile-view d-md-none">
-            {% for week in weeks %}
-            <div class="card mb-3 shadow-sm {% for assign in week.assignments.all %}{% if assign.teacher.user == user %}border-warning border-2{% else %}border-dark-subtle{% endif %}{% endfor %}">
-                <div class="card-header d-flex justify-content-between align-items-center {% for assign in week.assignments.all %}{% if assign.teacher.user == user %}bg-warning text-dark{% else %}bg-light{% endif %}{% endfor %}">
-                    <span class="fw-bold">Week {{ week.week_number }}</span>
-                    <span class="badge bg-dark">{{ week.start_date|date:"d M" }} - {{ week.end_date|date:"d M" }}</span>
-                </div>
-                <div class="card-body">
-                    <div class="mb-2">
-                        <label class="text-muted small text-uppercase fw-bold">Teachers:</label>
-                        <ul class="list-unstyled mb-0 ps-2 border-start border-3 border-primary">
-                            {% for assign in week.assignments.all %}
-                            <li class="mb-1">
-                                {% if assign.teacher.user == user %}
-                                    <span class="fw-bold text-dark bg-warning px-1 rounded">{{ assign.teacher.user.get_full_name }} (You)</span>
-                                {% else %}
-                                    {{ assign.teacher.user.get_full_name }}
-                                {% endif %}
-                                {% if assign.role and assign.role != 'Member' %}
-                                <small class="text-muted">({{ assign.role }})</small>
-                                {% endif %}
-                            </li>
-                            {% empty %}
-                            <li class="text-muted small">No teachers assigned</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    {% if week.remarks %}
-                    <div class="mt-3">
-                         <label class="text-muted small text-uppercase fw-bold">Remarks:</label>
-                         <div class="bg-light p-2 rounded small">{{ week.remarks|linebreaksbr }}</div>
-                    </div>
+        <div class="flex-grow-1">
+            {% if my_next_duty.start_date <= today and today <= my_next_duty.end_date %}
+            <div class="fw-bold fs-6">You are on duty this week</div>
+            <div class="small opacity-75">
+                Week {{ my_next_duty.week_number }} &bull;
+                {{ my_next_duty.start_date|date:"D d M" }} &ndash; {{ my_next_duty.end_date|date:"D d M Y" }}
+            </div>
+            {% else %}
+            <div class="fw-bold fs-6 text-dark">Next duty &mdash; Week {{ my_next_duty.week_number }}</div>
+            <div class="small text-muted">
+                {{ my_next_duty.start_date|date:"D d M" }} &ndash; {{ my_next_duty.end_date|date:"D d M Y" }}
+            </div>
+            {% endif %}
+            <div class="mt-2 d-flex flex-wrap gap-1">
+                {% for assign in my_next_duty.assignments.all %}
+                <span class="badge fw-normal py-1 px-2
+                    {% if my_next_duty.start_date <= today and today <= my_next_duty.end_date %}
+                    bg-white text-success
+                    {% else %}
+                    bg-white text-dark border
+                    {% endif %}">
+                    {% if assign.teacher.user == request.user %}<i class="bi bi-star-fill me-1 text-warning"></i>{% endif %}
+                    {{ assign.teacher.user.get_full_name }}
+                    {% if assign.role and assign.role != 'Member' %}
+                    <span class="role-note ms-1">({{ assign.role }})</span>
                     {% endif %}
-                </div>
-            </div>
-            {% empty %}
-            <div class="alert alert-info text-center">
-                No duty roster entries found for this term.
-            </div>
-            {% endfor %}
-        </div>
-        
-        <div class="mt-5 d-none d-print-block d-md-block">
-            <div class="row">
-                <div class="col-6 text-center">
-                    <br><br>
-                    <p>_______________________</p>
-                    <p><strong>Headmaster's Signature</strong></p>
-                </div>
-                <div class="col-6 text-center">
-                    <br><br>
-                    <p>_______________________</p>
-                    <p><strong>Senior House Master</strong></p>
-                </div>
+                </span>
+                {% endfor %}
             </div>
         </div>
     </div>
+    {% endif %}
+
+    {# ── Roster Table (desktop + print) ── #}
+    <div class="d-none d-md-block">
+        <div class="card shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-bordered mb-0 table-sm align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="text-center" style="width:7%">Wk</th>
+                            <th style="width:18%">Dates</th>
+                            <th style="width:13%" class="no-print">Status</th>
+                            <th>Teachers on Duty</th>
+                            <th style="width:20%">Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for week in weeks %}
+                    <tr class="{% if week.start_date <= today and today <= week.end_date %}week-current{% elif week.end_date < today %}week-past{% endif %}{% for assign in week.assignments.all %}{% if assign.teacher.user == request.user %} week-my-duty{% endif %}{% endfor %}">
+                        <td class="text-center fw-bold">{{ week.week_number }}</td>
+                        <td>
+                            <div class="small fw-semibold">{{ week.start_date|date:"d M" }}</div>
+                            <div class="small text-muted">{{ week.end_date|date:"d M, Y" }}</div>
+                        </td>
+                        <td class="no-print">
+                            {% if week.start_date <= today and today <= week.end_date %}
+                            <span class="badge bg-success">
+                                <i class="bi bi-circle-fill me-1" style="font-size:.5rem"></i>Current
+                            </span>
+                            {% elif week.start_date > today %}
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Upcoming</span>
+                            {% else %}
+                            <span class="badge bg-secondary-subtle text-secondary border">Past</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex flex-wrap gap-1">
+                            {% for assign in week.assignments.all %}
+                                <span class="badge teacher-chip py-1 px-2
+                                    {% if assign.teacher.user == request.user %}bg-warning text-dark{% else %}bg-light text-dark border{% endif %}">
+                                    {% if assign.teacher.user == request.user %}
+                                    <i class="bi bi-person-check-fill me-1"></i>
+                                    {% else %}
+                                    <i class="bi bi-person me-1 text-muted"></i>
+                                    {% endif %}
+                                    {{ assign.teacher.user.get_full_name }}
+                                    {% if assign.role and assign.role != 'Member' %}
+                                    <span class="role-note ms-1">({{ assign.role }})</span>
+                                    {% endif %}
+                                </span>
+                            {% empty %}
+                                <span class="fst-italic text-muted small">Unassigned</span>
+                            {% endfor %}
+                            </div>
+                        </td>
+                        <td class="small text-muted">{{ week.remarks|default:""|linebreaksbr }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <i class="bi bi-calendar-x fs-3 d-block mb-2"></i>
+                            No duty weeks found for this term.
+                            {% if request.user.user_type == 'admin' %}
+                            <div class="no-print mt-2">
+                                <button class="btn btn-sm btn-outline-success"
+                                        data-bs-toggle="collapse" data-bs-target="#generatePanel">
+                                    <i class="bi bi-calendar-plus me-1"></i>Generate Weeks
+                                </button>
+                            </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {# ── Roster Cards (mobile, hidden on print) ── #}
+    <div class="d-md-none no-print">
+        {% for week in weeks %}
+        <div class="card mb-2 shadow-sm
+            {% if week.start_date <= today and today <= week.end_date %}border-success border-2
+            {% elif week.end_date < today %}border-0
+            {% endif %}
+            {% for assign in week.assignments.all %}{% if assign.teacher.user == request.user %}border-warning border-2{% endif %}{% endfor %}">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center
+                {% if week.start_date <= today and today <= week.end_date %}bg-success text-white
+                {% else %}bg-light{% endif %}">
+                <span class="fw-bold small">Week {{ week.week_number }}</span>
+                <div class="d-flex gap-1 align-items-center">
+                    {% if week.start_date <= today and today <= week.end_date %}
+                    <span class="badge bg-white text-success">Current</span>
+                    {% elif week.start_date > today %}
+                    <span class="badge bg-primary">Upcoming</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Past</span>
+                    {% endif %}
+                    <span class="badge bg-dark small">
+                        {{ week.start_date|date:"d M" }}&ndash;{{ week.end_date|date:"d M" }}
+                    </span>
+                </div>
+            </div>
+            <div class="card-body py-2 {% if week.end_date < today %}opacity-75{% endif %}">
+                <div class="d-flex flex-wrap gap-1">
+                    {% for assign in week.assignments.all %}
+                    <span class="badge teacher-chip fw-normal py-1
+                        {% if assign.teacher.user == request.user %}bg-warning text-dark{% else %}bg-light text-dark border{% endif %}">
+                        {{ assign.teacher.user.get_full_name }}
+                        {% if assign.role and assign.role != 'Member' %}
+                        <span class="role-note">({{ assign.role }})</span>
+                        {% endif %}
+                    </span>
+                    {% empty %}
+                    <span class="text-muted small fst-italic">Unassigned</span>
+                    {% endfor %}
+                </div>
+                {% if week.remarks %}
+                <div class="small text-muted mt-1 border-top pt-1">{{ week.remarks }}</div>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="alert alert-info text-center small">No duty roster entries found.</div>
+        {% endfor %}
+    </div>
+
+    {# ── Signature block (print only) ── #}
+    <div class="print-only mt-5">
+        <div class="row">
+            <div class="col-6 text-center">
+                <br><br>
+                <p style="border-top:1px solid #000;display:inline-block;min-width:180px;padding-top:4px;">
+                    Headmaster's Signature
+                </p>
+            </div>
+            <div class="col-6 text-center">
+                <br><br>
+                <p style="border-top:1px solid #000;display:inline-block;min-width:180px;padding-top:4px;">
+                    Senior House Master
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
