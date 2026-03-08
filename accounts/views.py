@@ -3,6 +3,7 @@ from django.contrib.auth import login, logout, authenticate, get_user_model
 from django.contrib.auth.forms import SetPasswordForm
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.conf import settings
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 from academics.models import Class, AcademicYear, ClassSubject, Activity, Timetable, GalleryImage, Resource, SchoolInfo, Subject
@@ -362,10 +363,17 @@ def login_view(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
         
+        remember_me = request.POST.get('remember_me')  # checkbox value
         user = authenticate(request, username=username, password=password)
         
         if user is not None:
             login(request, user)
+            if remember_me:
+                # Keep session alive for SESSION_COOKIE_AGE (30 days)
+                request.session.set_expiry(settings.SESSION_COOKIE_AGE)
+            else:
+                # Session expires when the browser is closed
+                request.session.set_expiry(0)
             dashboard_url = request.META.get('SCRIPT_NAME', '') + '/dashboard/'
             return redirect(dashboard_url)
         else:

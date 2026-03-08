@@ -337,6 +337,11 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'School Admin <noreply
 # session is not explicitly modified by the view.
 SESSION_SAVE_EVERY_REQUEST = True
 
+# "Keep me logged in" persistent session = 30 days.
+# When the checkbox is NOT checked the view calls set_expiry(0),
+# which makes the session expire when the browser tab closes.
+SESSION_COOKIE_AGE = 30 * 24 * 60 * 60  # 30 days in seconds
+
 # =====================
 # VERCEL / PRODUCTION SECURITY
 # =====================
