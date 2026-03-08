@@ -673,22 +673,38 @@ def student_dashboard_view(request):
         from academics.gamification_models import AuraSessionState
         from academics.tutor_models import TutorSession
         aura_state = AuraSessionState.objects.filter(student=student).first()
-        last_session = (
+        recent_sessions = list(
             TutorSession.objects
             .filter(student=student)
             .select_related('subject')
-            .order_by('-started_at')
-            .first()
+            .order_by('-started_at')[:3]
         )
+        last_session = recent_sessions[0] if recent_sessions else None
     except Exception:
         aura_state = None
         last_session = None
+        recent_sessions = []
+
+    # Today's timetable widget
+    try:
+        today_weekday = date.today().weekday()
+        today_timetable = list(
+            Timetable.objects.filter(
+                class_subject__class_name=student.current_class,
+                day=today_weekday
+            ).select_related('class_subject__subject').order_by('start_time')
+        ) if student.current_class else []
+    except Exception:
+        today_timetable = []
 
     context = {
         'student': student,
         'gamification': student_xp,
         'aura_state': aura_state,
         'last_session': last_session,
+        'recent_sessions': recent_sessions,
+        'today_timetable': today_timetable,
+        'today_time': timezone.now().time(),
         'recent_attendance': recent_attendance,
         'attendance_stats': attendance_stats,
         'grades': grades,

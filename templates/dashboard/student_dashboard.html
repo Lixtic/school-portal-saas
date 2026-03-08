@@ -230,6 +230,43 @@
         .sdb-header::before { font-size: 2.8rem; right: 1rem; }
         .sd-stat-value { font-size: 1.35rem !important; }
     }
+
+    /* ===== Attendance Donut Ring ===== */
+    .donut-track-green { stroke: rgba(34,197,94,.2);  }
+    .donut-track-amber { stroke: rgba(245,158,11,.2); }
+    .donut-track-red   { stroke: rgba(239,68,68,.2);  }
+    .donut-fill-green  { stroke: #22c55e; }
+    .donut-fill-amber  { stroke: #f59e0b; }
+    .donut-fill-red    { stroke: #ef4444; }
+    .donut-pct-text    { fill: var(--sd-heading); font-family: system-ui, sans-serif; }
+
+    /* ===== Today's Classes ===== */
+    .sd-today-slot {
+        display: flex; align-items: center; gap: .65rem;
+        padding: .6rem 1rem; border-bottom: 1px solid var(--sd-border);
+    }
+    .sd-today-slot:last-child { border-bottom: none; }
+    .sd-time-badge {
+        font-size: .68rem; font-weight: 700; letter-spacing: .04em;
+        color: var(--sd-accent-blue); background: var(--sd-si-blue);
+        border-radius: 6px; padding: .18rem .55rem; white-space: nowrap; flex-shrink: 0;
+    }
+    .sd-today-now { background: rgba(34,197,94,.07); }
+    .sd-today-now .sd-time-badge { background: var(--sd-si-green); color: var(--sd-accent-green); }
+
+    /* ===== Recent Aura Sessions ===== */
+    .sd-session-row {
+        display: flex; align-items: center; gap: .65rem;
+        padding: .65rem 1rem; border-bottom: 1px solid var(--sd-border);
+        text-decoration: none; color: inherit; transition: background .15s;
+    }
+    .sd-session-row:last-child { border-bottom: none; }
+    .sd-session-row:hover { background: rgba(124,58,237,.05); }
+    [data-bs-theme="dark"] .sd-session-row:hover { background: rgba(139,92,246,.1); }
+    .sd-session-dot {
+        width: 7px; height: 7px; border-radius: 50%;
+        background: linear-gradient(135deg, #7c3aed, #3878ff); flex-shrink: 0;
+    }
 </style>
 
 <!-- ===== Header Banner ===== -->
@@ -265,16 +302,25 @@
     </a>
     <!-- Attendance -->
     <a href="{% url 'students:student_schedule' %}" class="sd-stat">
-        <div class="d-flex justify-content-between align-items-start">
+        <div class="d-flex justify-content-between align-items-center">
             <div>
                 <div class="sd-stat-label">Attendance</div>
-                <div class="sd-stat-value {% if attendance_stats.percentage < 75 %}text-danger{% elif attendance_stats.percentage < 90 %}text-warning{% endif %}">{{ attendance_stats.percentage }}%</div>
-                <div class="d-flex gap-1 mt-1 flex-wrap">
+                <div class="d-flex gap-1 mt-2 flex-wrap">
                     <span class="sd-pill pill-green"><i class="bi bi-check-circle-fill" style="font-size:.6rem;"></i> {{ attendance_stats.present }}P</span>
                     <span class="sd-pill pill-red"><i class="bi bi-x-circle-fill" style="font-size:.6rem;"></i> {{ attendance_stats.absent }}A</span>
                 </div>
             </div>
-            <div class="sd-stat-icon si-green"><i class="bi bi-calendar-check-fill"></i></div>
+            {% widthratio attendance_stats.percentage 100 126 as att_arc %}
+            <svg width="54" height="54" viewBox="0 0 54 54" aria-hidden="true">
+                <circle cx="27" cy="27" r="20" fill="none" stroke-width="5"
+                        class="{% if attendance_stats.percentage < 75 %}donut-track-red{% elif attendance_stats.percentage < 90 %}donut-track-amber{% else %}donut-track-green{% endif %}"/>
+                <circle cx="27" cy="27" r="20" fill="none" stroke-width="5" stroke-linecap="round"
+                        class="{% if attendance_stats.percentage < 75 %}donut-fill-red{% elif attendance_stats.percentage < 90 %}donut-fill-amber{% else %}donut-fill-green{% endif %}"
+                        stroke-dasharray="{{ att_arc }} 126"
+                        transform="rotate(-90 27 27)"/>
+                <text x="27" y="31" text-anchor="middle" font-size="10.5" font-weight="800"
+                      class="donut-pct-text">{{ attendance_stats.percentage }}%</text>
+            </svg>
         </div>
     </a>
     <!-- Fee -->
@@ -360,6 +406,26 @@
             </div>
             <i class="bi bi-arrow-right" style="color:#7c3aed;font-size:15px;flex-shrink:0;"></i>
         </a>
+        {% endif %}
+
+        <!-- Today's Classes Widget -->
+        {% if today_timetable %}
+        <div class="sd-section-heading">
+            📅 Today's Classes
+            <a href="{% url 'academics:timetable' %}">Full week &rarr;</a>
+        </div>
+        <div class="sd-card mb-3">
+            {% for entry in today_timetable %}
+            <div class="sd-today-slot {% if entry.start_time <= today_time and entry.end_time >= today_time %}sd-today-now{% endif %}">
+                <span class="sd-time-badge">{{ entry.start_time|time:"H:i" }}</span>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:600;font-size:.85rem;color:var(--sd-heading);">{{ entry.class_subject.subject.name }}</div>
+                    {% if entry.room %}<div style="font-size:.72rem;color:var(--sd-muted);">&#128205; {{ entry.room }}</div>{% endif %}
+                </div>
+                <span style="font-size:.7rem;color:var(--sd-muted);flex-shrink:0;">{{ entry.end_time|time:"H:i" }}</span>
+            </div>
+            {% endfor %}
+        </div>
         {% endif %}
 
         <!-- Tools -->
@@ -504,6 +570,26 @@
             });
         })();
         </script>
+
+        <!-- Recent Aura Sessions -->
+        {% if recent_sessions %}
+        <div class="sd-section-heading">
+            <span><i class="bi bi-stars" style="color:#7c3aed;"></i> Recent Learning Sessions</span>
+            <a href="{% url 'academics:ai_tutor' %}">Start new &rarr;</a>
+        </div>
+        <div class="sd-card mb-3">
+            {% for session in recent_sessions %}
+            <a href="{% url 'academics:ai_tutor' %}?session={{ session.id }}" class="sd-session-row">
+                <div class="sd-session-dot"></div>
+                <div style="flex:1;min-width:0;">
+                    <div class="text-truncate" style="font-weight:600;font-size:.83rem;color:var(--sd-heading);">{{ session.get_display_title }}</div>
+                    <div style="font-size:.72rem;color:var(--sd-muted);">{{ session.subject.name|default:"General" }} &bull; {{ session.started_at|date:"M d, H:i" }}</div>
+                </div>
+                <span style="font-size:.72rem;color:var(--sd-muted);flex-shrink:0;">{{ session.message_count }} msg{{ session.message_count|pluralize }}</span>
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
 
         <!-- Homework + Resources -->
         <div class="sd-content-grid">
