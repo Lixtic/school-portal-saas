@@ -438,11 +438,40 @@ FOUR NON-NEGOTIABLE REQUIREMENTS — EVERY PLAN, NO EXCEPTIONS
 
   Both paths MUST stay on the single concept of "{topic}". No concept drift into related sub-topics.
 
-④ DATA-TRIGGER — Phase 3 MUST contain a "📊 DATA-TRIGGER" block:
+④ CHECKPOINT QUESTIONS — Phase 2 MUST end with a "🔲 CHECKPOINT QUESTIONS" block:
+  Three short, convergent questions embedded immediately AFTER both learning paths.
+  These are live active-assessment probes the teacher reads aloud or posts on the board
+  while students hold up whiteboards or tap a response on their device.
+  - CQ1 = Foundational: Did everyone get the core idea? (closed, recall-level)
+  - CQ2 = Process: Can students apply {topic} in a structured context? (one-step)
+  - CQ3 = Transfer: Can they connect {topic} to the real world? (requires reasoning)
+  Each CQ must include a HEATMAP NOTE: the teacher action for Red / Amber / Green students.
+  These triggers feed the Mastery Heatmap on the teacher's Command Center.
+
+⑤ DATA-TRIGGER — Phase 3 MUST contain a "📊 DATA-TRIGGER" block:
   For EACH of the three Pulse Check questions, state the EXACT teacher action for students who missed it.
   Be specific: name the reteach method, re-pairing strategy, or micro-task for next lesson.
   Also state how to activate Extension Path students as resources (peer leaders, demonstrators, etc.).
   DATA-TRIGGER is a teacher planning tool — it must NOT appear in student-facing content.
+
+⑥ MASTERY SPRINT — Phase 3 MUST include a "🏁 MASTERY SPRINT" Exit Ticket block:
+  Three focused questions students answer SOLO — no hints, no discussion, no prompting.
+  MS1 = Recall (no scaffolding — tests if the concept stuck)
+  MS2 = Concept (tests understanding of the WHY or HOW, not just the WHAT)
+  MS3 = Application (new scenario — not the same Ghanaian example used in the hook or Extension Path)
+  Each question must be answerable in 2–4 sentences maximum.
+  This is student-facing — write it as a direct question, no teacher notes embedded.
+
+⑦ TEACHER INSIGHT — Phase 3 MUST include a "🤖 TEACHER INSIGHT" block immediately after DATA-TRIGGER:
+  Output a JSON object predicting which student groups need 1-on-1 help tomorrow.
+  Format EXACTLY:
+  {{
+    "at_risk_profile": "[2 sentences: describe the student(s) who likely struggled — based on Q1/Q2 Pulse Check patterns]",
+    "tomorrow_action": "[Exact 1-on-1 intervention the teacher should run in the first 5 mins of the next lesson]",
+    "monitor_signals": ["[Observable classroom signal 1]", "[Observable classroom signal 2]"],
+    "peer_resource": "[How to deploy Extension Path students as peer instructors or demonstrators]"
+  }}
+  This block is teacher-only — never share with students.
 
 ═══════════════════════════════════════════════════════
 SIX HOMEWORK RULES — ENFORCE STRICTLY
@@ -545,15 +574,36 @@ Task 2: [Cross-curricular or analytical challenge — state the second subject e
 Task 3: [Higher-order creation, evaluation, or design task.]
 Success marker: [What a strong finished product looks like. One sentence.]
 
+🔲 CHECKPOINT QUESTIONS (Active Assessment — Mastery Heatmap Triggers):
+CQ1: [Foundational check — short closed question. Can everyone state the core idea?]
+Heatmap: 🔴 [Teacher action for students who cannot answer] | 🟡 [Action for partial answers] | 🟢 [Action for confident answers]
+CQ2: [Process check — one-step application. Can students use {topic} in a structured context?]
+Heatmap: 🔴 [Reteach action] | 🟡 [Prompt/support action] | 🟢 [Extend action]
+CQ3: [Transfer check — reasoning or real-world connection. Can students generalise {topic}?]
+Heatmap: 🔴 [Reteach action] | 🟡 [Support action] | 🟢 [Activate as peer resource]
+
 **PHASE 3: REFLECTION [15 mins]**
 Whole-class debrief:
 [1–2 sentences. Whole-class question or share-out that consolidates {topic} for everyone.]
+
+🏁 MASTERY SPRINT (Exit Ticket — Students work SOLO. No hints. No discussion.):
+MS1: [Recall question — closed, direct. Tests if the core concept name/definition stuck.]
+MS2: [Concept question — tests the WHY or HOW, not just the WHAT. No scaffold.]
+MS3: [Application question — new context, NOT the hook or Extension Path scenario. Requires transfer.]
 
 📊 DATA-TRIGGER (Teacher Planning Tool — DO NOT share with students):
 - Students who missed Q1: [Exact reteach action for next lesson. Name the method.]
 - Students who missed Q2: [Exact misconception-correction strategy for next lesson.]
 - Students who missed Q3: [Exact application re-practice for next lesson.]
 - Extension Path students: [How to activate them as peer resources in the next lesson.]
+
+🤖 TEACHER INSIGHT (JSON Summary — Teacher Mobile App Only):
+{{
+  "at_risk_profile": "[2 sentences describing the student group predicted to need 1-on-1 — based on Q1/Q2 patterns]",
+  "tomorrow_action": "[Exact first-5-minute intervention for the next lesson]",
+  "monitor_signals": ["[Observable signal 1]", "[Observable signal 2]"],
+  "peer_resource": "[How to deploy Extension Path students tomorrow]"
+}}
 
 **Resources:** [All materials needed: textbook pages, whiteboard, manipulatives, local objects]
 
