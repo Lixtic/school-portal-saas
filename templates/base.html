@@ -3471,5 +3471,18 @@
 </script>
 {% endif %}
 
+<!-- Auto-close native date pickers after a date is selected -->
+<script>
+(function () {
+    document.addEventListener('change', function (e) {
+        var t = e.target;
+        if (t && t.tagName === 'INPUT' && t.type === 'date' && t.value) {
+            // Blur dismisses the browser calendar popup immediately
+            t.blur();
+        }
+    }, true); // capture phase so it fires before any inline handlers
+})();
+</script>
+
 </body>
 </html>
