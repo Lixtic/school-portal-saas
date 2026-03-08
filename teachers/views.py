@@ -2130,12 +2130,137 @@ def aura_t_api(request):
                     "redirect_url": f"/{schema}/homework/{hw.pk}/",
                 })
 
+            elif action == 'regenerate':
+                import re as _re
+                plan_id = data.get('plan_id')
+                if not plan_id:
+                    return JsonResponse({"status": "error", "message": "plan_id required"}, status=400)
+
+                regen_plan = get_object_or_404(LessonPlan, pk=plan_id, teacher=teacher)
+                topic_r = regen_plan.topic
+                subject_r = regen_plan.subject.name if regen_plan.subject else "General Studies"
+                class_r = regen_plan.school_class.name if regen_plan.school_class else "General"
+
+                regen_result = AuraGenEngine.generate_lesson_plan(topic_r, subject_r, class_r)
+                lesson_body = (regen_result.get('lesson_plan') or '').strip()
+                if not lesson_body:
+                    return JsonResponse({"status": "error",
+                                         "message": regen_result.get('error', 'Generation failed')}, status=500)
+
+                def _extract_r(header, text):
+                    pat = _re.compile(
+                        rf"\*\*{_re.escape(header)}.*?\*\*\s*(.*?)(?=\n\*\*|\Z)",
+                        _re.DOTALL | _re.IGNORECASE
+                    )
+                    m = pat.search(text)
+                    return m.group(1).strip() if m else ''
+
+                regen_plan.objectives = (
+                    _extract_r('Content Standard', lesson_body) + '\n' +
+                    _extract_r('Indicator', lesson_body)
+                ).strip() or regen_plan.objectives
+                regen_plan.introduction = _extract_r('PHASE 1: STARTER', lesson_body) or regen_plan.introduction
+                regen_plan.presentation = (
+                    _extract_r('PHASE 2: NEW LEARNING', lesson_body) or
+                    _extract_r('PHASE 2', lesson_body) or
+                    regen_plan.presentation
+                )
+                regen_plan.evaluation = (
+                    _extract_r('PHASE 3: REFLECTION', lesson_body) or
+                    _extract_r('Assessment', lesson_body) or
+                    regen_plan.evaluation
+                )
+                hw_new = _extract_r('Homework', lesson_body)
+                if hw_new:
+                    regen_plan.homework = hw_new
+                regen_plan.save()
+
+                return JsonResponse({
+                    "status": "success",
+                    "message": "Lesson plan upgraded to Aura-T v3.",
+                    "plan_id": regen_plan.pk,
+                })
+
             return JsonResponse({"status": "error", "message": "Unknown action"}, status=400)
             
         except Exception as e:
             return _ai_json_error_response(e)
             
     return JsonResponse({"status": "error", "message": "Invalid method"}, status=405)
+
+@login_required
+def aura_command_center(request):
+    """
+    Aura-T Command Center: overview of all lesson plans with per-plan
+    Aura-T feature badges (Pulse Check / Checkpoints / Mastery Sprint / Insight).
+    """
+    is_teacher = request.user.user_type == 'teacher'
+    is_admin   = request.user.user_type == 'admin'
+    if not is_teacher and not is_admin:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    teacher = None
+    if is_teacher:
+        teacher = get_object_or_404(Teacher, user=request.user)
+
+    plans_qs = LessonPlan.objects.select_related('subject', 'school_class', 'teacher', 'teacher__user')
+    if is_teacher:
+        plans_qs = plans_qs.filter(teacher=teacher)
+    plans = list(plans_qs)
+
+    for p in plans:
+        intro = p.introduction or ''
+        pres  = p.presentation or ''
+        evl   = p.evaluation or ''
+        p.has_pulse      = 'PULSE CHECK' in intro
+        p.has_checkpoints= 'CHECKPOINT QUESTIONS' in pres or 'CQ1:' in pres
+        p.has_sprint     = 'MASTERY SPRINT' in evl or 'MS1:' in evl
+        p.has_insight    = 'TEACHER INSIGHT' in evl
+        p.aura_score     = sum([p.has_pulse, p.has_checkpoints, p.has_sprint, p.has_insight])
+
+    total          = len(plans)
+    v3_ready       = sum(1 for p in plans if p.aura_score == 4)
+    partial_count  = sum(1 for p in plans if 0 < p.aura_score < 4)
+    no_aura_count  = sum(1 for p in plans if p.aura_score == 0)
+
+    # Sort: v3-complete first, then partial, then none; within each group newest first
+    plans.sort(key=lambda p: (-p.aura_score, -p.pk))
+
+    return render(request, 'teachers/aura_command_center.html', {
+        'plans': plans,
+        'total': total,
+        'v3_ready': v3_ready,
+        'partial_count': partial_count,
+        'no_aura_count': no_aura_count,
+        'is_teacher': is_teacher,
+        'is_admin': is_admin,
+        'teacher': teacher,
+    })
+
+
+@login_required
+def lesson_plan_cards_print(request, pk):
+    """
+    Printable Student Nuggets + Mastery Sprint cards for a lesson plan.
+    Cut-and-distribute format: support card | extension card, then exit ticket strip.
+    """
+    is_teacher = request.user.user_type == 'teacher'
+    is_admin   = request.user.user_type == 'admin'
+    if not is_teacher and not is_admin:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    if is_teacher:
+        teacher = get_object_or_404(Teacher, user=request.user)
+        lesson_plan = get_object_or_404(LessonPlan, pk=pk, teacher=teacher)
+    else:
+        lesson_plan = get_object_or_404(LessonPlan, pk=pk)
+
+    return render(request, 'teachers/lesson_plan_cards_print.html', {
+        'lesson_plan': lesson_plan,
+    })
+
 
 @login_required
 def lesson_plan_delete(request, pk):

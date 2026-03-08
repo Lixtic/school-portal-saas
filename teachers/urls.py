@@ -32,12 +32,14 @@ urlpatterns = [
     path('resources/delete/<int:resource_id>/', views.delete_resource, name='delete_resource'),
     # Lesson Plans
     path('lesson-plans/', views.lesson_plan_list, name='lesson_plan_list'),
+    path('lesson-plans/command-center/', views.aura_command_center, name='aura_command_center'),
     path('lesson-plans/create/', views.lesson_plan_create, name='lesson_plan_create'),
     path('lesson-plans/aura-t-api/', views.aura_t_api, name='aura_t_api'),
     path('lesson-plans/save-aura-t/', views.save_aura_t_plan, name='save_aura_t_plan'),
     path('lesson-plans/<int:pk>/', views.lesson_plan_detail, name='lesson_plan_detail'),
     path('lesson-plans/<int:pk>/duplicate/', views.lesson_plan_duplicate, name='lesson_plan_duplicate'),
     path('lesson-plans/<int:pk>/print/', views.lesson_plan_print, name='lesson_plan_print'),
+    path('lesson-plans/<int:pk>/cards/', views.lesson_plan_cards_print, name='lesson_plan_cards_print'),
     path('lesson-plans/<int:pk>/edit/', views.lesson_plan_edit, name='lesson_plan_edit'),
     path('lesson-plans/<int:pk>/delete/', views.lesson_plan_delete, name='lesson_plan_delete'),
     

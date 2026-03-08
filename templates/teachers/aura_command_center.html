@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+{% block title %}Aura-T Command Center{% endblock %}
+
+{% block content %}
+<style>
+    .acc-header {
+        background: linear-gradient(135deg, #064e3b 0%, #065f46 60%, #047857 100%);
+        border-radius: 1rem;
+        color: #fff;
+        padding: 1.5rem 1.75rem;
+        margin-bottom: 1.5rem;
+    }
+    .acc-title { font-size: 1.4rem; font-weight: 800; letter-spacing: -.01em; margin-bottom: .15rem; }
+    .acc-sub   { font-size: .87rem; opacity: .88; margin: 0; }
+
+    .acc-stat { padding: 1.25rem; border-radius: 12px; background: #fff;
+        border: 1px solid #e5e7eb; display: flex; align-items: center; gap: 1rem; }
+    .acc-stat-icon { width: 44px; height: 44px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.25rem; flex-shrink: 0; }
+    .acc-stat-lbl { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em;
+        color: #6b7280; font-weight: 500; }
+    .acc-stat-val { font-size: 1.75rem; font-weight: 800; line-height: 1; color: #111827; }
+    [data-bs-theme="dark"] .acc-stat { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.08); }
+    [data-bs-theme="dark"] .acc-stat-val { color: #f9fafb; }
+
+    .plan-row {
+        display: flex; align-items: center; gap: .85rem;
+        border: 1px solid rgba(0,0,0,.07); border-radius: 12px;
+        background: #fff; padding: .85rem 1rem; margin-bottom: .5rem;
+        transition: border-color .15s, box-shadow .15s;
+    }
+    .plan-row:hover { border-color: #059669; box-shadow: 0 2px 12px rgba(5,150,105,.09); }
+    [data-bs-theme="dark"] .plan-row { background: rgba(255,255,255,.03); border-color: rgba(255,255,255,.07); }
+    [data-bs-theme="dark"] .plan-row:hover { border-color: rgba(52,211,153,.35); }
+
+    .plan-week { min-width: 50px; height: 50px; border-radius: 10px;
+        background: #ecfdf5; color: #059669; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; font-weight: 800;
+        font-size: .72rem; flex-shrink: 0; line-height: 1.1; text-align: center; }
+    [data-bs-theme="dark"] .plan-week { background: rgba(5,150,105,.15); color: #34d399; }
+
+    .plan-meta { flex: 1; min-width: 0; }
+    .plan-topic { font-size: .93rem; font-weight: 700; white-space: nowrap;
+        overflow: hidden; text-overflow: ellipsis; color: #111827; }
+    [data-bs-theme="dark"] .plan-topic { color: #f9fafb; }
+    .plan-detail { font-size: .76rem; color: #6b7280; }
+
+    .aura-badges { display: flex; gap: .3rem; flex-wrap: wrap; flex-shrink: 0; }
+    .ab { display: inline-flex; align-items: center; gap: .2rem;
+        font-size: .68rem; font-weight: 700; border-radius: 6px;
+        padding: .15rem .45rem; white-space: nowrap; border: 1px solid; }
+    .ab-on  { background: #dcfce7; color: #15803d; border-color: #86efac; }
+    .ab-off { background: #f3f4f6; color: #9ca3af; border-color: #e5e7eb; }
+    [data-bs-theme="dark"] .ab-on  { background: rgba(22,163,74,.15);  color: #86efac; border-color: rgba(134,239,172,.25); }
+    [data-bs-theme="dark"] .ab-off { background: rgba(255,255,255,.04); color: #4b5563; border-color: rgba(255,255,255,.08); }
+
+    .score-ring { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .75rem; font-weight: 800; border: 2px solid; }
+    .ring-4 { background: #dcfce7; color: #15803d; border-color: #22c55e; }
+    .ring-3 { background: #fef3c7; color: #92400e; border-color: #fbbf24; }
+    .ring-2 { background: #fff7ed; color: #9a3412; border-color: #fb923c; }
+    .ring-1 { background: #fee2e2; color: #7f1d1d; border-color: #f87171; }
+    .ring-0 { background: #f3f4f6; color: #9ca3af; border-color: #d1d5db; }
+    [data-bs-theme="dark"] .ring-4 { background: rgba(22,163,74,.2);  color: #86efac; border-color: #22c55e; }
+    [data-bs-theme="dark"] .ring-3 { background: rgba(245,158,11,.2); color: #fde68a; border-color: #fbbf24; }
+    [data-bs-theme="dark"] .ring-0 { background: rgba(255,255,255,.05); color: #4b5563; border-color: rgba(255,255,255,.12); }
+
+    .plan-actions { display: flex; gap: .35rem; flex-shrink: 0; }
+    .action-btn { font-size: .74rem; font-weight: 600; padding: .25rem .6rem;
+        border-radius: 6px; text-decoration: none; display: inline-flex;
+        align-items: center; gap: .25rem; white-space: nowrap; }
+    .btn-view  { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; }
+    .btn-regen { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+    .btn-cards { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+    .action-btn:hover { opacity: .82; }
+
+    .section-label { font-size: .72rem; font-weight: 800; text-transform: uppercase;
+        letter-spacing: .07em; padding: .3rem .7rem; border-radius: 20px;
+        display: inline-flex; align-items: center; gap: .35rem; margin-bottom: .7rem; }
+    .lbl-green { background: #dcfce7; color: #15803d; }
+    .lbl-amber { background: #fef3c7; color: #92400e; }
+    .lbl-gray  { background: #f3f4f6; color: #6b7280; }
+
+    @media(max-width:576px) {
+        .plan-actions { display: none; }
+        .aura-badges { display: none; }
+    }
+</style>
+
+<div class="container py-4">
+<div class="row justify-content-center"><div class="col-lg-11 col-xl-10">
+
+    <!-- Header -->
+    <div class="acc-header">
+        <div class="d-flex align-items-start justify-content-between flex-wrap gap-2">
+            <div>
+                <div class="acc-title">🤖 Aura-T Command Center</div>
+                <p class="acc-sub">
+                    Lesson plan upgrade status &mdash;
+                    {% if is_teacher %}{{ teacher.user.get_full_name }}{% else %}All Teachers{% endif %}
+                </p>
+            </div>
+            <div class="d-flex gap-2 flex-wrap mt-1 mt-sm-0">
+                <a href="{% url 'teachers:lesson_plan_list' %}" class="btn btn-light rounded-pill fw-semibold px-3 btn-sm">
+                    <i class="bi bi-list-ul me-1"></i>All Plans
+                </a>
+                <a href="{% url 'teachers:lesson_plan_create' %}" class="btn btn-light rounded-pill fw-semibold px-3 btn-sm">
+                    <i class="bi bi-plus-lg me-1"></i>New Plan
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-sm-3">
+            <div class="acc-stat">
+                <div class="acc-stat-icon" style="background:#ecfdf5;color:#059669;">📄</div>
+                <div>
+                    <div class="acc-stat-lbl">Total Plans</div>
+                    <div class="acc-stat-val">{{ total }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-sm-3">
+            <div class="acc-stat">
+                <div class="acc-stat-icon" style="background:#dcfce7;color:#15803d;">✅</div>
+                <div>
+                    <div class="acc-stat-lbl">v3 Ready</div>
+                    <div class="acc-stat-val" style="color:#15803d;">{{ v3_ready }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-sm-3">
+            <div class="acc-stat">
+                <div class="acc-stat-icon" style="background:#fef3c7;color:#b45309;">⚡</div>
+                <div>
+                    <div class="acc-stat-lbl">Partial</div>
+                    <div class="acc-stat-val" style="color:#b45309;">{{ partial_count }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-sm-3">
+            <div class="acc-stat">
+                <div class="acc-stat-icon" style="background:#f3f4f6;color:#6b7280;">⬜</div>
+                <div>
+                    <div class="acc-stat-lbl">No Aura-T</div>
+                    <div class="acc-stat-val" style="color:#6b7280;">{{ no_aura_count }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Key -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4 p-3">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <span style="font-size:.74rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;">Feature Key:</span>
+            <span class="ab ab-on">🔍 Pulse</span>
+            <span class="ab ab-on">🔲 Checkpoints</span>
+            <span class="ab ab-on">🏁 Sprint</span>
+            <span class="ab ab-on">🤖 Insight</span>
+            <span class="ms-auto" style="font-size:.75rem;color:#6b7280;">
+                Score <strong class="ring-4" style="display:inline-flex;width:22px;height:22px;align-items:center;justify-content:center;border-radius:50%;font-size:.65rem;">4</strong> = fully upgraded
+            </span>
+        </div>
+    </div>
+
+    {% if plans %}
+
+    {% regroup plans by aura_score as score_groups %}
+
+    {% for group in score_groups %}
+    {% with sc=group.grouper %}
+
+    {% if sc == 4 %}
+    <div class="mb-1"><span class="section-label lbl-green">✅ v3 Complete ({{ group.list|length }})</span></div>
+    {% elif sc >= 1 %}
+    <div class="mb-1"><span class="section-label lbl-amber">⚡ Partially Upgraded ({{ group.list|length }}) — Regenerate to complete</span></div>
+    {% else %}
+    <div class="mb-1"><span class="section-label lbl-gray">⬜ No Aura-T ({{ group.list|length }}) — Click Regenerate to upgrade</span></div>
+    {% endif %}
+
+    {% for p in group.list %}
+    <div class="plan-row">
+        <!-- Week badge -->
+        <div class="plan-week">
+            <span>Wk</span>
+            <span style="font-size:1rem;">{{ p.week_number }}</span>
+        </div>
+
+        <!-- Info -->
+        <div class="plan-meta">
+            <div class="plan-topic">{{ p.topic }}</div>
+            <div class="plan-detail">
+                {{ p.subject.name }} &middot; {{ p.school_class.name }}
+                {% if is_admin %}&middot; {{ p.teacher.user.get_full_name }}{% endif %}
+            </div>
+        </div>
+
+        <!-- Aura-T badges -->
+        <div class="aura-badges d-none d-md-flex">
+            <span class="ab {% if p.has_pulse %}ab-on{% else %}ab-off{% endif %}">🔍 Pulse</span>
+            <span class="ab {% if p.has_checkpoints %}ab-on{% else %}ab-off{% endif %}">🔲 CQ</span>
+            <span class="ab {% if p.has_sprint %}ab-on{% else %}ab-off{% endif %}">🏁 Sprint</span>
+            <span class="ab {% if p.has_insight %}ab-on{% else %}ab-off{% endif %}">🤖 Insight</span>
+        </div>
+
+        <!-- Score ring -->
+        <div class="score-ring ring-{{ p.aura_score }}">{{ p.aura_score }}/4</div>
+
+        <!-- Actions -->
+        <div class="plan-actions">
+            <a href="{% url 'teachers:lesson_plan_detail' p.pk %}" class="action-btn btn-view">
+                <i class="bi bi-eye"></i>View
+            </a>
+            {% if not is_admin %}
+            <a href="{% url 'teachers:lesson_plan_detail' p.pk %}"
+               class="action-btn btn-regen"
+               title="Open plan and click Regenerate to upgrade to v3">
+                <i class="bi bi-arrow-clockwise"></i>Regen
+            </a>
+            {% if p.aura_score >= 1 %}
+            <a href="{% url 'teachers:lesson_plan_cards_print' p.pk %}" class="action-btn btn-cards" target="_blank">
+                <i class="bi bi-scissors"></i>Cards
+            </a>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+    <div class="mb-3"></div>
+
+    {% endwith %}
+    {% endfor %}
+
+    {% else %}
+    <div class="text-center py-5 opacity-60">
+        <div style="font-size:3rem;">📭</div>
+        <p class="mt-2">No lesson plans yet. <a href="{% url 'teachers:lesson_plan_create' %}">Create one</a>.</p>
+    </div>
+    {% endif %}
+
+</div></div>
+</div>
+{% endblock %}

@@ -1,0 +1,236 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Cards — {{ lesson_plan.topic }}</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; color: #111;
+           font-size: 13px; }
+
+    /* ── Screen controls ── */
+    .screen-bar { background: #1e293b; color: #f8fafc; padding: .6rem 1rem;
+        display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+        position: sticky; top: 0; z-index: 100; }
+    .screen-bar h1 { font-size: .9rem; font-weight: 700; }
+    .screen-bar a  { color: #94a3b8; font-size: .78rem; text-decoration: none; }
+    .print-btn { background: #0ea5e9; color: #fff; border: none; padding: .35rem .9rem;
+        border-radius: 6px; font-size: .8rem; font-weight: 600; cursor: pointer; }
+
+    /* ── Page layout ── */
+    .page { max-width: 210mm; margin: 0 auto; padding: 8mm; }
+
+    /* ── Lesson header strip ── */
+    .lp-meta { border: 1px solid #e2e8f0; border-radius: 8px; padding: .6rem .9rem;
+        margin-bottom: 6mm; background: #f8fafc; }
+    .lp-meta-title { font-size: 1rem; font-weight: 800; color: #0f172a; }
+    .lp-meta-sub { font-size: .76rem; color: #64748b; margin-top: .1rem; }
+
+    /* ── Nugget cards (side-by-side) ── */
+    .nugget-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; margin-bottom: 5mm; }
+    .nugget-card { border-radius: 8px; padding: .8rem; page-break-inside: avoid; }
+    .support-card { border: 2px solid #86efac; background: #f0fdf4; }
+    .extension-card { border: 2px solid #93c5fd; background: #eff6ff; }
+
+    .nugget-label { font-size: .62rem; font-weight: 800; text-transform: uppercase;
+        letter-spacing: .07em; border-radius: 20px; padding: .1rem .5rem;
+        display: inline-block; margin-bottom: .4rem; }
+    .support-card   .nugget-label { background: #dcfce7; color: #15803d; }
+    .extension-card .nugget-label { background: #dbeafe; color: #1e40af; }
+
+    .nugget-topic { font-size: .72rem; color: #64748b; margin-bottom: .4rem; }
+    .nugget-headline { font-size: .9rem; font-weight: 700; color: #0f172a;
+        margin-bottom: .45rem; line-height: 1.3; }
+    .nugget-bullet { font-size: .83rem; color: #374151; padding: .18rem 0 .18rem 1rem;
+        position: relative; line-height: 1.4; }
+    .nugget-bullet::before { content: '▸'; position: absolute; left: 0;
+        color: #0ea5e9; font-size: .75rem; }
+    .support-card .nugget-bullet::before  { color: #22c55e; }
+    .extension-card .nugget-bullet::before { color: #3b82f6; }
+    .nugget-success { font-size: .76rem; font-style: italic; color: #64748b;
+        margin-top: .35rem; padding-top: .35rem; border-top: 1px dotted #d1d5db; }
+
+    /* ── Cut line ── */
+    .cut-line { border-top: 2px dashed #94a3b8; margin: 4mm 0;
+        display: flex; align-items: center; justify-content: center; gap: .5rem; }
+    .cut-label { background: #fff; padding: 0 .5rem; font-size: .68rem;
+        color: #94a3b8; font-weight: 600; text-transform: uppercase;
+        white-space: nowrap; }
+
+    /* ── Exit Ticket (Mastery Sprint) ── */
+    .exit-header { font-size: .78rem; font-weight: 800; text-transform: uppercase;
+        letter-spacing: .07em; color: #5b21b6; margin-bottom: .5rem;
+        display: flex; align-items: center; gap: .4rem; }
+    .et-meta { font-size: .72rem; color: #6b7280; margin-bottom: .6rem; }
+    .et-name-box { border: 1.5px solid #d1d5db; border-radius: 6px; height: 22px;
+        width: 140px; display: inline-block; vertical-align: middle; margin-left: .4rem; }
+
+    .ms-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4mm; }
+    .ms-item { border: 1.5px solid #ddd6fe; border-radius: 8px;
+        background: #faf5ff; padding: .65rem; page-break-inside: avoid; }
+    .ms-q-label { font-size: .62rem; font-weight: 800; color: #6d28d9;
+        text-transform: uppercase; letter-spacing: .05em; margin-bottom: .35rem; }
+    .ms-q-text { font-size: .84rem; color: #1e1b4b; line-height: 1.4; margin-bottom: .5rem; }
+    .ms-answer-box { border: none; border-bottom: 1.5px solid #c4b5fd;
+        height: 38px; width: 100%; display: block; }
+
+    /* ── Empty state ── */
+    .no-content { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px;
+        padding: 1rem; color: #92400e; font-size: .84rem; margin: 1rem 0; }
+
+    /* ── Print styles ── */
+    @media print {
+        @page { size: A4 portrait; margin: 8mm; }
+        .screen-bar { display: none !important; }
+        .page { padding: 0; max-width: 100%; }
+        body { font-size: 12px; }
+    }
+</style>
+</head>
+<body>
+
+<!-- Screen toolbar -->
+<div class="screen-bar">
+    <h1>🎒 Student Cards — {{ lesson_plan.topic }}</h1>
+    <div style="display:flex;gap:.75rem;align-items:center;">
+        <a href="{% url 'teachers:lesson_plan_detail' lesson_plan.pk %}">← Back to Plan</a>
+        <button class="print-btn" onclick="window.print()">🖨️ Print / Save PDF</button>
+    </div>
+</div>
+
+<!-- Print page -->
+<div class="page">
+
+    <!-- Lesson metadata -->
+    <div class="lp-meta">
+        <div class="lp-meta-title">{{ lesson_plan.topic }}</div>
+        <div class="lp-meta-sub">
+            {{ lesson_plan.subject.name }} &middot; {{ lesson_plan.school_class.name }}
+            &middot; Week {{ lesson_plan.week_number }}
+            &middot; {{ lesson_plan.teacher.user.get_full_name }}
+        </div>
+    </div>
+
+    <!-- Nugget cards & Mastery Sprint — built by JS below -->
+    <div id="nuggetSection"></div>
+    <div id="exitSection"></div>
+
+    <noscript>
+        <div class="no-content">
+            ⚠️ JavaScript required to render student cards. Please enable JavaScript and reload.
+        </div>
+    </noscript>
+</div>
+
+<script>
+(function() {
+    var present = "{{ lesson_plan.presentation|escapejs }}";
+    var evalTxt = "{{ lesson_plan.evaluation|escapejs }}";
+    var topic   = "{{ lesson_plan.topic|escapejs }}";
+
+    function esc(s) {
+        return String(s)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ── Parse Support / Extension paths ──────────────────────
+    var spIdx = Math.max(present.indexOf('SUPPORT PATH'), present.indexOf('\uD83D\uDFE2'));
+    var exIdx = Math.max(present.indexOf('EXTENSION PATH'), present.indexOf('\uD83D\uDD35'));
+
+    function parsePath(text) {
+        var allLines = text.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+        var body = allLines.filter(function(l){
+            return !/^(\uD83D\uDFE2|\uD83D\uDD35|SUPPORT PATH|EXTENSION PATH)/i.test(l);
+        });
+        var sucIdx = body.findIndex(function(l){ return /success marker/i.test(l); });
+        var steps  = sucIdx > -1 ? body.slice(0, sucIdx) : body;
+        var success= sucIdx > -1 ? body.slice(sucIdx).join(' ').replace(/success marker[:\s]*/i,'').trim() : '';
+        return { steps: steps, success: success };
+    }
+
+    var spRaw = spIdx > -1 ? present.slice(spIdx, exIdx > spIdx ? exIdx : undefined) : '';
+    var exRaw = exIdx > -1 ? present.slice(exIdx) : '';
+    var sp = parsePath(spRaw);
+    var ex = parsePath(exRaw);
+
+    function nuggetCard(path, isSupport) {
+        if (!path.steps.length) return '';
+        var cardCls  = isSupport ? 'support-card'   : 'extension-card';
+        var badge    = isSupport ? 'For Support Students' : 'Junior Innovator 🔵';
+        var headline = path.steps[0];
+        var bullets  = path.steps.slice(1, 4);
+        return '<div class="nugget-card ' + cardCls + '">'
+            + '<span class="nugget-label">' + esc(badge) + '</span>'
+            + '<div class="nugget-topic">' + esc(topic) + '</div>'
+            + '<div class="nugget-headline">' + esc(headline) + '</div>'
+            + bullets.map(function(b){
+                return '<div class="nugget-bullet">' + esc(b) + '</div>';
+              }).join('')
+            + (path.success ? '<div class="nugget-success">✓ ' + esc(path.success) + '</div>' : '')
+            + '</div>';
+    }
+
+    var spCard = nuggetCard(sp, true);
+    var exCard = nuggetCard(ex, false);
+
+    var nuggetHtml = '';
+    if (spCard || exCard) {
+        nuggetHtml = '<div style="font-size:.7rem;font-weight:800;text-transform:uppercase;'
+            + 'letter-spacing:.07em;color:#64748b;margin-bottom:.4rem;">🎒 Student Nugget Cards</div>'
+            + '<div class="nugget-grid">' + (spCard || '<div></div>') + (exCard || '<div></div>') + '</div>';
+    } else {
+        nuggetHtml = '<div class="no-content">⚠️ No Bimodal Delivery paths found in this lesson plan.'
+            + ' Regenerate with Aura-T v3 to generate Student Nuggets.</div>';
+    }
+    document.getElementById('nuggetSection').innerHTML = nuggetHtml;
+
+    // ── Cut line ─────────────────────────────────────────────
+    var cutHtml = '<div class="cut-line"><span class="cut-label">✂ Cut here — Exit Ticket below (one per student)</span></div>';
+
+    // ── Parse Mastery Sprint ──────────────────────────────────
+    function parseMSQ(num) {
+        var label = 'MS' + num + ':';
+        var i = evalTxt.indexOf(label);
+        if (i === -1) return '';
+        var after = evalTxt.slice(i + label.length);
+        var nextMs = after.indexOf('\nMS' + (num + 1) + ':');
+        var nextBlock = after.search(/\n[\uD83D\uDCCA\uD83E\uDD16\*]{1}/);
+        var endAt = [nextMs, nextBlock].filter(function(x){ return x > -1; });
+        var end = endAt.length ? Math.min.apply(null, endAt) : -1;
+        return (end > -1 ? after.slice(0, end) : after).split('\n')[0].trim();
+    }
+
+    var ms1 = parseMSQ(1), ms2 = parseMSQ(2), ms3 = parseMSQ(3);
+    var typeLabels = ['Recall', 'Concept', 'Application'];
+
+    var exitHtml = '';
+    if (ms1 || ms2 || ms3) {
+        var items = [ms1, ms2, ms3].map(function(q, i) {
+            if (!q) return '';
+            return '<div class="ms-item">'
+                + '<div class="ms-q-label">🏁 MS' + (i+1) + ' — ' + typeLabels[i] + '</div>'
+                + '<div class="ms-q-text">' + esc(q) + '</div>'
+                + '<div class="ms-answer-box"></div>'
+                + '</div>';
+        }).join('');
+
+        exitHtml = cutHtml
+            + '<div class="exit-header">🏁 Mastery Sprint — Exit Ticket</div>'
+            + '<div class="et-meta">Name: <span class="et-name-box"></span> &nbsp;&nbsp; Class: '
+            + esc(("{{ lesson_plan.school_class.name }}")) + ' &nbsp;&nbsp; Date: _______________</div>'
+            + '<div style="font-size:.72rem;color:#7c3aed;font-style:italic;margin-bottom:.5rem;">'
+            + 'Work SOLO. No hints. No discussion. Write your answer on the line below each question.</div>'
+            + '<div class="ms-grid">' + items + '</div>';
+    } else {
+        exitHtml = cutHtml
+            + '<div class="no-content">⚠️ No Mastery Sprint found. Regenerate with Aura-T v3 to add the Exit Ticket.</div>';
+    }
+
+    document.getElementById('exitSection').innerHTML = exitHtml;
+})();
+</script>
+</body>
+</html>
