@@ -19,81 +19,140 @@ class AuraGenEngine:
     @staticmethod
     def generate_assignment_package(lesson_plan: LessonPlan, topic_prompt: Optional[str] = None) -> Dict:
         """
-        Generates a complete assignment package based on a lesson plan or topic using AI.
+        Generates a complete differentiated assignment package grounded in the
+        Aura-T lesson plan. Applies Ghana cultural contexts, GES CBC alignment,
+        Support/Extension split, and device-equity rules.
         """
-        topic = topic_prompt if topic_prompt else lesson_plan.topic
-        subject = lesson_plan.subject.name
+        topic       = topic_prompt if topic_prompt else lesson_plan.topic
+        subject     = lesson_plan.subject.name
         grade_level = lesson_plan.school_class.name
-        
-        # Build context from lesson plan if available
-        lesson_context = ""
-        if lesson_plan:
-            lesson_context = f"""
-            Objectives: {lesson_plan.objectives}
-            Presentation: {lesson_plan.presentation}
-            """
 
-        system_prompt = f"""You are Aura-T, an expert pedagogical AI for teachers. 
-        Your task is to generate a high-quality, differentiated assignment package for a {grade_level} class on the subject of {subject}.
-        
-        Topic: {topic}
-        Context: {lesson_context}
-        
-        You must return a valid JSON object with the following structure:
-        {{
-            "assignment": {{
-                "title": "Creative title for the assignment",
-                "description": "Student-facing instructions",
-                "content": {{
-                    "visual_prompt": "Description of an image or diagram students should analyze",
-                    "questions": ["Question 1", "Question 2", "Question 3"]
-                }}
-            }},
-            "differentiation": {{
-                "support": {{
-                    "description": "How to support struggling learners",
-                    "modifications": ["Modification 1", "Modification 2"]
-                }},
-                "standard": {{
-                    "description": "Standard expectations",
-                    "content": ["Standard Task 1", "Standard Task 2"]
-                }},
-                "challenge": {{
-                    "description": "How to extend for advanced learners",
-                    "modifications": ["Extension 1", "Extension 2"]
-                }}
-            }},
-            "rubric": [
-                {{
-                    "criteria": "Criteria Name",
-                    "weight": "Percentage",
-                    "levels": {{
-                        "excellent": "Description for top marks",
-                        "proficient": "Description for passing",
-                        "basic": "Description for partial credit",
-                        "limited": "Description for minimum credit"
-                    }}
-                }}
-            ]
-        }}
-        """
+        # Extract Aura-T plan context for richer prompting
+        intro_text  = lesson_plan.introduction  or ""
+        present_text = lesson_plan.presentation or ""
+        eval_text   = lesson_plan.evaluation    or ""
+        obj_text    = lesson_plan.objectives    or ""
+
+        # Pull the Ghanaian hook context used in the plan (first 300 chars of intro)
+        hook_snippet = intro_text[:300].strip()
+        # Pull Support and Extension path content
+        sp_snippet = ""
+        ex_snippet = ""
+        if "SUPPORT PATH" in present_text:
+            sp_start = present_text.find("SUPPORT PATH")
+            ex_start = present_text.find("EXTENSION PATH")
+            sp_snippet = present_text[sp_start: ex_start if ex_start > sp_start else sp_start + 600].strip()[:400]
+            ex_snippet = present_text[ex_start: ex_start + 600].strip()[:400] if ex_start != -1 else ""
+        # Pull Data-Trigger gaps
+        dt_snippet = ""
+        if "DATA-TRIGGER" in eval_text:
+            dt_start = eval_text.find("DATA-TRIGGER")
+            dt_snippet = eval_text[dt_start: dt_start + 500].strip()[:400]
+
+        system_prompt = f"""You are Aura-T, an advanced pedagogical AI for Ghanaian teachers.
+Generate a DIFFERENTIATED assignment package for {grade_level} {subject} on \"{topic}\".
+
+═══════════════════════════════════════════════════════
+LESSON CONTEXT (from the Aura-T lesson plan)
+═══════════════════════════════════════════════════════
+GES Indicator / Objectives: {obj_text[:300]}
+Ghanaian Hook used in this lesson: {hook_snippet}
+Support Path (what struggling students did in class): {sp_snippet}
+Extension Path (what advanced students did in class): {ex_snippet}
+Data-Trigger gaps identified: {dt_snippet}
+
+USE THIS CONTEXT to make every task CONTINUOUS with what was done in class.
+The Ghanaian hook context must appear in at least one question per tier.
+The Data-Trigger gaps must be directly addressed in the Support task.
+
+═══════════════════════════════════════════════════════
+FIVE HARD RULES
+═══════════════════════════════════════════════════════
+RULE 1 — TWO TIERS, GENUINELY DIFFERENT:
+  support_task   = pen-and-paper only, structured, addresses the Data-Trigger gap, DOK 1-2
+  extension_task = higher-order (DOK 3-4), builds on Extension Path, device-OPTIONAL
+  "Device-optional" means: write the task as two versions:
+    \"If you have a phone/computer: [digital version]. If not: [paper version].\"
+
+RULE 2 — NO CONCEPT DRIFT:
+  Both tiers must stay on the SINGLE concept of \"{topic}\". No related sub-topics.
+
+RULE 3 — GHANA CULTURAL GROUNDING:
+  Use the SAME Ghanaian context from the lesson hook above in at least one question per tier.
+  Name the specific place, organisation, or practice. Do NOT use a generic or new context.
+
+RULE 4 — RUBRIC IS CRITERION-REFERENCED:
+  Each rubric row must describe observable STUDENT BEHAVIOUR — not the teacher's opinion.
+  Use verbs: \"Student accurately identifies...\", \"Student constructs...\", \"Student justifies...\"
+
+RULE 5 — CULTURAL SCAFFOLD:
+  If using a proverb, Adinkra symbol, or Ghanaian idiom, always provide:
+  - English meaning in brackets
+  - A model sentence starter so students know the expected form
+
+═══════════════════════════════════════════════════════
+JSON SCHEMA — return EXACTLY this structure
+═══════════════════════════════════════════════════════
+{{
+  "assignment": {{
+    "title": "Engaging, topic-specific title",
+    "ges_indicator": "GES CBC indicator code e.g. B7.2.2.1.1",
+    "ghana_context": "One-sentence statement of the Ghanaian context used",
+    "description": "Brief teacher-facing overview of the package"
+  }},
+  "support_task": {{
+    "title": "Short descriptive title for the support task",
+    "gap_targeted": "Which Data-Trigger gap or Pulse Check miss this addresses",
+    "instructions": "Student-facing instructions. Pen-and-paper only. DOK 1-2. Structured steps.",
+    "ghana_context_link": "How the Ghana context appears in this task (1 sentence)",
+    "estimated_time": "e.g. 20 minutes"
+  }},
+  "extension_task": {{
+    "title": "Short descriptive title for the extension task",
+    "builds_on": "Which Extension Path class activity this continues",
+    "instructions_digital": "Version for students with a phone or computer",
+    "instructions_paper": "Version for students without a device",
+    "ghana_context_link": "How the Ghana context appears in this task (1 sentence)",
+    "estimated_time": "e.g. 25-30 minutes"
+  }},
+  "rubric": [
+    {{
+      "criteria": "Criterion name",
+      "weight": "Percentage as integer e.g. 30",
+      "levels": {{
+        "excellent": "Observable behaviour at mastery",
+        "proficient": "Observable behaviour at competency",
+        "basic": "Observable behaviour at partial credit",
+        "limited": "Observable behaviour at minimum engagement"
+      }}
+    }}
+  ]
+}}
+"""
 
         try:
             payload = {
                 "model": get_openai_chat_model(),
                 "messages": [
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Generate a creative and educational assignment package for {topic}."}
+                    {"role": "user", "content": (
+                        f"Generate the full differentiated assignment package for '{topic}' "
+                        f"({grade_level}, {subject}). "
+                        "Apply all five rules strictly. "
+                        "Support task: pen-and-paper, DOK 1-2, addresses the Data-Trigger gap. "
+                        "Extension task: DOK 3-4, device-optional with paper fallback, continues the class Extension Path. "
+                        "Both tasks use the SAME Ghanaian context from the hook — no new contexts."
+                    )}
                 ],
                 "response_format": {"type": "json_object"},
-                "temperature": 0.7
+                "temperature": 0.7,
+                "max_tokens": 2000,
             }
-            
+
             response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
             content = response['choices'][0]['message']['content']
             data = AuraGenEngine._extract_json_object(content)
 
-            # Add metadata
             return {
                 "meta": {
                     "topic": topic,
@@ -103,10 +162,9 @@ class AuraGenEngine:
                 },
                 **data
             }
-            
+
         except Exception as e:
             logger.error("AI assignment generation failed: %s", e)
-            # Fallback to mock if AI fails
             return AuraGenEngine._generate_mock_fallback(topic, subject, grade_level)
 
     @staticmethod
@@ -753,32 +811,104 @@ Rules:
         }
 
     @staticmethod
-    def generate_interactive_exercises(topic: str, subject: str, grade_level: str) -> Dict:
+    def generate_interactive_exercises(topic: str, subject: str, grade_level: str,
+                                       pulse_check_gaps: str = "",
+                                       ghana_context: str = "",
+                                       ges_indicator: str = "") -> Dict:
         """
-        Generate interactive exercises (MCQ, short answer, group task).
+        Generate a tiered set of interactive exercises grounded in Ghana context,
+        Pulse Check gaps, and GES CBC indicators.
+        Support tier: DOK 1-2, pen-and-paper friendly, addresses identified gaps.
+        Extension tier: DOK 3-4, higher-order, Ghana real-world application.
         """
-        system_prompt = """You are Aura-T, an expert teacher assistant.
-Return a JSON object with:
-{
+        context_line = f"Ghanaian lesson context: {ghana_context}" if ghana_context else ""
+        gaps_line    = f"Pulse Check gaps to target: {pulse_check_gaps}" if pulse_check_gaps else ""
+        ges_line     = f"GES CBC Indicator: {ges_indicator}" if ges_indicator else ""
+
+        system_prompt = f"""You are Aura-T, an advanced pedagogical AI for Ghanaian teachers.
+Generate a TIERED set of interactive exercises for {grade_level} {subject} on \"{topic}\".
+
+{context_line}
+{gaps_line}
+{ges_line}
+
+═══════════════════════════════════════════════════════
+EXERCISE RULES
+═══════════════════════════════════════════════════════
+
+TOTAL: exactly 10 exercises.
+  • 5 SUPPORT exercises (DOK 1-2): recall, comprehension, structured application.
+    - Pen-and-paper friendly — no device required to answer.
+    - At least one exercise must directly address the Pulse Check gap (if provided).
+    - At least one MCQ must use the most COMMON MISCONCEPTION about {topic} as a distractor
+      (students who hold the misconception will pick it; mark clearly which option it is).
+  • 5 EXTENSION exercises (DOK 3-4): analysis, evaluation, creation.
+    - At least one must use the SAME Ghanaian context as the lesson hook (if provided),
+      naming the specific organisation, place, or role.
+    - At least one must be cross-curricular (name the second subject explicitly).
+    - At least one must be open-ended (no single correct answer).
+
+EXERCISE TYPES ALLOWED: mcq | short_answer | true_false | matching | open_ended
+  • mcq: 4 options (A/B/C/D), one correct. Include a \"misconception_distractor\" field
+    (the option letter that corresponds to the most common misconception).
+  • short_answer: 1-3 sentence expected response.
+  • true_false: statement + justification expected (not just T/F).
+  • matching: list of 4-6 pairs.
+  • open_ended: no single answer; include a \"success_markers\" list of what a strong
+    response contains.
+
+FOR EVERY EXERCISE include:
+  - \"tier\": \"support\" or \"extension\"
+  - \"dok_level\": integer 1-4
+  - \"ghana_context_used\": true | false
+  - \"gap_targeted\": the specific Pulse Check question (e.g. \"Q1\") or \"none\"
+
+═══════════════════════════════════════════════════════
+JSON SCHEMA
+═══════════════════════════════════════════════════════
+{{
   "exercises": [
-        {"type": "mcq", "prompt": "...", "options": ["A","B","C","D"], "answer": "A", "dok_level": 1},
-        {"type": "short_answer", "prompt": "...", "answer": "...", "dok_level": 2}
+    {{
+      "id": 1,
+      "tier": "support",
+      "type": "mcq",
+      "dok_level": 1,
+      "prompt": "...",
+      "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
+      "answer": "A",
+      "misconception_distractor": "B",
+      "explanation": "Why the correct answer is right and why the distractor is wrong",
+      "ghana_context_used": false,
+      "gap_targeted": "Q1"
+    }},
+    {{
+      "id": 6,
+      "tier": "extension",
+      "type": "open_ended",
+      "dok_level": 4,
+      "prompt": "...",
+      "success_markers": ["Marker 1", "Marker 2", "Marker 3"],
+      "ghana_context_used": true,
+      "gap_targeted": "none"
+    }}
   ]
-}
-Rules:
-- Create 5 to 10 questions total.
-- Cover all DOK levels 1, 2, 3, and 4 at least once.
-- Keep wording student-friendly.
+}}
 """
         try:
             payload = {
                 "model": get_openai_chat_model(),
                 "messages": [
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Create interactive exercises for '{topic}' for {grade_level} {subject}."}
+                    {"role": "user", "content": (
+                        f"Generate exactly 10 tiered exercises for '{topic}' ({grade_level}, {subject}): "
+                        "5 Support (DOK 1-2, pen-and-paper, target Pulse Check gaps) and "
+                        "5 Extension (DOK 3-4, Ghana context, cross-curricular). "
+                        "Every exercise must include tier, dok_level, ghana_context_used, and gap_targeted."
+                    )}
                 ],
                 "response_format": {"type": "json_object"},
-                "temperature": 0.7
+                "temperature": 0.7,
+                "max_tokens": 2500,
             }
             response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
             content = response['choices'][0]['message']['content']
