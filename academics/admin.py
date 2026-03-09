@@ -224,3 +224,45 @@ class SchemeOfWorkAdmin(admin.ModelAdmin):
     list_filter = ('term', 'academic_year')
     search_fields = ('class_subject__class_name__name', 'class_subject__subject__name')
     readonly_fields = ('uploaded_at', 'updated_at')
+
+
+# ─── Digital Pulse ────────────────────────────────────────────────────────────────────────
+from .pulse_models import PulseSession, PulseResponse
+
+
+class PulseResponseInline(admin.TabularInline):
+    model = PulseResponse
+    extra = 0
+    readonly_fields = ('student', 'q1_answer', 'q2_answer', 'q3_answer', 'submitted_at', 'is_typing')
+    can_delete = False
+
+
+@admin.register(PulseSession)
+class PulseSessionAdmin(admin.ModelAdmin):
+    list_display  = ('pk', 'lesson_plan', 'teacher', 'status', 'created_at',
+                     'responded_count', 'total_students')
+    list_filter   = ('status', 'created_at')
+    search_fields = ('lesson_plan__topic', 'teacher__user__first_name',
+                     'teacher__user__last_name')
+    readonly_fields = ('created_at', 'closed_at', 'q1_text', 'q2_text', 'q3_text', 'q3_chips')
+    inlines = [PulseResponseInline]
+    ordering = ('-created_at',)
+
+    def responded_count(self, obj):
+        return obj.responded_count
+    responded_count.short_description = 'Responded'
+
+    def total_students(self, obj):
+        return obj.total_students
+    total_students.short_description = 'Total'
+
+
+@admin.register(PulseResponse)
+class PulseResponseAdmin(admin.ModelAdmin):
+    list_display  = ('pk', 'session', 'student', 'q1_answer', 'q2_answer',
+                     'q3_answer', 'submitted_at', 'is_typing')
+    list_filter   = ('submitted_at', 'q1_answer', 'q2_answer')
+    search_fields = ('student__user__first_name', 'student__user__last_name',
+                     'session__lesson_plan__topic')
+    readonly_fields = ('submitted_at',)
+    ordering = ('-submitted_at',)

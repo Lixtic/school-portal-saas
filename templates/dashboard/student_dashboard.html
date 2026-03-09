@@ -914,6 +914,25 @@ function fetchLeaderboard() {
 @keyframes ringPop { from{transform:scale(0.4);opacity:0;} to{transform:scale(1);opacity:1;} }
 .success-msg { color: #f1f5f9; font-weight: 800; font-size: 1.1rem; margin-bottom: .4rem; }
 .success-sub { color: #818cf8; font-size: .83rem; }
+
+/* Persistent submitted chip */
+#pulseDoneChip {
+    display: none;
+    position: fixed;
+    bottom: 1.2rem;
+    right: 1.2rem;
+    z-index: 1900;
+    background: linear-gradient(135deg,rgba(76,29,149,.85),rgba(30,64,175,.85));
+    backdrop-filter: blur(6px);
+    color: #e0e7ff;
+    font-size: .75rem;
+    font-weight: 700;
+    padding: .35rem .75rem;
+    border-radius: 999px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.35);
+    pointer-events: none;
+    letter-spacing: .02em;
+}
 </style>
 
 <!-- Shimmer streak element (injected dynamically, also pre-rendered) -->
@@ -998,6 +1017,9 @@ function fetchLeaderboard() {
         <div class="success-sub">Your answer is safely with the teacher.</div>
     </div>
 </div>
+
+<!-- Persistent submitted badge (stays until page reload) -->
+<div id="pulseDoneChip">✓ Pulse answered</div>
 
 <script>
 // ══════════════════════════════════════════════════════════
@@ -1226,7 +1248,9 @@ function fetchLeaderboard() {
         var s = document.getElementById('pulseSuccess');
         if (msg) document.querySelector('#pulseSuccess .success-sub').textContent = msg;
         s.classList.add('active');
-        // Auto-dismiss after 2.8 s, restart polling
+        // Persistent chip — stays until page reload
+        document.getElementById('pulseDoneChip').style.display = 'block';
+        // Auto-dismiss ring after 2.8 s, restart polling
         setTimeout(function(){
             s.classList.remove('active');
             _sessionId = null;

@@ -423,15 +423,15 @@
             <div class="pg-bar-track"><div class="pg-bar-fill-f" id="pgQ1F" style="width:0%"></div></div>
             <div class="pg-bar-val" id="pgQ1Fv">0</div>
         </div>
-        <!-- Q2 bar -->
+        <!-- Q2 bar (misconception — correct = False) -->
         <div class="pg-bar-row" style="margin-top:.3rem;">
-            <div class="pg-bar-lbl">Q2 ✓</div>
-            <div class="pg-bar-track"><div class="pg-bar-fill-t" id="pgQ2T" style="width:0%"></div></div>
+            <div class="pg-bar-lbl" title="Believed misconception">Q2 T⚠</div>
+            <div class="pg-bar-track"><div class="pg-bar-fill-f" id="pgQ2T" style="width:0%"></div></div>
             <div class="pg-bar-val" id="pgQ2Tv">0</div>
         </div>
         <div class="pg-bar-row">
-            <div class="pg-bar-lbl">Q2 ✗</div>
-            <div class="pg-bar-track"><div class="pg-bar-fill-f" id="pgQ2F" style="width:0%"></div></div>
+            <div class="pg-bar-lbl" title="Correctly rejected misconception">Q2 F✓</div>
+            <div class="pg-bar-track"><div class="pg-bar-fill-t" id="pgQ2F" style="width:0%"></div></div>
             <div class="pg-bar-val" id="pgQ2Fv">0</div>
         </div>
         <!-- Q3 chips -->
@@ -458,9 +458,13 @@ var _pulsePollTimer  = null;
 var _pulseTotal      = 0;
 var _pollErrorCount  = 0;
 var _pulseResultsUrl = null;
+var _pulsePlanPk     = null;
+var _pulseTopic      = '';
 var _RESULTS_BASE    = "{% url 'teachers:pulse_results' 0 %}";
 
 function launchPulse(planPk, topic) {
+    _pulsePlanPk = planPk;
+    _pulseTopic  = topic;
     fetch("{% url 'teachers:pulse_launch' 0 %}".replace('/0/', '/' + planPk + '/'), {
         method: 'POST',
         headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/json' },
@@ -555,11 +559,15 @@ function stopPollUI() {
 function showEndedBanner() {
     var banner = document.getElementById('pgEndedBanner');
     if (!banner) return;
+    var html = '📊 Session ended';
     if (_pulseResultsUrl) {
-        banner.innerHTML = '📊 Session ended &mdash; <a href="' + _pulseResultsUrl + '" style="color:#a5b4fc;font-weight:700;">View Results →</a>';
-    } else {
-        banner.innerHTML = '📊 Session closed.';
+        html += ' &mdash; <a href="' + _pulseResultsUrl + '" style="color:#a5b4fc;font-weight:700;">View Results →</a>';
     }
+    if (_pulsePlanPk) {
+        html += ' &nbsp;<button onclick="launchPulse(' + _pulsePlanPk + ',\'' + (_pulseTopic||'').replace(/\'/g,"\\''") + '\')" '
+            + 'style="background:rgba(99,102,241,.35);color:#c4b5fd;border:none;border-radius:.4rem;padding:.15rem .5rem;font-size:.7rem;cursor:pointer;margin-left:.3rem;">🔁 Re-fire</button>';
+    }
+    banner.innerHTML = html;
     banner.style.display = 'block';
 }
 

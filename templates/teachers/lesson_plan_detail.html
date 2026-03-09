@@ -1369,9 +1369,13 @@ var _pulsePollTimer  = null;
 var _pulseTotal      = 0;
 var _pollErrorCount  = 0;
 var _pulseResultsUrl = null;
+var _pulsePlanPkD    = null;
+var _pulseTopicD     = '';
 var _RESULTS_BASE_D  = "{% url 'teachers:pulse_results' 0 %}";
 
 function launchPulseDetail(planPk, topic) {
+    _pulsePlanPkD = planPk;
+    _pulseTopicD  = topic;
     var btn = document.getElementById('pulseGhostBtn');
     if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Launching…'; }
     fetch("{% url 'teachers:pulse_launch' 0 %}".replace('/0/', '/' + planPk + '/'), {
@@ -1456,11 +1460,15 @@ function stopPollUIDetail() {
 function showEndedBannerDetail() {
     var banner = document.getElementById('pgEndedBannerD');
     if (!banner) return;
+    var html = '📊 Session ended';
     if (_pulseResultsUrl) {
-        banner.innerHTML = '📊 Session ended &mdash; <a href="' + _pulseResultsUrl + '" style="color:#a5b4fc;font-weight:700;">View Results →</a>';
-    } else {
-        banner.innerHTML = '📊 Session closed.';
+        html += ' &mdash; <a href="' + _pulseResultsUrl + '" style="color:#a5b4fc;font-weight:700;">View Results →</a>';
     }
+    if (_pulsePlanPkD) {
+        html += ' &nbsp;<button onclick="launchPulseDetail(' + _pulsePlanPkD + ',\'' + (_pulseTopicD||'').replace(/\'/g,"\\''") + '\')" '
+            + 'style="background:rgba(99,102,241,.35);color:#c4b5fd;border:none;border-radius:.4rem;padding:.15rem .5rem;font-size:.7rem;cursor:pointer;margin-left:.3rem;">🔁 Re-fire</button>';
+    }
+    banner.innerHTML = html;
     banner.style.display = 'block';
 }
 
@@ -1510,8 +1518,8 @@ function getCsrfTokenDetail() {
         <div class="pg-respond-lbl">students responded</div>
         <div class="pg-bar-row"><div class="pg-bar-lbl">Q1 ✓</div><div class="pg-bar-track"><div class="pg-bar-fill-t" id="pgQ1TD" style="width:0%"></div></div><div class="pg-bar-val" id="pgQ1TvD">0</div></div>
         <div class="pg-bar-row"><div class="pg-bar-lbl">Q1 ✗</div><div class="pg-bar-track"><div class="pg-bar-fill-f" id="pgQ1FD" style="width:0%"></div></div><div class="pg-bar-val" id="pgQ1FvD">0</div></div>
-        <div class="pg-bar-row" style="margin-top:.3rem;"><div class="pg-bar-lbl">Q2 ✓</div><div class="pg-bar-track"><div class="pg-bar-fill-t" id="pgQ2TD" style="width:0%"></div></div><div class="pg-bar-val" id="pgQ2TvD">0</div></div>
-        <div class="pg-bar-row"><div class="pg-bar-lbl">Q2 ✗</div><div class="pg-bar-track"><div class="pg-bar-fill-f" id="pgQ2FD" style="width:0%"></div></div><div class="pg-bar-val" id="pgQ2FvD">0</div></div>
+        <div class="pg-bar-row" style="margin-top:.3rem;"><div class="pg-bar-lbl" title="Believed misconception">Q2 T⚠</div><div class="pg-bar-track"><div class="pg-bar-fill-f" id="pgQ2TD" style="width:0%"></div></div><div class="pg-bar-val" id="pgQ2TvD">0</div></div>
+        <div class="pg-bar-row"><div class="pg-bar-lbl" title="Correctly rejected misconception">Q2 F✓</div><div class="pg-bar-track"><div class="pg-bar-fill-t" id="pgQ2FD" style="width:0%"></div></div><div class="pg-bar-val" id="pgQ2FvD">0</div></div>
         <div class="pg-bar-row" style="margin-top:.3rem;">
             <div class="pg-bar-lbl" style="width:unset;white-space:nowrap;">Q3 paths</div>
             <div id="pgQ3ChipsD" style="flex:1;display:flex;flex-direction:column;gap:.2rem;"></div>
