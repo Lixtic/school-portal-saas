@@ -1031,6 +1031,12 @@
         if (cqIdx === -1) return '';
         var cqText = present.slice(cqIdx);
 
+        // Normalise: "CQ1 Foundational:" / "CQ1 Process:" / "CQ1 Transfer:" → "CQ1:"
+        cqText = cqText
+            .replace(/CQ1[^:\n]{0,25}:/g, 'CQ1:')
+            .replace(/CQ2[^:\n]{0,25}:/g, 'CQ2:')
+            .replace(/CQ3[^:\n]{0,25}:/g, 'CQ3:');
+
         function parseCQ(label, nextLabel) {
             var i = cqText.indexOf(label);
             if (i === -1) return null;

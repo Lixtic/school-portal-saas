@@ -581,12 +581,14 @@ Task 3: [Higher-order creation, evaluation, or design task.]
 Success marker: [What a strong finished product looks like. One sentence.]
 
 🔲 CHECKPOINT QUESTIONS (Active Assessment — Mastery Heatmap Triggers):
-CQ1: [Foundational check — short closed question. Can everyone state the core idea?]
+CQ1: [Foundational — short closed question. Can everyone recall the core idea of {topic}?]
 Heatmap: 🔴 [Teacher action for students who cannot answer] | 🟡 [Action for partial answers] | 🟢 [Action for confident answers]
-CQ2: [Process check — one-step application. Can students use {topic} in a structured context?]
+CQ2: [Process — one-step application. Can students use {topic} in a structured context?]
 Heatmap: 🔴 [Reteach action] | 🟡 [Prompt/support action] | 🟢 [Extend action]
-CQ3: [Transfer check — reasoning or real-world connection. Can students generalise {topic}?]
+CQ3: [Transfer — reasoning or real-world connection. Can students generalise {topic}?]
 Heatmap: 🔴 [Reteach action] | 🟡 [Support action] | 🟢 [Activate as peer resource]
+
+CRITICAL FORMAT RULE: Labels MUST be exactly "CQ1:", "CQ2:", "CQ3:" — do NOT add words between CQ and the colon (e.g. do NOT write "CQ1 Foundational:" or "CQ1 Process:").
 
 **PHASE 3: REFLECTION [15 mins]**
 Whole-class debrief:
