@@ -564,6 +564,14 @@ Q2: [TRUE/FALSE STATEMENT — common misconception. Phrase the misconception as 
 Q3: [OPEN QUESTION — Application. Must reference the SPECIFIC Ghanaian context from the hook above. Not a True/False — students give a short verbal or written response.]
 Teacher note: Log students who hesitate or miss Q1/Q2/Q3 — they are your Data-Trigger targets.
 
+CRITICAL RULE FOR Q1 AND Q2 — DECLARATIVE STATEMENTS ONLY:
+Q1 and Q2 MUST be declarative statements, NOT questions.
+FORBIDDEN STARTERS: "What", "How", "Why", "Who", "When", "Where", "Name", "List", "Describe", "Explain", "Define", "Give", "Identify"
+A student must be able to answer Q1 and Q2 with ONLY "True" or "False".
+CORRECT format: "[Claim about {topic}] — True or False?"
+EXAMPLE for a Robotics lesson: "A sensor in a robot collects information from the environment — True or False?"
+WRONG: "What is one basic part of a robot?" ← this is a question, FORBIDDEN for Q1/Q2.
+
 **PHASE 2: NEW LEARNING [30 mins]**
 Class Introduction (all students, 5 mins):
 [2–3 sentences bridging the hook to the core concept. Set context for both paths.]

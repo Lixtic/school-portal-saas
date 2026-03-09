@@ -1058,12 +1058,23 @@ function fetchLeaderboard() {
         }, 1200);
     }
 
+    // Guard: Q1/Q2 must end with a T/F cue. If GPT wrote an interrogative,
+    // strip the trailing "?" and append "— True or False?" so the overlay stays coherent.
+    function _ensureTF(text) {
+        if (!text) return '\u2014';
+        if (/true or false/i.test(text)) return text;
+        if (/^(what|how|who|why|when|where|name|list|describe|explain|define|give|identify)\b/i.test(text)) {
+            return text.replace(/\?+$/, '').trimEnd() + ' \u2014 True or False?';
+        }
+        return text;
+    }
+
     function openOverlay(session) {
         // Populate text
         document.getElementById('pTopic').textContent = session.topic || 'Pulse Check';
-        document.getElementById('pQ1Text').textContent = session.q1 || '—';
-        document.getElementById('pQ2Text').textContent = session.q2 || '—';
-        document.getElementById('pQ3Text').textContent = session.q3 || '—';
+        document.getElementById('pQ1Text').textContent = _ensureTF(session.q1);
+        document.getElementById('pQ2Text').textContent = _ensureTF(session.q2);
+        document.getElementById('pQ3Text').textContent = session.q3 || '\u2014';
 
         // Build carousel chips
         var track = document.getElementById('pChipTrack');

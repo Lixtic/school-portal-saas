@@ -10,6 +10,7 @@ from django.db import models
 
 def parse_pulse_questions(intro: str):
     """Return (q1_text, q2_text, q3_text) from a lesson plan introduction field."""
+    import re
     results = ['', '', '']
     for i, label in enumerate(['Q1:', 'Q2:', 'Q3:']):
         idx = intro.find(label)
@@ -28,6 +29,25 @@ def parse_pulse_questions(intro: str):
         if ends:
             after = after[:min(ends)]
         results[i] = after.split('\n')[0].strip()
+
+    # ── Backstop: Q1 and Q2 must be T/F declarative statements ──────────────
+    # If GPT slipped in an interrogative question ("What is...", "How...", etc.),
+    # append "— True or False?" so the student overlay is at least coherent.
+    _INTERROGATIVE = re.compile(
+        r'^(what|how|who|why|when|where|name|list|describe|explain|define|give|identify)\b',
+        re.IGNORECASE
+    )
+    for idx in (0, 1):  # Q1 and Q2 only
+        txt = results[idx]
+        if not txt:
+            continue
+        is_open_question = _INTERROGATIVE.match(txt)
+        already_tf = re.search(r'true or false', txt, re.IGNORECASE)
+        if is_open_question and not already_tf:
+            # Strip trailing "?" and append T/F cue
+            txt = txt.rstrip('?').rstrip()
+            results[idx] = txt + ' — True or False?'
+
     return tuple(results)
 
 
