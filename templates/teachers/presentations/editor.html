@@ -218,6 +218,23 @@ html, body { height: 100%; margin: 0; }
 .emoji-btn { font-size: 1.1rem; padding: 2px 4px; border-radius: 5px; cursor: pointer; background: transparent; border: 1px solid transparent; transition: background .12s; }
 .emoji-btn:hover { background: rgba(255,255,255,.08); }
 .emoji-btn.selected { border-color: #7c3aed; background: rgba(124,58,237,.15); }
+/* image layout */
+.layout-image .sl-body { flex: 1; display: flex; flex-direction: column; padding: 3% 4%; }
+.layout-image .sl-title { font-size: clamp(.9rem, 2.5vw, 1.8rem); font-weight: 800; color: #f1f5f9; margin-bottom: .4em; }
+.layout-image .sl-image-wrap { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; overflow: hidden; }
+.layout-image .sl-image { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; }
+.layout-image .sl-image-placeholder { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5em; border: 2px dashed rgba(255,255,255,.15); border-radius: 10px; color: rgba(255,255,255,.3); font-size: .7rem; }
+.layout-image .sl-image-placeholder i { font-size: 1.8rem; opacity: .5; }
+.layout-image .sl-caption { font-size: clamp(.5rem, 1.2vw, .75rem); color: rgba(255,255,255,.45); margin-top: .4em; text-align: center; }
+/* AI image button in panel */
+.gm-ai-img-btn {
+  width: 100%; padding: 7px; border-radius: 8px;
+  background: rgba(124,58,237,.15); border: 1px solid rgba(124,58,237,.3);
+  color: #a78bfa; font-size: .78rem; font-weight: 700; cursor: pointer;
+  transition: background .15s;
+}
+.gm-ai-img-btn:hover { background: rgba(124,58,237,.25); }
+.gm-ai-img-btn:disabled { opacity: .5; cursor: not-allowed; }
 .gm-panel-sep { height: 1px; background: rgba(255,255,255,.06); }
 .delete-slide-btn {
   width: 100%; padding: 7px; border-radius: 8px;
@@ -534,7 +551,7 @@ html, body { height: 100%; margin: 0; }
           <div class="layout-picker" id="layoutPicker">
             {% for val, label in LAYOUT_CHOICES %}
             <button class="layout-pick-btn" data-layout="{{ val }}" onclick="setLayout('{{ val }}')">
-              <i class="fas {% if val == 'title' %}fa-star{% elif val == 'bullets' %}fa-list{% elif val == 'two_col' %}fa-columns{% elif val == 'big_stat' %}fa-sort-numeric-up{% elif val == 'quote' %}fa-quote-left{% else %}fa-check-circle{% endif %}"></i>
+              <i class="fas {% if val == 'title' %}fa-star{% elif val == 'bullets' %}fa-list{% elif val == 'two_col' %}fa-columns{% elif val == 'big_stat' %}fa-sort-numeric-up{% elif val == 'quote' %}fa-quote-left{% elif val == 'image' %}fa-image{% else %}fa-check-circle{% endif %}"></i>
               <span>{{ label }}</span>
             </button>
             {% endfor %}
@@ -551,6 +568,19 @@ html, body { height: 100%; margin: 0; }
           </div>
         </div>
 
+        <div class="gm-panel-sep"></div>
+        <div class="gm-panel-section" id="imageSection" style="display:none">
+          <div class="gm-panel-label"><i class="fas fa-image"></i> Slide Image</div>
+          <div id="slideImgPreview" style="margin-bottom:.5rem;display:none;">
+            <img id="slideImgTag" src="" alt="" style="max-width:100%;border-radius:8px;max-height:120px;object-fit:contain;">
+          </div>
+          <button class="gm-ai-img-btn" onclick="generateSlideImage()" id="genImgBtn">
+            <i class="fas fa-magic me-1"></i> Generate AI Image
+          </button>
+          <div id="imgGenStatus" style="font-size:.7rem;color:#94a3b8;margin-top:.4rem;display:none;"></div>
+          <div style="font-size:.65rem;color:#475569;margin-top:.5rem;">Or paste an image URL:</div>
+          <input type="text" class="gm-field" id="imageUrlInput" placeholder="https://…" style="margin-top:4px;" oninput="saveImageUrl()">
+        </div>
         <div class="gm-panel-sep"></div>
         <div class="gm-move-btns">
           <button class="gm-move-btn" onclick="moveSlideUp()" title="Move Up (Ctrl+↑)"><i class="fas fa-arrow-up"></i> Up</button>
@@ -659,6 +689,7 @@ html, body { height: 100%; margin: 0; }
 var API_URL        = "{% url 'teachers:presentation_api' %}";
 var UPLOAD_DOC_URL = "{% url 'teachers:presentation_generate_from_doc' %}";
 var LESSON_PLANS_URL = "{% url 'teachers:presentation_lesson_plans' %}";
+var GEN_IMAGE_URL  = "{% url 'academics:generate_tutor_image' %}";
 var DECK_ID   = {{ deck.pk }};
 var DECK_THEME= "{{ deck.theme }}";
 var csrfToken = "{{ csrf_token }}";
@@ -714,6 +745,20 @@ function selectSlide(slideId) {
   document.querySelectorAll('.emoji-btn').forEach(function(b) {
     b.classList.toggle('selected', b.textContent.trim() === slide.emoji);
   });
+  // image section
+  var imgSec = document.getElementById('imageSection');
+  if (imgSec) {
+    var isImage = slide.layout === 'image';
+    imgSec.style.display = isImage ? 'block' : 'none';
+    document.getElementById('imageUrlInput').value = slide.image_url || '';
+    var imgPreview = document.getElementById('slideImgPreview');
+    var imgTag = document.getElementById('slideImgTag');
+    if (imgPreview && imgTag) {
+      imgPreview.style.display = (slide.image_url) ? 'block' : 'none';
+      if (slide.image_url) imgTag.src = slide.image_url;
+    }
+    document.getElementById('imgGenStatus').style.display = 'none';
+  }
 }
 
 // ── Debounced save ──────────────────────────────────────────────
@@ -755,6 +800,9 @@ function setLayout(layout) {
       // re-render canvas for this slide
       refreshCanvasSlide(slide);
       setSaveStatus('saved', '✓ All changes saved');
+      // show/hide image section
+      var imgSec = document.getElementById('imageSection');
+      if (imgSec) imgSec.style.display = layout === 'image' ? 'block' : 'none';
     });
 }
 
@@ -778,7 +826,7 @@ function addSlide() {
       if (!d.ok) return;
       var newSlide = { id: d.slide_id, order: d.order, layout: d.layout,
                        title: d.title, content: d.content, emoji: d.emoji || '',
-                       speaker_notes: d.speaker_notes || '' };
+                       speaker_notes: d.speaker_notes || '', image_url: d.image_url || '' };
       // Insert after current slide in the array
       var insertIdx = slides.length;
       if (currentSlideId) {
@@ -1230,6 +1278,18 @@ function buildSlideHTML(s) {
       bullets.map(function(b) { return '<li>' + esc(b) + '</li>'; }).join('') +
       '</ul></div>';
   }
+  if (layout === 'image') {
+    var imgUrl = s.image_url || '';
+    var caption = bullets.length ? bullets[0] : '';
+    var imgHtml = imgUrl
+      ? '<div class="sl-image-wrap"><img src="' + imgUrl + '" class="sl-image" alt="slide image"></div>'
+      : '<div class="sl-image-placeholder"><i class="fas fa-image"></i><span>Generate AI image →</span></div>';
+    return '<div class="sl-body layout-image">' +
+      '<div class="sl-title">' + esc(title) + '</div>' +
+      imgHtml +
+      (caption ? '<div class="sl-caption">' + esc(caption) + '</div>' : '') +
+      '</div>';
+  }
   // default: bullets
   return '<div class="sl-body layout-bullets">' +
     (emoji ? '<span style="font-size:clamp(.9rem,2vw,1.4rem);margin-bottom:.2em;">' + esc(emoji) + '</span>' : '') +
@@ -1237,6 +1297,81 @@ function buildSlideHTML(s) {
     '<ul class="sl-bullets">' +
     bullets.map(function(b) { return '<li>' + esc(b) + '</li>'; }).join('') +
     '</ul></div>';
+}
+
+// ── Generate AI image for image-layout slide ────────────────────────────────────
+function generateSlideImage() {
+  if (!currentSlideId) return;
+  var slide = slides.find(function(s) { return s.id == currentSlideId; });
+  if (!slide) return;
+  var topic = (slide.title || 'educational content').trim();
+  var prompt = 'Educational illustration: ' + topic +
+    '. Clear educational diagram or visual aid, textbook style, clean white or neutral background, high detail, professional, no text.';
+  var btn = document.getElementById('genImgBtn');
+  var status = document.getElementById('imgGenStatus');
+  btn.disabled = true;
+  status.textContent = '⏳ Generating image…';
+  status.style.display = 'block';
+  setSaveStatus('saving', '⏳ Generating image…');
+  fetch(GEN_IMAGE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+    body: JSON.stringify({ prompt: prompt }),
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (d.image_url) {
+      slide.image_url = d.image_url;
+      document.getElementById('imageUrlInput').value = '';
+      var imgPreview = document.getElementById('slideImgPreview');
+      var imgTag = document.getElementById('slideImgTag');
+      if (imgPreview && imgTag) {
+        imgPreview.style.display = 'block';
+        imgTag.src = d.image_url;
+      }
+      refreshCanvasSlide(slide);
+      api({ action: 'save_slide', slide_id: currentSlideId, image_url: d.image_url })
+        .then(function() { setSaveStatus('saved', '✓ Image saved'); });
+      status.textContent = '✓ Image generated!';
+    } else {
+      status.textContent = '⚠ ' + (d.error || 'Generation failed');
+      setSaveStatus('', '');
+    }
+  })
+  .catch(function() {
+    status.textContent = '⚠ Network error';
+    setSaveStatus('', '');
+  })
+  .finally(function() { btn.disabled = false; });
+}
+
+// ── Save image URL typed manually ───────────────────────────────────────────────────
+var imgUrlSaveTimer = null;
+function saveImageUrl() {
+  var url = document.getElementById('imageUrlInput').value.trim();
+  var status = document.getElementById('imgGenStatus');
+  if (url && !url.startsWith('data:image/') && !url.startsWith('https://') && !url.startsWith('http://')) {
+    status.textContent = '⚠ Enter a valid https:// URL or leave blank';
+    status.style.display = 'block';
+    return;
+  }
+  status.style.display = 'none';
+  var slide = slides.find(function(s) { return s.id == currentSlideId; });
+  if (!slide) return;
+  slide.image_url = url;
+  refreshCanvasSlide(slide);
+  var imgPreview = document.getElementById('slideImgPreview');
+  var imgTag = document.getElementById('slideImgTag');
+  if (imgPreview && imgTag) {
+    imgPreview.style.display = url ? 'block' : 'none';
+    if (url) imgTag.src = url;
+  }
+  clearTimeout(imgUrlSaveTimer);
+  setSaveStatus('saving', '⏳ Saving…');
+  imgUrlSaveTimer = setTimeout(function() {
+    api({ action: 'save_slide', slide_id: currentSlideId, image_url: url })
+      .then(function() { setSaveStatus('saved', '✓ All changes saved'); });
+  }, 800);
 }
 
 function buildPanelHTML() {
@@ -1261,6 +1396,7 @@ function buildPanelHTML() {
       <button class="layout-pick-btn" data-layout="big_stat" onclick="setLayout('big_stat')"><i class="fas fa-sort-numeric-up"></i><span>Big Stat</span></button>
       <button class="layout-pick-btn" data-layout="quote" onclick="setLayout('quote')"><i class="fas fa-quote-left"></i><span>Quote</span></button>
       <button class="layout-pick-btn" data-layout="summary" onclick="setLayout('summary')"><i class="fas fa-check-circle"></i><span>Summary</span></button>
+      <button class="layout-pick-btn" data-layout="image" onclick="setLayout('image')"><i class="fas fa-image"></i><span>Image</span></button>
     </div>
   </div>
   <div class="gm-panel-section">
@@ -1271,6 +1407,18 @@ function buildPanelHTML() {
       ).join('')}
       <button class="emoji-btn" onclick="setEmoji('')" style="font-size:.6rem;color:#64748b;">✕</button>
     </div>
+  </div>
+  <div class="gm-panel-section" id="imageSection" style="display:none">
+    <div class="gm-panel-label"><i class="fas fa-image"></i> Slide Image</div>
+    <div id="slideImgPreview" style="margin-bottom:.5rem;display:none;">
+      <img id="slideImgTag" src="" alt="" style="max-width:100%;border-radius:8px;max-height:120px;object-fit:contain;">
+    </div>
+    <button class="gm-ai-img-btn" onclick="generateSlideImage()" id="genImgBtn">
+      <i class="fas fa-magic me-1"></i> Generate AI Image
+    </button>
+    <div id="imgGenStatus" style="font-size:.7rem;color:#94a3b8;margin-top:.4rem;display:none;"></div>
+    <div style="font-size:.65rem;color:#475569;margin-top:.5rem;">Or paste an image URL:</div>
+    <input type="text" class="gm-field" id="imageUrlInput" placeholder="https://…" style="margin-top:4px;" oninput="saveImageUrl()">
   </div>
   <div class="gm-panel-sep"></div>
   <div class="gm-move-btns">
@@ -1291,7 +1439,7 @@ function duplicateCurrentSlide() {
       if (!d.ok) return;
       slides.push({ id: d.slide_id, order: d.order, layout: d.layout,
                     title: d.title, content: d.content, emoji: d.emoji,
-                    speaker_notes: d.speaker_notes });
+                    speaker_notes: d.speaker_notes, image_url: d.image_url || '' });
       appendThumb(d);
       appendCanvas(d);
       updateSlideCount();

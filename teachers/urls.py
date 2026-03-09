@@ -91,6 +91,8 @@ urlpatterns = [
     path('presentations/api/lesson-plans/', views.presentation_lesson_plans, name='presentation_lesson_plans'),
     path('presentations/<int:pk>/edit/', views.presentation_editor, name='presentation_editor'),
     path('presentations/<int:pk>/present/', views.presentation_present, name='presentation_present'),
+    path('presentations/<int:pk>/duplicate/', views.presentation_duplicate, name='presentation_duplicate'),
+    path('presentations/<int:pk>/print/', views.presentation_print, name='presentation_print'),
     path('presentations/<int:pk>/delete/', views.presentation_delete, name='presentation_delete'),
 ]
 

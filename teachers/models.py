@@ -165,6 +165,7 @@ class Slide(models.Model):
         ('big_stat', 'Big Stat'),
         ('quote',    'Quote'),
         ('summary',  'Summary'),
+        ('image',    'Image + Caption'),
     ]
     presentation  = models.ForeignKey(Presentation, on_delete=models.CASCADE, related_name='slides')
     order         = models.PositiveIntegerField(default=0)
@@ -173,6 +174,7 @@ class Slide(models.Model):
     content       = models.TextField(blank=True)   # newline-separated bullets or plain text
     speaker_notes = models.TextField(blank=True)
     emoji         = models.CharField(max_length=10, blank=True)
+    image_url     = models.TextField(blank=True)   # data URI or hosted URL for image layout
 
     class Meta:
         ordering = ['order']

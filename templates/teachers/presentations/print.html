@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ deck.title }} — Handout</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #f1f5f9; font-family: system-ui, sans-serif; color: #0f172a; }
+
+/* ── Top bar ── */
+.pt-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .9rem 1.4rem;
+  background: linear-gradient(135deg, #4c1d95, #1e40af);
+  color: #fff;
+}
+.pt-bar h1 { font-size: 1.1rem; font-weight: 800; }
+.pt-bar p  { font-size: .78rem; opacity: .7; }
+.pt-actions { display: flex; gap: 8px; }
+.pt-btn {
+  padding: .45rem 1rem; border-radius: 9px; font-size: .82rem; font-weight: 700;
+  cursor: pointer; border: none; text-decoration: none; display: inline-flex;
+  align-items: center; gap: 5px; transition: opacity .15s;
+}
+.pt-btn-print { background: #fff; color: #4c1d95; }
+.pt-btn-back  { background: rgba(255,255,255,.15); color: #fff; border: 1px solid rgba(255,255,255,.25); }
+.pt-btn:hover { opacity: .88; }
+
+/* ── Grid ── */
+.pt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.1rem;
+  padding: 1.4rem;
+}
+
+/* ── Slide card ── */
+.pt-slide {
+  border-radius: 14px; overflow: hidden;
+  box-shadow: 0 3px 14px rgba(0,0,0,.12);
+  aspect-ratio: 16/9;
+  position: relative;
+  break-inside: avoid;
+}
+.pt-num {
+  position: absolute; top: 8px; right: 10px; z-index: 10;
+  font-size: .6rem; font-weight: 800; color: rgba(255,255,255,.5);
+  background: rgba(0,0,0,.25); border-radius: 5px; padding: 2px 6px;
+}
+
+/* ── theme gradients ── */
+.theme-aurora   { background: linear-gradient(135deg,#1e0a40 0%,#0c1a4a 100%); }
+.theme-midnight { background: linear-gradient(135deg,#0f172a 0%,#1e1b4b 100%); }
+.theme-forest   { background: linear-gradient(135deg,#021d11 0%,#0a2e2b 100%); }
+.theme-coral    { background: linear-gradient(135deg,#3b0012 0%,#7c1e00 100%); }
+.theme-slate    { background: linear-gradient(135deg,#0f1824 0%,#1e2d3d 100%); }
+.theme-ocean    { background: linear-gradient(135deg,#0c2d4e 0%,#0e6088 100%); }
+.theme-amber    { background: linear-gradient(135deg,#431407 0%,#92400e 100%); }
+.theme-rose     { background: linear-gradient(135deg,#4c0519 0%,#9d174d 100%); }
+
+/* ── Layout styles (scaled down for handout) ── */
+.sl-body { display: flex; flex-direction: column; width: 100%; height: 100%; }
+
+.layout-title { align-items: center; justify-content: center; text-align: center; padding: 6%; }
+.layout-title .sl-emoji { font-size: 1.6rem; margin-bottom: .3rem; }
+.layout-title .sl-title { font-size: .95rem; font-weight: 900; color: #f1f5f9; line-height: 1.2; }
+.layout-title .sl-sub   { margin-top: .4rem; font-size: .6rem; color: rgba(255,255,255,.5); }
+
+.layout-bullets { padding: 6% 7% 5%; }
+.layout-bullets .sl-title { font-size: .75rem; font-weight: 800; color: #f1f5f9; margin-bottom: .4em; }
+.layout-bullets .sl-bullets { list-style: none; display: flex; flex-direction: column; gap: .25em; }
+.layout-bullets .sl-bullets li { display: flex; align-items: flex-start; gap: .35em; font-size: .58rem; color: rgba(255,255,255,.82); line-height: 1.35; }
+.layout-bullets .sl-bullets li::before { content: '▸'; color: #a78bfa; flex-shrink: 0; }
+
+.layout-summary { padding: 6% 7% 5%; }
+.layout-summary .sl-title { font-size: .72rem; font-weight: 800; color: #f1f5f9; margin-bottom: .4em; }
+.layout-summary .sl-bullets { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: .3em; }
+.layout-summary .sl-bullets li { display: flex; align-items: flex-start; gap: .3em; font-size: .52rem; color: rgba(255,255,255,.82); padding: .3em .5em; background: rgba(255,255,255,.07); border-radius: 6px; }
+.layout-summary .sl-bullets li::before { content: '✓'; color: #34d399; flex-shrink: 0; }
+
+.layout-big_stat { align-items: center; justify-content: center; text-align: center; padding: 6%; }
+.layout-big_stat .sl-title { font-size: .6rem; color: rgba(255,255,255,.5); text-transform: uppercase; letter-spacing: .1em; }
+.layout-big_stat .sl-stat  { font-size: 2.5rem; font-weight: 900; line-height: 1; background: linear-gradient(135deg,#a78bfa,#60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.layout-big_stat .sl-sub   { margin-top: .3rem; font-size: .55rem; color: rgba(255,255,255,.4); }
+
+.layout-quote { align-items: center; justify-content: center; text-align: center; padding: 8%; }
+.layout-quote .sl-quote  { font-size: .72rem; color: #e0e7ff; font-style: italic; line-height: 1.5; }
+.layout-quote .sl-author { margin-top: .6rem; font-size: .55rem; color: rgba(255,255,255,.4); }
+
+.layout-two_col { padding: 5% 6% 4%; }
+.layout-two_col .sl-title { font-size: .72rem; font-weight: 800; color: #f1f5f9; margin-bottom: .4em; }
+.layout-two_col .sl-cols { display: grid; grid-template-columns: 1fr 1fr; gap: .6em; flex: 1; }
+.layout-two_col .sl-col { background: rgba(255,255,255,.06); border-radius: 6px; padding: .4em; }
+.layout-two_col .sl-col-item { font-size: .52rem; color: rgba(255,255,255,.8); padding: .18em 0; display: flex; align-items: flex-start; gap: .3em; }
+.layout-two_col .sl-col-item::before { content: '•'; color: #a78bfa; flex-shrink: 0; }
+
+.layout-image { padding: 5% 6% 4%; }
+.layout-image .sl-title { font-size: .72rem; font-weight: 800; color: #f1f5f9; margin-bottom: .3em; }
+.layout-image .sl-image-wrap { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; overflow: hidden; }
+.layout-image .sl-image { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 5px; }
+.layout-image .sl-image-placeholder { flex: 1; display: flex; align-items: center; justify-content: center; border: 1px dashed rgba(255,255,255,.2); border-radius: 6px; color: rgba(255,255,255,.25); font-size: .55rem; }
+.layout-image .sl-caption { font-size: .5rem; color: rgba(255,255,255,.4); text-align: center; margin-top: .3em; }
+
+/* ── Print styles ── */
+@media print {
+  .pt-bar { display: none; }
+  body { background: #fff; }
+  .pt-grid { padding: 0; gap: .6rem; grid-template-columns: repeat(2, 1fr); }
+  .pt-slide { box-shadow: none; border: 1px solid #e2e8f0; }
+  @page { margin: 1.2cm; }
+}
+</style>
+</head>
+<body>
+
+<div class="pt-bar">
+  <div>
+    <h1><i class="fas fa-print me-2"></i>{{ deck.title }}</h1>
+    <p>{{ slides|length }} slide{{ slides|length|pluralize }} &bull; {{ deck.theme|capfirst }} theme
+      {% if deck.subject %}&bull; {{ deck.subject.name }}{% endif %}
+      {% if deck.school_class %}&bull; {{ deck.school_class.name }}{% endif %}
+    </p>
+  </div>
+  <div class="pt-actions">
+    <a href="{% url 'teachers:presentation_editor' deck.pk %}" class="pt-btn pt-btn-back">
+      <i class="fas fa-arrow-left"></i> Back to Editor
+    </a>
+    <button class="pt-btn pt-btn-print" onclick="window.print()">
+      <i class="fas fa-print"></i> Print / Save PDF
+    </button>
+  </div>
+</div>
+
+<div class="pt-grid">
+  {% for slide in slides %}
+  <div class="pt-slide theme-{{ deck.theme }}">
+    <div class="pt-num">{{ forloop.counter }}</div>
+    {% include "teachers/presentations/_slide_render.html" with slide=slide %}
+  </div>
+  {% empty %}
+  <p style="padding:2rem;color:#94a3b8;">No slides in this deck.</p>
+  {% endfor %}
+</div>
+
+</body>
+</html>

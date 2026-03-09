@@ -43,6 +43,23 @@
     {% for b in slide.bullets %}<li>{{ b }}</li>{% endfor %}
   </ul>
 </div>
+{% elif slide.layout == "image" %}
+<div class="sl-body layout-image">
+  <div class="sl-title">{{ slide.title }}</div>
+  {% if slide.image_url %}
+  <div class="sl-image-wrap">
+    <img src="{{ slide.image_url }}" class="sl-image" alt="{{ slide.title }}">
+  </div>
+  {% else %}
+  <div class="sl-image-placeholder">
+    <i class="fas fa-image"></i>
+    <span>No image generated yet</span>
+  </div>
+  {% endif %}
+  {% with caption=slide.bullets|first %}
+  {% if caption %}<div class="sl-caption">{{ caption }}</div>{% endif %}
+  {% endwith %}
+</div>
 {% else %}
 {# default: bullets #}
 <div class="sl-body layout-bullets">

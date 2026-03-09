@@ -3881,6 +3881,7 @@ def presentation_editor(request, pk):
         'content':       s.content,
         'emoji':         s.emoji,
         'speaker_notes': s.speaker_notes,
+        'image_url':     s.image_url,
     } for s in slides])
 
     return render(request, 'teachers/presentations/editor.html', {
@@ -3926,6 +3927,54 @@ def presentation_present(request, pk):
 
 
 @login_required
+def presentation_duplicate(request, pk):
+    """Duplicate a deck and all its slides, redirect to the new editor."""
+    if request.user.user_type not in ('teacher', 'admin'):
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    teacher = get_object_or_404(Teacher, user=request.user)
+    from .models import Presentation, Slide
+    deck = get_object_or_404(Presentation, pk=pk, teacher=teacher)
+    if request.method == 'POST':
+        new_deck = Presentation.objects.create(
+            teacher=teacher,
+            title=deck.title + ' (copy)',
+            theme=deck.theme,
+            subject=deck.subject,
+            school_class=deck.school_class,
+        )
+        for slide in deck.slides.all():
+            Slide.objects.create(
+                presentation=new_deck,
+                order=slide.order,
+                layout=slide.layout,
+                title=slide.title,
+                content=slide.content,
+                speaker_notes=slide.speaker_notes,
+                emoji=slide.emoji,
+                image_url=slide.image_url,
+            )
+        messages.success(request, f'"{new_deck.title}" created.')
+        return redirect('teachers:presentation_editor', pk=new_deck.pk)
+    return redirect('teachers:presentation_list')
+
+
+@login_required
+def presentation_print(request, pk):
+    """Print-friendly handout view — all slides rendered on one page."""
+    if request.user.user_type not in ('teacher', 'admin'):
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    teacher = get_object_or_404(Teacher, user=request.user)
+    from .models import Presentation
+    deck = get_object_or_404(Presentation, pk=pk, teacher=teacher)
+    slides = list(deck.slides.all())
+    return render(request, 'teachers/presentations/print.html', {
+        'deck': deck, 'slides': slides,
+    })
+
+
+@login_required
 @require_POST
 def presentation_api(request):
     """
@@ -3962,6 +4011,7 @@ def presentation_api(request):
         slide.speaker_notes = data.get('speaker_notes', slide.speaker_notes)
         slide.layout        = data.get('layout',        slide.layout)
         slide.emoji         = data.get('emoji',         slide.emoji)
+        slide.image_url     = data.get('image_url',     slide.image_url)
         slide.save()
         deck.save()   # bump updated_at
         return JsonResponse({'ok': True})
@@ -3987,6 +4037,7 @@ def presentation_api(request):
             'content': slide.content,
             'emoji':   slide.emoji,
             'speaker_notes': slide.speaker_notes,
+            'image_url': slide.image_url,
         })
 
     # ── delete_slide ────────────────────────────────────────────────────────
@@ -4091,6 +4142,7 @@ def presentation_api(request):
             content=source.content,
             speaker_notes=source.speaker_notes,
             emoji=source.emoji,
+            image_url=source.image_url,
         )
         deck.save()
         return JsonResponse({
@@ -4102,6 +4154,7 @@ def presentation_api(request):
             'content':  new_slide.content,
             'emoji':    new_slide.emoji,
             'speaker_notes': new_slide.speaker_notes,
+            'image_url': new_slide.image_url,
         })
 
     # ── from_lesson_plan ─────────────────────────────────────────────────────────

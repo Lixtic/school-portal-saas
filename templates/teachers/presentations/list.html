@@ -65,6 +65,9 @@ body { background: var(--gm-bg); }
 .theme-forest   { background: linear-gradient(135deg,#065f46,#0d9488); }
 .theme-coral    { background: linear-gradient(135deg,#be123c,#f97316); }
 .theme-slate    { background: linear-gradient(135deg,#1e293b,#64748b); }
+.theme-ocean    { background: linear-gradient(135deg,#0c2d4e,#0e6088); }
+.theme-amber    { background: linear-gradient(135deg,#431407,#92400e); }
+.theme-rose     { background: linear-gradient(135deg,#4c0519,#9d174d); }
 .deck-thumb-inner { position: relative; z-index: 2; }
 .deck-thumb-inner .slide-mimic {
   background: rgba(255,255,255,.1); backdrop-filter: blur(4px);
@@ -137,6 +140,10 @@ body { background: var(--gm-bg); }
       <div class="deck-actions">
         <a href="{% url 'teachers:presentation_editor' deck.pk %}" class="deck-act-btn"><i class="fas fa-edit me-1"></i>Edit</a>
         <a href="{% url 'teachers:presentation_present' deck.pk %}" class="deck-act-btn" target="_blank"><i class="fas fa-play me-1"></i>Present</a>
+        <a href="{% url 'teachers:presentation_print' deck.pk %}" class="deck-act-btn" target="_blank"><i class="fas fa-print me-1"></i>Print</a>
+        <form method="post" action="{% url 'teachers:presentation_duplicate' deck.pk %}" style="display:contents;">{% csrf_token %}
+          <button type="submit" class="deck-act-btn"><i class="fas fa-copy me-1"></i>Copy</button>
+        </form>
         <a href="{% url 'teachers:presentation_delete' deck.pk %}" class="deck-act-btn danger"><i class="fas fa-trash me-1"></i>Delete</a>
       </div>
     </div>
