@@ -135,9 +135,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 
   {% for slide in slides %}
   <div class="ps-slide{% if forloop.first %} active{% endif %}" id="ps-slide-{{ forloop.counter0 }}" data-notes="{{ slide.speaker_notes|default:'' }}">
-    <div class="sl-body layout-{{ slide.layout }}">
-      {% include "teachers/presentations/_slide_render.html" with slide=slide %}
-    </div>
+    {% include "teachers/presentations/_slide_render.html" with slide=slide %}
   </div>
   {% empty %}
   <div class="ps-slide active" style="display:flex;align-items:center;justify-content:center;">
@@ -151,7 +149,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
   <div class="ps-notes-overlay" id="notesOverlay"></div>
 
   <div class="ps-progress">
-    <div class="ps-progress-fill" id="progressFill" style="width:{% if slides %}{% widthratio 1 slides|length 100 %}{% else %}100{% endif %}%"></div>
+    <div class="ps-progress-fill" id="progressFill" style="width:{{ slides|length|default:1 }}px" data-total="{{ slides|length }}"></div>
   </div>
 
   <div class="ps-controls">
@@ -171,18 +169,20 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 <script>
 var total = {{ slides|length }};
 var current = 0;
+// Set initial progress bar width
+document.getElementById('progressFill').style.width = (total > 0 ? Math.round(1/total*100) : 100) + '%';
 
 function goTo(n) {
   if (n < 0 || n >= total) return;
-  var slides = document.querySelectorAll('.ps-slide');
-  slides.forEach(function(s) { s.classList.remove('active'); });
-  slides[n].classList.add('active');
+  var allSlides = document.querySelectorAll('.ps-slide');
+  allSlides.forEach(function(s) { s.classList.remove('active'); });
+  allSlides[n].classList.add('active');
   current = n;
   document.getElementById('curSlide').textContent = n + 1;
   var pct = total > 0 ? Math.round((n + 1) / total * 100) : 100;
   document.getElementById('progressFill').style.width = pct + '%';
   // update notes
-  var notes = (slides[n].dataset.notes || '').trim();
+  var notes = (allSlides[n].dataset.notes || '').trim();
   var overlay = document.getElementById('notesOverlay');
   overlay.textContent = notes || '(no speaker notes)';
 }
