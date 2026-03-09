@@ -588,7 +588,10 @@ Heatmap: 🔴 [Reteach action] | 🟡 [Prompt/support action] | 🟢 [Extend act
 CQ3: [Transfer — reasoning or real-world connection. Can students generalise {topic}?]
 Heatmap: 🔴 [Reteach action] | 🟡 [Support action] | 🟢 [Activate as peer resource]
 
-CRITICAL FORMAT RULE: Labels MUST be exactly "CQ1:", "CQ2:", "CQ3:" — do NOT add words between CQ and the colon (e.g. do NOT write "CQ1 Foundational:" or "CQ1 Process:").
+CRITICAL FORMAT RULE: Labels MUST be exactly "CQ1:", "CQ2:", "CQ3:" — NO extra words or spaces before the question text.
+FORBIDDEN: "CQ1 Foundational:", "CQ1: Foundational:", "CQ1 Process:", "CQ1: Process:", "CQ1 Transfer:", "CQ1: Transfer:"
+CORRECT: "CQ1: What is ..."
+Do NOT generate a \"Student Nugget\", \"Junior Innovator\", or any other sub-header inside the Extension Path or after it. The Extension Path contains Task 1 / Task 2 / Task 3 and Success marker ONLY.
 
 **PHASE 3: REFLECTION [15 mins]**
 Whole-class debrief:

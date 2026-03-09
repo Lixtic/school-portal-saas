@@ -806,18 +806,35 @@
         const exIdx  = Math.max(present.indexOf('EXTENSION PATH'), present.indexOf('\uD83D\uDD35'));
         const classIntro = spIdx > 0 ? present.slice(0, spIdx).replace(/Class Introduction[^:]*:/i,'').trim() : '';
         const spRaw  = spIdx > -1 ? present.slice(spIdx, exIdx > spIdx ? exIdx : undefined) : '';
-        const exRaw  = exIdx > -1 ? present.slice(exIdx) : '';
+
+        // Cap extension raw text BEFORE Checkpoint Questions starts to prevent duplication
+        // (renderCheckpoints() handles that block separately)
+        var cqStopCandidates = [
+            present.indexOf('CHECKPOINT QUESTIONS'),
+            present.indexOf('\uD83D\uDD32')   // 🔲
+        ].filter(function(p){ return p > (exIdx > -1 ? exIdx : 0); });
+        var exStop = cqStopCandidates.length ? Math.min.apply(null, cqStopCandidates) : undefined;
+        const exRaw  = exIdx > -1 ? present.slice(exIdx, exStop) : '';
 
         function pathLines(text, endMarker) {
             // Remove the path title line, collect step/task lines
             const t = endMarker ? block(text, '', endMarker) : text;
             const allLines = t.split('\n').map(l => l.trim()).filter(Boolean);
-            // Remove title line ("SUPPORT PATH", "EXTENSION PATH", "\uD83D\uDFE2", "\uD83D\uDD35")
-            const body = allLines.filter(l => !/^(\uD83D\uDFE2|\uD83D\uDD35|SUPPORT PATH|EXTENSION PATH)/i.test(l));
-            // Find success marker
-            const sucIdx = body.findIndex(l => /success marker/i.test(l));
+            // Remove title line + Student Nugget sub-headers injected by GPT
+            const body = allLines.filter(l =>
+                !/^(\uD83D\uDFE2|\uD83D\uDD35|SUPPORT PATH|EXTENSION PATH)/i.test(l) &&
+                !/^\uD83C\uDF92\s*(Student Nugget|Junior Innovator)/i.test(l) &&
+                !/^Junior Innovator/i.test(l)
+            );
+            // Find success marker — GPT uses either "Success marker:" or leading ✅
+            const sucIdx = body.findIndex(l =>
+                /success marker/i.test(l) || /^\u2705/.test(l)
+            );
             const steps  = sucIdx > -1 ? body.slice(0, sucIdx) : body;
-            const success= sucIdx > -1 ? body.slice(sucIdx).join(' ').replace(/success marker[:\s]*/i,'').trim() : '';
+            const success= sucIdx > -1
+                ? body.slice(sucIdx).join(' ')
+                    .replace(/success marker[:\s]*/i,'').replace(/^\u2705\s*/,'').trim()
+                : '';
             return { steps, success };
         }
 
@@ -1047,11 +1064,21 @@
         if (cqIdx === -1) return '';
         var cqText = present.slice(cqIdx);
 
-        // Normalise: "CQ1 Foundational:" / "CQ1 Process:" / "CQ1 Transfer:" → "CQ1:"
+        // Normalise GPT label deviations:
+        //   "CQ1: Foundational:" and "CQ1 Foundational:" → "CQ1:"
+        //   Previous regex CQ1[^:\n]{0,25}: only matched CQ1: (0 chars), leaving " Foundational:" intact.
+        //   New approach: explicit word alternation handles both space and colon variants.
+        var cqLabels = 'Foundational|Process|Transfer|Recall|Concept|Application|Closing';
         cqText = cqText
-            .replace(/CQ1[^:\n]{0,25}:/g, 'CQ1:')
-            .replace(/CQ2[^:\n]{0,25}:/g, 'CQ2:')
-            .replace(/CQ3[^:\n]{0,25}:/g, 'CQ3:');
+            .replace(new RegExp('CQ1:?\\s*(?:' + cqLabels + ')\\s*:\\s*', 'gi'), 'CQ1: ')
+            .replace(new RegExp('CQ2:?\\s*(?:' + cqLabels + ')\\s*:\\s*', 'gi'), 'CQ2: ')
+            .replace(new RegExp('CQ3:?\\s*(?:' + cqLabels + ')\\s*:\\s*', 'gi'), 'CQ3: ');
+        // Also handle bracket-wrapped labels: "CQ1: [Foundational —" → "CQ1: "
+        cqText = cqText
+            .replace(/CQ1:\s*\/\s*\[?[^\]\n]{0,30}/g, 'CQ1: ')
+            .replace(/CQ1: \[/g, 'CQ1: ')
+            .replace(/CQ2: \[/g, 'CQ2: ')
+            .replace(/CQ3: \[/g, 'CQ3: ');
 
         function parseCQ(label, nextLabel) {
             var i = cqText.indexOf(label);
