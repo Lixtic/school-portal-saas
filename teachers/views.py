@@ -4201,6 +4201,16 @@ def presentation_api(request):
             'deck_title': deck.title, 'activities': result.get('activities', []),
         })
 
+    # ── suggest_bullets ──────────────────────────────────────────────────────
+    elif action == 'suggest_bullets':
+        title = data.get('title', '').strip()
+        if not title:
+            return JsonResponse({'error': 'title is required'}, status=400)
+        subject_name = data.get('subject', 'General')
+        from teachers.services.aura_gen_engine import AuraGenEngine
+        result = AuraGenEngine.suggest_slide_bullets(title, subject_name)
+        return JsonResponse({'ok': True, 'bullets': result.get('bullets', [])})
+
     return JsonResponse({'error': f'Unknown action: {action}'}, status=400)
 
 

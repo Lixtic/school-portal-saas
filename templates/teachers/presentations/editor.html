@@ -226,6 +226,15 @@ html, body { height: 100%; margin: 0; }
 .layout-image .sl-image-placeholder { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5em; border: 2px dashed rgba(255,255,255,.15); border-radius: 10px; color: rgba(255,255,255,.3); font-size: .7rem; }
 .layout-image .sl-image-placeholder i { font-size: 1.8rem; opacity: .5; }
 .layout-image .sl-caption { font-size: clamp(.5rem, 1.2vw, .75rem); color: rgba(255,255,255,.45); margin-top: .4em; text-align: center; }
+/* AI suggest-bullets button */
+.gm-suggest-btn {
+  margin-left: auto; background: none; border: none; cursor: pointer;
+  font-size: .82rem; padding: 0 2px; opacity: .55;
+  transition: opacity .15s, transform .15s;
+  line-height: 1;
+}
+.gm-suggest-btn:hover  { opacity: 1; transform: scale(1.15); }
+.gm-suggest-btn:disabled { opacity: .3; cursor: not-allowed; }
 /* AI image button in panel */
 .gm-ai-img-btn {
   width: 100%; padding: 7px; border-radius: 8px;
@@ -540,7 +549,10 @@ html, body { height: 100%; margin: 0; }
         </div>
 
         <div class="gm-panel-section">
-          <div class="gm-panel-label"><i class="fas fa-align-left"></i> Content / Bullets</div>
+          <div class="gm-panel-label" style="display:flex;align-items:center;">
+            <i class="fas fa-align-left"></i>&nbsp;Content / Bullets
+            <button class="gm-suggest-btn" onclick="suggestBullets()" id="suggestBtn" title="AI suggest bullets (✨)">&#10024;</button>
+          </div>
           <textarea class="gm-field" id="panelContent" rows="7"
                     placeholder="One bullet per line…" oninput="debounceSaveSlide()"></textarea>
           <div style="font-size:.65rem;color:#475569;margin-top:4px;">Each line = one bullet</div>
@@ -1374,6 +1386,33 @@ function saveImageUrl() {
   }, 800);
 }
 
+// ── AI bullet suggestions ────────────────────────────────────────────────────────────
+function suggestBullets() {
+  var title = (document.getElementById('panelTitle')?.value || '').trim();
+  if (!title) {
+    alert('Enter a slide title first, then click ✨.');
+    return;
+  }
+  var btn = document.getElementById('suggestBtn');
+  if (!btn) return;
+  btn.textContent = '⏳'; btn.disabled = true;
+  var sel = document.getElementById('aiSubject');
+  var subjectName = (sel && sel.selectedIndex > 0) ? sel.options[sel.selectedIndex].text : 'General';
+  api({ action: 'suggest_bullets', title: title, subject: subjectName })
+    .then(function(d) {
+      if (d.ok && d.bullets && d.bullets.length) {
+        var ta = document.getElementById('panelContent');
+        var existing = (ta.value || '').trim();
+        ta.value = existing ? existing + '\n' + d.bullets.join('\n') : d.bullets.join('\n');
+        debounceSaveSlide();
+      } else {
+        alert('No suggestions returned. Try a more specific title.');
+      }
+    })
+    .catch(function() { alert('Could not reach AI. Check your connection and API key.'); })
+    .finally(function() { btn.textContent = '✨'; btn.disabled = false; });
+}
+
 function buildPanelHTML() {
   // Full panel HTML when it was showing "no slides"
   return `
@@ -1383,7 +1422,10 @@ function buildPanelHTML() {
     <div class="gm-char-count" id="titleCharCount">0 / 60</div>
   </div>
   <div class="gm-panel-section">
-    <div class="gm-panel-label"><i class="fas fa-align-left"></i> Content / Bullets</div>
+    <div class="gm-panel-label" style="display:flex;align-items:center;">
+      <i class="fas fa-align-left"></i>&nbsp;Content / Bullets
+      <button class="gm-suggest-btn" onclick="suggestBullets()" id="suggestBtn" title="AI suggest bullets (✨)">&#10024;</button>
+    </div>
     <textarea class="gm-field" id="panelContent" rows="7" placeholder="One bullet per line…" oninput="debounceSaveSlide()"></textarea>
     <div style="font-size:.65rem;color:#475569;margin-top:4px;">Each line = one bullet</div>
   </div>

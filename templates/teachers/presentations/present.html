@@ -162,6 +162,75 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 .ps-shortcuts-inner td { padding: .35rem .5rem; color: #94a3b8; font-size: .82rem; }
 .ps-shortcuts-inner td:first-child { font-family: monospace; background: rgba(255,255,255,.06); border-radius: 5px; color: #c4b5fd; font-weight: 700; white-space: nowrap; padding: .3rem .6rem; margin-right: .5rem; }
 .ps-shortcuts-inner .close-btn { margin-top: 1.2rem; width: 100%; padding: .55rem; border-radius: 9px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1); color: #94a3b8; cursor: pointer; font-size: .82rem; font-weight: 600; }
+
+/* ── Slide timer ── */
+.ps-timer {
+  position: fixed; top: 14px; left: 16px; z-index: 300;
+  background: rgba(15,23,42,.7); backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,.1); border-radius: 10px;
+  padding: 5px 12px; font-size: .8rem; font-weight: 700;
+  color: #94a3b8; letter-spacing: .07em;
+  opacity: 0; transition: opacity .3s;
+  display: flex; align-items: center; gap: 6px;
+}
+.ps-stage:hover .ps-timer { opacity: 1; }
+.ps-timer .ps-timer-icon { font-size: .65rem; }
+.ps-timer.warn { color: #f59e0b; border-color: rgba(245,158,11,.3); }
+.ps-timer.over  { color: #ef4444; border-color: rgba(239,68,68,.3); }
+
+/* ── Laser pointer ── */
+.ps-laser {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: radial-gradient(circle, #ff4040 30%, rgba(255,64,64,.4) 70%, transparent 100%);
+  box-shadow: 0 0 8px 4px rgba(255,64,64,.35), 0 0 20px 8px rgba(255,64,64,.15);
+  position: fixed; pointer-events: none; z-index: 9000;
+  transform: translate(-50%,-50%);
+  display: none;
+}
+.ps-laser.active { display: block; }
+
+/* ── Draw overlay ── */
+.ps-draw-canvas {
+  position: fixed; inset: 0; z-index: 8000;
+  cursor: crosshair;
+  display: none;
+}
+.ps-draw-canvas.active { display: block; }
+.ps-draw-label {
+  position: fixed; top: 50px; left: 50%; transform: translateX(-50%);
+  background: rgba(124,58,237,.85); color: #fff; padding: 4px 14px;
+  border-radius: 30px; font-size: .72rem; font-weight: 700;
+  z-index: 8001; pointer-events: none;
+  display: none;
+}
+.ps-draw-label.active { display: block; }
+.ps-draw-toolbar {
+  position: fixed; bottom: 52px; left: 50%; transform: translateX(-50%);
+  z-index: 8002; display: none;
+  background: rgba(15,23,42,.85); backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,.12); border-radius: 30px;
+  padding: 5px 12px; gap: 6px; align-items: center;
+}
+.ps-draw-toolbar.active { display: flex; }
+.ps-col-btn {
+  width: 20px; height: 20px; border-radius: 50%; cursor: pointer;
+  border: 2px solid rgba(255,255,255,.3); transition: transform .15s;
+  flex-shrink: 0;
+}
+.ps-col-btn:hover { transform: scale(1.2); }
+.ps-col-btn.sel { border-color: #fff; transform: scale(1.15); }
+.ps-sz-btn {
+  background: none; border: 1px solid rgba(255,255,255,.2); border-radius: 6px;
+  color: #94a3b8; font-size: .65rem; font-weight: 700; padding: 2px 7px;
+  cursor: pointer; transition: background .12s;
+}
+.ps-sz-btn:hover { background: rgba(255,255,255,.1); color: #f1f5f9; }
+.ps-clear-btn {
+  background: rgba(239,68,68,.15); border: 1px solid rgba(239,68,68,.25);
+  color: #f87171; border-radius: 6px; font-size: .65rem; font-weight: 700;
+  padding: 2px 9px; cursor: pointer; transition: background .12s;
+}
+.ps-clear-btn:hover { background: rgba(239,68,68,.3); }
 </style>
 </head>
 <body>
@@ -193,8 +262,12 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
         <tr><td>Home / End</td><td>First / Last slide</td></tr>
         <tr><td>N</td><td>Toggle speaker notes</td></tr>
         <tr><td>F</td><td>Toggle fullscreen</td></tr>
+        <tr><td>L</td><td>Laser pointer</td></tr>
+        <tr><td>D</td><td>Drawing mode</td></tr>
+        <tr><td>C</td><td>Clear drawing</td></tr>
+        <tr><td>T</td><td>Reset slide timer</td></tr>
         <tr><td>?</td><td>Show shortcuts</td></tr>
-        <tr><td>Esc</td><td>Exit presentation</td></tr>
+        <tr><td>Esc</td><td>Exit</td></tr>
       </table>
       <button class="close-btn" onclick="toggleShortcuts()">Close</button>
     </div>
@@ -209,8 +282,8 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
     <span class="ps-counter"><span id="curSlide">1</span> / {{ slides|length }}</span>
     <button class="ps-ctrl-btn" onclick="nextSlide()" title="Next (→)"><i class="fas fa-chevron-right"></i></button>
     <div style="width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 4px;"></div>
-    <button class="ps-ctrl-btn" onclick="toggleNotes()" title="Speaker notes (N)"><i class="fas fa-sticky-note"></i></button>
-    <div style="width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 4px;"></div>
+    <button class="ps-ctrl-btn" onclick="toggleNotes()" title="Speaker notes (N)"><i class="fas fa-sticky-note"></i></button>    <button class="ps-ctrl-btn" onclick="toggleLaser()" title="Laser pointer (L)" id="laserBtn"><i class="fas fa-circle" style="color:#f87171;font-size:.55rem;"></i></button>
+    <button class="ps-ctrl-btn" onclick="toggleDraw()" title="Draw (D)" id="drawBtn"><i class="fas fa-pen"></i></button>    <div style="width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 4px;"></div>
     <button class="ps-ctrl-btn" onclick="toggleFullscreen()" title="Fullscreen (F)" id="fsBtn"><i class="fas fa-expand" id="fsIcon"></i></button>
     <button class="ps-ctrl-btn" onclick="toggleShortcuts()" title="Keyboard shortcuts (?)"><i class="fas fa-question"></i></button>
   </div>
@@ -218,6 +291,30 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
   <a href="{% url 'teachers:presentation_editor' deck.pk %}" class="ps-exit-btn" title="Exit (Esc)">
     <i class="fas fa-times"></i> Exit
   </a>
+
+  <!-- Slide timer -->
+  <div class="ps-timer" id="slideTimer">
+    <span class="ps-timer-icon">&#9201;</span>
+    <span id="timerDisplay">0:00</span>
+  </div>
+
+  <!-- Laser pointer dot -->
+  <div class="ps-laser" id="laserDot"></div>
+
+  <!-- Drawing canvas -->
+  <canvas class="ps-draw-canvas" id="drawCanvas"></canvas>
+  <div class="ps-draw-label" id="drawLabel">&#9998; Drawing mode &mdash; D to exit, C to clear</div>
+  <div class="ps-draw-toolbar" id="drawToolbar">
+    <button class="ps-col-btn sel" data-color="#ef4444" style="background:#ef4444;" onclick="setDrawColor(this,'#ef4444')" title="Red"></button>
+    <button class="ps-col-btn" data-color="#f59e0b" style="background:#f59e0b;" onclick="setDrawColor(this,'#f59e0b')" title="Amber"></button>
+    <button class="ps-col-btn" data-color="#22c55e" style="background:#22c55e;" onclick="setDrawColor(this,'#22c55e')" title="Green"></button>
+    <button class="ps-col-btn" data-color="#60a5fa" style="background:#60a5fa;" onclick="setDrawColor(this,'#60a5fa')" title="Blue"></button>
+    <button class="ps-col-btn" data-color="#ffffff" style="background:#fff;" onclick="setDrawColor(this,'#ffffff')" title="White"></button>
+    <button class="ps-sz-btn" onclick="setDrawSize(4)">S</button>
+    <button class="ps-sz-btn" onclick="setDrawSize(7)">M</button>
+    <button class="ps-sz-btn" onclick="setDrawSize(12)">L</button>
+    <button class="ps-clear-btn" onclick="clearDraw()">&#10005; Clear</button>
+  </div>
 
 </div><!-- /stage -->
 
@@ -263,11 +360,17 @@ document.addEventListener('keydown', function(e) {
   if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ')  nextSlide();
   if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')  prevSlide();
   if (e.key === 'Escape') {
+    if (laserMode) { toggleLaser(); return; }
+    if (drawMode)  { toggleDraw();  return; }
     if (document.getElementById('shortcutsOverlay').classList.contains('visible')) { toggleShortcuts(); return; }
     window.close();
   }
   if (e.key === 'n' || e.key === 'N') toggleNotes();
   if (e.key === 'f' || e.key === 'F') toggleFullscreen();
+  if (e.key === 'l' || e.key === 'L') toggleLaser();
+  if (e.key === 'd' || e.key === 'D') { if (!drawMode || document.activeElement.tagName !== 'CANVAS') toggleDraw(); }
+  if (e.key === 'c' || e.key === 'C') clearDraw();
+  if (e.key === 't' || e.key === 'T') resetSlideTimer();
   if (e.key === '?') toggleShortcuts();
   if (e.key === 'Home') goTo(0);
   if (e.key === 'End')  goTo(total - 1);
@@ -281,6 +384,119 @@ document.addEventListener('touchend', function(e) {
   if (dx < -40) nextSlide();
   if (dx >  40) prevSlide();
 });
+
+// ── Slide timer ─────────────────────────────────────────────────────────────────
+var slideSecondsElapsed = 0;
+var timerInterval = null;
+function startSlideTimer() {
+  clearInterval(timerInterval);
+  slideSecondsElapsed = 0;
+  updateTimerDisplay();
+  timerInterval = setInterval(function() {
+    slideSecondsElapsed++;
+    updateTimerDisplay();
+  }, 1000);
+}
+function resetSlideTimer() { startSlideTimer(); }
+function updateTimerDisplay() {
+  var m = Math.floor(slideSecondsElapsed / 60);
+  var s = slideSecondsElapsed % 60;
+  var disp = m + ':' + (s < 10 ? '0' : '') + s;
+  document.getElementById('timerDisplay').textContent = disp;
+  var el = document.getElementById('slideTimer');
+  el.classList.toggle('warn', slideSecondsElapsed >= 120 && slideSecondsElapsed < 300);
+  el.classList.toggle('over', slideSecondsElapsed >= 300);
+}
+// Wrap goTo to reset timer on slide change
+var _origGoTo = goTo;
+goTo = function(n) {
+  var changed = (n !== current && n >= 0 && n < total);
+  _origGoTo(n);
+  if (changed) startSlideTimer();
+};
+startSlideTimer();
+
+// ── Laser pointer ────────────────────────────────────────────────────────────
+var laserMode = false;
+var laserDot = document.getElementById('laserDot');
+function toggleLaser() {
+  laserMode = !laserMode;
+  laserDot.classList.toggle('active', laserMode);
+  document.getElementById('laserBtn').classList.toggle('active', laserMode);
+  document.body.style.cursor = laserMode ? 'none' : '';
+  if (drawMode && laserMode) toggleDraw();
+}
+document.addEventListener('mousemove', function(e) {
+  if (!laserMode) return;
+  laserDot.style.left = e.clientX + 'px';
+  laserDot.style.top  = e.clientY + 'px';
+});
+
+// ── Drawing mode ─────────────────────────────────────────────────────────────
+var drawMode = false;
+var drawCanvas = document.getElementById('drawCanvas');
+var drawCtx = drawCanvas.getContext('2d');
+var drawColor = '#ef4444';
+var drawSize  = 4;
+var isPainting = false;
+function resizeCanvas() {
+  var img = drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height);
+  drawCanvas.width  = window.innerWidth;
+  drawCanvas.height = window.innerHeight;
+  drawCtx.putImageData(img, 0, 0);
+  drawCtx.lineCap = 'round'; drawCtx.lineJoin = 'round';
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+function toggleDraw() {
+  drawMode = !drawMode;
+  drawCanvas.classList.toggle('active', drawMode);
+  document.getElementById('drawLabel').classList.toggle('active', drawMode);
+  document.getElementById('drawToolbar').classList.toggle('active', drawMode);
+  document.getElementById('drawBtn').classList.toggle('active', drawMode);
+  if (laserMode && drawMode) toggleLaser();
+}
+function setDrawColor(btn, c) {
+  drawColor = c;
+  document.querySelectorAll('.ps-col-btn').forEach(function(b) { b.classList.remove('sel'); });
+  btn.classList.add('sel');
+}
+function setDrawSize(sz) { drawSize = sz; }
+function clearDraw() {
+  drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+}
+drawCanvas.addEventListener('mousedown', function(e) {
+  isPainting = true;
+  drawCtx.beginPath();
+  drawCtx.moveTo(e.clientX, e.clientY);
+});
+drawCanvas.addEventListener('mousemove', function(e) {
+  if (!isPainting) return;
+  drawCtx.lineTo(e.clientX, e.clientY);
+  drawCtx.strokeStyle = drawColor;
+  drawCtx.lineWidth   = drawSize;
+  drawCtx.lineCap = 'round'; drawCtx.lineJoin = 'round';
+  drawCtx.stroke();
+});
+drawCanvas.addEventListener('mouseup',   function() { isPainting = false; });
+drawCanvas.addEventListener('mouseleave', function() { isPainting = false; });
+// touch drawing
+drawCanvas.addEventListener('touchstart', function(e) {
+  e.preventDefault();
+  var t = e.touches[0];
+  isPainting = true;
+  drawCtx.beginPath(); drawCtx.moveTo(t.clientX, t.clientY);
+}, { passive: false });
+drawCanvas.addEventListener('touchmove', function(e) {
+  e.preventDefault();
+  if (!isPainting) return;
+  var t = e.touches[0];
+  drawCtx.lineTo(t.clientX, t.clientY);
+  drawCtx.strokeStyle = drawColor; drawCtx.lineWidth = drawSize;
+  drawCtx.lineCap = 'round'; drawCtx.lineJoin = 'round';
+  drawCtx.stroke();
+}, { passive: false });
+drawCanvas.addEventListener('touchend', function() { isPainting = false; });
 </script>
 </body>
 </html>

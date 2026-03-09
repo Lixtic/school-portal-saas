@@ -854,6 +854,38 @@ Rules:
         return AuraGenEngine.generate_slides_from_document(document_text, topic)
 
     @staticmethod
+    def suggest_slide_bullets(title: str, subject: str = 'General') -> Dict:
+        """
+        Given a slide title, return 3-5 concise bullet points.
+        Returns: {'bullets': ['...', ...]}
+        """
+        from django.conf import settings
+        system_prompt = (
+            'You are an expert teacher. Given a slide title, return 3-5 concise, '
+            'student-friendly bullet points as JSON.\n'
+            'Format: {"bullets": ["...", ...]}\n'
+            'Keep each bullet under 12 words. Be specific, educational, and age-appropriate.'
+        )
+        try:
+            payload = {
+                'model': get_openai_chat_model(),
+                'messages': [
+                    {'role': 'system', 'content': system_prompt},
+                    {'role': 'user',   'content': f'Slide title: "{title}" | Subject: {subject}'},
+                ],
+                'response_format': {'type': 'json_object'},
+                'temperature': 0.7,
+                'max_tokens': 300,
+            }
+            response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
+            data = AuraGenEngine._extract_json_object(
+                response['choices'][0]['message']['content']
+            )
+            return {'bullets': data.get('bullets', [])}
+        except Exception:
+            return {'bullets': []}
+
+    @staticmethod
     def _extract_json_object(raw_content: str) -> Dict:
         content = (raw_content or '').strip()
         if not content:
