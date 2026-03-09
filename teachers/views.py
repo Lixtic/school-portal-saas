@@ -4078,4 +4078,30 @@ def presentation_api(request):
             'activities': result.get('activities', []),
         })
 
+    # ── duplicate_slide ─────────────────────────────────────────────────────
+    elif action == 'duplicate_slide':
+        slide_id = data.get('slide_id')
+        source = get_object_or_404(Slide, pk=slide_id, presentation=deck)
+        max_order = deck.slides.aggregate(m=models.Max('order'))['m'] or -1
+        new_slide = Slide.objects.create(
+            presentation=deck,
+            order=max_order + 1,
+            layout=source.layout,
+            title=source.title + ' (copy)',
+            content=source.content,
+            speaker_notes=source.speaker_notes,
+            emoji=source.emoji,
+        )
+        deck.save()
+        return JsonResponse({
+            'ok': True,
+            'slide_id': new_slide.pk,
+            'order':    new_slide.order,
+            'layout':   new_slide.layout,
+            'title':    new_slide.title,
+            'content':  new_slide.content,
+            'emoji':    new_slide.emoji,
+            'speaker_notes': new_slide.speaker_notes,
+        })
+
     return JsonResponse({'error': f'Unknown action: {action}'}, status=400)

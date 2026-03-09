@@ -282,6 +282,21 @@ html, body { height: 100%; margin: 0; }
 
 /* ── misc ───────────────────────────────────── */
 .gm-slide-count { font-size: .65rem; color: #475569; text-align: center; }
+
+/* ── Drag-to-reorder ── */
+.gm-thumb[draggable] { cursor: grab; }
+.gm-thumb[draggable]:active { cursor: grabbing; }
+.gm-thumb.drag-over  { outline: 2px dashed #7c3aed; outline-offset: 2px; background: rgba(124,58,237,.06); }
+.gm-thumb.dragging   { opacity: .35; }
+
+/* ── Duplicate button ── */
+.duplicate-slide-btn {
+  width: 100%; padding: 7px; border-radius: 8px; margin-bottom: 6px;
+  background: rgba(99,102,241,.1); border: 1px solid rgba(99,102,241,.2);
+  color: #818cf8; font-size: .78rem; font-weight: 700; cursor: pointer;
+  transition: background .15s;
+}
+.duplicate-slide-btn:hover { background: rgba(99,102,241,.2); }
 </style>
 {% endblock %}
 
@@ -306,6 +321,9 @@ html, body { height: 100%; margin: 0; }
     <div class="gm-topbar-sep"></div>
     <button class="gm-add-btn" onclick="addSlide()"><i class="fas fa-plus"></i> Slide</button>
     <button class="gm-ai-btn" onclick="openAIModal()"><i class="fas fa-robot"></i> AI Generate</button>
+    <button class="gm-add-btn" onclick="toggleEditorFS()" id="edFsBtn" title="Fullscreen">
+      <i class="fas fa-expand" id="edFsIcon"></i>
+    </button>
     <a href="{% url 'teachers:presentation_present' deck.pk %}" target="_blank" class="gm-present-btn">
       <i class="fas fa-play"></i> Present
     </a>
@@ -405,6 +423,9 @@ html, body { height: 100%; margin: 0; }
         </div>
 
         <div class="gm-panel-sep"></div>
+        <button class="duplicate-slide-btn" onclick="duplicateCurrentSlide()">
+          <i class="fas fa-copy me-1"></i> Duplicate Slide
+        </button>
         <button class="delete-slide-btn" onclick="deleteCurrentSlide()">
           <i class="fas fa-trash me-1"></i> Delete Slide
         </button>
@@ -690,6 +711,7 @@ function appendThumb(s) {
     '<div class="gm-thumb-title">' + esc(s.title.substring(0, 28)) + '</div>' +
     '</div>';
   document.getElementById('thumbList').appendChild(div);
+  setupDrag(div);
 }
 
 function appendCanvas(s) {
@@ -834,12 +856,86 @@ function buildPanelHTML() {
     </div>
   </div>
   <div class="gm-panel-sep"></div>
+  <button class="duplicate-slide-btn" onclick="duplicateCurrentSlide()"><i class="fas fa-copy me-1"></i> Duplicate Slide</button>
   <button class="delete-slide-btn" onclick="deleteCurrentSlide()"><i class="fas fa-trash me-1"></i> Delete Slide</button>`;
 }
 
 function rebindPanelEvents() { /* events are inline onclick, nothing extra needed */ }
 
-// ── Keyboard shortcuts ───────────────────────────────────────────
+// ── Duplicate current slide ───────────────────────────────────────────
+function duplicateCurrentSlide() {
+  if (!currentSlideId) return;
+  api({ action: 'duplicate_slide', slide_id: currentSlideId })
+    .then(function(d) {
+      if (!d.ok) return;
+      slides.push({ id: d.slide_id, order: d.order, layout: d.layout,
+                    title: d.title, content: d.content, emoji: d.emoji,
+                    speaker_notes: d.speaker_notes });
+      appendThumb(d);
+      appendCanvas(d);
+      updateSlideCount();
+      ensurePanelVisible();
+      selectSlide(d.slide_id);
+      setSaveStatus('saved', '✓ Slide duplicated');
+    });
+}
+
+// ── Editor fullscreen ───────────────────────────────────────────────
+function toggleEditorFS() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+    document.getElementById('edFsIcon').className = 'fas fa-compress';
+  } else {
+    document.exitFullscreen();
+    document.getElementById('edFsIcon').className = 'fas fa-expand';
+  }
+}
+
+// ── Drag-to-reorder strip ──────────────────────────────────────────
+var dragSrcId = null;
+function setupDrag(el) {
+  el.setAttribute('draggable', 'true');
+  el.addEventListener('dragstart', function(e) {
+    dragSrcId = el.dataset.slideId;
+    e.dataTransfer.effectAllowed = 'move';
+    el.classList.add('dragging');
+  });
+  el.addEventListener('dragend', function() {
+    el.classList.remove('dragging');
+    document.querySelectorAll('.gm-thumb').forEach(function(t) { t.classList.remove('drag-over'); });
+  });
+  el.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (el.dataset.slideId !== dragSrcId) el.classList.add('drag-over');
+  });
+  el.addEventListener('dragleave', function() {
+    el.classList.remove('drag-over');
+  });
+  el.addEventListener('drop', function(e) {
+    e.preventDefault();
+    el.classList.remove('drag-over');
+    var targetId = el.dataset.slideId;
+    if (dragSrcId === targetId) return;
+    var srcIdx = slides.findIndex(function(s) { return s.id == dragSrcId; });
+    var tgtIdx = slides.findIndex(function(s) { return s.id == targetId; });
+    var removed = slides.splice(srcIdx, 1)[0];
+    slides.splice(tgtIdx, 0, removed);
+    // Reorder DOM
+    var strip = document.getElementById('thumbList');
+    var srcEl = document.getElementById('thumb-' + dragSrcId);
+    var tgtEl = document.getElementById('thumb-' + targetId);
+    if (srcIdx > tgtIdx) {
+      strip.insertBefore(srcEl, tgtEl);
+    } else {
+      strip.insertBefore(srcEl, tgtEl.nextSibling);
+    }
+    renumberThumbs();
+    api({ action: 'reorder', order: slides.map(function(s) { return s.id; }) });
+  });
+}
+
+// ── Keyboard shortcuts ───────────────────────────────────────────────
 document.addEventListener('keydown', function(e) {
   var tag = (document.activeElement.tagName || '').toLowerCase();
   if (tag === 'input' || tag === 'textarea') return;
@@ -851,11 +947,20 @@ document.addEventListener('keydown', function(e) {
     var idx = slides.findIndex(function(s) { return s.id == currentSlideId; });
     if (idx > 0) selectSlide(slides[idx - 1].id);
   }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+    e.preventDefault();
+    duplicateCurrentSlide();
+  }
+  if (e.key === 'Delete' && currentSlideId) {
+    deleteCurrentSlide();
+  }
 });
 
 // ── Init ─────────────────────────────────────────────────────────
 (function init() {
-  if (slides.length) selectSlide(slides[0].id);
-})();
+  if (slides.length) selectSlide(slides[0].id);  // Enable drag-to-reorder on existing server-rendered thumbs
+  document.querySelectorAll('#thumbList .gm-thumb').forEach(function(el) {
+    setupDrag(el);
+  });})();
 </script>
 {% endblock %}
