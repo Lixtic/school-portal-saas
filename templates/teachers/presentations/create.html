@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}New Presentation{% endblock %}
+
+{% block extra_css %}
+<style>
+.create-shell {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  padding: 2rem 1rem;
+}
+.create-card {
+  background: #1e293b;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 20px;
+  padding: 2.5rem;
+  width: 100%; max-width: 520px;
+  box-shadow: 0 24px 64px rgba(0,0,0,.5);
+}
+.create-card h2 { color: #f1f5f9; font-weight: 800; font-size: 1.5rem; margin-bottom: .3rem; }
+.create-card .sub { color: #94a3b8; font-size: .85rem; margin-bottom: 2rem; }
+.gm-label { font-size: .8rem; font-weight: 600; color: #94a3b8; margin-bottom: 5px; display: block; }
+.gm-input {
+  width: 100%; background: #0f172a; border: 1px solid rgba(255,255,255,.1);
+  border-radius: 10px; padding: .7rem 1rem; color: #f1f5f9; font-size: .9rem;
+  outline: none; transition: border-color .2s;
+}
+.gm-input:focus { border-color: #7c3aed; }
+.gm-input option { background: #1e293b; }
+.theme-grid {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 6px;
+}
+.theme-btn {
+  height: 44px; border-radius: 10px; border: 2px solid transparent;
+  cursor: pointer; transition: transform .15s, border-color .15s;
+  position: relative;
+}
+.theme-btn:hover { transform: scale(1.08); }
+.theme-btn.selected { border-color: #fff; }
+.theme-btn span {
+  position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%);
+  font-size: .6rem; color: #94a3b8; white-space: nowrap;
+}
+.t-aurora   { background: linear-gradient(135deg,#4c1d95,#2563eb); }
+.t-midnight { background: linear-gradient(135deg,#0f172a,#1e1b4b); border: 2px solid rgba(255,255,255,.15)!important; }
+.t-forest   { background: linear-gradient(135deg,#065f46,#0d9488); }
+.t-coral    { background: linear-gradient(135deg,#be123c,#f97316); }
+.t-slate    { background: linear-gradient(135deg,#1e293b,#64748b); }
+#themeInput { display: none; }
+.gm-submit {
+  width: 100%; padding: .8rem; border: none; border-radius: 12px;
+  background: linear-gradient(135deg,#7c3aed,#2563eb);
+  color: #fff; font-weight: 700; font-size: 1rem;
+  cursor: pointer; margin-top: .5rem; transition: opacity .15s;
+}
+.gm-submit:hover { opacity: .9; }
+.gm-back { color: #94a3b8; font-size: .8rem; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 1.5rem; }
+.gm-back:hover { color: #f1f5f9; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="create-shell">
+  <div>
+    <a href="{% url 'teachers:presentation_list' %}" class="gm-back"><i class="fas fa-arrow-left"></i> My Decks</a>
+    <div class="create-card">
+      <h2>✨ New Presentation</h2>
+      <p class="sub">Set up your deck — AI will fill the slides in the editor.</p>
+
+      <form method="post" id="createForm">
+        {% csrf_token %}
+        <div class="mb-4">
+          <label class="gm-label" for="id_title">Presentation Title</label>
+          <input type="text" id="id_title" name="title" class="gm-input" placeholder="e.g. Photosynthesis — Basic 8" required autofocus>
+        </div>
+
+        <div class="mb-4">
+          <label class="gm-label">Subject (optional)</label>
+          <select name="subject_id" class="gm-input">
+            <option value="">— Select Subject —</option>
+            {% for s in subjects %}
+            <option value="{{ s.pk }}">{{ s.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-4">
+          <label class="gm-label">Class (optional)</label>
+          <select name="class_id" class="gm-input">
+            <option value="">— Select Class —</option>
+            {% for c in classes %}
+            <option value="{{ c.pk }}">{{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-4" style="padding-bottom:1.4rem;">
+          <label class="gm-label">Theme</label>
+          <div class="theme-grid">
+            {% for val, label in THEME_CHOICES %}
+            <div class="theme-btn t-{{ val }}{% if forloop.first %} selected{% endif %}"
+                 onclick="pickTheme('{{ val }}',this)" title="{{ label }}">
+              <span>{{ label }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          <input type="hidden" name="theme" id="themeInput" value="aurora">
+        </div>
+
+        <button type="submit" class="gm-submit">
+          <i class="fas fa-layer-group me-2"></i>Create Deck
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function pickTheme(val, el) {
+  document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('themeInput').value = val;
+}
+</script>
+{% endblock %}

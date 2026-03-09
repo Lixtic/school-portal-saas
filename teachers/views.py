@@ -3756,77 +3756,6 @@ def pulse_results(request, session_id):
 
 
 @login_required
-def pulse_results_csv(request, session_id):
-    """Export Pulse session results as a CSV download."""
-    import csv
-    from django.http import HttpResponse
-
-    if request.user.user_type not in ('teacher', 'admin'):
-        messages.error(request, 'Access denied.')
-        return redirect('dashboard')
-
-    try:
-        from academics.pulse_models import PulseSession
-    except ImportError:
-        messages.error(request, 'Pulse feature not available.')
-        return redirect('teachers:lesson_plan_list')
-
-    session = get_object_or_404(PulseSession, pk=session_id)
-
-    if request.user.user_type == 'teacher':
-        teacher = get_object_or_404(Teacher, user=request.user)
-        if session.teacher != teacher:
-            messages.error(request, 'Access denied.')
-            return redirect('teachers:lesson_plan_list')
-
-    school_class = session.lesson_plan.school_class
-    all_students = (
-        Student.objects.filter(current_class=school_class, user__is_active=True)
-        .select_related('user')
-        .order_by('user__last_name', 'user__first_name')
-    )
-    response_map = {
-        r.student_id: r
-        for r in session.responses.select_related('student__user').all()
-    }
-
-    filename = (
-        f"pulse_{session.pk}_{school_class.name.replace(' ', '_')}_"
-        f"{session.started_at.strftime('%Y%m%d')}.csv"
-    )
-    csv_response = HttpResponse(content_type='text/csv')
-    csv_response['Content-Disposition'] = f'attachment; filename="{filename}"'
-
-    writer = csv.writer(csv_response)
-    writer.writerow([
-        'Student', 'Class', 'Responded',
-        'Q1 - Prerequisite (Yes=Knows it)', 'Q2 - Misconception (Yes=Has it)',
-        'Q3 - MCQ Answer', 'At Risk'
-    ])
-
-    for stu in all_students:
-        r = response_map.get(stu.pk)
-        submitted = r is not None and r.submitted_at is not None
-        q1 = 'Yes' if r and r.q1_answer is True else ('No' if r and r.q1_answer is False else 'No response')
-        q2 = 'Yes' if r and r.q2_answer is True else ('No' if r and r.q2_answer is False else 'No response')
-        q3 = (r.q3_answer or '').strip() if r else ''
-        at_risk = (
-            not submitted
-            or (r and r.q1_answer is False)
-            or (r and r.q2_answer is True)
-        )
-        writer.writerow([
-            f'{stu.user.last_name}, {stu.user.first_name}',
-            school_class.name,
-            'Yes' if submitted else 'No',
-            q1, q2, q3,
-            'Yes' if at_risk else 'No',
-        ])
-
-    return csv_response
-
-
-@login_required
 def pulse_history(request):
     """All past Pulse sessions for the teacher (or all sessions for admins)."""
     if request.user.user_type not in ('teacher', 'admin'):
@@ -3872,3 +3801,281 @@ def pulse_history(request):
         'active_count':   sum(1 for s in sessions if s['session'].status == 'active'),
         'closed_count':   sum(1 for s in sessions if s['session'].status == 'closed'),
     })
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SLIDE DECK CREATOR  (Gamma-style)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@login_required
+def presentation_list(request):
+    """Dashboard listing all of the teacher's presentations."""
+    if request.user.user_type not in ('teacher', 'admin'):
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    teacher = get_object_or_404(Teacher, user=request.user)
+    from .models import Presentation
+    decks = Presentation.objects.filter(teacher=teacher).select_related('subject', 'school_class')
+    return render(request, 'teachers/presentations/list.html', {'decks': decks})
+
+
+@login_required
+def presentation_create(request):
+    """Create a new blank (or AI-seeded) presentation, then redirect to editor."""
+    if request.user.user_type not in ('teacher', 'admin'):
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    teacher = get_object_or_404(Teacher, user=request.user)
+    from .models import Presentation, Slide
+    from academics.models import Subject, Class
+
+    if request.method == 'POST':
+        title        = request.POST.get('title', 'Untitled Deck').strip() or 'Untitled Deck'
+        theme        = request.POST.get('theme', 'aurora')
+        subject_id   = request.POST.get('subject_id')
+        class_id     = request.POST.get('class_id')
+        subject      = Subject.objects.filter(pk=subject_id).first() if subject_id else None
+        school_class = Class.objects.filter(pk=class_id).first()      if class_id   else None
+
+        deck = Presentation.objects.create(
+            teacher=teacher, title=title, theme=theme,
+            subject=subject, school_class=school_class,
+        )
+        # Seed one title slide
+        Slide.objects.create(
+            presentation=deck, order=0, layout='title',
+            title=title, content='Add your subtitle here', emoji='🚀',
+        )
+        return redirect('teachers:presentation_editor', pk=deck.pk)
+
+    subjects = Subject.objects.all().order_by('name')
+    classes  = Class.objects.all().order_by('name')
+    return render(request, 'teachers/presentations/create.html', {
+        'subjects': subjects, 'classes': classes,
+        'THEME_CHOICES': Presentation.THEME_CHOICES,
+    })
+
+
+@login_required
+def presentation_editor(request, pk):
+    """Main Gamma-style slide editor."""
+    if request.user.user_type not in ('teacher', 'admin'):
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    teacher = get_object_or_404(Teacher, user=request.user)
+    from .models import Presentation, Slide
+    from academics.models import Subject, Class
+
+    deck   = get_object_or_404(Presentation, pk=pk, teacher=teacher)
+    slides = list(deck.slides.all())
+
+    subjects = Subject.objects.all().order_by('name')
+    classes  = Class.objects.all().order_by('name')
+
+    import json as _json
+    slides_json = _json.dumps([{
+        'id':            s.pk,
+        'order':         s.order,
+        'layout':        s.layout,
+        'title':         s.title,
+        'content':       s.content,
+        'emoji':         s.emoji,
+        'speaker_notes': s.speaker_notes,
+    } for s in slides])
+
+    return render(request, 'teachers/presentations/editor.html', {
+        'deck':     deck,
+        'slides':   slides,
+        'subjects': subjects,
+        'classes':  classes,
+        'slides_json':    slides_json,
+        'LAYOUT_CHOICES': Slide.LAYOUT_CHOICES,
+        'THEME_CHOICES':  Presentation.THEME_CHOICES,
+        'EMOJI_LIST': ['🚀','🌱','📚','🧠','💡','🔬','🌍','🎯','🏆','✏️','🧪','🌊','💻','🎨','📊'],
+    })
+
+
+@login_required
+def presentation_delete(request, pk):
+    if request.user.user_type not in ('teacher', 'admin'):
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    teacher = get_object_or_404(Teacher, user=request.user)
+    from .models import Presentation
+    deck = get_object_or_404(Presentation, pk=pk, teacher=teacher)
+    if request.method == 'POST':
+        deck.delete()
+        messages.success(request, 'Presentation deleted.')
+        return redirect('teachers:presentation_list')
+    return render(request, 'teachers/presentations/confirm_delete.html', {'deck': deck})
+
+
+@login_required
+def presentation_present(request, pk):
+    """Fullscreen slideshow view — read-only."""
+    if request.user.user_type not in ('teacher', 'admin'):
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    teacher = get_object_or_404(Teacher, user=request.user)
+    from .models import Presentation
+    deck   = get_object_or_404(Presentation, pk=pk, teacher=teacher)
+    slides = list(deck.slides.all())
+    return render(request, 'teachers/presentations/present.html', {
+        'deck': deck, 'slides': slides,
+    })
+
+
+@login_required
+@require_POST
+def presentation_api(request):
+    """
+    AJAX API for the slide editor.  Actions:
+      save_slide    — update a single slide's fields
+      add_slide     — append a new blank slide
+      delete_slide  — remove a slide, renumber
+      reorder       — save new slide order
+      ai_generate   — generate slides from topic via AuraGenEngine
+      update_deck   — rename / retheme deck
+    """
+    import json
+    from .models import Presentation, Slide
+    from django.db import transaction
+
+    if request.user.user_type not in ('teacher', 'admin'):
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    teacher = get_object_or_404(Teacher, user=request.user)
+
+    try:
+        data   = json.loads(request.body)
+        action = data.get('action')
+        deck_id = data.get('deck_id')
+        deck = get_object_or_404(Presentation, pk=deck_id, teacher=teacher)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+    # ── save_slide ──────────────────────────────────────────────────────────
+    if action == 'save_slide':
+        slide_id = data.get('slide_id')
+        slide = get_object_or_404(Slide, pk=slide_id, presentation=deck)
+        slide.title         = data.get('title',         slide.title)
+        slide.content       = data.get('content',       slide.content)
+        slide.speaker_notes = data.get('speaker_notes', slide.speaker_notes)
+        slide.layout        = data.get('layout',        slide.layout)
+        slide.emoji         = data.get('emoji',         slide.emoji)
+        slide.save()
+        deck.save()   # bump updated_at
+        return JsonResponse({'ok': True})
+
+    # ── add_slide ───────────────────────────────────────────────────────────
+    elif action == 'add_slide':
+        max_order = deck.slides.aggregate(m=models.Max('order'))['m'] or -1
+        slide = Slide.objects.create(
+            presentation=deck,
+            order=max_order + 1,
+            layout=data.get('layout', 'bullets'),
+            title=data.get('title', 'New Slide'),
+            content=data.get('content', ''),
+            emoji=data.get('emoji', ''),
+        )
+        deck.save()
+        return JsonResponse({
+            'ok':      True,
+            'slide_id': slide.pk,
+            'order':   slide.order,
+            'layout':  slide.layout,
+            'title':   slide.title,
+            'content': slide.content,
+            'emoji':   slide.emoji,
+            'speaker_notes': slide.speaker_notes,
+        })
+
+    # ── delete_slide ────────────────────────────────────────────────────────
+    elif action == 'delete_slide':
+        slide_id = data.get('slide_id')
+        slide = get_object_or_404(Slide, pk=slide_id, presentation=deck)
+        slide.delete()
+        # renumber
+        with transaction.atomic():
+            for i, s in enumerate(deck.slides.order_by('order')):
+                s.order = i
+                s.save(update_fields=['order'])
+        deck.save()
+        return JsonResponse({'ok': True})
+
+    # ── reorder ─────────────────────────────────────────────────────────────
+    elif action == 'reorder':
+        order_list = data.get('order', [])   # list of slide PKs in new order
+        with transaction.atomic():
+            for i, sid in enumerate(order_list):
+                Slide.objects.filter(pk=sid, presentation=deck).update(order=i)
+        deck.save()
+        return JsonResponse({'ok': True})
+
+    # ── update_deck ─────────────────────────────────────────────────────────
+    elif action == 'update_deck':
+        if 'title' in data:
+            deck.title = data['title'] or deck.title
+        if 'theme' in data and data['theme'] in dict(Presentation.THEME_CHOICES):
+            deck.theme = data['theme']
+        deck.save()
+        return JsonResponse({'ok': True, 'title': deck.title, 'theme': deck.theme})
+
+    # ── ai_generate ─────────────────────────────────────────────────────────
+    elif action == 'ai_generate':
+        topic      = data.get('topic', '').strip()
+        subject_id = data.get('subject_id')
+        class_id   = data.get('class_id')
+        if not topic:
+            return JsonResponse({'error': 'Topic is required'}, status=400)
+
+        from academics.models import Subject, Class
+        subject_name = 'General Studies'
+        class_name   = 'General'
+        if subject_id:
+            s = Subject.objects.filter(pk=subject_id).first()
+            if s: subject_name = s.name
+        if class_id:
+            c = Class.objects.filter(pk=class_id).first()
+            if c: class_name = c.name
+
+        from teachers.services.aura_gen_engine import AuraGenEngine
+        result = AuraGenEngine.generate_slides_outline(topic, subject_name, class_name)
+        raw_slides = result.get('slides', [])
+
+        # Replace all existing slides with AI-generated ones
+        with transaction.atomic():
+            deck.slides.all().delete()
+            created = []
+            for i, s in enumerate(raw_slides):
+                bullets = s.get('bullets', [])
+                content = '\n'.join(bullets)
+                layout  = 'title' if i == 0 else ('summary' if i == len(raw_slides) - 1 else 'bullets')
+                slide   = Slide.objects.create(
+                    presentation=deck,
+                    order=i,
+                    layout=layout,
+                    title=s.get('title', ''),
+                    content=content,
+                    speaker_notes=s.get('notes', ''),
+                )
+                created.append({
+                    'slide_id':      slide.pk,
+                    'order':         slide.order,
+                    'layout':        slide.layout,
+                    'title':         slide.title,
+                    'content':       slide.content,
+                    'emoji':         slide.emoji,
+                    'speaker_notes': slide.speaker_notes,
+                })
+            if data.get('update_title') and topic:
+                deck.title = topic
+            deck.save()
+
+        return JsonResponse({
+            'ok':         True,
+            'slides':     created,
+            'deck_title': deck.title,
+            'activities': result.get('activities', []),
+        })
+
+    return JsonResponse({'error': f'Unknown action: {action}'}, status=400)

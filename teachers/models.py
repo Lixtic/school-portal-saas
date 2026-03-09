@@ -127,6 +127,61 @@ class LessonPlan(models.Model):
     def __str__(self):
         return f"Week {self.week_number}: {self.subject} - {self.topic}"
 
+class Presentation(models.Model):
+    THEME_CHOICES = [
+        ('aurora',   'Aurora'),
+        ('midnight', 'Midnight'),
+        ('forest',   'Forest'),
+        ('coral',    'Coral'),
+        ('slate',    'Slate'),
+    ]
+    teacher      = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name='presentations')
+    title        = models.CharField(max_length=200)
+    subject      = models.ForeignKey('academics.Subject', on_delete=models.SET_NULL, null=True, blank=True)
+    school_class = models.ForeignKey('academics.Class',   on_delete=models.SET_NULL, null=True, blank=True)
+    theme        = models.CharField(max_length=20, choices=THEME_CHOICES, default='aurora')
+    created_at   = models.DateTimeField(auto_now_add=True)
+    updated_at   = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def slide_count(self):
+        return self.slides.count()
+
+
+class Slide(models.Model):
+    LAYOUT_CHOICES = [
+        ('title',    'Title Slide'),
+        ('bullets',  'Bullet List'),
+        ('two_col',  'Two Column'),
+        ('big_stat', 'Big Stat'),
+        ('quote',    'Quote'),
+        ('summary',  'Summary'),
+    ]
+    presentation  = models.ForeignKey(Presentation, on_delete=models.CASCADE, related_name='slides')
+    order         = models.PositiveIntegerField(default=0)
+    layout        = models.CharField(max_length=20, choices=LAYOUT_CHOICES, default='bullets')
+    title         = models.CharField(max_length=300, blank=True)
+    content       = models.TextField(blank=True)   # newline-separated bullets or plain text
+    speaker_notes = models.TextField(blank=True)
+    emoji         = models.CharField(max_length=10, blank=True)
+
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        return f"Slide {self.order + 1}: {self.title[:60]}"
+
+    @property
+    def bullets(self):
+        return [b.strip() for b in self.content.split('\n') if b.strip()]
+
+
 class LessonGenerationSession(models.Model):
     teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name='ai_sessions')
     title = models.CharField(max_length=200, default="New Session")

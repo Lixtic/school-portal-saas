@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}My Slide Decks{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+  --gm-bg: #f8fafc;
+  --gm-card: #ffffff;
+  --gm-border: #e2e8f0;
+  --gm-text: #0f172a;
+  --gm-muted: #64748b;
+  --gm-accent: #7c3aed;
+  --gm-accent2: #2563eb;
+}
+[data-bs-theme="dark"] {
+  --gm-bg: #0f172a;
+  --gm-card: #1e293b;
+  --gm-border: rgba(255,255,255,.08);
+  --gm-text: #f1f5f9;
+  --gm-muted: #94a3b8;
+}
+body { background: var(--gm-bg); }
+.gm-header {
+  background: linear-gradient(135deg, #4c1d95 0%, #1e40af 100%);
+  padding: 2.5rem 2rem 2rem;
+  color: #fff;
+  border-radius: 0 0 24px 24px;
+  margin-bottom: 2rem;
+}
+.gm-header h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
+.gm-header p  { opacity: .75; margin: .3rem 0 0; font-size: .9rem; }
+.gm-btn-new {
+  background: #fff; color: #4c1d95;
+  border: none; border-radius: 10px; padding: .55rem 1.3rem;
+  font-weight: 700; font-size: .88rem; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: opacity .15s;
+}
+.gm-btn-new:hover { opacity: .9; color: #4c1d95; }
+.deck-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.25rem;
+  padding: 0 1.5rem 3rem;
+}
+.deck-card {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  overflow: hidden;
+  text-decoration: none;
+  color: var(--gm-text);
+  transition: transform .18s, box-shadow .18s;
+  cursor: pointer;
+}
+.deck-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,.12); }
+.deck-thumb {
+  height: 130px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.5rem; border-radius: 0;
+  position: relative; overflow: hidden;
+}
+.theme-aurora   { background: linear-gradient(135deg,#4c1d95,#2563eb); }
+.theme-midnight { background: linear-gradient(135deg,#0f172a,#1e1b4b); }
+.theme-forest   { background: linear-gradient(135deg,#065f46,#0d9488); }
+.theme-coral    { background: linear-gradient(135deg,#be123c,#f97316); }
+.theme-slate    { background: linear-gradient(135deg,#1e293b,#64748b); }
+.deck-thumb-inner { position: relative; z-index: 2; }
+.deck-thumb-inner .slide-mimic {
+  background: rgba(255,255,255,.1); backdrop-filter: blur(4px);
+  border-radius: 8px; padding: .6rem .8rem; min-width: 160px; max-width: 200px;
+}
+.slide-mimic-title { font-size: .72rem; font-weight: 800; color: #fff; line-height: 1.2; }
+.slide-mimic-lines { margin-top: 5px; display: flex; flex-direction: column; gap: 3px; }
+.slide-mimic-line  { height: 4px; background: rgba(255,255,255,.35); border-radius: 2px; }
+.deck-info { padding: .9rem 1rem; }
+.deck-title { font-weight: 700; font-size: .95rem; color: var(--gm-text); white-space: nowrap; overflow:hidden; text-overflow: ellipsis; }
+.deck-meta  { font-size: .72rem; color: var(--gm-muted); margin-top: 4px; display: flex; gap: 10px; flex-wrap: wrap; }
+.deck-actions { padding: 0 .8rem .8rem; display: flex; gap: 6px; }
+.deck-act-btn {
+  flex: 1; text-align: center; padding: 5px 0;
+  font-size: .75rem; font-weight: 600;
+  border-radius: 8px; text-decoration: none;
+  border: 1px solid var(--gm-border); color: var(--gm-muted);
+  transition: background .15s;
+}
+.deck-act-btn:hover { background: rgba(124,58,237,.1); color: var(--gm-accent); border-color: var(--gm-accent); }
+.deck-act-btn.danger:hover { background: rgba(239,68,68,.1); color: #ef4444; border-color: #ef4444; }
+.empty-state {
+  text-align: center; padding: 4rem 1rem; color: var(--gm-muted);
+  grid-column: 1/-1;
+}
+.empty-state i { font-size: 3rem; opacity: .3; display: block; margin-bottom: 1rem; }
+.empty-state h3 { font-size: 1.1rem; font-weight: 700; color: var(--gm-text); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:1100px;margin:0 auto;">
+
+  <div class="gm-header d-flex align-items-start justify-content-between flex-wrap gap-3">
+    <div>
+      <h1><i class="fas fa-layer-group me-2"></i>Slide Decks</h1>
+      <p>Create AI-powered presentations for your classes</p>
+    </div>
+    <a href="{% url 'teachers:presentation_create' %}" class="gm-btn-new">
+      <i class="fas fa-plus"></i> New Presentation
+    </a>
+  </div>
+
+  <div class="deck-grid">
+    {% for deck in decks %}
+    <div class="deck-card">
+      <a href="{% url 'teachers:presentation_editor' deck.pk %}" style="text-decoration:none;">
+        <div class="deck-thumb theme-{{ deck.theme }}">
+          <div class="deck-thumb-inner">
+            <div class="slide-mimic">
+              <div class="slide-mimic-title">{{ deck.title|truncatechars:30 }}</div>
+              <div class="slide-mimic-lines">
+                <div class="slide-mimic-line" style="width:80%"></div>
+                <div class="slide-mimic-line" style="width:60%"></div>
+                <div class="slide-mimic-line" style="width:70%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="deck-info">
+          <div class="deck-title">{{ deck.title }}</div>
+          <div class="deck-meta">
+            <span><i class="fas fa-clone me-1"></i>{{ deck.slide_count }} slide{{ deck.slide_count|pluralize }}</span>
+            {% if deck.subject %}<span><i class="fas fa-book me-1"></i>{{ deck.subject.name }}</span>{% endif %}
+            {% if deck.school_class %}<span><i class="fas fa-users me-1"></i>{{ deck.school_class.name }}</span>{% endif %}
+            <span><i class="fas fa-clock me-1"></i>{{ deck.updated_at|timesince }} ago</span>
+          </div>
+        </div>
+      </a>
+      <div class="deck-actions">
+        <a href="{% url 'teachers:presentation_editor' deck.pk %}" class="deck-act-btn"><i class="fas fa-edit me-1"></i>Edit</a>
+        <a href="{% url 'teachers:presentation_present' deck.pk %}" class="deck-act-btn" target="_blank"><i class="fas fa-play me-1"></i>Present</a>
+        <a href="{% url 'teachers:presentation_delete' deck.pk %}" class="deck-act-btn danger"><i class="fas fa-trash me-1"></i>Delete</a>
+      </div>
+    </div>
+    {% empty %}
+    <div class="empty-state">
+      <i class="fas fa-layer-group"></i>
+      <h3>No presentations yet</h3>
+      <p>Click <strong>New Presentation</strong> to create your first Gamma-style slide deck, powered by AI.</p>
+      <a href="{% url 'teachers:presentation_create' %}" class="btn btn-primary mt-2">
+        <i class="fas fa-plus me-1"></i> Create Presentation
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}

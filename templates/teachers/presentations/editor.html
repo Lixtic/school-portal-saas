@@ -1,0 +1,861 @@
+{% extends "base.html" %}
+{% block title %}{{ deck.title }} — Editor{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ═══════════════════════════════════════════
+   GAMMA-STYLE EDITOR  —  full-page shell
+═══════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+.gm-shell {
+  display: flex; flex-direction: column;
+  height: 100vh; overflow: hidden;
+  background: #0f172a; color: #f1f5f9;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* ── Top bar ───────────────────────────────── */
+.gm-topbar {
+  height: 54px; flex-shrink: 0;
+  background: #1e293b;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  display: flex; align-items: center; padding: 0 1rem; gap: 10px;
+}
+.gm-back-btn {
+  background: none; border: none; color: #94a3b8; cursor: pointer;
+  width: 32px; height: 32px; border-radius: 8px; display: flex;
+  align-items: center; justify-content: center;
+  transition: background .15s; flex-shrink: 0;
+}
+.gm-back-btn:hover { background: rgba(255,255,255,.07); color: #f1f5f9; }
+.gm-deck-title-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: #f1f5f9; font-size: .95rem; font-weight: 700;
+  padding: 4px 8px; border-radius: 6px; min-width: 0;
+  transition: background .15s;
+}
+.gm-deck-title-input:hover, .gm-deck-title-input:focus { background: rgba(255,255,255,.06); }
+.gm-save-pill { font-size: .72rem; color: #64748b; white-space: nowrap; }
+.gm-save-pill.saving { color: #f59e0b; }
+.gm-save-pill.saved  { color: #22c55e; }
+.gm-topbar-sep { width: 1px; height: 22px; background: rgba(255,255,255,.1); flex-shrink: 0; }
+.gm-theme-select {
+  font-size: .75rem; background: #0f172a; border: 1px solid rgba(255,255,255,.1);
+  color: #94a3b8; border-radius: 8px; padding: 4px 8px; cursor: pointer; outline: none;
+}
+.gm-theme-select:focus { border-color: #7c3aed; }
+.gm-present-btn {
+  background: linear-gradient(135deg,#7c3aed,#2563eb);
+  border: none; color: #fff; border-radius: 9px; padding: 6px 14px;
+  font-size: .8rem; font-weight: 700; cursor: pointer; display: flex;
+  align-items: center; gap: 5px; flex-shrink: 0;
+  transition: opacity .15s;
+}
+.gm-present-btn:hover { opacity: .88; }
+.gm-ai-btn {
+  background: rgba(139,92,246,.15); border: 1px solid rgba(139,92,246,.3);
+  color: #c4b5fd; border-radius: 9px; padding: 6px 12px;
+  font-size: .8rem; font-weight: 700; cursor: pointer; gap: 5px;
+  display: flex; align-items: center; flex-shrink: 0;
+  transition: background .15s;
+}
+.gm-ai-btn:hover { background: rgba(139,92,246,.28); }
+.gm-add-btn {
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+  color: #94a3b8; border-radius: 9px; padding: 6px 12px;
+  font-size: .8rem; font-weight: 600; cursor: pointer; gap: 5px;
+  display: flex; align-items: center;
+  transition: background .15s;
+}
+.gm-add-btn:hover { background: rgba(255,255,255,.1); color: #f1f5f9; }
+
+/* ── Main three-pane layout ─────────────────── */
+.gm-body {
+  flex: 1; display: flex; overflow: hidden;
+}
+
+/* ── Left panel — slide strip ───────────────── */
+.gm-strip {
+  width: 190px; flex-shrink: 0;
+  background: #1e293b;
+  border-right: 1px solid rgba(255,255,255,.06);
+  overflow-y: auto; padding: 10px 8px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.gm-strip-title { font-size: .65rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .07em; padding: 0 4px 6px; }
+.gm-thumb {
+  border-radius: 8px; overflow: hidden; cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color .15s, transform .12s;
+  position: relative; flex-shrink: 0;
+}
+.gm-thumb:hover { transform: scale(1.02); }
+.gm-thumb.active { border-color: #7c3aed; }
+.gm-thumb-slide {
+  aspect-ratio: 16/9; display: flex;
+  align-items: center; justify-content: center;
+  padding: 10px; position: relative; overflow: hidden;
+}
+.gm-thumb-num {
+  position: absolute; top: 4px; left: 5px;
+  font-size: .55rem; font-weight: 800; color: rgba(255,255,255,.5);
+}
+.gm-thumb-title {
+  font-size: .55rem; font-weight: 700; color: rgba(255,255,255,.9);
+  text-align: center; z-index: 2; line-height: 1.3;
+}
+.gm-add-slide-btn {
+  flex-shrink: 0; border: 1px dashed rgba(255,255,255,.15);
+  border-radius: 8px; padding: 8px;
+  background: transparent; color: #64748b; cursor: pointer;
+  font-size: .75rem; display: flex; align-items: center; justify-content: center; gap: 5px;
+  transition: border-color .15s, color .15s;
+}
+.gm-add-slide-btn:hover { border-color: #7c3aed; color: #c4b5fd; }
+
+/* ── Center — canvas ────────────────────────── */
+.gm-canvas-wrap {
+  flex: 1; overflow: auto;
+  display: flex; align-items: center; justify-content: center;
+  padding: 2rem;
+  background: #0a0a0f;
+}
+.gm-slide-canvas {
+  width: min(880px, 100%);
+  aspect-ratio: 16/9;
+  border-radius: 16px;
+  box-shadow: 0 32px 80px rgba(0,0,0,.6);
+  position: relative; overflow: hidden;
+  transition: all .3s;
+  flex-shrink: 0;
+}
+/* Theme gradients */
+.theme-aurora   { background: linear-gradient(135deg,#1e0a40 0%,#0c1a4a 100%); }
+.theme-midnight { background: linear-gradient(135deg,#0f172a 0%,#1e1b4b 100%); }
+.theme-forest   { background: linear-gradient(135deg,#021d11 0%,#052e22 60%,#0a2e2b 100%); }
+.theme-coral    { background: linear-gradient(135deg,#3b0012 0%,#5a1200 60%,#7c1e00 100%); }
+.theme-slate    { background: linear-gradient(135deg,#0f1824 0%,#1e2d3d 100%); }
+
+/* Decorative blobs on slide canvas */
+.gm-slide-canvas::before {
+  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 40% at 10% 20%, rgba(139,92,246,.18) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 60% at 90% 80%, rgba(37,99,235,.12) 0%, transparent 70%);
+}
+.gm-slide-inner { position: relative; z-index: 1; width: 100%; height: 100%; display: flex; flex-direction: column; }
+
+/* ── Layouts ────────────────────────────────── */
+/* title layout */
+.layout-title .sl-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 5%; text-align: center; }
+.layout-title .sl-emoji { font-size: clamp(2rem, 6vw, 4rem); margin-bottom: .5rem; }
+.layout-title .sl-title { font-size: clamp(1.4rem, 4vw, 2.8rem); font-weight: 900; color: #f1f5f9; line-height: 1.1; letter-spacing: -.02em; }
+.layout-title .sl-sub   { margin-top: .8rem; font-size: clamp(.65rem, 1.5vw, 1rem); color: rgba(255,255,255,.55); max-width: 60%; }
+
+/* bullets */
+.layout-bullets .sl-body { flex: 1; display: flex; flex-direction: column; padding: 4% 5%; }
+.layout-bullets .sl-title { font-size: clamp(1rem, 2.8vw, 1.8rem); font-weight: 800; color: #f1f5f9; margin-bottom: .6em; }
+.layout-bullets .sl-bullets { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .35em; flex: 1; }
+.layout-bullets .sl-bullets li { display: flex; align-items: flex-start; gap: .5em; font-size: clamp(.6rem, 1.6vw, 1rem); color: rgba(255,255,255,.82); line-height: 1.4; }
+.layout-bullets .sl-bullets li::before { content: '▸'; color: #a78bfa; flex-shrink: 0; margin-top: .1em; }
+
+/* summary */
+.layout-summary .sl-body { flex: 1; display: flex; flex-direction: column; padding: 4% 5%; }
+.layout-summary .sl-title { font-size: clamp(.9rem, 2.5vw, 1.6rem); font-weight: 800; color: #f1f5f9; margin-bottom: .6em; }
+.layout-summary .sl-bullets { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: .4em; flex: 1; }
+.layout-summary .sl-bullets li { display: flex; align-items: flex-start; gap: .4em; font-size: clamp(.55rem, 1.4vw, .88rem); color: rgba(255,255,255,.8); padding: .4em .6em; background: rgba(255,255,255,.06); border-radius: 6px; line-height: 1.35; }
+.layout-summary .sl-bullets li::before { content: '✓'; color: #34d399; flex-shrink: 0; }
+
+/* big_stat */
+.layout-big_stat .sl-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 5%; }
+.layout-big_stat .sl-title { font-size: clamp(.8rem, 2vw, 1.2rem); color: rgba(255,255,255,.55); text-transform: uppercase; letter-spacing: .1em; font-weight: 700; }
+.layout-big_stat .sl-stat { font-size: clamp(3rem, 12vw, 7rem); font-weight: 900; line-height: 1; background: linear-gradient(135deg,#a78bfa,#60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.layout-big_stat .sl-sub { margin-top: .5rem; font-size: clamp(.6rem, 1.4vw, .9rem); color: rgba(255,255,255,.45); }
+
+/* quote */
+.layout-quote .sl-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6%; text-align: center; }
+.layout-quote .sl-quote { font-size: clamp(.9rem, 2.5vw, 1.6rem); color: #e0e7ff; font-style: italic; line-height: 1.5; position: relative; }
+.layout-quote .sl-quote::before { content: '\201C'; font-size: 4em; color: rgba(139,92,246,.3); position: absolute; top: -.3em; left: -.2em; font-style: normal; }
+.layout-quote .sl-author { margin-top: 1.2rem; font-size: clamp(.6rem, 1.3vw, .85rem); color: rgba(255,255,255,.45); font-style: normal; }
+
+/* two_col */
+.layout-two_col .sl-body { flex: 1; display: flex; flex-direction: column; padding: 3% 4%; }
+.layout-two_col .sl-title { font-size: clamp(.9rem, 2.5vw, 1.6rem); font-weight: 800; color: #f1f5f9; margin-bottom: .5em; }
+.layout-two_col .sl-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1em; flex: 1; }
+.layout-two_col .sl-col { background: rgba(255,255,255,.05); border-radius: 8px; padding: .8em; }
+.layout-two_col .sl-col-item { font-size: clamp(.55rem, 1.4vw, .85rem); color: rgba(255,255,255,.8); padding: .25em 0; display: flex; align-items: flex-start; gap: .4em; }
+.layout-two_col .sl-col-item::before { content: '•'; color: #a78bfa; flex-shrink: 0; }
+
+/* ── Right panel — slide editor form ────────── */
+.gm-panel {
+  width: 280px; flex-shrink: 0;
+  background: #1e293b;
+  border-left: 1px solid rgba(255,255,255,.06);
+  overflow-y: auto; padding: 1rem;
+  display: flex; flex-direction: column; gap: 1rem;
+}
+.gm-panel-section { }
+.gm-panel-label { font-size: .68rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px; display: flex; align-items: center; gap: 5px; }
+.gm-panel-label i { color: #7c3aed; }
+.gm-field {
+  width: 100%; background: #0f172a; border: 1px solid rgba(255,255,255,.08);
+  border-radius: 9px; padding: .5rem .7rem; color: #f1f5f9; font-size: .82rem;
+  resize: vertical; outline: none; transition: border-color .2s; font-family: inherit;
+}
+.gm-field:focus { border-color: #7c3aed; }
+.gm-field::placeholder { color: #475569; }
+.layout-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.layout-pick-btn {
+  background: #0f172a; border: 1px solid rgba(255,255,255,.06);
+  border-radius: 8px; padding: 6px 2px; cursor: pointer;
+  color: #94a3b8; font-size: .63rem; text-align: center;
+  transition: all .15s; display: flex; flex-direction: column;
+  align-items: center; gap: 2px;
+}
+.layout-pick-btn i { font-size: .85rem; }
+.layout-pick-btn:hover { background: rgba(124,58,237,.15); color: #c4b5fd; border-color: rgba(124,58,237,.3); }
+.layout-pick-btn.active { background: rgba(124,58,237,.2); color: #a78bfa; border-color: #7c3aed; }
+.emoji-row { display: flex; flex-wrap: wrap; gap: 4px; }
+.emoji-btn { font-size: 1.1rem; padding: 2px 4px; border-radius: 5px; cursor: pointer; background: transparent; border: 1px solid transparent; transition: background .12s; }
+.emoji-btn:hover { background: rgba(255,255,255,.08); }
+.emoji-btn.selected { border-color: #7c3aed; background: rgba(124,58,237,.15); }
+.gm-panel-sep { height: 1px; background: rgba(255,255,255,.06); }
+.delete-slide-btn {
+  width: 100%; padding: 7px; border-radius: 8px;
+  background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.2);
+  color: #f87171; font-size: .78rem; font-weight: 700; cursor: pointer;
+  transition: background .15s;
+}
+.delete-slide-btn:hover { background: rgba(239,68,68,.2); }
+.no-slide-msg { color: #475569; font-size: .82rem; text-align: center; padding: 2rem 0; }
+
+/* ── AI Generate Modal ───────────────────────── */
+.gm-modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 9900;
+  background: rgba(0,0,0,.7); backdrop-filter: blur(4px);
+  align-items: center; justify-content: center;
+}
+.gm-modal-overlay.open { display: flex; }
+.gm-modal {
+  background: #1e293b; border: 1px solid rgba(255,255,255,.1);
+  border-radius: 20px; padding: 2rem; width: 100%; max-width: 460px;
+  box-shadow: 0 32px 80px rgba(0,0,0,.6);
+}
+.gm-modal h3 { font-size: 1.15rem; font-weight: 800; color: #f1f5f9; margin-bottom: .3rem; }
+.gm-modal p  { color: #94a3b8; font-size: .82rem; margin-bottom: 1.5rem; }
+.gm-modal-field {
+  width: 100%; background: #0f172a; border: 1px solid rgba(255,255,255,.1);
+  border-radius: 10px; padding: .65rem .9rem; color: #f1f5f9; font-size: .88rem;
+  outline: none; margin-bottom: .7rem; font-family: inherit;
+}
+.gm-modal-field:focus { border-color: #7c3aed; }
+.gm-modal-field option { background: #1e293b; }
+.gm-modal-row { display: flex; gap: 8px; margin-bottom: .7rem; }
+.gm-modal-row .gm-modal-field { margin: 0; }
+.gm-modal-actions { display: flex; gap: 8px; margin-top: .5rem; }
+.gm-modal-cancel { flex: 1; padding: .65rem; border-radius: 10px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); color: #94a3b8; font-weight: 600; cursor: pointer; font-size: .85rem; }
+.gm-modal-go { flex: 2; padding: .65rem; border-radius: 10px; background: linear-gradient(135deg,#7c3aed,#2563eb); border: none; color: #fff; font-weight: 700; cursor: pointer; font-size: .85rem; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.gm-modal-go:disabled { opacity: .5; cursor: wait; }
+.gm-spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* speaker notes bar */
+.gm-notes-bar {
+  height: 34px; flex-shrink: 0;
+  background: #1a2332; border-top: 1px solid rgba(255,255,255,.06);
+  display: flex; align-items: center; padding: 0 1rem; gap: 8px;
+  overflow: hidden; transition: height .2s;
+}
+.gm-notes-bar.open { height: 120px; align-items: flex-start; padding-top: .5rem; }
+.gm-notes-toggle { background: none; border: none; color: #64748b; cursor: pointer; font-size: .72rem; display: flex; align-items: center; gap: 4px; white-space: nowrap; flex-shrink: 0; }
+.gm-notes-toggle:hover { color: #94a3b8; }
+.gm-notes-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: #94a3b8; font-size: .78rem; resize: none;
+  font-family: inherit; line-height: 1.5;
+  display: none;
+}
+.gm-notes-bar.open .gm-notes-input { display: block; }
+.gm-notes-preview { flex: 1; color: #475569; font-size: .72rem; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gm-notes-bar.open .gm-notes-preview { display: none; }
+
+/* ── misc ───────────────────────────────────── */
+.gm-slide-count { font-size: .65rem; color: #475569; text-align: center; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="gm-shell">
+
+  <!-- TOP BAR -->
+  <div class="gm-topbar">
+    <button class="gm-back-btn" onclick="window.location='{% url 'teachers:presentation_list' %}'" title="Back to decks">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <input type="text" class="gm-deck-title-input" id="deckTitleInput"
+           value="{{ deck.title }}" spellcheck="false"
+           onchange="saveDeckMeta()">
+    <span class="gm-save-pill" id="savePill">All changes saved</span>
+    <div class="gm-topbar-sep"></div>
+    <select class="gm-theme-select" id="themeSelect" onchange="saveDeckMeta()">
+      {% for val, label in THEME_CHOICES %}
+      <option value="{{ val }}"{% if deck.theme == val %} selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <div class="gm-topbar-sep"></div>
+    <button class="gm-add-btn" onclick="addSlide()"><i class="fas fa-plus"></i> Slide</button>
+    <button class="gm-ai-btn" onclick="openAIModal()"><i class="fas fa-robot"></i> AI Generate</button>
+    <a href="{% url 'teachers:presentation_present' deck.pk %}" target="_blank" class="gm-present-btn">
+      <i class="fas fa-play"></i> Present
+    </a>
+  </div>
+
+  <!-- BODY -->
+  <div class="gm-body">
+
+    <!-- LEFT STRIP -->
+    <div class="gm-strip" id="slideStrip">
+      <div class="gm-strip-title">Slides</div>
+      <div id="thumbList">
+        {% for slide in slides %}
+        <div class="gm-thumb{% if forloop.first %} active{% endif %}"
+             id="thumb-{{ slide.pk }}" data-slide-id="{{ slide.pk }}"
+             onclick="selectSlide({{ slide.pk }})">
+          <div class="gm-thumb-slide theme-{{ deck.theme }}">
+            <span class="gm-thumb-num">{{ forloop.counter }}</span>
+            <div class="gm-thumb-title">{{ slide.title|truncatechars:28 }}</div>
+          </div>
+        </div>
+        {% empty %}
+        <div style="color:#475569;font-size:.72rem;text-align:center;padding:1rem 0;">No slides yet</div>
+        {% endfor %}
+      </div>
+      <button class="gm-add-slide-btn" onclick="addSlide()"><i class="fas fa-plus"></i> Add slide</button>
+      <div class="gm-slide-count" id="slideCountLabel">{{ slides|length }} slide{{ slides|length|pluralize }}</div>
+    </div>
+
+    <!-- CENTER CANVAS + NOTES -->
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      <div class="gm-canvas-wrap" id="canvasWrap">
+        <div class="gm-slide-canvas theme-{{ deck.theme }}" id="liveCanvas">
+          {% for slide in slides %}
+          <div class="gm-slide-inner" id="canvas-{{ slide.pk }}" style="display:{% if forloop.first %}flex{% else %}none{% endif %};">
+            {% include "teachers/presentations/_slide_render.html" with slide=slide %}
+          </div>
+          {% empty %}
+          <div style="display:flex;align-items:center;justify-content:center;height:100%;color:rgba(255,255,255,.25);font-size:1.1rem;font-weight:700;flex-direction:column;gap:.5rem;">
+            <i class="fas fa-layer-group" style="font-size:2.5rem;opacity:.3;"></i>
+            Click <strong style="color:#a78bfa;margin:0 4px;"> AI Generate</strong> or <strong style="color:#a78bfa;margin:0 4px;">+ Slide</strong>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Speaker Notes bar -->
+      <div class="gm-notes-bar" id="notesBar">
+        <button class="gm-notes-toggle" onclick="toggleNotes()">
+          <i class="fas fa-sticky-note"></i> Speaker Notes
+          <i class="fas fa-chevron-up" id="notesChevron" style="transition:transform .2s;"></i>
+        </button>
+        <span class="gm-notes-preview" id="notesPreview">—</span>
+        <textarea class="gm-notes-input" id="notesInput" rows="4"
+                  placeholder="Add speaker notes for this slide…"
+                  oninput="debounceSaveSlide()"></textarea>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="gm-panel" id="sidePanel">
+      <div id="panelContent">
+        {% if slides %}
+        <div class="gm-panel-section">
+          <div class="gm-panel-label"><i class="fas fa-heading"></i> Slide Title</div>
+          <input type="text" class="gm-field" id="panelTitle"
+                 placeholder="Slide title…" oninput="debounceSaveSlide()">
+        </div>
+
+        <div class="gm-panel-section">
+          <div class="gm-panel-label"><i class="fas fa-align-left"></i> Content / Bullets</div>
+          <textarea class="gm-field" id="panelContent" rows="7"
+                    placeholder="One bullet per line…" oninput="debounceSaveSlide()"></textarea>
+          <div style="font-size:.65rem;color:#475569;margin-top:4px;">Each line = one bullet</div>
+        </div>
+
+        <div class="gm-panel-section">
+          <div class="gm-panel-label"><i class="fas fa-th-large"></i> Layout</div>
+          <div class="layout-picker" id="layoutPicker">
+            {% for val, label in LAYOUT_CHOICES %}
+            <button class="layout-pick-btn" data-layout="{{ val }}" onclick="setLayout('{{ val }}')">
+              <i class="fas {% if val == 'title' %}fa-star{% elif val == 'bullets' %}fa-list{% elif val == 'two_col' %}fa-columns{% elif val == 'big_stat' %}fa-sort-numeric-up{% elif val == 'quote' %}fa-quote-left{% else %}fa-check-circle{% endif %}"></i>
+              <span>{{ label }}</span>
+            </button>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="gm-panel-section">
+          <div class="gm-panel-label"><i class="fas fa-smile"></i> Emoji</div>
+          <div class="emoji-row" id="emojiPicker">
+            {% for e in EMOJI_LIST %}
+            <button class="emoji-btn" onclick="setEmoji('{{ e }}')" title="{{ e }}">{{ e }}</button>
+            {% endfor %}
+            <button class="emoji-btn" onclick="setEmoji('')" title="Clear" style="font-size:.6rem;color:#64748b;">✕</button>
+          </div>
+        </div>
+
+        <div class="gm-panel-sep"></div>
+        <button class="delete-slide-btn" onclick="deleteCurrentSlide()">
+          <i class="fas fa-trash me-1"></i> Delete Slide
+        </button>
+        {% else %}
+        <div class="no-slide-msg">Select or add a slide to edit it here.</div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div><!-- /gm-body -->
+
+</div><!-- /gm-shell -->
+
+<!-- AI Generate Modal -->
+<div class="gm-modal-overlay" id="aiModal" onclick="closeAIModal(event)">
+  <div class="gm-modal" onclick="event.stopPropagation()">
+    <h3>✨ AI Slide Generator</h3>
+    <p>Enter a topic and Aura-T will create a complete slide deck in seconds.</p>
+
+    <input type="text" class="gm-modal-field" id="aiTopic" placeholder="e.g. The Water Cycle, Fractions, WW2…"
+           onkeydown="if(event.key==='Enter') runAIGenerate()">
+
+    <div class="gm-modal-row">
+      <select class="gm-modal-field" id="aiSubject">
+        <option value="">Any Subject</option>
+        {% for s in subjects %}<option value="{{ s.pk }}"{% if deck.subject_id == s.pk %} selected{% endif %}>{{ s.name }}</option>{% endfor %}
+      </select>
+      <select class="gm-modal-field" id="aiClass">
+        <option value="">Any Class</option>
+        {% for c in classes %}<option value="{{ c.pk }}"{% if deck.school_class_id == c.pk %} selected{% endif %}>{{ c.name }}</option>{% endfor %}
+      </select>
+    </div>
+
+    <div class="gm-modal-actions">
+      <button class="gm-modal-cancel" onclick="document.getElementById('aiModal').classList.remove('open')">Cancel</button>
+      <button class="gm-modal-go" id="aiGoBtn" onclick="runAIGenerate()">
+        <i class="fas fa-robot"></i> Generate Deck
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden slide data for JS -->
+<script id="slideDataJSON" type="application/json">
+{{ slides_json }}
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  GAMMA EDITOR — JavaScript Core
+// ═══════════════════════════════════════════════════════════════
+var API_URL   = "{% url 'teachers:presentation_api' %}";
+var DECK_ID   = {{ deck.pk }};
+var DECK_THEME= "{{ deck.theme }}";
+var csrfToken = "{{ csrf_token }}";
+
+// Slide state — built from server data
+var slides = JSON.parse(document.getElementById('slideDataJSON').textContent || '[]');
+var currentSlideId = slides.length ? slides[0].id : null;
+var saveTimer = null;
+
+// ── API helper ──────────────────────────────────────────────────
+function api(payload) {
+  payload.deck_id = DECK_ID;
+  return fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+    body: JSON.stringify(payload),
+  }).then(r => r.json());
+}
+
+// ── Save status pill ────────────────────────────────────────────
+function setSaveStatus(state, text) {
+  var el = document.getElementById('savePill');
+  el.className = 'gm-save-pill ' + state;
+  el.textContent = text;
+}
+
+// ── Select a slide ──────────────────────────────────────────────
+function selectSlide(slideId) {
+  currentSlideId = slideId;
+  // visual: canvas
+  document.querySelectorAll('.gm-slide-inner').forEach(function(el) {
+    el.style.display = 'none';
+  });
+  var target = document.getElementById('canvas-' + slideId);
+  if (target) target.style.display = 'flex';
+  // strip: highlight
+  document.querySelectorAll('.gm-thumb').forEach(function(t) { t.classList.remove('active'); });
+  var th = document.getElementById('thumb-' + slideId);
+  if (th) { th.classList.add('active'); th.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+  // panel: populate
+  var slide = slides.find(function(s) { return s.id == slideId; });
+  if (!slide) return;
+  document.getElementById('panelTitle').value   = slide.title;
+  document.getElementById('panelContent').value = slide.content;
+  document.getElementById('notesInput').value   = slide.speaker_notes || '';
+  document.getElementById('notesPreview').textContent = slide.speaker_notes || '—';
+  // layout buttons
+  document.querySelectorAll('.layout-pick-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.layout === slide.layout);
+  });
+  // emoji
+  document.querySelectorAll('.emoji-btn').forEach(function(b) {
+    b.classList.toggle('selected', b.textContent.trim() === slide.emoji);
+  });
+}
+
+// ── Debounced save ──────────────────────────────────────────────
+function debounceSaveSlide() {
+  clearTimeout(saveTimer);
+  setSaveStatus('saving', '⏳ Saving…');
+  saveTimer = setTimeout(saveCurrentSlide, 900);
+}
+
+function saveCurrentSlide() {
+  if (!currentSlideId) return;
+  var slide = slides.find(function(s) { return s.id == currentSlideId; });
+  if (!slide) return;
+  var title   = document.getElementById('panelTitle').value;
+  var content = document.getElementById('panelContent').value;
+  var notes   = document.getElementById('notesInput').value;
+  // update notes preview
+  document.getElementById('notesPreview').textContent = notes || '—';
+  // update live canvas
+  slide.title = title; slide.content = content; slide.speaker_notes = notes;
+  refreshCanvasSlide(slide);
+  refreshThumbTitle(slide);
+  api({ action: 'save_slide', slide_id: currentSlideId, title: title, content: content, speaker_notes: notes })
+    .then(function(d) { setSaveStatus('saved', '✓ All changes saved'); })
+    .catch(function() { setSaveStatus('', '⚠ Save failed'); });
+}
+
+// ── Layout change ───────────────────────────────────────────────
+function setLayout(layout) {
+  if (!currentSlideId) return;
+  var slide = slides.find(function(s) { return s.id == currentSlideId; });
+  if (!slide) return;
+  slide.layout = layout;
+  document.querySelectorAll('.layout-pick-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.layout === layout);
+  });
+  api({ action: 'save_slide', slide_id: currentSlideId, layout: layout })
+    .then(function() {
+      // re-render canvas for this slide
+      refreshCanvasSlide(slide);
+      setSaveStatus('saved', '✓ All changes saved');
+    });
+}
+
+// ── Emoji change ────────────────────────────────────────────────
+function setEmoji(emoji) {
+  if (!currentSlideId) return;
+  var slide = slides.find(function(s) { return s.id == currentSlideId; });
+  if (!slide) return;
+  slide.emoji = emoji;
+  document.querySelectorAll('.emoji-btn').forEach(function(b) {
+    b.classList.toggle('selected', b.textContent.trim() === emoji && emoji !== '');
+  });
+  refreshCanvasSlide(slide);
+  api({ action: 'save_slide', slide_id: currentSlideId, emoji: emoji });
+}
+
+// ── Add slide ───────────────────────────────────────────────────
+function addSlide() {
+  api({ action: 'add_slide', layout: 'bullets', title: 'New Slide' })
+    .then(function(d) {
+      if (!d.ok) return;
+      slides.push({ id: d.slide_id, order: d.order, layout: d.layout,
+                    title: d.title, content: d.content, emoji: d.emoji,
+                    speaker_notes: d.speaker_notes });
+      appendThumb(d);
+      appendCanvas(d);
+      updateSlideCount();
+      selectSlide(d.slide_id);
+      // make panel visible if it was showing "no slides"
+      ensurePanelVisible();
+    });
+}
+
+// ── Delete current slide ────────────────────────────────────────
+function deleteCurrentSlide() {
+  if (!currentSlideId) return;
+  if (slides.length <= 1) { alert('A deck must have at least one slide.'); return; }
+  if (!confirm('Delete this slide?')) return;
+  var removeId = currentSlideId;
+  api({ action: 'delete_slide', slide_id: removeId })
+    .then(function(d) {
+      if (!d.ok) return;
+      slides = slides.filter(function(s) { return s.id != removeId; });
+      var th = document.getElementById('thumb-' + removeId);
+      if (th) th.remove();
+      var cn = document.getElementById('canvas-' + removeId);
+      if (cn) cn.remove();
+      updateSlideCount();
+      renumberThumbs();
+      if (slides.length) selectSlide(slides[0].id);
+    });
+}
+
+// ── Save deck meta (title / theme) ──────────────────────────────
+function saveDeckMeta() {
+  var title = document.getElementById('deckTitleInput').value.trim();
+  var theme = document.getElementById('themeSelect').value;
+  // Update canvas theme class
+  var canvas = document.getElementById('liveCanvas');
+  canvas.className = 'gm-slide-canvas theme-' + theme;
+  document.querySelectorAll('.gm-thumb-slide').forEach(function(t) {
+    t.className = 'gm-thumb-slide theme-' + theme;
+  });
+  api({ action: 'update_deck', title: title, theme: theme })
+    .then(function() { setSaveStatus('saved', '✓ All changes saved'); });
+}
+
+// ── Speaker notes toggle ────────────────────────────────────────
+function toggleNotes() {
+  var bar = document.getElementById('notesBar');
+  var chevron = document.getElementById('notesChevron');
+  var open = bar.classList.toggle('open');
+  chevron.style.transform = open ? 'rotate(180deg)' : '';
+  if (open) document.getElementById('notesInput').focus();
+}
+
+// ── AI Generate ─────────────────────────────────────────────────
+function openAIModal() {
+  document.getElementById('aiModal').classList.add('open');
+  document.getElementById('aiTopic').focus();
+}
+function closeAIModal(e) {
+  if (e.target === document.getElementById('aiModal'))
+    document.getElementById('aiModal').classList.remove('open');
+}
+function runAIGenerate() {
+  var topic = document.getElementById('aiTopic').value.trim();
+  if (!topic) { document.getElementById('aiTopic').focus(); return; }
+  var btn = document.getElementById('aiGoBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="gm-spinner"></div> Generating…';
+  var subject_id = document.getElementById('aiSubject').value;
+  var class_id   = document.getElementById('aiClass').value;
+  api({ action: 'ai_generate', topic: topic,
+        subject_id: subject_id, class_id: class_id, update_title: true })
+    .then(function(d) {
+      if (d.error) { alert('AI error: ' + d.error); return; }
+      document.getElementById('aiModal').classList.remove('open');
+      // update deck title in topbar
+      if (d.deck_title) document.getElementById('deckTitleInput').value = d.deck_title;
+      // rebuild slides state and DOM
+      slides = [];
+      document.getElementById('thumbList').innerHTML = '';
+      document.querySelectorAll('.gm-slide-inner').forEach(function(el) { el.remove(); });
+      currentSlideId = null;
+      d.slides.forEach(function(s, i) {
+        slides.push({ id: s.slide_id, order: s.order, layout: s.layout,
+                      title: s.title, content: s.content, emoji: s.emoji || '',
+                      speaker_notes: s.speaker_notes || '' });
+        appendThumb(s);
+        appendCanvas(s);
+      });
+      updateSlideCount();
+      ensurePanelVisible();
+      if (slides.length) selectSlide(slides[0].id);
+      setSaveStatus('saved', '✓ AI slides ready');
+    })
+    .catch(function(err) { alert('Request failed: ' + err); })
+    .finally(function() {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-robot"></i> Generate Deck';
+    });
+}
+
+// ── DOM helpers ─────────────────────────────────────────────────
+function appendThumb(s) {
+  var theme = document.getElementById('themeSelect').value;
+  var div = document.createElement('div');
+  div.className = 'gm-thumb';
+  div.id = 'thumb-' + s.slide_id;
+  div.dataset.slideId = s.slide_id;
+  div.onclick = function() { selectSlide(s.slide_id); };
+  var num = slides.length;
+  div.innerHTML = '<div class="gm-thumb-slide theme-' + theme + '">' +
+    '<span class="gm-thumb-num">' + num + '</span>' +
+    '<div class="gm-thumb-title">' + esc(s.title.substring(0, 28)) + '</div>' +
+    '</div>';
+  document.getElementById('thumbList').appendChild(div);
+}
+
+function appendCanvas(s) {
+  var canvas = document.getElementById('liveCanvas');
+  var wrap = document.createElement('div');
+  wrap.className = 'gm-slide-inner';
+  wrap.id = 'canvas-' + s.slide_id;
+  wrap.style.display = 'none';
+  wrap.innerHTML = buildSlideHTML(s);
+  canvas.appendChild(wrap);
+}
+
+function refreshCanvasSlide(slide) {
+  var el = document.getElementById('canvas-' + slide.id);
+  if (el) el.innerHTML = buildSlideHTML(slide);
+}
+
+function refreshThumbTitle(slide) {
+  var el = document.getElementById('thumb-' + slide.id);
+  if (!el) return;
+  var t = el.querySelector('.gm-thumb-title');
+  if (t) t.textContent = slide.title.substring(0, 28);
+}
+
+function renumberThumbs() {
+  var thumbs = document.querySelectorAll('#thumbList .gm-thumb');
+  thumbs.forEach(function(th, i) {
+    var n = th.querySelector('.gm-thumb-num');
+    if (n) n.textContent = i + 1;
+  });
+}
+
+function updateSlideCount() {
+  var el = document.getElementById('slideCountLabel');
+  if (el) el.textContent = slides.length + ' slide' + (slides.length !== 1 ? 's' : '');
+}
+
+function ensurePanelVisible() {
+  var panel = document.getElementById('panelContent');
+  if (!panel) return;
+  if (panel.querySelector('.no-slide-msg')) {
+    panel.innerHTML = buildPanelHTML();
+    rebindPanelEvents();
+  }
+}
+
+function esc(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Render a slide as HTML (mirrors Django template logic) ───────
+function buildSlideHTML(s) {
+  var layout  = s.layout   || 'bullets';
+  var title   = s.title    || '';
+  var content = s.content  || '';
+  var emoji   = s.emoji    || '';
+  var bullets = content.split('\n').map(function(b) { return b.trim(); }).filter(Boolean);
+
+  if (layout === 'title') {
+    var sub = bullets.length ? bullets[0] : '';
+    return '<div class="sl-body layout-title">' +
+      (emoji ? '<div class="sl-emoji">' + esc(emoji) + '</div>' : '') +
+      '<div class="sl-title">' + esc(title) + '</div>' +
+      (sub ? '<div class="sl-sub">' + esc(sub) + '</div>' : '') +
+      '</div>';
+  }
+  if (layout === 'big_stat') {
+    return '<div class="sl-body layout-big_stat">' +
+      '<div class="sl-title">' + esc(title) + '</div>' +
+      '<div class="sl-stat">' + esc(bullets[0] || '—') + '</div>' +
+      (bullets[1] ? '<div class="sl-sub">' + esc(bullets[1]) + '</div>' : '') +
+      '</div>';
+  }
+  if (layout === 'quote') {
+    return '<div class="sl-body layout-quote">' +
+      '<div class="sl-quote">' + esc(title) + '</div>' +
+      (bullets[0] ? '<div class="sl-author">— ' + esc(bullets[0]) + '</div>' : '') +
+      '</div>';
+  }
+  if (layout === 'two_col') {
+    var mid = Math.ceil(bullets.length / 2);
+    var col1 = bullets.slice(0, mid);
+    var col2 = bullets.slice(mid);
+    var makeCol = function(items) {
+      return items.map(function(b) {
+        return '<div class="sl-col-item">' + esc(b) + '</div>';
+      }).join('');
+    };
+    return '<div class="sl-body layout-two_col">' +
+      '<div class="sl-title">' + esc(title) + '</div>' +
+      '<div class="sl-cols">' +
+      '<div class="sl-col">' + makeCol(col1) + '</div>' +
+      '<div class="sl-col">' + makeCol(col2) + '</div>' +
+      '</div></div>';
+  }
+  if (layout === 'summary') {
+    return '<div class="sl-body layout-summary">' +
+      '<div class="sl-title">' + esc(title) + '</div>' +
+      '<ul class="sl-bullets">' +
+      bullets.map(function(b) { return '<li>' + esc(b) + '</li>'; }).join('') +
+      '</ul></div>';
+  }
+  // default: bullets
+  return '<div class="sl-body layout-bullets">' +
+    (emoji ? '<span style="font-size:clamp(.9rem,2vw,1.4rem);margin-bottom:.2em;">' + esc(emoji) + '</span>' : '') +
+    '<div class="sl-title">' + esc(title) + '</div>' +
+    '<ul class="sl-bullets">' +
+    bullets.map(function(b) { return '<li>' + esc(b) + '</li>'; }).join('') +
+    '</ul></div>';
+}
+
+function buildPanelHTML() {
+  // Full panel HTML when it was showing "no slides"
+  return `
+  <div class="gm-panel-section">
+    <div class="gm-panel-label"><i class="fas fa-heading"></i> Slide Title</div>
+    <input type="text" class="gm-field" id="panelTitle" placeholder="Slide title…" oninput="debounceSaveSlide()">
+  </div>
+  <div class="gm-panel-section">
+    <div class="gm-panel-label"><i class="fas fa-align-left"></i> Content / Bullets</div>
+    <textarea class="gm-field" id="panelContent" rows="7" placeholder="One bullet per line…" oninput="debounceSaveSlide()"></textarea>
+    <div style="font-size:.65rem;color:#475569;margin-top:4px;">Each line = one bullet</div>
+  </div>
+  <div class="gm-panel-section">
+    <div class="gm-panel-label"><i class="fas fa-th-large"></i> Layout</div>
+    <div class="layout-picker" id="layoutPicker">
+      <button class="layout-pick-btn" data-layout="title" onclick="setLayout('title')"><i class="fas fa-star"></i><span>Title</span></button>
+      <button class="layout-pick-btn active" data-layout="bullets" onclick="setLayout('bullets')"><i class="fas fa-list"></i><span>Bullets</span></button>
+      <button class="layout-pick-btn" data-layout="two_col" onclick="setLayout('two_col')"><i class="fas fa-columns"></i><span>Two Col</span></button>
+      <button class="layout-pick-btn" data-layout="big_stat" onclick="setLayout('big_stat')"><i class="fas fa-sort-numeric-up"></i><span>Big Stat</span></button>
+      <button class="layout-pick-btn" data-layout="quote" onclick="setLayout('quote')"><i class="fas fa-quote-left"></i><span>Quote</span></button>
+      <button class="layout-pick-btn" data-layout="summary" onclick="setLayout('summary')"><i class="fas fa-check-circle"></i><span>Summary</span></button>
+    </div>
+  </div>
+  <div class="gm-panel-section">
+    <div class="gm-panel-label"><i class="fas fa-smile"></i> Emoji</div>
+    <div class="emoji-row" id="emojiPicker">
+      ${['🚀','🌱','📚','🧠','💡','🔬','🌍','🎯','🏆','✏️','🧪','🌊','💻','🎨','📊'].map(e =>
+        `<button class="emoji-btn" onclick="setEmoji('${e}')">${e}</button>`
+      ).join('')}
+      <button class="emoji-btn" onclick="setEmoji('')" style="font-size:.6rem;color:#64748b;">✕</button>
+    </div>
+  </div>
+  <div class="gm-panel-sep"></div>
+  <button class="delete-slide-btn" onclick="deleteCurrentSlide()"><i class="fas fa-trash me-1"></i> Delete Slide</button>`;
+}
+
+function rebindPanelEvents() { /* events are inline onclick, nothing extra needed */ }
+
+// ── Keyboard shortcuts ───────────────────────────────────────────
+document.addEventListener('keydown', function(e) {
+  var tag = (document.activeElement.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea') return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    var idx = slides.findIndex(function(s) { return s.id == currentSlideId; });
+    if (idx < slides.length - 1) selectSlide(slides[idx + 1].id);
+  }
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    var idx = slides.findIndex(function(s) { return s.id == currentSlideId; });
+    if (idx > 0) selectSlide(slides[idx - 1].id);
+  }
+});
+
+// ── Init ─────────────────────────────────────────────────────────
+(function init() {
+  if (slides.length) selectSlide(slides[0].id);
+})();
+</script>
+{% endblock %}

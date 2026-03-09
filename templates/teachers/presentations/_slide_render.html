@@ -1,0 +1,55 @@
+{% comment %}Partial: renders a single slide based on its layout. Used server-side for initial page load.{% endcomment %}
+{% if slide.layout == "title" %}
+<div class="sl-body layout-title">
+  {% if slide.emoji %}<div class="sl-emoji">{{ slide.emoji }}</div>{% endif %}
+  <div class="sl-title">{{ slide.title }}</div>
+  {% with first=slide.bullets|first %}
+  {% if first %}<div class="sl-sub">{{ first }}</div>{% endif %}
+  {% endwith %}
+</div>
+{% elif slide.layout == "big_stat" %}
+<div class="sl-body layout-big_stat">
+  <div class="sl-title">{{ slide.title }}</div>
+  <div class="sl-stat">{{ slide.bullets|first|default:"—" }}</div>
+  {% if slide.bullets|length > 1 %}<div class="sl-sub">{{ slide.bullets.1 }}</div>{% endif %}
+</div>
+{% elif slide.layout == "quote" %}
+<div class="sl-body layout-quote">
+  <div class="sl-quote">{{ slide.title }}</div>
+  {% with attr=slide.bullets|first %}
+  {% if attr %}<div class="sl-author">— {{ attr }}</div>{% endif %}
+  {% endwith %}
+</div>
+{% elif slide.layout == "two_col" %}
+<div class="sl-body layout-two_col">
+  <div class="sl-title">{{ slide.title }}</div>
+  <div class="sl-cols">
+    <div class="sl-col">
+      {% for b in slide.bullets %}{% if forloop.counter <= 4 %}
+      <div class="sl-col-item">{{ b }}</div>
+      {% endif %}{% endfor %}
+    </div>
+    <div class="sl-col">
+      {% for b in slide.bullets %}{% if forloop.counter > 4 %}
+      <div class="sl-col-item">{{ b }}</div>
+      {% endif %}{% endfor %}
+    </div>
+  </div>
+</div>
+{% elif slide.layout == "summary" %}
+<div class="sl-body layout-summary">
+  <div class="sl-title">{{ slide.title }}</div>
+  <ul class="sl-bullets">
+    {% for b in slide.bullets %}<li>{{ b }}</li>{% endfor %}
+  </ul>
+</div>
+{% else %}
+{# default: bullets #}
+<div class="sl-body layout-bullets">
+  {% if slide.emoji %}<span style="font-size:clamp(.9rem,2vw,1.4rem);margin-bottom:.2em;">{{ slide.emoji }}</span>{% endif %}
+  <div class="sl-title">{{ slide.title }}</div>
+  <ul class="sl-bullets">
+    {% for b in slide.bullets %}<li>{{ b }}</li>{% endfor %}
+  </ul>
+</div>
+{% endif %}

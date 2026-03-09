@@ -82,7 +82,14 @@ urlpatterns = [
     path('pulse/<int:session_id>/live/', views.pulse_live, name='pulse_live'),
     path('pulse/<int:session_id>/close/', views.pulse_close, name='pulse_close'),
     path('pulse/<int:session_id>/results/', views.pulse_results, name='pulse_results'),
-    path('pulse/<int:session_id>/results/csv/', views.pulse_results_csv, name='pulse_results_csv'),
+
+    # Slide Deck Creator (Gamma-style)
+    path('presentations/', views.presentation_list, name='presentation_list'),
+    path('presentations/create/', views.presentation_create, name='presentation_create'),
+    path('presentations/api/', views.presentation_api, name='presentation_api'),
+    path('presentations/<int:pk>/edit/', views.presentation_editor, name='presentation_editor'),
+    path('presentations/<int:pk>/present/', views.presentation_present, name='presentation_present'),
+    path('presentations/<int:pk>/delete/', views.presentation_delete, name='presentation_delete'),
 ]
 
 

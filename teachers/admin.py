@@ -1,7 +1,7 @@
 # teachers/admin.py
 from django.contrib import admin, messages
 import secrets
-from .models import Teacher, DutyWeek, DutyAssignment
+from .models import Teacher, DutyWeek, DutyAssignment, Presentation, Slide
 from .forms import TeacherQuickAddForm
 
 @admin.register(Teacher)
@@ -74,3 +74,19 @@ class DutyWeekAdmin(admin.ModelAdmin):
     list_filter = ('term', 'academic_year')
     inlines = [DutyAssignmentInline]
     ordering = ('academic_year', 'start_date')
+
+
+class SlideInline(admin.TabularInline):
+    model = Slide
+    fields = ('order', 'layout', 'title', 'emoji')
+    extra = 0
+    ordering = ('order',)
+
+
+@admin.register(Presentation)
+class PresentationAdmin(admin.ModelAdmin):
+    list_display  = ('title', 'teacher', 'subject', 'school_class', 'theme', 'slide_count', 'updated_at')
+    list_filter   = ('theme', 'subject', 'school_class')
+    search_fields = ('title', 'teacher__user__first_name', 'teacher__user__last_name')
+    inlines       = [SlideInline]
+    readonly_fields = ('created_at', 'updated_at')
