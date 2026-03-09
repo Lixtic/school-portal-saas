@@ -200,7 +200,10 @@
         var nextBlock = after.search(/\n[\uD83D\uDCCA\uD83E\uDD16\*]{1}/);
         var endAt = [nextMs, nextBlock].filter(function(x){ return x > -1; });
         var end = endAt.length ? Math.min.apply(null, endAt) : -1;
-        return (end > -1 ? after.slice(0, end) : after).split('\n')[0].trim();
+        var q = (end > -1 ? after.slice(0, end) : after).split('\n')[0].trim();
+        // Strip GPT-injected type prefixes: "Recall:", "Concept:", "Application:", etc.
+        q = q.replace(/^(Recall|Concept|Application|recall|concept|application):\s*/i, '');
+        return q;
     }
 
     var ms1 = parseMSQ(1), ms2 = parseMSQ(2), ms3 = parseMSQ(3);

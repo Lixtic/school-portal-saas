@@ -595,9 +595,9 @@ Whole-class debrief:
 [1–2 sentences. Whole-class question or share-out that consolidates {topic} for everyone.]
 
 🏁 MASTERY SPRINT (Exit Ticket — Students work SOLO. No hints. No discussion.):
-MS1: [Recall question — closed, direct. Tests if the core concept name/definition stuck.]
-MS2: [Concept question — tests the WHY or HOW, not just the WHAT. No scaffold.]
-MS3: [Application question — new context, NOT the hook or Extension Path scenario. Requires transfer.]
+MS1: [Closed recall question. Write ONLY the question — do NOT start with "Recall:" or any type label.]
+MS2: [Concept question testing the WHY or HOW. Write ONLY the question — do NOT start with "Concept:".]
+MS3: [Application question in a new context. Write ONLY the question — do NOT start with "Application:".]
 
 📊 DATA-TRIGGER (Teacher Planning Tool — DO NOT share with students):
 - Students who missed Q1: [Exact reteach action for next lesson. Name the method.]
