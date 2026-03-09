@@ -858,9 +858,16 @@
         // Debrief: everything before the first structural block
         const firstBlock = [dtIdx, msIdx, insightIdx].filter(function(i){ return i > 0; });
         const firstBlockIdx = firstBlock.length ? Math.min.apply(null, firstBlock) : -1;
+        function stripPhase3Header(txt) {
+            // Strip leading **PHASE 3: REFLECTION...** header if extract_section left it in
+            return txt
+                .replace(/^\*\*PHASE\s*3[^\n*]*\*\*\s*/i, '')
+                .replace(/^Whole\-class debrief[:\s]*/i, '')
+                .trim();
+        }
         const debriefRaw = firstBlockIdx > 0
-            ? evalTxt.slice(0, firstBlockIdx).replace(/Whole\-class debrief[:\s]*/i,'').trim()
-            : evalTxt.replace(/Whole\-class debrief[:\s]*/i,'').trim();
+            ? stripPhase3Header(evalTxt.slice(0, firstBlockIdx))
+            : stripPhase3Header(evalTxt);
 
         // Mastery Sprint: parse MS1/MS2/MS3
         function parseMSQ(num) {
@@ -917,8 +924,14 @@
             var jsonEnd   = insightRaw.lastIndexOf('}');
             if (jsonStart > -1 && jsonEnd > jsonStart) {
                 var jsonStr = insightRaw.slice(jsonStart, jsonEnd + 1);
+                // Repair common GPT quirks before parsing:
+                // 1. Trailing commas before } or ]  2. Single-quoted strings
+                var jsonFixed = jsonStr
+                    .replace(/,\s*([}\]])/g, '$1')
+                    .replace(/([{,]\s*)'([^']+)'\s*:/g, '$1"$2":')
+                    .replace(/:\s*'([^']*)'/g, ': "$1"');
                 try {
-                    var parsed = JSON.parse(jsonStr);
+                    var parsed = JSON.parse(jsonFixed);
                     var signals = Array.isArray(parsed.monitor_signals)
                         ? parsed.monitor_signals.map(function(s){
                             return '<span class="aura-insight-signal">' + esc(s) + '</span>';
@@ -936,10 +949,10 @@
                             ? '<div class="aura-insight-row"><span class="aura-insight-key">Peer Resource</span><span class="aura-insight-val">' + esc(parsed.peer_resource) + '</span></div>' : '')
                         + '</div>';
                 } catch(e) {
-                    // JSON parse failed — show raw block
+                    // JSON parse failed — show raw block (cleaned version)
                     insightHtml = '<div class="aura-insight-card">'
                         + '<div class="aura-insight-title">🤖 Teacher Insight</div>'
-                        + '<div class="aura-insight-raw">' + esc(jsonStr) + '</div>'
+                        + '<div class="aura-insight-raw">' + esc(jsonFixed || jsonStr) + '</div>'
                         + '</div>';
                 }
             }

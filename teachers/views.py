@@ -3666,3 +3666,49 @@ def pulse_results(request, session_id):
         'school_class': school_class,
     }
     return render(request, 'teachers/pulse_results.html', context)
+
+
+@login_required
+def pulse_history(request):
+    """All past Pulse sessions for the teacher (or all sessions for admins)."""
+    if request.user.user_type not in ('teacher', 'admin'):
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    try:
+        from academics.pulse_models import PulseSession
+    except ImportError:
+        messages.error(request, 'Pulse feature not available.')
+        return redirect('teachers:aura_command_center')
+
+    is_admin = request.user.user_type == 'admin'
+
+    if is_admin:
+        qs = PulseSession.objects.select_related(
+            'lesson_plan__school_class', 'lesson_plan__subject', 'teacher__user'
+        ).order_by('-created_at')
+    else:
+        teacher = get_object_or_404(Teacher, user=request.user)
+        qs = PulseSession.objects.filter(teacher=teacher).select_related(
+            'lesson_plan__school_class', 'lesson_plan__subject', 'teacher__user'
+        ).order_by('-created_at')
+
+    sessions = []
+    for s in qs:
+        total     = s.total_students
+        responded = s.responded_count
+        pct       = round(responded / total * 100) if total else 0
+        sessions.append({
+            'session':    s,
+            'plan':       s.lesson_plan,
+            'school_class': s.lesson_plan.school_class if s.lesson_plan else None,
+            'total':      total,
+            'responded':  responded,
+            'pct':        pct,
+        })
+
+    return render(request, 'teachers/pulse_history.html', {
+        'sessions':       sessions,
+        'is_admin':       is_admin,
+        'total_sessions': len(sessions),
+    })
