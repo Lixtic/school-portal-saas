@@ -2203,6 +2203,7 @@ def aura_t_api(request):
     return JsonResponse({"status": "error", "message": "Invalid method"}, status=405)
 
 @login_required
+@login_required
 def aura_command_center(request):
     """
     Aura-T Command Center: overview of all lesson plans with per-plan
@@ -2227,29 +2228,66 @@ def aura_command_center(request):
         intro = p.introduction or ''
         pres  = p.presentation or ''
         evl   = p.evaluation or ''
-        p.has_pulse      = 'PULSE CHECK' in intro
-        p.has_checkpoints= 'CHECKPOINT QUESTIONS' in pres or 'CQ1:' in pres
-        p.has_sprint     = 'MASTERY SPRINT' in evl or 'MS1:' in evl
-        p.has_insight    = 'TEACHER INSIGHT' in evl
-        p.aura_score     = sum([p.has_pulse, p.has_checkpoints, p.has_sprint, p.has_insight])
+        p.has_pulse       = 'PULSE CHECK' in intro
+        p.has_checkpoints = 'CHECKPOINT QUESTIONS' in pres or 'CQ1:' in pres
+        p.has_sprint      = 'MASTERY SPRINT' in evl or 'MS1:' in evl
+        p.has_insight     = 'TEACHER INSIGHT' in evl
+        p.aura_score      = sum([p.has_pulse, p.has_checkpoints, p.has_sprint, p.has_insight])
+        p.teacher_name    = p.teacher.user.get_full_name() if p.teacher and p.teacher.user else 'Unknown'
+        p.pulse_count     = 0
+        p.has_active_pulse = False
 
-    total          = len(plans)
-    v3_ready       = sum(1 for p in plans if p.aura_score == 4)
-    partial_count  = sum(1 for p in plans if 0 < p.aura_score < 4)
-    no_aura_count  = sum(1 for p in plans if p.aura_score == 0)
+    # ── Per-plan pulse session counts & active detection ──────────────────
+    try:
+        from academics.pulse_models import PulseSession
+        plan_pks = [p.pk for p in plans]
+        pulse_counts  = {}
+        active_pk_set = set()
+        for row in PulseSession.objects.filter(lesson_plan_id__in=plan_pks).values('lesson_plan_id', 'status'):
+            lpk = row['lesson_plan_id']
+            pulse_counts[lpk] = pulse_counts.get(lpk, 0) + 1
+            if row['status'] == 'active':
+                active_pk_set.add(lpk)
+        for p in plans:
+            p.pulse_count      = pulse_counts.get(p.pk, 0)
+            p.has_active_pulse = p.pk in active_pk_set
+    except Exception:
+        pass
 
-    # Sort: v3-complete first, then partial, then none; within each group newest first
-    plans.sort(key=lambda p: (-p.aura_score, -p.pk))
+    total         = len(plans)
+    v3_ready      = sum(1 for p in plans if p.aura_score == 4)
+    partial_count = sum(1 for p in plans if 0 < p.aura_score < 4)
+    no_aura_count = sum(1 for p in plans if p.aura_score == 0)
+    v3_pct        = round(v3_ready / total * 100) if total else 0
+
+    # Filter dropdown options
+    subjects = sorted(set(p.subject.name for p in plans if p.subject))
+    classes  = sorted(set(p.school_class.name for p in plans if p.school_class))
+
+    # Admin: sort by teacher name then score; teacher: sort by score desc
+    if is_admin:
+        plans.sort(key=lambda p: (p.teacher_name, -p.aura_score, -p.pk))
+        prev_tname = None
+        for p in plans:
+            p.teacher_changed = p.teacher_name != prev_tname
+            prev_tname = p.teacher_name
+    else:
+        plans.sort(key=lambda p: (-p.aura_score, -p.pk))
+        for p in plans:
+            p.teacher_changed = False
 
     return render(request, 'teachers/aura_command_center.html', {
-        'plans': plans,
-        'total': total,
-        'v3_ready': v3_ready,
+        'plans':         plans,
+        'total':         total,
+        'v3_ready':      v3_ready,
+        'v3_pct':        v3_pct,
         'partial_count': partial_count,
         'no_aura_count': no_aura_count,
-        'is_teacher': is_teacher,
-        'is_admin': is_admin,
-        'teacher': teacher,
+        'is_teacher':    is_teacher,
+        'is_admin':      is_admin,
+        'teacher':       teacher,
+        'subjects':      subjects,
+        'classes':       classes,
     })
 
 

@@ -179,6 +179,103 @@
         .acc-title { font-size: 1.15rem; }
         #pulseGhost { width: calc(100vw - 2rem); right: 1rem; bottom: 1rem; }
     }
+
+    /* ── v3 Progress Bar ─────────────────────────────────────────────────── */
+    .v3-progress-wrap {
+        background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+        padding: .9rem 1.1rem; margin-bottom: 1rem;
+    }
+    [data-bs-theme="dark"] .v3-progress-wrap {
+        background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.08);
+    }
+    .v3-progress-meta { display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: .45rem; gap: .5rem; flex-wrap: wrap; }
+    .v3-progress-label { font-size: .74rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .05em; color: #6b7280; }
+    .v3-progress-frac { font-size: .8rem; font-weight: 800; color: #059669; }
+    .v3-progress-track { height: 8px; border-radius: 4px; background: #e5e7eb; overflow: hidden; }
+    [data-bs-theme="dark"] .v3-progress-track { background: rgba(255,255,255,.1); }
+    .v3-progress-fill { height: 100%; background: linear-gradient(90deg,#059669,#10b981);
+        border-radius: 4px; transition: width .6s; }
+
+    /* ── Filter Bar ──────────────────────────────────────────────────────── */
+    .acc-filter-bar {
+        background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+        padding: .75rem 1rem; margin-bottom: 1rem;
+        display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+    }
+    [data-bs-theme="dark"] .acc-filter-bar {
+        background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.08);
+    }
+    .acc-filter-bar input, .acc-filter-bar select {
+        font-size: .78rem; border-radius: 8px;
+        border: 1px solid #d1d5db; padding: .3rem .65rem;
+        background: #f9fafb; color: #111827;
+    }
+    [data-bs-theme="dark"] .acc-filter-bar input,
+    [data-bs-theme="dark"] .acc-filter-bar select {
+        background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.12); color: #f3f4f6;
+    }
+    .acc-filter-bar input:focus, .acc-filter-bar select:focus {
+        outline: none; border-color: #059669; box-shadow: 0 0 0 2px rgba(5,150,105,.18);
+    }
+    #filterCount { font-size: .73rem; color: #6b7280; margin-left: auto; white-space: nowrap; }
+    [data-bs-theme="dark"] #filterCount { color: #9ca3af; }
+
+    /* ── Per-plan extras ─────────────────────────────────────────────────── */
+    .pulse-count-badge {
+        display: inline-flex; align-items: center; gap: .15rem;
+        font-size: .65rem; font-weight: 700; color: #6366f1;
+        background: rgba(99,102,241,.1); border: 1px solid rgba(99,102,241,.2);
+        border-radius: 20px; padding: .1rem .38rem; white-space: nowrap; margin-left: .3rem;
+    }
+    .live-badge {
+        display: inline-flex; align-items: center; gap: .3rem;
+        font-size: .72rem; font-weight: 800; color: #fff;
+        background: linear-gradient(135deg,#7c3aed,#2563eb);
+        border-radius: 6px; padding: .25rem .6rem; white-space: nowrap;
+        border: 1px solid transparent; animation: livePulse 1.4s infinite;
+    }
+    @keyframes livePulse {
+        0%,100% { box-shadow: 0 0 0 0 rgba(124,58,237,.5); }
+        50%      { box-shadow: 0 0 0 5px rgba(124,58,237,0); }
+    }
+    .live-dot { width: 7px; height: 7px; border-radius: 50%;
+        background: #4ade80; display: inline-block; animation: pgBlink 1.1s infinite; }
+
+    /* ── Teacher group header (admin view) ──────────────────────────────── */
+    .teacher-group-hdr {
+        display: flex; align-items: center; gap: .6rem;
+        padding: .55rem .9rem; background: #f9fafb; border-radius: 10px;
+        border: 1px solid #e5e7eb; margin-bottom: .5rem; margin-top: .75rem;
+    }
+    [data-bs-theme="dark"] .teacher-group-hdr {
+        background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.08);
+    }
+    .teacher-group-name { font-size: .82rem; font-weight: 800; color: #111827; }
+    [data-bs-theme="dark"] .teacher-group-name { color: #f3f4f6; }
+    .teacher-group-count { font-size: .72rem; color: #6b7280; }
+    .teacher-avatar {
+        width: 30px; height: 30px; border-radius: 50%;
+        background: linear-gradient(135deg,#059669,#047857);
+        display: flex; align-items: center; justify-content: center;
+        font-size: .75rem; font-weight: 800; color: #fff; flex-shrink: 0;
+    }
+
+    /* ── Mobile aura score pill ─────────────────────────────────────────── */
+    .mobile-aura-pill {
+        display: none;
+        font-size: .65rem; font-weight: 800;
+        border-radius: 20px; padding: .1rem .42rem;
+        border: 1px solid; margin-left: .2rem;
+    }
+    @media(max-width:575px) {
+        .mobile-aura-pill { display: inline-flex; align-items: center; gap: .18rem; }
+    }
+
+    /* hide plan-row when filtered out */
+    .plan-row.acc-hidden,
+    .plan-section-wrap.acc-hidden { display: none !important; }
 </style>
 
 <div class="container py-4">
@@ -251,6 +348,45 @@
         </div>
     </div>
 
+    <!-- v3 Upgrade Progress Bar -->
+    {% if total %}
+    <div class="v3-progress-wrap">
+        <div class="v3-progress-meta">
+            <span class="v3-progress-label">🚀 v3 Upgrade Progress</span>
+            <span class="v3-progress-frac">{{ v3_ready }} / {{ total }} plans &mdash; {{ v3_pct }}%</span>
+        </div>
+        <div class="v3-progress-track">
+            <div class="v3-progress-fill" style="width:{{ v3_pct }}%;"></div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Filter / Search Bar -->
+    <div class="acc-filter-bar" id="accFilterBar">
+        <i class="bi bi-search" style="font-size:.85rem;color:#6b7280;flex-shrink:0;"></i>
+        <input type="text" id="filterSearch" placeholder="Search topic, subject, class…" style="flex:1;min-width:120px;">
+        {% if subjects %}
+        <select id="filterSubject">
+            <option value="">All Subjects</option>
+            {% for s in subjects %}<option value="{{ s|lower }}">{{ s }}</option>{% endfor %}
+        </select>
+        {% endif %}
+        {% if classes %}
+        <select id="filterClass">
+            <option value="">All Classes</option>
+            {% for c in classes %}<option value="{{ c|lower }}">{{ c }}</option>{% endfor %}
+        </select>
+        {% endif %}
+        {% if is_admin %}
+        <input type="text" id="filterTeacher" placeholder="Filter by teacher…" style="min-width:130px;">
+        {% endif %}
+        <span id="filterCount"></span>
+        <button onclick="clearFilters()" id="clearFilterBtn"
+            style="display:none;font-size:.72rem;padding:.28rem .65rem;border-radius:6px;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;cursor:pointer;font-weight:700;">
+            ✕ Clear
+        </button>
+    </div>
+
     <!-- Digital Pulse info card -->
     <div class="card border-0 shadow-sm rounded-3 mb-3" style="background:linear-gradient(135deg,rgba(76,29,149,.18),rgba(30,64,175,.13));border:1px solid rgba(139,92,246,.22)!important;">
         <button class="d-flex align-items-center gap-2 w-100 px-3 py-2 border-0 bg-transparent text-start"
@@ -315,37 +451,63 @@
 
     {% if plans %}
 
-    {% regroup plans by aura_score as score_groups %}
+    {# ═══════════════════════════════════════════════════════════════════ #}
+    {# ADMIN VIEW: flat loop with teacher-change headers                   #}
+    {# ═══════════════════════════════════════════════════════════════════ #}
+    {% if is_admin %}
 
-    {% for group in score_groups %}
-    {% with sc=group.grouper %}
+    <div id="planList">
+    {% for p in plans %}
 
-    {% if sc == 4 %}
-    <div class="mb-1"><span class="section-label lbl-green">✅ v3 Complete ({{ group.list|length }})</span></div>
-    {% elif sc >= 1 %}
-    <div class="mb-1"><span class="section-label lbl-amber">⚡ Partially Upgraded ({{ group.list|length }})<span class="d-none d-sm-inline"> — Regenerate to complete</span></span></div>
-    {% else %}
-    <div class="mb-1"><span class="section-label lbl-gray">⬜ No Aura-T ({{ group.list|length }})<span class="d-none d-sm-inline"> — Click Regenerate to upgrade</span></span></div>
+    {# Teacher group header whenever teacher changes #}
+    {% if p.teacher_changed %}
+    <div class="teacher-group-hdr" data-teacher-hdr="{{ p.teacher_name|lower }}">
+        <div class="teacher-avatar">{{ p.teacher_name|slice:":1"|upper }}</div>
+        <div>
+            <div class="teacher-group-name">{{ p.teacher_name }}</div>
+            <div class="teacher-group-count">
+                {% if p.teacher and p.teacher.user %}
+                    {{ p.teacher.user.email }}
+                {% endif %}
+            </div>
+        </div>
+        {% if p.teacher %}
+        <span class="ms-auto" style="font-size:.72rem;color:#6b7280;">
+            <a href="{% url 'teachers:lesson_plan_list' %}" style="color:inherit;text-decoration:none;">plans →</a>
+        </span>
+        {% endif %}
+    </div>
     {% endif %}
 
-    {% for p in group.list %}
-    <div class="plan-row">
-        <!-- Week badge -->
+    <div class="plan-row"
+         data-subject="{{ p.subject.name|lower }}"
+         data-class="{{ p.school_class.name|lower }}"
+         data-week="{{ p.week_number }}"
+         data-teacher="{{ p.teacher_name|lower }}"
+         data-topic="{{ p.topic|lower }}">
+
         <div class="plan-week">
             <span>Wk</span>
             <span style="font-size:1rem;">{{ p.week_number }}</span>
         </div>
 
-        <!-- Info -->
         <div class="plan-meta">
-            <div class="plan-topic">{{ p.topic }}</div>
+            <div class="plan-topic">
+                {{ p.topic }}
+                {% if p.pulse_count > 0 %}
+                <span class="pulse-count-badge" title="{{ p.pulse_count }} pulse session{{ p.pulse_count|pluralize }}">
+                    📡 {{ p.pulse_count }}
+                </span>
+                {% endif %}
+                {# Mobile aura score pill #}
+                <span class="mobile-aura-pill ring-{{ p.aura_score }}">{{ p.aura_score }}/4</span>
+            </div>
             <div class="plan-detail">
                 {{ p.subject.name }} &middot; {{ p.school_class.name }}
-                {% if is_admin %}&middot; {{ p.teacher.user.get_full_name }}{% endif %}
+                &middot; <span style="font-style:italic;">{{ p.teacher_name }}</span>
             </div>
         </div>
 
-        <!-- Aura-T badges -->
         <div class="aura-badges d-none d-md-flex">
             <span class="ab {% if p.has_pulse %}ab-on{% else %}ab-off{% endif %}">🔍 Pulse</span>
             <span class="ab {% if p.has_checkpoints %}ab-on{% else %}ab-off{% endif %}">🔲 CQ</span>
@@ -353,36 +515,109 @@
             <span class="ab {% if p.has_insight %}ab-on{% else %}ab-off{% endif %}">🤖 Insight</span>
         </div>
 
-        <!-- Score ring -->
         <div class="score-ring ring-{{ p.aura_score }}">{{ p.aura_score }}/4</div>
 
-        <!-- Actions -->
         <div class="plan-actions">
             <a href="{% url 'teachers:lesson_plan_detail' p.pk %}" class="action-btn btn-view">
                 <i class="bi bi-eye"></i><span class="d-none d-sm-inline"> View</span>
             </a>
-            {% if not is_admin %}
-            <a href="{% url 'teachers:lesson_plan_detail' p.pk %}"
-               class="action-btn btn-regen"
-               title="Open plan and click Regenerate to upgrade to v3">
-                <i class="bi bi-arrow-clockwise"></i><span class="d-none d-sm-inline"> Regen</span>
-            </a>
-            {% if p.aura_score >= 1 %}
-            <a href="{% url 'teachers:lesson_plan_cards_print' p.pk %}" class="action-btn btn-cards" target="_blank">
-                <i class="bi bi-scissors"></i><span class="d-none d-sm-inline"> Cards</span>
-            </a>
-            <button class="action-btn btn-pulse" onclick="launchPulse({{ p.pk }}, '{{ p.topic|escapejs }}')" title="Send live Pulse Check to students now">
-                <i class="bi bi-broadcast"></i><span class="d-none d-sm-inline"> Pulse</span>
-            </button>
-            {% endif %}
-            {% endif %}
         </div>
     </div>
     {% endfor %}
+    </div>
+
+    {# ═══════════════════════════════════════════════════════════════════ #}
+    {# TEACHER VIEW: grouped by aura score                                 #}
+    {# ═══════════════════════════════════════════════════════════════════ #}
+    {% else %}
+
+    {% regroup plans by aura_score as score_groups %}
+
+    <div id="planList">
+    {% for group in score_groups %}
+    {% with sc=group.grouper %}
+
+    <div class="plan-section-wrap" data-score-group="{{ sc }}">
+        {% if sc == 4 %}
+        <div class="mb-1"><span class="section-label lbl-green">✅ v3 Complete ({{ group.list|length }})</span></div>
+        {% elif sc >= 1 %}
+        <div class="mb-1"><span class="section-label lbl-amber">⚡ Partially Upgraded ({{ group.list|length }})<span class="d-none d-sm-inline"> — Regenerate to complete</span></span></div>
+        {% else %}
+        <div class="mb-1"><span class="section-label lbl-gray">⬜ No Aura-T ({{ group.list|length }})<span class="d-none d-sm-inline"> — Click Regenerate to upgrade</span></span></div>
+        {% endif %}
+
+        {% for p in group.list %}
+        <div class="plan-row"
+             data-subject="{{ p.subject.name|lower }}"
+             data-class="{{ p.school_class.name|lower }}"
+             data-week="{{ p.week_number }}"
+             data-teacher=""
+             data-topic="{{ p.topic|lower }}">
+
+            <div class="plan-week">
+                <span>Wk</span>
+                <span style="font-size:1rem;">{{ p.week_number }}</span>
+            </div>
+
+            <div class="plan-meta">
+                <div class="plan-topic">
+                    {{ p.topic }}
+                    {% if p.pulse_count > 0 %}
+                    <span class="pulse-count-badge" title="{{ p.pulse_count }} pulse session{{ p.pulse_count|pluralize }}">
+                        📡 {{ p.pulse_count }}
+                    </span>
+                    {% endif %}
+                    {# Mobile aura score pill #}
+                    <span class="mobile-aura-pill ring-{{ p.aura_score }}">{{ p.aura_score }}/4</span>
+                </div>
+                <div class="plan-detail">
+                    {{ p.subject.name }} &middot; {{ p.school_class.name }}
+                </div>
+            </div>
+
+            <div class="aura-badges d-none d-md-flex">
+                <span class="ab {% if p.has_pulse %}ab-on{% else %}ab-off{% endif %}">🔍 Pulse</span>
+                <span class="ab {% if p.has_checkpoints %}ab-on{% else %}ab-off{% endif %}">🔲 CQ</span>
+                <span class="ab {% if p.has_sprint %}ab-on{% else %}ab-off{% endif %}">🏁 Sprint</span>
+                <span class="ab {% if p.has_insight %}ab-on{% else %}ab-off{% endif %}">🤖 Insight</span>
+            </div>
+
+            <div class="score-ring ring-{{ p.aura_score }}">{{ p.aura_score }}/4</div>
+
+            <div class="plan-actions">
+                <a href="{% url 'teachers:lesson_plan_detail' p.pk %}" class="action-btn btn-view">
+                    <i class="bi bi-eye"></i><span class="d-none d-sm-inline"> View</span>
+                </a>
+                <a href="{% url 'teachers:lesson_plan_detail' p.pk %}"
+                   class="action-btn btn-regen"
+                   title="Open plan and click Regenerate to upgrade to v3">
+                    <i class="bi bi-arrow-clockwise"></i><span class="d-none d-sm-inline"> Regen</span>
+                </a>
+                {% if p.aura_score >= 1 %}
+                <a href="{% url 'teachers:lesson_plan_cards_print' p.pk %}" class="action-btn btn-cards" target="_blank">
+                    <i class="bi bi-scissors"></i><span class="d-none d-sm-inline"> Cards</span>
+                </a>
+                {% if p.has_active_pulse %}
+                <span class="live-badge" title="Pulse is currently LIVE for this plan">
+                    <span class="live-dot"></span> LIVE
+                </span>
+                {% else %}
+                <button class="action-btn btn-pulse" onclick="launchPulse({{ p.pk }}, '{{ p.topic|escapejs }}')" title="Send live Pulse Check to students now">
+                    <i class="bi bi-broadcast"></i><span class="d-none d-sm-inline"> Pulse</span>
+                </button>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
     <div class="mb-3"></div>
 
     {% endwith %}
     {% endfor %}
+    </div>
+
+    {% endif %}{# end is_admin / is_teacher branch #}
 
     {% else %}
     <div class="text-center py-5 opacity-60">
@@ -450,6 +685,90 @@
         <div id="pgEndedBanner" style="display:none;margin-top:.6rem;padding:.4rem .6rem;border-radius:.5rem;background:rgba(99,102,241,.15);color:#a5b4fc;font-size:.75rem;text-align:center;"></div>
     </div>
 </div>
+
+<script>
+// ── Filter / Search ────────────────────────────────────────────────────────
+(function(){
+    var searchEl   = document.getElementById('filterSearch');
+    var subjectEl  = document.getElementById('filterSubject');
+    var classEl    = document.getElementById('filterClass');
+    var teacherEl  = document.getElementById('filterTeacher');
+    var countEl    = document.getElementById('filterCount');
+    var clearBtn   = document.getElementById('clearFilterBtn');
+    var rows       = null; // lazy-loaded
+
+    function getPlanRows() {
+        if (!rows) rows = Array.from(document.querySelectorAll('#planList .plan-row'));
+        return rows;
+    }
+
+    function applyFilter() {
+        var q       = (searchEl  ? searchEl.value.toLowerCase().trim()  : '');
+        var subj    = (subjectEl ? subjectEl.value.toLowerCase()         : '');
+        var cls     = (classEl   ? classEl.value.toLowerCase()           : '');
+        var teacher = (teacherEl ? teacherEl.value.toLowerCase().trim()  : '');
+        var hasFilter = q || subj || cls || teacher;
+        if (clearBtn) clearBtn.style.display = hasFilter ? 'inline-flex' : 'none';
+
+        var planRows = getPlanRows();
+        var shown = 0, total = planRows.length;
+
+        planRows.forEach(function(row){
+            var rowSubj    = (row.dataset.subject  || '');
+            var rowCls     = (row.dataset.class    || '');
+            var rowTeacher = (row.dataset.teacher  || '');
+            var rowTopic   = (row.dataset.topic    || '');
+            var rowWeek    = (row.dataset.week     || '');
+
+            var combined = rowSubj + ' ' + rowCls + ' ' + rowTeacher + ' ' + rowTopic + ' wk' + rowWeek;
+
+            var visible = true;
+            if (q      && combined.indexOf(q)      === -1) visible = false;
+            if (subj   && rowSubj.indexOf(subj)    === -1) visible = false;
+            if (cls    && rowCls.indexOf(cls)       === -1) visible = false;
+            if (teacher && rowTeacher.indexOf(teacher) === -1) visible = false;
+
+            row.classList.toggle('acc-hidden', !visible);
+            if (visible) shown++;
+        });
+
+        // Show/hide teacher group headers (admin view) — hide if all plans under that teacher hidden
+        document.querySelectorAll('[data-teacher-hdr]').forEach(function(hdr){
+            var tname  = hdr.dataset.teacherHdr;
+            var anyVisible = planRows.some(function(r){
+                return !r.classList.contains('acc-hidden') && (r.dataset.teacher||'') === tname;
+            });
+            hdr.classList.toggle('acc-hidden', !anyVisible);
+        });
+
+        // Show/hide section wrappers (teacher view)
+        document.querySelectorAll('.plan-section-wrap').forEach(function(wrap){
+            var anyVisible = Array.from(wrap.querySelectorAll('.plan-row')).some(function(r){
+                return !r.classList.contains('acc-hidden');
+            });
+            wrap.classList.toggle('acc-hidden', !anyVisible);
+        });
+
+        // Update counter
+        if (countEl) {
+            countEl.textContent = hasFilter ? (shown + ' / ' + total + ' plans') : '';
+        }
+    }
+
+    [searchEl, subjectEl, classEl, teacherEl].forEach(function(el){
+        if (el) el.addEventListener('input', applyFilter);
+        if (el && el.tagName === 'SELECT') el.addEventListener('change', applyFilter);
+    });
+
+    window.clearFilters = function() {
+        if (searchEl)  searchEl.value  = '';
+        if (subjectEl) subjectEl.value = '';
+        if (classEl)   classEl.value   = '';
+        if (teacherEl) teacherEl.value = '';
+        applyFilter();
+    };
+})();
+</script>
 
 <script>
 // ── Digital Pulse Ghost Panel ─────────────────────────────────────────────
