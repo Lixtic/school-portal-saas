@@ -950,6 +950,140 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
 
 /* Body padding for fixed progress bar */
 .aura-command-shell { padding-bottom: 60px; }
+
+/* ── Plan Upgrades Bento Panel ───────────────────────────────────────────── */
+.aura-bento-plans { grid-column: span 8; grid-row: span 4; }
+@media (max-width: 1200px) { .aura-bento-plans { grid-column: span 6; } }
+@media (max-width: 768px)  { .aura-bento-plans { grid-column: span 1 !important; } }
+
+.aura-plans-panel { display: flex; flex-direction: column; padding: var(--aura-space-5); overflow: hidden; }
+.aura-plans-panel h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: var(--aura-space-3); display: flex; align-items: center; gap: var(--aura-space-2); }
+.aura-plans-panel h3 i { color: var(--aura-accent-violet); }
+
+/* v3 progress strip */
+.aura-v3-bar-wrap { margin-bottom: var(--aura-space-3); }
+.aura-v3-bar-meta { display: flex; justify-content: space-between; font-size: 0.7rem; margin-bottom: 4px; }
+.aura-v3-bar-meta span { color: var(--aura-text-muted); }
+.aura-v3-bar-meta strong { color: var(--aura-accent-emerald); }
+.aura-v3-track { height: 5px; border-radius: 3px; background: var(--aura-bg-secondary); overflow: hidden; }
+.aura-v3-fill  { height: 100%; background: linear-gradient(90deg, var(--aura-accent-violet), var(--aura-accent-emerald)); border-radius: 3px; transition: width .7s; }
+
+/* filter bar */
+.aura-plan-filter { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: var(--aura-space-3); }
+.aura-plan-filter input, .aura-plan-filter select {
+    font-size: 0.72rem; border-radius: var(--aura-radius-sm);
+    border: 1px solid var(--aura-border); padding: 4px 9px;
+    background: var(--aura-bg-secondary); color: var(--aura-text-primary);
+    outline: none; transition: border-color var(--aura-transition-fast);
+}
+.aura-plan-filter input:focus, .aura-plan-filter select:focus { border-color: var(--aura-accent-violet); }
+.aura-plan-filter input::placeholder { color: var(--aura-text-muted); }
+#planFilterCount { font-size: 0.68rem; color: var(--aura-text-muted); margin-left: auto; white-space: nowrap; }
+#planClearBtn { font-size: 0.68rem; padding: 3px 8px; border-radius: 999px; border: 1px solid rgba(244,63,94,.3); background: rgba(244,63,94,.1); color: #f43f5e; cursor: pointer; display: none; }
+#planClearBtn:hover { background: rgba(244,63,94,.2); }
+
+/* plan list */
+.aura-plan-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 2px; }
+.aura-plan-row {
+    display: flex; align-items: center; gap: 8px;
+    border: 1px solid var(--aura-border); border-radius: var(--aura-radius-md);
+    background: var(--aura-bg-glass); padding: 8px 10px;
+    transition: border-color var(--aura-transition-fast), box-shadow var(--aura-transition-fast);
+}
+.aura-plan-row:hover { border-color: var(--aura-border-glow); box-shadow: var(--aura-shadow-glow); }
+.aura-plan-row.acc-hidden { display: none !important; }
+.aura-plan-wk {
+    min-width: 38px; height: 38px; border-radius: var(--aura-radius-sm);
+    background: rgba(139,92,246,.12); color: var(--aura-accent-violet);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 0.65rem; flex-shrink: 0; line-height: 1.1;
+}
+.aura-plan-info { flex: 1; min-width: 0; }
+.aura-plan-topic {
+    font-size: 0.82rem; font-weight: 600; color: var(--aura-text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.aura-plan-detail { font-size: 0.68rem; color: var(--aura-text-muted); }
+.aura-plan-score {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.68rem; font-weight: 800; border: 2px solid;
+}
+.ps-ring-4 { background: rgba(16,185,129,.15); color: #6ee7b7; border-color: #10b981; }
+.ps-ring-3 { background: rgba(245,158,11,.15); color: #fde68a; border-color: #f59e0b; }
+.ps-ring-2 { background: rgba(249,115,22,.15); color: #fdba74; border-color: #f97316; }
+.ps-ring-1 { background: rgba(239,68,68,.15);  color: #fca5a5; border-color: #ef4444; }
+.ps-ring-0 { background: rgba(255,255,255,.05); color: var(--aura-text-muted); border-color: var(--aura-border); }
+.aura-plan-actions { display: flex; gap: 4px; flex-shrink: 0; align-items: center; }
+.aura-pa {
+    font-size: 0.68rem; font-weight: 600; padding: 3px 7px;
+    border-radius: 6px; text-decoration: none; display: inline-flex;
+    align-items: center; gap: 3px; white-space: nowrap; border: 1px solid;
+    cursor: pointer; background: var(--aura-bg-secondary);
+    color: var(--aura-text-secondary); transition: all var(--aura-transition-fast);
+}
+.aura-pa.pa-view  { border-color: rgba(139,92,246,.3); color: #c4b5fd; }
+.aura-pa.pa-regen { border-color: rgba(52,211,153,.3);  color: #6ee7b7; }
+.aura-pa.pa-cards { border-color: rgba(96,165,250,.3);  color: #93c5fd; }
+.aura-pa.pa-pulse { background: linear-gradient(135deg,#4c1d95,#1e40af); color: #fff; border-color: transparent; }
+.aura-pa:hover { opacity: 0.85; transform: scale(1.04); }
+.aura-pulse-live-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 0.68rem; font-weight: 800; color: #fff;
+    background: linear-gradient(135deg,#7c3aed,#2563eb);
+    border-radius: 6px; padding: 3px 7px; white-space: nowrap;
+    animation: livePulseAura 1.4s infinite;
+}
+@keyframes livePulseAura {
+    0%,100% { box-shadow: 0 0 0 0 rgba(124,58,237,.5); }
+    50%      { box-shadow: 0 0 0 4px rgba(124,58,237,0); }
+}
+.aura-live-dot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; display:inline-block; animation: pgBlink2 1.1s infinite; }
+@keyframes pgBlink2 { 0%,100%{opacity:1;}50%{opacity:.2;} }
+.aura-pulse-cnt {
+    display: inline-flex; align-items: center; gap: 2px;
+    font-size: 0.6rem; font-weight: 700; color: #a5b4fc;
+    background: rgba(99,102,241,.15); border: 1px solid rgba(129,140,248,.3);
+    border-radius: 20px; padding: 1px 5px; white-space: nowrap; margin-left: 4px;
+}
+
+/* ── Inline Ghost Panel (Pulse Monitor) — scoped inside the plans panel ─── */
+#auraGhostPanel {
+    position: fixed; bottom: 70px; right: 1.5rem; z-index: 9500;
+    width: 300px; background: #12121a; color: #e0e7ff;
+    border-radius: 14px; box-shadow: 0 8px 40px rgba(0,0,0,.6);
+    overflow: hidden; display: none;
+    border: 1px solid rgba(139,92,246,.4);
+    font-family: 'Inter', system-ui, sans-serif;
+}
+.agp-hdr {
+    background: linear-gradient(135deg,#4c1d95,#1e40af);
+    padding: 8px 12px; display: flex; align-items: center;
+    justify-content: space-between; gap: 6px;
+}
+.agp-title { font-weight: 800; font-size: 0.82rem; color: #fff; display: flex; align-items: center; gap: 5px; }
+.agp-close { background: rgba(255,255,255,.18); border: none; color: #fff; border-radius: 7px; padding: 2px 8px; cursor: pointer; font-size: 0.7rem; font-weight: 700; }
+.agp-close:hover { background: rgba(239,68,68,.6); }
+.agp-body { padding: 10px 12px; }
+.agp-big { font-size: 1.9rem; font-weight: 900; color: #a78bfa; line-height: 1; letter-spacing: -.02em; }
+.agp-lbl { font-size: 0.67rem; color: #818cf8; margin-top: 2px; margin-bottom: 8px; }
+.agp-row { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+.agp-rl { font-size: 0.67rem; color: #c7d2fe; width: 48px; flex-shrink: 0; }
+.agp-track { flex: 1; height: 6px; border-radius: 3px; background: rgba(255,255,255,.1); overflow: hidden; }
+.agp-fill-t { height: 100%; background: #22c55e; border-radius: 3px; transition: width .4s; }
+.agp-fill-f { height: 100%; background: #ef4444; border-radius: 3px; transition: width .4s; }
+.agp-fill-c { height: 100%; background: #818cf8; border-radius: 3px; transition: width .4s; }
+.agp-rv { font-size: 0.67rem; color: #a78bfa; width: 20px; text-align: right; flex-shrink: 0; }
+.agp-hr { border: none; border-top: 1px solid rgba(255,255,255,.08); margin: 7px 0; }
+.agp-typing { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 0.67rem; color: #818cf8; }
+.agp-bubble {
+    display: inline-flex; align-items: center; gap: 3px;
+    background: rgba(139,92,246,.2); border-radius: 20px;
+    padding: 2px 7px; font-size: 0.67rem; color: #c4b5fd;
+}
+.agp-bubble::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: #7c3aed; display: inline-block; animation: pgBlink2 1.1s infinite; }
+.agp-ended { display: none; margin-top: 7px; padding: 5px 8px; border-radius: 6px; background: rgba(99,102,241,.15); color: #a5b4fc; font-size: 0.7rem; text-align: center; }
+.agp-dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; animation: pgBlink2 1.2s infinite; flex-shrink: 0; }
 </style>
 {% endblock %}
 
@@ -1181,6 +1315,14 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
                     <i class="fas fa-users"></i>
                     <span>My Classes</span>
                 </a>
+                <a href="{% url 'teachers:lesson_plan_list' %}" class="aura-action-btn">
+                    <i class="fas fa-list-ul"></i>
+                    <span>All Lesson Plans</span>
+                </a>
+                <a href="{% url 'teachers:pulse_history' %}" class="aura-action-btn">
+                    <i class="fas fa-clock"></i>
+                    <span>Pulse History</span>
+                </a>
                 <a href="{% url 'dashboard' %}" class="aura-action-btn">
                     <i class="fas fa-home"></i>
                     <span>Main Dashboard</span>
@@ -1188,6 +1330,101 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
             </div>
         </div>
         
+        <!-- ═══ PLAN UPGRADES ═══ -->
+        <div class="aura-glass aura-bento-plans aura-plans-panel">
+            <h3><i class="fas fa-rocket"></i> Plan Upgrades
+                <span style="margin-left:auto;font-size:.7rem;font-weight:400;color:var(--aura-text-muted);">v3 Aura-T status</span>
+                <a href="{% url 'teachers:aura_flight_manual' %}" style="font-size:.7rem;color:var(--aura-accent-violet);text-decoration:none;margin-left:8px;" title="Flight Manual"><i class="fas fa-book-open"></i></a>
+                <a href="{% url 'teachers:pulse_history' %}" style="font-size:.7rem;color:var(--aura-text-muted);text-decoration:none;margin-left:6px;" title="Pulse History"><i class="fas fa-clock"></i></a>
+            </h3>
+
+            <!-- v3 progress bar -->
+            {% if total_plans %}
+            <div class="aura-v3-bar-wrap">
+                <div class="aura-v3-bar-meta">
+                    <span>🚀 v3 Upgrade Progress</span>
+                    <strong>{{ v3_ready }}/{{ total_plans }} &mdash; {{ v3_pct }}%</strong>
+                </div>
+                <div class="aura-v3-track"><div class="aura-v3-fill" style="width:{{ v3_pct }}%;"></div></div>
+            </div>
+            {% endif %}
+
+            <!-- filter bar -->
+            <div class="aura-plan-filter">
+                <i class="fas fa-search" style="font-size:.75rem;color:var(--aura-text-muted);"></i>
+                <input type="text" id="planSearch" placeholder="Search topic…" style="flex:1;min-width:90px;">
+                {% if plan_subjects %}
+                <select id="planSubject">
+                    <option value="">All Subjects</option>
+                    {% for s in plan_subjects %}<option value="{{ s|lower }}">{{ s }}</option>{% endfor %}
+                </select>
+                {% endif %}
+                {% if plan_classes %}
+                <select id="planClass">
+                    <option value="">All Classes</option>
+                    {% for c in plan_classes %}<option value="{{ c|lower }}">{{ c }}</option>{% endfor %}
+                </select>
+                {% endif %}
+                <span id="planFilterCount"></span>
+                <button id="planClearBtn" onclick="clearPlanFilters()">✕</button>
+            </div>
+
+            <!-- plan rows -->
+            <div class="aura-plan-list" id="auraPlanList">
+            {% for p in plans %}
+            <div class="aura-plan-row"
+                 data-subject="{{ p.subject.name|lower }}"
+                 data-class="{{ p.school_class.name|lower }}"
+                 data-topic="{{ p.topic|lower }}">
+
+                <div class="aura-plan-wk">
+                    <span style="font-size:.6rem;">Wk</span>
+                    <span style="font-size:.88rem;">{{ p.week_number }}</span>
+                </div>
+
+                <div class="aura-plan-info">
+                    <div class="aura-plan-topic">
+                        {{ p.topic }}
+                        {% if p.pulse_count > 0 %}
+                        <span class="aura-pulse-cnt" title="{{ p.pulse_count }} pulse session{{ p.pulse_count|pluralize }}">📡{{ p.pulse_count }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="aura-plan-detail">{{ p.subject.name }} · {{ p.school_class.name }}</div>
+                </div>
+
+                <div class="aura-plan-score ps-ring-{{ p.aura_score }}">{{ p.aura_score }}/4</div>
+
+                <div class="aura-plan-actions">
+                    <a href="{% url 'teachers:lesson_plan_detail' p.pk %}" class="aura-pa pa-view" title="View">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="{% url 'teachers:lesson_plan_detail' p.pk %}" class="aura-pa pa-regen" title="Regenerate">
+                        <i class="fas fa-sync-alt"></i>
+                    </a>
+                    {% if p.aura_score >= 1 %}
+                    <a href="{% url 'teachers:lesson_plan_cards_print' p.pk %}" class="aura-pa pa-cards" target="_blank" title="Print Cards">
+                        <i class="fas fa-cut"></i>
+                    </a>
+                    {% if p.has_active_pulse %}
+                    <span class="aura-pulse-live-badge" title="Pulse is LIVE"><span class="aura-live-dot"></span> LIVE</span>
+                    {% else %}
+                    <button class="aura-pa pa-pulse" onclick="auraLaunchPulse({{ p.pk }}, '{{ p.topic|escapejs }}')" title="Launch Pulse">
+                        <i class="fas fa-broadcast-tower"></i> Pulse
+                    </button>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div style="text-align:center;padding:2rem 0;color:var(--aura-text-muted);font-size:.8rem;">
+                <i class="fas fa-file-alt" style="font-size:2rem;margin-bottom:.5rem;opacity:.3;display:block;"></i>
+                No lesson plans yet.
+                <a href="{% url 'teachers:lesson_plan_create' %}" style="color:var(--aura-accent-violet);">Create one</a>
+            </div>
+            {% endfor %}
+            </div>
+        </div>
+
         <!-- ═══ INTERACTIVE TIMELINE ═══ -->
         <div class="aura-glass aura-bento-timeline aura-timeline-panel">
             <h4><i class="fas fa-stream"></i> Lesson Builder</h4>
@@ -1222,6 +1459,34 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
         
     </div>
     
+    <!-- ═══ Pulse Ghost Panel (floating monitor) ═══ -->
+    <div id="auraGhostPanel">
+        <div class="agp-hdr">
+            <div class="agp-title"><i class="fas fa-broadcast-tower"></i> Live Pulse
+                <span id="agpTopic" style="font-weight:400;opacity:.8;font-size:.75rem;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+                <div id="agpDot" class="agp-dot"></div>
+                <button class="agp-close" onclick="auraClosePulse()">✕ Close</button>
+            </div>
+        </div>
+        <div class="agp-body">
+            <div class="agp-big"><span id="agpResponded">0</span> / <span id="agpTotal">—</span></div>
+            <div class="agp-lbl">students responded</div>
+            <div class="agp-row"><div class="agp-rl">Q1 ✓</div><div class="agp-track"><div class="agp-fill-t" id="agpQ1T" style="width:0%"></div></div><div class="agp-rv" id="agpQ1Tv">0</div></div>
+            <div class="agp-row"><div class="agp-rl">Q1 ✗</div><div class="agp-track"><div class="agp-fill-f" id="agpQ1F" style="width:0%"></div></div><div class="agp-rv" id="agpQ1Fv">0</div></div>
+            <div class="agp-row" style="margin-top:3px;"><div class="agp-rl" title="Believed misconception">Q2 T⚠</div><div class="agp-track"><div class="agp-fill-f" id="agpQ2T" style="width:0%"></div></div><div class="agp-rv" id="agpQ2Tv">0</div></div>
+            <div class="agp-row"><div class="agp-rl" title="Rejected misconception">Q2 F✓</div><div class="agp-track"><div class="agp-fill-t" id="agpQ2F" style="width:0%"></div></div><div class="agp-rv" id="agpQ2Fv">0</div></div>
+            <div class="agp-row" style="margin-top:3px;">
+                <div class="agp-rl" style="width:unset;white-space:nowrap;">Q3</div>
+                <div id="agpQ3" style="flex:1;display:flex;flex-direction:column;gap:2px;"></div>
+            </div>
+            <hr class="agp-hr">
+            <div class="agp-typing">Thinking: <div id="agpTyping"></div></div>
+            <div class="agp-ended" id="agpEnded"></div>
+        </div>
+    </div>
+
     <!-- ═══ 45-MINUTE LESSON PROGRESS BAR (Fixed Bottom) ═══ -->
     <div class="aura-bento-progress-bar aura-lesson-progress">
         <div class="time-label"><strong id="elapsedTime">00:00</strong> / 45:00</div>
@@ -1627,8 +1892,129 @@ document.addEventListener('DOMContentLoaded', () => {
             tile.style.zIndex = '';
         });
     });
+
+    // ── Plan Filter ──
+    (function(){
+        var searchEl  = document.getElementById('planSearch');
+        var subjectEl = document.getElementById('planSubject');
+        var classEl   = document.getElementById('planClass');
+        var countEl   = document.getElementById('planFilterCount');
+        var clearBtn  = document.getElementById('planClearBtn');
+        var rowCache  = null;
+        function getRows(){ if(!rowCache) rowCache = Array.from(document.querySelectorAll('#auraPlanList .aura-plan-row')); return rowCache; }
+        function applyFilter(){
+            var q    = searchEl  ? searchEl.value.toLowerCase().trim() : '';
+            var subj = subjectEl ? subjectEl.value.toLowerCase() : '';
+            var cls  = classEl   ? classEl.value.toLowerCase()   : '';
+            var has  = q || subj || cls;
+            if(clearBtn) clearBtn.style.display = has ? 'inline-flex' : 'none';
+            var rows = getRows(), shown = 0;
+            rows.forEach(function(r){
+                var combined = (r.dataset.subject||'')+' '+(r.dataset.class||'')+' '+(r.dataset.topic||'');
+                var ok = true;
+                if(q    && combined.indexOf(q)    === -1) ok = false;
+                if(subj && (r.dataset.subject||'').indexOf(subj) === -1) ok = false;
+                if(cls  && (r.dataset.class||'').indexOf(cls)    === -1) ok = false;
+                r.classList.toggle('acc-hidden', !ok);
+                if(ok) shown++;
+            });
+            if(countEl) countEl.textContent = has ? shown+'/'+rows.length+' plans' : '';
+        }
+        [searchEl,subjectEl,classEl].forEach(function(el){
+            if(el){ el.addEventListener('input',applyFilter); el.addEventListener('change',applyFilter); }
+        });
+        window.clearPlanFilters = function(){
+            if(searchEl)  searchEl.value  = '';
+            if(subjectEl) subjectEl.value = '';
+            if(classEl)   classEl.value   = '';
+            applyFilter();
+        };
+    })();
 });
 </script>
+
+<!-- Pulse Ghost Panel JS -->
+<script>
+(function(){
+    var _sid = null, _timer = null, _total = 0, _errs = 0, _resUrl = null, _planPk = null, _topic = '';
+    var _RESULTS_BASE = "{% url 'teachers:pulse_results' 0 %}";
+    var _LAUNCH_BASE  = "{% url 'teachers:pulse_launch' 0 %}";
+    var _LIVE_BASE    = "{% url 'teachers:pulse_live' 0 %}";
+    var _CLOSE_BASE   = "{% url 'teachers:pulse_close' 0 %}";
+
+    function csrf(){ var el=document.querySelector('[name=csrfmiddlewaretoken]'); return el?el.value:(document.cookie.match(/csrftoken=([^;]+)/)||['',''])[1]; }
+    function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function sb(fid,vid,n,t){ var p=t>0?Math.round(n/t*100):0; document.getElementById(fid).style.width=p+'%'; document.getElementById(vid).textContent=n; }
+
+    window.auraLaunchPulse = function(pk, topic){
+        _planPk=pk; _topic=topic;
+        fetch(_LAUNCH_BASE.replace('/0/','/'+pk+'/'),{
+            method:'POST', headers:{'X-CSRFToken':csrf(),'Content-Type':'application/json'}, body:'{}'
+        }).then(r=>r.json()).then(d=>{
+            if(d.error){alert('Pulse error: '+d.error);return;}
+            _sid=d.session_id; _total=d.total_students||0; _errs=0;
+            _resUrl=_RESULTS_BASE.replace('/0/','/'+d.session_id+'/');
+            document.getElementById('agpTopic').textContent=topic;
+            document.getElementById('agpTotal').textContent=_total;
+            document.getElementById('agpResponded').textContent='0';
+            document.getElementById('agpTyping').innerHTML='';
+            document.getElementById('agpQ3').innerHTML='';
+            var en=document.getElementById('agpEnded'); if(en) en.style.display='none';
+            var dot=document.getElementById('agpDot'); if(dot){dot.style.background='#22c55e'; dot.style.animation='pgBlink2 1.2s infinite';}
+            document.getElementById('auraGhostPanel').style.display='block';
+            if(_timer) clearInterval(_timer);
+            _timer=setInterval(auraPoll,2500); auraPoll();
+        }).catch(console.error);
+    };
+
+    function auraPoll(){
+        if(!_sid) return;
+        fetch(_LIVE_BASE.replace('/0/','/'+_sid+'/'))
+        .then(r=>r.json()).then(d=>{
+            _errs=0;
+            if(d.status==='closed'){stopPoll();showEnded();return;}
+            document.getElementById('agpResponded').textContent=d.responded;
+            var t=_total||1;
+            sb('agpQ1T','agpQ1Tv',d.q1.true||0,t); sb('agpQ1F','agpQ1Fv',d.q1.false||0,t);
+            sb('agpQ2T','agpQ2Tv',d.q2.true||0,t); sb('agpQ2F','agpQ2Fv',d.q2.false||0,t);
+            var chips=d.q3_counts||{}, html='';
+            Object.keys(chips).forEach(function(c){ var p=Math.round((chips[c]/t)*100);
+                html+='<div class="agp-row" style="margin:0;"><div class="agp-track" style="flex:1;"><div class="agp-fill-c" style="width:'+p+'%"></div></div><div class="agp-rv">'+chips[c]+'</div><div style="font-size:.6rem;color:#a5b4fc;max-width:80px;white-space:nowrap;overflow:hidden;padding-left:4px;">'+esc(c.slice(0,28))+'</div></div>'; });
+            document.getElementById('agpQ3').innerHTML=html;
+            var thtml='';
+            (d.typing||[]).slice(0,5).forEach(function(n){thtml+='<span class="agp-bubble">'+esc(n)+'</span> ';});
+            if((d.typing||[]).length>5) thtml+='<span class="agp-bubble">+'+(d.typing.length-5)+'</span>';
+            document.getElementById('agpTyping').innerHTML=thtml||'<span style="color:#475569;font-size:.67rem;">None yet</span>';
+        }).catch(function(){
+            _errs++;
+            if(_errs>=5){stopPoll();document.getElementById('agpTyping').innerHTML='<span style="color:#f87171;font-size:.67rem;">⚠ Lost connection</span>';}
+        });
+    }
+
+    function stopPoll(){
+        if(_timer){clearInterval(_timer);_timer=null;}
+        var dot=document.getElementById('agpDot'); if(dot){dot.style.background='#64748b';dot.style.animation='none';}
+    }
+    function showEnded(){
+        var el=document.getElementById('agpEnded'); if(!el) return;
+        var h='📊 Session ended';
+        if(_resUrl) h+=' — <a href="'+_resUrl+'" style="color:#a5b4fc;font-weight:700;">Results →</a>';
+        if(_planPk) h+=' <button onclick="auraLaunchPulse('+_planPk+',&quot;'+(_topic||'').replace(/"/g,'')+'&quot;)" style="background:rgba(99,102,241,.3);color:#c4b5fd;border:none;border-radius:5px;padding:2px 6px;font-size:.67rem;cursor:pointer;margin-left:4px;">🔁 Re-fire</button>';
+        el.innerHTML=h; el.style.display='block';
+    }
+    window.auraClosePulse = function(){
+        if(!_sid){document.getElementById('auraGhostPanel').style.display='none';return;}
+        var sid=_sid;
+        fetch(_CLOSE_BASE.replace('/0/','/'+sid+'/'),{method:'POST',headers:{'X-CSRFToken':csrf()}})
+        .then(r=>r.json()).then(d=>{
+            stopPoll(); _sid=null;
+            document.getElementById('auraGhostPanel').style.display='none';
+            if(d.redirect) window.location.href=d.redirect;
+        }).catch(()=>{stopPoll();_sid=null;document.getElementById('auraGhostPanel').style.display='none';});
+    };
+})();
+</script>
+{% csrf_token %}
 
 <!-- GES Lesson Note Modal (Dark Theme) -->
 <div class="modal fade" id="gesNoteModal" tabindex="-1" aria-labelledby="gesNoteModalLabel" aria-hidden="true">

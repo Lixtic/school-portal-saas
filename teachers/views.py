@@ -2206,22 +2206,21 @@ def aura_t_api(request):
 @login_required
 def aura_command_center(request):
     """
-    Aura-T Command Center: overview of all lesson plans with per-plan
-    Aura-T feature badges (Pulse Check / Checkpoints / Mastery Sprint / Insight).
+    Aura-T Command Center — teachers go to the unified AI sessions page,
+    admins get the full multi-teacher plan overview.
     """
-    is_teacher = request.user.user_type == 'teacher'
-    is_admin   = request.user.user_type == 'admin'
-    if not is_teacher and not is_admin:
+    if request.user.user_type == 'teacher':
+        return redirect('teachers:ai_sessions_list')
+
+    is_admin = request.user.user_type == 'admin'
+    if not is_admin:
         messages.error(request, 'Access denied')
         return redirect('dashboard')
 
     teacher = None
-    if is_teacher:
-        teacher = get_object_or_404(Teacher, user=request.user)
+    # Admin-only path: show all teachers' plans
 
     plans_qs = LessonPlan.objects.select_related('subject', 'school_class', 'teacher', 'teacher__user')
-    if is_teacher:
-        plans_qs = plans_qs.filter(teacher=teacher)
     plans = list(plans_qs)
 
     for p in plans:
@@ -2260,21 +2259,15 @@ def aura_command_center(request):
     no_aura_count = sum(1 for p in plans if p.aura_score == 0)
     v3_pct        = round(v3_ready / total * 100) if total else 0
 
-    # Filter dropdown options
     subjects = sorted(set(p.subject.name for p in plans if p.subject))
     classes  = sorted(set(p.school_class.name for p in plans if p.school_class))
 
-    # Admin: sort by teacher name then score; teacher: sort by score desc
-    if is_admin:
-        plans.sort(key=lambda p: (p.teacher_name, -p.aura_score, -p.pk))
-        prev_tname = None
-        for p in plans:
-            p.teacher_changed = p.teacher_name != prev_tname
-            prev_tname = p.teacher_name
-    else:
-        plans.sort(key=lambda p: (-p.aura_score, -p.pk))
-        for p in plans:
-            p.teacher_changed = False
+    # Admin: sort by teacher name then score
+    plans.sort(key=lambda p: (p.teacher_name, -p.aura_score, -p.pk))
+    prev_tname = None
+    for p in plans:
+        p.teacher_changed = p.teacher_name != prev_tname
+        prev_tname = p.teacher_name
 
     return render(request, 'teachers/aura_command_center.html', {
         'plans':         plans,
@@ -2283,9 +2276,9 @@ def aura_command_center(request):
         'v3_pct':        v3_pct,
         'partial_count': partial_count,
         'no_aura_count': no_aura_count,
-        'is_teacher':    is_teacher,
-        'is_admin':      is_admin,
-        'teacher':       teacher,
+        'is_teacher':    False,
+        'is_admin':      True,
+        'teacher':       None,
         'subjects':      subjects,
         'classes':       classes,
     })
@@ -2827,11 +2820,12 @@ from django.conf import settings
 import json
 
 @login_required
+@login_required
 def ai_sessions_list(request):
     """
-    Aura-T Command Centre:
-    Displays AI Copilot sessions, actively scheduled class (or next one),
-    and a matrix of students with (simulated) real-time engagement status.
+    Aura-T Command Centre (combined):
+    AI Copilot sessions, student matrix, lesson plan upgrade tracker,
+    and live Pulse monitoring — all in one bento-grid interface.
     """
     if not hasattr(request.user, 'teacher'):
          messages.error(request, "Access restricted to teachers.")
@@ -2929,9 +2923,52 @@ def ai_sessions_list(request):
                 'tooltip': f"{s.admission_number} | {status.title()}",
                 'latest_session_id': latest_sessions.get(s.id),
             })
-    
-    from academics.ai_tutor import get_openai_chat_model
 
+    # ── Lesson Plan Upgrade Data (Command Center) ─────────────────────────
+    plans_qs = LessonPlan.objects.filter(teacher=teacher).select_related(
+        'subject', 'school_class'
+    )
+    plans = list(plans_qs)
+
+    for p in plans:
+        intro = p.introduction or ''
+        pres  = p.presentation or ''
+        evl   = p.evaluation or ''
+        p.has_pulse       = 'PULSE CHECK' in intro
+        p.has_checkpoints = 'CHECKPOINT QUESTIONS' in pres or 'CQ1:' in pres
+        p.has_sprint      = 'MASTERY SPRINT' in evl or 'MS1:' in evl
+        p.has_insight     = 'TEACHER INSIGHT' in evl
+        p.aura_score      = sum([p.has_pulse, p.has_checkpoints, p.has_sprint, p.has_insight])
+        p.pulse_count     = 0
+        p.has_active_pulse = False
+
+    # Bulk-query pulse session counts + active state
+    try:
+        from academics.pulse_models import PulseSession as PS
+        plan_pks = [p.pk for p in plans]
+        pulse_counts  = {}
+        active_pk_set = set()
+        for row in PS.objects.filter(lesson_plan_id__in=plan_pks).values('lesson_plan_id', 'status'):
+            lpk = row['lesson_plan_id']
+            pulse_counts[lpk] = pulse_counts.get(lpk, 0) + 1
+            if row['status'] == 'active':
+                active_pk_set.add(lpk)
+        for p in plans:
+            p.pulse_count      = pulse_counts.get(p.pk, 0)
+            p.has_active_pulse = p.pk in active_pk_set
+    except Exception:
+        pass
+
+    total_plans   = len(plans)
+    v3_ready      = sum(1 for p in plans if p.aura_score == 4)
+    partial_count = sum(1 for p in plans if 0 < p.aura_score < 4)
+    no_aura_count = sum(1 for p in plans if p.aura_score == 0)
+    v3_pct        = round(v3_ready / total_plans * 100) if total_plans else 0
+    plan_subjects = sorted(set(p.subject.name for p in plans if p.subject))
+    plan_classes  = sorted(set(p.school_class.name for p in plans if p.school_class))
+    plans.sort(key=lambda p: (-p.aura_score, -p.pk))
+
+    from academics.ai_tutor import get_openai_chat_model
     active_ai_model = get_openai_chat_model()
 
     context = {
@@ -2943,6 +2980,15 @@ def ai_sessions_list(request):
         'student_count': total_students,
         'current_time': now,
         'active_ai_model': active_ai_model,
+        # plan upgrade
+        'plans': plans,
+        'total_plans': total_plans,
+        'v3_ready': v3_ready,
+        'v3_pct': v3_pct,
+        'partial_count': partial_count,
+        'no_aura_count': no_aura_count,
+        'plan_subjects': plan_subjects,
+        'plan_classes': plan_classes,
     }
     return render(request, 'teachers/ai_sessions_list.html', context)
 
