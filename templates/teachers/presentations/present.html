@@ -120,7 +120,8 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
   align-items: center; justify-content: center; font-size: .8rem;
   transition: background .15s, color .15s;
 }
-.ps-ctrl-btn:hover { background: rgba(255,255,255,.1); color: #f1f5f9; }
+.ps-ctrl-btn:hover  { background: rgba(255,255,255,.1); color: #f1f5f9; }
+.ps-ctrl-btn.active { background: rgba(124,58,237,.2);  color: #a78bfa; }
 .ps-counter { font-size: .8rem; color: #64748b; min-width: 40px; text-align: center; font-weight: 700; }
 .ps-exit-btn {
   position: fixed; top: 14px; right: 16px; z-index: 300;
@@ -231,6 +232,65 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
   padding: 2px 9px; cursor: pointer; transition: background .12s;
 }
 .ps-clear-btn:hover { background: rgba(239,68,68,.3); }
+
+/* ── Slide overview ── */
+.ps-overview {
+  position: fixed; inset: 0; z-index: 10000;
+  background: rgba(0,0,0,.93); backdrop-filter: blur(4px);
+  overflow-y: auto; padding: 2rem 1.5rem 6rem;
+  display: none;
+}
+.ps-overview.active { display: block; }
+.ps-ov-header {
+  text-align: center; color: rgba(255,255,255,.35);
+  font-size: .7rem; font-weight: 800; letter-spacing: .12em;
+  text-transform: uppercase; margin-bottom: 1.5rem;
+}
+.ps-ov-grid {
+  display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
+}
+.ps-ov-wrap {
+  position: relative; overflow: hidden; border-radius: 8px;
+  border: 2px solid rgba(255,255,255,.1); cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+  flex-shrink: 0;
+}
+.ps-ov-wrap:hover  { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,.2); }
+.ps-ov-wrap.active { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,.4); }
+.ps-ov-inner {
+  position: absolute; top: 0; left: 0;
+  transform-origin: top left; pointer-events: none;
+}
+.ps-ov-num {
+  position: absolute; bottom: 4px; right: 5px;
+  font-size: .55rem; font-weight: 800;
+  color: rgba(255,255,255,.5); text-shadow: 0 1px 3px rgba(0,0,0,.7);
+}
+.ps-ov-footer {
+  position: sticky; bottom: 0; padding: 1rem; text-align: center;
+  background: linear-gradient(transparent, rgba(0,0,0,.93));
+}
+.ps-ov-close {
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12);
+  color: #94a3b8; border-radius: 10px; padding: 7px 22px;
+  font-size: .78rem; font-weight: 700; cursor: pointer;
+  transition: background .15s;
+}
+.ps-ov-close:hover { background: rgba(255,255,255,.15); color: #f1f5f9; }
+
+/* ── Auto-advance bar ── */
+.ps-auto-bar {
+  position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
+  z-index: 300; display: none; align-items: center; gap: 8px;
+  background: rgba(15,23,42,.82); backdrop-filter: blur(6px);
+  border: 1px solid rgba(96,165,250,.25); border-radius: 24px;
+  padding: 4px 12px 4px 10px;
+}
+.ps-auto-bar.active { display: flex; }
+.ps-auto-bar .ps-auto-label { font-size: .72rem; font-weight: 700; color: #60a5fa; }
+.ps-auto-ring { width: 56px; height: 4px; background: rgba(255,255,255,.1); border-radius: 2px; }
+.ps-auto-ring-fill { height: 100%; background: linear-gradient(90deg,#60a5fa,#7c3aed); border-radius: 2px; transition: width 1s linear; }
+.ps-auto-bar .ps-auto-n { font-size: .72rem; font-weight: 700; color: #60a5fa; min-width: 24px; }
 </style>
 </head>
 <body>
@@ -266,8 +326,10 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
         <tr><td>D</td><td>Drawing mode</td></tr>
         <tr><td>C</td><td>Clear drawing</td></tr>
         <tr><td>T</td><td>Reset slide timer</td></tr>
+        <tr><td>O</td><td>Slide overview</td></tr>
+        <tr><td>A</td><td>Toggle auto-advance</td></tr>
         <tr><td>?</td><td>Show shortcuts</td></tr>
-        <tr><td>Esc</td><td>Exit</td></tr>
+        <tr><td>Esc</td><td>Exit / close overlay</td></tr>
       </table>
       <button class="close-btn" onclick="toggleShortcuts()">Close</button>
     </div>
@@ -282,8 +344,12 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
     <span class="ps-counter"><span id="curSlide">1</span> / {{ slides|length }}</span>
     <button class="ps-ctrl-btn" onclick="nextSlide()" title="Next (→)"><i class="fas fa-chevron-right"></i></button>
     <div style="width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 4px;"></div>
-    <button class="ps-ctrl-btn" onclick="toggleNotes()" title="Speaker notes (N)"><i class="fas fa-sticky-note"></i></button>    <button class="ps-ctrl-btn" onclick="toggleLaser()" title="Laser pointer (L)" id="laserBtn"><i class="fas fa-circle" style="color:#f87171;font-size:.55rem;"></i></button>
-    <button class="ps-ctrl-btn" onclick="toggleDraw()" title="Draw (D)" id="drawBtn"><i class="fas fa-pen"></i></button>    <div style="width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 4px;"></div>
+    <button class="ps-ctrl-btn" onclick="toggleNotes()" title="Speaker notes (N)"><i class="fas fa-sticky-note"></i></button>
+    <button class="ps-ctrl-btn" onclick="toggleOverview()" title="Slide overview (O)" id="overviewBtn"><i class="fas fa-th"></i></button>
+    <button class="ps-ctrl-btn" onclick="toggleAutoAdvance()" title="Auto-advance (A)" id="autoBtn"><i class="fas fa-play" style="font-size:.6rem;"></i></button>
+    <button class="ps-ctrl-btn" onclick="toggleLaser()" title="Laser pointer (L)" id="laserBtn"><i class="fas fa-circle" style="color:#f87171;font-size:.55rem;"></i></button>
+    <button class="ps-ctrl-btn" onclick="toggleDraw()" title="Draw (D)" id="drawBtn"><i class="fas fa-pen"></i></button>
+    <div style="width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 4px;"></div>
     <button class="ps-ctrl-btn" onclick="toggleFullscreen()" title="Fullscreen (F)" id="fsBtn"><i class="fas fa-expand" id="fsIcon"></i></button>
     <button class="ps-ctrl-btn" onclick="toggleShortcuts()" title="Keyboard shortcuts (?)"><i class="fas fa-question"></i></button>
   </div>
@@ -316,11 +382,26 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
     <button class="ps-clear-btn" onclick="clearDraw()">&#10005; Clear</button>
   </div>
 
+  <!-- Slide overview overlay -->
+  <div class="ps-overview" id="psOverview" onclick="if(event.target===this)toggleOverview()">
+    <div class="ps-ov-header">&#9783; Slide overview &mdash; click to jump &bull; Esc to close</div>
+    <div class="ps-ov-grid" id="psOvGrid"></div>
+    <div class="ps-ov-footer"><button class="ps-ov-close" onclick="toggleOverview()">Close overview</button></div>
+  </div>
+
+  <!-- Auto-advance indicator -->
+  <div class="ps-auto-bar" id="psAutoBar">
+    <span class="ps-auto-label">&#9654; Auto</span>
+    <div class="ps-auto-ring"><div class="ps-auto-ring-fill" id="psAutoFill" style="width:100%"></div></div>
+    <span class="ps-auto-n" id="psAutoN">30s</span>
+  </div>
+
 </div><!-- /stage -->
 
 <script>
 var total = {{ slides|length }};
 var current = 0;
+var DECK_THEME = '{{ deck.theme }}';
 // Set initial progress bar width
 document.getElementById('progressFill').style.width = (total > 0 ? Math.round(1/total*100) : 100) + '%';
 
@@ -360,17 +441,22 @@ document.addEventListener('keydown', function(e) {
   if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ')  nextSlide();
   if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')  prevSlide();
   if (e.key === 'Escape') {
-    if (laserMode) { toggleLaser(); return; }
-    if (drawMode)  { toggleDraw();  return; }
+    if (overviewMode) { toggleOverview(); return; }
+    if (laserMode)    { toggleLaser();    return; }
+    if (drawMode)     { toggleDraw();     return; }
     if (document.getElementById('shortcutsOverlay').classList.contains('visible')) { toggleShortcuts(); return; }
     window.close();
   }
+  if (overviewMode && (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ')) { e.preventDefault(); toggleOverview(); nextSlide(); return; }
+  if (overviewMode && (e.key === 'ArrowLeft'  || e.key === 'ArrowUp'))                   { e.preventDefault(); toggleOverview(); prevSlide(); return; }
   if (e.key === 'n' || e.key === 'N') toggleNotes();
   if (e.key === 'f' || e.key === 'F') toggleFullscreen();
   if (e.key === 'l' || e.key === 'L') toggleLaser();
   if (e.key === 'd' || e.key === 'D') { if (!drawMode || document.activeElement.tagName !== 'CANVAS') toggleDraw(); }
   if (e.key === 'c' || e.key === 'C') clearDraw();
   if (e.key === 't' || e.key === 'T') resetSlideTimer();
+  if (e.key === 'o' || e.key === 'O') toggleOverview();
+  if (e.key === 'a' || e.key === 'A') toggleAutoAdvance();
   if (e.key === '?') toggleShortcuts();
   if (e.key === 'Home') goTo(0);
   if (e.key === 'End')  goTo(total - 1);
@@ -497,6 +583,78 @@ drawCanvas.addEventListener('touchmove', function(e) {
   drawCtx.stroke();
 }, { passive: false });
 drawCanvas.addEventListener('touchend', function() { isPainting = false; });
+
+// ── Slide overview ─────────────────────────────────────────────────────────────
+var overviewMode = false;
+var THUMB_W = 200;
+function buildOverview() {
+  var grid = document.getElementById('psOvGrid');
+  grid.innerHTML = '';
+  var slideEls = document.querySelectorAll('.ps-slide');
+  var vw = window.innerWidth, vh = window.innerHeight;
+  var scale   = THUMB_W / vw;
+  var thumbH  = Math.round(vh * scale);
+  slideEls.forEach(function(sl, i) {
+    var wrap = document.createElement('div');
+    wrap.className = 'ps-ov-wrap theme-' + DECK_THEME + (i === current ? ' active' : '');
+    wrap.style.width  = THUMB_W + 'px';
+    wrap.style.height = thumbH  + 'px';
+    (function(idx) { wrap.onclick = function() { goTo(idx); toggleOverview(); }; })(i);
+    var inner = document.createElement('div');
+    inner.className = 'ps-ov-inner';
+    inner.style.width     = vw + 'px';
+    inner.style.height    = vh + 'px';
+    inner.style.transform = 'scale(' + scale + ')';
+    inner.innerHTML = sl.innerHTML;
+    var num = document.createElement('div');
+    num.className = 'ps-ov-num';
+    num.textContent = i + 1;
+    wrap.appendChild(inner);
+    wrap.appendChild(num);
+    grid.appendChild(wrap);
+  });
+}
+function toggleOverview() {
+  overviewMode = !overviewMode;
+  document.getElementById('psOverview').classList.toggle('active', overviewMode);
+  document.getElementById('overviewBtn').classList.toggle('active', overviewMode);
+  if (overviewMode) buildOverview();
+}
+
+// ── Auto-advance ─────────────────────────────────────────────────────────────
+var autoMode        = false;
+var AUTO_SEC        = 30;  // seconds per slide
+var autoCountdown   = AUTO_SEC;
+var autoTimer       = null;
+function tickAuto() {
+  autoCountdown--;
+  updateAutoBar();
+  if (autoCountdown <= 0) {
+    autoCountdown = AUTO_SEC;
+    if (current < total - 1) {
+      nextSlide();
+    } else {
+      toggleAutoAdvance(); // reached last slide — stop
+    }
+  }
+}
+function updateAutoBar() {
+  document.getElementById('psAutoN').textContent    = autoCountdown + 's';
+  document.getElementById('psAutoFill').style.width = (autoCountdown / AUTO_SEC * 100) + '%';
+}
+function toggleAutoAdvance() {
+  autoMode = !autoMode;
+  document.getElementById('psAutoBar').classList.toggle('active', autoMode);
+  document.getElementById('autoBtn').classList.toggle('active', autoMode);
+  if (autoMode) {
+    autoCountdown = AUTO_SEC;
+    updateAutoBar();
+    autoTimer = setInterval(tickAuto, 1000);
+  } else {
+    clearInterval(autoTimer);
+    autoTimer = null;
+  }
+}
 </script>
 </body>
 </html>
