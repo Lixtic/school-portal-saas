@@ -1399,7 +1399,7 @@
                     <button class="action-btn" onclick="toggleMathKeyboard(this)">
                         <span style="font-family: serif; font-style: italic;">∑</span> Math Keyboard
                     </button>
-                    <button class="action-btn" onclick="quickActionTrigger('Generate a diagram for this')">
+                    <button class="action-btn" onclick="triggerContextualVisual()">
                         <i class="bi bi-image"></i> Visuals
                     </button>
                     <button class="action-btn" onclick="quickActionTrigger('Give me a hint')">
@@ -2217,6 +2217,54 @@
     messageInput.addEventListener('keydown', (e) => {
         if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
     });
+
+    // 4.0 Context-Aware Visual Trigger — builds a descriptive FLUX prompt from the live session
+    function triggerContextualVisual() {
+        // Grab subject from the subject selector if present
+        const subjectEl = document.getElementById('subjectSelect');
+        const subject = subjectEl ? (subjectEl.selectedOptions[0] ? subjectEl.selectedOptions[0].text : '').trim() : '';
+
+        // Get the last assistant message for context (strip markdown tokens)
+        const lastAIMsg = conversationHistory.filter(m => m.role === 'assistant').slice(-1)[0];
+        const rawText = lastAIMsg ? lastAIMsg.content : '';
+        const cleaned = rawText
+            .replace(/\[.*?\]/g, '')        // strip [TOKENS]
+            .replace(/<[^>]+>/g, '')         // strip HTML tags
+            .replace(/[*_`#>|]/g, '')        // strip markdown
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        // Take first sentence as the topic snippet (max 150 chars)
+        const topicSnippet = (cleaned.split(/[.!?]/)[0] || '').slice(0, 150).trim();
+
+        // Subject-aware visual style hints
+        const styleMap = {
+            math: 'clean mathematical graph, labeled axes, equation annotations, textbook style, white background',
+            physics: 'physics diagram, force vectors, labeled components, scientific illustration, white background',
+            chemistry: 'molecular structure diagram, labeled atoms and bonds, chemistry textbook style',
+            biology: 'detailed biological diagram, labeled parts, scientific illustration, white background',
+            geography: 'colorful geographic map or physical landscape, educational style',
+            history: 'historical illustration, educational infographic, timeline scene',
+            english: 'illustrated concept, clean diagram, educational visual',
+        };
+        const subjectLower = subject.toLowerCase();
+        let styleHint = 'educational illustration, clear visual, textbook style, white background, labeled, high detail, no flowcharts';
+        for (const [key, hint] of Object.entries(styleMap)) {
+            if (subjectLower.includes(key)) { styleHint = hint; break; }
+        }
+
+        // Build the final FLUX prompt
+        let prompt;
+        if (topicSnippet) {
+            prompt = `Educational visual: ${subject ? subject + ' — ' : ''}${topicSnippet}. ${styleHint}`;
+        } else if (subject) {
+            prompt = `Educational illustration of ${subject}. ${styleHint}`;
+        } else {
+            prompt = `Educational concept illustration. ${styleHint}`;
+        }
+
+        generateTutorImage(prompt);
+    }
 
     // 4.1 Image Generation Function (Aura LTS)
     async function generateTutorImage(prompt) {
