@@ -4105,3 +4105,93 @@ def presentation_api(request):
         })
 
     return JsonResponse({'error': f'Unknown action: {action}'}, status=400)
+
+
+@login_required
+def presentation_generate_from_doc(request):
+    """
+    Accepts a multipart POST with:
+      deck_id   — int
+      document  — .pdf or .docx file
+    Extracts the text, calls AuraGenEngine, replaces deck slides, returns JSON.
+    """
+    from .models import Presentation, Slide
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    if request.user.user_type not in ('teacher', 'admin'):
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    teacher = get_object_or_404(Teacher, user=request.user)
+    deck_id = request.POST.get('deck_id')
+    uploaded = request.FILES.get('document')
+
+    if not deck_id or not uploaded:
+        return JsonResponse({'error': 'deck_id and document file are required'}, status=400)
+
+    deck = get_object_or_404(Presentation, pk=deck_id, teacher=teacher)
+
+    filename = uploaded.name.lower()
+    if not (filename.endswith('.pdf') or filename.endswith('.docx') or filename.endswith('.doc')):
+        return JsonResponse({'error': 'Only .pdf and .docx files are supported'}, status=400)
+
+    # ── Extract text ────────────────────────────────────────────────────────
+    try:
+        if filename.endswith('.pdf'):
+            import pypdf
+            reader = pypdf.PdfReader(uploaded)
+            text_parts = []
+            for page in reader.pages:
+                t = page.extract_text()
+                if t:
+                    text_parts.append(t)
+            document_text = '\n'.join(text_parts)
+        else:
+            from docx import Document as DocxDocument
+            doc = DocxDocument(uploaded)
+            document_text = '\n'.join(p.text for p in doc.paragraphs if p.text.strip())
+    except Exception as exc:
+        return JsonResponse({'error': f'Could not read file: {exc}'}, status=400)
+
+    if len(document_text.strip()) < 80:
+        return JsonResponse({'error': 'The document appears to be empty or unreadable. Please try a different file.'}, status=400)
+
+    # ── Generate slides ──────────────────────────────────────────────────────
+    from teachers.services.aura_gen_engine import AuraGenEngine
+    from django.db import transaction
+
+    result = AuraGenEngine.generate_slides_from_document(document_text, uploaded.name)
+    raw_slides = result.get('slides', [])
+
+    with transaction.atomic():
+        deck.slides.all().delete()
+        created = []
+        for i, s in enumerate(raw_slides):
+            bullets = s.get('bullets', [])
+            content = '\n'.join(bullets)
+            layout = 'title' if i == 0 else ('summary' if i == len(raw_slides) - 1 else 'bullets')
+            slide = Slide.objects.create(
+                presentation=deck,
+                order=i,
+                layout=layout,
+                title=s.get('title', ''),
+                content=content,
+                speaker_notes=s.get('notes', ''),
+            )
+            created.append({
+                'slide_id':      slide.pk,
+                'order':         slide.order,
+                'layout':        slide.layout,
+                'title':         slide.title,
+                'content':       slide.content,
+                'emoji':         slide.emoji,
+                'speaker_notes': slide.speaker_notes,
+            })
+        deck.save()
+
+    return JsonResponse({
+        'ok':         True,
+        'slides':     created,
+        'deck_title': deck.title,
+        'activities': result.get('activities', []),
+    })

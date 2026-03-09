@@ -744,6 +744,88 @@ Rules:
             }
 
     @staticmethod
+    def generate_slides_from_document(document_text: str, filename: str = '') -> Dict:
+        """
+        Generate a slide deck from extracted document text (PDF/Word).
+        Truncates to 12,000 chars to stay within token limits.
+        """
+        text_excerpt = document_text.strip()[:12000]
+        if not text_excerpt:
+            return AuraGenEngine._fallback_slides_outline(filename or 'Document', 'General', 'General')
+
+        title_hint = (
+            filename.rsplit('.', 1)[0]
+            .replace('_', ' ').replace('-', ' ')
+        ) if filename else 'Document'
+
+        system_prompt = (
+            "You are Aura-T, an expert teaching assistant.\n"
+            "Given the content of an educational document, create a clear, engaging teaching slide deck.\n"
+            "Return a JSON object with EXACTLY this structure:\n"
+            "{\n"
+            '  "slides": [\n'
+            '    {"title": "...", "bullets": ["...", "..."], "notes": "..."}\n'
+            "  ],\n"
+            '  "activities": ["Activity 1", "Activity 2"]\n'
+            "}\n"
+            "Rules:\n"
+            "- Generate 6 to 9 slides that teach the key ideas from the document.\n"
+            "- Slide 1 must be a title/overview slide introducing the topic.\n"
+            "- Last slide must be a summary or key-takeaways slide.\n"
+            "- Every slide needs: non-empty title, 2-4 concise bullet points, speaker notes.\n"
+            "- Rewrite content in clear, student-friendly language — do NOT copy text verbatim.\n"
+            "- Focus on the most important concepts and discard irrelevant details.\n"
+        )
+
+        user_prompt = (
+            f"Document title hint: {title_hint}\n\n"
+            f"Document content:\n{text_excerpt}\n\n"
+            "Create a structured teaching slide deck from the above content."
+        )
+
+        try:
+            payload = {
+                "model": get_openai_chat_model(),
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                "response_format": {"type": "json_object"},
+                "temperature": 0.6,
+            }
+            response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
+            content = response['choices'][0]['message']['content']
+            data = AuraGenEngine._extract_json_object(content)
+
+            slides = AuraGenEngine._normalize_slides(data.get("slides"), title_hint)
+            activities = AuraGenEngine._normalize_activities(data.get("activities"))
+
+            if not slides:
+                slides = AuraGenEngine._fallback_slides_outline(title_hint, 'General', 'General').get("slides", [])
+            if not activities:
+                activities = []
+
+            return {
+                "meta": {
+                    "topic": title_hint,
+                    "source": "document",
+                    "generated_at": timezone.now().isoformat(),
+                },
+                "slides": slides,
+                "activities": activities,
+            }
+        except Exception as e:
+            logger.error("Document slides generation failed: %s", e)
+            return {
+                "meta": {
+                    "topic": title_hint,
+                    "source": "document",
+                    "generated_at": timezone.now().isoformat(),
+                },
+                **AuraGenEngine._fallback_slides_outline(title_hint, 'General', 'General'),
+            }
+
+    @staticmethod
     def _extract_json_object(raw_content: str) -> Dict:
         content = (raw_content or '').strip()
         if not content:

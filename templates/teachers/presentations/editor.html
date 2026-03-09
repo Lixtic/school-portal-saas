@@ -260,6 +260,15 @@ html, body { height: 100%; margin: 0; }
 .gm-spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ── Modal tabs ── */
+.gm-modal-tabs { display: flex; gap: 4px; padding: 3px; background: rgba(255,255,255,.04); border-radius: 10px; margin-bottom: 1.1rem; }
+.gm-modal-tab { flex: 1; padding: .45rem .6rem; border: none; border-radius: 8px; background: transparent; color: #64748b; font-size: .78rem; font-weight: 600; cursor: pointer; transition: background .15s, color .15s; }
+.gm-modal-tab.active { background: #0f172a; color: #a78bfa; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+/* ── Doc drop zone ── */
+.gm-doc-drop-zone { border: 2px dashed rgba(255,255,255,.1); border-radius: 12px; padding: 1.8rem 1rem; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; margin-bottom: .7rem; user-select: none; }
+.gm-doc-drop-zone:hover, .gm-doc-drop-zone.drag-active { border-color: #7c3aed; background: rgba(124,58,237,.06); }
+.gm-doc-filename { margin-top: .55rem; font-size: .78rem; color: #a78bfa; font-weight: 600; word-break: break-all; }
+
 /* speaker notes bar */
 .gm-notes-bar {
   height: 34px; flex-shrink: 0;
@@ -443,25 +452,53 @@ html, body { height: 100%; margin: 0; }
 <div class="gm-modal-overlay" id="aiModal" onclick="closeAIModal(event)">
   <div class="gm-modal" onclick="event.stopPropagation()">
     <h3>✨ AI Slide Generator</h3>
-    <p>Enter a topic and Aura-T will create a complete slide deck in seconds.</p>
+    <p>Generate a full deck from a topic or an uploaded document.</p>
 
-    <input type="text" class="gm-modal-field" id="aiTopic" placeholder="e.g. The Water Cycle, Fractions, WW2…"
-           onkeydown="if(event.key==='Enter') runAIGenerate()">
+    <!-- Tab switcher -->
+    <div class="gm-modal-tabs">
+      <button class="gm-modal-tab active" id="aiTabTopic" onclick="switchAITab('topic')">
+        <i class="fas fa-lightbulb"></i> Topic
+      </button>
+      <button class="gm-modal-tab" id="aiTabDoc" onclick="switchAITab('doc')">
+        <i class="fas fa-file-upload"></i> Upload Document
+      </button>
+    </div>
 
-    <div class="gm-modal-row">
-      <select class="gm-modal-field" id="aiSubject">
-        <option value="">Any Subject</option>
-        {% for s in subjects %}<option value="{{ s.pk }}"{% if deck.subject_id == s.pk %} selected{% endif %}>{{ s.name }}</option>{% endfor %}
-      </select>
-      <select class="gm-modal-field" id="aiClass">
-        <option value="">Any Class</option>
-        {% for c in classes %}<option value="{{ c.pk }}"{% if deck.school_class_id == c.pk %} selected{% endif %}>{{ c.name }}</option>{% endfor %}
-      </select>
+    <!-- Topic panel -->
+    <div id="aiTopicPanel">
+      <input type="text" class="gm-modal-field" id="aiTopic" placeholder="e.g. The Water Cycle, Fractions, WW2…"
+             onkeydown="if(event.key==='Enter') runAIAction()">
+      <div class="gm-modal-row">
+        <select class="gm-modal-field" id="aiSubject">
+          <option value="">Any Subject</option>
+          {% for s in subjects %}<option value="{{ s.pk }}"{% if deck.subject_id == s.pk %} selected{% endif %}>{{ s.name }}</option>{% endfor %}
+        </select>
+        <select class="gm-modal-field" id="aiClass">
+          <option value="">Any Class</option>
+          {% for c in classes %}<option value="{{ c.pk }}"{% if deck.school_class_id == c.pk %} selected{% endif %}>{{ c.name }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <!-- Document upload panel -->
+    <div id="aiDocPanel" style="display:none;">
+      <div class="gm-doc-drop-zone" id="docDropZone"
+           onclick="document.getElementById('docFileInput').click()"
+           ondragover="event.preventDefault();this.classList.add('drag-active')"
+           ondragleave="this.classList.remove('drag-active')"
+           ondrop="event.preventDefault();this.classList.remove('drag-active');handleDocFileDrop(event)">
+        <i class="fas fa-file-upload" style="font-size:2rem;color:#475569;margin-bottom:.6rem;display:block;"></i>
+        <div style="color:#94a3b8;font-size:.86rem;font-weight:600;">Click to upload or drag &amp; drop</div>
+        <div style="color:#475569;font-size:.75rem;margin-top:.4rem;">.pdf or .docx &mdash; max 10 MB</div>
+        <div class="gm-doc-filename" id="docFileName"></div>
+      </div>
+      <input type="file" id="docFileInput" accept=".pdf,.docx,.doc"
+             style="display:none;" onchange="handleDocFile(event)">
     </div>
 
     <div class="gm-modal-actions">
       <button class="gm-modal-cancel" onclick="document.getElementById('aiModal').classList.remove('open')">Cancel</button>
-      <button class="gm-modal-go" id="aiGoBtn" onclick="runAIGenerate()">
+      <button class="gm-modal-go" id="aiGoBtn" onclick="runAIAction()">
         <i class="fas fa-robot"></i> Generate Deck
       </button>
     </div>
@@ -477,7 +514,8 @@ html, body { height: 100%; margin: 0; }
 // ═══════════════════════════════════════════════════════════════
 //  GAMMA EDITOR — JavaScript Core
 // ═══════════════════════════════════════════════════════════════
-var API_URL   = "{% url 'teachers:presentation_api' %}";
+var API_URL        = "{% url 'teachers:presentation_api' %}";
+var UPLOAD_DOC_URL = "{% url 'teachers:presentation_generate_from_doc' %}";
 var DECK_ID   = {{ deck.pk }};
 var DECK_THEME= "{{ deck.theme }}";
 var csrfToken = "{{ csrf_token }}";
@@ -651,12 +689,90 @@ function toggleNotes() {
 
 // ── AI Generate ─────────────────────────────────────────────────
 function openAIModal() {
+  switchAITab('topic');
   document.getElementById('aiModal').classList.add('open');
-  document.getElementById('aiTopic').focus();
+  setTimeout(function() { document.getElementById('aiTopic').focus(); }, 60);
 }
 function closeAIModal(e) {
   if (e.target === document.getElementById('aiModal'))
     document.getElementById('aiModal').classList.remove('open');
+}
+function switchAITab(tab) {
+  var isDoc = (tab === 'doc');
+  document.getElementById('aiTopicPanel').style.display = isDoc ? 'none' : 'block';
+  document.getElementById('aiDocPanel').style.display   = isDoc ? 'block' : 'none';
+  document.getElementById('aiTabTopic').classList.toggle('active', !isDoc);
+  document.getElementById('aiTabDoc').classList.toggle('active',  isDoc);
+  if (!isDoc) setTimeout(function() { document.getElementById('aiTopic').focus(); }, 50);
+}
+function handleDocFile(event) {
+  var file = event.target.files[0];
+  if (file) {
+    document.getElementById('docFileName').textContent = '\uD83D\uDCC4 ' + file.name;
+    document.getElementById('docFileName').style.display = 'block';
+  }
+}
+function handleDocFileDrop(event) {
+  var files = event.dataTransfer.files;
+  if (files && files[0]) {
+    document.getElementById('docFileInput').files = files;
+    document.getElementById('docFileName').textContent = '\uD83D\uDCC4 ' + files[0].name;
+    document.getElementById('docFileName').style.display = 'block';
+  }
+}
+function runAIAction() {
+  if (document.getElementById('aiTabDoc').classList.contains('active')) {
+    runDocGenerate();
+  } else {
+    runAIGenerate();
+  }
+}
+function runDocGenerate() {
+  var fileInput = document.getElementById('docFileInput');
+  if (!fileInput.files || !fileInput.files[0]) {
+    alert('Please select a .pdf or .docx file first.');
+    return;
+  }
+  var btn = document.getElementById('aiGoBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="gm-spinner"></div> Reading document\u2026';
+  var fd = new FormData();
+  fd.append('deck_id', DECK_ID);
+  fd.append('document', fileInput.files[0]);
+  fetch(UPLOAD_DOC_URL, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': csrfToken },
+    body: fd,
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.error) { alert('Error: ' + d.error); return; }
+      document.getElementById('aiModal').classList.remove('open');
+      if (d.deck_title) document.getElementById('deckTitleInput').value = d.deck_title;
+      slides = [];
+      document.getElementById('thumbList').innerHTML = '';
+      document.querySelectorAll('.gm-slide-inner').forEach(function(el) { el.remove(); });
+      currentSlideId = null;
+      d.slides.forEach(function(s) {
+        slides.push({ id: s.slide_id, order: s.order, layout: s.layout,
+                      title: s.title, content: s.content, emoji: s.emoji || '',
+                      speaker_notes: s.speaker_notes || '' });
+        appendThumb(s);
+        appendCanvas(s);
+      });
+      updateSlideCount();
+      ensurePanelVisible();
+      if (slides.length) selectSlide(slides[0].id);
+      setSaveStatus('saved', '\u2713 Document slides ready');
+    })
+    .catch(function(err) { alert('Upload failed: ' + err); })
+    .finally(function() {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-robot"></i> Generate Deck';
+      // reset file input
+      document.getElementById('docFileInput').value = '';
+      document.getElementById('docFileName').textContent = '';
+    });
 }
 function runAIGenerate() {
   var topic = document.getElementById('aiTopic').value.trim();
