@@ -332,15 +332,31 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'School Admin <noreply
 # =====================
 # SESSION PERSISTENCE (critical for serverless / Vercel)
 # =====================
-# Save session on every request so the cookie is always refreshed.
-# Without this, serverless cold starts can lose sessions when the
-# session is not explicitly modified by the view.
-SESSION_SAVE_EVERY_REQUEST = True
+# Use signed-cookie sessions to avoid PostgreSQL schema lookup issues.
+#
+# Root cause of "users can't stay signed in":
+#   django.contrib.sessions is in BOTH SHARED_APPS and TENANT_APPS, so
+#   every tenant schema gets its own django_session table.  Whenever the
+#   tenant schema is not matched (cold start, DB hiccup, a path that
+#   bypasses TenantPathMiddleware), Django falls back to the PUBLIC
+#   django_session table — the user's row doesn't exist there → logged out.
+#
+# Signed-cookie sessions store the session payload **in the cookie itself**,
+# signed with SECRET_KEY.  No DB read/write is needed for sessions, so
+# schema context is completely irrelevant.
+#
+# Data stored per session is tiny (auth user-id + hash + two small
+# filter strings ≈ 300-400 bytes) — well within the 4 KB cookie limit.
+SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 
 # "Keep me logged in" persistent session = 30 days.
-# When the checkbox is NOT checked the view calls set_expiry(0),
+# When the checkbox is NOT checked the login view calls set_expiry(0),
 # which makes the session expire when the browser tab closes.
 SESSION_COOKIE_AGE = 30 * 24 * 60 * 60  # 30 days in seconds
+
+# Cookie flags
+SESSION_COOKIE_HTTPONLY = True   # block JS access (XSS protection)
+SESSION_COOKIE_SAMESITE  = 'Lax' # prevent cross-site request leakage
 
 # =====================
 # VERCEL / PRODUCTION SECURITY

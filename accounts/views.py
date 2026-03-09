@@ -858,18 +858,22 @@ def session_debug(request):
     from django.conf import settings as _settings
     import os as _os
 
-    # Check if django_session table exists in current schema
-    session_table_exists = False
-    session_row_count = None
-    try:
-        with db_conn.cursor() as cursor:
-            tables = db_conn.introspection.table_names(cursor)
-            session_table_exists = 'django_session' in tables
-            if session_table_exists:
-                cursor.execute("SELECT COUNT(*) FROM django_session")
-                session_row_count = cursor.fetchone()[0]
-    except Exception as e:
-        session_table_exists = f"ERROR: {e}"
+    session_engine = getattr(_settings, 'SESSION_ENGINE', 'django.contrib.sessions.backends.db')
+    using_signed_cookies = 'signed_cookies' in session_engine
+
+    # Only check DB session table when using a DB-backed engine
+    session_table_exists = 'N/A (signed_cookies engine)' if using_signed_cookies else False
+    session_row_count = 'N/A' if using_signed_cookies else None
+    if not using_signed_cookies:
+        try:
+            with db_conn.cursor() as cursor:
+                tables = db_conn.introspection.table_names(cursor)
+                session_table_exists = 'django_session' in tables
+                if session_table_exists:
+                    cursor.execute("SELECT COUNT(*) FROM django_session")
+                    session_row_count = cursor.fetchone()[0]
+        except Exception as e:
+            session_table_exists = f"ERROR: {e}"
 
     # Check static files
     static_root = str(_settings.STATIC_ROOT)
@@ -880,6 +884,9 @@ def session_debug(request):
     except Exception:
         static_files_count = -1
 
+    # For signed_cookies, session_key is always None but session.keys() still works
+    session_data_keys = list(request.session.keys()) if request.session else []
+
     data = {
         'debug_mode': _settings.DEBUG,
         'db_schema': getattr(db_conn, 'schema_name', 'unknown'),
@@ -887,16 +894,18 @@ def session_debug(request):
         'tenant_schema': getattr(getattr(request, 'tenant', None), 'schema_name', 'none'),
         'authenticated': request.user.is_authenticated,
         'username': str(request.user),
+        'session_engine': session_engine,
         'session_key': request.session.session_key,
         'session_cookie_in_request': 'sessionid' in request.COOKIES,
         'session_cookie_value_prefix': request.COOKIES.get('sessionid', '')[:8] + '...' if request.COOKIES.get('sessionid') else None,
-        'session_data_keys': list(request.session.keys()) if request.session.session_key else [],
+        'session_data_keys': session_data_keys,
         'session_table_exists': session_table_exists,
         'session_row_count': session_row_count,
         'session_settings': {
+            'SESSION_ENGINE': session_engine,
             'SESSION_COOKIE_SECURE': getattr(_settings, 'SESSION_COOKIE_SECURE', False),
             'SESSION_COOKIE_SAMESITE': getattr(_settings, 'SESSION_COOKIE_SAMESITE', 'Lax'),
-            'SESSION_SAVE_EVERY_REQUEST': getattr(_settings, 'SESSION_SAVE_EVERY_REQUEST', False),
+            'SESSION_COOKIE_AGE': getattr(_settings, 'SESSION_COOKIE_AGE', 1209600),
             'CSRF_COOKIE_SECURE': getattr(_settings, 'CSRF_COOKIE_SECURE', False),
             'SECURE_SSL_REDIRECT': getattr(_settings, 'SECURE_SSL_REDIRECT', False),
         },
