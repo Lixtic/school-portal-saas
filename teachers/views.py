@@ -3756,6 +3756,77 @@ def pulse_results(request, session_id):
 
 
 @login_required
+def pulse_results_csv(request, session_id):
+    """Export Pulse session results as a CSV download."""
+    import csv
+    from django.http import HttpResponse
+
+    if request.user.user_type not in ('teacher', 'admin'):
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    try:
+        from academics.pulse_models import PulseSession
+    except ImportError:
+        messages.error(request, 'Pulse feature not available.')
+        return redirect('teachers:lesson_plan_list')
+
+    session = get_object_or_404(PulseSession, pk=session_id)
+
+    if request.user.user_type == 'teacher':
+        teacher = get_object_or_404(Teacher, user=request.user)
+        if session.teacher != teacher:
+            messages.error(request, 'Access denied.')
+            return redirect('teachers:lesson_plan_list')
+
+    school_class = session.lesson_plan.school_class
+    all_students = (
+        Student.objects.filter(current_class=school_class, user__is_active=True)
+        .select_related('user')
+        .order_by('user__last_name', 'user__first_name')
+    )
+    response_map = {
+        r.student_id: r
+        for r in session.responses.select_related('student__user').all()
+    }
+
+    filename = (
+        f"pulse_{session.pk}_{school_class.name.replace(' ', '_')}_"
+        f"{session.started_at.strftime('%Y%m%d')}.csv"
+    )
+    csv_response = HttpResponse(content_type='text/csv')
+    csv_response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    writer = csv.writer(csv_response)
+    writer.writerow([
+        'Student', 'Class', 'Responded',
+        'Q1 - Prerequisite (Yes=Knows it)', 'Q2 - Misconception (Yes=Has it)',
+        'Q3 - MCQ Answer', 'At Risk'
+    ])
+
+    for stu in all_students:
+        r = response_map.get(stu.pk)
+        submitted = r is not None and r.submitted_at is not None
+        q1 = 'Yes' if r and r.q1_answer is True else ('No' if r and r.q1_answer is False else 'No response')
+        q2 = 'Yes' if r and r.q2_answer is True else ('No' if r and r.q2_answer is False else 'No response')
+        q3 = (r.q3_answer or '').strip() if r else ''
+        at_risk = (
+            not submitted
+            or (r and r.q1_answer is False)
+            or (r and r.q2_answer is True)
+        )
+        writer.writerow([
+            f'{stu.user.last_name}, {stu.user.first_name}',
+            school_class.name,
+            'Yes' if submitted else 'No',
+            q1, q2, q3,
+            'Yes' if at_risk else 'No',
+        ])
+
+    return csv_response
+
+
+@login_required
 def pulse_history(request):
     """All past Pulse sessions for the teacher (or all sessions for admins)."""
     if request.user.user_type not in ('teacher', 'admin'):
