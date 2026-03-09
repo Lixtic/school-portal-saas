@@ -3711,4 +3711,6 @@ def pulse_history(request):
         'sessions':       sessions,
         'is_admin':       is_admin,
         'total_sessions': len(sessions),
+        'active_count':   sum(1 for s in sessions if s['session'].status == 'active'),
+        'closed_count':   sum(1 for s in sessions if s['session'].status == 'closed'),
     })
