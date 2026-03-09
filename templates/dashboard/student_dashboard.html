@@ -1005,7 +1005,10 @@ function fetchLeaderboard() {
 // ══════════════════════════════════════════════════════════
 (function () {
     var POLL_URL    = "{% url 'students:pulse_poll' %}";
-    var SUBMIT_BASE = "{% url 'students:pulse_submit' 0 %}".replace('/0/', '/');
+    // Strip '0/submit/' from the reversed URL to get the base path,
+    // then append '<sessionId>/submit/' at call time.
+    // e.g. /students/pulse/0/submit/  →  /students/pulse/
+    var SUBMIT_BASE = "{% url 'students:pulse_submit' 0 %}".replace('0/submit/', '');
     var CSRF_TOKEN  = '{{ csrf_token }}';
 
     var _pollTimer  = null;
@@ -1145,9 +1148,9 @@ function fetchLeaderboard() {
 
     // ── Carousel ──────────────────────────────────────────
     window.carouselMove = function(dir) {
-        var max = _chips.length - 1;
-        _chipIdx = Math.max(0, Math.min(max, _chipIdx + dir));
-        updateChipTrack();
+        // selectChip sets _q3ans, highlights the chip, and enables submit.
+        // Using it here means left/right arrows auto-select the visible chip.
+        selectChip(Math.max(0, Math.min(_chips.length - 1, _chipIdx + dir)));
     };
 
     function updateChipTrack() {
