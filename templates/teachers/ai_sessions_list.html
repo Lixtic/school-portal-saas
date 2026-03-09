@@ -130,37 +130,39 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
 .aura-bento {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
-    grid-auto-rows: minmax(80px, auto);
+    grid-auto-rows: auto;
+    align-items: start;
     gap: var(--aura-space-4);
     padding: var(--aura-space-6);
     max-width: 1600px;
     margin: 0 auto;
 }
-.aura-bento-header { grid-column: span 9; grid-row: span 1; }
-.aura-bento-pulse { grid-column: span 3; grid-row: span 1; }
-.aura-bento-students { grid-column: span 8; grid-row: span 4; }
-.aura-bento-chat { grid-column: span 4; grid-row: span 6; }
-.aura-bento-syllabus { grid-column: span 4; grid-row: span 2; }
-.aura-bento-actions { grid-column: span 4; grid-row: span 2; }
-.aura-bento-history { grid-column: span 4; grid-row: span 2; }
-.aura-bento-timeline { grid-column: span 8; grid-row: span 3; }
+.aura-bento-header   { grid-column: span 9; }
+.aura-bento-pulse    { grid-column: span 3; }
+.aura-bento-students { grid-column: span 8; grid-row: span 2; min-height: 280px; align-self: stretch; }
+.aura-bento-chat     { grid-column: span 4; grid-row: span 2; height: 528px; align-self: stretch; }
+.aura-bento-syllabus { grid-column: span 4; }
+.aura-bento-actions  { grid-column: span 4; }
+.aura-bento-history  { grid-column: span 4; }
+.aura-bento-timeline { grid-column: span 8; }
 .aura-bento-progress-bar { grid-column: span 12; position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; }
 
 @media (max-width: 1200px) {
     .aura-bento { grid-template-columns: repeat(6, 1fr); }
-    .aura-bento-header { grid-column: span 6; }
-    .aura-bento-pulse { grid-column: span 6; }
-    .aura-bento-students { grid-column: span 6; grid-row: span 3; }
-    .aura-bento-chat { grid-column: span 6; grid-row: span 4; }
+    .aura-bento-header   { grid-column: span 6; }
+    .aura-bento-pulse    { grid-column: span 6; }
+    .aura-bento-students { grid-column: span 6; grid-row: span 2; min-height: 220px; }
+    .aura-bento-chat     { grid-column: span 6; height: 440px; }
     .aura-bento-syllabus { grid-column: span 3; }
-    .aura-bento-actions { grid-column: span 3; }
-    .aura-bento-history { grid-column: span 3; }
+    .aura-bento-actions  { grid-column: span 3; }
+    .aura-bento-history  { grid-column: span 3; }
     .aura-bento-timeline { grid-column: span 6; }
 }
 @media (max-width: 768px) {
     .aura-bento { grid-template-columns: 1fr; padding: var(--aura-space-3); }
-    .aura-bento > * { grid-column: span 1 !important; grid-row: span 1 !important; }
-    .aura-bento-chat { order: 10; }
+    .aura-bento > * { grid-column: span 1 !important; grid-row: auto !important; }
+    .aura-bento-chat { height: 400px; order: 10; }
+    .aura-bento-students { min-height: 200px; }
 }
 
 /* ── Header Bar ──────────────────────────────────────────────────────────── */
@@ -367,6 +369,7 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
     flex-direction: column;
     padding: 0;
     overflow: hidden;
+    height: 100%;  /* fill the grid cell */
 }
 .aura-chat-header {
     padding: var(--aura-space-4) var(--aura-space-5);
@@ -406,6 +409,7 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
 }
 .aura-chat-messages {
     flex: 1;
+    min-height: 0;  /* allows flex child to shrink and scroll instead of expanding */
     overflow-y: auto;
     padding: var(--aura-space-4);
     display: flex;
