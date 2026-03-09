@@ -712,6 +712,34 @@ def dashboard(request):
         except Exception:
             teacher_notices = []
 
+        # === Digital Pulse Summary for Dashboard Widget ===
+        pulse_summary = {
+            'total_sessions': 0,
+            'last_session': None,
+            'last_response_rate': 0,
+            'last_at_risk_count': 0,
+        }
+        try:
+            from academics.pulse_models import PulseSession
+            sessions_qs = PulseSession.objects.filter(
+                teacher=teacher_profile
+            ).order_by('-created_at')
+            pulse_summary['total_sessions'] = sessions_qs.count()
+            last_session = sessions_qs.first()
+            if last_session:
+                pulse_summary['last_session'] = last_session
+                total_s = last_session.total_students
+                responded = last_session.responded_count
+                pulse_summary['last_response_rate'] = round(
+                    (responded / total_s * 100) if total_s > 0 else 0
+                )
+                # at-risk: submitted AND answered Q2=True (believed the misconception)
+                pulse_summary['last_at_risk_count'] = last_session.responses.filter(
+                    submitted_at__isnull=False, q2_answer=True
+                ).count()
+        except Exception:
+            pass
+
         teacher_context = {
             'user': user,
             'teacher_has_classes': len(class_ids) > 0,
@@ -723,6 +751,7 @@ def dashboard(request):
             'next_class_reminder': next_class_reminder,
             'recent_resources': recent_resources,
             'resource_fields_available': resource_fields_available,
+            'pulse_summary': pulse_summary,
             **calendar_widget,
         }
 

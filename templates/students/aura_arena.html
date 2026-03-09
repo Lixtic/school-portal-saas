@@ -488,6 +488,8 @@ body { background: var(--arena-bg); }
 
     let lastId      = 0;
     let hasMessages = false;
+    let isPolling   = false;
+    let thinkingRow = null;
 
     /* ── Helpers ─────────────────────────────────────────── */
     function esc(s) {
@@ -565,17 +567,40 @@ body { background: var(--arena-bg); }
         setTimeout(() => xpToast.classList.remove('show'), 3000);
     }
 
+    /* ── Thinking placeholder ────────────────────────────── */
+    function showThinking(label) {
+        if (thinkingRow) return;
+        thinkingRow = document.createElement('div');
+        thinkingRow.className = 'msg-row aura-row';
+        thinkingRow.innerHTML = `
+            <div class="msg-avatar av-aura"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+            <div>
+                <div class="msg-meta"><span class="msg-sender">Aura-T</span></div>
+                <div class="msg-bubble bubble-aura" style="opacity:0.65;font-style:italic;">${label || '💭 Thinking…'}</div>
+            </div>`;
+        feed.appendChild(thinkingRow);
+        scrollBottom(true);
+    }
+    function hideThinking() {
+        if (thinkingRow) { thinkingRow.remove(); thinkingRow = null; }
+    }
+
     /* ── Poll ───────────────────────────────────────────── */
     async function poll() {
+        if (isPolling) return;
+        isPolling = true;
         try {
             const res = await fetch(`${API_URL}?last_id=${lastId}`);
             if (!res.ok) return;
             const data = await res.json();
-            (data.messages || []).forEach(m => {
+            const newMsgs = data.messages || [];
+            if (newMsgs.some(m => m.is_aura)) hideThinking();
+            newMsgs.forEach(m => {
                 renderMessage(m);
                 if (m.id > lastId) lastId = m.id;
             });
         } catch(e) { console.error('Arena poll error:', e); }
+        finally { isPolling = false; }
     }
 
     /* ── Send ───────────────────────────────────────────── */
@@ -583,8 +608,11 @@ body { background: var(--arena-bg); }
         e.preventDefault();
         const text = input.value.trim();
         if (!text) return;
+        const isBattleCmd = /\@aura\s+battle/i.test(text);
+        const needsAI     = /\@aura/i.test(text);
         input.value = '';
         sendBtn.disabled = true;
+        if (needsAI) showThinking(isBattleCmd ? '⚡ Generating battle question…' : '💭 Thinking…');
         try {
             const res = await fetch(API_URL, {
                 method: 'POST',
@@ -594,9 +622,10 @@ body { background: var(--arena-bg); }
             if (res.ok) {
                 const data = await res.json();
                 if (data.xp_earned > 0) showXPToast(data.xp_earned);
+                isPolling = false; // unlock before forced poll
                 await poll();
             }
-        } catch(e) { console.error('Arena send error:', e); }
+        } catch(e) { console.error('Arena send error:', e); hideThinking(); }
         finally { sendBtn.disabled = false; input.focus(); }
     });
 
