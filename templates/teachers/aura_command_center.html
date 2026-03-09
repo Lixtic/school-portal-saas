@@ -399,14 +399,18 @@
             <span class="pg-typing-label">Thinking:</span>
             <div id="pgTyping"></div>
         </div>
+        <div id="pgEndedBanner" style="display:none;margin-top:.6rem;padding:.4rem .6rem;border-radius:.5rem;background:rgba(99,102,241,.15);color:#a5b4fc;font-size:.75rem;text-align:center;"></div>
     </div>
 </div>
 
 <script>
 // ── Digital Pulse Ghost Panel ─────────────────────────────────────────────
-var _pulseSessionId = null;
-var _pulsePollTimer = null;
-var _pulseTotal     = 0;
+var _pulseSessionId  = null;
+var _pulsePollTimer  = null;
+var _pulseTotal      = 0;
+var _pollErrorCount  = 0;
+var _pulseResultsUrl = null;
+var _RESULTS_BASE    = "{% url 'teachers:pulse_results' 0 %}";
 
 function launchPulse(planPk, topic) {
     fetch("{% url 'teachers:pulse_launch' 0 %}".replace('/0/', '/' + planPk + '/'), {
@@ -417,13 +421,17 @@ function launchPulse(planPk, topic) {
     .then(function(r){ return r.json(); })
     .then(function(d){
         if (d.error) { alert('Pulse error: ' + d.error); return; }
-        _pulseSessionId = d.session_id;
-        _pulseTotal     = d.total_students || 0;
+        _pulseSessionId  = d.session_id;
+        _pulseTotal      = d.total_students || 0;
+        _pollErrorCount  = 0;
+        _pulseResultsUrl = _RESULTS_BASE.replace('/0/', '/' + d.session_id + '/');
         document.getElementById('pgTopic').textContent = topic;
         document.getElementById('pgTotal').textContent = _pulseTotal;
         document.getElementById('pgResponded').textContent = '0';
         document.getElementById('pgTyping').innerHTML = '';
         document.getElementById('pgQ3Chips').innerHTML = '';
+        var pgEnded = document.getElementById('pgEndedBanner');
+        if (pgEnded) pgEnded.style.display = 'none';
         document.getElementById('pulseGhost').style.display = 'block';
         startPulsePoll();
     })
@@ -441,7 +449,8 @@ function doPulsePoll() {
     fetch("{% url 'teachers:pulse_live' 0 %}".replace('/0/', '/' + _pulseSessionId + '/'))
     .then(function(r){ return r.json(); })
     .then(function(d){
-        if (d.status === 'closed') { stopPollUI(); return; }
+        _pollErrorCount = 0; // reset on success
+        if (d.status === 'closed') { stopPollUI(); showEndedBanner(); return; }
 
         var t = _pulseTotal || 1;
         document.getElementById('pgResponded').textContent = d.responded;
@@ -473,7 +482,14 @@ function doPulsePoll() {
         if ((d.typing||[]).length > 6) typingHtml += '<span class="pg-bubble">+' + (d.typing.length - 6) + '</span>';
         document.getElementById('pgTyping').innerHTML = typingHtml || '<span style="font-size:.7rem;color:#475569;">None yet</span>';
     })
-    .catch(function(){});
+    .catch(function(err){
+        _pollErrorCount++;
+        if (_pollErrorCount >= 5) {
+            stopPollUI();
+            document.getElementById('pgTyping').innerHTML =
+                '<span style="font-size:.7rem;color:#f87171;">⚠ Connection lost. Close and reopen.</span>';
+        }
+    });
 }
 
 function setBar(fillId, valId, count, total) {
@@ -486,6 +502,17 @@ function stopPollUI() {
     if (_pulsePollTimer) { clearInterval(_pulsePollTimer); _pulsePollTimer = null; }
     document.getElementById('pgStatusDot').style.background = '#6b7280';
     document.getElementById('pgStatusDot').style.animation  = 'none';
+}
+
+function showEndedBanner() {
+    var banner = document.getElementById('pgEndedBanner');
+    if (!banner) return;
+    if (_pulseResultsUrl) {
+        banner.innerHTML = '📊 Session ended &mdash; <a href="' + _pulseResultsUrl + '" style="color:#a5b4fc;font-weight:700;">View Results →</a>';
+    } else {
+        banner.innerHTML = '📊 Session closed.';
+    }
+    banner.style.display = 'block';
 }
 
 function closePulse() {

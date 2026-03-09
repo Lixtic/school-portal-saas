@@ -1364,9 +1364,12 @@ function auraTRegenerate(planId) {
 }
 
 // ── Digital Pulse Ghost Panel (Detail Page) ────────────────────────────────
-var _pulseSessionId = null;
-var _pulsePollTimer = null;
-var _pulseTotal     = 0;
+var _pulseSessionId  = null;
+var _pulsePollTimer  = null;
+var _pulseTotal      = 0;
+var _pollErrorCount  = 0;
+var _pulseResultsUrl = null;
+var _RESULTS_BASE_D  = "{% url 'teachers:pulse_results' 0 %}";
 
 function launchPulseDetail(planPk, topic) {
     var btn = document.getElementById('pulseGhostBtn');
@@ -1379,13 +1382,17 @@ function launchPulseDetail(planPk, topic) {
     .then(function(r){ return r.json(); })
     .then(function(d){
         if (d.error) { alert('Pulse error: ' + d.error); if(btn){btn.disabled=false;btn.innerHTML='<i class="bi bi-broadcast me-1"></i>Launch Pulse';} return; }
-        _pulseSessionId = d.session_id;
-        _pulseTotal     = d.total_students || 0;
+        _pulseSessionId  = d.session_id;
+        _pulseTotal      = d.total_students || 0;
+        _pollErrorCount  = 0;
+        _pulseResultsUrl = _RESULTS_BASE_D.replace('/0/', '/' + d.session_id + '/');
         document.getElementById('pgTopicD').textContent = topic;
         document.getElementById('pgTotalD').textContent = _pulseTotal;
         document.getElementById('pgRespondedD').textContent = '0';
         document.getElementById('pgTypingD').innerHTML = '';
         document.getElementById('pgQ3ChipsD').innerHTML = '';
+        var pgEndedD = document.getElementById('pgEndedBannerD');
+        if (pgEndedD) pgEndedD.style.display = 'none';
         document.getElementById('pulseGhost').style.display = 'block';
         if(btn){btn.disabled=false;btn.innerHTML='<i class="bi bi-broadcast me-1"></i>Live Pulse ●';}
         startPulsePollDetail();
@@ -1404,7 +1411,8 @@ function doPulsePollDetail() {
     fetch("{% url 'teachers:pulse_live' 0 %}".replace('/0/', '/' + _pulseSessionId + '/'))
     .then(function(r){ return r.json(); })
     .then(function(d){
-        if (d.status === 'closed') { stopPollUIDetail(); return; }
+        _pollErrorCount = 0; // reset on success
+        if (d.status === 'closed') { stopPollUIDetail(); showEndedBannerDetail(); return; }
         var t = _pulseTotal || 1;
         document.getElementById('pgRespondedD').textContent = d.responded;
         var q1t = d.q1.true||0, q1f = d.q1.false||0;
@@ -1423,7 +1431,14 @@ function doPulsePollDetail() {
         if ((d.typing||[]).length > 6) typingHtml += '<span class="pg-bubble">+'+(d.typing.length-6)+'</span>';
         document.getElementById('pgTypingD').innerHTML = typingHtml || '<span style="font-size:.7rem;color:#475569;">None yet</span>';
     })
-    .catch(function(){});
+    .catch(function(err){
+        _pollErrorCount++;
+        if (_pollErrorCount >= 5) {
+            stopPollUIDetail();
+            document.getElementById('pgTypingD').innerHTML =
+                '<span style="font-size:.7rem;color:#f87171;">⚠ Connection lost. Close and reopen.</span>';
+        }
+    });
 }
 
 function setBarDetail(fillId, valId, count, total) {
@@ -1436,6 +1451,17 @@ function stopPollUIDetail() {
     if (_pulsePollTimer) { clearInterval(_pulsePollTimer); _pulsePollTimer = null; }
     document.getElementById('pgStatusDotD').style.background = '#6b7280';
     document.getElementById('pgStatusDotD').style.animation  = 'none';
+}
+
+function showEndedBannerDetail() {
+    var banner = document.getElementById('pgEndedBannerD');
+    if (!banner) return;
+    if (_pulseResultsUrl) {
+        banner.innerHTML = '📊 Session ended &mdash; <a href="' + _pulseResultsUrl + '" style="color:#a5b4fc;font-weight:700;">View Results →</a>';
+    } else {
+        banner.innerHTML = '📊 Session closed.';
+    }
+    banner.style.display = 'block';
 }
 
 function closePulseDetail() {
@@ -1495,6 +1521,7 @@ function getCsrfTokenDetail() {
             <span class="pg-typing-label">Thinking:</span>
             <div id="pgTypingD"></div>
         </div>
+        <div id="pgEndedBannerD" style="display:none;margin-top:.6rem;padding:.4rem .6rem;border-radius:.5rem;background:rgba(99,102,241,.15);color:#a5b4fc;font-size:.75rem;text-align:center;"></div>
     </div>
 </div>
 {% csrf_token %}

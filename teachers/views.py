@@ -3556,7 +3556,10 @@ def pulse_close(request, session_id):
         session.save(update_fields=['status', 'closed_at'])
 
     from django.urls import reverse
-    results_url = reverse('teachers:pulse_results', args=[session_id])
+    # Prepend SCRIPT_NAME so path-based tenant prefix (/school1/) is included
+    script_name  = request.META.get('SCRIPT_NAME', '').rstrip('/')
+    results_path = reverse('teachers:pulse_results', args=[session_id])
+    results_url  = script_name + results_path
     return JsonResponse({'ok': True, 'redirect': results_url})
 
 
