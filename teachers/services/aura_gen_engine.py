@@ -826,6 +826,34 @@ Rules:
             }
 
     @staticmethod
+    def generate_slides_from_lesson_plan(plan: dict) -> Dict:
+        """
+        Generate a slide deck from a LessonPlan's structured fields.
+        plan keys: topic, subject, class_name, week, objectives,
+                   introduction, presentation, evaluation, homework
+        """
+        topic = plan.get('topic', 'Lesson')
+        lines = [
+            f"Topic: {topic}",
+            f"Subject: {plan.get('subject', 'General')}",
+            f"Class / Grade: {plan.get('class_name', 'General')}",
+            f"Week: {plan.get('week', '')}",
+            "",
+            "Learning Objectives:",
+            plan.get('objectives', ''),
+        ]
+        if plan.get('introduction'):
+            lines += ["", "Introduction / Hook:", plan['introduction']]
+        if plan.get('presentation'):
+            lines += ["", "Main Teaching Activity:", plan['presentation']]
+        if plan.get('evaluation'):
+            lines += ["", "Evaluation / Assessment:", plan['evaluation']]
+        if plan.get('homework'):
+            lines += ["", "Homework:", plan['homework']]
+        document_text = '\n'.join(lines).strip()
+        return AuraGenEngine.generate_slides_from_document(document_text, topic)
+
+    @staticmethod
     def _extract_json_object(raw_content: str) -> Dict:
         content = (raw_content or '').strip()
         if not content:

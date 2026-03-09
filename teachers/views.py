@@ -4104,6 +4104,50 @@ def presentation_api(request):
             'speaker_notes': new_slide.speaker_notes,
         })
 
+    # ── from_lesson_plan ─────────────────────────────────────────────────────────
+    elif action == 'from_lesson_plan':
+        plan_id = data.get('plan_id')
+        if not plan_id:
+            return JsonResponse({'error': 'plan_id is required'}, status=400)
+        plan = get_object_or_404(LessonPlan, pk=plan_id, teacher=teacher)
+        plan_dict = {
+            'topic':        plan.topic,
+            'subject':      plan.subject.name if plan.subject else 'General',
+            'class_name':   plan.school_class.name if plan.school_class else 'General',
+            'week':         plan.week_number,
+            'objectives':   plan.objectives,
+            'introduction': plan.introduction,
+            'presentation': plan.presentation,
+            'evaluation':   plan.evaluation,
+            'homework':     plan.homework,
+        }
+        from teachers.services.aura_gen_engine import AuraGenEngine
+        result = AuraGenEngine.generate_slides_from_lesson_plan(plan_dict)
+        raw_slides = result.get('slides', [])
+        with transaction.atomic():
+            deck.slides.all().delete()
+            created = []
+            for i, s in enumerate(raw_slides):
+                bullets = s.get('bullets', [])
+                content = '\n'.join(bullets)
+                layout = 'title' if i == 0 else ('summary' if i == len(raw_slides) - 1 else 'bullets')
+                slide = Slide.objects.create(
+                    presentation=deck, order=i, layout=layout,
+                    title=s.get('title', ''), content=content,
+                    speaker_notes=s.get('notes', ''),
+                )
+                created.append({
+                    'slide_id': slide.pk, 'order': slide.order, 'layout': slide.layout,
+                    'title': slide.title, 'content': slide.content,
+                    'emoji': slide.emoji, 'speaker_notes': slide.speaker_notes,
+                })
+            deck.title = plan.topic
+            deck.save()
+        return JsonResponse({
+            'ok': True, 'slides': created,
+            'deck_title': deck.title, 'activities': result.get('activities', []),
+        })
+
     return JsonResponse({'error': f'Unknown action: {action}'}, status=400)
 
 
@@ -4195,3 +4239,22 @@ def presentation_generate_from_doc(request):
         'deck_title': deck.title,
         'activities': result.get('activities', []),
     })
+
+
+@login_required
+def presentation_lesson_plans(request):
+    """Return teacher's lesson plans as JSON for the slide deck AI modal."""
+    if request.user.user_type not in ('teacher', 'admin'):
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    teacher = get_object_or_404(Teacher, user=request.user)
+    plans = LessonPlan.objects.filter(teacher=teacher).select_related(
+        'subject', 'school_class'
+    ).order_by('-date_added')[:60]
+    data = [{
+        'id':         p.pk,
+        'topic':      p.topic,
+        'week':       p.week_number,
+        'subject':    p.subject.name if p.subject else '',
+        'class_name': p.school_class.name if p.school_class else '',
+    } for p in plans]
+    return JsonResponse({'plans': data})

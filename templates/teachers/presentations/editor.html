@@ -118,7 +118,7 @@ html, body { height: 100%; margin: 0; }
 .gm-canvas-wrap {
   flex: 1; overflow: auto;
   display: flex; align-items: center; justify-content: center;
-  padding: 2rem;
+  padding: 2rem; position: relative;
   background: #0a0a0f;
 }
 .gm-slide-canvas {
@@ -322,11 +322,12 @@ html, body { height: 100%; margin: 0; }
            onchange="saveDeckMeta()">
     <span class="gm-save-pill" id="savePill">All changes saved</span>
     <div class="gm-topbar-sep"></div>
-    <select class="gm-theme-select" id="themeSelect" onchange="saveDeckMeta()">
+    <div class="gm-theme-swatches" id="themePicker">
       {% for val, label in THEME_CHOICES %}
-      <option value="{{ val }}"{% if deck.theme == val %} selected{% endif %}>{{ label }}</option>
+      <div class="gm-theme-swatch{% if deck.theme == val %} active{% endif %}" data-theme="{{ val }}" onclick="pickTheme('{{ val }}')" title="{{ label }}"></div>
       {% endfor %}
-    </select>
+    </div>
+    <input type="hidden" id="themeSelect" value="{{ deck.theme }}">
     <div class="gm-topbar-sep"></div>
     <button class="gm-add-btn" onclick="addSlide()"><i class="fas fa-plus"></i> Slide</button>
     <button class="gm-ai-btn" onclick="openAIModal()"><i class="fas fa-robot"></i> AI Generate</button>
@@ -365,6 +366,12 @@ html, body { height: 100%; margin: 0; }
     <!-- CENTER CANVAS + NOTES -->
     <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
       <div class="gm-canvas-wrap" id="canvasWrap">
+        <!-- Zoom bar (visible on hover) -->
+        <div class="gm-zoom-bar">
+          <label>Zoom</label>
+          <input type="range" min="50" max="130" value="100" id="zoomSlider" oninput="setZoom(this.value)">
+          <span class="gm-zoom-val" id="zoomVal">100%</span>
+        </div>
         <div class="gm-slide-canvas theme-{{ deck.theme }}" id="liveCanvas">
           {% for slide in slides %}
           <div class="gm-slide-inner" id="canvas-{{ slide.pk }}" style="display:{% if forloop.first %}flex{% else %}none{% endif %};">
@@ -399,7 +406,8 @@ html, body { height: 100%; margin: 0; }
         <div class="gm-panel-section">
           <div class="gm-panel-label"><i class="fas fa-heading"></i> Slide Title</div>
           <input type="text" class="gm-field" id="panelTitle"
-                 placeholder="Slide title…" oninput="debounceSaveSlide()">
+                 placeholder="Slide title…" oninput="debounceSaveSlide();updateTitleCounter()">
+          <div class="gm-char-count" id="titleCharCount">0 / 60</div>
         </div>
 
         <div class="gm-panel-section">
@@ -432,6 +440,10 @@ html, body { height: 100%; margin: 0; }
         </div>
 
         <div class="gm-panel-sep"></div>
+        <div class="gm-move-btns">
+          <button class="gm-move-btn" onclick="moveSlideUp()" title="Move Up (Ctrl+↑)"><i class="fas fa-arrow-up"></i> Up</button>
+          <button class="gm-move-btn" onclick="moveSlideDown()" title="Move Down (Ctrl+↓)"><i class="fas fa-arrow-down"></i> Down</button>
+        </div>
         <button class="duplicate-slide-btn" onclick="duplicateCurrentSlide()">
           <i class="fas fa-copy me-1"></i> Duplicate Slide
         </button>
@@ -460,7 +472,10 @@ html, body { height: 100%; margin: 0; }
         <i class="fas fa-lightbulb"></i> Topic
       </button>
       <button class="gm-modal-tab" id="aiTabDoc" onclick="switchAITab('doc')">
-        <i class="fas fa-file-upload"></i> Upload Document
+        <i class="fas fa-file-upload"></i> Document
+      </button>
+      <button class="gm-modal-tab" id="aiTabPlan" onclick="switchAITab('plan')">
+        <i class="fas fa-book-open"></i> Lesson Plan
       </button>
     </div>
 
@@ -496,6 +511,21 @@ html, body { height: 100%; margin: 0; }
              style="display:none;" onchange="handleDocFile(event)">
     </div>
 
+    <!-- Lesson Plan panel -->
+    <div id="aiPlanPanel" style="display:none;">
+      <div style="position:relative;margin-bottom:.6rem;">
+        <input type="text" class="gm-modal-field" id="planSearchInput"
+               placeholder="🔍 Search lesson plans…"
+               oninput="filterLessonPlans(this.value)"
+               style="margin:0;">
+      </div>
+      <select class="gm-modal-field" id="planSelect" size="5"
+              style="height:auto;padding:.4rem .6rem;" onchange="showPlanPreview(this.value)">
+        <option value="" disabled selected>Select a lesson plan…</option>
+      </select>
+      <div class="gm-plan-preview" id="planPreview" style="display:none;"></div>
+    </div>
+
     <div class="gm-modal-actions">
       <button class="gm-modal-cancel" onclick="document.getElementById('aiModal').classList.remove('open')">Cancel</button>
       <button class="gm-modal-go" id="aiGoBtn" onclick="runAIAction()">
@@ -516,6 +546,7 @@ html, body { height: 100%; margin: 0; }
 // ═══════════════════════════════════════════════════════════════
 var API_URL        = "{% url 'teachers:presentation_api' %}";
 var UPLOAD_DOC_URL = "{% url 'teachers:presentation_generate_from_doc' %}";
+var LESSON_PLANS_URL = "{% url 'teachers:presentation_lesson_plans' %}";
 var DECK_ID   = {{ deck.pk }};
 var DECK_THEME= "{{ deck.theme }}";
 var csrfToken = "{{ csrf_token }}";
@@ -559,6 +590,7 @@ function selectSlide(slideId) {
   var slide = slides.find(function(s) { return s.id == slideId; });
   if (!slide) return;
   document.getElementById('panelTitle').value   = slide.title;
+  updateTitleCounter();
   document.getElementById('panelContent').value = slide.content;
   document.getElementById('notesInput').value   = slide.speaker_notes || '';
   document.getElementById('notesPreview').textContent = slide.speaker_notes || '—';
@@ -632,15 +664,34 @@ function addSlide() {
   api({ action: 'add_slide', layout: 'bullets', title: 'New Slide' })
     .then(function(d) {
       if (!d.ok) return;
-      slides.push({ id: d.slide_id, order: d.order, layout: d.layout,
-                    title: d.title, content: d.content, emoji: d.emoji,
-                    speaker_notes: d.speaker_notes });
+      var newSlide = { id: d.slide_id, order: d.order, layout: d.layout,
+                       title: d.title, content: d.content, emoji: d.emoji || '',
+                       speaker_notes: d.speaker_notes || '' };
+      // Insert after current slide in the array
+      var insertIdx = slides.length;
+      if (currentSlideId) {
+        var curIdx = slides.findIndex(function(s) { return s.id == currentSlideId; });
+        if (curIdx >= 0) insertIdx = curIdx + 1;
+      }
+      slides.splice(insertIdx, 0, newSlide);
       appendThumb(d);
       appendCanvas(d);
+      // Move thumb to correct position in DOM strip if not at end
+      if (insertIdx < slides.length - 1) {
+        var strip = document.getElementById('thumbList');
+        var newThumb  = document.getElementById('thumb-' + d.slide_id);
+        var afterSlide = slides[insertIdx + 1];
+        var afterThumb = document.getElementById('thumb-' + afterSlide.id);
+        if (afterThumb && newThumb) strip.insertBefore(newThumb, afterThumb);
+      }
+      renumberThumbs();
       updateSlideCount();
       selectSlide(d.slide_id);
-      // make panel visible if it was showing "no slides"
       ensurePanelVisible();
+      // Sync order to server (since new slide was appended at max_order on server)
+      if (slides.length > 1) {
+        api({ action: 'reorder', order: slides.map(function(s) { return s.id; }) });
+      }
     });
 }
 
@@ -687,8 +738,63 @@ function toggleNotes() {
   if (open) document.getElementById('notesInput').focus();
 }
 
+// ── Theme swatches ────────────────────────────────────────────────
+function pickTheme(theme) {
+  document.getElementById('themeSelect').value = theme;
+  document.querySelectorAll('.gm-theme-swatch').forEach(function(s) {
+    s.classList.toggle('active', s.dataset.theme === theme);
+  });
+  saveDeckMeta();
+}
+// ── Zoom ────────────────────────────────────────────────────
+function setZoom(val) {
+  var canvas = document.getElementById('liveCanvas');
+  canvas.style.width = (val * 8.8) + 'px';
+  canvas.style.maxWidth = 'none';
+  document.getElementById('zoomVal').textContent = val + '%';
+}
+// ── Char counter ──────────────────────────────────────────────
+function updateTitleCounter() {
+  var el = document.getElementById('titleCharCount');
+  if (!el) return;
+  var len = (document.getElementById('panelTitle').value || '').length;
+  el.textContent = len + ' / 60';
+  el.className = 'gm-char-count' + (len > 60 ? ' over' : len > 48 ? ' warn' : '');
+}
+// ── Move slide up/down ──────────────────────────────────────
+function moveSlideUp() {
+  if (!currentSlideId) return;
+  var idx = slides.findIndex(function(s) { return s.id == currentSlideId; });
+  if (idx <= 0) return;
+  var tmp = slides[idx - 1]; slides[idx - 1] = slides[idx]; slides[idx] = tmp;
+  var strip = document.getElementById('thumbList');
+  var curEl  = document.getElementById('thumb-' + currentSlideId);
+  var prevEl = document.getElementById('thumb-' + tmp.id);
+  strip.insertBefore(curEl, prevEl);
+  renumberThumbs();
+  api({ action: 'reorder', order: slides.map(function(s) { return s.id; }) });
+  setSaveStatus('saved', '\u2713 Moved up');
+}
+function moveSlideDown() {
+  if (!currentSlideId) return;
+  var idx = slides.findIndex(function(s) { return s.id == currentSlideId; });
+  if (idx >= slides.length - 1) return;
+  var tmp = slides[idx + 1]; slides[idx + 1] = slides[idx]; slides[idx] = tmp;
+  var strip = document.getElementById('thumbList');
+  var curEl  = document.getElementById('thumb-' + currentSlideId);
+  var nextEl = document.getElementById('thumb-' + tmp.id);
+  strip.insertBefore(nextEl, curEl);
+  renumberThumbs();
+  api({ action: 'reorder', order: slides.map(function(s) { return s.id; }) });
+  setSaveStatus('saved', '\u2713 Moved down');
+}
+function closeAIModal(e) {
+  if (e.target === document.getElementById('aiModal'))
+    document.getElementById('aiModal').classList.remove('open');
+}
 // ── AI Generate ─────────────────────────────────────────────────
 function openAIModal() {
+  _plansLoaded = false;
   switchAITab('topic');
   document.getElementById('aiModal').classList.add('open');
   setTimeout(function() { document.getElementById('aiTopic').focus(); }, 60);
@@ -698,12 +804,14 @@ function closeAIModal(e) {
     document.getElementById('aiModal').classList.remove('open');
 }
 function switchAITab(tab) {
-  var isDoc = (tab === 'doc');
-  document.getElementById('aiTopicPanel').style.display = isDoc ? 'none' : 'block';
-  document.getElementById('aiDocPanel').style.display   = isDoc ? 'block' : 'none';
-  document.getElementById('aiTabTopic').classList.toggle('active', !isDoc);
-  document.getElementById('aiTabDoc').classList.toggle('active',  isDoc);
-  if (!isDoc) setTimeout(function() { document.getElementById('aiTopic').focus(); }, 50);
+  var panels = { topic: 'aiTopicPanel', doc: 'aiDocPanel', plan: 'aiPlanPanel' };
+  var tabs   = { topic: 'aiTabTopic', doc: 'aiTabDoc', plan: 'aiTabPlan' };
+  Object.keys(panels).forEach(function(t) {
+    document.getElementById(panels[t]).style.display = (t === tab) ? 'block' : 'none';
+    document.getElementById(tabs[t]).classList.toggle('active', t === tab);
+  });
+  if (tab === 'topic') setTimeout(function() { document.getElementById('aiTopic').focus(); }, 50);
+  if (tab === 'plan') loadLessonPlans();
 }
 function handleDocFile(event) {
   var file = event.target.files[0];
@@ -723,9 +831,89 @@ function handleDocFileDrop(event) {
 function runAIAction() {
   if (document.getElementById('aiTabDoc').classList.contains('active')) {
     runDocGenerate();
+  } else if (document.getElementById('aiTabPlan').classList.contains('active')) {
+    runLessonPlanGenerate();
   } else {
     runAIGenerate();
   }
+}
+// ── Lesson Plan → Slides ─────────────────────────────────────────────
+var _allLessonPlans = [];
+var _plansLoaded = false;
+function loadLessonPlans() {
+  if (_plansLoaded) return;
+  var sel = document.getElementById('planSelect');
+  sel.innerHTML = '<option value="" disabled>Loading\u2026</option>';
+  fetch(LESSON_PLANS_URL, { headers: { 'X-CSRFToken': csrfToken } })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      _allLessonPlans = d.plans || [];
+      _plansLoaded = true;
+      populatePlanSelect(_allLessonPlans);
+    })
+    .catch(function() {
+      sel.innerHTML = '<option value="" disabled>Failed to load. Try again.</option>';
+    });
+}
+function populatePlanSelect(plans) {
+  var sel = document.getElementById('planSelect');
+  if (!plans.length) {
+    sel.innerHTML = '<option value="" disabled>No lesson plans found</option>';
+    return;
+  }
+  sel.innerHTML = plans.map(function(p) {
+    return '<option value="' + p.id + '">' + esc(p.topic) +
+      ' — ' + esc(p.subject) + ' (' + esc(p.class_name) + ', Wk ' + p.week + ')</option>';
+  }).join('');
+}
+function filterLessonPlans(q) {
+  var filtered = _allLessonPlans.filter(function(p) {
+    return (p.topic + ' ' + p.subject + ' ' + p.class_name).toLowerCase().indexOf(q.toLowerCase()) >= 0;
+  });
+  populatePlanSelect(filtered);
+}
+function showPlanPreview(planId) {
+  var plan = _allLessonPlans.find(function(p) { return p.id == planId; });
+  var prev = document.getElementById('planPreview');
+  if (plan) {
+    prev.innerHTML = '📚 <strong>' + esc(plan.topic) + '</strong> &bull; ' +
+      esc(plan.subject) + ' &bull; ' + esc(plan.class_name) + ' &bull; Week ' + plan.week;
+    prev.style.display = 'block';
+  } else {
+    prev.style.display = 'none';
+  }
+}
+function runLessonPlanGenerate() {
+  var sel = document.getElementById('planSelect');
+  var planId = sel.value;
+  if (!planId || planId === '') { alert('Please select a lesson plan from the list.'); return; }
+  var btn = document.getElementById('aiGoBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="gm-spinner"></div> Building from plan\u2026';
+  api({ action: 'from_lesson_plan', plan_id: parseInt(planId) })
+    .then(function(d) {
+      if (d.error) { alert('Error: ' + d.error); return; }
+      document.getElementById('aiModal').classList.remove('open');
+      if (d.deck_title) document.getElementById('deckTitleInput').value = d.deck_title;
+      slides = [];
+      document.getElementById('thumbList').innerHTML = '';
+      document.querySelectorAll('.gm-slide-inner').forEach(function(el) { el.remove(); });
+      currentSlideId = null;
+      d.slides.forEach(function(s) {
+        slides.push({ id: s.slide_id, order: s.order, layout: s.layout,
+                      title: s.title, content: s.content, emoji: s.emoji || '',
+                      speaker_notes: s.speaker_notes || '' });
+        appendThumb(s); appendCanvas(s);
+      });
+      updateSlideCount(); ensurePanelVisible();
+      if (slides.length) selectSlide(slides[0].id);
+      setSaveStatus('saved', '\u2713 Plan slides ready');
+    })
+    .catch(function(err) { alert('Request failed: ' + err); })
+    .finally(function() {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-robot"></i> Generate Deck';
+    });
 }
 function runDocGenerate() {
   var fileInput = document.getElementById('docFileInput');
@@ -944,7 +1132,8 @@ function buildPanelHTML() {
   return `
   <div class="gm-panel-section">
     <div class="gm-panel-label"><i class="fas fa-heading"></i> Slide Title</div>
-    <input type="text" class="gm-field" id="panelTitle" placeholder="Slide title…" oninput="debounceSaveSlide()">
+    <input type="text" class="gm-field" id="panelTitle" placeholder="Slide title…" oninput="debounceSaveSlide();updateTitleCounter()">
+    <div class="gm-char-count" id="titleCharCount">0 / 60</div>
   </div>
   <div class="gm-panel-section">
     <div class="gm-panel-label"><i class="fas fa-align-left"></i> Content / Bullets</div>
@@ -972,6 +1161,10 @@ function buildPanelHTML() {
     </div>
   </div>
   <div class="gm-panel-sep"></div>
+  <div class="gm-move-btns">
+    <button class="gm-move-btn" onclick="moveSlideUp()"><i class="fas fa-arrow-up"></i> Up</button>
+    <button class="gm-move-btn" onclick="moveSlideDown()"><i class="fas fa-arrow-down"></i> Down</button>
+  </div>
   <button class="duplicate-slide-btn" onclick="duplicateCurrentSlide()"><i class="fas fa-copy me-1"></i> Duplicate Slide</button>
   <button class="delete-slide-btn" onclick="deleteCurrentSlide()"><i class="fas fa-trash me-1"></i> Delete Slide</button>`;
 }
@@ -1066,6 +1259,18 @@ document.addEventListener('keydown', function(e) {
   if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
     e.preventDefault();
     duplicateCurrentSlide();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+    e.preventDefault();
+    addSlide();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowUp') {
+    e.preventDefault();
+    moveSlideUp();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowDown') {
+    e.preventDefault();
+    moveSlideDown();
   }
   if (e.key === 'Delete' && currentSlideId) {
     deleteCurrentSlide();
