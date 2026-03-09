@@ -432,6 +432,43 @@
         /* Force single page break avoidance if possible */
         tr { page-break-inside: avoid; }
     }
+    /* ── Ghost Panel (Live Pulse Monitor) ────────────────── */
+    #pulseGhost {
+        position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9000;
+        width: 320px; background: #1e1b4b; color: #e0e7ff;
+        border-radius: 16px; box-shadow: 0 8px 40px rgba(0,0,0,.45);
+        overflow: hidden; display: none;
+        border: 1px solid rgba(139,92,246,.4);
+    }
+    .pg-header { background: linear-gradient(135deg,#4c1d95,#1e40af); padding: .75rem 1rem;
+        display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+    .pg-title { font-weight: 800; font-size: .88rem; color: #fff; display: flex; align-items: center; gap: .4rem; }
+    .pg-close-btn { background: rgba(255,255,255,.18); border: none; color: #fff; border-radius: 8px;
+        padding: .2rem .55rem; cursor: pointer; font-size: .74rem; font-weight: 700; }
+    .pg-close-btn:hover { background: rgba(239,68,68,.6); }
+    .pg-body { padding: .85rem 1rem; }
+    .pg-respond { font-size: 2rem; font-weight: 900; color: #a78bfa; line-height: 1; letter-spacing: -.02em; }
+    .pg-respond-lbl { font-size: .72rem; color: #818cf8; margin-top: .1rem; margin-bottom: .8rem; }
+    .pg-bar-row { display: flex; align-items: center; gap: .5rem; margin-bottom: .45rem; }
+    .pg-bar-lbl { font-size: .7rem; color: #c7d2fe; width: 52px; flex-shrink: 0; }
+    .pg-bar-track { flex: 1; height: 7px; border-radius: 4px; background: rgba(255,255,255,.1); overflow: hidden; }
+    .pg-bar-fill-t { height: 100%; background: #22c55e; border-radius: 4px; transition: width .4s; }
+    .pg-bar-fill-f { height: 100%; background: #ef4444; border-radius: 4px; transition: width .4s; }
+    .pg-bar-fill-c { height: 100%; background: #818cf8; border-radius: 4px; transition: width .4s; }
+    .pg-bar-val { font-size: .7rem; color: #a78bfa; width: 24px; text-align: right; flex-shrink: 0; }
+    .pg-divider { border: none; border-top: 1px solid rgba(255,255,255,.08); margin: .7rem 0; }
+    .pg-typing-row { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+    .pg-typing-label { font-size: .7rem; color: #818cf8; }
+    .pg-bubble { display: inline-flex; align-items: center; gap: .25rem; background: rgba(139,92,246,.2);
+        border-radius: 20px; padding: .15rem .5rem; font-size: .7rem; color: #c4b5fd; }
+    .pg-bubble::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #7c3aed;
+        display: inline-block; animation: pgBlink 1.1s infinite; }
+    @keyframes pgBlink { 0%,100%{opacity:1;}50%{opacity:.25;} }
+    #pulseGhostBtn { background: linear-gradient(135deg,#4c1d95,#1e40af); color: #fff; border: none; }
+    #pulseGhostBtn:hover { opacity: .88; }
+    @media(max-width:576px) {
+        #pulseGhost { width: calc(100vw - 2rem); right: 1rem; bottom: 1rem; }
+    }
 </style>
 
 <div class="container py-4">
@@ -478,6 +515,13 @@
                            target="_blank" title="Print student Nugget + Exit Ticket cards">
                             <i class="bi bi-scissors me-1"></i>Print Cards
                         </a>
+                        {% if has_pulse and not is_admin %}
+                        <button id="pulseGhostBtn" class="btn rounded-pill fw-semibold px-3"
+                                onclick="launchPulseDetail({{ lesson_plan.pk }}, '{{ lesson_plan.topic|escapejs }}')"
+                                title="Send live Pulse Check to students now">
+                            <i class="bi bi-broadcast me-1"></i>Launch Pulse
+                        </button>
+                        {% endif %}
                         <a href="{% url 'teachers:lesson_plan_edit' lesson_plan.pk %}" class="btn btn-light rounded-pill fw-semibold px-3">
                             <i class="bi bi-pencil me-1"></i>Edit
                         </a>
@@ -1269,5 +1313,140 @@ function auraTRegenerate(planId) {
         btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Regenerate';
     });
 }
+
+// ── Digital Pulse Ghost Panel (Detail Page) ────────────────────────────────
+var _pulseSessionId = null;
+var _pulsePollTimer = null;
+var _pulseTotal     = 0;
+
+function launchPulseDetail(planPk, topic) {
+    var btn = document.getElementById('pulseGhostBtn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Launching…'; }
+    fetch("{% url 'teachers:pulse_launch' 0 %}".replace('/0/', '/' + planPk + '/'), {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrfTokenDetail(), 'Content-Type': 'application/json' },
+        body: '{}'
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+        if (d.error) { alert('Pulse error: ' + d.error); if(btn){btn.disabled=false;btn.innerHTML='<i class="bi bi-broadcast me-1"></i>Launch Pulse';} return; }
+        _pulseSessionId = d.session_id;
+        _pulseTotal     = d.total_students || 0;
+        document.getElementById('pgTopicD').textContent = topic;
+        document.getElementById('pgTotalD').textContent = _pulseTotal;
+        document.getElementById('pgRespondedD').textContent = '0';
+        document.getElementById('pgTypingD').innerHTML = '';
+        document.getElementById('pgQ3ChipsD').innerHTML = '';
+        document.getElementById('pulseGhost').style.display = '';
+        if(btn){btn.disabled=false;btn.innerHTML='<i class="bi bi-broadcast me-1"></i>Live Pulse ●';}
+        startPulsePollDetail();
+    })
+    .catch(function(e){ console.error('Pulse launch failed', e); if(btn){btn.disabled=false;btn.innerHTML='<i class="bi bi-broadcast me-1"></i>Launch Pulse';} });
+}
+
+function startPulsePollDetail() {
+    if (_pulsePollTimer) clearInterval(_pulsePollTimer);
+    _pulsePollTimer = setInterval(doPulsePollDetail, 2500);
+    doPulsePollDetail();
+}
+
+function doPulsePollDetail() {
+    if (!_pulseSessionId) return;
+    fetch("{% url 'teachers:pulse_live' 0 %}".replace('/0/', '/' + _pulseSessionId + '/'))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+        if (d.status === 'closed') { stopPollUIDetail(); return; }
+        var t = _pulseTotal || 1;
+        document.getElementById('pgRespondedD').textContent = d.responded;
+        var q1t = d.q1.true||0, q1f = d.q1.false||0;
+        setBarDetail('pgQ1TD','pgQ1TvD',q1t,t); setBarDetail('pgQ1FD','pgQ1FvD',q1f,t);
+        var q2t = d.q2.true||0, q2f = d.q2.false||0;
+        setBarDetail('pgQ2TD','pgQ2TvD',q2t,t); setBarDetail('pgQ2FD','pgQ2FvD',q2f,t);
+        var chips = d.q3_counts || {};
+        var chipHtml = '';
+        Object.keys(chips).forEach(function(chip) {
+            var pct = Math.round((chips[chip]/t)*100);
+            chipHtml += '<div class="pg-bar-row" style="margin:0;"><div class="pg-bar-track" style="flex:1;"><div class="pg-bar-fill-c" style="width:'+pct+'%;"></div></div><div class="pg-bar-val">'+chips[chip]+'</div><div style="font-size:.64rem;color:#a5b4fc;max-width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:.35rem;">'+escD(chip.slice(0,30))+'</div></div>';
+        });
+        document.getElementById('pgQ3ChipsD').innerHTML = chipHtml;
+        var typingHtml = '';
+        (d.typing||[]).slice(0,6).forEach(function(name){ typingHtml += '<span class="pg-bubble">'+escD(name)+'</span> '; });
+        if ((d.typing||[]).length > 6) typingHtml += '<span class="pg-bubble">+'+(d.typing.length-6)+'</span>';
+        document.getElementById('pgTypingD').innerHTML = typingHtml || '<span style="font-size:.7rem;color:#475569;">None yet</span>';
+    })
+    .catch(function(){});
+}
+
+function setBarDetail(fillId, valId, count, total) {
+    var pct = total > 0 ? Math.round((count/total)*100) : 0;
+    document.getElementById(fillId).style.width = pct+'%';
+    document.getElementById(valId).textContent  = count;
+}
+
+function stopPollUIDetail() {
+    if (_pulsePollTimer) { clearInterval(_pulsePollTimer); _pulsePollTimer = null; }
+    document.getElementById('pgStatusDotD').style.background = '#6b7280';
+    document.getElementById('pgStatusDotD').style.animation  = 'none';
+}
+
+function closePulseDetail() {
+    if (!_pulseSessionId) { document.getElementById('pulseGhost').style.display='none'; return; }
+    const sid = _pulseSessionId;
+    fetch("{% url 'teachers:pulse_close' 0 %}".replace('/0/', '/' + sid + '/'), {
+        method: 'POST', headers: { 'X-CSRFToken': getCsrfTokenDetail() }
+    })
+    .then(r => r.json())
+    .then(data => {
+        stopPollUIDetail();
+        _pulseSessionId = null;
+        document.getElementById('pulseGhost').style.display = 'none';
+        var btn = document.getElementById('pulseGhostBtn');
+        if(btn){btn.innerHTML='<i class="bi bi-broadcast me-1"></i>Launch Pulse';}
+        if (data.redirect) { window.location.href = data.redirect; }
+    })
+    .catch(() => {
+        stopPollUIDetail(); _pulseSessionId = null;
+        document.getElementById('pulseGhost').style.display = 'none';
+    });
+}
+
+function escD(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function getCsrfTokenDetail() {
+    var el = document.querySelector('[name=csrfmiddlewaretoken]');
+    return el ? el.value : (document.cookie.match(/csrftoken=([^;]+)/)||['',''])[1];
+}
 </script>
+
+<!-- ── Digital Pulse Ghost Panel (Detail Page) ─────────────────────────── -->
+<div id="pulseGhost">
+    <div class="pg-header">
+        <div class="pg-title">
+            <i class="bi bi-broadcast"></i>
+            Live Pulse
+            <span id="pgTopicD" style="font-weight:400;opacity:.8;font-size:.8rem;max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></span>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <div id="pgStatusDotD" style="width:8px;height:8px;border-radius:50%;background:#22c55e;animation:pgBlink 1.2s infinite;"></div>
+            <button class="pg-close-btn" onclick="closePulseDetail()">✕ Close</button>
+        </div>
+    </div>
+    <div class="pg-body">
+        <div class="pg-respond"><span id="pgRespondedD">0</span> / <span id="pgTotalD">—</span></div>
+        <div class="pg-respond-lbl">students responded</div>
+        <div class="pg-bar-row"><div class="pg-bar-lbl">Q1 ✓</div><div class="pg-bar-track"><div class="pg-bar-fill-t" id="pgQ1TD" style="width:0%"></div></div><div class="pg-bar-val" id="pgQ1TvD">0</div></div>
+        <div class="pg-bar-row"><div class="pg-bar-lbl">Q1 ✗</div><div class="pg-bar-track"><div class="pg-bar-fill-f" id="pgQ1FD" style="width:0%"></div></div><div class="pg-bar-val" id="pgQ1FvD">0</div></div>
+        <div class="pg-bar-row" style="margin-top:.3rem;"><div class="pg-bar-lbl">Q2 ✓</div><div class="pg-bar-track"><div class="pg-bar-fill-t" id="pgQ2TD" style="width:0%"></div></div><div class="pg-bar-val" id="pgQ2TvD">0</div></div>
+        <div class="pg-bar-row"><div class="pg-bar-lbl">Q2 ✗</div><div class="pg-bar-track"><div class="pg-bar-fill-f" id="pgQ2FD" style="width:0%"></div></div><div class="pg-bar-val" id="pgQ2FvD">0</div></div>
+        <div class="pg-bar-row" style="margin-top:.3rem;">
+            <div class="pg-bar-lbl" style="width:unset;white-space:nowrap;">Q3 paths</div>
+            <div id="pgQ3ChipsD" style="flex:1;display:flex;flex-direction:column;gap:.2rem;"></div>
+        </div>
+        <hr class="pg-divider">
+        <div class="pg-typing-row">
+            <span class="pg-typing-label">Thinking:</span>
+            <div id="pgTypingD"></div>
+        </div>
+    </div>
+</div>
+{% csrf_token %}
 {% endblock %}

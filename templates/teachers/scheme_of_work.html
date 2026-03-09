@@ -116,8 +116,19 @@
                     </div>
                     {% endwith %}
                 </div>
-                <div class="card-footer border-0 bg-transparent d-flex justify-content-between align-items-center pt-0 pb-3 px-3">
+                <div class="card-footer border-0 bg-transparent d-flex justify-content-between align-items-center gap-2 pt-0 pb-3 px-3">
                     <small class="text-muted">Uploaded {{ scheme.uploaded_at|date:"d M Y" }}</small>
+                    {% with ftr_topics=scheme.get_topics %}
+                    {% if ftr_topics %}
+                    <button class="btn btn-sm fw-semibold rounded-pill px-3"
+                            style="background:linear-gradient(135deg,#4c1d95,#1e40af);color:#fff;border:none;font-size:11px;"
+                            id="bulk-btn-{{ scheme.pk }}"
+                            onclick="bulkGenerate({{ scheme.pk }}, {{ ftr_topics|length }}, '{% url 'teachers:scheme_of_work_bulk_generate' scheme.pk %}')"
+                            title="Auto-generate Aura-T lesson plans for all topics">
+                        <i class="bi bi-stars me-1"></i>Generate All ({{ ftr_topics|length }})
+                    </button>
+                    {% endif %}
+                    {% endwith %}
                     <form method="post" action="{% url 'teachers:scheme_of_work_delete' scheme.pk %}"
                           onsubmit="return confirm('Delete this scheme of work?');">
                         {% csrf_token %}
@@ -196,6 +207,32 @@ async function reExtract(id, btn, url) {
         btn.innerHTML=`<i class="bi bi-check2 me-1"></i>${d.count} extracted`;
         setTimeout(()=>{btn.innerHTML=orig;btn.disabled=false;},2000);
     } else { alert('Failed: '+(d.error||'?')); btn.innerHTML=orig; btn.disabled=false; }
+}
+async function bulkGenerate(id, total, url) {
+    if (!confirm(`Generate ${total} Aura-T lesson plan(s) from this scheme?\n\nTopics that already have a matching lesson plan will be skipped.\nThis may take a minute per topic.`)) return;
+    const btn = document.getElementById(`bulk-btn-${id}`);
+    const orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generating…';
+    try {
+        const resp = await fetch(url, { method: 'POST', headers: { 'X-CSRFToken': CSRF } });
+        const d = await resp.json();
+        if (d.ok) {
+            btn.innerHTML = `<i class="bi bi-check2-circle me-1"></i>${d.created} created, ${d.skipped} skipped`;
+            btn.style.background = 'rgba(34,197,94,0.8)';
+            if (d.errors && d.errors.length) {
+                console.warn('Bulk generate errors:', d.errors);
+                const errTopics = d.errors.map(e => e.topic).join(', ');
+                setTimeout(() => alert(`${d.errors.length} topic(s) failed: ${errTopics}`), 300);
+            }
+        } else {
+            alert('Error: ' + (d.error || 'Unknown error'));
+            btn.innerHTML = orig; btn.disabled = false;
+        }
+    } catch(e) {
+        alert('Network error: ' + e.message);
+        btn.innerHTML = orig; btn.disabled = false;
+    }
 }
 </script>
 {% endblock %}

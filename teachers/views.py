@@ -1742,9 +1742,23 @@ def lesson_plan_detail(request, pk):
     else:
         lesson_plan = get_object_or_404(LessonPlan, pk=pk)
     
+    intro = lesson_plan.introduction or ''
+    pres  = lesson_plan.presentation or ''
+    evl   = lesson_plan.evaluation or ''
+    has_pulse       = 'PULSE CHECK' in intro
+    has_checkpoints = 'CHECKPOINT QUESTIONS' in pres or 'CQ1:' in pres
+    has_sprint      = 'MASTERY SPRINT' in evl or 'MS1:' in evl
+    has_insight     = 'TEACHER INSIGHT' in evl
+    aura_score      = sum([has_pulse, has_checkpoints, has_sprint, has_insight])
+
     return render(request, 'teachers/lesson_plan_detail.html', {
         'lesson_plan': lesson_plan,
         'is_admin': is_admin,
+        'has_pulse': has_pulse,
+        'has_checkpoints': has_checkpoints,
+        'has_sprint': has_sprint,
+        'has_insight': has_insight,
+        'aura_score': aura_score,
     })
 
 
@@ -3225,6 +3239,100 @@ def scheme_of_work_reextract(request, pk):
         return JsonResponse({'ok': True, 'count': len(topics), 'topics': topics})
     except Exception as exc:
         return JsonResponse({'error': str(exc)}, status=500)
+
+
+@login_required
+@require_POST
+def scheme_of_work_bulk_generate(request, pk):
+    """
+    Bulk-generate Aura-T lesson plans for all topics in a scheme of work.
+    Skips topics that already have a matching lesson plan.
+    Returns JSON: {ok, created, skipped, errors: [...], total}
+    """
+    if request.user.user_type not in ['admin', 'teacher']:
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    teacher = get_object_or_404(Teacher, user=request.user)
+    scheme = get_object_or_404(SchemeOfWork, pk=pk, class_subject__teacher=teacher)
+
+    topics = scheme.get_topics()
+    if not topics:
+        return JsonResponse({'error': 'No topics found. Extract topics from the scheme first.'}, status=400)
+
+    from teachers.services.aura_gen_engine import AuraGenEngine
+    import re as _re
+
+    subject     = scheme.class_subject.subject
+    school_class = scheme.class_subject.class_name
+    subject_name = subject.name
+    class_name   = school_class.name
+
+    # Start week numbering after any existing plans for this teacher / subject / class
+    existing_max = LessonPlan.objects.filter(
+        teacher=teacher, subject=subject, school_class=school_class
+    ).aggregate(max_week=models.Max('week_number'))['max_week'] or 0
+
+    def _extract(header, text):
+        pat = _re.compile(
+            rf"\*\*{_re.escape(header)}.*?\*\*\s*(.*?)(?=\n\*\*|\Z)",
+            _re.DOTALL | _re.IGNORECASE
+        )
+        m = pat.search(text)
+        return m.group(1).strip() if m else ''
+
+    created = 0
+    skipped = 0
+    errors  = []
+
+    for idx, topic in enumerate(topics):
+        # Skip if a plan for this topic already exists for this teacher/subject/class
+        if LessonPlan.objects.filter(
+            teacher=teacher, subject=subject,
+            school_class=school_class, topic__iexact=topic
+        ).exists():
+            skipped += 1
+            continue
+
+        try:
+            result      = AuraGenEngine.generate_lesson_plan(topic, subject_name, class_name)
+            lesson_body = (result.get('lesson_plan') or '').strip()
+            if not lesson_body:
+                errors.append({'topic': topic, 'error': result.get('error', 'Empty response')})
+                continue
+
+            LessonPlan.objects.create(
+                teacher=teacher,
+                subject=subject,
+                school_class=school_class,
+                week_number=existing_max + idx + 1,
+                topic=topic,
+                objectives=(
+                    _extract('Content Standard', lesson_body) + '\n' +
+                    _extract('Indicator', lesson_body)
+                ).strip() or topic,
+                teaching_materials=_extract('Teaching/Learning Materials', lesson_body),
+                introduction=_extract('PHASE 1: STARTER', lesson_body),
+                presentation=(
+                    _extract('PHASE 2: NEW LEARNING', lesson_body) or
+                    _extract('PHASE 2', lesson_body)
+                ),
+                evaluation=(
+                    _extract('PHASE 3: REFLECTION', lesson_body) or
+                    _extract('Assessment', lesson_body)
+                ),
+                homework=_extract('Homework', lesson_body),
+            )
+            created += 1
+        except Exception as exc:
+            errors.append({'topic': topic, 'error': str(exc)})
+
+    return JsonResponse({
+        'ok': True,
+        'created': created,
+        'skipped': skipped,
+        'errors': errors,
+        'total': len(topics),
+    })
 
 
 @login_required
