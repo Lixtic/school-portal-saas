@@ -134,6 +134,9 @@ class Presentation(models.Model):
         ('forest',   'Forest'),
         ('coral',    'Coral'),
         ('slate',    'Slate'),
+        ('ocean',    'Ocean'),
+        ('amber',    'Amber'),
+        ('rose',     'Rose'),
     ]
     teacher      = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name='presentations')
     title        = models.CharField(max_length=200)

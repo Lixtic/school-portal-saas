@@ -137,12 +137,10 @@ html, body { height: 100%; margin: 0; }
 .theme-coral    { background: linear-gradient(135deg,#3b0012 0%,#5a1200 60%,#7c1e00 100%); }
 .theme-slate    { background: linear-gradient(135deg,#0f1824 0%,#1e2d3d 100%); }
 
-/* Decorative blobs on slide canvas */
+/* Decorative blobs on slide canvas — neutral base; per-theme overrides via .gm-slide-inner::after */
 .gm-slide-canvas::before {
   content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
-  background:
-    radial-gradient(ellipse 60% 40% at 10% 20%, rgba(139,92,246,.18) 0%, transparent 70%),
-    radial-gradient(ellipse 50% 60% at 90% 80%, rgba(37,99,235,.12) 0%, transparent 70%);
+  background: none;
 }
 .gm-slide-inner { position: relative; z-index: 1; width: 100%; height: 100%; display: flex; flex-direction: column; }
 
@@ -306,6 +304,120 @@ html, body { height: 100%; margin: 0; }
   transition: background .15s;
 }
 .duplicate-slide-btn:hover { background: rgba(99,102,241,.2); }
+
+/* ══════════════════════════════════════════════
+   v1.2 ADDITIONS — missing CSS that was
+   referenced by HTML but never defined
+══════════════════════════════════════════════ */
+
+/* ── Theme swatches (replaces select) ── */
+.gm-theme-swatches { display: flex; gap: 6px; align-items: center; }
+.gm-theme-swatch {
+  width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
+  border: 2px solid transparent; transition: transform .18s, border-color .18s, box-shadow .18s;
+  flex-shrink: 0;
+}
+.gm-theme-swatch:hover  { transform: scale(1.18); }
+.gm-theme-swatch.active { border-color: #fff; transform: scale(1.22); box-shadow: 0 0 0 2px rgba(255,255,255,.25); }
+
+/* swatch colours — must match the theme-* gradient classes */
+.gm-theme-swatch[data-theme="aurora"]   { background: linear-gradient(135deg,#4a1a8a,#1a2a80); }
+.gm-theme-swatch[data-theme="midnight"] { background: linear-gradient(135deg,#0f172a,#1e1b4b); }
+.gm-theme-swatch[data-theme="forest"]   { background: linear-gradient(135deg,#022c17,#0a3030); }
+.gm-theme-swatch[data-theme="coral"]    { background: linear-gradient(135deg,#5a0018,#7c1e00); }
+.gm-theme-swatch[data-theme="slate"]    { background: linear-gradient(135deg,#0f1824,#1e2d3d); }
+.gm-theme-swatch[data-theme="ocean"]    { background: linear-gradient(135deg,#0c2d4e,#0a4a6e); }
+.gm-theme-swatch[data-theme="amber"]    { background: linear-gradient(135deg,#431407,#7c2d12); }
+.gm-theme-swatch[data-theme="rose"]     { background: linear-gradient(135deg,#4c0519,#831843); }
+
+/* ── New extended theme gradients ── */
+.theme-ocean   { background: linear-gradient(135deg,#0c2d4e 0%,#0a4a6e 60%,#0e6088 100%); }
+.theme-amber   { background: linear-gradient(135deg,#431407 0%,#7c2d12 60%,#92400e 100%); }
+.theme-rose    { background: linear-gradient(135deg,#4c0519 0%,#831843 60%,#9d174d 100%); }
+
+/* ── Zoom bar ── */
+.gm-zoom-bar {
+  position: absolute; bottom: 14px; right: 18px;
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(15,23,42,.75); backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,.1); border-radius: 20px;
+  padding: 5px 12px; opacity: 0; transition: opacity .25s; pointer-events: none;
+  z-index: 10; user-select: none;
+}
+.gm-canvas-wrap:hover .gm-zoom-bar { opacity: 1; pointer-events: all; }
+.gm-zoom-bar label { font-size: .65rem; color: #64748b; white-space: nowrap; }
+.gm-zoom-bar input[type=range] {
+  width: 90px; cursor: pointer; accent-color: #7c3aed;
+}
+.gm-zoom-val { font-size: .65rem; color: #64748b; min-width: 34px; text-align: right; }
+
+/* ── Move Up / Down buttons ── */
+.gm-move-btns { display: flex; gap: 5px; margin-bottom: 6px; }
+.gm-move-btn {
+  flex: 1; padding: 6px; border-radius: 8px;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+  color: #94a3b8; font-size: .74rem; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  transition: background .15s, color .15s;
+}
+.gm-move-btn:hover { background: rgba(124,58,237,.15); color: #c4b5fd; border-color: rgba(124,58,237,.3); }
+
+/* ── Char counter ── */
+.gm-char-count { font-size: .6rem; color: #475569; text-align: right; margin-top: 3px; }
+.gm-char-count.warn { color: #f59e0b; }
+.gm-char-count.over { color: #ef4444; }
+
+/* ── Lesson plan preview ── */
+.gm-plan-preview {
+  font-size: .74rem; color: #94a3b8; background: rgba(124,58,237,.08);
+  border: 1px solid rgba(124,58,237,.18); border-radius: 8px;
+  padding: .55rem .75rem; margin-top: .5rem; line-height: 1.5;
+}
+
+/* ── v1.2 canvas & thumb visual upgrades ── */
+.gm-slide-canvas {
+  /* richer shadow + subtle inner ring */
+  box-shadow: 0 0 0 1px rgba(255,255,255,.06), 0 32px 80px rgba(0,0,0,.65), 0 8px 20px rgba(0,0,0,.35);
+}
+/* per-theme decorative blobs — override the single ::before */
+.theme-aurora   .gm-slide-inner::after,
+.theme-midnight .gm-slide-inner::after,
+.theme-forest   .gm-slide-inner::after,
+.theme-coral    .gm-slide-inner::after,
+.theme-slate    .gm-slide-inner::after,
+.theme-ocean    .gm-slide-inner::after,
+.theme-amber    .gm-slide-inner::after,
+.theme-rose     .gm-slide-inner::after {
+  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+}
+.theme-aurora   .gm-slide-inner::after { background: radial-gradient(ellipse 55% 45% at 8% 15%, rgba(167,139,250,.22) 0%, transparent 65%), radial-gradient(ellipse 45% 55% at 92% 85%, rgba(96,165,250,.15) 0%, transparent 65%); }
+.theme-midnight .gm-slide-inner::after { background: radial-gradient(ellipse 60% 40% at 12% 20%, rgba(99,102,241,.18) 0%, transparent 65%), radial-gradient(ellipse 50% 60% at 88% 80%, rgba(139,92,246,.10) 0%, transparent 65%); }
+.theme-forest   .gm-slide-inner::after { background: radial-gradient(ellipse 60% 45% at 10% 20%, rgba(52,211,153,.14) 0%, transparent 65%), radial-gradient(ellipse 45% 55% at 90% 80%, rgba(16,185,129,.08) 0%, transparent 65%); }
+.theme-coral    .gm-slide-inner::after { background: radial-gradient(ellipse 60% 45% at 8% 15%, rgba(251,113,133,.18) 0%, transparent 65%), radial-gradient(ellipse 50% 60% at 92% 85%, rgba(245,158,11,.10) 0%, transparent 65%); }
+.theme-slate    .gm-slide-inner::after { background: radial-gradient(ellipse 60% 40% at 10% 18%, rgba(148,163,184,.12) 0%, transparent 65%), radial-gradient(ellipse 50% 55% at 90% 82%, rgba(100,116,139,.08) 0%, transparent 65%); }
+.theme-ocean    .gm-slide-inner::after { background: radial-gradient(ellipse 60% 45% at 8% 18%, rgba(56,189,248,.18) 0%, transparent 65%), radial-gradient(ellipse 50% 55% at 92% 82%, rgba(14,165,233,.10) 0%, transparent 65%); }
+.theme-amber    .gm-slide-inner::after { background: radial-gradient(ellipse 60% 45% at 8% 15%, rgba(251,191,36,.18) 0%, transparent 65%), radial-gradient(ellipse 50% 60% at 92% 85%, rgba(245,158,11,.10) 0%, transparent 65%); }
+.theme-rose     .gm-slide-inner::after { background: radial-gradient(ellipse 60% 45% at 8% 15%, rgba(251,113,133,.22) 0%, transparent 65%), radial-gradient(ellipse 50% 60% at 92% 85%, rgba(244,63,94,.12) 0%, transparent 65%); }
+
+/* ensure inner content sits above the ::after blob layer */
+.gm-slide-inner > * { position: relative; z-index: 1; }
+
+/* ── Thumbnail active ring glow ── */
+.gm-thumb.active { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,.25); }
+
+/* ── Panel section headers ── */
+.gm-panel-label { color: #64748b; }
+
+/* ── Layout picker — icon-only grid with labels ── */
+.layout-pick-btn { padding: 7px 3px; }
+
+/* ── Empty canvas placeholder ── */
+.gm-canvas-empty {
+  display: flex; align-items: center; justify-content: center;
+  height: 100%; color: rgba(255,255,255,.2); font-size: 1rem; font-weight: 700;
+  flex-direction: column; gap: .6rem; text-align: center; padding: 2rem;
+}
+.gm-canvas-empty i { font-size: 2.8rem; opacity: .25; }
 </style>
 {% endblock %}
 
