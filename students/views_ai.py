@@ -702,6 +702,15 @@ def aura_arena_api(request):
         
         data = []
         for m in msgs:
+            reply_data = None
+            if m.reply_to_id:
+                rt = m.reply_to
+                if rt:
+                    reply_data = {
+                        'id': rt.id,
+                        'sender': rt.sender.get_full_name() if rt.sender else 'Aura',
+                        'content': rt.content[:120],
+                    }
             data.append({
                 'id': m.id,
                 'content': m.content,
@@ -711,7 +720,8 @@ def aura_arena_api(request):
                 'battle_answered': m.battle_answered,
                 'winner': m.battle_winner.get_full_name() if m.battle_winner else None,
                 'time': m.created_at.strftime('%H:%M'),
-                'is_me': m.sender == request.user if m.sender else False
+                'is_me': m.sender == request.user if m.sender else False,
+                'reply_to': reply_data,
             })
         return JsonResponse({'messages': data})
 
@@ -723,7 +733,15 @@ def aura_arena_api(request):
             
         active_battle = StudyGroupMessage.objects.filter(room=room, is_battle_question=True, battle_answered=False).last()
         
-        msg = StudyGroupMessage.objects.create(room=room, sender=request.user, content=content)
+        reply_to_id = payload.get('reply_to_id')
+        reply_to_obj = None
+        if reply_to_id:
+            try:
+                reply_to_obj = StudyGroupMessage.objects.get(id=int(reply_to_id), room=room)
+            except (StudyGroupMessage.DoesNotExist, ValueError, TypeError):
+                pass
+        
+        msg = StudyGroupMessage.objects.create(room=room, sender=request.user, content=content, reply_to=reply_to_obj)
         
         is_winner = False
         xp_earned = 0

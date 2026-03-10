@@ -317,6 +317,57 @@ body { background: var(--arena-bg); }
     color: rgba(140,190,255,0.8); font-size: 9.5px;
 }
 
+/* ── Reply UX ───────────────────────────────────────────── */
+.reply-preview {
+    display: none;
+    align-items: center; gap: 8px;
+    background: rgba(56,120,255,0.07);
+    border: 1px solid rgba(56,120,255,0.18);
+    border-radius: 10px; padding: 6px 10px;
+    margin-bottom: 7px; font-size: 11.5px;
+    border-left: 3px solid rgba(56,120,255,0.6);
+}
+.reply-preview.active { display: flex; }
+.reply-preview-icon { color: rgba(140,190,255,0.7); flex-shrink: 0; font-size: 11px; }
+.reply-preview-text { flex: 1; min-width: 0; }
+.reply-preview-sender { font-weight: 700; color: rgba(140,190,255,0.9); font-size: 10px; }
+.reply-preview-snip {
+    color: var(--arena-muted); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+    max-width: 400px;
+}
+.reply-preview-close {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: rgba(255,255,255,0.07); border: none;
+    color: var(--arena-muted); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; flex-shrink: 0;
+    transition: background 0.15s;
+}
+.reply-preview-close:hover { background: rgba(255,255,255,0.13); color: var(--arena-text); }
+
+/* Quoted reply block inside a bubble */
+.msg-reply-quote {
+    background: rgba(255,255,255,0.05);
+    border-left: 2px solid rgba(120,180,255,0.45);
+    border-radius: 6px; padding: 4px 8px;
+    margin-bottom: 6px; cursor: pointer;
+}
+.msg-reply-quote.quote-me { border-left-color: rgba(56,120,255,0.65); }
+.msg-reply-quote-sender { font-size: 9.5px; font-weight: 700; color: rgba(140,190,255,0.8); margin-bottom: 1px; }
+.msg-reply-quote-text { font-size: 11px; color: var(--arena-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 360px; }
+
+/* Reply button on each message row */
+.msg-reply-btn {
+    background: transparent; border: none;
+    color: var(--arena-muted); font-size: 10px;
+    cursor: pointer; padding: 3px 6px; border-radius: 6px;
+    opacity: 0; transition: opacity 0.15s, background 0.15s;
+    flex-shrink: 0; align-self: center;
+}
+.msg-row:hover .msg-reply-btn { opacity: 1; }
+.msg-reply-btn:hover { background: rgba(56,120,255,0.12); color: rgba(140,190,255,0.9); }
+
 /* ── Mobile ──────────────────────────────────────────────── */
 @media (max-width: 768px) {
     .arena-sidebar {
@@ -449,6 +500,16 @@ body { background: var(--arena-bg); }
         </div>
 
         <div class="arena-input-bar">
+            <div class="reply-preview" id="replyPreview">
+                <i class="fa-solid fa-reply reply-preview-icon"></i>
+                <div class="reply-preview-text">
+                    <div class="reply-preview-sender" id="replyPreviewSender"></div>
+                    <div class="reply-preview-snip" id="replyPreviewSnip"></div>
+                </div>
+                <button class="reply-preview-close" id="replyCancelBtn" title="Cancel reply">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
             <form class="arena-input-form" id="arenaForm" data-no-loader>
                 <input
                     type="text"
@@ -482,6 +543,10 @@ body { background: var(--arena-bg); }
     const sendBtn    = document.getElementById('arenaSendBtn');
     const emptyState = document.getElementById('emptyState');
     const xpToast    = document.getElementById('xpToast');
+    const replyPreview = document.getElementById('replyPreview');
+    const replyPreviewSender = document.getElementById('replyPreviewSender');
+    const replyPreviewSnip   = document.getElementById('replyPreviewSnip');
+    const replyCancelBtn     = document.getElementById('replyCancelBtn');
 
     const API_URL = "{% url 'students:aura_arena_api' %}";
     const CSRF    = '{{ csrf_token }}';
@@ -490,6 +555,23 @@ body { background: var(--arena-bg); }
     let hasMessages = false;
     let isPolling   = false;
     let thinkingRow = null;
+    let replyTo     = null;   // { id, sender, text }
+
+    /* ── Reply state ─────────────────────────────────────── */
+    function setReply(id, sender, text) {
+        replyTo = { id, sender, text };
+        replyPreviewSender.textContent = sender;
+        replyPreviewSnip.textContent   = text;
+        replyPreview.classList.add('active');
+        input.placeholder = 'Reply…';
+        input.focus();
+    }
+    function clearReply() {
+        replyTo = null;
+        replyPreview.classList.remove('active');
+        input.placeholder = 'Message the class… or @aura battle to challenge!';
+    }
+    replyCancelBtn.addEventListener('click', clearReply);
 
     /* ── Helpers ─────────────────────────────────────────── */
     function esc(s) {
@@ -526,6 +608,7 @@ body { background: var(--arena-bg); }
 
         const row = document.createElement('div');
         row.className = 'msg-row' + (isMe ? ' me' : isAura ? ' aura-row' : '');
+        row.dataset.msgId = msg.id;
 
         let bubbleClass = isMe ? 'bubble-me' : isAura ? 'bubble-aura' : 'bubble-other';
         if (isBattle) bubbleClass = 'bubble-battle';
@@ -547,14 +630,32 @@ body { background: var(--arena-bg); }
             <span class="msg-time">${esc(msg.time||'')}</span>
         </div>` : '';
 
+        const replyQuote = msg.reply_to ? `<div class="msg-reply-quote${isMe ? ' quote-me' : ''}">
+            <div class="msg-reply-quote-sender">${esc(msg.reply_to.sender)}</div>
+            <div class="msg-reply-quote-text">${esc(msg.reply_to.content)}</div>
+        </div>` : '';
+
+        const replyBtn = !isAura ? `<button class="msg-reply-btn" title="Reply" data-id="${msg.id}" data-sender="${esc(msg.sender)}" data-text="${esc(msg.content.slice(0,120))}">
+            <i class="fa-solid fa-reply"></i>
+        </button>` : '';
+
         row.innerHTML = `
             <div class="msg-avatar ${avClass}">${avLabel}</div>
-            <div>
+            <div style="min-width:0;max-width:100%">
                 ${meta}
-                <div class="msg-bubble ${bubbleClass}">${battleHdr}${md(msg.content)}</div>
+                <div class="msg-bubble ${bubbleClass}">${replyQuote}${battleHdr}${md(msg.content)}</div>
                 ${timeLine}
             </div>
+            ${replyBtn}
         `;
+
+        // Wire reply button
+        const btn = row.querySelector('.msg-reply-btn');
+        if (btn) {
+            btn.addEventListener('click', () => {
+                setReply(parseInt(btn.dataset.id), btn.dataset.sender, btn.dataset.text);
+            });
+        }
 
         feed.appendChild(row);
         scrollBottom(isMe);
@@ -612,12 +713,16 @@ body { background: var(--arena-bg); }
         const needsAI     = /\@aura/i.test(text);
         input.value = '';
         sendBtn.disabled = true;
+        const pendingReply = replyTo;
+        clearReply();
         if (needsAI) showThinking(isBattleCmd ? '⚡ Generating battle question…' : '💭 Thinking…');
         try {
+            const body = { content: text };
+            if (pendingReply) body.reply_to_id = pendingReply.id;
             const res = await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-                body: JSON.stringify({ content: text }),
+                body: JSON.stringify(body),
             });
             if (res.ok) {
                 const data = await res.json();
