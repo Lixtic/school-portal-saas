@@ -104,7 +104,16 @@ class PulseSession(models.Model):
     STATUS_CHOICES = [('active', 'Active'), ('closed', 'Closed')]
 
     lesson_plan = models.ForeignKey(
-        'teachers.LessonPlan', on_delete=models.CASCADE, related_name='pulse_sessions')
+        'teachers.LessonPlan', on_delete=models.CASCADE, related_name='pulse_sessions',
+        null=True, blank=True)
+    # Optional: launched from a presentation study guide
+    presentation = models.ForeignKey(
+        'teachers.Presentation', on_delete=models.CASCADE, related_name='pulse_sessions',
+        null=True, blank=True)
+    # Explicit class target (used when launched from a presentation, not a lesson plan)
+    target_class = models.ForeignKey(
+        'academics.Class', on_delete=models.SET_NULL, related_name='pulse_sessions',
+        null=True, blank=True)
     teacher = models.ForeignKey(
         'teachers.Teacher', on_delete=models.CASCADE, related_name='pulse_sessions')
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
@@ -123,14 +132,26 @@ class PulseSession(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f'Pulse #{self.pk} — {self.lesson_plan.topic}'
+        if self.lesson_plan_id:
+            return f'Pulse #{self.pk} — {self.lesson_plan.topic}'
+        if self.presentation_id:
+            return f'Pulse #{self.pk} — {self.presentation.title}'
+        return f'Pulse #{self.pk}'
+
+    def _target_class(self):
+        """Resolve the class this session targets (lesson_plan or explicit)."""
+        if self.lesson_plan_id:
+            return self.lesson_plan.school_class
+        return self.target_class
 
     @property
     def total_students(self):
         """Number of students in the target class."""
         try:
-            return self.lesson_plan.school_class.students.filter(
-                user__is_active=True).count()
+            cls = self._target_class()
+            if cls is None:
+                return 0
+            return cls.students.filter(user__is_active=True).count()
         except Exception:
             return 0
 

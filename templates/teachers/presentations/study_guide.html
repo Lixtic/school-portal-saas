@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{ deck.title }} — Study Guide</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.0/css/all.min.css">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; color: #1e293b; }
@@ -168,6 +168,53 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; colo
 }
 .sg-activity-item i { color: #7c3aed; margin-top: .12rem; flex-shrink: 0; }
 
+/* ── Send as Pulse ── */
+.sg-pulse-bar {
+  background: linear-gradient(135deg, #0f172a, #1e1b4b);
+  border: 1px solid rgba(124,58,237,.3); border-radius: 12px;
+  padding: 1rem 1.3rem; margin-top: 1.5rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  display: none;
+}
+.sg-pulse-bar.visible { display: flex; }
+.sg-pulse-bar-left h4 { font-size: .85rem; font-weight: 800; color: #e2e8f0; margin-bottom: .15rem; }
+.sg-pulse-bar-left p  { font-size: .72rem; color: rgba(255,255,255,.4); margin: 0; }
+.sg-pulse-send-btn {
+  background: linear-gradient(135deg, #7c3aed, #a855f7); color: #fff;
+  border: none; border-radius: 8px; padding: .5rem 1.1rem;
+  font-size: .78rem; font-weight: 700; cursor: pointer; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: .4rem; transition: opacity .15s;
+}
+.sg-pulse-send-btn:disabled { opacity: .55; cursor: not-allowed; }
+.sg-pulse-send-btn:not(:disabled):hover { opacity: .85; }
+
+/* ── Pulse Live HUD ── */
+.sg-pulse-hud {
+  position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9000;
+  background: #0f172a; border: 1px solid rgba(124,58,237,.5);
+  border-radius: 14px; padding: 1rem 1.3rem; min-width: 240px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5); display: none;
+}
+.sg-pulse-hud.visible { display: block; }
+.sg-pulse-hud h5 {
+  font-size: .78rem; font-weight: 800; color: #a78bfa; margin-bottom: .6rem;
+  display: flex; align-items: center; gap: .4em;
+}
+.sg-pulse-hud h5 .sg-live-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: #22c55e;
+  animation: sg-blink 1.2s infinite;
+}
+@keyframes sg-blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+.sg-pulse-stat { font-size: .82rem; color: #e2e8f0; margin-bottom: .5rem; }
+.sg-pulse-stat strong { color: #a78bfa; }
+.sg-pulse-hud-q { font-size: .68rem; color: rgba(255,255,255,.35); line-height: 1.4; margin-bottom: .7rem; }
+.sg-pulse-close-btn {
+  background: rgba(239,68,68,.15); color: #f87171; border: 1px solid rgba(239,68,68,.3);
+  border-radius: 7px; padding: .38rem .9rem; font-size: .74rem; font-weight: 700;
+  cursor: pointer; width: 100%; transition: background .15s;
+}
+.sg-pulse-close-btn:hover { background: rgba(239,68,68,.28); }
+
 @media print {
   .sg-ai-banner   { display: none !important; }
   .sg-ai-results  { display: block !important; }
@@ -315,13 +362,41 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; colo
         <div class="sg-section-title"><i class="fas fa-hands-helping"></i> Activities</div>
         <div id="aiActivities" class="sg-activity-list"></div>
       </div>
+
+      <!-- Send as Pulse bar -->
+      <div id="sgPulseBar" class="sg-pulse-bar">
+        <div class="sg-pulse-bar-left">
+          <h4><i class="fas fa-bolt"></i> Send as Pulse Check</h4>
+          <p id="sgPulseBarDesc">Beam these questions live to your students</p>
+        </div>
+        <button id="sgPulseSendBtn" class="sg-pulse-send-btn" onclick="sendAsPulse()">
+          <i class="fas fa-paper-plane"></i> Launch Pulse
+        </button>
+      </div>
     </div>
   </div>
 </div><!-- /sg-body -->
 
+<!-- Pulse Live HUD -->
+<div id="sgPulseHud" class="sg-pulse-hud">
+  <h5><span class="sg-live-dot"></span>&nbsp;Pulse Live</h5>
+  <div class="sg-pulse-stat">Responded: <strong id="sgHudResponded">0</strong> / <strong id="sgHudTotal">—</strong></div>
+  <div class="sg-pulse-hud-q" id="sgHudQ1"></div>
+  <div class="sg-pulse-hud-q" id="sgHudQ2"></div>
+  <button class="sg-pulse-close-btn" onclick="closePulse()"><i class="fas fa-stop-circle"></i> Close Pulse</button>
+</div>
+
 <script>
 var CSRF_TOKEN = '{{ csrf_token }}';
 var GENERATE_URL = '{% url "teachers:presentation_study_guide" deck.pk %}';
+var PULSE_LAUNCH_URL = '{% url "teachers:presentation_pulse_launch" deck.pk %}';
+var HAS_CLASS = {{ deck.school_class_id|default:'null' }};
+
+var _pulseSessionId = null;
+var _pulseQuestions = null;
+var _pulseLiveUrl   = null;
+var _pulseCloseUrl  = null;
+var _pulsePollTimer = null;
 
 function generateAIGuide() {
   var btn = document.getElementById('aiGenBtn');
@@ -375,6 +450,7 @@ function renderAIGuide(d) {
 
   // Revision questions
   var qs = d.revision_questions || [];
+  _pulseQuestions = qs;  // save for pulse
   if (qs.length) {
     var html = qs.map(function(q, i) {
       var opts = '';
@@ -407,6 +483,14 @@ function renderAIGuide(d) {
     document.getElementById('aiActivitiesWrap').style.display = '';
   }
 
+  // Show pulse bar (if presentation has a class)
+  if (HAS_CLASS) {
+    var bar = document.getElementById('sgPulseBar');
+    bar.classList.add('visible');
+    var desc = document.getElementById('sgPulseBarDesc');
+    desc.textContent = 'Pick 2 T/F + 1 MCQ from your ' + qs.length + ' questions — beam them live to students';
+  }
+
   results.scrollIntoView({behavior: 'smooth', block: 'start'});
 }
 
@@ -419,6 +503,91 @@ function esc(s) {
   return String(s)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function sendAsPulse() {
+  if (!_pulseQuestions || !_pulseQuestions.length) return;
+
+  // Pick: 2 true_false for Q1/Q2, 1 mcq for Q3
+  var tfs  = _pulseQuestions.filter(function(q){ return q.type === 'true_false'; });
+  var mcqs = _pulseQuestions.filter(function(q){ return q.type === 'mcq'; });
+  var rest = _pulseQuestions.filter(function(q){ return q.type !== 'true_false' && q.type !== 'mcq'; });
+
+  var q1obj = tfs[0] || rest[0] || _pulseQuestions[0];
+  var q2obj = tfs[1] || tfs[0] || rest[1] || _pulseQuestions[1] || q1obj;
+  var q3obj = mcqs[0] || rest[0] || _pulseQuestions[2] || q1obj;
+
+  var q1    = (q1obj.question || '').replace(/true or false\??\s*/i, '').replace(/\?+$/, '').trim() + ' — True or False?';
+  var q2    = (q2obj.question || '').replace(/true or false\??\s*/i, '').replace(/\?+$/, '').trim() + ' — True or False?';
+  var q3    = q3obj.question || '';
+  var chips = (q3obj.options && q3obj.options.length) ? q3obj.options : [q3];
+
+  var btn = document.getElementById('sgPulseSendBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Launching…';
+
+  fetch(PULSE_LAUNCH_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN},
+    body: JSON.stringify({q1: q1, q2: q2, q3: q3, chips: chips})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if (!d.ok) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-paper-plane"></i> Launch Pulse';
+      alert(d.error || 'Could not launch pulse');
+      return;
+    }
+    _pulseSessionId = d.session_id;
+    _pulseLiveUrl   = d.live_url;
+    _pulseCloseUrl  = d.close_url;
+    btn.innerHTML = '<i class="fas fa-check"></i> Pulse Live!';
+    btn.style.background = '#16a34a';
+
+    // Show HUD
+    document.getElementById('sgHudTotal').textContent = d.total_students;
+    document.getElementById('sgHudQ1').textContent = 'Q1: ' + q1.substring(0, 80);
+    document.getElementById('sgHudQ2').textContent = 'Q2: ' + q2.substring(0, 80);
+    document.getElementById('sgPulseHud').classList.add('visible');
+
+    _pulsePollTimer = setInterval(pollPulse, 3000);
+  })
+  .catch(function(){
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Launch Pulse';
+    alert('Network error launching pulse');
+  });
+}
+
+function pollPulse() {
+  if (!_pulseLiveUrl) return;
+  fetch(_pulseLiveUrl)
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      document.getElementById('sgHudResponded').textContent = d.responded || 0;
+      if (d.status === 'closed') { clearInterval(_pulsePollTimer); }
+    })
+    .catch(function(){});
+}
+
+function closePulse() {
+  if (!_pulseCloseUrl) return;
+  clearInterval(_pulsePollTimer);
+  fetch(_pulseCloseUrl, {
+    method: 'POST',
+    headers: {'X-CSRFToken': CSRF_TOKEN},
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    document.getElementById('sgPulseHud').classList.remove('visible');
+    var btn = document.getElementById('sgPulseSendBtn');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Launch Pulse';
+    btn.style.background = '';
+    if (d.redirect) { window.open(d.redirect, '_blank'); }
+  })
+  .catch(function(){ document.getElementById('sgPulseHud').classList.remove('visible'); });
 }
 </script>
 

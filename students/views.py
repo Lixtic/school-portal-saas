@@ -2346,9 +2346,14 @@ def pulse_poll(request):
     if not student.current_class:
         return JsonResponse({'session': None})
 
+    from django.db.models import Q as _Q
     session = (
         PulseSession.objects
-        .filter(lesson_plan__school_class=student.current_class, status='active')
+        .filter(
+            _Q(lesson_plan__school_class=student.current_class) |
+            _Q(target_class=student.current_class),
+            status='active',
+        )
         .order_by('-created_at')
         .first()
     )
@@ -2367,10 +2372,18 @@ def pulse_poll(request):
     PulseResponse.objects.get_or_create(session=session, student=student)
     PulseResponse.objects.filter(session=session, student=student).update(is_typing=True)
 
+    # Resolve topic label for the overlay
+    if session.lesson_plan_id:
+        topic = session.lesson_plan.topic
+    elif session.presentation_id:
+        topic = session.presentation.title
+    else:
+        topic = 'Pulse Check'
+
     return JsonResponse({
         'session': {
             'id': session.pk,
-            'topic': session.lesson_plan.topic,
+            'topic': topic,
             'q1': session.q1_text,
             'q2': session.q2_text,
             'q3': session.q3_text,

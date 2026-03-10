@@ -4946,7 +4946,75 @@ def presentation_study_guide(request, pk):
 
 
 @login_required
-def presentation_export_pptx(request, pk):
+@require_POST
+def presentation_pulse_launch(request, pk):
+    """
+    Launch a Pulse Check session from AI-generated study guide questions.
+    POST JSON: {q1, q2, q3, chips: [...]}
+    Requires the presentation to have a school_class assigned.
+    """
+    import json as _json
+    from .models import Presentation
+    from academics.pulse_models import PulseSession
+
+    if request.user.user_type not in ('teacher', 'admin'):
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    teacher = get_object_or_404(Teacher, user=request.user)
+    deck = get_object_or_404(Presentation, pk=pk, teacher=teacher)
+
+    if not deck.school_class_id:
+        return JsonResponse(
+            {'error': 'This presentation has no class assigned. Edit the presentation to set a class first.'},
+            status=400)
+
+    try:
+        body = _json.loads(request.body)
+    except (ValueError, _json.JSONDecodeError):
+        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+
+    q1    = str(body.get('q1', '')).strip()[:500]
+    q2    = str(body.get('q2', '')).strip()[:500]
+    q3    = str(body.get('q3', '')).strip()[:500]
+    chips = body.get('chips', [])
+    if not isinstance(chips, list):
+        chips = []
+    chips = [str(c)[:200] for c in chips[:6]]
+
+    if not q1 or not q2 or not q3:
+        return JsonResponse({'error': 'q1, q2 and q3 are all required'}, status=400)
+
+    # Close any other active sessions targeting the same class
+    PulseSession.objects.filter(
+        target_class=deck.school_class, status='active'
+    ).update(status='closed')
+    PulseSession.objects.filter(
+        lesson_plan__school_class=deck.school_class, status='active'
+    ).update(status='closed')
+
+    session = PulseSession.objects.create(
+        lesson_plan=None,
+        presentation=deck,
+        target_class=deck.school_class,
+        teacher=teacher,
+        q1_text=q1,
+        q2_text=q2,
+        q3_text=q3,
+        q3_chips=chips or [q3],
+    )
+
+    script_name = request.META.get('SCRIPT_NAME', '').rstrip('/')
+    from django.urls import reverse
+    live_url  = script_name + reverse('teachers:pulse_live',  args=[session.pk])
+    close_url = script_name + reverse('teachers:pulse_close', args=[session.pk])
+
+    return JsonResponse({
+        'ok':             True,
+        'session_id':     session.pk,
+        'total_students': session.total_students,
+        'live_url':       live_url,
+        'close_url':      close_url,
+    })
     """Export a presentation deck as a .pptx file."""
     if request.user.user_type not in ('teacher', 'admin'):
         messages.error(request, 'Access denied.')
