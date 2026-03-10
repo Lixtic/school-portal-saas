@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ deck.title }}</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+
+/* ── themes ── */
+.theme-aurora   { background: linear-gradient(135deg,#1e0a40 0%,#0c1a4a 100%); }
+.theme-midnight { background: linear-gradient(135deg,#0f172a 0%,#1e1b4b 100%); }
+.theme-forest   { background: linear-gradient(135deg,#021d11 0%,#052e22 60%,#0a2e2b 100%); }
+.theme-coral    { background: linear-gradient(135deg,#3b0012 0%,#5a1200 60%,#7c1e00 100%); }
+.theme-slate    { background: linear-gradient(135deg,#0f1824 0%,#1e2d3d 100%); }
+.theme-ocean    { background: linear-gradient(135deg,#0c2d4e 0%,#0a4a6e 60%,#0e6088 100%); }
+.theme-amber    { background: linear-gradient(135deg,#431407 0%,#7c2d12 60%,#92400e 100%); }
+.theme-rose     { background: linear-gradient(135deg,#4c0519 0%,#831843 60%,#9d174d 100%); }
+
+/* ── ambient blobs ── */
+.ps-stage::before { content:''; position:absolute; inset:0; z-index:0; pointer-events:none; }
+.ps-stage.theme-aurora::before   { background: radial-gradient(ellipse 60% 40% at 10% 20%, rgba(167,139,250,.22) 0%, transparent 65%), radial-gradient(ellipse 50% 60% at 90% 80%, rgba(96,165,250,.14) 0%, transparent 65%); }
+.ps-stage.theme-midnight::before { background: radial-gradient(ellipse 60% 40% at 12% 20%, rgba(99,102,241,.18) 0%, transparent 65%), radial-gradient(ellipse 50% 60% at 88% 80%, rgba(139,92,246,.10) 0%, transparent 65%); }
+.ps-stage.theme-forest::before   { background: radial-gradient(ellipse 60% 45% at 10% 20%, rgba(52,211,153,.16) 0%, transparent 65%), radial-gradient(ellipse 45% 55% at 90% 80%, rgba(16,185,129,.08) 0%, transparent 65%); }
+.ps-stage.theme-coral::before    { background: radial-gradient(ellipse 60% 45% at 8% 15%, rgba(251,113,133,.20) 0%, transparent 65%), radial-gradient(ellipse 50% 60% at 92% 85%, rgba(245,158,11,.10) 0%, transparent 65%); }
+.ps-stage.theme-slate::before    { background: radial-gradient(ellipse 60% 40% at 10% 18%, rgba(148,163,184,.12) 0%, transparent 65%), radial-gradient(ellipse 50% 55% at 90% 82%, rgba(100,116,139,.08) 0%, transparent 65%); }
+.ps-stage.theme-ocean::before    { background: radial-gradient(ellipse 60% 45% at 8% 18%, rgba(56,189,248,.20) 0%, transparent 65%), radial-gradient(ellipse 50% 55% at 92% 82%, rgba(14,165,233,.12) 0%, transparent 65%); }
+.ps-stage.theme-amber::before    { background: radial-gradient(ellipse 60% 45% at 8% 15%, rgba(251,191,36,.18) 0%, transparent 65%), radial-gradient(ellipse 50% 60% at 92% 85%, rgba(245,158,11,.10) 0%, transparent 65%); }
+.ps-stage.theme-rose::before     { background: radial-gradient(ellipse 60% 45% at 8% 15%, rgba(251,113,133,.24) 0%, transparent 65%), radial-gradient(ellipse 50% 60% at 92% 85%, rgba(244,63,94,.14) 0%, transparent 65%); }
+
+.ps-stage { width:100vw; height:100vh; position:relative; overflow:hidden; }
+
+/* ── slides ── */
+.ps-slide { position:absolute; inset:0; z-index:1; display:none; flex-direction:column; animation:slideIn .3s ease; }
+.ps-slide.active { display:flex; }
+@keyframes slideIn { from { opacity:0; transform:translateX(30px); } to { opacity:1; transform:none; } }
+
+/* ── layouts ── */
+.sl-body { display:flex; flex-direction:column; width:100%; height:100%; }
+.layout-title { align-items:center; justify-content:center; text-align:center; padding:5vw; }
+.layout-title .sl-emoji { font-size:clamp(3rem,8vw,6rem); margin-bottom:.5rem; }
+.layout-title .sl-title { font-size:clamp(2.5rem,6vw,5rem); font-weight:900; color:#f1f5f9; line-height:1.1; letter-spacing:-.02em; }
+.layout-title .sl-sub   { margin-top:1rem; font-size:clamp(.9rem,2.3vw,1.6rem); color:rgba(255,255,255,.55); max-width:60%; }
+
+.layout-bullets { padding:5vw 6vw 4vw; }
+.layout-bullets .sl-title { font-size:clamp(2rem,4.5vw,3.5rem); font-weight:800; color:#f1f5f9; margin-bottom:.6em; }
+.layout-bullets .sl-bullets { list-style:none; display:flex; flex-direction:column; gap:.6em; flex:1; }
+.layout-bullets .sl-bullets li { display:flex; align-items:flex-start; gap:.6em; font-size:clamp(1rem,2.3vw,1.7rem); color:rgba(255,255,255,.85); line-height:1.4; }
+.layout-bullets .sl-bullets li::before { content:'▸'; color:#a78bfa; flex-shrink:0; margin-top:.15em; }
+
+.layout-summary { padding:5vw 6vw 4vw; }
+.layout-summary .sl-title { font-size:clamp(1.8rem,4vw,3rem); font-weight:800; color:#f1f5f9; margin-bottom:.6em; }
+.layout-summary .sl-bullets { list-style:none; display:grid; grid-template-columns:1fr 1fr; gap:.7em; flex:1; }
+.layout-summary .sl-bullets li { display:flex; align-items:flex-start; gap:.5em; font-size:clamp(.9rem,2vw,1.4rem); color:rgba(255,255,255,.85); padding:.7em 1em; background:rgba(255,255,255,.07); border-radius:12px; line-height:1.35; }
+.layout-summary .sl-bullets li::before { content:'✓'; color:#34d399; flex-shrink:0; }
+
+.layout-big_stat { align-items:center; justify-content:center; text-align:center; padding:5vw; }
+.layout-big_stat .sl-title { font-size:clamp(1.2rem,3vw,2rem); color:rgba(255,255,255,.55); text-transform:uppercase; letter-spacing:.12em; font-weight:700; }
+.layout-big_stat .sl-stat  { font-size:clamp(5rem,18vw,13rem); font-weight:900; line-height:1; background:linear-gradient(135deg,#a78bfa,#60a5fa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.layout-big_stat .sl-sub   { margin-top:.6rem; font-size:clamp(.8rem,2vw,1.3rem); color:rgba(255,255,255,.45); }
+
+.layout-quote { align-items:center; justify-content:center; text-align:center; padding:8vw; }
+.layout-quote .sl-quote  { font-size:clamp(1.4rem,4vw,3rem); color:#e0e7ff; font-style:italic; line-height:1.5; position:relative; }
+.layout-quote .sl-quote::before { content:'\201C'; font-size:6em; color:rgba(139,92,246,.25); position:absolute; top:-.3em; left:-.15em; font-style:normal; line-height:1; }
+.layout-quote .sl-author { margin-top:1.5rem; font-size:clamp(.8rem,1.8vw,1.1rem); color:rgba(255,255,255,.4); font-style:normal; }
+
+.layout-two_col { padding:4vw 5vw 3vw; }
+.layout-two_col .sl-title { font-size:clamp(1.8rem,4vw,3rem); font-weight:800; color:#f1f5f9; margin-bottom:.5em; }
+.layout-two_col .sl-cols { display:grid; grid-template-columns:1fr 1fr; gap:2em; flex:1; }
+.layout-two_col .sl-col { background:rgba(255,255,255,.06); border-radius:16px; padding:1.2em; }
+.layout-two_col .sl-col-item { font-size:clamp(.9rem,2vw,1.4rem); color:rgba(255,255,255,.85); padding:.3em 0; display:flex; align-items:flex-start; gap:.5em; }
+.layout-two_col .sl-col-item::before { content:'•'; color:#a78bfa; flex-shrink:0; }
+
+.layout-image { padding:4vw 5vw 3vw; }
+.layout-image .sl-title { font-size:clamp(1.8rem,4vw,3rem); font-weight:800; color:#f1f5f9; margin-bottom:.5em; }
+.layout-image .sl-image-wrap { flex:1; display:flex; align-items:center; justify-content:center; min-height:0; overflow:hidden; }
+.layout-image .sl-image { max-width:100%; max-height:100%; object-fit:contain; border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,.35); }
+.layout-image .sl-caption { font-size:clamp(.8rem,1.8vw,1.2rem); color:rgba(255,255,255,.45); margin-top:.5em; text-align:center; }
+
+.layout-poll, .layout-quiz { padding:4vw 5vw 3vw; }
+.sl-poll-question, .sl-quiz-question { font-size:clamp(1.5rem,3.5vw,2.8rem); font-weight:800; color:#f1f5f9; margin-bottom:.6em; }
+.sl-poll-opts, .sl-quiz-opts { display:flex; flex-direction:column; gap:.5em; flex:1; }
+.sl-poll-opt, .sl-quiz-opt { display:flex; align-items:center; gap:.7em; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); border-radius:12px; padding:.6em 1em; font-size:clamp(1rem,2.2vw,1.5rem); color:#e2e8f0; }
+.sl-poll-letter, .sl-quiz-letter { font-weight:800; font-size:1.2em; color:#93c5fd; min-width:1.4em; text-align:center; }
+.sl-poll-text, .sl-quiz-text { flex:1; }
+
+/* ── controls ── */
+.ps-controls {
+  position:fixed; bottom:14px; left:50%; transform:translateX(-50%); z-index:100;
+  display:flex; align-items:center; gap:10px;
+  background:rgba(15,23,42,.75); backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.1); border-radius:30px; padding:6px 14px;
+  opacity:0; transition:opacity .3s;
+}
+.ps-stage:hover .ps-controls { opacity:1; }
+.ps-ctrl-btn { background:none; border:none; color:#94a3b8; cursor:pointer; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.85rem; transition:background .15s; }
+.ps-ctrl-btn:hover { background:rgba(255,255,255,.1); color:#f1f5f9; }
+.ps-counter { font-size:.8rem; color:#64748b; min-width:44px; text-align:center; font-weight:700; }
+
+/* ── progress bar ── */
+.ps-progress { position:fixed; bottom:0; left:0; width:100%; height:4px; z-index:99; background:rgba(255,255,255,.08); }
+.ps-progress-fill { height:100%; background:linear-gradient(90deg,#7c3aed,#2563eb); transition:width .3s; }
+
+/* ── shared badge ── */
+.share-badge {
+  position:fixed; top:12px; left:50%; transform:translateX(-50%); z-index:200;
+  background:rgba(15,23,42,.75); backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.1); border-radius:20px;
+  padding:5px 14px; font-size:.7rem; color:rgba(255,255,255,.45);
+  display:flex; align-items:center; gap:6px;
+  opacity:0; transition:opacity .3s; pointer-events:none;
+}
+.ps-stage:hover .share-badge { opacity:1; }
+</style>
+</head>
+<body>
+
+<div class="ps-stage theme-{{ deck.theme }}" id="stage">
+
+  <!-- shared badge -->
+  <div class="share-badge">
+    <i class="fas fa-share-alt"></i>
+    {{ deck.title }}{% if deck.subject %} &middot; {{ deck.subject.name }}{% endif %}
+  </div>
+
+  <!-- slides -->
+  {% for slide in slides %}
+  <div class="ps-slide{% if forloop.first %} active{% endif %}" data-order="{{ slide.order }}">
+    {% include "teachers/presentations/_slide_render.html" with slide=slide %}
+  </div>
+  {% empty %}
+  <div class="ps-slide active" style="display:flex;align-items:center;justify-content:center;">
+    <div style="text-align:center;color:rgba(255,255,255,.3);">
+      <i class="fas fa-layer-group" style="font-size:4rem;margin-bottom:1rem;display:block;"></i>
+      No slides in this deck.
+    </div>
+  </div>
+  {% endfor %}
+
+  <!-- controls -->
+  <div class="ps-controls">
+    <button class="ps-ctrl-btn" id="prevBtn" title="Previous (←)"><i class="fas fa-chevron-left"></i></button>
+    <span class="ps-counter" id="counter">1 / {{ slides|length }}</span>
+    <button class="ps-ctrl-btn" id="nextBtn" title="Next (→)"><i class="fas fa-chevron-right"></i></button>
+  </div>
+
+  <!-- progress -->
+  <div class="ps-progress"><div class="ps-progress-fill" id="progressFill"></div></div>
+
+</div>
+
+<script>
+(function(){
+  const slides = document.querySelectorAll('.ps-slide');
+  const total  = slides.length;
+  let   cur    = 0;
+
+  function go(n) {
+    if (n < 0 || n >= total) return;
+    slides[cur].classList.remove('active');
+    cur = n;
+    slides[cur].classList.add('active');
+    document.getElementById('counter').textContent = (cur+1) + ' / ' + total;
+    document.getElementById('progressFill').style.width = ((cur+1)/total*100) + '%';
+  }
+
+  document.getElementById('prevBtn').addEventListener('click', () => go(cur-1));
+  document.getElementById('nextBtn').addEventListener('click', () => go(cur+1));
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') go(cur+1);
+    if (e.key === 'ArrowLeft')                   go(cur-1);
+  });
+
+  // Init progress bar
+  go(0);
+})();
+</script>
+</body>
+</html>

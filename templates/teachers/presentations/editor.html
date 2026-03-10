@@ -627,7 +627,7 @@ html, body { height: 100%; margin: 0; }
             <i class="fas fa-magic me-1"></i> Generate AI Image
           </button>
           <div id="imgGenStatus" style="font-size:.7rem;color:#94a3b8;margin-top:.4rem;display:none;"></div>
-          <div style="font-size:.65rem;color:#475569;margin-top:.5rem;">Or paste an image URL:</div>
+          <div style="font-size:.65rem;color:#475569;margin-top:.5rem;display:flex;align-items:center;justify-content:space-between;">Or paste an image URL: <label title="Upload from disk" style="cursor:pointer;color:#94a3b8;font-size:.7rem;"><i class="fas fa-upload me-1"></i>Upload<input type="file" id="imgFileInput" accept="image/*" style="display:none;"></label></div>
           <input type="text" class="gm-field" id="imageUrlInput" placeholder="https://…" style="margin-top:4px;" oninput="saveImageUrl()">
         </div>
         <div class="gm-panel-section" id="pollSection" style="display:none">
@@ -1654,6 +1654,45 @@ function saveImageUrl() {
   }, 800);
 }
 
+function bindImgUpload() {
+  var inp = document.getElementById('imgFileInput');
+  if (!inp || inp._bound) return;
+  inp._bound = true;
+  inp.addEventListener('change', function() {
+    var file = this.files[0];
+    if (!file) return;
+    var fd = new FormData();
+    fd.append('image', file);
+    var status = document.getElementById('imgGenStatus');
+    status.textContent = 'Uploading…';
+    status.style.display = 'block';
+    fetch("{% url 'teachers:presentation_slide_image_upload' %}", {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken },
+      body: fd
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      if (data.url) {
+        var slide = slides.find(function(s) { return s.id == currentSlideId; });
+        if (slide) {
+          slide.image_url = data.url;
+          document.getElementById('imageUrlInput').value = data.url;
+          refreshCanvasSlide(slide);
+          var imgPreview = document.getElementById('slideImgPreview');
+          var imgTag = document.getElementById('slideImgTag');
+          if (imgPreview && imgTag) { imgPreview.style.display = 'block'; imgTag.src = data.url; }
+          api({ action: 'save_slide', slide_id: currentSlideId, image_url: data.url })
+            .then(function() { setSaveStatus('saved', '✓ All changes saved'); });
+        }
+        status.style.display = 'none';
+      } else {
+        status.textContent = data.error || 'Upload failed';
+      }
+    }).catch(function() { status.textContent = 'Upload failed'; });
+    this.value = '';
+  });
+}
+bindImgUpload();
+
 function saveQuizAnswer() {
   var slide = slides.find(function(s) { return s.id == currentSlideId; });
   if (!slide) return;
@@ -1741,7 +1780,7 @@ function buildPanelHTML() {
       <i class="fas fa-magic me-1"></i> Generate AI Image
     </button>
     <div id="imgGenStatus" style="font-size:.7rem;color:#94a3b8;margin-top:.4rem;display:none;"></div>
-    <div style="font-size:.65rem;color:#475569;margin-top:.5rem;">Or paste an image URL:</div>
+    <div style="font-size:.65rem;color:#475569;margin-top:.5rem;display:flex;align-items:center;justify-content:space-between;">Or paste an image URL: <label title="Upload from disk" style="cursor:pointer;color:#94a3b8;font-size:.7rem;"><i class="fas fa-upload me-1"></i>Upload<input type="file" id="imgFileInput" accept="image/*" style="display:none;"></label></div>
     <input type="text" class="gm-field" id="imageUrlInput" placeholder="https://…" style="margin-top:4px;" oninput="saveImageUrl()">
   </div>
   <div class="gm-panel-section" id="pollSection" style="display:none">
@@ -1769,7 +1808,7 @@ function buildPanelHTML() {
   <button class="delete-slide-btn" onclick="deleteCurrentSlide()"><i class="fas fa-trash me-1"></i> Delete Slide</button>`;
 }
 
-function rebindPanelEvents() { /* events are inline onclick, nothing extra needed */ }
+function rebindPanelEvents() { bindImgUpload(); }
 
 // ── Duplicate current slide ───────────────────────────────────────────
 function duplicateCurrentSlide() {

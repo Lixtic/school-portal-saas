@@ -1,4 +1,5 @@
 # teachers/models.py
+import uuid
 from django.db import models
 from accounts.models import User
 
@@ -143,6 +144,7 @@ class Presentation(models.Model):
     subject      = models.ForeignKey('academics.Subject', on_delete=models.SET_NULL, null=True, blank=True)
     school_class = models.ForeignKey('academics.Class',   on_delete=models.SET_NULL, null=True, blank=True)
     theme        = models.CharField(max_length=20, choices=THEME_CHOICES, default='aurora')
+    share_token  = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     created_at   = models.DateTimeField(auto_now_add=True)
     updated_at   = models.DateTimeField(auto_now=True)
 

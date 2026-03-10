@@ -1,0 +1,393 @@
+{% extends "base.html" %}
+{% block title %}Session Analytics — {{ deck.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+  --sr-bg:      #f8fafc;
+  --sr-card:    #ffffff;
+  --sr-border:  #e2e8f0;
+  --sr-text:    #0f172a;
+  --sr-muted:   #64748b;
+  --sr-accent:  #7c3aed;
+}
+[data-bs-theme="dark"] {
+  --sr-bg:     #0f172a;
+  --sr-card:   #1e293b;
+  --sr-border: rgba(255,255,255,.08);
+  --sr-text:   #f1f5f9;
+  --sr-muted:  #94a3b8;
+}
+body { background: var(--sr-bg); }
+
+.sr-header {
+  background: linear-gradient(135deg,#4c1d95 0%,#1e40af 100%);
+  padding: 2rem 2rem 1.5rem;
+  color: #fff;
+  border-radius: 0 0 20px 20px;
+  margin-bottom: 2rem;
+}
+.sr-header h1 { font-size: 1.5rem; font-weight: 800; margin: 0; }
+.sr-header p  { opacity: .75; font-size: .85rem; margin: .3rem 0 0; }
+
+.session-card {
+  background: var(--sr-card);
+  border: 1px solid var(--sr-border);
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+.session-card-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.session-code {
+  font-family: monospace;
+  font-size: 1.1rem;
+  font-weight: 800;
+  background: rgba(124,58,237,.12);
+  color: var(--sr-accent);
+  padding: .3rem .7rem;
+  border-radius: 8px;
+  letter-spacing: 1px;
+}
+.session-meta { font-size: .82rem; color: var(--sr-muted); }
+.badge-ended {
+  background: rgba(100,116,139,.15);
+  color: var(--sr-muted);
+  border-radius: 20px;
+  padding: .2rem .6rem;
+  font-size: .75rem;
+  font-weight: 600;
+}
+.badge-active {
+  background: rgba(16,185,129,.15);
+  color: #059669;
+  border-radius: 20px;
+  padding: .2rem .6rem;
+  font-size: .75rem;
+  font-weight: 600;
+}
+
+.poll-slide-block {
+  background: rgba(124,58,237,.05);
+  border: 1px solid rgba(124,58,237,.12);
+  border-radius: 10px;
+  padding: .9rem 1rem;
+  margin-top: .9rem;
+}
+.poll-slide-title {
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--sr-text);
+  margin-bottom: .7rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.choice-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.choice-label {
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--sr-accent);
+  color: #fff;
+  border-radius: 6px;
+  font-size: .72rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.choice-bar-wrap { flex: 1; background: var(--sr-border); border-radius: 4px; height: 12px; overflow: hidden; }
+.choice-bar { height: 100%; background: var(--sr-accent); border-radius: 4px; transition: width .4s; }
+.choice-bar.leading { background: #059669; }
+.choice-count { font-size: .75rem; font-weight: 700; color: var(--sr-text); min-width: 24px; text-align: right; }
+
+.empty-state {
+  text-align: center; padding: 4rem 1rem;
+  color: var(--sr-muted);
+}
+.empty-state i { font-size: 3rem; opacity: .3; display: block; margin-bottom: 1rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:900px;margin:0 auto;">
+
+  <div class="sr-header d-flex align-items-start justify-content-between flex-wrap gap-3">
+    <div>
+      <h1><i class="fas fa-chart-bar me-2"></i>Session Analytics</h1>
+      <p>{{ deck.title }}{% if deck.subject %} &bull; {{ deck.subject.name }}{% endif %}{% if deck.school_class %} &bull; {{ deck.school_class.name }}{% endif %}</p>
+    </div>
+    <a href="{% url 'teachers:presentation_editor' deck.pk %}" class="btn btn-light btn-sm fw-bold">
+      <i class="fas fa-arrow-left me-1"></i> Back to Editor
+    </a>
+  </div>
+
+  <div style="padding:0 1rem 3rem;">
+
+    {% if session_data %}
+      <p class="text-muted mb-3" style="font-size:.85rem;">
+        {{ session_data|length }} live session{{ session_data|length|pluralize }} recorded for this deck.
+      </p>
+
+      {% for entry in session_data %}
+      <div class="session-card">
+        <div class="session-card-header">
+          <span class="session-code">{{ entry.session.code }}</span>
+          {% if entry.session.is_active %}
+            <span class="badge-active"><i class="fas fa-circle me-1" style="font-size:.55rem;"></i>Live</span>
+          {% else %}
+            <span class="badge-ended"><i class="fas fa-circle me-1" style="font-size:.55rem;"></i>Ended</span>
+          {% endif %}
+          <span class="session-meta">
+            <i class="fas fa-users me-1"></i>{{ entry.participants }} participant{{ entry.participants|pluralize }}
+          </span>
+          <span class="session-meta ms-auto">
+            <i class="fas fa-clock me-1"></i>{{ entry.session.created_at|date:"M j, Y · g:i A" }}
+          </span>
+        </div>
+
+        {% if entry.slide_stats %}
+          {% for stat in entry.slide_stats %}
+          <div class="poll-slide-block">
+            <div class="poll-slide-title">
+              {% if stat.slide.layout == 'quiz' %}
+                <i class="fas fa-question-circle"></i>
+              {% else %}
+                <i class="fas fa-poll"></i>
+              {% endif %}
+              {{ stat.slide.title|default:"Untitled slide" }}
+              <span style="margin-left:auto;font-weight:400;color:var(--sr-muted);">{{ stat.total }} vote{{ stat.total|pluralize }}</span>
+            </div>
+            {% for choice in stat.choices %}
+            <div class="choice-row">
+              <span class="choice-label">{{ choice.letter }}</span>
+              <div class="choice-bar-wrap">
+                <div class="choice-bar {% if stat.leading == choice.letter %}leading{% endif %}"
+                     style="width:{{ choice.pct }}%"></div>
+              </div>
+              <span class="choice-count">{{ choice.count }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          {% endfor %}
+        {% else %}
+          <p class="text-muted mt-2 mb-0" style="font-size:.83rem;">
+            <i class="fas fa-info-circle me-1"></i>No poll or quiz votes recorded for this session.
+          </p>
+        {% endif %}
+      </div>
+      {% endfor %}
+
+    {% else %}
+      <div class="empty-state">
+        <i class="fas fa-broadcast-tower"></i>
+        <h3 style="color:var(--sr-text);font-weight:700;">No live sessions yet</h3>
+        <p>Start a live session from the presenter view to track student engagement and poll results here.</p>
+        <a href="{% url 'teachers:presentation_present' deck.pk %}" class="btn btn-primary mt-2">
+          <i class="fas fa-play me-1"></i> Start Presenting
+        </a>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+  --sr-bg:      #f8fafc;
+  --sr-card:    #ffffff;
+  --sr-border:  #e2e8f0;
+  --sr-text:    #0f172a;
+  --sr-muted:   #64748b;
+  --sr-accent:  #7c3aed;
+}
+[data-bs-theme="dark"] {
+  --sr-bg:     #0f172a;
+  --sr-card:   #1e293b;
+  --sr-border: rgba(255,255,255,.08);
+  --sr-text:   #f1f5f9;
+  --sr-muted:  #94a3b8;
+}
+body { background: var(--sr-bg); }
+
+.sr-header {
+  background: linear-gradient(135deg,#4c1d95 0%,#1e40af 100%);
+  padding: 2rem 2rem 1.5rem;
+  color: #fff;
+  border-radius: 0 0 20px 20px;
+  margin-bottom: 2rem;
+}
+.sr-header h1 { font-size: 1.5rem; font-weight: 800; margin: 0; }
+.sr-header p  { opacity: .75; font-size: .85rem; margin: .3rem 0 0; }
+
+.session-card {
+  background: var(--sr-card);
+  border: 1px solid var(--sr-border);
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+.session-card-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.session-code {
+  font-family: monospace;
+  font-size: 1.1rem;
+  font-weight: 800;
+  background: rgba(124,58,237,.12);
+  color: var(--sr-accent);
+  padding: .3rem .7rem;
+  border-radius: 8px;
+  letter-spacing: 1px;
+}
+.session-meta { font-size: .82rem; color: var(--sr-muted); }
+.badge-ended {
+  background: rgba(100,116,139,.15);
+  color: var(--sr-muted);
+  border-radius: 20px;
+  padding: .2rem .6rem;
+  font-size: .75rem;
+  font-weight: 600;
+}
+.badge-active {
+  background: rgba(16,185,129,.15);
+  color: #059669;
+  border-radius: 20px;
+  padding: .2rem .6rem;
+  font-size: .75rem;
+  font-weight: 600;
+}
+
+/* Poll bar chart */
+.poll-slide-block {
+  background: rgba(124,58,237,.05);
+  border: 1px solid rgba(124,58,237,.12);
+  border-radius: 10px;
+  padding: .9rem 1rem;
+  margin-top: .9rem;
+}
+.poll-slide-title {
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--sr-text);
+  margin-bottom: .7rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.choice-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.choice-label {
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--sr-accent);
+  color: #fff;
+  border-radius: 6px;
+  font-size: .72rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.choice-bar-wrap { flex: 1; background: var(--sr-border); border-radius: 4px; height: 12px; overflow: hidden; }
+.choice-bar { height: 100%; background: var(--sr-accent); border-radius: 4px; transition: width .4s; }
+.choice-bar.leading { background: #059669; }
+.choice-count { font-size: .75rem; font-weight: 700; color: var(--sr-text); min-width: 24px; text-align: right; }
+
+.empty-state {
+  text-align: center; padding: 4rem 1rem;
+  color: var(--sr-muted);
+}
+.empty-state i { font-size: 3rem; opacity: .3; display: block; margin-bottom: 1rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:900px;margin:0 auto;">
+
+  <div class="sr-header d-flex align-items-start justify-content-between flex-wrap gap-3">
+    <div>
+      <h1><i class="fas fa-chart-bar me-2"></i>Session Analytics</h1>
+      <p>{{ deck.title }}{% if deck.subject %} &bull; {{ deck.subject.name }}{% endif %}{% if deck.school_class %} &bull; {{ deck.school_class.name }}{% endif %}</p>
+    </div>
+    <a href="{% url 'teachers:presentation_editor' deck.pk %}" class="btn btn-light btn-sm fw-bold">
+      <i class="fas fa-arrow-left me-1"></i> Back to Editor
+    </a>
+  </div>
+
+  <div style="padding:0 1rem 3rem;">
+
+    {% if session_data %}
+      <p class="text-muted mb-3" style="font-size:.85rem;">
+        {{ session_data|length }} live session{{ session_data|length|pluralize }} recorded for this deck.
+      </p>
+
+      {% for entry in session_data %}
+      <div class="session-card">
+        <div class="session-card-header">
+          <span class="session-code">{{ entry.session.code }}</span>
+          {% if entry.session.is_active %}
+            <span class="badge-active"><i class="fas fa-circle me-1" style="font-size:.55rem;"></i>Live</span>
+          {% else %}
+            <span class="badge-ended"><i class="fas fa-circle me-1" style="font-size:.55rem;"></i>Ended</span>
+          {% endif %}
+          <span class="session-meta">
+            <i class="fas fa-users me-1"></i>{{ entry.participants }} participant{{ entry.participants|pluralize }}
+          </span>
+          <span class="session-meta ms-auto">
+            <i class="fas fa-clock me-1"></i>{{ entry.session.created_at|date:"M j, Y · g:i A" }}
+          </span>
+        </div>
+
+        {% if entry.slide_stats %}
+          {% for stat in entry.slide_stats %}
+          <div class="poll-slide-block">
+            <div class="poll-slide-title">
+              {% if stat.slide.layout == 'quiz' %}<i class="fas fa-question-circle"></i>{% else %}<i class="fas fa-poll"></i>{% endif %}
+              {{ stat.slide.title|default:"Untitled slide" }}
+              <span style="margin-left:auto;font-weight:400;color:var(--sr-muted);">{{ stat.total }} vote{{ stat.total|pluralize }}</span>
+            </div>
+            {% for letter in "ABCD" %}
+            {% with count=stat.counts|default_if_none:0 %}
+            <div class="choice-row">
+              <span class="choice-label">{{ letter }}</span>
+              <div class="choice-bar-wrap">
+                {% if stat.total %}
+                  <div class="choice-bar {% if stat.leading == letter %}leading{% endif %}"
+                     style="width:{% widthratio stat.counts|get_item:letter stat.total 100 %}%"></div>
+                {% else %}
+                  <div class="choice-bar" style="width:0%"></div>
+                {% endif %}
+              </div>
+              <span class="choice-count">{{ stat.counts|get_item:letter }}</span>
+            </div>
+            {% endwith %}
+            {% endfor %}
+          </div>
+          {% endfor %}
+        {% else %}
+          <p class="text-muted mt-2 mb-0" style="font-size:.83rem;">
+            <i class="fas fa-info-circle me-1"></i>No poll or quiz votes recorded for this session.
+          </p>
+        {% endif %}
+      </div>
+      {% endfor %}
+
+    {% else %}
+      <div class="empty-state">
+        <i class="fas fa-broadcast-tower"></i>
+        <h3 style="color:var(--sr-text);font-weight:700;">No live sessions yet</h3>
+        <p>Start a live session from the presenter view to track student engagement and poll results here.</p>
+        <a href="{% url 'teachers:presentation_present' deck.pk %}" class="btn btn-primary mt-2">
+          <i class="fas fa-play me-1"></i> Start Presenting
+        </a>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

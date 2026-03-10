@@ -144,6 +144,8 @@ body { background: var(--gm-bg); }
         <form method="post" action="{% url 'teachers:presentation_duplicate' deck.pk %}" style="display:contents;">{% csrf_token %}
           <button type="submit" class="deck-act-btn"><i class="fas fa-copy me-1"></i>Copy</button>
         </form>
+        <a href="{% url 'teachers:presentation_session_report' deck.pk %}" class="deck-act-btn"><i class="fas fa-chart-bar me-1"></i>Sessions</a>
+        <button type="button" class="deck-act-btn" onclick="copyShareLink('{{ request.scheme }}://{{ request.get_host }}{% url 'teachers:presentation_share' deck.share_token %}')"><i class="fas fa-share-alt me-1"></i>Share</button>
         <a href="{% url 'teachers:presentation_delete' deck.pk %}" class="deck-act-btn danger"><i class="fas fa-trash me-1"></i>Delete</a>
       </div>
     </div>
@@ -160,4 +162,19 @@ body { background: var(--gm-bg); }
   </div>
 
 </div>
+
+<div id="shareToast" style="display:none;position:fixed;bottom:1.5rem;right:1.5rem;background:#7c3aed;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-size:.85rem;z-index:9999;box-shadow:0 4px 18px rgba(0,0,0,.25);">
+  <i class="fas fa-check me-1"></i> Share link copied!
+</div>
+
+{% block extra_js %}
+<script>
+function copyShareLink(url) {
+  navigator.clipboard.writeText(url).then(function() {
+    var t = document.getElementById('shareToast');
+    t.style.display = 'block';
+    setTimeout(function() { t.style.display = 'none'; }, 2200);
+  });
+}
+</script>
 {% endblock %}

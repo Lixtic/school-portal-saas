@@ -4719,3 +4719,110 @@ def presentation_lesson_plans(request):
         'class_name': p.school_class.name if p.school_class else '',
     } for p in plans]
     return JsonResponse({'plans': data})
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SLIDE DECK v1.9 — Session Analytics, Share Links, Image Upload
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@login_required
+def presentation_session_report(request, pk):
+    """Post-session analytics: all past live sessions for a deck with per-slide poll results."""
+    if request.user.user_type not in ('teacher', 'admin'):
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    teacher = get_object_or_404(Teacher, user=request.user)
+    from .models import Presentation, LiveSession, PollResponse
+
+    deck = get_object_or_404(Presentation, pk=pk, teacher=teacher)
+    sessions = (
+        LiveSession.objects.filter(presentation=deck)
+        .prefetch_related('responses__slide')
+        .order_by('-created_at')
+    )
+
+    # Build per-session analytics
+    session_data = []
+    for sess in sessions:
+        participants = sess.responses.values('student_name').distinct().count()
+        # Poll slides that received at least one vote
+        slide_stats = []
+        slide_ids_with_votes = (
+            sess.responses.values_list('slide_id', flat=True).distinct()
+        )
+        for slide_id in slide_ids_with_votes:
+            slide = sess.presentation.slides.filter(pk=slide_id).first()
+            if not slide or slide.layout not in ('poll', 'quiz'):
+                continue
+            counts = {'A': 0, 'B': 0, 'C': 0, 'D': 0}
+            for resp in sess.responses.filter(slide_id=slide_id):
+                if resp.choice in counts:
+                    counts[resp.choice] += 1
+            total = sum(counts.values())
+            leading = max(counts, key=counts.get) if total else None
+            slide_stats.append({
+                'slide': slide,
+                'total': total,
+                'leading': leading,
+                'choices': [
+                    {
+                        'letter': letter,
+                        'count': counts[letter],
+                        'pct': round(counts[letter] / total * 100) if total else 0,
+                    }
+                    for letter in 'ABCD'
+                ],
+            })
+        session_data.append({
+            'session': sess,
+            'participants': participants,
+            'slide_stats': slide_stats,
+        })
+
+    return render(request, 'teachers/presentations/session_report.html', {
+        'deck': deck,
+        'session_data': session_data,
+    })
+
+
+def presentation_share(request, token):
+    """Public read-only slideshow view — no login required."""
+    from .models import Presentation
+    deck = get_object_or_404(Presentation, share_token=token)
+    slides = list(deck.slides.all())
+    return render(request, 'teachers/presentations/share_view.html', {
+        'deck': deck,
+        'slides': slides,
+    })
+
+
+@login_required
+@require_POST
+def presentation_slide_image_upload(request):
+    """Accept a multipart image upload and return its served URL."""
+    if request.user.user_type not in ('teacher', 'admin'):
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    image_file = request.FILES.get('image')
+    if not image_file:
+        return JsonResponse({'error': 'No image provided'}, status=400)
+
+    # Validate content type
+    allowed_types = ('image/jpeg', 'image/png', 'image/gif', 'image/webp')
+    if image_file.content_type not in allowed_types:
+        return JsonResponse({'error': 'Invalid file type. Only JPEG, PNG, GIF and WebP are accepted.'}, status=400)
+
+    # Limit to 5 MB
+    if image_file.size > 5 * 1024 * 1024:
+        return JsonResponse({'error': 'File too large. Maximum size is 5 MB.'}, status=400)
+
+    import os
+    import uuid as _uuid
+    from django.core.files.storage import default_storage
+    from django.core.files.base import ContentFile
+
+    ext = os.path.splitext(image_file.name)[1].lower() or '.jpg'
+    filename = f"slide_images/{_uuid.uuid4().hex}{ext}"
+    path = default_storage.save(filename, ContentFile(image_file.read()))
+    url = request.build_absolute_uri(default_storage.url(path))
+    return JsonResponse({'url': url})
