@@ -4211,6 +4211,45 @@ def presentation_api(request):
         result = AuraGenEngine.suggest_slide_bullets(title, subject_name)
         return JsonResponse({'ok': True, 'bullets': result.get('bullets', [])})
 
+    # ── suggest_layouts ──────────────────────────────────────────────────────
+    elif action == 'suggest_layouts':
+        slides_qs = deck.slides.order_by('order')
+        slides_data = [
+            {'slide_id': s.pk, 'order': s.order, 'title': s.title, 'content': s.content}
+            for s in slides_qs
+        ]
+        if not slides_data:
+            return JsonResponse({'error': 'No slides in deck.'}, status=400)
+        from teachers.services.aura_gen_engine import AuraGenEngine
+        result = AuraGenEngine.suggest_slide_layouts(slides_data)
+        updates = result.get('updates', [])
+        with transaction.atomic():
+            for upd in updates:
+                sid    = upd.get('slide_id')
+                layout = upd.get('layout', '')
+                if sid and layout:
+                    Slide.objects.filter(pk=sid, presentation=deck).update(layout=layout)
+            deck.save()
+        return JsonResponse({'ok': True, 'updates': updates, 'count': len(updates)})
+
+    # ── harmonize_deck ──────────────────────────────────────────────────────
+    elif action == 'harmonize_deck':
+        slides_qs = deck.slides.order_by('order')
+        slides_data = [
+            {'slide_id': s.pk, 'title': s.title, 'content': s.content}
+            for s in slides_qs
+        ]
+        if not slides_data:
+            return JsonResponse({'error': 'No slides in deck.'}, status=400)
+        from teachers.services.aura_gen_engine import AuraGenEngine
+        result = AuraGenEngine.harmonize_deck(slides_data)
+        # Return updates for frontend preview/confirmation — user applies explicitly
+        return JsonResponse({
+            'ok':      True,
+            'updates': result.get('updates', []),
+            'summary': result.get('summary', ''),
+        })
+
     return JsonResponse({'error': f'Unknown action: {action}'}, status=400)
 
 
@@ -4294,6 +4333,120 @@ def presentation_generate_from_doc(request):
                 'emoji':         slide.emoji,
                 'speaker_notes': slide.speaker_notes,
             })
+        deck.save()
+
+    return JsonResponse({
+        'ok':         True,
+        'slides':     created,
+        'deck_title': deck.title,
+        'activities': result.get('activities', []),
+    })
+
+
+@login_required
+def presentation_from_youtube(request):
+    """
+    POST JSON: {deck_id: int, youtube_url: str}
+    Extracts a YouTube transcript, then generates a slide deck via AuraGenEngine.
+    """
+    import json as _json
+    import re
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    if request.user.user_type not in ('teacher', 'admin'):
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    try:
+        body = _json.loads(request.body)
+    except (ValueError, _json.JSONDecodeError):
+        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+
+    teacher  = get_object_or_404(Teacher, user=request.user)
+    deck_id  = body.get('deck_id')
+    yt_url   = (body.get('youtube_url') or '').strip()
+
+    if not deck_id or not yt_url:
+        return JsonResponse({'error': 'deck_id and youtube_url are required'}, status=400)
+
+    deck = get_object_or_404(Presentation, pk=deck_id, teacher=teacher)
+
+    # Extract video ID from standard URLs, shortened links, and Shorts
+    m = re.search(r'(?:v=|youtu\.be/|shorts/|embed/)([a-zA-Z0-9_-]{11})', yt_url)
+    if not m:
+        return JsonResponse(
+            {'error': 'Could not read video ID from URL. Paste a standard YouTube link.'},
+            status=400,
+        )
+    video_id = m.group(1)
+
+    # Fetch transcript
+    try:
+        from youtube_transcript_api import (
+            YouTubeTranscriptApi,
+            TranscriptsDisabled,
+            NoTranscriptFound,
+        )
+        entries = YouTubeTranscriptApi.get_transcript(video_id)
+        transcript_text = ' '.join(e['text'] for e in entries)
+    except TranscriptsDisabled:
+        return JsonResponse(
+            {'error': 'This video has transcripts disabled. Try a different video.'},
+            status=400,
+        )
+    except NoTranscriptFound:
+        return JsonResponse(
+            {'error': 'No transcript found for this video (it may not have captions).'},
+            status=400,
+        )
+    except Exception as exc:
+        return JsonResponse({'error': f'Could not fetch transcript: {exc}'}, status=400)
+
+    if len(transcript_text.strip()) < 100:
+        return JsonResponse({'error': 'Transcript too short to generate slides.'}, status=400)
+
+    # Best-effort fetch of video title
+    import html as _html
+    import requests as _req
+    video_title = f'YouTube Video'
+    try:
+        resp = _req.get(
+            f'https://www.youtube.com/watch?v={video_id}',
+            headers={'User-Agent': 'Mozilla/5.0'},
+            timeout=6,
+        )
+        tm = re.search(r'<title>(.*?) - YouTube</title>', resp.text)
+        if tm:
+            video_title = _html.unescape(tm.group(1))
+    except Exception:
+        pass
+
+    # Generate slides from transcript
+    from teachers.services.aura_gen_engine import AuraGenEngine
+    from django.db import transaction
+    result     = AuraGenEngine.generate_slides_from_document(transcript_text, video_title)
+    raw_slides = result.get('slides', [])
+
+    with transaction.atomic():
+        deck.slides.all().delete()
+        created = []
+        for i, s in enumerate(raw_slides):
+            content = '\n'.join(s.get('bullets', []))
+            layout  = 'title' if i == 0 else ('summary' if i == len(raw_slides) - 1 else 'bullets')
+            slide   = Slide.objects.create(
+                presentation=deck, order=i, layout=layout,
+                title=s.get('title', ''), content=content,
+                speaker_notes=s.get('notes', ''),
+            )
+            created.append({
+                'slide_id':      slide.pk,
+                'order':         slide.order,
+                'layout':        slide.layout,
+                'title':         slide.title,
+                'content':       slide.content,
+                'emoji':         slide.emoji,
+                'speaker_notes': slide.speaker_notes,
+                'image_url':     slide.image_url,
+            })
+        deck.title = video_title
         deck.save()
 
     return JsonResponse({

@@ -469,6 +469,8 @@ html, body { height: 100%; margin: 0; }
     <div class="gm-topbar-sep"></div>
     <button class="gm-add-btn" onclick="addSlide()"><i class="fas fa-plus"></i> Slide</button>
     <button class="gm-ai-btn" onclick="openAIModal()"><i class="fas fa-robot"></i> AI Generate</button>
+    <button class="gm-add-btn" id="smartLayoutsBtn" onclick="smartLayouts()" title="AI picks the best layout for each slide"><i class="fas fa-magic"></i> Layouts</button>
+    <button class="gm-add-btn" id="harmonizeBtn" onclick="openHarmonizeModal()" title="AI harmonizes terminology and style across all slides">&#10022; Harmonize</button>
     <button class="gm-add-btn" onclick="toggleEditorFS()" id="edFsBtn" title="Fullscreen">
       <i class="fas fa-expand" id="edFsIcon"></i>
     </button>
@@ -631,6 +633,9 @@ html, body { height: 100%; margin: 0; }
       <button class="gm-modal-tab" id="aiTabPlan" onclick="switchAITab('plan')">
         <i class="fas fa-book-open"></i> Lesson Plan
       </button>
+      <button class="gm-modal-tab" id="aiTabYoutube" onclick="switchAITab('youtube')">
+        <i class="fab fa-youtube"></i> YouTube
+      </button>
     </div>
 
     <!-- Topic panel -->
@@ -680,11 +685,35 @@ html, body { height: 100%; margin: 0; }
       <div class="gm-plan-preview" id="planPreview" style="display:none;"></div>
     </div>
 
+    <!-- YouTube panel -->
+    <div id="aiYoutubePanel" style="display:none;">
+      <input type="url" class="gm-modal-field" id="aiYoutubeUrl"
+             placeholder="https://www.youtube.com/watch?v=…"
+             onkeydown="if(event.key==='Enter') runAIAction()">
+      <div style="font-size:.72rem;color:#475569;margin-top:.5rem;line-height:1.6;">
+        Aura extracts the video&rsquo;s transcript and generates teaching slides from it.<br>
+        Works best with lectures, explainer videos, and educational documentaries.
+      </div>
+    </div>
+
     <div class="gm-modal-actions">
       <button class="gm-modal-cancel" onclick="document.getElementById('aiModal').classList.remove('open')">Cancel</button>
       <button class="gm-modal-go" id="aiGoBtn" onclick="runAIAction()">
         <i class="fas fa-robot"></i> Generate Deck
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- Harmonize modal -->
+<div class="gm-modal-overlay" id="harmonizeModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="gm-modal" onclick="event.stopPropagation()" style="max-width:480px;">
+    <h3>&#10022; Deck Harmonizer</h3>
+    <p>Aura reviews your deck for consistent terminology, tone, and style &mdash; and suggests improvements.</p>
+    <div id="harmonizeContent" style="min-height:80px;margin:1rem 0;"></div>
+    <div class="gm-modal-actions">
+      <button class="gm-modal-cancel" onclick="document.getElementById('harmonizeModal').classList.remove('open')">Cancel</button>
+      <button class="gm-modal-go" id="harmonizeApplyBtn" onclick="applyHarmonize()" style="display:none;">Apply changes</button>
     </div>
   </div>
 </div>
@@ -700,6 +729,7 @@ html, body { height: 100%; margin: 0; }
 // ═══════════════════════════════════════════════════════════════
 var API_URL        = "{% url 'teachers:presentation_api' %}";
 var UPLOAD_DOC_URL = "{% url 'teachers:presentation_generate_from_doc' %}";
+var YOUTUBE_URL    = "{% url 'teachers:presentation_from_youtube' %}";
 var LESSON_PLANS_URL = "{% url 'teachers:presentation_lesson_plans' %}";
 var GEN_IMAGE_URL  = "{% url 'academics:generate_tutor_image' %}";
 var DECK_ID   = {{ deck.pk }};
@@ -976,14 +1006,15 @@ function closeAIModal(e) {
     document.getElementById('aiModal').classList.remove('open');
 }
 function switchAITab(tab) {
-  var panels = { topic: 'aiTopicPanel', doc: 'aiDocPanel', plan: 'aiPlanPanel' };
-  var tabs   = { topic: 'aiTabTopic', doc: 'aiTabDoc', plan: 'aiTabPlan' };
+  var panels = { topic: 'aiTopicPanel', doc: 'aiDocPanel', plan: 'aiPlanPanel', youtube: 'aiYoutubePanel' };
+  var tabs   = { topic: 'aiTabTopic',   doc: 'aiTabDoc',   plan: 'aiTabPlan',   youtube: 'aiTabYoutube' };
   Object.keys(panels).forEach(function(t) {
     document.getElementById(panels[t]).style.display = (t === tab) ? 'block' : 'none';
     document.getElementById(tabs[t]).classList.toggle('active', t === tab);
   });
-  if (tab === 'topic') setTimeout(function() { document.getElementById('aiTopic').focus(); }, 50);
-  if (tab === 'plan') loadLessonPlans();
+  if (tab === 'topic')   setTimeout(function() { document.getElementById('aiTopic').focus(); }, 50);
+  if (tab === 'youtube') setTimeout(function() { document.getElementById('aiYoutubeUrl').focus(); }, 50);
+  if (tab === 'plan')    loadLessonPlans();
 }
 function handleDocFile(event) {
   var file = event.target.files[0];
@@ -1005,6 +1036,8 @@ function runAIAction() {
     runDocGenerate();
   } else if (document.getElementById('aiTabPlan').classList.contains('active')) {
     runLessonPlanGenerate();
+  } else if (document.getElementById('aiTabYoutube').classList.contains('active')) {
+    runYouTubeGenerate();
   } else {
     runAIGenerate();
   }
@@ -1171,6 +1204,156 @@ function runAIGenerate() {
       btn.disabled = false;
       btn.innerHTML = '<i class="fas fa-robot"></i> Generate Deck';
     });
+}
+
+// ── YouTube → Slides ────────────────────────────────────────────
+function runYouTubeGenerate() {
+  var url = document.getElementById('aiYoutubeUrl').value.trim();
+  if (!url) { document.getElementById('aiYoutubeUrl').focus(); return; }
+  var btn = document.getElementById('aiGoBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="gm-spinner"></div> Fetching transcript\u2026';
+  fetch(YOUTUBE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+    body: JSON.stringify({ deck_id: DECK_ID, youtube_url: url }),
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.error) { alert('Error: ' + d.error); return; }
+      document.getElementById('aiModal').classList.remove('open');
+      if (d.deck_title) document.getElementById('deckTitleInput').value = d.deck_title;
+      slides = [];
+      document.getElementById('thumbList').innerHTML = '';
+      document.querySelectorAll('.gm-slide-inner').forEach(function(el) { el.remove(); });
+      currentSlideId = null;
+      d.slides.forEach(function(s) {
+        slides.push({ id: s.slide_id, order: s.order, layout: s.layout,
+                      title: s.title, content: s.content, emoji: s.emoji || '',
+                      speaker_notes: s.speaker_notes || '', image_url: s.image_url || '' });
+        appendThumb(s); appendCanvas(s);
+      });
+      updateSlideCount(); ensurePanelVisible();
+      if (slides.length) selectSlide(slides[0].id);
+      setSaveStatus('saved', '\u2713 YouTube slides ready');
+    })
+    .catch(function(err) { alert('Request failed: ' + err); })
+    .finally(function() {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-robot"></i> Generate Deck';
+    });
+}
+
+// ── Smart Layouts ───────────────────────────────────────────────
+function smartLayouts() {
+  var btn = document.getElementById('smartLayoutsBtn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="gm-spinner" style="width:12px;height:12px;border-width:2px;"></div> Analysing\u2026'; }
+  api({ action: 'suggest_layouts' })
+    .then(function(d) {
+      if (d.error) { alert('Error: ' + d.error); return; }
+      var n = d.count || 0;
+      if (n === 0) { setSaveStatus('saved', '\u2713 Layouts already optimal'); return; }
+      // Update local state + re-render changed slides
+      (d.updates || []).forEach(function(upd) {
+        var s = slides.find(function(x) { return x.id == upd.slide_id; });
+        if (s) {
+          s.layout = upd.layout;
+          refreshCanvasSlide(s);
+        }
+      });
+      // Refresh current slide panel if its layout changed
+      if (currentSlideId) {
+        var cur = slides.find(function(s) { return s.id == currentSlideId; });
+        if (cur) {
+          document.querySelectorAll('.layout-pick-btn').forEach(function(b) {
+            b.classList.toggle('active', b.dataset.layout === cur.layout);
+          });
+          var imgSec = document.getElementById('imageSection');
+          if (imgSec) imgSec.style.display = cur.layout === 'image' ? 'block' : 'none';
+        }
+      }
+      setSaveStatus('saved', '\u2713 ' + n + ' slide layout' + (n === 1 ? '' : 's') + ' updated');
+    })
+    .catch(function(err) { alert('Request failed: ' + err); })
+    .finally(function() {
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-magic"></i> Layouts'; }
+    });
+}
+
+// ── Deck Harmonizer ─────────────────────────────────────────────
+var _harmonizePending = [];
+function openHarmonizeModal() {
+  var modal = document.getElementById('harmonizeModal');
+  modal.classList.add('open');
+  document.getElementById('harmonizeContent').innerHTML =
+    '<div style="text-align:center;padding:1.5rem 0;">' +
+    '<div class="gm-spinner" style="margin:0 auto 0.6rem;"></div>' +
+    '<div style="color:#94a3b8;font-size:.82rem;">Analysing deck consistency\u2026</div></div>';
+  document.getElementById('harmonizeApplyBtn').style.display = 'none';
+  _harmonizePending = [];
+  api({ action: 'harmonize_deck' })
+    .then(function(d) {
+      _harmonizePending = d.updates || [];
+      var html = '<div style="color:#94a3b8;font-size:.79rem;margin-bottom:.8rem;">' + esc(d.summary) + '</div>';
+      if (_harmonizePending.length === 0) {
+        html += '<div style="color:#34d399;font-size:.84rem;font-weight:700;">\u2713 Deck is already consistent \u2014 no changes needed.</div>';
+      } else {
+        html += '<div style="font-size:.73rem;color:#64748b;margin-bottom:.5rem;">' +
+          _harmonizePending.length + ' slide' + (_harmonizePending.length === 1 ? '' : 's') + ' can be improved:</div>';
+        html += '<div style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">';
+        _harmonizePending.forEach(function(upd) {
+          var idx = slides.findIndex(function(x) { return x.id == upd.slide_id; });
+          var num = idx >= 0 ? idx + 1 : '?';
+          html += '<div style="background:rgba(255,255,255,.04);border-radius:8px;padding:.55rem .75rem;">';
+          html += '<div style="font-size:.7rem;color:#7c3aed;font-weight:800;margin-bottom:.2rem;">Slide ' + num + '</div>';
+          if (upd.title) html += '<div style="font-size:.78rem;font-weight:700;color:#e2e8f0;">' + esc(upd.title) + '</div>';
+          if (upd.content) {
+            (upd.content || '').split('\n').slice(0, 3).forEach(function(line) {
+              if (line.trim()) html += '<div style="font-size:.71rem;color:#94a3b8;padding-left:.5rem;">\u25b8 ' + esc(line) + '</div>';
+            });
+          }
+          html += '</div>';
+        });
+        html += '</div>';
+        var applyBtn = document.getElementById('harmonizeApplyBtn');
+        applyBtn.style.display = '';
+        applyBtn.textContent = 'Apply ' + _harmonizePending.length + ' change' + (_harmonizePending.length === 1 ? '' : 's');
+      }
+      document.getElementById('harmonizeContent').innerHTML = html;
+    })
+    .catch(function() {
+      document.getElementById('harmonizeContent').innerHTML =
+        '<div style="color:#f87171;">Could not analyse deck. Check your API connection.</div>';
+    });
+}
+function applyHarmonize() {
+  if (!_harmonizePending.length) return;
+  var btn = document.getElementById('harmonizeApplyBtn');
+  btn.disabled = true;
+  btn.textContent = 'Applying\u2026';
+  var promises = _harmonizePending.map(function(upd) {
+    var payload = { action: 'save_slide', slide_id: upd.slide_id };
+    if (upd.title   != null) payload.title   = upd.title;
+    if (upd.content != null) payload.content = upd.content;
+    return api(payload).then(function() {
+      var s = slides.find(function(x) { return x.id == upd.slide_id; });
+      if (s) {
+        if (upd.title   != null) s.title   = upd.title;
+        if (upd.content != null) s.content = upd.content;
+        refreshCanvasSlide(s);
+        refreshThumbTitle(s);
+      }
+    });
+  });
+  Promise.all(promises).then(function() {
+    document.getElementById('harmonizeModal').classList.remove('open');
+    if (currentSlideId) selectSlide(currentSlideId);
+    setSaveStatus('saved', '\u2713 Deck harmonized');
+    btn.disabled = false;
+  }).catch(function() {
+    btn.disabled = false;
+    btn.textContent = 'Retry';
+  });
 }
 
 // ── DOM helpers ─────────────────────────────────────────────────

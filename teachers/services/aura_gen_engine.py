@@ -854,6 +854,115 @@ Rules:
         return AuraGenEngine.generate_slides_from_document(document_text, topic)
 
     @staticmethod
+    def suggest_slide_layouts(slides_data: list) -> Dict:
+        """
+        AI assigns the most appropriate layout to each slide based on its title/content.
+        slides_data = [{'slide_id': N, 'order': N, 'title': '...', 'content': '...'}, ...]
+        Returns: {'updates': [{'slide_id': N, 'layout': '...'}, ...]}
+        """
+        from django.conf import settings
+        if not slides_data:
+            return {'updates': []}
+
+        system_prompt = (
+            'You are an expert instructional designer.\n'
+            'Given a list of presentation slides, assign the best layout for each.\n'
+            'Available layouts:\n'
+            '  title    \u2014 Opening or section-break slide (first slide of deck)\n'
+            '  bullets  \u2014 Standard bullet points (default for most slides)\n'
+            '  two_col  \u2014 Two-column comparison or contrast\n'
+            '  big_stat \u2014 Highlight a single number or key statistic\n'
+            '  quote    \u2014 Feature a notable quote or memorable statement\n'
+            '  summary  \u2014 Recap / conclusion (last slide)\n'
+            '  image    \u2014 Visual-heavy slide centred on an image\n'
+            '\n'
+            'Rules: first slide \u2192 title; last slide \u2192 summary; single-stat slides \u2192 big_stat;\n'
+            'quote slides \u2192 quote; comparison slides \u2192 two_col; rest \u2192 bullets.\n'
+            'Return JSON: {"updates": [{"slide_id": N, "layout": "..."}, ...]}'
+        )
+        slides_text = '\n'.join(
+            '[id={}] #{}: {} | {}'.format(
+                s['slide_id'], s.get('order', i) + 1,
+                s['title'], (s.get('content') or '')[:100]
+            )
+            for i, s in enumerate(slides_data)
+        )
+        try:
+            payload = {
+                'model': get_openai_chat_model(),
+                'messages': [
+                    {'role': 'system', 'content': system_prompt},
+                    {'role': 'user',   'content': slides_text},
+                ],
+                'response_format': {'type': 'json_object'},
+                'temperature': 0.15,
+                'max_tokens': 400,
+            }
+            response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
+            data = AuraGenEngine._extract_json_object(
+                response['choices'][0]['message']['content']
+            )
+            return {'updates': data.get('updates', [])}
+        except Exception:
+            return {'updates': []}
+
+    @staticmethod
+    def harmonize_deck(slides_data: list) -> Dict:
+        """
+        Reviews the full slide deck for terminology, tone, and style consistency.
+        Returns: {'updates': [{'slide_id': N, 'title': '...', 'content': '...'}, ...], 'summary': '...'}
+        Only slides that need changes are included in updates.
+        """
+        from django.conf import settings
+        if not slides_data:
+            return {'updates': [], 'summary': 'No slides to harmonize.'}
+
+        system_prompt = (
+            'You are Aura-T, an expert teaching assistant and content editor.\n'
+            'Review the slide deck below for these inconsistencies:\n'
+            '  - Mixed capitalisation in parallel headings\n'
+            '  - Inconsistent verb tenses\n'
+            '  - Shifting tone (formal \u2194 informal)\n'
+            '  - Repetitive or redundant phrasing\n'
+            '  - Terminology that differs across slides for the same concept\n'
+            '\n'
+            'For EACH slide that needs improvement, return an updated version.\n'
+            'Only include slides that actually have issues. Keep facts unchanged.\n'
+            'Bullets in content should remain one per line.\n'
+            'Return JSON:\n'
+            '{"summary": "Brief description of changes",\n'
+            ' "updates": [{"slide_id": N, "title": "...", "content": "line1\\nline2\\n..."}, ...]}\n'
+            'If already consistent: {"summary": "Deck is consistent.", "updates": []}'
+        )
+        slides_text = '\n---\n'.join(
+            'slide_id={}\ntitle: {}\ncontent:\n{}'.format(
+                s['slide_id'], s['title'], s.get('content', '')
+            )
+            for s in slides_data
+        )
+        try:
+            payload = {
+                'model': get_openai_chat_model(),
+                'messages': [
+                    {'role': 'system', 'content': system_prompt},
+                    {'role': 'user',   'content': slides_text},
+                ],
+                'response_format': {'type': 'json_object'},
+                'temperature': 0.25,
+                'max_tokens': 1400,
+            }
+            response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
+            data = AuraGenEngine._extract_json_object(
+                response['choices'][0]['message']['content']
+            )
+            return {
+                'updates': data.get('updates', []),
+                'summary': data.get('summary', 'Analysis complete.'),
+            }
+        except Exception:
+            return {'updates': [], 'summary': 'Could not analyse deck.'}
+
+    @staticmethod
     def suggest_slide_bullets(title: str, subject: str = 'General') -> Dict:
         """
         Given a slide title, return 3-5 concise bullet points.

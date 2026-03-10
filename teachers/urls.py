@@ -88,6 +88,7 @@ urlpatterns = [
     path('presentations/create/', views.presentation_create, name='presentation_create'),
     path('presentations/api/', views.presentation_api, name='presentation_api'),
     path('presentations/api/upload-doc/', views.presentation_generate_from_doc, name='presentation_generate_from_doc'),
+    path('presentations/api/from-youtube/', views.presentation_from_youtube, name='presentation_from_youtube'),
     path('presentations/api/lesson-plans/', views.presentation_lesson_plans, name='presentation_lesson_plans'),
     path('presentations/<int:pk>/edit/', views.presentation_editor, name='presentation_editor'),
     path('presentations/<int:pk>/present/', views.presentation_present, name='presentation_present'),
