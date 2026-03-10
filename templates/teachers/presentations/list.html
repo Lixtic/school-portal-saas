@@ -343,6 +343,7 @@ function sortDecks(key, pill) {
   document.querySelectorAll('.gm-sort-pill').forEach(function(p) { p.classList.remove('active'); });
   if (pill) pill.classList.add('active');
   var grid = document.getElementById('deckGrid');
+  var noRes = document.getElementById('noSearchResults');
   var cards = Array.from(grid.querySelectorAll('.deck-card'));
   cards.sort(function(a, b) {
     if (key === 'newest') return parseInt(b.dataset.updated||0) - parseInt(a.dataset.updated||0);
@@ -352,6 +353,8 @@ function sortDecks(key, pill) {
     return 0;
   });
   cards.forEach(function(c) { grid.appendChild(c); });
+  // keep no-results sentinel at end
+  if (noRes) grid.appendChild(noRes);
 }
 
 // ── More dropdown ──

@@ -85,7 +85,7 @@ html, body { height: 100%; margin: 0; }
 .gm-tb-drop-btn.ai-btn { background: rgba(139,92,246,.15); border-color: rgba(139,92,246,.3); color: #c4b5fd; }
 .gm-tb-drop-btn.ai-btn:hover { background: rgba(139,92,246,.28); }
 .gm-tb-drop-menu {
-  position: absolute; top: calc(100% + 7px); right: 0;
+  position: fixed; top: 0; right: 0;
   background: #1e293b; border: 1px solid rgba(255,255,255,.1);
   border-radius: 12px; padding: 5px;
   min-width: 180px; z-index: 9000;
@@ -1721,7 +1721,13 @@ function toggleTbDrop(e, menuId) {
   var menu = document.getElementById(menuId);
   var wasOpen = menu.classList.contains('open');
   closeTbDrops();
-  if (!wasOpen) menu.classList.add('open');
+  if (!wasOpen) {
+    var rect = e.currentTarget.getBoundingClientRect();
+    menu.style.top  = (rect.bottom + 6) + 'px';
+    menu.style.left = 'auto';
+    menu.style.right = (window.innerWidth - rect.right) + 'px';
+    menu.classList.add('open');
+  }
 }
 function closeTbDrops() {
   document.querySelectorAll('.gm-tb-drop-menu.open').forEach(function(m) { m.classList.remove('open'); });
@@ -2364,12 +2370,16 @@ function duplicateCurrentSlide() {
 
 // ── Editor fullscreen ───────────────────────────────────────────────
 function toggleEditorFS() {
+  var icon  = document.getElementById('edFsIcon');
+  var label = document.getElementById('edFsLabel');
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen();
-    document.getElementById('edFsIcon').className = 'fas fa-compress';
+    if (icon)  icon.className   = 'fas fa-compress';
+    if (label) label.textContent = 'Exit Fullscreen';
   } else {
     document.exitFullscreen();
-    document.getElementById('edFsIcon').className = 'fas fa-expand';
+    if (icon)  icon.className   = 'fas fa-expand';
+    if (label) label.textContent = 'Fullscreen';
   }
 }
 
