@@ -82,6 +82,99 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; colo
   border-top: 1px solid #e2e8f0; margin-top: 1.5rem;
 }
 
+/* ── AI Revision Guide section ── */
+.sg-ai-section { margin-top: 2rem; }
+.sg-ai-banner {
+  background: linear-gradient(135deg, #1e0a40 0%, #2d0e66 100%);
+  border-radius: 14px; padding: 1.5rem 1.8rem;
+  color: #fff; display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.sg-ai-banner h3 { font-size: 1.05rem; font-weight: 800; margin-bottom: .2rem; }
+.sg-ai-banner p  { font-size: .75rem; color: rgba(255,255,255,.55); margin: 0; }
+.sg-ai-gen-btn {
+  background: linear-gradient(135deg, #7c3aed, #a855f7); color: #fff;
+  border: none; border-radius: 10px; padding: .55rem 1.3rem;
+  font-size: .82rem; font-weight: 700; cursor: pointer; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: .45rem; transition: opacity .15s;
+}
+.sg-ai-gen-btn:disabled { opacity: .6; cursor: not-allowed; }
+.sg-ai-gen-btn:not(:disabled):hover { opacity: .88; }
+
+.sg-ai-results { display: none; }
+.sg-ai-results.visible { display: block; }
+
+.sg-ai-summary {
+  background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px;
+  padding: .9rem 1.1rem; margin-bottom: 1.2rem;
+  font-size: .83rem; color: #166534; line-height: 1.55;
+}
+.sg-ai-summary strong { display: block; margin-bottom: .3rem; color: #15803d; font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; }
+
+.sg-section-title {
+  font-size: .68rem; font-weight: 800; letter-spacing: .12em; color: #7c3aed;
+  text-transform: uppercase; margin: 1.4rem 0 .7rem;
+  display: flex; align-items: center; gap: .5rem;
+}
+.sg-section-title::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
+
+.sg-concepts-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: .6rem;
+}
+.sg-concept-card {
+  background: #fff; border: 1px solid #e0e7ff; border-radius: 10px;
+  padding: .7rem .9rem;
+}
+.sg-concept-term { font-size: .8rem; font-weight: 800; color: #4c1d95; margin-bottom: .25rem; }
+.sg-concept-desc { font-size: .74rem; color: #475569; line-height: 1.45; }
+
+.sg-q-list { display: flex; flex-direction: column; gap: .55rem; }
+.sg-q-item {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden;
+  page-break-inside: avoid; break-inside: avoid;
+}
+.sg-q-head {
+  padding: .65rem 1rem; display: flex; align-items: flex-start; gap: .6rem; cursor: pointer;
+  user-select: none;
+}
+.sg-q-num {
+  background: #f3e8ff; color: #7c3aed; font-size: .65rem; font-weight: 800;
+  border-radius: 50%; width: 1.5rem; height: 1.5rem; display: flex; align-items: center;
+  justify-content: center; flex-shrink: 0; margin-top: .06rem;
+}
+.sg-q-type-badge {
+  font-size: .56rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  color: #94a3b8; background: #f8fafc; border: 1px solid #e2e8f0;
+  border-radius: 20px; padding: .15em .55em; align-self: flex-start; flex-shrink: 0;
+}
+.sg-q-text { font-size: .82rem; color: #1e293b; flex: 1; line-height: 1.45; }
+.sg-q-chevron { color: #94a3b8; font-size: .7rem; flex-shrink: 0; transition: transform .18s; }
+.sg-q-item.open .sg-q-chevron { transform: rotate(180deg); }
+.sg-q-opts { padding: 0 1rem .5rem 3.1rem; display: flex; flex-direction: column; gap: .2rem; }
+.sg-q-opt { font-size: .78rem; color: #334155; }
+.sg-q-answer {
+  display: none; padding: .5rem 1rem .65rem 3.1rem;
+  font-size: .78rem; color: #166534; background: #f0fdf4;
+  border-top: 1px solid #dcfce7;
+}
+.sg-q-answer strong { color: #15803d; }
+.sg-q-item.open .sg-q-answer { display: block; }
+
+.sg-activity-list { display: flex; flex-direction: column; gap: .5rem; }
+.sg-activity-item {
+  background: #fff; border: 1px solid #e2e8f0; border-left: 3px solid #7c3aed;
+  border-radius: 0 8px 8px 0; padding: .6rem .9rem;
+  font-size: .82rem; color: #334155; display: flex; gap: .55rem; align-items: flex-start;
+}
+.sg-activity-item i { color: #7c3aed; margin-top: .12rem; flex-shrink: 0; }
+
+@media print {
+  .sg-ai-banner   { display: none !important; }
+  .sg-ai-results  { display: block !important; }
+  .sg-q-answer    { display: block !important; background: #f0fdf4 !important; }
+  .sg-q-chevron   { display: none !important; }
+}
+
 @media print {
   body { background: #fff !important; }
   .sg-header-actions { display: none !important; }
@@ -111,6 +204,9 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; colo
     <button onclick="window.print()" class="sg-btn primary">
       <i class="fas fa-print"></i> Print / Save PDF
     </button>
+    <a href="{% url 'teachers:presentation_export_pptx' deck.pk %}" class="sg-btn">
+      <i class="fas fa-file-powerpoint"></i> Export PPTX
+    </a>
   </div>
 </div>
 
@@ -186,7 +282,145 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; colo
   <div class="sg-footer">
     Generated from <strong>{{ deck.title }}</strong> &mdash; {{ deck.teacher.user.get_full_name|default:deck.teacher.user.username }}
   </div>
-</div>
+
+  <!-- AI Revision Guide Section -->
+  <div class="sg-ai-section">
+    <div class="sg-ai-banner">
+      <div>
+        <h3><i class="fas fa-magic" style="margin-right:.4em;opacity:.8;"></i>AI Revision Guide</h3>
+        <p>Generate key concepts, revision questions &amp; activities from your slides with AI</p>
+      </div>
+      <button id="aiGenBtn" class="sg-ai-gen-btn" onclick="generateAIGuide()">
+        <i class="fas fa-wand-magic-sparkles"></i> Generate
+      </button>
+    </div>
+
+    <div id="aiResults" class="sg-ai-results">
+      <div id="aiSummary" class="sg-ai-summary" style="display:none;">
+        <strong><i class="fas fa-info-circle"></i> Topic Overview</strong>
+        <span id="aiSummaryText"></span>
+      </div>
+
+      <div id="aiConceptsWrap" style="display:none;">
+        <div class="sg-section-title"><i class="fas fa-lightbulb"></i> Key Concepts</div>
+        <div id="aiConcepts" class="sg-concepts-grid"></div>
+      </div>
+
+      <div id="aiQuestionsWrap" style="display:none;">
+        <div class="sg-section-title"><i class="fas fa-circle-question"></i> Revision Questions</div>
+        <div id="aiQuestions" class="sg-q-list"></div>
+      </div>
+
+      <div id="aiActivitiesWrap" style="display:none;">
+        <div class="sg-section-title"><i class="fas fa-hands-helping"></i> Activities</div>
+        <div id="aiActivities" class="sg-activity-list"></div>
+      </div>
+    </div>
+  </div>
+</div><!-- /sg-body -->
+
+<script>
+var CSRF_TOKEN = '{{ csrf_token }}';
+var GENERATE_URL = '{% url "teachers:presentation_study_guide" deck.pk %}';
+
+function generateAIGuide() {
+  var btn = document.getElementById('aiGenBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating…';
+
+  var fd = new FormData();
+  fd.append('action', 'generate_ai');
+  fd.append('csrfmiddlewaretoken', CSRF_TOKEN);
+
+  fetch(GENERATE_URL, {method: 'POST', body: fd})
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      btn.disabled = false;
+      if (!d.ok) {
+        btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + (d.error || 'Error');
+        btn.style.background = '#ef4444';
+        return;
+      }
+      btn.innerHTML = '<i class="fas fa-redo"></i> Regenerate';
+      renderAIGuide(d);
+    })
+    .catch(function(e) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Network error';
+      btn.style.background = '#ef4444';
+    });
+}
+
+function renderAIGuide(d) {
+  var results = document.getElementById('aiResults');
+  results.classList.add('visible');
+
+  // Summary
+  if (d.summary) {
+    document.getElementById('aiSummaryText').textContent = d.summary;
+    document.getElementById('aiSummary').style.display = '';
+  }
+
+  // Key Concepts
+  var concepts = d.key_concepts || [];
+  if (concepts.length) {
+    var html = concepts.map(function(c) {
+      return '<div class="sg-concept-card"><div class="sg-concept-term">' +
+        esc(c.term || '') + '</div><div class="sg-concept-desc">' +
+        esc(c.description || '') + '</div></div>';
+    }).join('');
+    document.getElementById('aiConcepts').innerHTML = html;
+    document.getElementById('aiConceptsWrap').style.display = '';
+  }
+
+  // Revision questions
+  var qs = d.revision_questions || [];
+  if (qs.length) {
+    var html = qs.map(function(q, i) {
+      var opts = '';
+      if (q.type === 'mcq' && q.options && q.options.length) {
+        opts = '<div class="sg-q-opts">' +
+          q.options.map(function(o) { return '<div class="sg-q-opt">' + esc(o) + '</div>'; }).join('') +
+          '</div>';
+      }
+      return '<div class="sg-q-item" id="sgq-' + i + '">' +
+        '<div class="sg-q-head" onclick="toggleQ(' + i + ')">' +
+        '<div class="sg-q-num">' + (i+1) + '</div>' +
+        '<span class="sg-q-type-badge">' + esc(q.type || 'short') + '</span>' +
+        '<div class="sg-q-text">' + esc(q.question || '') + '</div>' +
+        '<i class="fas fa-chevron-down sg-q-chevron"></i></div>' +
+        opts +
+        '<div class="sg-q-answer"><strong>Answer:</strong> ' + esc(q.answer || '') + '</div>' +
+        '</div>';
+    }).join('');
+    document.getElementById('aiQuestions').innerHTML = html;
+    document.getElementById('aiQuestionsWrap').style.display = '';
+  }
+
+  // Activities
+  var acts = d.activities || [];
+  if (acts.length) {
+    var html = acts.map(function(a) {
+      return '<div class="sg-activity-item"><i class="fas fa-star"></i>' + esc(a) + '</div>';
+    }).join('');
+    document.getElementById('aiActivities').innerHTML = html;
+    document.getElementById('aiActivitiesWrap').style.display = '';
+  }
+
+  results.scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+
+function toggleQ(i) {
+  var el = document.getElementById('sgq-' + i);
+  if (el) el.classList.toggle('open');
+}
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+</script>
 
 </body>
 </html>

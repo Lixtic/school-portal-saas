@@ -4922,8 +4922,22 @@ def presentation_slide_image_upload(request):
 @login_required
 def presentation_study_guide(request, pk):
     from .models import Presentation
+    if request.user.user_type not in ('teacher', 'admin'):
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
     teacher = get_object_or_404(Teacher, user=request.user)
     deck = get_object_or_404(Presentation, pk=pk, teacher=teacher)
+
+    if request.method == 'POST':
+        import json as _json
+        action = request.POST.get('action') or ''
+        if action == 'generate_ai':
+            slides = list(deck.slides.values('title', 'content', 'layout', 'speaker_notes', 'emoji'))
+            from teachers.services.aura_gen_engine import AuraGenEngine
+            result = AuraGenEngine.generate_study_guide(slides)
+            return JsonResponse(result)
+        return JsonResponse({'error': 'Unknown action'}, status=400)
+
     slides = deck.slides.all()
     return render(request, 'teachers/presentations/study_guide.html', {
         'deck': deck,

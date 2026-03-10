@@ -1042,6 +1042,79 @@ Rules:
             return {'title': current_title, 'content': current_content}
 
     @staticmethod
+    def generate_study_guide(slides_data: list) -> Dict:
+        """
+        Given a list of slide dicts (title, bullets/content, layout, speaker_notes),
+        generate a structured AI study guide: key concepts, revision questions, activities.
+        """
+        lines = []
+        for i, s in enumerate(slides_data, 1):
+            title = s.get('title', '').strip()
+            raw = s.get('content') or ''
+            bullets = [b.strip() for b in raw.split('\n') if b.strip()]
+            if s.get('bullets') and isinstance(s['bullets'], list):
+                bullets = s['bullets']
+            if title:
+                lines.append(f"Slide {i} ({s.get('layout', 'bullets')}): {title}")
+            for b in bullets[:6]:
+                lines.append(f"  • {b}")
+            notes = (s.get('speaker_notes') or '').strip()
+            if notes:
+                lines.append(f"  [notes: {notes[:120]}]")
+        deck_text = '\n'.join(lines)[:9000]
+
+        system_prompt = (
+            "You are Aura-T, an expert teaching assistant.\n"
+            "Given a teaching presentation outline, create a structured student revision guide.\n"
+            "Return a JSON object with EXACTLY this structure:\n"
+            "{\n"
+            '  "summary": "2-3 sentence overview of the whole topic",\n'
+            '  "key_concepts": [{"term": "...", "description": "one-sentence explanation"}],\n'
+            '  "revision_questions": [\n'
+            '    {"type": "short", "question": "...", "answer": "..."},\n'
+            '    {"type": "mcq",   "question": "...", "options": ["A) ...", "B) ...", "C) ...", "D) ..."], "answer": "A"},\n'
+            '    {"type": "true_false", "question": "...", "answer": "True"}\n'
+            "  ],\n"
+            '  "activities": ["Activity description 1", "Activity description 2"]\n'
+            "}\n"
+            "Rules:\n"
+            "- 5-8 key_concepts drawn directly from slide content\n"
+            "- 8-10 revision_questions: at least 3 short-answer, 3 MCQ (A/B/C/D), 1-2 true/false\n"
+            "- Questions should test understanding and application, not just rote recall\n"
+            "- 2-3 hands-on classroom or homework activities\n"
+            "- Use student-friendly language throughout\n"
+        )
+
+        user_prompt = (
+            f"Presentation slides:\n{deck_text}\n\n"
+            "Generate a comprehensive student study guide from the above deck."
+        )
+
+        try:
+            payload = {
+                "model": get_openai_chat_model(),
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user",   "content": user_prompt},
+                ],
+                "response_format": {"type": "json_object"},
+                "temperature": 0.55,
+            }
+            response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
+            content_raw = response['choices'][0]['message']['content']
+            data = AuraGenEngine._extract_json_object(content_raw)
+            return {
+                'ok':                True,
+                'summary':           data.get('summary', ''),
+                'key_concepts':      data.get('key_concepts', []),
+                'revision_questions': data.get('revision_questions', []),
+                'activities':        data.get('activities', []),
+            }
+        except Exception as exc:
+            logger.error("Study guide generation failed: %s", exc)
+            return {'ok': False, 'error': str(exc)}
+
+    @staticmethod
     def _extract_json_object(raw_content: str) -> Dict:
         content = (raw_content or '').strip()
         if not content:
