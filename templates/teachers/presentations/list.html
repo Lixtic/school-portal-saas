@@ -68,7 +68,8 @@ body { background: var(--gm-bg); }
 .theme-ocean    { background: linear-gradient(135deg,#0c2d4e,#0e6088); }
 .theme-amber    { background: linear-gradient(135deg,#431407,#92400e); }
 .theme-rose     { background: linear-gradient(135deg,#4c0519,#9d174d); }
-.deck-thumb-inner { position: relative; z-index: 2; }
+.deck-thumb-inner { position: relative; z-index: 2; display: flex; align-items: center; gap: 10px; }
+.deck-cover-emoji { font-size: 2rem; flex-shrink: 0; filter: drop-shadow(0 2px 10px rgba(0,0,0,.4)); line-height: 1; }
 .deck-thumb-inner .slide-mimic {
   background: rgba(255,255,255,.1); backdrop-filter: blur(4px);
   border-radius: 8px; padding: .6rem .8rem; min-width: 160px; max-width: 200px;
@@ -207,6 +208,30 @@ body.select-mode .deck-select-cb { display: flex; }
 .gm-bulk-delete { background: rgba(239,68,68,.18); color: #f87171; border: 1px solid rgba(239,68,68,.3); }
 .gm-bulk-dup    { background: rgba(124,58,237,.18); color: #c4b5fd; border: 1px solid rgba(124,58,237,.3); }
 .gm-bulk-cancel { background: rgba(255,255,255,.07); color: #94a3b8; border: 1px solid rgba(255,255,255,.1); }
+/* Group filter chips */
+.gm-filter-row { padding: 0 1.5rem .5rem; display: flex; gap: 5px; flex-wrap: wrap; }
+.gm-filter-chip {
+  padding: 3px 11px; border-radius: 20px; font-size: .72rem; font-weight: 600;
+  border: 1px solid var(--gm-border); color: var(--gm-muted);
+  background: none; cursor: pointer; transition: background .15s, color .15s, border-color .15s;
+}
+.gm-filter-chip:hover { border-color: #2563eb; color: #2563eb; }
+.gm-filter-chip.active { background: rgba(37,99,235,.12); border-color: #2563eb; color: #2563eb; }
+/* Delete confirm dialog */
+#deleteDialog {
+  border: 1px solid var(--gm-border); border-radius: 16px; padding: 1.6rem;
+  background: var(--gm-card); color: var(--gm-text);
+  box-shadow: 0 24px 64px rgba(0,0,0,.5); max-width: 360px; width: 90%;
+}
+#deleteDialog::backdrop { background: rgba(0,0,0,.6); }
+.del-dialog-title { font-weight: 800; font-size: 1rem; margin: 0 0 .5rem; display: flex; align-items: center; gap: 8px; }
+.del-dialog-body { color: var(--gm-muted); font-size: .85rem; margin: 0 0 1.3rem; line-height: 1.5; }
+.del-dialog-name { color: var(--gm-text); font-weight: 700; }
+.del-dialog-foot { display: flex; gap: 8px; justify-content: flex-end; }
+.del-dialog-cancel { padding: 7px 16px; border-radius: 8px; border: 1px solid var(--gm-border); background: none; color: var(--gm-muted); font-size: .85rem; font-weight: 600; cursor: pointer; transition: background .15s; }
+.del-dialog-cancel:hover { background: rgba(255,255,255,.06); }
+.del-dialog-confirm { padding: 7px 16px; border-radius: 8px; border: none; background: #dc2626; color: #fff; font-size: .85rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background .15s; }
+.del-dialog-confirm:hover { background: #b91c1c; }
 </style>
 {% endblock %}
 
@@ -235,6 +260,9 @@ body.select-mode .deck-select-cb { display: flex; }
     </div>
   </div>
 
+  <!-- Group filter chips (built by JS from card data) -->
+  <div class="gm-filter-row" id="filterRow"></div>
+
   <!-- Sort row -->
   <div class="gm-sort-row" id="sortRow">
     <button class="gm-sort-pill active" data-sort="newest" onclick="sortDecks('newest',this)"><i class="fas fa-clock me-1"></i>Newest</button>
@@ -245,13 +273,14 @@ body.select-mode .deck-select-cb { display: flex; }
 
   <div class="deck-grid" id="deckGrid">
     {% for deck in decks %}
-    <div class="deck-card" data-pk="{{ deck.pk }}" data-title="{{ deck.title|lower|escapejs }}" data-slides="{{ deck.slide_count }}" data-updated="{{ deck.updated_at|date:'U' }}">
+    <div class="deck-card" data-pk="{{ deck.pk }}" data-title="{{ deck.title|lower|escapejs }}" data-slides="{{ deck.slide_count }}" data-updated="{{ deck.updated_at|date:'U' }}" data-subject-pk="{{ deck.subject.pk|default:'' }}" data-class-pk="{{ deck.school_class.pk|default:'' }}" data-subject-name="{{ deck.subject.name|default:'' }}" data-class-name="{{ deck.school_class.name|default:'' }}">
       <div class="deck-select-cb" onclick="event.preventDefault();event.stopPropagation();toggleCardSelect(this)">
         <input type="checkbox" class="deck-cb-input">
       </div>
       <a href="{% url 'teachers:presentation_editor' deck.pk %}" style="text-decoration:none;">
         <div class="deck-thumb theme-{{ deck.theme }}">
           <div class="deck-thumb-inner">
+            {% if deck.cover_emoji %}<span class="deck-cover-emoji">{{ deck.cover_emoji }}</span>{% endif %}
             <div class="slide-mimic">
               <div class="slide-mimic-title">{{ deck.title|truncatechars:30 }}</div>
               <div class="slide-mimic-lines">
@@ -292,7 +321,7 @@ body.select-mode .deck-select-cb { display: flex; }
             <a href="{% url 'teachers:presentation_export_pptx' deck.pk %}" class="deck-more-item"><i class="fas fa-file-powerpoint"></i> Export PPTX</a>
             <button type="button" class="deck-more-item" onclick="copyShareLink('{{ request.scheme }}://{{ request.get_host }}{% url 'teachers:presentation_share' deck.share_token %}')"><i class="fas fa-share-alt"></i> Share Link</button>
             <div class="deck-more-sep"></div>
-            <a href="{% url 'teachers:presentation_delete' deck.pk %}" class="deck-more-item danger"><i class="fas fa-trash"></i> Delete</a>
+            <button type="button" class="deck-more-item danger" onclick="openDeleteDialog({{ deck.pk }}, '{{ deck.title|escapejs }}', '{% url 'teachers:presentation_delete' deck.pk %}')"><i class="fas fa-trash"></i> Delete</button>
           </div>
         </div>
       </div>
@@ -316,6 +345,18 @@ body.select-mode .deck-select-cb { display: flex; }
 
 </div>
 
+<!-- Delete confirm dialog -->
+<dialog id="deleteDialog">
+  <p class="del-dialog-title"><i class="fas fa-trash-alt" style="color:#ef4444;"></i> Delete Presentation</p>
+  <p class="del-dialog-body">Delete <span class="del-dialog-name" id="deleteDialogName"></span>?<br>All slides will be permanently lost and this cannot be undone.</p>
+  <div class="del-dialog-foot">
+    <button class="del-dialog-cancel" onclick="document.getElementById('deleteDialog').close()">Cancel</button>
+    <form id="deleteForm" method="post" action="" style="display:contents;">{% csrf_token %}
+      <button type="submit" class="del-dialog-confirm"><i class="fas fa-trash-alt"></i> Delete</button>
+    </form>
+  </div>
+</dialog>
+
 <!-- ── Bulk Action Bar ── -->
 <div class="gm-bulk-bar" id="bulkBar">
   <span class="gm-bulk-count" id="bulkCount">0 selected</span>
@@ -334,9 +375,6 @@ body.select-mode .deck-select-cb { display: flex; }
   <i class="fas fa-check me-1"></i> Share link copied!
 </div>
 
-{% endblock %}
-
-{% block extra_js %}
 <script>
 // ── Sort ──
 function sortDecks(key, pill) {
@@ -377,19 +415,66 @@ function copyShareLink(url) {
     setTimeout(function() { t.style.display = 'none'; }, 2200);
   });
 }
-function filterDecks(q) {
-  q = q.trim().toLowerCase();
-  var cards = document.querySelectorAll('.deck-card');
+function filterDecks(q) { applyFilters(); }
+
+// ── Unified filter (search + group) ──
+var activeSubjectPk = '';
+var activeClassPk   = '';
+function applyFilters() {
+  var q = ((document.getElementById('deckSearch') || {}).value || '').trim().toLowerCase();
   var visible = 0;
-  cards.forEach(function(card) {
-    var title = (card.querySelector('.deck-title') || {}).textContent || '';
-    var show = !q || title.toLowerCase().includes(q);
+  document.querySelectorAll('.deck-card').forEach(function(card) {
+    var title    = (card.querySelector('.deck-title-text') || {}).textContent || '';
+    var matchQ   = !q   || title.toLowerCase().includes(q);
+    var matchSub = !activeSubjectPk || card.dataset.subjectPk === activeSubjectPk;
+    var matchCls = !activeClassPk  || card.dataset.classPk   === activeClassPk;
+    var show = matchQ && matchSub && matchCls;
     card.style.display = show ? '' : 'none';
     if (show) visible++;
   });
   var noRes = document.getElementById('noSearchResults');
-  if (noRes) noRes.style.display = (visible === 0 && q) ? '' : 'none';
+  if (noRes) noRes.style.display = (visible === 0 && (q || activeSubjectPk || activeClassPk)) ? '' : 'none';
 }
+function buildFilterChips() {
+  var row = document.getElementById('filterRow');
+  if (!row) return;
+  var subjects = {}, classes = {};
+  document.querySelectorAll('.deck-card').forEach(function(c) {
+    var spk = c.dataset.subjectPk, snm = c.dataset.subjectName;
+    var cpk = c.dataset.classPk,   cnm = c.dataset.className;
+    if (spk && snm) subjects[spk] = snm;
+    if (cpk && cnm) classes[cpk]  = cnm;
+  });
+  if (!Object.keys(subjects).length && !Object.keys(classes).length) return;
+  var html = '<button class="gm-filter-chip active" onclick="filterByGroup(\'\',\'\',this)">All</button>';
+  Object.keys(subjects).sort(function(a,b){ return subjects[a].localeCompare(subjects[b]); }).forEach(function(pk) {
+    html += '<button class="gm-filter-chip" onclick="filterByGroup(\'subject\',\'' + pk + '\',this)">'
+          + '<i class="fas fa-book me-1" style="font-size:.62rem;"></i>' + subjects[pk] + '</button>';
+  });
+  Object.keys(classes).sort(function(a,b){ return classes[a].localeCompare(classes[b]); }).forEach(function(pk) {
+    html += '<button class="gm-filter-chip" onclick="filterByGroup(\'class\',\'' + pk + '\',this)">'
+          + '<i class="fas fa-users me-1" style="font-size:.62rem;"></i>' + classes[pk] + '</button>';
+  });
+  row.innerHTML = html;
+}
+function filterByGroup(type, pk, btn) {
+  document.querySelectorAll('.gm-filter-chip').forEach(function(c) { c.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  activeSubjectPk = (type === 'subject') ? pk : '';
+  activeClassPk   = (type === 'class')   ? pk : '';
+  applyFilters();
+}
+// ── Delete confirm dialog ──
+function openDeleteDialog(pk, title, url) {
+  document.getElementById('deleteDialogName').textContent = '\u201c' + title + '\u201d';
+  document.getElementById('deleteForm').action = url;
+  document.getElementById('deleteDialog').showModal();
+}
+document.addEventListener('DOMContentLoaded', function() {
+  buildFilterChips();
+  var dlg = document.getElementById('deleteDialog');
+  if (dlg) dlg.addEventListener('click', function(e) { if (e.target === dlg) dlg.close(); });
+});
 
 // ── Bulk select ──
 var selectMode = false;
@@ -493,4 +578,5 @@ function bulkAction(action) {
   .catch(function() { alert('Request failed. Please try again.'); });
 }
 </script>
+
 {% endblock %}

@@ -656,7 +656,7 @@ html, body { height: 100%; margin: 0; }
     <button class="gm-add-btn" onclick="addSlide()"><i class="fas fa-plus"></i> Slide</button>
     <!-- AI dropdown -->
     <div class="gm-tb-drop-wrap">
-      <button class="gm-tb-drop-btn ai-btn" onclick="toggleTbDrop(event,'aiMenu')"><i class="fas fa-robot"></i> AI <i class="fas fa-chevron-down" style="font-size:.6rem;"></i></button>
+      <button class="gm-tb-drop-btn ai-btn" onclick="toggleTbDrop(event,this,'aiMenu')"><i class="fas fa-robot"></i> AI <i class="fas fa-chevron-down" style="font-size:.6rem;"></i></button>
       <div class="gm-tb-drop-menu" id="aiMenu">
         <button class="gm-tb-drop-item" onclick="closeTbDrops();openAIModal()"><i class="fas fa-robot"></i> AI Generate</button>
         <button class="gm-tb-drop-item" id="smartLayoutsBtn" onclick="closeTbDrops();smartLayouts()"><i class="fas fa-magic"></i> Smart Layouts</button>
@@ -665,7 +665,7 @@ html, body { height: 100%; margin: 0; }
     </div>
     <!-- More / overflow dropdown -->
     <div class="gm-tb-drop-wrap">
-      <button class="gm-tb-drop-btn" onclick="toggleTbDrop(event,'moreMenu')" title="More options"><i class="fas fa-ellipsis-h"></i></button>
+      <button class="gm-tb-drop-btn" onclick="toggleTbDrop(event,this,'moreMenu')" title="More options"><i class="fas fa-ellipsis-h"></i></button>
       <div class="gm-tb-drop-menu" id="moreMenu">
         <button class="gm-tb-drop-item" onclick="closeTbDrops();openTemplatesModal()"><i class="fas fa-th-large"></i> Templates</button>
         <div class="gm-tb-drop-sep"></div>
@@ -1716,13 +1716,13 @@ function duplicateCurrentSlide() {
 }
 
 // ── Topbar dropdown toggle ──────────────────────────────────────
-function toggleTbDrop(e, menuId) {
+function toggleTbDrop(e, btn, menuId) {
   e.stopPropagation();
   var menu = document.getElementById(menuId);
   var wasOpen = menu.classList.contains('open');
   closeTbDrops();
   if (!wasOpen) {
-    var rect = e.currentTarget.getBoundingClientRect();
+    var rect = btn.getBoundingClientRect();
     menu.style.top  = (rect.bottom + 6) + 'px';
     menu.style.left = 'auto';
     menu.style.right = (window.innerWidth - rect.right) + 'px';

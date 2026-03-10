@@ -3814,8 +3814,13 @@ def presentation_list(request):
         messages.error(request, 'Access denied.')
         return redirect('dashboard')
     teacher = get_object_or_404(Teacher, user=request.user)
-    from .models import Presentation
-    decks = Presentation.objects.filter(teacher=teacher).select_related('subject', 'school_class')
+    from .models import Presentation, Slide
+    from django.db.models import OuterRef, Subquery
+    first_emoji = Slide.objects.filter(
+        presentation=OuterRef('pk')).order_by('order').values('emoji')[:1]
+    decks = (Presentation.objects.filter(teacher=teacher)
+             .select_related('subject', 'school_class')
+             .annotate(cover_emoji=Subquery(first_emoji)))
     return render(request, 'teachers/presentations/list.html', {'decks': decks})
 
 
