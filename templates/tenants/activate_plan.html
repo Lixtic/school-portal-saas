@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Activate Plan — {{ school.name }}{% endblock %}
+
+{% block content %}
+<style>
+.ap-page { max-width: 780px; margin: 0 auto; padding: 2rem 1.5rem; }
+.ap-school-card {
+    background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+    color: #fff; border-radius: 16px; padding: 1.5rem 2rem; margin-bottom: 2rem;
+    display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+}
+.ap-school-avatar {
+    width: 52px; height: 52px; border-radius: 12px;
+    background: rgba(255,255,255,.12); display: flex; align-items: center;
+    justify-content: center; font-size: 1.5rem; flex-shrink: 0;
+}
+.ap-school-name { font-size: 1.2rem; font-weight: 800; }
+.ap-school-meta { font-size: .8rem; opacity: .65; }
+.ap-status-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: .7rem; font-weight: 700; padding: 3px 10px;
+    border-radius: 999px; text-transform: uppercase; letter-spacing: .06em;
+}
+.chip-trial    { background: #fef3c7; color: #92400e; }
+.chip-active   { background: #d1fae5; color: #065f46; }
+.chip-past_due { background: #fee2e2; color: #991b1b; }
+.chip-cancelled{ background: rgba(255,255,255,.12); color: rgba(255,255,255,.6); }
+.chip-none     { background: rgba(255,255,255,.1); color: rgba(255,255,255,.5); }
+
+.ap-form-card {
+    background: var(--surface-card, #fff);
+    border: 1.5px solid var(--border-color, #e2e8f0);
+    border-radius: 16px; padding: 2rem;
+}
+.ap-section-label {
+    font-size: .68rem; font-weight: 800; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--text-muted, #64748b);
+    margin-bottom: .75rem;
+}
+.ap-plan-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: .75rem; }
+.ap-plan-option { position: relative; }
+.ap-plan-option input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+.ap-plan-label {
+    display: block; border: 2px solid var(--border-color, #e2e8f0);
+    border-radius: 12px; padding: 1rem; cursor: pointer; transition: all .15s;
+    background: var(--surface-bg, #f8fafc);
+}
+.ap-plan-label:hover { border-color: #3b82f6; }
+.ap-plan-option input:checked + .ap-plan-label {
+    border-color: #3b82f6; background: #eff6ff; box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+}
+.ap-plan-name { font-weight: 700; font-size: .9rem; margin-bottom: .2rem; }
+.ap-plan-price { font-size: 1.1rem; font-weight: 800; color: #1e3a5f; }
+.ap-plan-price span { font-size: .75rem; font-weight: 400; color: #64748b; }
+
+.ap-submit {
+    background: linear-gradient(135deg, #1e3a5f, #2563eb);
+    color: #fff; border: none; border-radius: 10px;
+    padding: .65rem 1.75rem; font-size: .9rem; font-weight: 700;
+    cursor: pointer; transition: opacity .15s;
+}
+.ap-submit:hover { opacity: .88; }
+</style>
+
+<div class="ap-page">
+    <!-- Back nav -->
+    <div class="mb-4">
+        <a href="{% url 'tenants:landlord_dashboard' %}" class="text-muted small text-decoration-none">
+            <i class="bi bi-arrow-left me-1"></i>Landlord Dashboard
+        </a>
+    </div>
+
+    <!-- School header -->
+    <div class="ap-school-card">
+        <div class="ap-school-avatar"><i class="bi bi-building"></i></div>
+        <div class="flex-grow-1">
+            <div class="ap-school-name">{{ school.name }}</div>
+            <div class="ap-school-meta">{{ school.schema_name }} &bull; {{ school.get_school_type_display|default:school.school_type }}</div>
+        </div>
+        <div>
+            {% if subscription %}
+                <span class="ap-status-chip chip-{{ subscription.status }}">
+                    {{ subscription.get_status_display }}
+                </span>
+            {% else %}
+                <span class="ap-status-chip chip-none">No subscription</span>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if subscription %}
+    <!-- Current subscription summary -->
+    <div class="mb-4 p-3 rounded-3" style="background: var(--surface-bg,#f8fafc); border: 1.5px solid var(--border-color,#e2e8f0);">
+        <div class="row g-3 text-center">
+            <div class="col-4">
+                <div class="small text-muted">Current Plan</div>
+                <div class="fw-700">{{ subscription.plan.name }}</div>
+            </div>
+            <div class="col-4">
+                <div class="small text-muted">MRR</div>
+                <div class="fw-700">${{ subscription.mrr }}</div>
+            </div>
+            <div class="col-4">
+                <div class="small text-muted">
+                    {% if subscription.status == 'trial' %}Trial ends{% else %}Period ends{% endif %}
+                </div>
+                <div class="fw-700">
+                    {% if subscription.status == 'trial' and subscription.trial_ends_at %}
+                        {{ subscription.trial_ends_at|date:"M j, Y" }}
+                    {% else %}
+                        {{ subscription.current_period_end|date:"M j, Y" }}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Activation form -->
+    <div class="ap-form-card">
+        <h5 class="fw-700 mb-4">
+            <i class="bi bi-rocket-takeoff me-2 text-primary"></i>
+            {% if subscription %}Update Plan{% else %}Activate Plan{% endif %}
+        </h5>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <!-- Plan selection -->
+            <div class="mb-4">
+                <div class="ap-section-label">Choose plan</div>
+                <div class="ap-plan-grid">
+                    {% for plan in plans %}
+                    <div class="ap-plan-option">
+                        <input type="radio" name="plan_id" id="plan_{{ plan.id }}" value="{{ plan.id }}"
+                               {% if subscription and subscription.plan.id == plan.id %}checked{% elif forloop.first and not subscription %}checked{% endif %}>
+                        <label class="ap-plan-label" for="plan_{{ plan.id }}">
+                            <div class="ap-plan-name">{{ plan.name }}</div>
+                            <div class="ap-plan-price">${{ plan.monthly_price }}<span>/mo</span></div>
+                            <div class="mt-1" style="font-size:.7rem;color:#64748b;">
+                                {{ plan.max_students }} stu · {{ plan.max_teachers }} teach
+                            </div>
+                            <div class="mt-1" style="font-size:.7rem;color:#7c3aed;">
+                                {{ plan.ai_calls_per_month }} AI calls/mo
+                            </div>
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Status + Billing Cycle -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label class="ap-section-label d-block" for="id_status">Status</label>
+                    <select name="status" id="id_status" class="form-select form-select-sm">
+                        <option value="active" {% if subscription and subscription.status == 'active' %}selected{% endif %}>Active (Paid)</option>
+                        <option value="trial" {% if not subscription or subscription.status == 'trial' %}selected{% endif %}>Trial</option>
+                        <option value="past_due" {% if subscription and subscription.status == 'past_due' %}selected{% endif %}>Past Due</option>
+                        <option value="cancelled" {% if subscription and subscription.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                        <option value="suspended" {% if subscription and subscription.status == 'suspended' %}selected{% endif %}>Suspended</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="ap-section-label d-block" for="id_billing_cycle">Billing Cycle</label>
+                    <select name="billing_cycle" id="id_billing_cycle" class="form-select form-select-sm">
+                        <option value="monthly" {% if subscription and subscription.billing_cycle == 'monthly' %}selected{% endif %}>Monthly</option>
+                        <option value="quarterly" {% if subscription and subscription.billing_cycle == 'quarterly' %}selected{% endif %}>Quarterly</option>
+                        <option value="annual" {% if subscription and subscription.billing_cycle == 'annual' %}selected{% endif %}>Annual</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="ap-section-label d-block" for="id_mrr">MRR (USD)</label>
+                    <input type="number" name="mrr" id="id_mrr" step="0.01" min="0"
+                           class="form-control form-control-sm"
+                           value="{% if subscription %}{{ subscription.mrr }}{% else %}0{% endif %}">
+                </div>
+            </div>
+
+            <!-- Trial extension (shown when status==trial) -->
+            <div class="mb-4" id="trial_section">
+                <div class="ap-section-label">Trial length (days from now)</div>
+                <input type="number" name="extend_trial_days" min="1" max="365"
+                       class="form-control form-control-sm" style="max-width:140px;"
+                       placeholder="e.g. 14"
+                       value="{% if subscription and subscription.status == 'trial' and subscription.trial_ends_at %}{{ subscription.trial_ends_at|timeuntil|cut:' ,'|slice:':2' }}{% else %}14{% endif %}">
+                <div class="form-text">Leave blank to use 14 days. Only applies when status is "Trial".</div>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                <button type="submit" class="ap-submit">
+                    <i class="bi bi-check2-circle me-1"></i>
+                    {% if subscription %}Update Plan{% else %}Activate{% endif %}
+                </button>
+                <a href="{% url 'tenants:landlord_dashboard' %}" class="text-muted small">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Show/hide trial section based on status
+const statusSel = document.getElementById('id_status');
+const trialSection = document.getElementById('trial_section');
+function updateTrialVisibility() {
+    trialSection.style.display = statusSel.value === 'trial' ? '' : 'none';
+}
+statusSel.addEventListener('change', updateTrialVisibility);
+updateTrialVisibility();
+</script>
+{% endblock %}

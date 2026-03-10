@@ -1301,3 +1301,89 @@ def school_subscription(request):
         'quota': quota,
     }
     return render(request, 'tenants/school_subscription.html', context)
+
+
+@login_required
+def activate_school_plan(request, school_id):
+    """Landlord: activate or change a school's subscription plan."""
+    if not request.user.is_staff:
+        messages.error(request, "Access denied. Staff only.")
+        return redirect('home')
+
+    from .models import SchoolSubscription, SubscriptionPlan
+
+    school = get_object_or_404(School, id=school_id)
+
+    plans = SubscriptionPlan.objects.filter(is_active=True).order_by('monthly_price')
+
+    # Existing subscription (may not exist)
+    try:
+        subscription = SchoolSubscription.objects.select_related('plan').get(school=school)
+    except SchoolSubscription.DoesNotExist:
+        subscription = None
+
+    if request.method == 'POST':
+        plan_id = request.POST.get('plan_id')
+        billing_cycle = request.POST.get('billing_cycle', 'monthly')
+        mrr = request.POST.get('mrr', '0')
+        extend_trial_days = request.POST.get('extend_trial_days', '').strip()
+        new_status = request.POST.get('status', 'active')
+
+        try:
+            plan = SubscriptionPlan.objects.get(id=plan_id)
+        except (SubscriptionPlan.DoesNotExist, ValueError, TypeError):
+            messages.error(request, "Invalid plan selected.")
+            return redirect('tenants:activate_plan', school_id=school_id)
+
+        try:
+            mrr_val = float(mrr)
+        except (ValueError, TypeError):
+            mrr_val = 0.0
+
+        now_dt = timezone.now()
+        if billing_cycle == 'monthly':
+            period_end = now_dt + timedelta(days=30)
+        elif billing_cycle == 'quarterly':
+            period_end = now_dt + timedelta(days=91)
+        else:
+            period_end = now_dt + timedelta(days=365)
+
+        if subscription:
+            subscription.plan = plan
+            subscription.billing_cycle = billing_cycle
+            subscription.mrr = mrr_val
+            subscription.status = new_status
+            subscription.current_period_start = now_dt
+            subscription.current_period_end = period_end
+            if new_status == 'trial':
+                extra_days = int(extend_trial_days) if extend_trial_days.isdigit() else 14
+                subscription.trial_ends_at = now_dt + timedelta(days=extra_days)
+            else:
+                subscription.trial_ends_at = None
+            subscription.save()
+        else:
+            trial_ends = now_dt + timedelta(days=int(extend_trial_days) if extend_trial_days.isdigit() else 14)
+            SchoolSubscription.objects.create(
+                school=school,
+                plan=plan,
+                billing_cycle=billing_cycle,
+                status=new_status,
+                mrr=mrr_val,
+                started_at=now_dt,
+                current_period_start=now_dt,
+                current_period_end=period_end,
+                trial_ends_at=trial_ends if new_status == 'trial' else None,
+            )
+
+        messages.success(
+            request,
+            f"✅ {school.name} — plan set to {plan.name} ({new_status}), MRR: ${mrr_val:.2f}.",
+        )
+        return redirect('tenants:activate_plan', school_id=school_id)
+
+    context = {
+        'school': school,
+        'subscription': subscription,
+        'plans': plans,
+    }
+    return render(request, 'tenants/activate_plan.html', context)

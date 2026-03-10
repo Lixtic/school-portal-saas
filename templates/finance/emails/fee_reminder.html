@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fee Payment Reminder</title>
+<style>
+  body { margin: 0; padding: 0; background: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  .wrapper { max-width: 560px; margin: 32px auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,.08); }
+  .header { background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); padding: 32px 36px; text-align: center; }
+  .header h1 { color: #fff; margin: 0; font-size: 22px; font-weight: 800; }
+  .header p { color: rgba(255,255,255,.65); margin: 6px 0 0; font-size: 13px; }
+  .body { padding: 32px 36px; }
+  .greeting { font-size: 16px; color: #1e293b; margin: 0 0 16px; }
+  .fee-card { background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 20px 24px; margin: 20px 0; }
+  .fee-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #475569; }
+  .fee-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .fee-row .label { font-weight: 500; }
+  .fee-row .value { font-weight: 700; color: #1e293b; }
+  .balance-row .value { color: #dc2626; font-size: 18px; }
+  .cta { text-align: center; margin: 28px 0 8px; }
+  .cta-note { font-size: 13px; color: #94a3b8; margin-top: 6px; text-align: center; }
+  .footer { background: #f8fafc; padding: 18px 36px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; }
+  .due-warning { background: #fff3cd; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #92400e; margin: 16px 0 0; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <h1>Fee Payment Reminder</h1>
+    <p>Please ensure your ward's fees are settled promptly</p>
+  </div>
+
+  <div class="body">
+    <p class="greeting">Dear {{ parent_name }},</p>
+
+    <p style="font-size:14px;color:#475569;margin:0 0 4px;">
+      This is a reminder that <strong style="color:#1e293b;">{{ student_name }}</strong> has an outstanding fee balance that requires your attention.
+    </p>
+
+    <div class="fee-card">
+      <div class="fee-row">
+        <span class="label">Student</span>
+        <span class="value">{{ student_name }}</span>
+      </div>
+      {% if class_name %}
+      <div class="fee-row">
+        <span class="label">Class</span>
+        <span class="value">{{ class_name }}</span>
+      </div>
+      {% endif %}
+      <div class="fee-row">
+        <span class="label">Fee Item</span>
+        <span class="value">{{ head_name }}</span>
+      </div>
+      {% if due_date %}
+      <div class="fee-row">
+        <span class="label">Due Date</span>
+        <span class="value">{{ due_date }}</span>
+      </div>
+      {% endif %}
+      <div class="fee-row balance-row">
+        <span class="label">Outstanding Balance</span>
+        <span class="value">&#8373;{{ balance }}</span>
+      </div>
+    </div>
+
+    {% if due_date %}
+    <div class="due-warning">
+      <strong>&#9888; Overdue:</strong> The payment deadline has passed. Please settle this balance as soon as possible to avoid any disruption.
+    </div>
+    {% endif %}
+
+    <div class="cta">
+      <p style="font-size:14px;color:#475569;margin:0 0 8px;">To make payment or discuss payment arrangements, please contact the school's accounts office or visit the parent portal.</p>
+    </div>
+
+    <p style="font-size:13px;color:#94a3b8;margin:20px 0 0;">
+      If you have already made this payment, please disregard this message and contact us with your receipt so we can update our records.
+    </p>
+  </div>
+
+  <div class="footer">
+    This is an automated message from the school management system.<br>
+    Please do not reply directly to this email.
+  </div>
+</div>
+</body>
+</html>

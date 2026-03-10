@@ -30,4 +30,7 @@ urlpatterns = [
 
     # School subscription portal (tenant-admin)
     path('subscription/', views.school_subscription, name='school_subscription'),
+
+    # Landlord: activate / change a school's plan
+    path('activate-plan/<int:school_id>/', views.activate_school_plan, name='activate_plan'),
 ]

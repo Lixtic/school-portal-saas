@@ -575,6 +575,21 @@ def dashboard(request):
         except Exception:
             onboarding = None
 
+        # Subscription / trial banner data
+        subscription = None
+        trial_days_left = None
+        try:
+            from tenants.subscription_models import SchoolSubscription
+            from django.utils import timezone as tz
+            tenant = getattr(request, 'tenant', None)
+            if tenant:
+                subscription = SchoolSubscription.objects.filter(school=tenant).first()
+                if subscription and subscription.status == 'trial' and subscription.trial_ends_at:
+                    delta = subscription.trial_ends_at - tz.now()
+                    trial_days_left = max(0, delta.days)
+        except Exception:
+            pass
+
         context = {
             'user': user,
             'notices': notices,
@@ -586,6 +601,8 @@ def dashboard(request):
             'total_teachers': _safe_count(Teacher),
             'onboarding': onboarding,
             'message_notifications': message_notifications,
+            'subscription': subscription,
+            'trial_days_left': trial_days_left,
             **calendar_widget,
         }
 
