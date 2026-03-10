@@ -291,6 +291,65 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 .ps-auto-ring { width: 56px; height: 4px; background: rgba(255,255,255,.1); border-radius: 2px; }
 .ps-auto-ring-fill { height: 100%; background: linear-gradient(90deg,#60a5fa,#7c3aed); border-radius: 2px; transition: width 1s linear; }
 .ps-auto-bar .ps-auto-n { font-size: .72rem; font-weight: 700; color: #60a5fa; min-width: 24px; }
+
+/* ── Presenter mode ── */
+body.presenter-mode { display: flex; flex-direction: row; overflow: hidden; }
+body.presenter-mode #stage { width: 65vw; height: 100vh; flex-shrink: 0; min-width: 0; }
+body.presenter-mode .ps-controls,
+body.presenter-mode .ps-auto-bar { opacity: 0 !important; pointer-events: none; }
+.pv-panel {
+  display: none; flex-direction: column;
+  width: 35vw; height: 100vh; overflow: hidden; flex-shrink: 0;
+  background: #0d1117; border-left: 1px solid rgba(255,255,255,.08);
+}
+body.presenter-mode .pv-panel { display: flex; }
+.pv-pane-header {
+  padding: .5rem 1rem; font-size: .58rem; font-weight: 800;
+  letter-spacing: .15em; color: rgba(255,255,255,.2);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  text-transform: uppercase; flex-shrink: 0;
+}
+.pv-section { padding: .8rem 1rem; border-bottom: 1px solid rgba(255,255,255,.06); flex-shrink: 0; }
+.pv-label { font-size: .58rem; font-weight: 800; letter-spacing: .1em; color: #7c3aed; text-transform: uppercase; margin-bottom: .4rem; }
+.pv-notes { font-size: .78rem; color: #94a3b8; line-height: 1.55; max-height: 22vh; overflow-y: auto; white-space: pre-wrap; }
+.pv-notes.empty { color: rgba(255,255,255,.18); font-style: italic; font-size: .74rem; }
+.pv-next-wrap {
+  width: 100%; aspect-ratio: 16/9; position: relative;
+  background: rgba(0,0,0,.3); border-radius: 8px; overflow: hidden;
+  border: 1px solid rgba(255,255,255,.08);
+}
+.pv-next-inner { position: absolute; top: 0; left: 0; transform-origin: top left; pointer-events: none; }
+.pv-next-empty { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.2); font-size: .7rem; font-style: italic; }
+.pv-footer { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .35rem; padding: 1rem; }
+.pv-big-timer { font-size: 4.5rem; font-weight: 900; letter-spacing: -.02em; color: #f1f5f9; line-height: 1; font-variant-numeric: tabular-nums; }
+.pv-big-timer.warn { color: #f59e0b; }
+.pv-big-timer.over  { color: #ef4444; }
+.pv-timer-label { font-size: .6rem; font-weight: 700; letter-spacing: .1em; color: rgba(255,255,255,.25); text-transform: uppercase; margin-top: -.2rem; }
+.pv-counter-row { display: flex; align-items: center; gap: 1rem; margin-top: .5rem; }
+.pv-slide-counter { font-size: 1.3rem; font-weight: 800; color: #475569; font-variant-numeric: tabular-nums; }
+.pv-ctrl-row { display: flex; gap: 8px; margin-top: .7rem; }
+.pv-ctrl-btn {
+  background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1);
+  color: #94a3b8; border-radius: 9px; padding: 7px 16px;
+  font-size: .78rem; font-weight: 700; cursor: pointer;
+  transition: background .15s; display: flex; align-items: center; gap: 5px;
+}
+.pv-ctrl-btn:hover { background: rgba(255,255,255,.14); color: #f1f5f9; }
+.pv-exit-link { font-size: .66rem; color: rgba(255,255,255,.15); text-decoration: none; margin-top: .4rem; }
+.pv-exit-link:hover { color: rgba(255,255,255,.4); }
+
+/* ── Print / PDF export ── */
+@media print {
+  html, body { overflow: visible !important; background: #000 !important; }
+  .ps-controls, .ps-exit-btn, .ps-timer, .ps-progress, .ps-notes-overlay,
+  .ps-shortcuts-overlay, .ps-overview, .ps-auto-bar,
+  .ps-draw-canvas, .ps-draw-label, .ps-draw-toolbar, .ps-laser,
+  .pv-panel { display: none !important; }
+  #stage { width: 100% !important; height: auto !important; overflow: visible !important; position: relative !important; }
+  .ps-slide { display: flex !important; position: relative !important; width: 100%; height: auto; min-height: 56.25vw; page-break-after: always; break-after: page; }
+  .ps-stage::before { display: none; }
+  @page { size: A4 landscape; margin: 0; }
+}
 </style>
 </head>
 <body>
@@ -329,6 +388,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
         <tr><td>O</td><td>Slide overview</td></tr>
         <tr><td>A</td><td>Toggle auto-advance</td></tr>
         <tr><td>?</td><td>Show shortcuts</td></tr>
+        <tr><td>P</td><td>Open Presenter View</td></tr>
         <tr><td>Esc</td><td>Exit / close overlay</td></tr>
       </table>
       <button class="close-btn" onclick="toggleShortcuts()">Close</button>
@@ -351,8 +411,9 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
     <button class="ps-ctrl-btn" onclick="toggleDraw()" title="Draw (D)" id="drawBtn"><i class="fas fa-pen"></i></button>
     <div style="width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 4px;"></div>
     <button class="ps-ctrl-btn" onclick="toggleFullscreen()" title="Fullscreen (F)" id="fsBtn"><i class="fas fa-expand" id="fsIcon"></i></button>
-    <button class="ps-ctrl-btn" onclick="toggleShortcuts()" title="Keyboard shortcuts (?)"><i class="fas fa-question"></i></button>
-  </div>
+    <button class="ps-ctrl-btn" onclick="toggleShortcuts()" title="Keyboard shortcuts (?)"><i class="fas fa-question"></i></button>    <div style="width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 4px;"></div>
+    <button class="ps-ctrl-btn" onclick="openPresenterWindow()" title="Open Presenter View (P)" id="presenterBtn"><i class="fas fa-chalkboard-teacher"></i></button>
+    <button class="ps-ctrl-btn" onclick="window.print()" title="Print / Save as PDF"><i class="fas fa-file-pdf"></i></button>  </div>
 
   <a href="{% url 'teachers:presentation_editor' deck.pk %}" class="ps-exit-btn" title="Exit (Esc)">
     <i class="fas fa-times"></i> Exit
@@ -398,10 +459,76 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 
 </div><!-- /stage -->
 
+<!-- ── Presenter Panel (visible when ?presenter=1) ── -->
+<div class="pv-panel" id="pvPanel">
+  <div class="pv-pane-header">&#9670; Presenter View &mdash; {{ deck.title|truncatechars:40 }}</div>
+  <div class="pv-section">
+    <div class="pv-label">Speaker Notes</div>
+    <div class="pv-notes empty" id="pvNotes">No speaker notes for this slide.</div>
+  </div>
+  <div class="pv-section">
+    <div class="pv-label">Next Slide</div>
+    <div class="pv-next-wrap" id="pvNextWrap">
+      <div class="pv-next-empty">Last slide</div>
+    </div>
+  </div>
+  <div class="pv-footer">
+    <div class="pv-big-timer" id="pvBigTimer">0:00</div>
+    <div class="pv-timer-label">Slide time</div>
+    <div class="pv-counter-row">
+      <div class="pv-slide-counter"><span id="pvCur">1</span>&nbsp;/&nbsp;{{ slides|length }}</div>
+    </div>
+    <div class="pv-ctrl-row">
+      <button class="pv-ctrl-btn" onclick="prevSlide()"><i class="fas fa-chevron-left"></i> Prev</button>
+      <button class="pv-ctrl-btn" onclick="nextSlide()">Next <i class="fas fa-chevron-right"></i></button>
+    </div>
+    <a href="{% url 'teachers:presentation_editor' deck.pk %}" class="pv-exit-link">&#x2715; Exit to editor</a>
+  </div>
+</div>
+
 <script>
 var total = {{ slides|length }};
 var current = 0;
 var DECK_THEME = '{{ deck.theme }}';
+var DECK_PK = {{ deck.pk }};
+var PRESENTER_MODE = new URLSearchParams(location.search).get('presenter') === '1';
+var _syncChannel = null;
+if (PRESENTER_MODE) { document.body.classList.add('presenter-mode'); }
+if (typeof BroadcastChannel !== 'undefined') {
+  _syncChannel = new BroadcastChannel('preso-' + DECK_PK);
+  if (!PRESENTER_MODE) {
+    _syncChannel.onmessage = function(e) {
+      if (e.data && e.data.action === 'goto') goTo(e.data.slide);
+    };
+  }
+}
+function openPresenterWindow() {
+  window.open(location.href.split('?')[0] + '?presenter=1', 'preso',
+    'width=1920,height=1080,menubar=0,toolbar=0,location=0,status=0');
+}
+function updatePresenterPanel(n) {
+  if (!PRESENTER_MODE) return;
+  var allSlides = document.querySelectorAll('.ps-slide');
+  var notes = (n < allSlides.length ? allSlides[n].dataset.notes || '' : '').trim();
+  var pvNotes = document.getElementById('pvNotes');
+  if (notes) { pvNotes.textContent = notes; pvNotes.classList.remove('empty'); }
+  else { pvNotes.textContent = 'No speaker notes for this slide.'; pvNotes.classList.add('empty'); }
+  document.getElementById('pvCur').textContent = n + 1;
+  var nextIdx = n + 1;
+  var wrap = document.getElementById('pvNextWrap');
+  wrap.innerHTML = '';
+  if (nextIdx >= total) { wrap.innerHTML = '<div class="pv-next-empty">Last slide</div>'; return; }
+  var stageW  = window.innerWidth * 0.65;
+  var wrapW   = wrap.offsetWidth || Math.round(window.innerWidth * 0.35 - 32);
+  var scale   = wrapW / stageW;
+  var inner   = document.createElement('div');
+  inner.className       = 'pv-next-inner';
+  inner.style.width     = stageW + 'px';
+  inner.style.height    = window.innerHeight + 'px';
+  inner.style.transform = 'scale(' + scale + ')';
+  inner.innerHTML       = allSlides[nextIdx].innerHTML;
+  wrap.appendChild(inner);
+}
 // Set initial progress bar width
 document.getElementById('progressFill').style.width = (total > 0 ? Math.round(1/total*100) : 100) + '%';
 
@@ -458,6 +585,7 @@ document.addEventListener('keydown', function(e) {
   if (e.key === 'o' || e.key === 'O') toggleOverview();
   if (e.key === 'a' || e.key === 'A') toggleAutoAdvance();
   if (e.key === '?') toggleShortcuts();
+  if (e.key === 'p' || e.key === 'P') openPresenterWindow();
   if (e.key === 'Home') goTo(0);
   if (e.key === 'End')  goTo(total - 1);
 });
@@ -492,6 +620,13 @@ function updateTimerDisplay() {
   var el = document.getElementById('slideTimer');
   el.classList.toggle('warn', slideSecondsElapsed >= 120 && slideSecondsElapsed < 300);
   el.classList.toggle('over', slideSecondsElapsed >= 300);
+  // sync big timer in presenter panel
+  var pv = document.getElementById('pvBigTimer');
+  if (pv) {
+    pv.textContent = disp;
+    pv.classList.toggle('warn', slideSecondsElapsed >= 120 && slideSecondsElapsed < 300);
+    pv.classList.toggle('over', slideSecondsElapsed >= 300);
+  }
 }
 // Wrap goTo to reset timer on slide change
 var _origGoTo = goTo;
@@ -501,7 +636,16 @@ goTo = function(n) {
   if (changed) startSlideTimer();
 };
 startSlideTimer();
-
+// Broadcast slide changes to audience window + update presenter panel
+(function() {
+  var _bcGoTo = goTo;
+  goTo = function(n) {
+    _bcGoTo(n);
+    if (PRESENTER_MODE && _syncChannel) _syncChannel.postMessage({ action: 'goto', slide: n });
+    updatePresenterPanel(n);
+  };
+})();
+updatePresenterPanel(0);
 // ── Laser pointer ────────────────────────────────────────────────────────────
 var laserMode = false;
 var laserDot = document.getElementById('laserDot');

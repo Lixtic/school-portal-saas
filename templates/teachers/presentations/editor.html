@@ -444,6 +444,23 @@ html, body { height: 100%; margin: 0; }
   flex-direction: column; gap: .6rem; text-align: center; padding: 2rem;
 }
 .gm-canvas-empty i { font-size: 2.8rem; opacity: .25; }
+
+/* ── Templates modal ── */
+.gm-tpl-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+  max-height: 54vh; overflow-y: auto; padding: 2px 0;
+}
+.gm-tpl-card {
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07);
+  border-radius: 11px; padding: .8rem .9rem; cursor: pointer;
+  transition: background .15s, border-color .15s; text-align: left;
+  width: 100%;
+}
+.gm-tpl-card:hover { background: rgba(124,58,237,.14); border-color: rgba(167,139,250,.55); }
+.gm-tpl-card-icon { font-size: 1.5rem; margin-bottom: .3rem; display: block; }
+.gm-tpl-card-title { font-size: .82rem; font-weight: 800; color: #e2e8f0; }
+.gm-tpl-card-meta { font-size: .7rem; color: #7c3aed; font-weight: 600; margin-top: .1rem; }
+.gm-tpl-card-desc { font-size: .69rem; color: #64748b; margin-top: .2rem; line-height: 1.35; }
 </style>
 {% endblock %}
 
@@ -471,6 +488,12 @@ html, body { height: 100%; margin: 0; }
     <button class="gm-ai-btn" onclick="openAIModal()"><i class="fas fa-robot"></i> AI Generate</button>
     <button class="gm-add-btn" id="smartLayoutsBtn" onclick="smartLayouts()" title="AI picks the best layout for each slide"><i class="fas fa-magic"></i> Layouts</button>
     <button class="gm-add-btn" id="harmonizeBtn" onclick="openHarmonizeModal()" title="AI harmonizes terminology and style across all slides">&#10022; Harmonize</button>
+    <a href="{% url 'teachers:presentation_print' deck.pk %}" target="_blank" class="gm-add-btn" title="Print / Save as PDF" style="text-decoration:none;">
+      <i class="fas fa-file-pdf"></i> PDF
+    </a>
+    <button class="gm-add-btn" onclick="openTemplatesModal()" title="Start from a slide template">
+      <i class="fas fa-th-large"></i> Templates
+    </button>
     <button class="gm-add-btn" onclick="toggleEditorFS()" id="edFsBtn" title="Fullscreen">
       <i class="fas fa-expand" id="edFsIcon"></i>
     </button>
@@ -714,6 +737,18 @@ html, body { height: 100%; margin: 0; }
     <div class="gm-modal-actions">
       <button class="gm-modal-cancel" onclick="document.getElementById('harmonizeModal').classList.remove('open')">Cancel</button>
       <button class="gm-modal-go" id="harmonizeApplyBtn" onclick="applyHarmonize()" style="display:none;">Apply changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Templates modal -->
+<div class="gm-modal-overlay" id="templatesModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="gm-modal" onclick="event.stopPropagation()" style="max-width:560px;">
+    <h3>&#9783; Slide Templates</h3>
+    <p>Pick a structure to start from. Current slides will be replaced with the template.</p>
+    <div class="gm-tpl-grid" id="tplGrid"></div>
+    <div class="gm-modal-actions" style="margin-top:.9rem;">
+      <button class="gm-modal-cancel" onclick="document.getElementById('templatesModal').classList.remove('open')">Cancel</button>
     </div>
   </div>
 </div>
@@ -1767,6 +1802,62 @@ document.addEventListener('keydown', function(e) {
   if (slides.length) selectSlide(slides[0].id);  // Enable drag-to-reorder on existing server-rendered thumbs
   document.querySelectorAll('#thumbList .gm-thumb').forEach(function(el) {
     setupDrag(el);
-  });})();
+  });
+})();
+
+// ── Slide Templates ───────────────────────────────────────────────────────────
+var SLIDE_TEMPLATES = [
+  { id:'lesson_intro', icon:'📚', title:'Lesson Introduction',  theme:'aurora',   slides:6, desc:'Objectives, vocabulary, agenda & hook question' },
+  { id:'quiz',         icon:'🏆', title:'Quiz Show',            theme:'midnight', slides:6, desc:'Question & answer reveal format' },
+  { id:'timeline',     icon:'⏳', title:'Historical Timeline',   theme:'slate',    slides:6, desc:'Chronological event progression' },
+  { id:'debate',       icon:'⚖️',  title:'Debate',              theme:'coral',    slides:6, desc:'Motion, for, against, rebuttals & verdict' },
+  { id:'lab_report',   icon:'🔬', title:'Lab Report',            theme:'forest',   slides:6, desc:'Hypothesis, method, results & conclusion' },
+  { id:'book_review',  icon:'📖', title:'Book Review',           theme:'rose',     slides:6, desc:'Summary, characters, themes, quote & rating' },
+  { id:'chapter',      icon:'📑', title:'Chapter Summary',       theme:'ocean',    slides:5, desc:'Recap, concepts, worked example & practice' },
+  { id:'project',      icon:'🚀', title:'Project Overview',      theme:'amber',    slides:6, desc:'Background, goals, method, timeline & deliverables' },
+];
+function openTemplatesModal() {
+  var modal = document.getElementById('templatesModal');
+  var grid  = document.getElementById('tplGrid');
+  grid.innerHTML = '';
+  SLIDE_TEMPLATES.forEach(function(tpl) {
+    var card = document.createElement('button');
+    card.className = 'gm-tpl-card';
+    card.innerHTML =
+      '<span class="gm-tpl-card-icon">' + tpl.icon + '</span>' +
+      '<div class="gm-tpl-card-title">' + tpl.title + '</div>' +
+      '<div class="gm-tpl-card-meta">' + tpl.slides + ' slides &bull; ' + tpl.theme + ' theme</div>' +
+      '<div class="gm-tpl-card-desc">' + tpl.desc + '</div>';
+    card.onclick = function() { applyTemplate(tpl.id); };
+    grid.appendChild(card);
+  });
+  modal.classList.add('open');
+}
+function applyTemplate(tplId) {
+  var msg = slides.length > 0
+    ? 'This will replace all ' + slides.length + ' existing slide(s) with the template. Continue?'
+    : null;
+  if (msg && !confirm(msg)) return;
+  document.getElementById('templatesModal').classList.remove('open');
+  setSaveStatus('saving', 'Applying template\u2026');
+  api({ action: 'apply_template', template_id: tplId })
+    .then(function(d) {
+      if (d.error) { alert('Error: ' + d.error); setSaveStatus('saved', ''); return; }
+      slides = [];
+      document.getElementById('thumbList').innerHTML = '';
+      document.querySelectorAll('.gm-slide-inner').forEach(function(el) { el.remove(); });
+      currentSlideId = null;
+      d.slides.forEach(function(s) {
+        slides.push({ id: s.slide_id, order: s.order, layout: s.layout,
+                      title: s.title, content: s.content, emoji: s.emoji || '',
+                      speaker_notes: s.speaker_notes || '', image_url: s.image_url || '' });
+        appendThumb(s); appendCanvas(s);
+      });
+      updateSlideCount(); ensurePanelVisible();
+      if (slides.length) selectSlide(slides[0].id);
+      setSaveStatus('saved', '\u2713 Template applied');
+    })
+    .catch(function(err) { alert('Failed: ' + err); setSaveStatus('saved', ''); });
+}
 </script>
 {% endblock %}

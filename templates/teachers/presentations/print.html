@@ -105,11 +105,20 @@ html, body { background: #f1f5f9; font-family: system-ui, sans-serif; color: #0f
 
 /* ── Print styles ── */
 @media print {
-  .pt-bar { display: none; }
-  body { background: #fff; }
-  .pt-grid { padding: 0; gap: .6rem; grid-template-columns: repeat(2, 1fr); }
-  .pt-slide { box-shadow: none; border: 1px solid #e2e8f0; }
-  @page { margin: 1.2cm; }
+  .pt-bar { display: none !important; }
+  body { background: #000 !important; margin: 0 !important; padding: 0 !important; }
+  .pt-grid { display: block !important; padding: 0 !important; margin: 0 !important; gap: 0 !important; }
+  .pt-slide {
+    display: block !important;
+    width: 100% !important;
+    aspect-ratio: 16 / 9 !important;
+    box-shadow: none !important; border-radius: 0 !important; border: none !important;
+    page-break-after: always; break-after: page;
+    break-inside: avoid !important;
+    overflow: hidden !important;
+  }
+  .pt-num { display: none !important; }
+  @page { size: A4 landscape; margin: 0; }
 }
 </style>
 </head>

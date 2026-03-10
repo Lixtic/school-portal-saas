@@ -4250,6 +4250,105 @@ def presentation_api(request):
             'summary': result.get('summary', ''),
         })
 
+    # ── apply_template ───────────────────────────────────────────────────────
+    elif action == 'apply_template':
+        template_id = data.get('template_id', '')
+        TEMPLATES = {
+            'lesson_intro': {'slides': [
+                {'order':0,'layout':'title',   'emoji':'📚','title':'[Lesson Title]','content':'[Subject] · [Class] · [Teacher]','speaker_notes':''},
+                {'order':1,'layout':'bullets', 'emoji':'🎯','title':'Learning Objectives','content':'By the end of this lesson, students will be able to...\nUnderstand the key concepts of [topic]\nApply [skill] in real-world situations\nAnalyse and evaluate [concept]','speaker_notes':''},
+                {'order':2,'layout':'bullets', 'emoji':'🔤','title':'Key Vocabulary','content':'[Term 1]: definition here\n[Term 2]: definition here\n[Term 3]: definition here\n[Term 4]: definition here','speaker_notes':''},
+                {'order':3,'layout':'two_col', 'emoji':'📋','title':"Today's Agenda",'content':"First Half\nWarm-up activity\nDirect instruction\nGuided practice\nSecond Half\nIndependent practice\nGroup discussion\nExit ticket",'speaker_notes':''},
+                {'order':4,'layout':'quote',   'emoji':'💭','title':'','content':'Think about it: [provocative question related to the topic]\n— [Your Name]','speaker_notes':''},
+                {'order':5,'layout':'summary', 'emoji':'📝','title':'Lesson Recap','content':'Key concept reviewed\nObjectives met\nActivity completed\nExit ticket collected\nHomework assigned','speaker_notes':''},
+            ]},
+            'quiz': {'slides': [
+                {'order':0,'layout':'title',    'emoji':'🏆','title':'Quiz Time!','content':'[Topic] Review · [Class]','speaker_notes':''},
+                {'order':1,'layout':'big_stat', 'emoji':'❓','title':'Question 1','content':'[Q1 — type your question here]\n[Optional hint or sub-text]','speaker_notes':'Read the question aloud twice.'},
+                {'order':2,'layout':'bullets',  'emoji':'✅','title':'Answer 1','content':'[Correct answer]\nExplanation: [why this is correct]\nKey takeaway: [one sentence summary]','speaker_notes':''},
+                {'order':3,'layout':'big_stat', 'emoji':'❓','title':'Question 2','content':'[Q2 — type your question here]\n[Optional hint or sub-text]','speaker_notes':''},
+                {'order':4,'layout':'bullets',  'emoji':'✅','title':'Answer 2','content':'[Correct answer]\nExplanation: [why this is correct]\nKey takeaway: [one sentence summary]','speaker_notes':''},
+                {'order':5,'layout':'summary',  'emoji':'🎉','title':'Quiz Complete!','content':'Great effort!\nReview your answers\nAsk questions\nApply what you learned\nSee you next time!','speaker_notes':''},
+            ]},
+            'timeline': {'slides': [
+                {'order':0,'layout':'title',   'emoji':'⏳','title':'[Event] Timeline','content':'From [Start Year] to [End Year]','speaker_notes':''},
+                {'order':1,'layout':'bullets', 'emoji':'📌','title':'[Year/Period 1]','content':'[Event name]\nWhat happened: [brief description]\nKey figures: [names]\nImpact: [consequence]','speaker_notes':''},
+                {'order':2,'layout':'bullets', 'emoji':'📌','title':'[Year/Period 2]','content':'[Event name]\nWhat happened: [brief description]\nKey figures: [names]\nImpact: [consequence]','speaker_notes':''},
+                {'order':3,'layout':'bullets', 'emoji':'📌','title':'[Year/Period 3]','content':'[Event name]\nWhat happened: [brief description]\nKey figures: [names]\nImpact: [consequence]','speaker_notes':''},
+                {'order':4,'layout':'quote',   'emoji':'💬','title':'','content':'[Famous quote from the period]\n[Person, Year]','speaker_notes':''},
+                {'order':5,'layout':'summary', 'emoji':'📖','title':'What We Learned','content':'Events were connected\nCauses lead to effects\nKey figures shaped history\nLessons are still relevant today','speaker_notes':''},
+            ]},
+            'debate': {'slides': [
+                {'order':0,'layout':'title',   'emoji':'⚖️','title':'Debate: [Motion]','content':'This House Believes That [statement]','speaker_notes':''},
+                {'order':1,'layout':'bullets', 'emoji':'✅','title':'Arguments FOR','content':'Point 1: [main argument]\nEvidence: [data or example]\nPoint 2: [main argument]\nEvidence: [data or example]\nPoint 3: [main argument]','speaker_notes':''},
+                {'order':2,'layout':'bullets', 'emoji':'❌','title':'Arguments AGAINST','content':'Point 1: [counter-argument]\nEvidence: [data or example]\nPoint 2: [counter-argument]\nEvidence: [data or example]\nPoint 3: [counter-argument]','speaker_notes':''},
+                {'order':3,'layout':'two_col', 'emoji':'🔄','title':'Rebuttals','content':'FOR Rebuttal\nAddress: [counter-point]\nResponse: [why it fails]\nAGAINST Rebuttal\nAddress: [for-point]\nResponse: [why it fails]','speaker_notes':''},
+                {'order':4,'layout':'quote',   'emoji':'💭','title':'','content':'[Relevant quote about the topic]\n[Source]','speaker_notes':''},
+                {'order':5,'layout':'summary', 'emoji':'🏁','title':'Verdict & Takeaways','content':'Key learning points\nStrong arguments considered\nEvidence was critical\nOpen to different perspectives','speaker_notes':''},
+            ]},
+            'lab_report': {'slides': [
+                {'order':0,'layout':'title',    'emoji':'🔬','title':'[Experiment Title]','content':'[Subject] · [Class] · [Date]','speaker_notes':''},
+                {'order':1,'layout':'bullets',  'emoji':'💡','title':'Aim & Hypothesis','content':'Aim: [what you are trying to find out]\nHypothesis: I predict that...\nBecause: [scientific reasoning]\nVariables — Independent: [x], Dependent: [y], Controlled: [list]','speaker_notes':''},
+                {'order':2,'layout':'bullets',  'emoji':'⚗️','title':'Materials & Method','content':'Step 1: [first step]\nStep 2: [second step]\nStep 3: [third step]\nStep 4: [fourth step]\nSafety: [precautions]','speaker_notes':''},
+                {'order':3,'layout':'big_stat', 'emoji':'📊','title':'Key Result','content':'[Main finding, e.g. "42°C"]\n[What this result means]','speaker_notes':''},
+                {'order':4,'layout':'bullets',  'emoji':'🔍','title':'Analysis','content':'The results show that...\nThis supports / contradicts the hypothesis because...\nSources of error: [list]\nImprovements: [suggestions]','speaker_notes':''},
+                {'order':5,'layout':'summary',  'emoji':'📝','title':'Conclusion','content':'Hypothesis was supported / rejected\nKey evidence collected\nMethod could be improved\nFurther research needed on [topic]','speaker_notes':''},
+            ]},
+            'book_review': {'slides': [
+                {'order':0,'layout':'title',   'emoji':'📖','title':'[Book Title]','content':'By [Author] · Review by [Student/Class]','speaker_notes':''},
+                {'order':1,'layout':'bullets', 'emoji':'📋','title':'Plot Summary','content':'Setting: [time and place]\nOpening: [how the story begins]\nMiddle: [main events]\nClimax: [turning point]\nEnding: [resolution]','speaker_notes':''},
+                {'order':2,'layout':'two_col', 'emoji':'👥','title':'Key Characters','content':'[Protagonist]\nName: [character name]\nRole: [what they do]\nTrait: [key personality]\n[Antagonist]\nName: [character name]\nRole: [what they do]\nTrait: [key personality]','speaker_notes':''},
+                {'order':3,'layout':'bullets', 'emoji':'💡','title':'Major Themes','content':'Theme 1: [e.g. Friendship] — [how it appears]\nTheme 2: [e.g. Courage] — [how it appears]\nTheme 3: [e.g. Identity] — [how it appears]','speaker_notes':''},
+                {'order':4,'layout':'quote',   'emoji':'💬','title':'','content':'[Favourite quote from the book]\n— [Character/Narrator, Page/Chapter]','speaker_notes':''},
+                {'order':5,'layout':'big_stat','emoji':'⭐','title':'My Rating','content':'[e.g. 4/5 Stars]\n[One sentence verdict]','speaker_notes':''},
+            ]},
+            'chapter': {'slides': [
+                {'order':0,'layout':'title',    'emoji':'📑','title':'Chapter [#]: [Title]','content':'[Subject] · [Class]','speaker_notes':''},
+                {'order':1,'layout':'bullets',  'emoji':'🔁','title':'What We Covered','content':'[Key point 1]\n[Key point 2]\n[Key point 3]\n[Key point 4]\n[Key point 5]','speaker_notes':''},
+                {'order':2,'layout':'two_col',  'emoji':'🧠','title':'Key Concepts','content':'[Concept 1]\n[Definition]\n[Example]\n[Concept 2]\n[Definition]\n[Example]','speaker_notes':''},
+                {'order':3,'layout':'big_stat', 'emoji':'✏️','title':'Worked Example','content':'[Formula, equation, or method]\n[Show the process here]','speaker_notes':''},
+                {'order':4,'layout':'summary',  'emoji':'📝','title':'Practice & Review','content':'Attempt past questions\nReview class notes\nCreate a mind map\nPractise with a partner\nAsk your teacher for help','speaker_notes':''},
+            ]},
+            'project': {'slides': [
+                {'order':0,'layout':'title',   'emoji':'🚀','title':'[Project Name]','content':'[Team / Class] · [Date]','speaker_notes':''},
+                {'order':1,'layout':'bullets', 'emoji':'🌍','title':'Background & Problem','content':'The problem we are solving: [description]\nWhy it matters: [impact]\nCurrent situation: [context]\nOur approach: [brief overview]','speaker_notes':''},
+                {'order':2,'layout':'bullets', 'emoji':'🎯','title':'Goals & Objectives','content':'Goal 1: [measurable objective]\nGoal 2: [measurable objective]\nGoal 3: [measurable objective]\nSuccess metric: [how we will measure success]','speaker_notes':''},
+                {'order':3,'layout':'two_col', 'emoji':'🔧','title':'Method & Tools','content':'Methods\n[Method 1]\n[Method 2]\n[Method 3]\nTools & Resources\n[Tool 1]\n[Tool 2]\n[Tool 3]','speaker_notes':''},
+                {'order':4,'layout':'bullets', 'emoji':'📅','title':'Timeline','content':'Week 1–2: Planning\nWeek 3–4: Research / Development\nWeek 5–6: Implementation\nWeek 7: Testing / Review\nWeek 8: Presentation / Submission','speaker_notes':''},
+                {'order':5,'layout':'summary', 'emoji':'📦','title':'Deliverables','content':'Final report submitted\nPresentation delivered\nPrototype ready\nTeam evaluation complete\nLessons learned documented','speaker_notes':''},
+            ]},
+        }
+        if template_id not in TEMPLATES:
+            return JsonResponse({'error': f'Unknown template: {template_id}'}, status=400)
+        tpl_data = TEMPLATES[template_id]
+        with transaction.atomic():
+            deck.slides.all().delete()
+            new_slides = []
+            for s_data in tpl_data['slides']:
+                sl = Slide.objects.create(
+                    presentation=deck,
+                    order=s_data['order'],
+                    layout=s_data['layout'],
+                    emoji=s_data.get('emoji', ''),
+                    title=s_data['title'],
+                    content=s_data['content'],
+                    speaker_notes=s_data.get('speaker_notes', ''),
+                )
+                new_slides.append(sl)
+        return JsonResponse({
+            'ok': True,
+            'slides': [{
+                'slide_id': sl.pk,
+                'order':    sl.order,
+                'layout':   sl.layout,
+                'title':    sl.title,
+                'content':  sl.content,
+                'emoji':    sl.emoji,
+                'speaker_notes': sl.speaker_notes,
+                'image_url': sl.image_url,
+            } for sl in new_slides],
+        })
+
     return JsonResponse({'error': f'Unknown action: {action}'}, status=400)
 
 
