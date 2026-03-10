@@ -189,8 +189,16 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 .ps-live-end-btn:hover { background: rgba(239,68,68,.25); }
 .ps-live-modal-close { display: block; margin-top: 1rem; color: rgba(255,255,255,.3); cursor: pointer; font-size: .75rem; background: none; border: none; }
 
-/* ── Narration indicator ── */
-.ps-narr-btn.active { background: rgba(99,102,241,.4) !important; color: #c7d2fe !important; }
+/* ── Auto interval cycling ── */
+.ps-ctrl-interval {
+  font-size: .62rem; font-weight: 800; color: #64748b; cursor: pointer;
+  padding: 2px 6px; border-radius: 5px;
+  background: rgba(255,255,255,.05); user-select: none;
+  transition: color .15s, background .15s; border: 1px solid transparent;
+  white-space: nowrap;
+}
+.ps-ctrl-interval:hover { color: #94a3b8; background: rgba(255,255,255,.1); }
+.ps-ctrl-interval.active { color: #60a5fa; border-color: rgba(96,165,250,.3); background: rgba(96,165,250,.1); }
 
 /* ── Poll results in presenter panel ── */
 .pv-poll-results { margin-top: .5rem; }
@@ -242,16 +250,30 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 .ps-stage:hover .ps-exit-btn { opacity: 1; }
 .ps-exit-btn:hover { background: rgba(255,255,255,.14); color: #f1f5f9; }
 
-/* Notes overlay */
+/* Notes strip — full-width slide-up bar at viewport bottom */
 .ps-notes-overlay {
-  display: none; position: fixed; bottom: 54px; left: 50%; transform: translateX(-50%);
-  z-index: 200;
-  background: rgba(15,23,42,.9); backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,.1); border-radius: 12px;
-  padding: 1rem 1.2rem; max-width: 600px; min-width: 300px;
+  position: fixed; bottom: -160px; left: 0; right: 0; z-index: 150;
+  background: rgba(8, 14, 26, .97); backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255,255,255,.08);
+  padding: .55rem 2rem .55rem 2rem;
   font-size: .85rem; color: #94a3b8; line-height: 1.6;
+  transition: bottom .22s ease;
+  display: block !important;
+  min-height: 80px;
 }
-.ps-notes-overlay.visible { display: block; }
+.ps-notes-overlay.visible { bottom: 0; }
+.ps-notes-strip-label {
+  font-size: .58rem; font-weight: 800; letter-spacing: .1em;
+  text-transform: uppercase; color: #7c3aed; margin-bottom: .25rem;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.ps-notes-strip-close {
+  background: none; border: none; color: #475569; cursor: pointer;
+  font-size: .7rem; padding: 0; line-height: 1;
+}
+.ps-notes-strip-close:hover { color: #94a3b8; }
+#notesText { white-space: pre-wrap; color: #94a3b8; font-size: .85rem; line-height: 1.6; max-height: 80px; overflow-y: auto; }
+.ps-controls.notes-up { bottom: 94px; }
 
 /* Shortcuts overlay */
 .ps-shortcuts-overlay {
@@ -476,7 +498,13 @@ body.presenter-mode .pv-panel { display: flex; }
   </div>
   {% endfor %}
 
-  <div class="ps-notes-overlay" id="notesOverlay"></div>
+  <div class="ps-notes-overlay" id="notesOverlay">
+    <div class="ps-notes-strip-label">
+      <span>&#128203; Speaker Notes</span>
+      <button class="ps-notes-strip-close" onclick="toggleNotes()" title="Close notes">&#x2715; Close</button>
+    </div>
+    <div id="notesText">(no speaker notes)</div>
+  </div>
 
   <!-- Shortcuts overlay -->
   <div class="ps-shortcuts-overlay" id="shortcutsOverlay" onclick="if(event.target===this)toggleShortcuts()">
@@ -517,6 +545,7 @@ body.presenter-mode .pv-panel { display: flex; }
     <button class="ps-ctrl-btn" onclick="toggleNotes()" title="Speaker notes (N)"><i class="fas fa-sticky-note"></i></button>
     <button class="ps-ctrl-btn" onclick="toggleOverview()" title="Slide overview (O)" id="overviewBtn"><i class="fas fa-th"></i></button>
     <button class="ps-ctrl-btn" onclick="toggleAutoAdvance()" title="Auto-advance (A)" id="autoBtn"><i class="fas fa-play" style="font-size:.6rem;"></i></button>
+    <span class="ps-ctrl-interval" id="autoIntervalDisplay" onclick="cycleAutoInterval()" title="Click to change interval">30s</span>
     <button class="ps-ctrl-btn" onclick="toggleLaser()" title="Laser pointer (L)" id="laserBtn"><i class="fas fa-circle" style="color:#f87171;font-size:.55rem;"></i></button>
     <button class="ps-ctrl-btn" onclick="toggleDraw()" title="Draw (D)" id="drawBtn"><i class="fas fa-pen"></i></button>
     <div style="width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 4px;"></div>
@@ -712,8 +741,8 @@ function goTo(n) {
   document.getElementById('progressFill').style.width = pct + '%';
   // update notes
   var notes = (allSlides[n].dataset.notes || '').trim();
-  var overlay = document.getElementById('notesOverlay');
-  overlay.textContent = notes || '(no speaker notes)';
+  var notesText = document.getElementById('notesText');
+  if (notesText) notesText.textContent = notes || '(no speaker notes)';
   // activate video in new slide
   var vw = allSlides[n].querySelector('.sl-video-wrap[data-video]');
   if (vw && !vw.querySelector('iframe')) activateVideo(vw);
@@ -721,7 +750,9 @@ function goTo(n) {
 function nextSlide() { goTo(current + 1); }
 function prevSlide() { goTo(current - 1); }
 function toggleNotes() {
-  document.getElementById('notesOverlay').classList.toggle('visible');
+  var overlay = document.getElementById('notesOverlay');
+  var open = overlay.classList.toggle('visible');
+  document.querySelector('.ps-controls').classList.toggle('notes-up', open);
 }
 function toggleFullscreen() {
   if (!document.fullscreenElement) {

@@ -4844,3 +4844,221 @@ def presentation_study_guide(request, pk):
         'deck': deck,
         'slides': slides,
     })
+
+
+@login_required
+def presentation_export_pptx(request, pk):
+    """Export a presentation deck as a .pptx file."""
+    if request.user.user_type not in ('teacher', 'admin'):
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    teacher = get_object_or_404(Teacher, user=request.user)
+    from .models import Presentation
+    deck = get_object_or_404(Presentation, pk=pk, teacher=teacher)
+    slides_qs = list(deck.slides.all())
+
+    try:
+        from pptx import Presentation as PPTXPres
+        from pptx.util import Inches, Pt
+        from pptx.dml.color import RGBColor
+        from pptx.enum.text import PP_ALIGN
+        import io as _io
+    except ImportError:
+        messages.error(request, 'python-pptx is not installed. Run: pip install python-pptx')
+        return redirect('teachers:presentation_editor', pk=pk)
+
+    THEME_COLORS = {
+        'aurora':   {'bg': (30, 10, 64),   'accent': (124, 58, 237)},
+        'midnight': {'bg': (15, 23, 42),   'accent': (99, 102, 241)},
+        'forest':   {'bg': (2, 29, 17),    'accent': (52, 211, 153)},
+        'coral':    {'bg': (59, 0, 18),    'accent': (251, 113, 133)},
+        'slate':    {'bg': (15, 24, 36),   'accent': (148, 163, 184)},
+        'ocean':    {'bg': (12, 45, 78),   'accent': (56, 189, 248)},
+        'amber':    {'bg': (67, 20, 7),    'accent': (251, 191, 36)},
+        'rose':     {'bg': (76, 5, 25),    'accent': (244, 63, 94)},
+    }
+    theme  = deck.theme if deck.theme in THEME_COLORS else 'aurora'
+    colors = THEME_COLORS[theme]
+    bg_rgb      = RGBColor(*colors['bg'])
+    accent_rgb  = RGBColor(*colors['accent'])
+    text_rgb    = RGBColor(241, 245, 249)    # #f1f5f9
+    subtext_rgb = RGBColor(148, 163, 184)    # #94a3b8
+
+    prs = PPTXPres()
+    prs.slide_width  = Inches(13.333)
+    prs.slide_height = Inches(7.5)
+    blank_layout = prs.slide_layouts[6]
+    W = prs.slide_width
+    H = prs.slide_height
+    MARGIN = Inches(0.65)
+
+    def _set_bg(slide, rgb):
+        fill = slide.background.fill
+        fill.solid()
+        fill.fore_color.rgb = rgb
+
+    def _textbox(slide, text, left, top, width, height,
+                 font_size=18, bold=False, italic=False,
+                 color=None, align=PP_ALIGN.LEFT, wrap=True):
+        txb = slide.shapes.add_textbox(left, top, width, height)
+        tf  = txb.text_frame
+        tf.word_wrap = wrap
+        p   = tf.paragraphs[0]
+        p.alignment = align
+        run = p.add_run()
+        run.text            = text
+        run.font.size       = Pt(font_size)
+        run.font.bold       = bold
+        run.font.italic     = italic
+        run.font.color.rgb  = color if color is not None else text_rgb
+        return txb
+
+    def _bullets_frame(slide, items, left, top, width, height, font_size=18):
+        txb = slide.shapes.add_textbox(left, top, width, height)
+        tf  = txb.text_frame
+        tf.word_wrap = True
+        for i, item in enumerate(items):
+            p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+            p.text           = '\u25b8  ' + item
+            p.font.size      = Pt(font_size)
+            p.font.color.rgb = subtext_rgb
+
+    for s in slides_qs:
+        sl = prs.slides.add_slide(blank_layout)
+        _set_bg(sl, bg_rgb)
+        layout  = s.layout
+        title   = s.title or ''
+        content = s.content or ''
+        bullets = [b.strip() for b in content.split('\n') if b.strip()]
+        notes   = s.speaker_notes or ''
+
+        if layout == 'title':
+            _textbox(sl, title, MARGIN, Inches(2.0), W - 2*MARGIN, Inches(2.2),
+                     font_size=44, bold=True, align=PP_ALIGN.CENTER)
+            sub = bullets[0] if bullets else content.strip()
+            if sub:
+                _textbox(sl, sub, MARGIN, Inches(4.3), W - 2*MARGIN, Inches(1.3),
+                         font_size=22, color=subtext_rgb, align=PP_ALIGN.CENTER)
+
+        elif layout == 'big_stat':
+            _textbox(sl, title, MARGIN, Inches(0.5), W - 2*MARGIN, Inches(0.9),
+                     font_size=18, color=subtext_rgb, align=PP_ALIGN.CENTER)
+            stat_val = bullets[0] if bullets else content.strip()
+            _textbox(sl, stat_val, MARGIN, Inches(1.4), W - 2*MARGIN, Inches(3.6),
+                     font_size=96, bold=True, color=accent_rgb, align=PP_ALIGN.CENTER)
+            if len(bullets) > 1:
+                _textbox(sl, bullets[1], MARGIN, Inches(5.1), W - 2*MARGIN, Inches(0.9),
+                         font_size=16, color=subtext_rgb, align=PP_ALIGN.CENTER)
+
+        elif layout == 'quote':
+            _textbox(sl, '\u201c' + title + '\u201d', MARGIN, Inches(1.4), W - 2*MARGIN, Inches(3.8),
+                     font_size=32, italic=True, align=PP_ALIGN.CENTER)
+            author = bullets[0] if bullets else ''
+            if author:
+                _textbox(sl, '\u2014 ' + author, MARGIN, Inches(5.5), W - 2*MARGIN, Inches(0.9),
+                         font_size=16, color=subtext_rgb, align=PP_ALIGN.CENTER)
+
+        elif layout == 'two_col':
+            _textbox(sl, title, MARGIN, MARGIN, W - 2*MARGIN, Inches(0.95), font_size=28, bold=True)
+            mid   = W / 2
+            col_w = mid - MARGIN - Inches(0.15)
+            half  = max(len(bullets) // 2, 1)
+            _bullets_frame(sl, bullets[:half],  MARGIN,               Inches(1.55), col_w, H - Inches(2.4))
+            _bullets_frame(sl, bullets[half:],  mid + Inches(0.15),   Inches(1.55), col_w, H - Inches(2.4))
+
+        elif layout in ('poll', 'quiz'):
+            _textbox(sl, title, MARGIN, MARGIN, W - 2*MARGIN, Inches(1.3), font_size=30, bold=True)
+            y = Inches(1.65)
+            for b in bullets[:6]:
+                _textbox(sl, b, MARGIN, y, W - 2*MARGIN, Inches(0.8), font_size=18, color=subtext_rgb)
+                y += Inches(0.92)
+
+        elif layout == 'video':
+            _textbox(sl, title, MARGIN, MARGIN, W - 2*MARGIN, Inches(1.1), font_size=32, bold=True)
+            note = content.strip() or '(no URL)'
+            _textbox(sl, '\U0001f3ac  Video: ' + note, MARGIN, Inches(2.0), W - 2*MARGIN, Inches(1.5),
+                     font_size=14, italic=True, color=subtext_rgb)
+
+        elif layout == 'image':
+            _textbox(sl, title, MARGIN, MARGIN, W - 2*MARGIN, Inches(1.1), font_size=32, bold=True)
+            img_note = s.image_url[:80] if s.image_url else '(no image)'
+            _textbox(sl, '\U0001f5bc\ufe0f  Image: ' + img_note, MARGIN, Inches(2.0), W - 2*MARGIN, Inches(1.5),
+                     font_size=14, italic=True, color=subtext_rgb)
+            cap = bullets[0] if bullets else ''
+            if cap:
+                _textbox(sl, cap, MARGIN, Inches(6.2), W - 2*MARGIN, Inches(0.8),
+                         font_size=14, color=subtext_rgb, align=PP_ALIGN.CENTER)
+
+        else:  # bullets, summary
+            _textbox(sl, title, MARGIN, MARGIN, W - 2*MARGIN, Inches(1.15), font_size=32, bold=True)
+            if bullets:
+                _bullets_frame(sl, bullets, MARGIN, Inches(1.6), W - 2*MARGIN, H - Inches(2.5))
+            elif content.strip():
+                _textbox(sl, content.strip(), MARGIN, Inches(1.6), W - 2*MARGIN, H - Inches(2.5),
+                         font_size=16, color=subtext_rgb)
+
+        if notes:
+            sl.notes_slide.notes_text_frame.text = notes
+
+    buf = _io.BytesIO()
+    prs.save(buf)
+    buf.seek(0)
+    import re as _re
+    safe = _re.sub(r'[^\w\s-]', '', deck.title).strip().replace(' ', '_')[:60] or 'presentation'
+    resp = HttpResponse(
+        buf.read(),
+        content_type='application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    )
+    resp['Content-Disposition'] = f'attachment; filename="{safe}.pptx"'
+    return resp
+
+
+@login_required
+def presentation_bulk_action(request):
+    """Bulk delete or duplicate presentations via JSON POST."""
+    import json as _json
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    if request.user.user_type not in ('teacher', 'admin'):
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    teacher = get_object_or_404(Teacher, user=request.user)
+    from .models import Presentation, Slide
+    try:
+        data   = _json.loads(request.body)
+        action = data.get('action')
+        pks    = [int(p) for p in data.get('pks', [])]
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+    if not pks:
+        return JsonResponse({'error': 'No presentations selected'}, status=400)
+
+    decks = Presentation.objects.filter(pk__in=pks, teacher=teacher)
+
+    if action == 'delete':
+        count = decks.count()
+        decks.delete()
+        return JsonResponse({'ok': True, 'count': count})
+
+    elif action == 'duplicate':
+        count = 0
+        for deck in decks:
+            new_deck = Presentation.objects.create(
+                teacher=teacher,
+                title=deck.title + ' (copy)',
+                theme=deck.theme,
+                transition=deck.transition,
+                subject=deck.subject,
+                school_class=deck.school_class,
+            )
+            for slide in deck.slides.all():
+                Slide.objects.create(
+                    presentation=new_deck,
+                    order=slide.order, layout=slide.layout,
+                    title=slide.title, content=slide.content,
+                    speaker_notes=slide.speaker_notes,
+                    emoji=slide.emoji, image_url=slide.image_url,
+                )
+            count += 1
+        return JsonResponse({'ok': True, 'count': count})
+
+    return JsonResponse({'error': 'Invalid action'}, status=400)

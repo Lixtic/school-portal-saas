@@ -112,6 +112,48 @@ body { background: var(--gm-bg); }
 .gm-search-input:focus { border-color: var(--gm-accent); }
 .gm-search-wrap-inner { position: relative; max-width: 400px; }
 .gm-search-icon { position:absolute; left:.8rem; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:.78rem; pointer-events:none; }
+
+/* ── Select mode / Bulk ops ── */
+.deck-card { position: relative; }
+.deck-select-cb {
+  position: absolute; top: 10px; left: 10px; z-index: 10;
+  width: 26px; height: 26px;
+  background: rgba(0,0,0,.55); border-radius: 7px; border: 2px solid rgba(255,255,255,.35);
+  display: none; align-items: center; justify-content: center;
+  cursor: pointer; transition: border-color .15s, background .15s;
+}
+body.select-mode .deck-select-cb { display: flex; }
+.deck-select-cb input[type=checkbox] { accent-color: #7c3aed; width: 14px; height: 14px; cursor: pointer; pointer-events: none; }
+.deck-card.selected .deck-select-cb { border-color: #7c3aed; background: rgba(124,58,237,.35); }
+.deck-card.selected { border-color: #7c3aed !important; box-shadow: 0 0 0 3px rgba(124,58,237,.2); }
+.gm-select-btn {
+  background: rgba(255,255,255,.12); color: #fff;
+  border: 1px solid rgba(255,255,255,.2); border-radius: 10px;
+  padding: .5rem 1.1rem; font-weight: 700; font-size: .82rem;
+  cursor: pointer; transition: background .15s;
+  display: flex; align-items: center; gap: 6px;
+}
+.gm-select-btn:hover { background: rgba(255,255,255,.22); }
+.gm-select-btn.active { background: rgba(124,58,237,.3); border-color: rgba(167,139,250,.55); }
+.gm-bulk-bar {
+  position: fixed; bottom: -90px; left: 50%; transform: translateX(-50%);
+  z-index: 9998; display: flex; align-items: center; gap: 10px;
+  background: #1e293b; border: 1px solid rgba(124,58,237,.45);
+  border-radius: 30px; padding: 9px 18px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.45);
+  transition: bottom .25s ease; white-space: nowrap;
+}
+.gm-bulk-bar.active { bottom: 1.5rem; }
+.gm-bulk-count { font-size: .82rem; font-weight: 800; color: #c4b5fd; margin-right: 4px; }
+.gm-bulk-btn {
+  padding: 6px 14px; border-radius: 20px; font-size: .78rem; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; gap: 5px;
+  transition: opacity .15s;
+}
+.gm-bulk-btn:hover { opacity: .82; }
+.gm-bulk-delete { background: rgba(239,68,68,.18); color: #f87171; border: 1px solid rgba(239,68,68,.3); }
+.gm-bulk-dup    { background: rgba(124,58,237,.18); color: #c4b5fd; border: 1px solid rgba(124,58,237,.3); }
+.gm-bulk-cancel { background: rgba(255,255,255,.07); color: #94a3b8; border: 1px solid rgba(255,255,255,.1); }
 </style>
 {% endblock %}
 
@@ -126,6 +168,9 @@ body { background: var(--gm-bg); }
     <a href="{% url 'teachers:presentation_create' %}" class="gm-btn-new">
       <i class="fas fa-plus"></i> New Presentation
     </a>
+    <button class="gm-select-btn" id="selectModeBtn" onclick="toggleSelectMode()">
+      <i class="fas fa-check-square"></i> Select
+    </button>
   </div>
 
   <!-- Deck search -->
@@ -139,7 +184,10 @@ body { background: var(--gm-bg); }
 
   <div class="deck-grid">
     {% for deck in decks %}
-    <div class="deck-card">
+    <div class="deck-card" data-pk="{{ deck.pk }}">
+      <div class="deck-select-cb" onclick="event.preventDefault();event.stopPropagation();toggleCardSelect(this)">
+        <input type="checkbox" class="deck-cb-input">
+      </div>
       <a href="{% url 'teachers:presentation_editor' deck.pk %}" style="text-decoration:none;">
         <div class="deck-thumb theme-{{ deck.theme }}">
           <div class="deck-thumb-inner">
@@ -172,6 +220,7 @@ body { background: var(--gm-bg); }
         </form>
         <a href="{% url 'teachers:presentation_session_report' deck.pk %}" class="deck-act-btn"><i class="fas fa-chart-bar me-1"></i>Sessions</a>
         <a href="{% url 'teachers:presentation_study_guide' deck.pk %}" class="deck-act-btn" target="_blank"><i class="fas fa-book-open me-1"></i>Study&nbsp;Guide</a>
+        <a href="{% url 'teachers:presentation_export_pptx' deck.pk %}" class="deck-act-btn" title="Download PowerPoint"><i class="fas fa-file-powerpoint me-1"></i>PPTX</a>
         <button type="button" class="deck-act-btn" onclick="copyShareLink('{{ request.scheme }}://{{ request.get_host }}{% url 'teachers:presentation_share' deck.share_token %}')"><i class="fas fa-share-alt me-1"></i>Share</button>
         <a href="{% url 'teachers:presentation_delete' deck.pk %}" class="deck-act-btn danger"><i class="fas fa-trash me-1"></i>Delete</a>
       </div>
@@ -193,6 +242,20 @@ body { background: var(--gm-bg); }
     </div>
   </div>
 
+</div>
+
+<!-- ── Bulk Action Bar ── -->
+<div class="gm-bulk-bar" id="bulkBar">
+  <span class="gm-bulk-count" id="bulkCount">0 selected</span>
+  <button class="gm-bulk-btn gm-bulk-dup" onclick="bulkAction('duplicate')">
+    <i class="fas fa-copy"></i> Duplicate
+  </button>
+  <button class="gm-bulk-btn gm-bulk-delete" onclick="bulkAction('delete')">
+    <i class="fas fa-trash"></i> Delete
+  </button>
+  <button class="gm-bulk-btn gm-bulk-cancel" onclick="toggleSelectMode()">
+    <i class="fas fa-times"></i> Cancel
+  </button>
 </div>
 
 <div id="shareToast" style="display:none;position:fixed;bottom:1.5rem;right:1.5rem;background:#7c3aed;color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-size:.85rem;z-index:9999;box-shadow:0 4px 18px rgba(0,0,0,.25);">
@@ -220,6 +283,61 @@ function filterDecks(q) {
   });
   var noRes = document.getElementById('noSearchResults');
   if (noRes) noRes.style.display = (visible === 0 && q) ? '' : 'none';
+}
+
+// ── Bulk select ──
+var selectMode = false;
+var selectedPks = new Set();
+function toggleSelectMode() {
+  selectMode = !selectMode;
+  document.body.classList.toggle('select-mode', selectMode);
+  var btn = document.getElementById('selectModeBtn');
+  btn.classList.toggle('active', selectMode);
+  btn.innerHTML = selectMode
+    ? '<i class="fas fa-times"></i> Cancel'
+    : '<i class="fas fa-check-square"></i> Select';
+  if (!selectMode) {
+    selectedPks.clear();
+    document.querySelectorAll('.deck-card.selected').forEach(function(c) { c.classList.remove('selected'); });
+    document.querySelectorAll('.deck-cb-input').forEach(function(cb) { cb.checked = false; });
+    updateBulkBar();
+  }
+}
+function toggleCardSelect(cbDiv) {
+  if (!selectMode) return;
+  var card = cbDiv.closest('.deck-card');
+  var pk   = parseInt(card.dataset.pk);
+  var cb   = cbDiv.querySelector('input');
+  var sel  = !card.classList.contains('selected');
+  card.classList.toggle('selected', sel);
+  if (cb) cb.checked = sel;
+  if (sel) selectedPks.add(pk); else selectedPks.delete(pk);
+  updateBulkBar();
+}
+function updateBulkBar() {
+  var count = selectedPks.size;
+  document.getElementById('bulkBar').classList.toggle('active', count > 0);
+  document.getElementById('bulkCount').textContent = count + ' selected';
+}
+function getCsrf() {
+  return (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '';
+}
+function bulkAction(action) {
+  var pks = Array.from(selectedPks);
+  if (!pks.length) return;
+  if (action === 'delete' && !confirm('Delete ' + pks.length + ' presentation' + (pks.length !== 1 ? 's' : '') + '? This cannot be undone.')) return;
+  fetch('{% url "teachers:presentation_bulk_action" %}', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+    credentials: 'same-origin',
+    body: JSON.stringify({ action: action, pks: pks }),
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (d.ok) { location.reload(); }
+    else { alert(d.error || 'Action failed'); }
+  })
+  .catch(function() { alert('Request failed. Please try again.'); });
 }
 </script>
 {% endblock %}
