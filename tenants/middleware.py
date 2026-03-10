@@ -1,6 +1,6 @@
-from django.conf import settings
+﻿from django.conf import settings
 from django.db import connection, close_old_connections
-from django.http import Http404
+from django.http import Http404, HttpResponseRedirect
 from django.urls import set_urlconf, set_script_prefix
 from django_tenants.middleware.main import TenantMainMiddleware
 from tenants.models import School
@@ -8,118 +8,127 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Paths (relative to tenant root) that remain accessible after trial expiry
+_TRIAL_EXEMPT_PATHS = (
+    '/login/',
+    '/logout/',
+    '/tenants/subscription/',
+    '/tenants/pricing/',
+    '/password',  # password reset/change
+    '/accounts/profile/',
+)
+
+
 class TenantPathMiddleware(TenantMainMiddleware):
     def process_request(self, request):
         # 0. Force close stale connections on serverless/Vercel before processing
         close_old_connections()
-        
+
         # 1. Start with Public context to be safe
         connection.set_schema_to_public()
-        
+
         # 2. Inspect Path
         path_parts = request.path.strip('/').split('/')
         possible_schema = path_parts[0] if path_parts else None
-        
+
         tenant = None
 
         # 3. Check if the first segment matches a valid School schema (excluding 'public')
-        # Add common global paths to exclude from tenant lookup
         reserved_paths = [
             'static', 'media', 'admin', 'accounts',
             'signup', 'login', 'logout', 'debug', 'favicon.ico', 'favicon.png',
-            'favicon.svg', 'favicon.ico', 'robots.txt', 'sitemap.xml',
+            'favicon.svg', 'robots.txt', 'sitemap.xml',
             'dashboard', 'tenants', 'find-school'
         ]
-        
+
         if possible_schema and possible_schema != 'public' and possible_schema not in reserved_paths:
             logger.debug("Checking tenant candidate: %s", possible_schema)
-            # Try to find the school
             try:
-                # Need to use the model class explicitly to avoid UnboundLocalError
                 from tenants.models import School
                 tenant = School.objects.filter(schema_name=possible_schema).first()
             except Exception as e:
                 logger.error("Tenant DB lookup error for %s: %s", possible_schema, e)
                 if settings.DEBUG:
-                     # Re-raise to see the actual database error (e.g. missing column)
-                     raise e
+                    raise e
                 tenant = None
-            
-            # If we are here, it means the URL starts with something like /kings/
-            # If no tenant is found, it's a 404. We shouldn't fall back to Public
-            # because 'kings' isn't a valid page on the public site either.
+
             if not tenant:
                 logger.debug("Tenant '%s' looked up but returned None", possible_schema)
                 if settings.DEBUG:
-                     # List available tenants to help user debug
-                     all_tenants = list(School.objects.values_list('schema_name', flat=True))
-                     raise Http404(f"School '{possible_schema}' not found. Available schools in DB: {all_tenants}")
+                    all_tenants = list(School.objects.values_list('schema_name', flat=True))
+                    raise Http404(f"School '{possible_schema}' not found. Available schools in DB: {all_tenants}")
                 raise Http404(f"School '{possible_schema}' not found in registry.")
-        
-        if tenant:
 
+        if tenant:
             # === TENANT FOUND ===
             logger.debug("Tenant '%s' found. Rewriting URLs.", possible_schema)
             logger.debug("Original PATH_INFO=%s SCRIPT_NAME=%s", request.path_info, request.META.get('SCRIPT_NAME'))
-            
+
             request.tenant = tenant
             connection.set_tenant(request.tenant)
-            
-            # Setup URL Routing for Tenant Apps
-            
-            script_prefix = f"/{possible_schema}/"
-            # Normalize path to ensure we can split correct (e.g. /kings -> /kings/)
-            if request.path == f"/{possible_schema}":
-                 request.path_info = '/'
-            
-            if request.path.startswith(f"/{possible_schema}"):
-                # Save original
-                if not hasattr(request, '_original_script_prefix'):
-                     request._original_script_prefix = request.META.get('SCRIPT_NAME', '')
 
-                # Rewrite
+            if request.path == f"/{possible_schema}":
+                request.path_info = '/'
+
+            if request.path.startswith(f"/{possible_schema}"):
+                if not hasattr(request, '_original_script_prefix'):
+                    request._original_script_prefix = request.META.get('SCRIPT_NAME', '')
+
                 request.META['SCRIPT_NAME'] = f"/{possible_schema}"
                 request.path_info = request.path[len(f"/{possible_schema}"):]
-                
-                # Ensure leading slash
+
                 if not request.path_info.startswith('/'):
                     request.path_info = '/' + request.path_info
-                
-                logger.debug("New PATH_INFO=%s SCRIPT_NAME=%s", request.path_info, request.META['SCRIPT_NAME'])
 
-                # Activate
+                logger.debug("New PATH_INFO=%s SCRIPT_NAME=%s", request.path_info, request.META['SCRIPT_NAME'])
                 set_script_prefix(f"/{possible_schema}")
             else:
-                 logger.warning("Path '%s' did not start with '/%s'", request.path, possible_schema)
+                logger.warning("Path '%s' did not start with '/%s'", request.path, possible_schema)
 
         else:
             # === TENANT NOT FOUND ===
-            # If it looks like a tenant path (not a reserved public path), raise 404 immediately
-            # identifying that the school itself doesn't exist.
-            reserved_paths = [
-                'admin', 'static', 'media', 'signup', 'login', 'logout', 
+            reserved_paths_strict = [
+                'admin', 'static', 'media', 'signup', 'login', 'logout',
                 'dashboard', 'favicon.ico', 'debug', 'accounts', 'tenants', 'find-school',
                 'password', 'reset', ''
             ]
-            # Ensure we don't treat root path (empty string) as a missing tenant
-            if possible_schema and possible_schema not in reserved_paths and possible_schema != 'public':
+            if possible_schema and possible_schema not in reserved_paths_strict and possible_schema != 'public':
                 logger.debug("Tenant '%s' not found and not reserved", possible_schema)
                 raise Http404(f"School '{possible_schema}' does not exist.")
 
             # === PUBLIC CONTEXT ===
-            # No tenant found in path -> Serve Public Site
             try:
-                # Need to use the model class explicitly here too
                 from tenants.models import School
                 public_schema = getattr(settings, 'PUBLIC_SCHEMA_NAME', 'public')
                 request.tenant = School.objects.get(schema_name=public_schema)
-            except Exception: # Catch both DoesNotExist and UnboundLocal if weird things happen
-
-                # Fallback if DB is empty / public tenant missing
-                # This should be handled by WSGI hook now, but just in case
+            except Exception:
                 from tenants.models import School
                 request.tenant = School(schema_name='public', name='Public (Fallback)')
-                
-            connection.set_tenant(request.tenant)
-            # self.setup_url_routing(request)
 
+            connection.set_tenant(request.tenant)
+
+    def process_view(self, request, view_func, view_args, view_kwargs):
+        """Block access for schools whose trial has expired."""
+        if not hasattr(request, 'tenant'):
+            return None
+        if request.tenant.schema_name == 'public':
+            return None
+        if not getattr(request, 'user', None) or not request.user.is_authenticated:
+            return None
+
+        path = request.path_info or '/'
+        if any(path.startswith(p) for p in _TRIAL_EXEMPT_PATHS):
+            return None
+
+        try:
+            from .models import SchoolSubscription
+            from django.utils import timezone
+            sub = SchoolSubscription.objects.select_related('plan').get(school=request.tenant)
+            if sub.status == 'trial' and sub.trial_ends_at and timezone.now() > sub.trial_ends_at:
+                sub_url = f"/{request.tenant.schema_name}/tenants/subscription/"
+                logger.info("Trial expired for %s  redirecting to subscription page", request.tenant.schema_name)
+                return HttpResponseRedirect(sub_url)
+        except Exception:
+            pass  # Missing subscription or DB error  do not block access
+
+        return None
