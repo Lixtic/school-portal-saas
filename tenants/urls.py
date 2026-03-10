@@ -24,4 +24,10 @@ urlpatterns = [
 
     # Public application status check
     path('status/', views.application_status, name='application_status'),
+
+    # Public pricing page
+    path('pricing/', views.pricing_page, name='pricing'),
+
+    # School subscription portal (tenant-admin)
+    path('subscription/', views.school_subscription, name='school_subscription'),
 ]

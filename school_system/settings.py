@@ -175,6 +175,7 @@ TEMPLATES = [
                 'academics.context_processors.school_info',
                 'announcements.context_processors.user_notifications',
                 'teachers.context_processors.teacher_context',
+                'tenants.context_processors.trial_status',
             ],
             'string_if_invalid': '',  # Return empty string instead of raising errors for undefined variables
         },

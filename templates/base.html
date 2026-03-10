@@ -2051,6 +2051,17 @@
                     <span>Marketplace</span>
                 </a>
             </div>
+            {% if user.user_type == 'admin' %}
+            <div class="nav-item">
+                <a href="{% url 'tenants:school_subscription' %}" class="nav-link {% if request.resolver_match.url_name == 'school_subscription' %}active{% endif %}" title="My Subscription">
+                    <i class="bi bi-credit-card"></i>
+                    <span>My Subscription</span>
+                    {% if trial_active %}
+                    <span class="badge rounded-pill ms-auto" style="background:#f59e0b;color:#fff;font-size:0.65rem;">TRIAL</span>
+                    {% endif %}
+                </a>
+            </div>
+            {% endif %}
             
             {% endif %} {# End of landlord vs regular tenant conditional #}
             
@@ -2075,6 +2086,30 @@
 
         <!-- Main Content -->
         <main class="main-content {% if not user.is_authenticated %}w-100 m-0 p-0{% endif %}" id="mainContent">
+
+            {% if trial_active and user.is_authenticated %}
+            <div class="trial-banner d-flex align-items-center justify-content-between px-3 py-2"
+                 style="background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%); color: #fff; font-size: 0.875rem; z-index: 900;">
+                <span>
+                    <i class="bi bi-clock-history me-1"></i>
+                    <strong>Free Trial</strong> —
+                    {% if trial_days_left == 0 %}
+                        Your trial expires <strong>today</strong>.
+                    {% elif trial_days_left == 1 %}
+                        <strong>1 day</strong> left on your trial.
+                    {% else %}
+                        <strong>{{ trial_days_left }} days</strong> left on your trial.
+                    {% endif %}
+                    Upgrade to keep full access.
+                </span>
+                <a href="{% url 'tenants:school_subscription' %}"
+                   class="btn btn-sm ms-3"
+                   style="background:#fff; color:#d97706; font-weight:600; border:none; border-radius:6px; padding:4px 14px;">
+                    View Plans &rarr;
+                </a>
+            </div>
+            {% endif %}
+
             {% block content %}
                  {# Fallback for templates like login/home that might use login_content #}
                  {% block login_content %}{% endblock %}

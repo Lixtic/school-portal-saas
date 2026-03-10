@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Subscription — {{ school_name }}{% endblock %}
+
+{% block content %}
+<style>
+    .sub-page { padding: 2rem 1.5rem; max-width: 860px; margin: 0 auto; }
+    .sub-card {
+        background: var(--surface-card, #fff);
+        border: 1.5px solid var(--border-color, #e2e8f0);
+        border-radius: 16px;
+        padding: 2rem;
+    }
+    .plan-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        padding: 4px 14px;
+        border-radius: 999px;
+    }
+    .plan-chip.trial    { background: #fef3c7; color: #92400e; }
+    .plan-chip.active   { background: #d1fae5; color: #065f46; }
+    .plan-chip.past_due { background: #fee2e2; color: #991b1b; }
+    .plan-chip.cancelled{ background: #f1f5f9; color: #64748b; }
+    .plan-chip.suspended{ background: #fce7f3; color: #9d174d; }
+
+    .usage-bar-wrap { background: var(--surface-bg, #f8fafc); border-radius: 8px; overflow: hidden; height: 8px; }
+    .usage-bar      { height: 8px; border-radius: 8px; transition: width 0.4s; background: #3b82f6; }
+    .usage-bar.warn { background: #f59e0b; }
+    .usage-bar.crit { background: #ef4444; }
+
+    .upgrade-card {
+        background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+        color: #fff;
+        border-radius: 16px;
+        padding: 2rem;
+    }
+    .upgrade-plan-card {
+        border: 1.5px solid rgba(255,255,255,0.15);
+        border-radius: 12px;
+        padding: 1.25rem;
+        transition: border-color 0.2s, transform 0.2s;
+    }
+    .upgrade-plan-card:hover { border-color: #93c5fd; transform: translateY(-2px); }
+    .upgrade-plan-card.featured { border-color: #3b82f6; background: rgba(59,130,246,0.1); }
+</style>
+
+<div class="sub-page">
+    <h4 class="fw-700 mb-1">My Subscription</h4>
+    <p class="text-muted mb-4" style="font-size:0.9rem;">Manage your plan, review usage limits, and upgrade when you're ready.</p>
+
+    <!-- Trial countdown alert -->
+    {% if trial_active %}
+    <div class="alert d-flex align-items-start gap-3 mb-4"
+         style="background:#fffbeb;border:1.5px solid #fbbf24;border-radius:12px;">
+        <i class="bi bi-clock-history fs-4" style="color:#d97706;flex-shrink:0;margin-top:2px;"></i>
+        <div>
+            <div class="fw-700" style="color:#92400e;">
+                {% if trial_days_left == 0 %}
+                    Your free trial expires today!
+                {% elif trial_days_left == 1 %}
+                    1 day left on your free trial
+                {% else %}
+                    {{ trial_days_left }} days left on your free trial
+                {% endif %}
+            </div>
+            <div style="font-size:0.875rem;color:#78350f;">
+                After the trial ends, access to the platform will be restricted. Choose a plan below to continue without interruption.
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Current plan card -->
+    {% if subscription %}
+    <div class="sub-card mb-4">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-3">
+            <div>
+                <div class="text-muted mb-1" style="font-size:0.8rem;text-transform:uppercase;letter-spacing:0.06em;">Current Plan</div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="fs-5 fw-700">{{ subscription.plan.name }}</span>
+                    <span class="plan-chip {{ subscription.status }}">
+                        {% if subscription.status == 'trial' %}<i class="bi bi-hourglass-split"></i>{% endif %}
+                        {{ subscription.get_status_display }}
+                    </span>
+                </div>
+            </div>
+            <div class="text-end">
+                {% if subscription.status == 'trial' and subscription.trial_ends_at %}
+                <div class="small text-muted">Trial ends</div>
+                <div class="fw-600">{{ subscription.trial_ends_at|date:"M j, Y" }}</div>
+                {% elif subscription.current_period_end %}
+                <div class="small text-muted">Renews on</div>
+                <div class="fw-600">{{ subscription.current_period_end|date:"M j, Y" }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <p class="text-muted mb-4" style="font-size:0.875rem;">{{ subscription.plan.description }}</p>
+
+        <!-- Usage meters -->
+        <div class="row g-3">
+            {% with st_pct=subscription.current_students|default:0 st_max=subscription.plan.max_students %}
+            {% with st_ratio=st_pct|default:0 %}
+            <div class="col-md-4">
+                <div class="mb-1 d-flex justify-content-between">
+                    <span class="small fw-600"><i class="bi bi-people me-1"></i>Students</span>
+                    <span class="small text-muted">{{ subscription.current_students }}/{{ subscription.plan.max_students }}</span>
+                </div>
+                <div class="usage-bar-wrap">
+                    {% if subscription.plan.max_students > 0 %}
+                    {% widthratio subscription.current_students subscription.plan.max_students 100 as pct %}
+                    <div class="usage-bar {% if pct >= 90 %}crit{% elif pct >= 70 %}warn{% endif %}"
+                         style="width:{{ pct }}%"></div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endwith %}
+            {% endwith %}
+
+            <div class="col-md-4">
+                <div class="mb-1 d-flex justify-content-between">
+                    <span class="small fw-600"><i class="bi bi-person-badge me-1"></i>Teachers</span>
+                    <span class="small text-muted">{{ subscription.current_teachers }}/{{ subscription.plan.max_teachers }}</span>
+                </div>
+                <div class="usage-bar-wrap">
+                    {% if subscription.plan.max_teachers > 0 %}
+                    {% widthratio subscription.current_teachers subscription.plan.max_teachers 100 as tpct %}
+                    <div class="usage-bar {% if tpct >= 90 %}crit{% elif tpct >= 70 %}warn{% endif %}"
+                         style="width:{{ tpct }}%"></div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="mb-1 d-flex justify-content-between">
+                    <span class="small fw-600"><i class="bi bi-hdd me-1"></i>Storage</span>
+                    <span class="small text-muted">{{ subscription.current_storage_gb|floatformat:1 }}/{{ subscription.plan.max_storage_gb }} GB</span>
+                </div>
+                <div class="usage-bar-wrap">
+                    {% if subscription.plan.max_storage_gb > 0 %}
+                    {% widthratio subscription.current_storage_gb subscription.plan.max_storage_gb 100 as spct %}
+                    <div class="usage-bar {% if spct >= 90 %}crit{% elif spct >= 70 %}warn{% endif %}"
+                         style="width:{{ spct }}%"></div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Features chips -->
+        <div class="d-flex flex-wrap gap-2 mt-4">
+            <span class="badge rounded-pill" style="background:var(--surface-bg);color:var(--text-muted);font-size:0.75rem;padding:5px 12px;border:1px solid var(--border-color);">
+                <i class="bi bi-check2 text-success me-1"></i>Attendance &amp; Grades
+            </span>
+            <span class="badge rounded-pill" style="background:var(--surface-bg);color:var(--text-muted);font-size:0.75rem;padding:5px 12px;border:1px solid var(--border-color);">
+                <i class="bi bi-check2 text-success me-1"></i>Finance &amp; Fees
+            </span>
+            <span class="badge rounded-pill" style="background:var(--surface-bg);color:var(--text-muted);font-size:0.75rem;padding:5px 12px;border:1px solid var(--border-color);">
+                <i class="bi bi-check2 text-success me-1"></i>Timetable
+            </span>
+            {% if subscription.plan.plan_type == 'pro' or subscription.plan.plan_type == 'enterprise' %}
+            <span class="badge rounded-pill" style="background:#eff6ff;color:#1d4ed8;font-size:0.75rem;padding:5px 12px;border:1px solid #bfdbfe;">
+                <i class="bi bi-stars me-1"></i>AI Lesson Planner
+            </span>
+            <span class="badge rounded-pill" style="background:#f0fdf4;color:#15803d;font-size:0.75rem;padding:5px 12px;border:1px solid #bbf7d0;">
+                <i class="bi bi-people me-1"></i>Parent Portal
+            </span>
+            {% endif %}
+            {% if subscription.plan.priority_support %}
+            <span class="badge rounded-pill" style="background:#fdf4ff;color:#7e22ce;font-size:0.75rem;padding:5px 12px;border:1px solid #e9d5ff;">
+                <i class="bi bi-headset me-1"></i>Priority Support
+            </span>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="sub-card mb-4 text-center py-5">
+        <i class="bi bi-exclamation-circle fs-2 text-warning d-block mb-2"></i>
+        <div class="fw-700">No subscription found</div>
+        <div class="text-muted small mt-1">Contact your platform administrator to set up a subscription for your school.</div>
+    </div>
+    {% endif %}
+
+    <!-- Upgrade section -->
+    {% if upgrade_plans %}
+    <div class="upgrade-card">
+        <h5 class="fw-700 mb-1">
+            <i class="bi bi-rocket-takeoff me-2" style="color:#93c5fd;"></i>
+            {% if subscription and subscription.status == 'trial' %}Upgrade your plan{% else %}Explore other plans{% endif %}
+        </h5>
+        <p style="font-size:0.875rem;opacity:0.75;margin-bottom:1.5rem;">
+            Ready to unlock more capacity and features? Compare plans below.
+        </p>
+
+        <div class="row g-3">
+            {% for plan in upgrade_plans %}
+            <div class="col-md-4">
+                <div class="upgrade-plan-card {% if plan.plan_type == 'pro' %}featured{% endif %} h-100 d-flex flex-column">
+                    {% if plan.plan_type == 'pro' %}
+                    <div class="mb-2">
+                        <span style="background:#3b82f6;color:#fff;font-size:0.7rem;font-weight:700;padding:2px 10px;border-radius:999px;text-transform:uppercase;">Most Popular</span>
+                    </div>
+                    {% endif %}
+                    <div class="fw-700 mb-1" style="color:#fff;">{{ plan.name }}</div>
+                    <div style="font-size:0.8rem;opacity:0.7;margin-bottom:0.75rem;">{{ plan.description|truncatechars:80 }}</div>
+                    <div class="mt-auto">
+                        <div class="fw-800" style="font-size:1.5rem;color:#fff;">${{ plan.monthly_price }}<span style="font-size:0.875rem;font-weight:400;opacity:0.6;">/mo</span></div>
+                        <div style="font-size:0.75rem;opacity:0.6;">or ${{ plan.annual_price }}/yr</div>
+                        <div class="mt-2" style="font-size:0.8rem;opacity:0.75;">
+                            Up to {{ plan.max_students }} students · {{ plan.max_teachers }} teachers
+                        </div>
+                        <a href="{% url 'tenants:support_tickets' %}"
+                           class="btn btn-sm mt-3 w-100 fw-600"
+                           style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.25);">
+                            Contact us to upgrade
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <p style="font-size:0.78rem;opacity:0.55;margin-top:1.25rem;margin-bottom:0;">
+            <i class="bi bi-info-circle me-1"></i>
+            To upgrade your plan, open a support ticket or contact <a href="mailto:support@schoolportal.app" style="color:#93c5fd;">support@schoolportal.app</a>.
+        </p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

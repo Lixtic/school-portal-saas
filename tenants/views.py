@@ -472,6 +472,24 @@ def review_school(request, school_id):
                                        address=school.address)
                     
                     connection.set_schema_to_public()
+
+                    # Create trial subscription (14 days)
+                    from .models import SubscriptionPlan, SchoolSubscription
+                    try:
+                        trial_plan = SubscriptionPlan.objects.get(plan_type='trial')
+                        trial_ends = timezone.now() + timedelta(days=14)
+                        SchoolSubscription.objects.get_or_create(
+                            school=school,
+                            defaults=dict(
+                                plan=trial_plan,
+                                status='trial',
+                                trial_ends_at=trial_ends,
+                                current_period_end=trial_ends,
+                                mrr=0,
+                            ),
+                        )
+                    except SubscriptionPlan.DoesNotExist:
+                        logger.warning("Trial plan not found; skipping subscription creation for %s", school.name)
                     
                     # Send approval email notification with temporary password
                     context = {
@@ -1169,3 +1187,46 @@ def application_status(request):
         'error': error,
         'schema_query': schema,
     })
+
+
+def pricing_page(request):
+    """Public pricing page showing available subscription plans."""
+    from .models import SubscriptionPlan
+    plans = SubscriptionPlan.objects.filter(is_active=True).exclude(plan_type='trial').order_by('monthly_price')
+    return render(request, 'tenants/pricing.html', {'plans': plans})
+
+
+@login_required
+def school_subscription(request):
+    """School admin: view current subscription status, trial countdown, and usage."""
+    if not hasattr(request, 'tenant'):
+        return redirect('home')
+    if request.user.user_type not in ('admin',):
+        messages.error(request, "Access denied. School admins only.")
+        return redirect('dashboard')
+
+    from .models import SchoolSubscription
+    from django.utils import timezone
+
+    try:
+        subscription = SchoolSubscription.objects.select_related('plan').get(school=request.tenant)
+    except SchoolSubscription.DoesNotExist:
+        subscription = None
+
+    trial_days_left = None
+    if subscription and subscription.status == 'trial' and subscription.trial_ends_at:
+        delta = subscription.trial_ends_at - timezone.now()
+        trial_days_left = max(0, delta.days)
+
+    from .models import SubscriptionPlan
+    upgrade_plans = SubscriptionPlan.objects.filter(
+        is_active=True
+    ).exclude(plan_type='trial').order_by('monthly_price')
+
+    context = {
+        'subscription': subscription,
+        'trial_days_left': trial_days_left,
+        'upgrade_plans': upgrade_plans,
+        'school': request.tenant,
+    }
+    return render(request, 'tenants/school_subscription.html', context)
