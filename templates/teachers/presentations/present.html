@@ -799,6 +799,23 @@ function copyQRLink() {
   });
 }
 
+// ── Touch swipe ─────────────────────────────────────────────────
+(function() {
+  var _tx = null, _ty = null;
+  document.addEventListener('touchstart', function(e) {
+    _tx = e.touches[0].clientX;
+    _ty = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', function(e) {
+    if (_tx === null) return;
+    var dx = e.changedTouches[0].clientX - _tx;
+    var dy = e.changedTouches[0].clientY - _ty;
+    _tx = _ty = null;
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    if (dx < 0) nextSlide(); else prevSlide();
+  }, { passive: true });
+})();
+
 document.addEventListener('keydown', function(e) {
   if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ')  nextSlide();
   if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')  prevSlide();

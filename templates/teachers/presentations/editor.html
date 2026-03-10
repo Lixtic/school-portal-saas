@@ -72,6 +72,59 @@ html, body { height: 100%; margin: 0; }
 }
 .gm-add-btn:hover { background: rgba(255,255,255,.1); color: #f1f5f9; }
 
+/* ── Topbar dropdown groups ── */
+.gm-tb-drop-wrap { position: relative; flex-shrink: 0; }
+.gm-tb-drop-btn {
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+  color: #94a3b8; border-radius: 9px; padding: 6px 11px;
+  font-size: .8rem; font-weight: 700; cursor: pointer;
+  display: flex; align-items: center; gap: 5px;
+  transition: background .15s; white-space: nowrap;
+}
+.gm-tb-drop-btn:hover { background: rgba(255,255,255,.1); color: #f1f5f9; }
+.gm-tb-drop-btn.ai-btn { background: rgba(139,92,246,.15); border-color: rgba(139,92,246,.3); color: #c4b5fd; }
+.gm-tb-drop-btn.ai-btn:hover { background: rgba(139,92,246,.28); }
+.gm-tb-drop-menu {
+  position: absolute; top: calc(100% + 7px); right: 0;
+  background: #1e293b; border: 1px solid rgba(255,255,255,.1);
+  border-radius: 12px; padding: 5px;
+  min-width: 180px; z-index: 9000;
+  box-shadow: 0 12px 40px rgba(0,0,0,.45);
+  display: none; flex-direction: column; gap: 2px;
+}
+.gm-tb-drop-menu.open { display: flex; }
+.gm-tb-drop-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 7px 11px; border-radius: 8px;
+  font-size: .8rem; font-weight: 600;
+  color: #94a3b8; text-decoration: none;
+  background: none; border: none; cursor: pointer; width: 100%; text-align: left;
+  transition: background .12s, color .12s;
+}
+.gm-tb-drop-item:hover { background: rgba(124,58,237,.12); color: #f1f5f9; }
+.gm-tb-drop-item i { width: 14px; text-align: center; flex-shrink: 0; }
+.gm-tb-drop-sep { height: 1px; background: rgba(255,255,255,.07); margin: 3px 5px; }
+
+/* ── Thumb context menu ── */
+.gm-ctx-menu {
+  position: fixed; z-index: 9500;
+  background: #1e293b; border: 1px solid rgba(255,255,255,.1);
+  border-radius: 11px; padding: 5px;
+  min-width: 160px; box-shadow: 0 8px 30px rgba(0,0,0,.45);
+  display: none; flex-direction: column; gap: 2px;
+}
+.gm-ctx-menu.open { display: flex; }
+.gm-ctx-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 11px; border-radius: 7px;
+  font-size: .8rem; font-weight: 600; color: #94a3b8;
+  background: none; border: none; cursor: pointer; width: 100%; text-align: left;
+  transition: background .12s, color .12s;
+}
+.gm-ctx-item:hover { background: rgba(124,58,237,.12); color: #f1f5f9; }
+.gm-ctx-item.danger:hover { background: rgba(239,68,68,.1); color: #f87171; }
+.gm-ctx-item i { width: 14px; text-align: center; flex-shrink: 0; }
+
 /* ── Main three-pane layout ─────────────────── */
 .gm-body {
   flex: 1; display: flex; overflow: hidden;
@@ -601,24 +654,29 @@ html, body { height: 100%; margin: 0; }
     <input type="hidden" id="transitionSelect" value="{{ deck.transition }}">
     <div class="gm-topbar-sep"></div>
     <button class="gm-add-btn" onclick="addSlide()"><i class="fas fa-plus"></i> Slide</button>
-    <button class="gm-ai-btn" onclick="openAIModal()"><i class="fas fa-robot"></i> AI Generate</button>
-    <button class="gm-add-btn" id="smartLayoutsBtn" onclick="smartLayouts()" title="AI picks the best layout for each slide"><i class="fas fa-magic"></i> Layouts</button>
-    <button class="gm-add-btn" id="harmonizeBtn" onclick="openHarmonizeModal()" title="AI harmonizes terminology and style across all slides">&#10022; Harmonize</button>
-    <a href="{% url 'teachers:presentation_print' deck.pk %}" target="_blank" class="gm-add-btn" title="Print / Save as PDF" style="text-decoration:none;">
-      <i class="fas fa-file-pdf"></i> PDF
-    </a>
-    <a href="{% url 'teachers:presentation_export_pptx' deck.pk %}" class="gm-add-btn" title="Download as PowerPoint (.pptx)" style="text-decoration:none;">
-      <i class="fas fa-file-powerpoint"></i> PPTX
-    </a>
-    <button class="gm-add-btn" onclick="openEdShareModal()" title="Share presentation link &amp; QR code">
-      <i class="fas fa-qrcode"></i> Share
-    </button>
-    <button class="gm-add-btn" onclick="openTemplatesModal()" title="Start from a slide template">
-      <i class="fas fa-th-large"></i> Templates
-    </button>
-    <button class="gm-add-btn" onclick="toggleEditorFS()" id="edFsBtn" title="Fullscreen">
-      <i class="fas fa-expand" id="edFsIcon"></i>
-    </button>
+    <!-- AI dropdown -->
+    <div class="gm-tb-drop-wrap">
+      <button class="gm-tb-drop-btn ai-btn" onclick="toggleTbDrop(event,'aiMenu')"><i class="fas fa-robot"></i> AI <i class="fas fa-chevron-down" style="font-size:.6rem;"></i></button>
+      <div class="gm-tb-drop-menu" id="aiMenu">
+        <button class="gm-tb-drop-item" onclick="closeTbDrops();openAIModal()"><i class="fas fa-robot"></i> AI Generate</button>
+        <button class="gm-tb-drop-item" id="smartLayoutsBtn" onclick="closeTbDrops();smartLayouts()"><i class="fas fa-magic"></i> Smart Layouts</button>
+        <button class="gm-tb-drop-item" id="harmonizeBtn" onclick="closeTbDrops();openHarmonizeModal()"><i class="fas fa-star"></i> Harmonize Deck</button>
+      </div>
+    </div>
+    <!-- More / overflow dropdown -->
+    <div class="gm-tb-drop-wrap">
+      <button class="gm-tb-drop-btn" onclick="toggleTbDrop(event,'moreMenu')" title="More options"><i class="fas fa-ellipsis-h"></i></button>
+      <div class="gm-tb-drop-menu" id="moreMenu">
+        <button class="gm-tb-drop-item" onclick="closeTbDrops();openTemplatesModal()"><i class="fas fa-th-large"></i> Templates</button>
+        <div class="gm-tb-drop-sep"></div>
+        <a href="{% url 'teachers:presentation_print' deck.pk %}" target="_blank" class="gm-tb-drop-item" onclick="closeTbDrops()"><i class="fas fa-file-pdf"></i> Save as PDF</a>
+        <a href="{% url 'teachers:presentation_export_pptx' deck.pk %}" class="gm-tb-drop-item" onclick="closeTbDrops()"><i class="fas fa-file-powerpoint"></i> Export PPTX</a>
+        <div class="gm-tb-drop-sep"></div>
+        <button class="gm-tb-drop-item" onclick="closeTbDrops();openEdShareModal()"><i class="fas fa-qrcode"></i> Share &amp; QR</button>
+        <div class="gm-tb-drop-sep"></div>
+        <button class="gm-tb-drop-item" onclick="closeTbDrops();toggleEditorFS()"><i class="fas fa-expand" id="edFsIcon"></i> <span id="edFsLabel">Fullscreen</span></button>
+      </div>
+    </div>
     <a href="{% url 'teachers:presentation_present' deck.pk %}" target="_blank" class="gm-present-btn">
       <i class="fas fa-play"></i> Present
     </a>
@@ -637,7 +695,8 @@ html, body { height: 100%; margin: 0; }
         {% for slide in slides %}
         <div class="gm-thumb{% if forloop.first %} active{% endif %}"
              id="thumb-{{ slide.pk }}" data-slide-id="{{ slide.pk }}"
-             onclick="selectSlide({{ slide.pk }})">
+             onclick="selectSlide({{ slide.pk }})"
+             oncontextmenu="showThumbCtx(event,{{ slide.pk }})">
           <div class="gm-thumb-slide theme-{{ deck.theme }}">
             <span class="gm-thumb-num">{{ forloop.counter }}</span>
             <div class="gm-thumb-title">{{ slide.title|truncatechars:28 }}</div>
@@ -1605,6 +1664,70 @@ function applyHarmonize() {
 }
 
 // ── DOM helpers ─────────────────────────────────────────────────
+// ── Thumb context menu ──────────────────────────────────────────
+var _ctxMenu = (function() {
+  var el = document.createElement('div');
+  el.className = 'gm-ctx-menu';
+  el.id = 'thumbCtxMenu';
+  el.innerHTML =
+    '<button class="gm-ctx-item" id="ctxDuplicate"><i class="fas fa-copy"></i> Duplicate slide</button>' +
+    '<button class="gm-ctx-item" id="ctxAddAfter"><i class="fas fa-plus"></i> Add slide after</button>' +
+    '<div style="height:1px;background:rgba(255,255,255,.07);margin:3px 5px;"></div>' +
+    '<button class="gm-ctx-item danger" id="ctxDelete"><i class="fas fa-trash"></i> Delete slide</button>';
+  document.body.appendChild(el);
+  document.addEventListener('click', function() { el.classList.remove('open'); });
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') el.classList.remove('open'); });
+  return el;
+})();
+function showThumbCtx(e, slideId) {
+  e.preventDefault();
+  e.stopPropagation();
+  selectSlide(slideId);
+  _ctxMenu.style.left = Math.min(e.clientX, window.innerWidth - 180) + 'px';
+  _ctxMenu.style.top  = Math.min(e.clientY, window.innerHeight - 130) + 'px';
+  _ctxMenu.classList.add('open');
+  document.getElementById('ctxDuplicate').onclick = function() { _ctxMenu.classList.remove('open'); duplicateCurrentSlide(); };
+  document.getElementById('ctxAddAfter').onclick  = function() { _ctxMenu.classList.remove('open'); addSlide(); };
+  document.getElementById('ctxDelete').onclick    = function() { _ctxMenu.classList.remove('open'); deleteCurrentSlide(); };
+}
+function duplicateCurrentSlide() {
+  if (!currentSlideId) return;
+  api({ action: 'duplicate_slide', slide_id: currentSlideId })
+    .then(function(d) {
+      if (!d.ok) { alert(d.error || 'Duplicate failed'); return; }
+      var newSlide = { id: d.slide_id, order: d.order, layout: d.layout,
+                       title: d.title, content: d.content, emoji: d.emoji || '',
+                       speaker_notes: d.speaker_notes || '', image_url: d.image_url || '' };
+      var curIdx = slides.findIndex(function(s) { return s.id == currentSlideId; });
+      slides.splice(curIdx + 1, 0, newSlide);
+      appendThumb(d);
+      appendCanvas(d);
+      // move thumb into position
+      var strip = document.getElementById('thumbList');
+      var newThumb = document.getElementById('thumb-' + d.slide_id);
+      if (curIdx + 1 < slides.length - 1) {
+        var afterThumb = document.getElementById('thumb-' + slides[curIdx + 2].id);
+        if (afterThumb && newThumb) strip.insertBefore(newThumb, afterThumb);
+      }
+      renumberThumbs(); updateSlideCount();
+      selectSlide(d.slide_id);
+      api({ action: 'reorder', order: slides.map(function(s) { return s.id; }) });
+    });
+}
+
+// ── Topbar dropdown toggle ──────────────────────────────────────
+function toggleTbDrop(e, menuId) {
+  e.stopPropagation();
+  var menu = document.getElementById(menuId);
+  var wasOpen = menu.classList.contains('open');
+  closeTbDrops();
+  if (!wasOpen) menu.classList.add('open');
+}
+function closeTbDrops() {
+  document.querySelectorAll('.gm-tb-drop-menu.open').forEach(function(m) { m.classList.remove('open'); });
+}
+document.addEventListener('click', closeTbDrops);
+
 function appendThumb(s) {
   var theme = document.getElementById('themeSelect').value;
   var div = document.createElement('div');
@@ -1612,6 +1735,7 @@ function appendThumb(s) {
   div.id = 'thumb-' + s.slide_id;
   div.dataset.slideId = s.slide_id;
   div.onclick = function() { selectSlide(s.slide_id); };
+  div.addEventListener('contextmenu', function(e) { showThumbCtx(e, s.slide_id); });
   var num = slides.length;
   div.innerHTML = '<div class="gm-thumb-slide theme-' + theme + '">' +
     '<span class="gm-thumb-num">' + num + '</span>' +
