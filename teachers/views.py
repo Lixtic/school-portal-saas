@@ -1711,7 +1711,16 @@ def lesson_plan_edit(request, pk):
     if request.method == 'POST':
         form = LessonPlanForm(request.POST, instance=lesson_plan, teacher=teacher)
         if form.is_valid():
-            form.save()
+            plan = form.save()
+            # Save B7 extra meta fields if provided (period, strand, hidden_rows, etc.)
+            b7_meta_raw = request.POST.get('b7_meta', '')
+            if b7_meta_raw:
+                try:
+                    import json as _json
+                    plan.b7_meta = _json.loads(b7_meta_raw)
+                    plan.save(update_fields=['b7_meta'])
+                except (ValueError, TypeError):
+                    pass
             messages.success(request, 'Lesson plan updated successfully.')
             
             # Check for next URL to return to same view (e.g. from inline edit)
@@ -1812,10 +1821,12 @@ def lesson_plan_print(request, pk):
         # Default to standard GES detail view with print mode
         template_name = 'teachers/lesson_plan_detail.html'
     
+    import json as _json
     return render(request, template_name, {
-        'lesson_plan': lesson_plan, 
+        'lesson_plan': lesson_plan,
         'print_mode': True,
-        'current_template': template_format
+        'current_template': template_format,
+        'b7_meta_json': _json.dumps(getattr(lesson_plan, 'b7_meta', None) or {}),
     })
 
 @login_required
@@ -5015,6 +5026,10 @@ def presentation_pulse_launch(request, pk):
         'live_url':       live_url,
         'close_url':      close_url,
     })
+
+
+@login_required
+def presentation_export_pptx(request, pk):
     """Export a presentation deck as a .pptx file."""
     if request.user.user_type not in ('teacher', 'admin'):
         messages.error(request, 'Access denied.')

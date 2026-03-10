@@ -83,6 +83,53 @@
         .print-hide { display: none !important; }
         
         tr { page-break-inside: avoid; }
+
+        /* Hide toggled rows in print */
+        tr.b7-row-hidden { display: none !important; }
+        .b7-toggle-btn  { display: none !important; }
+        .b7-hidden-tag  { display: none !important; }
+    }
+
+    /* ── Editable inline fields ─────────────────────────────── */
+    .b7-editable {
+        outline: none;
+        cursor: text;
+        display: inline;
+        min-width: 24px;
+        border-radius: 2px;
+        transition: background 0.15s;
+    }
+    .b7-editable:hover,
+    .b7-editable:focus {
+        background-color: rgba(30, 136, 229, 0.07);
+        outline: 1px dashed rgba(30, 136, 229, 0.45);
+    }
+
+    /* ── Eye-toggle hide buttons ────────────────────────────── */
+    .b7-toggle-btn {
+        background: none;
+        border: none;
+        padding: 1px 5px;
+        font-size: 0.72rem;
+        opacity: 0.28;
+        cursor: pointer;
+        border-radius: 3px;
+        color: inherit;
+        vertical-align: middle;
+        line-height: 1;
+    }
+    .b7-toggle-btn:hover { opacity: 0.75; background: rgba(0,0,0,0.08); }
+
+    /* ── Rows hidden from print ─────────────────────────────── */
+    tr.b7-row-hidden td,
+    tr.b7-row-hidden th { opacity: 0.38; }
+    .b7-hidden-tag {
+        font-size: 0.58rem;
+        color: #f59e0b;
+        font-weight: 700;
+        letter-spacing: .03em;
+        margin-left: 5px;
+        vertical-align: middle;
     }
 </style>
 
@@ -101,7 +148,7 @@
                         </button>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="?template=standard">Standard GES</a></li>
-                            <li><a class="dropdown-item active" href="?template=weekly">Weekly B7 Format</a></li>
+                            <li><a class="dropdown-item active" href="?template=weekly">Weekly GES Format</a></li>
                         </ul>
                     </div>
                     <button onclick="window.print()" class="btn btn-dark rounded-pill">
@@ -122,6 +169,7 @@
                 <input type="hidden" name="topic" value="{{ lesson_plan.topic }}">
                 <!-- Keep template param so we return here after save -->
                 <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <input type="hidden" name="b7_meta" id="b7MetaInput" value="">
                 
                 <div class="card border rounded-0 shadow-sm" id="printableArea">
                     <div class="card-body p-4 p-md-5 bg-white text-black">
@@ -132,7 +180,7 @@
                         </div>
     
                         <table class="b7-table">
-                            <!-- Row 1 -->
+                            <!-- Row 1: Date + Period -->
                             <tr>
                                 <td class="bg-header" width="15%"><strong>Date:</strong></td>
                                 <td width="35%">
@@ -143,21 +191,25 @@
                                     {% endif %}
                                 </td>
                                 <td class="bg-header" width="15%"><strong>Period:</strong></td>
-                                <td width="35%">1</td> <!-- Hardcoded based on image, or add field later -->
+                                <td width="35%"><span class="b7-editable" contenteditable="true" data-b7field="period" data-b7default="1">1</span></td>
                             </tr>
-                            <!-- Row 2 -->
-                            <tr>
-                                <td class="bg-header"><strong>Duration:</strong></td>
-                                <td>60 Mins</td>
+                            <!-- Row 2: Duration + Strand (hideable) -->
+                            <tr id="b7row-strand">
+                                <td class="bg-header">
+                                    <strong>Duration:</strong>
+                                    <button type="button" class="b7-toggle-btn print-hide" onclick="b7ToggleRow(this,'b7row-strand')" title="Toggle in print"><i class="bi bi-eye"></i></button>
+                                    <span class="b7-hidden-tag print-hide" id="b7tag-strand" style="display:none">hidden&nbsp;from&nbsp;print</span>
+                                </td>
+                                <td><span class="b7-editable" contenteditable="true" data-b7field="duration" data-b7default="60 Mins">60 Mins</span></td>
                                 <td class="bg-header"><strong>Strand:</strong></td>
-                                <td>Environment</td>
+                                <td><span class="b7-editable" contenteditable="true" data-b7field="strand" data-b7default=""></span></td>
                             </tr>
-                            <!-- Row 3 -->
+                            <!-- Row 3: Class + Class Size -->
                             <tr>
                                 <td class="bg-header"><strong>Class:</strong></td>
                                 <td>{{ lesson_plan.school_class.name }}</td>
                                 <td class="bg-header"><strong>Class Size:</strong></td>
-                                <td>45</td>
+                                <td><span class="b7-editable" contenteditable="true" data-b7field="class_size" data-b7default=""></span></td>
                             </tr>
                             <tr>
                                 <td class="bg-header"><strong>Subject:</strong></td>
@@ -177,28 +229,53 @@
                                 </td>
                                 <td width="30%" valign="top">
                                     <div class="bg-header p-1 border-bottom border-dark"><strong>Indicator:</strong></div>
-                                    <div class="p-1" style="font-size: 11pt;">See Content Standard</div>
+                                    <div class="p-1" style="font-size: 11pt;">
+                                        <span class="b7-editable" contenteditable="true" data-b7field="indicator" data-b7default="See Content Standard">See Content Standard</span>
+                                    </div>
                                 </td>
                                 <td width="20%" valign="top">
                                     <div class="bg-header p-1 border-bottom border-dark"><strong>Lesson:</strong></div>
-                                    <div class="p-1">1 of 3</div>
+                                    <div class="p-1">
+                                        <span class="b7-editable" contenteditable="true" data-b7field="lesson_of" data-b7default="1 of 3">1 of 3</span>
+                                    </div>
                                 </td>
                             </tr>
-                            <tr>
+                            <!-- Performance Indicator + Core Competencies (hideable) -->
+                            <tr id="b7row-perf">
                                 <td colspan="2" valign="top">
-                                    <div class="bg-header p-1 border-bottom border-dark"><strong>Performance Indicator:</strong></div>
-                                    <div class="p-1">Learners can relate the lesson to real life situations.</div>
+                                    <div class="bg-header p-1 border-bottom border-dark">
+                                        <strong>Performance Indicator:</strong>
+                                        <button type="button" class="b7-toggle-btn print-hide" onclick="b7ToggleRow(this,'b7row-perf')" title="Toggle in print"><i class="bi bi-eye"></i></button>
+                                        <span class="b7-hidden-tag print-hide" id="b7tag-perf" style="display:none">hidden&nbsp;from&nbsp;print</span>
+                                    </div>
+                                    <div class="p-1">
+                                        <span class="b7-editable" contenteditable="true" data-b7field="perf_indicator" data-b7default="Learners can relate the lesson to real life situations.">Learners can relate the lesson to real life situations.</span>
+                                    </div>
                                 </td>
                                 <td valign="top">
                                     <div class="bg-header p-1 border-bottom border-dark"><strong>Core Competencies:</strong></div>
-                                    <div class="p-1">CP 5.1, CC 8.1</div>
+                                    <div class="p-1">
+                                        <span class="b7-editable" contenteditable="true" data-b7field="core_competencies" data-b7default="CP 5.1, CC 8.1">CP 5.1, CC 8.1</span>
+                                    </div>
                                 </td>
                             </tr>
-                            <tr>
-                                <td colspan="3" class="bg-header p-1"><strong>References:</strong> National {{ lesson_plan.subject.name }} Curriculum</td>
+                            <!-- References (hideable) -->
+                            <tr id="b7row-refs">
+                                <td colspan="3" class="bg-header p-1">
+                                    <strong>References:</strong>
+                                    <span class="b7-editable" contenteditable="true" data-b7field="references" data-b7default="National {{ lesson_plan.subject.name }} Curriculum">National {{ lesson_plan.subject.name }} Curriculum</span>
+                                    <button type="button" class="b7-toggle-btn print-hide" onclick="b7ToggleRow(this,'b7row-refs')" title="Toggle in print"><i class="bi bi-eye"></i></button>
+                                    <span class="b7-hidden-tag print-hide" id="b7tag-refs" style="display:none">hidden&nbsp;from&nbsp;print</span>
+                                </td>
                             </tr>
-                            <tr>
-                                <td colspan="3" class="bg-header p-1"><strong>Keywords:</strong> {{ lesson_plan.topic }}</td>
+                            <!-- Keywords (hideable) -->
+                            <tr id="b7row-keywords">
+                                <td colspan="3" class="bg-header p-1">
+                                    <strong>Keywords:</strong>
+                                    <span class="b7-editable" contenteditable="true" data-b7field="keywords" data-b7default="{{ lesson_plan.topic }}">{{ lesson_plan.topic }}</span>
+                                    <button type="button" class="b7-toggle-btn print-hide" onclick="b7ToggleRow(this,'b7row-keywords')" title="Toggle in print"><i class="bi bi-eye"></i></button>
+                                    <span class="b7-hidden-tag print-hide" id="b7tag-keywords" style="display:none">hidden&nbsp;from&nbsp;print</span>
+                                </td>
                             </tr>
                         </table>
                         
@@ -296,22 +373,63 @@
 </style>
 
 <script>
+// B7 meta loaded from server (period, strand, hidden_rows, etc.)
+const B7_META = {{ b7_meta_json|safe }};
+const _b7Hidden = new Set(Array.isArray(B7_META.hidden_rows) ? B7_META.hidden_rows : []);
+
+// Toggle a row's print visibility
+function b7ToggleRow(btn, rowId) {
+    const row = document.getElementById(rowId);
+    const tag = document.getElementById('b7tag-' + rowId.replace('b7row-', ''));
+    if (!row) return;
+    const isHidden = row.classList.toggle('b7-row-hidden');
+    btn.querySelector('i').className = isHidden ? 'bi bi-eye-slash' : 'bi bi-eye';
+    if (tag) tag.style.display = isHidden ? 'inline' : 'none';
+    if (isHidden) { _b7Hidden.add(rowId); } else { _b7Hidden.delete(rowId); }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Populate contenteditable fields from saved B7_META
+    document.querySelectorAll('[data-b7field]').forEach(function(el) {
+        var field = el.dataset.b7field;
+        var fallback = el.dataset.b7default || '';
+        if (B7_META[field] !== undefined && B7_META[field] !== null) {
+            el.textContent = B7_META[field];
+        } else {
+            el.textContent = fallback;
+        }
+    });
+
+    // Restore hidden-from-print rows
+    _b7Hidden.forEach(function(rowId) {
+        var row = document.getElementById(rowId);
+        if (!row) return;
+        row.classList.add('b7-row-hidden');
+        var btn = row.querySelector('.b7-toggle-btn');
+        if (btn) btn.querySelector('i').className = 'bi bi-eye-slash';
+        var tag = document.getElementById('b7tag-' + rowId.replace('b7row-', ''));
+        if (tag) tag.style.display = 'inline';
+    });
+
     // Auto-resize textareas
-    const textareas = document.querySelectorAll('textarea');
-    textareas.forEach(textarea => {
-        textarea.style.height = 'auto';
-        textarea.style.height = textarea.scrollHeight + 'px';
-        textarea.addEventListener('input', function() {
+    document.querySelectorAll('textarea').forEach(function(ta) {
+        ta.style.height = 'auto';
+        ta.style.height = ta.scrollHeight + 'px';
+        ta.addEventListener('input', function() {
             this.style.height = 'auto';
             this.style.height = this.scrollHeight + 'px';
         });
     });
 
-    // Handle form submission
-    const form = document.querySelector('form');
-    form.addEventListener('submit', function(e) {
-        const btn = this.querySelector('button[type="submit"]');
+    // On submit: serialise all b7 editable values + hidden rows into b7_meta
+    document.getElementById('lessonPlanFormB7').addEventListener('submit', function() {
+        var meta = { hidden_rows: Array.from(_b7Hidden) };
+        document.querySelectorAll('[data-b7field]').forEach(function(el) {
+            meta[el.dataset.b7field] = el.textContent.trim();
+        });
+        document.getElementById('b7MetaInput').value = JSON.stringify(meta);
+        // Show saving state
+        var btn = this.querySelector('button[type="submit"]');
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
         btn.disabled = true;
     });
