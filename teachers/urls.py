@@ -95,6 +95,13 @@ urlpatterns = [
     path('presentations/<int:pk>/duplicate/', views.presentation_duplicate, name='presentation_duplicate'),
     path('presentations/<int:pk>/print/', views.presentation_print, name='presentation_print'),
     path('presentations/<int:pk>/delete/', views.presentation_delete, name='presentation_delete'),
+    path('presentations/<int:pk>/start-live/', views.start_live_session, name='start_live_session'),
+    path('presentations/<int:pk>/end-live/', views.end_live_session, name='end_live_session'),
+    path('presentations/<int:pk>/update-live/', views.update_live_slide, name='update_live_slide'),
+    path('live/<str:code>/', views.live_student, name='live_student'),
+    path('live/<str:code>/state/', views.live_state, name='live_state'),
+    path('live/<str:code>/vote/', views.live_vote, name='live_vote'),
+    path('live/<str:code>/results/<int:slide_pk>/', views.live_results, name='live_results'),
 ]
 
 

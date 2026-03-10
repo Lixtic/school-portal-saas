@@ -166,6 +166,8 @@ class Slide(models.Model):
         ('quote',    'Quote'),
         ('summary',  'Summary'),
         ('image',    'Image + Caption'),
+        ('poll',     'Live Poll'),
+        ('quiz',     'Quiz Reveal'),
     ]
     presentation  = models.ForeignKey(Presentation, on_delete=models.CASCADE, related_name='slides')
     order         = models.PositiveIntegerField(default=0)
@@ -199,3 +201,30 @@ class LessonGenerationSession(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.updated_at:%Y-%m-%d})"
+
+
+class LiveSession(models.Model):
+    """A live classroom session tied to a presentation deck."""
+    presentation = models.ForeignKey(Presentation, on_delete=models.CASCADE, related_name='live_sessions')
+    code = models.CharField(max_length=8, unique=True)
+    is_active = models.BooleanField(default=True)
+    current_slide_order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Session {self.code} ({'active' if self.is_active else 'ended'})"
+
+
+class PollResponse(models.Model):
+    """A student's vote on a poll/quiz slide within a live session."""
+    session = models.ForeignKey(LiveSession, on_delete=models.CASCADE, related_name='responses')
+    slide = models.ForeignKey(Slide, on_delete=models.CASCADE, related_name='poll_responses')
+    student_name = models.CharField(max_length=100, blank=True, default='Anonymous')
+    choice = models.CharField(max_length=1)  # A, B, C, D
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [('session', 'slide', 'student_name')]
+
+    def __str__(self):
+        return f"{self.student_name}: {self.choice} on slide {self.slide_id}"

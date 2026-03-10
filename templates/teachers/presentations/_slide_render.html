@@ -60,6 +60,35 @@
   {% if caption %}<div class="sl-caption">{{ caption }}</div>{% endif %}
   {% endwith %}
 </div>
+{% elif slide.layout == "poll" %}
+<div class="sl-body layout-poll">
+  <div class="sl-poll-question">{{ slide.title }}</div>
+  <div class="sl-poll-opts">
+    {% for b in slide.bullets %}
+    <div class="sl-poll-opt" data-choice="{{ b|slice:':1' }}">
+      <span class="sl-poll-letter">{{ b|slice:':1' }}</span>
+      <span class="sl-poll-text">{{ b|slice:'3:' }}</span>
+      <div class="sl-poll-bar" style="width:0%"></div>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="sl-poll-total" style="display:none">0 responses</div>
+</div>
+{% elif slide.layout == "quiz" %}
+<div class="sl-body layout-quiz">
+  <div class="sl-quiz-question">{{ slide.title }}</div>
+  <div class="sl-quiz-opts">
+    {% for b in slide.bullets %}
+    <div class="sl-quiz-opt" data-choice="{{ b|slice:':1' }}">
+      <span class="sl-quiz-letter">{{ b|slice:':1' }}</span>
+      <span class="sl-quiz-text">{{ b|slice:'3:' }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="sl-quiz-reveal" style="display:none">
+    <div class="sl-quiz-answer-badge">✓ Answer revealed — press R to reveal</div>
+  </div>
+</div>
 {% else %}
 {# default: bullets #}
 <div class="sl-body layout-bullets">

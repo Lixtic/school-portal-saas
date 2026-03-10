@@ -93,6 +93,73 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 .layout-image .sl-image-placeholder i { font-size: 5rem; opacity: .3; }
 .layout-image .sl-caption { font-size: clamp(.8rem, 1.8vw, 1.2rem); color: rgba(255,255,255,.45); margin-top: .5em; text-align: center; }
 
+/* ── Poll / Quiz layouts (full-screen) ── */
+.layout-poll, .layout-quiz { padding: 4vw 5vw 3vw; }
+.sl-poll-question, .sl-quiz-question { font-size: clamp(1.5rem, 3.5vw, 2.8rem); font-weight: 800; color: #f1f5f9; margin-bottom: .6em; }
+.sl-poll-opts, .sl-quiz-opts { display: flex; flex-direction: column; gap: .5em; flex: 1; }
+.sl-poll-opt, .sl-quiz-opt { position: relative; display: flex; align-items: center; gap: .7em; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); border-radius: 12px; padding: .6em 1em; font-size: clamp(1rem, 2.2vw, 1.5rem); color: #e2e8f0; overflow: hidden; cursor: pointer; transition: background .2s; }
+.sl-poll-opt:hover, .sl-quiz-opt:hover { background: rgba(255,255,255,.13); }
+.sl-poll-opt.voted, .sl-quiz-opt.correct { background: rgba(34,197,94,.2); border-color: #22c55e; }
+.sl-poll-letter, .sl-quiz-letter { font-weight: 800; font-size: 1.2em; color: #93c5fd; min-width: 1.4em; text-align: center; z-index: 1; }
+.sl-poll-text, .sl-quiz-text { flex: 1; z-index: 1; }
+.sl-poll-bar { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(99,102,241,.3); z-index: 0; transition: width .6s ease; pointer-events: none; }
+.sl-poll-total { font-size: clamp(.7rem, 1.5vw, 1rem); color: rgba(255,255,255,.4); margin-top: .3em; }
+.sl-quiz-reveal { margin-top: 1em; animation: fadeIn .4s ease; }
+.sl-quiz-answer-badge { display: inline-block; background: rgba(34,197,94,.2); border: 2px solid #22c55e; border-radius: 30px; padding: .4em 1.2em; font-size: clamp(.8rem, 1.8vw, 1.2rem); color: #4ade80; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* ── Live Session Overlay ── */
+.ps-live-bar {
+  position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+  background: rgba(15,23,42,.95); border: 1px solid rgba(99,102,241,.4);
+  border-radius: 24px; padding: 6px 18px; display: flex; align-items: center; gap: 12px;
+  font-size: .72rem; color: #c7d2fe; z-index: 200; backdrop-filter: blur(12px);
+  box-shadow: 0 2px 20px rgba(0,0,0,.4);
+}
+.ps-live-dot { width: 8px; height: 8px; border-radius: 50%; background: #f87171; animation: livePulse 1.4s ease infinite; }
+.ps-live-dot.active { background: #4ade80; }
+@keyframes livePulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.4); opacity: .6; } }
+.ps-live-code { font-weight: 800; font-size: .85rem; color: #c7d2fe; letter-spacing: .06em; }
+.ps-live-count { color: rgba(255,255,255,.5); font-size: .65rem; }
+.ps-live-close { cursor: pointer; color: rgba(255,255,255,.3); font-size: .8rem; margin-left: 4px; }
+.ps-live-close:hover { color: #f87171; }
+
+/* ── Start Live modal ── */
+.ps-live-modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 300;
+  display: none; align-items: center; justify-content: center;
+}
+.ps-live-modal.open { display: flex; }
+.ps-live-modal-inner {
+  background: #1e293b; border: 1px solid rgba(99,102,241,.3); border-radius: 20px;
+  padding: 2rem 2.5rem; max-width: 420px; width: 90%; text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,.5);
+}
+.ps-live-modal h3 { color: #e2e8f0; font-size: 1.3rem; margin-bottom: .4rem; }
+.ps-live-modal p { color: rgba(255,255,255,.5); font-size: .8rem; margin-bottom: 1.5rem; }
+.ps-live-join-code {
+  font-size: 2.8rem; font-weight: 900; letter-spacing: .2em; color: #c7d2fe;
+  background: rgba(99,102,241,.15); border-radius: 12px; padding: .4em .6em;
+  margin-bottom: 1rem;
+}
+.ps-live-join-url { font-size: .65rem; color: rgba(255,255,255,.4); margin-bottom: 1.5rem; word-break: break-all; }
+.ps-live-start-btn { background: linear-gradient(135deg,#7c3aed,#2563eb); border: none; color: #fff; border-radius: 10px; padding: .6em 1.5em; font-size: .85rem; cursor: pointer; margin-right: .5em; }
+.ps-live-start-btn:hover { opacity: .85; }
+.ps-live-end-btn { background: rgba(239,68,68,.15); border: 1px solid rgba(239,68,68,.3); color: #fca5a5; border-radius: 10px; padding: .6em 1.2em; font-size: .85rem; cursor: pointer; display: none; }
+.ps-live-end-btn:hover { background: rgba(239,68,68,.25); }
+.ps-live-modal-close { display: block; margin-top: 1rem; color: rgba(255,255,255,.3); cursor: pointer; font-size: .75rem; background: none; border: none; }
+
+/* ── Narration indicator ── */
+.ps-narr-btn.active { background: rgba(99,102,241,.4) !important; color: #c7d2fe !important; }
+
+/* ── Poll results in presenter panel ── */
+.pv-poll-results { margin-top: .5rem; }
+.pv-poll-results .pv-bar-row { display: flex; align-items: center; gap: .5em; margin-bottom: .3em; font-size: .7rem; color: #c7d2fe; }
+.pv-poll-results .pv-bar-letter { font-weight: 700; min-width: 14px; }
+.pv-poll-results .pv-bar-track { flex: 1; background: rgba(255,255,255,.1); border-radius: 4px; height: 8px; }
+.pv-poll-results .pv-bar-fill { height: 100%; background: linear-gradient(90deg,#7c3aed,#2563eb); border-radius: 4px; transition: width .5s; }
+.pv-poll-results .pv-bar-count { min-width: 22px; text-align: right; color: rgba(255,255,255,.5); }
+
 /* ── Progress bar ── */
 .ps-progress {
   position: fixed; bottom: 0; left: 0; width: 100%; height: 4px; z-index: 100;
@@ -357,7 +424,7 @@ body.presenter-mode .pv-panel { display: flex; }
 <div class="ps-stage theme-{{ deck.theme }}" id="stage">
 
   {% for slide in slides %}
-  <div class="ps-slide{% if forloop.first %} active{% endif %}" id="ps-slide-{{ forloop.counter0 }}" data-notes="{{ slide.speaker_notes|default:'' }}">
+  <div class="ps-slide{% if forloop.first %} active{% endif %}" id="ps-slide-{{ forloop.counter0 }}" data-notes="{{ slide.speaker_notes|default:'' }}" data-layout="{{ slide.layout }}" data-slide-pk="{{ slide.pk }}" data-slide-order="{{ slide.order }}">
     {% include "teachers/presentations/_slide_render.html" with slide=slide %}
   </div>
   {% empty %}
@@ -387,6 +454,8 @@ body.presenter-mode .pv-panel { display: flex; }
         <tr><td>T</td><td>Reset slide timer</td></tr>
         <tr><td>O</td><td>Slide overview</td></tr>
         <tr><td>A</td><td>Toggle auto-advance</td></tr>
+        <tr><td>V</td><td>Voice narration</td></tr>
+        <tr><td>R</td><td>Reveal quiz answer</td></tr>
         <tr><td>?</td><td>Show shortcuts</td></tr>
         <tr><td>P</td><td>Open Presenter View</td></tr>
         <tr><td>Esc</td><td>Exit / close overlay</td></tr>
@@ -413,7 +482,11 @@ body.presenter-mode .pv-panel { display: flex; }
     <button class="ps-ctrl-btn" onclick="toggleFullscreen()" title="Fullscreen (F)" id="fsBtn"><i class="fas fa-expand" id="fsIcon"></i></button>
     <button class="ps-ctrl-btn" onclick="toggleShortcuts()" title="Keyboard shortcuts (?)"><i class="fas fa-question"></i></button>    <div style="width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 4px;"></div>
     <button class="ps-ctrl-btn" onclick="openPresenterWindow()" title="Open Presenter View (P)" id="presenterBtn"><i class="fas fa-chalkboard-teacher"></i></button>
-    <button class="ps-ctrl-btn" onclick="window.print()" title="Print / Save as PDF"><i class="fas fa-file-pdf"></i></button>  </div>
+    <button class="ps-ctrl-btn" onclick="window.print()" title="Print / Save as PDF"><i class="fas fa-file-pdf"></i></button>
+    <div style="width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 4px;"></div>
+    <button class="ps-ctrl-btn ps-narr-btn" onclick="toggleNarration()" title="Voice narration (V)" id="narrBtn"><i class="fas fa-microphone"></i></button>
+    <button class="ps-ctrl-btn" onclick="openLiveModal()" title="Start live session" id="liveBtn"><i class="fas fa-broadcast-tower"></i></button>
+  </div>
 
   <a href="{% url 'teachers:presentation_editor' deck.pk %}" class="ps-exit-btn" title="Exit (Esc)">
     <i class="fas fa-times"></i> Exit
@@ -457,7 +530,34 @@ body.presenter-mode .pv-panel { display: flex; }
     <span class="ps-auto-n" id="psAutoN">30s</span>
   </div>
 
+  <!-- Live session indicator bar (shown when session is active) -->
+  <div class="ps-live-bar" id="psLiveBar" style="display:none">
+    <div class="ps-live-dot active" id="psLiveDot"></div>
+    <span>Live&nbsp;·&nbsp;<b class="ps-live-code" id="psLiveCode">—</b></span>
+    <span class="ps-live-count" id="psLiveCount">0 students</span>
+    <span class="ps-live-close" onclick="closeLiveModal()" title="End session">&#10005;</span>
+  </div>
+
 </div><!-- /stage -->
+
+<!-- ── Live Session Modal ── -->
+<div class="ps-live-modal" id="psLiveModal">
+  <div class="ps-live-modal-inner">
+    <h3>&#128247; Live Classroom Session</h3>
+    <p id="psLiveModalDesc">Start a session so students can join and respond to polls in real time.</p>
+    <div id="psLiveCodeBlock" style="display:none">
+      <div class="ps-live-join-code" id="psLiveModalCode">——</div>
+      <div class="ps-live-join-url" id="psLiveModalUrl"></div>
+    </div>
+    <button class="ps-live-start-btn" id="psLiveStartBtn" onclick="startLiveSession()">
+      <i class="fas fa-play"></i> Start Session
+    </button>
+    <button class="ps-live-end-btn" id="psLiveEndBtn" onclick="endLiveSession()">
+      <i class="fas fa-stop"></i> End Session
+    </button>
+    <button class="ps-live-modal-close" onclick="closeLiveModal()">Close</button>
+  </div>
+</div>
 
 <!-- ── Presenter Panel (visible when ?presenter=1) ── -->
 <div class="pv-panel" id="pvPanel">
@@ -465,6 +565,7 @@ body.presenter-mode .pv-panel { display: flex; }
   <div class="pv-section">
     <div class="pv-label">Speaker Notes</div>
     <div class="pv-notes empty" id="pvNotes">No speaker notes for this slide.</div>
+    <div class="pv-poll-results" id="pvPollResults" style="display:none"></div>
   </div>
   <div class="pv-section">
     <div class="pv-label">Next Slide</div>
@@ -586,6 +687,8 @@ document.addEventListener('keydown', function(e) {
   if (e.key === 'a' || e.key === 'A') toggleAutoAdvance();
   if (e.key === '?') toggleShortcuts();
   if (e.key === 'p' || e.key === 'P') openPresenterWindow();
+  if (e.key === 'v' || e.key === 'V') toggleNarration();
+  if (e.key === 'r' || e.key === 'R') revealQuizAnswer();
   if (e.key === 'Home') goTo(0);
   if (e.key === 'End')  goTo(total - 1);
 });
@@ -799,6 +902,198 @@ function toggleAutoAdvance() {
     autoTimer = null;
   }
 }
+
+// ── Voice Narration (Web Speech API) ─────────────────────────────────────────
+var narrationMode = false;
+function toggleNarration() {
+  if (!window.speechSynthesis) { alert('Voice narration is not supported in this browser.'); return; }
+  narrationMode = !narrationMode;
+  document.getElementById('narrBtn').classList.toggle('active', narrationMode);
+  if (narrationMode) {
+    speakSlide(current);
+  } else {
+    window.speechSynthesis.cancel();
+  }
+}
+function speakSlide(n) {
+  if (!narrationMode || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  var allSlides = document.querySelectorAll('.ps-slide');
+  if (n >= allSlides.length) return;
+  var el = allSlides[n];
+  var titleEl = el.querySelector('.sl-title, .sl-poll-question, .sl-quiz-question, .sl-quote, .sl-stat');
+  var bulletEls = el.querySelectorAll('.sl-bullets li, .sl-col-item, .sl-poll-opt .sl-poll-text, .sl-quiz-opt .sl-quiz-text, .sl-sub');
+  var text = '';
+  if (titleEl) text += titleEl.textContent.trim() + '. ';
+  bulletEls.forEach(function(b) { text += b.textContent.trim() + '. '; });
+  if (!text.trim()) { text = el.textContent.replace(/\s+/g, ' ').trim().slice(0, 400); }
+  if (!text.trim()) return;
+  var utter = new SpeechSynthesisUtterance(text);
+  utter.rate = 0.92;
+  utter.pitch = 1;
+  window.speechSynthesis.speak(utter);
+}
+
+// ── Quiz Answer Reveal ────────────────────────────────────────────────────────
+function revealQuizAnswer() {
+  var allSlides = document.querySelectorAll('.ps-slide');
+  var el = allSlides[current];
+  if (!el || el.dataset.layout !== 'quiz') return;
+  // Parse answer from speaker notes (format: "ANSWER: B\n...")
+  var notes = el.dataset.notes || '';
+  var match = notes.match(/^ANSWER:\s*([A-D])/i);
+  var answer = match ? match[1].toUpperCase() : null;
+  // Show reveal overlay
+  var revealEl = el.querySelector('.sl-quiz-reveal');
+  if (revealEl) {
+    revealEl.style.display = 'block';
+    if (answer) {
+      var badge = revealEl.querySelector('.sl-quiz-answer-badge');
+      if (badge) badge.textContent = '✓ Correct answer: ' + answer;
+    }
+  }
+  // Highlight the correct option
+  if (answer) {
+    el.querySelectorAll('.sl-quiz-opt').forEach(function(opt) {
+      if ((opt.dataset.choice || '').toUpperCase() === answer) {
+        opt.classList.add('correct');
+      }
+    });
+  }
+}
+
+// ── Live Session ──────────────────────────────────────────────────────────────
+var liveSessionCode = null;
+var liveSessionId   = null;
+var livePollInterval = null;
+var DECK_PK_STR = '{{ deck.pk }}';
+
+function getCsrf() {
+  return (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '';
+}
+
+function openLiveModal() {
+  document.getElementById('psLiveModal').classList.add('open');
+}
+function closeLiveModal() {
+  document.getElementById('psLiveModal').classList.remove('open');
+}
+
+function startLiveSession() {
+  var btn = document.getElementById('psLiveStartBtn');
+  btn.disabled = true; btn.textContent = 'Starting…';
+  fetch('{% url "teachers:start_live_session" deck.pk %}', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': getCsrf(), 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (d.error) { alert(d.error); return; }
+    liveSessionCode = d.code;
+    liveSessionId   = d.session_id;
+    // Show code in modal
+    document.getElementById('psLiveCodeBlock').style.display = 'block';
+    document.getElementById('psLiveModalCode').textContent = d.code;
+    var base = location.origin + location.pathname.replace(/\/presentations\/\d+\/present\/$/, '/');
+    document.getElementById('psLiveModalUrl').textContent = base + 'live/' + d.code + '/';
+    document.getElementById('psLiveStartBtn').style.display = 'none';
+    document.getElementById('psLiveEndBtn').style.display = 'inline-block';
+    document.getElementById('psLiveModalDesc').textContent = 'Session is live! Students join at:';
+    document.getElementById('liveBtn').style.display = 'none';
+    // Show live bar
+    document.getElementById('psLiveBar').style.display = 'flex';
+    document.getElementById('psLiveCode').textContent = d.code;
+    // Sync current slide immediately
+    syncLiveSlide();
+    // Poll for participant count
+    livePollInterval = setInterval(function() {
+      fetch('{% url "teachers:live_state" "CODE" %}'.replace('CODE', liveSessionCode), { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(s) {
+          var count = (s.participant_count || 0);
+          document.getElementById('psLiveCount').textContent = count + ' student' + (count !== 1 ? 's' : '');
+          updatePollResults();
+        });
+    }, 4000);
+  })
+  .catch(function() { alert('Failed to start session'); })
+  .finally(function() { btn.disabled = false; btn.textContent = 'Start Session'; });
+}
+
+function endLiveSession() {
+  fetch('{% url "teachers:end_live_session" deck.pk %}', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': getCsrf(), 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+  })
+  .then(function(r) { return r.json(); })
+  .then(function() {
+    liveSessionCode = null;
+    clearInterval(livePollInterval);
+    document.getElementById('psLiveBar').style.display = 'none';
+    document.getElementById('psLiveModal').classList.remove('open');
+    document.getElementById('psLiveStartBtn').style.display = 'inline-block';
+    document.getElementById('psLiveEndBtn').style.display = 'none';
+    document.getElementById('psLiveCodeBlock').style.display = 'none';
+    document.getElementById('psLiveModalDesc').textContent = 'Start a session so students can join and respond to polls in real time.';
+    document.getElementById('pvPollResults').style.display = 'none';
+    document.getElementById('liveBtn').style.display = '';  // restore button
+  });
+}
+
+function syncLiveSlide() {
+  if (!liveSessionCode) return;
+  var allSlides = document.querySelectorAll('.ps-slide');
+  var order = parseInt(allSlides[current] ? (allSlides[current].dataset.slideOrder || current) : current);
+  fetch('{% url "teachers:update_live_slide" deck.pk %}', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': getCsrf(), 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ slide_order: order }),
+  });
+  updatePollResults();
+}
+
+function updatePollResults() {
+  if (!liveSessionCode) return;
+  var allSlides = document.querySelectorAll('.ps-slide');
+  var el = allSlides[current];
+  if (!el) return;
+  var layout = el.dataset.layout;
+  var slidePk = el.dataset.slidePk;
+  var resultsEl = document.getElementById('pvPollResults');
+  if ((layout !== 'poll' && layout !== 'quiz') || !slidePk) {
+    if (resultsEl) resultsEl.style.display = 'none';
+    return;
+  }
+  fetch('{% url "teachers:live_results" "CODE" 0 %}'.replace('CODE', liveSessionCode).replace('/0/', '/' + slidePk + '/'), { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!resultsEl) return;
+      var total = d.total || 0;
+      var html = '<div style="font-size:.65rem;color:rgba(255,255,255,.4);margin-bottom:.3em;">Poll results (' + total + ' vote' + (total !== 1 ? 's' : '') + ')</div>';
+      ['A','B','C','D'].forEach(function(letter) {
+        var count = d.counts[letter] || 0;
+        var pct = total > 0 ? Math.round(count / total * 100) : 0;
+        html += '<div class="pv-bar-row"><span class="pv-bar-letter">' + letter + '</span>'
+              + '<div class="pv-bar-track"><div class="pv-bar-fill" style="width:' + pct + '%"></div></div>'
+              + '<span class="pv-bar-count">' + count + '</span></div>';
+      });
+      resultsEl.innerHTML = html;
+      resultsEl.style.display = 'block';
+    });
+}
+
+// Wrap goTo to sync live + narrate on slide change
+(function() {
+  var _liveGoTo = goTo;
+  goTo = function(n) {
+    _liveGoTo(n);
+    syncLiveSlide();
+    if (narrationMode) speakSlide(n);
+  };
+})();
 </script>
 </body>
 </html>

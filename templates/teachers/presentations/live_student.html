@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Join Live Session — {{ deck.title }}</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { min-height: 100%; font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; }
+
+.ls-wrap { max-width: 520px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+
+/* Header */
+.ls-header { text-align: center; padding: 1.5rem 0 1rem; border-bottom: 1px solid rgba(255,255,255,.08); margin-bottom: 1.5rem; }
+.ls-logo { font-size: 1.8rem; margin-bottom: .3rem; }
+.ls-deck-title { font-size: .85rem; color: rgba(255,255,255,.4); }
+.ls-session-badge { display: inline-flex; align-items: center; gap: .4em; background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.3); border-radius: 20px; padding: .25em .75em; font-size: .7rem; color: #4ade80; margin-top: .5rem; }
+.ls-dot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; animation: pulse 1.4s ease infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .5; transform: scale(1.3); } }
+
+/* Name form */
+.ls-name-card { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; }
+.ls-name-card h3 { font-size: .9rem; font-weight: 700; margin-bottom: .75rem; color: #c7d2fe; }
+.ls-name-input { width: 100%; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: .65em .9em; font-size: .9rem; color: #e2e8f0; outline: none; }
+.ls-name-input:focus { border-color: rgba(99,102,241,.5); }
+
+/* Slide view */
+.ls-slide-card { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 16px; padding: 1.5rem; min-height: 160px; }
+.ls-slide-title { font-size: 1.1rem; font-weight: 800; color: #f1f5f9; margin-bottom: 1rem; }
+.ls-slide-content { font-size: .85rem; color: rgba(255,255,255,.6); line-height: 1.6; }
+
+/* Poll options */
+.ls-poll-opts { display: flex; flex-direction: column; gap: .5em; margin-top: .5rem; }
+.ls-poll-opt { position: relative; display: flex; align-items: center; gap: .75em; background: rgba(255,255,255,.07); border: 2px solid rgba(255,255,255,.1); border-radius: 12px; padding: .75em 1em; cursor: pointer; font-size: .9rem; color: #e2e8f0; transition: background .2s, border-color .2s; overflow: hidden; }
+.ls-poll-opt:hover { background: rgba(99,102,241,.15); border-color: rgba(99,102,241,.4); }
+.ls-poll-opt.selected { background: rgba(99,102,241,.2); border-color: #6366f1; }
+.ls-poll-opt.voted { background: rgba(34,197,94,.15); border-color: #22c55e; cursor: default; }
+.ls-poll-opt-letter { font-weight: 800; font-size: 1.1em; color: #93c5fd; min-width: 1.4em; z-index: 1; }
+.ls-poll-opt-text { flex: 1; z-index: 1; }
+.ls-poll-bar { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(34,197,94,.18); z-index: 0; transition: width .6s ease; pointer-events: none; }
+.ls-poll-pct { font-size: .7rem; color: rgba(255,255,255,.45); z-index: 1; }
+
+/* Vote submitted */
+.ls-voted-msg { text-align: center; padding: 1rem; font-size: .8rem; color: #4ade80; }
+.ls-voted-msg i { display: block; font-size: 2rem; margin-bottom: .3rem; }
+
+/* Waiting */
+.ls-waiting { text-align: center; padding: 2rem 1rem; color: rgba(255,255,255,.35); }
+.ls-waiting i { font-size: 2.5rem; display: block; margin-bottom: .5rem; animation: spin 2s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.ls-waiting p { font-size: .8rem; }
+
+/* Ended */
+.ls-ended { text-align: center; padding: 2rem 1rem; }
+.ls-ended i { font-size: 3rem; color: rgba(255,255,255,.2); display: block; margin-bottom: .5rem; }
+.ls-ended p { font-size: .85rem; color: rgba(255,255,255,.4); }
+
+/* Quiz "waiting for reveal" */
+.ls-quiz-waiting { text-align: center; padding: 1rem; font-size: .75rem; color: rgba(255,255,255,.35); margin-top: .5rem; }
+</style>
+</head>
+<body>
+<div class="ls-wrap">
+  <div class="ls-header">
+    <div class="ls-logo">🎓</div>
+    <div class="ls-deck-title">{{ deck.title }}</div>
+    <div class="ls-session-badge">
+      <div class="ls-dot"></div>
+      Live Session · <strong>{{ code }}</strong>
+    </div>
+  </div>
+
+  <!-- Name prompt -->
+  <div class="ls-name-card">
+    <h3><i class="fas fa-user-circle" style="margin-right:.4em;color:#a78bfa;"></i>Your Name (optional)</h3>
+    <input type="text" class="ls-name-input" id="studentName" placeholder="Enter your name…" maxlength="80">
+  </div>
+
+  <!-- Current slide / poll area -->
+  <div id="slideArea">
+    <div class="ls-waiting"><i class="fas fa-circle-notch"></i><p>Waiting for teacher to start…</p></div>
+  </div>
+</div>
+
+<script>
+var SESSION_CODE = '{{ code }}';
+var STATE_URL  = '{% url "teachers:live_state" code %}';
+var VOTE_URL   = '{% url "teachers:live_vote" code %}';
+var RESULTS_URL_TPL = '{% url "teachers:live_results" code 0 %}'.replace('/0/', '/SLIDE_PK/');
+
+var lastSlideOrder = null;
+var votedSlides = {};   // slidePk -> choice voted
+var currentSlidePk = null;
+var currentLayout = null;
+
+function getCsrf() {
+  return (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '';
+}
+
+function fetchState() {
+  fetch(STATE_URL, { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.is_active) {
+        renderEnded();
+        return;
+      }
+      currentSlidePk = d.slide_pk || null;
+      currentLayout  = d.layout || 'bullets';
+      if (d.current_slide_order !== lastSlideOrder) {
+        lastSlideOrder = d.current_slide_order;
+        renderSlide(d);
+      } else if ((currentLayout === 'poll' || currentLayout === 'quiz') && currentSlidePk && votedSlides[currentSlidePk]) {
+        // Already voted — refresh result bars
+        fetchResults(currentSlidePk);
+      }
+    })
+    .catch(function() {});
+}
+
+function renderSlide(d) {
+  var area = document.getElementById('slideArea');
+  if (!d.slide_pk) {
+    area.innerHTML = '<div class="ls-waiting"><i class="las la-hourglass"></i><p>Waiting for teacher…</p></div>';
+    return;
+  }
+  var layout = d.layout || 'bullets';
+  var title  = d.title  || '';
+  var opts   = parseOptions(d.content || '');
+
+  if (layout === 'poll' || layout === 'quiz') {
+    renderPollSlide(d, layout, title, opts);
+  } else {
+    renderInfoSlide(d);
+  }
+}
+
+function parseOptions(content) {
+  return content.split('\n').filter(function(l) { return /^[A-D]:/i.test(l.trim()); });
+}
+
+function renderInfoSlide(d) {
+  var layout = d.layout || '';
+  var title  = d.title  || '';
+  var emoji  = d.emoji  || '';
+  var lines  = (d.content || '').split('\n').filter(function(l) { return l.trim(); });
+  var html = '<div class="ls-slide-card">';
+  if (emoji) html += '<div style="font-size:1.5rem;margin-bottom:.4rem;">' + escHtml(emoji) + '</div>';
+  html += '<div class="ls-slide-title">' + escHtml(title) + '</div>';
+  if (lines.length) {
+    html += '<div class="ls-slide-content">';
+    lines.forEach(function(l) { html += '<div style="margin-bottom:.3em;">▸ ' + escHtml(l) + '</div>'; });
+    html += '</div>';
+  }
+  html += '</div>';
+  document.getElementById('slideArea').innerHTML = html;
+}
+
+function renderPollSlide(d, layout, title, opts) {
+  var area = document.getElementById('slideArea');
+  var pk   = d.slide_pk;
+  var already = votedSlides[pk];
+
+  var html = '<div class="ls-slide-card">';
+  html += '<div class="ls-slide-title">' + escHtml(title) + '</div>';
+  html += '<div class="ls-poll-opts" id="pollOpts">';
+  opts.forEach(function(line) {
+    var letter = line.slice(0,1).toUpperCase();
+    var text   = line.slice(3).trim();
+    var cls    = 'ls-poll-opt' + (already === letter ? ' voted' : '');
+    html += '<div class="' + cls + '" data-choice="' + letter + '" onclick="castVote(this)">'
+          + '<span class="ls-poll-opt-letter">' + escHtml(letter) + '</span>'
+          + '<span class="ls-poll-opt-text">'   + escHtml(text)   + '</span>'
+          + '<div class="ls-poll-bar" style="width:0%" id="bar-' + letter + '"></div>'
+          + '<span class="ls-poll-pct" id="pct-' + letter + '"></span>'
+          + '</div>';
+  });
+  html += '</div>';
+  if (layout === 'quiz' && !already) {
+    html += '<div class="ls-quiz-waiting"><i class="fas fa-clock" style="margin-right:.3em;"></i>Answer will be revealed by the teacher</div>';
+  }
+  if (already) {
+    html += '<div class="ls-voted-msg"><i class="fas fa-check-circle"></i>Vote recorded (' + already + ')</div>';
+  }
+  html += '</div>';
+  area.innerHTML = html;
+
+  if (already) fetchResults(pk);
+}
+
+function castVote(btn) {
+  var pk     = currentSlidePk;
+  var choice = btn.dataset.choice;
+  if (!pk || !choice || votedSlides[pk]) return;
+  var name = document.getElementById('studentName').value.trim() || 'Anonymous';
+  fetch(VOTE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+    credentials: 'same-origin',
+    body: JSON.stringify({ slide_pk: pk, choice: choice, student_name: name }),
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (d.ok) {
+      votedSlides[pk] = choice;
+      // Mark voted + disable all opts
+      document.querySelectorAll('.ls-poll-opt').forEach(function(el) {
+        el.classList.add('voted');
+        el.style.cursor = 'default';
+        if (el.dataset.choice === choice) el.classList.add('selected');
+      });
+      // Show result bars
+      var area = document.getElementById('slideArea');
+      var msg = area.querySelector('.ls-voted-msg, .ls-quiz-waiting');
+      if (!msg) {
+        var m = document.createElement('div');
+        m.className = 'ls-voted-msg';
+        m.innerHTML = '<i class="fas fa-check-circle"></i>Vote recorded (' + choice + ')';
+        area.querySelector('.ls-slide-card').appendChild(m);
+      } else {
+        msg.className = 'ls-voted-msg';
+        msg.innerHTML = '<i class="fas fa-check-circle"></i>Vote recorded (' + choice + ')';
+      }
+      fetchResults(pk);
+    }
+  });
+}
+
+function fetchResults(pk) {
+  var url = RESULTS_URL_TPL.replace('SLIDE_PK', pk);
+  fetch(url, { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var total = d.total || 0;
+      ['A','B','C','D'].forEach(function(letter) {
+        var count = d.counts[letter] || 0;
+        var pct   = total > 0 ? Math.round(count / total * 100) : 0;
+        var bar = document.getElementById('bar-' + letter);
+        var pctEl = document.getElementById('pct-' + letter);
+        if (bar) bar.style.width = pct + '%';
+        if (pctEl) pctEl.textContent = total > 0 ? (pct + '%') : '';
+      });
+    });
+}
+
+function renderEnded() {
+  document.getElementById('slideArea').innerHTML =
+    '<div class="ls-ended"><i class="fas fa-flag-checkered"></i><p>Session has ended. Thanks for participating!</p></div>';
+  clearInterval(pollTimer);
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Poll the state every 2 seconds
+fetchState();
+var pollTimer = setInterval(fetchState, 2000);
+</script>
+</body>
+</html>

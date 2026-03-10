@@ -226,6 +226,18 @@ html, body { height: 100%; margin: 0; }
 .layout-image .sl-image-placeholder { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5em; border: 2px dashed rgba(255,255,255,.15); border-radius: 10px; color: rgba(255,255,255,.3); font-size: .7rem; }
 .layout-image .sl-image-placeholder i { font-size: 1.8rem; opacity: .5; }
 .layout-image .sl-caption { font-size: clamp(.5rem, 1.2vw, .75rem); color: rgba(255,255,255,.45); margin-top: .4em; text-align: center; }
+/* Poll layout */
+.layout-poll .sl-body, .layout-quiz .sl-body { flex: 1; display: flex; flex-direction: column; padding: 3% 4%; gap: .5em; }
+.sl-poll-question, .sl-quiz-question { font-size: clamp(.85rem, 2.2vw, 1.6rem); font-weight: 800; color: #f1f5f9; margin-bottom: .3em; }
+.sl-poll-opts, .sl-quiz-opts { display: flex; flex-direction: column; gap: .35em; flex: 1; }
+.sl-poll-opt, .sl-quiz-opt { position: relative; display: flex; align-items: center; gap: .5em; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); border-radius: 8px; padding: .35em .6em; font-size: clamp(.55rem, 1.3vw, .85rem); color: #e2e8f0; overflow: hidden; transition: background .2s; }
+.sl-poll-opt.voted, .sl-quiz-opt.correct { background: rgba(34,197,94,.18); border-color: #22c55e; }
+.sl-poll-letter, .sl-quiz-letter { font-weight: 800; font-size: 1.1em; color: #93c5fd; min-width: 1.2em; text-align: center; }
+.sl-poll-text, .sl-quiz-text { flex: 1; }
+.sl-poll-bar { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(99,102,241,.25); z-index: 0; transition: width .5s ease; pointer-events: none; }
+.sl-poll-total { font-size: clamp(.45rem, 1vw, .65rem); color: rgba(255,255,255,.4); margin-top: .2em; }
+.sl-quiz-reveal { margin-top: .5em; animation: fadeIn .3s ease; }
+.sl-quiz-answer-badge { display: inline-block; background: rgba(34,197,94,.2); border: 1px solid #22c55e; border-radius: 20px; padding: .25em .75em; font-size: clamp(.45rem, 1vw, .65rem); color: #4ade80; }
 /* AI suggest-bullets button */
 .gm-suggest-btn {
   margin-left: auto; background: none; border: none; cursor: pointer;
@@ -618,6 +630,22 @@ html, body { height: 100%; margin: 0; }
           <div style="font-size:.65rem;color:#475569;margin-top:.5rem;">Or paste an image URL:</div>
           <input type="text" class="gm-field" id="imageUrlInput" placeholder="https://…" style="margin-top:4px;" oninput="saveImageUrl()">
         </div>
+        <div class="gm-panel-section" id="pollSection" style="display:none">
+          <div class="gm-panel-label"><i class="fas fa-poll"></i> Poll / Quiz Setup</div>
+          <div style="font-size:.65rem;color:#64748b;margin-bottom:.5rem;line-height:1.5;">
+            <strong>Title</strong> = the question.<br>
+            <strong>Content</strong> = one option per line:<br>
+            <code style="font-size:.6rem;background:rgba(99,102,241,.12);padding:.1em .3em;border-radius:3px;">A: First choice<br>B: Second choice</code>
+          </div>
+          <label style="font-size:.65rem;color:#475569;">Correct Answer (Quiz only)</label>
+          <select class="gm-field" id="quizAnswer" style="margin-top:4px;" onchange="saveQuizAnswer()">
+            <option value="">— Open Poll / No Answer —</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+          </select>
+        </div>
         <div class="gm-panel-sep"></div>
         <div class="gm-move-btns">
           <button class="gm-move-btn" onclick="moveSlideUp()" title="Move Up (Ctrl+↑)"><i class="fas fa-arrow-up"></i> Up</button>
@@ -836,6 +864,19 @@ function selectSlide(slideId) {
     }
     document.getElementById('imgGenStatus').style.display = 'none';
   }
+  // poll section
+  var pollSec = document.getElementById('pollSection');
+  var isPoll = (slide.layout === 'poll' || slide.layout === 'quiz');
+  if (pollSec) pollSec.style.display = isPoll ? 'block' : 'none';
+  var contentEl = document.getElementById('panelContent');
+  if (contentEl) contentEl.placeholder = isPoll ? 'A: First option\nB: Second option\nC: Third option\nD: Fourth option' : 'One bullet per line…';
+  // quiz answer
+  var qaEl = document.getElementById('quizAnswer');
+  if (qaEl) {
+    var notes = slide.speaker_notes || '';
+    var ansMatch = notes.match(/^ANSWER:\s*([A-D])/i);
+    qaEl.value = ansMatch ? ansMatch[1].toUpperCase() : '';
+  }
 }
 
 // ── Debounced save ──────────────────────────────────────────────
@@ -880,6 +921,12 @@ function setLayout(layout) {
       // show/hide image section
       var imgSec = document.getElementById('imageSection');
       if (imgSec) imgSec.style.display = layout === 'image' ? 'block' : 'none';
+      // show/hide poll section
+      var pollSec = document.getElementById('pollSection');
+      var isPoll = (layout === 'poll' || layout === 'quiz');
+      if (pollSec) pollSec.style.display = isPoll ? 'block' : 'none';
+      var contentEl = document.getElementById('panelContent');
+      if (contentEl) contentEl.placeholder = isPoll ? 'A: First option\nB: Second option\nC: Third option\nD: Fourth option' : 'One bullet per line…';
     });
 }
 
@@ -1305,6 +1352,9 @@ function smartLayouts() {
           });
           var imgSec = document.getElementById('imageSection');
           if (imgSec) imgSec.style.display = cur.layout === 'image' ? 'block' : 'none';
+          var pollSec = document.getElementById('pollSection');
+          var isPoll = (cur.layout === 'poll' || cur.layout === 'quiz');
+          if (pollSec) pollSec.style.display = isPoll ? 'block' : 'none';
         }
       }
       setSaveStatus('saved', '\u2713 ' + n + ' slide layout' + (n === 1 ? '' : 's') + ' updated');
@@ -1604,6 +1654,18 @@ function saveImageUrl() {
   }, 800);
 }
 
+function saveQuizAnswer() {
+  var slide = slides.find(function(s) { return s.id == currentSlideId; });
+  if (!slide) return;
+  var letter = document.getElementById('quizAnswer').value;
+  var notes = (slide.speaker_notes || '').replace(/^ANSWER:\s*[A-D]\n?/i, '');
+  slide.speaker_notes = letter ? ('ANSWER: ' + letter + '\n' + notes) : notes;
+  document.getElementById('notesInput').value = slide.speaker_notes;
+  document.getElementById('notesPreview').textContent = slide.speaker_notes || '—';
+  api({ action: 'save_slide', slide_id: currentSlideId, speaker_notes: slide.speaker_notes })
+    .then(function() { setSaveStatus('saved', '✓ Answer saved'); });
+}
+
 // ── AI bullet suggestions ────────────────────────────────────────────────────────────
 function suggestBullets() {
   var title = (document.getElementById('panelTitle')?.value || '').trim();
@@ -1657,6 +1719,8 @@ function buildPanelHTML() {
       <button class="layout-pick-btn" data-layout="quote" onclick="setLayout('quote')"><i class="fas fa-quote-left"></i><span>Quote</span></button>
       <button class="layout-pick-btn" data-layout="summary" onclick="setLayout('summary')"><i class="fas fa-check-circle"></i><span>Summary</span></button>
       <button class="layout-pick-btn" data-layout="image" onclick="setLayout('image')"><i class="fas fa-image"></i><span>Image</span></button>
+      <button class="layout-pick-btn" data-layout="poll" onclick="setLayout('poll')"><i class="fas fa-poll"></i><span>Live Poll</span></button>
+      <button class="layout-pick-btn" data-layout="quiz" onclick="setLayout('quiz')"><i class="fas fa-question-circle"></i><span>Quiz</span></button>
     </div>
   </div>
   <div class="gm-panel-section">
@@ -1679,6 +1743,22 @@ function buildPanelHTML() {
     <div id="imgGenStatus" style="font-size:.7rem;color:#94a3b8;margin-top:.4rem;display:none;"></div>
     <div style="font-size:.65rem;color:#475569;margin-top:.5rem;">Or paste an image URL:</div>
     <input type="text" class="gm-field" id="imageUrlInput" placeholder="https://…" style="margin-top:4px;" oninput="saveImageUrl()">
+  </div>
+  <div class="gm-panel-section" id="pollSection" style="display:none">
+    <div class="gm-panel-label"><i class="fas fa-poll"></i> Poll / Quiz Setup</div>
+    <div style="font-size:.65rem;color:#64748b;margin-bottom:.5rem;line-height:1.5;">
+      <strong>Title</strong> = the question.<br>
+      <strong>Content</strong> = one option per line:<br>
+      <code style="font-size:.6rem;background:rgba(99,102,241,.12);padding:.1em .3em;border-radius:3px;">A: First choice<br>B: Second choice<br>C: Third choice</code>
+    </div>
+    <label style="font-size:.65rem;color:#475569;">Correct Answer (Quiz only)</label>
+    <select class="gm-field" id="quizAnswer" style="margin-top:4px;" onchange="saveQuizAnswer()">
+      <option value="">— Open Poll / No Answer —</option>
+      <option value="A">A</option>
+      <option value="B">B</option>
+      <option value="C">C</option>
+      <option value="D">D</option>
+    </select>
   </div>
   <div class="gm-panel-sep"></div>
   <div class="gm-move-btns">

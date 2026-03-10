@@ -3974,6 +3974,152 @@ def presentation_print(request, pk):
     })
 
 
+# ── Live Session Views ────────────────────────────────────────────────────────
+
+@login_required
+@require_POST
+def start_live_session(request, pk):
+    """Start a live classroom session; returns JSON with the join code."""
+    if request.user.user_type not in ('teacher', 'admin'):
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    from .models import Presentation, LiveSession
+    teacher = get_object_or_404(Teacher, user=request.user)
+    deck = get_object_or_404(Presentation, pk=pk, teacher=teacher)
+    LiveSession.objects.filter(presentation=deck, is_active=True).update(is_active=False)
+    code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    while LiveSession.objects.filter(code=code).exists():
+        code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    session = LiveSession.objects.create(
+        presentation=deck,
+        code=code,
+        is_active=True,
+        current_slide_order=0,
+    )
+    return JsonResponse({'code': code, 'session_id': session.pk})
+
+
+@login_required
+@require_POST
+def end_live_session(request, pk):
+    """End all active live sessions for this deck."""
+    if request.user.user_type not in ('teacher', 'admin'):
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    from .models import Presentation, LiveSession
+    teacher = get_object_or_404(Teacher, user=request.user)
+    deck = get_object_or_404(Presentation, pk=pk, teacher=teacher)
+    LiveSession.objects.filter(presentation=deck, is_active=True).update(is_active=False)
+    return JsonResponse({'ok': True})
+
+
+@login_required
+@require_POST
+def update_live_slide(request, pk):
+    """Update the current slide index of the active live session."""
+    if request.user.user_type not in ('teacher', 'admin'):
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    import json as _json
+    from .models import Presentation, LiveSession
+    teacher = get_object_or_404(Teacher, user=request.user)
+    deck = get_object_or_404(Presentation, pk=pk, teacher=teacher)
+    try:
+        data = _json.loads(request.body)
+        slide_order = int(data.get('slide_order', 0))
+    except Exception:
+        return JsonResponse({'error': 'Invalid data'}, status=400)
+    LiveSession.objects.filter(presentation=deck, is_active=True).update(current_slide_order=slide_order)
+    return JsonResponse({'ok': True})
+
+
+def live_student(request, code):
+    """Student join page — no authentication required."""
+    from .models import LiveSession
+    session = get_object_or_404(LiveSession, code=code, is_active=True)
+    return render(request, 'teachers/presentations/live_student.html', {
+        'session': session,
+        'deck': session.presentation,
+        'code': code,
+    })
+
+
+def live_state(request, code):
+    """JSON: returns current session state (active slide, content)."""
+    from .models import LiveSession
+    try:
+        session = LiveSession.objects.get(code=code)
+    except LiveSession.DoesNotExist:
+        return JsonResponse({'is_active': False})
+    if not session.is_active:
+        return JsonResponse({'is_active': False})
+    slides = list(session.presentation.slides.all())
+    current_slide = None
+    for s in slides:
+        if s.order == session.current_slide_order:
+            current_slide = s
+            break
+    if current_slide is None and slides:
+        current_slide = slides[0]
+    state = {
+        'is_active': True,
+        'current_slide_order': session.current_slide_order,
+        'participant_count': session.responses.values('student_name').distinct().count(),
+    }
+    if current_slide:
+        state.update({
+            'slide_pk': current_slide.pk,
+            'layout': current_slide.layout,
+            'title': current_slide.title,
+            'content': current_slide.content,
+            'emoji': current_slide.emoji,
+            'image_url': current_slide.image_url,
+        })
+    return JsonResponse(state)
+
+
+@require_POST
+def live_vote(request, code):
+    """Student submits a poll/quiz vote. No auth required."""
+    import json as _json
+    from .models import LiveSession, Slide, PollResponse
+    try:
+        data = _json.loads(request.body)
+    except Exception:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    try:
+        session = LiveSession.objects.get(code=code, is_active=True)
+    except LiveSession.DoesNotExist:
+        return JsonResponse({'error': 'Session not found or ended'}, status=404)
+    slide_pk = data.get('slide_pk')
+    choice = str(data.get('choice', '')).upper()[:1]
+    student_name = str(data.get('student_name', 'Anonymous'))[:100] or 'Anonymous'
+    if not slide_pk or choice not in 'ABCD':
+        return JsonResponse({'error': 'Invalid vote data'}, status=400)
+    try:
+        slide = Slide.objects.get(pk=slide_pk)
+    except Slide.DoesNotExist:
+        return JsonResponse({'error': 'Slide not found'}, status=404)
+    PollResponse.objects.update_or_create(
+        session=session, slide=slide, student_name=student_name,
+        defaults={'choice': choice},
+    )
+    return JsonResponse({'ok': True})
+
+
+def live_results(request, code, slide_pk):
+    """Return live poll result counts for a given slide."""
+    from .models import LiveSession, PollResponse
+    try:
+        session = LiveSession.objects.get(code=code)
+    except LiveSession.DoesNotExist:
+        return JsonResponse({'error': 'Session not found'}, status=404)
+    responses = PollResponse.objects.filter(session=session, slide_id=slide_pk)
+    counts = {'A': 0, 'B': 0, 'C': 0, 'D': 0}
+    for r in responses:
+        if r.choice in counts:
+            counts[r.choice] += 1
+    total = sum(counts.values())
+    return JsonResponse({'counts': counts, 'total': total})
+
+
 @login_required
 @require_POST
 def presentation_api(request):
