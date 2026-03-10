@@ -175,7 +175,7 @@
           <div class="flex-grow-1 min-w-0">
             <div class="d-flex align-items-center gap-2 flex-wrap">
               <span class="ph-topic text-truncate" style="max-width:220px">
-                {{ p.topic|default:"Untitled Plan" }}
+                {{ item.topic|default:"Untitled" }}
               </span>
               <span class="ph-status-badge {% if s.status == 'active' %}ph-status-active{% else %}ph-status-closed{% endif %}">
                 {{ s.status|capfirst }}
@@ -183,7 +183,7 @@
             </div>
             <div class="ph-meta">
               {% if item.school_class %}{{ item.school_class.name }} &nbsp;·&nbsp;{% endif %}
-              {% if p.subject %}{{ p.subject.name }} &nbsp;·&nbsp;{% endif %}
+              {% if item.subject %}{{ item.subject.name }} &nbsp;·&nbsp;{% endif %}
               {{ s.created_at|date:"N j, Y" }}
               {% if s.closed_at %}· {{ s.created_at|date:"g:i a" }} – {{ s.closed_at|date:"g:i a" }}{% endif %}
               {% if is_admin and s.teacher %}· {{ s.teacher.user.get_full_name }}{% endif %}

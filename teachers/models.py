@@ -118,6 +118,7 @@ class LessonPlan(models.Model):
     presentation = models.TextField(blank=True, help_text="Main teaching activity")
     evaluation = models.TextField(blank=True, help_text="How students will be assessed")
     homework = models.TextField(blank=True)
+    remarks = models.TextField(blank=True, help_text="Teacher reflection / PHASE 3 notes")
     
     date_added = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

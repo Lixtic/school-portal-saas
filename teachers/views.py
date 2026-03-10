@@ -3680,13 +3680,23 @@ def pulse_results(request, session_id):
             messages.error(request, 'Access denied.')
             return redirect('teachers:lesson_plan_list')
 
+    # ── Resolve class + topic from either lesson_plan or presentation ───────
+    if session.lesson_plan_id:
+        school_class = session.lesson_plan.school_class
+        topic = session.lesson_plan.topic
+    elif session.target_class_id:
+        school_class = session.target_class
+        topic = session.presentation.title if session.presentation_id else 'Pulse Check'
+    else:
+        school_class = None
+        topic = session.presentation.title if session.presentation_id else 'Pulse Check'
+
     # ── All students in the target class ───────────────────────────────────
-    school_class = session.lesson_plan.school_class
     all_students = (
         Student.objects.filter(current_class=school_class, user__is_active=True)
         .select_related('user')
         .order_by('user__last_name', 'user__first_name')
-    )
+    ) if school_class else Student.objects.none()
 
     # ── Index responses by student_id ──────────────────────────────────────
     response_map = {
@@ -3751,6 +3761,7 @@ def pulse_results(request, session_id):
     context = {
         'session': session,
         'plan': session.lesson_plan,
+        'topic': topic,
         'rows': rows,
         'total': total,
         'responded': responded,
@@ -3781,14 +3792,16 @@ def pulse_history(request):
 
     is_admin = request.user.user_type == 'admin'
 
+    _related = [
+        'lesson_plan__school_class', 'lesson_plan__subject',
+        'presentation', 'target_class', 'teacher__user',
+    ]
     if is_admin:
-        qs = PulseSession.objects.select_related(
-            'lesson_plan__school_class', 'lesson_plan__subject', 'teacher__user'
-        ).order_by('-created_at')
+        qs = PulseSession.objects.select_related(*_related).order_by('-created_at')
     else:
         teacher = get_object_or_404(Teacher, user=request.user)
         qs = PulseSession.objects.filter(teacher=teacher).select_related(
-            'lesson_plan__school_class', 'lesson_plan__subject', 'teacher__user'
+            *_related
         ).order_by('-created_at')
 
     sessions = []
@@ -3796,10 +3809,21 @@ def pulse_history(request):
         total     = s.total_students
         responded = s.responded_count
         pct       = round(responded / total * 100) if total else 0
+        # Resolve topic + class regardless of whether it was lesson_plan or presentation based
+        if s.lesson_plan_id:
+            s_topic = s.lesson_plan.topic
+            s_class = s.lesson_plan.school_class
+            s_subject = s.lesson_plan.subject
+        else:
+            s_topic = s.presentation.title if s.presentation_id else 'Pulse Check'
+            s_class = s.target_class
+            s_subject = s.presentation.subject if s.presentation_id else None
         sessions.append({
             'session':    s,
             'plan':       s.lesson_plan,
-            'school_class': s.lesson_plan.school_class if s.lesson_plan else None,
+            'topic':      s_topic,
+            'school_class': s_class,
+            'subject':    s_subject,
             'total':      total,
             'responded':  responded,
             'pct':        pct,

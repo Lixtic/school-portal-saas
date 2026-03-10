@@ -103,7 +103,7 @@ class LessonPlanForm(forms.ModelForm):
         fields = [
             'week_number', 'subject', 'school_class', 'topic', 
             'objectives', 'teaching_materials', 
-            'introduction', 'presentation', 'evaluation', 'homework'
+            'introduction', 'presentation', 'evaluation', 'homework', 'remarks'
         ]
         widgets = {
             'subject': forms.Select(attrs={'class': 'form-select'}),
@@ -116,6 +116,7 @@ class LessonPlanForm(forms.ModelForm):
             'presentation': forms.Textarea(attrs={'class': 'form-control', 'rows': 5}),
             'evaluation': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'homework': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'remarks': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
 
     def __init__(self, *args, **kwargs):
