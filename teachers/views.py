@@ -3892,13 +3892,23 @@ def presentation_list(request):
         return redirect('dashboard')
     teacher = get_object_or_404(Teacher, user=request.user)
     from .models import Presentation, Slide
-    from django.db.models import OuterRef, Subquery
+    from django.db.models import OuterRef, Subquery, Count as _Count
     first_emoji = Slide.objects.filter(
         presentation=OuterRef('pk')).order_by('order').values('emoji')[:1]
-    decks = (Presentation.objects.filter(teacher=teacher)
-             .select_related('subject', 'school_class')
-             .annotate(cover_emoji=Subquery(first_emoji)))
-    return render(request, 'teachers/presentations/list.html', {'decks': decks})
+    decks = list(
+        Presentation.objects.filter(teacher=teacher)
+        .select_related('subject', 'school_class')
+        .annotate(
+            cover_emoji=Subquery(first_emoji),
+            annotated_slide_count=_Count('slides'),
+        )
+    )
+    total_slides = sum(d.annotated_slide_count for d in decks)
+    return render(request, 'teachers/presentations/list.html', {
+        'decks': decks,
+        'total_decks': len(decks),
+        'total_slides': total_slides,
+    })
 
 
 @login_required

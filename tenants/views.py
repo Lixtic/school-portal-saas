@@ -392,6 +392,62 @@ def landlord_dashboard(request):
         'recent_schools': recent_schools,
         'signups_chart': signups_chart,
     }
+
+    # === AI Usage This Month ===
+    try:
+        from .models import AIUsageLog, SchoolSubscription
+        from django.db.models import Count as _Count
+        month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        ai_total_month = AIUsageLog.objects.filter(created_at__gte=month_start).count()
+
+        # Top 8 schools by AI calls this month
+        top_ai_schools_qs = (
+            AIUsageLog.objects
+            .filter(created_at__gte=month_start)
+            .values('school_id', 'school__name', 'school__schema_name')
+            .annotate(call_count=_Count('id'))
+            .order_by('-call_count')[:8]
+        )
+
+        # Annotate each row with quota info (plan limit)
+        top_ai_schools = []
+        for row in top_ai_schools_qs:
+            try:
+                sub = SchoolSubscription.objects.select_related('plan').get(school_id=row['school_id'])
+                limit = sub.plan.ai_calls_per_month
+                used_pct = int(row['call_count'] / limit * 100) if limit > 0 else 0
+                near_quota = limit > 0 and used_pct >= 70
+            except SchoolSubscription.DoesNotExist:
+                limit = 0
+                used_pct = 0
+                near_quota = False
+            top_ai_schools.append({
+                'name': row['school__name'],
+                'schema_name': row['school__schema_name'],
+                'call_count': row['call_count'],
+                'limit': limit,
+                'used_pct': used_pct,
+                'near_quota': near_quota,
+            })
+
+        # Action breakdown this month
+        ai_action_breakdown = (
+            AIUsageLog.objects
+            .filter(created_at__gte=month_start)
+            .values('action_type')
+            .annotate(count=_Count('id'))
+            .order_by('-count')[:5]
+        )
+
+        context.update({
+            'ai_total_month': ai_total_month,
+            'top_ai_schools': top_ai_schools,
+            'ai_action_breakdown': ai_action_breakdown,
+        })
+    except Exception:
+        pass  # Don't crash dashboard if AI tables are unavailable
+
     return render(request, 'tenants/landlord_dashboard.html', context)
 
 
@@ -660,40 +716,49 @@ def revenue_analytics(request):
     ).order_by('-count')
     
     # === Revenue Growth (Last 6 Months) ===
-    six_months_ago = timezone.now() - timedelta(days=180)
-    monthly_mrr_raw = (
-        SchoolSubscription.objects
-        .filter(created_at__gte=six_months_ago, status__in=['active', 'trial'])
-        .annotate(month=TruncMonth('created_at'))
-        .values('month')
-        .annotate(mrr_sum=Sum('mrr'))
-        .order_by('month')
-    )
-    
-    # Format for chart (last 6 months with labels)
-    from datetime import datetime
-    import calendar
-    
+    from datetime import datetime as dt_type
+
     monthly_mrr = []
+    monthly_new_schools = []
     chart_labels = []
-    now = timezone.now()
-    
-    for i in range(5, -1, -1):  # 6 months ago to now
-        month_date = now - timedelta(days=i*30)
-        month_label = month_date.strftime('%b')
-        chart_labels.append(month_label)
-        
-        # Find MRR for this month
-        month_mrr = 0
-        for entry in monthly_mrr_raw:
-            if entry['month'] and entry['month'].month == month_date.month:
-                month_mrr = float(entry['mrr_sum'])
-                break
+
+    for i in range(5, -1, -1):
+        # Proper calendar-month arithmetic (handles year-wrap correctly)
+        raw_month = now.month - i
+        target_year = now.year + (raw_month - 1) // 12
+        target_month = ((raw_month - 1) % 12) + 1
+
+        month_start_dt = timezone.make_aware(dt_type(target_year, target_month, 1))
+        if target_month == 12:
+            month_end_dt = timezone.make_aware(dt_type(target_year + 1, 1, 1))
+        else:
+            month_end_dt = timezone.make_aware(dt_type(target_year, target_month + 1, 1))
+
+        chart_labels.append(month_start_dt.strftime('%b %y'))
+
+        # Paid MRR acquired this month (active subscriptions created in window)
+        month_mrr = float(
+            SchoolSubscription.objects
+            .filter(created_at__gte=month_start_dt, created_at__lt=month_end_dt, status='active')
+            .aggregate(s=Sum('mrr'))['s'] or 0
+        )
         monthly_mrr.append(month_mrr)
-    
-    # Calculate max MRR for chart scaling
-    max_mrr = max(monthly_mrr) if monthly_mrr else 1
-    chart_heights = [int((mrr / max_mrr * 80) if max_mrr > 0 else 0) for mrr in monthly_mrr]
+
+        # New school registrations this month
+        new_schools_count = School.objects.filter(
+            created_on__gte=month_start_dt.date(),
+            created_on__lt=month_end_dt.date(),
+        ).count()
+        monthly_new_schools.append(new_schools_count)
+
+    # Chart scaling — if all MRR is 0 (all schools on trial), chart bars show school growth instead
+    all_zero_mrr = all(m == 0 for m in monthly_mrr)
+    if all_zero_mrr:
+        max_val = max(monthly_new_schools) if any(monthly_new_schools) else 1
+        chart_heights = [int((n / max_val * 80) if max_val > 0 else 0) for n in monthly_new_schools]
+    else:
+        max_val = max(monthly_mrr) if any(monthly_mrr) else 1
+        chart_heights = [int((m / max_val * 80) if max_val > 0 else 0) for m in monthly_mrr]
     
     # Calculate growth rate (last month vs previous month)
     growth_rate = 0
@@ -766,6 +831,8 @@ def revenue_analytics(request):
         
         # Growth
         'monthly_mrr': monthly_mrr,
+        'monthly_new_schools': monthly_new_schools,
+        'all_zero_mrr': all_zero_mrr,
         'chart_heights': chart_heights,
         'chart_labels': chart_labels,
         'current_month': current_month,

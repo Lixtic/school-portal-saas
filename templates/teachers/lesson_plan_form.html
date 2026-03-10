@@ -179,6 +179,7 @@
     <style>@keyframes auraspin { to { transform: rotate(360deg); } }</style>
 </div>
 
+{% include 'teachers/_quota_exceeded_ui.html' %}
 <!-- ── Aura-T AJAX Draft Engine ───────────────────────────────── -->
 <script>
 (function () {
@@ -267,6 +268,13 @@
 
             clearInterval(ticker);
 
+            if (resp.status === 429) {
+                const errJson = await resp.json().catch(() => ({}));
+                overlay.style.display = 'none';
+                btn.disabled = false;
+                showAiQuotaExceeded(errJson.used, errJson.limit);
+                return;
+            }
             if (!resp.ok) throw new Error('Server error ' + resp.status);
             const json = await resp.json();
 

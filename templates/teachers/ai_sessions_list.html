@@ -1577,10 +1577,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function appendMessage(text, type) {
         const div = document.createElement('div');
         div.className = 'aura-chat-msg ' + type;
-        // Check for markdown-like formatting (simple bold/italic) or preserve newlines
-        // For basic text, we can use innerText/textContent, but let's allow basic HTML safe-rendering if needed
-        // For now, textContent is safer against XSS
-        div.textContent = text; 
+        // Bot messages come from our trusted server and may contain safe HTML (links, etc.)
+        // User messages are set via textContent to prevent XSS
+        if (type === 'bot') {
+            div.innerHTML = text;
+        } else {
+            div.textContent = text;
+        }
         chatMessages.appendChild(div);
         chatMessages.scrollTop = chatMessages.scrollHeight;
         return div;
@@ -1599,8 +1602,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const merged = `${code} ${message}`.toLowerCase();
 
-        if (merged.includes('ai_quota_exceeded') || merged.includes('insufficient_quota') || merged.includes('openai http 429') || merged.includes('quota')) {
-            return 'Aura AI is temporarily unavailable because usage quota is exhausted. Please top up billing, then try again.';
+        if (merged.includes('quota_exceeded') || merged.includes('ai_quota_exceeded') || merged.includes('insufficient_quota') || merged.includes('openai http 429')) {
+            const used = (source && source.used) ? source.used : null;
+            const limit = (source && source.limit) ? source.limit : null;
+            if (used !== null && limit !== null && parseInt(limit) > 0) {
+                return `\u{1F6AB} Monthly AI quota reached (${used}/${limit} calls used). <a href="/tenants/subscription/" style="color:#818cf8;">Upgrade your plan</a> to continue.`;
+            }
+            return '\u{1F6AB} Monthly AI quota reached. <a href="/tenants/subscription/" style="color:#818cf8;">Upgrade your plan</a> to continue using Aura-T.';
         }
         if (merged.includes('ai_not_configured') || merged.includes('api key') || merged.includes('not configured')) {
             return 'Aura AI is not configured on this server yet. Please contact your administrator.';

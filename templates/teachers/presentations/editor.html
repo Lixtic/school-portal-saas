@@ -690,6 +690,7 @@ html, body { height: 100%; margin: 0; }
 {% endblock %}
 
 {% block content %}
+{% include 'teachers/_quota_exceeded_ui.html' %}
 <div class="gm-shell">
 
   <!-- TOP BAR -->
@@ -1081,7 +1082,12 @@ function api(payload) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
     body: JSON.stringify(payload),
-  }).then(r => r.json());
+  }).then(function(r) {
+    return r.json().then(function(d) {
+      if (r.status === 429) { d._quota_exceeded = true; }
+      return d;
+    });
+  });
 }
 
 // ── Save status pill ────────────────────────────────────────────
@@ -1471,6 +1477,7 @@ function runLessonPlanGenerate() {
   btn.innerHTML = '<div class="gm-spinner"></div> Building from plan\u2026';
   api({ action: 'from_lesson_plan', plan_id: parseInt(planId) })
     .then(function(d) {
+      if (d._quota_exceeded || d.error_code === 'quota_exceeded') { showAiQuotaExceeded(d.used, d.limit); return; }
       if (d.error) { alert('Error: ' + d.error); return; }
       document.getElementById('aiModal').classList.remove('open');
       if (d.deck_title) document.getElementById('deckTitleInput').value = d.deck_title;
@@ -1552,6 +1559,7 @@ function runAIGenerate() {
   api({ action: 'ai_generate', topic: topic,
         subject_id: subject_id, class_id: class_id, update_title: true })
     .then(function(d) {
+      if (d._quota_exceeded || d.error_code === 'quota_exceeded') { showAiQuotaExceeded(d.used, d.limit); return; }
       if (d.error) { alert('AI error: ' + d.error); return; }
       document.getElementById('aiModal').classList.remove('open');
       // update deck title in topbar
@@ -1624,6 +1632,7 @@ function smartLayouts() {
   if (btn) { btn.disabled = true; btn.innerHTML = '<div class="gm-spinner" style="width:12px;height:12px;border-width:2px;"></div> Analysing\u2026'; }
   api({ action: 'suggest_layouts' })
     .then(function(d) {
+      if (d._quota_exceeded || d.error_code === 'quota_exceeded') { showAiQuotaExceeded(d.used, d.limit); return; }
       if (d.error) { alert('Error: ' + d.error); return; }
       var n = d.count || 0;
       if (n === 0) { setSaveStatus('saved', '\u2713 Layouts already optimal'); return; }
@@ -2282,6 +2291,7 @@ function suggestBullets() {
   var subjectName = (sel && sel.selectedIndex > 0) ? sel.options[sel.selectedIndex].text : 'General';
   api({ action: 'suggest_bullets', title: title, subject: subjectName })
     .then(function(d) {
+      if (d._quota_exceeded || d.error_code === 'quota_exceeded') { showAiQuotaExceeded(d.used, d.limit); return; }
       if (d.ok && d.bullets && d.bullets.length) {
         var ta = document.getElementById('panelContent');
         var existing = (ta.value || '').trim();

@@ -285,7 +285,7 @@
     <!-- Main Metric -->
     <div class="main-metric">
         <div class="main-value">₵{{ total_mrr|floatformat:0 }}</div>
-        <div class="main-label">Total monthly recurring revenue</div>
+        <div class="main-label">{% if all_zero_mrr %}Schools acquired (all on trial — no paid MRR yet){% else %}Total monthly recurring revenue{% endif %}</div>
         <div class="period-selector">
             <button class="period-btn">6M <i class="bi bi-chevron-down ms-1"></i></button>
         </div>
@@ -301,6 +301,11 @@
                 {% endif %}
             </span>
         </div>
+        {% if all_zero_mrr %}
+        <p style="font-size:.75rem;color:#94a3b8;margin:0 0 .5rem;text-align:center;">
+            📊 Showing new school registrations per month (MRR will appear once schools pay)
+        </p>
+        {% endif %}
         <div class="simple-chart">
             {% for height in chart_heights %}
             <div class="chart-bar" style="height: {{ height }}%"></div>

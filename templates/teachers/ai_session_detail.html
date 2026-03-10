@@ -318,6 +318,7 @@ textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
 {% endblock %}
 
 {% block content %}
+{% include 'teachers/_quota_exceeded_ui.html' %}
 <div class="aura-command-shell">
     <div class="aura-chat-container">
         
@@ -439,8 +440,13 @@ textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
 
         const merged = `${code} ${message}`.toLowerCase();
 
-        if (merged.includes('ai_quota_exceeded') || merged.includes('insufficient_quota') || merged.includes('openai http 429') || merged.includes('quota')) {
-            return 'Aura AI is temporarily unavailable because usage quota is exhausted. Please top up billing, then try again.';
+        if (merged.includes('quota_exceeded') || merged.includes('ai_quota_exceeded') || merged.includes('insufficient_quota') || merged.includes('openai http 429')) {
+            const used = (source && source.used) ? source.used : null;
+            const limit = (source && source.limit) ? source.limit : null;
+            if (used !== null && limit !== null && parseInt(limit) > 0) {
+                return `\u{1F6AB} Monthly AI quota reached (${used}/${limit} calls used). <a href="/tenants/subscription/" style="color:#818cf8;">Upgrade your plan</a> to continue.`;
+            }
+            return '\u{1F6AB} Monthly AI quota reached. <a href="/tenants/subscription/" style="color:#818cf8;">Upgrade your plan</a> to continue using Aura-T.';
         }
         if (merged.includes('ai_not_configured') || merged.includes('api key') || merged.includes('not configured')) {
             return 'Aura AI is not configured on this server yet. Please contact your administrator.';
@@ -676,7 +682,12 @@ textarea.aura-input::placeholder { color: rgba(255,255,255,0.3); }
                 }
                 return true;
             } else {
-                appendMessage('assistant', buildAuraErrorMessage(data, 'Generation failed.'));
+                if (data.error_code === 'quota_exceeded') {
+                    showAiQuotaExceeded(data.used, data.limit);
+                    appendMessage('assistant', '\uD83D\uDEAB Monthly AI quota reached \u2014 upgrade your plan to continue.');
+                } else {
+                    appendMessage('assistant', buildAuraErrorMessage(data, 'Generation failed.'));
+                }
                 return false;
             }
         } catch (error) {

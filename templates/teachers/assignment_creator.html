@@ -81,6 +81,7 @@
 {% endblock %}
 
 {% block content %}
+{% include 'teachers/_quota_exceeded_ui.html' %}
 <div class="container-fluid py-4">
     <div class="row mb-4 align-items-center">
         <div class="col">
@@ -398,6 +399,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 } catch (renderErr) {
                     console.error('Render error:', renderErr);
                 }
+            } else if (data.error_code === 'quota_exceeded') {
+                showAiQuotaExceeded(data.used, data.limit);
             } else {
                 alert('Generation failed: ' + (data.message || 'Unknown error'));
             }

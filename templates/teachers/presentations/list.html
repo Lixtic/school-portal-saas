@@ -242,6 +242,12 @@ body.select-mode .deck-select-cb { display: flex; }
     <div>
       <h1><i class="fas fa-layer-group me-2"></i>Slide Decks</h1>
       <p>Create AI-powered presentations for your classes</p>
+      {% if total_decks %}
+      <div class="d-flex gap-3 mt-2" style="font-size:.78rem;opacity:.8;">
+        <span><i class="fas fa-folder me-1"></i><strong>{{ total_decks }}</strong> deck{{ total_decks|pluralize }}</span>
+        <span><i class="fas fa-clone me-1"></i><strong>{{ total_slides }}</strong> slide{{ total_slides|pluralize }} total</span>
+      </div>
+      {% endif %}
     </div>
     <a href="{% url 'teachers:presentation_create' %}" class="gm-btn-new">
       <i class="fas fa-plus"></i> New Presentation
@@ -273,12 +279,22 @@ body.select-mode .deck-select-cb { display: flex; }
 
   <div class="deck-grid" id="deckGrid">
     {% for deck in decks %}
-    <div class="deck-card" data-pk="{{ deck.pk }}" data-title="{{ deck.title|lower|escapejs }}" data-slides="{{ deck.slide_count }}" data-updated="{{ deck.updated_at|date:'U' }}" data-subject-pk="{{ deck.subject.pk|default:'' }}" data-class-pk="{{ deck.school_class.pk|default:'' }}" data-subject-name="{{ deck.subject.name|default:'' }}" data-class-name="{{ deck.school_class.name|default:'' }}">
+    <div class="deck-card" data-pk="{{ deck.pk }}" data-title="{{ deck.title|lower|escapejs }}" data-slides="{{ deck.annotated_slide_count }}" data-updated="{{ deck.updated_at|date:'U' }}" data-subject-pk="{{ deck.subject.pk|default:'' }}" data-class-pk="{{ deck.school_class.pk|default:'' }}" data-subject-name="{{ deck.subject.name|default:'' }}" data-class-name="{{ deck.school_class.name|default:'' }}">
       <div class="deck-select-cb" onclick="event.preventDefault();event.stopPropagation();toggleCardSelect(this)">
         <input type="checkbox" class="deck-cb-input">
       </div>
       <a href="{% url 'teachers:presentation_editor' deck.pk %}" style="text-decoration:none;">
         <div class="deck-thumb theme-{{ deck.theme }}">
+          {# Slide count badge — top right #}
+          <div style="position:absolute;top:8px;right:8px;z-index:3;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);border-radius:20px;padding:2px 8px;font-size:.68rem;font-weight:700;color:rgba(255,255,255,.9);letter-spacing:.3px;">
+            {{ deck.annotated_slide_count }} slide{{ deck.annotated_slide_count|pluralize }}
+          </div>
+          {# Class badge — top left when linked #}
+          {% if deck.school_class %}
+          <div style="position:absolute;top:8px;left:8px;z-index:3;background:rgba(37,99,235,.7);backdrop-filter:blur(4px);border-radius:20px;padding:2px 8px;font-size:.68rem;font-weight:700;color:#fff;letter-spacing:.3px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ deck.school_class.name }}">
+            <i class="fas fa-users" style="font-size:.6rem;"></i> {{ deck.school_class.name|truncatechars:14 }}
+          </div>
+          {% endif %}
           <div class="deck-thumb-inner">
             {% if deck.cover_emoji %}<span class="deck-cover-emoji">{{ deck.cover_emoji }}</span>{% endif %}
             <div class="slide-mimic">
@@ -297,10 +313,25 @@ body.select-mode .deck-select-cb { display: flex; }
           <span class="deck-title-text">{{ deck.title }}</span>
           <i class="fas fa-pen deck-rename-icon" title="Rename" onclick="startRenameCard(event, this, {{ deck.pk }})"></i>
         </div>
+        {# Subject / class chips #}
+        <div class="d-flex flex-wrap gap-1 mt-1 mb-1">
+          {% if deck.subject %}
+          <span style="background:rgba(124,58,237,.1);color:#7c3aed;border-radius:20px;padding:1px 8px;font-size:.68rem;font-weight:700;border:1px solid rgba(124,58,237,.2);">
+            <i class="fas fa-book" style="font-size:.58rem;"></i> {{ deck.subject.name|truncatechars:18 }}
+          </span>
+          {% endif %}
+          {% if deck.school_class %}
+          <span style="background:rgba(37,99,235,.1);color:#2563eb;border-radius:20px;padding:1px 8px;font-size:.68rem;font-weight:700;border:1px solid rgba(37,99,235,.2);">
+            <i class="fas fa-users" style="font-size:.58rem;"></i> {{ deck.school_class.name|truncatechars:14 }}
+          </span>
+          {% endif %}
+          {% if not deck.subject and not deck.school_class %}
+          <span style="background:rgba(100,116,139,.08);color:#94a3b8;border-radius:20px;padding:1px 8px;font-size:.68rem;font-weight:600;border:1px solid rgba(100,116,139,.15);">
+            Standalone
+          </span>
+          {% endif %}
+        </div>
         <div class="deck-meta">
-            <span><i class="fas fa-clone me-1"></i>{{ deck.slide_count }} slide{{ deck.slide_count|pluralize }}</span>
-            {% if deck.subject %}<span><i class="fas fa-book me-1"></i>{{ deck.subject.name }}</span>{% endif %}
-            {% if deck.school_class %}<span><i class="fas fa-users me-1"></i>{{ deck.school_class.name }}</span>{% endif %}
             <span><i class="fas fa-clock me-1"></i>{{ deck.updated_at|timesince }} ago</span>
           </div>
       </div>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 30px auto; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: {% if urgent %}linear-gradient(135deg, #ef4444 0%, #b91c1c 100%){% else %}linear-gradient(135deg, #f59e0b 0%, #d97706 100%){% endif %}; color: white; padding: 30px 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .header p { margin: 8px 0 0; opacity: .85; font-size: 15px; }
+        .content { padding: 30px 20px; }
+        .countdown-box {
+            background: {% if urgent %}#fef2f2{% else %}#fffbeb{% endif %};
+            border: 2px solid {% if urgent %}#f87171{% else %}#fbbf24{% endif %};
+            border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0;
+        }
+        .countdown-number { font-size: 48px; font-weight: 900; color: {% if urgent %}#dc2626{% else %}#d97706{% endif %}; line-height: 1; }
+        .countdown-label { color: #6b7280; font-size: 14px; margin-top: 4px; }
+        .info-box { background: #f0f9ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .btn-primary { display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #6366f1, #7c3aed); color: white; text-decoration: none; border-radius: 8px; margin: 8px 4px; font-weight: 700; font-size: 15px; }
+        .btn-secondary { display: inline-block; padding: 12px 28px; background: white; color: #6366f1; text-decoration: none; border-radius: 8px; margin: 8px 4px; font-weight: 600; font-size: 14px; border: 2px solid #6366f1; }
+        .plan-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
+        .plan-row:last-child { border-bottom: none; }
+        .what-happens { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .footer { background: #f9fafb; padding: 20px; text-align: center; color: #6b7280; font-size: 13px; }
+        .cta-block { text-align: center; margin: 24px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            {% if urgent %}
+            <h1>🚨 Trial Expires Tomorrow!</h1>
+            <p>Take action now to keep {{ school.name }} running smoothly</p>
+            {% elif days_left == 3 %}
+            <h1>⏰ 3 Days Left on Your Trial</h1>
+            <p>Your free trial for {{ school.name }} is ending soon</p>
+            {% else %}
+            <h1>📅 7 Days Left on Your Trial</h1>
+            <p>Your free trial for {{ school.name }} ends in one week</p>
+            {% endif %}
+        </div>
+
+        <div class="content">
+            <p>Dear {{ contact_name }},</p>
+
+            <p>This is a friendly reminder that your <strong>free trial</strong> for
+            <strong>{{ school.name }}</strong> will expire in:</p>
+
+            <div class="countdown-box">
+                <div class="countdown-number">{{ days_left }}</div>
+                <div class="countdown-label">day{{ days_left|pluralize }} remaining
+                    &nbsp;&bull;&nbsp; Expires {{ trial_ends_at|date:"N j, Y" }}</div>
+            </div>
+
+            <div class="info-box">
+                <strong>Current Plan:</strong> {{ plan.name }} (Trial)<br>
+                <strong>AI Calls Remaining This Month:</strong>
+                {{ plan.ai_calls_per_month }} per month on paid plans<br>
+                <strong>School:</strong> {{ school.name }} ({{ school.schema_name }})
+            </div>
+
+            {% if urgent %}
+            <div class="what-happens">
+                <strong>⚠️ What happens when your trial ends?</strong>
+                <ul style="margin:.5rem 0 0;padding-left:1.2rem;">
+                    <li>AI features (Aura-T, lesson generation, presentations) will be paused</li>
+                    <li>Your data stays safe — nothing is deleted</li>
+                    <li>Upgrade any time to re-enable all features instantly</li>
+                </ul>
+            </div>
+            {% endif %}
+
+            <h3 style="margin-top:1.5rem;">🚀 Choose a Plan to Continue</h3>
+            <p>Upgrade before your trial ends and never lose access:</p>
+
+            <div style="margin-bottom: 1.5rem;">
+                <div class="plan-row"><span>📚 <strong>Basic</strong></span><span>50 AI calls/month</span></div>
+                <div class="plan-row"><span>⚡ <strong>Pro</strong></span><span>300 AI calls/month</span></div>
+                <div class="plan-row"><span>🏢 <strong>Enterprise</strong></span><span>Unlimited AI calls</span></div>
+            </div>
+
+            <div class="cta-block">
+                <a href="{{ pricing_url }}" class="btn-primary">View Plans &amp; Upgrade →</a>
+                <br>
+                <a href="{{ login_url }}" class="btn-secondary">Log In to Your School</a>
+            </div>
+
+            <p style="color: #6b7280; font-size: 13px;">
+                Questions? Reply to this email or contact us at
+                <a href="mailto:{{ settings.DEFAULT_FROM_EMAIL|default:'support@yourapp.com' }}">support</a>.
+                We're happy to help you find the right plan.
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>You're receiving this because you registered <strong>{{ school.name }}</strong> on our platform.</p>
+            <p style="margin-top: 4px;">© {% now "Y" %} School Management Platform</p>
+        </div>
+    </div>
+</body>
+</html>
