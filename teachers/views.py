@@ -82,6 +82,19 @@ def _classify_ai_error(exception):
 
 def _ai_json_error_response(exception):
     error_info = _classify_ai_error(exception)
+    from tenants.ai_quota import QuotaExceeded
+    if isinstance(exception, QuotaExceeded):
+        return JsonResponse(
+            {
+                'status': 'error',
+                'error_code': 'quota_exceeded',
+                'message': exception.user_message,
+                'used': exception.used,
+                'limit': exception.limit,
+                'retryable': False,
+            },
+            status=429,
+        )
     return JsonResponse(
         {
             'status': 'error',
@@ -1845,6 +1858,8 @@ def aura_t_api(request):
             
             teacher = get_object_or_404(Teacher, user=request.user)
             
+            from tenants.ai_quota import check_and_consume
+
             if action == 'generate_lesson':
                 topic = data.get('topic')
                 class_id = data.get('class_id')
@@ -1864,6 +1879,7 @@ def aura_t_api(request):
                     school_class = get_object_or_404(Class, pk=class_id)
                     class_name = school_class.name
 
+                check_and_consume(request.tenant, request.user.id, 'lesson_gen')
                 result = AuraGenEngine.generate_lesson_plan(topic, subject_name, class_name)
                 return JsonResponse({"status": "success", "data": result})
             elif action == 'differentiate':
@@ -1892,6 +1908,7 @@ def aura_t_api(request):
                     school_class = get_object_or_404(Class, pk=class_id)
                     class_name = school_class.name
 
+                check_and_consume(request.tenant, request.user.id, 'slide_gen')
                 result = AuraGenEngine.generate_slides_outline(topic, subject_name, class_name)
                 return JsonResponse({"status": "success", "data": result})
 
@@ -1914,6 +1931,7 @@ def aura_t_api(request):
                     school_class = get_object_or_404(Class, pk=class_id)
                     class_name = school_class.name
 
+                check_and_consume(request.tenant, request.user.id, 'exercise_gen')
                 result = AuraGenEngine.generate_interactive_exercises(topic, subject_name, class_name)
                 return JsonResponse({"status": "success", "data": result})
 
@@ -1933,7 +1951,8 @@ def aura_t_api(request):
 
                 school_class = get_object_or_404(Class, pk=class_id)
                 subject = get_object_or_404(Subject, pk=subject_id)
-                
+
+                check_and_consume(request.tenant, request.user.id, 'exercise_gen')
                 result = AuraGenEngine.generate_interactive_exercises(topic, subject.name, school_class.name)
 
                 try:
@@ -2073,7 +2092,8 @@ def aura_t_api(request):
             elif action == 'generate_assignment':
                 lesson_id = data.get('lesson_id')
                 topic = data.get('topic')
-                
+
+                check_and_consume(request.tenant, request.user.id, 'assignment_gen')
                 if lesson_id:
                     lesson_plan = get_object_or_404(LessonPlan, pk=lesson_id, teacher=teacher)
                     result = AuraGenEngine.generate_assignment_package(lesson_plan)
@@ -2166,6 +2186,7 @@ def aura_t_api(request):
                 subject_r = regen_plan.subject.name if regen_plan.subject else "General Studies"
                 class_r = regen_plan.school_class.name if regen_plan.school_class else "General"
 
+                check_and_consume(request.tenant, request.user.id, 'lesson_gen')
                 regen_result = AuraGenEngine.generate_lesson_plan(topic_r, subject_r, class_r)
                 lesson_body = (regen_result.get('lesson_plan') or '').strip()
                 if not lesson_body:
@@ -3354,6 +3375,27 @@ def scheme_of_work_bulk_generate(request, pk):
     if not topics:
         return JsonResponse({'error': 'No topics found. Extract topics from the scheme first.'}, status=400)
 
+    # Quota check upfront: count only the topics that will actually be generated
+    from tenants.ai_quota import check_and_consume, QuotaExceeded
+    already_done = sum(
+        1 for t in topics
+        if LessonPlan.objects.filter(
+            teacher=teacher, subject=scheme.class_subject.subject,
+            school_class=scheme.class_subject.class_name, topic__iexact=t
+        ).exists()
+    )
+    to_generate = len(topics) - already_done
+    if to_generate > 0:
+        try:
+            check_and_consume(request.tenant, request.user.id, 'bulk_gen', call_count=to_generate)
+        except QuotaExceeded as e:
+            return JsonResponse({
+                'error': e.user_message,
+                'error_code': 'quota_exceeded',
+                'used': e.used,
+                'limit': e.limit,
+            }, status=429)
+
     from teachers.services.aura_gen_engine import AuraGenEngine
     import re as _re
 
@@ -4314,6 +4356,11 @@ def presentation_api(request):
             c = Class.objects.filter(pk=class_id).first()
             if c: class_name = c.name
 
+        from tenants.ai_quota import check_and_consume, QuotaExceeded
+        try:
+            check_and_consume(request.tenant, request.user.id, 'slide_gen')
+        except QuotaExceeded as e:
+            return JsonResponse({'error': e.user_message, 'error_code': 'quota_exceeded', 'used': e.used, 'limit': e.limit}, status=429)
         from teachers.services.aura_gen_engine import AuraGenEngine
         result = AuraGenEngine.generate_slides_outline(topic, subject_name, class_name)
         raw_slides = result.get('slides', [])
@@ -4400,6 +4447,11 @@ def presentation_api(request):
             'homework':     plan.homework,
         }
         from teachers.services.aura_gen_engine import AuraGenEngine
+        from tenants.ai_quota import check_and_consume, QuotaExceeded
+        try:
+            check_and_consume(request.tenant, request.user.id, 'slide_gen')
+        except QuotaExceeded as e:
+            return JsonResponse({'error': e.user_message, 'error_code': 'quota_exceeded', 'used': e.used, 'limit': e.limit}, status=429)
         result = AuraGenEngine.generate_slides_from_lesson_plan(plan_dict)
         raw_slides = result.get('slides', [])
         with transaction.atomic():
@@ -4432,6 +4484,11 @@ def presentation_api(request):
         if not title:
             return JsonResponse({'error': 'title is required'}, status=400)
         subject_name = data.get('subject', 'General')
+        from tenants.ai_quota import check_and_consume, QuotaExceeded
+        try:
+            check_and_consume(request.tenant, request.user.id, 'slide_gen')
+        except QuotaExceeded as e:
+            return JsonResponse({'error': e.user_message, 'error_code': 'quota_exceeded', 'used': e.used, 'limit': e.limit}, status=429)
         from teachers.services.aura_gen_engine import AuraGenEngine
         result = AuraGenEngine.suggest_slide_bullets(title, subject_name)
         return JsonResponse({'ok': True, 'bullets': result.get('bullets', [])})
@@ -4445,6 +4502,11 @@ def presentation_api(request):
         ]
         if not slides_data:
             return JsonResponse({'error': 'No slides in deck.'}, status=400)
+        from tenants.ai_quota import check_and_consume, QuotaExceeded
+        try:
+            check_and_consume(request.tenant, request.user.id, 'slide_gen')
+        except QuotaExceeded as e:
+            return JsonResponse({'error': e.user_message, 'error_code': 'quota_exceeded', 'used': e.used, 'limit': e.limit}, status=429)
         from teachers.services.aura_gen_engine import AuraGenEngine
         result = AuraGenEngine.suggest_slide_layouts(slides_data)
         updates = result.get('updates', [])
@@ -4969,6 +5031,11 @@ def presentation_study_guide(request, pk):
         if action == 'generate_ai':
             slides = list(deck.slides.values('title', 'content', 'layout', 'speaker_notes', 'emoji'))
             from teachers.services.aura_gen_engine import AuraGenEngine
+            from tenants.ai_quota import check_and_consume, QuotaExceeded
+            try:
+                check_and_consume(request.tenant, request.user.id, 'study_guide')
+            except QuotaExceeded as e:
+                return JsonResponse({'error': e.user_message, 'error_code': 'quota_exceeded', 'used': e.used, 'limit': e.limit}, status=429)
             result = AuraGenEngine.generate_study_guide(slides)
             return JsonResponse(result)
         return JsonResponse({'error': 'Unknown action'}, status=400)

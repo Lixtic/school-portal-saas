@@ -1223,10 +1223,14 @@ def school_subscription(request):
         is_active=True
     ).exclude(plan_type='trial').order_by('monthly_price')
 
+    from .ai_quota import get_quota_status
+    quota = get_quota_status(request.tenant)
+
     context = {
         'subscription': subscription,
         'trial_days_left': trial_days_left,
         'upgrade_plans': upgrade_plans,
         'school': request.tenant,
+        'quota': quota,
     }
     return render(request, 'tenants/school_subscription.html', context)

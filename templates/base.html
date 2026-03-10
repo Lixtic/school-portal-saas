@@ -2062,6 +2062,24 @@
                 </a>
             </div>
             {% endif %}
+
+            {% if ai_quota and not ai_quota.unlimited and ai_quota.limit > 0 %}
+            {% if user.user_type == 'admin' or user.user_type == 'teacher' %}
+            {% widthratio ai_quota.used ai_quota.limit 100 as ai_use_pct %}
+            {% if ai_use_pct >= 70 %}
+            <div class="px-3 pb-2">
+                <div class="d-flex justify-content-between mb-1" style="font-size:0.72rem;color:var(--text-muted);">
+                    <span><i class="bi bi-stars me-1"></i>AI quota</span>
+                    <span>{{ ai_quota.used }}/{{ ai_quota.limit }}</span>
+                </div>
+                <div class="usage-bar-wrap">
+                    <div class="usage-bar {% if ai_use_pct >= 90 %}crit{% else %}warn{% endif %}"
+                         style="width:{{ ai_use_pct }}%;height:5px;border-radius:4px;"></div>
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+            {% endif %}
             
             {% endif %} {# End of landlord vs regular tenant conditional #}
             

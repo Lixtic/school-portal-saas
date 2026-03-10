@@ -41,7 +41,13 @@ class SubscriptionPlan(models.Model):
     white_label = models.BooleanField(default=False)
     priority_support = models.BooleanField(default=False)
     api_access = models.BooleanField(default=False)
-    
+
+    # AI quota
+    ai_calls_per_month = models.IntegerField(
+        default=50,
+        help_text="Monthly AI generation calls per school. -1 = unlimited, 0 = AI disabled.",
+    )
+
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -267,3 +273,37 @@ class ChurnEvent(models.Model):
     
     def __str__(self):
         return f"Churn: {self.school.name} on {self.cancelled_at.date()}"
+
+
+class AIUsageLog(models.Model):
+    """Tracks every AI generation call per school for quota enforcement."""
+
+    ACTION_CHOICES = [
+        ('lesson_gen',    'Lesson Plan Generation'),
+        ('slide_gen',     'Slide Generation'),
+        ('exercise_gen',  'Exercise Generation'),
+        ('assignment_gen','Assignment Generation'),
+        ('study_guide',   'Study Guide Generation'),
+        ('bulk_gen',      'Bulk Lesson Generation'),
+        ('other',         'Other'),
+    ]
+
+    school = models.ForeignKey(
+        'tenants.School',
+        on_delete=models.CASCADE,
+        related_name='ai_usage_logs',
+    )
+    # user_id stored as int — users live in tenant schema, can't cross-FK
+    user_id = models.IntegerField(db_index=True)
+    action_type = models.CharField(max_length=30, choices=ACTION_CHOICES, default='other')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['school', 'created_at']),
+            models.Index(fields=['school', 'action_type', 'created_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.school.name} / {self.action_type} @ {self.created_at:%Y-%m-%d %H:%M}"

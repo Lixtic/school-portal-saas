@@ -88,8 +88,8 @@ class Domain(DomainMixin):
 
 # Import subscription models
 from .subscription_models import (
-    SubscriptionPlan, AddOn, SchoolSubscription, 
-    SchoolAddOn, Invoice, ChurnEvent
+    SubscriptionPlan, AddOn, SchoolSubscription,
+    SchoolAddOn, Invoice, ChurnEvent, AIUsageLog,
 )
 
 from .health_models import (

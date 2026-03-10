@@ -154,7 +154,50 @@
 
         <!-- Features chips -->
         <div class="d-flex flex-wrap gap-2 mt-4">
-            <span class="badge rounded-pill" style="background:var(--surface-bg);color:var(--text-muted);font-size:0.75rem;padding:5px 12px;border:1px solid var(--border-color);">
+
+        <!-- AI usage meter -->
+        {% if quota %}
+        <div class="mt-4 pt-4" style="border-top: 1.5px solid var(--border-color, #e2e8f0);">
+            <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                <div>
+                    <span class="fw-700" style="font-size:0.9rem;"><i class="bi bi-stars me-1 text-primary"></i>AI Usage This Month</span>
+                    {% if quota.unlimited %}
+                    <span class="badge ms-2" style="background:#d1fae5;color:#065f46;font-size:0.7rem;">Unlimited</span>
+                    {% endif %}
+                </div>
+                {% if not quota.unlimited %}
+                <span class="small text-muted">{{ quota.used }} / {{ quota.limit }} calls</span>
+                {% else %}
+                <span class="small text-muted">{{ quota.used }} calls used</span>
+                {% endif %}
+            </div>
+
+            {% if not quota.unlimited %}
+            {% with pct=quota.used|default:0 %}
+            {% widthratio quota.used quota.limit 100 as ai_pct %}
+            <div class="usage-bar-wrap mb-2">
+                <div class="usage-bar {% if ai_pct >= 90 %}crit{% elif ai_pct >= 70 %}warn{% endif %}"
+                     style="width:{{ ai_pct }}%"></div>
+            </div>
+            {% endwith %}
+            {% if quota.remaining == 0 %}
+            <p class="small mb-3" style="color:#ef4444;"><i class="bi bi-exclamation-triangle-fill me-1"></i>Quota reached. AI features are paused until next month or you upgrade.</p>
+            {% elif quota.remaining <= 10 %}
+            <p class="small mb-3" style="color:#f59e0b;"><i class="bi bi-exclamation-triangle me-1"></i>Only {{ quota.remaining }} AI calls remaining this month.</p>
+            {% endif %}
+            {% endif %}
+
+            {% if quota.action_breakdown %}
+            <div class="d-flex flex-wrap gap-2">
+                {% for action, count in quota.action_breakdown.items %}
+                <span class="badge" style="background:var(--surface-bg);color:var(--text-muted);font-size:0.75rem;padding:5px 10px;border:1px solid var(--border-color);">
+                    {{ action|title|cut:"_" }}: {{ count }}
+                </span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}            <span class="badge rounded-pill" style="background:var(--surface-bg);color:var(--text-muted);font-size:0.75rem;padding:5px 12px;border:1px solid var(--border-color);">
                 <i class="bi bi-check2 text-success me-1"></i>Attendance &amp; Grades
             </span>
             <span class="badge rounded-pill" style="background:var(--surface-bg);color:var(--text-muted);font-size:0.75rem;padding:5px 12px;border:1px solid var(--border-color);">
