@@ -532,6 +532,9 @@ html, body { height: 100%; margin: 0; }
     <a href="{% url 'teachers:presentation_export_pptx' deck.pk %}" class="gm-add-btn" title="Download as PowerPoint (.pptx)" style="text-decoration:none;">
       <i class="fas fa-file-powerpoint"></i> PPTX
     </a>
+    <button class="gm-add-btn" onclick="openEdShareModal()" title="Share presentation link &amp; QR code">
+      <i class="fas fa-qrcode"></i> Share
+    </button>
     <button class="gm-add-btn" onclick="openTemplatesModal()" title="Start from a slide template">
       <i class="fas fa-th-large"></i> Templates
     </button>
@@ -2088,6 +2091,46 @@ function applyTemplate(tplId) {
       setSaveStatus('saved', '\u2713 Template applied');
     })
     .catch(function(err) { alert('Failed: ' + err); setSaveStatus('saved', ''); });
+}
+</script>
+
+<!-- ── Share / QR Modal ── -->
+<div id="edShareModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);align-items:center;justify-content:center;" onclick="closeEdShareModal()">
+  <div onclick="event.stopPropagation()" style="background:#1e293b;border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:1.8rem 1.6rem;text-align:center;width:290px;box-shadow:0 20px 60px rgba(0,0,0,.5);">
+    <h4 style="color:#f1f5f9;font-size:.95rem;font-weight:800;margin-bottom:1.2rem;"><i class="fas fa-qrcode" style="margin-right:.4rem;color:#a78bfa;"></i>Share Presentation</h4>
+    <div id="edQrDiv" style="display:inline-block;background:#fff;padding:8px;border-radius:10px;"></div>
+    <p style="font-size:.6rem;color:rgba(255,255,255,.4);margin-top:.9rem;word-break:break-all;line-height:1.5;max-width:240px;margin-left:auto;margin-right:auto;">{{ share_url }}</p>
+    <button id="edCopyBtn" onclick="copyEdShareLink()" style="margin-top:.7rem;width:100%;padding:.55em;border-radius:9px;background:rgba(96,165,250,.15);border:1px solid rgba(96,165,250,.3);color:#93c5fd;cursor:pointer;font-size:.82rem;font-weight:600;"><i class="fas fa-copy" style="margin-right:.3rem;"></i>Copy Link</button>
+    <button onclick="closeEdShareModal()" style="margin-top:.4rem;width:100%;padding:.5em;border-radius:9px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:#94a3b8;cursor:pointer;font-size:.82rem;font-weight:600;">Close</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAXAIn1XRjBE/3bVZeNQAXGNUNmXzcQCWO4yGM4A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+var _edQrInst = null;
+var _edShareUrl = '{{ share_url|escapejs }}';
+function openEdShareModal() {
+  var modal = document.getElementById('edShareModal');
+  modal.style.display = 'flex';
+  if (!_edQrInst && typeof QRCode !== 'undefined') {
+    var div = document.getElementById('edQrDiv');
+    div.innerHTML = '';
+    _edQrInst = new QRCode(div, { text: _edShareUrl, width: 180, height: 180, colorDark: '#000', colorLight: '#fff' });
+  }
+}
+function closeEdShareModal() {
+  document.getElementById('edShareModal').style.display = 'none';
+}
+function copyEdShareLink() {
+  navigator.clipboard.writeText(_edShareUrl).then(function() {
+    var btn = document.getElementById('edCopyBtn');
+    btn.innerHTML = '<i class="fas fa-check" style="margin-right:.3rem;"></i>Copied!';
+    btn.style.cssText += 'background:rgba(52,211,153,.18)!important;border-color:rgba(52,211,153,.3)!important;color:#6ee7b7!important;';
+    setTimeout(function() {
+      btn.innerHTML = '<i class="fas fa-copy" style="margin-right:.3rem;"></i>Copy Link';
+      btn.style.cssText = btn.style.cssText.replace(/background[^;]+!important;/g,'').replace(/border-color[^;]+!important;/g,'').replace(/color[^;]+!important;/g,'');
+    }, 2200);
+  });
 }
 </script>
 {% endblock %}

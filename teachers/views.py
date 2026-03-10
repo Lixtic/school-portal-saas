@@ -3873,6 +3873,7 @@ def presentation_editor(request, pk):
     classes  = Class.objects.all().order_by('name')
 
     import json as _json
+    from django.urls import reverse as _reverse
     slides_json = _json.dumps([{
         'id':            s.pk,
         'order':         s.order,
@@ -3883,6 +3884,8 @@ def presentation_editor(request, pk):
         'speaker_notes': s.speaker_notes,
         'image_url':     s.image_url,
     } for s in slides])
+    _share_path = _reverse('teachers:presentation_share', kwargs={'token': deck.share_token})
+    _share_url  = request.build_absolute_uri(_share_path)
 
     return render(request, 'teachers/presentations/editor.html', {
         'deck':     deck,
@@ -3890,6 +3893,7 @@ def presentation_editor(request, pk):
         'subjects': subjects,
         'classes':  classes,
         'slides_json':    slides_json,
+        'share_url':      _share_url,
         'LAYOUT_CHOICES':     Slide.LAYOUT_CHOICES,
         'THEME_CHOICES':      Presentation.THEME_CHOICES,
         'TRANSITION_CHOICES': Presentation.TRANSITION_CHOICES,

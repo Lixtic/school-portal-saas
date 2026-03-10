@@ -159,6 +159,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
     <button class="ps-ctrl-btn" id="prevBtn" title="Previous (←)"><i class="fas fa-chevron-left"></i></button>
     <span class="ps-counter" id="counter">1 / {{ slides|length }}</span>
     <button class="ps-ctrl-btn" id="nextBtn" title="Next (→)"><i class="fas fa-chevron-right"></i></button>
+    <button class="ps-ctrl-btn" id="fsBtn" title="Fullscreen (F)"><i class="fas fa-expand" id="fsIcon"></i></button>
   </div>
 
   <!-- progress -->
@@ -200,9 +201,30 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
   document.getElementById('prevBtn').addEventListener('click', () => go(cur-1));
   document.getElementById('nextBtn').addEventListener('click', () => go(cur+1));
 
-  document.addEventListener('keydown', e => {
+  document.addEventListener('keydown', function(e) {
     if (e.key === 'ArrowRight' || e.key === ' ') go(cur+1);
     if (e.key === 'ArrowLeft')                   go(cur-1);
+    if (e.key === 'f' || e.key === 'F') toggleFS();
+  });
+
+  // Touch swipe
+  var _tx = 0;
+  document.addEventListener('touchstart', function(e) { _tx = e.touches[0].clientX; }, {passive:true});
+  document.addEventListener('touchend', function(e) {
+    var dx = e.changedTouches[0].clientX - _tx;
+    if (dx < -40) go(cur+1);
+    if (dx >  40) go(cur-1);
+  });
+
+  // Fullscreen
+  function toggleFS() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  }
+  document.getElementById('fsBtn').addEventListener('click', toggleFS);
+  document.addEventListener('fullscreenchange', function() {
+    var icon = document.getElementById('fsIcon');
+    icon.className = document.fullscreenElement ? 'fas fa-compress' : 'fas fa-expand';
   });
 
   // Init progress bar
