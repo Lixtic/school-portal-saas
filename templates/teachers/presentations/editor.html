@@ -623,6 +623,69 @@ html, body { height: 100%; margin: 0; }
 .gm-tpl-card-title { font-size: .82rem; font-weight: 800; color: #e2e8f0; }
 .gm-tpl-card-meta { font-size: .7rem; color: #7c3aed; font-weight: 600; margin-top: .1rem; }
 .gm-tpl-card-desc { font-size: .69rem; color: #64748b; margin-top: .2rem; line-height: 1.35; }
+
+/* ── Thumbnail mini-slide structure ── */
+.gm-thumb-inner {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 3px;
+  width: 100%; padding: 0 8px; z-index: 2; position: relative;
+}
+.gm-thumb-emoji {
+  font-size: .9rem; line-height: 1;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,.55));
+}
+.gm-thumb-inner .gm-thumb-title { padding: 0; max-width: 100%; }
+.gm-thumb-lines { display: flex; flex-direction: column; gap: 2px; width: 100%; margin-top: 3px; }
+.gm-thumb-line  { height: 2px; background: rgba(255,255,255,.22); border-radius: 2px; }
+
+/* ── Per-theme top accent bar on slide (via ::before on inner) ── */
+.gm-slide-inner::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
+  height: 3px; z-index: 10; pointer-events: none;
+}
+.theme-aurora   .gm-slide-inner::before { background: linear-gradient(90deg,#c4b5fd,#93c5fd); }
+.theme-midnight .gm-slide-inner::before { background: linear-gradient(90deg,#818cf8,#a78bfa); }
+.theme-forest   .gm-slide-inner::before { background: linear-gradient(90deg,#34d399,#6ee7b7); }
+.theme-coral    .gm-slide-inner::before { background: linear-gradient(90deg,#fb7185,#fdba74); }
+.theme-slate    .gm-slide-inner::before { background: linear-gradient(90deg,#94a3b8,#cbd5e1); }
+.theme-ocean    .gm-slide-inner::before { background: linear-gradient(90deg,#38bdf8,#7dd3fc); }
+.theme-amber    .gm-slide-inner::before { background: linear-gradient(90deg,#fbbf24,#fde68a); }
+.theme-rose     .gm-slide-inner::before { background: linear-gradient(90deg,#f43f5e,#fb7185); }
+
+/* ── Big stat glow ring ── */
+.layout-big_stat .sl-stat {
+  text-shadow: 0 0 60px rgba(167,139,250,.35);
+  filter: drop-shadow(0 6px 28px rgba(96,165,250,.25));
+}
+
+/* ── Title layout: accent underline after title ── */
+.layout-title .sl-title::after {
+  content: ''; display: block; margin: .55rem auto 0;
+  width: 3.5rem; height: 3px; border-radius: 4px;
+  background: linear-gradient(90deg, rgba(255,255,255,.55), rgba(255,255,255,.12));
+}
+
+/* ── Bullets layout: emoji as header mark + background watermark ── */
+.layout-bullets .sl-body { overflow: hidden; }
+.layout-bullets .sl-emoji-hd {
+  font-size: clamp(1.0rem, 2.6vw, 1.6rem); line-height: 1;
+  margin-bottom: .15em; display: block;
+}
+.layout-bullets .sl-emoji-bg {
+  position: absolute; bottom: -4%; right: 1%;
+  font-size: clamp(4rem, 12vw, 8rem);
+  opacity: .055; pointer-events: none; z-index: 0; line-height: 1;
+  transform: rotate(12deg); user-select: none;
+}
+
+/* ── Image layout: richer placeholder & cover-fit option ── */
+.layout-image .sl-image { max-width: 100%; max-height: 100%; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,.4); }
+.layout-image .sl-image-placeholder {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: .6em; border: 2px dashed rgba(255,255,255,.12); border-radius: 12px;
+  color: rgba(255,255,255,.25); font-size: .7rem; background: rgba(255,255,255,.02);
+}
+.layout-image .sl-image-placeholder i { font-size: 2.4rem; opacity: .4; }
 </style>
 {% endblock %}
 
@@ -699,7 +762,14 @@ html, body { height: 100%; margin: 0; }
              oncontextmenu="showThumbCtx(event,{{ slide.pk }})">
           <div class="gm-thumb-slide theme-{{ deck.theme }}">
             <span class="gm-thumb-num">{{ forloop.counter }}</span>
-            <div class="gm-thumb-title">{{ slide.title|truncatechars:28 }}</div>
+            <div class="gm-thumb-inner">
+              {% if slide.emoji %}<span class="gm-thumb-emoji">{{ slide.emoji }}</span>{% endif %}
+              <div class="gm-thumb-title">{{ slide.title|truncatechars:22 }}</div>
+              <div class="gm-thumb-lines">
+                <div class="gm-thumb-line" style="width:72%"></div>
+                <div class="gm-thumb-line" style="width:52%"></div>
+              </div>
+            </div>
           </div>
         </div>
         {% empty %}
@@ -1734,6 +1804,17 @@ function closeTbDrops() {
 }
 document.addEventListener('click', closeTbDrops);
 
+function buildThumbInner(s) {
+  var e = s.emoji || '';
+  var t = (s.title || '').substring(0, 22);
+  return (e ? '<span class="gm-thumb-emoji">' + esc(e) + '</span>' : '') +
+    '<div class="gm-thumb-title">' + esc(t) + '</div>' +
+    '<div class="gm-thumb-lines">' +
+    '<div class="gm-thumb-line" style="width:72%"></div>' +
+    '<div class="gm-thumb-line" style="width:52%"></div>' +
+    '</div>';
+}
+
 function appendThumb(s) {
   var theme = document.getElementById('themeSelect').value;
   var div = document.createElement('div');
@@ -1745,7 +1826,7 @@ function appendThumb(s) {
   var num = slides.length;
   div.innerHTML = '<div class="gm-thumb-slide theme-' + theme + '">' +
     '<span class="gm-thumb-num">' + num + '</span>' +
-    '<div class="gm-thumb-title">' + esc(s.title.substring(0, 28)) + '</div>' +
+    '<div class="gm-thumb-inner">' + buildThumbInner(s) + '</div>' +
     '</div>';
   document.getElementById('thumbList').appendChild(div);
   setupDrag(div);
@@ -1874,8 +1955,13 @@ function refreshCanvasSlide(slide) {
 function refreshThumbTitle(slide) {
   var el = document.getElementById('thumb-' + slide.id);
   if (!el) return;
-  var t = el.querySelector('.gm-thumb-title');
-  if (t) t.textContent = slide.title.substring(0, 28);
+  var inner = el.querySelector('.gm-thumb-inner');
+  if (inner) {
+    inner.innerHTML = buildThumbInner(slide);
+  } else {
+    var t = el.querySelector('.gm-thumb-title');
+    if (t) t.textContent = (slide.title || '').substring(0, 22);
+  }
 }
 
 function renumberThumbs() {
@@ -2018,7 +2104,8 @@ function buildSlideHTML(s) {
   }
   // default: bullets
   return '<div class="sl-body layout-bullets">' +
-    (emoji ? '<span style="font-size:clamp(.9rem,2vw,1.4rem);margin-bottom:.2em;">' + esc(emoji) + '</span>' : '') +
+    (emoji ? '<span class="sl-emoji-hd">' + esc(emoji) + '</span>' +
+             '<span class="sl-emoji-bg" aria-hidden="true">' + esc(emoji) + '</span>' : '') +
     '<div class="sl-title" data-inline="title" data-placeholder="Title">' + esc(title) + '</div>' +
     '<ul class="sl-bullets">' +
     bullets.map(function(b, i) { return '<li data-inline="bullet" data-idx="' + i + '">' + esc(b) + '</li>'; }).join('') +

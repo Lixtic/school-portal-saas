@@ -4921,6 +4921,7 @@ def presentation_slide_image_upload(request):
 
 @login_required
 def presentation_study_guide(request, pk):
+    from .models import Presentation
     teacher = get_object_or_404(Teacher, user=request.user)
     deck = get_object_or_404(Presentation, pk=pk, teacher=teacher)
     slides = deck.slides.all()

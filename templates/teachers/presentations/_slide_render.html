@@ -2,50 +2,50 @@
 {% if slide.layout == "title" %}
 <div class="sl-body layout-title">
   {% if slide.emoji %}<div class="sl-emoji">{{ slide.emoji }}</div>{% endif %}
-  <div class="sl-title">{{ slide.title }}</div>
+  <div class="sl-title" data-inline="title" data-placeholder="Slide title">{{ slide.title }}</div>
   {% with first=slide.bullets|first %}
-  {% if first %}<div class="sl-sub">{{ first }}</div>{% endif %}
+  {% if first %}<div class="sl-sub" data-inline="bullet" data-idx="0" data-placeholder="Subtitle">{{ first }}</div>{% endif %}
   {% endwith %}
 </div>
 {% elif slide.layout == "big_stat" %}
 <div class="sl-body layout-big_stat">
-  <div class="sl-title">{{ slide.title }}</div>
-  <div class="sl-stat">{{ slide.bullets|first|default:"—" }}</div>
-  {% if slide.bullets|length > 1 %}<div class="sl-sub">{{ slide.bullets.1 }}</div>{% endif %}
+  <div class="sl-title" data-inline="title" data-placeholder="Label">{{ slide.title }}</div>
+  <div class="sl-stat" data-inline="bullet" data-idx="0" data-placeholder="Big number">{{ slide.bullets|first|default:"—" }}</div>
+  {% if slide.bullets|length > 1 %}<div class="sl-sub" data-inline="bullet" data-idx="1" data-placeholder="Description">{{ slide.bullets.1 }}</div>{% endif %}
 </div>
 {% elif slide.layout == "quote" %}
 <div class="sl-body layout-quote">
-  <div class="sl-quote">{{ slide.title }}</div>
+  <div class="sl-quote" data-inline="title" data-placeholder="Quote text">{{ slide.title }}</div>
   {% with attr=slide.bullets|first %}
-  {% if attr %}<div class="sl-author">— {{ attr }}</div>{% endif %}
+  {% if attr %}<div class="sl-author" data-inline="bullet" data-idx="0" data-placeholder="Author">— {{ attr }}</div>{% endif %}
   {% endwith %}
 </div>
 {% elif slide.layout == "two_col" %}
 <div class="sl-body layout-two_col">
-  <div class="sl-title">{{ slide.title }}</div>
+  <div class="sl-title" data-inline="title" data-placeholder="Title">{{ slide.title }}</div>
   <div class="sl-cols">
     <div class="sl-col">
       {% for b in slide.bullets %}{% if forloop.counter <= 4 %}
-      <div class="sl-col-item">{{ b }}</div>
+      <div class="sl-col-item" data-inline="bullet" data-idx="{{ forloop.counter0 }}">{{ b }}</div>
       {% endif %}{% endfor %}
     </div>
     <div class="sl-col">
       {% for b in slide.bullets %}{% if forloop.counter > 4 %}
-      <div class="sl-col-item">{{ b }}</div>
+      <div class="sl-col-item" data-inline="bullet" data-idx="{{ forloop.counter0 }}">{{ b }}</div>
       {% endif %}{% endfor %}
     </div>
   </div>
 </div>
 {% elif slide.layout == "summary" %}
 <div class="sl-body layout-summary">
-  <div class="sl-title">{{ slide.title }}</div>
+  <div class="sl-title" data-inline="title" data-placeholder="Title">{{ slide.title }}</div>
   <ul class="sl-bullets">
-    {% for b in slide.bullets %}<li>{{ b }}</li>{% endfor %}
+    {% for b in slide.bullets %}<li data-inline="bullet" data-idx="{{ forloop.counter0 }}">{{ b }}</li>{% endfor %}
   </ul>
 </div>
 {% elif slide.layout == "image" %}
 <div class="sl-body layout-image">
-  <div class="sl-title">{{ slide.title }}</div>
+  <div class="sl-title" data-inline="title" data-placeholder="Title">{{ slide.title }}</div>
   {% if slide.image_url %}
   <div class="sl-image-wrap">
     <img src="{{ slide.image_url }}" class="sl-image" alt="{{ slide.title }}">
@@ -53,21 +53,21 @@
   {% else %}
   <div class="sl-image-placeholder">
     <i class="fas fa-image"></i>
-    <span>No image generated yet</span>
+    <span>Generate or paste an AI image</span>
   </div>
   {% endif %}
   {% with caption=slide.bullets|first %}
-  {% if caption %}<div class="sl-caption">{{ caption }}</div>{% endif %}
+  {% if caption %}<div class="sl-caption" data-inline="bullet" data-idx="0" data-placeholder="Caption">{{ caption }}</div>{% endif %}
   {% endwith %}
 </div>
 {% elif slide.layout == "poll" %}
 <div class="sl-body layout-poll">
-  <div class="sl-poll-question">{{ slide.title }}</div>
+  <div class="sl-poll-question" data-inline="title" data-placeholder="Question">{{ slide.title }}</div>
   <div class="sl-poll-opts">
     {% for b in slide.bullets %}
     <div class="sl-poll-opt" data-choice="{{ b|slice:':1' }}">
       <span class="sl-poll-letter">{{ b|slice:':1' }}</span>
-      <span class="sl-poll-text">{{ b|slice:'3:' }}</span>
+      <span class="sl-poll-text" data-inline="bullet" data-idx="{{ forloop.counter0 }}" data-letter="{{ b|slice:':1' }}">{{ b|slice:'3:' }}</span>
       <div class="sl-poll-bar" style="width:0%"></div>
     </div>
     {% endfor %}
@@ -76,12 +76,12 @@
 </div>
 {% elif slide.layout == "quiz" %}
 <div class="sl-body layout-quiz">
-  <div class="sl-quiz-question">{{ slide.title }}</div>
+  <div class="sl-quiz-question" data-inline="title" data-placeholder="Question">{{ slide.title }}</div>
   <div class="sl-quiz-opts">
     {% for b in slide.bullets %}
     <div class="sl-quiz-opt" data-choice="{{ b|slice:':1' }}">
       <span class="sl-quiz-letter">{{ b|slice:':1' }}</span>
-      <span class="sl-quiz-text">{{ b|slice:'3:' }}</span>
+      <span class="sl-quiz-text" data-inline="bullet" data-idx="{{ forloop.counter0 }}" data-letter="{{ b|slice:':1' }}">{{ b|slice:'3:' }}</span>
     </div>
     {% endfor %}
   </div>
@@ -91,7 +91,7 @@
 </div>
 {% elif slide.layout == "video" %}
 <div class="sl-body layout-video">
-  <div class="sl-title">{{ slide.title }}</div>
+  <div class="sl-title" data-inline="title" data-placeholder="Title">{{ slide.title }}</div>
   <div class="sl-video-wrap"{% if slide.image_url %} data-video="{{ slide.image_url }}"{% endif %}>
     {% if slide.image_url %}
     <div class="sl-video-placeholder sl-video-has-url">
@@ -112,10 +112,10 @@
 {% else %}
 {# default: bullets #}
 <div class="sl-body layout-bullets">
-  {% if slide.emoji %}<span style="font-size:clamp(.9rem,2vw,1.4rem);margin-bottom:.2em;">{{ slide.emoji }}</span>{% endif %}
-  <div class="sl-title">{{ slide.title }}</div>
+  {% if slide.emoji %}<span class="sl-emoji-hd">{{ slide.emoji }}</span><span class="sl-emoji-bg" aria-hidden="true">{{ slide.emoji }}</span>{% endif %}
+  <div class="sl-title" data-inline="title" data-placeholder="Title">{{ slide.title }}</div>
   <ul class="sl-bullets">
-    {% for b in slide.bullets %}<li>{{ b }}</li>{% endfor %}
+    {% for b in slide.bullets %}<li data-inline="bullet" data-idx="{{ forloop.counter0 }}">{{ b }}</li>{% endfor %}
   </ul>
 </div>
 {% endif %}
