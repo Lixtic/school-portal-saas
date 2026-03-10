@@ -21,7 +21,9 @@ html, body { height: 100%; margin: 0; }
   background: #1e293b;
   border-bottom: 1px solid rgba(255,255,255,.07);
   display: flex; align-items: center; padding: 0 1rem; gap: 10px;
+  overflow-x: auto; scrollbar-width: none;
 }
+.gm-topbar::-webkit-scrollbar { display: none; }
 .gm-back-btn {
   background: none; border: none; color: #94a3b8; cursor: pointer;
   width: 32px; height: 32px; border-radius: 8px; display: flex;
@@ -136,6 +138,9 @@ html, body { height: 100%; margin: 0; }
 .theme-forest   { background: linear-gradient(135deg,#021d11 0%,#052e22 60%,#0a2e2b 100%); }
 .theme-coral    { background: linear-gradient(135deg,#3b0012 0%,#5a1200 60%,#7c1e00 100%); }
 .theme-slate    { background: linear-gradient(135deg,#0f1824 0%,#1e2d3d 100%); }
+.theme-ocean    { background: linear-gradient(135deg,#0c2d4e 0%,#0a4a6e 60%,#0e6088 100%); }
+.theme-amber    { background: linear-gradient(135deg,#431407 0%,#7c2d12 60%,#92400e 100%); }
+.theme-rose     { background: linear-gradient(135deg,#4c0519 0%,#831843 60%,#9d174d 100%); }
 
 /* Decorative blobs on slide canvas — neutral base; per-theme overrides via .gm-slide-inner::after */
 .gm-slide-canvas::before {
@@ -386,11 +391,6 @@ html, body { height: 100%; margin: 0; }
 }
 .gm-trans-btn:hover { background: rgba(255,255,255,.1); color: #94a3b8; border-color: rgba(255,255,255,.18); }
 .gm-trans-btn.active { background: rgba(124,58,237,.18); border-color: rgba(124,58,237,.5); color: #c4b5fd; }
-
-/* ── New extended theme gradients ── */
-.theme-ocean   { background: linear-gradient(135deg,#0c2d4e 0%,#0a4a6e 60%,#0e6088 100%); }
-.theme-amber   { background: linear-gradient(135deg,#431407 0%,#7c2d12 60%,#92400e 100%); }
-.theme-rose    { background: linear-gradient(135deg,#4c0519 0%,#831843 60%,#9d174d 100%); }
 
 /* ── Zoom bar ── */
 .gm-zoom-bar {
@@ -1146,10 +1146,6 @@ function moveSlideDown() {
   api({ action: 'reorder', order: slides.map(function(s) { return s.id; }) });
   setSaveStatus('saved', '\u2713 Moved down');
 }
-function closeAIModal(e) {
-  if (e.target === document.getElementById('aiModal'))
-    document.getElementById('aiModal').classList.remove('open');
-}
 // ── AI Generate ─────────────────────────────────────────────────
 function openAIModal() {
   _plansLoaded = false;
@@ -1653,6 +1649,27 @@ function buildSlideHTML(s) {
       '<div class="sl-title">' + esc(title) + '</div>' +
       imgHtml +
       (caption ? '<div class="sl-caption">' + esc(caption) + '</div>' : '') +
+      '</div>';
+  }
+  if (layout === 'poll' || layout === 'quiz') {
+    var qPrefix = layout === 'poll' ? 'sl-poll' : 'sl-quiz';
+    var opts = bullets.map(function(b, i) {
+      // bullets stored as "A: Option text" — extract letter and text
+      var letter = (b.length >= 2 && b[1] === ':') ? b[0] : String.fromCharCode(65 + i);
+      var text   = (b.length >= 3 && b[1] === ':') ? b.slice(3) : b;
+      if (layout === 'poll') {
+        return '<div class="sl-poll-opt"><span class="sl-poll-letter">' + esc(letter) +
+          '</span><span class="sl-poll-text">' + esc(text) + '</span>' +
+          '<div class="sl-poll-bar" style="width:0%"></div></div>';
+      } else {
+        return '<div class="sl-quiz-opt"><span class="sl-quiz-letter">' + esc(letter) +
+          '</span><span class="sl-quiz-text">' + esc(text) + '</span></div>';
+      }
+    }).join('');
+    return '<div class="sl-body layout-' + layout + '">' +
+      '<div class="' + qPrefix + '-question">' + esc(title) + '</div>' +
+      '<div class="' + qPrefix + '-opts">' + opts + '</div>' +
+      (layout === 'poll' ? '<div class="sl-poll-total" style="display:none">0 responses</div>' : '') +
       '</div>';
   }
   // default: bullets
