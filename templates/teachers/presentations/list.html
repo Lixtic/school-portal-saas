@@ -90,16 +90,49 @@ body { background: var(--gm-bg); }
 }
 .deck-title-input:focus { background: rgba(124,58,237,.12); }
 .deck-meta  { font-size: .72rem; color: var(--gm-muted); margin-top: 4px; display: flex; gap: 10px; flex-wrap: wrap; }
-.deck-actions { padding: 0 .8rem .8rem; display: flex; gap: 6px; }
+.deck-actions { padding: 0 .8rem .8rem; display: flex; gap: 6px; align-items: center; }
 .deck-act-btn {
   flex: 1; text-align: center; padding: 5px 0;
   font-size: .75rem; font-weight: 600;
   border-radius: 8px; text-decoration: none;
   border: 1px solid var(--gm-border); color: var(--gm-muted);
-  transition: background .15s;
+  transition: background .15s; cursor: pointer; background: none;
 }
 .deck-act-btn:hover { background: rgba(124,58,237,.1); color: var(--gm-accent); border-color: var(--gm-accent); }
+.deck-act-btn.primary { background: var(--gm-accent); color: #fff !important; border-color: transparent; }
+.deck-act-btn.primary:hover { background: #6d28d9; }
 .deck-act-btn.danger:hover { background: rgba(239,68,68,.1); color: #ef4444; border-color: #ef4444; }
+/* Kebab / More dropdown */
+.deck-more-wrap { position: relative; flex-shrink: 0; }
+.deck-more-btn {
+  width: 30px; height: 30px; border-radius: 8px;
+  border: 1px solid var(--gm-border); background: none;
+  color: var(--gm-muted); cursor: pointer; font-size: .8rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, color .15s;
+}
+.deck-more-btn:hover { background: rgba(124,58,237,.1); color: var(--gm-accent); border-color: var(--gm-accent); }
+.deck-more-menu {
+  position: absolute; bottom: calc(100% + 6px); right: 0;
+  background: var(--gm-card); border: 1px solid var(--gm-border);
+  border-radius: 12px; padding: 5px;
+  min-width: 170px; z-index: 500;
+  box-shadow: 0 8px 30px rgba(0,0,0,.18);
+  display: none; flex-direction: column; gap: 2px;
+}
+.deck-more-menu.open { display: flex; }
+.deck-more-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 7px 11px; border-radius: 8px;
+  font-size: .8rem; font-weight: 600;
+  color: var(--gm-muted); text-decoration: none;
+  background: none; border: none; cursor: pointer; width: 100%; text-align: left;
+  transition: background .12s, color .12s;
+}
+.deck-more-item:hover { background: rgba(124,58,237,.1); color: var(--gm-text); }
+.deck-more-item.danger:hover { background: rgba(239,68,68,.08); color: #ef4444; }
+.deck-more-item i { width: 14px; text-align: center; flex-shrink: 0; }
+.deck-more-sep { height: 1px; background: var(--gm-border); margin: 3px 5px; }
 .empty-state {
   text-align: center; padding: 4rem 1rem; color: var(--gm-muted);
   grid-column: 1/-1;
@@ -226,17 +259,25 @@ body.select-mode .deck-select-cb { display: flex; }
           </div>
       </div>
       <div class="deck-actions">
-        <a href="{% url 'teachers:presentation_editor' deck.pk %}" class="deck-act-btn"><i class="fas fa-edit me-1"></i>Edit</a>
+        <a href="{% url 'teachers:presentation_editor' deck.pk %}" class="deck-act-btn primary"><i class="fas fa-edit me-1"></i>Edit</a>
         <a href="{% url 'teachers:presentation_present' deck.pk %}" class="deck-act-btn" target="_blank"><i class="fas fa-play me-1"></i>Present</a>
-        <a href="{% url 'teachers:presentation_print' deck.pk %}" class="deck-act-btn" target="_blank"><i class="fas fa-print me-1"></i>Print</a>
-        <form method="post" action="{% url 'teachers:presentation_duplicate' deck.pk %}" style="display:contents;">{% csrf_token %}
-          <button type="submit" class="deck-act-btn"><i class="fas fa-copy me-1"></i>Copy</button>
-        </form>
-        <a href="{% url 'teachers:presentation_session_report' deck.pk %}" class="deck-act-btn"><i class="fas fa-chart-bar me-1"></i>Sessions</a>
-        <a href="{% url 'teachers:presentation_study_guide' deck.pk %}" class="deck-act-btn" target="_blank"><i class="fas fa-book-open me-1"></i>Study&nbsp;Guide</a>
-        <a href="{% url 'teachers:presentation_export_pptx' deck.pk %}" class="deck-act-btn" title="Download PowerPoint"><i class="fas fa-file-powerpoint me-1"></i>PPTX</a>
-        <button type="button" class="deck-act-btn" onclick="copyShareLink('{{ request.scheme }}://{{ request.get_host }}{% url 'teachers:presentation_share' deck.share_token %}')"><i class="fas fa-share-alt me-1"></i>Share</button>
-        <a href="{% url 'teachers:presentation_delete' deck.pk %}" class="deck-act-btn danger"><i class="fas fa-trash me-1"></i>Delete</a>
+        <!-- More dropdown -->
+        <div class="deck-more-wrap">
+          <button class="deck-more-btn" title="More actions" onclick="toggleDeckMore(event, this)"><i class="fas fa-ellipsis-v"></i></button>
+          <div class="deck-more-menu">
+            <a href="{% url 'teachers:presentation_present' deck.pk %}" class="deck-more-item" target="_blank"><i class="fas fa-play"></i> Present</a>
+            <a href="{% url 'teachers:presentation_print' deck.pk %}" class="deck-more-item" target="_blank"><i class="fas fa-print"></i> Print</a>
+            <form method="post" action="{% url 'teachers:presentation_duplicate' deck.pk %}" style="display:contents;">{% csrf_token %}
+              <button type="submit" class="deck-more-item"><i class="fas fa-copy"></i> Duplicate</button>
+            </form>
+            <a href="{% url 'teachers:presentation_session_report' deck.pk %}" class="deck-more-item"><i class="fas fa-chart-bar"></i> Sessions</a>
+            <a href="{% url 'teachers:presentation_study_guide' deck.pk %}" class="deck-more-item" target="_blank"><i class="fas fa-book-open"></i> Study Guide</a>
+            <a href="{% url 'teachers:presentation_export_pptx' deck.pk %}" class="deck-more-item"><i class="fas fa-file-powerpoint"></i> Export PPTX</a>
+            <button type="button" class="deck-more-item" onclick="copyShareLink('{{ request.scheme }}://{{ request.get_host }}{% url 'teachers:presentation_share' deck.share_token %}')"><i class="fas fa-share-alt"></i> Share Link</button>
+            <div class="deck-more-sep"></div>
+            <a href="{% url 'teachers:presentation_delete' deck.pk %}" class="deck-more-item danger"><i class="fas fa-trash"></i> Delete</a>
+          </div>
+        </div>
       </div>
     </div>
     {% empty %}
@@ -280,6 +321,19 @@ body.select-mode .deck-select-cb { display: flex; }
 
 {% block extra_js %}
 <script>
+// ── More dropdown ──
+function toggleDeckMore(e, btn) {
+  e.stopPropagation();
+  var menu = btn.nextElementSibling;
+  var isOpen = menu.classList.contains('open');
+  // close all open menus first
+  document.querySelectorAll('.deck-more-menu.open').forEach(function(m) { m.classList.remove('open'); });
+  if (!isOpen) menu.classList.add('open');
+}
+document.addEventListener('click', function() {
+  document.querySelectorAll('.deck-more-menu.open').forEach(function(m) { m.classList.remove('open'); });
+});
+
 function copyShareLink(url) {
   navigator.clipboard.writeText(url).then(function() {
     var t = document.getElementById('shareToast');
