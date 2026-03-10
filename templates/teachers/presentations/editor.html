@@ -251,6 +251,22 @@ html, body { height: 100%; margin: 0; }
 .sl-poll-total { font-size: clamp(.45rem, 1vw, .65rem); color: rgba(255,255,255,.4); margin-top: .2em; }
 .sl-quiz-reveal { margin-top: .5em; animation: fadeIn .3s ease; }
 .sl-quiz-answer-badge { display: inline-block; background: rgba(34,197,94,.2); border: 1px solid #22c55e; border-radius: 20px; padding: .25em .75em; font-size: clamp(.45rem, 1vw, .65rem); color: #4ade80; }
+/* ── Inline canvas editing ───────────────────────────────────── */
+[data-inline] { cursor: text; border-radius: 4px; transition: outline .1s; }
+[data-inline][contenteditable="true"] {
+  outline: 2px solid rgba(124,58,237,.65);
+  outline-offset: 3px;
+  background: rgba(124,58,237,.08);
+  min-width: 1em; min-height: 1em;
+  white-space: pre-wrap;
+}
+[data-inline][contenteditable="true"]:empty::before { content: attr(data-placeholder); opacity: .4; }
+.gm-canvas-edit-hint {
+  position: absolute; bottom: 6px; right: 10px; font-size: .55rem;
+  color: rgba(255,255,255,.3); pointer-events: none; letter-spacing: .03em;
+  transition: opacity .3s;
+}
+.gm-slide-inner:not(:hover) .gm-canvas-edit-hint { opacity: 0; }
 /* AI suggest-bullets button */
 .gm-suggest-btn {
   margin-left: auto; background: none; border: none; cursor: pointer;
@@ -853,6 +869,7 @@ var csrfToken = "{{ csrf_token }}";
 var slides = JSON.parse(document.getElementById('slideDataJSON').textContent || '[]');
 var currentSlideId = slides.length ? slides[0].id : null;
 var saveTimer = null;
+var isInlineEditing = false;
 
 // ── API helper ──────────────────────────────────────────────────
 function api(payload) {
@@ -934,6 +951,8 @@ function selectSlide(slideId) {
     var ansMatch = notes.match(/^ANSWER:\s*([A-D])/i);
     qaEl.value = ansMatch ? ansMatch[1].toUpperCase() : '';
   }
+  // enable inline canvas editing for this slide
+  bindCanvasEditing(slideId);
 }
 
 // ── Debounced save ──────────────────────────────────────────────
@@ -1528,6 +1547,107 @@ function appendThumb(s) {
   setupDrag(div);
 }
 
+// ── Inline canvas editing ────────────────────────────────────────
+function bindCanvasEditing(slideId) {
+  var wrap = document.getElementById('canvas-' + slideId);
+  if (!wrap) return;
+  var slide = slides.find(function(s) { return s.id == slideId; });
+  if (!slide) return;
+
+  wrap.querySelectorAll('[data-inline]').forEach(function(el) {
+    // avoid double-binding
+    if (el.dataset.bound === '1') return;
+    el.dataset.bound = '1';
+
+    el.addEventListener('click', function(e) {
+      if (currentSlideId != slideId) return;
+      if (el.contentEditable === 'true') return;
+      e.stopPropagation();
+      isInlineEditing = true;
+      el.contentEditable = 'true';
+      el.focus();
+      // move cursor to end
+      try {
+        var range = document.createRange();
+        var sel = window.getSelection();
+        range.selectNodeContents(el);
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      } catch(ex) {}
+    });
+
+    el.addEventListener('blur', function() {
+      if (el.contentEditable !== 'true') return;
+      el.contentEditable = 'false';
+      isInlineEditing = false;
+
+      if (el.dataset.inline === 'title') {
+        var newTitle = el.textContent.trim();
+        if (newTitle) slide.title = newTitle;
+        else el.textContent = slide.title; // restore if cleared
+        document.getElementById('panelTitle').value = slide.title;
+        updateTitleCounter();
+      } else if (el.dataset.inline === 'bullet') {
+        // For quote layout, strip the leading '— ' decoration
+        var rawText = el.textContent;
+        if (slide.layout === 'quote' && rawText.startsWith('— ')) rawText = rawText.slice(2);
+        rawText = rawText.trim();
+
+        // For poll/quiz, reconstruct "LETTER: text" format
+        var letter = el.dataset.letter;
+        if (letter) rawText = letter + ': ' + rawText;
+
+        // Rebuild content from all bullet elements (by data-idx order)
+        var bulletEls = Array.from(wrap.querySelectorAll('[data-inline="bullet"]'));
+        bulletEls.sort(function(a, b) { return parseInt(a.dataset.idx) - parseInt(b.dataset.idx); });
+        var newBullets = bulletEls.map(function(li) {
+          if (li === el) return rawText;
+          var t = li.textContent;
+          if (slide.layout === 'quote' && t.startsWith('— ')) t = t.slice(2);
+          t = t.trim();
+          var ltr = li.dataset.letter;
+          return ltr ? ltr + ': ' + t : t;
+        });
+        slide.content = newBullets.filter(Boolean).join('\n');
+        document.getElementById('panelContent').value = slide.content;
+      }
+
+      refreshThumbTitle(slide);
+      debounceSaveSlide();
+    });
+
+    el.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        // restore original
+        if (el.dataset.inline === 'title') {
+          el.textContent = slide.title;
+        } else {
+          var idx = parseInt(el.dataset.idx);
+          var savedBullets = slide.content.split('\n').filter(Boolean);
+          var orig = savedBullets[idx] || '';
+          // For poll/quiz strip letter prefix for display
+          var ltr = el.dataset.letter;
+          if (ltr && orig.startsWith(ltr + ': ')) orig = orig.slice(3);
+          // For quote add back decoration
+          if (slide.layout === 'quote') orig = '— ' + orig;
+          el.textContent = orig;
+        }
+        el.contentEditable = 'false';
+        isInlineEditing = false;
+        el.blur();
+        return;
+      }
+      // Title: Enter confirms; Bullet: Enter adds new line (browser default is fine)
+      if (e.key === 'Enter' && el.dataset.inline === 'title') {
+        e.preventDefault();
+        el.blur();
+      }
+    });
+  });
+}
+
 function appendCanvas(s) {
   var canvas = document.getElementById('liveCanvas');
   var wrap = document.createElement('div');
@@ -1539,8 +1659,12 @@ function appendCanvas(s) {
 }
 
 function refreshCanvasSlide(slide) {
+  if (isInlineEditing) return;
   var el = document.getElementById('canvas-' + slide.id);
-  if (el) el.innerHTML = buildSlideHTML(slide);
+  if (el) {
+    el.innerHTML = buildSlideHTML(slide);
+    if (slide.id == currentSlideId) bindCanvasEditing(slide.id);
+  }
 }
 
 function refreshThumbTitle(slide) {
@@ -1588,45 +1712,52 @@ function buildSlideHTML(s) {
     var sub = bullets.length ? bullets[0] : '';
     return '<div class="sl-body layout-title">' +
       (emoji ? '<div class="sl-emoji">' + esc(emoji) + '</div>' : '') +
-      '<div class="sl-title">' + esc(title) + '</div>' +
-      (sub ? '<div class="sl-sub">' + esc(sub) + '</div>' : '') +
+      '<div class="sl-title" data-inline="title" data-placeholder="Slide title">' + esc(title) + '</div>' +
+      (sub ? '<div class="sl-sub" data-inline="bullet" data-idx="0" data-placeholder="Subtitle">' + esc(sub) + '</div>' : '') +
+      '<div class="gm-canvas-edit-hint">click to edit</div>' +
       '</div>';
   }
   if (layout === 'big_stat') {
     return '<div class="sl-body layout-big_stat">' +
-      '<div class="sl-title">' + esc(title) + '</div>' +
-      '<div class="sl-stat">' + esc(bullets[0] || '—') + '</div>' +
-      (bullets[1] ? '<div class="sl-sub">' + esc(bullets[1]) + '</div>' : '') +
+      '<div class="sl-title" data-inline="title" data-placeholder="Label">' + esc(title) + '</div>' +
+      '<div class="sl-stat" data-inline="bullet" data-idx="0" data-placeholder="Big number">' + esc(bullets[0] || '—') + '</div>' +
+      (bullets[1] ? '<div class="sl-sub" data-inline="bullet" data-idx="1" data-placeholder="Description">' + esc(bullets[1]) + '</div>' : '') +
+      '<div class="gm-canvas-edit-hint">click to edit</div>' +
       '</div>';
   }
   if (layout === 'quote') {
     return '<div class="sl-body layout-quote">' +
-      '<div class="sl-quote">' + esc(title) + '</div>' +
-      (bullets[0] ? '<div class="sl-author">— ' + esc(bullets[0]) + '</div>' : '') +
+      '<div class="sl-quote" data-inline="title" data-placeholder="Quote text">' + esc(title) + '</div>' +
+      (bullets[0] ? '<div class="sl-author" data-inline="bullet" data-idx="0" data-placeholder="Author">— ' + esc(bullets[0]) + '</div>' : '') +
+      '<div class="gm-canvas-edit-hint">click to edit</div>' +
       '</div>';
   }
   if (layout === 'two_col') {
     var mid = Math.ceil(bullets.length / 2);
     var col1 = bullets.slice(0, mid);
     var col2 = bullets.slice(mid);
-    var makeCol = function(items) {
-      return items.map(function(b) {
-        return '<div class="sl-col-item">' + esc(b) + '</div>';
+    var makeCol = function(items, startIdx) {
+      return items.map(function(b, i) {
+        return '<div class="sl-col-item" data-inline="bullet" data-idx="' + (startIdx + i) + '">' + esc(b) + '</div>';
       }).join('');
     };
     return '<div class="sl-body layout-two_col">' +
-      '<div class="sl-title">' + esc(title) + '</div>' +
+      '<div class="sl-title" data-inline="title" data-placeholder="Title">' + esc(title) + '</div>' +
       '<div class="sl-cols">' +
-      '<div class="sl-col">' + makeCol(col1) + '</div>' +
-      '<div class="sl-col">' + makeCol(col2) + '</div>' +
-      '</div></div>';
+      '<div class="sl-col">' + makeCol(col1, 0) + '</div>' +
+      '<div class="sl-col">' + makeCol(col2, mid) + '</div>' +
+      '</div>' +
+      '<div class="gm-canvas-edit-hint">click to edit</div>' +
+      '</div>';
   }
   if (layout === 'summary') {
     return '<div class="sl-body layout-summary">' +
-      '<div class="sl-title">' + esc(title) + '</div>' +
+      '<div class="sl-title" data-inline="title" data-placeholder="Title">' + esc(title) + '</div>' +
       '<ul class="sl-bullets">' +
-      bullets.map(function(b) { return '<li>' + esc(b) + '</li>'; }).join('') +
-      '</ul></div>';
+      bullets.map(function(b, i) { return '<li data-inline="bullet" data-idx="' + i + '">' + esc(b) + '</li>'; }).join('') +
+      '</ul>' +
+      '<div class="gm-canvas-edit-hint">click to edit</div>' +
+      '</div>';
   }
   if (layout === 'video') {
     var vUrl = s.image_url || '';
@@ -1635,8 +1766,9 @@ function buildSlideHTML(s) {
       ? '<img class="sl-video-thumb" src="https://img.youtube.com/vi/' + vm[1] + '/mqdefault.jpg" alt="video"><div class="sl-video-play"><i class="fas fa-play"></i></div>'
       : '<div class="sl-video-placeholder"><i class="fas fa-film"></i><span>Paste a YouTube URL →</span></div>';
     return '<div class="sl-body layout-video">' +
-      '<div class="sl-title">' + esc(title) + '</div>' +
+      '<div class="sl-title" data-inline="title" data-placeholder="Title">' + esc(title) + '</div>' +
       '<div class="sl-video-wrap">' + vInner + '</div>' +
+      '<div class="gm-canvas-edit-hint">click to edit</div>' +
       '</div>';
   }
   if (layout === 'image') {
@@ -1646,9 +1778,10 @@ function buildSlideHTML(s) {
       ? '<div class="sl-image-wrap"><img src="' + imgUrl + '" class="sl-image" alt="slide image"></div>'
       : '<div class="sl-image-placeholder"><i class="fas fa-image"></i><span>Generate AI image →</span></div>';
     return '<div class="sl-body layout-image">' +
-      '<div class="sl-title">' + esc(title) + '</div>' +
+      '<div class="sl-title" data-inline="title" data-placeholder="Title">' + esc(title) + '</div>' +
       imgHtml +
-      (caption ? '<div class="sl-caption">' + esc(caption) + '</div>' : '') +
+      (caption ? '<div class="sl-caption" data-inline="bullet" data-idx="0" data-placeholder="Caption">' + esc(caption) + '</div>' : '') +
+      '<div class="gm-canvas-edit-hint">click to edit</div>' +
       '</div>';
   }
   if (layout === 'poll' || layout === 'quiz') {
@@ -1659,26 +1792,29 @@ function buildSlideHTML(s) {
       var text   = (b.length >= 3 && b[1] === ':') ? b.slice(3) : b;
       if (layout === 'poll') {
         return '<div class="sl-poll-opt"><span class="sl-poll-letter">' + esc(letter) +
-          '</span><span class="sl-poll-text">' + esc(text) + '</span>' +
+          '</span><span class="sl-poll-text" data-inline="bullet" data-idx="' + i + '" data-letter="' + esc(letter) + '">' + esc(text) + '</span>' +
           '<div class="sl-poll-bar" style="width:0%"></div></div>';
       } else {
         return '<div class="sl-quiz-opt"><span class="sl-quiz-letter">' + esc(letter) +
-          '</span><span class="sl-quiz-text">' + esc(text) + '</span></div>';
+          '</span><span class="sl-quiz-text" data-inline="bullet" data-idx="' + i + '" data-letter="' + esc(letter) + '">' + esc(text) + '</span></div>';
       }
     }).join('');
     return '<div class="sl-body layout-' + layout + '">' +
-      '<div class="' + qPrefix + '-question">' + esc(title) + '</div>' +
+      '<div class="' + qPrefix + '-question" data-inline="title" data-placeholder="Question">' + esc(title) + '</div>' +
       '<div class="' + qPrefix + '-opts">' + opts + '</div>' +
       (layout === 'poll' ? '<div class="sl-poll-total" style="display:none">0 responses</div>' : '') +
+      '<div class="gm-canvas-edit-hint">click to edit</div>' +
       '</div>';
   }
   // default: bullets
   return '<div class="sl-body layout-bullets">' +
     (emoji ? '<span style="font-size:clamp(.9rem,2vw,1.4rem);margin-bottom:.2em;">' + esc(emoji) + '</span>' : '') +
-    '<div class="sl-title">' + esc(title) + '</div>' +
+    '<div class="sl-title" data-inline="title" data-placeholder="Title">' + esc(title) + '</div>' +
     '<ul class="sl-bullets">' +
-    bullets.map(function(b) { return '<li>' + esc(b) + '</li>'; }).join('') +
-    '</ul></div>';
+    bullets.map(function(b, i) { return '<li data-inline="bullet" data-idx="' + i + '">' + esc(b) + '</li>'; }).join('') +
+    '</ul>' +
+    '<div class="gm-canvas-edit-hint">click to edit</div>' +
+    '</div>';
 }
 
 // ── Generate AI image for image-layout slide ────────────────────────────────────
