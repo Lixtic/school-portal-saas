@@ -628,6 +628,15 @@ html, body { height: 100%; margin: 0; }
         </div>
 
         <div class="gm-panel-section">
+          <div class="gm-panel-label"><i class="fas fa-magic"></i> Refine with AI</div>
+          <input type="text" class="gm-field" id="refineInstruction" placeholder="Optional: how to improve? e.g. simplify, add examples…" style="margin-bottom:.4rem;">
+          <button class="gm-ai-img-btn" id="refineBtn" onclick="refineSlide()">
+            <i class="fas fa-wand-magic-sparkles me-1"></i> Refine this Slide
+          </button>
+          <div id="refineStatus" style="font-size:.7rem;color:#94a3b8;margin-top:.4rem;display:none;"></div>
+        </div>
+
+        <div class="gm-panel-section">
           <div class="gm-panel-label"><i class="fas fa-th-large"></i> Layout</div>
           <div class="layout-picker" id="layoutPicker">
             {% for val, label in LAYOUT_CHOICES %}
@@ -1836,6 +1845,42 @@ function suggestBullets() {
     .finally(function() { btn.textContent = '✨'; btn.disabled = false; });
 }
 
+// ── AI refine single slide ────────────────────────────────────────────────────────────
+function refineSlide() {
+  if (!currentSlideId) return;
+  var instruction = (document.getElementById('refineInstruction')?.value || '').trim();
+  var btn    = document.getElementById('refineBtn');
+  var status = document.getElementById('refineStatus');
+  if (btn) btn.disabled = true;
+  if (status) { status.textContent = '⏳ Refining…'; status.style.display = 'block'; }
+  setSaveStatus('saving', '⏳ Refining slide…');
+  var sel = document.getElementById('aiSubject');
+  var subject = (sel && sel.selectedIndex > 0) ? sel.options[sel.selectedIndex].text : 'General';
+  api({ action: 'refine_slide', slide_id: currentSlideId, instruction: instruction, subject: subject })
+    .then(function(d) {
+      if (d.ok) {
+        var slide = slides.find(function(s) { return s.id == currentSlideId; });
+        if (slide) { slide.title = d.title; slide.content = d.content; }
+        var titleEl   = document.getElementById('panelTitle');
+        var contentEl = document.getElementById('panelContent');
+        if (titleEl)   titleEl.value   = d.title;
+        if (contentEl) contentEl.value = d.content;
+        if (typeof updateTitleCounter === 'function') updateTitleCounter();
+        if (slide) refreshCanvasSlide(slide);
+        setSaveStatus('saved', '✓ Slide refined');
+        if (status) { status.textContent = '✓ Done!'; setTimeout(function(){ status.style.display = 'none'; }, 2200); }
+      } else {
+        if (status) status.textContent = '⚠ ' + (d.error || 'Refine failed');
+        setSaveStatus('', '');
+      }
+    })
+    .catch(function() {
+      if (status) status.textContent = '⚠ Network error';
+      setSaveStatus('', '');
+    })
+    .finally(function() { if (btn) btn.disabled = false; });
+}
+
 function buildPanelHTML() {
   // Full panel HTML when it was showing "no slides"
   return `
@@ -1851,6 +1896,14 @@ function buildPanelHTML() {
     </div>
     <textarea class="gm-field" id="panelContent" rows="7" placeholder="One bullet per line…" oninput="debounceSaveSlide()"></textarea>
     <div style="font-size:.65rem;color:#475569;margin-top:4px;">Each line = one bullet</div>
+  </div>
+  <div class="gm-panel-section">
+    <div class="gm-panel-label"><i class="fas fa-magic"></i> Refine with AI</div>
+    <input type="text" class="gm-field" id="refineInstruction" placeholder="Optional: how to improve? e.g. simplify, add examples…" style="margin-bottom:.4rem;">
+    <button class="gm-ai-img-btn" id="refineBtn" onclick="refineSlide()">
+      <i class="fas fa-wand-magic-sparkles me-1"></i> Refine this Slide
+    </button>
+    <div id="refineStatus" style="font-size:.7rem;color:#94a3b8;margin-top:.4rem;display:none;"></div>
   </div>
   <div class="gm-panel-section">
     <div class="gm-panel-label"><i class="fas fa-th-large"></i> Layout</div>

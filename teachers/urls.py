@@ -106,6 +106,7 @@ urlpatterns = [
     path('live/<str:code>/state/', views.live_state, name='live_state'),
     path('live/<str:code>/vote/', views.live_vote, name='live_vote'),
     path('live/<str:code>/results/<int:slide_pk>/', views.live_results, name='live_results'),
+    path('live/<str:code>/time/', views.log_slide_time, name='log_slide_time'),
     path('presentations/<int:pk>/export-pptx/', views.presentation_export_pptx, name='presentation_export_pptx'),
     path('presentations/bulk-action/', views.presentation_bulk_action, name='presentation_bulk_action'),
 ]

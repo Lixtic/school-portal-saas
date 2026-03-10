@@ -219,6 +219,7 @@ class LiveSession(models.Model):
     code = models.CharField(max_length=8, unique=True)
     is_active = models.BooleanField(default=True)
     current_slide_order = models.IntegerField(default=0)
+    slide_time_data     = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

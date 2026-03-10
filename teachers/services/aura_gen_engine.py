@@ -995,6 +995,53 @@ Rules:
             return {'bullets': []}
 
     @staticmethod
+    def refine_slide(slide_data: dict, instruction: str = '', subject: str = 'General') -> Dict:
+        """
+        Improve a single slide's title and content while retaining the same topic.
+        Returns: {'title': '...', 'content': '...'}
+        """
+        from django.conf import settings
+        current_title   = slide_data.get('title', '')
+        current_content = slide_data.get('content', '')
+        layout          = slide_data.get('layout', 'bullets')
+        instruct_str    = f'Specific instruction: {instruction}\n' if instruction else ''
+        system_prompt = (
+            'You are an expert teacher improving a single classroom presentation slide. '
+            'Return a better version that is clearer, more engaging, and age-appropriate '
+            '(primary/secondary school). For bullet-style slides keep each bullet under '
+            '12 words and use no more than 6 bullets. Preserve the same topic. '
+            'Return ONLY JSON: {"title": "...", "content": "..."}'
+        )
+        user_msg = (
+            f'Subject: {subject}\n'
+            f'Layout: {layout}\n'
+            f'{instruct_str}'
+            f'Current title: {current_title}\n'
+            f'Current content:\n{current_content}'
+        )
+        try:
+            payload = {
+                'model': get_openai_chat_model(),
+                'messages': [
+                    {'role': 'system', 'content': system_prompt},
+                    {'role': 'user',   'content': user_msg},
+                ],
+                'response_format': {'type': 'json_object'},
+                'temperature': 0.75,
+                'max_tokens': 500,
+            }
+            response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
+            data = AuraGenEngine._extract_json_object(
+                response['choices'][0]['message']['content']
+            )
+            return {
+                'title':   data.get('title',   current_title)   or current_title,
+                'content': data.get('content', current_content) or current_content,
+            }
+        except Exception:
+            return {'title': current_title, 'content': current_content}
+
+    @staticmethod
     def _extract_json_object(raw_content: str) -> Dict:
         content = (raw_content or '').strip()
         if not content:

@@ -4129,6 +4129,34 @@ def live_results(request, code, slide_pk):
     return JsonResponse({'counts': counts, 'total': total})
 
 
+@require_POST
+def log_slide_time(request, code):
+    """Student reports seconds spent on a slide. No authentication required."""
+    import json as _json
+    from .models import LiveSession
+    try:
+        data = _json.loads(request.body)
+    except Exception:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    slide_pk = str(data.get('slide_pk', '') or '').strip()
+    try:
+        seconds = int(data.get('seconds', 0))
+    except (TypeError, ValueError):
+        seconds = 0
+    # Silently ignore bad data rather than erroring on the student
+    if not slide_pk or seconds <= 0 or seconds > 3600:
+        return JsonResponse({'ok': True})
+    try:
+        session = LiveSession.objects.get(code=code)
+    except LiveSession.DoesNotExist:
+        return JsonResponse({'ok': True})
+    time_data = session.slide_time_data or {}
+    time_data[slide_pk] = time_data.get(slide_pk, 0) + seconds
+    session.slide_time_data = time_data
+    session.save(update_fields=['slide_time_data'])
+    return JsonResponse({'ok': True})
+
+
 @login_required
 @require_POST
 def presentation_api(request):
@@ -4506,6 +4534,24 @@ def presentation_api(request):
             } for sl in new_slides],
         })
 
+    # ── refine_slide ─────────────────────────────────────────────────────────
+    elif action == 'refine_slide':
+        slide_id    = data.get('slide_id')
+        instruction = data.get('instruction', '').strip()
+        slide       = get_object_or_404(Slide, pk=slide_id, presentation=deck)
+        from teachers.services.aura_gen_engine import AuraGenEngine
+        subject_name = deck.subject.name if deck.subject else 'General'
+        result = AuraGenEngine.refine_slide(
+            {'title': slide.title, 'content': slide.content, 'layout': slide.layout},
+            instruction,
+            subject_name,
+        )
+        slide.title   = result['title']
+        slide.content = result['content']
+        slide.save()
+        deck.save()
+        return JsonResponse({'ok': True, 'title': result['title'], 'content': result['content']})
+
     return JsonResponse({'error': f'Unknown action: {action}'}, status=400)
 
 
@@ -4736,6 +4782,34 @@ def presentation_lesson_plans(request):
 # SLIDE DECK v1.9 — Session Analytics, Share Links, Image Upload
 # ═══════════════════════════════════════════════════════════════════════════════
 
+def _build_time_data(session, deck):
+    """Return a sorted list of {slide, seconds, duration, pct} dicts for time-on-slide display."""
+    raw = session.slide_time_data or {}
+    entries = []
+    for pk_str, secs in raw.items():
+        if not secs or secs <= 0:
+            continue
+        try:
+            slide_obj = deck.slides.filter(pk=int(pk_str)).first()
+        except (ValueError, TypeError):
+            continue
+        if not slide_obj:
+            continue
+        m, s = divmod(int(secs), 60)
+        entries.append({
+            'slide':    slide_obj,
+            'seconds':  secs,
+            'duration': f'{m}m {s}s' if m else f'{s}s',
+            'pct':      0,
+        })
+    entries.sort(key=lambda x: x['slide'].order)
+    if entries:
+        max_s = max(e['seconds'] for e in entries)
+        for e in entries:
+            e['pct'] = round(e['seconds'] / max_s * 100) if max_s else 0
+    return entries
+
+
 @login_required
 def presentation_session_report(request, pk):
     """Post-session analytics: all past live sessions for a deck with per-slide poll results."""
@@ -4788,6 +4862,7 @@ def presentation_session_report(request, pk):
             'session': sess,
             'participants': participants,
             'slide_stats': slide_stats,
+            'time_data': _build_time_data(sess, deck),
         })
 
     return render(request, 'teachers/presentations/session_report.html', {

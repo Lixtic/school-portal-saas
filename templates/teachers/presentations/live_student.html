@@ -84,18 +84,36 @@ html, body { min-height: 100%; font-family: system-ui, -apple-system, sans-serif
 </div>
 
 <script>
-var SESSION_CODE = '{{ code }}';
-var STATE_URL  = '{% url "teachers:live_state" code %}';
-var VOTE_URL   = '{% url "teachers:live_vote" code %}';
+var SESSION_CODE    = '{{ code }}';
+var STATE_URL       = '{% url "teachers:live_state" code %}';
+var VOTE_URL        = '{% url "teachers:live_vote" code %}';
 var RESULTS_URL_TPL = '{% url "teachers:live_results" code 0 %}'.replace('/0/', '/SLIDE_PK/');
+var LOG_TIME_URL    = '{% url "teachers:log_slide_time" code %}';
 
-var lastSlideOrder = null;
-var votedSlides = {};   // slidePk -> choice voted
-var currentSlidePk = null;
-var currentLayout = null;
+var lastSlideOrder  = null;
+var votedSlides     = {};   // slidePk -> choice voted
+var currentSlidePk  = null;
+var currentLayout   = null;
+var _slideTimePk    = null;   // pk of the slide currently being timed
+var _slideStartTime = null;   // Date.now() when current slide appeared
 
 function getCsrf() {
   return (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '';
+}
+
+function _logCurrentSlideTime() {
+  if (!_slideTimePk || !_slideStartTime) return;
+  var elapsed = Math.round((Date.now() - _slideStartTime) / 1000);
+  if (elapsed <= 0) return;
+  var pk = _slideTimePk;
+  _slideTimePk    = null;
+  _slideStartTime = null;
+  fetch(LOG_TIME_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+    credentials: 'same-origin',
+    body: JSON.stringify({ slide_pk: pk, seconds: elapsed }),
+  }).catch(function() {});
 }
 
 function fetchState() {
@@ -103,17 +121,25 @@ function fetchState() {
     .then(function(r) { return r.json(); })
     .then(function(d) {
       if (!d.is_active) {
+        _logCurrentSlideTime();
         renderEnded();
         return;
       }
-      currentSlidePk = d.slide_pk || null;
+      var newSlidePk = d.slide_pk || null;
       currentLayout  = d.layout || 'bullets';
       if (d.current_slide_order !== lastSlideOrder) {
-        lastSlideOrder = d.current_slide_order;
+        _logCurrentSlideTime();
+        _slideTimePk    = newSlidePk;
+        _slideStartTime = Date.now();
+        currentSlidePk  = newSlidePk;
+        lastSlideOrder  = d.current_slide_order;
         renderSlide(d);
-      } else if ((currentLayout === 'poll' || currentLayout === 'quiz') && currentSlidePk && votedSlides[currentSlidePk]) {
-        // Already voted — refresh result bars
-        fetchResults(currentSlidePk);
+      } else {
+        currentSlidePk = newSlidePk;
+        if ((currentLayout === 'poll' || currentLayout === 'quiz') && currentSlidePk && votedSlides[currentSlidePk]) {
+          // Already voted — refresh result bars
+          fetchResults(currentSlidePk);
+        }
       }
     })
     .catch(function() {});
