@@ -98,6 +98,7 @@ urlpatterns = [
     path('presentations/<int:pk>/print/', views.presentation_print, name='presentation_print'),
     path('presentations/<int:pk>/delete/', views.presentation_delete, name='presentation_delete'),
     path('presentations/<int:pk>/sessions/', views.presentation_session_report, name='presentation_session_report'),
+    path('presentations/<int:pk>/study-guide/', views.presentation_study_guide, name='presentation_study_guide'),
     path('presentations/<int:pk>/start-live/', views.start_live_session, name='start_live_session'),
     path('presentations/<int:pk>/end-live/', views.end_live_session, name='end_live_session'),
     path('presentations/<int:pk>/update-live/', views.update_live_slide, name='update_live_slide'),

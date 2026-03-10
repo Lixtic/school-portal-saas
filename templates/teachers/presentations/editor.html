@@ -226,7 +226,15 @@ html, body { height: 100%; margin: 0; }
 .layout-image .sl-image-placeholder { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5em; border: 2px dashed rgba(255,255,255,.15); border-radius: 10px; color: rgba(255,255,255,.3); font-size: .7rem; }
 .layout-image .sl-image-placeholder i { font-size: 1.8rem; opacity: .5; }
 .layout-image .sl-caption { font-size: clamp(.5rem, 1.2vw, .75rem); color: rgba(255,255,255,.45); margin-top: .4em; text-align: center; }
-/* Poll layout */
+/* Video layout */
+.layout-video .sl-body { flex: 1; display: flex; flex-direction: column; padding: 3% 4%; }
+.layout-video .sl-title { font-size: clamp(.9rem, 2.5vw, 1.8rem); font-weight: 800; color: #f1f5f9; margin-bottom: .4em; }
+.layout-video .sl-video-wrap { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; overflow: hidden; border-radius: 8px; position: relative; }
+.layout-video .sl-video-thumb { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; }
+.layout-video .sl-video-play { position: absolute; width: 2.2rem; height: 2.2rem; background: rgba(0,0,0,.55); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.1rem; pointer-events: none; }
+.layout-video .sl-video-placeholder { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5em; border: 2px dashed rgba(255,255,255,.15); border-radius: 10px; color: rgba(255,255,255,.3); font-size: .7rem; width: 100%; }
+.layout-video .sl-video-placeholder i { font-size: 2rem; opacity: .5; }
+.layout-video .sl-caption { font-size: clamp(.5rem, 1.2vw, .75rem); color: rgba(255,255,255,.45); margin-top: .4em; text-align: center; }
 .layout-poll .sl-body, .layout-quiz .sl-body { flex: 1; display: flex; flex-direction: column; padding: 3% 4%; gap: .5em; }
 .sl-poll-question, .sl-quiz-question { font-size: clamp(.85rem, 2.2vw, 1.6rem); font-weight: 800; color: #f1f5f9; margin-bottom: .3em; }
 .sl-poll-opts, .sl-quiz-opts { display: flex; flex-direction: column; gap: .35em; flex: 1; }
@@ -600,7 +608,7 @@ html, body { height: 100%; margin: 0; }
           <div class="layout-picker" id="layoutPicker">
             {% for val, label in LAYOUT_CHOICES %}
             <button class="layout-pick-btn" data-layout="{{ val }}" onclick="setLayout('{{ val }}')">
-              <i class="fas {% if val == 'title' %}fa-star{% elif val == 'bullets' %}fa-list{% elif val == 'two_col' %}fa-columns{% elif val == 'big_stat' %}fa-sort-numeric-up{% elif val == 'quote' %}fa-quote-left{% elif val == 'image' %}fa-image{% else %}fa-check-circle{% endif %}"></i>
+              <i class="fas {% if val == 'title' %}fa-star{% elif val == 'bullets' %}fa-list{% elif val == 'two_col' %}fa-columns{% elif val == 'big_stat' %}fa-sort-numeric-up{% elif val == 'quote' %}fa-quote-left{% elif val == 'image' %}fa-image{% elif val == 'poll' %}fa-poll{% elif val == 'quiz' %}fa-question-circle{% elif val == 'video' %}fa-film{% else %}fa-check-circle{% endif %}"></i>
               <span>{{ label }}</span>
             </button>
             {% endfor %}
@@ -629,6 +637,15 @@ html, body { height: 100%; margin: 0; }
           <div id="imgGenStatus" style="font-size:.7rem;color:#94a3b8;margin-top:.4rem;display:none;"></div>
           <div style="font-size:.65rem;color:#475569;margin-top:.5rem;display:flex;align-items:center;justify-content:space-between;">Or paste an image URL: <label title="Upload from disk" style="cursor:pointer;color:#94a3b8;font-size:.7rem;"><i class="fas fa-upload me-1"></i>Upload<input type="file" id="imgFileInput" accept="image/*" style="display:none;"></label></div>
           <input type="text" class="gm-field" id="imageUrlInput" placeholder="https://…" style="margin-top:4px;" oninput="saveImageUrl()">
+        </div>
+        <div class="gm-panel-section" id="videoSection" style="display:none">
+          <div class="gm-panel-label"><i class="fas fa-film"></i> Video URL</div>
+          <div style="font-size:.65rem;color:#64748b;margin-bottom:.5rem;line-height:1.5;">Paste a YouTube URL.<br><code style="font-size:.6rem;background:rgba(99,102,241,.12);padding:.1em .3em;border-radius:3px;">https://youtu.be/VIDEO_ID</code></div>
+          <input type="text" class="gm-field" id="videoUrlInput" placeholder="https://youtube.com/watch?v=…" style="margin-top:4px;" oninput="saveVideoUrl()">
+          <div id="videoThumbPreview" style="margin-top:.5rem;display:none;position:relative;border-radius:6px;overflow:hidden;">
+            <img id="videoThumbImg" src="" alt="" style="width:100%;max-height:90px;object-fit:cover;display:block;border-radius:6px;">
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;"><i class="fas fa-play-circle" style="font-size:2rem;color:rgba(255,255,255,.8);"></i></div>
+          </div>
         </div>
         <div class="gm-panel-section" id="pollSection" style="display:none">
           <div class="gm-panel-label"><i class="fas fa-poll"></i> Poll / Quiz Setup</div>
@@ -864,6 +881,13 @@ function selectSlide(slideId) {
     }
     document.getElementById('imgGenStatus').style.display = 'none';
   }
+  // video section
+  var videoSec = document.getElementById('videoSection');
+  if (videoSec) {
+    videoSec.style.display = slide.layout === 'video' ? 'block' : 'none';
+    document.getElementById('videoUrlInput').value = slide.image_url || '';
+    updateVideoThumb(slide.image_url || '');
+  }
   // poll section
   var pollSec = document.getElementById('pollSection');
   var isPoll = (slide.layout === 'poll' || slide.layout === 'quiz');
@@ -921,6 +945,9 @@ function setLayout(layout) {
       // show/hide image section
       var imgSec = document.getElementById('imageSection');
       if (imgSec) imgSec.style.display = layout === 'image' ? 'block' : 'none';
+      // show/hide video section
+      var videoSec = document.getElementById('videoSection');
+      if (videoSec) videoSec.style.display = layout === 'video' ? 'block' : 'none';
       // show/hide poll section
       var pollSec = document.getElementById('pollSection');
       var isPoll = (layout === 'poll' || layout === 'quiz');
@@ -1558,6 +1585,17 @@ function buildSlideHTML(s) {
       bullets.map(function(b) { return '<li>' + esc(b) + '</li>'; }).join('') +
       '</ul></div>';
   }
+  if (layout === 'video') {
+    var vUrl = s.image_url || '';
+    var vm = vUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?\/\s]+)/);
+    var vInner = vm
+      ? '<img class="sl-video-thumb" src="https://img.youtube.com/vi/' + vm[1] + '/mqdefault.jpg" alt="video"><div class="sl-video-play"><i class="fas fa-play"></i></div>'
+      : '<div class="sl-video-placeholder"><i class="fas fa-film"></i><span>Paste a YouTube URL →</span></div>';
+    return '<div class="sl-body layout-video">' +
+      '<div class="sl-title">' + esc(title) + '</div>' +
+      '<div class="sl-video-wrap">' + vInner + '</div>' +
+      '</div>';
+  }
   if (layout === 'image') {
     var imgUrl = s.image_url || '';
     var caption = bullets.length ? bullets[0] : '';
@@ -1627,6 +1665,34 @@ function generateSlideImage() {
 
 // ── Save image URL typed manually ───────────────────────────────────────────────────
 var imgUrlSaveTimer = null;
+function updateVideoThumb(url) {
+  var thumb = document.getElementById('videoThumbPreview');
+  var img   = document.getElementById('videoThumbImg');
+  if (!thumb || !img) return;
+  var m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?\/\s]+)/);
+  if (m) {
+    img.src = 'https://img.youtube.com/vi/' + m[1] + '/mqdefault.jpg';
+    thumb.style.display = 'block';
+  } else {
+    thumb.style.display = 'none';
+  }
+}
+
+function saveVideoUrl() {
+  var url = document.getElementById('videoUrlInput').value.trim();
+  updateVideoThumb(url);
+  var slide = slides.find(function(s) { return s.id == currentSlideId; });
+  if (!slide) return;
+  slide.image_url = url;
+  refreshCanvasSlide(slide);
+  clearTimeout(imgUrlSaveTimer);
+  setSaveStatus('saving', '⏳ Saving…');
+  imgUrlSaveTimer = setTimeout(function() {
+    api({ action: 'save_slide', slide_id: currentSlideId, image_url: url })
+      .then(function() { setSaveStatus('saved', '✓ All changes saved'); });
+  }, 800);
+}
+
 function saveImageUrl() {
   var url = document.getElementById('imageUrlInput').value.trim();
   var status = document.getElementById('imgGenStatus');
@@ -1758,6 +1824,7 @@ function buildPanelHTML() {
       <button class="layout-pick-btn" data-layout="quote" onclick="setLayout('quote')"><i class="fas fa-quote-left"></i><span>Quote</span></button>
       <button class="layout-pick-btn" data-layout="summary" onclick="setLayout('summary')"><i class="fas fa-check-circle"></i><span>Summary</span></button>
       <button class="layout-pick-btn" data-layout="image" onclick="setLayout('image')"><i class="fas fa-image"></i><span>Image</span></button>
+      <button class="layout-pick-btn" data-layout="video" onclick="setLayout('video')"><i class="fas fa-film"></i><span>Video</span></button>
       <button class="layout-pick-btn" data-layout="poll" onclick="setLayout('poll')"><i class="fas fa-poll"></i><span>Live Poll</span></button>
       <button class="layout-pick-btn" data-layout="quiz" onclick="setLayout('quiz')"><i class="fas fa-question-circle"></i><span>Quiz</span></button>
     </div>
@@ -1782,6 +1849,15 @@ function buildPanelHTML() {
     <div id="imgGenStatus" style="font-size:.7rem;color:#94a3b8;margin-top:.4rem;display:none;"></div>
     <div style="font-size:.65rem;color:#475569;margin-top:.5rem;display:flex;align-items:center;justify-content:space-between;">Or paste an image URL: <label title="Upload from disk" style="cursor:pointer;color:#94a3b8;font-size:.7rem;"><i class="fas fa-upload me-1"></i>Upload<input type="file" id="imgFileInput" accept="image/*" style="display:none;"></label></div>
     <input type="text" class="gm-field" id="imageUrlInput" placeholder="https://…" style="margin-top:4px;" oninput="saveImageUrl()">
+  </div>
+  <div class="gm-panel-section" id="videoSection" style="display:none">
+    <div class="gm-panel-label"><i class="fas fa-film"></i> Video URL</div>
+    <div style="font-size:.65rem;color:#64748b;margin-bottom:.5rem;line-height:1.5;">Paste a YouTube URL.<br><code style="font-size:.6rem;background:rgba(99,102,241,.12);padding:.1em .3em;border-radius:3px;">https://youtu.be/VIDEO_ID</code></div>
+    <input type="text" class="gm-field" id="videoUrlInput" placeholder="https://youtube.com/watch?v=…" style="margin-top:4px;" oninput="saveVideoUrl()">
+    <div id="videoThumbPreview" style="margin-top:.5rem;display:none;position:relative;border-radius:6px;overflow:hidden;">
+      <img id="videoThumbImg" src="" alt="" style="width:100%;max-height:90px;object-fit:cover;display:block;border-radius:6px;">
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;"><i class="fas fa-play-circle" style="font-size:2rem;color:rgba(255,255,255,.8);"></i></div>
+    </div>
   </div>
   <div class="gm-panel-section" id="pollSection" style="display:none">
     <div class="gm-panel-label"><i class="fas fa-poll"></i> Poll / Quiz Setup</div>

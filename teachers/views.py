@@ -4826,3 +4826,14 @@ def presentation_slide_image_upload(request):
     path = default_storage.save(filename, ContentFile(image_file.read()))
     url = request.build_absolute_uri(default_storage.url(path))
     return JsonResponse({'url': url})
+
+
+@login_required
+def presentation_study_guide(request, pk):
+    teacher = get_object_or_404(Teacher, user=request.user)
+    deck = get_object_or_404(Presentation, pk=pk, teacher=teacher)
+    slides = deck.slides.all()
+    return render(request, 'teachers/presentations/study_guide.html', {
+        'deck': deck,
+        'slides': slides,
+    })

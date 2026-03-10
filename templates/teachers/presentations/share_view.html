@@ -79,7 +79,12 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 .layout-image .sl-image { max-width:100%; max-height:100%; object-fit:contain; border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,.35); }
 .layout-image .sl-caption { font-size:clamp(.8rem,1.8vw,1.2rem); color:rgba(255,255,255,.45); margin-top:.5em; text-align:center; }
 
-.layout-poll, .layout-quiz { padding:4vw 5vw 3vw; }
+.layout-video { padding:4vw 5vw 3vw; }
+.layout-video .sl-title { font-size:clamp(1.8rem,4vw,3rem); font-weight:800; color:#f1f5f9; margin-bottom:.5em; }
+.layout-video .sl-video-wrap { flex:1; display:flex; align-items:center; justify-content:center; min-height:0; overflow:hidden; border-radius:12px; }
+.layout-video .sl-video-wrap iframe { width:100%; height:100%; border:none; border-radius:12px; }
+.layout-video .sl-video-placeholder { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1em; border:2px dashed rgba(255,255,255,.2); border-radius:16px; color:rgba(255,255,255,.3); font-size:1.2rem; width:100%; }
+.layout-video .sl-caption { font-size:clamp(.8rem,1.8vw,1.2rem); color:rgba(255,255,255,.45); margin-top:.5em; text-align:center; }
 .sl-poll-question, .sl-quiz-question { font-size:clamp(1.5rem,3.5vw,2.8rem); font-weight:800; color:#f1f5f9; margin-bottom:.6em; }
 .sl-poll-opts, .sl-quiz-opts { display:flex; flex-direction:column; gap:.5em; flex:1; }
 .sl-poll-opt, .sl-quiz-opt { display:flex; align-items:center; gap:.7em; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); border-radius:12px; padding:.6em 1em; font-size:clamp(1rem,2.2vw,1.5rem); color:#e2e8f0; }
@@ -157,13 +162,29 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
   const total  = slides.length;
   let   cur    = 0;
 
+  function toEmbedUrl(url) {
+    if (!url) return null;
+    var m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?\/\s]+)/);
+    if (m) return 'https://www.youtube.com/embed/' + m[1] + '?rel=0';
+    if (/youtube\.com\/embed\//.test(url)) return url;
+    return null;
+  }
+  function activateVideo(wrap) {
+    var embed = toEmbedUrl(wrap.dataset.video);
+    if (embed) wrap.innerHTML = '<iframe src="' + embed + '" frameborder="0" allowfullscreen allow="autoplay;encrypted-media" style="width:100%;height:100%;border:none;border-radius:12px;"></iframe>';
+  }
+
   function go(n) {
     if (n < 0 || n >= total) return;
+    var fi = slides[cur].querySelector('.sl-video-wrap iframe');
+    if (fi) fi.src = '';
     slides[cur].classList.remove('active');
     cur = n;
     slides[cur].classList.add('active');
     document.getElementById('counter').textContent = (cur+1) + ' / ' + total;
     document.getElementById('progressFill').style.width = ((cur+1)/total*100) + '%';
+    var vw = slides[cur].querySelector('.sl-video-wrap[data-video]');
+    if (vw && !vw.querySelector('iframe')) activateVideo(vw);
   }
 
   document.getElementById('prevBtn').addEventListener('click', () => go(cur-1));

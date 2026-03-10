@@ -170,6 +170,7 @@ class Slide(models.Model):
         ('image',    'Image + Caption'),
         ('poll',     'Live Poll'),
         ('quiz',     'Quiz Reveal'),
+        ('video',    'Embedded Video'),
     ]
     presentation  = models.ForeignKey(Presentation, on_delete=models.CASCADE, related_name='slides')
     order         = models.PositiveIntegerField(default=0)

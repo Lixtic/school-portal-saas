@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ deck.title }} — Study Guide</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; color: #1e293b; }
+
+.sg-header {
+  background: linear-gradient(135deg, #1e0a40 0%, #0c1a4a 100%);
+  color: #fff; padding: 2rem 2.5rem 1.5rem;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
+}
+.sg-header-left h1 { font-size: 1.6rem; font-weight: 900; margin-bottom: .3rem; }
+.sg-header-left p  { font-size: .8rem; color: rgba(255,255,255,.55); }
+.sg-header-actions { display: flex; gap: .6rem; align-items: center; }
+.sg-btn {
+  background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2);
+  color: #fff; border-radius: 8px; padding: .45rem 1rem;
+  font-size: .78rem; font-weight: 600; cursor: pointer; text-decoration: none;
+  display: inline-flex; align-items: center; gap: .4rem; transition: background .15s;
+}
+.sg-btn:hover { background: rgba(255,255,255,.2); }
+.sg-btn.primary { background: #7c3aed; border-color: #7c3aed; }
+.sg-btn.primary:hover { background: #6d28d9; }
+
+.sg-meta { font-size: .72rem; color: rgba(255,255,255,.4); margin-top: .8rem;
+  display: flex; gap: 1.5rem; }
+.sg-meta span { display: flex; align-items: center; gap: .3rem; }
+
+.sg-body { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+.sg-count { font-size: .7rem; font-weight: 700; letter-spacing: .1em; color: #94a3b8;
+  text-transform: uppercase; margin-bottom: 1.2rem; }
+
+.sg-card {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+  margin-bottom: 1rem; overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
+  page-break-inside: avoid; break-inside: avoid;
+}
+.sg-card-head {
+  display: flex; align-items: center; gap: .75rem;
+  padding: .75rem 1.1rem; border-bottom: 1px solid #f1f5f9;
+  background: #fafafa;
+}
+.sg-num {
+  width: 1.8rem; height: 1.8rem; border-radius: 50%;
+  background: #7c3aed; color: #fff; font-size: .72rem; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.sg-layout-badge {
+  font-size: .6rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: #94a3b8; background: #f1f5f9; border-radius: 20px; padding: .2em .65em;
+}
+.sg-title { font-size: .95rem; font-weight: 700; color: #1e293b; flex: 1; }
+.sg-emoji { font-size: 1.1rem; }
+
+.sg-card-body { padding: .9rem 1.1rem; display: grid; grid-template-columns: 1fr; gap: .7rem; }
+.sg-card-body.has-notes { grid-template-columns: 3fr 2fr; }
+
+.sg-content h4 { font-size: .65rem; font-weight: 800; letter-spacing: .1em;
+  color: #7c3aed; text-transform: uppercase; margin-bottom: .4rem; }
+.sg-bullets { list-style: none; display: flex; flex-direction: column; gap: .25rem; }
+.sg-bullets li { font-size: .82rem; color: #334155; line-height: 1.45;
+  display: flex; align-items: flex-start; gap: .4em; }
+.sg-bullets li::before { content: '▸'; color: #7c3aed; flex-shrink: 0; margin-top: .1em; }
+.sg-plain { font-size: .82rem; color: #334155; line-height: 1.55; white-space: pre-wrap; }
+.sg-video-note { font-size: .78rem; color: #64748b; display: flex; align-items: center; gap: .4em; }
+.sg-image-thumb { max-width: 100%; max-height: 120px; border-radius: 6px; object-fit: contain; margin-top: .3rem; }
+
+.sg-notes { border-left: 3px solid #e0e7ff; padding-left: .8rem; }
+.sg-notes h4 { font-size: .65rem; font-weight: 800; letter-spacing: .1em;
+  color: #64748b; text-transform: uppercase; margin-bottom: .4rem; }
+.sg-notes p { font-size: .78rem; color: #475569; line-height: 1.5; white-space: pre-wrap; }
+.sg-notes.empty p { color: #cbd5e1; font-style: italic; font-size: .74rem; }
+
+.sg-footer {
+  text-align: center; padding: 1.2rem; font-size: .7rem; color: #94a3b8;
+  border-top: 1px solid #e2e8f0; margin-top: 1.5rem;
+}
+
+@media print {
+  body { background: #fff !important; }
+  .sg-header-actions { display: none !important; }
+  .sg-header { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .sg-card { box-shadow: none !important; border-color: #e2e8f0 !important; }
+  .sg-num { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  @page { size: A4; margin: 1.5cm 1.8cm; }
+}
+</style>
+</head>
+<body>
+
+<div class="sg-header">
+  <div class="sg-header-left">
+    <h1><i class="fas fa-book-open me-2" style="font-size:.9em;opacity:.8;"></i>{{ deck.title }}</h1>
+    <p>Study Guide &mdash; {{ slides|length }} slide{{ slides|length|pluralize }}</p>
+    <div class="sg-meta">
+      {% if deck.subject %}<span><i class="fas fa-flask"></i>{{ deck.subject.name }}</span>{% endif %}
+      {% if deck.school_class %}<span><i class="fas fa-users"></i>{{ deck.school_class.name }}</span>{% endif %}
+      <span><i class="fas fa-calendar-alt"></i>{{ deck.updated_at|date:"N j, Y" }}</span>
+    </div>
+  </div>
+  <div class="sg-header-actions">
+    <a href="{% url 'teachers:presentation_editor' deck.pk %}" class="sg-btn">
+      <i class="fas fa-arrow-left"></i> Back to Editor
+    </a>
+    <button onclick="window.print()" class="sg-btn primary">
+      <i class="fas fa-print"></i> Print / Save PDF
+    </button>
+  </div>
+</div>
+
+<div class="sg-body">
+  <div class="sg-count">{{ slides|length }} slide{{ slides|length|pluralize }}</div>
+
+  {% for slide in slides %}
+  <div class="sg-card">
+    <div class="sg-card-head">
+      <div class="sg-num">{{ forloop.counter }}</div>
+      {% if slide.emoji %}<span class="sg-emoji">{{ slide.emoji }}</span>{% endif %}
+      <div class="sg-title">{{ slide.title|default:"(no title)" }}</div>
+      <span class="sg-layout-badge">{{ slide.get_layout_display }}</span>
+    </div>
+
+    <div class="sg-card-body{% if slide.speaker_notes %} has-notes{% endif %}">
+      <div class="sg-content">
+        {% if slide.layout == 'image' %}
+          <h4>Image Slide</h4>
+          {% if slide.image_url %}
+          <img src="{{ slide.image_url }}" class="sg-image-thumb" alt="{{ slide.title }}">
+          {% endif %}
+          {% if slide.bullets %}
+          <ul class="sg-bullets" style="margin-top:.5rem;">{% for b in slide.bullets %}<li>{{ b }}</li>{% endfor %}</ul>
+          {% endif %}
+        {% elif slide.layout == 'video' %}
+          <h4>Video Slide</h4>
+          {% if slide.image_url %}
+          <div class="sg-video-note">
+            <i class="fas fa-film" style="color:#7c3aed;"></i>
+            <a href="{{ slide.image_url }}" target="_blank" style="color:#7c3aed;word-break:break-all;">{{ slide.image_url }}</a>
+          </div>
+          {% endif %}
+          {% if slide.bullets %}<ul class="sg-bullets" style="margin-top:.5rem;">{% for b in slide.bullets %}<li>{{ b }}</li>{% endfor %}</ul>{% endif %}
+        {% elif slide.layout == 'big_stat' %}
+          <h4>Key Stat</h4>
+          <p class="sg-plain" style="font-size:1.5rem;font-weight:900;color:#7c3aed;">{{ slide.bullets|first|default:"—" }}</p>
+          {% if slide.bullets|length > 1 %}<p class="sg-plain" style="margin-top:.3rem;">{{ slide.bullets.1 }}</p>{% endif %}
+        {% elif slide.layout == 'quote' %}
+          <h4>Quote</h4>
+          <p class="sg-plain" style="font-style:italic;color:#334155;">&ldquo;{{ slide.title }}&rdquo;</p>
+          {% with attr=slide.bullets|first %}{% if attr %}<p class="sg-plain" style="margin-top:.3rem;color:#64748b;">— {{ attr }}</p>{% endif %}{% endwith %}
+        {% elif slide.layout == 'poll' or slide.layout == 'quiz' %}
+          <h4>{% if slide.layout == 'quiz' %}Quiz Question{% else %}Poll{% endif %}</h4>
+          <ul class="sg-bullets">
+            {% for b in slide.bullets %}<li>{{ b }}</li>{% endfor %}
+          </ul>
+        {% elif slide.bullets %}
+          <h4>Points</h4>
+          <ul class="sg-bullets">
+            {% for b in slide.bullets %}<li>{{ b }}</li>{% endfor %}
+          </ul>
+        {% else %}
+          <p class="sg-plain" style="color:#cbd5e1;font-style:italic;font-size:.75rem;">(no content)</p>
+        {% endif %}
+      </div>
+
+      {% if slide.speaker_notes %}
+      <div class="sg-notes">
+        <h4>Notes</h4>
+        <p>{{ slide.speaker_notes }}</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% empty %}
+  <div style="text-align:center;padding:3rem;color:#94a3b8;">
+    <i class="fas fa-layer-group" style="font-size:3rem;display:block;margin-bottom:1rem;opacity:.4;"></i>
+    No slides in this deck yet.
+  </div>
+  {% endfor %}
+
+  <div class="sg-footer">
+    Generated from <strong>{{ deck.title }}</strong> &mdash; {{ deck.teacher.user.get_full_name|default:deck.teacher.user.username }}
+  </div>
+</div>
+
+</body>
+</html>

@@ -93,7 +93,12 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 .layout-image .sl-image-placeholder i { font-size: 5rem; opacity: .3; }
 .layout-image .sl-caption { font-size: clamp(.8rem, 1.8vw, 1.2rem); color: rgba(255,255,255,.45); margin-top: .5em; text-align: center; }
 
-/* ── Poll / Quiz layouts (full-screen) ── */
+.layout-video { padding: 4vw 5vw 3vw; }
+.layout-video .sl-title { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 800; color: #f1f5f9; margin-bottom: .5em; }
+.layout-video .sl-video-wrap { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; overflow: hidden; border-radius: 12px; }
+.layout-video .sl-video-wrap iframe { width: 100%; height: 100%; border: none; border-radius: 12px; }
+.layout-video .sl-video-placeholder { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1em; border: 2px dashed rgba(255,255,255,.2); border-radius: 16px; color: rgba(255,255,255,.3); font-size: 1.2rem; width: 100%; }
+.layout-video .sl-caption { font-size: clamp(.8rem, 1.8vw, 1.2rem); color: rgba(255,255,255,.45); margin-top: .5em; text-align: center; }
 .layout-poll, .layout-quiz { padding: 4vw 5vw 3vw; }
 .sl-poll-question, .sl-quiz-question { font-size: clamp(1.5rem, 3.5vw, 2.8rem); font-weight: 800; color: #f1f5f9; margin-bottom: .6em; }
 .sl-poll-opts, .sl-quiz-opts { display: flex; flex-direction: column; gap: .5em; flex: 1; }
@@ -633,9 +638,23 @@ function updatePresenterPanel(n) {
 // Set initial progress bar width
 document.getElementById('progressFill').style.width = (total > 0 ? Math.round(1/total*100) : 100) + '%';
 
+function toEmbedUrl(url) {
+  if (!url) return null;
+  var m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?\/\s]+)/);
+  if (m) return 'https://www.youtube.com/embed/' + m[1] + '?rel=0';
+  if (/youtube\.com\/embed\//.test(url)) return url;
+  return null;
+}
+function activateVideo(wrap) {
+  var embed = toEmbedUrl(wrap.dataset.video);
+  if (embed) wrap.innerHTML = '<iframe src="' + embed + '" frameborder="0" allowfullscreen allow="autoplay;encrypted-media" style="width:100%;height:100%;border:none;border-radius:12px;"></iframe>';
+}
 function goTo(n) {
   if (n < 0 || n >= total) return;
   var allSlides = document.querySelectorAll('.ps-slide');
+  // pause video in current slide
+  var leaving = allSlides[current];
+  if (leaving) { var fi = leaving.querySelector('.sl-video-wrap iframe'); if (fi) fi.src = ''; }
   allSlides.forEach(function(s) { s.classList.remove('active'); });
   allSlides[n].classList.add('active');
   current = n;
@@ -646,6 +665,9 @@ function goTo(n) {
   var notes = (allSlides[n].dataset.notes || '').trim();
   var overlay = document.getElementById('notesOverlay');
   overlay.textContent = notes || '(no speaker notes)';
+  // activate video in new slide
+  var vw = allSlides[n].querySelector('.sl-video-wrap[data-video]');
+  if (vw && !vw.querySelector('iframe')) activateVideo(vw);
 }
 function nextSlide() { goTo(current + 1); }
 function prevSlide() { goTo(current - 1); }
@@ -739,6 +761,8 @@ goTo = function(n) {
   if (changed) startSlideTimer();
 };
 startSlideTimer();
+// Activate video on first slide if applicable
+(function() { var vw = document.querySelector('.ps-slide.active .sl-video-wrap[data-video]'); if (vw) activateVideo(vw); })();
 // Broadcast slide changes to audience window + update presenter panel
 (function() {
   var _bcGoTo = goTo;

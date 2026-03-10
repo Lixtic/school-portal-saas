@@ -89,6 +89,26 @@
     <div class="sl-quiz-answer-badge">✓ Answer revealed — press R to reveal</div>
   </div>
 </div>
+{% elif slide.layout == "video" %}
+<div class="sl-body layout-video">
+  <div class="sl-title">{{ slide.title }}</div>
+  <div class="sl-video-wrap"{% if slide.image_url %} data-video="{{ slide.image_url }}"{% endif %}>
+    {% if slide.image_url %}
+    <div class="sl-video-placeholder sl-video-has-url">
+      <i class="fas fa-play-circle" style="font-size:3rem;color:rgba(255,255,255,.6);"></i>
+      <span style="font-size:.8rem;margin-top:.4em;">Video ready — plays in presentation</span>
+    </div>
+    {% else %}
+    <div class="sl-video-placeholder">
+      <i class="fas fa-film"></i>
+      <span>No video URL set</span>
+    </div>
+    {% endif %}
+  </div>
+  {% with caption=slide.bullets|first %}
+  {% if caption %}<div class="sl-caption">{{ caption }}</div>{% endif %}
+  {% endwith %}
+</div>
 {% else %}
 {# default: bullets #}
 <div class="sl-body layout-bullets">
