@@ -95,6 +95,23 @@ body { background: var(--gm-bg); }
 }
 .empty-state i { font-size: 3rem; opacity: .3; display: block; margin-bottom: 1rem; }
 .empty-state h3 { font-size: 1.1rem; font-weight: 700; color: var(--gm-text); }
+.gm-search-wrap {
+  padding: 0 1.5rem 1.2rem;
+}
+.gm-search-input {
+  width: 100%; max-width: 400px;
+  padding: .55rem .9rem .55rem 2.4rem;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-card);
+  color: var(--gm-text);
+  font-size: .88rem;
+  outline: none;
+  transition: border-color .15s;
+}
+.gm-search-input:focus { border-color: var(--gm-accent); }
+.gm-search-wrap-inner { position: relative; max-width: 400px; }
+.gm-search-icon { position:absolute; left:.8rem; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:.78rem; pointer-events:none; }
 </style>
 {% endblock %}
 
@@ -109,6 +126,15 @@ body { background: var(--gm-bg); }
     <a href="{% url 'teachers:presentation_create' %}" class="gm-btn-new">
       <i class="fas fa-plus"></i> New Presentation
     </a>
+  </div>
+
+  <!-- Deck search -->
+  <div class="gm-search-wrap">
+    <div class="gm-search-wrap-inner">
+      <i class="fas fa-search gm-search-icon"></i>
+      <input type="text" id="deckSearch" class="gm-search-input"
+             placeholder="Search presentations\u2026" oninput="filterDecks(this.value)">
+    </div>
   </div>
 
   <div class="deck-grid">
@@ -160,6 +186,11 @@ body { background: var(--gm-bg); }
       </a>
     </div>
     {% endfor %}
+    <div id="noSearchResults" class="empty-state" style="display:none;grid-column:1/-1;">
+      <i class="fas fa-search"></i>
+      <h3>No matching presentations</h3>
+      <p>Try a different search term.</p>
+    </div>
   </div>
 
 </div>
@@ -176,6 +207,19 @@ function copyShareLink(url) {
     t.style.display = 'block';
     setTimeout(function() { t.style.display = 'none'; }, 2200);
   });
+}
+function filterDecks(q) {
+  q = q.trim().toLowerCase();
+  var cards = document.querySelectorAll('.deck-card');
+  var visible = 0;
+  cards.forEach(function(card) {
+    var title = (card.querySelector('.deck-title') || {}).textContent || '';
+    var show = !q || title.toLowerCase().includes(q);
+    card.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  var noRes = document.getElementById('noSearchResults');
+  if (noRes) noRes.style.display = (visible === 0 && q) ? '' : 'none';
 }
 </script>
 {% endblock %}

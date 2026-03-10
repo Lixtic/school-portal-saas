@@ -376,6 +376,17 @@ html, body { height: 100%; margin: 0; }
 .gm-theme-swatch[data-theme="amber"]    { background: linear-gradient(135deg,#431407,#7c2d12); }
 .gm-theme-swatch[data-theme="rose"]     { background: linear-gradient(135deg,#4c0519,#831843); }
 
+/* ── Transition picker ── */
+.gm-transition-picks { display: flex; gap: 3px; align-items: center; flex-shrink: 0; }
+.gm-trans-btn {
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+  color: #64748b; border-radius: 6px; padding: 3px 8px;
+  font-size: .68rem; font-weight: 700; cursor: pointer; white-space: nowrap;
+  transition: background .12s, color .12s, border-color .12s; flex-shrink: 0;
+}
+.gm-trans-btn:hover { background: rgba(255,255,255,.1); color: #94a3b8; border-color: rgba(255,255,255,.18); }
+.gm-trans-btn.active { background: rgba(124,58,237,.18); border-color: rgba(124,58,237,.5); color: #c4b5fd; }
+
 /* ── New extended theme gradients ── */
 .theme-ocean   { background: linear-gradient(135deg,#0c2d4e 0%,#0a4a6e 60%,#0e6088 100%); }
 .theme-amber   { background: linear-gradient(135deg,#431407 0%,#7c2d12 60%,#92400e 100%); }
@@ -503,6 +514,13 @@ html, body { height: 100%; margin: 0; }
       {% endfor %}
     </div>
     <input type="hidden" id="themeSelect" value="{{ deck.theme }}">
+    <div class="gm-transition-picks" id="transitionPicker">
+      {% for val, label in TRANSITION_CHOICES %}
+      <button class="gm-trans-btn{% if deck.transition == val %} active{% endif %}"
+              data-trans="{{ val }}" onclick="pickTransition('{{ val }}')" title="{{ label }} transition">{{ label }}</button>
+      {% endfor %}
+    </div>
+    <input type="hidden" id="transitionSelect" value="{{ deck.transition }}">
     <div class="gm-topbar-sep"></div>
     <button class="gm-add-btn" onclick="addSlide()"><i class="fas fa-plus"></i> Slide</button>
     <button class="gm-ai-btn" onclick="openAIModal()"><i class="fas fa-robot"></i> AI Generate</button>
@@ -1028,15 +1046,16 @@ function deleteCurrentSlide() {
 
 // ── Save deck meta (title / theme) ──────────────────────────────
 function saveDeckMeta() {
-  var title = document.getElementById('deckTitleInput').value.trim();
-  var theme = document.getElementById('themeSelect').value;
+  var title      = document.getElementById('deckTitleInput').value.trim();
+  var theme      = document.getElementById('themeSelect').value;
+  var transition = document.getElementById('transitionSelect').value;
   // Update canvas theme class
   var canvas = document.getElementById('liveCanvas');
   canvas.className = 'gm-slide-canvas theme-' + theme;
   document.querySelectorAll('.gm-thumb-slide').forEach(function(t) {
     t.className = 'gm-thumb-slide theme-' + theme;
   });
-  api({ action: 'update_deck', title: title, theme: theme })
+  api({ action: 'update_deck', title: title, theme: theme, transition: transition })
     .then(function() { setSaveStatus('saved', '✓ All changes saved'); });
 }
 
@@ -1047,6 +1066,19 @@ function toggleNotes() {
   var open = bar.classList.toggle('open');
   chevron.style.transform = open ? 'rotate(180deg)' : '';
   if (open) document.getElementById('notesInput').focus();
+}
+
+// ── Transition picker ────────────────────────────────────────────
+function pickTransition(val) {
+  document.getElementById('transitionSelect').value = val;
+  document.querySelectorAll('.gm-trans-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.trans === val);
+  });
+  api({ action: 'update_deck',
+        title: document.getElementById('deckTitleInput').value.trim(),
+        theme: document.getElementById('themeSelect').value,
+        transition: val })
+    .then(function() { setSaveStatus('saved', '✓ Transition saved'); });
 }
 
 // ── Theme swatches ────────────────────────────────────────────────

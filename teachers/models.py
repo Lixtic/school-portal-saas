@@ -139,11 +139,18 @@ class Presentation(models.Model):
         ('amber',    'Amber'),
         ('rose',     'Rose'),
     ]
+    TRANSITION_CHOICES = [
+        ('slide', 'Slide'),
+        ('fade',  'Fade'),
+        ('zoom',  'Zoom'),
+        ('flip',  'Flip'),
+    ]
     teacher      = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name='presentations')
     title        = models.CharField(max_length=200)
     subject      = models.ForeignKey('academics.Subject', on_delete=models.SET_NULL, null=True, blank=True)
     school_class = models.ForeignKey('academics.Class',   on_delete=models.SET_NULL, null=True, blank=True)
     theme        = models.CharField(max_length=20, choices=THEME_CHOICES, default='aurora')
+    transition   = models.CharField(max_length=20, choices=TRANSITION_CHOICES, default='slide')
     share_token  = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     created_at   = models.DateTimeField(auto_now_add=True)
     updated_at   = models.DateTimeField(auto_now=True)

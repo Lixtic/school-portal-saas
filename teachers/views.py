@@ -3890,8 +3890,9 @@ def presentation_editor(request, pk):
         'subjects': subjects,
         'classes':  classes,
         'slides_json':    slides_json,
-        'LAYOUT_CHOICES': Slide.LAYOUT_CHOICES,
-        'THEME_CHOICES':  Presentation.THEME_CHOICES,
+        'LAYOUT_CHOICES':     Slide.LAYOUT_CHOICES,
+        'THEME_CHOICES':      Presentation.THEME_CHOICES,
+        'TRANSITION_CHOICES': Presentation.TRANSITION_CHOICES,
         'EMOJI_LIST': ['🚀','🌱','📚','🧠','💡','🔬','🌍','🎯','🏆','✏️','🧪','🌊','💻','🎨','📊'],
     })
 
@@ -3919,10 +3920,13 @@ def presentation_present(request, pk):
         return redirect('dashboard')
     teacher = get_object_or_404(Teacher, user=request.user)
     from .models import Presentation
+    from django.urls import reverse
     deck   = get_object_or_404(Presentation, pk=pk, teacher=teacher)
     slides = list(deck.slides.all())
+    share_path = reverse('teachers:presentation_share', kwargs={'token': deck.share_token})
+    share_url  = request.build_absolute_uri(share_path)
     return render(request, 'teachers/presentations/present.html', {
-        'deck': deck, 'slides': slides,
+        'deck': deck, 'slides': slides, 'share_url': share_url,
     })
 
 
@@ -3940,6 +3944,7 @@ def presentation_duplicate(request, pk):
             teacher=teacher,
             title=deck.title + ' (copy)',
             theme=deck.theme,
+            transition=deck.transition,
             subject=deck.subject,
             school_class=deck.school_class,
         )
@@ -4214,8 +4219,10 @@ def presentation_api(request):
             deck.title = data['title'] or deck.title
         if 'theme' in data and data['theme'] in dict(Presentation.THEME_CHOICES):
             deck.theme = data['theme']
+        if 'transition' in data and data['transition'] in dict(Presentation.TRANSITION_CHOICES):
+            deck.transition = data['transition']
         deck.save()
-        return JsonResponse({'ok': True, 'title': deck.title, 'theme': deck.theme})
+        return JsonResponse({'ok': True, 'title': deck.title, 'theme': deck.theme, 'transition': deck.transition})
 
     # ── ai_generate ─────────────────────────────────────────────────────────
     elif action == 'ai_generate':
