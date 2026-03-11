@@ -2373,80 +2373,86 @@
         })();
 
         // Global Search Logic
+        const searchInput = document.getElementById('globalSearchInput');
+        const searchModalEl = document.getElementById('searchModal');
+
         document.addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
                 e.preventDefault();
-                const modal = new bootstrap.Modal(document.getElementById('searchModal'));
-                modal.show();
+                if (searchModalEl) {
+                    const modal = new bootstrap.Modal(searchModalEl);
+                    modal.show();
+                }
             }
         });
 
-        const searchInput = document.getElementById('globalSearchInput');
-        const searchResults = document.getElementById('searchResults');
-        const emptyState = document.getElementById('searchEmptyState');
-        let searchTimeout;
+        if (searchInput && searchModalEl) {
+            const searchResults = document.getElementById('searchResults');
+            const emptyState = document.getElementById('searchEmptyState');
+            let searchTimeout;
 
-        // Auto-focus input when modal opens
-        const searchModalEl = document.getElementById('searchModal');
-        searchModalEl.addEventListener('shown.bs.modal', () => {
-             searchInput.focus();
-        });
+            // Auto-focus input when modal opens
+            searchModalEl.addEventListener('shown.bs.modal', () => {
+                searchInput.focus();
+            });
 
-        searchInput.addEventListener('input', (e) => {
-            const query = e.target.value.trim();
-            clearTimeout(searchTimeout);
-            
-            if (query.length < 2) {
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.trim();
+                clearTimeout(searchTimeout);
+
+                if (query.length < 2) {
+                    searchResults.innerHTML = '';
+                    emptyState.classList.remove('d-none');
+                    return;
+                }
+
+                emptyState.classList.add('d-none');
+                document.getElementById('searchLoading').classList.remove('d-none');
                 searchResults.innerHTML = '';
-                emptyState.classList.remove('d-none');
-                return;
-            }
 
-            emptyState.classList.add('d-none');
-            document.getElementById('searchLoading').classList.remove('d-none');
-            searchResults.innerHTML = '';
+                searchTimeout = setTimeout(() => {
+                    fetch(`{% url 'academics:global_search' %}?q=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            document.getElementById('searchLoading').classList.add('d-none');
+                            searchResults.innerHTML = '';
 
-            searchTimeout = setTimeout(() => {
-                fetch(`{% url 'academics:global_search' %}?q=${encodeURIComponent(query)}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        document.getElementById('searchLoading').classList.add('d-none');
-                        searchResults.innerHTML = '';
-                        
-                        if (data.results.length === 0) {
-                            searchResults.innerHTML = `
-                                <div class="p-4 text-center text-muted">
-                                    <i class="bi bi-emoji-frown fs-4 mb-2"></i>
-                                    <p>No results found for "${query}"</p>
-                                </div>`;
-                            return;
-                        }
+                            if (data.results.length === 0) {
+                                searchResults.innerHTML = `
+                                    <div class="p-4 text-center text-muted">
+                                        <i class="bi bi-emoji-frown fs-4 mb-2"></i>
+                                        <p>No results found for "${query}"</p>
+                                    </div>`;
+                                return;
+                            }
 
-                        data.results.forEach(item => {
-                            const el = document.createElement('a');
-                            el.href = item.url;
-                            el.className = 'list-group-item list-group-item-action p-3 d-flex align-items-center gap-3 border-bottom-0';
-                            el.innerHTML = `
-                                <div class="bg-light rounded p-2 text-primary"><i class="bi ${item.icon}"></i></div>
-                                <div>
-                                    <h6 class="mb-0 fw-bold">${item.title}</h6>
-                                    <small class="text-muted text-uppercase" style="font-size: 0.7rem;">${item.category}</small>
-                                </div>
-                                <i class="bi bi-arrow-right ms-auto text-muted opacity-50"></i>
-                            `;
-                            searchResults.appendChild(el);
+                            data.results.forEach(item => {
+                                const el = document.createElement('a');
+                                el.href = item.url;
+                                el.className = 'list-group-item list-group-item-action p-3 d-flex align-items-center gap-3 border-bottom-0';
+                                el.innerHTML = `
+                                    <div class="bg-light rounded p-2 text-primary"><i class="bi ${item.icon}"></i></div>
+                                    <div>
+                                        <h6 class="mb-0 fw-bold">${item.title}</h6>
+                                        <small class="text-muted text-uppercase" style="font-size: 0.7rem;">${item.category}</small>
+                                    </div>
+                                    <i class="bi bi-arrow-right ms-auto text-muted opacity-50"></i>
+                                `;
+                                searchResults.appendChild(el);
+                            });
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            document.getElementById('searchLoading').classList.add('d-none');
                         });
-                    })
-                    .catch(err => {
-                        console.error(err);
-                        document.getElementById('searchLoading').classList.add('d-none');
-                    });
-            }, 300);
-        });
+                }, 300);
+            });
+        }
 
         function toggleMobileMenu() {
             const menu = document.getElementById('mobileBubbleMenu');
             const overlay = document.getElementById('mobileBubbleOverlay');
+            if (!menu) return;
             const isOpen = menu.classList.contains('show');
             if (isOpen) {
                 menu.classList.remove('show');
