@@ -7,11 +7,6 @@
 <style>
 /* ── AI Insights dark-mode fixes ───────────────────────────── */
 
-/* Card headers: transparent so they inherit the card surface */
-.card-header {
-    background: transparent;
-}
-
 /* Trending topic pills */
 .topic-pill {
     background: rgba(99,102,241,.12);
@@ -24,7 +19,7 @@
     border-color: rgba(129,140,248,.3) !important;
 }
 
-/* Recent-activity subject badge (was bg-light which stays white in dark mode) */
+/* Recent-activity subject badge */
 .subject-badge {
     background: var(--bs-secondary-bg);
     color: var(--bs-body-color);
@@ -41,19 +36,29 @@
     color: #a5b4fc;
 }
 
-/* Scheme-of-work progress cards — border + surface */
+/* Scheme-of-work progress cards — use the card surface token */
 .sow-card {
     border-color: var(--bs-border-color) !important;
-    background: var(--bs-body-bg);
+    background: var(--bs-tertiary-bg, #f8fafc);
 }
 [data-bs-theme="dark"] .sow-card {
-    background: rgba(255,255,255,.03);
+    background: var(--surface-card, #1e293b);
+    border-color: rgba(255,255,255,.1) !important;
+}
+
+/* Stat cards: add a subtle border in dark mode so they stand out from the page bg */
+[data-bs-theme="dark"] .card:not(.bg-primary) {
+    border: 1px solid rgba(255,255,255,.07) !important;
 }
 
 /* Table header row */
 [data-bs-theme="dark"] .table thead th {
     color: var(--bs-secondary-color);
     border-color: var(--bs-border-color);
+    background: transparent;
+}
+[data-bs-theme="dark"] .table tbody tr:hover {
+    background: rgba(255,255,255,.04);
 }
 
 /* List-group items in dark mode */
@@ -63,7 +68,18 @@
 }
 [data-bs-theme="dark"] .list-group-item {
     background: transparent;
-    border-color: var(--bs-border-color) !important;
+    border-color: rgba(255,255,255,.07) !important;
+}
+
+/* Progress bar track in dark mode */
+[data-bs-theme="dark"] .progress {
+    background: rgba(255,255,255,.1);
+}
+
+/* Warning badge text-dark fix inside sow cards */
+[data-bs-theme="dark"] .badge.bg-warning.text-dark,
+[data-bs-theme="dark"] .badge.bg-warning {
+    color: #1e293b !important;
 }
 </style>
 <div class="container-fluid py-4">

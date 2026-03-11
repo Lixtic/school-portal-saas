@@ -3272,19 +3272,22 @@ def scheme_of_work_upload(request):
                 scheme.uploaded_by = teacher
                 scheme.save()
 
-            # Extract topics using GPT-4 Vision (async-style: do it inline for simplicity)
+            # Extract topics and indicators using GPT-4 Vision
             try:
-                from academics.ai_tutor import extract_scheme_of_work_topics
+                from academics.ai_tutor import extract_scheme_of_work_data
                 # Use absolute path for local storage; fall back to URL for remote
                 # backends (Cloudinary etc.) that don't support .path
                 try:
                     image_ref = scheme.image.path
                 except (NotImplementedError, AttributeError, ValueError):
                     image_ref = scheme.image.url
-                topics = extract_scheme_of_work_topics(image_ref)
+                data = extract_scheme_of_work_data(image_ref)
                 import json
+                topics = data.get('topics', [])
+                indicators = data.get('indicators', {})
                 scheme.extracted_topics = json.dumps(topics)
-                scheme.save(update_fields=['extracted_topics'])
+                scheme.extracted_indicators = json.dumps(indicators)
+                scheme.save(update_fields=['extracted_topics', 'extracted_indicators'])
                 topic_count = len(topics)
                 if topic_count > 0:
                     messages.success(request, f'Scheme of work uploaded! {topic_count} topics extracted for Aura.')
@@ -3334,7 +3337,12 @@ def scheme_of_work_update_topics(request, pk):
             raise ValueError('topics must be a list')
         topics = [str(t).strip() for t in topics if str(t).strip()]
         scheme.extracted_topics = json.dumps(topics)
-        scheme.save(update_fields=['extracted_topics'])
+        indicators = payload.get('indicators', {})
+        if isinstance(indicators, dict):
+            scheme.extracted_indicators = json.dumps(
+                {str(k).strip(): str(v).strip() for k, v in indicators.items()}
+            )
+        scheme.save(update_fields=['extracted_topics', 'extracted_indicators'])
         return JsonResponse({'ok': True, 'count': len(topics)})
     except Exception as exc:
         return JsonResponse({'error': str(exc)}, status=400)
@@ -3349,15 +3357,18 @@ def scheme_of_work_reextract(request, pk):
     teacher = get_object_or_404(Teacher, user=request.user)
     scheme = get_object_or_404(SchemeOfWork, pk=pk, class_subject__teacher=teacher)
     try:
-        from academics.ai_tutor import extract_scheme_of_work_topics
+        from academics.ai_tutor import extract_scheme_of_work_data
         try:
             image_ref = scheme.image.path
         except (NotImplementedError, AttributeError, ValueError):
             image_ref = scheme.image.url
-        topics = extract_scheme_of_work_topics(image_ref)
+        data = extract_scheme_of_work_data(image_ref)
+        topics = data.get('topics', [])
+        indicators = data.get('indicators', {})
         scheme.extracted_topics = json.dumps(topics)
-        scheme.save(update_fields=['extracted_topics'])
-        return JsonResponse({'ok': True, 'count': len(topics), 'topics': topics})
+        scheme.extracted_indicators = json.dumps(indicators)
+        scheme.save(update_fields=['extracted_topics', 'extracted_indicators'])
+        return JsonResponse({'ok': True, 'count': len(topics), 'topics': topics, 'indicators': indicators})
     except Exception as exc:
         return JsonResponse({'error': str(exc)}, status=500)
 

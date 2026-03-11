@@ -278,6 +278,9 @@ class SchemeOfWork(models.Model):
     # JSON list of topic strings extracted by GPT-4 Vision
     extracted_topics = models.TextField(blank=True, default='[]',
                                         help_text='JSON array of topic strings extracted from the image')
+    # JSON dict mapping each topic string to its indicator code (e.g. {"Integers": "B8.2.1.1.1"})
+    extracted_indicators = models.TextField(blank=True, default='{}',
+                                            help_text='JSON dict mapping topic to indicator code')
     uploaded_by = models.ForeignKey(
         'teachers.Teacher', on_delete=models.SET_NULL,
         null=True, blank=True, related_name='schemes_of_work'
@@ -302,6 +305,20 @@ class SchemeOfWork(models.Model):
             return topics if isinstance(topics, list) else []
         except Exception:
             return []
+
+    def get_indicators(self):
+        """Return extracted indicators as a Python dict {topic: indicator_code}."""
+        import json
+        try:
+            data = json.loads(self.extracted_indicators)
+            return data if isinstance(data, dict) else {}
+        except Exception:
+            return {}
+
+    def get_topic_items(self):
+        """Return list of (topic, indicator) tuples for template iteration."""
+        indicators = self.get_indicators()
+        return [(t, indicators.get(t, '')) for t in self.get_topics()]
 
 
 # Import AI Tutor/Copilot models

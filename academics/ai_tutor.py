@@ -22,33 +22,54 @@ OPENAI_CHAT_MODELS = [
 ]
 
 
+def _build_sow_image_block(image_path_or_url: str):
+    """Build the OpenAI image content block for scheme-of-work extraction."""
+    import base64
+    if str(image_path_or_url).startswith(('http://', 'https://')):
+        return {"type": "image_url", "image_url": {"url": image_path_or_url}}
+    ext = str(image_path_or_url).lower().rsplit('.', 1)[-1]
+    mime = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
+            'png': 'image/png', 'webp': 'image/webp',
+            'gif': 'image/gif'}.get(ext, 'image/jpeg')
+    with open(image_path_or_url, 'rb') as fh:
+        b64 = base64.b64encode(fh.read()).decode('utf-8')
+    return {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}}
+
+
 def extract_scheme_of_work_topics(image_path_or_url: str) -> list:
     """
     Use GPT-4o Vision to extract an ordered list of topic strings from a
     scheme-of-work screenshot uploaded by a teacher.
     Returns a Python list of strings (may be empty on failure).
     """
-    import base64, re as _re, json as _json
+    data = extract_scheme_of_work_data(image_path_or_url)
+    return data.get('topics', [])
+
+
+def extract_scheme_of_work_data(image_path_or_url: str) -> dict:
+    """
+    Use GPT-4o Vision to extract topics AND indicator codes from a scheme-of-work
+    screenshot uploaded by a teacher.
+
+    Returns:
+        {
+            "topics": ["Topic A", "Topic B", ...],
+            "indicators": {"Topic A": "B8.2.1.1.1", "Topic B": "B8.2.1.1.2", ...}
+        }
+    Indicator values are empty strings when no code is visible in the image.
+    """
+    import re as _re, json as _json
 
     api_key = _get_openai_api_key() if callable(globals().get('_get_openai_api_key')) else (
         getattr(settings, 'OPENAI_API_KEY', None) or os.environ.get('OPENAI_API_KEY')
     )
     if not api_key:
-        return []
+        return {'topics': [], 'indicators': {}}
 
     try:
-        if str(image_path_or_url).startswith(('http://', 'https://')):
-            image_block = {"type": "image_url", "image_url": {"url": image_path_or_url}}
-        else:
-            ext = str(image_path_or_url).lower().rsplit('.', 1)[-1]
-            mime = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
-                    'png': 'image/png', 'webp': 'image/webp',
-                    'gif': 'image/gif'}.get(ext, 'image/jpeg')
-            with open(image_path_or_url, 'rb') as fh:
-                b64 = base64.b64encode(fh.read()).decode('utf-8')
-            image_block = {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}}
+        image_block = _build_sow_image_block(image_path_or_url)
     except Exception:
-        return []
+        return {'topics': [], 'indicators': {}}
 
     payload = {
         "model": OPENAI_VISION_MODEL,
@@ -60,19 +81,21 @@ def extract_scheme_of_work_topics(image_path_or_url: str) -> list:
                     "type": "text",
                     "text": (
                         "This image is a school Scheme of Work (curriculum plan). "
-                        "Extract every teaching topic / strand / sub-strand listed, "
-                        "in the order they appear.\n"
-                        "Return ONLY a valid JSON array of short topic name strings. "
-                        "Do NOT include week numbers, dates, or any other metadata — "
-                        "just the topic names.\n"
-                        "Example: [\"Integers and Number Lines\", \"Fractions\", "
-                        "\"Algebraic Expressions\"]\n"
+                        "Extract every teaching topic and its corresponding indicator/learning outcome code "
+                        "(e.g. 'B8.2.1.1.1') in the order they appear.\n"
+                        "Return ONLY a valid JSON array of objects with exactly two keys: "
+                        "'topic' (the topic/sub-strand name) and 'indicator' (the learning outcome code). "
+                        "If no indicator code is visible for a row, set 'indicator' to an empty string.\n"
+                        "Example: ["
+                        "{\"topic\": \"Integers and Number Lines\", \"indicator\": \"B8.2.1.1.1\"}, "
+                        "{\"topic\": \"Fractions\", \"indicator\": \"B8.2.1.1.2\"}"
+                        "]\n"
                         "If the image is unreadable, return []"
                     ),
                 },
             ],
         }],
-        "max_tokens": 1024,
+        "max_tokens": 1500,
     }
 
     try:
@@ -88,12 +111,27 @@ def extract_scheme_of_work_topics(image_path_or_url: str) -> list:
         content = result['choices'][0]['message']['content'].strip()
         match = _re.search(r'\[.*?\]', content, _re.DOTALL)
         if match:
-            topics = _json.loads(match.group(0))
-            if isinstance(topics, list):
-                return [str(t).strip() for t in topics if str(t).strip()]
+            items = _json.loads(match.group(0))
+            if isinstance(items, list):
+                topics = []
+                indicators = {}
+                for item in items:
+                    if isinstance(item, str):
+                        # Fallback: plain string list (old format)
+                        t = item.strip()
+                        if t:
+                            topics.append(t)
+                    elif isinstance(item, dict):
+                        t = str(item.get('topic', '')).strip()
+                        ind = str(item.get('indicator', '')).strip()
+                        if t:
+                            topics.append(t)
+                            if ind:
+                                indicators[t] = ind
+                return {'topics': topics, 'indicators': indicators}
     except Exception:
         pass
-    return []
+    return {'topics': [], 'indicators': {}}
 
 
 def _resolve_openai_model(payload):

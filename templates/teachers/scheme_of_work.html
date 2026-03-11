@@ -8,10 +8,13 @@
                   color:#6366f1; border-radius:20px; padding:2px 10px; font-size:11px; margin:2px; }
     .topic-chip .rm { cursor:pointer; font-size:13px; opacity:.55; line-height:1; }
     .topic-chip .rm:hover { opacity:1; color:#ef4444; }
+    .indicator-code { font-size:10px; opacity:.75; font-family:monospace;
+                      background:rgba(99,102,241,.15); border-radius:6px; padding:0 4px; margin-left:2px; }
     .topic-add-input { font-size:12px; border:1px dashed rgba(99,102,241,.4); border-radius:20px;
                        padding:2px 10px; outline:none; background:transparent; color:inherit; width:150px; }
     .topic-add-input:focus { border-color:#6366f1; }
     [data-bs-theme="dark"] .topic-chip { background:rgba(99,102,241,.2); color:#a5b4fc; }
+    [data-bs-theme="dark"] .indicator-code { background:rgba(129,140,248,.2); color:#c7d2fe; }
     [data-bs-theme="dark"] .card { background:var(--surface-white); border-color:rgba(255,255,255,.07); }
     [data-bs-theme="dark"] .table { color:var(--text-main); }
     [data-bs-theme="dark"] .text-muted { color:#94a3b8 !important; }
@@ -88,10 +91,11 @@
                          data-class-id="{{ scheme.class_subject.class_name.id }}"
                          data-hw-url="{% url 'homework:homework_create' %}"
                          data-lp-url="{% url 'teachers:lesson_plan_create' %}">
-                        {% for topic in topics %}
-                        <span class="topic-chip" data-topic="{{ topic|escapejs }}">
+                        {% for topic, ind in scheme.get_topic_items %}
+                        <span class="topic-chip" data-topic="{{ topic|escapejs }}" data-indicator="{{ ind|escapejs }}">
                             <span class="text-muted me-1" style="font-size:10px;">{{ forloop.counter }}.</span>
                             {{ topic }}
+                            {% if ind %}<span class="indicator-code">{{ ind }}</span>{% endif %}
                             <span class="rm" onclick="removeTopic({{ scheme.pk }},this)">&#x2715;</span>
                             <a href="{% url 'homework:homework_create' %}?topic={{ topic|urlencode }}&class_id={{ scheme.class_subject.class_name.id }}&subject_id={{ scheme.class_subject.subject.id }}"
                                title="Create homework on this topic"
@@ -158,7 +162,15 @@ const CSRF = '{{ csrf_token }}';
 function getTopics(id) {
     return Array.from(document.querySelectorAll(`#chips-${id} .topic-chip`)).map(c => c.dataset.topic);
 }
-function rerenderChips(id, topics) {
+function getIndicators(id) {
+    const result = {};
+    document.querySelectorAll(`#chips-${id} .topic-chip`).forEach(c => {
+        if (c.dataset.indicator) result[c.dataset.topic] = c.dataset.indicator;
+    });
+    return result;
+}
+function rerenderChips(id, topics, indicators) {
+    indicators = indicators || {};
     const container = document.getElementById(`chips-${id}`);
     const subjectId = container.dataset.subjectId || '';
     const classId   = container.dataset.classId   || '';
@@ -167,29 +179,32 @@ function rerenderChips(id, topics) {
     container.innerHTML = topics.map((t, i) => {
         const enc = encodeURIComponent(t);
         const esc = t.replace(/"/g, '&quot;');
+        const ind = (indicators[t] || '').replace(/"/g, '&quot;');
+        const indHtml = ind ? `<span class="indicator-code">${ind}</span>` : '';
         const hwLink = hwBase ? `<a href="${hwBase}?topic=${enc}&class_id=${classId}&subject_id=${subjectId}" title="Create homework" class="ms-1 text-decoration-none" style="font-size:11px;opacity:.6;">📝</a>` : '';
         const lpLink = lpBase ? `<a href="${lpBase}?topic=${enc}&subject_id=${subjectId}&class_id=${classId}" title="Create lesson plan" class="ms-1 text-decoration-none" style="font-size:11px;opacity:.6;">📋</a>` : '';
-        return `<span class="topic-chip" data-topic="${esc}">
-            <span class="text-muted me-1" style="font-size:10px;">${i+1}.</span>${t}
+        return `<span class="topic-chip" data-topic="${esc}" data-indicator="${ind}">
+            <span class="text-muted me-1" style="font-size:10px;">${i+1}.</span>${t}${indHtml}
             <span class="rm" onclick="removeTopic(${id},this)">&#x2715;</span>${hwLink}${lpLink}</span>`;
     }).join('');
 }
 function markDirty(id) { document.getElementById(`save-btn-${id}`).style.display=''; }
 function removeTopic(id, btn) {
     btn.closest('.topic-chip').remove();
-    rerenderChips(id, getTopics(id));
+    rerenderChips(id, getTopics(id), getIndicators(id));
     markDirty(id);
 }
 function addTopic(id) {
     const inp = document.getElementById(`add-input-${id}`);
     const v = inp.value.trim(); if(!v) return;
-    rerenderChips(id, [...getTopics(id), v]);
+    rerenderChips(id, [...getTopics(id), v], getIndicators(id));
     inp.value=''; markDirty(id);
 }
 async function saveTopics(id, url) {
     const btn = document.getElementById(`save-btn-${id}`);
     btn.disabled=true; btn.textContent='…';
-    const resp = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},body:JSON.stringify({topics:getTopics(id)})});
+    const payload = { topics: getTopics(id), indicators: getIndicators(id) };
+    const resp = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},body:JSON.stringify(payload)});
     const d = await resp.json();
     if(d.ok){btn.textContent='✓ Saved';setTimeout(()=>{btn.style.display='none';btn.textContent='✓ Save';btn.disabled=false;},1500);}
     else{alert('Save failed: '+(d.error||'?'));btn.disabled=false;btn.textContent='✓ Save';}
@@ -201,7 +216,7 @@ async function reExtract(id, btn, url) {
     const resp = await fetch(url,{method:'POST',headers:{'X-CSRFToken':CSRF}});
     const d = await resp.json();
     if(d.ok){
-        rerenderChips(id, d.topics);
+        rerenderChips(id, d.topics, d.indicators || {});
         document.getElementById(`count-${id}`).textContent = d.count+' topics';
         markDirty(id);
         btn.innerHTML=`<i class="bi bi-check2 me-1"></i>${d.count} extracted`;
