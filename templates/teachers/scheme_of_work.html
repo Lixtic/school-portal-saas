@@ -554,21 +554,28 @@ async function checkDuplicates(id, url, btn) {
             return;
         }
 
-        // Render one group card per duplicate indicator
+        // Render one group card per duplicate indicator code
         groups.innerHTML = d.duplicates.map(g => {
-            const rowId = `dd-${id}-${btoa(g.indicator).replace(/[^a-z0-9]/gi,'').slice(0,8)}`;
-            const topicRows = g.topics.map(t => {
-                const safeT = t.replace(/</g,'&lt;').replace(/"/g,'&quot;');
+            const rowId = `dd-${id}-${(g.code||'x').replace(/[^a-z0-9]/gi,'').slice(0,10)}`;
+            // entries has {topic, indicator}; fall back to topics array for older data
+            const entries = g.entries || g.topics.map(t => ({topic: t, indicator: g.indicator}));
+            const topicRows = entries.map(e => {
+                const safeT = e.topic.replace(/</g,'&lt;').replace(/"/g,'&quot;');
+                const safeI = (e.indicator||g.indicator||'').replace(/"/g,'&quot;');
                 return `<div class="d-flex gap-2 align-items-center mb-1">
                     <span class="badge bg-secondary-subtle text-secondary" style="max-width:220px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:10px;" title="${safeT}">${safeT}</span>
                     <input class="form-control form-control-sm dedup-ind-input flex-grow-1"
                            data-topic="${safeT}"
-                           value="${g.indicator.replace(/"/g,'&quot;')}"
+                           value="${safeI}"
                            placeholder="New indicator…">
                 </div>`;
             }).join('');
+            const codeLabel = g.code || g.indicator.replace(/</g,'&lt;');
             return `<div class="dedup-group-row" id="${rowId}">
-                <div class="small fw-semibold text-danger mb-2" style="font-family:monospace;">${g.indicator.replace(/</g,'&lt;')}</div>
+                <div class="small fw-semibold text-danger mb-2" style="font-family:monospace;">
+                    <i class="bi bi-exclamation-circle me-1"></i>${codeLabel}
+                    <span class="text-muted fw-normal ms-1" style="font-size:10px;">${entries.length} topics share this code</span>
+                </div>
                 ${topicRows}
             </div>`;
         }).join('');

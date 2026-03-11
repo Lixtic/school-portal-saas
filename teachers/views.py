@@ -3605,17 +3605,34 @@ def scheme_of_work_dedup_indicators(request, pk):
     action = payload.get('action', 'scan')
 
     if action == 'scan':
+        import re as _re
         indicators = scheme.get_indicators()  # {topic: indicator_text}
-        # Build reverse map: indicator_text → [topics]
+
+        def _ind_code(s):
+            """Extract the leading code segment, e.g. 'B8.2.1.1.1' from a full indicator string."""
+            s = s.strip()
+            m = _re.match(r'^([A-Za-z][0-9A-Za-z.]*)', s)
+            return m.group(1).rstrip('.').upper() if m else s.upper()
+
+        # Build reverse map: normalised_code → [(topic, full_indicator_text), ...]
         rev = {}
         for topic, ind in indicators.items():
-            if ind:
-                rev.setdefault(ind, []).append(topic)
-        duplicates = [
-            {'indicator': ind, 'topics': topics}
-            for ind, topics in rev.items()
-            if len(topics) > 1
-        ]
+            if not ind:
+                continue
+            code = _ind_code(ind)
+            rev.setdefault(code, []).append({'topic': topic, 'indicator': ind})
+
+        duplicates = []
+        for code, entries in rev.items():
+            if len(entries) > 1:
+                duplicates.append({
+                    'code': code,
+                    # Use the most common full text as the display indicator
+                    'indicator': entries[0]['indicator'],
+                    'topics': [e['topic'] for e in entries],
+                    'entries': entries,   # full detail for the UI
+                })
+
         return JsonResponse({'ok': True, 'duplicates': duplicates, 'count': len(duplicates)})
 
     elif action == 'apply':
