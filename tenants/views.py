@@ -1525,6 +1525,16 @@ def school_subscription(request):
             .select_related('addon')
         )
 
+        # Sync live counts into the subscription usage fields
+        from accounts.models import User as _User
+        _students = _User.objects.filter(user_type='student').count()
+        _teachers = _User.objects.filter(user_type='teacher').count()
+        if (subscription.current_students != _students or
+                subscription.current_teachers != _teachers):
+            subscription.current_students = _students
+            subscription.current_teachers = _teachers
+            subscription.save(update_fields=['current_students', 'current_teachers'])
+
     context = {
         'subscription': subscription,
         'trial_active': bool(subscription and subscription.status == 'trial'),

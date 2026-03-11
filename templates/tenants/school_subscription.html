@@ -237,7 +237,7 @@
                     <div class="flex-grow-1 overflow-hidden">
                         <div class="fw-600" style="font-size:0.82rem;">{{ school_addon.addon.name }}</div>
                         <div class="text-muted" style="font-size:0.73rem;">
-                            ${{ school_addon.addon.monthly_price }}/mo
+                            GHS {{ school_addon.addon.monthly_price }}/mo
                             {% if school_addon.expires_at %}&nbsp;· Expires {{ school_addon.expires_at|date:"M j, Y" }}{% endif %}
                         </div>
                     </div>
@@ -277,7 +277,7 @@
                     <td class="py-2 fw-600">{{ inv.invoice_number }}</td>
                     <td class="py-2 text-muted">{{ inv.issued_at|date:"M j, Y" }}</td>
                     <td class="py-2 text-muted">{{ inv.due_at|date:"M j, Y" }}</td>
-                    <td class="py-2 fw-600 text-end">${{ inv.total }}</td>
+                    <td class="py-2 fw-600 text-end">GHS {{ inv.total }}</td>
                     <td class="py-2 text-center">
                         {% if inv.status == 'paid' %}
                         <span class="badge" style="background:#d1fae5;color:#065f46;font-size:0.72rem;">Paid</span>
@@ -330,8 +330,8 @@
                     <div class="fw-700 mb-1" style="color:#fff;">{{ plan.name }}</div>
                     <div style="font-size:0.8rem;opacity:0.7;margin-bottom:0.75rem;">{{ plan.description|truncatechars:80 }}</div>
                     <div class="mt-auto">
-                        <div class="fw-800" style="font-size:1.5rem;color:#fff;">${{ plan.monthly_price }}<span style="font-size:0.875rem;font-weight:400;opacity:0.6;">/mo</span></div>
-                        <div style="font-size:0.75rem;opacity:0.6;">or ${{ plan.annual_price }}/yr (save ~17%)</div>
+                        <div class="fw-800" style="font-size:1.5rem;color:#fff;">GHS {{ plan.monthly_price }}<span style="font-size:0.875rem;font-weight:400;opacity:0.6;">/mo</span></div>
+                        <div style="font-size:0.75rem;opacity:0.6;">or GHS {{ plan.annual_price }}/yr (save ~17%)</div>
                         <div class="mt-2" style="font-size:0.8rem;opacity:0.75;">
                             Up to {{ plan.max_students }} students · {{ plan.max_teachers }} teachers
                         </div>
@@ -342,9 +342,9 @@
                             <input type="hidden" name="plan_id" value="{{ plan.id }}">
                             <select name="billing_cycle" class="form-select form-select-sm mb-2"
                                     style="background:rgba(255,255,255,0.1);color:#fff;border-color:rgba(255,255,255,0.25);font-size:0.8rem;">
-                                <option value="monthly">Monthly — ${{ plan.monthly_price }}</option>
-                                <option value="quarterly">Quarterly — ${{ plan.quarterly_price }}</option>
-                                <option value="annual">Annual — ${{ plan.annual_price }}</option>
+                                <option value="monthly">Monthly — GHS {{ plan.monthly_price }}</option>
+                                <option value="quarterly">Quarterly — GHS {{ plan.quarterly_price }}</option>
+                                <option value="annual">Annual — GHS {{ plan.annual_price }}</option>
                             </select>
                             <button type="submit" class="btn btn-sm w-100 fw-700"
                                     style="background:{% if plan.plan_type == 'pro' %}#3b82f6{% else %}rgba(255,255,255,0.2){% endif %};color:#fff;border:1px solid rgba(255,255,255,0.3);">
