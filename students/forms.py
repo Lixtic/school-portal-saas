@@ -90,7 +90,8 @@ class StudentForm(forms.ModelForm):
     class Meta:
         model = Student
         fields = ['admission_number', 'date_of_birth', 'gender', 'date_of_admission', 
-                  'current_class', 'roll_number', 'blood_group', 'emergency_contact']
+                  'current_class', 'roll_number', 'blood_group', 'emergency_contact',
+                  'city', 'region']
         widgets = {
             'admission_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Auto-generated if blank'}),
             'date_of_birth': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
@@ -100,6 +101,8 @@ class StudentForm(forms.ModelForm):
             'roll_number': forms.TextInput(attrs={'class': 'form-control'}),
             'blood_group': forms.TextInput(attrs={'class': 'form-control'}),
             'emergency_contact': forms.TextInput(attrs={'class': 'form-control'}),
+            'city': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'City'}),
+            'region': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Region'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -109,6 +112,8 @@ class StudentForm(forms.ModelForm):
         self.fields['roll_number'].required = False
         self.fields['blood_group'].required = False
         self.fields['emergency_contact'].required = False
+        self.fields['city'].required = False
+        self.fields['region'].required = False
 
 
 class CSVImportForm(forms.Form):
