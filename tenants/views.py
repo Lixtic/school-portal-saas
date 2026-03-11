@@ -256,6 +256,9 @@ def _create_sample_data(tenant, school_type='basic', phone='', address=''):
 @login_required
 def school_setup_wizard(request):
     """Initial setup wizard for configuring school information"""
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied. Admin only.')
+        return redirect('dashboard')
     # Ensure user is on a tenant schema (not public)
     if hasattr(request, 'tenant') and request.tenant.schema_name == 'public':
         messages.error(request, "This page is only accessible from school portals.")
@@ -511,23 +514,24 @@ def review_school(request, school_id):
                     
                     # Switch to tenant and create admin user + sample data
                     connection.set_tenant(school)
-                    User = get_user_model()
-                    
-                    if not User.objects.filter(username='admin').exists():
-                        temp_email = school.contact_person_email or 'admin@example.com'
-                        admin_user = User.objects.create_superuser(
-                            username='admin',
-                            email=temp_email,
-                            password=temp_password,
-                            user_type='admin'
-                        )
-                    
-                    _create_sample_data(school, 
-                                       school_type=school.school_type,
-                                       phone=school.phone_number,
-                                       address=school.address)
-                    
-                    connection.set_schema_to_public()
+                    try:
+                        User = get_user_model()
+                        
+                        if not User.objects.filter(username='admin').exists():
+                            temp_email = school.contact_person_email or 'admin@example.com'
+                            admin_user = User.objects.create_superuser(
+                                username='admin',
+                                email=temp_email,
+                                password=temp_password,
+                                user_type='admin'
+                            )
+                        
+                        _create_sample_data(school, 
+                                           school_type=school.school_type,
+                                           phone=school.phone_number,
+                                           address=school.address)
+                    finally:
+                        connection.set_schema_to_public()
 
                     # Create trial subscription (14 days)
                     from .models import SubscriptionPlan, SchoolSubscription
@@ -566,7 +570,6 @@ def review_school(request, school_id):
                         messages.warning(request, f"⚠️ School '{school.name}' approved and activated, but email notification failed. Contact: {school.contact_person_email}")
                     
                 except Exception as e:
-                    connection.set_schema_to_public()
                     logger.error("Exception during approval for %s: %s", school.schema_name, e)
                     messages.error(request, f"Approval saved but schema creation failed: {e}")
                     school.approval_status = 'requires_info'

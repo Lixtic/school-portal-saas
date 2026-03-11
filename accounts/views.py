@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from tenants.decorators import require_addon
 from django.conf import settings
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.core.paginator import Paginator
 from academics.models import Class, AcademicYear, ClassSubject, Activity, Timetable, GalleryImage, Resource, SchoolInfo, Subject
 from teachers.models import Teacher, DutyAssignment, DutyWeek, LessonPlan
@@ -866,14 +866,16 @@ import sys
 import os
 
 
+@login_required
 def session_debug(request):
     """
     Lightweight session diagnostic endpoint for debugging on Vercel.
-    No login required so we can test even when sessions fail.
-    Access: /{tenant}/debug/session/ or /debug/session/
+    Staff-only, DEBUG-only.
     """
-    from django.db import connection as db_conn
     from django.conf import settings as _settings
+    if not request.user.is_staff or not _settings.DEBUG:
+        raise Http404
+    from django.db import connection as db_conn
     import os as _os
 
     session_engine = getattr(_settings, 'SESSION_ENGINE', 'django.contrib.sessions.backends.db')

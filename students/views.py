@@ -236,6 +236,8 @@ def at_risk_students(request):
 @login_required
 def student_details_ajax(request, student_id):
     """Return student details as JSON for modal"""
+    if request.user.user_type not in ['admin', 'teacher']:
+        return JsonResponse({'error': 'Access denied'}, status=403)
     student = get_object_or_404(Student, id=student_id)
     
     # Attendance stats
@@ -449,6 +451,9 @@ def bulk_assign_class(request):
 @login_required
 def export_students(request):
     """Export selected students as CSV"""
+    if request.user.user_type not in ['admin', 'teacher']:
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
     student_ids = request.GET.get('ids', '').split(',')
     students = Student.objects.filter(id__in=student_ids).select_related('user', 'current_class')
     

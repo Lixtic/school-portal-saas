@@ -1758,8 +1758,9 @@ def lesson_plan_edit(request, pk):
             messages.success(request, 'Lesson plan updated successfully.')
             
             # Check for next URL to return to same view (e.g. from inline edit)
+            from django.utils.http import url_has_allowed_host_and_scheme
             next_url = request.POST.get('next') or request.GET.get('next')
-            if next_url:
+            if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
                 return redirect(next_url)
                 
             return redirect('teachers:lesson_plan_list')

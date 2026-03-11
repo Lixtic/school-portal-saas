@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import UniqueConstraint, Q
 from students.models import Student
 from academics.models import Class, AcademicYear
 from accounts.models import User
@@ -85,11 +86,20 @@ class Payment(models.Model):
     student_fee = models.ForeignKey(StudentFee, on_delete=models.CASCADE, related_name='payments')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     date = models.DateField(default=timezone.now)
-    reference = models.CharField(max_length=100, blank=True, help_text="Receipt number or Transaction ID")
+    reference = models.CharField(max_length=100, blank=True, default='', help_text="Receipt number or Transaction ID")
     method = models.CharField(max_length=50, default='Cash', choices=[('Cash', 'Cash'), ('Bank Transfer', 'Bank Transfer'), ('POS', 'POS')])
     recorded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     remarks = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(
+                fields=['reference'],
+                name='unique_non_empty_reference',
+                condition=~Q(reference=''),
+            ),
+        ]
 
     def __str__(self):
         return f"{self.amount} - {self.date}"

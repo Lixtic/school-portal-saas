@@ -20,10 +20,10 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-your-secret-key-here-
 # Defaults to False unless explicitly set. Use DEBUG=True in local .env
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-# Warn (but don't crash) if SECRET_KEY is still the default in production
+# Crash if SECRET_KEY is still the default in production
 if not DEBUG and SECRET_KEY.startswith('django-insecure'):
-    import logging as _log
-    _log.getLogger('django.security').critical(
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured(
         "SECRET_KEY is using the insecure default! Set a proper SECRET_KEY env var."
     )
 
@@ -370,11 +370,10 @@ if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
 
-    # NOTE: SECURE_SSL_REDIRECT, SESSION_COOKIE_SECURE, and
-    # CSRF_COOKIE_SECURE are intentionally NOT set here.
-    # Vercel / Railway handle HTTPS at the edge layer.
-    # Setting these flags in Django's WSGI layer (which receives
-    # internal HTTP from the reverse proxy) causes session loss.
+    # Vercel / Railway handle HTTPS at the edge; SECURE_PROXY_SSL_HEADER
+    # allows request.is_secure() to work correctly behind the reverse proxy.
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 # =====================
 # ERROR HANDLER CONFIGURATION
 # =====================

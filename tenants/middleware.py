@@ -59,6 +59,10 @@ class TenantPathMiddleware(TenantMainMiddleware):
                     raise Http404(f"School '{possible_schema}' not found. Available schools in DB: {all_tenants}")
                 raise Http404(f"School '{possible_schema}' not found in registry.")
 
+            if not tenant.is_active:
+                logger.info("Tenant '%s' is deactivated — blocking access.", possible_schema)
+                raise Http404("This school is currently inactive.")
+
         if tenant:
             # === TENANT FOUND ===
             logger.debug("Tenant '%s' found. Rewriting URLs.", possible_schema)

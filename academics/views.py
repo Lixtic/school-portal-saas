@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from tenants.decorators import require_addon
-from django.http import JsonResponse, StreamingHttpResponse, HttpResponse
+from django.http import JsonResponse, StreamingHttpResponse, HttpResponse, HttpResponseNotAllowed
 from django.urls import reverse
 import datetime
 import json
@@ -661,6 +661,8 @@ def manage_resources(request):
 @login_required
 @require_addon('resource-library')
 def delete_resource(request, resource_id):
+    if request.method != 'POST':
+        return HttpResponseNotAllowed(['POST'])
     if request.user.user_type not in ['admin', 'teacher']:
         messages.error(request, 'Access denied.')
         return redirect('dashboard')

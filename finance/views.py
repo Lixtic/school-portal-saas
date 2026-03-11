@@ -548,19 +548,22 @@ def paystack_callback(request):
 
     if fee_id:
         fee = StudentFee.objects.filter(id=fee_id).first()
-        if fee and not Payment.objects.filter(reference=reference).exists():
-            amount_paid = trx['amount'] / 100
-            Payment.objects.create(
-                student_fee=fee,
-                amount=amount_paid,
+        if fee:
+            from decimal import Decimal
+            amount_paid = Decimal(str(trx['amount'])) / 100
+            _, created = Payment.objects.get_or_create(
                 reference=reference,
-                method='Bank Transfer',
-                recorded_by=request.user,
+                defaults={
+                    'student_fee': fee,
+                    'amount': amount_paid,
+                    'method': 'Bank Transfer',
+                    'recorded_by': request.user,
+                },
             )
-            messages.success(request, f'Payment of ₵{amount_paid:.2f} verified and recorded. Thank you!')
-            return redirect('finance:student_fees', student_id=fee.student.id)
-        elif fee:
-            messages.info(request, 'Payment already recorded.')
+            if created:
+                messages.success(request, f'Payment of ₵{amount_paid:.2f} verified and recorded. Thank you!')
+            else:
+                messages.info(request, 'Payment already recorded.')
             return redirect('finance:student_fees', student_id=fee.student.id)
 
     messages.success(request, 'Payment verified successfully.')
@@ -601,13 +604,16 @@ def paystack_webhook(request):
 
     if fee_id and reference:
         fee = StudentFee.objects.filter(id=fee_id).first()
-        if fee and not Payment.objects.filter(reference=reference).exists():
-            amount_paid = trx['amount'] / 100
-            Payment.objects.create(
-                student_fee=fee,
-                amount=amount_paid,
+        if fee:
+            from decimal import Decimal
+            amount_paid = Decimal(str(trx['amount'])) / 100
+            Payment.objects.get_or_create(
                 reference=reference,
-                method='Bank Transfer',
+                defaults={
+                    'student_fee': fee,
+                    'amount': amount_paid,
+                    'method': 'Bank Transfer',
+                },
             )
 
     return HttpResponse(status=200)

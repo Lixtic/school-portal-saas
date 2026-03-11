@@ -27,3 +27,9 @@ class PaymentForm(forms.ModelForm):
             'date': forms.DateInput(attrs={'type': 'date'}),
             'remarks': forms.Textarea(attrs={'rows': 2}),
         }
+
+    def clean_amount(self):
+        amount = self.cleaned_data.get('amount')
+        if amount is not None and amount <= 0:
+            raise forms.ValidationError("Payment amount must be greater than zero.")
+        return amount
