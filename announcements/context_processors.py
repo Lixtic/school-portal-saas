@@ -3,10 +3,10 @@ from django.db.utils import OperationalError, ProgrammingError
 def user_notifications(request):
     if request.user.is_authenticated:
         try:
-            # Assuming related_name='notifications' in the Notification model
-            # We fetch unread notifications
+            # Force evaluation (list()) so DB errors are caught here,
+            # not later in the template when the queryset is iterated.
             return {
-                'unread_notifications': request.user.notifications.filter(is_read=False).order_by('-created_at')[:5],
+                'unread_notifications': list(request.user.notifications.filter(is_read=False).order_by('-created_at')[:5]),
                 'unread_count': request.user.notifications.filter(is_read=False).count()
             }
         except Exception:
