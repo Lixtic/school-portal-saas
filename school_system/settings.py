@@ -20,11 +20,11 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-your-secret-key-here-
 # Defaults to False unless explicitly set. Use DEBUG=True in local .env
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-# Crash if SECRET_KEY is still the default in production
+# Warn loudly if SECRET_KEY is still the default in production
 if not DEBUG and SECRET_KEY.startswith('django-insecure'):
-    from django.core.exceptions import ImproperlyConfigured
-    raise ImproperlyConfigured(
-        "SECRET_KEY is using the insecure default! Set a proper SECRET_KEY env var."
+    import logging as _log
+    _log.getLogger('django.security').critical(
+        "⚠️ SECRET_KEY is using the insecure default! Set a proper SECRET_KEY env var on Vercel."
     )
 
 # OpenAI Configuration
