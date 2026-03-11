@@ -700,7 +700,8 @@ def revenue_analytics(request):
     
     # === Churn Metrics ===
     # Churn in last 30 days
-    thirty_days_ago = timezone.now() - timedelta(days=30)
+    now = timezone.now()
+    thirty_days_ago = now - timedelta(days=30)
     recent_churns = ChurnEvent.objects.filter(cancelled_at__gte=thirty_days_ago)
     churn_count = recent_churns.count()
     
@@ -1261,6 +1262,198 @@ def pricing_page(request):
     from .models import SubscriptionPlan
     plans = SubscriptionPlan.objects.filter(is_active=True).exclude(plan_type='trial').order_by('monthly_price')
     return render(request, 'tenants/pricing.html', {'plans': plans})
+
+
+@login_required
+def initiate_plan_upgrade(request):
+    """School admin: initiate a Paystack payment to upgrade the subscription plan."""
+    import requests as req_lib
+    import uuid
+
+    if not hasattr(request, 'tenant'):
+        return redirect('home')
+    if request.user.user_type != 'admin':
+        messages.error(request, "Access denied. School admins only.")
+        return redirect('dashboard')
+    if request.method != 'POST':
+        return redirect('tenants:school_subscription')
+
+    from .models import SchoolSubscription, SubscriptionPlan
+    from django.utils import timezone as _tz
+
+    plan_id = request.POST.get('plan_id')
+    billing_cycle = request.POST.get('billing_cycle', 'monthly')
+    if billing_cycle not in ('monthly', 'quarterly', 'annual'):
+        billing_cycle = 'monthly'
+
+    plan = get_object_or_404(SubscriptionPlan, id=plan_id, is_active=True)
+
+    # Determine amount based on billing cycle
+    if billing_cycle == 'annual':
+        amount_usd = plan.annual_price
+    elif billing_cycle == 'quarterly':
+        amount_usd = plan.quarterly_price
+    else:
+        amount_usd = plan.monthly_price
+
+    if amount_usd <= 0:
+        messages.error(request, "Invalid plan amount. Please contact support.")
+        return redirect('tenants:school_subscription')
+
+    secret_key = getattr(settings, 'PAYSTACK_SECRET_KEY', '')
+    if not secret_key:
+        messages.error(request, 'Paystack is not configured. Please contact platform admin.')
+        return redirect('tenants:school_subscription')
+
+    try:
+        subscription = SchoolSubscription.objects.get(school=request.tenant)
+        email = request.user.email or f"admin_{request.tenant.schema_name}@schoolportal.app"
+    except SchoolSubscription.DoesNotExist:
+        messages.error(request, "No subscription found for your school.")
+        return redirect('tenants:school_subscription')
+
+    reference = f"PLN-{request.tenant.id}-{plan.id}-{uuid.uuid4().hex[:8].upper()}"
+    # Paystack uses smallest currency unit (kobo for NGN, pesewas for GHS)
+    amount_minor = int(amount_usd * 100)
+
+    from django.urls import reverse as _rev
+    callback_url = request.build_absolute_uri(_rev('tenants:upgrade_plan_callback'))
+
+    payload = {
+        'email': email,
+        'amount': amount_minor,
+        'reference': reference,
+        'callback_url': callback_url,
+        'metadata': {
+            'school_id': request.tenant.id,
+            'plan_id': plan.id,
+            'billing_cycle': billing_cycle,
+            'custom_fields': [
+                {'display_name': 'School', 'variable_name': 'school', 'value': request.tenant.name},
+                {'display_name': 'Plan', 'variable_name': 'plan', 'value': plan.name},
+            ],
+        },
+    }
+
+    try:
+        resp = req_lib.post(
+            'https://api.paystack.co/transaction/initialize',
+            json=payload,
+            headers={
+                'Authorization': f'Bearer {secret_key}',
+                'Content-Type': 'application/json',
+            },
+            timeout=15,
+        )
+        data = resp.json()
+        if data.get('status'):
+            return redirect(data['data']['authorization_url'])
+        else:
+            messages.error(request, f"Paystack error: {data.get('message', 'Unknown error')}")
+    except Exception as exc:
+        messages.error(request, f"Payment gateway unavailable: {exc}")
+
+    return redirect('tenants:school_subscription')
+
+
+@login_required
+def upgrade_plan_callback(request):
+    """Handle Paystack redirect after plan upgrade payment."""
+    import requests as req_lib
+
+    if not hasattr(request, 'tenant'):
+        return redirect('home')
+    if request.user.user_type != 'admin':
+        return redirect('dashboard')
+
+    reference = request.GET.get('reference')
+    if not reference:
+        messages.error(request, 'Invalid payment reference.')
+        return redirect('tenants:school_subscription')
+
+    secret_key = getattr(settings, 'PAYSTACK_SECRET_KEY', '')
+    try:
+        resp = req_lib.get(
+            f"https://api.paystack.co/transaction/verify/{reference}",
+            headers={'Authorization': f'Bearer {secret_key}'},
+            timeout=15,
+        )
+        data = resp.json()
+    except Exception as exc:
+        messages.error(request, f"Could not verify payment: {exc}")
+        return redirect('tenants:school_subscription')
+
+    if not data.get('status') or data['data']['status'] != 'success':
+        messages.warning(request, 'Payment was not completed or verification failed.')
+        return redirect('tenants:school_subscription')
+
+    trx = data['data']
+    meta = trx.get('metadata', {})
+    plan_id = meta.get('plan_id')
+    billing_cycle = meta.get('billing_cycle', 'monthly')
+
+    if not plan_id:
+        messages.error(request, 'Plan information missing from payment. Contact support.')
+        return redirect('tenants:school_subscription')
+
+    from .models import SchoolSubscription, SubscriptionPlan
+    from django.utils import timezone as _tz
+    from calendar import monthrange as _mr
+
+    def _add_months(dt, months):
+        """Add N months to a datetime, clamping day to month-end."""
+        month = dt.month - 1 + months
+        year = dt.year + month // 12
+        month = month % 12 + 1
+        day = min(dt.day, _mr(year, month)[1])
+        return dt.replace(year=year, month=month, day=day)
+
+    plan = SubscriptionPlan.objects.filter(id=plan_id, is_active=True).first()
+    if not plan:
+        messages.error(request, 'The selected plan no longer exists. Contact support.')
+        return redirect('tenants:school_subscription')
+
+    try:
+        subscription = SchoolSubscription.objects.get(school=request.tenant)
+    except SchoolSubscription.DoesNotExist:
+        messages.error(request, 'No subscription found. Contact support.')
+        return redirect('tenants:school_subscription')
+
+    # Calculate new period end
+    now_dt = _tz.now()
+    if billing_cycle == 'annual':
+        period_end = _add_months(now_dt, 12)
+    elif billing_cycle == 'quarterly':
+        period_end = _add_months(now_dt, 3)
+    else:
+        period_end = _add_months(now_dt, 1)
+
+    # Calculate MRR
+    if billing_cycle == 'annual':
+        mrr = plan.annual_price / 12
+    elif billing_cycle == 'quarterly':
+        mrr = plan.quarterly_price / 3
+    else:
+        mrr = plan.monthly_price
+
+    subscription.plan = plan
+    subscription.billing_cycle = billing_cycle
+    subscription.status = 'active'
+    subscription.current_period_start = now_dt
+    subscription.current_period_end = period_end
+    subscription.trial_ends_at = None
+    subscription.mrr = mrr
+    subscription.save(update_fields=[
+        'plan', 'billing_cycle', 'status',
+        'current_period_start', 'current_period_end',
+        'trial_ends_at', 'mrr',
+    ])
+
+    messages.success(
+        request,
+        f"✅ Plan upgraded to {plan.name} ({billing_cycle}). Your access is now fully active!"
+    )
+    return redirect('tenants:school_subscription')
 
 
 @login_required

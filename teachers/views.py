@@ -2236,7 +2236,6 @@ def aura_t_api(request):
     return JsonResponse({"status": "error", "message": "Invalid method"}, status=405)
 
 @login_required
-@login_required
 def aura_command_center(request):
     """
     Aura-T Command Center — teachers go to the unified AI sessions page,

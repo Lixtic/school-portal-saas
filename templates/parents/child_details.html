@@ -177,6 +177,15 @@
                 <i class="bi bi-stars"></i> Aura AI
             </button>
         </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="fees-tab" data-bs-toggle="tab"
+                    data-bs-target="#fees" type="button">
+                <i class="bi bi-receipt"></i> Fees
+                {% if fee_total_balance and fee_total_balance > 0 %}
+                <span class="badge bg-danger ms-1" style="font-size:0.65rem;">Due</span>
+                {% endif %}
+            </button>
+        </li>
     </ul>
 
     <div class="tab-content" id="childTabsContent">
@@ -484,6 +493,86 @@
                 </div>
             </div>
             {% endif %}
+        </div>
+
+        <!-- Fees Tab -->
+        <div class="tab-pane fade" id="fees" role="tabpanel">
+            <!-- Summary row -->
+            <div class="row g-3 mb-4">
+                <div class="col-4">
+                    <div class="card border-0 shadow-sm text-center py-3">
+                        <div class="text-muted small mb-1">Total Payable</div>
+                        <div class="fw-800 fs-5">₵{{ fee_total_payable|floatformat:2 }}</div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="card border-0 shadow-sm text-center py-3">
+                        <div class="text-muted small mb-1">Total Paid</div>
+                        <div class="fw-800 fs-5 text-success">₵{{ fee_total_paid|floatformat:2 }}</div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="card border-0 shadow-sm text-center py-3
+                        {% if fee_total_balance > 0 %}border-danger{% endif %}">
+                        <div class="text-muted small mb-1">Outstanding</div>
+                        <div class="fw-800 fs-5 {% if fee_total_balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                            ₵{{ fee_total_balance|floatformat:2 }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    {% if fees %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light text-secondary small text-uppercase">
+                                <tr>
+                                    <th class="ps-4 border-0">Fee Item</th>
+                                    <th class="border-0">Term / Period</th>
+                                    <th class="text-end border-0">Payable</th>
+                                    <th class="text-end border-0">Paid</th>
+                                    <th class="text-end border-0">Balance</th>
+                                    <th class="text-center border-0">Status</th>
+                                    <th class="text-end pe-4 border-0">Due Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for fee in fees %}
+                                <tr>
+                                    <td class="ps-4 fw-600">{{ fee.fee_structure.head.name }}</td>
+                                    <td class="text-muted small">{{ fee.fee_structure.term|title }}</td>
+                                    <td class="text-end">₵{{ fee.amount_payable|floatformat:2 }}</td>
+                                    <td class="text-end text-success">₵{{ fee.total_paid|floatformat:2 }}</td>
+                                    <td class="text-end {% if fee.balance > 0 %}text-danger fw-600{% endif %}">
+                                        ₵{{ fee.balance|floatformat:2 }}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if fee.status == 'paid' %}
+                                        <span class="badge bg-success-subtle text-success border border-success rounded-pill px-3">Paid</span>
+                                        {% elif fee.status == 'partial' %}
+                                        <span class="badge bg-warning-subtle text-warning border border-warning rounded-pill px-3">Partial</span>
+                                        {% else %}
+                                        <span class="badge bg-danger-subtle text-danger border border-danger rounded-pill px-3">Unpaid</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end pe-4 text-muted small">
+                                        {% if fee.fee_structure.due_date %}{{ fee.fee_structure.due_date|date:"M d, Y" }}{% else %}—{% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-receipt fs-1 opacity-25 d-block mb-3"></i>
+                        <p class="text-muted mb-0">No fee records found for {{ student.user.first_name }}.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
 </div>

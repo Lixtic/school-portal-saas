@@ -159,6 +159,16 @@ def child_details(request, student_id):
         learner_memory = None
         aura_state = None
 
+    # Fee summary for this child
+    fees = (StudentFee.objects
+            .filter(student=student)
+            .select_related('fee_structure', 'fee_structure__head')
+            .prefetch_related('payments')
+            .order_by('-fee_structure__due_date', '-created_at'))
+    fee_total_payable = sum(f.amount_payable for f in fees)
+    fee_total_paid = sum(f.total_paid for f in fees)
+    fee_total_balance = fee_total_payable - fee_total_paid
+
     context = {
         'student': student,
         'attendances': attendances,
@@ -172,6 +182,10 @@ def child_details(request, student_id):
         'xp': xp,
         'learner_memory': learner_memory,
         'aura_state': aura_state,
+        'fees': fees,
+        'fee_total_payable': fee_total_payable,
+        'fee_total_paid': fee_total_paid,
+        'fee_total_balance': fee_total_balance,
     }
     
     return render(request, 'parents/child_details.html', context)

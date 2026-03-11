@@ -253,15 +253,27 @@
                     <div style="font-size:0.8rem;opacity:0.7;margin-bottom:0.75rem;">{{ plan.description|truncatechars:80 }}</div>
                     <div class="mt-auto">
                         <div class="fw-800" style="font-size:1.5rem;color:#fff;">${{ plan.monthly_price }}<span style="font-size:0.875rem;font-weight:400;opacity:0.6;">/mo</span></div>
-                        <div style="font-size:0.75rem;opacity:0.6;">or ${{ plan.annual_price }}/yr</div>
+                        <div style="font-size:0.75rem;opacity:0.6;">or ${{ plan.annual_price }}/yr (save ~17%)</div>
                         <div class="mt-2" style="font-size:0.8rem;opacity:0.75;">
                             Up to {{ plan.max_students }} students · {{ plan.max_teachers }} teachers
                         </div>
-                        <a href="{% url 'tenants:support_tickets' %}"
-                           class="btn btn-sm mt-3 w-100 fw-600"
-                           style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.25);">
-                            Contact us to upgrade
-                        </a>
+
+                        <!-- Billing cycle selector + pay button -->
+                        <form method="post" action="{% url 'tenants:initiate_plan_upgrade' %}" class="mt-3">
+                            {% csrf_token %}
+                            <input type="hidden" name="plan_id" value="{{ plan.id }}">
+                            <select name="billing_cycle" class="form-select form-select-sm mb-2"
+                                    style="background:rgba(255,255,255,0.1);color:#fff;border-color:rgba(255,255,255,0.25);font-size:0.8rem;">
+                                <option value="monthly">Monthly — ${{ plan.monthly_price }}</option>
+                                <option value="quarterly">Quarterly — ${{ plan.quarterly_price }}</option>
+                                <option value="annual">Annual — ${{ plan.annual_price }}</option>
+                            </select>
+                            <button type="submit" class="btn btn-sm w-100 fw-700"
+                                    style="background:{% if plan.plan_type == 'pro' %}#3b82f6{% else %}rgba(255,255,255,0.2){% endif %};color:#fff;border:1px solid rgba(255,255,255,0.3);">
+                                <i class="bi bi-credit-card me-1"></i>
+                                {% if subscription and subscription.plan == plan %}Current Plan{% else %}Upgrade &rarr;{% endif %}
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -269,8 +281,9 @@
         </div>
 
         <p style="font-size:0.78rem;opacity:0.55;margin-top:1.25rem;margin-bottom:0;">
-            <i class="bi bi-info-circle me-1"></i>
-            To upgrade your plan, open a support ticket or contact <a href="mailto:support@schoolportal.app" style="color:#93c5fd;">support@schoolportal.app</a>.
+            <i class="bi bi-shield-lock me-1"></i>
+            Payments are securely processed by Paystack. Your plan activates immediately after payment.
+            Need help? <a href="mailto:support@schoolportal.app" style="color:#93c5fd;">support@schoolportal.app</a>.
         </p>
     </div>
     {% endif %}

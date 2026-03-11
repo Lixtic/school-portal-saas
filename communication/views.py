@@ -186,7 +186,6 @@ def _allowed_recipients(user):
 # ═══════════════════════════════
 
 @login_required
-@login_required
 def api_unread_count(request):
     try:
         user = request.user

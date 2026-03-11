@@ -2106,16 +2106,41 @@
         <main class="main-content {% if not user.is_authenticated %}w-100 m-0 p-0{% endif %}" id="mainContent">
 
             {% if trial_active and user.is_authenticated %}
+            {% if trial_days_left is not None and trial_days_left <= 3 %}
+            <div class="trial-banner d-flex align-items-center justify-content-between px-3 py-2"
+                 style="background: linear-gradient(90deg, #dc2626 0%, #b91c1c 100%); color: #fff; font-size: 0.875rem; z-index: 900; animation: pulse-banner 2s ease-in-out infinite;">
+                <span>
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                    <strong>Trial Expiring Soon!</strong> —
+                    {% if trial_days_left == 0 %}
+                        Your trial expires <strong>today</strong>. Upgrade now to avoid interruption.
+                    {% elif trial_days_left == 1 %}
+                        Only <strong>1 day</strong> left. Upgrade now to keep full access.
+                    {% else %}
+                        Only <strong>{{ trial_days_left }} days</strong> left. Upgrade now to keep full access.
+                    {% endif %}
+                </span>
+                <a href="{% url 'tenants:school_subscription' %}"
+                   class="btn btn-sm ms-3 fw-700"
+                   style="background:#fff; color:#dc2626; border:none; border-radius:6px; padding:4px 16px;">
+                    Upgrade Now &rarr;
+                </a>
+            </div>
+            <style>
+                @keyframes pulse-banner {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.88; }
+                }
+            </style>
+            {% else %}
             <div class="trial-banner d-flex align-items-center justify-content-between px-3 py-2"
                  style="background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%); color: #fff; font-size: 0.875rem; z-index: 900;">
                 <span>
                     <i class="bi bi-clock-history me-1"></i>
                     <strong>Free Trial</strong> —
-                    {% if trial_days_left == 0 %}
-                        Your trial expires <strong>today</strong>.
-                    {% elif trial_days_left == 1 %}
+                    {% if trial_days_left == 1 %}
                         <strong>1 day</strong> left on your trial.
-                    {% else %}
+                    {% elif trial_days_left is not None %}
                         <strong>{{ trial_days_left }} days</strong> left on your trial.
                     {% endif %}
                     Upgrade to keep full access.
@@ -2126,6 +2151,7 @@
                     View Plans &rarr;
                 </a>
             </div>
+            {% endif %}
             {% endif %}
 
             {% block content %}

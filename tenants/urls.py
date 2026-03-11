@@ -31,6 +31,10 @@ urlpatterns = [
     # School subscription portal (tenant-admin)
     path('subscription/', views.school_subscription, name='school_subscription'),
 
+    # Self-service plan upgrade via Paystack
+    path('subscription/upgrade/', views.initiate_plan_upgrade, name='initiate_plan_upgrade'),
+    path('subscription/upgrade/callback/', views.upgrade_plan_callback, name='upgrade_plan_callback'),
+
     # Landlord: activate / change a school's plan
     path('activate-plan/<int:school_id>/', views.activate_school_plan, name='activate_plan'),
 ]
