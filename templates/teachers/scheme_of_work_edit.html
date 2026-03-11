@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% block title %}Edit Scheme of Work{% endblock %}
+
+{% block content %}
+<style>
+    .upload-zone { border:2px dashed rgba(99,102,241,.4); border-radius:14px;
+                   padding:32px; text-align:center; cursor:pointer; transition:.2s; }
+    .upload-zone:hover { border-color:#6366f1; background:rgba(99,102,241,.04); }
+    .upload-zone.dragover { border-color:#6366f1; background:rgba(99,102,241,.08); }
+    #preview-img { max-height:300px; border-radius:10px; margin-top:12px; }
+    [data-bs-theme="dark"] .card { background:var(--surface-white); border-color:rgba(255,255,255,.07); }
+    [data-bs-theme="dark"] .form-select,
+    [data-bs-theme="dark"] .form-control { background:var(--surface-card); color:var(--text-main);
+                                           border-color:rgba(255,255,255,.12); }
+    .current-image-badge {
+        display:inline-flex; align-items:center; gap:6px;
+        font-size:11px; background:rgba(99,102,241,.1); color:#6366f1;
+        border-radius:20px; padding:2px 10px; margin-top:8px;
+    }
+    [data-bs-theme="dark"] .current-image-badge { background:rgba(129,140,248,.16); color:#a5b4fc; }
+</style>
+
+<div class="container py-4" style="max-width:680px;">
+
+    <div class="mb-4">
+        <a href="{% url 'teachers:scheme_of_work_list' %}" class="text-decoration-none text-muted small">
+            <i class="bi bi-arrow-left me-1"></i>Back to Schemes
+        </a>
+    </div>
+
+    <h2 class="fw-bold mb-1">
+        <i class="bi bi-pencil me-2 text-primary"></i>Edit Scheme of Work
+    </h2>
+    <p class="text-muted mb-4">
+        Update the class/subject, term, or replace the image.<br>
+        If you upload a new image, Aura will re-extract topics automatically.
+        Leave the image field empty to keep existing topics unchanged.
+    </p>
+
+    {% if messages %}
+        {% for msg in messages %}
+        <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show rounded-3" role="alert">
+            {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card shadow-sm border-0 rounded-4 p-4">
+        <form method="post" enctype="multipart/form-data" id="editForm">
+            {% csrf_token %}
+
+            <!-- Class / Subject -->
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Class &amp; Subject</label>
+                <select name="class_subject" class="form-select" required>
+                    <option value="">— select —</option>
+                    {% for cs in class_subjects %}
+                    <option value="{{ cs.id }}" {% if cs.id == scheme.class_subject_id %}selected{% endif %}>
+                        {{ cs.class_name.name }} — {{ cs.subject.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Term -->
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Term</label>
+                <select name="term" class="form-select" required>
+                    <option value="">— select —</option>
+                    {% for value, label in term_choices %}
+                    <option value="{{ value }}" {% if value == scheme.term %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Current image preview -->
+            {% if scheme.image %}
+            <div class="mb-3">
+                <label class="form-label fw-semibold d-block">Current Image</label>
+                <a href="{{ scheme.image.url }}" target="_blank">
+                    <img src="{{ scheme.image.url }}" alt="Current scheme"
+                         class="rounded-3 border"
+                         style="max-height:180px;max-width:100%;object-fit:cover;display:block;">
+                </a>
+                <span class="current-image-badge mt-2">
+                    <i class="bi bi-check-circle-fill"></i>
+                    {{ scheme.get_topics|length }} topic{{ scheme.get_topics|length|pluralize }} extracted
+                </span>
+            </div>
+            {% endif %}
+
+            <!-- New image (optional) -->
+            <div class="mb-4">
+                <label class="form-label fw-semibold">
+                    Replace Image
+                    <span class="text-muted fw-normal ms-1" style="font-size:12px;">(optional — leave blank to keep current)</span>
+                </label>
+                <div class="upload-zone" id="uploadZone" onclick="document.getElementById('imageInput').click();">
+                    <i class="bi bi-image" style="font-size:2rem;color:#6366f1;"></i>
+                    <p class="mb-0 mt-2 text-muted small" id="zone-label">
+                        Click to browse or drag &amp; drop a new image<br>
+                        <span style="font-size:11px;">JPG, PNG, WEBP — max 10 MB</span>
+                    </p>
+                    <img id="preview-img" src="#" alt="Preview" style="display:none;">
+                </div>
+                <input type="file" id="imageInput" name="image" accept="image/*"
+                       class="d-none" onchange="previewImage(this)">
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary rounded-pill px-4" id="submitBtn">
+                    <i class="bi bi-floppy me-1"></i> Save Changes
+                </button>
+                <a href="{% url 'teachers:scheme_of_work_list' %}" class="btn btn-outline-secondary rounded-pill px-4">Cancel</a>
+            </div>
+
+            <p class="text-muted small mt-3 mb-0">
+                <i class="bi bi-info-circle me-1"></i>
+                If you replace the image, extraction uses GPT-4o Vision and may take 10–20 seconds.
+            </p>
+        </form>
+    </div>
+</div>
+
+<script>
+function previewImage(input) {
+    const preview = document.getElementById('preview-img');
+    const label   = document.getElementById('zone-label');
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+        label.textContent = input.files[0].name;
+    }
+}
+
+// Drag & drop
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        document.getElementById('imageInput').files = dt.files;
+        previewImage(document.getElementById('imageInput'));
+    }
+});
+
+// Show loading state on submit if a new image is attached
+document.getElementById('editForm').addEventListener('submit', function () {
+    const hasNewImage = document.getElementById('imageInput').files.length > 0;
+    if (hasNewImage) {
+        const btn = document.getElementById('submitBtn');
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving & re-extracting…';
+        btn.disabled = true;
+    }
+});
+</script>
+{% endblock %}

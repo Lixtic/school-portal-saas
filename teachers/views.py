@@ -12,6 +12,7 @@ from decimal import Decimal, InvalidOperation
 from django.utils import timezone
 import os
 import csv
+import json
 import random
 import string
 from datetime import date
@@ -3505,6 +3506,129 @@ def scheme_of_work_bulk_generate(request, pk):
         'errors': errors,
         'total': len(topics),
     })
+
+
+@login_required
+def scheme_of_work_edit(request, pk):
+    """Edit scheme metadata (term / class-subject) and optionally replace the image."""
+    if request.user.user_type not in ['admin', 'teacher']:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    teacher = get_object_or_404(Teacher, user=request.user)
+    scheme  = get_object_or_404(SchemeOfWork, pk=pk, class_subject__teacher=teacher)
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+
+    class_subjects = ClassSubject.objects.filter(
+        teacher=teacher, class_name__academic_year=current_year
+    ).select_related('class_name', 'subject') if current_year else \
+        ClassSubject.objects.filter(teacher=teacher).select_related('class_name', 'subject')
+
+    if request.method == 'POST':
+        cs_id = request.POST.get('class_subject')
+        term  = request.POST.get('term')
+        new_image = request.FILES.get('image')
+
+        if not cs_id or not term:
+            messages.error(request, 'Class/subject and term are required.')
+        else:
+            cs = get_object_or_404(ClassSubject, id=cs_id, teacher=teacher)
+            # Guard uniqueness (only if changing the key fields)
+            conflict = SchemeOfWork.objects.filter(
+                class_subject=cs, term=term,
+                academic_year=scheme.academic_year
+            ).exclude(pk=scheme.pk).first()
+            if conflict:
+                messages.error(request, 'A scheme of work for that class/subject/term already exists.')
+            else:
+                scheme.class_subject = cs
+                scheme.term = term
+                update_fields = ['class_subject', 'term']
+
+                if new_image:
+                    scheme.image = new_image
+                    # Clear old topics so user knows extraction is pending
+                    scheme.extracted_topics = '[]'
+                    scheme.extracted_indicators = '{}'
+                    update_fields += ['image', 'extracted_topics', 'extracted_indicators']
+                    scheme.save(update_fields=update_fields)
+
+                    # Re-extract with new image
+                    try:
+                        from academics.ai_tutor import extract_scheme_of_work_data
+                        try:
+                            image_ref = scheme.image.path
+                        except (NotImplementedError, AttributeError, ValueError):
+                            image_ref = scheme.image.url
+                        data = extract_scheme_of_work_data(image_ref)
+                        topics = data.get('topics', [])
+                        indicators = data.get('indicators', {})
+                        scheme.extracted_topics = json.dumps(topics)
+                        scheme.extracted_indicators = json.dumps(indicators)
+                        scheme.save(update_fields=['extracted_topics', 'extracted_indicators'])
+                        messages.success(request, f'Scheme updated. {len(topics)} topic(s) re-extracted.')
+                    except Exception as exc:
+                        messages.warning(request, f'Scheme saved but re-extraction failed: {exc}')
+                else:
+                    scheme.save(update_fields=update_fields)
+                    messages.success(request, 'Scheme updated.')
+
+                return redirect('teachers:scheme_of_work_list')
+
+    return render(request, 'teachers/scheme_of_work_edit.html', {
+        'scheme': scheme,
+        'class_subjects': class_subjects,
+        'term_choices': SchemeOfWork.TERM_CHOICES,
+    })
+
+
+@login_required
+@require_POST
+def scheme_of_work_dedup_indicators(request, pk):
+    """
+    AJAX: detect or fix duplicate indicators within a scheme.
+    POST body:
+      { "action": "scan" }            → returns duplicates list
+      { "action": "apply", "indicators": {...} }  → saves new indicators
+    """
+    if request.user.user_type not in ['admin', 'teacher']:
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    teacher = get_object_or_404(Teacher, user=request.user)
+    scheme  = get_object_or_404(SchemeOfWork, pk=pk, class_subject__teacher=teacher)
+
+    try:
+        payload = json.loads(request.body)
+    except Exception:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    action = payload.get('action', 'scan')
+
+    if action == 'scan':
+        indicators = scheme.get_indicators()  # {topic: indicator_text}
+        # Build reverse map: indicator_text → [topics]
+        rev = {}
+        for topic, ind in indicators.items():
+            if ind:
+                rev.setdefault(ind, []).append(topic)
+        duplicates = [
+            {'indicator': ind, 'topics': topics}
+            for ind, topics in rev.items()
+            if len(topics) > 1
+        ]
+        return JsonResponse({'ok': True, 'duplicates': duplicates, 'count': len(duplicates)})
+
+    elif action == 'apply':
+        new_indicators = payload.get('indicators', {})
+        if not isinstance(new_indicators, dict):
+            return JsonResponse({'error': 'indicators must be a dict'}, status=400)
+        scheme.extracted_indicators = json.dumps(
+            {str(k).strip(): str(v).strip() for k, v in new_indicators.items()}
+        )
+        scheme.save(update_fields=['extracted_indicators'])
+        return JsonResponse({'ok': True})
+
+    return JsonResponse({'error': 'Unknown action'}, status=400)
 
 
 @login_required

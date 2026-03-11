@@ -60,6 +60,12 @@
     /* Filter highlight */
     .sow-match-highlight { background: rgba(251,191,36,.3); border-radius: 2px; }
 
+    /* Dedup panel */
+    .dedup-panel { border-top: 1px dashed rgba(239,68,68,.35); background: rgba(239,68,68,.04); }
+    .dedup-group-row { background: rgba(255,255,255,.7); border: 1px solid rgba(239,68,68,.25); border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; }
+    .dedup-ind-input { font-size: 12px; font-family: monospace; border-radius: 6px; }
+    [data-bs-theme="dark"] .dedup-group-row { background: rgba(30,41,59,.8); border-color: rgba(239,68,68,.3); }
+
     /* Dark mode overrides */
     [data-bs-theme="dark"] .topic-chip { background: rgba(99,102,241,.2); color: #a5b4fc; }
     [data-bs-theme="dark"] .indicator-code { background: rgba(129,140,248,.2); color: #c7d2fe; }
@@ -170,6 +176,12 @@
                           id="count-{{ scheme.pk }}">No topics</span>
                     {% endif %}
 
+                    <a href="{% url 'teachers:scheme_of_work_edit' scheme.pk %}"
+                       class="btn btn-sm btn-outline-secondary rounded-pill py-0 px-2"
+                       style="font-size:11px;" title="Edit scheme (class / term / image)">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+
                     <button class="btn btn-sm btn-outline-secondary rounded-pill py-0 px-2"
                             style="font-size:11px;" title="Re-extract topics with AI"
                             onclick="reExtract({{ scheme.pk }},this,'{% url 'teachers:scheme_of_work_reextract' scheme.pk %}')">
@@ -271,8 +283,29 @@
 
                 </div>
 
-                <div class="card-footer border-0 bg-transparent px-3 pb-3 pt-0">
+                <!-- Dedup panel (hidden until triggered) -->
+                <div id="dedup-panel-{{ scheme.pk }}" class="dedup-panel px-3 py-2" style="display:none;">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="fw-semibold small text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i>Duplicate Indicators</span>
+                        <button class="btn btn-sm btn-link text-muted p-0" onclick="closeDedupPanel({{ scheme.pk }})"><i class="bi bi-x-lg"></i></button>
+                    </div>
+                    <div id="dedup-groups-{{ scheme.pk }}"></div>
+                    <button class="btn btn-sm btn-danger rounded-pill px-3" style="font-size:11px;"
+                            id="dedup-apply-{{ scheme.pk }}"
+                            onclick="applyDedupFixes({{ scheme.pk }}, '{% url 'teachers:scheme_of_work_dedup_indicators' scheme.pk %}', '{% url 'teachers:scheme_of_work_update_topics' scheme.pk %}')">Apply Fixes</button>
+                </div>
+
+                <div class="card-footer border-0 bg-transparent px-3 pb-3 pt-0 d-flex gap-2 align-items-center flex-wrap">
                     <small class="text-muted">Uploaded {{ scheme.uploaded_at|date:"d M Y" }}</small>
+                    {% with topics=scheme.get_topics %}
+                    {% if topics %}
+                    <button class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-0 ms-auto"
+                            style="font-size:11px;"
+                            onclick="checkDuplicates({{ scheme.pk }}, '{% url 'teachers:scheme_of_work_dedup_indicators' scheme.pk %}', this)">
+                        <i class="bi bi-diagram-2 me-1"></i>Check Duplicates
+                    </button>
+                    {% endif %}
+                    {% endwith %}
                 </div>
 
             </div>
@@ -426,6 +459,96 @@ async function bulkGenerate(id, total, url) {
     } catch(e) {
         alert('Network error: ' + e.message);
         btn.innerHTML = orig; btn.disabled = false;
+    }
+}
+
+/* ── Dedup helpers ─────────────────────────────────────── */
+async function checkDuplicates(id, url, btn) {
+    const orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+    try {
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+            body: JSON.stringify({ action: 'scan' })
+        });
+        const d = await resp.json();
+        if (!d.ok) throw new Error(d.error || 'Scan failed');
+
+        const panel  = document.getElementById(`dedup-panel-${id}`);
+        const groups = document.getElementById(`dedup-groups-${id}`);
+
+        if (d.count === 0) {
+            btn.innerHTML = '<i class="bi bi-check2-circle me-1"></i>No duplicates';
+            btn.disabled = false;
+            setTimeout(() => { btn.innerHTML = orig; }, 3000);
+            return;
+        }
+
+        // Render one group card per duplicate indicator
+        groups.innerHTML = d.duplicates.map(g => {
+            const rowId = `dd-${id}-${btoa(g.indicator).replace(/[^a-z0-9]/gi,'').slice(0,8)}`;
+            const topicRows = g.topics.map(t => {
+                const safeT = t.replace(/</g,'&lt;').replace(/"/g,'&quot;');
+                return `<div class="d-flex gap-2 align-items-center mb-1">
+                    <span class="badge bg-secondary-subtle text-secondary" style="max-width:220px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:10px;" title="${safeT}">${safeT}</span>
+                    <input class="form-control form-control-sm dedup-ind-input flex-grow-1"
+                           data-topic="${safeT}"
+                           value="${g.indicator.replace(/"/g,'&quot;')}"
+                           placeholder="New indicator…">
+                </div>`;
+            }).join('');
+            return `<div class="dedup-group-row" id="${rowId}">
+                <div class="small fw-semibold text-danger mb-2" style="font-family:monospace;">${g.indicator.replace(/</g,'&lt;')}</div>
+                ${topicRows}
+            </div>`;
+        }).join('');
+
+        panel.style.display = '';
+        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        btn.innerHTML = orig;
+        btn.disabled = false;
+    } catch(e) {
+        alert('Error scanning duplicates: ' + e.message);
+        btn.innerHTML = orig;
+        btn.disabled = false;
+    }
+}
+
+function closeDedupPanel(id) {
+    document.getElementById(`dedup-panel-${id}`).style.display = 'none';
+}
+
+async function applyDedupFixes(id, dedupUrl, topicsUrl) {
+    const btn = document.getElementById(`dedup-apply-${id}`);
+    // Collect all updated indicators from input fields
+    const currentIndicators = getIndicators(id);
+    const panel = document.getElementById(`dedup-panel-${id}`);
+    panel.querySelectorAll('.dedup-ind-input').forEach(inp => {
+        const t = inp.dataset.topic;
+        if (t) currentIndicators[t] = inp.value.trim();
+    });
+
+    btn.disabled = true; btn.textContent = '…';
+    try {
+        // Save using the update_topics endpoint
+        const resp = await fetch(topicsUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+            body: JSON.stringify({ topics: getTopics(id), indicators: currentIndicators })
+        });
+        const d = await resp.json();
+        if (!d.ok) throw new Error(d.error || 'Save failed');
+        // Refresh chips to show new indicators
+        rerenderChips(id, getTopics(id), currentIndicators);
+        panel.style.display = 'none';
+        btn.textContent = 'Apply Fixes';
+        btn.disabled = false;
+    } catch(e) {
+        alert('Error applying fixes: ' + e.message);
+        btn.disabled = false;
+        btn.textContent = 'Apply Fixes';
     }
 }
 

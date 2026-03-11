@@ -69,6 +69,8 @@ urlpatterns = [
     path('scheme-of-work/<int:pk>/topics/', views.scheme_of_work_update_topics, name='scheme_of_work_update_topics'),
     path('scheme-of-work/<int:pk>/re-extract/', views.scheme_of_work_reextract, name='scheme_of_work_reextract'),
     path('scheme-of-work/<int:pk>/bulk-generate/', views.scheme_of_work_bulk_generate, name='scheme_of_work_bulk_generate'),
+    path('scheme-of-work/<int:pk>/edit/', views.scheme_of_work_edit, name='scheme_of_work_edit'),
+    path('scheme-of-work/<int:pk>/dedup/', views.scheme_of_work_dedup_indicators, name='scheme_of_work_dedup_indicators'),
 
     # Student session peek (read-only tutor transcript for teacher)
     path('student-session/<int:session_id>/', views.student_session_peek, name='student_session_peek'),
