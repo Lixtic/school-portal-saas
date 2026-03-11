@@ -488,14 +488,30 @@ body { background: var(--arena-bg); }
         </div>
 
         <div class="sidebar-section">
-            <div class="tips-title">Commands</div>
+            <div class="tips-title">Arena Commands</div>
             <div class="tip-row">
                 <span class="tip-chip">@aura</span>
-                <span class="tip-desc">Ask Aura-T anything — she replies in the group</span>
+                <span class="tip-desc">Ask Aura-T anything — instant AI reply</span>
             </div>
             <div class="tip-row">
-                <span class="tip-chip">@aura battle</span>
-                <span class="tip-desc">Trivia challenge — first correct answer wins <strong style="color:var(--arena-gold);">+20 XP</strong></span>
+                <span class="tip-chip" style="background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:#f87171;">@aura battle</span>
+                <span class="tip-desc">Trivia — first correct answer wins <strong style="color:var(--arena-gold);">+20 XP</strong></span>
+            </div>
+            <div class="tip-row">
+                <span class="tip-chip" style="background:rgba(139,92,246,0.15);border-color:rgba(139,92,246,0.3);color:#c4b5fd;">@aura riddle</span>
+                <span class="tip-desc">Brain teaser — crack it first for <strong style="color:var(--arena-gold);">+15 XP</strong></span>
+            </div>
+            <div class="tip-row">
+                <span class="tip-chip" style="background:rgba(59,130,246,0.15);border-color:rgba(59,130,246,0.3);color:#93c5fd;">@aura math</span>
+                <span class="tip-desc">Arithmetic challenge — correct number wins <strong style="color:var(--arena-gold);">+10 XP</strong></span>
+            </div>
+            <div class="tip-row">
+                <span class="tip-chip" style="background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.3);color:#6ee7b7;">@aura spell</span>
+                <span class="tip-desc">Spell the hidden word — <strong style="color:var(--arena-gold);">+15 XP</strong></span>
+            </div>
+            <div class="tip-row">
+                <span class="tip-chip" style="background:rgba(245,158,11,0.15);border-color:rgba(245,158,11,0.3);color:#fcd34d;">@aura true or false</span>
+                <span class="tip-desc">Class T/F vote — <strong style="color:var(--arena-gold);">+5 XP</strong> each correct answer</span>
             </div>
         </div>
 
@@ -597,7 +613,12 @@ body { background: var(--arena-bg); }
                 </button>
             </form>
             <div class="input-hint">
-                <code>@aura</code> for AI answer &nbsp;·&nbsp; <code>@aura battle</code> for trivia (+20 XP)
+                <code>@aura</code> ask anything &nbsp;·&nbsp;
+                <code>@aura battle</code> trivia &nbsp;·&nbsp;
+                <code>@aura riddle</code> &nbsp;·&nbsp;
+                <code>@aura math</code> &nbsp;·&nbsp;
+                <code>@aura spell</code> &nbsp;·&nbsp;
+                <code>@aura true or false</code>
             </div>
         </div>
 
@@ -690,7 +711,9 @@ body { background: var(--arena-bg); }
         const isMe     = msg.is_me;
         const isAura   = msg.is_aura;
         const isBattle = msg.is_battle;
-        const isWin    = isAura && !isBattle && (msg.content || '').includes('wins the battle');
+        const bType    = msg.battle_type || 'battle';
+        const bXP      = msg.battle_xp  || 20;
+        const isWin    = isAura && !isBattle && (msg.content || '').includes(' wins and earns ');
 
         const row = document.createElement('div');
         row.className = 'msg-row' + (isMe ? ' me' : isAura ? ' aura-row' : '');
@@ -703,8 +726,18 @@ body { background: var(--arena-bg); }
         const avClass = isMe ? 'av-me' : isAura ? 'av-aura' : 'av-other';
         const avLabel = isAura ? '<i class="fa-solid fa-wand-magic-sparkles"></i>' : initials(msg.sender);
 
-        const battleHdr = isBattle ? `<div class="battle-header">
-            <div class="battle-pulse"></div><span>⚡ Aura Battle</span>
+        const BATTLE_META = {
+            battle:    { icon: '⚡', label: 'Aura Battle',  color: '#ef4444' },
+            riddle:    { icon: '🧩', label: 'Riddle',       color: '#8b5cf6' },
+            math:      { icon: '🔢', label: 'Math Challenge', color: '#3b82f6' },
+            spell:     { icon: '📝', label: 'Spelling',     color: '#10b981' },
+            truefalse: { icon: '❓', label: 'True or False', color: '#f59e0b' },
+        };
+        const bMeta = BATTLE_META[bType] || BATTLE_META.battle;
+        const battleHdr = isBattle ? `<div class="battle-header" style="border-color:${bMeta.color}40;color:${bMeta.color}">
+            <div class="battle-pulse" style="background:${bMeta.color}"></div>
+            <span>${bMeta.icon} ${bMeta.label}</span>
+            <span style="margin-left:auto;font-size:10px;opacity:0.75;">+${bXP} XP</span>
         </div>` : '';
 
         const meta = isMe ? '' : `<div class="msg-meta">
@@ -810,15 +843,24 @@ body { background: var(--arena-bg); }
                 if (m.id > lastId) lastId = m.id;
 
                 // Battle state detection
-                if (m.is_battle && !m.content.includes('wins the battle')) {
+                if (m.is_battle && !m.battle_answered) {
                     battleActive = true;
+                    const bType = m.battle_type || 'battle';
+                    const LABELS = {
+                        battle:    '⚡ Trivia Battle active — type your answer!',
+                        riddle:    '🧩 Riddle active — figure it out!',
+                        math:      '🔢 Math Challenge — type the number!',
+                        spell:     '📝 Spell the word correctly!',
+                        truefalse: '❓ True or False — type `true` or `false`!',
+                    };
+                    battleBanner.querySelector('.battle-banner-text').textContent =
+                        LABELS[bType] || LABELS.battle;
                     battleBanner.classList.add('active');
                 }
-                // Battle solved — a win msg always contains "wins the battle"
-                if (m.is_aura && (m.content || '').includes('wins the battle')) {
+                // Battle solved — win message
+                if (m.is_aura && (m.content || '').includes(' wins and earns ')) {
                     battleActive = false;
                     battleBanner.classList.remove('active');
-                    // Update XP if the server told us our new totals (via data.xp_snapshot)
                 }
             });
             // Server may send back xp_snapshot on any poll response

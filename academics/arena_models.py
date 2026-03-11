@@ -17,8 +17,18 @@ class StudyGroupMessage(models.Model):
     content = models.TextField()
     is_aura = models.BooleanField(default=False)
     
+    BATTLE_TYPE_CHOICES = [
+        ('battle',    'Trivia Battle'),
+        ('riddle',    'Riddle'),
+        ('math',      'Math Challenge'),
+        ('spell',     'Spelling Challenge'),
+        ('truefalse', 'True or False'),
+    ]
+
     # Battle tracking
     is_battle_question = models.BooleanField(default=False)
+    battle_type = models.CharField(max_length=20, choices=BATTLE_TYPE_CHOICES, default='battle')
+    battle_xp = models.IntegerField(default=20)
     battle_answered = models.BooleanField(default=False)
     battle_winner = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='won_battles')
     battle_answer = models.CharField(max_length=255, null=True, blank=True) # the expected answer
