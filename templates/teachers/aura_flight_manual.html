@@ -5,15 +5,22 @@
 <style>
 /* ─── Reset & Vars ─────────────────────────────────────────── */
 :root {
-    --fm-navy:   #0a0f1e;
-    --fm-ink:    #1e293b;
-    --fm-muted:  #64748b;
-    --fm-line:   rgba(0,0,0,.07);
-    --fm-white:  #fff;
+    --fm-navy:       #0a0f1e;
+    --fm-ink:        #1e293b;
+    --fm-muted:      #64748b;
+    --fm-line:       rgba(0,0,0,.07);
+    --fm-white:      #fff;
+    --fm-body-text:  #374151;
+    --fm-card-bg:    #fff;
+    --fm-table-text: #374151;
 }
 [data-bs-theme="dark"] {
-    --fm-line:  rgba(255,255,255,.07);
-    --fm-muted: #475569;
+    --fm-line:       rgba(255,255,255,.07);
+    --fm-muted:      #94a3b8;
+    --fm-white:      #1e293b;
+    --fm-body-text:  #cbd5e1;
+    --fm-card-bg:    rgba(255,255,255,.04);
+    --fm-table-text: #cbd5e1;
 }
 
 /* ─── Page Hero ────────────────────────────────────────────── */
@@ -108,14 +115,14 @@
     font-size: 1.1rem; font-weight: 900; line-height: 1;
     font-variant-numeric: tabular-nums;
 }
-.phase-header-text {}
-.phase-hdg {
-    font-size: .95rem; font-weight: 800; letter-spacing: -.01em;
-    line-height: 1.2;
-}
-.phase-sub {
-    font-size: .75rem; font-style: italic; opacity: .7; margin-top: .05rem;
-}
+/* Phase header text — ensure legibility on both light pastels and dark translucent bg */
+.phase-hdg { font-size: .95rem; font-weight: 800; letter-spacing: -.01em; line-height: 1.2; }
+.phase-sub { font-size: .75rem; font-style: italic; opacity: .7; margin-top: .05rem; }
+
+/* In light mode the pastel bg is very light — keep default dark body text */
+/* In dark mode override to ensure text stays readable */
+[data-bs-theme="dark"] .phase-hdg { color: #e2e8f0; }
+[data-bs-theme="dark"] .phase-sub  { color: #94a3b8; opacity: 1; }
 .phase-timing {
     margin-left: auto; flex-shrink: 0;
     font-size: .68rem; font-weight: 700; text-transform: uppercase;
@@ -135,7 +142,7 @@
     display: flex; align-items: center; gap: .3rem;
 }
 .col-text {
-    font-size: .86rem; color: #374151; line-height: 1.6;
+    font-size: .86rem; color: var(--fm-body-text); line-height: 1.6;
 }
 [data-bs-theme="dark"] .col-text { color: #cbd5e1; }
 
@@ -177,10 +184,10 @@
 .fm-callout {
     background: #f8fafc; border-radius: 8px;
     border-left: 3px solid; padding: .55rem .75rem;
-    font-size: .83rem; color: #374151; margin-top: .5rem;
+    font-size: .83rem; color: var(--fm-body-text); margin-top: .5rem;
     line-height: 1.55;
 }
-[data-bs-theme="dark"] .fm-callout { background: rgba(255,255,255,.04); color: #94a3b8; }
+[data-bs-theme="dark"] .fm-callout { background: rgba(255,255,255,.05); color: #94a3b8; }
 .fm-callout.green  { border-color: #22c55e; }
 .fm-callout.cyan   { border-color: #06b6d4; }
 .fm-callout.violet { border-color: #8b5cf6; }
@@ -263,7 +270,35 @@
     padding: .2rem .7rem; margin-top: .5rem;
 }
 
-/* ─── Print ────────────────────────────────────────────────── */
+/* ─── Quick nav chips as links ────────────────────────────── */
+a.fm-chip {
+    text-decoration: none;
+    transition: filter .15s, opacity .15s;
+}
+a.fm-chip:hover { filter: brightness(1.1); opacity: .88; }
+
+/* ─── Quick Reference bar & Cheat Sheet card ──────────────── */
+.fm-inner-card {
+    background: var(--fm-card-bg);
+    border-radius: 12px; border: 1px solid var(--fm-line);
+}
+/* ─── Quick-nav chip links ─────────────────────────────────── */
+a.fm-chip {
+    text-decoration: none;
+    transition: filter .15s, opacity .15s;
+}
+a.fm-chip:hover { filter: brightness(1.12); opacity: .88; }
+
+/* ─── Cheat sheet table dark text ─────────────────────────── */
+[data-bs-theme="dark"] .table td,
+[data-bs-theme="dark"] .table th {
+    color: var(--fm-table-text) !important;
+    border-color: rgba(255,255,255,.07);
+}
+/* ─── Wrap-up script col-text extras ──────────────────────── */
+[data-bs-theme="dark"] .col-text strong { color: #e2e8f0; }
+[data-bs-theme="dark"] .col-text em     { color: #94a3b8; }
+
 @media print {
     .fm-hero-actions, .print-hide { display: none !important; }
     .phase-card { break-inside: avoid; }
@@ -300,7 +335,7 @@
 </div>
 
 <!-- ── Quick Reference Bar ───────────────────────────────────── -->
-<div class="card border-0 shadow-sm rounded-3 mb-4 px-3 py-2 print-hide">
+<div class="card border-0 shadow-sm rounded-3 mb-4 px-3 py-2 print-hide" style="background:var(--fm-card-bg);border:1px solid var(--fm-line) !important;">
     <div class="d-flex flex-wrap gap-2 align-items-center" style="font-size:.75rem;">
         <span style="font-weight:700;color:var(--fm-muted);text-transform:uppercase;letter-spacing:.05em;font-size:.67rem;">Jump to:</span>
         <a href="#phase1" class="fm-chip fc-green">① Morning Sync</a>
@@ -583,7 +618,7 @@
 </div>
 
 <!-- ── Cheat Sheet ─────────────────────────────────────────────── -->
-<div class="card border-0 shadow-sm rounded-3 p-3 mb-4">
+<div class="card border-0 shadow-sm rounded-3 p-3 mb-4" style="background:var(--fm-card-bg);border:1px solid var(--fm-line) !important;">
     <div class="fm-section-title mb-2">⚡ One-Page Cheat Sheet</div>
     <div class="row g-2" style="font-size:.83rem;">
         <div class="col-md-6">

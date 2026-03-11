@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from tenants.decorators import require_addon
 from django.http import JsonResponse, StreamingHttpResponse, HttpResponse
 from django.urls import reverse
 import datetime
@@ -613,6 +614,7 @@ def manage_id_cards(request):
 
 
 @login_required
+@require_addon('resource-library')
 def manage_resources(request):
     if request.user.user_type not in ['admin', 'teacher']:
         messages.error(request, 'Access denied.')
@@ -657,6 +659,7 @@ def manage_resources(request):
     })
 
 @login_required
+@require_addon('resource-library')
 def delete_resource(request, resource_id):
     if request.user.user_type not in ['admin', 'teacher']:
         messages.error(request, 'Access denied.')
@@ -674,6 +677,7 @@ def delete_resource(request, resource_id):
     return redirect('academics:manage_resources')
 
 
+@require_addon('school-gallery')
 def gallery_view(request):
     category = request.GET.get('category')
     categories = GalleryImage.CATEGORY_CHOICES
@@ -712,6 +716,7 @@ def activities_public(request):
 
 
 @ensure_csrf_cookie
+@require_addon('ai-admissions-assistant')
 def admissions_assistant(request):
     logger.debug("Admissions assistant: %s %s", request.method, request.content_type)
     

@@ -6,6 +6,7 @@ from django.db.utils import OperationalError, ProgrammingError
 import django
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from tenants.decorators import require_addon
 from django.http import JsonResponse, HttpResponse
 from decimal import Decimal, InvalidOperation
 from django.utils import timezone
@@ -2853,6 +2854,7 @@ import json
 
 @login_required
 @login_required
+@require_addon('ai-lesson-planner')
 def ai_sessions_list(request):
     """
     Aura-T Command Centre (combined):
@@ -3025,6 +3027,7 @@ def ai_sessions_list(request):
     return render(request, 'teachers/ai_sessions_list.html', context)
 
 @login_required
+@require_addon('ai-lesson-planner')
 def ai_session_new(request):
     if not hasattr(request.user, 'teacher'):
          return redirect('dashboard')
@@ -3034,6 +3037,7 @@ def ai_session_new(request):
     return redirect('teachers:ai_session_detail', session_id=session.id)
 
 @login_required
+@require_addon('ai-lesson-planner')
 def ai_session_detail(request, session_id):
     if not hasattr(request.user, 'teacher'):
          return redirect('dashboard')
@@ -3151,6 +3155,7 @@ When generating a lesson plan, ALWAYS structure your output to exactly match thi
     })
 
 @login_required
+@require_addon('ai-lesson-planner')
 def ai_session_rename(request, session_id):
     if request.method == 'POST':
         teacher = request.user.teacher
@@ -3163,6 +3168,7 @@ def ai_session_rename(request, session_id):
     return redirect('teachers:ai_sessions_list')
 
 @login_required
+@require_addon('ai-lesson-planner')
 def ai_session_delete(request, session_id):
     teacher = request.user.teacher
     session = get_object_or_404(LessonGenerationSession, id=session_id, teacher=teacher)
@@ -3885,6 +3891,7 @@ def pulse_history(request):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @login_required
+@require_addon('presentations')
 def presentation_list(request):
     """Dashboard listing all of the teacher's presentations."""
     if request.user.user_type not in ('teacher', 'admin'):
@@ -3912,6 +3919,7 @@ def presentation_list(request):
 
 
 @login_required
+@require_addon('presentations')
 def presentation_create(request):
     """Create a new blank (or AI-seeded) presentation, then redirect to editor."""
     if request.user.user_type not in ('teacher', 'admin'):
@@ -3949,6 +3957,7 @@ def presentation_create(request):
 
 
 @login_required
+@require_addon('presentations')
 def presentation_editor(request, pk):
     """Main Gamma-style slide editor."""
     if request.user.user_type not in ('teacher', 'admin'):
@@ -3994,6 +4003,7 @@ def presentation_editor(request, pk):
 
 
 @login_required
+@require_addon('presentations')
 def presentation_delete(request, pk):
     if request.user.user_type not in ('teacher', 'admin'):
         messages.error(request, 'Access denied.')
@@ -4009,6 +4019,7 @@ def presentation_delete(request, pk):
 
 
 @login_required
+@require_addon('presentations')
 def presentation_present(request, pk):
     """Fullscreen slideshow view — read-only."""
     if request.user.user_type not in ('teacher', 'admin'):
@@ -4027,6 +4038,7 @@ def presentation_present(request, pk):
 
 
 @login_required
+@require_addon('presentations')
 def presentation_duplicate(request, pk):
     """Duplicate a deck and all its slides, redirect to the new editor."""
     if request.user.user_type not in ('teacher', 'admin'):

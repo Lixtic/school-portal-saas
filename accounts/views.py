@@ -3,6 +3,7 @@ from django.contrib.auth import login, logout, authenticate, get_user_model
 from django.contrib.auth.forms import SetPasswordForm
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from tenants.decorators import require_addon
 from django.conf import settings
 from django.http import JsonResponse
 from django.core.paginator import Paginator
@@ -1095,6 +1096,7 @@ class TenantPasswordResetView(PasswordResetView):
 # ---------------------------------------------------------------------------
 
 @login_required
+@require_addon('advanced-analytics')
 def school_analytics(request):
     """School-wide analytics: enrollment, fees, attendance, grades."""
     if request.user.user_type != 'admin':
