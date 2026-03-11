@@ -152,9 +152,6 @@
             </div>
         </div>
 
-        <!-- Features chips -->
-        <div class="d-flex flex-wrap gap-2 mt-4">
-
         <!-- AI usage meter -->
         {% if quota %}
         <div class="mt-4 pt-4" style="border-top: 1.5px solid var(--border-color, #e2e8f0);">
@@ -171,33 +168,33 @@
                 <span class="small text-muted">{{ quota.used }} calls used</span>
                 {% endif %}
             </div>
-
             {% if not quota.unlimited %}
-            {% with pct=quota.used|default:0 %}
             {% widthratio quota.used quota.limit 100 as ai_pct %}
             <div class="usage-bar-wrap mb-2">
                 <div class="usage-bar {% if ai_pct >= 90 %}crit{% elif ai_pct >= 70 %}warn{% endif %}"
                      style="width:{{ ai_pct }}%"></div>
             </div>
-            {% endwith %}
             {% if quota.remaining == 0 %}
             <p class="small mb-3" style="color:#ef4444;"><i class="bi bi-exclamation-triangle-fill me-1"></i>Quota reached. AI features are paused until next month or you upgrade.</p>
             {% elif quota.remaining <= 10 %}
             <p class="small mb-3" style="color:#f59e0b;"><i class="bi bi-exclamation-triangle me-1"></i>Only {{ quota.remaining }} AI calls remaining this month.</p>
             {% endif %}
             {% endif %}
-
             {% if quota.action_breakdown %}
             <div class="d-flex flex-wrap gap-2">
                 {% for action, count in quota.action_breakdown.items %}
                 <span class="badge" style="background:var(--surface-bg);color:var(--text-muted);font-size:0.75rem;padding:5px 10px;border:1px solid var(--border-color);">
-                    {{ action|title|cut:"_" }}: {{ count }}
+                    {{ action|title }}: {{ count }}
                 </span>
                 {% endfor %}
             </div>
             {% endif %}
         </div>
-        {% endif %}            <span class="badge rounded-pill" style="background:var(--surface-bg);color:var(--text-muted);font-size:0.75rem;padding:5px 12px;border:1px solid var(--border-color);">
+        {% endif %}
+
+        <!-- Features chips -->
+        <div class="d-flex flex-wrap gap-2 mt-4 pt-3" style="border-top: 1.5px solid var(--border-color, #e2e8f0);">
+            <span class="badge rounded-pill" style="background:var(--surface-bg);color:var(--text-muted);font-size:0.75rem;padding:5px 12px;border:1px solid var(--border-color);">
                 <i class="bi bi-check2 text-success me-1"></i>Attendance &amp; Grades
             </span>
             <span class="badge rounded-pill" style="background:var(--surface-bg);color:var(--text-muted);font-size:0.75rem;padding:5px 12px;border:1px solid var(--border-color);">
@@ -219,8 +216,89 @@
                 <i class="bi bi-headset me-1"></i>Priority Support
             </span>
             {% endif %}
+            {% if subscription.plan.api_access %}
+            <span class="badge rounded-pill" style="background:#fefce8;color:#854d0e;font-size:0.75rem;padding:5px 12px;border:1px solid #fde68a;">
+                <i class="bi bi-code-slash me-1"></i>API Access
+            </span>
+            {% endif %}
+        </div>
+    </div><!-- /sub-card -->
+
+    <!-- Active Add-ons -->
+    {% if active_addons %}
+    <div class="sub-card mb-4">
+        <div class="fw-700 mb-3" style="font-size:0.9rem;"><i class="bi bi-puzzle me-1 text-primary"></i>Active Add-ons</div>
+        <div class="row g-2">
+            {% for school_addon in active_addons %}
+            <div class="col-sm-6 col-lg-4">
+                <div class="d-flex align-items-center gap-2 p-2 rounded-3"
+                     style="border:1px solid var(--border-color, #e2e8f0);background:var(--surface-bg,#f8fafc);">
+                    <i class="bi {{ school_addon.addon.icon }} text-primary fs-5" style="flex-shrink:0;"></i>
+                    <div class="flex-grow-1 overflow-hidden">
+                        <div class="fw-600" style="font-size:0.82rem;">{{ school_addon.addon.name }}</div>
+                        <div class="text-muted" style="font-size:0.73rem;">
+                            ${{ school_addon.addon.monthly_price }}/mo
+                            {% if school_addon.expires_at %}&nbsp;· Expires {{ school_addon.expires_at|date:"M j, Y" }}{% endif %}
+                        </div>
+                    </div>
+                    <a href="{% url 'tenants:cancel_addon' school_addon.addon.id %}"
+                       class="btn btn-sm" style="font-size:0.72rem;color:#ef4444;padding:2px 8px;border:1px solid #fecaca;border-radius:6px;"
+                       onclick="return confirm('Cancel {{ school_addon.addon.name }}?');">
+                        Cancel
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <p class="text-muted mt-3 mb-0" style="font-size:0.78rem;">
+            <a href="{% url 'tenants:addon_marketplace' %}" style="color:var(--bs-primary);">Browse the add-on marketplace &rarr;</a>
+        </p>
+    </div>
+    {% endif %}
+
+    <!-- Billing History -->
+    {% if recent_invoices %}
+    <div class="sub-card mb-4">
+        <div class="fw-700 mb-3" style="font-size:0.9rem;"><i class="bi bi-receipt me-1 text-primary"></i>Billing History</div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0" style="font-size:0.83rem;">
+                <thead>
+                    <tr style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:.04em;">
+                        <th class="fw-600 border-0 pb-2">Invoice</th>
+                        <th class="fw-600 border-0 pb-2">Issued</th>
+                        <th class="fw-600 border-0 pb-2">Due</th>
+                        <th class="fw-600 border-0 pb-2 text-end">Amount</th>
+                        <th class="fw-600 border-0 pb-2 text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for inv in recent_invoices %}
+                <tr>
+                    <td class="py-2 fw-600">{{ inv.invoice_number }}</td>
+                    <td class="py-2 text-muted">{{ inv.issued_at|date:"M j, Y" }}</td>
+                    <td class="py-2 text-muted">{{ inv.due_at|date:"M j, Y" }}</td>
+                    <td class="py-2 fw-600 text-end">${{ inv.total }}</td>
+                    <td class="py-2 text-center">
+                        {% if inv.status == 'paid' %}
+                        <span class="badge" style="background:#d1fae5;color:#065f46;font-size:0.72rem;">Paid</span>
+                        {% elif inv.status == 'pending' %}
+                        <span class="badge" style="background:#fef3c7;color:#92400e;font-size:0.72rem;">Pending</span>
+                        {% elif inv.status == 'failed' %}
+                        <span class="badge" style="background:#fee2e2;color:#991b1b;font-size:0.72rem;">Failed</span>
+                        {% elif inv.status == 'refunded' %}
+                        <span class="badge" style="background:#f0f9ff;color:#0369a1;font-size:0.72rem;">Refunded</span>
+                        {% else %}
+                        <span class="badge" style="background:#f1f5f9;color:#64748b;font-size:0.72rem;">{{ inv.get_status_display }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
+    {% endif %}
+
     {% else %}
     <div class="sub-card mb-4 text-center py-5">
         <i class="bi bi-exclamation-circle fs-2 text-warning d-block mb-2"></i>

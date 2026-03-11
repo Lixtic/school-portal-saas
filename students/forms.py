@@ -86,12 +86,21 @@ class StudentForm(forms.ModelForm):
     last_name = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'class': 'form-control'}))
     email = forms.EmailField(required=False, widget=forms.EmailInput(attrs={'class': 'form-control'}))
     profile_picture = forms.ImageField(required=False, widget=forms.ClearableFileInput(attrs={'class': 'form-control'}))
-    
+    # interests is stored as a JSON list; we expose it as a comma-separated string
+    interests_input = forms.CharField(
+        required=False, label='Interests',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g. football, science, music',
+        }),
+        help_text='Comma-separated list of student interests',
+    )
+
     class Meta:
         model = Student
-        fields = ['admission_number', 'date_of_birth', 'gender', 'date_of_admission', 
+        fields = ['admission_number', 'date_of_birth', 'gender', 'date_of_admission',
                   'current_class', 'roll_number', 'blood_group', 'emergency_contact',
-                  'city', 'region']
+                  'city', 'region', 'curriculum', 'preferred_language', 'aura_notes']
         widgets = {
             'admission_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Auto-generated if blank'}),
             'date_of_birth': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
@@ -103,6 +112,10 @@ class StudentForm(forms.ModelForm):
             'emergency_contact': forms.TextInput(attrs={'class': 'form-control'}),
             'city': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'City'}),
             'region': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Region'}),
+            'curriculum': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Ghana National Curriculum'}),
+            'preferred_language': forms.Select(attrs={'class': 'form-select'}),
+            'aura_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3,
+                'placeholder': 'e.g. struggles with fractions, preparing for BECE, gifted in science'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -114,6 +127,12 @@ class StudentForm(forms.ModelForm):
         self.fields['emergency_contact'].required = False
         self.fields['city'].required = False
         self.fields['region'].required = False
+        self.fields['curriculum'].required = False
+        self.fields['preferred_language'].required = False
+        self.fields['aura_notes'].required = False
+        # Pre-populate the comma-separated interests field
+        if self.instance and self.instance.pk:
+            self.fields['interests_input'].initial = ', '.join(self.instance.interests or [])
 
 
 class CSVImportForm(forms.Form):

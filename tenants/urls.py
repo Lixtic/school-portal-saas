@@ -37,4 +37,8 @@ urlpatterns = [
 
     # Landlord: activate / change a school's plan
     path('activate-plan/<int:school_id>/', views.activate_school_plan, name='activate_plan'),
+
+    # Paystack webhook — platform-level (no tenant prefix needed)
+    # Register this URL in the Paystack dashboard under Settings → Webhook URL
+    path('paystack/webhook/', views.paystack_subscription_webhook, name='paystack_subscription_webhook'),
 ]

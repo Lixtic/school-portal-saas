@@ -465,24 +465,16 @@ def initiate_paystack_payment(request, fee_id):
         return redirect('finance:student_fees', student_id=fee.student.id)
 
     reference = f"SPS-{fee.id}-{uuid.uuid4().hex[:8].upper()}"
-    amount_kobo = int(fee.balance * 100)  # Paystack uses smallest currency unit
+    amount_minor = int(fee.balance * 100)  # Paystack uses smallest currency unit (pesewas/kobo)
     email = fee.student.user.email
 
-    callback_url = request.build_absolute_uri(
-        f"/{''.join(request.path.split('/')[:2])}/finance/paystack/callback/"
-        if request.tenant
-        else '/finance/paystack/callback/'
-    )
-    # Build tenant-aware callback URL
     from django.urls import reverse as _rev
-    try:
-        callback_url = request.build_absolute_uri(_rev('finance:paystack_callback'))
-    except Exception:
-        pass
+    callback_url = request.build_absolute_uri(_rev('finance:paystack_callback'))
 
     payload = {
         'email': email or f"student{fee.student.id}@schoolportal.app",
-        'amount': amount_kobo,
+        'amount': amount_minor,
+        'currency': getattr(settings, 'PAYSTACK_CURRENCY', 'GHS'),
         'reference': reference,
         'callback_url': callback_url,
         'metadata': {

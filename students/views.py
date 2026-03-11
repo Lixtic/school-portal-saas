@@ -1176,8 +1176,13 @@ def edit_student(request, student_id):
             if 'profile_picture' in form.cleaned_data:
                 student.user.profile_picture = form.cleaned_data['profile_picture']
             student.user.save()
-            
-            form.save()
+
+            saved_student = form.save()
+            # interests_input is a comma-separated string; store as JSON list
+            interests_str = form.cleaned_data.get('interests_input', '')
+            saved_student.interests = [s.strip() for s in interests_str.split(',') if s.strip()]
+            saved_student.save(update_fields=['interests'])
+
             messages.success(request, f'Student {student.user.get_full_name()} updated successfully.')
             return redirect('students:student_list')
     else:

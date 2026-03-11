@@ -33,6 +33,8 @@ OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 # Paystack Payment Gateway
 PAYSTACK_SECRET_KEY = os.environ.get('PAYSTACK_SECRET_KEY', '')
 PAYSTACK_PUBLIC_KEY = os.environ.get('PAYSTACK_PUBLIC_KEY', '')
+# Currency code sent to Paystack (GHS, NGN, KES, USD …)
+PAYSTACK_CURRENCY  = os.environ.get('PAYSTACK_CURRENCY', 'GHS')
 
 # Africa's Talking SMS
 AFRICASTALKING_USERNAME = os.environ.get('AT_USERNAME', 'sandbox')

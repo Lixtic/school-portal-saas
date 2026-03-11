@@ -24,6 +24,7 @@ def school_info(request):
             'school_phone': None,
             'school_info': None,
             'vapid_public_key': getattr(settings, 'VAPID_PUBLIC_KEY', ''),
+            'paystack_public_key': getattr(settings, 'PAYSTACK_PUBLIC_KEY', ''),
         }
     
     # Check if new fields exist in database
@@ -52,6 +53,7 @@ def school_info(request):
         'school_logo': info.logo,
         'school_info': info,
         'vapid_public_key': getattr(settings, 'VAPID_PUBLIC_KEY', ''),
+        'paystack_public_key': getattr(settings, 'PAYSTACK_PUBLIC_KEY', ''),
     }
     
     # Only add customization fields if they exist

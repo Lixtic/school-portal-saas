@@ -8,6 +8,8 @@ from django.contrib.auth import get_user_model, login
 from django.contrib import messages
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
 from academics.models import SchoolInfo, AcademicYear, Class, Subject, ClassSubject
 from django.utils import timezone
 from datetime import timedelta
@@ -1325,6 +1327,7 @@ def initiate_plan_upgrade(request):
     payload = {
         'email': email,
         'amount': amount_minor,
+        'currency': getattr(settings, 'PAYSTACK_CURRENCY', 'GHS'),
         'reference': reference,
         'callback_url': callback_url,
         'metadata': {
@@ -1452,6 +1455,26 @@ def upgrade_plan_callback(request):
         'trial_ends_at', 'mrr',
     ])
 
+    # Create an invoice record for billing history
+    from .models import Invoice as _Inv
+    _inv_amount = plan.annual_price if billing_cycle == 'annual' else (
+        plan.quarterly_price if billing_cycle == 'quarterly' else plan.monthly_price
+    )
+    _Inv.objects.get_or_create(
+        invoice_number=f"INV-{reference}",
+        defaults={
+            'subscription': subscription,
+            'status': 'paid',
+            'subtotal': _inv_amount,
+            'tax': 0,
+            'total': _inv_amount,
+            'issued_at': now_dt,
+            'due_at': now_dt,
+            'paid_at': now_dt,
+            'line_items': [{'description': f"{plan.name} ({billing_cycle})", 'amount': str(_inv_amount)}],
+        }
+    )
+
     messages.success(
         request,
         f"✅ Plan upgraded to {plan.name} ({billing_cycle}). Your access is now fully active!"
@@ -1489,12 +1512,28 @@ def school_subscription(request):
     from .ai_quota import get_quota_status
     quota = get_quota_status(request.tenant)
 
+    recent_invoices = []
+    active_addons = []
+    if subscription:
+        from .models import Invoice, SchoolAddOn
+        recent_invoices = list(
+            Invoice.objects.filter(subscription=subscription)
+            .order_by('-issued_at')[:6]
+        )
+        active_addons = list(
+            SchoolAddOn.objects.filter(subscription=subscription, is_active=True)
+            .select_related('addon')
+        )
+
     context = {
         'subscription': subscription,
+        'trial_active': bool(subscription and subscription.status == 'trial'),
         'trial_days_left': trial_days_left,
         'upgrade_plans': upgrade_plans,
         'school': request.tenant,
         'quota': quota,
+        'recent_invoices': recent_invoices,
+        'active_addons': active_addons,
     }
     return render(request, 'tenants/school_subscription.html', context)
 
@@ -1583,3 +1622,132 @@ def activate_school_plan(request, school_id):
         'plans': plans,
     }
     return render(request, 'tenants/activate_plan.html', context)
+
+
+@csrf_exempt
+def paystack_subscription_webhook(request):
+    """
+    Platform-level Paystack webhook — activates a school subscription after a
+    successful plan-upgrade payment (reference prefix: PLN-).
+
+    Register this URL in the Paystack dashboard under:
+      Settings → API Keys & Webhooks → Webhook URL
+    e.g. https://yourdomain.com/tenants/paystack/webhook/
+
+    This is the safety net for cases where the browser redirect callback
+    (/subscription/upgrade/callback/) is missed (network drop, closed tab).
+    """
+    import hmac as _hmac
+    import hashlib
+    import json as _json
+    from calendar import monthrange as _mr
+    from django.utils import timezone as _tz
+
+    if request.method != 'POST':
+        return HttpResponse(status=405)
+
+    secret_key = getattr(settings, 'PAYSTACK_SECRET_KEY', '')
+    signature  = request.META.get('HTTP_X_PAYSTACK_SIGNATURE', '')
+    body       = request.body
+
+    # Verify HMAC-SHA512 signature to confirm the request is from Paystack
+    if secret_key:
+        expected = _hmac.new(secret_key.encode(), body, hashlib.sha512).hexdigest()
+        if not _hmac.compare_digest(expected, signature):
+            logger.warning("Paystack subscription webhook: HMAC mismatch — rejected.")
+            return HttpResponse(status=400)
+
+    try:
+        payload = _json.loads(body)
+    except Exception:
+        return HttpResponse(status=400)
+
+    if payload.get('event') != 'charge.success':
+        return HttpResponse(status=200)
+
+    trx       = payload['data']
+    reference = trx.get('reference', '')
+    meta      = trx.get('metadata', {})
+
+    # Only handle plan-upgrade payments (fee payments start with SPS-)
+    if not reference.startswith('PLN-'):
+        return HttpResponse(status=200)
+
+    plan_id      = meta.get('plan_id')
+    billing_cycle = meta.get('billing_cycle', 'monthly')
+    school_id    = meta.get('school_id')
+
+    if not plan_id or not school_id:
+        logger.error(f"Paystack subscription webhook: missing plan_id/school_id in metadata (ref={reference})")
+        return HttpResponse(status=200)
+
+    from .models import SchoolSubscription, SubscriptionPlan, Invoice
+
+    plan   = SubscriptionPlan.objects.filter(id=plan_id, is_active=True).first()
+    school = School.objects.filter(id=school_id).first()
+
+    if not plan or not school:
+        logger.error(f"Paystack subscription webhook: plan {plan_id} or school {school_id} not found (ref={reference})")
+        return HttpResponse(status=200)
+
+    subscription = SchoolSubscription.objects.filter(school=school).first()
+    if not subscription:
+        logger.error(f"Paystack subscription webhook: no subscription for school {school_id} (ref={reference})")
+        return HttpResponse(status=200)
+
+    def _add_months(dt, months):
+        month = dt.month - 1 + months
+        year  = dt.year + month // 12
+        month = month % 12 + 1
+        day   = min(dt.day, _mr(year, month)[1])
+        return dt.replace(year=year, month=month, day=day)
+
+    now_dt = _tz.now()
+    if billing_cycle == 'annual':
+        period_end   = _add_months(now_dt, 12)
+        mrr          = plan.annual_price / 12
+        invoice_amt  = plan.annual_price
+    elif billing_cycle == 'quarterly':
+        period_end   = _add_months(now_dt, 3)
+        mrr          = plan.quarterly_price / 3
+        invoice_amt  = plan.quarterly_price
+    else:
+        period_end   = _add_months(now_dt, 1)
+        mrr          = plan.monthly_price
+        invoice_amt  = plan.monthly_price
+
+    subscription.plan                 = plan
+    subscription.billing_cycle        = billing_cycle
+    subscription.status               = 'active'
+    subscription.current_period_start = now_dt
+    subscription.current_period_end   = period_end
+    subscription.trial_ends_at        = None
+    subscription.mrr                  = mrr
+    subscription.save(update_fields=[
+        'plan', 'billing_cycle', 'status',
+        'current_period_start', 'current_period_end',
+        'trial_ends_at', 'mrr',
+    ])
+
+    Invoice.objects.get_or_create(
+        invoice_number=f"INV-{reference}",
+        defaults={
+            'subscription': subscription,
+            'status': 'paid',
+            'subtotal': invoice_amt,
+            'tax': 0,
+            'total': invoice_amt,
+            'issued_at': now_dt,
+            'due_at': now_dt,
+            'paid_at': now_dt,
+            'line_items': [
+                {'description': f"{plan.name} ({billing_cycle})", 'amount': str(invoice_amt)}
+            ],
+        }
+    )
+
+    logger.info(
+        f"Paystack subscription webhook: activated {plan.name} ({billing_cycle}) "
+        f"for school '{school.name}' (ref={reference})"
+    )
+    return HttpResponse(status=200)
