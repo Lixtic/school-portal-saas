@@ -2217,7 +2217,7 @@ def class_analytics(request):
     classes = Class.objects.filter(academic_year=current_year) if current_year else Class.objects.all()
 
     analytics = []
-    for cls in classes.prefetch_related('teacher_set'):
+    for cls in classes.select_related('class_teacher__user'):
         students_qs = Student.objects.filter(current_class=cls)
         student_count = students_qs.count()
 
@@ -2239,11 +2239,7 @@ def class_analytics(request):
         fee_rate = round(total_paid / total_payable * 100, 1) if total_payable else None
 
         # Class teacher name
-        try:
-            class_teacher = cls.teacher_set.first()
-            teacher_name = class_teacher.user.get_full_name() if class_teacher else '—'
-        except Exception:
-            teacher_name = '—'
+        teacher_name = cls.class_teacher.user.get_full_name() if cls.class_teacher else '—'
 
         analytics.append({
             'cls': cls,
