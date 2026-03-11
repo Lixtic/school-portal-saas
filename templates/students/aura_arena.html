@@ -269,6 +269,27 @@ body { background: var(--arena-bg); }
 }
 .xp-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+/* Achievement toast */
+.achievement-toast {
+    position: fixed; bottom: 140px; left: 50%;
+    transform: translateX(-50%) translateY(22px);
+    background: linear-gradient(135deg, rgba(20,20,50,0.97), rgba(30,18,60,0.97));
+    border: 1px solid rgba(250,200,0,0.35);
+    border-radius: 16px; padding: 12px 20px;
+    display: flex; align-items: center; gap: 12px;
+    min-width: 260px; max-width: 320px;
+    opacity: 0; pointer-events: none;
+    transition: all 0.45s cubic-bezier(0.16,1,0.3,1);
+    z-index: 51; backdrop-filter: blur(12px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(250,200,0,0.1);
+}
+.achievement-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.achievement-toast-icon { font-size: 28px; line-height:1; }
+.achievement-toast-body { flex:1; min-width:0; }
+.achievement-toast-title { font-size: 10px; font-weight:700; color: rgba(250,200,0,0.7); letter-spacing:0.6px; text-transform:uppercase; }
+.achievement-toast-name  { font-size: 13px; font-weight:800; color: #fff; margin-top:1px; }
+.achievement-toast-xp   { font-size: 10px; color: rgba(200,200,255,0.6); margin-top:2px; }
+
 /* ── Input bar ───────────────────────────────────────────── */
 .arena-input-bar {
     padding: 11px 16px 13px;
@@ -494,6 +515,10 @@ body { background: var(--arena-bg); }
                 <span class="tip-desc">Ask Aura-T anything — instant AI reply</span>
             </div>
             <div class="tip-row">
+                <span class="tip-chip" style="background:rgba(100,200,255,0.1);border-color:rgba(100,200,255,0.25);color:#7dd3fc;">@aura hint</span>
+                <span class="tip-desc">Get a nudge for the active challenge (no spoilers)</span>
+            </div>
+            <div class="tip-row">
                 <span class="tip-chip" style="background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:#f87171;">@aura battle</span>
                 <span class="tip-desc">Trivia — first correct answer wins <strong style="color:var(--arena-gold);">+20 XP</strong></span>
             </div>
@@ -530,8 +555,9 @@ body { background: var(--arena-bg); }
         </div>
 
         {% if top_students %}
-        <div class="sidebar-section">
+        <div class="sidebar-section" id="leaderboardSection">
             <div class="tips-title">Class Leaderboard 🏆</div>
+            <div id="leaderboardList">
             {% for entry in top_students %}
             <div class="tip-row" style="align-items:center; gap:8px; padding:4px 0;">
                 <span style="font-size:11px; font-weight:700; width:16px; text-align:right; color:
@@ -548,6 +574,7 @@ body { background: var(--arena-bg); }
                 <span style="font-size:10px; color:var(--arena-gold); font-weight:700; flex-shrink:0;">{{ entry.total_xp }} XP</span>
             </div>
             {% endfor %}
+            </div>
         </div>
         {% endif %}
 
@@ -613,11 +640,12 @@ body { background: var(--arena-bg); }
                 </button>
             </form>
             <div class="input-hint">
-                <code>@aura</code> ask anything &nbsp;·&nbsp;
-                <code>@aura battle</code> trivia &nbsp;·&nbsp;
-                <code>@aura riddle</code> &nbsp;·&nbsp;
-                <code>@aura math</code> &nbsp;·&nbsp;
-                <code>@aura spell</code> &nbsp;·&nbsp;
+                <code>@aura</code> ask anything &nbsp;&middot;&nbsp;
+                <code>@aura hint</code> &nbsp;&middot;&nbsp;
+                <code>@aura battle</code> &nbsp;&middot;&nbsp;
+                <code>@aura riddle</code> &nbsp;&middot;&nbsp;
+                <code>@aura math</code> &nbsp;&middot;&nbsp;
+                <code>@aura spell</code> &nbsp;&middot;&nbsp;
                 <code>@aura true or false</code>
             </div>
         </div>
@@ -628,6 +656,16 @@ body { background: var(--arena-bg); }
 <!-- XP toast -->
 <div class="xp-toast" id="xpToast"></div>
 
+<!-- Achievement toast -->
+<div class="achievement-toast" id="achievementToast">
+    <div class="achievement-toast-icon" id="achievementToastIcon">🏆</div>
+    <div class="achievement-toast-body">
+        <div class="achievement-toast-title">Achievement Unlocked!</div>
+        <div class="achievement-toast-name" id="achievementToastName"></div>
+        <div class="achievement-toast-xp" id="achievementToastXP"></div>
+    </div>
+</div>
+
 <script>
 (function () {
     'use strict';
@@ -637,7 +675,13 @@ body { background: var(--arena-bg); }
     const input      = document.getElementById('arenaInput');
     const sendBtn    = document.getElementById('arenaSendBtn');
     const emptyState = document.getElementById('emptyState');
-    const xpToast    = document.getElementById('xpToast');
+    const xpToast           = document.getElementById('xpToast');
+    const achievementToast  = document.getElementById('achievementToast');
+    const achieveIcon       = document.getElementById('achievementToastIcon');
+    const achieveName       = document.getElementById('achievementToastName');
+    const achieveXP         = document.getElementById('achievementToastXP');
+    const leaderboardList   = document.getElementById('leaderboardList');
+    const leaderboardSection= document.getElementById('leaderboardSection');
     const replyPreview = document.getElementById('replyPreview');
     const replyPreviewSender = document.getElementById('replyPreviewSender');
     const replyPreviewSnip   = document.getElementById('replyPreviewSnip');
@@ -810,6 +854,47 @@ body { background: var(--arena-bg); }
         }
     }
 
+    /* ── Achievement toast ────────────────────────────── */
+    let _achieveQueue = [];
+    let _achieveRunning = false;
+    function _showNextAchievement() {
+        if (!_achieveQueue.length) { _achieveRunning = false; return; }
+        _achieveRunning = true;
+        const a = _achieveQueue.shift();
+        achieveIcon.textContent  = a.icon;
+        achieveName.textContent  = a.name;
+        achieveXP.textContent    = `+${a.xp} bonus XP`;
+        achievementToast.classList.add('show');
+        setTimeout(() => {
+            achievementToast.classList.remove('show');
+            setTimeout(_showNextAchievement, 400);
+        }, 3800);
+    }
+    function showAchievements(list) {
+        if (!list || !list.length) return;
+        list.forEach(a => _achieveQueue.push({
+            icon: a.achievement__icon || '🏆',
+            name: a.achievement__name || 'Achievement',
+            xp:   a.achievement__xp_reward || 0,
+        }));
+        if (!_achieveRunning) _showNextAchievement();
+    }
+
+    /* ── Live leaderboard refresh ───────────────────────── */
+    function updateLeaderboard(entries) {
+        if (!leaderboardList || !entries || !entries.length) return;
+        const RANK_COLORS = ['#f59e0b','#94a3b8','#cd7f32'];
+        leaderboardList.innerHTML = entries.map((e, i) => `
+            <div class="tip-row" style="align-items:center;gap:8px;padding:4px 0;">
+                <span style="font-size:11px;font-weight:700;width:16px;text-align:right;color:${RANK_COLORS[i]||'var(--arena-muted)'}">${i+1}</span>
+                <div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#3878ff);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0;">${esc(e.initials)}</div>
+                <span class="tip-desc" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${e.is_me?'color:#a78bfa;font-weight:600;':''}">${esc(e.name)}${e.is_me?' (you)':''}</span>
+                <span style="font-size:10px;color:var(--arena-gold);font-weight:700;flex-shrink:0;">${e.total_xp} XP</span>
+            </div>
+        `).join('');
+        if (leaderboardSection) leaderboardSection.style.display = 'block';
+    }
+
     /* ── Thinking placeholder ────────────────────────────── */
     function showThinking(label) {
         if (thinkingRow) return;
@@ -868,6 +953,10 @@ body { background: var(--arena-bg); }
                 const s = data.xp_snapshot;
                 updateXPSidebar(s.total_xp, s.level, s.level_progress, s.xp_to_next_level);
             }
+            // Refresh leaderboard from poll
+            if (data.leaderboard && data.leaderboard.length) {
+                updateLeaderboard(data.leaderboard);
+            }
         } catch(e) { console.error('Arena poll error:', e); }
         finally { isPolling = false; }
     }
@@ -900,6 +989,9 @@ body { background: var(--arena-bg); }
                     if (data.xp_snapshot) {
                         const s = data.xp_snapshot;
                         updateXPSidebar(s.total_xp, s.level, s.level_progress, s.xp_to_next_level);
+                    }
+                    if (data.new_achievements && data.new_achievements.length) {
+                        showAchievements(data.new_achievements);
                     }
                 }
                 isPolling = false; // unlock before forced poll

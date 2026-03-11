@@ -737,7 +737,26 @@ def aura_arena_api(request):
                 'level_progress': xp_profile.level_progress,
                 'xp_to_next_level': xp_profile.xp_to_next_level,
             }
-        return JsonResponse({'messages': data, 'xp_snapshot': xp_snapshot})
+
+        # Live leaderboard — top 10 for this room's class
+        from students.models import Student as _Student
+        top_raw = (
+            StudentXP.objects
+            .filter(student__current_class=student.current_class)
+            .order_by('-total_xp')
+            .select_related('student__user')[:10]
+        )
+        leaderboard = [
+            {
+                'name': e.student.user.get_full_name(),
+                'initials': (e.student.user.first_name[:1] + e.student.user.last_name[:1]).upper(),
+                'total_xp': e.total_xp,
+                'is_me': e.student == student,
+            }
+            for e in top_raw
+        ]
+
+        return JsonResponse({'messages': data, 'xp_snapshot': xp_snapshot, 'leaderboard': leaderboard})
 
     elif request.method == 'POST':
         payload = json.loads(request.body)
@@ -760,18 +779,29 @@ def aura_arena_api(request):
         is_winner = False
         xp_earned = 0
 
-        # ── Helper: award XP and build snapshot ────────────────────────
+        # ── Helper: award XP, check achievements, build snapshot ────────
         def _award_xp_and_snapshot(amount):
-            from academics.gamification_models import StudentXP, check_and_unlock_achievements
+            from academics.gamification_models import StudentXP, check_and_unlock_achievements, StudentAchievement
             xp_profile, _ = StudentXP.objects.get_or_create(student=student)
+            already_unlocked = set(
+                StudentAchievement.objects.filter(student=student)
+                .values_list('achievement__slug', flat=True)
+            )
             xp_profile.add_xp(amount)
             check_and_unlock_achievements(student, xp_profile)
+            # Detect newly unlocked badges
+            newly_unlocked = list(
+                StudentAchievement.objects.filter(student=student)
+                .exclude(achievement__slug__in=already_unlocked)
+                .select_related('achievement')
+                .values('achievement__name', 'achievement__icon', 'achievement__xp_reward')
+            )
             return {
                 'total_xp': xp_profile.total_xp,
                 'level': xp_profile.level,
                 'level_progress': xp_profile.level_progress,
                 'xp_to_next_level': xp_profile.xp_to_next_level,
-            }
+            }, newly_unlocked
 
         # ── Check active battle answer ──────────────────────────────────
         if active_battle and active_battle.battle_answer:
@@ -797,7 +827,7 @@ def aura_arena_api(request):
                 active_battle.save()
 
                 award = active_battle.battle_xp
-                snapshot = _award_xp_and_snapshot(award)
+                snapshot, new_achievements = _award_xp_and_snapshot(award)
                 is_winner = True
                 xp_earned = award
 
@@ -822,6 +852,7 @@ def aura_arena_api(request):
                     'xp_earned': xp_earned,
                     'is_winner': True,
                     'xp_snapshot': snapshot,
+                    'new_achievements': new_achievements,
                 })
 
         # ── Helper: build GPT client ────────────────────────────────────
@@ -839,8 +870,57 @@ def aura_arena_api(request):
 
         cmd = content.lower()
 
+        # ── Cooldown: prevent game-command spam ─────────────────────────
+        COOLDOWN_SECS = 90
+        _is_game_cmd = bool(re.search(r'@aura\s+(battle|riddle|math|spell|true|tf\b)', cmd))
+        if _is_game_cmd and not active_battle:
+            from django.utils import timezone as _tz
+            last_q = (
+                StudyGroupMessage.objects
+                .filter(room=room, is_battle_question=True)
+                .order_by('-created_at').first()
+            )
+            if last_q:
+                elapsed = (_tz.now() - last_q.created_at).total_seconds()
+                if elapsed < COOLDOWN_SECS:
+                    wait = int(COOLDOWN_SECS - elapsed)
+                    StudyGroupMessage.objects.create(
+                        room=room, is_aura=True,
+                        content=f"⏳ Hold on! Next game starts in **{wait}s**. (Cooldown: {COOLDOWN_SECS}s between games)"
+                    )
+                    return JsonResponse({'status': 'cooldown', 'xp_earned': 0, 'is_winner': False})
+
+        # ── @aura hint ─────────────────────────────────────────────────
+        if re.search(r'@aura\s+hint', cmd):
+            if not active_battle:
+                StudyGroupMessage.objects.create(
+                    room=room, is_aura=True,
+                    content="💡 No active challenge right now. Start one with `@aura battle`, `@aura riddle`, `@aura math`, `@aura spell`, or `@aura true or false`."
+                )
+            else:
+                client = _gpt_client()
+                if client:
+                    try:
+                        hint_prompt = (
+                            f"A student is stuck on this question/challenge: '{active_battle.content}'. "
+                            f"The correct answer is '{active_battle.battle_answer}' but DO NOT reveal it. "
+                            "Give a single helpful hint in one sentence that nudges them in the right direction without giving away the answer."
+                        )
+                        res = client.chat.completions.create(
+                            model='gpt-4o-mini',
+                            messages=[{'role': 'user', 'content': hint_prompt}],
+                            temperature=0.5,
+                            max_tokens=80
+                        )
+                        StudyGroupMessage.objects.create(
+                            room=room, is_aura=True,
+                            content=f"💡 **Hint:** {res.choices[0].message.content.strip()}"
+                        )
+                    except Exception as e:
+                        logger.error(f"Aura Hint Error: {e}")
+
         # ── @aura battle ───────────────────────────────────────────────
-        if re.search(r'@aura\s+battle', cmd) and not active_battle:
+        elif re.search(r'@aura\s+battle', cmd) and not active_battle:
             client = _gpt_client()
             if client:
                 try:
@@ -1015,7 +1095,7 @@ def aura_arena_api(request):
                 except Exception as e:
                     logger.error(f"Aura LLM Error: {e}")
 
-        return JsonResponse({'status': 'success', 'xp_earned': xp_earned, 'is_winner': is_winner})
+        return JsonResponse({'status': 'success', 'xp_earned': xp_earned, 'is_winner': is_winner, 'new_achievements': []})
 
 
     return JsonResponse({'error': 'Method not allowed'}, status=405)
