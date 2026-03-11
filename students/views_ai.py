@@ -723,7 +723,18 @@ def aura_arena_api(request):
                 'is_me': m.sender == request.user if m.sender else False,
                 'reply_to': reply_data,
             })
-        return JsonResponse({'messages': data})
+
+        from academics.gamification_models import StudentXP
+        xp_profile = StudentXP.objects.filter(student=student).first()
+        xp_snapshot = None
+        if xp_profile:
+            xp_snapshot = {
+                'total_xp': xp_profile.total_xp,
+                'level': xp_profile.level,
+                'level_progress': xp_profile.level_progress,
+                'xp_to_next_level': xp_profile.xp_to_next_level,
+            }
+        return JsonResponse({'messages': data, 'xp_snapshot': xp_snapshot})
 
     elif request.method == 'POST':
         payload = json.loads(request.body)
@@ -765,7 +776,17 @@ def aura_arena_api(request):
                     is_aura=True,
                     content=f"⚡ Correct! **{request.user.get_full_name()}** wins the battle and earns +20 XP. The answer was: {ans.title()}."
                 )
-                return JsonResponse({'status': 'success', 'xp_earned': xp_earned, 'is_winner': True})
+                return JsonResponse({
+                    'status': 'success',
+                    'xp_earned': xp_earned,
+                    'is_winner': True,
+                    'xp_snapshot': {
+                        'total_xp': xp_profile.total_xp,
+                        'level': xp_profile.level,
+                        'level_progress': xp_profile.level_progress,
+                        'xp_to_next_level': xp_profile.xp_to_next_level,
+                    },
+                })
                 
         if "@aura battle" in content.lower() and not active_battle:
             api_key = get_openai_api_key()

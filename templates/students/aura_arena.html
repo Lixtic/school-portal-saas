@@ -368,6 +368,67 @@ body { background: var(--arena-bg); }
 .msg-row:hover .msg-reply-btn { opacity: 1; }
 .msg-reply-btn:hover { background: rgba(56,120,255,0.12); color: rgba(140,190,255,0.9); }
 
+/* ── Battle banner ───────────────────────────────────────── */
+.battle-banner {
+    display: none; align-items: center; gap: 10px;
+    background: linear-gradient(90deg, rgba(245,158,11,0.12), rgba(239,68,68,0.08));
+    border-bottom: 1px solid rgba(245,158,11,0.3);
+    padding: 9px 18px; font-size: 12.5px;
+    animation: banner-pulse 2s ease infinite;
+    flex-shrink: 0;
+}
+.battle-banner.active { display: flex; }
+@keyframes banner-pulse {
+    0%,100% { background: linear-gradient(90deg, rgba(245,158,11,0.12), rgba(239,68,68,0.08)); }
+    50%      { background: linear-gradient(90deg, rgba(245,158,11,0.19), rgba(239,68,68,0.13)); }
+}
+.battle-banner-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--arena-gold);
+    animation: pulse-dot 0.9s ease infinite;
+    flex-shrink: 0;
+}
+.battle-banner-text { color: var(--arena-gold); font-weight: 600; flex: 1; }
+.battle-banner-hint { font-size: 11px; color: var(--arena-muted); }
+
+/* ── Char counter ────────────────────────────────────────── */
+.char-count {
+    font-size: 10px; color: var(--arena-muted);
+    transition: color 0.2s; flex-shrink: 0; user-select: none;
+}
+.char-count.warn  { color: #f59e0b; }
+.char-count.limit { color: #ef4444; }
+
+/* ── Streak chip ─────────────────────────────────────────── */
+.streak-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2);
+    border-radius: 20px; padding: 3px 10px; margin-top: 8px;
+    font-size: 11px; font-weight: 600; color: rgba(253,180,98,0.9);
+}
+
+/* ── Reaction buttons ────────────────────────────────────── */
+.msg-reactions {
+    display: flex; gap: 3px; margin-top: 4px; flex-wrap: wrap;
+}
+.reaction-btn {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 99px; padding: 2px 8px; font-size: 11px;
+    cursor: pointer; transition: all 0.15s; color: var(--arena-muted);
+    display: flex; align-items: center; gap: 3px;
+}
+.reaction-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.18); }
+.reaction-btn.reacted { background: rgba(56,120,255,0.13); border-color: rgba(56,120,255,0.28); color: rgba(140,190,255,0.9); }
+.reaction-count { font-size: 10px; font-weight: 600; }
+
+/* ── Battle lock overlay on solved battles ───────────────── */
+.battle-solved-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25);
+    border-radius: 6px; padding: 3px 9px; font-size: 10px; font-weight: 700;
+    color: var(--arena-green); margin-top: 7px; letter-spacing: 0.4px;
+}
+
 /* ── Mobile ──────────────────────────────────────────────── */
 @media (max-width: 768px) {
     .arena-sidebar {
@@ -406,6 +467,11 @@ body { background: var(--arena-bg); }
                     <div class="xp-bar-fill" id="xpBarFill" style="width: {{ xp.level_progress }}%"></div>
                 </div>
                 <div class="xp-next">{{ xp.xp_to_next_level }} XP to Level {{ xp.level|add:1 }}</div>
+                {% if xp.current_streak > 0 %}
+                <div class="streak-chip">
+                    🔥 {{ xp.current_streak }}-day streak
+                </div>
+                {% endif %}
             </div>
         </div>
 
@@ -492,6 +558,13 @@ body { background: var(--arena-bg); }
             </span>
         </header>
 
+        <!-- Active battle banner — shown via JS when a battle is live -->
+        <div class="battle-banner" id="battleBanner">
+            <div class="battle-banner-dot"></div>
+            <span class="battle-banner-text">⚡ Battle Active — type your answer below!</span>
+            <span class="battle-banner-hint">First correct answer wins <strong style="color:var(--arena-gold);">+20 XP</strong></span>
+        </div>
+
         <div class="arena-feed" id="arenaFeed">
             <div class="empty-state" id="emptyState">
                 <i class="fa-regular fa-comments"></i>
@@ -518,6 +591,7 @@ body { background: var(--arena-bg); }
                     autocomplete="off"
                     maxlength="1000"
                 />
+                <span class="char-count" id="charCount" style="display:none;">1000</span>
                 <button type="submit" class="arena-send-btn" id="arenaSendBtn" title="Send">
                     <i class="fa-solid fa-paper-plane"></i>
                 </button>
@@ -547,15 +621,27 @@ body { background: var(--arena-bg); }
     const replyPreviewSender = document.getElementById('replyPreviewSender');
     const replyPreviewSnip   = document.getElementById('replyPreviewSnip');
     const replyCancelBtn     = document.getElementById('replyCancelBtn');
+    const battleBanner       = document.getElementById('battleBanner');
+    const charCount          = document.getElementById('charCount');
+
+    // XP sidebar elements
+    const xpBarFill   = document.getElementById('xpBarFill');
+    const xpNumberEl  = document.querySelector('.xp-number');
+    const xpNextEl    = document.querySelector('.xp-next');
+    const xpLevelEl   = document.querySelector('.xp-level-badge');
 
     const API_URL = "{% url 'students:aura_arena_api' %}";
     const CSRF    = '{{ csrf_token }}';
 
-    let lastId      = 0;
-    let hasMessages = false;
-    let isPolling   = false;
-    let thinkingRow = null;
-    let replyTo     = null;   // { id, sender, text }
+    const MAX_CHARS = 1000;
+    const WARN_AT   = 150;  // show counter when ≤ 150 chars remain
+
+    let lastId        = 0;
+    let hasMessages   = false;
+    let isPolling     = false;
+    let thinkingRow   = null;
+    let replyTo       = null;   // { id, sender, text }
+    let battleActive  = false;  // is a battle question currently unanswered?
 
     /* ── Reply state ─────────────────────────────────────── */
     function setReply(id, sender, text) {
@@ -645,6 +731,9 @@ body { background: var(--arena-bg); }
                 ${meta}
                 <div class="msg-bubble ${bubbleClass}">${replyQuote}${battleHdr}${md(msg.content)}</div>
                 ${timeLine}
+                ${!isAura ? `<div class="msg-reactions" id="reactions-${msg.id}">
+                    ${['👍','🔥','⚡','💯'].map(e => `<button class="reaction-btn" data-emoji="${e}" data-msg="${msg.id}" title="${e}">${e} <span class="reaction-count">0</span></button>`).join('')}
+                </div>` : ''}
             </div>
             ${replyBtn}
         `;
@@ -657,15 +746,35 @@ body { background: var(--arena-bg); }
             });
         }
 
+        // Wire reaction buttons
+        row.querySelectorAll('.reaction-btn').forEach(rb => {
+            rb.addEventListener('click', () => {
+                rb.classList.toggle('reacted');
+                const counter = rb.querySelector('.reaction-count');
+                const cur = parseInt(counter.textContent) || 0;
+                counter.textContent = rb.classList.contains('reacted') ? cur + 1 : Math.max(0, cur - 1);
+            });
+        });
+
         feed.appendChild(row);
         scrollBottom(isMe);
     }
 
-    /* ── XP toast ───────────────────────────────────────── */
+    /* ── XP toast + live sidebar update ────────────────── */
     function showXPToast(xp) {
         xpToast.textContent = `⚡ +${xp} XP earned!`;
         xpToast.classList.add('show');
-        setTimeout(() => xpToast.classList.remove('show'), 3000);
+        setTimeout(() => xpToast.classList.remove('show'), 3200);
+    }
+    function updateXPSidebar(newTotal, newLevel, levelProgress, xpToNext) {
+        if (!xpNumberEl) return;
+        xpNumberEl.textContent = newTotal;
+        if (xpLevelEl) xpLevelEl.innerHTML = `<i class="fa-solid fa-bolt"></i> Level ${newLevel}`;
+        if (xpNextEl)  xpNextEl.textContent = `${xpToNext} XP to Level ${newLevel + 1}`;
+        if (xpBarFill) {
+            xpBarFill.style.transition = 'width 0.7s ease';
+            xpBarFill.style.width      = levelProgress + '%';
+        }
     }
 
     /* ── Thinking placeholder ────────────────────────────── */
@@ -699,7 +808,24 @@ body { background: var(--arena-bg); }
             newMsgs.forEach(m => {
                 renderMessage(m);
                 if (m.id > lastId) lastId = m.id;
+
+                // Battle state detection
+                if (m.is_battle && !m.content.includes('wins the battle')) {
+                    battleActive = true;
+                    battleBanner.classList.add('active');
+                }
+                // Battle solved — a win msg always contains "wins the battle"
+                if (m.is_aura && (m.content || '').includes('wins the battle')) {
+                    battleActive = false;
+                    battleBanner.classList.remove('active');
+                    // Update XP if the server told us our new totals (via data.xp_snapshot)
+                }
             });
+            // Server may send back xp_snapshot on any poll response
+            if (data.xp_snapshot) {
+                const s = data.xp_snapshot;
+                updateXPSidebar(s.total_xp, s.level, s.level_progress, s.xp_to_next_level);
+            }
         } catch(e) { console.error('Arena poll error:', e); }
         finally { isPolling = false; }
     }
@@ -712,6 +838,7 @@ body { background: var(--arena-bg); }
         const isBattleCmd = /\@aura\s+battle/i.test(text);
         const needsAI     = /\@aura/i.test(text);
         input.value = '';
+        updateCharCount();
         sendBtn.disabled = true;
         const pendingReply = replyTo;
         clearReply();
@@ -726,13 +853,32 @@ body { background: var(--arena-bg); }
             });
             if (res.ok) {
                 const data = await res.json();
-                if (data.xp_earned > 0) showXPToast(data.xp_earned);
+                if (data.xp_earned > 0) {
+                    showXPToast(data.xp_earned);
+                    if (data.xp_snapshot) {
+                        const s = data.xp_snapshot;
+                        updateXPSidebar(s.total_xp, s.level, s.level_progress, s.xp_to_next_level);
+                    }
+                }
                 isPolling = false; // unlock before forced poll
                 await poll();
             }
         } catch(e) { console.error('Arena send error:', e); hideThinking(); }
         finally { sendBtn.disabled = false; input.focus(); }
     });
+
+    /* ── Char counter ───────────────────────────────────── */
+    function updateCharCount() {
+        const remaining = MAX_CHARS - input.value.length;
+        if (remaining <= WARN_AT) {
+            charCount.style.display = 'inline';
+            charCount.textContent   = remaining;
+            charCount.className     = 'char-count' + (remaining <= 20 ? ' limit' : remaining <= 60 ? ' warn' : '');
+        } else {
+            charCount.style.display = 'none';
+        }
+    }
+    input.addEventListener('input', updateCharCount);
 
     /* ── Mobile sidebar close on outside click ────────── */
     document.addEventListener('click', (e) => {
