@@ -1317,6 +1317,24 @@ def initiate_plan_upgrade(request):
         messages.error(request, "No subscription found for your school.")
         return redirect('tenants:school_subscription')
 
+    # Double-payment guard: block same plan/cycle if already active and >7 days remaining
+    _now = _tz.now()
+    if (
+        subscription.status == 'active'
+        and subscription.plan_id == plan.id
+        and subscription.billing_cycle == billing_cycle
+        and subscription.current_period_end
+        and subscription.current_period_end > _now + timedelta(days=7)
+    ):
+        _expiry = subscription.current_period_end.strftime('%b %d, %Y')
+        messages.warning(
+            request,
+            f"You already have an active {plan.name} ({billing_cycle}) subscription "
+            f"valid until {_expiry}. No payment is needed right now. "
+            "You can renew within 7 days of expiry."
+        )
+        return redirect('tenants:school_subscription')
+
     reference = f"PLN-{request.tenant.id}-{plan.id}-{uuid.uuid4().hex[:8].upper()}"
     # Paystack uses smallest currency unit (kobo for NGN, pesewas for GHS)
     amount_minor = int(amount_usd * 100)
@@ -1535,6 +1553,17 @@ def school_subscription(request):
             subscription.current_teachers = _teachers
             subscription.save(update_fields=['current_students', 'current_teachers'])
 
+    # renewal_allowed: True if school CAN pay again right now.
+    # False when subscription is active AND expiry is >7 days away (block double payment).
+    from datetime import timedelta as _td
+    _now = timezone.now()
+    renewal_allowed = not (
+        subscription
+        and subscription.status == 'active'
+        and subscription.current_period_end
+        and subscription.current_period_end > _now + _td(days=7)
+    )
+
     context = {
         'subscription': subscription,
         'trial_active': bool(subscription and subscription.status == 'trial'),
@@ -1544,6 +1573,7 @@ def school_subscription(request):
         'quota': quota,
         'recent_invoices': recent_invoices,
         'active_addons': active_addons,
+        'renewal_allowed': renewal_allowed,
     }
     return render(request, 'tenants/school_subscription.html', context)
 

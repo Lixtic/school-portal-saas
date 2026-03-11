@@ -337,6 +337,20 @@
                         </div>
 
                         <!-- Billing cycle selector + pay button -->
+                        {% if subscription and subscription.plan == plan and subscription.status == 'active' and not renewal_allowed %}
+                        {# Active plan — block double payment, show renews-on info #}
+                        <div class="mt-3">
+                            <div class="text-center py-2 px-3 rounded-3 mb-2"
+                                 style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);font-size:0.78rem;color:rgba(255,255,255,0.8);">
+                                <i class="bi bi-check-circle-fill me-1" style="color:#4ade80;"></i>
+                                <strong>Active</strong> &mdash; renews {{ subscription.current_period_end|date:"M j, Y" }}
+                            </div>
+                            <button class="btn btn-sm w-100 fw-700" disabled
+                                    style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.45);border:1px solid rgba(255,255,255,0.15);cursor:not-allowed;">
+                                <i class="bi bi-shield-check me-1"></i>Already Paid
+                            </button>
+                        </div>
+                        {% else %}
                         <form method="post" action="{% url 'tenants:initiate_plan_upgrade' %}" class="mt-3">
                             {% csrf_token %}
                             <input type="hidden" name="plan_id" value="{{ plan.id }}">
@@ -349,9 +363,10 @@
                             <button type="submit" class="btn btn-sm w-100 fw-700"
                                     style="background:{% if plan.plan_type == 'pro' %}#3b82f6{% else %}rgba(255,255,255,0.2){% endif %};color:#fff;border:1px solid rgba(255,255,255,0.3);">
                                 <i class="bi bi-credit-card me-1"></i>
-                                {% if subscription and subscription.plan == plan %}Current Plan{% else %}Upgrade &rarr;{% endif %}
+                                {% if subscription and subscription.plan == plan and renewal_allowed %}Renew Plan &rarr;{% else %}Upgrade &rarr;{% endif %}
                             </button>
                         </form>
+                        {% endif %}
                     </div>
                 </div>
             </div>
