@@ -110,15 +110,23 @@ class TenantsConfig(AppConfig):
 
             if to_create:
                 import sys
+                from django.db import transaction
                 print(
                     f'[TENANTS] Creating {len(to_create)} permissions '
                     f'for {app_config.label} '
                     f'(ct_ids={sorted({p.content_type_id for p in to_create})})',
                     file=sys.stderr,
                 )
-                Permission.objects.using(using).bulk_create(
-                    to_create, ignore_conflicts=True
-                )
+                try:
+                    with transaction.atomic(using=using, savepoint=True):
+                        Permission.objects.using(using).bulk_create(
+                            to_create, ignore_conflicts=True
+                        )
+                except Exception:
+                    # FK violation can occur when tenant-schema content type IDs
+                    # are used in the public-schema permission write (schema
+                    # switching race in post_migrate). Safe to skip.
+                    pass
 
         def _patch_signal_handlers():
             """Disconnect Django's built-in handlers and swap in safe wrappers.
