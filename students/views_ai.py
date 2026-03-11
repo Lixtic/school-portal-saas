@@ -764,7 +764,17 @@ def aura_arena_api(request):
         if not content:
             return JsonResponse({'error': 'Empty message'}, status=400)
             
-        active_battle = StudyGroupMessage.objects.filter(room=room, is_battle_question=True, battle_answered=False).last()
+        # Bug fix: a battle is only "active" if it is unanswered AND was
+        # created within the last 5 minutes — prevents stale DB rows from
+        # permanently blocking new games.
+        from django.utils import timezone as _tz
+        _battle_window = _tz.now() - __import__('datetime').timedelta(minutes=5)
+        active_battle = (
+            StudyGroupMessage.objects
+            .filter(room=room, is_battle_question=True, battle_answered=False,
+                    created_at__gte=_battle_window)
+            .last()
+        )
         
         reply_to_id = payload.get('reply_to_id')
         reply_to_obj = None
@@ -804,7 +814,10 @@ def aura_arena_api(request):
             }, newly_unlocked
 
         # ── Check active battle answer ──────────────────────────────────
-        if active_battle and active_battle.battle_answer:
+        # Skip answer-check if the message itself is an @aura command so
+        # that typing "@aura true or false" never accidentally wins a T/F battle.
+        _is_aura_cmd = bool(re.search(r'@aura\s+\w', content, re.IGNORECASE))
+        if active_battle and active_battle.battle_answer and not _is_aura_cmd:
             ans = (active_battle.battle_answer or '').strip().lower()
             msg_lower = content.lower()
             matched = False
@@ -874,7 +887,6 @@ def aura_arena_api(request):
         COOLDOWN_SECS = 90
         _is_game_cmd = bool(re.search(r'@aura\s+(battle|riddle|math|spell|true|tf\b)', cmd))
         if _is_game_cmd and not active_battle:
-            from django.utils import timezone as _tz
             last_q = (
                 StudyGroupMessage.objects
                 .filter(room=room, is_battle_question=True)
@@ -888,10 +900,29 @@ def aura_arena_api(request):
                         room=room, is_aura=True,
                         content=f"⏳ Hold on! Next game starts in **{wait}s**. (Cooldown: {COOLDOWN_SECS}s between games)"
                     )
-                    return JsonResponse({'status': 'cooldown', 'xp_earned': 0, 'is_winner': False})
+                    return JsonResponse({'status': 'cooldown', 'xp_earned': 0, 'is_winner': False, 'new_achievements': []})
 
-        # ── @aura hint ─────────────────────────────────────────────────
-        if re.search(r'@aura\s+hint', cmd):
+        # ── @aura skip ──────────────────────────────────────────────
+        if re.search(r'@aura\s+skip', cmd):
+            # Find any unanswered battle (no time limit) and mark it closed
+            stale = StudyGroupMessage.objects.filter(
+                room=room, is_battle_question=True, battle_answered=False
+            ).last()
+            if stale:
+                stale.battle_answered = True
+                stale.save()
+                StudyGroupMessage.objects.create(
+                    room=room, is_aura=True,
+                    content="⏭️ Challenge skipped. Start a new one whenever you're ready!"
+                )
+            else:
+                StudyGroupMessage.objects.create(
+                    room=room, is_aura=True,
+                    content="ℹ️ No active challenge to skip."
+                )
+
+        # ── @aura hint ──────────────────────────────────────────────
+        elif re.search(r'@aura\s+hint', cmd):
             if not active_battle:
                 StudyGroupMessage.objects.create(
                     room=room, is_aura=True,
@@ -920,153 +951,196 @@ def aura_arena_api(request):
                         logger.error(f"Aura Hint Error: {e}")
 
         # ── @aura battle ───────────────────────────────────────────────
-        elif re.search(r'@aura\s+battle', cmd) and not active_battle:
-            client = _gpt_client()
-            if client:
-                try:
-                    class_name, region = _class_ctx()
-                    prompt = (
-                        f"You are a strict JSON generator. Generate a short educational trivia question "
-                        f"for a {class_name} class. Use culturally relevant examples where appropriate "
-                        f"(region: {region}). "
-                        "Return ONLY a valid JSON object with keys 'question' and 'answer'. No markdown, no other text."
-                    )
-                    res = client.chat.completions.create(
-                        model='gpt-4o-mini',
-                        messages=[{'role': 'user', 'content': prompt}],
-                        temperature=0.7,
-                        max_tokens=150
-                    )
-                    raw = res.choices[0].message.content.strip().replace("```json", "").replace("```", "").strip()
-                    q = json.loads(raw)
-                    StudyGroupMessage.objects.create(
-                        room=room, is_aura=True, is_battle_question=True,
-                        battle_type='battle', battle_xp=20,
-                        battle_answer=q.get('answer', ''),
-                        content=f"🔴 **AURA BATTLE!** First to answer wins **+20 XP!**\n\n**Question:** {q.get('question', '')}"
-                    )
-                except Exception as e:
-                    logger.error(f"Aura Battle Error: {e}")
+        elif re.search(r'@aura\s+battle', cmd):
+            if active_battle:
+                StudyGroupMessage.objects.create(
+                    room=room, is_aura=True,
+                    content="⏳ A challenge is already active! Answer it first, or type `@aura skip` to skip it."
+                )
+            else:
+                client = _gpt_client()
+                if not client:
+                    StudyGroupMessage.objects.create(room=room, is_aura=True,
+                        content="⚠️ Aura-T isn't connected right now. Ask your teacher to set up the AI key.")
+                else:
+                    try:
+                        class_name, region = _class_ctx()
+                        prompt = (
+                            f"You are a strict JSON generator. Generate a short educational trivia question "
+                            f"for a {class_name} class. Use culturally relevant examples where appropriate "
+                            f"(region: {region}). "
+                            "Return ONLY a valid JSON object with keys 'question' and 'answer'. No markdown, no other text."
+                        )
+                        res = client.chat.completions.create(
+                            model='gpt-4o-mini',
+                            messages=[{'role': 'user', 'content': prompt}],
+                            temperature=0.7, max_tokens=150
+                        )
+                        raw = res.choices[0].message.content.strip().replace("```json", "").replace("```", "").strip()
+                        q = json.loads(raw)
+                        StudyGroupMessage.objects.create(
+                            room=room, is_aura=True, is_battle_question=True,
+                            battle_type='battle', battle_xp=20,
+                            battle_answer=q.get('answer', ''),
+                            content=f"🔴 **AURA BATTLE!** First to answer wins **+20 XP!**\n\n**Question:** {q.get('question', '')}"
+                        )
+                    except Exception as e:
+                        logger.exception(f"Aura Battle Error: {e}")
+                        StudyGroupMessage.objects.create(room=room, is_aura=True,
+                            content="⚠️ Couldn't generate a question right now. Try again in a moment!")
 
         # ── @aura riddle ───────────────────────────────────────────────
-        elif re.search(r'@aura\s+riddle', cmd) and not active_battle:
-            client = _gpt_client()
-            if client:
-                try:
-                    class_name, region = _class_ctx()
-                    prompt = (
-                        f"Generate a short, fun riddle suitable for a {class_name} class. "
-                        f"Keep it school-appropriate and solvable. "
-                        "Return ONLY a valid JSON object with keys 'riddle' and 'answer'. No markdown, no other text."
-                    )
-                    res = client.chat.completions.create(
-                        model='gpt-4o-mini',
-                        messages=[{'role': 'user', 'content': prompt}],
-                        temperature=0.8,
-                        max_tokens=150
-                    )
-                    raw = res.choices[0].message.content.strip().replace("```json", "").replace("```", "").strip()
-                    q = json.loads(raw)
-                    StudyGroupMessage.objects.create(
-                        room=room, is_aura=True, is_battle_question=True,
-                        battle_type='riddle', battle_xp=15,
-                        battle_answer=q.get('answer', ''),
-                        content=f"🧩 **RIDDLE TIME!** First to crack it wins **+15 XP!**\n\n*{q.get('riddle', '')}*"
-                    )
-                except Exception as e:
-                    logger.error(f"Aura Riddle Error: {e}")
+        elif re.search(r'@aura\s+riddle', cmd):
+            if active_battle:
+                StudyGroupMessage.objects.create(room=room, is_aura=True,
+                    content="⏳ There's already a challenge active! Answer it first, or type `@aura skip`.")
+            else:
+                client = _gpt_client()
+                if not client:
+                    StudyGroupMessage.objects.create(room=room, is_aura=True,
+                        content="⚠️ Aura-T isn't connected right now.")
+                else:
+                    try:
+                        class_name, region = _class_ctx()
+                        prompt = (
+                            f"Generate a short, fun riddle suitable for a {class_name} class. "
+                            "Keep it school-appropriate and solvable. "
+                            "Return ONLY a valid JSON object with keys 'riddle' and 'answer'. No markdown, no other text."
+                        )
+                        res = client.chat.completions.create(
+                            model='gpt-4o-mini',
+                            messages=[{'role': 'user', 'content': prompt}],
+                            temperature=0.8, max_tokens=150
+                        )
+                        raw = res.choices[0].message.content.strip().replace("```json", "").replace("```", "").strip()
+                        q = json.loads(raw)
+                        StudyGroupMessage.objects.create(
+                            room=room, is_aura=True, is_battle_question=True,
+                            battle_type='riddle', battle_xp=15,
+                            battle_answer=q.get('answer', ''),
+                            content=f"🧩 **RIDDLE TIME!** First to crack it wins **+15 XP!**\n\n*{q.get('riddle', '')}*"
+                        )
+                    except Exception as e:
+                        logger.exception(f"Aura Riddle Error: {e}")
+                        StudyGroupMessage.objects.create(room=room, is_aura=True,
+                            content="⚠️ Couldn't generate a riddle right now. Try again!")
 
         # ── @aura math ─────────────────────────────────────────────────
-        elif re.search(r'@aura\s+math', cmd) and not active_battle:
-            client = _gpt_client()
-            if client:
-                try:
-                    class_name, _ = _class_ctx()
-                    prompt = (
-                        f"Generate a mental arithmetic question suitable for a {class_name} class. "
-                        "The answer must be a single number (integer or simple decimal). "
-                        "Return ONLY a valid JSON object with keys 'question' and 'answer' (answer as a string number). "
-                        "No markdown, no other text."
-                    )
-                    res = client.chat.completions.create(
-                        model='gpt-4o-mini',
-                        messages=[{'role': 'user', 'content': prompt}],
-                        temperature=0.6,
-                        max_tokens=100
-                    )
-                    raw = res.choices[0].message.content.strip().replace("```json", "").replace("```", "").strip()
-                    q = json.loads(raw)
-                    StudyGroupMessage.objects.create(
-                        room=room, is_aura=True, is_battle_question=True,
-                        battle_type='math', battle_xp=10,
-                        battle_answer=str(q.get('answer', '')).strip(),
-                        content=f"🔢 **MATH CHALLENGE!** First correct answer wins **+10 XP!**\n\n**{q.get('question', '')}**"
-                    )
-                except Exception as e:
-                    logger.error(f"Aura Math Error: {e}")
+        elif re.search(r'@aura\s+math', cmd):
+            if active_battle:
+                StudyGroupMessage.objects.create(room=room, is_aura=True,
+                    content="⏳ There's already a challenge active! Answer it first, or type `@aura skip`.")
+            else:
+                client = _gpt_client()
+                if not client:
+                    StudyGroupMessage.objects.create(room=room, is_aura=True,
+                        content="⚠️ Aura-T isn't connected right now.")
+                else:
+                    try:
+                        class_name, _ = _class_ctx()
+                        prompt = (
+                            f"Generate a mental arithmetic question suitable for a {class_name} class. "
+                            "The answer must be a single number (integer or simple decimal). "
+                            "Return ONLY a valid JSON object with keys 'question' and 'answer' (answer as a string number). "
+                            "No markdown, no other text."
+                        )
+                        res = client.chat.completions.create(
+                            model='gpt-4o-mini',
+                            messages=[{'role': 'user', 'content': prompt}],
+                            temperature=0.6, max_tokens=100
+                        )
+                        raw = res.choices[0].message.content.strip().replace("```json", "").replace("```", "").strip()
+                        q = json.loads(raw)
+                        StudyGroupMessage.objects.create(
+                            room=room, is_aura=True, is_battle_question=True,
+                            battle_type='math', battle_xp=10,
+                            battle_answer=str(q.get('answer', '')).strip(),
+                            content=f"🔢 **MATH CHALLENGE!** First correct answer wins **+10 XP!**\n\n**{q.get('question', '')}**"
+                        )
+                    except Exception as e:
+                        logger.exception(f"Aura Math Error: {e}")
+                        StudyGroupMessage.objects.create(room=room, is_aura=True,
+                            content="⚠️ Couldn't generate a math problem right now. Try again!")
 
         # ── @aura spell ────────────────────────────────────────────────
-        elif re.search(r'@aura\s+spell', cmd) and not active_battle:
-            client = _gpt_client()
-            if client:
-                try:
-                    class_name, _ = _class_ctx()
-                    prompt = (
-                        f"Generate a vocabulary spelling challenge for a {class_name} class. "
-                        "Pick a word students should know, then give its definition without revealing the word. "
-                        "Return ONLY a valid JSON object with keys 'definition' and 'word'. No markdown, no other text."
-                    )
-                    res = client.chat.completions.create(
-                        model='gpt-4o-mini',
-                        messages=[{'role': 'user', 'content': prompt}],
-                        temperature=0.7,
-                        max_tokens=120
-                    )
-                    raw = res.choices[0].message.content.strip().replace("```json", "").replace("```", "").strip()
-                    q = json.loads(raw)
-                    StudyGroupMessage.objects.create(
-                        room=room, is_aura=True, is_battle_question=True,
-                        battle_type='spell', battle_xp=15,
-                        battle_answer=q.get('word', '').lower().strip(),
-                        content=f"📝 **SPELL IT!** Spell the word — first correct wins **+15 XP!**\n\n*Definition:* {q.get('definition', '')}"
-                    )
-                except Exception as e:
-                    logger.error(f"Aura Spell Error: {e}")
+        elif re.search(r'@aura\s+spell', cmd):
+            if active_battle:
+                StudyGroupMessage.objects.create(room=room, is_aura=True,
+                    content="⏳ There's already a challenge active! Answer it first, or type `@aura skip`.")
+            else:
+                client = _gpt_client()
+                if not client:
+                    StudyGroupMessage.objects.create(room=room, is_aura=True,
+                        content="⚠️ Aura-T isn't connected right now.")
+                else:
+                    try:
+                        class_name, _ = _class_ctx()
+                        prompt = (
+                            f"Generate a vocabulary spelling challenge for a {class_name} class. "
+                            "Pick a word students should know, then give its definition without revealing the word. "
+                            "Return ONLY a valid JSON object with keys 'definition' and 'word'. No markdown, no other text."
+                        )
+                        res = client.chat.completions.create(
+                            model='gpt-4o-mini',
+                            messages=[{'role': 'user', 'content': prompt}],
+                            temperature=0.7, max_tokens=120
+                        )
+                        raw = res.choices[0].message.content.strip().replace("```json", "").replace("```", "").strip()
+                        q = json.loads(raw)
+                        StudyGroupMessage.objects.create(
+                            room=room, is_aura=True, is_battle_question=True,
+                            battle_type='spell', battle_xp=15,
+                            battle_answer=q.get('word', '').lower().strip(),
+                            content=f"📝 **SPELL IT!** Spell the word — first correct wins **+15 XP!**\n\n*Definition:* {q.get('definition', '')}"
+                        )
+                    except Exception as e:
+                        logger.exception(f"Aura Spell Error: {e}")
+                        StudyGroupMessage.objects.create(room=room, is_aura=True,
+                            content="⚠️ Couldn't generate a spelling challenge right now. Try again!")
 
         # ── @aura true or false  (also: @aura tf / @aura t/f) ─────────
-        elif re.search(r'@aura\s+(true\s*(or|\/)\s*false|tf\b)', cmd) and not active_battle:
-            client = _gpt_client()
-            if client:
-                try:
-                    class_name, region = _class_ctx()
-                    prompt = (
-                        f"Generate a true-or-false educational statement for a {class_name} class "
-                        f"(region: {region}). Make it thought-provoking but not too hard. "
-                        "Return ONLY a valid JSON object with keys 'statement' and 'answer' "
-                        "where answer is exactly 'true' or 'false'. No markdown, no other text."
-                    )
-                    res = client.chat.completions.create(
-                        model='gpt-4o-mini',
-                        messages=[{'role': 'user', 'content': prompt}],
-                        temperature=0.6,
-                        max_tokens=120
-                    )
-                    raw = res.choices[0].message.content.strip().replace("```json", "").replace("```", "").strip()
-                    q = json.loads(raw)
-                    ans = q.get('answer', '').lower().strip()
-                    StudyGroupMessage.objects.create(
-                        room=room, is_aura=True, is_battle_question=True,
-                        battle_type='truefalse', battle_xp=5,
-                        battle_answer=ans,
-                        content=(
-                            f"❓ **TRUE OR FALSE?** Everyone earns **+5 XP** for the correct answer!\n\n"
-                            f"*{q.get('statement', '')}*\n\nType `true` or `false`."
+        elif re.search(r'@aura\s+(true\s*(or|\/)\s*false|tf\b)', cmd):
+            if active_battle:
+                StudyGroupMessage.objects.create(room=room, is_aura=True,
+                    content="⏳ There's already a challenge active! Answer it first, or type `@aura skip`.")
+            else:
+                client = _gpt_client()
+                if not client:
+                    StudyGroupMessage.objects.create(room=room, is_aura=True,
+                        content="⚠️ Aura-T isn't connected right now.")
+                else:
+                    try:
+                        class_name, region = _class_ctx()
+                        prompt = (
+                            f"Generate a true-or-false educational statement for a {class_name} class "
+                            f"(region: {region}). Make it thought-provoking but not too hard. "
+                            "Return ONLY a valid JSON object with keys 'statement' and 'answer' "
+                            "where answer is exactly 'true' or 'false'. No markdown, no other text."
                         )
-                    )
-                except Exception as e:
-                    logger.error(f"Aura TrueFalse Error: {e}")
+                        res = client.chat.completions.create(
+                            model='gpt-4o-mini',
+                            messages=[{'role': 'user', 'content': prompt}],
+                            temperature=0.6, max_tokens=120
+                        )
+                        raw = res.choices[0].message.content.strip().replace("```json", "").replace("```", "").strip()
+                        q = json.loads(raw)
+                        ans = q.get('answer', '').lower().strip()
+                        StudyGroupMessage.objects.create(
+                            room=room, is_aura=True, is_battle_question=True,
+                            battle_type='truefalse', battle_xp=5,
+                            battle_answer=ans,
+                            content=(
+                                f"❓ **TRUE OR FALSE?** Everyone earns **+5 XP** for the correct answer!\n\n"
+                                f"*{q.get('statement', '')}*\n\nType `true` or `false`."
+                            )
+                        )
+                    except Exception as e:
+                        logger.exception(f"Aura TrueFalse Error: {e}")
+                        StudyGroupMessage.objects.create(room=room, is_aura=True,
+                            content="⚠️ Couldn't generate a T/F question right now. Try again!")
 
         # ── @aura (general AI tutor) ───────────────────────────────────
+        # Only fires if NO other @aura sub-command matched above
         elif re.search(r'@aura', cmd) and not is_winner:
             client = _gpt_client()
             if client:
