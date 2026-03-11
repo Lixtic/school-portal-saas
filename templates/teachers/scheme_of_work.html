@@ -66,11 +66,32 @@
     .dedup-ind-input { font-size: 12px; font-family: monospace; border-radius: 6px; }
     [data-bs-theme="dark"] .dedup-group-row { background: rgba(30,41,59,.8); border-color: rgba(239,68,68,.3); }
 
+    /* Inline chip editing */
+    .topic-chip .edit-btn { cursor: pointer; font-size: 11px; opacity: 0; transition: opacity .15s; margin-left: 2px; }
+    .topic-chip:hover .edit-btn { opacity: .55; }
+    .topic-chip .edit-btn:hover { opacity: 1 !important; color: #6366f1; }
+    .topic-chip-editing { padding: 5px 8px !important; gap: 4px !important; flex-wrap: nowrap; align-items: center; }
+    .chip-topic-input {
+        font-size: 11px; border: none; outline: none; background: transparent; color: inherit;
+        border-bottom: 1px solid rgba(99,102,241,.6); min-width: 80px; max-width: 200px; padding: 0 2px;
+    }
+    .chip-ind-input {
+        font-size: 10px; font-family: monospace; border: none; outline: none;
+        border-bottom: 1px solid rgba(99,102,241,.4); background: rgba(99,102,241,.12);
+        border-radius: 4px; color: inherit; min-width: 60px; max-width: 160px; padding: 1px 4px;
+    }
+    .chip-ok   { cursor: pointer; color: #22c55e; font-size: 14px; line-height: 1; flex-shrink: 0; }
+    .chip-ok:hover   { color: #16a34a; }
+    .chip-no   { cursor: pointer; color: #f87171; font-size: 14px; line-height: 1; flex-shrink: 0; }
+    .chip-no:hover   { color: #ef4444; }
+
     /* Dark mode overrides */
     [data-bs-theme="dark"] .topic-chip { background: rgba(99,102,241,.2); color: #a5b4fc; }
     [data-bs-theme="dark"] .indicator-code { background: rgba(129,140,248,.2); color: #c7d2fe; }
     [data-bs-theme="dark"] .card { background: var(--surface-white); border-color: rgba(255,255,255,.07); }
     [data-bs-theme="dark"] .topic-add-input { color: #e2e8f0; }
+    [data-bs-theme="dark"] .chip-topic-input { color: #e2e8f0; }
+    [data-bs-theme="dark"] .chip-ind-input  { background: rgba(99,102,241,.2); color: #c7d2fe; }
 </style>
 
 <div class="container py-4">
@@ -241,6 +262,7 @@
                             {% if ind %}
                             <span class="indicator-code" title="{{ ind }}">{{ ind|truncatechars:14 }}</span>
                             {% endif %}
+                            <span class="edit-btn" onclick="editChip({{ scheme.pk }},this)" title="Edit topic &amp; indicator">&#x270E;</span>
                             <span class="rm" onclick="removeTopic({{ scheme.pk }},this)">&#x2715;</span>
                             <a href="{% url 'homework:homework_create' %}?topic={{ topic|urlencode }}&class_id={{ scheme.class_subject.class_name.id }}&subject_id={{ scheme.class_subject.subject.id }}"
                                title="Create homework on this topic"
@@ -396,6 +418,7 @@ function rerenderChips(id, topics, indicators) {
         const lpLink = lpBase ? `<a href="${lpBase}?topic=${enc}&subject_id=${subjectId}&class_id=${classId}${indParam}" title="Create lesson plan (pre-filled with this indicator)" class="ms-1 text-decoration-none" style="font-size:11px;opacity:.6;">📋</a>` : '';
         return `<span class="topic-chip" data-topic="${esc}" data-indicator="${indAttr}">
             <span class="text-muted me-1" style="font-size:10px;">${i+1}.</span>${t}${indicatorBadge(ind)}
+            <span class="edit-btn" onclick="editChip(${id},this)" title="Edit topic &amp; indicator">&#x270E;</span>
             <span class="rm" onclick="removeTopic(${id},this)">&#x2715;</span>${hwLink}${lpLink}</span>`;
     }).join('');
 }
@@ -460,6 +483,51 @@ async function bulkGenerate(id, total, url) {
         alert('Network error: ' + e.message);
         btn.innerHTML = orig; btn.disabled = false;
     }
+}
+
+/* ── Inline chip editing ───────────────────────────────── */
+function editChip(id, el) {
+    const chip = el.closest('.topic-chip');
+    const oldTopic = chip.dataset.topic;
+    const oldInd   = chip.dataset.indicator || '';
+    chip.classList.add('topic-chip-editing');
+    const tEsc = oldTopic.replace(/"/g, '&quot;');
+    const iEsc = oldInd.replace(/"/g, '&quot;');
+    chip.innerHTML =
+        `<input class="chip-topic-input" value="${tEsc}" placeholder="Topic…"
+                onkeydown="_chipKey(event,${id},this)">
+         <input class="chip-ind-input" value="${iEsc}" placeholder="Indicator…"
+                onkeydown="_chipKey(event,${id},this)" title="Full indicator code & description">
+         <span class="chip-ok"  onclick="confirmEditChip(${id},this)" title="Confirm (Enter)">&#x2713;</span>
+         <span class="chip-no"  onclick="cancelEditChip(${id},this)"  title="Cancel (Esc)">&#x2715;</span>`;
+    chip.querySelector('.chip-topic-input').focus();
+    chip.querySelector('.chip-topic-input').select();
+}
+function _chipKey(e, id, el) {
+    if (e.key === 'Enter') { e.preventDefault(); confirmEditChip(id, el); }
+    if (e.key === 'Escape') { e.preventDefault(); cancelEditChip(id, el); }
+}
+function confirmEditChip(id, el) {
+    const chip     = el.closest('.topic-chip');
+    const oldTopic = chip.dataset.topic;
+    const newTopic = chip.querySelector('.chip-topic-input').value.trim();
+    const newInd   = chip.querySelector('.chip-ind-input').value.trim();
+    if (!newTopic) { cancelEditChip(id, el); return; }
+    // Build updated topics (preserving order) and indicators
+    const topics     = getTopics(id).map(t => t === oldTopic ? newTopic : t);
+    const indicators = getIndicators(id);
+    if (oldTopic !== newTopic && indicators[oldTopic] !== undefined) {
+        indicators[newTopic] = indicators[oldTopic];
+        delete indicators[oldTopic];
+    }
+    if (newInd) indicators[newTopic] = newInd;
+    else        delete indicators[newTopic];
+    rerenderChips(id, topics, indicators);
+    markDirty(id);
+}
+function cancelEditChip(id, el) {
+    // Re-render from existing data-* attrs (editing chip still has old values)
+    rerenderChips(id, getTopics(id), getIndicators(id));
 }
 
 /* ── Dedup helpers ─────────────────────────────────────── */
