@@ -36,7 +36,7 @@
     color: #a5b4fc;
 }
 
-/* Scheme-of-work progress cards — use the card surface token */
+/* Scheme-of-work progress cards */
 .sow-card {
     border-color: var(--bs-border-color) !important;
     background: var(--bs-tertiary-bg, #f8fafc);
@@ -46,22 +46,47 @@
     border-color: rgba(255,255,255,.1) !important;
 }
 
-/* Stat cards: add a subtle border in dark mode so they stand out from the page bg */
+/* Stat cards — subtle border in dark mode so they don't dissolve into page bg */
 [data-bs-theme="dark"] .card:not(.bg-primary) {
     border: 1px solid rgba(255,255,255,.07) !important;
 }
 
+/* Card hover shadow — deepen in dark mode */
+[data-bs-theme="dark"] .card:hover {
+    box-shadow: 0 20px 40px -8px rgba(0,0,0,.6) !important;
+}
+
 /* Table header row */
 [data-bs-theme="dark"] .table thead th {
-    color: var(--bs-secondary-color);
-    border-color: var(--bs-border-color);
+    color: var(--text-muted);
     background: transparent;
 }
-[data-bs-theme="dark"] .table tbody tr:hover {
+/* thead.border-bottom uses --bs-border-color (not the table token) — force it visible */
+[data-bs-theme="dark"] .table thead.border-bottom,
+[data-bs-theme="dark"] .table thead tr.border-bottom {
+    border-bottom-color: rgba(255,255,255,.1) !important;
+}
+[data-bs-theme="dark"] .table tbody tr:hover td {
     background: rgba(255,255,255,.04);
 }
 
-/* List-group items in dark mode */
+/* Student name cells use text-primary — #4361ee on #1e293b ≈ 2.9:1, fails AA.
+   Lighten to sky-blue for sufficient contrast. */
+[data-bs-theme="dark"] td.text-primary,
+[data-bs-theme="dark"] td .text-primary {
+    color: #93c5fd !important;
+}
+
+/* Class-name badge (bg-secondary-subtle) can map nearly invisible — boost it */
+[data-bs-theme="dark"] .badge.bg-secondary-subtle {
+    background-color: rgba(255,255,255,.1) !important;
+    border-color: rgba(255,255,255,.12) !important;
+}
+[data-bs-theme="dark"] .badge.bg-secondary-subtle.text-body {
+    color: var(--text-main) !important;
+}
+
+/* List-group items */
 [data-bs-theme="dark"] .list-group-item-action:hover,
 [data-bs-theme="dark"] .list-group-item-action:focus {
     background: rgba(255,255,255,.04);
@@ -71,12 +96,12 @@
     border-color: rgba(255,255,255,.07) !important;
 }
 
-/* Progress bar track in dark mode */
+/* Progress bar track */
 [data-bs-theme="dark"] .progress {
     background: rgba(255,255,255,.1);
 }
 
-/* Warning badge text-dark fix inside sow cards */
+/* Warning badge text-dark fix */
 [data-bs-theme="dark"] .badge.bg-warning.text-dark,
 [data-bs-theme="dark"] .badge.bg-warning {
     color: #1e293b !important;

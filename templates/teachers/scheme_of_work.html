@@ -3,23 +3,441 @@
 
 {% block content %}
 <style>
-    .sow-card { border-radius:12px; overflow:hidden; }
-    .topic-chip { display:inline-flex; align-items:center; gap:4px; background:rgba(99,102,241,.12);
-                  color:#6366f1; border-radius:20px; padding:2px 10px; font-size:11px; margin:2px; }
-    .topic-chip .rm { cursor:pointer; font-size:13px; opacity:.55; line-height:1; }
-    .topic-chip .rm:hover { opacity:1; color:#ef4444; }
-    .indicator-code { font-size:10px; opacity:.75; font-family:monospace;
-                      background:rgba(99,102,241,.15); border-radius:6px; padding:0 4px; margin-left:2px; }
-    .topic-add-input { font-size:12px; border:1px dashed rgba(99,102,241,.4); border-radius:20px;
-                       padding:2px 10px; outline:none; background:transparent; color:inherit; width:150px; }
-    .topic-add-input:focus { border-color:#6366f1; }
-    [data-bs-theme="dark"] .topic-chip { background:rgba(99,102,241,.2); color:#a5b4fc; }
-    [data-bs-theme="dark"] .indicator-code { background:rgba(129,140,248,.2); color:#c7d2fe; }
-    [data-bs-theme="dark"] .card { background:var(--surface-white); border-color:rgba(255,255,255,.07); }
-    [data-bs-theme="dark"] .table { color:var(--text-main); }
-    [data-bs-theme="dark"] .text-muted { color:#94a3b8 !important; }
-    [data-bs-theme="dark"] .topic-add-input { color:#e2e8f0; }
+    /* ── SOW card base ─────────────────────────────────── */
+    .sow-card { border-radius: 12px; overflow: hidden; }
+
+    /* Clickable header */
+    .sow-card-header {
+        cursor: pointer; user-select: none;
+        padding: .75rem 1rem;
+        border-bottom: 1px solid transparent;
+        transition: background .15s;
+    }
+    .sow-card-header:hover { background: rgba(99,102,241,.04); }
+    [data-bs-theme="dark"] .sow-card-header:hover { background: rgba(255,255,255,.04); }
+
+    /* Subject icon dot */
+    .sow-subject-dot {
+        width: 38px; height: 38px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 16px; flex-shrink: 0;
+        background: rgba(99,102,241,.1); color: #6366f1;
+    }
+    [data-bs-theme="dark"] .sow-subject-dot { background: rgba(129,140,248,.16); color: #a5b4fc; }
+
+    /* Chevron rotation */
+    .sow-chevron { transition: transform .25s ease; color: #9ca3af; font-size: 12px; }
+    [data-bs-toggle="collapse"][aria-expanded="true"] .sow-chevron { transform: rotate(180deg); }
+
+    /* Topic chips */
+    .topic-chip {
+        display: inline-flex; align-items: center; gap: 4px;
+        background: rgba(99,102,241,.12); color: #6366f1;
+        border-radius: 20px; padding: 2px 10px; font-size: 11px; margin: 2px;
+    }
+    .topic-chip .rm { cursor: pointer; font-size: 13px; opacity: .55; line-height: 1; }
+    .topic-chip .rm:hover { opacity: 1; color: #ef4444; }
+
+    /* Indicator code badge */
+    .indicator-code {
+        font-size: 10px; opacity: .8; font-family: monospace;
+        background: rgba(99,102,241,.15); border-radius: 6px;
+        padding: 0 4px; margin-left: 2px; cursor: help; white-space: nowrap;
+    }
+
+    /* Add-topic input */
+    .topic-add-input {
+        font-size: 12px; border: 1px dashed rgba(99,102,241,.4);
+        border-radius: 20px; padding: 2px 10px; outline: none;
+        background: transparent; color: inherit; width: 150px;
+    }
+    .topic-add-input:focus { border-color: #6366f1; }
+
+    /* Search bar */
+    .sow-search .input-group-text { border-radius: 20px 0 0 20px; }
+    .sow-search .form-control { border-radius: 0 20px 20px 0; }
+
+    /* Filter highlight */
+    .sow-match-highlight { background: rgba(251,191,36,.3); border-radius: 2px; }
+
+    /* Dark mode overrides */
+    [data-bs-theme="dark"] .topic-chip { background: rgba(99,102,241,.2); color: #a5b4fc; }
+    [data-bs-theme="dark"] .indicator-code { background: rgba(129,140,248,.2); color: #c7d2fe; }
+    [data-bs-theme="dark"] .card { background: var(--surface-white); border-color: rgba(255,255,255,.07); }
+    [data-bs-theme="dark"] .topic-add-input { color: #e2e8f0; }
 </style>
+
+<div class="container py-4">
+
+    <!-- Page header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="fw-bold mb-0">
+                <i class="bi bi-journals me-2 text-primary"></i>Schemes of Work
+            </h2>
+            {% if schemes %}
+            <p class="text-muted small mb-0 mt-1" id="sow-stats">
+                {{ schemes|length }} scheme{{ schemes|length|pluralize }}
+                &bull; <span id="total-topics-label">—</span>
+            </p>
+            {% endif %}
+        </div>
+        <a href="{% url 'teachers:scheme_of_work_upload' %}" class="btn btn-primary rounded-pill">
+            <i class="bi bi-cloud-upload me-1"></i> Upload Scheme
+        </a>
+    </div>
+
+    <!-- Info banner -->
+    <div class="card shadow-sm border-0 rounded-3 mb-3">
+        <div class="card-body p-3">
+            <p class="text-muted mb-0 small">
+                <i class="bi bi-lightbulb-fill text-warning me-1"></i>
+                Upload a screenshot of your termly scheme of work. <strong>Aura</strong> will read your topics
+                and automatically align lessons to your curriculum sequence.
+                Edit topics inline or re-run AI extraction any time.
+            </p>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for msg in messages %}
+        <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show rounded-3" role="alert">
+            {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if schemes %}
+
+    <!-- Toolbar: search + expand/collapse all -->
+    <div class="d-flex gap-2 align-items-center flex-wrap mb-3">
+        <div class="input-group input-group-sm sow-search" style="max-width:280px;">
+            <span class="input-group-text border-end-0 bg-transparent px-3">
+                <i class="bi bi-search text-muted" style="font-size:12px;"></i>
+            </span>
+            <input type="search" class="form-control border-start-0 ps-0"
+                   id="sow-filter-input"
+                   placeholder="Search subject or topic…"
+                   oninput="filterSow(this.value)">
+        </div>
+        <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="expandAll()">
+            <i class="bi bi-arrows-expand me-1"></i>Expand All
+        </button>
+        <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="collapseAll()">
+            <i class="bi bi-arrows-collapse me-1"></i>Collapse All
+        </button>
+        <span class="text-muted small ms-2" id="filter-count" style="display:none;"></span>
+    </div>
+
+    <!-- Scheme cards (accordion-style list) -->
+    <div id="sow-list" class="d-flex flex-column gap-3">
+        {% for scheme in schemes %}
+        <div class="card shadow-sm border-0 sow-card" id="sow-wrapper-{{ scheme.pk }}">
+
+            <!-- Always-visible header -->
+            <div class="sow-card-header d-flex align-items-center gap-3"
+                 data-bs-toggle="collapse"
+                 data-bs-target="#sow-body-{{ scheme.pk }}"
+                 aria-expanded="false"
+                 aria-controls="sow-body-{{ scheme.pk }}">
+
+                <!-- Icon -->
+                <div class="sow-subject-dot">
+                    <i class="bi bi-book"></i>
+                </div>
+
+                <!-- Subject / class / term info -->
+                <div class="flex-grow-1 min-w-0">
+                    <div class="fw-semibold text-body lh-sm">{{ scheme.class_subject.subject.name }}</div>
+                    <div class="small text-muted">
+                        {{ scheme.class_subject.class_name.name }}
+                        &bull; {{ scheme.get_term_display }} Term
+                        &bull; {{ scheme.academic_year.name }}
+                    </div>
+                </div>
+
+                <!-- Badges & actions (stop propagation so they don't toggle collapse) -->
+                <div class="d-flex align-items-center gap-2 flex-shrink-0" onclick="event.stopPropagation()">
+
+                    {% with topics=scheme.get_topics %}
+                    {% if topics %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle"
+                          id="count-{{ scheme.pk }}" title="{{ topics|length }} topics extracted">
+                        <i class="bi bi-check-circle-fill me-1"></i>{{ topics|length }}
+                    </span>
+                    {% else %}
+                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle"
+                          id="count-{{ scheme.pk }}">No topics</span>
+                    {% endif %}
+
+                    <button class="btn btn-sm btn-outline-secondary rounded-pill py-0 px-2"
+                            style="font-size:11px;" title="Re-extract topics with AI"
+                            onclick="reExtract({{ scheme.pk }},this,'{% url 'teachers:scheme_of_work_reextract' scheme.pk %}')">
+                        <i class="bi bi-arrow-repeat"></i>
+                    </button>
+
+                    {% if topics %}
+                    <button class="btn btn-sm rounded-pill py-0 px-2 d-none d-sm-inline-flex align-items-center gap-1"
+                            style="background:linear-gradient(135deg,#4c1d95,#1e40af);color:#fff;border:none;font-size:11px;"
+                            id="bulk-btn-{{ scheme.pk }}"
+                            title="Auto-generate Aura lesson plans for all {{ topics|length }} topics"
+                            onclick="bulkGenerate({{ scheme.pk }}, {{ topics|length }}, '{% url 'teachers:scheme_of_work_bulk_generate' scheme.pk %}')">
+                        <i class="bi bi-stars"></i><span>{{ topics|length }}</span>
+                    </button>
+                    {% endif %}
+                    {% endwith %}
+
+                    <form method="post" action="{% url 'teachers:scheme_of_work_delete' scheme.pk %}"
+                          onsubmit="return confirm('Delete this scheme of work?');"
+                          onclick="event.stopPropagation()">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill py-0 px-2"
+                                title="Delete scheme">
+                            <i class="bi bi-trash3"></i>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Chevron -->
+                <i class="bi bi-chevron-down sow-chevron flex-shrink-0 d-none d-sm-block"></i>
+            </div>
+
+            <!-- Collapsible body (collapsed by default) -->
+            <div class="collapse" id="sow-body-{{ scheme.pk }}">
+
+                {% if scheme.image %}
+                <a href="{{ scheme.image.url }}" target="_blank">
+                    <img src="{{ scheme.image.url }}" alt="Scheme preview"
+                         class="w-100" style="height:160px;object-fit:cover;object-position:top;display:block;">
+                </a>
+                {% endif %}
+
+                <div class="card-body pt-3">
+
+                    <!-- Topic chips / inline editor -->
+                    <div id="chips-{{ scheme.pk }}" class="mb-3"
+                         data-subject-id="{{ scheme.class_subject.subject.id }}"
+                         data-class-id="{{ scheme.class_subject.class_name.id }}"
+                         data-hw-url="{% url 'homework:homework_create' %}"
+                         data-lp-url="{% url 'teachers:lesson_plan_create' %}">
+                        {% for topic, ind in scheme.get_topic_items %}
+                        <span class="topic-chip"
+                              data-topic="{{ topic|escapejs }}"
+                              data-indicator="{{ ind|escapejs }}">
+                            <span class="text-muted me-1" style="font-size:10px;">{{ forloop.counter }}.</span>
+                            {{ topic }}
+                            {% if ind %}
+                            <span class="indicator-code" title="{{ ind }}">{{ ind|truncatechars:14 }}</span>
+                            {% endif %}
+                            <span class="rm" onclick="removeTopic({{ scheme.pk }},this)">&#x2715;</span>
+                            <a href="{% url 'homework:homework_create' %}?topic={{ topic|urlencode }}&class_id={{ scheme.class_subject.class_name.id }}&subject_id={{ scheme.class_subject.subject.id }}"
+                               title="Create homework on this topic"
+                               class="ms-1 text-decoration-none" style="font-size:11px;opacity:.6;">📝</a>
+                            <a href="{% url 'teachers:lesson_plan_create' %}?topic={{ topic|urlencode }}&subject_id={{ scheme.class_subject.subject.id }}&class_id={{ scheme.class_subject.class_name.id }}{% if ind %}&indicator={{ ind|urlencode }}{% endif %}"
+                               title="Create lesson plan (pre-filled with this indicator)"
+                               class="ms-1 text-decoration-none" style="font-size:11px;opacity:.6;">📋</a>
+                        </span>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Add topic + Save row -->
+                    <div class="d-flex gap-2 align-items-center flex-wrap">
+                        <input type="text" class="topic-add-input" id="add-input-{{ scheme.pk }}"
+                               placeholder="Add topic…"
+                               onkeydown="if(event.key==='Enter'){addTopic({{ scheme.pk }});event.preventDefault();}">
+                        <button class="btn btn-sm btn-outline-primary rounded-pill px-2 py-0"
+                                style="font-size:11px;"
+                                onclick="addTopic({{ scheme.pk }})">
+                            <i class="bi bi-plus"></i> Add
+                        </button>
+                        <button class="btn btn-sm btn-success rounded-pill px-2 py-0"
+                                id="save-btn-{{ scheme.pk }}"
+                                style="font-size:11px;display:none;"
+                                onclick="saveTopics({{ scheme.pk }},'{% url 'teachers:scheme_of_work_update_topics' scheme.pk %}')">
+                            &#10003; Save
+                        </button>
+
+                        {% with topics=scheme.get_topics %}
+                        {% if topics %}
+                        <button class="btn btn-sm rounded-pill py-0 px-2 ms-auto d-sm-none"
+                                style="background:linear-gradient(135deg,#4c1d95,#1e40af);color:#fff;border:none;font-size:11px;"
+                                id="bulk-btn-mob-{{ scheme.pk }}"
+                                onclick="bulkGenerate({{ scheme.pk }}, {{ topics|length }}, '{% url 'teachers:scheme_of_work_bulk_generate' scheme.pk %}')">
+                            <i class="bi bi-stars me-1"></i>Generate All
+                        </button>
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+
+                </div>
+
+                <div class="card-footer border-0 bg-transparent px-3 pb-3 pt-0">
+                    <small class="text-muted">Uploaded {{ scheme.uploaded_at|date:"d M Y" }}</small>
+                </div>
+
+            </div>
+            <!-- /collapse -->
+
+        </div>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="text-center py-5">
+        <i class="bi bi-journals" style="font-size:3rem;opacity:.3;"></i>
+        <p class="text-muted mt-3">No schemes of work uploaded yet.<br>
+            <a href="{% url 'teachers:scheme_of_work_upload' %}">Upload your first one</a> to help Aura follow your curriculum.
+        </p>
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+const CSRF = '{{ csrf_token }}';
+
+/* ── Collapse helpers ───────────────────────────────────── */
+function expandAll() {
+    document.querySelectorAll('[id^="sow-body-"]').forEach(el => {
+        bootstrap.Collapse.getOrCreateInstance(el, {toggle: false}).show();
+    });
+}
+function collapseAll() {
+    document.querySelectorAll('[id^="sow-body-"]').forEach(el => {
+        bootstrap.Collapse.getOrCreateInstance(el, {toggle: false}).hide();
+    });
+}
+
+/* ── Search / filter ────────────────────────────────────── */
+function filterSow(query) {
+    const q = query.toLowerCase().trim();
+    let visible = 0;
+    document.querySelectorAll('#sow-list > .card').forEach(card => {
+        const text = card.innerText.toLowerCase();
+        const show = !q || text.includes(q);
+        card.style.display = show ? '' : 'none';
+        if (show) visible++;
+        // Auto-expand matching cards so user can see the relevant topics
+        if (show && q) {
+            const body = card.querySelector('[id^="sow-body-"]');
+            if (body) bootstrap.Collapse.getOrCreateInstance(body, {toggle: false}).show();
+        }
+    });
+    const fc = document.getElementById('filter-count');
+    if (q) { fc.style.display = ''; fc.textContent = `${visible} result${visible !== 1 ? 's' : ''}`; }
+    else { fc.style.display = 'none'; }
+}
+
+/* ── Chip helpers ───────────────────────────────────────── */
+function getTopics(id) {
+    return Array.from(document.querySelectorAll(`#chips-${id} .topic-chip`)).map(c => c.dataset.topic);
+}
+function getIndicators(id) {
+    const result = {};
+    document.querySelectorAll(`#chips-${id} .topic-chip`).forEach(c => {
+        if (c.dataset.indicator) result[c.dataset.topic] = c.dataset.indicator;
+    });
+    return result;
+}
+function indicatorBadge(ind) {
+    if (!ind) return '';
+    // Show only the code segment (e.g. B8.2.1.1.1) as badge; full text in tooltip
+    const code = (ind.match(/^[A-Z][0-9A-Za-z.]+/) || [ind.slice(0, 12)])[0];
+    const escaped = ind.replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    return `<span class="indicator-code" title="${escaped}">${code}</span>`;
+}
+function rerenderChips(id, topics, indicators) {
+    indicators = indicators || {};
+    const container = document.getElementById(`chips-${id}`);
+    const subjectId = container.dataset.subjectId || '';
+    const classId   = container.dataset.classId   || '';
+    const hwBase    = container.dataset.hwUrl      || '';
+    const lpBase    = container.dataset.lpUrl      || '';
+    container.innerHTML = topics.map((t, i) => {
+        const enc = encodeURIComponent(t);
+        const esc = t.replace(/"/g, '&quot;');
+        const ind = indicators[t] || '';
+        const indParam = ind ? '&indicator=' + encodeURIComponent(ind) : '';
+        const indAttr  = ind.replace(/"/g, '&quot;');
+        const hwLink = hwBase ? `<a href="${hwBase}?topic=${enc}&class_id=${classId}&subject_id=${subjectId}" title="Create homework on this topic" class="ms-1 text-decoration-none" style="font-size:11px;opacity:.6;">📝</a>` : '';
+        const lpLink = lpBase ? `<a href="${lpBase}?topic=${enc}&subject_id=${subjectId}&class_id=${classId}${indParam}" title="Create lesson plan (pre-filled with this indicator)" class="ms-1 text-decoration-none" style="font-size:11px;opacity:.6;">📋</a>` : '';
+        return `<span class="topic-chip" data-topic="${esc}" data-indicator="${indAttr}">
+            <span class="text-muted me-1" style="font-size:10px;">${i+1}.</span>${t}${indicatorBadge(ind)}
+            <span class="rm" onclick="removeTopic(${id},this)">&#x2715;</span>${hwLink}${lpLink}</span>`;
+    }).join('');
+}
+function markDirty(id) { document.getElementById(`save-btn-${id}`).style.display = ''; }
+function removeTopic(id, btn) {
+    btn.closest('.topic-chip').remove();
+    rerenderChips(id, getTopics(id), getIndicators(id));
+    markDirty(id);
+}
+function addTopic(id) {
+    const inp = document.getElementById(`add-input-${id}`);
+    const v = inp.value.trim(); if (!v) return;
+    rerenderChips(id, [...getTopics(id), v], getIndicators(id));
+    inp.value = ''; markDirty(id);
+}
+async function saveTopics(id, url) {
+    const btn = document.getElementById(`save-btn-${id}`);
+    btn.disabled = true; btn.textContent = '…';
+    const payload = { topics: getTopics(id), indicators: getIndicators(id) };
+    const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF }, body: JSON.stringify(payload) });
+    const d = await resp.json();
+    if (d.ok) { btn.textContent = '✓ Saved'; setTimeout(() => { btn.style.display = 'none'; btn.textContent = '✓ Save'; btn.disabled = false; }, 1500); }
+    else { alert('Save failed: ' + (d.error || '?')); btn.disabled = false; btn.textContent = '✓ Save'; }
+}
+async function reExtract(id, btn, url) {
+    if (!confirm('Re-run AI extraction? This will replace the current topic list.')) return;
+    const orig = btn.innerHTML; btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+    const resp = await fetch(url, { method: 'POST', headers: { 'X-CSRFToken': CSRF } });
+    const d = await resp.json();
+    if (d.ok) {
+        rerenderChips(id, d.topics, d.indicators || {});
+        const countEl = document.getElementById(`count-${id}`);
+        countEl.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i>${d.count}`;
+        countEl.className = 'badge bg-success-subtle text-success border border-success-subtle';
+        markDirty(id);
+        btn.innerHTML = '<i class="bi bi-check2"></i>';
+        setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 2000);
+    } else { alert('Failed: ' + (d.error || '?')); btn.innerHTML = orig; btn.disabled = false; }
+}
+async function bulkGenerate(id, total, url) {
+    if (!confirm(`Generate ${total} Aura-T lesson plan(s) from this scheme?\n\nTopics that already have a matching lesson plan will be skipped.\nThis may take a minute per topic.`)) return;
+    const btn = document.getElementById(`bulk-btn-${id}`) || document.getElementById(`bulk-btn-mob-${id}`);
+    const orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>';
+    try {
+        const resp = await fetch(url, { method: 'POST', headers: { 'X-CSRFToken': CSRF } });
+        const d = await resp.json();
+        if (d.ok) {
+            btn.innerHTML = `<i class="bi bi-check2-circle me-1"></i>${d.created} created, ${d.skipped} skipped`;
+            btn.style.background = 'rgba(34,197,94,0.8)';
+            if (d.errors && d.errors.length) {
+                const errTopics = d.errors.map(e => e.topic).join(', ');
+                setTimeout(() => alert(`${d.errors.length} topic(s) failed: ${errTopics}`), 300);
+            }
+        } else {
+            alert('Error: ' + (d.error || 'Unknown error'));
+            btn.innerHTML = orig; btn.disabled = false;
+        }
+    } catch(e) {
+        alert('Network error: ' + e.message);
+        btn.innerHTML = orig; btn.disabled = false;
+    }
+}
+
+/* ── Init ───────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+    // Total topic count in the stats bar
+    const total = document.querySelectorAll('.topic-chip').length;
+    const lbl = document.getElementById('total-topics-label');
+    if (lbl) lbl.textContent = `${total} topic${total !== 1 ? 's' : ''} total`;
+});
+</script>
+{% endblock %}
 
 <div class="container py-4">
 

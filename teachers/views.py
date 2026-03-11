@@ -1643,6 +1643,7 @@ def lesson_plan_create(request):
     
     ai_content = request.POST.get('ai_content') or request.GET.get('ai_content')
     topic = request.GET.get('topic') # Legacy/Simple Fallback
+    indicator = request.GET.get('indicator', '').strip()  # Full indicator text from SOW chip
     # Pre-fill subject/class when coming from Scheme of Work topic chip
     prefill_subject_id = request.GET.get('subject_id')
     prefill_class_id   = request.GET.get('class_id')
@@ -1678,17 +1679,35 @@ def lesson_plan_create(request):
         messages.success(request, "Lesson plan draft populated from Aura-T session.")
 
     elif topic:
-        # CASE 2: Simpler generation (Old method)
+        # CASE 2: Pre-fill from topic chip (with indicator when available)
+        if indicator:
+            objectives = (
+                f"Learning Indicator: {indicator}\n\n"
+                f"By the end of the lesson, students will be able to:\n"
+                f"1. Demonstrate understanding of: {indicator}\n"
+                f"2. Apply the concept to solve related problems.\n"
+                f"3. Connect {topic} to real-world examples."
+            )
+        else:
+            objectives = (
+                f"By the end of the lesson, students will be able to:\n"
+                f"1. Understand the core concepts of {topic}.\n"
+                f"2. Apply {topic} to solve simple problems.\n"
+                f"3. Analyze real-world examples of {topic}."
+            )
         initial_data = {
             'topic': topic,
-            'objectives': f"By the end of the lesson, students will be able to:\n1. Understand the core concepts of {topic}.\n2. Apply {topic} to solve simple problems.\n3. Analyze real-world examples of {topic}.",
+            'objectives': objectives,
             'introduction': f"Begin with a 5-minute warm-up activity related to {topic}. Ask students what they already know about it to gauge prior knowledge.",
             'presentation': f"1. Define {topic} and key terminology.\n2. Demonstrate the main concept using visual aids.\n3. Walk through 2-3 step-by-step examples on the board.\n4. Facilitate a class discussion to check for understanding.",
             'evaluation': f"Distribute a short worksheet with 5 problems on {topic}. Circulate to provide individual assistance.",
             'homework': f"Read the chapter on {topic} and complete exercises 1-10 on page 42.",
             'teaching_materials': f"Textbook, Whiteboard, Marker, Projector (optional), Handouts on {topic}"
         }
-        messages.info(request, f"AI has drafted a lesson plan block for '{topic}'. Please review and edit.")
+        if indicator:
+            messages.info(request, f"Lesson plan pre-filled with indicator: {indicator[:80]}{'…' if len(indicator) > 80 else ''}")
+        else:
+            messages.info(request, f"AI has drafted a lesson plan block for '{topic}'. Please review and edit.")
 
     # Pre-select subject / class when redirected from Scheme of Work
     if prefill_subject_id and not initial_data.get('subject'):

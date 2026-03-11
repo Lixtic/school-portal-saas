@@ -81,21 +81,24 @@ def extract_scheme_of_work_data(image_path_or_url: str) -> dict:
                     "type": "text",
                     "text": (
                         "This image is a school Scheme of Work (curriculum plan). "
-                        "Extract every teaching topic and its corresponding indicator/learning outcome code "
-                        "(e.g. 'B8.2.1.1.1') in the order they appear.\n"
-                        "Return ONLY a valid JSON array of objects with exactly two keys: "
-                        "'topic' (the topic/sub-strand name) and 'indicator' (the learning outcome code). "
-                        "If no indicator code is visible for a row, set 'indicator' to an empty string.\n"
+                        "Extract every teaching topic and its full learning indicator in the order they appear.\n"
+                        "Return ONLY a valid JSON array of objects with exactly two keys:\n"
+                        "  'topic': the topic or sub-strand name (a concise label)\n"
+                        "  'indicator': the COMPLETE indicator text — include BOTH the indicator code "
+                        "(e.g. 'B8.2.1.1.1') AND the full performance indicator sentence that follows it. "
+                        "Combine them as a single string, e.g. "
+                        "'B8.2.1.1.1 Count, read and write numbers up to 10 billion'. "
+                        "If no indicator is visible for a row, set 'indicator' to an empty string.\n"
                         "Example: ["
-                        "{\"topic\": \"Integers and Number Lines\", \"indicator\": \"B8.2.1.1.1\"}, "
-                        "{\"topic\": \"Fractions\", \"indicator\": \"B8.2.1.1.2\"}"
+                        "{\"topic\": \"Integers and Number Lines\", \"indicator\": \"B8.2.1.1.1 Understand and apply properties of integers to solve problems\"}, "
+                        "{\"topic\": \"Fractions\", \"indicator\": \"B8.2.1.1.2 Simplify and compare fractions in real-world contexts\"}"
                         "]\n"
                         "If the image is unreadable, return []"
                     ),
                 },
             ],
         }],
-        "max_tokens": 1500,
+        "max_tokens": 2500,
     }
 
     try:
