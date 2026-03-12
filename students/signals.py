@@ -50,9 +50,18 @@ def notify_parent_attendance(sender, instance, created, **kwargs):
         return
     student = instance.student
     status_display = instance.get_status_display() if hasattr(instance, 'get_status_display') else instance.status
+    from datetime import date as _date
+    _d = instance.date
+    if isinstance(_d, str):
+        try:
+            from datetime import datetime as _dt
+            _d = _dt.strptime(_d, '%Y-%m-%d').date()
+        except Exception:
+            _d = None
+    date_str = _d.strftime('%b %d, %Y') if _d else str(instance.date)
     message = (
         f"{student.user.get_full_name()} was marked {status_display} "
-        f"on {instance.date.strftime('%b %d, %Y')}."
+        f"on {date_str}."
     )
     _notify_parents(student, message, alert_type='general')
 

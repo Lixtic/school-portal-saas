@@ -480,6 +480,11 @@
                class="btn btn-sm" style="background:#f5f3ff; color:#6d28d9; border:none; font-size:.72rem; white-space:nowrap;">
                 Continue <i class="bi bi-arrow-right"></i>
             </a>
+            {% else %}
+            <a href="{% url 'homework:homework_create' %}?topic={{ session.get_display_title|urlencode }}{% if student.current_class_id %}&class_id={{ student.current_class_id }}{% endif %}{% if session.subject_id %}&subject_id={{ session.subject_id }}{% endif %}"
+               class="btn btn-sm" style="background:#ecfdf5; color:#059669; border:none; font-size:.72rem; white-space:nowrap;" title="Create homework from this Aura session topic">
+                📚 Assign HW
+            </a>
             {% endif %}
         </div>
         {% endfor %}

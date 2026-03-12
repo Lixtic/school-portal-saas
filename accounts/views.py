@@ -825,6 +825,7 @@ def dashboard(request):
                         .order_by('-id')[:5]
                     )
 
+                    from academics.gamification_models import StudentXP as _StudentXP
                     children_data.append({
                         'student': child,
                         'balance': child_balance,
@@ -833,6 +834,7 @@ def dashboard(request):
                         'att_present': att_present,
                         'att_total': att_total,
                         'recent_grades': list(recent_grades),
+                        'xp': _StudentXP.objects.filter(student=child).first(),
                     })
             else:
                 children = []

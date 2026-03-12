@@ -751,6 +751,7 @@ def aura_arena_api(request):
                 'name': e.student.user.get_full_name(),
                 'initials': (e.student.user.first_name[:1] + e.student.user.last_name[:1]).upper(),
                 'total_xp': e.total_xp,
+                'streak': e.current_streak,
                 'is_me': e.student == student,
             }
             for e in top_raw
@@ -798,6 +799,7 @@ def aura_arena_api(request):
                 .values_list('achievement__slug', flat=True)
             )
             xp_profile.add_xp(amount)
+            xp_profile.update_streak()
             check_and_unlock_achievements(student, xp_profile)
             # Detect newly unlocked badges
             newly_unlocked = list(
