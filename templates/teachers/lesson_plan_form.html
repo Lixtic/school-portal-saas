@@ -100,6 +100,11 @@
                         <div class="col-md-5">{{ form.subject|as_crispy_field }}</div>
                         <div class="col-md-4">{{ form.school_class|as_crispy_field }}</div>
                         <div class="col-12">{{ form.topic|as_crispy_field }}</div>
+                        <div class="col-12">
+                            <label for="indicatorPrompt" class="form-label fw-semibold">Target Indicator (GES)</label>
+                            <textarea id="indicatorPrompt" name="indicator_prompt" class="form-control" rows="2" placeholder="Paste the exact indicator the lesson should achieve...">{{ prefill_indicator|default:'' }}</textarea>
+                            <small class="text-muted">GES Draft uses this indicator as the primary target, not only the general topic.</small>
+                        </div>
                     </div>
 
                     <!-- Section: Objectives -->
@@ -368,6 +373,7 @@
         const subjectEl = document.querySelector('[name="subject"]');
         const classEl = document.querySelector('[name="school_class"]');
         const weekEl = document.querySelector('[name="week_number"]');
+        const indicatorEl = document.getElementById('indicatorPrompt');
         const b7MetaInput = document.getElementById('b7MetaInput');
 
         const topic = topicEl ? topicEl.value.trim() : '';
@@ -382,6 +388,15 @@
         const subjectId = subjectEl ? subjectEl.value : '';
         const classId = classEl ? classEl.value : '';
         const weekNumber = weekEl ? weekEl.value : '';
+        const indicator = indicatorEl ? indicatorEl.value.trim() : '';
+
+        if (!indicator) {
+            indicatorEl && indicatorEl.focus();
+            indicatorEl && indicatorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            indicatorEl && (indicatorEl.style.outline = '2px solid #ef4444');
+            setTimeout(() => indicatorEl && (indicatorEl.style.outline = ''), 2000);
+            return;
+        }
 
         overlay.style.display = 'flex';
         btn.disabled = true;
@@ -408,6 +423,7 @@
                 },
                 body: JSON.stringify({
                     topic: topic,
+                    indicator: indicator,
                     subject_id: subjectId,
                     class_id: classId,
                     week_number: weekNumber

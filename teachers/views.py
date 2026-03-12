@@ -1723,13 +1723,19 @@ def lesson_plan_create(request):
             lesson_plan.teacher = teacher
             lesson_plan.save()
             b7_meta_raw = request.POST.get('b7_meta', '')
+            indicator_prompt = (request.POST.get('indicator_prompt') or '').strip()
             if b7_meta_raw:
                 try:
                     import json as _json
                     lesson_plan.b7_meta = _json.loads(b7_meta_raw)
+                    if indicator_prompt:
+                        lesson_plan.b7_meta['indicator'] = indicator_prompt
                     lesson_plan.save(update_fields=['b7_meta'])
                 except (ValueError, TypeError):
                     pass
+            elif indicator_prompt:
+                lesson_plan.b7_meta = {'indicator': indicator_prompt}
+                lesson_plan.save(update_fields=['b7_meta'])
             messages.success(request, 'Lesson plan created successfully.')
             return redirect('teachers:lesson_plan_list')
     else:
@@ -1737,7 +1743,8 @@ def lesson_plan_create(request):
         
     return render(request, 'teachers/lesson_plan_form.html', {
         'form': form,
-        'title': 'Create Lesson Plan'
+        'title': 'Create Lesson Plan',
+        'prefill_indicator': indicator,
     })
 
 
@@ -2284,12 +2291,15 @@ def ges_lesson_api(request):
 
         data = json.loads(request.body)
         topic = (data.get('topic') or '').strip()
+        indicator = (data.get('indicator') or '').strip()
         class_id = data.get('class_id')
         subject_id = data.get('subject_id')
         week_number = data.get('week_number')
 
         if not topic:
             return JsonResponse({"status": "error", "message": "Topic is required"}, status=400)
+        if not indicator:
+            return JsonResponse({"status": "error", "message": "Target indicator is required"}, status=400)
 
         try:
             week_number = int(week_number or 1)
@@ -2312,6 +2322,7 @@ def ges_lesson_api(request):
         check_and_consume(request.tenant, request.user.id, 'lesson_gen')
         result = GESLessonEngine.generate_weekly_notes(
             topic=topic,
+            indicator=indicator,
             subject=subject_name,
             grade_level=class_name,
             week_number=week_number,
