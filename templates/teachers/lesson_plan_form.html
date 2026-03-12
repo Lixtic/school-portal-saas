@@ -171,6 +171,7 @@
                             <i class="bi bi-robot me-2"></i>Aura-T Draft
                         </button>
                     </div>
+                    <div id="gesAlignmentBadge" class="alert mt-3 mb-0 py-2 px-3 d-none" role="status"></div>
                 </form>
             </div>
         </div>
@@ -375,6 +376,7 @@
         const weekEl = document.querySelector('[name="week_number"]');
         const indicatorEl = document.getElementById('indicatorPrompt');
         const b7MetaInput = document.getElementById('b7MetaInput');
+        const alignBadge = document.getElementById('gesAlignmentBadge');
 
         const topic = topicEl ? topicEl.value.trim() : '';
         if (!topic) {
@@ -400,6 +402,10 @@
 
         overlay.style.display = 'flex';
         btn.disabled = true;
+        if (alignBadge) {
+            alignBadge.className = 'alert mt-3 mb-0 py-2 px-3 d-none';
+            alignBadge.textContent = '';
+        }
 
         const messages = [
             'Building GES weekly notes structure...',
@@ -457,6 +463,23 @@
 
             if (b7MetaInput && json.data.b7_meta) {
                 b7MetaInput.value = JSON.stringify(json.data.b7_meta);
+            }
+
+            if (alignBadge) {
+                const mode = ((json.data.b7_meta || {}).indicator_alignment_mode || 'primary').toLowerCase();
+                if (mode === 'strict_regenerated') {
+                    alignBadge.className = 'alert alert-warning mt-3 mb-0 py-2 px-3';
+                    alignBadge.innerHTML = '<i class="bi bi-shield-check me-2"></i>Indicator alignment: verified after strict re-check.';
+                } else if (mode === 'fallback') {
+                    alignBadge.className = 'alert alert-secondary mt-3 mb-0 py-2 px-3';
+                    alignBadge.innerHTML = '<i class="bi bi-exclamation-circle me-2"></i>Indicator alignment: fallback draft generated. Review carefully.';
+                } else if (mode === 'primary_retry_failed') {
+                    alignBadge.className = 'alert alert-danger mt-3 mb-0 py-2 px-3';
+                    alignBadge.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>Indicator alignment: strict re-check failed. Please review and regenerate if needed.';
+                } else {
+                    alignBadge.className = 'alert alert-success mt-3 mb-0 py-2 px-3';
+                    alignBadge.innerHTML = '<i class="bi bi-check-circle me-2"></i>Indicator alignment: verified on first pass.';
+                }
             }
 
             overlay.style.display = 'none';

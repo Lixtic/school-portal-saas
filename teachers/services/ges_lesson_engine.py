@@ -136,6 +136,7 @@ class GESLessonEngine:
                 'references': f'National {subject} Curriculum',
                 'keywords': topic,
                 'generated_format': 'ges_weekly_notes',
+                'indicator_alignment_mode': 'fallback',
                 'generated_at': timezone.now().isoformat(),
                 'week_number': week_number,
                 'grade_level': grade_level,
@@ -188,6 +189,7 @@ Return ONLY valid JSON with this exact schema:
 """
 
         try:
+            alignment_mode = 'primary'
             user_prompt = (
                 f"Create a complete weekly lesson notes draft for Week {week_number}. "
                 f"The lesson must achieve this indicator exactly: {indicator}. "
@@ -216,6 +218,9 @@ Return ONLY valid JSON with this exact schema:
                 strict_parsed = GESLessonEngine._extract_json_object(strict_content)
                 if strict_parsed and strict_parsed.get('lesson_plan'):
                     parsed = strict_parsed
+                    alignment_mode = 'strict_regenerated'
+                else:
+                    alignment_mode = 'primary_retry_failed'
 
             parsed.setdefault('b7_meta', {})
             parsed['b7_meta'].setdefault('generated_format', 'ges_weekly_notes')
@@ -223,6 +228,7 @@ Return ONLY valid JSON with this exact schema:
             parsed['b7_meta'].setdefault('week_number', week_number)
             parsed['b7_meta'].setdefault('grade_level', grade_level)
             parsed['b7_meta']['indicator'] = parsed['b7_meta'].get('indicator') or indicator
+            parsed['b7_meta']['indicator_alignment_mode'] = alignment_mode
             return parsed
         except Exception as exc:
             logger.error('GES lesson generation failed: %s', exc)
