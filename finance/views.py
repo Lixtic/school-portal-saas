@@ -153,8 +153,13 @@ def student_fees(request, student_id):
         messages.error(request, "Access Denied. Only Admins or Class Teachers can view fees.")
         return redirect('dashboard')
 
-    fees = StudentFee.objects.filter(student=student).select_related('fee_structure', 'fee_structure__head')
-    
+    fees = (
+        StudentFee.objects
+        .filter(student=student)
+        .select_related('fee_structure', 'fee_structure__head')
+        .prefetch_related('payments')
+    )
+
     processed_fees = []
     for fee in fees:
         processed_fees.append({
@@ -178,12 +183,20 @@ def record_payment(request, fee_id):
     if request.method == 'POST':
         form = PaymentForm(request.POST)
         if form.is_valid():
-            payment = form.save(commit=False)
-            payment.student_fee = fee
-            payment.recorded_by = request.user
-            payment.save()
-            messages.success(request, 'Payment recorded successfully')
-            return redirect('finance:student_fees', student_id=fee.student.id)
+            from django.db import transaction
+            with transaction.atomic():
+                # Re-fetch inside the transaction to get the current balance
+                fee = StudentFee.objects.select_for_update().get(pk=fee.pk)
+                amount = form.cleaned_data['amount']
+                if amount > fee.balance:
+                    form.add_error('amount', f'Amount exceeds outstanding balance of ₵{fee.balance:.2f}.')
+                else:
+                    payment = form.save(commit=False)
+                    payment.student_fee = fee
+                    payment.recorded_by = request.user
+                    payment.save()
+                    messages.success(request, 'Payment recorded successfully')
+                    return redirect('finance:student_fees', student_id=fee.student.id)
     else:
         form = PaymentForm(initial={'amount': fee.balance})
 
@@ -605,6 +618,7 @@ def paystack_webhook(request):
                     'student_fee': fee,
                     'amount': amount_paid,
                     'method': 'Bank Transfer',
+                    'remarks': 'Auto-recorded via Paystack webhook',
                 },
             )
 
