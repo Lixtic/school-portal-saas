@@ -565,43 +565,53 @@
                         {% endif %}
 
                         <div class="mt-3 pt-2 border-top">
-                            <div class="small fw-semibold text-primary mb-2"><i class="bi bi-folder2-open me-1"></i>Related Files</div>
-                            {% if next_class_reminder.related_lesson_plans or next_class_reminder.related_slides or next_class_reminder.related_resources %}
-                            <div class="row g-2">
-                                <div class="col-md-4">
-                                    <div class="small fw-semibold text-primary mb-1"><i class="bi bi-journal-text me-1"></i>Lesson Plans</div>
-                                    {% for lp in next_class_reminder.related_lesson_plans %}
-                                        <a href="{% url 'teachers:lesson_plan_detail' lp.id %}" class="d-block small text-decoration-none mb-1">• {{ lp.topic|truncatechars:34 }}</a>
-                                    {% empty %}
-                                        <div class="small text-muted">No lesson plans found.</div>
-                                    {% endfor %}
+                            <button type="button" class="schedule-toggle" data-bs-toggle="collapse" data-bs-target="#next-class-related-files" aria-expanded="false" aria-controls="next-class-related-files">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="small fw-semibold text-primary"><i class="bi bi-folder2-open me-1"></i>Related Files</div>
+                                    <i class="bi bi-chevron-down schedule-chevron"></i>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="small fw-semibold text-primary mb-1"><i class="bi bi-easel2 me-1"></i>Slides</div>
-                                    {% for deck in next_class_reminder.related_slides %}
-                                        <a href="{% url 'teachers:presentation_editor' deck.id %}" class="d-block small text-decoration-none mb-1">• {{ deck.title|truncatechars:34 }}</a>
-                                    {% empty %}
-                                        <div class="small text-muted">No slides found.</div>
-                                    {% endfor %}
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="small fw-semibold text-primary mb-1"><i class="bi bi-folder2 me-1"></i>Resources</div>
-                                    {% for file in next_class_reminder.related_resources %}
-                                        {% if file.file %}
-                                            <a href="{{ file.file.url }}" target="_blank" class="d-block small text-decoration-none mb-1">• {{ file.title|truncatechars:34 }}</a>
-                                        {% elif file.link %}
-                                            <a href="{{ file.link }}" target="_blank" class="d-block small text-decoration-none mb-1">• {{ file.title|truncatechars:34 }}</a>
-                                        {% else %}
-                                            <span class="d-block small text-muted mb-1">• {{ file.title|truncatechars:34 }}</span>
-                                        {% endif %}
-                                    {% empty %}
-                                        <div class="small text-muted">No resources found.</div>
-                                    {% endfor %}
+                            </button>
+
+                            <div class="collapse mt-2" id="next-class-related-files">
+                                <div class="schedule-related-panel">
+                                    {% if next_class_reminder.related_lesson_plans or next_class_reminder.related_slides or next_class_reminder.related_resources %}
+                                    <div class="row g-2">
+                                        <div class="col-md-4">
+                                            <div class="small fw-semibold text-primary mb-1"><i class="bi bi-journal-text me-1"></i>Lesson Plans</div>
+                                            {% for lp in next_class_reminder.related_lesson_plans %}
+                                                <a href="{% url 'teachers:lesson_plan_detail' lp.id %}" class="d-block small text-decoration-none mb-1">• {{ lp.topic|truncatechars:34 }}</a>
+                                            {% empty %}
+                                                <div class="small text-muted">No lesson plans found.</div>
+                                            {% endfor %}
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="small fw-semibold text-primary mb-1"><i class="bi bi-easel2 me-1"></i>Slides</div>
+                                            {% for deck in next_class_reminder.related_slides %}
+                                                <a href="{% url 'teachers:presentation_editor' deck.id %}" class="d-block small text-decoration-none mb-1">• {{ deck.title|truncatechars:34 }}</a>
+                                            {% empty %}
+                                                <div class="small text-muted">No slides found.</div>
+                                            {% endfor %}
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="small fw-semibold text-primary mb-1"><i class="bi bi-folder2 me-1"></i>Resources</div>
+                                            {% for file in next_class_reminder.related_resources %}
+                                                {% if file.file %}
+                                                    <a href="{{ file.file.url }}" target="_blank" class="d-block small text-decoration-none mb-1">• {{ file.title|truncatechars:34 }}</a>
+                                                {% elif file.link %}
+                                                    <a href="{{ file.link }}" target="_blank" class="d-block small text-decoration-none mb-1">• {{ file.title|truncatechars:34 }}</a>
+                                                {% else %}
+                                                    <span class="d-block small text-muted mb-1">• {{ file.title|truncatechars:34 }}</span>
+                                                {% endif %}
+                                            {% empty %}
+                                                <div class="small text-muted">No resources found.</div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <div class="small text-muted">No related files available for this upcoming class yet.</div>
+                                    {% endif %}
                                 </div>
                             </div>
-                            {% else %}
-                            <div class="small text-muted">No related files available for this upcoming class yet.</div>
-                            {% endif %}
                         </div>
                     </div>
                 </div>
