@@ -53,6 +53,26 @@
     [data-bs-theme="dark"] .form-control::placeholder,
     [data-bs-theme="dark"] textarea::placeholder { color: #94a3b8; }
     [data-bs-theme="dark"] .form-label { color: var(--text-main); }
+
+    .lp-section-actions { margin-left: auto; display: inline-flex; gap: .35rem; }
+    .lp-regenerate-btn {
+        border: 1px solid rgba(16, 185, 129, 0.35);
+        background: rgba(16, 185, 129, 0.08);
+        color: #047857;
+        border-radius: 999px;
+        font-size: .68rem;
+        font-weight: 700;
+        letter-spacing: .02em;
+        padding: .18rem .55rem;
+        line-height: 1.2;
+    }
+    .lp-regenerate-btn:hover { background: rgba(16, 185, 129, 0.18); }
+    .lp-regenerate-btn:disabled { opacity: .6; cursor: wait; }
+    [data-bs-theme="dark"] .lp-regenerate-btn {
+        border-color: rgba(52, 211, 153, 0.4);
+        background: rgba(16, 185, 129, 0.18);
+        color: #6ee7b7;
+    }
 </style>
 
 <!-- Page Header Banner -->
@@ -111,6 +131,10 @@
                     <div class="section-label">
                         <span class="sl-icon" style="background:#eff6ff;color:#3b82f6;"><i class="bi bi-bullseye"></i></span>
                         Learning Objectives &amp; Resources
+                        <span class="lp-section-actions">
+                            <button type="button" class="lp-regenerate-btn" data-section="objectives">Regenerate Objectives</button>
+                            <button type="button" class="lp-regenerate-btn" data-section="teaching_materials">Regenerate Resources</button>
+                        </span>
                     </div>
                     <div class="mb-4">
                         {{ form.objectives|as_crispy_field }}
@@ -128,6 +152,7 @@
                                 <div class="p-3 rounded-3 mb-2" style="background:rgba(59,130,246,0.04);border:1px solid rgba(59,130,246,0.1);">
                                     <div class="small fw-bold text-primary mb-2">
                                         <i class="bi bi-1-circle me-1"></i>Phase 1 — Starter (Preparing the brain)
+                                        <button type="button" class="lp-regenerate-btn ms-2" data-section="introduction">Regenerate</button>
                                     </div>
                                     {{ form.introduction|as_crispy_field }}
                                 </div>
@@ -136,6 +161,7 @@
                                 <div class="p-3 rounded-3 mb-2" style="background:rgba(34,197,94,0.04);border:1px solid rgba(34,197,94,0.1);">
                                     <div class="small fw-bold mb-2" style="color:#15803d;">
                                         <i class="bi bi-2-circle me-1"></i>Phase 2 — Main (New learning &amp; assessment)
+                                        <button type="button" class="lp-regenerate-btn ms-2" data-section="presentation">Regenerate</button>
                                     </div>
                                     {{ form.presentation|as_crispy_field }}
                                 </div>
@@ -144,6 +170,7 @@
                                 <div class="p-3 rounded-3 mb-2" style="background:rgba(245,158,11,0.04);border:1px solid rgba(245,158,11,0.1);">
                                     <div class="small fw-bold mb-2" style="color:#b45309;">
                                         <i class="bi bi-3-circle me-1"></i>Phase 3 — Reflection (Learner &amp; teacher)
+                                        <button type="button" class="lp-regenerate-btn ms-2" data-section="evaluation">Regenerate</button>
                                     </div>
                                     {{ form.evaluation|as_crispy_field }}
                                 </div>
@@ -155,9 +182,15 @@
                     <div class="section-label">
                         <span class="sl-icon" style="background:#fffbeb;color:#f59e0b;"><i class="bi bi-pencil-square"></i></span>
                         Homework / Assignment
+                        <span class="lp-section-actions">
+                            <button type="button" class="lp-regenerate-btn" data-section="homework">Regenerate Homework</button>
+                        </span>
                     </div>
                     <div class="mb-4">
                         {{ form.homework|as_crispy_field }}
+                        <div class="mt-2">
+                            <button type="button" class="lp-regenerate-btn" data-section="remarks">Regenerate Remarks</button>
+                        </div>
                     </div>
 
                     <div class="d-flex gap-2 mt-2">
@@ -358,6 +391,7 @@
     const btn = document.getElementById('gesDraftBtn');
     const overlay = document.getElementById('auraTOverlay');
     const statusEl = document.getElementById('auraTStatus');
+    const autoGesFromSow = {{ auto_ges|yesno:'true,false' }};
 
     function fillField(name, value) {
         if (!value) return;
@@ -368,6 +402,100 @@
     }
 
     if (!btn) return;
+
+    const sectionToField = {
+        objectives: 'objectives',
+        teaching_materials: 'teaching_materials',
+        introduction: 'introduction',
+        presentation: 'presentation',
+        evaluation: 'evaluation',
+        homework: 'homework',
+        remarks: 'remarks',
+    };
+
+    async function regenerateSection(section, triggerBtn) {
+        const topicEl = document.querySelector('[name="topic"]');
+        const subjectEl = document.querySelector('[name="subject"]');
+        const classEl = document.querySelector('[name="school_class"]');
+        const weekEl = document.querySelector('[name="week_number"]');
+        const indicatorEl = document.getElementById('indicatorPrompt');
+        const b7MetaInput = document.getElementById('b7MetaInput');
+        const alignBadge = document.getElementById('gesAlignmentBadge');
+
+        const fieldName = sectionToField[section];
+        const fieldEl = fieldName ? document.querySelector('[name="' + fieldName + '"]') : null;
+        if (!fieldEl) return;
+
+        const topic = topicEl ? topicEl.value.trim() : '';
+        const indicator = indicatorEl ? indicatorEl.value.trim() : '';
+        if (!topic || !indicator) {
+            if (!topic && topicEl) topicEl.focus();
+            else if (indicatorEl) indicatorEl.focus();
+            return;
+        }
+
+        const subjectId = subjectEl ? subjectEl.value : '';
+        const classId = classEl ? classEl.value : '';
+        const weekNumber = weekEl ? weekEl.value : '';
+
+        triggerBtn.disabled = true;
+        triggerBtn.dataset.originalText = triggerBtn.dataset.originalText || triggerBtn.textContent;
+        triggerBtn.textContent = 'Regenerating…';
+
+        try {
+            const resp = await fetch('{% url "teachers:ges_lesson_api" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({
+                    topic: topic,
+                    indicator: indicator,
+                    section: section,
+                    current_text: fieldEl.value || '',
+                    subject_id: subjectId,
+                    class_id: classId,
+                    week_number: weekNumber
+                })
+            });
+
+            if (!resp.ok) throw new Error('Server error ' + resp.status);
+            const json = await resp.json();
+            if (json.status !== 'success' || !json.data || !json.data.content) {
+                throw new Error(json.message || 'No regenerated content returned.');
+            }
+
+            fieldEl.value = json.data.content;
+            fieldEl.dispatchEvent(new Event('input', { bubbles: true }));
+
+            if (b7MetaInput && json.data.b7_meta) {
+                const existing = b7MetaInput.value ? JSON.parse(b7MetaInput.value) : {};
+                b7MetaInput.value = JSON.stringify(Object.assign({}, existing, json.data.b7_meta));
+            }
+
+            if (alignBadge) {
+                alignBadge.className = 'alert alert-info mt-3 mb-0 py-2 px-3';
+                alignBadge.innerHTML = '<i class="bi bi-arrow-repeat me-2"></i>Section regenerated with indicator alignment (' + section.replace('_', ' ') + ').';
+            }
+        } catch (err) {
+            const errToast = document.createElement('div');
+            errToast.className = 'alert alert-danger alert-dismissible fade show rounded-3 mb-3';
+            errToast.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:9998;max-width:380px;font-size:.9rem;';
+            errToast.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i><strong>Section regen error:</strong> ' + err.message + '<button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>';
+            document.body.appendChild(errToast);
+        } finally {
+            triggerBtn.disabled = false;
+            triggerBtn.textContent = triggerBtn.dataset.originalText || 'Regenerate';
+        }
+    }
+
+    document.querySelectorAll('.lp-regenerate-btn').forEach((rBtn) => {
+        rBtn.addEventListener('click', function () {
+            const section = this.getAttribute('data-section');
+            if (section) regenerateSection(section, this);
+        });
+    });
 
     btn.addEventListener('click', async function () {
         const topicEl = document.querySelector('[name="topic"]');
@@ -502,6 +630,19 @@
             document.body.appendChild(errToast);
         }
     });
+
+    // Auto-run GES draft when arriving from Scheme of Work links.
+    if (autoGesFromSow) {
+        window.setTimeout(() => {
+            const topicEl = document.querySelector('[name="topic"]');
+            const indicatorEl = document.getElementById('indicatorPrompt');
+            const hasTopic = topicEl && topicEl.value.trim().length > 0;
+            const hasIndicator = indicatorEl && indicatorEl.value.trim().length > 0;
+            if (hasTopic && hasIndicator) {
+                btn.click();
+            }
+        }, 250);
+    }
 })();
 </script>
 {% endblock %}

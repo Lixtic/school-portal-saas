@@ -267,7 +267,7 @@
                             <a href="{% url 'homework:homework_create' %}?topic={{ topic|urlencode }}&class_id={{ scheme.class_subject.class_name.id }}&subject_id={{ scheme.class_subject.subject.id }}"
                                title="Create homework on this topic"
                                class="ms-1 text-decoration-none" style="font-size:11px;opacity:.6;">📝</a>
-                            <a href="{% url 'teachers:lesson_plan_create' %}?topic={{ topic|urlencode }}&subject_id={{ scheme.class_subject.subject.id }}&class_id={{ scheme.class_subject.class_name.id }}{% if ind %}&indicator={{ ind|urlencode }}{% endif %}"
+                                     <a href="{% url 'teachers:lesson_plan_create' %}?topic={{ topic|urlencode }}&subject_id={{ scheme.class_subject.subject.id }}&class_id={{ scheme.class_subject.class_name.id }}&auto_ges=1{% if ind %}&indicator={{ ind|urlencode }}{% endif %}"
                                title="Create lesson plan (pre-filled with this indicator)"
                                class="ms-1 text-decoration-none" style="font-size:11px;opacity:.6;">📋</a>
                         </span>
@@ -415,7 +415,7 @@ function rerenderChips(id, topics, indicators) {
         const indParam = ind ? '&indicator=' + encodeURIComponent(ind) : '';
         const indAttr  = ind.replace(/"/g, '&quot;');
         const hwLink = hwBase ? `<a href="${hwBase}?topic=${enc}&class_id=${classId}&subject_id=${subjectId}" title="Create homework on this topic" class="ms-1 text-decoration-none" style="font-size:11px;opacity:.6;">📝</a>` : '';
-        const lpLink = lpBase ? `<a href="${lpBase}?topic=${enc}&subject_id=${subjectId}&class_id=${classId}${indParam}" title="Create lesson plan (pre-filled with this indicator)" class="ms-1 text-decoration-none" style="font-size:11px;opacity:.6;">📋</a>` : '';
+        const lpLink = lpBase ? `<a href="${lpBase}?topic=${enc}&subject_id=${subjectId}&class_id=${classId}&auto_ges=1${indParam}" title="Create lesson plan (auto-draft with GES indicator)" class="ms-1 text-decoration-none" style="font-size:11px;opacity:.6;">📋</a>` : '';
         return `<span class="topic-chip" data-topic="${esc}" data-indicator="${indAttr}">
             <span class="text-muted me-1" style="font-size:10px;">${i+1}.</span>${t}${indicatorBadge(ind)}
             <span class="edit-btn" onclick="editChip(${id},this)" title="Edit topic &amp; indicator">&#x270E;</span>

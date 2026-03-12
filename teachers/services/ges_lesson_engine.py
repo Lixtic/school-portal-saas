@@ -98,6 +98,13 @@ class GESLessonEngine:
         }
 
     @staticmethod
+    def _valid_sections():
+        return {
+            'objectives', 'teaching_materials', 'introduction', 'presentation',
+            'evaluation', 'homework', 'remarks'
+        }
+
+    @staticmethod
     def _fallback(topic: str, indicator: str, subject: str, grade_level: str, week_number: int) -> Dict:
         return {
             'lesson_plan': {
@@ -233,3 +240,105 @@ Return ONLY valid JSON with this exact schema:
         except Exception as exc:
             logger.error('GES lesson generation failed: %s', exc)
             return GESLessonEngine._fallback(topic, indicator, subject, grade_level, week_number)
+
+    @staticmethod
+    def generate_section(topic: str, indicator: str, subject: str, grade_level: str,
+                         week_number: int, section: str, current_text: str = '') -> Dict:
+        """Regenerate one lesson section while keeping indicator alignment."""
+        section = (section or '').strip()
+        if section not in GESLessonEngine._valid_sections():
+            return {
+                'section': section,
+                'content': '',
+                'b7_meta': {'indicator_alignment_mode': 'invalid_section'},
+            }
+
+        fallback = GESLessonEngine._fallback(topic, indicator, subject, grade_level, week_number)
+        api_key = getattr(settings, 'OPENAI_API_KEY', '')
+        if not api_key:
+            return {
+                'section': section,
+                'content': fallback['lesson_plan'].get(section, ''),
+                'b7_meta': {
+                    'indicator': indicator,
+                    'indicator_alignment_mode': 'fallback',
+                    'generated_format': 'ges_weekly_notes',
+                    'week_number': week_number,
+                    'grade_level': grade_level,
+                },
+            }
+
+        section_hints = {
+            'objectives': 'Write concise content standard and indicator-focused lesson objectives.',
+            'teaching_materials': 'List practical resources and teaching/learning materials needed.',
+            'introduction': 'Write Phase 1 starter activities linked directly to the indicator.',
+            'presentation': 'Write Phase 2 main learning activities that teach the indicator.',
+            'evaluation': 'Write assessable checks and questions that explicitly measure the indicator.',
+            'homework': 'Write homework that directly reinforces and checks the same indicator.',
+            'remarks': 'Write short teacher reflection prompts tied to indicator mastery evidence.',
+        }
+
+        system_prompt = f"""You are a Ghana GES lesson planner.
+Regenerate ONLY one section of a weekly lesson notes plan.
+
+Context:
+- Subject: {subject}
+- Class: {grade_level}
+- Topic/Sub-strand: {topic}
+- Target Indicator (must be achieved): {indicator}
+- Week Number: {week_number}
+- Section to regenerate: {section}
+
+Rules:
+- Return ONLY valid JSON
+- Keep the output concise and teacher-ready
+- Keep strict alignment to the target indicator
+- Do not include content for other sections
+
+JSON schema:
+{{
+  "section": "{section}",
+  "content": "new section text"
+}}
+"""
+
+        user_prompt = (
+            f"Regenerate section '{section}'. {section_hints.get(section, '')} "
+            f"Indicator: {indicator}. "
+            + (f"Current draft to improve: {current_text[:900]}" if current_text else '')
+        )
+
+        try:
+            payload = GESLessonEngine._build_payload(system_prompt, user_prompt)
+            payload['max_tokens'] = 700
+            response = _post_chat_completion(payload, api_key)
+            content = response['choices'][0]['message']['content']
+            parsed = GESLessonEngine._extract_json_object(content)
+            new_text = (parsed.get('content') or '').strip()
+            if not new_text:
+                new_text = fallback['lesson_plan'].get(section, '')
+
+            return {
+                'section': section,
+                'content': new_text,
+                'b7_meta': {
+                    'indicator': indicator,
+                    'indicator_alignment_mode': 'section_regenerated',
+                    'generated_format': 'ges_weekly_notes',
+                    'week_number': week_number,
+                    'grade_level': grade_level,
+                },
+            }
+        except Exception as exc:
+            logger.error('GES section regeneration failed (%s): %s', section, exc)
+            return {
+                'section': section,
+                'content': fallback['lesson_plan'].get(section, ''),
+                'b7_meta': {
+                    'indicator': indicator,
+                    'indicator_alignment_mode': 'fallback',
+                    'generated_format': 'ges_weekly_notes',
+                    'week_number': week_number,
+                    'grade_level': grade_level,
+                },
+            }

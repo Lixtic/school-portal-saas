@@ -138,6 +138,31 @@
     .schedule-item:hover {
         background-color: #f8f9fa;
     }
+    .schedule-toggle {
+        border: none;
+        background: transparent;
+        width: 100%;
+        text-align: left;
+        padding: 0;
+        color: inherit;
+    }
+    .schedule-toggle .schedule-chevron {
+        transition: transform .2s ease;
+        color: #94a3b8;
+    }
+    .schedule-toggle[aria-expanded="true"] .schedule-chevron {
+        transform: rotate(180deg);
+    }
+    .schedule-related-panel {
+        background: rgba(15,23,42,0.02);
+        border: 1px solid rgba(15,23,42,0.08);
+        border-radius: 10px;
+        padding: .75rem;
+    }
+    [data-bs-theme="dark"] .schedule-related-panel {
+        background: rgba(255,255,255,0.04);
+        border-color: rgba(255,255,255,0.10);
+    }
     
     /* Animation for cascading cards */
     @keyframes slideInUp {
@@ -555,35 +580,80 @@
                     <div class="list-group list-group-flush">
                     {% for period in todays_classes %}
                         <div class="list-group-item schedule-item p-3 border-0 border-bottom {% if period.is_ongoing %}bg-primary bg-opacity-10 border-start border-primary border-4{% endif %}">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="text-center px-2">
-                                    <div class="fw-bold text-dark">{{ period.start_time|time:"H:i" }}</div>
-                                    <div class="small text-muted text-uppercase">{{ period.start_time|time:"A" }}</div>
-                                </div>
-                                <div class="vr opacity-25"></div>
-                                <div class="flex-grow-1">
-                                    <div class="d-flex align-items-center gap-2 mb-1">
-                                        <h6 class="mb-0 fw-bold">{{ period.class_subject.subject.name }}</h6>
-                                        {% if period.is_ongoing %}
-                                        <span class="badge bg-danger bg-opacity-75 text-white animate-pulse rounded-pill px-2 py-1" style="font-size: 0.65rem;">
-                                            <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i> ONGOING
-                                        </span>
+                            <button type="button" class="schedule-toggle" data-bs-toggle="collapse" data-bs-target="#schedule-related-{{ forloop.counter }}" aria-expanded="false" aria-controls="schedule-related-{{ forloop.counter }}">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="text-center px-2">
+                                        <div class="fw-bold text-dark">{{ period.start_time|time:"H:i" }}</div>
+                                        <div class="small text-muted text-uppercase">{{ period.start_time|time:"A" }}</div>
+                                    </div>
+                                    <div class="vr opacity-25"></div>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            <h6 class="mb-0 fw-bold">{{ period.class_subject.subject.name }}</h6>
+                                            {% if period.is_ongoing %}
+                                            <span class="badge bg-danger bg-opacity-75 text-white animate-pulse rounded-pill px-2 py-1" style="font-size: 0.65rem;">
+                                                <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i> ONGOING
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="d-flex align-items-center gap-2 text-muted small">
+                                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle rounded-pill fw-normal px-2">
+                                                {{ period.class_subject.class_name.name }}
+                                            </span>
+                                            <span><i class="bi bi-geo-alt me-1"></i>{{ period.room|default:"Main Block" }}</span>
+                                            <span class="text-primary"><i class="bi bi-folder2-open me-1"></i>Related Files</span>
+                                        </div>
+                                        {% if period.lesson_topic %}
+                                        <div class="mt-1 small">
+                                            <span class="text-primary fw-semibold"><i class="bi bi-bookmark-fill me-1" style="font-size:0.7rem;"></i>{{ period.lesson_topic }}</span>
+                                        </div>
                                         {% endif %}
                                     </div>
-                                    <div class="d-flex align-items-center gap-2 text-muted small">
-                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle rounded-pill fw-normal px-2">
-                                            {{ period.class_subject.class_name.name }}
-                                        </span>
-                                        <span><i class="bi bi-geo-alt me-1"></i>{{ period.room|default:"Main Block" }}</span>
+                                    <div class="text-end schedule-duration-badge d-flex align-items-center gap-2">
+                                        <span class="badge bg-light text-secondary border rounded-pill">{{ period.duration_minutes }} min</span>
+                                        <i class="bi bi-chevron-down schedule-chevron"></i>
                                     </div>
-                                    {% if period.lesson_topic %}
-                                    <div class="mt-1 small">
-                                        <span class="text-primary fw-semibold"><i class="bi bi-bookmark-fill me-1" style="font-size:0.7rem;"></i>{{ period.lesson_topic }}</span>
-                                    </div>
-                                    {% endif %}
                                 </div>
-                                <div class="text-end schedule-duration-badge">
-                                    <span class="badge bg-light text-secondary border rounded-pill">{{ period.duration_minutes }} min</span>
+                            </button>
+
+                            <div class="collapse mt-2" id="schedule-related-{{ forloop.counter }}">
+                                <div class="schedule-related-panel">
+                                    {% if period.related_lesson_plans or period.related_slides or period.related_resources %}
+                                    <div class="row g-2">
+                                        <div class="col-md-4">
+                                            <div class="small fw-semibold text-primary mb-1"><i class="bi bi-journal-text me-1"></i>Lesson Plans</div>
+                                            {% for lp in period.related_lesson_plans %}
+                                                <a href="{% url 'teachers:lesson_plan_detail' lp.id %}" class="d-block small text-decoration-none mb-1">• {{ lp.topic|truncatechars:42 }}</a>
+                                            {% empty %}
+                                                <div class="small text-muted">No lesson plans found.</div>
+                                            {% endfor %}
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="small fw-semibold text-primary mb-1"><i class="bi bi-easel2 me-1"></i>Slides</div>
+                                            {% for deck in period.related_slides %}
+                                                <a href="{% url 'teachers:presentation_editor' deck.id %}" class="d-block small text-decoration-none mb-1">• {{ deck.title|truncatechars:42 }}</a>
+                                            {% empty %}
+                                                <div class="small text-muted">No slides found.</div>
+                                            {% endfor %}
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="small fw-semibold text-primary mb-1"><i class="bi bi-folder2 me-1"></i>Resources</div>
+                                            {% for file in period.related_resources %}
+                                                {% if file.file %}
+                                                    <a href="{{ file.file.url }}" target="_blank" class="d-block small text-decoration-none mb-1">• {{ file.title|truncatechars:42 }}</a>
+                                                {% elif file.link %}
+                                                    <a href="{{ file.link }}" target="_blank" class="d-block small text-decoration-none mb-1">• {{ file.title|truncatechars:42 }}</a>
+                                                {% else %}
+                                                    <span class="d-block small text-muted mb-1">• {{ file.title|truncatechars:42 }}</span>
+                                                {% endif %}
+                                            {% empty %}
+                                                <div class="small text-muted">No resources found.</div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <div class="small text-muted">No related files available for this subject and class yet.</div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>

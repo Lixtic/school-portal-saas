@@ -700,6 +700,80 @@ def dashboard(request):
         except Exception:
             pass  # Gracefully degrade — schedule still shows without topics
 
+        # === Related Files by Scheduled Subject/Class ===
+        # Attach quick resources so each schedule item can expand into relevant materials.
+        try:
+            from collections import defaultdict
+            from teachers.models import Presentation
+
+            period_keys = {
+                (p.class_subject.subject_id, p.class_subject.class_name_id)
+                for p in todays_classes
+            }
+            subject_ids = {k[0] for k in period_keys}
+            class_ids_for_periods = {k[1] for k in period_keys}
+
+            plans_by_key = defaultdict(list)
+            slides_by_key = defaultdict(list)
+            resources_by_key = defaultdict(list)
+
+            if period_keys:
+                plans_qs = (
+                    LessonPlan.objects
+                    .filter(
+                        teacher=teacher_profile,
+                        subject_id__in=subject_ids,
+                        school_class_id__in=class_ids_for_periods,
+                    )
+                    .select_related('subject', 'school_class')
+                    .order_by('-id')
+                )
+                for plan in plans_qs:
+                    key = (plan.subject_id, plan.school_class_id)
+                    if key in period_keys and len(plans_by_key[key]) < 3:
+                        plans_by_key[key].append(plan)
+
+                slides_qs = (
+                    Presentation.objects
+                    .filter(
+                        teacher=teacher_profile,
+                        subject_id__in=subject_ids,
+                        school_class_id__in=class_ids_for_periods,
+                    )
+                    .select_related('subject', 'school_class')
+                    .order_by('-updated_at')
+                )
+                for deck in slides_qs:
+                    key = (deck.subject_id, deck.school_class_id)
+                    if key in period_keys and len(slides_by_key[key]) < 3:
+                        slides_by_key[key].append(deck)
+
+                resource_qs = (
+                    Resource.objects
+                    .filter(
+                        class_subject__teacher=teacher_profile,
+                        class_subject__subject_id__in=subject_ids,
+                        class_subject__class_name_id__in=class_ids_for_periods,
+                    )
+                    .select_related('class_subject', 'class_subject__subject', 'class_subject__class_name')
+                    .order_by('-uploaded_at')
+                )
+                for res in resource_qs:
+                    key = (res.class_subject.subject_id, res.class_subject.class_name_id)
+                    if key in period_keys and len(resources_by_key[key]) < 3:
+                        resources_by_key[key].append(res)
+
+            for p in todays_classes:
+                key = (p.class_subject.subject_id, p.class_subject.class_name_id)
+                p.related_lesson_plans = plans_by_key.get(key, [])
+                p.related_slides = slides_by_key.get(key, [])
+                p.related_resources = resources_by_key.get(key, [])
+        except Exception:
+            for p in todays_classes:
+                p.related_lesson_plans = []
+                p.related_slides = []
+                p.related_resources = []
+
         # Calculate Student Count (Restored)
         teacher_students_count = Student.objects.filter(current_class__id__in=class_ids).distinct().count()
         

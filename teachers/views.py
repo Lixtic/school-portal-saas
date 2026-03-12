@@ -1745,6 +1745,7 @@ def lesson_plan_create(request):
         'form': form,
         'title': 'Create Lesson Plan',
         'prefill_indicator': indicator,
+        'auto_ges': request.GET.get('auto_ges') == '1',
     })
 
 
@@ -2292,6 +2293,8 @@ def ges_lesson_api(request):
         data = json.loads(request.body)
         topic = (data.get('topic') or '').strip()
         indicator = (data.get('indicator') or '').strip()
+        section = (data.get('section') or '').strip()
+        current_text = (data.get('current_text') or '').strip()
         class_id = data.get('class_id')
         subject_id = data.get('subject_id')
         week_number = data.get('week_number')
@@ -2320,6 +2323,18 @@ def ges_lesson_api(request):
             class_name = school_class.name
 
         check_and_consume(request.tenant, request.user.id, 'lesson_gen')
+        if section:
+            result = GESLessonEngine.generate_section(
+                topic=topic,
+                indicator=indicator,
+                subject=subject_name,
+                grade_level=class_name,
+                week_number=week_number,
+                section=section,
+                current_text=current_text,
+            )
+            return JsonResponse({"status": "success", "data": result})
+
         result = GESLessonEngine.generate_weekly_notes(
             topic=topic,
             indicator=indicator,
