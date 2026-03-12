@@ -2850,7 +2850,8 @@ def help_chat_api(request):
         "- Never make up data about the school."
     )
 
-    api_key = getattr(settings, 'OPENAI_API_KEY', '') or os.environ.get('OPENAI_API_KEY', '')
+    from django.conf import settings as _dj_settings
+    api_key = getattr(_dj_settings, 'OPENAI_API_KEY', '') or os.environ.get('OPENAI_API_KEY', '')
 
     if api_key:
         try:

@@ -2889,8 +2889,7 @@ def ai_sessions_list(request):
     sessions = LessonGenerationSession.objects.filter(teacher=teacher).order_by('-updated_at')
     
     # --- REDESIGN: REAL DATA INJECTION ---
-    from datetime import datetime
-    now = datetime.now()
+    now = timezone.localtime()
     weekday = now.weekday()  # 0=Monday, 6=Sunday
     current_time = now.time()
     
@@ -4957,6 +4956,7 @@ def presentation_from_youtube(request):
     except (ValueError, _json.JSONDecodeError):
         return JsonResponse({'error': 'Invalid JSON body'}, status=400)
 
+    from .models import Presentation, Slide
     teacher  = get_object_or_404(Teacher, user=request.user)
     deck_id  = body.get('deck_id')
     yt_url   = (body.get('youtube_url') or '').strip()
