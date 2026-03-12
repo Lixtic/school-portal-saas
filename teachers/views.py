@@ -1722,6 +1722,14 @@ def lesson_plan_create(request):
             lesson_plan = form.save(commit=False)
             lesson_plan.teacher = teacher
             lesson_plan.save()
+            b7_meta_raw = request.POST.get('b7_meta', '')
+            if b7_meta_raw:
+                try:
+                    import json as _json
+                    lesson_plan.b7_meta = _json.loads(b7_meta_raw)
+                    lesson_plan.save(update_fields=['b7_meta'])
+                except (ValueError, TypeError):
+                    pass
             messages.success(request, 'Lesson plan created successfully.')
             return redirect('teachers:lesson_plan_list')
     else:
@@ -2255,6 +2263,62 @@ def aura_t_api(request):
             return _ai_json_error_response(e)
             
     return JsonResponse({"status": "error", "message": "Invalid method"}, status=405)
+
+
+@login_required
+def ges_lesson_api(request):
+    """
+    Separate GES Weekly Notes generator endpoint.
+    This flow does not use Aura-T formatting/parsing.
+    """
+    if request.method != 'POST':
+        return JsonResponse({"status": "error", "message": "Invalid method"}, status=405)
+
+    if request.user.user_type != 'teacher':
+        return JsonResponse({"status": "error", "message": "Access denied"}, status=403)
+
+    try:
+        import json
+        from teachers.services.ges_lesson_engine import GESLessonEngine
+        from tenants.ai_quota import check_and_consume
+
+        data = json.loads(request.body)
+        topic = (data.get('topic') or '').strip()
+        class_id = data.get('class_id')
+        subject_id = data.get('subject_id')
+        week_number = data.get('week_number')
+
+        if not topic:
+            return JsonResponse({"status": "error", "message": "Topic is required"}, status=400)
+
+        try:
+            week_number = int(week_number or 1)
+        except (TypeError, ValueError):
+            week_number = 1
+        if week_number < 1:
+            week_number = 1
+
+        subject_name = 'General Studies'
+        class_name = 'General'
+        if subject_id:
+            from academics.models import Subject
+            subject = get_object_or_404(Subject, pk=subject_id)
+            subject_name = subject.name
+        if class_id:
+            from academics.models import Class
+            school_class = get_object_or_404(Class, pk=class_id)
+            class_name = school_class.name
+
+        check_and_consume(request.tenant, request.user.id, 'lesson_gen')
+        result = GESLessonEngine.generate_weekly_notes(
+            topic=topic,
+            subject=subject_name,
+            grade_level=class_name,
+            week_number=week_number,
+        )
+        return JsonResponse({"status": "success", "data": result})
+    except Exception as e:
+        return _ai_json_error_response(e)
 
 @login_required
 def aura_command_center(request):

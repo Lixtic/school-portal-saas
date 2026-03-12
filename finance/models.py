@@ -70,14 +70,16 @@ class StudentFee(models.Model):
         return self.amount_payable - self.total_paid
 
     def update_status(self):
-        paid = self.total_paid
+        from django.db.models import Sum
+        from decimal import Decimal
+        paid = self.payments.aggregate(total=Sum('amount'))['total'] or Decimal('0')
         if paid >= self.amount_payable:
             self.status = 'paid'
         elif paid > 0:
             self.status = 'partial'
         else:
             self.status = 'unpaid'
-        self.save()
+        self.save(update_fields=['status'])
 
 class Payment(models.Model):
     """

@@ -28,8 +28,16 @@ class PaymentForm(forms.ModelForm):
             'remarks': forms.Textarea(attrs={'rows': 2}),
         }
 
+    def __init__(self, *args, **kwargs):
+        self._fee = kwargs.pop('fee', None)
+        super().__init__(*args, **kwargs)
+
     def clean_amount(self):
         amount = self.cleaned_data.get('amount')
         if amount is not None and amount <= 0:
             raise forms.ValidationError("Payment amount must be greater than zero.")
+        if amount is not None and self._fee is not None and amount > self._fee.balance:
+            raise forms.ValidationError(
+                f"Amount exceeds outstanding balance of ₵{self._fee.balance:.2f}."
+            )
         return amount

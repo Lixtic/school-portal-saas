@@ -181,24 +181,20 @@ def record_payment(request, fee_id):
     fee = get_object_or_404(StudentFee, id=fee_id)
     
     if request.method == 'POST':
-        form = PaymentForm(request.POST)
+        form = PaymentForm(request.POST, fee=fee)
         if form.is_valid():
             from django.db import transaction
             with transaction.atomic():
                 # Re-fetch inside the transaction to get the current balance
                 fee = StudentFee.objects.select_for_update().get(pk=fee.pk)
-                amount = form.cleaned_data['amount']
-                if amount > fee.balance:
-                    form.add_error('amount', f'Amount exceeds outstanding balance of ₵{fee.balance:.2f}.')
-                else:
-                    payment = form.save(commit=False)
-                    payment.student_fee = fee
-                    payment.recorded_by = request.user
-                    payment.save()
-                    messages.success(request, 'Payment recorded successfully')
-                    return redirect('finance:student_fees', student_id=fee.student.id)
+                payment = form.save(commit=False)
+                payment.student_fee = fee
+                payment.recorded_by = request.user
+                payment.save()
+                messages.success(request, 'Payment recorded successfully')
+                return redirect('finance:student_fees', student_id=fee.student.id)
     else:
-        form = PaymentForm(initial={'amount': fee.balance})
+        form = PaymentForm(initial={'amount': fee.balance}, fee=fee)
 
     return render(request, 'finance/payment_form.html', {'form': form, 'fee': fee})
 
