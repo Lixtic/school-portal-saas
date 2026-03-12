@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weekly Lesson Plan PDF - {{ lesson_plan.topic }}</title>
+<style>
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        padding: 16px;
+        font-family: "Times New Roman", Times, serif;
+        font-size: 10px;
+        color: #000;
+        background: #fff;
+    }
+    .screen-toolbar {
+        max-width: 980px;
+        margin: 0 auto 14px auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        font-family: Arial, sans-serif;
+    }
+    .btn {
+        display: inline-block;
+        text-decoration: none;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        padding: 6px 10px;
+        color: #0f172a;
+        background: #fff;
+        font-size: 13px;
+    }
+    .btn.print {
+        background: #111827;
+        color: #fff;
+        border-color: #111827;
+    }
+    .sheet {
+        max-width: 760px;
+        margin: 0 auto;
+    }
+    .title {
+        text-align: center;
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        line-height: 1.15;
+    }
+    .title h2, .title h3, .title h4 {
+        margin: 0;
+    }
+    .title h4 {
+        font-size: 10px;
+        font-weight: 700;
+    }
+    .title h3 {
+        font-size: 11px;
+        font-weight: 700;
+    }
+    .title h2 {
+        font-size: 10px;
+        font-weight: 700;
+    }
+    .b7-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+    .b7-table th, .b7-table td {
+        border: 1px solid #000;
+        padding: 4px 5px;
+        vertical-align: top;
+        line-height: 1.2;
+    }
+    .bg-header {
+        background: #efefef;
+        font-weight: 700;
+    }
+    .all-caps { text-transform: uppercase; }
+    .mono {
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+    .small { font-size: 9px; }
+    .phase-cell {
+        text-transform: uppercase;
+        text-align: center;
+        font-weight: 700;
+        vertical-align: middle !important;
+    }
+    .phase-sub {
+        display: block;
+        font-size: 8px;
+        font-weight: 700;
+        margin-top: 2px;
+    }
+    .block-title {
+        font-weight: 700;
+        margin-top: 4px;
+        margin-bottom: 2px;
+    }
+
+    @media print {
+        @page { size: A4 portrait; margin: 9mm; }
+        body { padding: 0; }
+        .screen-toolbar { display: none !important; }
+        .sheet { max-width: 100%; }
+        .bg-header {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+    }
+</style>
+</head>
+<body>
+<div class="screen-toolbar">
+    <a href="{% url 'teachers:lesson_plan_print' lesson_plan.pk %}?template=b7" class="btn">Back to Editable B7</a>
+    <button class="btn print" onclick="window.print()">Print / Save PDF</button>
+</div>
+
+<div class="sheet" id="printableArea">
+    <div class="title">
+        <h4>{{ b7.term }} TERM</h4>
+        <h3>WEEKLY LESSON NOTES</h3>
+        <h2>WEEK {{ lesson_plan.week_number }}</h2>
+    </div>
+
+    <table class="b7-table">
+        <tr>
+            <td class="bg-header" style="width:18%;">Week Ending</td>
+            <td style="width:32%;">{{ b7.week_ending }}</td>
+            <td class="bg-header" style="width:18%;">Day / Monday</td>
+            <td style="width:32%;">Subject: {{ lesson_plan.subject.name }}</td>
+        </tr>
+        <tr>
+            <td class="bg-header">Duration: {{ b7.duration }}</td>
+            <td>Strand: {{ b7.strand }}</td>
+            <td class="bg-header">Strand:</td>
+            <td>Sub Strand: {{ lesson_plan.topic }}</td>
+        </tr>
+        <tr>
+            <td class="bg-header">Class: {{ lesson_plan.school_class.name }}</td>
+            <td>Class Size: {{ b7.class_size }}</td>
+            <td colspan="2"></td>
+        </tr>
+    </table>
+
+    <table class="b7-table" style="margin-top:-2px;">
+        <tr>
+            <td style="width:50%;">
+                <div class="bg-header all-caps">Content Standard:</div>
+                <div class="mono">{{ lesson_plan.objectives }}</div>
+            </td>
+            <td style="width:30%;">
+                <div class="bg-header all-caps">Indicator:</div>
+                <div class="mono">{{ b7.indicator }}</div>
+            </td>
+            <td style="width:20%;">
+                <div class="bg-header all-caps">Lesson:</div>
+                <div class="mono">{{ b7.lesson_of }}</div>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <div class="bg-header all-caps">Performance Indicator:</div>
+                <div class="mono">{{ b7.perf_indicator }}</div>
+            </td>
+            <td>
+                <div class="bg-header all-caps">Core Competencies:</div>
+                <div class="mono">{{ b7.core_competencies }}</div>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="3" class="bg-header all-caps">References: {{ b7.references }}</td>
+        </tr>
+        <tr>
+            <td colspan="3" class="bg-header all-caps">Keywords: {{ b7.keywords }}</td>
+        </tr>
+    </table>
+
+    <table class="b7-table" style="margin-top:5px;">
+        <thead>
+            <tr>
+                <th style="width:18%;" class="all-caps">Phase / Duration</th>
+                <th style="width:57%;" class="all-caps">Learners Activities</th>
+                <th style="width:25%;" class="all-caps">Resources</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="phase-cell">PHASE 1<span class="phase-sub">STARTER</span></td>
+                <td class="mono">{{ lesson_plan.introduction }}</td>
+                <td class="mono" rowspan="3">{{ lesson_plan.teaching_materials }}</td>
+            </tr>
+            <tr>
+                <td class="phase-cell">PHASE 2<span class="phase-sub">NEW LEARNING</span></td>
+                <td>
+                    <div class="mono">{{ lesson_plan.presentation }}</div>
+                    <div class="block-title">Assessment:</div>
+                    <div class="mono">{{ lesson_plan.evaluation }}</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="phase-cell">PHASE 3<span class="phase-sub">REFLECTION</span></td>
+                <td>
+                    <div class="block-title">Conclusion:</div>
+                    <div class="mono">{{ lesson_plan.remarks }}</div>
+                    <div class="block-title">Evaluation:</div>
+                    <div class="mono">Observe learners' participation in role-play and conflict analysis.</div>
+                    <div class="block-title">Teacher's Remarks:</div>
+                    <div class="mono">Encourage respectful communication during role-play activities. This is lesson {{ b7.lesson_of }}.</div>
+                    <div class="block-title">Homework:</div>
+                    <div class="mono">{{ lesson_plan.homework }}</div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

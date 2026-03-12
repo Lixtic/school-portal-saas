@@ -1863,10 +1863,25 @@ def lesson_plan_print(request, pk):
     else:
         lesson_plan = get_object_or_404(LessonPlan, pk=pk)
     
-    # Check for template preference
-    template_format = request.GET.get('template', 'standard')
+    # Default to B7 weekly template for a consistent print experience.
+    template_format = (request.GET.get('template') or 'b7').strip().lower()
+    b7_meta = getattr(lesson_plan, 'b7_meta', None) or {}
+    b7_context = {
+        'term': b7_meta.get('term', '2'),
+        'week_ending': b7_meta.get('week_ending', lesson_plan.date_added.strftime('%Y-%m-%d') if lesson_plan.date_added else ''),
+        'period': b7_meta.get('period', '1'),
+        'duration': b7_meta.get('duration', '60 Mins'),
+        'strand': b7_meta.get('strand', ''),
+        'class_size': b7_meta.get('class_size', ''),
+        'indicator': b7_meta.get('indicator', 'See Content Standard'),
+        'lesson_of': b7_meta.get('lesson_of', '1 of 3'),
+        'perf_indicator': b7_meta.get('perf_indicator', 'Learners can relate the lesson to real life situations.'),
+        'core_competencies': b7_meta.get('core_competencies', 'CP 5.1, CC 8.1'),
+        'references': b7_meta.get('references', f"National {lesson_plan.subject.name} Curriculum"),
+        'keywords': b7_meta.get('keywords', lesson_plan.topic),
+    }
     
-    if template_format == 'b7' or template_format == 'weekly':
+    if template_format in {'b7', 'weekly'}:
         template_name = 'teachers/lesson_plan_print_b7.html'
     else:
         # Default to standard GES detail view with print mode
@@ -1878,6 +1893,46 @@ def lesson_plan_print(request, pk):
         'print_mode': True,
         'current_template': template_format,
         'b7_meta_json': _json.dumps(getattr(lesson_plan, 'b7_meta', None) or {}),
+        'b7': b7_context,
+        'can_edit': is_teacher,
+        'is_admin': is_admin,
+    })
+
+
+@login_required
+def lesson_plan_pdf(request, pk):
+    """Read-only B7 weekly layout optimized for browser Save as PDF."""
+    is_teacher = request.user.user_type == 'teacher'
+    is_admin = request.user.user_type == 'admin'
+    if not is_teacher and not is_admin:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    if is_teacher:
+        teacher = get_object_or_404(Teacher, user=request.user)
+        lesson_plan = get_object_or_404(LessonPlan, pk=pk, teacher=teacher)
+    else:
+        lesson_plan = get_object_or_404(LessonPlan, pk=pk)
+
+    b7_meta = getattr(lesson_plan, 'b7_meta', None) or {}
+    b7_context = {
+        'term': b7_meta.get('term', '2'),
+        'week_ending': b7_meta.get('week_ending', lesson_plan.date_added.strftime('%Y-%m-%d') if lesson_plan.date_added else ''),
+        'period': b7_meta.get('period', '1'),
+        'duration': b7_meta.get('duration', '60 Mins'),
+        'strand': b7_meta.get('strand', ''),
+        'class_size': b7_meta.get('class_size', ''),
+        'indicator': b7_meta.get('indicator', 'See Content Standard'),
+        'lesson_of': b7_meta.get('lesson_of', '1 of 3'),
+        'perf_indicator': b7_meta.get('perf_indicator', 'Learners can relate the lesson to real life situations.'),
+        'core_competencies': b7_meta.get('core_competencies', 'CP 5.1, CC 8.1'),
+        'references': b7_meta.get('references', f"National {lesson_plan.subject.name} Curriculum"),
+        'keywords': b7_meta.get('keywords', lesson_plan.topic),
+    }
+
+    return render(request, 'teachers/lesson_plan_pdf_b7.html', {
+        'lesson_plan': lesson_plan,
+        'b7': b7_context,
     })
 
 @login_required

@@ -149,14 +149,18 @@
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="?template=standard">Standard GES</a></li>
                             <li><a class="dropdown-item active" href="?template=weekly">Weekly GES Format</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'teachers:lesson_plan_pdf' lesson_plan.pk %}">Read-Only PDF Layout</a></li>
                         </ul>
                     </div>
                     <button onclick="window.print()" class="btn btn-dark rounded-pill">
-                        <i class="bi bi-printer me-2"></i>Print / PDF
+                        <i class="bi bi-printer me-2"></i>Print Preview
                     </button>
+                    {% if can_edit %}
                     <a href="{% url 'teachers:lesson_plan_edit' lesson_plan.pk %}" class="btn btn-primary rounded-pill">
                         <i class="bi bi-pencil me-2"></i>Edit
                     </a>
+                    {% endif %}
                 </div>
             </div>
 
@@ -331,12 +335,14 @@
                 </div>
 
                 <!-- Floating Save Button -->
+                {% if can_edit %}
                 <div class="position-fixed bottom-0 end-0 p-4" style="z-index: 1050">
                     <button type="submit" class="btn btn-primary btn-lg rounded-pill shadow-lg d-flex align-items-center gap-2">
                         <i class="bi bi-save"></i>
                         <span>Save Changes</span>
                     </button>
                 </div>
+                {% endif %}
             </form>
             
         </div>
