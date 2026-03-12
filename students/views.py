@@ -505,6 +505,14 @@ def mark_attendance(request):
             messages.error(request, 'Select a class before submitting attendance')
             return redirect('students:mark_attendance')
 
+        # Parse date string to a real date object so signals receive the correct type
+        try:
+            from datetime import datetime as _dtp
+            attendance_date = _dtp.strptime(date_str, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            messages.error(request, 'Invalid date format.')
+            return redirect('students:mark_attendance')
+
         class_obj = get_object_or_404(classes_qs, id=class_id)
         if request.user.user_type == 'teacher' and class_obj not in allowed_classes:
             messages.error(request, 'You are not assigned to this class')
@@ -518,7 +526,7 @@ def mark_attendance(request):
             
             Attendance.objects.update_or_create(
                 student=student,
-                date=date_str,
+                date=attendance_date,
                 defaults={
                     'status': status,
                     'marked_by': request.user
@@ -529,7 +537,7 @@ def mark_attendance(request):
             if status == 'absent':
                 try:
                     from announcements.sms_service import send_attendance_alert
-                    send_attendance_alert(student, status, str(date_str))
+                    send_attendance_alert(student, status, str(attendance_date))
                 except Exception:
                     pass
         
