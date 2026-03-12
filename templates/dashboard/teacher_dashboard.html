@@ -589,7 +589,8 @@
                                             {% for deck in next_class_reminder.related_slides %}
                                                 <a href="{% url 'teachers:presentation_editor' deck.id %}" class="d-block small text-decoration-none mb-1">• {{ deck.title|truncatechars:34 }}</a>
                                             {% empty %}
-                                                <div class="small text-muted">No slides found.</div>
+                                                <div class="small text-muted mb-1">No slides found for {{ next_class_reminder.class_subject.subject.name }}.</div>
+                                                <a href="{% url 'teachers:presentation_create' %}?subject_id={{ next_class_reminder.class_subject.subject.id }}&class_id={{ next_class_reminder.class_subject.class_name.id }}&title={{ next_class_reminder.class_subject.subject.name|urlencode }}%20-%20{{ next_class_reminder.class_subject.class_name.name|urlencode }}" class="small text-decoration-none fw-semibold">Suggestion: Create slides for this subject</a>
                                             {% endfor %}
                                         </div>
                                         <div class="col-md-4">
@@ -683,7 +684,8 @@
                                             {% for deck in period.related_slides %}
                                                 <a href="{% url 'teachers:presentation_editor' deck.id %}" class="d-block small text-decoration-none mb-1">• {{ deck.title|truncatechars:42 }}</a>
                                             {% empty %}
-                                                <div class="small text-muted">No slides found.</div>
+                                                <div class="small text-muted mb-1">No slides found for {{ period.class_subject.subject.name }}.</div>
+                                                <a href="{% url 'teachers:presentation_create' %}?subject_id={{ period.class_subject.subject.id }}&class_id={{ period.class_subject.class_name.id }}&title={{ period.class_subject.subject.name|urlencode }}%20-%20{{ period.class_subject.class_name.name|urlencode }}" class="small text-decoration-none fw-semibold">Suggestion: Create slides for this subject</a>
                                             {% endfor %}
                                         </div>
                                         <div class="col-md-4">

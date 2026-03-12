@@ -74,7 +74,7 @@
         {% csrf_token %}
         <div class="mb-4">
           <label class="gm-label" for="id_title">Presentation Title</label>
-          <input type="text" id="id_title" name="title" class="gm-input" placeholder="e.g. Photosynthesis — Basic 8" required autofocus>
+          <input type="text" id="id_title" name="title" class="gm-input" placeholder="e.g. Photosynthesis - Basic 8" value="{{ prefill_title }}" required autofocus>
         </div>
 
         <div class="mb-4">
@@ -82,7 +82,7 @@
           <select name="subject_id" class="gm-input">
             <option value="">— Select Subject —</option>
             {% for s in subjects %}
-            <option value="{{ s.pk }}">{{ s.name }}</option>
+            <option value="{{ s.pk }}" {% if prefill_subject_id and prefill_subject_id == s.pk|stringformat:"s" %}selected{% endif %}>{{ s.name }}</option>
             {% endfor %}
           </select>
         </div>
@@ -92,7 +92,7 @@
           <select name="class_id" class="gm-input">
             <option value="">— Select Class —</option>
             {% for c in classes %}
-            <option value="{{ c.pk }}">{{ c.name }}</option>
+            <option value="{{ c.pk }}" {% if prefill_class_id and prefill_class_id == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
             {% endfor %}
           </select>
         </div>

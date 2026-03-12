@@ -4244,6 +4244,10 @@ def presentation_create(request):
     from .models import Presentation, Slide
     from academics.models import Subject, Class
 
+    prefill_subject_id = (request.GET.get('subject_id') or '').strip()
+    prefill_class_id = (request.GET.get('class_id') or '').strip()
+    prefill_title = (request.GET.get('title') or '').strip()
+
     if request.method == 'POST':
         title        = request.POST.get('title', 'Untitled Deck').strip() or 'Untitled Deck'
         theme        = request.POST.get('theme', 'aurora')
@@ -4268,6 +4272,9 @@ def presentation_create(request):
     return render(request, 'teachers/presentations/create.html', {
         'subjects': subjects, 'classes': classes,
         'THEME_CHOICES': Presentation.THEME_CHOICES,
+        'prefill_subject_id': prefill_subject_id,
+        'prefill_class_id': prefill_class_id,
+        'prefill_title': prefill_title,
     })
 
 
