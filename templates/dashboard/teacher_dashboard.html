@@ -581,7 +581,8 @@
                                             {% for lp in next_class_reminder.related_lesson_plans %}
                                                 <a href="{% url 'teachers:lesson_plan_detail' lp.id %}" class="d-block small text-decoration-none mb-1">• {{ lp.topic|truncatechars:34 }}</a>
                                             {% empty %}
-                                                <div class="small text-muted">No lesson plans found.</div>
+                                                <div class="small text-muted mb-1">No lesson plans found for {{ next_class_reminder.class_subject.subject.name }}.</div>
+                                                <a href="{% url 'teachers:lesson_plan_create' %}?subject_id={{ next_class_reminder.class_subject.subject.id }}&class_id={{ next_class_reminder.class_subject.class_name.id }}&topic={{ next_class_reminder.lesson_topic|default:next_class_reminder.class_subject.subject.name|urlencode }}&auto_ges=1" class="small text-decoration-none fw-semibold">Suggestion: Create lesson plan for this class</a>
                                             {% endfor %}
                                             {% if next_class_reminder.has_more_lesson_plans %}
                                                 <a href="{% url 'teachers:lesson_plan_list' %}?subject={{ next_class_reminder.class_subject.subject.id }}&school_class={{ next_class_reminder.class_subject.class_name.id }}" class="small text-decoration-none">View all lesson plans</a>
@@ -685,7 +686,8 @@
                                             {% for lp in period.related_lesson_plans %}
                                                 <a href="{% url 'teachers:lesson_plan_detail' lp.id %}" class="d-block small text-decoration-none mb-1">• {{ lp.topic|truncatechars:42 }}</a>
                                             {% empty %}
-                                                <div class="small text-muted">No lesson plans found.</div>
+                                                <div class="small text-muted mb-1">No lesson plans found for {{ period.class_subject.subject.name }}.</div>
+                                                <a href="{% url 'teachers:lesson_plan_create' %}?subject_id={{ period.class_subject.subject.id }}&class_id={{ period.class_subject.class_name.id }}&topic={{ period.lesson_topic|default:period.class_subject.subject.name|urlencode }}&auto_ges=1" class="small text-decoration-none fw-semibold">Suggestion: Create lesson plan for this class</a>
                                             {% endfor %}
                                             {% if period.has_more_lesson_plans %}
                                                 <a href="{% url 'teachers:lesson_plan_list' %}?subject={{ period.class_subject.subject.id }}&school_class={{ period.class_subject.class_name.id }}" class="small text-decoration-none">View all lesson plans</a>
