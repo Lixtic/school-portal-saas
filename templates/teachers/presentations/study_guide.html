@@ -398,6 +398,13 @@ var _pulseLiveUrl   = null;
 var _pulseCloseUrl  = null;
 var _pulsePollTimer = null;
 
+function fetchWithTimeout(url, options, timeoutMs) {
+  var controller = new AbortController();
+  var timer = setTimeout(function() { controller.abort(); }, timeoutMs || 90000);
+  var merged = Object.assign({}, options || {}, { signal: controller.signal });
+  return fetch(url, merged).finally(function() { clearTimeout(timer); });
+}
+
 function generateAIGuide() {
   var btn = document.getElementById('aiGenBtn');
   btn.disabled = true;
@@ -407,7 +414,7 @@ function generateAIGuide() {
   fd.append('action', 'generate_ai');
   fd.append('csrfmiddlewaretoken', CSRF_TOKEN);
 
-  fetch(GENERATE_URL, {method: 'POST', body: fd})
+  fetchWithTimeout(GENERATE_URL, {method: 'POST', body: fd}, 90000)
     .then(function(r) { return r.json(); })
     .then(function(d) {
       btn.disabled = false;
@@ -421,7 +428,7 @@ function generateAIGuide() {
     })
     .catch(function(e) {
       btn.disabled = false;
-      btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Network error';
+      btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + ((e && e.name === 'AbortError') ? 'Request timed out' : 'Network error');
       btn.style.background = '#ef4444';
     });
 }
@@ -526,11 +533,11 @@ function sendAsPulse() {
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Launching…';
 
-  fetch(PULSE_LAUNCH_URL, {
+  fetchWithTimeout(PULSE_LAUNCH_URL, {
     method: 'POST',
     headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN},
     body: JSON.stringify({q1: q1, q2: q2, q3: q3, chips: chips})
-  })
+  }, 90000)
   .then(function(r){ return r.json(); })
   .then(function(d){
     if (!d.ok) {
@@ -553,10 +560,10 @@ function sendAsPulse() {
 
     _pulsePollTimer = setInterval(pollPulse, 3000);
   })
-  .catch(function(){
+  .catch(function(err){
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-paper-plane"></i> Launch Pulse';
-    alert('Network error launching pulse');
+    alert((err && err.name === 'AbortError') ? 'Pulse launch timed out. Please try again.' : 'Network error launching pulse');
   });
 }
 

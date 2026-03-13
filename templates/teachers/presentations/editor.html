@@ -1075,14 +1075,21 @@ var currentSlideId = slides.length ? slides[0].id : null;
 var saveTimer = null;
 var isInlineEditing = false;
 
+function fetchWithTimeout(url, options, timeoutMs) {
+  var controller = new AbortController();
+  var timer = setTimeout(function() { controller.abort(); }, timeoutMs || 90000);
+  var merged = Object.assign({}, options || {}, { signal: controller.signal });
+  return fetch(url, merged).finally(function() { clearTimeout(timer); });
+}
+
 // ── API helper ──────────────────────────────────────────────────
 function api(payload) {
   payload.deck_id = DECK_ID;
-  return fetch(API_URL, {
+  return fetchWithTimeout(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
     body: JSON.stringify(payload),
-  }).then(function(r) {
+  }, 90000).then(function(r) {
     return r.json().then(function(d) {
       if (r.status === 429) { d._quota_exceeded = true; }
       return d;
@@ -1429,7 +1436,7 @@ function loadLessonPlans() {
   if (_plansLoaded) return;
   var sel = document.getElementById('planSelect');
   sel.innerHTML = '<option value="" disabled>Loading\u2026</option>';
-  fetch(LESSON_PLANS_URL, { headers: { 'X-CSRFToken': csrfToken } })
+  fetchWithTimeout(LESSON_PLANS_URL, { headers: { 'X-CSRFToken': csrfToken } }, 30000)
     .then(function(r) { return r.json(); })
     .then(function(d) {
       _allLessonPlans = d.plans || [];
@@ -1513,11 +1520,11 @@ function runDocGenerate() {
   var fd = new FormData();
   fd.append('deck_id', DECK_ID);
   fd.append('document', fileInput.files[0]);
-  fetch(UPLOAD_DOC_URL, {
+  fetchWithTimeout(UPLOAD_DOC_URL, {
     method: 'POST',
     headers: { 'X-CSRFToken': csrfToken },
     body: fd,
-  })
+  }, 90000)
     .then(function(r) { return r.json(); })
     .then(function(d) {
       if (d.error) { alert('Error: ' + d.error); return; }
@@ -1595,11 +1602,11 @@ function runYouTubeGenerate() {
   var btn = document.getElementById('aiGoBtn');
   btn.disabled = true;
   btn.innerHTML = '<div class="gm-spinner"></div> Fetching transcript\u2026';
-  fetch(YOUTUBE_URL, {
+  fetchWithTimeout(YOUTUBE_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
     body: JSON.stringify({ deck_id: DECK_ID, youtube_url: url }),
-  })
+  }, 90000)
     .then(function(r) { return r.json(); })
     .then(function(d) {
       if (d.error) { alert('Error: ' + d.error); return; }
@@ -2137,11 +2144,11 @@ function generateSlideImage() {
   status.textContent = '⏳ Generating image…';
   status.style.display = 'block';
   setSaveStatus('saving', '⏳ Generating image…');
-  fetch(GEN_IMAGE_URL, {
+  fetchWithTimeout(GEN_IMAGE_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
     body: JSON.stringify({ prompt: prompt }),
-  })
+  }, 90000)
   .then(function(r) { return r.json(); })
   .then(function(d) {
     if (d.image_url) {
@@ -2238,11 +2245,11 @@ function bindImgUpload() {
     var status = document.getElementById('imgGenStatus');
     status.textContent = 'Uploading…';
     status.style.display = 'block';
-    fetch("{% url 'teachers:presentation_slide_image_upload' %}", {
+    fetchWithTimeout("{% url 'teachers:presentation_slide_image_upload' %}", {
       method: 'POST',
       headers: { 'X-CSRFToken': csrfToken },
       body: fd
-    }).then(function(r) { return r.json(); }).then(function(data) {
+    }, 90000).then(function(r) { return r.json(); }).then(function(data) {
       if (data.url) {
         var slide = slides.find(function(s) { return s.id == currentSlideId; });
         if (slide) {
