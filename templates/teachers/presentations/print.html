@@ -36,13 +36,14 @@ html, body { background: #f1f5f9; font-family: system-ui, sans-serif; color: #0f
   padding: 1.4rem;
 }
 
+.pt-item { break-inside: avoid; }
+
 /* ── Slide card ── */
 .pt-slide {
   border-radius: 14px; overflow: hidden;
   box-shadow: 0 3px 14px rgba(0,0,0,.12);
   aspect-ratio: 16/9;
   position: relative;
-  break-inside: avoid;
 }
 .pt-num {
   position: absolute; top: 8px; right: 10px; z-index: 10;
@@ -103,6 +104,47 @@ html, body { background: #f1f5f9; font-family: system-ui, sans-serif; color: #0f
 .layout-image .sl-image-placeholder { flex: 1; display: flex; align-items: center; justify-content: center; border: 1px dashed rgba(255,255,255,.2); border-radius: 6px; color: rgba(255,255,255,.25); font-size: .55rem; }
 .layout-image .sl-caption { font-size: .5rem; color: rgba(255,255,255,.4); text-align: center; margin-top: .3em; }
 
+/* ── Structured notes under slide ── */
+.pt-notes {
+  margin-top: .45rem;
+  background: #fff;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  padding: .55rem .65rem;
+}
+.pt-notes h4 {
+  font-size: .58rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin: 0 0 .35rem;
+}
+.pt-note-block {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: .35rem .5rem;
+  background: #f8fafc;
+  margin-bottom: .35rem;
+}
+.pt-note-block:last-child { margin-bottom: 0; }
+.pt-note-block h5 {
+  margin: 0 0 .15rem;
+  font-size: .52rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+.pt-note-block p {
+  margin: 0;
+  font-size: .67rem;
+  line-height: 1.45;
+  color: #334155;
+  white-space: pre-wrap;
+}
+.pt-note-block.teacher { border-color: #bfdbfe; background: #eff6ff; }
+.pt-note-block.student { border-color: #bbf7d0; background: #ecfdf5; }
+.pt-note-plain { font-size: .68rem; line-height: 1.45; color: #334155; white-space: pre-wrap; }
+
 /* ── Print styles ── */
 @media print {
   .pt-bar { display: none !important; }
@@ -113,9 +155,24 @@ html, body { background: #f1f5f9; font-family: system-ui, sans-serif; color: #0f
     width: 100% !important;
     aspect-ratio: 16 / 9 !important;
     box-shadow: none !important; border-radius: 0 !important; border: none !important;
+    overflow: hidden !important;
+  }
+  .pt-item {
     page-break-after: always; break-after: page;
     break-inside: avoid !important;
-    overflow: hidden !important;
+  }
+  .pt-notes {
+    margin-top: .25cm;
+    border: none !important;
+    border-top: 1px solid #d1d5db !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    padding: .2cm 0 0 !important;
+  }
+  .pt-note-block {
+    border: 1px solid #d1d5db !important;
+    background: #fff !important;
   }
   .pt-num { display: none !important; }
   @page { size: A4 landscape; margin: 0; }
@@ -144,14 +201,58 @@ html, body { background: #f1f5f9; font-family: system-ui, sans-serif; color: #0f
 
 <div class="pt-grid">
   {% for slide in slides %}
-  <div class="pt-slide theme-{{ deck.theme }}">
-    <div class="pt-num">{{ forloop.counter }}</div>
-    {% include "teachers/presentations/_slide_render.html" with slide=slide %}
+  <div class="pt-item">
+    <div class="pt-slide theme-{{ deck.theme }}">
+      <div class="pt-num">{{ forloop.counter }}</div>
+      {% include "teachers/presentations/_slide_render.html" with slide=slide %}
+    </div>
+    {% if slide.speaker_notes %}
+    <div class="pt-notes">
+      <h4>Speaker Notes</h4>
+      <div class="pt-notes-text" data-structured-notes="1">{{ slide.speaker_notes }}</div>
+    </div>
+    {% endif %}
   </div>
   {% empty %}
   <p style="padding:2rem;color:#94a3b8;">No slides in this deck.</p>
   {% endfor %}
 </div>
+
+<script>
+(function() {
+  function esc(s) {
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/\"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  function parseStructuredNotes(rawText) {
+    var text = String(rawText || '').replace(/^ANSWER:\s*[A-D]\s*\n?/i, '').trim();
+    if (!text) return { teacher: '', student: '', plain: '' };
+    var m = text.match(/Teacher Cue:\s*([\s\S]*?)(?:\n\s*Student Notes:\s*([\s\S]*))?$/i);
+    if (!m) return { teacher: '', student: '', plain: text };
+    return {
+      teacher: (m[1] || '').trim(),
+      student: (m[2] || '').trim(),
+      plain: '',
+    };
+  }
+
+  document.querySelectorAll('.pt-notes-text[data-structured-notes="1"]').forEach(function(el) {
+    var parsed = parseStructuredNotes(el.textContent || '');
+    if (parsed.teacher || parsed.student) {
+      var html = '';
+      html += '<div class="pt-note-block teacher"><h5>Teacher Cue</h5><p>' + esc(parsed.teacher || '—') + '</p></div>';
+      if (parsed.student) {
+        html += '<div class="pt-note-block student"><h5>Student Notes</h5><p>' + esc(parsed.student) + '</p></div>';
+      }
+      el.innerHTML = html;
+      return;
+    }
+    el.innerHTML = '<div class="pt-note-plain">' + esc(parsed.plain || '—') + '</div>';
+  });
+})();
+</script>
 
 </body>
 </html>

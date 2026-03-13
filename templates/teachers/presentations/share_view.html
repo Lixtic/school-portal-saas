@@ -114,6 +114,46 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 .ps-ctrl-btn:hover { background:rgba(255,255,255,.1); color:#f1f5f9; }
 .ps-counter { font-size:.8rem; color:#64748b; min-width:44px; text-align:center; font-weight:700; }
 
+/* ── notes overlay ── */
+.ps-notes-overlay {
+  position: fixed; bottom: -160px; left: 0; right: 0; z-index: 120;
+  background: rgba(8,14,26,.96); backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255,255,255,.08);
+  padding: .55rem 1.2rem;
+  min-height: 80px;
+  transition: bottom .22s ease;
+}
+.ps-notes-overlay.visible { bottom: 0; }
+.ps-notes-label {
+  font-size: .58rem; font-weight: 800; letter-spacing: .1em;
+  text-transform: uppercase; color: #7c3aed; margin-bottom: .25rem;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.ps-notes-close {
+  background: none; border: none; color: #475569; cursor: pointer;
+  font-size: .7rem; padding: 0; line-height: 1;
+}
+.ps-notes-close:hover { color: #94a3b8; }
+#notesText { color: #94a3b8; font-size: .83rem; line-height: 1.5; max-height: 86px; overflow-y: auto; }
+.ps-notes-stack { display: flex; flex-direction: column; gap: .35rem; }
+.ps-note-block {
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 8px;
+  padding: .35rem .55rem;
+  background: rgba(255,255,255,.03);
+}
+.ps-note-block h5 {
+  margin: 0 0 .2rem;
+  font-size: .62rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #cbd5e1;
+}
+.ps-note-block p { margin: 0; white-space: pre-wrap; }
+.ps-note-block.teacher { border-color: rgba(147,197,253,.26); background: rgba(147,197,253,.08); }
+.ps-note-block.student { border-color: rgba(167,243,208,.26); background: rgba(167,243,208,.08); }
+.ps-note-plain { white-space: pre-wrap; }
+
 /* ── progress bar ── */
 .ps-progress { position:fixed; bottom:0; left:0; width:100%; height:4px; z-index:99; background:rgba(255,255,255,.08); }
 .ps-progress-fill { height:100%; background:linear-gradient(90deg,#7c3aed,#2563eb); transition:width .3s; }
@@ -142,7 +182,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 
   <!-- slides -->
   {% for slide in slides %}
-  <div class="ps-slide{% if forloop.first %} active{% endif %}" data-order="{{ slide.order }}">
+  <div class="ps-slide{% if forloop.first %} active{% endif %}" data-order="{{ slide.order }}" data-notes="{{ slide.speaker_notes|default:''|escape }}">
     {% include "teachers/presentations/_slide_render.html" with slide=slide %}
   </div>
   {% empty %}
@@ -159,7 +199,16 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
     <button class="ps-ctrl-btn" id="prevBtn" title="Previous (←)"><i class="fas fa-chevron-left"></i></button>
     <span class="ps-counter" id="counter">1 / {{ slides|length }}</span>
     <button class="ps-ctrl-btn" id="nextBtn" title="Next (→)"><i class="fas fa-chevron-right"></i></button>
+    <button class="ps-ctrl-btn" id="notesBtn" title="Notes (N)"><i class="fas fa-sticky-note"></i></button>
     <button class="ps-ctrl-btn" id="fsBtn" title="Fullscreen (F)"><i class="fas fa-expand" id="fsIcon"></i></button>
+  </div>
+
+  <div class="ps-notes-overlay" id="notesOverlay">
+    <div class="ps-notes-label">
+      <span>Speaker Notes</span>
+      <button class="ps-notes-close" id="notesCloseBtn">Close</button>
+    </div>
+    <div id="notesText">(no speaker notes)</div>
   </div>
 
   <!-- progress -->
@@ -172,6 +221,59 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
   const slides = document.querySelectorAll('.ps-slide');
   const total  = slides.length;
   let   cur    = 0;
+  var notesOpen = false;
+
+  function escHtml(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function parseStructuredNotes(rawText) {
+    var text = String(rawText || '').replace(/^ANSWER:\s*[A-D]\s*\n?/i, '').trim();
+    if (!text) return { teacher: '', student: '', plain: '' };
+    var m = text.match(/Teacher Cue:\s*([\s\S]*?)(?:\n\s*Student Notes:\s*([\s\S]*))?$/i);
+    if (!m) return { teacher: '', student: '', plain: text };
+    return {
+      teacher: (m[1] || '').trim(),
+      student: (m[2] || '').trim(),
+      plain: '',
+    };
+  }
+
+  function buildNotesHtml(rawText) {
+    var parsed = parseStructuredNotes(rawText);
+    if (parsed.teacher || parsed.student) {
+      var teacher = '<div class="ps-note-block teacher"><h5>Teacher Cue</h5><p>' +
+        escHtml(parsed.teacher || '—') + '</p></div>';
+      var student = parsed.student
+        ? '<div class="ps-note-block student"><h5>Student Notes</h5><p>' + escHtml(parsed.student) + '</p></div>'
+        : '';
+      return '<div class="ps-notes-stack">' + teacher + student + '</div>';
+    }
+    return parsed.plain ? '<div class="ps-note-plain">' + escHtml(parsed.plain) + '</div>' : '(no speaker notes)';
+  }
+
+  function updateNotes() {
+    var notesEl = document.getElementById('notesText');
+    if (!notesEl || !slides[cur]) return;
+    var raw = slides[cur].dataset.notes || '';
+    notesEl.innerHTML = raw ? buildNotesHtml(raw) : '(no speaker notes)';
+  }
+
+  function toggleNotes(forceState) {
+    if (typeof forceState === 'boolean') notesOpen = forceState;
+    else notesOpen = !notesOpen;
+    var overlay = document.getElementById('notesOverlay');
+    var btn = document.getElementById('notesBtn');
+    if (!overlay || !btn) return;
+    overlay.classList.toggle('visible', notesOpen);
+    btn.classList.toggle('active', notesOpen);
+    if (notesOpen) updateNotes();
+  }
 
   function toEmbedUrl(url) {
     if (!url) return null;
@@ -196,15 +298,19 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
     document.getElementById('progressFill').style.width = ((cur+1)/total*100) + '%';
     var vw = slides[cur].querySelector('.sl-video-wrap[data-video]');
     if (vw && !vw.querySelector('iframe')) activateVideo(vw);
+    if (notesOpen) updateNotes();
   }
 
   document.getElementById('prevBtn').addEventListener('click', () => go(cur-1));
   document.getElementById('nextBtn').addEventListener('click', () => go(cur+1));
+  document.getElementById('notesBtn').addEventListener('click', () => toggleNotes());
+  document.getElementById('notesCloseBtn').addEventListener('click', () => toggleNotes(false));
 
   document.addEventListener('keydown', function(e) {
     if (e.key === 'ArrowRight' || e.key === ' ') go(cur+1);
     if (e.key === 'ArrowLeft')                   go(cur-1);
     if (e.key === 'f' || e.key === 'F') toggleFS();
+    if (e.key === 'n' || e.key === 'N') toggleNotes();
   });
 
   // Touch swipe
