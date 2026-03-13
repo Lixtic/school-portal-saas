@@ -2749,7 +2749,15 @@
     </script>
     <script>
         // Global loader functions
+        let __globalLoaderFailsafeTimer = null;
+
         function showLoader(message = 'Processing…') {
+            // Clear previous failsafe timer before opening again.
+            if (__globalLoaderFailsafeTimer) {
+                clearTimeout(__globalLoaderFailsafeTimer);
+                __globalLoaderFailsafeTimer = null;
+            }
+
             // Activate top bar
             const bar = document.getElementById('pageLoader');
             if (bar) { bar.classList.remove('done'); bar.classList.add('loading'); }
@@ -2760,9 +2768,19 @@
                 if (text) text.textContent = message;
                 loader.classList.add('active');
             }
+
+            // Failsafe: never leave user locked behind loader forever.
+            __globalLoaderFailsafeTimer = setTimeout(function () {
+                hideLoader();
+            }, 45000);
         }
 
         function hideLoader() {
+            if (__globalLoaderFailsafeTimer) {
+                clearTimeout(__globalLoaderFailsafeTimer);
+                __globalLoaderFailsafeTimer = null;
+            }
+
             // Hide overlay immediately
             const loader = document.getElementById('globalLoader');
             if (loader) loader.classList.remove('active');
@@ -2815,6 +2833,16 @@
             // Event Delegation for Forms (Submit)
             document.body.addEventListener('submit', function(e) {
                 const form = e.target;
+
+                // If another handler already prevented native submit, skip global loader.
+                if (e.defaultPrevented) {
+                    return;
+                }
+
+                // AJAX forms should control their own loading states.
+                if (form.hasAttribute('data-ajax') || form.dataset.ajax === 'true') {
+                    return;
+                }
                 
                 // Only show the global loader for forms that do NOT opt out
                 if (!form.hasAttribute('data-no-loader')) {

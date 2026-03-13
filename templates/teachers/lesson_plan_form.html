@@ -396,6 +396,18 @@
     const btn = document.getElementById('aiDraftBtn');
     const overlay = document.getElementById('auraTOverlay');
     const statusEl = document.getElementById('auraTStatus');
+    if (!btn || !overlay) return;
+
+    async function fetchWithTimeout(url, options, timeoutMs) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs || 90000);
+        try {
+            const merged = Object.assign({}, options || {}, { signal: controller.signal });
+            return await fetch(url, merged);
+        } finally {
+            clearTimeout(timeoutId);
+        }
+    }
 
     // Helper: extract text between two bold headers in AI output
     function extractSection(text, header) {
@@ -458,11 +470,11 @@
         let mi = 0;
         const ticker = setInterval(() => {
             mi = (mi + 1) % messages.length;
-            statusEl.textContent = messages[mi];
+            if (statusEl) statusEl.textContent = messages[mi];
         }, 2200);
 
         try {
-            const resp = await fetch('{% url "teachers:aura_t_api" %}', {
+            const resp = await fetchWithTimeout('{% url "teachers:aura_t_api" %}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -474,7 +486,7 @@
                     subject_id: subjectId,
                     class_id: classId
                 })
-            });
+            }, 90000);
 
             clearInterval(ticker);
 
@@ -542,10 +554,13 @@
             clearInterval(ticker);
             overlay.style.display = 'none';
             btn.disabled = false;
+            const message = err && err.name === 'AbortError'
+                ? 'Request timed out. Please try again.'
+                : err.message;
             const errToast = document.createElement('div');
             errToast.className = 'alert alert-danger alert-dismissible fade show rounded-3 mb-3';
             errToast.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:9998;max-width:380px;font-size:.9rem;';
-            errToast.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i><strong>Aura-T error:</strong> ' + err.message + '<button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>';
+            errToast.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i><strong>Aura-T error:</strong> ' + message + '<button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>';
             document.body.appendChild(errToast);
         }
     });
@@ -559,6 +574,18 @@
     const overlay = document.getElementById('auraTOverlay');
     const statusEl = document.getElementById('auraTStatus');
     const autoGesFromSow = {{ auto_ges|yesno:'true,false' }};
+    if (!btn || !overlay) return;
+
+    async function fetchWithTimeout(url, options, timeoutMs) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs || 90000);
+        try {
+            const merged = Object.assign({}, options || {}, { signal: controller.signal });
+            return await fetch(url, merged);
+        } finally {
+            clearTimeout(timeoutId);
+        }
+    }
 
     function fillField(name, value) {
         if (!value) return;
@@ -610,7 +637,7 @@
         triggerBtn.textContent = 'Regenerating…';
 
         try {
-            const resp = await fetch('{% url "teachers:ges_lesson_api" %}', {
+            const resp = await fetchWithTimeout('{% url "teachers:ges_lesson_api" %}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -625,7 +652,7 @@
                     class_id: classId,
                     week_number: weekNumber
                 })
-            });
+            }, 90000);
 
             if (!resp.ok) throw new Error('Server error ' + resp.status);
             const json = await resp.json();
@@ -646,10 +673,13 @@
                 alignBadge.innerHTML = '<i class="bi bi-arrow-repeat me-2"></i>Section regenerated with indicator alignment (' + section.replace('_', ' ') + ').';
             }
         } catch (err) {
+            const message = err && err.name === 'AbortError'
+                ? 'Request timed out. Please try again.'
+                : err.message;
             const errToast = document.createElement('div');
             errToast.className = 'alert alert-danger alert-dismissible fade show rounded-3 mb-3';
             errToast.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:9998;max-width:380px;font-size:.9rem;';
-            errToast.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i><strong>Section regen error:</strong> ' + err.message + '<button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>';
+            errToast.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i><strong>Section regen error:</strong> ' + message + '<button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>';
             document.body.appendChild(errToast);
         } finally {
             triggerBtn.disabled = false;
@@ -709,14 +739,14 @@
             'Formatting for printable weekly table...'
         ];
         let mi = 0;
-        statusEl.textContent = messages[0];
+        if (statusEl) statusEl.textContent = messages[0];
         const ticker = setInterval(() => {
             mi = (mi + 1) % messages.length;
-            statusEl.textContent = messages[mi];
+            if (statusEl) statusEl.textContent = messages[mi];
         }, 2000);
 
         try {
-            const resp = await fetch('{% url "teachers:ges_lesson_api" %}', {
+            const resp = await fetchWithTimeout('{% url "teachers:ges_lesson_api" %}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -729,7 +759,7 @@
                     class_id: classId,
                     week_number: weekNumber
                 })
-            });
+            }, 90000);
 
             clearInterval(ticker);
 
@@ -790,10 +820,13 @@
             clearInterval(ticker);
             overlay.style.display = 'none';
             btn.disabled = false;
+            const message = err && err.name === 'AbortError'
+                ? 'Request timed out. Please try again.'
+                : err.message;
             const errToast = document.createElement('div');
             errToast.className = 'alert alert-danger alert-dismissible fade show rounded-3 mb-3';
             errToast.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:9998;max-width:380px;font-size:.9rem;';
-            errToast.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i><strong>GES Draft error:</strong> ' + err.message + '<button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>';
+            errToast.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i><strong>GES Draft error:</strong> ' + message + '<button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>';
             document.body.appendChild(errToast);
         }
     });
