@@ -4247,6 +4247,38 @@ def presentation_create(request):
     prefill_subject_id = (request.GET.get('subject_id') or '').strip()
     prefill_class_id = (request.GET.get('class_id') or '').strip()
     prefill_title = (request.GET.get('title') or '').strip()
+    prefill_theme = (request.GET.get('theme') or '').strip().lower()
+    valid_themes = {value for value, _label in Presentation.THEME_CHOICES}
+    if prefill_theme not in valid_themes:
+        prefill_theme = ''
+
+    if not prefill_theme and prefill_subject_id:
+        subject_name = (
+            Subject.objects.filter(pk=prefill_subject_id)
+            .values_list('name', flat=True)
+            .first()
+            or ''
+        ).lower()
+
+        # Choose a visual mood that matches broad subject families.
+        theme_rules = [
+            (('science', 'biology', 'chemistry', 'physics', 'ict', 'computer', 'technology'), 'ocean'),
+            (('math', 'mathematics', 'algebra', 'geometry', 'statistics', 'arithmetic'), 'slate'),
+            (('social', 'history', 'geography', 'civic', 'government', 'economics'), 'amber'),
+            (('english', 'language', 'literature', 'creative writing', 'reading'), 'aurora'),
+            (('french', 'twi', 'akan', 'ewe', 'ga', 'hausa', 'dagbani'), 'rose'),
+            (('rme', 'religion', 'ethics', 'guidance'), 'midnight'),
+            (('creative', 'art', 'music', 'design', 'performing'), 'coral'),
+            (('physical', 'pe', 'sports', 'health', 'career technology'), 'forest'),
+        ]
+
+        for keywords, suggested_theme in theme_rules:
+            if any(keyword in subject_name for keyword in keywords):
+                prefill_theme = suggested_theme
+                break
+
+    if not prefill_theme:
+        prefill_theme = 'aurora'
 
     if request.method == 'POST':
         title        = request.POST.get('title', 'Untitled Deck').strip() or 'Untitled Deck'
@@ -4275,6 +4307,7 @@ def presentation_create(request):
         'prefill_subject_id': prefill_subject_id,
         'prefill_class_id': prefill_class_id,
         'prefill_title': prefill_title,
+        'prefill_theme': prefill_theme,
     })
 
 

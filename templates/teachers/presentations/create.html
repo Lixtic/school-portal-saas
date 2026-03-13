@@ -101,13 +101,13 @@
           <label class="gm-label">Theme</label>
           <div class="theme-grid">
             {% for val, label in THEME_CHOICES %}
-            <div class="theme-btn t-{{ val }}{% if forloop.first %} selected{% endif %}"
+            <div class="theme-btn t-{{ val }}{% if prefill_theme == val %} selected{% endif %}"
                  onclick="pickTheme('{{ val }}',this)" title="{{ label }}">
               <span>{{ label }}</span>
             </div>
             {% endfor %}
           </div>
-          <input type="hidden" name="theme" id="themeInput" value="aurora">
+          <input type="hidden" name="theme" id="themeInput" value="{{ prefill_theme|default:'aurora' }}">
         </div>
 
         <button type="submit" class="gm-submit">
@@ -124,5 +124,47 @@ function pickTheme(val, el) {
   el.classList.add('selected');
   document.getElementById('themeInput').value = val;
 }
+
+function recommendThemeBySubjectName(subjectName) {
+  const name = (subjectName || '').toLowerCase();
+  const rules = [
+    { keywords: ['science', 'biology', 'chemistry', 'physics', 'ict', 'computer', 'technology'], theme: 'ocean' },
+    { keywords: ['math', 'mathematics', 'algebra', 'geometry', 'statistics', 'arithmetic'], theme: 'slate' },
+    { keywords: ['social', 'history', 'geography', 'civic', 'government', 'economics'], theme: 'amber' },
+    { keywords: ['english', 'language', 'literature', 'creative writing', 'reading'], theme: 'aurora' },
+    { keywords: ['french', 'twi', 'akan', 'ewe', 'ga', 'hausa', 'dagbani'], theme: 'rose' },
+    { keywords: ['rme', 'religion', 'ethics', 'guidance'], theme: 'midnight' },
+    { keywords: ['creative', 'art', 'music', 'design', 'performing'], theme: 'coral' },
+    { keywords: ['physical', 'pe', 'sports', 'health', 'career technology'], theme: 'forest' }
+  ];
+
+  for (const rule of rules) {
+    if (rule.keywords.some(keyword => name.includes(keyword))) {
+      return rule.theme;
+    }
+  }
+  return 'aurora';
+}
+
+function applyRecommendedThemeFromSubject() {
+  const subjectSelect = document.querySelector('select[name="subject_id"]');
+  if (!subjectSelect) return;
+
+  const selectedOption = subjectSelect.options[subjectSelect.selectedIndex];
+  const subjectName = selectedOption ? selectedOption.text : '';
+  const recommendedTheme = recommendThemeBySubjectName(subjectName);
+  const targetButton = document.querySelector(`.theme-btn.t-${recommendedTheme}`);
+
+  if (targetButton) {
+    pickTheme(recommendedTheme, targetButton);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const subjectSelect = document.querySelector('select[name="subject_id"]');
+  if (!subjectSelect) return;
+
+  subjectSelect.addEventListener('change', applyRecommendedThemeFromSubject);
+});
 </script>
 {% endblock %}
