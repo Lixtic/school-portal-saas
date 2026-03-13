@@ -11,7 +11,8 @@ from academics.models import Class, AcademicYear, ClassSubject, Activity, Timeta
 from teachers.models import Teacher, DutyAssignment, DutyWeek, LessonPlan
 from students.models import Student, Attendance
 from announcements.models import Announcement, Notification
-from django.db.models import Q, Count
+from django.db.models import Q, Count, F, Window
+from django.db.models.functions import RowNumber
 from django.db import connection
 from django.utils import timezone
 import calendar
@@ -716,8 +717,53 @@ def dashboard(request):
             plans_by_key = defaultdict(list)
             slides_by_key = defaultdict(list)
             resources_by_key = defaultdict(list)
+            plan_count_by_key = defaultdict(int)
+            slide_count_by_key = defaultdict(int)
+            resource_count_by_key = defaultdict(int)
 
             if period_keys:
+                for row in (
+                    LessonPlan.objects
+                    .filter(
+                        teacher=teacher_profile,
+                        subject_id__in=subject_ids,
+                        school_class_id__in=class_ids_for_periods,
+                    )
+                    .values('subject_id', 'school_class_id')
+                    .annotate(total=Count('id'))
+                ):
+                    key = (row['subject_id'], row['school_class_id'])
+                    if key in period_keys:
+                        plan_count_by_key[key] = row['total']
+
+                for row in (
+                    Presentation.objects
+                    .filter(
+                        teacher=teacher_profile,
+                        subject_id__in=subject_ids,
+                        school_class_id__in=class_ids_for_periods,
+                    )
+                    .values('subject_id', 'school_class_id')
+                    .annotate(total=Count('id'))
+                ):
+                    key = (row['subject_id'], row['school_class_id'])
+                    if key in period_keys:
+                        slide_count_by_key[key] = row['total']
+
+                for row in (
+                    Resource.objects
+                    .filter(
+                        class_subject__teacher=teacher_profile,
+                        class_subject__subject_id__in=subject_ids,
+                        class_subject__class_name_id__in=class_ids_for_periods,
+                    )
+                    .values('class_subject__subject_id', 'class_subject__class_name_id')
+                    .annotate(total=Count('id'))
+                ):
+                    key = (row['class_subject__subject_id'], row['class_subject__class_name_id'])
+                    if key in period_keys:
+                        resource_count_by_key[key] = row['total']
+
                 plans_qs = (
                     LessonPlan.objects
                     .filter(
@@ -725,12 +771,20 @@ def dashboard(request):
                         subject_id__in=subject_ids,
                         school_class_id__in=class_ids_for_periods,
                     )
+                    .annotate(
+                        row_number=Window(
+                            expression=RowNumber(),
+                            partition_by=[F('subject_id'), F('school_class_id')],
+                            order_by=F('id').desc(),
+                        )
+                    )
+                    .filter(row_number__lte=3)
                     .select_related('subject', 'school_class')
-                    .order_by('-id')
+                    .order_by('subject_id', 'school_class_id', '-id')
                 )
                 for plan in plans_qs:
                     key = (plan.subject_id, plan.school_class_id)
-                    if key in period_keys and len(plans_by_key[key]) < 3:
+                    if key in period_keys:
                         plans_by_key[key].append(plan)
 
                 slides_qs = (
@@ -740,12 +794,20 @@ def dashboard(request):
                         subject_id__in=subject_ids,
                         school_class_id__in=class_ids_for_periods,
                     )
+                    .annotate(
+                        row_number=Window(
+                            expression=RowNumber(),
+                            partition_by=[F('subject_id'), F('school_class_id')],
+                            order_by=[F('updated_at').desc(), F('id').desc()],
+                        )
+                    )
+                    .filter(row_number__lte=3)
                     .select_related('subject', 'school_class')
-                    .order_by('-updated_at')
+                    .order_by('subject_id', 'school_class_id', '-updated_at', '-id')
                 )
                 for deck in slides_qs:
                     key = (deck.subject_id, deck.school_class_id)
-                    if key in period_keys and len(slides_by_key[key]) < 3:
+                    if key in period_keys:
                         slides_by_key[key].append(deck)
 
                 resource_qs = (
@@ -755,12 +817,20 @@ def dashboard(request):
                         class_subject__subject_id__in=subject_ids,
                         class_subject__class_name_id__in=class_ids_for_periods,
                     )
+                    .annotate(
+                        row_number=Window(
+                            expression=RowNumber(),
+                            partition_by=[F('class_subject__subject_id'), F('class_subject__class_name_id')],
+                            order_by=[F('uploaded_at').desc(), F('id').desc()],
+                        )
+                    )
+                    .filter(row_number__lte=3)
                     .select_related('class_subject', 'class_subject__subject', 'class_subject__class_name')
-                    .order_by('-uploaded_at')
+                    .order_by('class_subject__subject_id', 'class_subject__class_name_id', '-uploaded_at', '-id')
                 )
                 for res in resource_qs:
                     key = (res.class_subject.subject_id, res.class_subject.class_name_id)
-                    if key in period_keys and len(resources_by_key[key]) < 3:
+                    if key in period_keys:
                         resources_by_key[key].append(res)
 
             for p in todays_classes:
@@ -768,11 +838,23 @@ def dashboard(request):
                 p.related_lesson_plans = plans_by_key.get(key, [])
                 p.related_slides = slides_by_key.get(key, [])
                 p.related_resources = resources_by_key.get(key, [])
+                p.related_lesson_plans_count = plan_count_by_key.get(key, 0)
+                p.related_slides_count = slide_count_by_key.get(key, 0)
+                p.related_resources_count = resource_count_by_key.get(key, 0)
+                p.has_more_lesson_plans = p.related_lesson_plans_count > len(p.related_lesson_plans)
+                p.has_more_slides = p.related_slides_count > len(p.related_slides)
+                p.has_more_resources = p.related_resources_count > len(p.related_resources)
         except Exception:
             for p in todays_classes:
                 p.related_lesson_plans = []
                 p.related_slides = []
                 p.related_resources = []
+                p.related_lesson_plans_count = 0
+                p.related_slides_count = 0
+                p.related_resources_count = 0
+                p.has_more_lesson_plans = False
+                p.has_more_slides = False
+                p.has_more_resources = False
 
         # Calculate Student Count (Restored)
         teacher_students_count = Student.objects.filter(current_class__id__in=class_ids).distinct().count()

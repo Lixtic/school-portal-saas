@@ -72,6 +72,7 @@
 
       <form method="post" id="createForm">
         {% csrf_token %}
+        <input type="hidden" name="lesson_topic" value="{{ prefill_lesson_topic }}">
         <div class="mb-4">
           <label class="gm-label" for="id_title">Presentation Title</label>
           <input type="text" id="id_title" name="title" class="gm-input" placeholder="e.g. Photosynthesis - Basic 8" value="{{ prefill_title }}" required autofocus>
@@ -108,6 +109,15 @@
             {% endfor %}
           </div>
           <input type="hidden" name="theme" id="themeInput" value="{{ prefill_theme|default:'aurora' }}">
+        </div>
+
+        <div class="mb-4">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="id_smart_seed" name="smart_seed" value="1" {% if prefill_smart_seed %}checked{% endif %}>
+            <label class="form-check-label text-light small" for="id_smart_seed">
+              Generate starter slides from latest lesson plan/topic
+            </label>
+          </div>
         </div>
 
         <button type="submit" class="gm-submit">

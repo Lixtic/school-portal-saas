@@ -577,24 +577,30 @@
                                     {% if next_class_reminder.related_lesson_plans or next_class_reminder.related_slides or next_class_reminder.related_resources %}
                                     <div class="row g-2">
                                         <div class="col-md-4">
-                                            <div class="small fw-semibold text-primary mb-1"><i class="bi bi-journal-text me-1"></i>Lesson Plans</div>
+                                            <div class="small fw-semibold text-primary mb-1"><i class="bi bi-journal-text me-1"></i>Lesson Plans ({{ next_class_reminder.related_lesson_plans_count|default:0 }})</div>
                                             {% for lp in next_class_reminder.related_lesson_plans %}
                                                 <a href="{% url 'teachers:lesson_plan_detail' lp.id %}" class="d-block small text-decoration-none mb-1">• {{ lp.topic|truncatechars:34 }}</a>
                                             {% empty %}
                                                 <div class="small text-muted">No lesson plans found.</div>
                                             {% endfor %}
+                                            {% if next_class_reminder.has_more_lesson_plans %}
+                                                <a href="{% url 'teachers:lesson_plan_list' %}?subject={{ next_class_reminder.class_subject.subject.id }}&school_class={{ next_class_reminder.class_subject.class_name.id }}" class="small text-decoration-none">View all lesson plans</a>
+                                            {% endif %}
                                         </div>
                                         <div class="col-md-4">
-                                            <div class="small fw-semibold text-primary mb-1"><i class="bi bi-easel2 me-1"></i>Slides</div>
+                                            <div class="small fw-semibold text-primary mb-1"><i class="bi bi-easel2 me-1"></i>Slides ({{ next_class_reminder.related_slides_count|default:0 }})</div>
                                             {% for deck in next_class_reminder.related_slides %}
                                                 <a href="{% url 'teachers:presentation_editor' deck.id %}" class="d-block small text-decoration-none mb-1">• {{ deck.title|truncatechars:34 }}</a>
                                             {% empty %}
                                                 <div class="small text-muted mb-1">No slides found for {{ next_class_reminder.class_subject.subject.name }}.</div>
-                                                <a href="{% url 'teachers:presentation_create' %}?subject_id={{ next_class_reminder.class_subject.subject.id }}&class_id={{ next_class_reminder.class_subject.class_name.id }}&title={{ next_class_reminder.class_subject.subject.name|urlencode }}%20-%20{{ next_class_reminder.class_subject.class_name.name|urlencode }}" class="small text-decoration-none fw-semibold">Suggestion: Create slides for this subject</a>
+                                                <a href="{% url 'teachers:presentation_create' %}?subject_id={{ next_class_reminder.class_subject.subject.id }}&class_id={{ next_class_reminder.class_subject.class_name.id }}&title={{ next_class_reminder.class_subject.subject.name|urlencode }}%20-%20{{ next_class_reminder.class_subject.class_name.name|urlencode }}&smart_seed=1&lesson_topic={{ next_class_reminder.lesson_topic|default:''|urlencode }}" class="small text-decoration-none fw-semibold">Suggestion: Create starter slides for this subject</a>
                                             {% endfor %}
+                                            {% if next_class_reminder.has_more_slides %}
+                                                <a href="{% url 'teachers:presentation_list' %}?subject_id={{ next_class_reminder.class_subject.subject.id }}&class_id={{ next_class_reminder.class_subject.class_name.id }}" class="small text-decoration-none">View all slides</a>
+                                            {% endif %}
                                         </div>
                                         <div class="col-md-4">
-                                            <div class="small fw-semibold text-primary mb-1"><i class="bi bi-folder2 me-1"></i>Resources</div>
+                                            <div class="small fw-semibold text-primary mb-1"><i class="bi bi-folder2 me-1"></i>Resources ({{ next_class_reminder.related_resources_count|default:0 }})</div>
                                             {% for file in next_class_reminder.related_resources %}
                                                 {% if file.file %}
                                                     <a href="{{ file.file.url }}" target="_blank" class="d-block small text-decoration-none mb-1">• {{ file.title|truncatechars:34 }}</a>
@@ -606,6 +612,9 @@
                                             {% empty %}
                                                 <div class="small text-muted">No resources found.</div>
                                             {% endfor %}
+                                            {% if next_class_reminder.has_more_resources %}
+                                                <a href="{% url 'teachers:class_resources' next_class_reminder.class_subject.id %}" class="small text-decoration-none">View all resources</a>
+                                            {% endif %}
                                         </div>
                                     </div>
                                     {% else %}
@@ -672,24 +681,30 @@
                                     {% if period.related_lesson_plans or period.related_slides or period.related_resources %}
                                     <div class="row g-2">
                                         <div class="col-md-4">
-                                            <div class="small fw-semibold text-primary mb-1"><i class="bi bi-journal-text me-1"></i>Lesson Plans</div>
+                                            <div class="small fw-semibold text-primary mb-1"><i class="bi bi-journal-text me-1"></i>Lesson Plans ({{ period.related_lesson_plans_count|default:0 }})</div>
                                             {% for lp in period.related_lesson_plans %}
                                                 <a href="{% url 'teachers:lesson_plan_detail' lp.id %}" class="d-block small text-decoration-none mb-1">• {{ lp.topic|truncatechars:42 }}</a>
                                             {% empty %}
                                                 <div class="small text-muted">No lesson plans found.</div>
                                             {% endfor %}
+                                            {% if period.has_more_lesson_plans %}
+                                                <a href="{% url 'teachers:lesson_plan_list' %}?subject={{ period.class_subject.subject.id }}&school_class={{ period.class_subject.class_name.id }}" class="small text-decoration-none">View all lesson plans</a>
+                                            {% endif %}
                                         </div>
                                         <div class="col-md-4">
-                                            <div class="small fw-semibold text-primary mb-1"><i class="bi bi-easel2 me-1"></i>Slides</div>
+                                            <div class="small fw-semibold text-primary mb-1"><i class="bi bi-easel2 me-1"></i>Slides ({{ period.related_slides_count|default:0 }})</div>
                                             {% for deck in period.related_slides %}
                                                 <a href="{% url 'teachers:presentation_editor' deck.id %}" class="d-block small text-decoration-none mb-1">• {{ deck.title|truncatechars:42 }}</a>
                                             {% empty %}
                                                 <div class="small text-muted mb-1">No slides found for {{ period.class_subject.subject.name }}.</div>
-                                                <a href="{% url 'teachers:presentation_create' %}?subject_id={{ period.class_subject.subject.id }}&class_id={{ period.class_subject.class_name.id }}&title={{ period.class_subject.subject.name|urlencode }}%20-%20{{ period.class_subject.class_name.name|urlencode }}" class="small text-decoration-none fw-semibold">Suggestion: Create slides for this subject</a>
+                                                <a href="{% url 'teachers:presentation_create' %}?subject_id={{ period.class_subject.subject.id }}&class_id={{ period.class_subject.class_name.id }}&title={{ period.class_subject.subject.name|urlencode }}%20-%20{{ period.class_subject.class_name.name|urlencode }}&smart_seed=1&lesson_topic={{ period.lesson_topic|default:''|urlencode }}" class="small text-decoration-none fw-semibold">Suggestion: Create starter slides for this subject</a>
                                             {% endfor %}
+                                            {% if period.has_more_slides %}
+                                                <a href="{% url 'teachers:presentation_list' %}?subject_id={{ period.class_subject.subject.id }}&class_id={{ period.class_subject.class_name.id }}" class="small text-decoration-none">View all slides</a>
+                                            {% endif %}
                                         </div>
                                         <div class="col-md-4">
-                                            <div class="small fw-semibold text-primary mb-1"><i class="bi bi-folder2 me-1"></i>Resources</div>
+                                            <div class="small fw-semibold text-primary mb-1"><i class="bi bi-folder2 me-1"></i>Resources ({{ period.related_resources_count|default:0 }})</div>
                                             {% for file in period.related_resources %}
                                                 {% if file.file %}
                                                     <a href="{{ file.file.url }}" target="_blank" class="d-block small text-decoration-none mb-1">• {{ file.title|truncatechars:42 }}</a>
@@ -701,6 +716,9 @@
                                             {% empty %}
                                                 <div class="small text-muted">No resources found.</div>
                                             {% endfor %}
+                                            {% if period.has_more_resources %}
+                                                <a href="{% url 'teachers:class_resources' period.class_subject.id %}" class="small text-decoration-none">View all resources</a>
+                                            {% endif %}
                                         </div>
                                     </div>
                                     {% else %}
@@ -978,6 +996,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Widget Visibility Logic
         const STORAGE_KEY = 'dashboard_widgets_teacher_{{ user.id }}';
+        const COLLAPSE_STATE_KEY = 'teacher_schedule_collapses_{{ user.id }}';
         
         // Initialize Drag and Drop Sorting
         initSortableWidget('teacher-stats-row', 'order_teacher_stats_{{ user.id }}');
@@ -987,6 +1006,28 @@
         const toggles = document.querySelectorAll('.widget-toggle');
         
         let preferences = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+        let collapseState = JSON.parse(localStorage.getItem(COLLAPSE_STATE_KEY)) || {};
+
+        document.querySelectorAll('.collapse[id^="schedule-related-"], .collapse#next-class-related-files').forEach(panel => {
+            const id = panel.id;
+            if (collapseState[id]) {
+                panel.classList.add('show');
+                const toggle = document.querySelector(`[aria-controls="${id}"]`);
+                if (toggle) {
+                    toggle.setAttribute('aria-expanded', 'true');
+                }
+            }
+
+            panel.addEventListener('shown.bs.collapse', () => {
+                collapseState[id] = true;
+                localStorage.setItem(COLLAPSE_STATE_KEY, JSON.stringify(collapseState));
+            });
+
+            panel.addEventListener('hidden.bs.collapse', () => {
+                collapseState[id] = false;
+                localStorage.setItem(COLLAPSE_STATE_KEY, JSON.stringify(collapseState));
+            });
+        });
         
         toggles.forEach(toggle => {
             const targetId = toggle.dataset.target;

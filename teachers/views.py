@@ -4215,10 +4215,19 @@ def presentation_list(request):
     teacher = get_object_or_404(Teacher, user=request.user)
     from .models import Presentation, Slide
     from django.db.models import OuterRef, Subquery, Count as _Count
+    subject_id = (request.GET.get('subject_id') or '').strip()
+    class_id = (request.GET.get('class_id') or '').strip()
+
+    deck_qs = Presentation.objects.filter(teacher=teacher)
+    if subject_id:
+        deck_qs = deck_qs.filter(subject_id=subject_id)
+    if class_id:
+        deck_qs = deck_qs.filter(school_class_id=class_id)
+
     first_emoji = Slide.objects.filter(
         presentation=OuterRef('pk')).order_by('order').values('emoji')[:1]
     decks = list(
-        Presentation.objects.filter(teacher=teacher)
+        deck_qs
         .select_related('subject', 'school_class')
         .annotate(
             cover_emoji=Subquery(first_emoji),
@@ -4230,6 +4239,8 @@ def presentation_list(request):
         'decks': decks,
         'total_decks': len(decks),
         'total_slides': total_slides,
+        'selected_subject_id': subject_id,
+        'selected_class_id': class_id,
     })
 
 
@@ -4247,6 +4258,8 @@ def presentation_create(request):
     prefill_subject_id = (request.GET.get('subject_id') or '').strip()
     prefill_class_id = (request.GET.get('class_id') or '').strip()
     prefill_title = (request.GET.get('title') or '').strip()
+    prefill_lesson_topic = (request.GET.get('lesson_topic') or '').strip()
+    prefill_smart_seed = (request.GET.get('smart_seed') or '').strip().lower() in ('1', 'true', 'yes', 'on')
     prefill_theme = (request.GET.get('theme') or '').strip().lower()
     valid_themes = {value for value, _label in Presentation.THEME_CHOICES}
     if prefill_theme not in valid_themes:
@@ -4285,6 +4298,8 @@ def presentation_create(request):
         theme        = request.POST.get('theme', 'aurora')
         subject_id   = request.POST.get('subject_id')
         class_id     = request.POST.get('class_id')
+        lesson_topic = request.POST.get('lesson_topic', '').strip()
+        smart_seed   = (request.POST.get('smart_seed') or '').strip().lower() in ('1', 'true', 'yes', 'on')
         subject      = Subject.objects.filter(pk=subject_id).first() if subject_id else None
         school_class = Class.objects.filter(pk=class_id).first()      if class_id   else None
 
@@ -4292,11 +4307,87 @@ def presentation_create(request):
             teacher=teacher, title=title, theme=theme,
             subject=subject, school_class=school_class,
         )
-        # Seed one title slide
-        Slide.objects.create(
-            presentation=deck, order=0, layout='title',
-            title=title, content='Add your subtitle here', emoji='🚀',
-        )
+        if smart_seed:
+            latest_plan = None
+            if subject and school_class:
+                latest_plan = (
+                    LessonPlan.objects
+                    .filter(teacher=teacher, subject=subject, school_class=school_class)
+                    .order_by('-updated_at', '-id')
+                    .first()
+                )
+
+            topic = (latest_plan.topic if latest_plan and latest_plan.topic else lesson_topic) or title
+            subtitle_bits = []
+            if subject:
+                subtitle_bits.append(subject.name)
+            if school_class:
+                subtitle_bits.append(school_class.name)
+
+            Slide.objects.create(
+                presentation=deck,
+                order=0,
+                layout='title',
+                title=topic,
+                content=' - '.join(subtitle_bits) if subtitle_bits else 'Starter lesson deck',
+                emoji='🚀',
+            )
+
+            objectives_text = (latest_plan.objectives if latest_plan else '').strip()
+            if objectives_text:
+                objective_lines = [line.strip('-• ').strip() for line in objectives_text.splitlines() if line.strip()]
+                if not objective_lines:
+                    objective_lines = [s.strip() for s in objectives_text.split('.') if s.strip()]
+            else:
+                objective_lines = []
+
+            if not objective_lines:
+                objective_lines = [
+                    f"Understand the key idea behind {topic}",
+                    "Apply the concept through guided examples",
+                    "Check understanding with quick formative questions",
+                ]
+
+            Slide.objects.create(
+                presentation=deck,
+                order=1,
+                layout='bullets',
+                title='Learning Objectives',
+                content='\n'.join(objective_lines[:4]),
+                emoji='🎯',
+            )
+
+            procedure_bits = []
+            if latest_plan:
+                for section in [latest_plan.introduction, latest_plan.presentation, latest_plan.evaluation, latest_plan.homework]:
+                    clean = (section or '').strip()
+                    if clean:
+                        procedure_bits.append(clean)
+
+            if procedure_bits:
+                procedure_text = procedure_bits[0]
+                steps = [line.strip('-• ').strip() for line in procedure_text.splitlines() if line.strip()]
+                if not steps:
+                    steps = [s.strip() for s in procedure_text.split('.') if s.strip()]
+                if not steps:
+                    steps = ['Starter activity', 'Main explanation', 'Quick assessment', 'Exit ticket']
+            else:
+                steps = ['Starter activity', 'Main explanation', 'Guided practice', 'Exit ticket']
+
+            Slide.objects.create(
+                presentation=deck,
+                order=2,
+                layout='bullets',
+                title='Lesson Flow',
+                content='\n'.join(steps[:4]),
+                emoji='🧭',
+            )
+        else:
+            # Seed one title slide
+            Slide.objects.create(
+                presentation=deck, order=0, layout='title',
+                title=title, content='Add your subtitle here', emoji='🚀',
+            )
         return redirect('teachers:presentation_editor', pk=deck.pk)
 
     subjects = Subject.objects.all().order_by('name')
@@ -4308,6 +4399,8 @@ def presentation_create(request):
         'prefill_class_id': prefill_class_id,
         'prefill_title': prefill_title,
         'prefill_theme': prefill_theme,
+        'prefill_lesson_topic': prefill_lesson_topic,
+        'prefill_smart_seed': prefill_smart_seed,
     })
 
 
