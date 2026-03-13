@@ -2026,7 +2026,7 @@
             // Real Backend Call
             conversationHistory.push({ role: 'user', content: text });
             
-            const response = await fetch("{% url 'academics:ai_tutor_chat' %}", {
+            const response = await fetchWithTimeout("{% url 'academics:ai_tutor_chat' %}", {
                 method: 'POST',
                 body: JSON.stringify({ 
                     messages: conversationHistory,
@@ -2037,7 +2037,7 @@
                     'Content-Type': 'application/json', 
                     'X-CSRFToken': '{{ csrf_token }}' 
                 }
-            });
+            }, 90000);
 
             // Capture session ID from response header (created by backend on first message)
             const returnedSessionId = response.headers.get('X-Session-Id');
@@ -2210,6 +2210,8 @@
             appendMessage('assistant', e && e.message ? e.message : "I'm having trouble connecting to the school server. Please try again.");
             document.getElementById('syncStatus').innerHTML = '<i class="bi bi-wifi-off"></i> Offline';
             document.getElementById('syncStatus').className = 'sync-status offline';
+        } finally {
+            sendBtn.disabled = !(messageInput && messageInput.value && messageInput.value.trim());
         }
     }
     
@@ -2278,14 +2280,14 @@
         `;
         
         try {
-            const response = await fetch("{% url 'academics:generate_tutor_image' %}", {
+            const response = await fetchWithTimeout("{% url 'academics:generate_tutor_image' %}", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': '{{ csrf_token }}'
                 },
                 body: JSON.stringify({ prompt: prompt })
-            });
+            }, 90000);
             
             if (!response.ok) {
                 const err = await response.json();
@@ -2776,6 +2778,17 @@
     // Base URL for session rename API  — strips trailing slash
     const _renameBase = "{% url 'academics:tutor_sessions' %}".replace(/\/?$/, '');
 
+    async function fetchWithTimeout(url, options, timeoutMs) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs || 90000);
+        try {
+            const merged = Object.assign({}, options || {}, { signal: controller.signal });
+            return await fetch(url, merged);
+        } finally {
+            clearTimeout(timer);
+        }
+    }
+
     async function createNewChatSession() {
         // POST to create a real new session, then navigate to it so the page
         // loads clean (no old messages). A bare navigate to ai_tutor would
@@ -2783,7 +2796,7 @@
         const btn = document.querySelector('[onclick="createNewChatSession()"]');
         if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>'; }
         try {
-            const res = await fetch("{% url 'academics:ai_tutor_new_session' %}", {
+            const res = await fetchWithTimeout("{% url 'academics:ai_tutor_new_session' %}", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -2792,7 +2805,7 @@
                 body: JSON.stringify({
                     subject_id: (document.getElementById('subjectSelect') || {}).value || null
                 })
-            });
+            }, 30000);
             if (!res.ok) throw new Error('Server error ' + res.status);
             const data = await res.json();
             if (data.session_id) {
@@ -3131,11 +3144,11 @@
         quizArea.innerHTML = '';
 
         try {
-            const resp = await fetch("{% url 'academics:generate_practice' %}", {
+            const resp = await fetchWithTimeout("{% url 'academics:generate_practice' %}", {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
                 body: JSON.stringify({ subject_id: subjectId, topic, difficulty, count }),
-            });
+            }, 60000);
             const data = await resp.json();
 
             if (data.error) {
