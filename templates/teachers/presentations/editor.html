@@ -442,7 +442,19 @@ html, body { height: 100%; margin: 0; }
   display: none;
 }
 .gm-notes-bar.open .gm-notes-input { display: block; }
-.gm-notes-preview { flex: 1; color: #475569; font-size: .72rem; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gm-notes-preview { flex: 1; min-width: 0; display: flex; gap: 8px; align-items: center; overflow: hidden; }
+.gm-notes-chip {
+  min-width: 0; max-width: 50%;
+  color: #64748b; font-size: .69rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.03);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.gm-notes-chip.teacher { color: #93c5fd; border-color: rgba(147,197,253,.28); background: rgba(147,197,253,.08); }
+.gm-notes-chip.student { color: #a7f3d0; border-color: rgba(167,243,208,.28); background: rgba(167,243,208,.08); }
+.gm-notes-chip.empty { color: #475569; border-color: rgba(255,255,255,.08); background: transparent; max-width: 100%; }
 .gm-notes-bar.open .gm-notes-preview { display: none; }
 
 /* ── misc ───────────────────────────────────── */
@@ -809,7 +821,10 @@ html, body { height: 100%; margin: 0; }
           <i class="fas fa-sticky-note"></i> Speaker Notes
           <i class="fas fa-chevron-up" id="notesChevron" style="transition:transform .2s;"></i>
         </button>
-        <span class="gm-notes-preview" id="notesPreview">—</span>
+        <div class="gm-notes-preview" id="notesPreview">
+          <span class="gm-notes-chip empty" id="notesTeacherPreview">—</span>
+          <span class="gm-notes-chip student" id="notesStudentPreview" style="display:none;"></span>
+        </div>
         <textarea class="gm-notes-input" id="notesInput" rows="4"
                   placeholder="Add speaker notes for this slide…"
                   oninput="debounceSaveSlide()"></textarea>
@@ -1104,6 +1119,44 @@ function setSaveStatus(state, text) {
   el.textContent = text;
 }
 
+function parseStructuredNotes(rawText) {
+  var text = String(rawText || '').replace(/^ANSWER:\s*[A-D]\s*\n?/i, '').trim();
+  if (!text) return { teacher: '', student: '', plain: '' };
+  var m = text.match(/Teacher Cue:\s*([\s\S]*?)(?:\n\s*Student Notes:\s*([\s\S]*))?$/i);
+  if (!m) return { teacher: '', student: '', plain: text };
+  return {
+    teacher: (m[1] || '').trim(),
+    student: (m[2] || '').trim(),
+    plain: '',
+  };
+}
+
+function updateNotesPreview(rawText) {
+  var teacherEl = document.getElementById('notesTeacherPreview');
+  var studentEl = document.getElementById('notesStudentPreview');
+  if (!teacherEl || !studentEl) return;
+
+  var parsed = parseStructuredNotes(rawText);
+  if (parsed.teacher || parsed.student) {
+    teacherEl.className = 'gm-notes-chip teacher';
+    teacherEl.textContent = parsed.teacher ? ('Teacher: ' + parsed.teacher) : 'Teacher: —';
+    if (parsed.student) {
+      studentEl.style.display = '';
+      studentEl.className = 'gm-notes-chip student';
+      studentEl.textContent = 'Student: ' + parsed.student;
+    } else {
+      studentEl.style.display = 'none';
+      studentEl.textContent = '';
+    }
+    return;
+  }
+
+  teacherEl.className = 'gm-notes-chip empty';
+  teacherEl.textContent = parsed.plain || '—';
+  studentEl.style.display = 'none';
+  studentEl.textContent = '';
+}
+
 // ── Select a slide ──────────────────────────────────────────────
 function selectSlide(slideId) {
   currentSlideId = slideId;
@@ -1124,7 +1177,7 @@ function selectSlide(slideId) {
   updateTitleCounter();
   document.getElementById('panelContent').value = slide.content;
   document.getElementById('notesInput').value   = slide.speaker_notes || '';
-  document.getElementById('notesPreview').textContent = slide.speaker_notes || '—';
+  updateNotesPreview(slide.speaker_notes || '');
   // layout buttons
   document.querySelectorAll('.layout-pick-btn').forEach(function(b) {
     b.classList.toggle('active', b.dataset.layout === slide.layout);
@@ -1186,7 +1239,7 @@ function saveCurrentSlide() {
   var content = document.getElementById('panelContent').value;
   var notes   = document.getElementById('notesInput').value;
   // update notes preview
-  document.getElementById('notesPreview').textContent = notes || '—';
+  updateNotesPreview(notes);
   // update live canvas
   slide.title = title; slide.content = content; slide.speaker_notes = notes;
   refreshCanvasSlide(slide);
@@ -2279,7 +2332,7 @@ function saveQuizAnswer() {
   var notes = (slide.speaker_notes || '').replace(/^ANSWER:\s*[A-D]\n?/i, '');
   slide.speaker_notes = letter ? ('ANSWER: ' + letter + '\n' + notes) : notes;
   document.getElementById('notesInput').value = slide.speaker_notes;
-  document.getElementById('notesPreview').textContent = slide.speaker_notes || '—';
+  updateNotesPreview(slide.speaker_notes || '');
   api({ action: 'save_slide', slide_id: currentSlideId, speaker_notes: slide.speaker_notes })
     .then(function() { setSaveStatus('saved', '✓ Answer saved'); });
 }

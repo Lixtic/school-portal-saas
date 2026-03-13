@@ -4986,16 +4986,43 @@ def presentation_api(request):
         if not plan_id:
             return JsonResponse({'error': 'plan_id is required'}, status=400)
         plan = get_object_or_404(LessonPlan, pk=plan_id, teacher=teacher)
+        b7_meta = plan.b7_meta if isinstance(plan.b7_meta, dict) else {}
+        indicator = (
+            (b7_meta.get('indicator') if isinstance(b7_meta, dict) else '')
+            or (b7_meta.get('perf_indicator') if isinstance(b7_meta, dict) else '')
+            or ''
+        )
+
+        school_info = SchoolInfo.objects.first()
+        demographic_bits = []
+        if school_info:
+            if school_info.name:
+                demographic_bits.append(f"School: {school_info.name}")
+            if school_info.address:
+                demographic_bits.append(f"Address: {school_info.address}")
+            if school_info.motto:
+                demographic_bits.append(f"Motto: {school_info.motto}")
+        if teacher.city:
+            demographic_bits.append(f"Teacher city: {teacher.city}")
+        if teacher.region:
+            demographic_bits.append(f"Teacher region: {teacher.get_region_display()}")
+        if teacher.hometown:
+            demographic_bits.append(f"Teacher hometown: {teacher.hometown}")
+        if teacher.preferred_language:
+            demographic_bits.append(f"Preferred language: {teacher.get_preferred_language_display()}")
+
         plan_dict = {
             'topic':        plan.topic,
             'subject':      plan.subject.name if plan.subject else 'General',
             'class_name':   plan.school_class.name if plan.school_class else 'General',
             'week':         plan.week_number,
+            'indicator':    indicator,
             'objectives':   plan.objectives,
             'introduction': plan.introduction,
             'presentation': plan.presentation,
             'evaluation':   plan.evaluation,
             'homework':     plan.homework,
+            'demographic_context': '; '.join([x for x in demographic_bits if x]),
         }
         from teachers.services.aura_gen_engine import AuraGenEngine
         from tenants.ai_quota import check_and_consume, QuotaExceeded

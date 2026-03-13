@@ -828,30 +828,146 @@ Rules:
     @staticmethod
     def generate_slides_from_lesson_plan(plan: dict) -> Dict:
         """
-        Generate a slide deck from a LessonPlan's structured fields.
-        plan keys: topic, subject, class_name, week, objectives,
-                   introduction, presentation, evaluation, homework
+        Generate a learning-guide slide deck from a LessonPlan's fields.
+        Prioritizes topic + indicator + objectives while still using plan activities.
         """
-        topic = plan.get('topic', 'Lesson')
-        lines = [
-            f"Topic: {topic}",
-            f"Subject: {plan.get('subject', 'General')}",
-            f"Class / Grade: {plan.get('class_name', 'General')}",
-            f"Week: {plan.get('week', '')}",
-            "",
-            "Learning Objectives:",
-            plan.get('objectives', ''),
-        ]
-        if plan.get('introduction'):
-            lines += ["", "Introduction / Hook:", plan['introduction']]
-        if plan.get('presentation'):
-            lines += ["", "Main Teaching Activity:", plan['presentation']]
-        if plan.get('evaluation'):
-            lines += ["", "Evaluation / Assessment:", plan['evaluation']]
-        if plan.get('homework'):
-            lines += ["", "Homework:", plan['homework']]
-        document_text = '\n'.join(lines).strip()
-        return AuraGenEngine.generate_slides_from_document(document_text, topic)
+        topic = str(plan.get('topic') or 'Lesson').strip()
+        subject = str(plan.get('subject') or 'General').strip()
+        class_name = str(plan.get('class_name') or 'General').strip()
+        objectives = str(plan.get('objectives') or '').strip()
+        indicator = str(plan.get('indicator') or '').strip()
+        introduction = str(plan.get('introduction') or '').strip()
+        presentation = str(plan.get('presentation') or '').strip()
+        evaluation = str(plan.get('evaluation') or '').strip()
+        homework = str(plan.get('homework') or '').strip()
+        demographic_context = str(plan.get('demographic_context') or '').strip()
+
+        system_prompt = (
+            "You are Aura-T, an expert Ghanaian classroom teaching assistant.\\n"
+            "Create a student-friendly LEARNING GUIDE slide deck from a lesson plan.\\n"
+            "The deck must be anchored in TOPIC + INDICATOR + OBJECTIVES, not a direct lesson-plan dump.\\n"
+            "Return JSON with EXACT structure:\\n"
+            "{\\n"
+            "  \\\"slides\\\": [\\n"
+            "    {\\\"title\\\": \\\"...\\\", \\\"bullets\\\": [\\\"...\\\"], \\\"notes\\\": \\\"...\\\"}\\n"
+            "  ],\\n"
+            "  \\\"activities\\\": [\\\"...\\\"]\\n"
+            "}\\n"
+            "Rules:\\n"
+            "- Generate 7 to 9 slides.\\n"
+            "- Slide 1: clear hook tied to school/community demography when provided.\\n"
+            "- Include a slide that explicitly states the learning indicator and success criteria.\\n"
+            "- Include at least one worked example tied to the topic and indicator.\\n"
+            "- Include one 'Sample Study Notes' slide with concise student-shareable notes.\\n"
+            "- Last slide must be a recap + student self-check.\\n"
+            "- Every slide requires non-empty title, 2-4 bullets, and notes.\\n"
+            "- Notes must use two labels exactly: 'Teacher Cue:' then 'Student Notes:'.\\n"
+            "- 'Teacher Cue' gives delivery guidance; 'Student Notes' gives copy-friendly revision lines.\\n"
+            "- Bullets must be short, concrete, and age-appropriate for the class level.\\n"
+            "- Use lesson-plan sections as support context only (introduction/presentation/evaluation/homework).\\n"
+            "- Keep language practical for teacher use and student revision."
+        )
+
+        user_prompt = (
+            f"Topic: {topic}\\n"
+            f"Subject: {subject}\\n"
+            f"Class: {class_name}\\n"
+            f"Week: {plan.get('week', '')}\\n"
+            f"Learning Indicator: {indicator or 'Not provided'}\\n"
+            f"Learning Objectives: {objectives or 'Not provided'}\\n"
+            f"School / Demographic Context: {demographic_context or 'Not provided'}\\n\\n"
+            "Lesson-plan context (for support only):\\n"
+            f"Introduction/Hook: {introduction or 'N/A'}\\n"
+            f"Main Presentation: {presentation or 'N/A'}\\n"
+            f"Evaluation: {evaluation or 'N/A'}\\n"
+            f"Homework: {homework or 'N/A'}\\n\\n"
+            "Build a coherent learning-guide deck teachers can share with students."
+        )
+
+        try:
+            payload = {
+                "model": get_openai_chat_model(),
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                "response_format": {"type": "json_object"},
+                "temperature": 0.55,
+            }
+            response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
+            content = response['choices'][0]['message']['content']
+            data = AuraGenEngine._extract_json_object(content)
+
+            slides = AuraGenEngine._normalize_slides(data.get("slides"), topic)
+            activities = AuraGenEngine._normalize_activities(data.get("activities"))
+
+            normalized_with_split_notes = []
+            for slide in slides:
+                notes_text = str(slide.get("notes") or "").strip()
+                if "Teacher Cue:" in notes_text and "Student Notes:" in notes_text:
+                    normalized_with_split_notes.append(slide)
+                    continue
+
+                bullets = slide.get("bullets") or []
+                student_line = bullets[0] if bullets else f"Key idea: {topic}"
+                slide["notes"] = (
+                    "Teacher Cue: Emphasize the link between the topic, indicator, and objective with one local example.\n"
+                    f"Student Notes: {student_line}"
+                )
+                normalized_with_split_notes.append(slide)
+            slides = normalized_with_split_notes
+
+            # Guarantee a student-shareable notes anchor even if model misses it.
+            has_notes_slide = any('sample study notes' in s.get('title', '').lower() for s in slides)
+            if slides and not has_notes_slide:
+                slides.append({
+                    "title": "Sample Study Notes",
+                    "bullets": [
+                        "Define the topic in one clear sentence",
+                        "Write the indicator in learner-friendly words",
+                        "Add one worked example from class",
+                        "List one common mistake to avoid",
+                    ],
+                    "notes": (
+                        "Teacher Cue: Model a compact note format and ask students to rewrite it in their own words.\n"
+                        "Student Notes: Topic meaning, indicator in simple words, one example, one mistake to avoid."
+                    ),
+                })
+
+            if slides:
+                slides = slides[:9]
+            if not slides:
+                slides = AuraGenEngine._fallback_slides_outline(topic, subject, class_name).get("slides", [])
+            if not activities:
+                activities = [
+                    "Pair-share: explain the indicator in your own words.",
+                    "Mini-check: solve one question and justify each step.",
+                    "Exit note: write two key takeaways and one confusion.",
+                ]
+
+            return {
+                "meta": {
+                    "topic": topic,
+                    "subject": subject,
+                    "grade": class_name,
+                    "indicator": indicator,
+                    "generated_at": timezone.now().isoformat(),
+                },
+                "slides": slides,
+                "activities": activities,
+            }
+        except Exception as e:
+            logger.error("Lesson-plan slide generation failed: %s", e)
+            return {
+                "meta": {
+                    "topic": topic,
+                    "subject": subject,
+                    "grade": class_name,
+                    "indicator": indicator,
+                    "generated_at": timezone.now().isoformat(),
+                },
+                **AuraGenEngine._fallback_slides_outline(topic, subject, class_name),
+            }
 
     @staticmethod
     def suggest_slide_layouts(slides_data: list) -> Dict:
