@@ -3514,6 +3514,87 @@ def scheme_of_work_update_topics(request, pk):
 
 
 @login_required
+def scheme_of_work_indicators_api(request):
+    """Return Scheme of Work indicators for a teacher's selected subject/class, with topic match hints."""
+    if request.user.user_type not in ['admin', 'teacher']:
+        return JsonResponse({'status': 'error', 'message': 'Access denied'}, status=403)
+
+    teacher = get_object_or_404(Teacher, user=request.user)
+    subject_id = (request.GET.get('subject_id') or '').strip()
+    class_id = (request.GET.get('class_id') or '').strip()
+    topic_query = (request.GET.get('topic') or '').strip()
+
+    if not subject_id or not class_id:
+        return JsonResponse({'status': 'success', 'items': [], 'matched_indicator': '', 'matched_topic': ''})
+
+    class_subject = ClassSubject.objects.filter(
+        teacher=teacher,
+        subject_id=subject_id,
+        class_name_id=class_id,
+    ).select_related('subject', 'class_name').first()
+
+    if not class_subject:
+        return JsonResponse({'status': 'success', 'items': [], 'matched_indicator': '', 'matched_topic': ''})
+
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    schemes = SchemeOfWork.objects.filter(class_subject=class_subject)
+    if current_year:
+        schemes = schemes.filter(academic_year=current_year)
+    schemes = schemes.order_by('-updated_at', '-uploaded_at')
+
+    if not schemes.exists() and current_year:
+        schemes = SchemeOfWork.objects.filter(class_subject=class_subject).order_by('-updated_at', '-uploaded_at')
+
+    items = []
+    seen = set()
+    for scheme in schemes:
+        indicators = scheme.get_indicators()
+        topics = scheme.get_topics()
+
+        for topic in topics:
+            t = str(topic).strip()
+            if not t:
+                continue
+            indicator = str(indicators.get(t, '')).strip()
+            key = (t.lower(), indicator.lower())
+            if key in seen:
+                continue
+            seen.add(key)
+            items.append({'topic': t, 'indicator': indicator})
+
+        # Include indicators whose topics are in the dict but absent in extracted_topics list
+        for t_raw, ind_raw in indicators.items():
+            t = str(t_raw).strip()
+            if not t:
+                continue
+            indicator = str(ind_raw).strip()
+            key = (t.lower(), indicator.lower())
+            if key in seen:
+                continue
+            seen.add(key)
+            items.append({'topic': t, 'indicator': indicator})
+
+    matched_indicator = ''
+    matched_topic = ''
+    q = topic_query.lower()
+    if q:
+        # Exact topic first, then contains.
+        exact = next((it for it in items if it['topic'].strip().lower() == q), None)
+        contains = next((it for it in items if q in it['topic'].strip().lower()), None)
+        winner = exact or contains
+        if winner:
+            matched_topic = winner['topic']
+            matched_indicator = winner['indicator']
+
+    return JsonResponse({
+        'status': 'success',
+        'items': items,
+        'matched_indicator': matched_indicator,
+        'matched_topic': matched_topic,
+    })
+
+
+@login_required
 @require_POST
 def scheme_of_work_reextract(request, pk):
     """Re-run GPT-4o Vision extraction on the stored image."""

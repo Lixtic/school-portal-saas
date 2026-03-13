@@ -124,6 +124,13 @@
                             <label for="indicatorPrompt" class="form-label fw-semibold">Target Indicator (GES)</label>
                             <textarea id="indicatorPrompt" name="indicator_prompt" class="form-control" rows="2" placeholder="Paste the exact indicator the lesson should achieve...">{{ prefill_indicator|default:'' }}</textarea>
                             <small class="text-muted">GES Draft uses this indicator as the primary target, not only the general topic.</small>
+                            <div class="d-flex gap-2 align-items-center mt-2 flex-wrap">
+                                <select id="sowIndicatorSelect" class="form-select form-select-sm" style="max-width: 520px;" disabled>
+                                    <option value="">Pull indicators from Scheme of Work...</option>
+                                </select>
+                                <button type="button" id="pullSowIndicatorsBtn" class="btn btn-sm btn-outline-primary rounded-pill">Pull Indicators</button>
+                            </div>
+                            <small id="sowIndicatorHint" class="text-muted d-block mt-1">Choose subject and class, then pull indicators. Topic-matched suggestions appear first.</small>
                         </div>
                     </div>
 
@@ -223,6 +230,151 @@
 </div>
 
 {% include 'teachers/_quota_exceeded_ui.html' %}
+<script>
+(function () {
+    const subjectEl = document.querySelector('[name="subject"]');
+    const classEl = document.querySelector('[name="school_class"]');
+    const topicEl = document.querySelector('[name="topic"]');
+    const indicatorEl = document.getElementById('indicatorPrompt');
+    const selectEl = document.getElementById('sowIndicatorSelect');
+    const pullBtn = document.getElementById('pullSowIndicatorsBtn');
+    const hintEl = document.getElementById('sowIndicatorHint');
+    let topicDebounceTimer = null;
+    let latestRequestToken = 0;
+
+    if (!subjectEl || !classEl || !topicEl || !selectEl || !pullBtn) return;
+
+    function resetSelect(label) {
+        selectEl.innerHTML = '';
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = label || 'Pull indicators from Scheme of Work...';
+        selectEl.appendChild(opt);
+        selectEl.disabled = true;
+    }
+
+    function addItemOption(item, isMatched) {
+        const opt = document.createElement('option');
+        opt.value = item.indicator || '';
+        opt.dataset.topic = item.topic || '';
+        const topicLabel = (item.topic || 'Untitled topic').trim();
+        const indicatorLabel = (item.indicator || 'No indicator captured').trim();
+        opt.textContent = (isMatched ? '[Match] ' : '') + topicLabel + ' -> ' + indicatorLabel;
+        selectEl.appendChild(opt);
+    }
+
+    async function loadIndicators(autoPick, showBusy) {
+        const subjectId = subjectEl.value;
+        const classId = classEl.value;
+        const topic = (topicEl.value || '').trim();
+
+        if (!subjectId || !classId) {
+            resetSelect('Choose subject and class first...');
+            if (hintEl) hintEl.textContent = 'Choose subject and class, then pull indicators. Topic-matched suggestions appear first.';
+            return;
+        }
+
+        const shouldShowBusy = showBusy !== false;
+        const oldBtnText = pullBtn.textContent;
+        if (shouldShowBusy) {
+            pullBtn.disabled = true;
+            pullBtn.textContent = 'Pulling...';
+        }
+
+        const requestToken = ++latestRequestToken;
+
+        try {
+            const url = '{% url "teachers:scheme_of_work_indicators_api" %}'
+                + '?subject_id=' + encodeURIComponent(subjectId)
+                + '&class_id=' + encodeURIComponent(classId)
+                + '&topic=' + encodeURIComponent(topic);
+
+            const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!resp.ok) throw new Error('Server error ' + resp.status);
+
+            const data = await resp.json();
+            if (requestToken !== latestRequestToken) return;
+            const items = Array.isArray(data.items) ? data.items : [];
+            const matchedTopic = (data.matched_topic || '').trim().toLowerCase();
+            const matchedIndicator = (data.matched_indicator || '').trim();
+
+            resetSelect(items.length ? 'Select indicator from Scheme of Work...' : 'No indicators found for this subject/class.');
+
+            if (!items.length) {
+                if (hintEl) hintEl.textContent = 'No Scheme of Work indicators found. Upload or re-extract the scheme for this subject/class.';
+                return;
+            }
+
+            const sorted = items.slice().sort((a, b) => {
+                const aTopic = (a.topic || '').trim().toLowerCase();
+                const bTopic = (b.topic || '').trim().toLowerCase();
+                const aMatch = matchedTopic && aTopic === matchedTopic;
+                const bMatch = matchedTopic && bTopic === matchedTopic;
+                if (aMatch && !bMatch) return -1;
+                if (!aMatch && bMatch) return 1;
+                return aTopic.localeCompare(bTopic);
+            });
+
+            sorted.forEach((item) => {
+                const isMatched = matchedTopic && (item.topic || '').trim().toLowerCase() === matchedTopic;
+                addItemOption(item, isMatched);
+            });
+
+            selectEl.disabled = false;
+
+            if (matchedIndicator && autoPick) {
+                indicatorEl.value = matchedIndicator;
+                const idx = sorted.findIndex((it) => ((it.topic || '').trim().toLowerCase() === matchedTopic));
+                if (idx >= 0) selectEl.selectedIndex = idx + 1;
+                if (hintEl) hintEl.textContent = 'Matched indicator loaded from Scheme of Work for topic: ' + (data.matched_topic || topic || 'current topic') + '.';
+            } else if (hintEl) {
+                hintEl.textContent = 'Select one of the pulled indicators to populate Target Indicator.';
+            }
+        } catch (err) {
+            if (requestToken !== latestRequestToken) return;
+            resetSelect('Could not pull indicators right now.');
+            if (hintEl) hintEl.textContent = 'Failed to pull indicators: ' + err.message;
+        } finally {
+            if (shouldShowBusy) {
+                pullBtn.disabled = false;
+                pullBtn.textContent = oldBtnText;
+            }
+        }
+    }
+
+    selectEl.addEventListener('change', function () {
+        const picked = this.value || '';
+        if (picked) {
+            indicatorEl.value = picked;
+            const selected = this.options[this.selectedIndex];
+            const t = selected && selected.dataset.topic ? selected.dataset.topic : '';
+            if (hintEl) hintEl.textContent = 'Indicator selected from topic: ' + t;
+        }
+    });
+
+    pullBtn.addEventListener('click', function () {
+        loadIndicators(true, true);
+    });
+
+    subjectEl.addEventListener('change', function () {
+        loadIndicators(false, false);
+    });
+
+    classEl.addEventListener('change', function () {
+        loadIndicators(false, false);
+    });
+
+    topicEl.addEventListener('input', function () {
+        if (topicDebounceTimer) clearTimeout(topicDebounceTimer);
+        topicDebounceTimer = setTimeout(function () {
+            loadIndicators(false, false);
+        }, 500);
+    });
+
+    const hasPrefill = (indicatorEl.value || '').trim().length > 0;
+    loadIndicators(!hasPrefill, false);
+})();
+</script>
 <!-- ── Aura-T AJAX Draft Engine ───────────────────────────────── -->
 <script>
 (function () {
