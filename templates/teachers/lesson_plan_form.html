@@ -131,6 +131,7 @@
                                 <button type="button" id="pullSowIndicatorsBtn" class="btn btn-sm btn-outline-primary rounded-pill">Pull Indicators</button>
                             </div>
                             <small id="sowIndicatorHint" class="text-muted d-block mt-1">Choose subject and class, then pull indicators. Topic-matched suggestions appear first.</small>
+                            <small id="sowIndicatorSync" class="text-muted d-block mt-1"></small>
                         </div>
                     </div>
 
@@ -239,6 +240,7 @@
     const selectEl = document.getElementById('sowIndicatorSelect');
     const pullBtn = document.getElementById('pullSowIndicatorsBtn');
     const hintEl = document.getElementById('sowIndicatorHint');
+    const syncEl = document.getElementById('sowIndicatorSync');
     let topicDebounceTimer = null;
     let latestRequestToken = 0;
 
@@ -261,6 +263,16 @@
         const indicatorLabel = (item.indicator || 'No indicator captured').trim();
         opt.textContent = (isMatched ? '[Match] ' : '') + topicLabel + ' -> ' + indicatorLabel;
         selectEl.appendChild(opt);
+    }
+
+    function updateSyncText(prefix) {
+        if (!syncEl) return;
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        const ss = String(now.getSeconds()).padStart(2, '0');
+        const label = prefix || 'Last synced';
+        syncEl.textContent = label + ': ' + hh + ':' + mm + ':' + ss;
     }
 
     async function loadIndicators(autoPick, showBusy) {
@@ -302,6 +314,7 @@
 
             if (!items.length) {
                 if (hintEl) hintEl.textContent = 'No Scheme of Work indicators found. Upload or re-extract the scheme for this subject/class.';
+                updateSyncText('Synced');
                 return;
             }
 
@@ -330,10 +343,12 @@
             } else if (hintEl) {
                 hintEl.textContent = 'Select one of the pulled indicators to populate Target Indicator.';
             }
+            updateSyncText('Synced');
         } catch (err) {
             if (requestToken !== latestRequestToken) return;
             resetSelect('Could not pull indicators right now.');
             if (hintEl) hintEl.textContent = 'Failed to pull indicators: ' + err.message;
+            if (syncEl) syncEl.textContent = 'Sync failed';
         } finally {
             if (shouldShowBusy) {
                 pullBtn.disabled = false;
