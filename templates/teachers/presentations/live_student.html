@@ -29,6 +29,26 @@ html, body { min-height: 100%; font-family: system-ui, -apple-system, sans-serif
 .ls-slide-card { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 16px; padding: 1.5rem; min-height: 160px; }
 .ls-slide-title { font-size: 1.1rem; font-weight: 800; color: #f1f5f9; margin-bottom: 1rem; }
 .ls-slide-content { font-size: .85rem; color: rgba(255,255,255,.6); line-height: 1.6; }
+.ls-student-notes {
+  margin-top: .85rem;
+  border: 1px solid rgba(167,243,208,.34);
+  background: rgba(16,185,129,.09);
+  border-radius: 10px;
+  padding: .55rem .7rem;
+}
+.ls-student-notes h4 {
+  font-size: .62rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #6ee7b7;
+  margin-bottom: .25rem;
+}
+.ls-student-notes p {
+  font-size: .78rem;
+  color: #d1fae5;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
 
 /* Poll options */
 .ls-poll-opts { display: flex; flex-direction: column; gap: .5em; margin-top: .5rem; }
@@ -171,6 +191,7 @@ function renderInfoSlide(d) {
   var title  = d.title  || '';
   var emoji  = d.emoji  || '';
   var lines  = (d.content || '').split('\n').filter(function(l) { return l.trim(); });
+  var studentNotes = (d.student_notes || '').trim();
   var html = '<div class="ls-slide-card">';
   if (emoji) html += '<div style="font-size:1.5rem;margin-bottom:.4rem;">' + escHtml(emoji) + '</div>';
   html += '<div class="ls-slide-title">' + escHtml(title) + '</div>';
@@ -178,6 +199,9 @@ function renderInfoSlide(d) {
     html += '<div class="ls-slide-content">';
     lines.forEach(function(l) { html += '<div style="margin-bottom:.3em;">▸ ' + escHtml(l) + '</div>'; });
     html += '</div>';
+  }
+  if (studentNotes) {
+    html += '<div class="ls-student-notes"><h4>Student Notes</h4><p>' + escHtml(studentNotes) + '</p></div>';
   }
   html += '</div>';
   document.getElementById('slideArea').innerHTML = html;
@@ -187,6 +211,7 @@ function renderPollSlide(d, layout, title, opts) {
   var area = document.getElementById('slideArea');
   var pk   = d.slide_pk;
   var already = votedSlides[pk];
+  var studentNotes = (d.student_notes || '').trim();
 
   var html = '<div class="ls-slide-card">';
   html += '<div class="ls-slide-title">' + escHtml(title) + '</div>';
@@ -205,6 +230,9 @@ function renderPollSlide(d, layout, title, opts) {
   html += '</div>';
   if (layout === 'quiz' && !already) {
     html += '<div class="ls-quiz-waiting"><i class="fas fa-clock" style="margin-right:.3em;"></i>Answer will be revealed by the teacher</div>';
+  }
+  if (studentNotes) {
+    html += '<div class="ls-student-notes"><h4>Student Notes</h4><p>' + escHtml(studentNotes) + '</p></div>';
   }
   if (already) {
     html += '<div class="ls-voted-msg"><i class="fas fa-check-circle"></i>Vote recorded (' + already + ')</div>';

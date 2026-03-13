@@ -4686,6 +4686,34 @@ def live_student(request, code):
 def live_state(request, code):
     """JSON: returns current session state (active slide, content)."""
     from .models import LiveSession
+
+    def _extract_student_notes(raw_notes):
+        text = str(raw_notes or '').strip()
+        if not text:
+            return ''
+
+        # Remove quiz answer prefix if present.
+        lines = text.splitlines()
+        if lines and lines[0].strip().upper().startswith('ANSWER:'):
+            text = '\n'.join(lines[1:]).strip()
+            if not text:
+                return ''
+
+        lower = text.lower()
+        teacher_tag = 'teacher cue:'
+        student_tag = 'student notes:'
+        student_idx = lower.find(student_tag)
+
+        if student_idx != -1:
+            return text[student_idx + len(student_tag):].strip()
+
+        # If explicitly structured but missing student section, hide teacher-only content.
+        if lower.find(teacher_tag) != -1:
+            return ''
+
+        # Legacy plain notes are treated as student-visible.
+        return text
+
     try:
         session = LiveSession.objects.get(code=code)
     except LiveSession.DoesNotExist:
@@ -4713,6 +4741,7 @@ def live_state(request, code):
             'content': current_slide.content,
             'emoji': current_slide.emoji,
             'image_url': current_slide.image_url,
+            'student_notes': _extract_student_notes(current_slide.speaker_notes),
         })
     return JsonResponse(state)
 
