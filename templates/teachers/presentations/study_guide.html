@@ -76,6 +76,24 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; colo
   color: #64748b; text-transform: uppercase; margin-bottom: .4rem; }
 .sg-notes p { font-size: .78rem; color: #475569; line-height: 1.5; white-space: pre-wrap; }
 .sg-notes.empty p { color: #cbd5e1; font-style: italic; font-size: .74rem; }
+.sg-note-block {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: .45rem .6rem;
+  margin-bottom: .45rem;
+  background: #f8fafc;
+}
+.sg-note-block:last-child { margin-bottom: 0; }
+.sg-note-block h5 {
+  margin: 0 0 .2rem;
+  font-size: .58rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+.sg-note-block p { margin: 0; font-size: .76rem; color: #334155; line-height: 1.5; white-space: pre-wrap; }
+.sg-note-block.teacher { border-color: #bfdbfe; background: #eff6ff; }
+.sg-note-block.student { border-color: #bbf7d0; background: #ecfdf5; }
 
 .sg-footer {
   text-align: center; padding: 1.2rem; font-size: .7rem; color: #94a3b8;
@@ -314,7 +332,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; colo
       {% if slide.speaker_notes %}
       <div class="sg-notes">
         <h4>Notes</h4>
-        <p>{{ slide.speaker_notes }}</p>
+        <p class="sg-notes-text" data-structured-notes="1">{{ slide.speaker_notes }}</p>
       </div>
       {% endif %}
     </div>
@@ -511,6 +529,37 @@ function esc(s) {
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
+
+function parseStructuredNotes(rawText) {
+  var text = String(rawText || '').replace(/^ANSWER:\s*[A-D]\s*\n?/i, '').trim();
+  if (!text) return { teacher: '', student: '', plain: '' };
+  var m = text.match(/Teacher Cue:\s*([\s\S]*?)(?:\n\s*Student Notes:\s*([\s\S]*))?$/i);
+  if (!m) return { teacher: '', student: '', plain: text };
+  return {
+    teacher: (m[1] || '').trim(),
+    student: (m[2] || '').trim(),
+    plain: '',
+  };
+}
+
+function renderStructuredStudyNotes() {
+  var noteEls = document.querySelectorAll('.sg-notes-text[data-structured-notes="1"]');
+  noteEls.forEach(function(el) {
+    var parsed = parseStructuredNotes(el.textContent || '');
+    if (parsed.teacher || parsed.student) {
+      var html = '';
+      html += '<div class="sg-note-block teacher"><h5>Teacher Cue</h5><p>' + esc(parsed.teacher || '—') + '</p></div>';
+      if (parsed.student) {
+        html += '<div class="sg-note-block student"><h5>Student Notes</h5><p>' + esc(parsed.student) + '</p></div>';
+      }
+      el.outerHTML = html;
+      return;
+    }
+    el.textContent = parsed.plain || '—';
+  });
+}
+
+renderStructuredStudyNotes();
 
 function sendAsPulse() {
   if (!_pulseQuestions || !_pulseQuestions.length) return;

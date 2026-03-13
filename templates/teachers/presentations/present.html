@@ -274,7 +274,25 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
   font-size: .7rem; padding: 0; line-height: 1;
 }
 .ps-notes-strip-close:hover { color: #94a3b8; }
-#notesText { white-space: pre-wrap; color: #94a3b8; font-size: .85rem; line-height: 1.6; max-height: 80px; overflow-y: auto; }
+#notesText { color: #94a3b8; font-size: .85rem; line-height: 1.6; max-height: 80px; overflow-y: auto; }
+.ps-notes-stack { display: flex; flex-direction: column; gap: .35rem; }
+.ps-note-block {
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 8px;
+  padding: .35rem .55rem;
+  background: rgba(255,255,255,.03);
+}
+.ps-note-block h5 {
+  margin: 0 0 .2rem;
+  font-size: .62rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #cbd5e1;
+}
+.ps-note-block p { margin: 0; white-space: pre-wrap; }
+.ps-note-block.teacher { border-color: rgba(147,197,253,.26); background: rgba(147,197,253,.08); }
+.ps-note-block.student { border-color: rgba(167,243,208,.26); background: rgba(167,243,208,.08); }
+.ps-note-plain { white-space: pre-wrap; }
 .ps-controls.notes-up { bottom: 94px; }
 
 /* Shortcuts overlay */
@@ -442,8 +460,26 @@ body.presenter-mode .pv-panel { display: flex; }
 }
 .pv-section { padding: .8rem 1rem; border-bottom: 1px solid rgba(255,255,255,.06); flex-shrink: 0; }
 .pv-label { font-size: .58rem; font-weight: 800; letter-spacing: .1em; color: #7c3aed; text-transform: uppercase; margin-bottom: .4rem; }
-.pv-notes { font-size: .78rem; color: #94a3b8; line-height: 1.55; max-height: 22vh; overflow-y: auto; white-space: pre-wrap; }
+.pv-notes { font-size: .78rem; color: #94a3b8; line-height: 1.55; max-height: 22vh; overflow-y: auto; }
 .pv-notes.empty { color: rgba(255,255,255,.18); font-style: italic; font-size: .74rem; }
+.pv-notes-stack { display: flex; flex-direction: column; gap: .35rem; }
+.pv-note-block {
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 8px;
+  padding: .35rem .5rem;
+  background: rgba(255,255,255,.03);
+}
+.pv-note-block h5 {
+  margin: 0 0 .2rem;
+  font-size: .58rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #cbd5e1;
+}
+.pv-note-block p { margin: 0; white-space: pre-wrap; }
+.pv-note-block.teacher { border-color: rgba(147,197,253,.26); background: rgba(147,197,253,.08); }
+.pv-note-block.student { border-color: rgba(167,243,208,.26); background: rgba(167,243,208,.08); }
+.pv-note-plain { white-space: pre-wrap; }
 .pv-next-wrap {
   width: 100%; aspect-ratio: 16/9; position: relative;
   background: rgba(0,0,0,.3); border-radius: 8px; overflow: hidden;
@@ -693,13 +729,56 @@ function openPresenterWindow() {
   window.open(location.href.split('?')[0] + '?presenter=1', 'preso',
     'width=1920,height=1080,menubar=0,toolbar=0,location=0,status=0');
 }
+
+function escHtml(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function parseStructuredNotes(rawText) {
+  var text = String(rawText || '').replace(/^ANSWER:\s*[A-D]\s*\n?/i, '').trim();
+  if (!text) return { teacher: '', student: '', plain: '' };
+  var m = text.match(/Teacher Cue:\s*([\s\S]*?)(?:\n\s*Student Notes:\s*([\s\S]*))?$/i);
+  if (!m) return { teacher: '', student: '', plain: text };
+  return {
+    teacher: (m[1] || '').trim(),
+    student: (m[2] || '').trim(),
+    plain: '',
+  };
+}
+
+function buildNotesHtml(rawText, mode) {
+  var parsed = parseStructuredNotes(rawText);
+  if (parsed.teacher || parsed.student) {
+    var clsPrefix = mode === 'presenter' ? 'pv' : 'ps';
+    var teacher = '<div class="' + clsPrefix + '-note-block teacher"><h5>Teacher Cue</h5><p>' +
+      escHtml(parsed.teacher || '—') + '</p></div>';
+    var student = parsed.student
+      ? '<div class="' + clsPrefix + '-note-block student"><h5>Student Notes</h5><p>' + escHtml(parsed.student) + '</p></div>'
+      : '';
+    return '<div class="' + clsPrefix + '-notes-stack">' + teacher + student + '</div>';
+  }
+  if (!parsed.plain) return '';
+  var plainCls = mode === 'presenter' ? 'pv-note-plain' : 'ps-note-plain';
+  return '<div class="' + plainCls + '">' + escHtml(parsed.plain) + '</div>';
+}
+
 function updatePresenterPanel(n) {
   if (!PRESENTER_MODE) return;
   var allSlides = document.querySelectorAll('.ps-slide');
   var notes = (n < allSlides.length ? allSlides[n].dataset.notes || '' : '').trim();
   var pvNotes = document.getElementById('pvNotes');
-  if (notes) { pvNotes.textContent = notes; pvNotes.classList.remove('empty'); }
-  else { pvNotes.textContent = 'No speaker notes for this slide.'; pvNotes.classList.add('empty'); }
+  if (notes) {
+    pvNotes.innerHTML = buildNotesHtml(notes, 'presenter');
+    pvNotes.classList.remove('empty');
+  } else {
+    pvNotes.textContent = 'No speaker notes for this slide.';
+    pvNotes.classList.add('empty');
+  }
   document.getElementById('pvCur').textContent = n + 1;
   var nextIdx = n + 1;
   var wrap = document.getElementById('pvNextWrap');
@@ -745,7 +824,7 @@ function goTo(n) {
   // update notes
   var notes = (allSlides[n].dataset.notes || '').trim();
   var notesText = document.getElementById('notesText');
-  if (notesText) notesText.textContent = notes || '(no speaker notes)';
+  if (notesText) notesText.innerHTML = notes ? buildNotesHtml(notes, 'overlay') : '(no speaker notes)';
   // activate video in new slide
   var vw = allSlides[n].querySelector('.sl-video-wrap[data-video]');
   if (vw && !vw.querySelector('iframe')) activateVideo(vw);
