@@ -1127,7 +1127,12 @@ def env_health(request):
         raise Http404
 
     default_secret = getattr(_settings, 'DEFAULT_SECRET_KEY', '')
-    secret_key = getattr(_settings, 'SECRET_KEY', '')
+    secret_key = (
+        _os.environ.get('SECRET_KEY')
+        or _os.environ.get('DJANGO_SECRET_KEY')
+        or _os.environ.get('SECRET_KEY_BASE')
+        or getattr(_settings, 'SECRET_KEY', '')
+    )
     checks = {
         'SECRET_KEY': bool(secret_key) and secret_key != default_secret and not str(secret_key).startswith('django-insecure'),
         'DATABASE_URL': bool(_os.environ.get('DATABASE_URL', '').strip()),
