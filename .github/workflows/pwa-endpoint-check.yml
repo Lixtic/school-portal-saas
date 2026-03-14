@@ -24,6 +24,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Run loader template regression tests
+        run: |
+          python manage.py test school_system.tests.test_page_loader_templates
+
       - name: Start Django server
         run: |
           nohup python manage.py runserver 127.0.0.1:8765 > server.log 2>&1 &
