@@ -15,6 +15,7 @@ from django.db.models import Q, Count, F, Window
 from django.db.models.functions import RowNumber
 from django.db import connection
 from django.utils import timezone
+from django.views.decorators.csrf import ensure_csrf_cookie
 import calendar
 import datetime
 import json
@@ -234,6 +235,7 @@ def build_onboarding_checklist():
     }
 
 
+@ensure_csrf_cookie
 def homepage(request):
     # Route logic for different tenants
     is_public = False
