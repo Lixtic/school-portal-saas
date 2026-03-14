@@ -306,6 +306,281 @@
         animation: floatUp 2s ease-out forwards;
     }
 
+    /* ── Digital Pulse Overlay (student interrupt) ───────────────────── */
+    #pulseStreak {
+        position: fixed;
+        top: 0;
+        left: -100%;
+        z-index: 8990;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, transparent 0%, rgba(124,58,237,.6) 25%, rgba(56,120,255,.85) 50%, rgba(6,182,212,.9) 75%, transparent 100%);
+        animation: streakRun .65s cubic-bezier(.4,0,.2,1) forwards;
+    }
+
+    @keyframes streakRun {
+        from { left: -100%; }
+        to { left: 100%; }
+    }
+
+    #pulseToast {
+        position: fixed;
+        top: 1rem;
+        left: 50%;
+        transform: translateX(-50%) translateY(-80px);
+        z-index: 8991;
+        background: linear-gradient(135deg, #4c1d95, #1e40af);
+        color: #e0e7ff;
+        padding: .7rem 1.4rem;
+        border-radius: 50px;
+        font-weight: 700;
+        font-size: .88rem;
+        white-space: nowrap;
+        box-shadow: 0 6px 24px rgba(0,0,0,.35);
+        transition: transform .4s cubic-bezier(.175,.885,.32,1.275);
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+    }
+
+    #pulseToast.show { transform: translateX(-50%) translateY(0); }
+
+    #pulseOverlay {
+        position: fixed;
+        inset: 0;
+        z-index: 9000;
+        background: rgba(15,10,40,.88);
+        backdrop-filter: blur(12px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+
+    #pulseOverlay.active { display: flex; }
+
+    .pulse-card {
+        background: #1e1b4b;
+        border-radius: 22px;
+        border: 1px solid rgba(139,92,246,.35);
+        box-shadow: 0 20px 60px rgba(0,0,0,.6);
+        width: 100%;
+        max-width: 480px;
+        padding: 1.75rem 1.5rem;
+        color: #e0e7ff;
+        text-align: center;
+    }
+
+    .pulse-topic {
+        font-size: .72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: #818cf8;
+        margin-bottom: .3rem;
+    }
+
+    .pulse-q {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #f1f5f9;
+        line-height: 1.45;
+        margin-bottom: 1.25rem;
+        min-height: 3rem;
+    }
+
+    .pulse-q-num {
+        display: inline-block;
+        font-size: .65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: #7c3aed;
+        background: rgba(124,58,237,.2);
+        border-radius: 20px;
+        padding: .15rem .6rem;
+        margin-bottom: .6rem;
+    }
+
+    .pulse-tf-row {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-bottom: .5rem;
+    }
+
+    .pulse-tf-tile {
+        flex: 1;
+        max-width: 180px;
+        height: 80px;
+        border-radius: 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: 900;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: transform .12s, border-color .15s, box-shadow .15s;
+        user-select: none;
+    }
+
+    .pulse-tf-tile.tf-true {
+        background: rgba(34,197,94,.14);
+        color: #4ade80;
+        border-color: rgba(34,197,94,.25);
+    }
+
+    .pulse-tf-tile.tf-false {
+        background: rgba(239,68,68,.14);
+        color: #f87171;
+        border-color: rgba(239,68,68,.25);
+    }
+
+    .pulse-tf-tile:active { transform: scale(.93); }
+    .pulse-tf-tile.selected { border-color: currentColor; box-shadow: 0 0 0 3px currentColor; opacity: 1; }
+    .pulse-tf-tile:not(.selected) { opacity: .7; }
+    .pulse-tf-label { font-size: .7rem; font-weight: 800; letter-spacing: .04em; margin-top: .2rem; }
+
+    .pulse-chip-viewport { overflow: hidden; position: relative; }
+    .pulse-chip-track { display: flex; transition: transform .35s cubic-bezier(.4,0,.2,1); }
+
+    .pulse-chip {
+        min-width: 100%;
+        box-sizing: border-box;
+        padding: 1rem 1.25rem;
+        background: rgba(139,92,246,.12);
+        border: 2px solid rgba(139,92,246,.25);
+        border-radius: 14px;
+        font-size: .92rem;
+        font-weight: 600;
+        color: #c4b5fd;
+        text-align: center;
+        cursor: pointer;
+        transition: border-color .15s, background .15s;
+    }
+
+    .pulse-chip.selected {
+        border-color: #7c3aed;
+        background: rgba(124,58,237,.28);
+        color: #fff;
+    }
+
+    .pulse-nav-row {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: .75rem;
+        margin-top: .7rem;
+    }
+
+    .pulse-nav-btn {
+        background: rgba(139,92,246,.2);
+        border: none;
+        color: #a78bfa;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: .9rem;
+        transition: background .15s;
+    }
+
+    .pulse-nav-btn:hover { background: rgba(139,92,246,.38); }
+    .pulse-chip-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.2); }
+    .pulse-chip-dot.active { background: #7c3aed; }
+
+    .pulse-progress {
+        display: flex;
+        gap: .4rem;
+        margin: 1.1rem auto .85rem;
+        justify-content: center;
+    }
+
+    .pp-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: rgba(255,255,255,.15);
+        transition: background .3s;
+    }
+
+    .pp-dot.done { background: #22c55e; }
+    .pp-dot.current { background: #7c3aed; animation: pgBlink 1s infinite; }
+
+    .pulse-next-btn,
+    .pulse-submit-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+        padding: .7rem 2rem;
+        border-radius: 50px;
+        font-weight: 800;
+        font-size: .9rem;
+        border: none;
+        cursor: pointer;
+        transition: opacity .15s, transform .1s;
+    }
+
+    .pulse-next-btn { background: linear-gradient(135deg,#4c1d95,#2563eb); color: #fff; }
+    .pulse-submit-btn { background: linear-gradient(135deg,#059669,#0284c7); color: #fff; }
+    .pulse-next-btn:active, .pulse-submit-btn:active { transform: scale(.96); }
+    .pulse-next-btn:disabled, .pulse-submit-btn:disabled { opacity: .5; cursor: default; }
+
+    #pulseSuccess {
+        position: fixed;
+        inset: 0;
+        z-index: 9500;
+        background: rgba(15,10,40,.92);
+        display: none;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #pulseSuccess.active { display: flex; }
+    .success-ring-wrap { text-align: center; }
+
+    .success-ring {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        border: 5px solid transparent;
+        background: linear-gradient(#1e1b4b, #1e1b4b) padding-box, linear-gradient(135deg, #7c3aed, #06b6d4) border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        animation: ringPop .5s cubic-bezier(.175,.885,.32,1.275);
+        margin: 0 auto 1rem;
+    }
+
+    @keyframes ringPop {
+        from { transform: scale(0.4); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+
+    .success-msg { color: #f1f5f9; font-weight: 800; font-size: 1.1rem; margin-bottom: .4rem; }
+    .success-sub { color: #818cf8; font-size: .83rem; }
+
+    #pulseDoneChip {
+        display: none;
+        position: fixed;
+        bottom: 1.2rem;
+        right: 1.2rem;
+        z-index: 1900;
+        background: linear-gradient(135deg, rgba(76,29,149,.85), rgba(30,64,175,.85));
+        backdrop-filter: blur(6px);
+        color: #e0e7ff;
+        font-size: .75rem;
+        font-weight: 700;
+        padding: .35rem .75rem;
+        border-radius: 999px;
+        box-shadow: 0 2px 8px rgba(0,0,0,.35);
+        pointer-events: none;
+        letter-spacing: .02em;
+    }
+
     /* Level Progress Header */
     .level-badge {
         background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
@@ -1665,6 +1940,84 @@
         <p class="text-muted mb-0 small">You mastered this concept.</p>
     </div>
 </div>
+
+<!-- Digital Pulse Overlay (student interrupt) -->
+<div id="pulseStreak" style="display:none;"></div>
+
+<div id="pulseToast">
+    <i class="bi bi-broadcast"></i>
+    <span>Pulse Incoming!</span>
+</div>
+
+<div id="pulseOverlay">
+  <div class="pulse-card">
+    <div class="pulse-topic" id="pTopic">Pulse Check</div>
+
+    <div class="pulse-progress">
+        <div class="pp-dot current" id="pDot0"></div>
+        <div class="pp-dot" id="pDot1"></div>
+        <div class="pp-dot" id="pDot2"></div>
+    </div>
+
+    <div id="pStep0">
+        <div class="pulse-q-num">Q1 - True or False?</div>
+        <div class="pulse-q" id="pQ1Text">Loading...</div>
+        <div class="pulse-tf-row">
+            <div class="pulse-tf-tile tf-true" id="pQ1True" onclick="selectTF(1,'true')">
+                <span>✓</span><span class="pulse-tf-label">TRUE</span>
+            </div>
+            <div class="pulse-tf-tile tf-false" id="pQ1False" onclick="selectTF(1,'false')">
+                <span>✗</span><span class="pulse-tf-label">FALSE</span>
+            </div>
+        </div>
+        <button class="pulse-next-btn mt-3" id="pNext0" onclick="goStep(1)" disabled>
+            Next <i class="bi bi-arrow-right"></i>
+        </button>
+    </div>
+
+    <div id="pStep1" style="display:none;">
+        <div class="pulse-q-num">Q2 - True or False?</div>
+        <div class="pulse-q" id="pQ2Text">Loading...</div>
+        <div class="pulse-tf-row">
+            <div class="pulse-tf-tile tf-true" id="pQ2True" onclick="selectTF(2,'true')">
+                <span>✓</span><span class="pulse-tf-label">TRUE</span>
+            </div>
+            <div class="pulse-tf-tile tf-false" id="pQ2False" onclick="selectTF(2,'false')">
+                <span>✗</span><span class="pulse-tf-label">FALSE</span>
+            </div>
+        </div>
+        <button class="pulse-next-btn mt-3" id="pNext1" onclick="goStep(2)" disabled>
+            Next <i class="bi bi-arrow-right"></i>
+        </button>
+    </div>
+
+    <div id="pStep2" style="display:none;">
+        <div class="pulse-q-num">Q3 - Which plan fits?</div>
+        <div class="pulse-q" id="pQ3Text">Loading...</div>
+        <div class="pulse-chip-viewport">
+            <div class="pulse-chip-track" id="pChipTrack"></div>
+        </div>
+        <div class="pulse-nav-row">
+            <button class="pulse-nav-btn" onclick="carouselMove(-1)">&#8592;</button>
+            <div id="pChipDots" style="display:flex;gap:.4rem;"></div>
+            <button class="pulse-nav-btn" onclick="carouselMove(1)">&#8594;</button>
+        </div>
+        <button class="pulse-submit-btn mt-3" id="pSubmit" onclick="submitPulse()" disabled>
+            <i class="bi bi-send-fill"></i> Submit
+        </button>
+    </div>
+  </div>
+</div>
+
+<div id="pulseSuccess">
+    <div class="success-ring-wrap">
+        <div class="success-ring">✓</div>
+        <div class="success-msg">Response received!</div>
+        <div class="success-sub">Your answer is safely with the teacher.</div>
+    </div>
+</div>
+
+<div id="pulseDoneChip">✓ Pulse answered</div>
 
 {{ ai_tutor_bootstrap|json_script:"aiTutorBootstrapData" }}
 {{ initial_messages|json_script:"initialMessagesData" }}
@@ -3470,6 +3823,244 @@
             alert(`Error: ${e.message}`);
         }
     }
+
+    // Digital Pulse polling for students in Aura chat
+    (function () {
+        const POLL_URL = "{% url 'students:pulse_poll' %}";
+        const SUBMIT_BASE = "{% url 'students:pulse_submit' 0 %}".replace('0/submit/', '');
+        const CSRF_TOKEN = '{{ csrf_token }}';
+
+        let pollTimer = null;
+        let sessionId = null;
+        let chips = [];
+        let q1ans = null;
+        let q2ans = null;
+        let q3ans = null;
+        let chipIdx = 0;
+        let step = 0;
+        let cachedSubmit = null;
+
+        function startPolling() {
+            if (pollTimer) return;
+            pollTimer = setInterval(doPoll, 3000);
+            doPoll();
+        }
+
+        function doPoll() {
+            fetch(POLL_URL)
+                .then((r) => r.json())
+                .then((d) => {
+                    if (d.session) {
+                        clearInterval(pollTimer);
+                        pollTimer = null;
+                        triggerInterrupt(d.session);
+                    }
+                })
+                .catch(() => {});
+        }
+
+        function triggerInterrupt(session) {
+            sessionId = session.id;
+            chips = session.chips || [];
+            q1ans = q2ans = q3ans = null;
+            chipIdx = 0;
+            step = 0;
+
+            const streak = document.getElementById('pulseStreak');
+            if (streak) {
+                streak.style.display = '';
+                setTimeout(() => {
+                    streak.style.display = 'none';
+                }, 750);
+            }
+
+            const toast = document.getElementById('pulseToast');
+            if (toast) {
+                toast.classList.add('show');
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    openOverlay(session);
+                }, 1200);
+            } else {
+                openOverlay(session);
+            }
+        }
+
+        function ensureTF(text) {
+            if (!text) return '-';
+            if (/true or false/i.test(text)) return text;
+            if (/^(what|how|who|why|when|where|name|list|describe|explain|define|give|identify)\b/i.test(text)) {
+                return text.replace(/\?+$/, '').trimEnd() + ' - True or False?';
+            }
+            return text;
+        }
+
+        function openOverlay(session) {
+            document.getElementById('pTopic').textContent = session.topic || 'Pulse Check';
+            document.getElementById('pQ1Text').textContent = ensureTF(session.q1);
+            document.getElementById('pQ2Text').textContent = ensureTF(session.q2);
+            document.getElementById('pQ3Text').textContent = session.q3 || '-';
+
+            const track = document.getElementById('pChipTrack');
+            const dots = document.getElementById('pChipDots');
+            track.innerHTML = '';
+            dots.innerHTML = '';
+
+            chips.forEach((chip, i) => {
+                const chipEl = document.createElement('div');
+                chipEl.className = 'pulse-chip';
+                chipEl.textContent = chip;
+                chipEl.addEventListener('click', () => selectChip(i));
+                track.appendChild(chipEl);
+
+                const dot = document.createElement('div');
+                dot.className = 'pulse-chip-dot' + (i === 0 ? ' active' : '');
+                dot.id = 'pChipDot' + i;
+                dots.appendChild(dot);
+            });
+
+            updateChipTrack();
+
+            ['pQ1True', 'pQ1False', 'pQ2True', 'pQ2False'].forEach((id) => {
+                document.getElementById(id).classList.remove('selected');
+            });
+            ['pNext0', 'pNext1', 'pSubmit'].forEach((id) => {
+                document.getElementById(id).disabled = true;
+            });
+
+            for (let i = 0; i < 3; i++) {
+                const d = document.getElementById('pDot' + i);
+                d.classList.remove('done', 'current');
+            }
+            document.getElementById('pDot0').classList.add('current');
+
+            showStep(0);
+            document.getElementById('pulseOverlay').classList.add('active');
+        }
+
+        window.goStep = function (n) {
+            document.getElementById('pDot' + step).classList.replace('current', 'done');
+            step = n;
+            document.getElementById('pDot' + n).classList.replace('done', 'current');
+            document.getElementById('pDot' + n).classList.add('current');
+            showStep(n);
+        };
+
+        function showStep(n) {
+            [0, 1, 2].forEach((i) => {
+                document.getElementById('pStep' + i).style.display = (i === n) ? '' : 'none';
+            });
+        }
+
+        window.selectTF = function (q, val) {
+            const t = document.getElementById('pQ' + q + 'True');
+            const f = document.getElementById('pQ' + q + 'False');
+            t.classList.toggle('selected', val === 'true');
+            f.classList.toggle('selected', val === 'false');
+            if (q === 1) {
+                q1ans = (val === 'true');
+                document.getElementById('pNext0').disabled = false;
+            } else {
+                q2ans = (val === 'true');
+                document.getElementById('pNext1').disabled = false;
+            }
+            if (navigator.vibrate) navigator.vibrate(40);
+        };
+
+        window.carouselMove = function (dir) {
+            selectChip(Math.max(0, Math.min(chips.length - 1, chipIdx + dir)));
+        };
+
+        function updateChipTrack() {
+            document.getElementById('pChipTrack').style.transform = 'translateX(-' + (chipIdx * 100) + '%)';
+            chips.forEach((_, i) => {
+                const dot = document.getElementById('pChipDot' + i);
+                if (dot) dot.classList.toggle('active', i === chipIdx);
+            });
+        }
+
+        window.selectChip = function (i) {
+            chipIdx = i;
+            q3ans = chips[i];
+            updateChipTrack();
+            const allChips = document.querySelectorAll('.pulse-chip');
+            allChips.forEach((c, ci) => c.classList.toggle('selected', ci === i));
+            document.getElementById('pSubmit').disabled = false;
+            if (navigator.vibrate) navigator.vibrate(40);
+        };
+
+        window.submitPulse = function () {
+            const btn = document.getElementById('pSubmit');
+            btn.disabled = true;
+
+            const payload = {
+                q1: q1ans,
+                q2: q2ans,
+                q3: q3ans || ''
+            };
+
+            function doSubmit() {
+                fetch(SUBMIT_BASE + sessionId + '/submit/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': CSRF_TOKEN
+                    },
+                    body: JSON.stringify(payload)
+                })
+                    .then((r) => r.json())
+                    .then((d) => {
+                        if (d.ok) showSuccess();
+                        else btn.disabled = false;
+                    })
+                    .catch(() => {
+                        cachedSubmit = payload;
+                        showSuccess('Answer cached - sending when back online');
+                        window.addEventListener('online', retryCached, { once: true });
+                    });
+            }
+
+            if (!navigator.onLine) {
+                cachedSubmit = payload;
+                showSuccess('Answer cached - sending when back online');
+                window.addEventListener('online', retryCached, { once: true });
+            } else {
+                doSubmit();
+            }
+        };
+
+        function retryCached() {
+            if (!cachedSubmit || !sessionId) return;
+            fetch(SUBMIT_BASE + sessionId + '/submit/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': CSRF_TOKEN
+                },
+                body: JSON.stringify(cachedSubmit)
+            }).then(() => {
+                cachedSubmit = null;
+            });
+        }
+
+        function showSuccess(msg) {
+            document.getElementById('pulseOverlay').classList.remove('active');
+            const s = document.getElementById('pulseSuccess');
+            if (msg) {
+                const successSub = document.querySelector('#pulseSuccess .success-sub');
+                if (successSub) successSub.textContent = msg;
+            }
+            s.classList.add('active');
+            document.getElementById('pulseDoneChip').style.display = 'block';
+            setTimeout(() => {
+                s.classList.remove('active');
+                sessionId = null;
+                startPolling();
+            }, 2800);
+        }
+
+        startPolling();
+    })();
     // ────────────────────────────────────────────────────────────────────
 </script>
 {% endblock %}
