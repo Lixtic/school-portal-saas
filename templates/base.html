@@ -789,6 +789,123 @@
             }
             /* On mobile: show icon only, hide text */
             .header-brand-text { display: none; }
+
+            .main-content {
+                padding: 1rem 0.875rem;
+            }
+
+            .card,
+            .stat-card,
+            .student-card,
+            .qa-minimal-wrap,
+            .tt-section {
+                border-radius: 12px !important;
+                box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06) !important;
+            }
+
+            .card-header,
+            .card-body,
+            .card-footer {
+                padding: 0.85rem 0.9rem;
+            }
+
+            .list-group-item,
+            .table-responsive,
+            .form-control,
+            .form-select,
+            .select-flat {
+                font-size: 0.92rem;
+            }
+
+            .btn,
+            .btn-primary,
+            .btn-gradient,
+            .btn-outline-primary,
+            .btn-outline-secondary,
+            .btn-light {
+                padding: 0.5rem 0.85rem;
+                border-radius: 10px;
+                font-size: 0.88rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body.mobile-app-shell .header {
+                height: 62px;
+                background: rgba(255, 255, 255, 0.92);
+                backdrop-filter: blur(16px);
+            }
+
+            [data-bs-theme="dark"] body.mobile-app-shell .header {
+                background: rgba(15, 23, 42, 0.92);
+            }
+
+            body.mobile-app-shell {
+                --header-height: 62px;
+                --card-radius: 10px;
+            }
+
+            body.mobile-app-shell .main-content {
+                padding: 0.8rem 0.75rem;
+            }
+
+            body.mobile-app-shell .card,
+            body.mobile-app-shell .stat-card,
+            body.mobile-app-shell .student-card,
+            body.mobile-app-shell .qa-minimal-wrap,
+            body.mobile-app-shell .tt-section,
+            body.mobile-app-shell .schedule-item {
+                border-radius: 10px !important;
+                box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05) !important;
+            }
+
+            body.mobile-app-shell .card:hover,
+            body.mobile-app-shell .stat-card:hover,
+            body.mobile-app-shell .student-card:hover {
+                transform: none !important;
+                box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05) !important;
+            }
+
+            body.mobile-app-shell .card-header,
+            body.mobile-app-shell .card-body,
+            body.mobile-app-shell .card-footer {
+                padding: 0.72rem 0.78rem;
+            }
+
+            body.mobile-app-shell .stat-value {
+                font-size: 1.2rem !important;
+                line-height: 1.1;
+            }
+
+            body.mobile-app-shell .stat-label,
+            body.mobile-app-shell .small,
+            body.mobile-app-shell small {
+                font-size: 0.74rem !important;
+            }
+
+            body.mobile-app-shell .btn,
+            body.mobile-app-shell .btn-primary,
+            body.mobile-app-shell .btn-gradient,
+            body.mobile-app-shell .btn-outline-primary,
+            body.mobile-app-shell .btn-outline-secondary,
+            body.mobile-app-shell .btn-light {
+                padding: 0.46rem 0.72rem;
+                font-size: 0.84rem;
+                border-radius: 9px;
+                box-shadow: none;
+            }
+
+            body.mobile-app-shell .form-control,
+            body.mobile-app-shell .form-select,
+            body.mobile-app-shell .select-flat {
+                padding: 0.55rem 0.75rem;
+                border-radius: 9px;
+                min-height: 40px;
+            }
+
+            body.mobile-app-shell .list-group-item {
+                padding: 0.68rem 0.78rem;
+            }
         }
         @media (min-width: 769px) and (max-width: 1024px) {
             .header-brand-name { max-width: 120px; }
@@ -3667,6 +3784,13 @@
         return standalone || iosStandalone || twaContext || electronContext || capacitorContext;
     }
 
+    function applyAppShellClass() {
+        document.body.classList.toggle(
+            'mobile-app-shell',
+            isInstalledOrWrapped() && window.innerWidth <= 768
+        );
+    }
+
     function showInstallButton() {
         if (!isInstalledOrWrapped()) {
             installCta.style.display = 'inline-flex';
@@ -3690,6 +3814,9 @@
     function hideUpdateButton() {
         updateCta.style.display = 'none';
     }
+
+    applyAppShellClass();
+    window.addEventListener('resize', applyAppShellClass);
 
     window.addEventListener('beforeinstallprompt', (event) => {
         if (isInstalledOrWrapped()) {
