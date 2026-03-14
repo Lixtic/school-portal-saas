@@ -3,7 +3,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
-from django.views.generic import RedirectView
+from django.views.generic import RedirectView, TemplateView
 from accounts import views as account_views
 from accounts.views import TenantPasswordResetView
 from tenants import views as tenant_views
@@ -35,7 +35,9 @@ urlpatterns = [
     # Favicon — serve before tenant middleware can intercept
     path('favicon.ico', RedirectView.as_view(url='/static/img/logo.png', permanent=True)),
     path('favicon.png', RedirectView.as_view(url='/static/img/logo.png', permanent=True)),
+    path('robots.txt', RedirectView.as_view(url='/static/robots.txt', permanent=False), name='robots_txt'),
     path('sw.js', sw_view, name='sw'),
+    path('offline/', TemplateView.as_view(template_name='offline.html'), name='offline'),
     path('admin/', admin.site.urls),
     path('', account_views.homepage, name='home'),
     path('find-school/', account_views.find_school, name='find_school'),

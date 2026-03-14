@@ -1,0 +1,168 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline | School Portal</title>
+    <meta name="theme-color" content="#026e56">
+    <style>
+        :root {
+            --bg: #f4f8f7;
+            --card: #ffffff;
+            --text: #12332d;
+            --muted: #5a6f6b;
+            --accent: #026e56;
+            --accent-2: #00a17d;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            font-family: Manrope, Segoe UI, Tahoma, sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(900px 500px at 12% -10%, rgba(2, 110, 86, 0.14), transparent 60%),
+                radial-gradient(700px 450px at 100% 120%, rgba(0, 161, 125, 0.16), transparent 60%),
+                var(--bg);
+            padding: 24px;
+        }
+
+        .card {
+            width: min(560px, 100%);
+            background: var(--card);
+            border-radius: 20px;
+            border: 1px solid rgba(2, 110, 86, 0.1);
+            box-shadow: 0 20px 50px rgba(2, 61, 49, 0.12);
+            padding: 30px 24px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .brand img {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            object-fit: cover;
+            box-shadow: 0 8px 18px rgba(2, 110, 86, 0.25);
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 1.05rem;
+            letter-spacing: 0.02em;
+        }
+
+        h2 {
+            margin: 0 0 10px;
+            font-size: clamp(1.4rem, 2.8vw, 1.8rem);
+            line-height: 1.25;
+        }
+
+        p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .actions {
+            margin-top: 22px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button,
+        a {
+            appearance: none;
+            border: 0;
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+            transition: transform 0.15s ease, filter 0.15s ease;
+        }
+
+        button {
+            color: #fff;
+            background: linear-gradient(120deg, var(--accent), var(--accent-2));
+        }
+
+        a {
+            color: var(--accent);
+            background: rgba(2, 110, 86, 0.1);
+        }
+
+        button:hover,
+        a:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.03);
+        }
+
+        .meta {
+            margin-top: 16px;
+            font-size: 0.9rem;
+            color: #6f817d;
+        }
+    </style>
+</head>
+<body>
+    <main class="card" role="main">
+        <div class="brand">
+            <img src="{% static 'img/logo.png' %}" alt="School Portal logo">
+            <h1>School Portal</h1>
+        </div>
+
+        <h2>You are offline right now.</h2>
+        <p>This page appears when your network is unavailable. You can still reopen cached pages, and new content will sync once your connection is restored.</p>
+
+        <div class="actions">
+            <button type="button" onclick="window.location.reload()">Try Again</button>
+            <a href="/">Go to Home</a>
+            <a href="#" id="returnLastPage" style="display:none;">Return to Last Page</a>
+        </div>
+
+        <p class="meta" id="connectionState">Checking connection status...</p>
+    </main>
+
+    <script>
+        (function () {
+            const el = document.getElementById('connectionState');
+            const returnLink = document.getElementById('returnLastPage');
+            const STORAGE_KEY = 'pwa:lastPath';
+
+            try {
+                const lastPath = localStorage.getItem(STORAGE_KEY);
+                if (lastPath && lastPath.startsWith('/') && !lastPath.startsWith('/offline')) {
+                    returnLink.href = lastPath;
+                    returnLink.style.display = 'inline-block';
+                }
+            } catch (err) {
+                // Ignore storage access restrictions.
+            }
+
+            function updateState() {
+                el.textContent = navigator.onLine
+                    ? 'Connection restored. You can retry now.'
+                    : 'No internet connection detected.';
+            }
+
+            window.addEventListener('online', updateState);
+            window.addEventListener('offline', updateState);
+            updateState();
+        })();
+    </script>
+</body>
+</html>

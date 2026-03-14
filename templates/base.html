@@ -158,6 +158,47 @@
             animation: auraBtnSpin 0.55s linear infinite;
         }
         @keyframes auraBtnSpin { to { transform: rotate(360deg); } }
+
+        /* 4. OFFLINE STATUS BANNER */
+        #offlineBanner {
+            position: fixed;
+            left: 50%;
+            bottom: 12px;
+            transform: translateX(-50%);
+            width: min(96vw, 720px);
+            background: #7f1d1d;
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+            padding: 10px 14px;
+            z-index: 1090;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        #offlineBanner.active {
+            display: flex;
+        }
+
+        #offlineBanner .msg {
+            font-size: 0.92rem;
+            font-weight: 600;
+        }
+
+        #offlineBanner .actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 0;
+        }
+
+        #offlineBanner .btn {
+            --bs-btn-padding-y: 0.2rem;
+            --bs-btn-padding-x: 0.55rem;
+            --bs-btn-font-size: 0.82rem;
+        }
     </style>
 
     <style>
@@ -3439,25 +3480,18 @@
     }
   }
 
-  if ('serviceWorker' in navigator && 'PushManager' in window) {
-    window.addEventListener('load', async () => {
-      try {
-        const reg = await navigator.serviceWorker.register('/sw.js');
-        if (Notification.permission === 'granted') {
-          subscribeToPush();
-        } else if (Notification.permission !== 'denied') {
-          // Don't auto-prompt; let the user trigger via the bell button
-        }
-      } catch (err) {
-        console.debug('[SW register]', err.message);
-      }
-    });
-  } else if ('serviceWorker' in navigator) {
-    // Register SW for caching even without push support
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
-    });
-  }
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+        window.addEventListener('load', async () => {
+            try {
+                await navigator.serviceWorker.ready;
+                if (Notification.permission === 'granted') {
+                    subscribeToPush();
+                }
+            } catch (err) {
+                console.debug('[Push bootstrap]', err.message);
+            }
+        });
+    }
 
   // Expose helper so the UI can request permission + subscribe on demand
   window.requestPushPermission = async function () {
@@ -3468,6 +3502,222 @@
 })();
 </script>
 {% endif %}
+
+<script>
+// ── PWA Install + SW Update UX (all users) ────────────────────────────────
+(function () {
+    'use strict';
+
+    if (!('serviceWorker' in navigator)) {
+        return;
+    }
+
+    const installCta = document.createElement('button');
+    installCta.type = 'button';
+    installCta.id = 'pwaInstallBtn';
+    installCta.className = 'btn btn-success btn-sm shadow';
+    installCta.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:1080;display:none;';
+    installCta.innerHTML = '<i class="bi bi-download me-1"></i>Install App';
+
+    const updateCta = document.createElement('button');
+    updateCta.type = 'button';
+    updateCta.id = 'pwaUpdateBtn';
+    updateCta.className = 'btn btn-warning btn-sm shadow';
+    updateCta.style.cssText = 'position:fixed;right:16px;bottom:56px;z-index:1080;display:none;';
+    updateCta.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>Update Ready';
+
+    let deferredInstallPrompt = null;
+    let refreshing = false;
+
+    function showInstallButton() {
+        if (!window.matchMedia('(display-mode: standalone)').matches) {
+            installCta.style.display = 'inline-flex';
+            installCta.style.alignItems = 'center';
+        }
+    }
+
+    function hideInstallButton() {
+        installCta.style.display = 'none';
+    }
+
+    function showUpdateButton() {
+        updateCta.style.display = 'inline-flex';
+        updateCta.style.alignItems = 'center';
+    }
+
+    function hideUpdateButton() {
+        updateCta.style.display = 'none';
+    }
+
+    window.addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault();
+        deferredInstallPrompt = event;
+        showInstallButton();
+    });
+
+    installCta.addEventListener('click', async () => {
+        if (!deferredInstallPrompt) {
+            return;
+        }
+
+        deferredInstallPrompt.prompt();
+        await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null;
+        hideInstallButton();
+    });
+
+    window.addEventListener('appinstalled', () => {
+        deferredInstallPrompt = null;
+        hideInstallButton();
+    });
+
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) {
+            return;
+        }
+        refreshing = true;
+        window.location.reload();
+    });
+
+    function wireUpdateFlow(registration) {
+        if (!registration) {
+            return;
+        }
+
+        if (registration.waiting) {
+            showUpdateButton();
+        }
+
+        registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            if (!newWorker) {
+                return;
+            }
+
+            newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    showUpdateButton();
+                }
+            });
+        });
+    }
+
+    updateCta.addEventListener('click', async () => {
+        const reg = await navigator.serviceWorker.getRegistration('/');
+        if (reg && reg.waiting) {
+            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            hideUpdateButton();
+        }
+    });
+
+    window.addEventListener('load', async () => {
+        document.body.appendChild(installCta);
+        document.body.appendChild(updateCta);
+
+        try {
+            const reg = await navigator.serviceWorker.register('/sw.js');
+            wireUpdateFlow(reg);
+
+            setInterval(() => {
+                reg.update().catch(() => {});
+            }, 30 * 60 * 1000);
+        } catch (err) {
+            console.debug('[SW register]', err.message);
+        }
+    });
+})();
+</script>
+
+<script>
+// ── Offline UX + tenant recovery helpers ─────────────────────────────────
+(function () {
+    'use strict';
+
+    const STORAGE_KEY = 'pwa:lastPath';
+
+    function saveLastPath() {
+        try {
+            const path = window.location.pathname + window.location.search;
+            if (!path.startsWith('/offline')) {
+                localStorage.setItem(STORAGE_KEY, path);
+            }
+        } catch (err) {
+            // Ignore storage failures in private mode or strict browsers.
+        }
+    }
+
+    function buildBanner() {
+        const banner = document.createElement('div');
+        banner.id = 'offlineBanner';
+        banner.innerHTML = [
+            '<span class="msg">You are offline. Some actions are temporarily unavailable.</span>',
+            '<div class="actions">',
+            '<button type="button" class="btn btn-light btn-sm" id="offlineRetryBtn">Retry</button>',
+            '<button type="button" class="btn btn-outline-light btn-sm" id="offlineDismissBtn">Dismiss</button>',
+            '</div>'
+        ].join('');
+        return banner;
+    }
+
+    function setBannerState(banner, active) {
+        banner.classList.toggle('active', active);
+    }
+
+    function blockOfflineFormSubmissions() {
+        document.addEventListener('submit', function (event) {
+            if (navigator.onLine) {
+                return;
+            }
+
+            const form = event.target;
+            if (!(form instanceof HTMLFormElement)) {
+                return;
+            }
+
+            const method = (form.getAttribute('method') || 'get').toLowerCase();
+            if (method === 'get') {
+                return;
+            }
+
+            event.preventDefault();
+            const banner = document.getElementById('offlineBanner');
+            if (banner) {
+                setBannerState(banner, true);
+            }
+        }, true);
+    }
+
+    window.addEventListener('load', function () {
+        saveLastPath();
+        const banner = buildBanner();
+        document.body.appendChild(banner);
+
+        const retryBtn = document.getElementById('offlineRetryBtn');
+        const dismissBtn = document.getElementById('offlineDismissBtn');
+
+        function syncBanner() {
+            setBannerState(banner, !navigator.onLine);
+            if (navigator.onLine) {
+                saveLastPath();
+            }
+        }
+
+        retryBtn.addEventListener('click', function () {
+            window.location.reload();
+        });
+
+        dismissBtn.addEventListener('click', function () {
+            setBannerState(banner, false);
+        });
+
+        window.addEventListener('online', syncBanner);
+        window.addEventListener('offline', syncBanner);
+        syncBanner();
+
+        blockOfflineFormSubmissions();
+    });
+})();
+</script>
 
 {% if user.is_authenticated %}
 <!-- =====================================================================

@@ -1,0 +1,59 @@
+name: PWA Endpoint Check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  pwa-endpoints:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Start Django server
+        run: |
+          nohup python manage.py runserver 127.0.0.1:8765 > server.log 2>&1 &
+
+      - name: Wait for server
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:8765/sw.js > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Server failed to start"
+          cat server.log || true
+          exit 1
+
+      - name: Verify /sw.js endpoint and headers
+        run: |
+          curl -fsS -D sw_headers.txt http://127.0.0.1:8765/sw.js -o /dev/null
+          grep -qi "^HTTP/.* 200" sw_headers.txt
+          grep -qi "^Service-Worker-Allowed: /" sw_headers.txt
+
+      - name: Verify /offline endpoint
+        run: |
+          curl -fsS -D offline_headers.txt http://127.0.0.1:8765/offline/ -o /dev/null
+          grep -qi "^HTTP/.* 200" offline_headers.txt
+
+      - name: Upload server log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: django-server-log
+          path: server.log
