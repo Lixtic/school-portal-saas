@@ -18,6 +18,7 @@ from django.utils import timezone
 import calendar
 import datetime
 import json
+import secrets
 
 from django.db.utils import OperationalError, ProgrammingError
 
@@ -1100,6 +1101,55 @@ def session_debug(request):
         'allowed_hosts': _settings.ALLOWED_HOSTS,
     }
     return JsonResponse(data, json_dumps_params={'indent': 2})
+
+
+def env_health(request):
+    """
+    Deployment environment health endpoint.
+
+    Returns presence/validity checks for required env vars without exposing secret values.
+    Access is allowed in DEBUG, by authenticated staff users, or with a valid
+    X-Healthcheck-Token header / ?token=... matching HEALTHCHECK_TOKEN.
+    """
+    from django.conf import settings as _settings
+    import os as _os
+
+    healthcheck_token = (_os.environ.get('HEALTHCHECK_TOKEN') or '').strip()
+    provided_token = (
+        request.headers.get('X-Healthcheck-Token')
+        or request.GET.get('token')
+        or ''
+    ).strip()
+    token_ok = bool(healthcheck_token) and bool(provided_token) and secrets.compare_digest(provided_token, healthcheck_token)
+    staff_ok = request.user.is_authenticated and request.user.is_staff
+
+    if not (_settings.DEBUG or staff_ok or token_ok):
+        raise Http404
+
+    default_secret = getattr(_settings, 'DEFAULT_SECRET_KEY', '')
+    secret_key = getattr(_settings, 'SECRET_KEY', '')
+    checks = {
+        'SECRET_KEY': bool(secret_key) and secret_key != default_secret and not str(secret_key).startswith('django-insecure'),
+        'DATABASE_URL': bool(_os.environ.get('DATABASE_URL', '').strip()),
+    }
+
+    optional = {
+        'OPENAI_API_KEY': bool(_os.environ.get('OPENAI_API_KEY', '').strip()),
+        'PAYSTACK_SECRET_KEY': bool(_os.environ.get('PAYSTACK_SECRET_KEY', '').strip()),
+    }
+
+    missing_required = [name for name, ok in checks.items() if not ok]
+    payload = {
+        'ok': len(missing_required) == 0,
+        'debug': _settings.DEBUG,
+        'environment': {
+            'vercel': _os.environ.get('VERCEL', '0') == '1',
+        },
+        'required': checks,
+        'optional': optional,
+        'missing_required': missing_required,
+    }
+    return JsonResponse(payload, status=200 if payload['ok'] else 503)
 
 
 @login_required

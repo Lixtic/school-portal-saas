@@ -13,18 +13,23 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+DEFAULT_SECRET_KEY = 'django-insecure-your-secret-key-here-change-in-production'
+
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-your-secret-key-here-change-in-production')
+SECRET_KEY = os.environ.get('SECRET_KEY', DEFAULT_SECRET_KEY)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # Defaults to False unless explicitly set. Use DEBUG=True in local .env
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-# Warn loudly if SECRET_KEY is still the default in production
-if not DEBUG and SECRET_KEY.startswith('django-insecure'):
+# Enforce an explicit secret key outside debug to prevent insecure deployments.
+if not DEBUG and (not SECRET_KEY or SECRET_KEY == DEFAULT_SECRET_KEY or SECRET_KEY.startswith('django-insecure')):
     import logging as _log
     _log.getLogger('django.security').critical(
-        "⚠️ SECRET_KEY is using the insecure default! Set a proper SECRET_KEY env var on Vercel."
+        'SECRET_KEY is missing or insecure. Set a strong SECRET_KEY env var before starting the app.'
+    )
+    raise RuntimeError(
+        'Insecure SECRET_KEY configuration. Set SECRET_KEY in environment for production deployment.'
     )
 
 # OpenAI Configuration
