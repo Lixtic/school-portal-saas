@@ -856,47 +856,63 @@
             }
         }
 
-        /* Mobile tap-target loader: bottom shimmer on tapped cards/buttons */
-        @media (max-width: 768px) {
-            .mobile-tap-loader-target {
-                position: relative;
-                overflow: hidden;
+        /* Tap-target loader: bottom shimmer on tapped cards/buttons (all viewports) */
+        .mobile-tap-loader-target {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mobile-tap-loader-target::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            right: 10px;
+            bottom: 6px;
+            height: 2.5px;
+            border-radius: 999px;
+            background: rgba(67, 97, 238, 0.22);
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        .mobile-tap-loader-target::after {
+            content: '';
+            position: absolute;
+            bottom: 6px;
+            left: -34%;
+            width: 34%;
+            height: 2.5px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, transparent 0%, rgba(67,97,238,.62) 24%, #4361ee 50%, rgba(76,201,240,1) 74%, transparent 100%);
+            box-shadow: 0 0 7px rgba(67, 97, 238, 0.28), 0 0 11px rgba(76, 201, 240, 0.18);
+            animation: mobileTapLoaderSweep 0.74s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+            pointer-events: none;
+            z-index: 4;
+        }
+
+        .mobile-tap-loader-target.tap-complete::after {
+            animation: mobileTapLoaderFinish 0.28s cubic-bezier(0.22, 1, 0.36, 1) 0.08s forwards;
+        }
+
+        [data-bs-theme="dark"] .mobile-tap-loader-target::before {
+            background: rgba(148, 163, 184, 0.24);
+        }
+
+        /* Slightly subtler footprint on tablet/desktop */
+        @media (min-width: 769px) {
+            .mobile-tap-loader-target::before,
+            .mobile-tap-loader-target::after {
+                bottom: 5px;
+                height: 2px;
             }
 
             .mobile-tap-loader-target::before {
-                content: '';
-                position: absolute;
-                left: 10px;
-                right: 10px;
-                bottom: 6px;
-                height: 2.5px;
-                border-radius: 999px;
-                background: rgba(67, 97, 238, 0.22);
-                pointer-events: none;
-                z-index: 3;
+                background: rgba(67, 97, 238, 0.18);
             }
 
             .mobile-tap-loader-target::after {
-                content: '';
-                position: absolute;
-                bottom: 6px;
-                left: -34%;
-                width: 34%;
-                height: 2.5px;
-                border-radius: 999px;
-                background: linear-gradient(90deg, transparent 0%, rgba(67,97,238,.62) 24%, #4361ee 50%, rgba(76,201,240,1) 74%, transparent 100%);
-                box-shadow: 0 0 7px rgba(67, 97, 238, 0.28), 0 0 11px rgba(76, 201, 240, 0.18);
-                animation: mobileTapLoaderSweep 0.74s cubic-bezier(0.37, 0, 0.63, 1) infinite;
-                pointer-events: none;
-                z-index: 4;
-            }
-
-            .mobile-tap-loader-target.tap-complete::after {
-                animation: mobileTapLoaderFinish 0.28s cubic-bezier(0.22, 1, 0.36, 1) 0.08s forwards;
-            }
-
-            [data-bs-theme="dark"] .mobile-tap-loader-target::before {
-                background: rgba(148, 163, 184, 0.24);
+                animation-duration: 0.82s;
+                box-shadow: 0 0 6px rgba(67, 97, 238, 0.22), 0 0 9px rgba(76, 201, 240, 0.14);
             }
         }
 
@@ -3094,7 +3110,7 @@
         const __pageLoaderMinVisibleMs = 260;
 
         function setMobileTapLoader(target) {
-            if (window.innerWidth > 768 || !target) return;
+            if (!target) return;
 
             const tapTarget = target.closest(
                 '.card, .stat-card, .student-card, .qa-minimal-wrap, .tt-section, .schedule-item, .btn, .nav-link, .list-group-item, .mobile-bubble-item, .header-action-btn, a, button'
@@ -3121,7 +3137,6 @@
 
         function isTapLoaderEligible(el) {
             if (!el) return false;
-            if (window.innerWidth > 768) return false;
             if (el.closest('[data-no-loader]')) return false;
             if (el.hasAttribute('disabled') || el.getAttribute('aria-disabled') === 'true') return false;
             if (el.classList.contains('no-loader')) return false;
