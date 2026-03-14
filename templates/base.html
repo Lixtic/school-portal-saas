@@ -892,7 +892,7 @@
             }
 
             .mobile-tap-loader-target.tap-complete::after {
-                animation: mobileTapLoaderFinish 0.24s cubic-bezier(0.22, 1, 0.36, 1) 0.08s forwards;
+                animation: mobileTapLoaderFinish 0.28s cubic-bezier(0.22, 1, 0.36, 1) 0.08s forwards;
             }
 
             [data-bs-theme="dark"] .mobile-tap-loader-target::before {
@@ -3119,6 +3119,22 @@
             }, 2600);
         }
 
+        function isTapLoaderEligible(el) {
+            if (!el) return false;
+            if (window.innerWidth > 768) return false;
+            if (el.closest('[data-no-loader]')) return false;
+            if (el.hasAttribute('disabled') || el.getAttribute('aria-disabled') === 'true') return false;
+            if (el.classList.contains('no-loader')) return false;
+            return true;
+        }
+
+        function findActionableTapTarget(node) {
+            if (!node) return null;
+            return node.closest(
+                'a[href], button, [role="button"], [onclick], [data-action], [data-bs-toggle], .action-card, .stat-card, .student-card, .qa-min-link, .tt-link, .sd-action-card, .pd-action, .pd-child, .list-group-item'
+            );
+        }
+
         function clearMobileTapLoader(animate = true) {
             if (__mobileTapLoaderClearTimer) {
                 clearTimeout(__mobileTapLoaderClearTimer);
@@ -3133,7 +3149,7 @@
                     activeEl.classList.add('tap-complete');
                     setTimeout(function () {
                         activeEl.classList.remove('tap-complete', 'mobile-tap-loader-target');
-                    }, 360);
+                    }, 420);
                 } else {
                     activeEl.classList.remove('tap-complete', 'mobile-tap-loader-target');
                 }
@@ -3249,6 +3265,27 @@
                     setMobileTapLoader(link);
                     scheduleTopBarLoader();
                 }
+            });
+
+            // Generic mobile tap feedback for JS-driven buttons/cards (non-link actions)
+            document.body.addEventListener('touchstart', function (e) {
+                const target = findActionableTapTarget(e.target);
+                if (!target || !isTapLoaderEligible(target)) return;
+
+                // Link navigation already has a dedicated flow.
+                if (target.matches('a[href]')) return;
+
+                setMobileTapLoader(target);
+            }, { passive: true });
+
+            document.body.addEventListener('click', function (e) {
+                const target = findActionableTapTarget(e.target);
+                if (!target || !isTapLoaderEligible(target)) return;
+
+                // Skip links and submit controls (handled by existing listeners).
+                if (target.matches('a[href], button[type="submit"], input[type="submit"]')) return;
+
+                setMobileTapLoader(target);
             });
 
             // Event Delegation for Forms (Submit)
