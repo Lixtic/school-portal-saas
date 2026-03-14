@@ -3550,6 +3550,10 @@
     }
 
     function showUpdateButton() {
+        if (isInstalledOrWrapped()) {
+            hideUpdateButton();
+            return;
+        }
         updateCta.style.display = 'inline-flex';
         updateCta.style.alignItems = 'center';
     }
@@ -3628,6 +3632,7 @@
 
         if (isInstalledOrWrapped()) {
             hideInstallButton();
+            hideUpdateButton();
         }
 
         try {
