@@ -647,6 +647,14 @@ def student_dashboard_view(request):
         ).order_by('-created_at')[:5]
     except Exception:
         homework_list = []
+
+    try:
+        from homework.models import ClassNote
+        notes_count = ClassNote.objects.filter(
+            target_class=student.current_class
+        ).count() if student.current_class else 0
+    except Exception:
+        notes_count = 0
     
     resource_fields_available = False
     try:
@@ -727,6 +735,7 @@ def student_dashboard_view(request):
         'attendance_stats': attendance_stats,
         'grades': grades,
         'homework_list': homework_list,
+        'notes_count': notes_count,
         'resources': resources,
         'notices': notices,
         'today': date.today(),

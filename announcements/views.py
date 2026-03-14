@@ -102,9 +102,12 @@ def manage_announcements(request):
 
 @login_required
 def notifications_unread_count(request):
-    """Return the unread notification count as JSON (for client-side polling)."""
-    count = request.user.notifications.filter(is_read=False).count()
-    return JsonResponse({'count': count})
+    """Return the unread notification count + latest unread link as JSON (for client-side polling)."""
+    qs = request.user.notifications.filter(is_read=False).order_by('-created_at')
+    count = qs.count()
+    latest = qs.values('link', 'message').first()
+    latest_link = (latest.get('link') or '') if latest else ''
+    return JsonResponse({'count': count, 'latest_link': latest_link})
 
 
 @login_required

@@ -4663,6 +4663,9 @@
         if (current > _lastCount) {
           var diff = current - _lastCount;
           showToast('You have ' + diff + ' new notification' + (diff > 1 ? 's' : '') + '!');
+          // Point the View → link at the latest notification's destination
+          var linkEl = document.getElementById('liveNotifToastLink');
+          if (linkEl && d.latest_link) { linkEl.href = d.latest_link; }
           // Refresh badge in bell without full reload
           var badge = document.querySelector('.position-absolute.badge.rounded-pill.bg-danger');
           if (badge) { badge.textContent = current; }
