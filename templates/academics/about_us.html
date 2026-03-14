@@ -237,12 +237,15 @@
             return match ? match[2] : '';
         })('csrftoken');
 
+        let _busy = false;
+
         function appendBubble(text, type) {
             const div = document.createElement('div');
             div.className = 'assistant-bubble ' + type;
             div.textContent = text;
             body.appendChild(div);
             body.scrollTop = body.scrollHeight;
+            return div;
         }
 
         toggle.addEventListener('click', () => { panel.style.display = 'flex'; input.focus(); });
@@ -251,12 +254,15 @@
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const question = input.value.trim();
-            if (!question) return;
+            if (!question || _busy) return;
+            _busy = true;
+            input.disabled = true;
             appendBubble(question, 'user');
             input.value = '';
 
+            const botBubble = appendBubble('Thinking…', 'bot');
+
             try {
-                console.log('Sending request to:', '{% url "academics:copilot_assistant" %}');
                 const res = await fetch('{% url "academics:copilot_assistant" %}', {
                     method: 'POST',
                     headers: {
@@ -265,18 +271,32 @@
                     },
                     body: JSON.stringify({ question, role: 'visitor' }),
                 });
-                
-                console.log('Response status:', res.status);
-                if (!res.ok) {
-                    const errorText = await res.text();
-                    throw new Error(`HTTP ${res.status}: ${errorText}`);
+
+                if (!res.ok || !res.body) {
+                    const errText = await res.text().catch(() => '');
+                    botBubble.textContent = errText || 'Sorry, I could not process that right now.';
+                    return;
                 }
-                
-                const answer = await res.text();
-                appendBubble(answer || 'Sorry, I could not process that right now.', 'bot');
+
+                botBubble.textContent = '';
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let done = false;
+                while (!done) {
+                    const chunk = await reader.read();
+                    done = chunk.done;
+                    const text = decoder.decode(chunk.value || new Uint8Array(), { stream: !done });
+                    if (text) {
+                        botBubble.textContent += text;
+                        body.scrollTop = body.scrollHeight;
+                    }
+                }
             } catch (err) {
-                console.error('Chatbot error:', err);
-                appendBubble('Network issue. Please try again.', 'bot');
+                botBubble.textContent = 'Network issue. Please check your connection and try again.';
+            } finally {
+                _busy = false;
+                input.disabled = false;
+                input.focus();
             }
         });
     })();

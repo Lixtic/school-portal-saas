@@ -839,23 +839,27 @@ def copilot_history(request):
     if request.method != 'GET':
         return JsonResponse({'error': 'Invalid request'}, status=405)
 
-    from .tutor_models import CopilotConversation
+    try:
+        from .tutor_models import CopilotConversation
 
-    conversation = CopilotConversation.objects.filter(user=request.user, is_active=True).first()
-    if not conversation:
+        conversation = CopilotConversation.objects.filter(user=request.user, is_active=True).first()
+        if not conversation:
+            return JsonResponse({'conversation_id': None, 'messages': []})
+
+        messages_qs = conversation.messages.order_by('created_at')[:30]
+        messages = [
+            {
+                'role': message.role,
+                'content': message.content,
+                'created_at': message.created_at.isoformat(),
+            }
+            for message in messages_qs
+        ]
+
+        return JsonResponse({'conversation_id': conversation.id, 'messages': messages})
+    except Exception as e:
+        logger.warning('copilot_history DB error (table may not exist): %s', e)
         return JsonResponse({'conversation_id': None, 'messages': []})
-
-    messages_qs = conversation.messages.order_by('created_at')[:30]
-    messages = [
-        {
-            'role': message.role,
-            'content': message.content,
-            'created_at': message.created_at.isoformat(),
-        }
-        for message in messages_qs
-    ]
-
-    return JsonResponse({'conversation_id': conversation.id, 'messages': messages})
 
 
 @ensure_csrf_cookie

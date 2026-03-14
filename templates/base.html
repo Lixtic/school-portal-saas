@@ -4554,7 +4554,8 @@
         if (busy || !question) return;
         busy = true;
         addMsg(question, 'user');
-        history.push({ role: 'user', content: question });
+        // Push to history AFTER response — not before — to avoid sending the
+        // current question twice (history already contains it + the view appends it).
         input.value = '';
 
         const typing = addMsg('Thinking…', 'bot');
@@ -4567,10 +4568,18 @@
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
                 body: JSON.stringify({ question, history })
             });
+            if (!res.ok) {
+                const errText = await res.text().catch(() => '');
+                typing.remove();
+                addMsg(errText || 'Sorry, something went wrong. Please try again.', 'bot');
+                return;
+            }
             const data = await res.json();
             typing.remove();
             const answer = data.answer || data.error || 'Sorry, something went wrong.';
             addMsg(answer, 'bot');
+            // Push both turns after a successful exchange so context is correct next time
+            history.push({ role: 'user', content: question });
             history.push({ role: 'assistant', content: answer });
             if (history.length > 20) history = history.slice(-20);
         } catch (e) {
