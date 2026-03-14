@@ -126,6 +126,9 @@ def mark_notification_read(request, notification_id):
         return redirect('communication:inbox')
     if notification.alert_type == 'message':
         return redirect('communication:inbox')
+    # For all other types (general, fee, etc.) follow the stored link if present
+    if notification.link:
+        return redirect(notification.link)
     return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
 
 @login_required

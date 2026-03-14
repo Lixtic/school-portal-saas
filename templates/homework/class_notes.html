@@ -5,6 +5,7 @@
 
 {% block extra_css %}
 <style>
+/* ── Header ────────────────────────────────────────────── */
 .notes-header {
     background: linear-gradient(135deg, #4c1d95 0%, #1e3a8a 100%);
     border-radius: 16px; padding: 2rem 2rem 1.75rem;
@@ -18,60 +19,90 @@
 .notes-header h1 { font-size: 1.75rem; font-weight: 700; margin: 0; }
 .notes-header p   { opacity: .88; font-size: .93rem; margin: .35rem 0 0; }
 
-.note-card {
+/* ── Folder cards ──────────────────────────────────────── */
+.cn-folder-card {
     border-radius: 14px; border: 1px solid rgba(0,0,0,.07);
-    transition: box-shadow .2s, transform .15s; overflow: hidden;
+    transition: box-shadow .2s, transform .15s; cursor: pointer;
+    background: #fff;
 }
-.note-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.09); transform: translateY(-2px); }
-[data-bs-theme="dark"] .note-card {
-    background: #1e293b; border-color: rgba(255,255,255,0.08);
-}
+.cn-folder-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.10); transform: translateY(-2px); }
+[data-bs-theme="dark"] .cn-folder-card { background: #1e293b; border-color: rgba(255,255,255,0.08); }
+[data-bs-theme="dark"] .cn-folder-card h6 { color: #e2e8f0; }
 
-.note-card-head {
-    background: linear-gradient(135deg, #1e0a40, #2d0e66);
+/* ── Accordion note items ──────────────────────────────── */
+.cn-accordion-item {
+    border: 1px solid rgba(0,0,0,.08) !important;
+    border-radius: 12px !important;
+    overflow: hidden;
+    margin-bottom: .65rem;
+}
+[data-bs-theme="dark"] .cn-accordion-item { background: #1e293b; border-color: rgba(255,255,255,0.08) !important; }
+.cn-accordion-btn {
+    background: linear-gradient(135deg, #1e0a40, #2d0e66) !important;
+    color: #e2e8f0 !important;
+    font-weight: 600;
     padding: .85rem 1.2rem;
-    display: flex; align-items: center; justify-content: space-between; gap: .8rem;
+    border-radius: 0 !important;
+    width: 100%; text-align: left; border: 0; cursor: pointer;
+    display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem;
 }
-.note-card-head h5 { font-size: .92rem; font-weight: 700; color: #e2e8f0; margin: 0; }
-.note-card-head .note-meta { font-size: .7rem; color: rgba(255,255,255,.45); }
-.note-badge {
-    background: rgba(124,58,237,.25); color: #c4b5fd;
-    font-size: .62rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
-    border-radius: 20px; padding: .2em .65em; border: 1px solid rgba(124,58,237,.3);
-}
+.cn-accordion-btn.open { background: linear-gradient(135deg, #2d1166, #3b12a0) !important; }
+.cn-note-meta { font-size: .7rem; color: rgba(255,255,255,.5); margin-top: .25rem; }
+
+/* ── Concept grid ──────────────────────────────────────── */
 .concept-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .65rem;
-    padding: 1rem 1.2rem 1.2rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: .65rem; padding: 1rem;
 }
 .concept-chip {
     background: #f8fafc; border: 1px solid #e0e7ff; border-radius: 10px;
     padding: .65rem .85rem;
 }
-[data-bs-theme="dark"] .concept-chip {
-    background: #0f172a; border-color: rgba(124,58,237,.2);
-}
+[data-bs-theme="dark"] .concept-chip { background: #0f172a; border-color: rgba(124,58,237,.2); }
 .concept-term { font-size: .8rem; font-weight: 800; color: #4c1d95; margin-bottom: .2rem; }
 [data-bs-theme="dark"] .concept-term { color: #a78bfa; }
 .concept-desc { font-size: .74rem; color: #475569; line-height: 1.45; }
 [data-bs-theme="dark"] .concept-desc { color: #94a3b8; }
 
+/* ── Inline badge ──────────────────────────────────────── */
+.note-badge {
+    background: rgba(124,58,237,.25); color: #c4b5fd;
+    font-size: .62rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+    border-radius: 20px; padding: .2em .65em; border: 1px solid rgba(124,58,237,.3); white-space: nowrap;
+}
+
+/* ── Highlight flash arriving from notification ─────────── */
+@keyframes cnFlash {
+    0%,100% { box-shadow: 0 0 0 0 rgba(124,58,237,0); }
+    50%      { box-shadow: 0 0 0 6px rgba(124,58,237,.4); }
+}
+.cn-highlight { animation: cnFlash .8s ease 2; border-color: #7c3aed !important; }
+
 @keyframes fadeInUp {
     from { opacity: 0; transform: translateY(14px); }
     to   { opacity: 1; transform: translateY(0); }
 }
-.note-anim { animation: fadeInUp .3s ease both; }
-.note-anim:nth-child(n+1) { animation-delay: calc(var(--idx, 0) * 0.06s); }
+.cn-anim { animation: fadeInUp .3s ease both; }
+
+/* Chevron rotation */
+.cn-chev { font-size: .8rem; opacity: .65; transition: transform .25s; flex-shrink: 0; margin-top: .15rem; }
+.cn-chev.rotated { transform: rotate(180deg); }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
 
+    <!-- ── Page header ─────────────────────────────────────── -->
     <div class="notes-header">
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
             <div>
                 <h1><i class="bi bi-journal-richtext me-2 opacity-75"></i>Class Notes</h1>
-                <p>Key concepts shared by your teacher from study guides.</p>
+                <p>
+                    {% if is_teacher %}Key concepts you've shared with your classes.
+                    {% else %}Key concepts shared by your teachers.{% endif %}
+                </p>
             </div>
             <span style="background:rgba(255,255,255,.18);border-radius:20px;padding:6px 18px;font-size:.82rem;color:#fff;backdrop-filter:blur(4px);">
                 <i class="bi bi-lightbulb me-1"></i>{{ notes|length }} Note{{ notes|length|pluralize }}
@@ -79,42 +110,111 @@
         </div>
     </div>
 
-    {% if notes %}
-    <div class="d-flex flex-column gap-4">
-        {% for note in notes %}
-        <div class="note-card card border-0 shadow-sm note-anim" style="--idx:{{ forloop.counter0 }};">
-            <div class="note-card-head">
-                <div>
-                    <h5><i class="fas fa-book-open me-2 opacity-75"></i>{{ note.title }}</h5>
-                    <div class="note-meta">
-                        <i class="bi bi-person me-1"></i>{{ note.teacher.user.get_full_name|default:note.teacher.user.username }}
-                        {% if note.target_class %}<span class="ms-2"><i class="bi bi-people me-1"></i>{{ note.target_class.name }}</span>{% endif %}
-                        <span class="ms-2"><i class="bi bi-clock me-1"></i>{{ note.created_at|timesince }} ago</span>
+    {% if note_groups %}
+
+    <!-- ══════════════════════════════════════════════════════
+         FOLDER GRID
+    ══════════════════════════════════════════════════════════ -->
+    <div id="cn-folders-view">
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 mb-2">
+            {% for grp in note_groups %}
+            <div class="col cn-anim">
+                <div class="card border-0 shadow-sm cn-folder-card h-100"
+                     onclick="cnShowFolder('{{ grp.key }}')">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3">
+                            <i class="bi bi-folder-fill" style="font-size:3.2rem;color:#7c3aed;"></i>
+                        </div>
+                        <h6 class="fw-bold mb-2">{{ grp.label }}</h6>
+                        <span class="badge rounded-pill"
+                              style="background:rgba(124,58,237,.12);color:#7c3aed;">
+                            {{ grp.notes|length }} Note{{ grp.notes|length|pluralize }}
+                        </span>
                     </div>
                 </div>
-                <div class="d-flex align-items-center gap-2 flex-shrink-0">
-                    {% if note.source_deck %}
-                    <span class="note-badge"><i class="bi bi-layers me-1"></i>{{ note.source_deck.title|truncatechars:20 }}</span>
-                    {% endif %}
-                    <span class="note-badge">{{ note.content|length }} Concept{{ note.content|length|pluralize }}</span>
-                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         DETAIL / ACCORDION VIEW
+    ══════════════════════════════════════════════════════════ -->
+    <div id="cn-detail-view" style="display:none;">
+        <div class="mb-3">
+            <button class="btn btn-outline-secondary btn-sm rounded-pill px-3"
+                    onclick="cnShowFolders()">
+                <i class="bi bi-arrow-left me-1"></i>Back to Folders
+            </button>
+        </div>
+
+        {% for grp in note_groups %}
+        <div class="cn-folder-detail" id="cn-folder-{{ grp.key }}" style="display:none;">
+
+            <!-- Folder breadcrumb -->
+            <div class="mb-3 d-flex align-items-center gap-2">
+                <i class="bi bi-folder2-open fs-5" style="color:#7c3aed;"></i>
+                <span class="fw-bold fs-6">{{ grp.label }}</span>
+                <span class="badge rounded-pill ms-1"
+                      style="background:rgba(124,58,237,.12);color:#7c3aed;font-size:.72rem;">
+                    {{ grp.notes|length }} note{{ grp.notes|length|pluralize }}
+                </span>
             </div>
 
-            {% if note.content %}
-            <div class="concept-grid">
-                {% for concept in note.content %}
-                <div class="concept-chip">
-                    <div class="concept-term">{{ concept.term }}</div>
-                    <div class="concept-desc">{{ concept.description }}</div>
+            <!-- Individual note entries (collapsible) -->
+            <div class="d-flex flex-column mb-4">
+                {% for note in grp.notes %}
+                <div class="cn-accordion-item cn-anim" id="cn-note-{{ note.pk }}">
+
+                    <!-- Toggle header -->
+                    <button class="cn-accordion-btn"
+                            onclick="cnToggleNote({{ note.pk }}, this)"
+                            aria-expanded="false"
+                            aria-controls="cn-collapse-{{ note.pk }}">
+                        <div class="flex-grow-1" style="min-width:0;">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <i class="bi bi-journal-text opacity-75"></i>
+                                <span>{{ note.title }}</span>
+                            </div>
+                            <div class="cn-note-meta mt-1 d-flex flex-wrap gap-2">
+                                <span><i class="bi bi-clock me-1"></i>{{ note.created_at|timesince }} ago</span>
+                                {% if not is_teacher %}
+                                <span><i class="bi bi-person me-1"></i>{{ note.teacher.user.get_full_name|default:note.teacher.user.username }}</span>
+                                {% else %}
+                                <span><i class="bi bi-people me-1"></i>{{ note.target_class.name }}</span>
+                                {% endif %}
+                                {% if note.source_deck %}
+                                <span><i class="bi bi-layers me-1"></i>{{ note.source_deck.title|truncatechars:22 }}</span>
+                                {% endif %}
+                                <span class="note-badge">{{ note.content|length }} concept{{ note.content|length|pluralize }}</span>
+                            </div>
+                        </div>
+                        <i class="bi bi-chevron-down cn-chev" id="cn-chev-{{ note.pk }}"></i>
+                    </button>
+
+                    <!-- Collapsible body -->
+                    <div id="cn-collapse-{{ note.pk }}" style="display:none;">
+                        {% if note.content %}
+                        <div class="concept-grid">
+                            {% for concept in note.content %}
+                            <div class="concept-chip">
+                                <div class="concept-term">{{ concept.term }}</div>
+                                <div class="concept-desc">{{ concept.description }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="p-4 text-center text-muted">
+                            <i class="bi bi-file-earmark-text opacity-25 d-block mb-2" style="font-size:2rem;"></i>
+                            No concepts in this note.
+                        </div>
+                        {% endif %}
+                    </div>
+
                 </div>
                 {% endfor %}
             </div>
-            {% else %}
-            <div class="p-4 text-center text-muted">
-                <i class="bi bi-file-earmark-text opacity-25 d-block mb-2" style="font-size:2rem;"></i>
-                No concepts in this note.
-            </div>
-            {% endif %}
+
         </div>
         {% endfor %}
     </div>
@@ -124,19 +224,73 @@
         <div class="mb-3"><i class="bi bi-journal-x" style="font-size:3rem;opacity:.2;"></i></div>
         <h5 class="text-muted">No Class Notes Yet</h5>
         <p class="text-muted mb-0">
-            {% if request.user.user_type == 'student' %}
-                Your teacher hasn't shared any key concepts yet. Check back later.
-            {% else %}
+            {% if is_teacher %}
                 No notes have been sent. Generate a study guide and use the "Send as Notes" button.
+            {% else %}
+                Your teacher hasn't shared any key concepts yet. Check back later.
             {% endif %}
         </p>
     </div>
     {% endif %}
 
     <div class="mt-3">
-        <a href="{% url 'homework:homework_list' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+        <a href="{% url 'homework:homework_list' %}"
+           class="btn btn-outline-secondary btn-sm rounded-pill px-3">
             <i class="bi bi-arrow-left me-1"></i>Back to Assignments
         </a>
     </div>
 </div>
+
+<script>
+(function () {
+    /* ── folder navigation ──────────────────────────────── */
+    function cnShowFolder(key) {
+        document.getElementById('cn-folders-view').style.display = 'none';
+        document.getElementById('cn-detail-view').style.display  = 'block';
+        document.querySelectorAll('.cn-folder-detail').forEach(function (el) {
+            el.style.display = 'none';
+        });
+        var panel = document.getElementById('cn-folder-' + key);
+        if (panel) panel.style.display = 'block';
+    }
+    window.cnShowFolder = cnShowFolder;
+
+    window.cnShowFolders = function () {
+        document.getElementById('cn-detail-view').style.display  = 'none';
+        document.getElementById('cn-folders-view').style.display = 'block';
+    };
+
+    /* ── individual note toggle ─────────────────────────── */
+    window.cnToggleNote = function (pk, btn) {
+        var body  = document.getElementById('cn-collapse-' + pk);
+        var chev  = document.getElementById('cn-chev-' + pk);
+        var isOpen = body && body.style.display !== 'none';
+        if (body) body.style.display = isOpen ? 'none' : 'block';
+        if (chev) chev.classList.toggle('rotated', !isOpen);
+        if (btn)  btn.classList.toggle('open', !isOpen);
+        if (btn)  btn.setAttribute('aria-expanded', String(!isOpen));
+    };
+
+    /* ── auto-open when arriving from a notification ────── */
+    var _highlight   = {{ highlight_note|default:"null" }};
+    var _noteToGroup = {{ note_to_group_json|safe }};
+
+    if (_highlight && _noteToGroup[_highlight]) {
+        cnShowFolder(_noteToGroup[_highlight]);
+        setTimeout(function () {
+            var body    = document.getElementById('cn-collapse-' + _highlight);
+            var chev    = document.getElementById('cn-chev-' + _highlight);
+            var noteEl  = document.getElementById('cn-note-' + _highlight);
+            var btn     = noteEl ? noteEl.querySelector('.cn-accordion-btn') : null;
+            if (body)  { body.style.display = 'block'; }
+            if (chev)  { chev.classList.add('rotated'); }
+            if (btn)   { btn.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); }
+            if (noteEl) {
+                noteEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                noteEl.classList.add('cn-highlight');
+            }
+        }, 200);
+    }
+})();
+</script>
 {% endblock %}

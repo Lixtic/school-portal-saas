@@ -5932,7 +5932,7 @@ def presentation_send_as_notes(request, pk):
         from students.models import Student as _Stu
         from django.urls import reverse as _reverse
         script_name = request.META.get('SCRIPT_NAME', '').rstrip('/')
-        notes_url = script_name + _reverse('homework:student_notes_list')
+        notes_url = script_name + _reverse('homework:student_notes_list') + f'?note={note.pk}'
         _students = _Stu.objects.filter(
             current_class=target_class, user__is_active=True
         ).select_related('user')
@@ -5950,7 +5950,7 @@ def presentation_send_as_notes(request, pk):
 
     script_name = request.META.get('SCRIPT_NAME', '').rstrip('/')
     from django.urls import reverse as _reverse
-    notes_url = script_name + _reverse('homework:student_notes_list')
+    notes_url = script_name + _reverse('homework:student_notes_list') + f'?note={note.pk}'
     return JsonResponse({'ok': True, 'note_id': note.pk, 'notes_url': notes_url})
 
 

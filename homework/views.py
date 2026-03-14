@@ -178,32 +178,59 @@ def homework_list(request):
 
 @login_required
 def student_notes_list(request):
-    """List class notes (key concepts) for the current user's class or teacher."""
+    """List class notes grouped by teacher (students) or class (teachers), with ?note=pk to highlight one."""
+    import json as _json
     from .models import ClassNote
     user = request.user
-    notes = ClassNote.objects.none()
+    notes_qs = ClassNote.objects.none()
+    is_teacher = (user.user_type == 'teacher')
 
     if user.user_type == 'student':
         try:
             student = user.student
             if student.current_class:
-                notes = ClassNote.objects.filter(
+                notes_qs = ClassNote.objects.filter(
                     target_class=student.current_class
-                ).select_related('teacher__user', 'source_deck')
+                ).select_related('teacher__user', 'source_deck').order_by('teacher__user__first_name', '-created_at')
         except Student.DoesNotExist:
             pass
     elif user.user_type == 'teacher':
         try:
             teacher = user.teacher
-            notes = ClassNote.objects.filter(
+            notes_qs = ClassNote.objects.filter(
                 teacher=teacher
-            ).select_related('target_class', 'source_deck')
+            ).select_related('target_class', 'source_deck').order_by('target_class__name', '-created_at')
         except Teacher.DoesNotExist:
             pass
     elif user.user_type in ('admin', 'parent'):
-        notes = ClassNote.objects.select_related('teacher__user', 'target_class', 'source_deck')
+        notes_qs = ClassNote.objects.select_related(
+            'teacher__user', 'target_class', 'source_deck'
+        ).order_by('teacher__user__first_name', '-created_at')
 
-    return render(request, 'homework/class_notes.html', {'notes': notes})
+    # Build groups for folder view
+    groups_dict = {}
+    note_to_group = {}
+    for note in notes_qs:
+        if is_teacher:
+            key = f'cls-{note.target_class_id}' if note.target_class_id else 'general'
+            label = note.target_class.name if note.target_class_id else 'General'
+        else:
+            key = f'tchr-{note.teacher_id}' if note.teacher_id else 'general'
+            label = (note.teacher.user.get_full_name() or note.teacher.user.username) if note.teacher_id else 'General'
+        if key not in groups_dict:
+            groups_dict[key] = {'key': key, 'label': label, 'notes': []}
+        groups_dict[key]['notes'].append(note)
+        note_to_group[note.pk] = key
+
+    highlight_note = request.GET.get('note', '')
+
+    return render(request, 'homework/class_notes.html', {
+        'note_groups': list(groups_dict.values()),
+        'notes': notes_qs,
+        'highlight_note': highlight_note,
+        'note_to_group_json': _json.dumps(note_to_group),
+        'is_teacher': is_teacher,
+    })
 
 
 
