@@ -1,9 +1,17 @@
-from .models import SchoolInfo
+from .models import SchoolInfo, AcademicYear
 from django.db import connection
 from django.conf import settings
 
 
 def school_info(request):
+    current_academic_year = ''
+    try:
+        current_year = AcademicYear.objects.filter(is_current=True).first() or AcademicYear.objects.order_by('-start_date').first()
+        if current_year:
+            current_academic_year = current_year.name or ''
+    except Exception:
+        current_academic_year = ''
+
     try:
         info = SchoolInfo.objects.first()
     except Exception:
@@ -23,6 +31,7 @@ def school_info(request):
             'school_email': None,
             'school_phone': None,
             'school_info': None,
+            'current_academic_year': current_academic_year,
             'vapid_public_key': getattr(settings, 'VAPID_PUBLIC_KEY', ''),
             'paystack_public_key': getattr(settings, 'PAYSTACK_PUBLIC_KEY', ''),
         }
@@ -52,6 +61,7 @@ def school_info(request):
         'school_motto': info.motto,
         'school_logo': info.logo,
         'school_info': info,
+        'current_academic_year': current_academic_year,
         'vapid_public_key': getattr(settings, 'VAPID_PUBLIC_KEY', ''),
         'paystack_public_key': getattr(settings, 'PAYSTACK_PUBLIC_KEY', ''),
     }

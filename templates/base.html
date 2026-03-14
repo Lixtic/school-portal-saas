@@ -3010,34 +3010,37 @@
 
             function getCopilotSuggestionSet() {
                 const role = (userRole || '').toLowerCase() || 'visitor';
+                const nowYear = new Date().getFullYear();
+                const serverAcademicYear = '{{ current_academic_year|default_if_none:""|escapejs }}'.trim();
+                const ayLabel = serverAcademicYear || `${nowYear}/${nowYear + 1}`;
                 const sets = {
                     visitor: [
                         { label: 'Admissions Form', prompt: 'How do I start a new admission form for Basic 7, Basic 8, or Basic 9, and which documents are required?' },
-                        { label: 'Term Bill', prompt: 'How can I check the term bill and fee structure by class level (Basic 7 to Basic 9)?' },
-                        { label: 'Academic Year', prompt: 'What are the current Academic Year term dates and key school activities?' },
+                        { label: 'Term Bill', prompt: `How can I check the term bill and fee structure by class level (Basic 7 to Basic 9) for Academic Year ${ayLabel}?` },
+                        { label: 'Academic Year', prompt: 'What are the First, Second, and Third Term dates plus key school activities?' },
                         { label: 'School Office', prompt: 'How can I contact the school office for admissions and fees enquiries?' },
                     ],
                     parent: [
-                        { label: 'Child Attendance', prompt: 'Show me how to check my child attendance and absences for this Academic Year term.' },
-                        { label: 'Outstanding Fees', prompt: 'How can I view and pay my child outstanding term bill from the parent portal?' },
-                        { label: 'Class Teacher', prompt: 'How do I contact my child class teacher (Basic 7, 8, or 9) through the portal?' },
+                        { label: 'Child Attendance', prompt: 'Show me how to check my child attendance and absences for this term (First, Second, or Third).' },
+                        { label: 'Outstanding Fees', prompt: `How can I view and pay my child outstanding term bill for Academic Year ${ayLabel} from the parent portal?` },
+                        { label: 'Class Teacher', prompt: 'How do I contact my child class teacher (for Basic 7, Basic 8, or Basic 9) through the portal?' },
                         { label: 'PTA & Notices', prompt: 'Show upcoming PTA meetings, announcements, and school activities.' },
                     ],
                     admin: [
                         { label: 'Daily Snapshot', prompt: 'Give me a daily admin snapshot: attendance, term bill collections, and pending actions.' },
-                        { label: 'Fee Collection', prompt: 'Show fee collection progress and arrears across Basic 7, Basic 8, and Basic 9.' },
-                        { label: 'Attendance Alerts', prompt: 'Show attendance trends and classes that need urgent follow-up this term.' },
+                        { label: 'Fee Collection', prompt: `Show fee collection progress and arrears across Basic 7, Basic 8, and Basic 9 for Academic Year ${ayLabel}.` },
+                        { label: 'Attendance Alerts', prompt: 'Show attendance trends and classes that need urgent follow-up for this term.' },
                         { label: 'Send Notice', prompt: 'How do I publish announcements to parents, class teachers, and students?' },
                     ],
                     teacher: [
                         { label: 'Class Attendance', prompt: 'Help me review today attendance for my class and identify follow-ups.' },
                         { label: 'Lesson Starter', prompt: 'Create a quick lesson starter for my next Basic class topic.' },
-                        { label: 'Gradebook Help', prompt: 'How can I enter and review class score + exam score for this term?' },
+                        { label: 'Gradebook Help', prompt: 'How can I enter and review class score + exam score for First, Second, or Third Term?' },
                         { label: 'Parent Update', prompt: 'Draft a short update I can send to parents through the class teacher channel.' },
                     ],
                     student: [
                         { label: 'Homework', prompt: 'Help me check and organize my homework for today and this week.' },
-                        { label: 'Exam Prep', prompt: 'Create a quick revision plan for my next test in this Academic Year term.' },
+                        { label: 'Exam Prep', prompt: `Create a quick revision plan for my next test in Academic Year ${ayLabel}.` },
                         { label: 'My Grades', prompt: 'Show me how to view my latest grades, remarks, and class performance.' },
                         { label: 'Next Class', prompt: 'What is my next class on the timetable and what should I revise first?' },
                     ],
