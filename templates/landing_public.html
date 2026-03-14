@@ -408,6 +408,161 @@ body {
     background: rgba(15, 23, 42, 0.9);
     border-color: var(--border-color);
 }
+
+/* Aura Copilot Widget */
+.aura-launcher {
+    position: fixed;
+    bottom: 26px;
+    left: 26px;
+    z-index: 1200;
+}
+
+.aura-launcher .btn {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, #0f766e, #14b8a6);
+    color: #fff;
+    box-shadow: 0 14px 28px rgba(15, 118, 110, 0.35);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+}
+
+.aura-launcher .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 34px rgba(15, 118, 110, 0.42);
+}
+
+.aura-panel {
+    position: fixed;
+    bottom: 96px;
+    left: 26px;
+    width: 390px;
+    max-width: calc(100vw - 24px);
+    height: 520px;
+    max-height: calc(100vh - 160px);
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 20px 50px rgba(2, 6, 23, 0.18);
+    overflow: hidden;
+    z-index: 1200;
+    display: none;
+    flex-direction: column;
+    backdrop-filter: blur(10px);
+}
+
+[data-bs-theme="dark"] .aura-panel {
+    background: rgba(15, 23, 42, 0.95);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.aura-header {
+    background: linear-gradient(135deg, #0f766e, #14b8a6);
+    color: #fff;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.aura-header h6 {
+    margin: 0;
+    font-size: 0.98rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.aura-close {
+    background: rgba(255, 255, 255, 0.22);
+    border: none;
+    color: #fff;
+    border-radius: 999px;
+    width: 30px;
+    height: 30px;
+}
+
+.aura-body {
+    flex: 1;
+    overflow: auto;
+    padding: 14px;
+    background: linear-gradient(180deg, rgba(20, 184, 166, 0.05), transparent 45%);
+}
+
+.aura-msg {
+    padding: 10px 12px;
+    border-radius: 14px;
+    margin-bottom: 10px;
+    max-width: 88%;
+    white-space: pre-wrap;
+    line-height: 1.45;
+    font-size: 0.92rem;
+}
+
+.aura-msg.bot {
+    background: #f0fdfa;
+    border: 1px solid #ccfbf1;
+    color: #134e4a;
+}
+
+.aura-msg.user {
+    margin-left: auto;
+    background: #0f766e;
+    color: #fff;
+}
+
+[data-bs-theme="dark"] .aura-msg.bot {
+    background: rgba(20, 184, 166, 0.1);
+    border-color: rgba(20, 184, 166, 0.2);
+    color: #ccfbf1;
+}
+
+.aura-input {
+    border-top: 1px solid var(--border-color);
+    padding: 10px;
+    background: var(--card-bg);
+}
+
+.aura-input form {
+    display: flex;
+    gap: 8px;
+}
+
+.aura-input input {
+    flex: 1;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    padding: 10px 12px;
+    background: var(--bg-secondary);
+    color: var(--text-dark);
+}
+
+.aura-input button {
+    border: none;
+    border-radius: 999px;
+    background: var(--brand-teal);
+    color: #fff;
+    padding: 10px 14px;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .aura-launcher {
+        left: 16px;
+        bottom: 16px;
+    }
+
+    .aura-panel {
+        left: 12px;
+        bottom: 86px;
+        width: calc(100vw - 24px);
+        height: min(520px, calc(100vh - 124px));
+    }
+}
 </style>
 
 <!-- Public Navbar -->
@@ -837,5 +992,110 @@ body {
         <div class="position-absolute bottom-0 end-0 translate-middle rounded-circle bg-white opacity-10" style="width: 400px; height: 400px; opacity: 0.1;"></div>
     </div>
 </div>
+
+<!-- Aura Copilot (Public Landing) -->
+<div class="aura-launcher">
+    <button type="button" class="btn" id="auraLandingToggle" title="Ask Aura">
+        <i class="bi bi-stars"></i>
+    </button>
+</div>
+
+<div class="aura-panel" id="auraLandingPanel" data-no-loader>
+    <div class="aura-header">
+        <h6><i class="bi bi-stars me-1"></i>Aura Admissions Copilot</h6>
+        <button type="button" class="aura-close" id="auraLandingClose">&times;</button>
+    </div>
+    <div class="aura-body" id="auraLandingBody">
+        <div class="aura-msg bot">Welcome. I am Aura, your school admissions copilot. Ask about enrollment, fees, term dates, class structure, or support options.</div>
+    </div>
+    <div class="aura-input">
+        <form id="auraLandingForm" data-no-loader>
+            <input type="text" id="auraLandingInput" placeholder="Ask Aura about admissions..." required autocomplete="off">
+            <button type="submit">Send</button>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    const panel = document.getElementById('auraLandingPanel');
+    const toggle = document.getElementById('auraLandingToggle');
+    const closeBtn = document.getElementById('auraLandingClose');
+    const body = document.getElementById('auraLandingBody');
+    const form = document.getElementById('auraLandingForm');
+    const input = document.getElementById('auraLandingInput');
+
+    const csrftoken = (name => {
+        const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+        return match ? match[2] : '';
+    })('csrftoken');
+
+    function appendMessage(text, type) {
+        const msg = document.createElement('div');
+        msg.className = 'aura-msg ' + type;
+        msg.textContent = text;
+        body.appendChild(msg);
+        body.scrollTop = body.scrollHeight;
+        return msg;
+    }
+
+    async function streamIntoBubble(res, bubble) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let done = false;
+
+        while (!done) {
+            const chunk = await reader.read();
+            done = chunk.done;
+            const text = decoder.decode(chunk.value || new Uint8Array(), { stream: !done });
+            if (text) {
+                bubble.textContent += text;
+                body.scrollTop = body.scrollHeight;
+            }
+        }
+    }
+
+    toggle.addEventListener('click', () => {
+        panel.style.display = 'flex';
+        input.focus();
+    });
+
+    closeBtn.addEventListener('click', () => {
+        panel.style.display = 'none';
+    });
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const question = input.value.trim();
+        if (!question) return;
+
+        appendMessage(question, 'user');
+        input.value = '';
+
+        const botBubble = appendMessage('Aura is thinking...', 'bot');
+
+        try {
+            const res = await fetch('{% url "academics:copilot_assistant" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken,
+                },
+                body: JSON.stringify({ question, role: 'visitor' }),
+            });
+
+            if (!res.ok || !res.body) {
+                botBubble.textContent = 'Sorry, I could not process that request right now. Please try again shortly.';
+                return;
+            }
+
+            botBubble.textContent = '';
+            await streamIntoBubble(res, botBubble);
+        } catch (err) {
+            botBubble.textContent = 'Network issue detected. Please check your connection and try again.';
+        }
+    });
+})();
+</script>
 
 {% endblock %}
