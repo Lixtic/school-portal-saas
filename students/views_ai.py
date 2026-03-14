@@ -5,12 +5,12 @@ import json
 import logging
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.conf import settings
 from django.core import signing
 from django.core.cache import cache
+from django.utils import timezone as dj_timezone
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +46,41 @@ VOICE_XP_MIN_INTERVAL_SECONDS = 8
 VOICE_XP_MAX_PER_SESSION = 350
 
 
+def _client_ip(request):
+    xff = (request.META.get('HTTP_X_FORWARDED_FOR') or '').split(',')[0].strip()
+    return xff or (request.META.get('REMOTE_ADDR') or '0.0.0.0')
+
+
+def _rate_limit(request, scope, limit=30, window_seconds=60):
+    """Simple cache-backed limiter keyed by user + IP + scope."""
+    uid = getattr(request.user, 'id', None) or 'anon'
+    ip = _client_ip(request)
+    key = f"rl:{scope}:{uid}:{ip}"
+    added = cache.add(key, 1, timeout=window_seconds)
+    if added:
+        return False
+    try:
+        count = cache.incr(key)
+    except ValueError:
+        cache.set(key, 1, timeout=window_seconds)
+        count = 1
+    if count > limit:
+        logger.warning("rate_limited scope=%s uid=%s ip=%s count=%s", scope, uid, ip, count)
+        return True
+    return False
+
+
 def _build_voice_xp_token(user_id, session_id):
     payload = {'uid': user_id, 'sid': str(session_id)}
     return signing.dumps(payload, salt=VOICE_XP_TOKEN_SALT)
+
+
+def _voice_active_session_cache_key(user_id):
+    return f"voice_xp:active:{user_id}"
+
+
+def _voice_ended_session_cache_key(user_id, session_id):
+    return f"voice_xp:ended:{user_id}:{session_id}"
 
 
 def _map_class_to_cognitive_stage(class_name):
@@ -406,6 +438,8 @@ def voice_board_generate(request):
         return JsonResponse({'error': 'POST only'}, status=405)
     if request.user.user_type != 'student':
         return JsonResponse({'error': 'Students only'}, status=403)
+    if _rate_limit(request, 'voice_board_generate', limit=18, window_seconds=60):
+        return JsonResponse({'error': 'Too many requests'}, status=429)
 
     try:
         body = json.loads(request.body.decode('utf-8'))
@@ -489,6 +523,8 @@ def create_realtime_session(request):
     
     if request.user.user_type != 'student':
         return JsonResponse({"error": "Unauthorized"}, status=403)
+    if _rate_limit(request, 'create_realtime_session', limit=10, window_seconds=60):
+        return JsonResponse({"error": "Too many requests"}, status=429)
     
     try:
         data = json.loads(request.body) if request.body else {}
@@ -558,6 +594,11 @@ def create_realtime_session(request):
                 )
                 db_session_id = str(_voice_session.id)
                 voice_xp_token = _build_voice_xp_token(request.user.id, _voice_session.id)
+                cache.set(
+                    _voice_active_session_cache_key(request.user.id),
+                    db_session_id,
+                    VOICE_XP_TOKEN_MAX_AGE_SECONDS,
+                )
             except Exception as ex:
                 logger.warning('Voice TutorSession create failed: %s', ex)
         else:
@@ -700,6 +741,11 @@ def aura_arena_view(request):
 def aura_arena_api(request):
     if request.user.user_type != 'student':
         return JsonResponse({'error': 'Unauthorized'}, status=403)
+
+    if request.method == 'GET' and _rate_limit(request, 'aura_arena_api_get', limit=120, window_seconds=60):
+        return JsonResponse({'error': 'Too many requests'}, status=429)
+    if request.method == 'POST' and _rate_limit(request, 'aura_arena_api_post', limit=40, window_seconds=60):
+        return JsonResponse({'error': 'Too many requests'}, status=429)
         
     from students.models import Student
     student = Student.objects.filter(user=request.user).first()
@@ -1216,6 +1262,8 @@ def voice_award_xp(request):
         return JsonResponse({'error': 'POST only'}, status=405)
     if request.user.user_type != 'student':
         return JsonResponse({'error': 'Students only'}, status=403)
+    if _rate_limit(request, 'voice_award_xp', limit=45, window_seconds=60):
+        return JsonResponse({'error': 'Too many requests'}, status=429)
     try:
         body = json.loads(request.body.decode('utf-8'))
         amount = int(body.get('amount', 0))
@@ -1225,6 +1273,7 @@ def voice_award_xp(request):
         return JsonResponse({'error': 'Invalid payload'}, status=400)
 
     if not session_id or not xp_token:
+        logger.warning('voice_xp_denied reason=missing_proof uid=%s sid=%s', request.user.id, session_id)
         return JsonResponse({'error': 'Missing session proof'}, status=400)
 
     try:
@@ -1234,12 +1283,24 @@ def voice_award_xp(request):
             max_age=VOICE_XP_TOKEN_MAX_AGE_SECONDS,
         )
     except signing.SignatureExpired:
+        logger.warning('voice_xp_denied reason=expired_token uid=%s sid=%s', request.user.id, session_id)
         return JsonResponse({'error': 'Voice token expired'}, status=403)
     except signing.BadSignature:
+        logger.warning('voice_xp_denied reason=bad_token uid=%s sid=%s', request.user.id, session_id)
         return JsonResponse({'error': 'Invalid voice token'}, status=403)
 
     if str(token_payload.get('uid')) != str(request.user.id) or str(token_payload.get('sid')) != session_id:
+        logger.warning('voice_xp_denied reason=token_mismatch uid=%s sid=%s', request.user.id, session_id)
         return JsonResponse({'error': 'Voice token mismatch'}, status=403)
+
+    active_sid = str(cache.get(_voice_active_session_cache_key(request.user.id)) or '')
+    if not active_sid or active_sid != session_id:
+        logger.warning('voice_xp_denied reason=inactive_session uid=%s sid=%s active=%s', request.user.id, session_id, active_sid)
+        return JsonResponse({'error': 'Voice session is no longer active'}, status=403)
+
+    if cache.get(_voice_ended_session_cache_key(request.user.id, session_id)):
+        logger.warning('voice_xp_denied reason=ended_session uid=%s sid=%s', request.user.id, session_id)
+        return JsonResponse({'error': 'Voice session has ended'}, status=403)
 
     # Clamp to reasonable per-turn bounds
     amount = max(1, min(amount, 50))
@@ -1248,6 +1309,7 @@ def voice_award_xp(request):
         from students.models import Student
         student = Student.objects.get(user=request.user)
     except Student.DoesNotExist:
+        logger.warning('voice_xp_denied reason=no_student uid=%s sid=%s', request.user.id, session_id)
         return JsonResponse({'error': 'Student profile not found'}, status=404)
 
     try:
@@ -1255,19 +1317,23 @@ def voice_award_xp(request):
         # Ensure XP can only be awarded for the student's own live voice session.
         TutorSession.objects.get(id=session_id, student=student)
     except TutorSession.DoesNotExist:
+        logger.warning('voice_xp_denied reason=session_not_found uid=%s sid=%s', request.user.id, session_id)
         return JsonResponse({'error': 'Voice session not found'}, status=404)
 
     cooldown_key = f"voice_xp:last:{request.user.id}:{session_id}"
     if cache.get(cooldown_key):
+        logger.info('voice_xp_denied reason=cooldown uid=%s sid=%s', request.user.id, session_id)
         return JsonResponse({'error': 'XP award cooldown active'}, status=429)
     cache.set(cooldown_key, 1, VOICE_XP_MIN_INTERVAL_SECONDS)
 
     total_key = f"voice_xp:sum:{request.user.id}:{session_id}"
     awarded_total = int(cache.get(total_key, 0) or 0)
     if awarded_total >= VOICE_XP_MAX_PER_SESSION:
+        logger.info('voice_xp_denied reason=session_cap uid=%s sid=%s total=%s', request.user.id, session_id, awarded_total)
         return JsonResponse({'error': 'Session XP cap reached'}, status=429)
     amount = min(amount, VOICE_XP_MAX_PER_SESSION - awarded_total)
     if amount <= 0:
+        logger.info('voice_xp_denied reason=session_cap_zero uid=%s sid=%s total=%s', request.user.id, session_id, awarded_total)
         return JsonResponse({'error': 'Session XP cap reached'}, status=429)
 
     from academics.gamification_models import StudentXP, check_and_unlock_achievements
@@ -1296,6 +1362,58 @@ def voice_award_xp(request):
     })
 
 
+@login_required
+def voice_end_session(request):
+    """Explicitly end a voice session so XP awards can no longer be replayed."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST only'}, status=405)
+    if request.user.user_type != 'student':
+        return JsonResponse({'error': 'Students only'}, status=403)
+
+    try:
+        body = json.loads(request.body.decode('utf-8')) if request.body else {}
+        session_id = str(body.get('session_id') or '').strip()
+        xp_token = str(body.get('voice_xp_token') or '').strip()
+    except Exception:
+        return JsonResponse({'error': 'Invalid payload'}, status=400)
+
+    if not session_id or not xp_token:
+        return JsonResponse({'error': 'Missing session proof'}, status=400)
+
+    try:
+        token_payload = signing.loads(
+            xp_token,
+            salt=VOICE_XP_TOKEN_SALT,
+            max_age=VOICE_XP_TOKEN_MAX_AGE_SECONDS,
+        )
+    except signing.SignatureExpired:
+        return JsonResponse({'error': 'Voice token expired'}, status=403)
+    except signing.BadSignature:
+        return JsonResponse({'error': 'Invalid voice token'}, status=403)
+
+    if str(token_payload.get('uid')) != str(request.user.id) or str(token_payload.get('sid')) != session_id:
+        return JsonResponse({'error': 'Voice token mismatch'}, status=403)
+
+    active_key = _voice_active_session_cache_key(request.user.id)
+    active_sid = str(cache.get(active_key) or '')
+    if active_sid == session_id:
+        cache.delete(active_key)
+
+    cache.set(
+        _voice_ended_session_cache_key(request.user.id, session_id),
+        1,
+        VOICE_XP_TOKEN_MAX_AGE_SECONDS,
+    )
+
+    try:
+        from academics.tutor_models import TutorSession
+        TutorSession.objects.filter(id=session_id, student__user=request.user, ended_at__isnull=True).update(ended_at=dj_timezone.now())
+    except Exception:
+        pass
+
+    return JsonResponse({'ok': True})
+
+
 # ─── Power Word Logger ──────────────────────────────────────────────────────
 @login_required
 def log_power_words(request):
@@ -1317,6 +1435,9 @@ def log_power_words(request):
 
     if request.user.user_type != 'student':
         return JsonResponse({'error': 'Students only'}, status=403)
+
+    if _rate_limit(request, 'log_power_words', limit=24, window_seconds=60):
+        return JsonResponse({'error': 'Too many requests'}, status=429)
 
     try:
         body = json.loads(request.body.decode('utf-8'))

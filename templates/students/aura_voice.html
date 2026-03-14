@@ -2273,7 +2273,56 @@ function cleanupWebRTC() {
     targetAudioLevel = 0;
 }
 
+function _showVoiceStatusToast(message, tone) {
+    if (!message) return;
+    const toast = document.createElement('div');
+    const color = tone === 'warn'
+        ? 'linear-gradient(135deg,#f97316,#ea580c)'
+        : tone === 'ok'
+            ? 'linear-gradient(135deg,#10b981,#059669)'
+            : 'linear-gradient(135deg,#6366f1,#4f46e5)';
+    toast.style.cssText = [
+        'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:9999;',
+        `background:${color};color:#fff;`,
+        'padding:10px 18px;border-radius:18px;font-size:12px;font-weight:700;',
+        'box-shadow:0 4px 20px rgba(0,0,0,.35);white-space:nowrap;',
+        'animation:fadeIn .25s ease;pointer-events:none;'
+    ].join('');
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity .45s';
+        setTimeout(() => toast.remove(), 520);
+    }, 2600);
+}
+
+function _endVoiceSession() {
+    if (!voiceDbSessionId || !voiceXpToken) return;
+    const payload = JSON.stringify({
+        session_id: voiceDbSessionId,
+        voice_xp_token: voiceXpToken,
+    });
+    const endUrl = '{% url "students:voice_end_session" %}';
+    try {
+        if (navigator.sendBeacon) {
+            const blob = new Blob([payload], { type: 'application/json' });
+            navigator.sendBeacon(endUrl, blob);
+        } else {
+            fetch(endUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: payload,
+                keepalive: true,
+            }).catch(() => {});
+        }
+    } catch (_) {}
+    voiceDbSessionId = null;
+    voiceXpToken = null;
+}
+
 function disconnectRealtime() {
+    _endVoiceSession();
     cleanupWebRTC();
     isConnected = false;
     updateTextInputState();
@@ -2453,7 +2502,20 @@ function _logVoiceAwardXP(responseText) {
             session_id: voiceDbSessionId,
             voice_xp_token: voiceXpToken,
         })
-    }).then(r => r.json()).then(data => {
+    }).then(async r => ({ ok: r.ok, status: r.status, data: await r.json().catch(() => ({})) }))
+      .then(({ ok, status, data }) => {
+        if (!ok) {
+            if (status === 429 && data && data.error) {
+                if (String(data.error).toLowerCase().includes('cooldown')) {
+                    _showVoiceStatusToast('XP cooldown active. Keep learning, then try again.', 'warn');
+                } else if (String(data.error).toLowerCase().includes('cap')) {
+                    _showVoiceStatusToast('Session XP cap reached for this voice session.', 'warn');
+                } else {
+                    _showVoiceStatusToast('Too many XP requests right now.', 'warn');
+                }
+            }
+            return;
+        }
         if (!data.xp_earned) return;
         const toast = document.createElement('div');
         toast.style.cssText = [
@@ -2665,6 +2727,7 @@ function _syncAuraState(diagramText, sentimentValue) {
 
 // Cleanup
 window.addEventListener('beforeunload', () => {
+    _endVoiceSession();
     disconnectRealtime();
     if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
 });

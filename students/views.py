@@ -4,6 +4,8 @@ from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.db.models import Q, Count, Avg
 from django.utils import timezone
+from django.core.cache import cache
+import logging
 from datetime import date, timedelta
 import calendar
 import csv
@@ -18,6 +20,8 @@ from academics.models import Class, AcademicYear, Timetable, Activity
 from academics.gamification_models import StudentXP
 from teachers.models import Teacher
 from academics.tutor_models import generate_student_id_card, export_id_card_to_pdf, export_multiple_id_cards_to_pdf
+
+logger = logging.getLogger(__name__)
 
 
 def build_academic_calendar_widget(limit=5):
@@ -2265,9 +2269,41 @@ def class_analytics(request):
             'teacher_name': teacher_name,
         })
 
+    # Heuristic suspicious-XP scan for quick operations monitoring.
+    suspicious_xp = []
+    try:
+        xp_qs = StudentXP.objects.select_related('student__user', 'student__current_class').order_by('-total_xp')[:200]
+        now = timezone.now()
+        for xp in xp_qs:
+            score = 0
+            reasons = []
+            if xp.total_xp >= 2000 and xp.current_streak <= 2:
+                score += 2
+                reasons.append('High XP with very low streak')
+            if xp.total_xp >= 3500 and xp.level <= 10:
+                score += 1
+                reasons.append('XP-level distribution outlier')
+            if xp.updated_at and (now - xp.updated_at).total_seconds() < 180 and xp.total_xp >= 1200:
+                score += 1
+                reasons.append('Large profile updated very recently')
+
+            if score >= 2:
+                suspicious_xp.append({
+                    'student_name': xp.student.user.get_full_name() or xp.student.user.username,
+                    'class_name': getattr(xp.student.current_class, 'name', '—'),
+                    'total_xp': xp.total_xp,
+                    'level': xp.level,
+                    'streak': xp.current_streak,
+                    'reasons': reasons,
+                })
+        suspicious_xp = suspicious_xp[:8]
+    except Exception:
+        suspicious_xp = []
+
     return render(request, 'students/class_analytics.html', {
         'analytics': analytics,
         'current_year': current_year,
+        'suspicious_xp': suspicious_xp,
     })
 
 
@@ -2425,6 +2461,7 @@ def pulse_submit(request, session_id):
 
     # Security: student can submit only to pulse sessions targeting their own class.
     if not student.current_class_id:
+        logger.warning('pulse_submit_denied reason=no_class uid=%s sid=%s', request.user.id, session_id)
         return JsonResponse({'error': 'No class assigned'}, status=403)
 
     allowed_for_student = (
@@ -2432,6 +2469,13 @@ def pulse_submit(request, session_id):
         or (session.target_class_id == student.current_class_id)
     )
     if not allowed_for_student:
+        logger.warning(
+            'pulse_submit_denied reason=wrong_class uid=%s sid=%s student_class=%s target_class=%s',
+            request.user.id,
+            session_id,
+            student.current_class_id,
+            session.target_class_id or getattr(getattr(session, 'lesson_plan', None), 'school_class_id', None),
+        )
         return JsonResponse({'error': 'Forbidden for this class'}, status=403)
 
     try:

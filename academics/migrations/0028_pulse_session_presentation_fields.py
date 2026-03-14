@@ -6,7 +6,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('academics', '0027_studygroupmessage_reply_to'),
-        ('teachers', '0001_initial'),
+        ('teachers', '0008_presentation_slide'),
     ]
 
     operations = [
