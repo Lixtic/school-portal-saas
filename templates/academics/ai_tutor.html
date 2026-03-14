@@ -2053,10 +2053,14 @@
     // ── Model Picker ────────────────────────────────────────────
     // Seed from what the backend resolved (env / default)
     let selectedModel = (aiTutorBootstrap.active_ai_model || 'gpt-5-nano').trim();
+    // Tracks whether the user has manually chosen a model — if so,
+    // streaming response chunks must NOT override their selection.
+    let _userPickedModel = false;
 
     document.querySelectorAll('.model-pick-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             selectedModel = btn.dataset.model;
+            _userPickedModel = true;
             setAuraModelLabel(selectedModel);
         });
     });
@@ -2629,7 +2633,9 @@
                             if (data.provider) {
                                 setAuraProviderLabel(data.provider);
                             }
-                            if (data.model) {
+                            // Only update the model chip from the stream if the user
+                            // has not manually selected one themselves.
+                            if (data.model && !_userPickedModel) {
                                 setAuraModelLabel(data.model);
                             }
                             if (data.error) {
