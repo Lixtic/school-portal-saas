@@ -3516,21 +3516,30 @@
     installCta.type = 'button';
     installCta.id = 'pwaInstallBtn';
     installCta.className = 'btn btn-success btn-sm shadow';
-    installCta.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:1080;display:none;';
+    installCta.style.cssText = 'position:fixed;right:16px;top:84px;z-index:1080;display:none;';
     installCta.innerHTML = '<i class="bi bi-download me-1"></i>Install App';
 
     const updateCta = document.createElement('button');
     updateCta.type = 'button';
     updateCta.id = 'pwaUpdateBtn';
     updateCta.className = 'btn btn-warning btn-sm shadow';
-    updateCta.style.cssText = 'position:fixed;right:16px;bottom:56px;z-index:1080;display:none;';
+    updateCta.style.cssText = 'position:fixed;right:16px;top:124px;z-index:1080;display:none;';
     updateCta.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>Update Ready';
 
     let deferredInstallPrompt = null;
     let refreshing = false;
 
+    function isInstalledOrWrapped() {
+        const standalone = window.matchMedia('(display-mode: standalone)').matches;
+        const iosStandalone = window.navigator.standalone === true;
+        const twaContext = document.referrer.startsWith('android-app://');
+        const electronContext = /Electron/i.test(navigator.userAgent || '');
+        const capacitorContext = !!window.Capacitor;
+        return standalone || iosStandalone || twaContext || electronContext || capacitorContext;
+    }
+
     function showInstallButton() {
-        if (!window.matchMedia('(display-mode: standalone)').matches) {
+        if (!isInstalledOrWrapped()) {
             installCta.style.display = 'inline-flex';
             installCta.style.alignItems = 'center';
         }
@@ -3550,6 +3559,9 @@
     }
 
     window.addEventListener('beforeinstallprompt', (event) => {
+        if (isInstalledOrWrapped()) {
+            return;
+        }
         event.preventDefault();
         deferredInstallPrompt = event;
         showInstallButton();
@@ -3613,6 +3625,10 @@
     window.addEventListener('load', async () => {
         document.body.appendChild(installCta);
         document.body.appendChild(updateCta);
+
+        if (isInstalledOrWrapped()) {
+            hideInstallButton();
+        }
 
         try {
             const reg = await navigator.serviceWorker.register('/sw.js');
