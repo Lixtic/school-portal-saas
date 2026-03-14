@@ -1,7 +1,14 @@
 const { app, BrowserWindow, shell } = require('electron');
 const path = require('path');
 
-const APP_URL = process.env.SCHOOL_PORTAL_URL || 'http://localhost:8000';
+const APP_ENV = process.env.SCHOOL_PORTAL_ENV || 'development';
+const ENV_URLS = {
+  development: 'http://localhost:8000',
+  staging: 'https://staging.school-portal-saas.vercel.app',
+  production: 'https://app.school-portal-saas.vercel.app'
+};
+
+const APP_URL = process.env.SCHOOL_PORTAL_URL || ENV_URLS[APP_ENV] || ENV_URLS.development;
 
 function createWindow() {
   const win = new BrowserWindow({

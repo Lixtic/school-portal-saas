@@ -8,7 +8,9 @@ This wrapper packages the School Portal web app for Android and iOS.
    - `cd wrappers/mobile-capacitor`
 2. Install dependencies:
    - `npm install`
-3. Set your production app URL in `capacitor.config.ts` (`server.url`).
+3. Choose target environment:
+   - PowerShell: `$env:SCHOOL_PORTAL_ENV='development'` (or `staging`, `production`)
+   - Optional explicit override: `$env:SCHOOL_PORTAL_URL='https://school-portal-saas.vercel.app'`
 4. Sync platform projects:
    - `npm run sync`
 5. Open native project:
@@ -17,5 +19,8 @@ This wrapper packages the School Portal web app for Android and iOS.
 
 ## Notes
 
-- `server.url` should use HTTPS in production.
+- Defaults by `SCHOOL_PORTAL_ENV`:
+   - `development` -> `http://localhost:8000`
+   - `staging` -> `https://staging.school-portal-saas.vercel.app`
+   - `production` -> `https://app.school-portal-saas.vercel.app`
 - Keep the web app PWA enabled; it improves offline/user experience inside wrapper webviews.
