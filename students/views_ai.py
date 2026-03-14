@@ -9,6 +9,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.conf import settings
+from django.core import signing
+from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +40,15 @@ MODEL_MIGRATION_MAP = {
 }
 
 DEFAULT_REALTIME_MODEL = 'gpt-realtime'
+VOICE_XP_TOKEN_SALT = 'students.voice_xp'
+VOICE_XP_TOKEN_MAX_AGE_SECONDS = 60 * 60 * 3
+VOICE_XP_MIN_INTERVAL_SECONDS = 8
+VOICE_XP_MAX_PER_SESSION = 350
+
+
+def _build_voice_xp_token(user_id, session_id):
+    payload = {'uid': user_id, 'sid': str(session_id)}
+    return signing.dumps(payload, salt=VOICE_XP_TOKEN_SALT)
 
 
 def _map_class_to_cognitive_stage(class_name):
@@ -537,6 +548,7 @@ def create_realtime_session(request):
 
         # Create a TutorSession log row for this voice session
         db_session_id = None
+        voice_xp_token = None
         if student:
             try:
                 from academics.tutor_models import TutorSession
@@ -545,6 +557,7 @@ def create_realtime_session(request):
                     title='Voice Session',
                 )
                 db_session_id = str(_voice_session.id)
+                voice_xp_token = _build_voice_xp_token(request.user.id, _voice_session.id)
             except Exception as ex:
                 logger.warning('Voice TutorSession create failed: %s', ex)
         else:
@@ -583,9 +596,8 @@ def create_realtime_session(request):
         if response.status_code != 200:
             logger.error(f"Realtime session API error {response.status_code}: {response.text[:500]}")
             return JsonResponse({
-                "error": f"OpenAI API error ({response.status_code})",
-                "detail": response.text[:300]
-            }, status=response.status_code)
+                "error": "OpenAI session creation failed"
+            }, status=502)
         
         session_data = response.json()
         # /v1/realtime/client_secrets returns {value, expires_at, session} at top level
@@ -612,11 +624,12 @@ def create_realtime_session(request):
             "student_context": student_context,
             "system_instructions": system_instructions,
             "db_session_id": db_session_id,
+            "voice_xp_token": voice_xp_token,
         })
         
     except Exception as e:
-        logger.error(f"Realtime Session Error: {str(e)}")
-        return JsonResponse({"error": str(e)}, status=500)
+        logger.exception("Realtime Session Error")
+        return JsonResponse({"error": "Unable to create realtime session"}, status=500)
 
 
 # ═══════════════════════════════════════════════════════════
@@ -698,7 +711,11 @@ def aura_arena_api(request):
         return JsonResponse({'error': 'No room found'}, status=404)
         
     if request.method == 'GET':
-        last_id = int(request.GET.get('last_id', 0))
+        try:
+            last_id = int(request.GET.get('last_id', 0))
+        except (TypeError, ValueError):
+            last_id = 0
+        last_id = max(last_id, 0)
         msgs = StudyGroupMessage.objects.filter(room=room, id__gt=last_id).order_by('created_at')
         
         data = []
@@ -760,8 +777,16 @@ def aura_arena_api(request):
         return JsonResponse({'messages': data, 'xp_snapshot': xp_snapshot, 'leaderboard': leaderboard})
 
     elif request.method == 'POST':
-        payload = json.loads(request.body)
-        content = payload.get('content', '').strip()
+        try:
+            payload = json.loads(request.body.decode('utf-8')) if request.body else {}
+        except (ValueError, TypeError):
+            return JsonResponse({'error': 'Invalid JSON payload'}, status=400)
+
+        raw_content = str(payload.get('content', ''))
+        if len(raw_content) > 1000:
+            return JsonResponse({'error': 'Message too long (max 1000 characters)'}, status=400)
+
+        content = raw_content.strip()
         if not content:
             return JsonResponse({'error': 'Empty message'}, status=400)
             
@@ -1194,8 +1219,27 @@ def voice_award_xp(request):
     try:
         body = json.loads(request.body.decode('utf-8'))
         amount = int(body.get('amount', 0))
+        session_id = str(body.get('session_id') or '').strip()
+        xp_token = str(body.get('voice_xp_token') or '').strip()
     except (ValueError, TypeError, Exception):
         return JsonResponse({'error': 'Invalid payload'}, status=400)
+
+    if not session_id or not xp_token:
+        return JsonResponse({'error': 'Missing session proof'}, status=400)
+
+    try:
+        token_payload = signing.loads(
+            xp_token,
+            salt=VOICE_XP_TOKEN_SALT,
+            max_age=VOICE_XP_TOKEN_MAX_AGE_SECONDS,
+        )
+    except signing.SignatureExpired:
+        return JsonResponse({'error': 'Voice token expired'}, status=403)
+    except signing.BadSignature:
+        return JsonResponse({'error': 'Invalid voice token'}, status=403)
+
+    if str(token_payload.get('uid')) != str(request.user.id) or str(token_payload.get('sid')) != session_id:
+        return JsonResponse({'error': 'Voice token mismatch'}, status=403)
 
     # Clamp to reasonable per-turn bounds
     amount = max(1, min(amount, 50))
@@ -1206,9 +1250,30 @@ def voice_award_xp(request):
     except Student.DoesNotExist:
         return JsonResponse({'error': 'Student profile not found'}, status=404)
 
+    try:
+        from academics.tutor_models import TutorSession
+        # Ensure XP can only be awarded for the student's own live voice session.
+        TutorSession.objects.get(id=session_id, student=student)
+    except TutorSession.DoesNotExist:
+        return JsonResponse({'error': 'Voice session not found'}, status=404)
+
+    cooldown_key = f"voice_xp:last:{request.user.id}:{session_id}"
+    if cache.get(cooldown_key):
+        return JsonResponse({'error': 'XP award cooldown active'}, status=429)
+    cache.set(cooldown_key, 1, VOICE_XP_MIN_INTERVAL_SECONDS)
+
+    total_key = f"voice_xp:sum:{request.user.id}:{session_id}"
+    awarded_total = int(cache.get(total_key, 0) or 0)
+    if awarded_total >= VOICE_XP_MAX_PER_SESSION:
+        return JsonResponse({'error': 'Session XP cap reached'}, status=429)
+    amount = min(amount, VOICE_XP_MAX_PER_SESSION - awarded_total)
+    if amount <= 0:
+        return JsonResponse({'error': 'Session XP cap reached'}, status=429)
+
     from academics.gamification_models import StudentXP, check_and_unlock_achievements
     xp_profile, _ = StudentXP.objects.get_or_create(student=student)
     leveled_up = xp_profile.add_xp(amount)
+    cache.set(total_key, awarded_total + amount, VOICE_XP_TOKEN_MAX_AGE_SECONDS)
     xp_profile.update_streak()  # keep voice streak in sync with text-chat streak
     check_and_unlock_achievements(student, xp_profile)
     if leveled_up:

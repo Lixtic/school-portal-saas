@@ -1438,6 +1438,7 @@ let currentUserText = '';
 let currentAuraText = '';    // audio transcript stream (speech → display)
 let currentDiagramText = ''; // text output stream (contains [WB_DIAGRAM] tokens)
 let voiceDbSessionId = null; // Django TutorSession ID for this voice session
+let voiceXpToken = null;     // Signed token from backend to authorize XP awards
 let conversationHistory = JSON.parse(localStorage.getItem('auraVoiceHistory') || '[]');
 let retryCount = 0;
 const MAX_RETRIES = 2;
@@ -2086,6 +2087,7 @@ async function connectRealtime() {
 
         const sessionData = await sessionResponse.json();
         voiceDbSessionId = sessionData.db_session_id || null;
+        voiceXpToken = sessionData.voice_xp_token || null;
         const ephemeralKey = sessionData.client_secret;
         const model = sessionData.model || 'gpt-realtime';
         const studentContext = sessionData.student_context || '';
@@ -2437,6 +2439,7 @@ function _logVoicePowerWords(responseText) {
  */
 function _logVoiceAwardXP(responseText) {
     if (!responseText) return;
+    if (!voiceDbSessionId || !voiceXpToken) return;
     const m = /\[AWARD_XP:\s*(\d+)\]/i.exec(responseText);
     if (!m) return;
     const amount = parseInt(m[1], 10);
@@ -2445,7 +2448,11 @@ function _logVoiceAwardXP(responseText) {
     fetch('{% url "students:voice_award_xp" %}', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-        body: JSON.stringify({ amount })
+        body: JSON.stringify({
+            amount,
+            session_id: voiceDbSessionId,
+            voice_xp_token: voiceXpToken,
+        })
     }).then(r => r.json()).then(data => {
         if (!data.xp_earned) return;
         const toast = document.createElement('div');

@@ -2423,6 +2423,17 @@ def pulse_submit(request, session_id):
 
     session = get_object_or_404(PulseSession, pk=session_id, status='active')
 
+    # Security: student can submit only to pulse sessions targeting their own class.
+    if not student.current_class_id:
+        return JsonResponse({'error': 'No class assigned'}, status=403)
+
+    allowed_for_student = (
+        (session.lesson_plan_id and session.lesson_plan and session.lesson_plan.school_class_id == student.current_class_id)
+        or (session.target_class_id == student.current_class_id)
+    )
+    if not allowed_for_student:
+        return JsonResponse({'error': 'Forbidden for this class'}, status=403)
+
     try:
         data = json.loads(request.body)
     except Exception:
