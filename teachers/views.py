@@ -4048,25 +4048,37 @@ def pulse_live(request, session_id):
     except ImportError:
         return JsonResponse({'error': 'unavailable'}, status=500)
 
-    session = get_object_or_404(PulseSession, pk=session_id)
+    try:
+        session = get_object_or_404(PulseSession, pk=session_id)
+    except (ProgrammingError, OperationalError):
+        return JsonResponse({'error': 'Pulse data unavailable. Run migrations.'}, status=503)
 
-    responded = session.responded_count
-    total     = session.total_students
-    typing    = [f'{fn} {ln}'.strip() for fn, ln in session.typing_students]
+    try:
+        responded = session.responded_count
+        total     = session.total_students
+        typing    = [f'{fn} {ln}'.strip() for fn, ln in session.typing_students]
+    except (ProgrammingError, OperationalError):
+        responded = 0
+        total = 0
+        typing = []
 
     # Build aggregate for Q1 / Q2
     q1_true = q1_false = q2_true = q2_false = 0
     q3_counts = {}
-    for r in session.responses.filter(submitted_at__isnull=False):
-        if r.q1_answer is True:  q1_true  += 1
-        if r.q1_answer is False: q1_false += 1
-        if r.q2_answer is True:  q2_true  += 1
-        if r.q2_answer is False: q2_false += 1
-        if r.q3_answer:
-            q3_counts[r.q3_answer] = q3_counts.get(r.q3_answer, 0) + 1
+    try:
+        for r in session.responses.filter(submitted_at__isnull=False):
+            if r.q1_answer is True:  q1_true  += 1
+            if r.q1_answer is False: q1_false += 1
+            if r.q2_answer is True:  q2_true  += 1
+            if r.q2_answer is False: q2_false += 1
+            if r.q3_answer:
+                q3_counts[r.q3_answer] = q3_counts.get(r.q3_answer, 0) + 1
+    except (ProgrammingError, OperationalError):
+        q1_true = q1_false = q2_true = q2_false = 0
+        q3_counts = {}
 
     return JsonResponse({
-        'status': session.status,
+        'status': getattr(session, 'status', 'active'),
         'responded': responded,
         'total': total,
         'typing': typing,

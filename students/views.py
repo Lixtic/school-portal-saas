@@ -2480,8 +2480,17 @@ def pulse_submit(request, session_id):
         logger.warning('pulse_submit_denied reason=no_class uid=%s sid=%s', request.user.id, session_id)
         return JsonResponse({'error': 'No class assigned'}, status=403)
 
+    try:
+        lesson_plan_class_id = (
+            session.lesson_plan.school_class_id
+            if session.lesson_plan_id and session.lesson_plan
+            else None
+        )
+    except (ProgrammingError, OperationalError):
+        lesson_plan_class_id = None
+
     allowed_for_student = (
-        (session.lesson_plan_id and session.lesson_plan and session.lesson_plan.school_class_id == student.current_class_id)
+        (lesson_plan_class_id == student.current_class_id)
         or (session.target_class_id == student.current_class_id)
     )
     if not allowed_for_student:
@@ -2490,7 +2499,7 @@ def pulse_submit(request, session_id):
             request.user.id,
             session_id,
             student.current_class_id,
-            session.target_class_id or getattr(getattr(session, 'lesson_plan', None), 'school_class_id', None),
+            session.target_class_id or lesson_plan_class_id,
         )
         return JsonResponse({'error': 'Forbidden for this class'}, status=403)
 

@@ -1226,11 +1226,15 @@ Context Initialization:
             api_messages = [{"role": "system", "content": system_prompt}]
             
             if conversation:
-                # Exclude the very last message since we just saved the current question in it, 
+                # Exclude the very last message since we just saved the current question in it,
                 # but it's simpler to just grab up to 10 and ensure chronological order.
-                recent_msgs = conversation.messages.order_by('-created_at')[:10]
-                for msg in reversed(list(recent_msgs)):
-                    api_messages.append({"role": msg.role, "content": msg.content})
+                try:
+                    recent_msgs = conversation.messages.order_by('-created_at')[:10]
+                    for msg in reversed(list(recent_msgs)):
+                        api_messages.append({"role": msg.role, "content": msg.content})
+                except Exception as history_err:
+                    logger.warning("Copilot history unavailable: %s", history_err)
+                    api_messages.append({"role": "user", "content": question})
             else:
                 api_messages.append({"role": "user", "content": question})
 
