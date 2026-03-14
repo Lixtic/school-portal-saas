@@ -186,8 +186,93 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; colo
 }
 .sg-activity-item i { color: #7c3aed; margin-top: .12rem; flex-shrink: 0; }
 
-/* ── Send as Pulse ── */
-.sg-pulse-bar {
+/* ── Send as Assignment bar ── */
+.sg-assign-bar {
+  background: linear-gradient(135deg, #0c2a1a, #14532d);
+  border: 1px solid rgba(34,197,94,.25); border-radius: 12px;
+  padding: 1rem 1.3rem; margin-top: .75rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  display: none;
+}
+.sg-assign-bar.visible { display: flex; }
+.sg-assign-bar-left h4 { font-size: .85rem; font-weight: 800; color: #e2e8f0; margin-bottom: .15rem; }
+.sg-assign-bar-left p  { font-size: .72rem; color: rgba(255,255,255,.4); margin: 0; }
+.sg-assign-send-btn {
+  background: linear-gradient(135deg, #16a34a, #22c55e); color: #fff;
+  border: none; border-radius: 8px; padding: .5rem 1.1rem;
+  font-size: .78rem; font-weight: 700; cursor: pointer; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: .4rem; transition: opacity .15s;
+}
+.sg-assign-send-btn:hover { opacity: .88; }
+
+/* ── Assignment Modal ── */
+.sg-modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,.65);
+  z-index: 10000; display: none; align-items: center; justify-content: center;
+  padding: 1rem;
+}
+.sg-modal-backdrop.open { display: flex; }
+.sg-modal {
+  background: #fff; border-radius: 16px; width: 100%; max-width: 480px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.4); overflow: hidden;
+}
+.sg-modal-head {
+  background: linear-gradient(135deg, #14532d, #166534);
+  padding: 1.2rem 1.5rem; display: flex; align-items: center; justify-content: space-between;
+}
+.sg-modal-head h3 { font-size: 1rem; font-weight: 800; color: #fff; margin: 0; }
+.sg-modal-close {
+  background: rgba(255,255,255,.15); border: none; color: #fff; border-radius: 50%;
+  width: 1.9rem; height: 1.9rem; cursor: pointer; font-size: .85rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.sg-modal-close:hover { background: rgba(255,255,255,.28); }
+.sg-modal-body { padding: 1.4rem 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+.sg-modal-field label {
+  display: block; font-size: .7rem; font-weight: 700; letter-spacing: .07em;
+  text-transform: uppercase; color: #64748b; margin-bottom: .35rem;
+}
+.sg-modal-field select,
+.sg-modal-field input,
+.sg-modal-field textarea {
+  width: 100%; border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: .55rem .8rem; font-size: .85rem; color: #1e293b;
+  background: #f8fafc; transition: border-color .15s;
+}
+.sg-modal-field select:focus,
+.sg-modal-field input:focus,
+.sg-modal-field textarea:focus { outline: none; border-color: #16a34a; background: #fff; }
+.sg-modal-field textarea { resize: vertical; min-height: 70px; }
+.sg-modal-footer {
+  padding: .9rem 1.5rem 1.2rem;
+  display: flex; justify-content: flex-end; gap: .6rem;
+  border-top: 1px solid #f1f5f9;
+}
+.sg-modal-cancel {
+  background: #f1f5f9; border: 1px solid #e2e8f0; color: #64748b;
+  border-radius: 8px; padding: .5rem 1.1rem; font-size: .82rem;
+  font-weight: 600; cursor: pointer;
+}
+.sg-modal-cancel:hover { background: #e2e8f0; }
+.sg-modal-confirm {
+  background: linear-gradient(135deg, #16a34a, #22c55e); color: #fff;
+  border: none; border-radius: 8px; padding: .5rem 1.3rem;
+  font-size: .82rem; font-weight: 700; cursor: pointer;
+  display: inline-flex; align-items: center; gap: .4rem;
+}
+.sg-modal-confirm:disabled { opacity: .55; cursor: not-allowed; }
+.sg-modal-confirm:not(:disabled):hover { opacity: .88; }
+.sg-modal-success {
+  display: none; padding: 1.5rem; text-align: center; color: #166534;
+}
+.sg-modal-success i { font-size: 2rem; display: block; margin-bottom: .5rem; }
+.sg-modal-success p { font-size: .9rem; font-weight: 600; margin-bottom: 1rem; }
+.sg-modal-success a {
+  display: inline-block; background: #16a34a; color: #fff;
+  border-radius: 8px; padding: .5rem 1.2rem; font-size: .82rem;
+  font-weight: 700; text-decoration: none;
+}
+.sg-modal-success a:hover { background: #15803d; }
   background: linear-gradient(135deg, #0f172a, #1e1b4b);
   border: 1px solid rgba(124,58,237,.3); border-radius: 12px;
   padding: 1rem 1.3rem; margin-top: 1.5rem;
@@ -391,9 +476,69 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; colo
           <i class="fas fa-paper-plane"></i> Launch Pulse
         </button>
       </div>
+
+      <!-- Send as Assignment bar -->
+      <div id="sgAssignBar" class="sg-assign-bar">
+        <div class="sg-assign-bar-left">
+          <h4><i class="fas fa-tasks"></i> Send as Assignment</h4>
+          <p>Dispatch this revision guide &amp; questions to students as a homework assignment</p>
+        </div>
+        <button class="sg-assign-send-btn" onclick="openAssignModal()">
+          <i class="fas fa-share-square"></i> Send Assignment
+        </button>
+      </div>
     </div>
   </div>
 </div><!-- /sg-body -->
+
+<!-- Assignment Modal -->
+<div id="sgAssignModal" class="sg-modal-backdrop">
+  <div class="sg-modal">
+    <div class="sg-modal-head">
+      <h3><i class="fas fa-tasks" style="margin-right:.45em;opacity:.8;"></i>Send as Assignment</h3>
+      <button class="sg-modal-close" onclick="closeAssignModal()" aria-label="Close">&times;</button>
+    </div>
+    <div id="sgAssignForm">
+      <div class="sg-modal-body">
+        <div class="sg-modal-field">
+          <label><i class="fas fa-users"></i> Target Class</label>
+          <select id="sgAssignClass">
+            <option value="">— Select a class —</option>
+            {% if deck.school_class %}<option value="{{ deck.school_class.pk }}" selected>{{ deck.school_class.name }}</option>{% endif %}
+            {% for cls in classes %}
+              {% if not deck.school_class or cls.pk != deck.school_class.pk %}
+              <option value="{{ cls.pk }}">{{ cls.name }}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+        <div class="sg-modal-field">
+          <label><i class="fas fa-calendar-alt"></i> Due Date</label>
+          <input type="date" id="sgAssignDue">
+        </div>
+        <div class="sg-modal-field">
+          <label><i class="fas fa-comment-alt"></i> Instructions / Note <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></label>
+          <textarea id="sgAssignNote" placeholder="e.g. Complete all questions by the due date. Show working where required."></textarea>
+        </div>
+        <p style="font-size:.72rem;color:#94a3b8;margin:0;">
+          <i class="fas fa-info-circle"></i>
+          The AI-generated questions will be imported as interactive homework questions that students can answer online.
+        </p>
+      </div>
+      <div class="sg-modal-footer">
+        <button class="sg-modal-cancel" onclick="closeAssignModal()">Cancel</button>
+        <button id="sgAssignConfirmBtn" class="sg-modal-confirm" onclick="submitAssignment()">
+          <i class="fas fa-paper-plane"></i> Send Assignment
+        </button>
+      </div>
+    </div>
+    <div id="sgAssignSuccess" class="sg-modal-success">
+      <i class="fas fa-check-circle" style="color:#16a34a;"></i>
+      <p>Assignment created successfully!</p>
+      <a id="sgAssignLink" href="#" target="_blank">View Assignment &rarr;</a>
+    </div>
+  </div>
+</div>
 
 <!-- Pulse Live HUD -->
 <div id="sgPulseHud" class="sg-pulse-hud">
@@ -645,6 +790,84 @@ function closePulse() {
   })
   .catch(function(){ document.getElementById('sgPulseHud').classList.remove('visible'); });
 }
+
+// ── Send as Assignment ─────────────────────────────────────────────────────
+var ASSIGN_URL = '{% url "teachers:presentation_send_as_assignment" deck.pk %}';
+var _assignSummary = '';
+
+// Wrap renderAIGuide to also show assignment bar
+(function() {
+  var _orig = renderAIGuide;
+  renderAIGuide = function(d) {
+    _orig(d);
+    _assignSummary = d.summary || '';
+    document.getElementById('sgAssignBar').classList.add('visible');
+  };
+})();
+
+function openAssignModal() {
+  var dueField = document.getElementById('sgAssignDue');
+  if (!dueField.value) {
+    var dd = new Date(); dd.setDate(dd.getDate() + 7);
+    dueField.value = dd.toISOString().split('T')[0];
+  }
+  document.getElementById('sgAssignForm').style.display = '';
+  document.getElementById('sgAssignSuccess').style.display = 'none';
+  document.getElementById('sgAssignModal').classList.add('open');
+}
+
+function closeAssignModal() {
+  document.getElementById('sgAssignModal').classList.remove('open');
+}
+
+function submitAssignment() {
+  var classId = document.getElementById('sgAssignClass').value;
+  var due     = document.getElementById('sgAssignDue').value;
+  var note    = document.getElementById('sgAssignNote').value;
+
+  if (!classId) { alert('Please select a target class.'); return; }
+  if (!due)     { alert('Please set a due date.'); return; }
+  if (!_pulseQuestions || !_pulseQuestions.length) {
+    alert('No questions found. Please generate the AI guide first.'); return;
+  }
+
+  var btn = document.getElementById('sgAssignConfirmBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending\u2026';
+
+  fetchWithTimeout(ASSIGN_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN},
+    body: JSON.stringify({
+      class_id:  parseInt(classId, 10),
+      due_date:  due,
+      note:      note,
+      summary:   _assignSummary,
+      questions: _pulseQuestions,
+    })
+  }, 30000)
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Assignment';
+    if (!d.ok) {
+      alert(d.error || 'Could not create assignment. Please try again.');
+      return;
+    }
+    document.getElementById('sgAssignLink').href = d.homework_url;
+    document.getElementById('sgAssignForm').style.display = 'none';
+    document.getElementById('sgAssignSuccess').style.display = 'block';
+  })
+  .catch(function(err){
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Assignment';
+    alert((err && err.name === 'AbortError') ? 'Request timed out. Please try again.' : 'Network error. Please try again.');
+  });
+}
+
+document.getElementById('sgAssignModal').addEventListener('click', function(e){
+  if (e.target === this) closeAssignModal();
+});
 </script>
 
 </body>

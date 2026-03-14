@@ -5661,9 +5661,13 @@ def presentation_study_guide(request, pk):
         return JsonResponse({'error': 'Unknown action'}, status=400)
 
     slides = deck.slides.all()
+    from academics.models import Class, AcademicYear
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    classes = Class.objects.filter(academic_year=current_year) if current_year else Class.objects.none()
     return render(request, 'teachers/presentations/study_guide.html', {
         'deck': deck,
         'slides': slides,
+        'classes': classes,
     })
 
 
@@ -5737,6 +5741,99 @@ def presentation_pulse_launch(request, pk):
         'live_url':       live_url,
         'close_url':      close_url,
     })
+
+
+@login_required
+@require_POST
+def presentation_send_as_assignment(request, pk):
+    """
+    Create a Homework assignment from an AI-generated study guide.
+    POST JSON: {class_id, due_date, note, questions: [{question, type, options, answer}], summary}
+    """
+    import json as _json
+    from .models import Presentation
+    from homework.models import Homework, Question, Choice
+    from academics.models import Class
+
+    if request.user.user_type not in ('teacher', 'admin'):
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    teacher = get_object_or_404(Teacher, user=request.user)
+    deck = get_object_or_404(Presentation, pk=pk, teacher=teacher)
+
+    try:
+        body = _json.loads(request.body)
+    except (ValueError, _json.JSONDecodeError):
+        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+
+    class_id  = body.get('class_id')
+    due_date  = body.get('due_date', '')
+    note      = str(body.get('note', '')).strip()[:1000]
+    questions = body.get('questions', [])
+    summary   = str(body.get('summary', '')).strip()[:2000]
+
+    if not class_id:
+        return JsonResponse({'error': 'class_id is required'}, status=400)
+    if not due_date:
+        return JsonResponse({'error': 'due_date is required'}, status=400)
+    if not questions:
+        return JsonResponse({'error': 'No questions to assign'}, status=400)
+
+    target_class = get_object_or_404(Class, pk=class_id)
+
+    description_parts = []
+    if summary:
+        description_parts.append(summary)
+    if note:
+        description_parts.append(f"\nTeacher note: {note}")
+    description_parts.append(f"\n(Generated from AI Study Guide: {deck.title})")
+    description = "\n".join(description_parts).strip()
+
+    hw = Homework.objects.create(
+        title=f"{deck.title} — Study Guide Assignment",
+        description=description,
+        teacher=teacher,
+        subject=deck.subject,
+        target_class=target_class,
+        due_date=due_date,
+    )
+
+    for q_data in questions[:20]:  # cap at 20 questions
+        q_text = str(q_data.get('question', '')).strip()[:500]
+        if not q_text:
+            continue
+        q_type_raw = str(q_data.get('type', 'short')).lower()
+        if q_type_raw == 'mcq':
+            q_type = 'mcq'
+        elif q_type_raw in ('essay', 'long'):
+            q_type = 'essay'
+        else:
+            q_type = 'short'
+
+        correct_answer = str(q_data.get('answer', '')).strip()[:500]
+        question = Question.objects.create(
+            homework=hw,
+            text=q_text,
+            question_type=q_type,
+            correct_answer=correct_answer,
+            points=1,
+        )
+
+        if q_type == 'mcq':
+            options = q_data.get('options', [])
+            if isinstance(options, list):
+                for opt in options[:6]:
+                    opt_text = str(opt).strip()[:200]
+                    if not opt_text:
+                        continue
+                    is_correct = opt_text.lower() == correct_answer.lower()
+                    Choice.objects.create(question=question, text=opt_text, is_correct=is_correct)
+
+    script_name = request.META.get('SCRIPT_NAME', '').rstrip('/')
+    from django.urls import reverse as _reverse
+    hw_url = script_name + _reverse('homework:homework_detail', args=[hw.pk])
+
+    return JsonResponse({'ok': True, 'homework_id': hw.pk, 'homework_url': hw_url})
 
 
 @login_required

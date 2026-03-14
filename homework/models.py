@@ -6,7 +6,7 @@ class Homework(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()
     teacher = models.ForeignKey('teachers.Teacher', on_delete=models.CASCADE, related_name='assignments')
-    subject = models.ForeignKey('academics.Subject', on_delete=models.CASCADE)
+    subject = models.ForeignKey('academics.Subject', on_delete=models.SET_NULL, null=True, blank=True)
     target_class = models.ForeignKey('academics.Class', on_delete=models.CASCADE, related_name='assignments')
     due_date = models.DateField()
     attachment = models.FileField(upload_to='homework_attachments/', blank=True, null=True)
