@@ -37,6 +37,7 @@ class TenantPathMiddleware(TenantMainMiddleware):
         reserved_paths = [
             'static', 'media', 'admin', 'accounts',
             'signup', 'login', 'logout', 'debug', 'favicon.ico', 'favicon.png',
+            'apple-touch-icon.png', 'apple-touch-icon-precomposed.png',
             'favicon.svg', 'robots.txt', 'sitemap.xml',
             'dashboard', 'tenants', 'find-school', 'sw.js', 'offline'
         ]
@@ -94,7 +95,8 @@ class TenantPathMiddleware(TenantMainMiddleware):
             reserved_paths_strict = [
                 'admin', 'static', 'media', 'signup', 'login', 'logout',
                 'dashboard', 'favicon.ico', 'debug', 'accounts', 'tenants', 'find-school',
-                'password', 'reset', 'sw.js', 'offline', ''
+                'password', 'reset', 'sw.js', 'offline', 'apple-touch-icon.png',
+                'apple-touch-icon-precomposed.png', ''
             ]
             if possible_schema and possible_schema not in reserved_paths_strict and possible_schema != 'public':
                 logger.debug("Tenant '%s' not found and not reserved", possible_schema)

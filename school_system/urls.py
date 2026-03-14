@@ -35,6 +35,8 @@ urlpatterns = [
     # Favicon — serve before tenant middleware can intercept
     path('favicon.ico', RedirectView.as_view(url='/static/img/logo.png', permanent=True)),
     path('favicon.png', RedirectView.as_view(url='/static/img/logo.png', permanent=True)),
+    path('apple-touch-icon.png', RedirectView.as_view(url='/static/img/logo.png', permanent=True)),
+    path('apple-touch-icon-precomposed.png', RedirectView.as_view(url='/static/img/logo.png', permanent=True)),
     path('robots.txt', RedirectView.as_view(url='/static/robots.txt', permanent=False), name='robots_txt'),
     path('sw.js', sw_view, name='sw'),
     path('offline/', TemplateView.as_view(template_name='offline.html'), name='offline'),

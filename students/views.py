@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
+from django.db.utils import ProgrammingError, OperationalError
 from django.db.models import Q, Count, Avg
 from django.utils import timezone
 from django.core.cache import cache
@@ -2393,34 +2394,49 @@ def pulse_poll(request):
     except Exception:
         return JsonResponse({'session': None})
 
-    if not student.current_class:
+    # Some tenant schemas can be partially migrated; fail softly instead of 500.
+    try:
+        student_class = student.current_class
+    except (ProgrammingError, OperationalError):
+        return JsonResponse({'session': None})
+
+    if not student_class:
         return JsonResponse({'session': None})
 
     from django.db.models import Q as _Q
-    session = (
-        PulseSession.objects
-        .filter(
-            _Q(lesson_plan__school_class=student.current_class) |
-            _Q(target_class=student.current_class),
-            status='active',
+    try:
+        session = (
+            PulseSession.objects
+            .filter(
+                _Q(lesson_plan__school_class=student_class) |
+                _Q(target_class=student_class),
+                status='active',
+            )
+            .order_by('-created_at')
+            .first()
         )
-        .order_by('-created_at')
-        .first()
-    )
+    except (ProgrammingError, OperationalError):
+        return JsonResponse({'session': None})
 
     if not session:
         return JsonResponse({'session': None})
 
     # Already submitted?
-    already_done = PulseResponse.objects.filter(
-        session=session, student=student, submitted_at__isnull=False
-    ).exists()
+    try:
+        already_done = PulseResponse.objects.filter(
+            session=session, student=student, submitted_at__isnull=False
+        ).exists()
+    except (ProgrammingError, OperationalError):
+        return JsonResponse({'session': None})
     if already_done:
         return JsonResponse({'session': None})
 
     # Mark as typing (viewing the card) — upsert the response row
-    PulseResponse.objects.get_or_create(session=session, student=student)
-    PulseResponse.objects.filter(session=session, student=student).update(is_typing=True)
+    try:
+        PulseResponse.objects.get_or_create(session=session, student=student)
+        PulseResponse.objects.filter(session=session, student=student).update(is_typing=True)
+    except (ProgrammingError, OperationalError):
+        return JsonResponse({'session': None})
 
     # Resolve topic label for the overlay
     if session.lesson_plan_id:
