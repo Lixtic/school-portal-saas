@@ -633,7 +633,7 @@ def student_dashboard_view(request):
     
     # Get all grades
     try:
-        grades = list(Grade.objects.filter(student=student).select_related('subject').order_by('-created_at'))
+        grades = list(Grade.objects.filter(student=student).select_related('subject', 'academic_year').order_by('-created_at'))
     except Exception:
         grades = []
 
