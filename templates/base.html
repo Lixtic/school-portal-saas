@@ -199,6 +199,55 @@
             --bs-btn-padding-x: 0.55rem;
             --bs-btn-font-size: 0.82rem;
         }
+
+        /* 5. PAGE SKELETON MODE (opt-in via body class: has-skeleton-loader) */
+        .has-skeleton-loader.is-page-loading .main-content .stat-card,
+        .has-skeleton-loader.is-page-loading .main-content .student-card,
+        .has-skeleton-loader.is-page-loading .main-content .card,
+        .has-skeleton-loader.is-page-loading .main-content .table-responsive {
+            position: relative;
+            overflow: hidden;
+            pointer-events: none;
+            border-color: rgba(148, 163, 184, 0.3) !important;
+        }
+
+        .has-skeleton-loader.is-page-loading .main-content .stat-card > *,
+        .has-skeleton-loader.is-page-loading .main-content .student-card > *,
+        .has-skeleton-loader.is-page-loading .main-content .card > *,
+        .has-skeleton-loader.is-page-loading .main-content .table-responsive > * {
+            visibility: hidden;
+        }
+
+        .has-skeleton-loader.is-page-loading .main-content .stat-card::after,
+        .has-skeleton-loader.is-page-loading .main-content .student-card::after,
+        .has-skeleton-loader.is-page-loading .main-content .card::after,
+        .has-skeleton-loader.is-page-loading .main-content .table-responsive::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                100deg,
+                rgba(148, 163, 184, 0.14) 20%,
+                rgba(203, 213, 225, 0.48) 40%,
+                rgba(148, 163, 184, 0.14) 60%
+            );
+            transform: translateX(-100%);
+            animation: pageSkeletonSweep 1.15s ease-in-out infinite;
+        }
+
+        @keyframes pageSkeletonSweep {
+            100% { transform: translateX(100%); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .has-skeleton-loader.is-page-loading .main-content .stat-card::after,
+            .has-skeleton-loader.is-page-loading .main-content .student-card::after,
+            .has-skeleton-loader.is-page-loading .main-content .card::after,
+            .has-skeleton-loader.is-page-loading .main-content .table-responsive::after {
+                animation: none;
+                transform: none;
+            }
+        }
     </style>
 
     <style>
@@ -1202,7 +1251,7 @@
     </style>
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
     <!-- Preview Mode Banner -->
     {% if is_preview %}
     <div class="alert alert-warning mb-0 rounded-0 text-center py-3" style="position: sticky; top: 0; z-index: 1100; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
@@ -1229,6 +1278,24 @@
             </div>
         </div>
     </div>
+
+    <script>
+        (function () {
+            const body = document.body;
+            if (!body || !body.classList.contains('has-skeleton-loader')) return;
+            body.classList.add('is-page-loading');
+
+            const clearSkeleton = function () {
+                body.classList.remove('is-page-loading');
+            };
+
+            window.addEventListener('load', function () {
+                setTimeout(clearSkeleton, 120);
+            });
+
+            setTimeout(clearSkeleton, 5000);
+        })();
+    </script>
 
     <div class="main-container {% if not user.is_authenticated %}public-layout{% endif %}">
         {% if user.is_authenticated %}
@@ -2791,17 +2858,41 @@
     <script>
         // Global loader functions
         let __globalLoaderFailsafeTimer = null;
+        let __pageLoaderDelayTimer = null;
+        let __pageLoaderVisibleSince = 0;
+        const __pageLoaderDelayMs = 120;
+        const __pageLoaderMinVisibleMs = 260;
 
-        function showLoader(message = 'Processing…') {
+        function showTopBarLoader() {
+            const bar = document.getElementById('pageLoader');
+            if (!bar) return;
+            bar.classList.remove('done');
+            bar.classList.add('loading');
+            __pageLoaderVisibleSince = Date.now();
+        }
+
+        function scheduleTopBarLoader() {
+            if (__pageLoaderDelayTimer) return;
+            __pageLoaderDelayTimer = setTimeout(function () {
+                __pageLoaderDelayTimer = null;
+                showTopBarLoader();
+            }, __pageLoaderDelayMs);
+        }
+
+        function showLoader(message = 'Processing...') {
             // Clear previous failsafe timer before opening again.
             if (__globalLoaderFailsafeTimer) {
                 clearTimeout(__globalLoaderFailsafeTimer);
                 __globalLoaderFailsafeTimer = null;
             }
 
-            // Activate top bar
-            const bar = document.getElementById('pageLoader');
-            if (bar) { bar.classList.remove('done'); bar.classList.add('loading'); }
+            // Activate top bar immediately for explicit loader flows (forms/actions).
+            if (__pageLoaderDelayTimer) {
+                clearTimeout(__pageLoaderDelayTimer);
+                __pageLoaderDelayTimer = null;
+            }
+            showTopBarLoader();
+
             // Activate overlay card
             const loader = document.getElementById('globalLoader');
             if (loader) {
@@ -2821,21 +2912,29 @@
                 clearTimeout(__globalLoaderFailsafeTimer);
                 __globalLoaderFailsafeTimer = null;
             }
+            if (__pageLoaderDelayTimer) {
+                clearTimeout(__pageLoaderDelayTimer);
+                __pageLoaderDelayTimer = null;
+            }
 
             // Hide overlay immediately
             const loader = document.getElementById('globalLoader');
             if (loader) loader.classList.remove('active');
 
-            // Completion sweep on the top bar, then fade out
+            // Completion sweep on the top bar, with a minimum visible duration to avoid flicker.
             const bar = document.getElementById('pageLoader');
             if (bar && bar.classList.contains('loading')) {
-                bar.classList.remove('loading');
-                bar.classList.add('done');
+                const elapsed = Date.now() - __pageLoaderVisibleSince;
+                const waitMs = Math.max(0, __pageLoaderMinVisibleMs - elapsed);
                 setTimeout(function () {
-                    bar.classList.remove('done');
-                    bar.style.opacity = '0';
-                    setTimeout(function () { bar.style.opacity = ''; }, 50);
-                }, 460);
+                    bar.classList.remove('loading');
+                    bar.classList.add('done');
+                    setTimeout(function () {
+                        bar.classList.remove('done');
+                        bar.style.opacity = '0';
+                        setTimeout(function () { bar.style.opacity = ''; }, 50);
+                    }, 460);
+                }, waitMs);
             }
 
             // Reset submit buttons
@@ -2861,13 +2960,14 @@
                     !link.target && 
                     !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey &&
                     link.href && 
+                    !link.hasAttribute('download') &&
                     !link.href.includes('#') && 
                     !link.href.startsWith('javascript:') && 
                     !link.dataset.noLoader &&
+                    !link.closest('[data-no-loader]') &&
                     link.origin === window.location.origin
                 ) {
-                    const pageLoader = document.getElementById('pageLoader');
-                    if(pageLoader) pageLoader.classList.add('loading');
+                    scheduleTopBarLoader();
                 }
             });
 
@@ -2901,6 +3001,13 @@
             // Handle Back/Forward Cache (BFCache) restoration
             window.addEventListener('pageshow', function(event) {
                 if (event.persisted) {
+                    hideLoader();
+                }
+            });
+
+            // If navigation is canceled or the browser keeps us on the same page, clear delayed loader.
+            window.addEventListener('visibilitychange', function () {
+                if (document.visibilityState === 'visible') {
                     hideLoader();
                 }
             });
