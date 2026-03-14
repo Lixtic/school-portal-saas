@@ -19,6 +19,11 @@ jobs:
         with:
           python-version: '3.13'
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -54,6 +59,16 @@ jobs:
         run: |
           curl -fsS -D offline_headers.txt http://127.0.0.1:8765/offline/ -o /dev/null
           grep -qi "^HTTP/.* 200" offline_headers.txt
+
+      - name: Install Playwright runtime
+        run: |
+          npm init -y
+          npm install --no-save playwright@1.52.0
+          npx playwright install --with-deps chromium
+
+      - name: Run loader smoke test
+        run: |
+          BASE_URL=http://127.0.0.1:8765 node scripts/ci/loader_smoke.js
 
       - name: Upload server log on failure
         if: failure()
