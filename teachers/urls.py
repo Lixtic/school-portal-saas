@@ -106,6 +106,7 @@ urlpatterns = [
     path('presentations/<int:pk>/study-guide/', views.presentation_study_guide, name='presentation_study_guide'),
     path('presentations/<int:pk>/pulse-launch/', views.presentation_pulse_launch, name='presentation_pulse_launch'),
     path('presentations/<int:pk>/send-assignment/', views.presentation_send_as_assignment, name='presentation_send_as_assignment'),
+    path('presentations/<int:pk>/send-notes/', views.presentation_send_as_notes, name='presentation_send_as_notes'),
     path('presentations/<int:pk>/start-live/', views.start_live_session, name='start_live_session'),
     path('presentations/<int:pk>/end-live/', views.end_live_session, name='end_live_session'),
     path('presentations/<int:pk>/update-live/', views.update_live_slide, name='update_live_slide'),

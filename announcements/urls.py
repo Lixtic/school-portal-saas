@@ -9,6 +9,7 @@ urlpatterns = [
     path('notifications/', views.notification_centre, name='notification_centre'),
     path('notifications/read/<int:notification_id>/', views.mark_notification_read, name='mark_read'),
     path('notifications/read-all/', views.mark_all_notifications_read, name='mark_all_read'),
+    path('notifications/unread-count/', views.notifications_unread_count, name='notifications_unread_count'),
     # Push subscription endpoints
     path('push/subscribe/', views.push_subscribe, name='push_subscribe'),
     path('push/unsubscribe/', views.push_unsubscribe, name='push_unsubscribe'),

@@ -101,6 +101,13 @@ def manage_announcements(request):
     })
 
 @login_required
+def notifications_unread_count(request):
+    """Return the unread notification count as JSON (for client-side polling)."""
+    count = request.user.notifications.filter(is_read=False).count()
+    return JsonResponse({'count': count})
+
+
+@login_required
 def mark_notification_read(request, notification_id):
     notification = get_object_or_404(Notification, id=notification_id, recipient=request.user)
     notification.is_read = True

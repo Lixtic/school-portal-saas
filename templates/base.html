@@ -4598,6 +4598,86 @@
 </script>
 {% endif %}
 
+{% if user.is_authenticated %}
+<!-- Live notification toast -->
+<div id="liveNotifToastWrap" style="position:fixed;bottom:1.4rem;left:50%;transform:translateX(-50%);z-index:9999;pointer-events:none;">
+  <div id="liveNotifToast" style="
+    display:none;
+    background:linear-gradient(135deg,#1e0a40,#2d0e66);
+    color:#e2e8f0;
+    border:1px solid rgba(124,58,237,.35);
+    border-radius:12px;
+    padding:.65rem 1.2rem;
+    font-size:.84rem;
+    font-weight:600;
+    box-shadow:0 8px 28px rgba(0,0,0,.45);
+    pointer-events:auto;
+    white-space:nowrap;
+    display:flex;align-items:center;gap:.6rem;
+    transform:translateY(40px);opacity:0;
+    transition:transform .3s ease,opacity .3s ease;
+  ">
+    <i class="bi bi-bell-fill" style="color:#a78bfa;font-size:1rem;"></i>
+    <span id="liveNotifToastMsg">You have new notifications</span>
+    <a id="liveNotifToastLink" href="{% url 'announcements:notification_centre' %}"
+       style="color:#c4b5fd;font-size:.76rem;font-weight:700;text-decoration:none;margin-left:.4rem;">View →</a>
+  </div>
+</div>
+<script>
+(function() {
+  var UNREAD_URL = '{% url "announcements:notifications_unread_count" %}';
+  var _lastCount = {{ unread_count|default:0 }};
+  var _toastEl   = document.getElementById('liveNotifToast');
+  var _msgEl     = document.getElementById('liveNotifToastMsg');
+  var _dismissed = false;
+  var _hideTimer = null;
+
+  function showToast(msg) {
+    if (_toastEl) {
+      _dismissed = false;
+      _toastEl.style.display = 'flex';
+      // Force reflow so transition fires
+      void _toastEl.offsetWidth;
+      _toastEl.style.transform = 'translateY(0)';
+      _toastEl.style.opacity = '1';
+      if (_msgEl) _msgEl.textContent = msg;
+      clearTimeout(_hideTimer);
+      _hideTimer = setTimeout(hideToast, 6000);
+      _toastEl.addEventListener('click', hideToast, { once: true });
+    }
+  }
+
+  function hideToast() {
+    if (_toastEl) {
+      _toastEl.style.transform = 'translateY(40px)';
+      _toastEl.style.opacity = '0';
+      setTimeout(function() { _toastEl.style.display = 'none'; }, 320);
+    }
+  }
+
+  function checkNotifications() {
+    fetch(UNREAD_URL, { credentials: 'same-origin' })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var current = d.count || 0;
+        if (current > _lastCount) {
+          var diff = current - _lastCount;
+          showToast('You have ' + diff + ' new notification' + (diff > 1 ? 's' : '') + '!');
+          // Refresh badge in bell without full reload
+          var badge = document.querySelector('.position-absolute.badge.rounded-pill.bg-danger');
+          if (badge) { badge.textContent = current; }
+        }
+        _lastCount = current;
+      })
+      .catch(function() {}); // silent — don't annoy user on network glitch
+  }
+
+  // Start polling every 15 seconds
+  setInterval(checkNotifications, 15000);
+})();
+</script>
+{% endif %}
+
 <!-- Auto-close native date pickers after a date is selected -->
 <script>
 (function () {

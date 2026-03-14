@@ -84,3 +84,25 @@ class Answer(models.Model):
     ai_feedback = models.TextField(blank=True)
 
 
+class ClassNote(models.Model):
+    """Key concepts / study notes shared by a teacher with a class."""
+    title = models.CharField(max_length=200)
+    content = models.JSONField(default=list)  # list of {term, description} dicts
+    teacher = models.ForeignKey(
+        'teachers.Teacher', on_delete=models.CASCADE, related_name='class_notes')
+    target_class = models.ForeignKey(
+        'academics.Class', on_delete=models.CASCADE, related_name='class_notes')
+    source_deck = models.ForeignKey(
+        'teachers.Presentation', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='sent_notes')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Class Note'
+        verbose_name_plural = 'Class Notes'
+
+    def __str__(self):
+        return f"{self.title} → {self.target_class}"
+
+

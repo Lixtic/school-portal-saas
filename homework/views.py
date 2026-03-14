@@ -134,6 +134,7 @@ def _fallback_short_score(student_answer, expected_answer, max_points):
 
 @login_required
 def homework_list(request):
+    from datetime import timedelta
     user = request.user
     homeworks = []
     
@@ -170,8 +171,40 @@ def homework_list(request):
         'homeworks': homeworks,
         'is_teacher': user.user_type == 'teacher',
         'today': timezone.now().date(),
+        'new_since': timezone.now() - timedelta(hours=24),
     }
     return render(request, 'homework/homework_list.html', context)
+
+
+@login_required
+def student_notes_list(request):
+    """List class notes (key concepts) for the current user's class or teacher."""
+    from .models import ClassNote
+    user = request.user
+    notes = ClassNote.objects.none()
+
+    if user.user_type == 'student':
+        try:
+            student = user.student
+            if student.current_class:
+                notes = ClassNote.objects.filter(
+                    target_class=student.current_class
+                ).select_related('teacher__user', 'source_deck')
+        except Student.DoesNotExist:
+            pass
+    elif user.user_type == 'teacher':
+        try:
+            teacher = user.teacher
+            notes = ClassNote.objects.filter(
+                teacher=teacher
+            ).select_related('target_class', 'source_deck')
+        except Teacher.DoesNotExist:
+            pass
+    elif user.user_type in ('admin', 'parent'):
+        notes = ClassNote.objects.select_related('teacher__user', 'target_class', 'source_deck')
+
+    return render(request, 'homework/class_notes.html', {'notes': notes})
+
 
 
 @login_required

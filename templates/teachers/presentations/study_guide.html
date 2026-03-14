@@ -273,11 +273,13 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; colo
   font-weight: 700; text-decoration: none;
 }
 .sg-modal-success a:hover { background: #15803d; }
+
+/* ── Pulse bar ── */
+.sg-pulse-bar {
   background: linear-gradient(135deg, #0f172a, #1e1b4b);
   border: 1px solid rgba(124,58,237,.3); border-radius: 12px;
-  padding: 1rem 1.3rem; margin-top: 1.5rem;
-  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-  display: none;
+  padding: 1rem 1.3rem; margin-top: .75rem;
+  display: none; align-items: center; justify-content: space-between; gap: 1rem;
 }
 .sg-pulse-bar.visible { display: flex; }
 .sg-pulse-bar-left h4 { font-size: .85rem; font-weight: 800; color: #e2e8f0; margin-bottom: .15rem; }
@@ -290,6 +292,39 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; colo
 }
 .sg-pulse-send-btn:disabled { opacity: .55; cursor: not-allowed; }
 .sg-pulse-send-btn:not(:disabled):hover { opacity: .85; }
+
+/* ── Send-as-Notes bar ── */
+.sg-notes-bar {
+  background: linear-gradient(135deg, #0c1440, #1e3a8a);
+  border: 1px solid rgba(59,130,246,.25); border-radius: 12px;
+  padding: 1rem 1.3rem; margin-top: .75rem;
+  display: none; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.sg-notes-bar.visible { display: flex; }
+.sg-notes-bar-left h4 { font-size: .85rem; font-weight: 800; color: #e2e8f0; margin-bottom: .15rem; }
+.sg-notes-bar-left p  { font-size: .72rem; color: rgba(255,255,255,.4); margin: 0; }
+.sg-notes-send-btn {
+  background: linear-gradient(135deg, #2563eb, #3b82f6); color: #fff;
+  border: none; border-radius: 8px; padding: .5rem 1.1rem;
+  font-size: .78rem; font-weight: 700; cursor: pointer; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: .4rem; transition: opacity .15s;
+}
+.sg-notes-send-btn:hover  { opacity: .88; }
+.sg-notes-send-btn:disabled { opacity: .55; cursor: not-allowed; }
+
+/* Notes modal */
+.sg-notes-modal-head { background: linear-gradient(135deg, #1e3a8a, #1d4ed8); }
+.sg-notes-modal-confirm { background: linear-gradient(135deg, #2563eb, #3b82f6); color: #fff;
+  border: none; border-radius: 8px; padding: .5rem 1.3rem; font-size: .82rem; font-weight: 700;
+  cursor: pointer; display: inline-flex; align-items: center; gap: .4rem; }
+.sg-notes-modal-confirm:disabled { opacity: .55; cursor: not-allowed; }
+.sg-notes-modal-confirm:not(:disabled):hover { opacity: .88; }
+.sg-notes-modal-success { display: none; padding: 1.5rem; text-align: center; color: #1d4ed8; }
+.sg-notes-modal-success i { font-size: 2rem; display: block; margin-bottom: .5rem; }
+.sg-notes-modal-success p { font-size: .9rem; font-weight: 600; margin-bottom: 1rem; }
+.sg-notes-modal-success a { display: inline-block; background: #2563eb; color: #fff;
+  border-radius: 8px; padding: .5rem 1.2rem; font-size: .82rem; font-weight: 700; text-decoration: none; }
+.sg-notes-modal-success a:hover { background: #1d4ed8; }
 
 /* ── Pulse Live HUD ── */
 .sg-pulse-hud {
@@ -477,6 +512,17 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; colo
         </button>
       </div>
 
+      <!-- Send as Notes bar -->
+      <div id="sgNotesBar" class="sg-notes-bar">
+        <div class="sg-notes-bar-left">
+          <h4><i class="fas fa-book-reader"></i> Send Key Concepts as Notes</h4>
+          <p>Share these key concepts with students as a class note they can review anytime</p>
+        </div>
+        <button class="sg-notes-send-btn" onclick="openNotesModal()">
+          <i class="fas fa-share-square"></i> Send Notes
+        </button>
+      </div>
+
       <!-- Send as Assignment bar -->
       <div id="sgAssignBar" class="sg-assign-bar">
         <div class="sg-assign-bar-left">
@@ -546,7 +592,55 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; colo
   <div class="sg-pulse-stat">Responded: <strong id="sgHudResponded">0</strong> / <strong id="sgHudTotal">—</strong></div>
   <div class="sg-pulse-hud-q" id="sgHudQ1"></div>
   <div class="sg-pulse-hud-q" id="sgHudQ2"></div>
+  <div id="sgHudPollErr" style="display:none;font-size:.68rem;color:#f87171;margin-bottom:.45rem;">
+    <i class="fas fa-exclamation-triangle"></i> Poll connection issue — retrying…
+  </div>
   <button class="sg-pulse-close-btn" onclick="closePulse()"><i class="fas fa-stop-circle"></i> Close Pulse</button>
+</div>
+
+<!-- Notes Modal -->
+<div id="sgNotesModal" class="sg-modal-backdrop">
+  <div class="sg-modal">
+    <div class="sg-modal-head sg-notes-modal-head">
+      <h3><i class="fas fa-book-reader" style="margin-right:.45em;opacity:.8;"></i>Send Key Concepts as Notes</h3>
+      <button class="sg-modal-close" onclick="closeNotesModal()" aria-label="Close">&times;</button>
+    </div>
+    <div id="sgNotesForm">
+      <div class="sg-modal-body">
+        <div class="sg-modal-field">
+          <label><i class="fas fa-users"></i> Target Class</label>
+          <select id="sgNotesClass">
+            <option value="">— Select a class —</option>
+            {% if deck.school_class %}<option value="{{ deck.school_class.pk }}" selected>{{ deck.school_class.name }}</option>{% endif %}
+            {% for cls in classes %}
+              {% if not deck.school_class or cls.pk != deck.school_class.pk %}
+              <option value="{{ cls.pk }}">{{ cls.name }}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+        <div class="sg-modal-field">
+          <label><i class="fas fa-heading"></i> Note Title <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></label>
+          <input type="text" id="sgNotesTitle" placeholder="{{ deck.title }} — Key Concepts">
+        </div>
+        <p style="font-size:.72rem;color:#94a3b8;margin:0;">
+          <i class="fas fa-info-circle"></i>
+          The AI-generated key concepts will be saved as a class note that students can view from their homework section.
+        </p>
+      </div>
+      <div class="sg-modal-footer">
+        <button class="sg-modal-cancel" onclick="closeNotesModal()">Cancel</button>
+        <button id="sgNotesConfirmBtn" class="sg-notes-modal-confirm" onclick="submitNotes()">
+          <i class="fas fa-share-square"></i> Send Notes
+        </button>
+      </div>
+    </div>
+    <div id="sgNotesSuccess" class="sg-notes-modal-success">
+      <i class="fas fa-check-circle" style="color:#2563eb;"></i>
+      <p>Class notes sent successfully!</p>
+      <a id="sgNotesLink" href="#" target="_blank">View Class Notes &rarr;</a>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -560,6 +654,7 @@ var _pulseQuestions = null;
 var _pulseLiveUrl   = null;
 var _pulseCloseUrl  = null;
 var _pulsePollTimer = null;
+var _pulsePollErrors = 0;
 
 function fetchWithTimeout(url, options, timeoutMs) {
   var controller = new AbortController();
@@ -659,6 +754,11 @@ function renderAIGuide(d) {
     bar.classList.add('visible');
     var desc = document.getElementById('sgPulseBarDesc');
     desc.textContent = 'Pick 2 T/F + 1 MCQ from your ' + qs.length + ' questions — beam them live to students';
+  }
+
+  // Always show notes bar (concepts can go to any class)
+  if (concepts.length) {
+    document.getElementById('sgNotesBar').classList.add('visible');
   }
 
   results.scrollIntoView({behavior: 'smooth', block: 'start'});
@@ -763,13 +863,24 @@ function sendAsPulse() {
 
 function pollPulse() {
   if (!_pulseLiveUrl) return;
-  fetch(_pulseLiveUrl)
-    .then(function(r){ return r.json(); })
+  fetch(_pulseLiveUrl, { credentials: 'same-origin' })
+    .then(function(r){
+      if (!r.ok) { _pulsePollErrors++; showHudErr(_pulsePollErrors >= 3); return null; }
+      _pulsePollErrors = 0; showHudErr(false);
+      return r.json();
+    })
     .then(function(d){
+      if (!d) return;
       document.getElementById('sgHudResponded').textContent = d.responded || 0;
+      if (d.total) document.getElementById('sgHudTotal').textContent = d.total;
       if (d.status === 'closed') { clearInterval(_pulsePollTimer); }
     })
-    .catch(function(){});
+    .catch(function(){ _pulsePollErrors++; showHudErr(_pulsePollErrors >= 3); });
+}
+
+function showHudErr(show) {
+  var el = document.getElementById('sgHudPollErr');
+  if (el) el.style.display = show ? '' : 'none';
 }
 
 function closePulse() {
@@ -793,7 +904,9 @@ function closePulse() {
 
 // ── Send as Assignment ─────────────────────────────────────────────────────
 var ASSIGN_URL = '{% url "teachers:presentation_send_as_assignment" deck.pk %}';
+var NOTES_URL  = '{% url "teachers:presentation_send_as_notes" deck.pk %}';
 var _assignSummary = '';
+var _conceptsCache = [];
 
 // Wrap renderAIGuide to also show assignment bar
 (function() {
@@ -801,6 +914,7 @@ var _assignSummary = '';
   renderAIGuide = function(d) {
     _orig(d);
     _assignSummary = d.summary || '';
+    _conceptsCache = d.key_concepts || [];
     document.getElementById('sgAssignBar').classList.add('visible');
   };
 })();
@@ -867,6 +981,66 @@ function submitAssignment() {
 
 document.getElementById('sgAssignModal').addEventListener('click', function(e){
   if (e.target === this) closeAssignModal();
+});
+
+// ── Send as Notes ──────────────────────────────────────────────────────────
+function openNotesModal() {
+  document.getElementById('sgNotesForm').style.display = '';
+  document.getElementById('sgNotesSuccess').style.display = 'none';
+  // Pre-fill title
+  var titleField = document.getElementById('sgNotesTitle');
+  if (!titleField.value) titleField.value = '';
+  document.getElementById('sgNotesModal').classList.add('open');
+}
+
+function closeNotesModal() {
+  document.getElementById('sgNotesModal').classList.remove('open');
+}
+
+function submitNotes() {
+  var classId = document.getElementById('sgNotesClass').value;
+  var rawTitle = document.getElementById('sgNotesTitle').value.trim();
+  var title = rawTitle || '{{ deck.title|escapejs }} \u2014 Key Concepts';
+
+  if (!classId) { alert('Please select a target class.'); return; }
+  if (!_conceptsCache || !_conceptsCache.length) {
+    alert('No key concepts found. Please generate the AI guide first.'); return;
+  }
+
+  var btn = document.getElementById('sgNotesConfirmBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending\u2026';
+
+  fetchWithTimeout(NOTES_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN},
+    body: JSON.stringify({
+      class_id: parseInt(classId, 10),
+      title:    title,
+      concepts: _conceptsCache,
+    })
+  }, 20000)
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-share-square"></i> Send Notes';
+    if (!d.ok) {
+      alert(d.error || 'Could not send notes. Please try again.');
+      return;
+    }
+    document.getElementById('sgNotesLink').href = d.notes_url;
+    document.getElementById('sgNotesForm').style.display = 'none';
+    document.getElementById('sgNotesSuccess').style.display = 'block';
+  })
+  .catch(function(err){
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-share-square"></i> Send Notes';
+    alert((err && err.name === 'AbortError') ? 'Request timed out. Please try again.' : 'Network error. Please try again.');
+  });
+}
+
+document.getElementById('sgNotesModal').addEventListener('click', function(e){
+  if (e.target === this) closeNotesModal();
 });
 </script>
 

@@ -5,6 +5,7 @@ app_name = 'homework'
 
 urlpatterns = [
     path('', views.homework_list, name='homework_list'),
+    path('notes/', views.student_notes_list, name='student_notes_list'),
     path('create/', views.homework_create, name='homework_create'),
     path('ai-generate/', views.homework_ai_generate, name='homework_ai_generate'),
     path('<int:pk>/', views.homework_detail, name='homework_detail'),

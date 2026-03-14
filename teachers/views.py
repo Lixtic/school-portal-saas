@@ -5734,6 +5734,27 @@ def presentation_pulse_launch(request, pk):
     live_url  = script_name + reverse('teachers:pulse_live',  args=[session.pk])
     close_url = script_name + reverse('teachers:pulse_close', args=[session.pk])
 
+    # Notify students that a live pulse is active for their class
+    try:
+        from announcements.models import Notification as _Notif
+        from students.models import Student as _Stu
+        _dashboard_url = script_name + '/dashboard/'
+        _students = _Stu.objects.filter(
+            current_class=deck.school_class, user__is_active=True
+        ).select_related('user')
+        topic_label = deck.title[:60] if deck.title else 'Study Guide'
+        _Notif.objects.bulk_create([
+            _Notif(
+                recipient=s.user,
+                message=f"🟢 Live Pulse! Check your dashboard to respond — {topic_label}",
+                alert_type='general',
+                link=_dashboard_url,
+            )
+            for s in _students
+        ], ignore_conflicts=True)
+    except Exception:
+        pass
+
     return JsonResponse({
         'ok':             True,
         'session_id':     session.pk,
@@ -5833,7 +5854,104 @@ def presentation_send_as_assignment(request, pk):
     from django.urls import reverse as _reverse
     hw_url = script_name + _reverse('homework:homework_detail', args=[hw.pk])
 
+    # Bulk-notify all students in the target class
+    try:
+        from announcements.models import Notification as _Notif
+        from students.models import Student as _Stu
+        _students = _Stu.objects.filter(
+            current_class=target_class, user__is_active=True
+        ).select_related('user')
+        _Notif.objects.bulk_create([
+            _Notif(
+                recipient=s.user,
+                message=f"📚 New Assignment: {hw.title}",
+                alert_type='general',
+                link=hw_url,
+            )
+            for s in _students
+        ], ignore_conflicts=True)
+    except Exception:
+        pass  # Never block homework creation over a notification failure
+
     return JsonResponse({'ok': True, 'homework_id': hw.pk, 'homework_url': hw_url})
+
+
+@login_required
+@require_POST
+def presentation_send_as_notes(request, pk):
+    """
+    Share AI-generated key concepts as a ClassNote for the target class.
+    POST JSON: {class_id, concepts: [{term, description}, ...], title}
+    """
+    import json as _json
+    from .models import Presentation
+    from homework.models import ClassNote
+    from academics.models import Class
+
+    if request.user.user_type not in ('teacher', 'admin'):
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    teacher = get_object_or_404(Teacher, user=request.user)
+    deck = get_object_or_404(Presentation, pk=pk, teacher=teacher)
+
+    try:
+        body = _json.loads(request.body)
+    except (ValueError, _json.JSONDecodeError):
+        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+
+    class_id = body.get('class_id')
+    concepts = body.get('concepts', [])
+    title = str(body.get('title', f"{deck.title} — Key Concepts")).strip()[:200]
+
+    if not class_id:
+        return JsonResponse({'error': 'class_id is required'}, status=400)
+    if not concepts:
+        return JsonResponse({'error': 'No concepts to send'}, status=400)
+
+    target_class = get_object_or_404(Class, pk=class_id)
+
+    # Sanitise concepts list
+    clean_concepts = []
+    for c in concepts[:30]:
+        term = str(c.get('term', '')).strip()[:150]
+        desc = str(c.get('description', '')).strip()[:400]
+        if term:
+            clean_concepts.append({'term': term, 'description': desc})
+
+    note = ClassNote.objects.create(
+        title=title,
+        content=clean_concepts,
+        teacher=teacher,
+        target_class=target_class,
+        source_deck=deck,
+    )
+
+    # Notify students in the class
+    try:
+        from announcements.models import Notification as _Notif
+        from students.models import Student as _Stu
+        from django.urls import reverse as _reverse
+        script_name = request.META.get('SCRIPT_NAME', '').rstrip('/')
+        notes_url = script_name + _reverse('homework:student_notes_list')
+        _students = _Stu.objects.filter(
+            current_class=target_class, user__is_active=True
+        ).select_related('user')
+        _Notif.objects.bulk_create([
+            _Notif(
+                recipient=s.user,
+                message=f"📖 New Class Note: {note.title}",
+                alert_type='general',
+                link=notes_url,
+            )
+            for s in _students
+        ], ignore_conflicts=True)
+    except Exception:
+        pass
+
+    script_name = request.META.get('SCRIPT_NAME', '').rstrip('/')
+    from django.urls import reverse as _reverse
+    notes_url = script_name + _reverse('homework:student_notes_list')
+    return JsonResponse({'ok': True, 'note_id': note.pk, 'notes_url': notes_url})
 
 
 @login_required

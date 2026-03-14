@@ -86,6 +86,14 @@
 
 /* ── Overdue badge ──────────────────────────────────────── */
 .badge-overdue { font-size: .68rem; vertical-align: middle; }
+.badge-new {
+    font-size: .62rem; font-weight: 800; letter-spacing: .06em;
+    vertical-align: middle; animation: pulse-new 1.6s ease infinite;
+}
+@keyframes pulse-new {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: .75; transform: scale(1.08); }
+}
 
 /* ── Slide-in animation ─────────────────────────────────── */
 @keyframes slideInUp {
@@ -135,6 +143,10 @@
                 {% if is_teacher %}
                 <a href="{% url 'homework:homework_create' %}" class="btn btn-light rounded-pill px-4 fw-semibold shadow-sm">
                     <i class="bi bi-plus-lg me-1"></i>Assign Homework
+                </a>
+                {% else %}
+                <a href="{% url 'homework:student_notes_list' %}" class="btn btn-light rounded-pill px-4 fw-semibold shadow-sm">
+                    <i class="bi bi-journal-richtext me-1"></i>Class Notes
                 </a>
                 {% endif %}
             </div>
@@ -187,7 +199,12 @@
                     <div class="hw-item card border-0 shadow-sm hw-anim" style="cursor:pointer;" onclick="window.location='{% url 'homework:homework_detail' pk=homework.pk %}'">
                         <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2 py-3 px-4">
                             <div>
-                                <div class="fw-semibold mb-1">{{ homework.title }}</div>
+                                <div class="fw-semibold mb-1">
+                                {{ homework.title }}
+                                {% if homework.created_at > new_since %}
+                                <span class="badge bg-success badge-new ms-1">New</span>
+                                {% endif %}
+                            </div>
                                 <div class="small text-muted">
                                     <i class="bi bi-people me-1"></i>{{ homework.target_class.name }}
                                     <span class="mx-2">·</span>
@@ -244,7 +261,12 @@
                             <i class="bi bi-journal-text text-white fs-5"></i>
                         </div>
                         <div>
-                            <div class="fw-semibold mb-1">{{ homework.title }}</div>
+                            <div class="fw-semibold mb-1">
+                                {{ homework.title }}
+                                {% if homework.created_at > new_since %}
+                                <span class="badge bg-success badge-new ms-1">New</span>
+                                {% endif %}
+                            </div>
                             <div class="small text-muted">
                                 <span class="badge rounded-pill me-1" style="background:rgba(245,158,11,.12);color:#d97706;">{{ homework.subject.name }}</span>
                                 <i class="bi bi-people me-1"></i>{{ homework.target_class.name }}
