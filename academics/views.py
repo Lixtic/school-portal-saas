@@ -2206,13 +2206,16 @@ def ai_tutor_chat(request):
         
         # Save user message
         if messages_list and isinstance(messages_list[-1], dict) and messages_list[-1].get('role') == 'user':
-            TutorMessage.objects.create(
-                session=session,
-                role='user',
-                content=messages_list[-1].get('content', '')
-            )
-            session.message_count += 1
-            session.save()
+            try:
+                TutorMessage.objects.create(
+                    session=session,
+                    role='user',
+                    content=messages_list[-1].get('content', '')
+                )
+                session.message_count += 1
+                session.save()
+            except (ProgrammingError, Exception) as _e:
+                logger.warning('TutorMessage user-save failed (schema may be missing): %s', _e)
         
         # Get subject context
         subject = None
@@ -2315,13 +2318,16 @@ def ai_tutor_chat(request):
                         session.title = _title_val
                         session.save(update_fields=['title'])
 
-                TutorMessage.objects.create(
-                    session=session,
-                    role='assistant',
-                    content=visible_message or full_assistant_message
-                )
-                session.message_count += 1
-                session.save(update_fields=['message_count'])
+                try:
+                    TutorMessage.objects.create(
+                        session=session,
+                        role='assistant',
+                        content=visible_message or full_assistant_message
+                    )
+                    session.message_count += 1
+                    session.save(update_fields=['message_count'])
+                except (ProgrammingError, Exception) as _e:
+                    logger.warning('TutorMessage assistant-save failed (schema may be missing): %s', _e)
 
                 summary_payload = _extract_session_summary_payload(full_assistant_message)
                 if summary_payload:
