@@ -856,6 +856,68 @@
             }
         }
 
+        /* Mobile tap-target loader: bottom shimmer on tapped cards/buttons */
+        @media (max-width: 768px) {
+            .mobile-tap-loader-target {
+                position: relative;
+                overflow: hidden;
+            }
+
+            .mobile-tap-loader-target::before {
+                content: '';
+                position: absolute;
+                left: 10px;
+                right: 10px;
+                bottom: 6px;
+                height: 2.5px;
+                border-radius: 999px;
+                background: rgba(67, 97, 238, 0.22);
+                pointer-events: none;
+                z-index: 3;
+            }
+
+            .mobile-tap-loader-target::after {
+                content: '';
+                position: absolute;
+                bottom: 6px;
+                left: -34%;
+                width: 34%;
+                height: 2.5px;
+                border-radius: 999px;
+                background: linear-gradient(90deg, transparent 0%, rgba(67,97,238,.62) 24%, #4361ee 50%, rgba(76,201,240,1) 74%, transparent 100%);
+                box-shadow: 0 0 7px rgba(67, 97, 238, 0.28), 0 0 11px rgba(76, 201, 240, 0.18);
+                animation: mobileTapLoaderSweep 0.74s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+                pointer-events: none;
+                z-index: 4;
+            }
+
+            .mobile-tap-loader-target.tap-complete::after {
+                animation: mobileTapLoaderFinish 0.24s cubic-bezier(0.22, 1, 0.36, 1) 0.08s forwards;
+            }
+
+            [data-bs-theme="dark"] .mobile-tap-loader-target::before {
+                background: rgba(148, 163, 184, 0.24);
+            }
+        }
+
+        @keyframes mobileTapLoaderSweep {
+            0% { left: -34%; }
+            100% { left: 100%; }
+        }
+
+        @keyframes mobileTapLoaderFinish {
+            0% {
+                left: 62%;
+                width: 34%;
+                opacity: 1;
+            }
+            100% {
+                left: 0;
+                width: 100%;
+                opacity: 0;
+            }
+        }
+
         @media (max-width: 768px) {
             body.mobile-app-shell .header {
                 height: 62px;
@@ -3026,8 +3088,57 @@
         let __globalLoaderFailsafeTimer = null;
         let __pageLoaderDelayTimer = null;
         let __pageLoaderVisibleSince = 0;
+        let __mobileTapLoaderClearTimer = null;
+        let __activeMobileTapLoaderEl = null;
         const __pageLoaderDelayMs = 120;
         const __pageLoaderMinVisibleMs = 260;
+
+        function setMobileTapLoader(target) {
+            if (window.innerWidth > 768 || !target) return;
+
+            const tapTarget = target.closest(
+                '.card, .stat-card, .student-card, .qa-minimal-wrap, .tt-section, .schedule-item, .btn, .nav-link, .list-group-item, .mobile-bubble-item, .header-action-btn, a, button'
+            ) || target;
+
+            if (!tapTarget || tapTarget.closest('[data-no-loader]')) return;
+
+            if (__activeMobileTapLoaderEl && __activeMobileTapLoaderEl !== tapTarget) {
+                __activeMobileTapLoaderEl.classList.remove('mobile-tap-loader-target');
+            }
+
+            __activeMobileTapLoaderEl = tapTarget;
+            __activeMobileTapLoaderEl.classList.add('mobile-tap-loader-target');
+
+            if (__mobileTapLoaderClearTimer) {
+                clearTimeout(__mobileTapLoaderClearTimer);
+            }
+
+            // Safety clear if action does not navigate.
+            __mobileTapLoaderClearTimer = setTimeout(function () {
+                clearMobileTapLoader();
+            }, 2600);
+        }
+
+        function clearMobileTapLoader(animate = true) {
+            if (__mobileTapLoaderClearTimer) {
+                clearTimeout(__mobileTapLoaderClearTimer);
+                __mobileTapLoaderClearTimer = null;
+            }
+
+            if (__activeMobileTapLoaderEl) {
+                const activeEl = __activeMobileTapLoaderEl;
+                __activeMobileTapLoaderEl = null;
+
+                if (animate) {
+                    activeEl.classList.add('tap-complete');
+                    setTimeout(function () {
+                        activeEl.classList.remove('tap-complete', 'mobile-tap-loader-target');
+                    }, 360);
+                } else {
+                    activeEl.classList.remove('tap-complete', 'mobile-tap-loader-target');
+                }
+            }
+        }
 
         function showTopBarLoader() {
             const bar = document.getElementById('pageLoader');
@@ -3107,6 +3218,8 @@
             document.querySelectorAll('.btn-loading').forEach(function (btn) {
                 btn.classList.remove('btn-loading');
             });
+
+            clearMobileTapLoader();
         }
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -3133,6 +3246,7 @@
                     !link.closest('[data-no-loader]') &&
                     link.origin === window.location.origin
                 ) {
+                    setMobileTapLoader(link);
                     scheduleTopBarLoader();
                 }
             });
@@ -3157,6 +3271,7 @@
                     const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
                     if (submitBtn && !submitBtn.classList.contains('no-loader')) {
                         submitBtn.classList.add('btn-loading');
+                        setMobileTapLoader(submitBtn);
                     }
                     
                     // Show full screen loader
