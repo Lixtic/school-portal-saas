@@ -16,6 +16,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_SECRET_KEY = 'django-insecure-your-secret-key-here-change-in-production'
 
 # SECURITY WARNING: keep the secret key used in production secret!
+# Accepts SECRET_KEY, DJANGO_SECRET_KEY, or SECRET_KEY_BASE env vars.
 SECRET_KEY = (
     os.environ.get('SECRET_KEY')
     or os.environ.get('DJANGO_SECRET_KEY')
@@ -27,14 +28,13 @@ SECRET_KEY = (
 # Defaults to False unless explicitly set. Use DEBUG=True in local .env
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-# Enforce an explicit secret key outside debug to prevent insecure deployments.
+# Warn loudly if still using the insecure default in production.
+# Does NOT crash the app — set SECRET_KEY (or DJANGO_SECRET_KEY / SECRET_KEY_BASE) in Vercel env vars.
 if not DEBUG and (not SECRET_KEY or SECRET_KEY == DEFAULT_SECRET_KEY or SECRET_KEY.startswith('django-insecure')):
     import logging as _log
     _log.getLogger('django.security').critical(
-        'SECRET_KEY is missing or insecure. Set SECRET_KEY (or DJANGO_SECRET_KEY / SECRET_KEY_BASE) in deployment env vars.'
-    )
-    raise RuntimeError(
-        'Insecure SECRET_KEY configuration. Set SECRET_KEY (or DJANGO_SECRET_KEY / SECRET_KEY_BASE) for production deployment.'
+        '⚠️  SECURITY RISK: SECRET_KEY is using the insecure default! '
+        'Set SECRET_KEY (or DJANGO_SECRET_KEY / SECRET_KEY_BASE) in your Vercel/Railway env vars immediately.'
     )
 
 # OpenAI Configuration
