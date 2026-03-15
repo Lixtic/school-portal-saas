@@ -140,6 +140,11 @@
         border-top-left-radius: 16px;
         border-top-right-radius: 16px;
     }
+
+    .wb-image-model {
+        min-width: 170px;
+        font-size: .78rem;
+    }
     
     .whiteboard-content {
         flex: 1;
@@ -1301,6 +1306,12 @@
         /* Show tabs */
         .mobile-tabs { display: flex; }
         .progress-tracker { display: none; } /* Hide tracker to save vertical space */
+
+        .wb-image-model {
+            min-width: 130px;
+            max-width: 150px;
+            font-size: .72rem;
+        }
     }
 
     /* ── Sessions Offcanvas Sidebar ──────────────────────── */
@@ -1620,7 +1631,11 @@
                     </div>
                     <span class="fw-bold">Whiteboard</span>
                 </div>
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-2 align-items-center">
+                    <select id="wbImageModel" class="form-select form-select-sm wb-image-model" title="Whiteboard image model">
+                        <option value="flux-schnell" selected>FLUX.1 Schnell</option>
+                        <option value="google-nano-banana">Google Nano Banana</option>
+                    </select>
                     <button class="btn btn-sm btn-outline-secondary border-0" onclick="toggleDrawing()" id="drawingBtn" data-bs-toggle="tooltip" title="Draw">
                         <i class="bi bi-pencil"></i>
                     </button>
@@ -2823,12 +2838,16 @@
 
     // 4.1 Image Generation Function (Aura LTS)
     async function generateTutorImage(prompt) {
+        const modelSelectEl = document.getElementById('wbImageModel');
+        const selectedImageModel = modelSelectEl ? modelSelectEl.value : 'flux-schnell';
+        const modelLabel = selectedImageModel === 'google-nano-banana' ? 'Google Nano Banana' : 'FLUX.1-schnell';
+
         // Show loading state
         whiteboardTextContent.innerHTML = `
             <div class="h-100 d-flex flex-column align-items-center justify-content-center text-muted">
                 <div class="spinner-border text-primary mb-3" role="status"></div>
                 <div>Generating image: "<strong>${prompt}</strong>"...</div>
-                <small class="mt-2 text-secondary">Using FLUX.1-schnell</small>
+                <small class="mt-2 text-secondary">Using ${modelLabel}</small>
             </div>
         `;
         
@@ -2839,7 +2858,7 @@
                     'Content-Type': 'application/json',
                     'X-CSRFToken': '{{ csrf_token }}'
                 },
-                body: JSON.stringify({ prompt: prompt })
+                body: JSON.stringify({ prompt: prompt, image_model: selectedImageModel })
             }, 90000);
             
             if (!response.ok) {
@@ -3892,7 +3911,6 @@
 
             const streak = document.getElementById('pulseStreak');
             if (streak) {
-                streak.style.display = '';
                 setTimeout(() => {
                     streak.style.display = 'none';
                 }, 750);
@@ -3900,7 +3918,6 @@
 
             const toast = document.getElementById('pulseToast');
             if (toast) {
-                toast.classList.add('show');
                 setTimeout(() => {
                     toast.classList.remove('show');
                     openOverlay(session);

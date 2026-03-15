@@ -2653,37 +2653,90 @@ def tutor_sessions(request):
 
 @login_required
 def generate_tutor_image(request):
-    """Generate image based on prompt using HF API (FLUX.1-schnell)"""
+    """Generate whiteboard image using selected model (FLUX or Gemini Nano Banana)."""
     if request.method != 'POST':
         return JsonResponse({'error': 'Invalid method'}, status=400)
     
     try:
         data = json.loads(request.body)
         prompt = data.get('prompt')
+        image_model = (data.get('image_model') or 'flux-schnell').strip().lower()
         if not prompt:
              return JsonResponse({'error': 'No prompt provided'}, status=400)
-        
-        # Initialize client with token from environment
+
+        # Google Nano Banana path (Gemini image generation)
+        if image_model in ('google-nano-banana', 'nano-banana'):
+            gemini_api_key = os.environ.get('GEMINI_API_KEY')
+            if not gemini_api_key:
+                return JsonResponse({'error': 'GEMINI_API_KEY not configured'}, status=500)
+
+            # Override with GEMINI_IMAGE_MODEL if your project uses a different alias.
+            gemini_image_model = os.environ.get('GEMINI_IMAGE_MODEL', 'gemini-2.5-flash-image-preview')
+            gemini_url = (
+                f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_image_model}"
+                f":generateContent?key={gemini_api_key}"
+            )
+            gemini_payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "responseModalities": ["TEXT", "IMAGE"]
+                }
+            }
+
+            import urllib.request as _urllib_req
+            import urllib.error as _urllib_err
+
+            req = _urllib_req.Request(
+                gemini_url,
+                data=json.dumps(gemini_payload).encode('utf-8'),
+                headers={'Content-Type': 'application/json'},
+                method='POST',
+            )
+            try:
+                with _urllib_req.urlopen(req, timeout=120) as resp:
+                    gemini_res = json.loads(resp.read().decode('utf-8'))
+            except _urllib_err.HTTPError as exc:
+                detail = exc.read().decode('utf-8', errors='ignore') if exc.fp else str(exc)
+                return JsonResponse({'error': f'Nano Banana HTTP {exc.code}: {detail}'}, status=502)
+            except _urllib_err.URLError as exc:
+                return JsonResponse({'error': f'Nano Banana network error: {exc.reason}'}, status=502)
+
+            inline_data = None
+            try:
+                for part in gemini_res.get('candidates', [{}])[0].get('content', {}).get('parts', []):
+                    if isinstance(part, dict) and (part.get('inlineData') or part.get('inline_data')):
+                        inline_data = part.get('inlineData') or part.get('inline_data')
+                        break
+            except Exception:
+                inline_data = None
+
+            if not inline_data:
+                return JsonResponse({'error': 'Nano Banana returned no image data'}, status=502)
+
+            b64 = inline_data.get('data') or ''
+            mime = inline_data.get('mimeType') or inline_data.get('mime_type') or 'image/png'
+            if not b64:
+                return JsonResponse({'error': 'Nano Banana returned empty image payload'}, status=502)
+
+            return JsonResponse({'image_url': f'data:{mime};base64,{b64}', 'model_used': 'google-nano-banana'})
+
+        # Default FLUX path
         hf_token = os.environ.get('HF_TOKEN')
         if not hf_token:
             return JsonResponse({'error': 'HF_TOKEN not configured'}, status=500)
-            
-        client = InferenceClient(token=hf_token)
 
-        # Call text-to-image API
-        # Model: black-forest-labs/FLUX.1-schnell
+        client = InferenceClient(token=hf_token)
         image = client.text_to_image(
             prompt,
             model="black-forest-labs/FLUX.1-schnell",
             num_inference_steps=4
         )
-        
-        # Convert PIL Image to base64
+
         buffered = io.BytesIO()
         image.save(buffered, format="PNG")
         img_str = base64.b64encode(buffered.getvalue()).decode()
-        
-        return JsonResponse({'image_url': f"data:image/png;base64,{img_str}"})
+
+        return JsonResponse({'image_url': f"data:image/png;base64,{img_str}", 'model_used': 'flux-schnell'})
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
