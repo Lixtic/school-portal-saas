@@ -563,31 +563,82 @@ def _stream_gemini_chat(payload, model_override=None):
         headers={"Content-Type": "application/json"},
         method="POST",
     )
+
+    def _extract_text_from_gemini_event(parsed):
+        """Extract visible text from Gemini stream event payloads.
+
+        Gemini stream payloads may be dicts or lists and may contain multiple
+        candidates/parts. We collect all text parts conservatively.
+        """
+        if isinstance(parsed, list):
+            parsed = parsed[0] if parsed and isinstance(parsed[0], dict) else {}
+        if not isinstance(parsed, dict):
+            return ""
+
+        chunks = []
+        for cand in parsed.get("candidates", []) or []:
+            if not isinstance(cand, dict):
+                continue
+            content = cand.get("content", {})
+            if not isinstance(content, dict):
+                continue
+            parts = content.get("parts", []) or []
+            for part in parts:
+                if not isinstance(part, dict):
+                    continue
+                txt = part.get("text")
+                if txt:
+                    chunks.append(str(txt))
+        return "".join(chunks)
+
     try:
         with urllib_request.urlopen(req, timeout=300) as resp:
+            # SSE events can span multiple "data:" lines; buffer until blank line.
+            event_data_lines = []
             for raw_line in resp:
-                line = raw_line.decode("utf-8", errors="ignore").strip()
-                if not line or not line.startswith("data: "):
+                line = raw_line.decode("utf-8", errors="ignore").rstrip("\r\n")
+
+                # Blank line terminates current SSE event.
+                if line == "":
+                    if not event_data_lines:
+                        continue
+                    data_str = "\n".join(event_data_lines).strip()
+                    event_data_lines = []
+                    if not data_str:
+                        continue
+                    if data_str == "[DONE]":
+                        break
+                    try:
+                        parsed = json.loads(data_str)
+                        text_piece = _extract_text_from_gemini_event(parsed)
+                        if text_piece:
+                            yield "data: " + json.dumps({
+                                "provider": "gemini",
+                                "model": model,
+                                "content": text_piece,
+                            }) + "\n\n"
+                    except Exception:
+                        continue
                     continue
-                data_str = line[6:].strip()
-                if data_str == "[DONE]":
-                    break
-                try:
-                    parsed = json.loads(data_str)
-                    text_piece = (
-                        parsed.get("candidates", [{}])[0]
-                        .get("content", {})
-                        .get("parts", [{}])[0]
-                        .get("text", "")
-                    )
-                    if text_piece:
-                        yield "data: " + json.dumps({
-                            "provider": "gemini",
-                            "model": model,
-                            "content": text_piece,
-                        }) + "\n\n"
-                except Exception:
-                    continue
+
+                if line.startswith("data:"):
+                    event_data_lines.append(line[5:].strip())
+
+            # Flush trailing buffered event if stream closed without blank line.
+            if event_data_lines:
+                data_str = "\n".join(event_data_lines).strip()
+                if data_str and data_str != "[DONE]":
+                    try:
+                        parsed = json.loads(data_str)
+                        text_piece = _extract_text_from_gemini_event(parsed)
+                        if text_piece:
+                            yield "data: " + json.dumps({
+                                "provider": "gemini",
+                                "model": model,
+                                "content": text_piece,
+                            }) + "\n\n"
+                    except Exception:
+                        pass
         yield "data: [DONE]\n\n"
     except HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="ignore") if exc.fp else str(exc)
