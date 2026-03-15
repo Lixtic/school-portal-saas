@@ -419,8 +419,18 @@ def _get_gemini_api_key():
 def _get_gemini_model():
     configured = getattr(settings, "GEMINI_MODEL", None)
     if configured:
-        return configured
-    return os.environ.get("GEMINI_MODEL") or GEMINI_CHAT_MODELS[0]
+        return str(configured).strip().replace("gemini:", "", 1)
+    return str(os.environ.get("GEMINI_MODEL") or GEMINI_CHAT_MODELS[0]).strip().replace("gemini:", "", 1)
+
+
+def _normalize_gemini_model_name(model_name):
+    """Accept model aliases like 'gemini:gemini-2.5-flash' or 'models/gemini-2.5-flash'."""
+    model = str(model_name or "").strip()
+    if model.startswith("gemini:"):
+        model = model.split(":", 1)[1].strip()
+    if model.startswith("models/"):
+        model = model[len("models/"):].strip()
+    return model
 
 
 def _is_gemini_provider():
@@ -465,7 +475,7 @@ def _call_gemini_chat(payload, model_override=None):
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY is not configured")
 
-    model = model_override or _get_gemini_model()
+    model = _normalize_gemini_model_name(model_override or _get_gemini_model())
     messages = payload.get("messages", [])
     contents, system_parts = _openai_messages_to_gemini_contents(messages)
 
@@ -528,7 +538,7 @@ def _stream_gemini_chat(payload, model_override=None):
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY is not configured")
 
-    model = model_override or _get_gemini_model()
+    model = _normalize_gemini_model_name(model_override or _get_gemini_model())
     messages = payload.get("messages", [])
     contents, system_parts = _openai_messages_to_gemini_contents(messages)
 
@@ -573,7 +583,7 @@ def _stream_gemini_chat(payload, model_override=None):
                     if text_piece:
                         yield "data: " + json.dumps({
                             "provider": "gemini",
-                            "model": f"gemini:{model}",
+                            "model": model,
                             "content": text_piece,
                         }) + "\n\n"
                 except Exception:
