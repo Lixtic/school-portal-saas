@@ -105,10 +105,69 @@
     .an-table td { padding: .55rem .75rem; border-bottom: 1px solid var(--bs-border-color,#f3f4f6); }
     .an-table tr:last-child td { border-bottom: none; }
 
+    /* XP leaderboard */
+    .an-xp-list {
+        display: flex;
+        flex-direction: column;
+        gap: .5rem;
+    }
+    .an-xp-row {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+    }
+    .an-xp-rank {
+        width: 20px;
+        text-align: right;
+        font-size: .75rem;
+        color: var(--bs-secondary-color, #6b7280);
+        font-weight: 700;
+    }
+    .an-xp-main {
+        flex: 1;
+        min-width: 0;
+    }
+    .an-xp-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2px;
+        gap: .5rem;
+    }
+    .an-xp-name {
+        font-size: .82rem;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--bs-body-color, #111827);
+    }
+    .an-xp-meta {
+        font-size: .75rem;
+        color: #7c3aed;
+        font-weight: 700;
+        white-space: nowrap;
+        margin-left: .5rem;
+    }
+    .an-xp-track {
+        height: 5px;
+        background: var(--bs-border-color, #e5e7eb);
+        border-radius: 99px;
+        overflow: hidden;
+    }
+    .an-xp-fill {
+        height: 100%;
+        border-radius: 99px;
+        background: linear-gradient(90deg, #a78bfa, #818cf8);
+    }
+
     [data-bs-theme="dark"] .an-stat,
     [data-bs-theme="dark"] .an-card { background: #1e293b; border-color: #334155; }
     [data-bs-theme="dark"] .an-table td { border-color: #334155; }
     [data-bs-theme="dark"] .an-table th { border-color: #334155; }
+    [data-bs-theme="dark"] .an-xp-meta { color: #c4b5fd; }
+    [data-bs-theme="dark"] .an-xp-track { background: #334155; }
+    [data-bs-theme="dark"] .an-xp-fill { background: linear-gradient(90deg, #8b5cf6, #6366f1); }
 </style>
 
 <!-- Header -->
@@ -203,17 +262,17 @@
         </div>
         {% if aura_top_xp %}
         <div class="an-card-title" style="margin-top:.25rem;"><i class="fa-solid fa-ranking-star me-1" style="color:#f59e0b;"></i>Top XP Leaders</div>
-        <div style="display:flex; flex-direction:column; gap:.5rem;">
+        <div class="an-xp-list">
             {% for entry in aura_top_xp %}
-            <div style="display:flex; align-items:center; gap:.75rem;">
-                <span style="width:20px; text-align:right; font-size:.75rem; color:var(--bs-secondary-color,#6b7280); font-weight:700;">{{ forloop.counter }}</span>
-                <div style="flex:1; min-width:0;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
-                        <span style="font-size:.82rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ entry.student.user.get_full_name }}</span>
-                        <span style="font-size:.75rem; color:#7c3aed; font-weight:700; white-space:nowrap; margin-left:.5rem;">Lv {{ entry.level }} · {{ entry.total_xp }} XP</span>
+            <div class="an-xp-row">
+                <span class="an-xp-rank">{{ forloop.counter }}</span>
+                <div class="an-xp-main">
+                    <div class="an-xp-head">
+                        <span class="an-xp-name">{{ entry.student.user.get_full_name }}</span>
+                        <span class="an-xp-meta">Lv {{ entry.level }} · {{ entry.total_xp }} XP</span>
                     </div>
-                    <div style="height:5px; background:var(--bs-border-color,#e5e7eb); border-radius:99px; overflow:hidden;">
-                        <div style="height:100%; border-radius:99px; background:linear-gradient(90deg,#a78bfa,#818cf8); width:{{ entry.level_progress }}%;"></div>
+                    <div class="an-xp-track">
+                        <div class="an-xp-fill" style="width:{{ entry.level_progress }}%;"></div>
                     </div>
                 </div>
             </div>
