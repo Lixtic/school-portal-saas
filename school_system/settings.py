@@ -42,9 +42,9 @@ OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 
 # Google Gemini Configuration
 # Set AI_PROVIDER=gemini to make Gemini the primary provider.
-# Supported models: gemini-2.5-flash, gemini-2.5-pro, gemini-2.0-flash
+# Supported models: gemini-3-flash, gemini-3-pro, gemini-2.5-flash, gemini-2.5-pro, gemini-2.0-flash
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
-GEMINI_MODEL   = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')
+GEMINI_MODEL   = os.environ.get('GEMINI_MODEL', 'gemini-3-flash')
 AI_PROVIDER    = os.environ.get('AI_PROVIDER', 'openai')  # 'openai' | 'gemini'
 
 # Paystack Payment Gateway
