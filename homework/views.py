@@ -15,7 +15,12 @@ from .forms import HomeworkForm
 from teachers.models import Teacher
 from students.models import Student, Grade
 from academics.models import AcademicYear
-from academics.ai_tutor import _post_chat_completion, get_openai_chat_model
+from academics.ai_tutor import (
+    _get_openai_api_key,
+    _post_chat_completion,
+    get_active_ai_model,
+    get_openai_chat_model,
+)
 
 
 def _normalize_text(value):
@@ -408,9 +413,9 @@ def homework_ai_generate(request):
         '}'
     )
 
-    api_key = getattr(settings, 'OPENAI_API_KEY', None)
+    api_key = _get_openai_api_key()
     payload = {
-        'model': get_openai_chat_model(),
+        'model': get_active_ai_model(),
         'messages': [
             {'role': 'system', 'content': system_msg},
             {'role': 'user',   'content': user_msg},

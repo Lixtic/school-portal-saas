@@ -6,7 +6,12 @@ from typing import Dict, List, Optional
 from django.utils import timezone
 from django.conf import settings
 from teachers.models import LessonPlan, Teacher
-from academics.ai_tutor import _post_chat_completion, get_openai_chat_model
+from academics.ai_tutor import (
+    _get_openai_api_key,
+    _post_chat_completion,
+    get_active_ai_model,
+    get_openai_chat_model,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -132,7 +137,7 @@ JSON SCHEMA — return EXACTLY this structure
 
         try:
             payload = {
-                "model": get_openai_chat_model(),
+                "model": get_active_ai_model(),
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": (
@@ -149,7 +154,7 @@ JSON SCHEMA — return EXACTLY this structure
                 "max_tokens": 2000,
             }
 
-            response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
+            response = _post_chat_completion(payload, _get_openai_api_key())
             content = response['choices'][0]['message']['content']
             data = AuraGenEngine._extract_json_object(content)
 
@@ -1208,7 +1213,7 @@ Rules:
 
         try:
             payload = {
-                "model": get_openai_chat_model(),
+                "model": get_active_ai_model(),
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user",   "content": user_prompt},
@@ -1216,7 +1221,7 @@ Rules:
                 "response_format": {"type": "json_object"},
                 "temperature": 0.55,
             }
-            response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
+            response = _post_chat_completion(payload, _get_openai_api_key())
             content_raw = response['choices'][0]['message']['content']
             data = AuraGenEngine._extract_json_object(content_raw)
             return {
