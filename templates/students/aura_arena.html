@@ -298,6 +298,30 @@ body { background: var(--arena-bg); }
     backdrop-filter: blur(12px);
     flex-shrink: 0;
 }
+.arena-quick-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+.arena-quick-btn {
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06);
+    color: var(--arena-text);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.arena-quick-btn:hover {
+    border-color: rgba(56,120,255,0.4);
+    background: rgba(56,120,255,0.14);
+    color: #dbeafe;
+}
+.arena-quick-btn:active { transform: translateY(1px); }
 .arena-input-form {
     display: flex; align-items: center; gap: 9px;
     background: rgba(255,255,255,0.04);
@@ -449,6 +473,43 @@ body { background: var(--arena-bg); }
     border-radius: 6px; padding: 3px 9px; font-size: 10px; font-weight: 700;
     color: var(--arena-green); margin-top: 7px; letter-spacing: 0.4px;
 }
+
+/* ── Arena custom context menu ─────────────────────────── */
+.arena-context-menu {
+    position: fixed;
+    z-index: 1200;
+    min-width: 220px;
+    background: rgba(14, 14, 28, 0.96);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 10px;
+    padding: 6px;
+    box-shadow: 0 14px 30px rgba(0,0,0,0.4);
+    backdrop-filter: blur(10px);
+    display: none;
+}
+.arena-context-menu.open { display: block; }
+.arena-context-title {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--arena-muted);
+    padding: 5px 8px 4px;
+}
+.arena-context-item {
+    width: 100%;
+    border: none;
+    background: transparent;
+    color: var(--arena-text);
+    border-radius: 7px;
+    text-align: left;
+    font-size: 12px;
+    padding: 7px 9px;
+    cursor: pointer;
+}
+.arena-context-item:hover {
+    background: rgba(56,120,255,0.15);
+}
+.arena-context-item[hidden] { display: none; }
 
 /* ── Mobile ──────────────────────────────────────────────── */
 @media (max-width: 768px) {
@@ -619,6 +680,14 @@ body { background: var(--arena-bg); }
         </div>
 
         <div class="arena-input-bar">
+            <div class="arena-quick-actions" id="quickActionsBar">
+                <button type="button" class="arena-quick-btn" data-cmd="@aura battle" data-send="1">⚔ Battle</button>
+                <button type="button" class="arena-quick-btn" data-cmd="@aura riddle" data-send="1">🧩 Riddle</button>
+                <button type="button" class="arena-quick-btn" data-cmd="@aura math" data-send="1">🔢 Math</button>
+                <button type="button" class="arena-quick-btn" data-cmd="@aura spell" data-send="1">📝 Spell</button>
+                <button type="button" class="arena-quick-btn" data-cmd="@aura true or false" data-send="1">❓ True/False</button>
+                <button type="button" class="arena-quick-btn" data-cmd="@aura hint" data-send="1">💡 Hint</button>
+            </div>
             <div class="reply-preview" id="replyPreview">
                 <i class="fa-solid fa-reply reply-preview-icon"></i>
                 <div class="reply-preview-text">
@@ -650,6 +719,8 @@ body { background: var(--arena-bg); }
                 <code>@aura math</code> &nbsp;&middot;&nbsp;
                 <code>@aura spell</code> &nbsp;&middot;&nbsp;
                 <code>@aura true or false</code>
+                <br>
+                <code>Alt+B</code> battle · <code>Alt+R</code> riddle · <code>Alt+M</code> math · <code>Alt+S</code> spell · <code>Alt+T</code> true/false · <code>Alt+H</code> hint
             </div>
         </div>
 
@@ -669,11 +740,26 @@ body { background: var(--arena-bg); }
     </div>
 </div>
 
+<div class="arena-context-menu" id="arenaContextMenu">
+    <div class="arena-context-title">Arena Actions</div>
+    <button type="button" class="arena-context-item" data-action="battle">⚔ Start battle now</button>
+    <button type="button" class="arena-context-item" data-action="riddle">🧩 Launch riddle</button>
+    <button type="button" class="arena-context-item" data-action="math">🔢 Launch math</button>
+    <button type="button" class="arena-context-item" data-action="spell">📝 Launch spelling</button>
+    <button type="button" class="arena-context-item" data-action="truefalse">❓ Launch true/false</button>
+    <button type="button" class="arena-context-item" data-action="hint">💡 Ask hint</button>
+    <button type="button" class="arena-context-item" data-action="reply" id="ctxReplyItem" hidden>↩ Reply to this message</button>
+    <button type="button" class="arena-context-item" data-action="copy" id="ctxCopyItem" hidden>📋 Copy message text</button>
+    <button type="button" class="arena-context-item" data-action="focus">⌨ Focus input</button>
+    <button type="button" class="arena-context-item" data-action="clear">🧹 Clear draft</button>
+</div>
+
 <script>
 (function () {
     'use strict';
 
     const feed       = document.getElementById('arenaFeed');
+    const arenaWrap  = document.querySelector('.arena-wrap');
     const form       = document.getElementById('arenaForm');
     const input      = document.getElementById('arenaInput');
     const sendBtn    = document.getElementById('arenaSendBtn');
@@ -691,6 +777,10 @@ body { background: var(--arena-bg); }
     const replyCancelBtn     = document.getElementById('replyCancelBtn');
     const battleBanner       = document.getElementById('battleBanner');
     const charCount          = document.getElementById('charCount');
+    const quickActionsBar    = document.getElementById('quickActionsBar');
+    const arenaContextMenu   = document.getElementById('arenaContextMenu');
+    const ctxReplyItem       = document.getElementById('ctxReplyItem');
+    const ctxCopyItem        = document.getElementById('ctxCopyItem');
 
     // XP sidebar elements
     const xpBarFill   = document.getElementById('xpBarFill');
@@ -710,6 +800,7 @@ body { background: var(--arena-bg); }
     let thinkingRow   = null;
     let replyTo       = null;   // { id, sender, text }
     let battleActive  = false;  // is a battle question currently unanswered?
+    let contextMsgRef = null;
 
     /* ── Reply state ─────────────────────────────────────── */
     function setReply(id, sender, text) {
@@ -748,6 +839,43 @@ body { background: var(--arena-bg); }
         if (force || near) feed.scrollTop = feed.scrollHeight;
     }
 
+    function runQuickCommand(command, sendNow) {
+        if (!command) return;
+        if (sendBtn.disabled) return;
+        input.value = command;
+        updateCharCount();
+        input.focus();
+        if (sendNow) {
+            form.requestSubmit();
+        }
+    }
+
+    function hideArenaContextMenu() {
+        arenaContextMenu.classList.remove('open');
+        contextMsgRef = null;
+    }
+
+    function openArenaContextMenu(ev) {
+        const msgRow = ev.target.closest('.msg-row');
+        contextMsgRef = msgRow ? {
+            id: parseInt(msgRow.dataset.msgId || '0', 10),
+            sender: msgRow.dataset.sender || '',
+            content: msgRow.dataset.content || ''
+        } : null;
+
+        const hasMessage = !!(contextMsgRef && contextMsgRef.id);
+        ctxReplyItem.hidden = !hasMessage;
+        ctxCopyItem.hidden = !hasMessage;
+
+        arenaContextMenu.classList.add('open');
+        const menuW = 228;
+        const menuH = 310;
+        const maxX = window.innerWidth - menuW - 8;
+        const maxY = window.innerHeight - menuH - 8;
+        arenaContextMenu.style.left = Math.max(8, Math.min(ev.clientX, maxX)) + 'px';
+        arenaContextMenu.style.top  = Math.max(8, Math.min(ev.clientY, maxY)) + 'px';
+    }
+
     /* ── Render message ──────────────────────────────────── */
     function renderMessage(msg) {
         if (!hasMessages) {
@@ -765,6 +893,8 @@ body { background: var(--arena-bg); }
         const row = document.createElement('div');
         row.className = 'msg-row' + (isMe ? ' me' : isAura ? ' aura-row' : '');
         row.dataset.msgId = msg.id;
+        row.dataset.sender = msg.sender || '';
+        row.dataset.content = msg.content || '';
 
         let bubbleClass = isMe ? 'bubble-me' : isAura ? 'bubble-aura' : 'bubble-other';
         if (isBattle) bubbleClass = 'bubble-battle';
@@ -1016,6 +1146,105 @@ body { background: var(--arena-bg); }
         }
     }
     input.addEventListener('input', updateCharCount);
+
+    /* ── Quick action buttons ───────────────────────────── */
+    quickActionsBar.addEventListener('click', (ev) => {
+        const btn = ev.target.closest('.arena-quick-btn');
+        if (!btn) return;
+        runQuickCommand(btn.dataset.cmd || '', btn.dataset.send === '1');
+    });
+
+    /* ── Right-click custom gaming menu ─────────────────── */
+    arenaWrap.addEventListener('contextmenu', (ev) => {
+        if (ev.shiftKey) return; // keep default context menu when Shift is held
+        ev.preventDefault();
+        openArenaContextMenu(ev);
+    });
+
+    arenaContextMenu.addEventListener('click', async (ev) => {
+        const item = ev.target.closest('.arena-context-item');
+        if (!item) return;
+        const action = item.dataset.action;
+
+        if (action === 'battle') runQuickCommand('@aura battle', true);
+        if (action === 'riddle') runQuickCommand('@aura riddle', true);
+        if (action === 'math') runQuickCommand('@aura math', true);
+        if (action === 'spell') runQuickCommand('@aura spell', true);
+        if (action === 'truefalse') runQuickCommand('@aura true or false', true);
+        if (action === 'hint') runQuickCommand('@aura hint', true);
+        if (action === 'focus') input.focus();
+        if (action === 'clear') {
+            input.value = '';
+            updateCharCount();
+            clearReply();
+            input.focus();
+        }
+        if (action === 'reply' && contextMsgRef && contextMsgRef.id) {
+            setReply(contextMsgRef.id, contextMsgRef.sender, contextMsgRef.content.slice(0, 120));
+        }
+        if (action === 'copy' && contextMsgRef && contextMsgRef.content) {
+            try { await navigator.clipboard.writeText(contextMsgRef.content); } catch (_) {}
+        }
+
+        hideArenaContextMenu();
+    });
+
+    document.addEventListener('click', (ev) => {
+        if (!arenaContextMenu.classList.contains('open')) return;
+        if (!arenaContextMenu.contains(ev.target)) hideArenaContextMenu();
+    });
+
+    document.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Escape') hideArenaContextMenu();
+    });
+
+    feed.addEventListener('scroll', hideArenaContextMenu);
+
+    /* ── Keyboard gaming shortcuts ─────────────────────── */
+    document.addEventListener('keydown', (ev) => {
+        const active = document.activeElement;
+        const inTextInput = active && (
+            active.tagName === 'INPUT' ||
+            active.tagName === 'TEXTAREA' ||
+            active.isContentEditable
+        );
+
+        // Send current message quickly
+        if (ev.ctrlKey && ev.key === 'Enter' && document.activeElement === input) {
+            ev.preventDefault();
+            if (!sendBtn.disabled) form.requestSubmit();
+            return;
+        }
+
+        // Escape closes contextual UI first
+        if (ev.key === 'Escape') {
+            hideArenaContextMenu();
+            if (replyTo) clearReply();
+            return;
+        }
+
+        // Arena command hotkeys
+        if (!ev.altKey || ev.ctrlKey || ev.metaKey || ev.shiftKey) return;
+        if (sendBtn.disabled) return;
+
+        const k = String(ev.key || '').toLowerCase();
+        const hotkeys = {
+            b: '@aura battle',
+            r: '@aura riddle',
+            m: '@aura math',
+            s: '@aura spell',
+            t: '@aura true or false',
+            h: '@aura hint',
+        };
+        const cmd = hotkeys[k];
+        if (!cmd) return;
+
+        // Allow hotkeys from anywhere except while composing regular text in input
+        if (inTextInput && document.activeElement === input && input.value.trim().length > 0) return;
+
+        ev.preventDefault();
+        runQuickCommand(cmd, true);
+    });
 
     /* ── Mobile sidebar close on outside click ────────── */
     document.addEventListener('click', (e) => {
