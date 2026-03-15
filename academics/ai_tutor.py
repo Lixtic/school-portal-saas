@@ -31,11 +31,8 @@ GEMINI_STREAM_URL = (
     ":streamGenerateContent?alt=sse&key={key}"
 )
 GEMINI_CHAT_MODELS = [
-    "gemini-3-flash",
-    "gemini-3-pro",
     "gemini-2.5-flash",
     "gemini-2.5-pro",
-    "gemini-2.0-flash",
 ]
 
 
@@ -1719,7 +1716,7 @@ def stream_tutor_response(messages, student, subject=None, model=None):
     """
     Stream AI tutor responses.
     Pass *model* to override the server default. Accepts both OpenAI model
-    names (e.g. 'gpt-5-nano') and Gemini model names (e.g. 'gemini-2.0-flash').
+    names (e.g. 'gpt-5-nano') and Gemini model names (e.g. 'gemini-2.5-flash').
     Gemini models are routed to Gemini regardless of the AI_PROVIDER setting.
     """
     # Detect per-request provider from model name
