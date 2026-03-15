@@ -1190,10 +1190,17 @@ Context Initialization:
 
         def stream_and_store(generator):
             full_text = ''
-            for token in generator:
-                full_text += token
-                yield token
-            persist_assistant_message(full_text)
+            try:
+                for token in generator:
+                    full_text += token
+                    yield token
+            except Exception as stream_err:
+                logger.error("Copilot stream iteration error: %s", stream_err, exc_info=True)
+                err_fragment = f"\n\n[An error occurred while generating the response. Please try again.]"
+                full_text += err_fragment
+                yield err_fragment
+            finally:
+                persist_assistant_message(full_text)
 
         def build_stream_response(generator):
             response = StreamingHttpResponse(stream_and_store(generator), content_type='text/plain; charset=utf-8')
@@ -1224,14 +1231,18 @@ Context Initialization:
             return str(delta_content)
 
         def stream_via_rest():
-            from academics.ai_tutor import _stream_chat_completion_text, get_openai_chat_model
-            
+            from academics.ai_tutor import (
+                _stream_chat_completion_text,
+                get_active_ai_model,
+                _is_gemini_provider,
+                _stream_gemini_chat,
+                GEMINI_CHAT_MODELS,
+            )
+
             # Retrieve recent conversation history for continuous context memory
             api_messages = [{"role": "system", "content": system_prompt}]
-            
+
             if conversation:
-                # Exclude the very last message since we just saved the current question in it,
-                # but it's simpler to just grab up to 10 and ensure chronological order.
                 try:
                     recent_msgs = conversation.messages.order_by('-created_at')[:10]
                     for msg in reversed(list(recent_msgs)):
@@ -1242,18 +1253,36 @@ Context Initialization:
             else:
                 api_messages.append({"role": "user", "content": question})
 
+            active_model = get_active_ai_model()
+            use_gemini = _is_gemini_provider() or active_model in GEMINI_CHAT_MODELS or active_model.startswith("gemini")
+
             payload = {
-                "model": get_openai_chat_model(),
+                "model": active_model,
                 "messages": api_messages,
-                "max_tokens": 600, # Increased for detailed assistance
+                "max_tokens": 600,
                 "temperature": 0.7,
                 "stream": True,
             }
             try:
-                for chunk in _stream_chat_completion_text(payload, settings.OPENAI_API_KEY):
-                    yield chunk
+                if use_gemini:
+                    for sse in _stream_gemini_chat(payload, model_override=active_model if use_gemini else None):
+                        if not sse.startswith("data: "):
+                            continue
+                        data_str = sse[6:].strip()
+                        if data_str == "[DONE]":
+                            break
+                        try:
+                            piece = json.loads(data_str).get("content", "")
+                            if piece:
+                                yield piece
+                        except Exception:
+                            pass
+                else:
+                    for chunk in _stream_chat_completion_text(payload, settings.OPENAI_API_KEY):
+                        yield chunk
             except Exception as e:
                 logger.error("Copilot streaming error: %s", e, exc_info=True)
+                yield f"\n\n[Error: {e}]"
 
         return build_stream_response(stream_via_rest())
     except Exception as e:
