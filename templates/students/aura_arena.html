@@ -721,6 +721,8 @@ body { background: var(--arena-bg); }
                 <code>@aura true or false</code>
                 <br>
                 <code>Alt+B</code> battle · <code>Alt+R</code> riddle · <code>Alt+M</code> math · <code>Alt+S</code> spell · <code>Alt+T</code> true/false · <code>Alt+H</code> hint
+                <br>
+                <span style="opacity:.75;">Mobile: long-press a message for quick actions</span>
             </div>
         </div>
 
@@ -793,6 +795,8 @@ body { background: var(--arena-bg); }
 
     const MAX_CHARS = 1000;
     const WARN_AT   = 150;  // show counter when ≤ 150 chars remain
+    const LONG_PRESS_MS = 480;
+    const LONG_PRESS_MOVE_TOLERANCE = 12;
 
     let lastId        = 0;
     let hasMessages   = false;
@@ -801,6 +805,9 @@ body { background: var(--arena-bg); }
     let replyTo       = null;   // { id, sender, text }
     let battleActive  = false;  // is a battle question currently unanswered?
     let contextMsgRef = null;
+    let longPressTimer = null;
+    let longPressPoint = null;
+    let longPressTarget = null;
 
     /* ── Reply state ─────────────────────────────────────── */
     function setReply(id, sender, text) {
@@ -855,8 +862,8 @@ body { background: var(--arena-bg); }
         contextMsgRef = null;
     }
 
-    function openArenaContextMenu(ev) {
-        const msgRow = ev.target.closest('.msg-row');
+    function openArenaContextMenuAt(target, x, y) {
+        const msgRow = target ? target.closest('.msg-row') : null;
         contextMsgRef = msgRow ? {
             id: parseInt(msgRow.dataset.msgId || '0', 10),
             sender: msgRow.dataset.sender || '',
@@ -872,8 +879,25 @@ body { background: var(--arena-bg); }
         const menuH = 310;
         const maxX = window.innerWidth - menuW - 8;
         const maxY = window.innerHeight - menuH - 8;
-        arenaContextMenu.style.left = Math.max(8, Math.min(ev.clientX, maxX)) + 'px';
-        arenaContextMenu.style.top  = Math.max(8, Math.min(ev.clientY, maxY)) + 'px';
+        arenaContextMenu.style.left = Math.max(8, Math.min(x, maxX)) + 'px';
+        arenaContextMenu.style.top  = Math.max(8, Math.min(y, maxY)) + 'px';
+    }
+
+    function openArenaContextMenu(ev) {
+        openArenaContextMenuAt(ev.target, ev.clientX, ev.clientY);
+    }
+
+    function clearLongPressTimer() {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+        }
+    }
+
+    function cancelLongPress() {
+        clearLongPressTimer();
+        longPressPoint = null;
+        longPressTarget = null;
     }
 
     /* ── Render message ──────────────────────────────────── */
@@ -1160,6 +1184,41 @@ body { background: var(--arena-bg); }
         ev.preventDefault();
         openArenaContextMenu(ev);
     });
+
+    // Mobile parity: long-press message or feed to open same context actions
+    feed.addEventListener('touchstart', (ev) => {
+        if (!ev.touches || !ev.touches[0]) return;
+        const t = ev.touches[0];
+        const target = ev.target;
+
+        // Skip long-press when pressing interactive controls
+        if (target.closest('button, input, a, textarea, .reaction-btn, .msg-reply-btn')) return;
+
+        longPressPoint = { x: t.clientX, y: t.clientY };
+        longPressTarget = target;
+        clearLongPressTimer();
+        longPressTimer = setTimeout(() => {
+            if (!longPressPoint || !longPressTarget) return;
+            openArenaContextMenuAt(longPressTarget, longPressPoint.x, longPressPoint.y);
+            if (navigator.vibrate) {
+                try { navigator.vibrate(12); } catch (_) {}
+            }
+            cancelLongPress();
+        }, LONG_PRESS_MS);
+    }, { passive: true });
+
+    feed.addEventListener('touchmove', (ev) => {
+        if (!longPressPoint || !ev.touches || !ev.touches[0]) return;
+        const t = ev.touches[0];
+        const dx = Math.abs(t.clientX - longPressPoint.x);
+        const dy = Math.abs(t.clientY - longPressPoint.y);
+        if (dx > LONG_PRESS_MOVE_TOLERANCE || dy > LONG_PRESS_MOVE_TOLERANCE) {
+            cancelLongPress();
+        }
+    }, { passive: true });
+
+    feed.addEventListener('touchend', cancelLongPress, { passive: true });
+    feed.addEventListener('touchcancel', cancelLongPress, { passive: true });
 
     arenaContextMenu.addEventListener('click', async (ev) => {
         const item = ev.target.closest('.arena-context-item');
