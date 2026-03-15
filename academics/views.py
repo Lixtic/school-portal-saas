@@ -2670,12 +2670,6 @@ def generate_tutor_image(request):
             if not gemini_api_key:
                 return JsonResponse({'error': 'GEMINI_API_KEY not configured'}, status=500)
 
-            # Override with GEMINI_IMAGE_MODEL if your project uses a different alias.
-            gemini_image_model = os.environ.get('GEMINI_IMAGE_MODEL', 'gemini-2.5-flash-image-preview')
-            gemini_url = (
-                f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_image_model}"
-                f":generateContent?key={gemini_api_key}"
-            )
             gemini_payload = {
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {
@@ -2686,20 +2680,114 @@ def generate_tutor_image(request):
             import urllib.request as _urllib_req
             import urllib.error as _urllib_err
 
-            req = _urllib_req.Request(
-                gemini_url,
-                data=json.dumps(gemini_payload).encode('utf-8'),
-                headers={'Content-Type': 'application/json'},
-                method='POST',
-            )
-            try:
-                with _urllib_req.urlopen(req, timeout=120) as resp:
-                    gemini_res = json.loads(resp.read().decode('utf-8'))
-            except _urllib_err.HTTPError as exc:
-                detail = exc.read().decode('utf-8', errors='ignore') if exc.fp else str(exc)
-                return JsonResponse({'error': f'Nano Banana HTTP {exc.code}: {detail}'}, status=502)
-            except _urllib_err.URLError as exc:
-                return JsonResponse({'error': f'Nano Banana network error: {exc.reason}'}, status=502)
+            def _normalize_model_name(name):
+                model_name = (name or '').strip()
+                if model_name.startswith('models/'):
+                    model_name = model_name[len('models/'):]
+                return model_name
+
+            def _try_gemini_image_model(model_name):
+                model_name = _normalize_model_name(model_name)
+                if not model_name:
+                    return None, (0, 'empty model name')
+
+                gemini_url = (
+                    f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}"
+                    f":generateContent?key={gemini_api_key}"
+                )
+                req = _urllib_req.Request(
+                    gemini_url,
+                    data=json.dumps(gemini_payload).encode('utf-8'),
+                    headers={'Content-Type': 'application/json'},
+                    method='POST',
+                )
+                try:
+                    with _urllib_req.urlopen(req, timeout=120) as resp:
+                        return json.loads(resp.read().decode('utf-8')), None
+                except _urllib_err.HTTPError as exc:
+                    detail = exc.read().decode('utf-8', errors='ignore') if exc.fp else str(exc)
+                    return None, (exc.code, detail)
+                except _urllib_err.URLError as exc:
+                    return None, (0, str(exc.reason))
+
+            # Candidate model order:
+            # 1) explicit env override
+            # 2) known image-capable model aliases
+            candidates = []
+            env_image_model = _normalize_model_name(os.environ.get('GEMINI_IMAGE_MODEL', ''))
+            if env_image_model:
+                candidates.append(env_image_model)
+            candidates.extend([
+                'gemini-2.0-flash-preview-image-generation',
+                'gemini-2.0-flash-exp-image-generation',
+                'gemini-2.5-flash-image-preview',
+            ])
+
+            # De-duplicate while preserving order
+            seen = set()
+            ordered_candidates = []
+            for c in candidates:
+                key = _normalize_model_name(c)
+                if key and key not in seen:
+                    seen.add(key)
+                    ordered_candidates.append(key)
+
+            gemini_res = None
+            chosen_model = None
+            probe_errors = []
+
+            for model_name in ordered_candidates:
+                result, err = _try_gemini_image_model(model_name)
+                if result is not None:
+                    gemini_res = result
+                    chosen_model = model_name
+                    break
+                probe_errors.append((model_name, err))
+
+            # If known candidates failed, discover from ListModels and probe image-capable entries.
+            if gemini_res is None:
+                list_url = f"https://generativelanguage.googleapis.com/v1beta/models?key={gemini_api_key}"
+                try:
+                    with _urllib_req.urlopen(list_url, timeout=60) as resp:
+                        listed = json.loads(resp.read().decode('utf-8'))
+                    models = listed.get('models', []) if isinstance(listed, dict) else []
+                    discovered = []
+                    for m in models:
+                        if not isinstance(m, dict):
+                            continue
+                        name = _normalize_model_name(m.get('name', ''))
+                        methods = m.get('supportedGenerationMethods') or []
+                        if 'generateContent' not in methods:
+                            continue
+                        # Prioritize likely image models.
+                        lowered = name.lower()
+                        if 'image' in lowered:
+                            discovered.append(name)
+
+                    for model_name in discovered:
+                        result, err = _try_gemini_image_model(model_name)
+                        if result is not None:
+                            gemini_res = result
+                            chosen_model = model_name
+                            break
+                        probe_errors.append((model_name, err))
+                except Exception as list_exc:
+                    probe_errors.append(('list_models', (0, str(list_exc))))
+
+            if gemini_res is None:
+                compact_errors = []
+                for model_name, err in probe_errors[:5]:
+                    if not err:
+                        continue
+                    compact_errors.append(f"{model_name}: {err[0]}")
+                return JsonResponse(
+                    {
+                        'error': 'Nano Banana model unavailable. '
+                                 'Set GEMINI_IMAGE_MODEL to a valid image-capable Gemini model.',
+                        'details': '; '.join(compact_errors) if compact_errors else 'No compatible Gemini image model found.',
+                    },
+                    status=502,
+                )
 
             inline_data = None
             try:
@@ -2718,7 +2806,7 @@ def generate_tutor_image(request):
             if not b64:
                 return JsonResponse({'error': 'Nano Banana returned empty image payload'}, status=502)
 
-            return JsonResponse({'image_url': f'data:{mime};base64,{b64}', 'model_used': 'google-nano-banana'})
+            return JsonResponse({'image_url': f'data:{mime};base64,{b64}', 'model_used': chosen_model or 'google-nano-banana'})
 
         # Default FLUX path
         hf_token = os.environ.get('HF_TOKEN')
