@@ -459,17 +459,16 @@ def _openai_messages_to_gemini_contents(messages):
     return contents, system_parts
 
 
-def _call_gemini_chat(payload):
+def _call_gemini_chat(payload, model_override=None):
     """
     Send a chat request to the Gemini REST API and return an OpenAI-compatible
     response dict so the rest of the codebase needs no changes.
     """
-    import re as _re
     api_key = _get_gemini_api_key()
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY is not configured")
 
-    model = _get_gemini_model()
+    model = model_override or _get_gemini_model()
     messages = payload.get("messages", [])
     contents, system_parts = _openai_messages_to_gemini_contents(messages)
 
@@ -523,7 +522,7 @@ def _call_gemini_chat(payload):
     }
 
 
-def _stream_gemini_chat(payload):
+def _stream_gemini_chat(payload, model_override=None):
     """
     Stream a chat response from Gemini and yield SSE chunks in the same format
     used by _stream_chat_completion so callers need no changes.
@@ -532,7 +531,7 @@ def _stream_gemini_chat(payload):
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY is not configured")
 
-    model = _get_gemini_model()
+    model = model_override or _get_gemini_model()
     messages = payload.get("messages", [])
     contents, system_parts = _openai_messages_to_gemini_contents(messages)
 
@@ -612,13 +611,18 @@ def _fallback_chat_completion(payload, original_error):
 
 
 def _post_chat_completion(payload, api_key):
-    # ── Gemini primary path ───────────────────────────────────────────────────
-    if _is_gemini_provider():
+    # ── Gemini path: server default OR per-request model override ────────────
+    _req_model = str(payload.get("model") or "").strip()
+    _gemini_requested = _req_model in GEMINI_CHAT_MODELS or _req_model.startswith("gemini")
+    if _is_gemini_provider() or _gemini_requested:
+        _model_hint = _req_model if _gemini_requested else None
         try:
-            return _call_gemini_chat(payload)
-        except Exception as gemini_exc:
-            # Fall through to OpenAI if Gemini fails
-            pass
+            return _call_gemini_chat(payload, model_override=_model_hint)
+        except Exception:
+            if _gemini_requested and not _is_gemini_provider():
+                # A specific Gemini model was requested but failed — don't silently fall back
+                return _fallback_chat_completion(payload, "Gemini request failed")
+            pass  # Server-default Gemini failed — fall through to OpenAI
 
     payload = _with_resolved_model(payload)
 
@@ -649,13 +653,18 @@ def _post_chat_completion(payload, api_key):
 
 
 def _stream_chat_completion(payload, api_key):
-    # ── Gemini primary path ───────────────────────────────────────────────────
-    if _is_gemini_provider():
+    # ── Gemini path: server default OR per-request model override ────────────
+    _req_model = str(payload.get("model") or "").strip()
+    _gemini_requested = _req_model in GEMINI_CHAT_MODELS or _req_model.startswith("gemini")
+    if _is_gemini_provider() or _gemini_requested:
+        _model_hint = _req_model if _gemini_requested else None
         try:
-            yield from _stream_gemini_chat(payload)
+            yield from _stream_gemini_chat(payload, model_override=_model_hint)
             return
         except Exception:
-            pass  # Fall through to OpenAI
+            if _gemini_requested and not _is_gemini_provider():
+                return  # A specific Gemini model was requested but failed
+            pass  # Server-default Gemini failed — fall through to OpenAI
 
     payload = _with_resolved_model(payload)
     stream_model = str(payload.get("model") or "")
@@ -1708,11 +1717,15 @@ def get_student_schedule_data(student):
 
 def stream_tutor_response(messages, student, subject=None, model=None):
     """
-    Stream AI tutor responses using OpenAI.
-    Pass *model* to override the server default (must be in OPENAI_CHAT_MODELS).
+    Stream AI tutor responses.
+    Pass *model* to override the server default. Accepts both OpenAI model
+    names (e.g. 'gpt-5-nano') and Gemini model names (e.g. 'gemini-2.0-flash').
+    Gemini models are routed to Gemini regardless of the AI_PROVIDER setting.
     """
-    api_key = _get_openai_api_key()
-    
+    # Detect per-request provider from model name
+    _model_str = (model or "").strip()
+    _use_gemini = _model_str in GEMINI_CHAT_MODELS or _model_str.startswith("gemini")
+
     try:
         # Build conversation with system prompt
         conversation = [
@@ -1720,25 +1733,28 @@ def stream_tutor_response(messages, student, subject=None, model=None):
         ]
         conversation.extend(messages)
 
-        resolved_model = (
-            model if (model and model in OPENAI_CHAT_MODELS)
-            else get_openai_chat_model()
-        )
         payload = {
-            "model": resolved_model,
             "messages": conversation,
             "stream": True,
             "temperature": 0.7,
-            # 600 tokens ≈ 450 words — enforces single-nugget conversational turns.
-            # The session-summary JSON block (emitted only at DONE state) is ~200 tokens,
-            # so 600 gives enough room for a Nugget + KnowledgeCheck + suggested_responses
-            # without allowing textbook-dump walls of text.
             "max_tokens": 600,
         }
 
-        for chunk in _stream_chat_completion(payload, api_key):
-            yield chunk
-        
+        if _use_gemini:
+            # Route to Gemini with the exact model the user picked
+            for chunk in _stream_gemini_chat(payload, model_override=_model_str or None):
+                yield chunk
+        else:
+            # OpenAI path — resolve and validate model name
+            resolved_model = (
+                _model_str if _model_str in OPENAI_CHAT_MODELS
+                else get_openai_chat_model()
+            )
+            payload["model"] = resolved_model
+            api_key = _get_openai_api_key()
+            for chunk in _stream_chat_completion(payload, api_key):
+                yield chunk
+
     except Exception as e:
         yield "data: " + json.dumps({
             "error": f"AI Tutor error: {str(e)}"
