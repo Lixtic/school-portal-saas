@@ -3220,16 +3220,24 @@
         text = text.replace(/<suggested_responses>[\s\S]*$/gi, '');
         // Remove [AWARD_XP: ...] tokens
         text = text.replace(/\[AWARD_XP:\s*\d+\]/gi, '');
+        // Remove partial/malformed AWARD token fragments (e.g. "[AWARD_")
+        text = text.replace(/\[AWARD_[^\]\n]*(?:\]|$)/gi, '');
         // Remove [DRAW: ...] tokens
         text = text.replace(/\[DRAW:\s*.*?\]/gi, '');
         // Remove [POWER_WORDS: ...] tokens
         text = text.replace(/\[POWER_WORDS:\s*[^\]]*\]/gi, '');
         // Remove [LESSON_STATE: ...] tokens
         text = text.replace(/\[LESSON_STATE:\s*[^\]]*\]/gi, '');
+        // Remove partial/malformed LESSON token fragments
+        text = text.replace(/\[LESSON_[^\]\n]*(?:\]|$)/gi, '');
         // Remove [VOCAB_LEVEL: ...] tokens
         text = text.replace(/\[VOCAB_LEVEL:\s*\d\]/gi, '');
+        // Remove partial/malformed VOCAB token fragments
+        text = text.replace(/\[VOCAB_[^\]\n]*(?:\]|$)/gi, '');
         // Remove [MOOD: ...] tokens
         text = text.replace(/\[MOOD:\s*\w+\]/gi, '');
+        // Remove partial/malformed MOOD token fragments
+        text = text.replace(/\[MOOD_[^\]\n]*(?:\]|$)/gi, '');
         // Remove leaked internal step/state labels (Core idea:, Hint:, Step N:, Rung N:, etc.)
         text = text.replace(/^(Core\s+idea|Hint|Step\s+\d+|Rung\s+\d+|Phase\s+\d+|State\s+\d+)\s*:\s*/gim, '');
         // Remove hallucinated structural delimiters (<END OF NUGGET>, <NUGGET>, </NUGGET>, etc.)

@@ -1924,6 +1924,30 @@ def _strip_suggested_responses_block(text):
     return re.sub(r"\n?<suggested_responses>.*?</suggested_responses>\s*$", "", text, flags=re.DOTALL).strip()
 
 
+def _strip_internal_control_tokens(text):
+    """Remove internal control tokens from assistant-visible text.
+
+    Includes complete tags and partial/malformed fragments that can leak during
+    streaming truncation (e.g. "[AWARD_").
+    """
+    if not text:
+        return text
+    cleaned = str(text)
+    # Complete internal tags.
+    cleaned = re.sub(r'\[AWARD_XP:\s*\d+\]', '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'\[DRAW:\s*.*?\]', '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'\[POWER_WORDS:\s*[^\]]*\]', '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'\[LESSON_STATE:\s*[^\]]*\]', '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'\[VOCAB_LEVEL:\s*\d\]', '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'\[MOOD:\s*\w+\]', '', cleaned, flags=re.IGNORECASE)
+    # Partial/malformed tags (stream cut-off).
+    cleaned = re.sub(r'\[AWARD_[^\]\n]*(?:\]|$)', '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'\[LESSON_[^\]\n]*(?:\]|$)', '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'\[VOCAB_[^\]\n]*(?:\]|$)', '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'\[MOOD_[^\]\n]*(?:\]|$)', '', cleaned, flags=re.IGNORECASE)
+    return cleaned.strip()
+
+
 def _notify_parents_if_critical_misconception_uncleared(student, session, payload):
     session_summary = payload.get('session_summary', {}) if isinstance(payload, dict) else {}
     uncleared_flag = bool(session_summary.get('critical_misconception_uncleared'))
@@ -2014,8 +2038,7 @@ def ai_tutor(request):
                 content = message.content
                 if message.role == 'assistant':
                     content = _strip_session_summary_block(content)
-                    # Strip [AWARD_XP:...] tags from historical messages so they don't re-trigger
-                    content = re.sub(r'\[AWARD_XP:\s*\d+\]', '', content)
+                    content = _strip_internal_control_tokens(content)
                 initial_messages.append({'role': message.role, 'content': content})
 
         if active_session.subject_id:
@@ -2277,6 +2300,7 @@ def ai_tutor_chat(request):
                 # Strip internal blocks (suggestions, summary) before saving to history
                 visible_message = _strip_session_summary_block(full_assistant_message)
                 visible_message = _strip_suggested_responses_block(visible_message)
+                visible_message = _strip_internal_control_tokens(visible_message)
                 
                 # Process Gamification (XP Awards)
                 _process_xp_awards(student, full_assistant_message)
