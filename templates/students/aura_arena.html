@@ -1000,6 +1000,12 @@ body { background: var(--arena-bg); }
         xpToast.classList.add('show');
         setTimeout(() => xpToast.classList.remove('show'), 3200);
     }
+    function showArenaNotice(message) {
+        if (!message) return;
+        xpToast.textContent = message;
+        xpToast.classList.add('show');
+        setTimeout(() => xpToast.classList.remove('show'), 2600);
+    }
     function updateXPSidebar(newTotal, newLevel, levelProgress, xpToNext) {
         if (!xpNumberEl) return;
         xpNumberEl.textContent = newTotal;
@@ -1150,6 +1156,9 @@ body { background: var(--arena-bg); }
                     if (data.new_achievements && data.new_achievements.length) {
                         showAchievements(data.new_achievements);
                     }
+                }
+                if (data.status === 'attempted' && data.battle_active) {
+                    showArenaNotice(data.feedback || 'Not correct yet — keep trying!');
                 }
                 isPolling = false; // unlock before forced poll
                 await poll();

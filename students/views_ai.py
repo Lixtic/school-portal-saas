@@ -941,6 +941,25 @@ def aura_arena_api(request):
                     'new_achievements': new_achievements,
                 })
 
+            # Give immediate feedback when an answer attempt is wrong so users
+            # know the message was processed and the battle is still active.
+            feedback_map = {
+                'truefalse': "Not quite. For this challenge, type exactly: true or false.",
+                'math': "Not quite. Enter only the final number (no extra words).",
+                'battle': "Not quite. Try again — check the key term in the question.",
+                'riddle': "Not quite. Try again — focus on the clue wording.",
+                'spell': "Not quite. Try again — spelling must be exact.",
+            }
+            return JsonResponse({
+                'status': 'attempted',
+                'xp_earned': 0,
+                'is_winner': False,
+                'battle_active': True,
+                'battle_type': active_battle.battle_type,
+                'feedback': feedback_map.get(active_battle.battle_type, "Not correct yet — try again."),
+                'new_achievements': [],
+            })
+
         # ── Helper: build GPT client ────────────────────────────────────
         def _gpt_client():
             api_key = get_openai_api_key()
