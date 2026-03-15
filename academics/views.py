@@ -1947,7 +1947,7 @@ def _notify_parents_if_critical_misconception_uncleared(student, session, payloa
 @login_required
 def ai_tutor(request):
     """AI Tutor chat interface for students"""
-    from .ai_tutor import get_openai_chat_model, get_student_schedule_data
+    from .ai_tutor import get_active_ai_model, get_active_ai_provider, get_student_schedule_data
 
     student, subjects, error_message = _get_student_tutor_context(
         request.user,
@@ -2007,8 +2007,8 @@ def ai_tutor(request):
         'session_id': active_session.id if active_session else None,
         'messages': initial_messages,
         'subject_id': initial_subject_id,
-        'active_ai_model': get_openai_chat_model(),
-        'active_ai_provider': 'openai',
+        'active_ai_model': get_active_ai_model(),
+        'active_ai_provider': get_active_ai_provider(),
         'student_xp': {
             'level': xp_profile.level,
             'total_xp': xp_profile.total_xp,
@@ -2027,8 +2027,8 @@ def ai_tutor(request):
         'selected_session_id': str(active_session.id) if active_session else '',
         'initial_messages': initial_messages,
         'initial_subject_id': initial_subject_id,
-        'active_ai_model': get_openai_chat_model(),
-        'active_ai_provider': 'openai',
+        'active_ai_model': get_active_ai_model(),
+        'active_ai_provider': get_active_ai_provider(),
         'ai_tutor_bootstrap': ai_tutor_bootstrap,
         'schedule_data': schedule_data,
     }

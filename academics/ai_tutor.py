@@ -21,6 +21,23 @@ OPENAI_CHAT_MODELS = [
     "gpt-4o-mini",
 ]
 
+# ── Gemini ────────────────────────────────────────────────────────────────────
+GEMINI_GENERATE_URL = (
+    "https://generativelanguage.googleapis.com/v1beta/models/{model}"
+    ":generateContent?key={key}"
+)
+GEMINI_STREAM_URL = (
+    "https://generativelanguage.googleapis.com/v1beta/models/{model}"
+    ":streamGenerateContent?alt=sse&key={key}"
+)
+GEMINI_CHAT_MODELS = [
+    "gemini-2.5-pro-exp-03-25",
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-1.5-pro",
+    "gemini-1.5-flash",
+]
+
 
 def _build_sow_image_block(image_path_or_url: str):
     """Build the OpenAI image content block for scheme-of-work extraction."""
@@ -157,6 +174,20 @@ def _get_openai_api_key():
 
 def get_openai_chat_model():
     return _resolve_openai_model({})
+
+
+def get_active_ai_model():
+    """Return the display name of whichever model is currently active."""
+    if _is_gemini_provider():
+        return _get_gemini_model()
+    return get_openai_chat_model()
+
+
+def get_active_ai_provider():
+    """Return the provider string ('gemini' | 'openai') currently in use."""
+    if _is_gemini_provider():
+        return "gemini"
+    return "openai"
 
 
 # GPT-5 Nano is a reasoning model: completion tokens include hidden
@@ -379,6 +410,186 @@ def _call_hf_fallback(payload):
         raise RuntimeError(f"Hugging Face network error: {exc.reason}")
 
 
+# ── Gemini helpers ────────────────────────────────────────────────────────────
+
+def _get_gemini_api_key():
+    configured = getattr(settings, "GEMINI_API_KEY", None)
+    if configured:
+        return configured
+    return os.environ.get("GEMINI_API_KEY")
+
+
+def _get_gemini_model():
+    configured = getattr(settings, "GEMINI_MODEL", None)
+    if configured:
+        return configured
+    return os.environ.get("GEMINI_MODEL") or GEMINI_CHAT_MODELS[0]
+
+
+def _is_gemini_provider():
+    """Return True when Gemini is configured as the primary AI provider."""
+    provider = (
+        getattr(settings, "AI_PROVIDER", None)
+        or os.environ.get("AI_PROVIDER", "openai")
+    ).lower()
+    return provider == "gemini"
+
+
+def _openai_messages_to_gemini_contents(messages):
+    """Convert OpenAI-style messages list to Gemini 'contents' format."""
+    contents = []
+    system_parts = []
+    for msg in (messages or []):
+        role = str(msg.get("role", "user")).lower()
+        content = msg.get("content", "")
+        if isinstance(content, list):
+            # Multimodal — extract text parts only for now
+            content = " ".join(
+                p.get("text", "") for p in content if isinstance(p, dict) and "text" in p
+            )
+        content = str(content).strip()
+        if not content:
+            continue
+        if role == "system":
+            system_parts.append(content)
+        elif role == "assistant":
+            contents.append({"role": "model", "parts": [{"text": content}]})
+        else:
+            contents.append({"role": "user", "parts": [{"text": content}]})
+    return contents, system_parts
+
+
+def _call_gemini_chat(payload):
+    """
+    Send a chat request to the Gemini REST API and return an OpenAI-compatible
+    response dict so the rest of the codebase needs no changes.
+    """
+    import re as _re
+    api_key = _get_gemini_api_key()
+    if not api_key:
+        raise RuntimeError("GEMINI_API_KEY is not configured")
+
+    model = _get_gemini_model()
+    messages = payload.get("messages", [])
+    contents, system_parts = _openai_messages_to_gemini_contents(messages)
+
+    generation_config = {}
+    max_tokens = payload.get("max_tokens") or payload.get("max_completion_tokens")
+    if max_tokens:
+        generation_config["maxOutputTokens"] = int(max_tokens)
+    temperature = payload.get("temperature")
+    if temperature is not None:
+        generation_config["temperature"] = float(temperature)
+
+    body = {"contents": contents}
+    if generation_config:
+        body["generationConfig"] = generation_config
+    if system_parts:
+        body["systemInstruction"] = {"parts": [{"text": "\n\n".join(system_parts)}]}
+
+    url = GEMINI_GENERATE_URL.format(model=model, key=api_key)
+    req = urllib_request.Request(
+        url,
+        data=json.dumps(body).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib_request.urlopen(req, timeout=120) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+    except HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="ignore") if exc.fp else str(exc)
+        raise RuntimeError(f"Gemini HTTP {exc.code}: {detail}")
+    except URLError as exc:
+        raise RuntimeError(f"Gemini network error: {exc.reason}")
+
+    # Extract text from Gemini response
+    try:
+        text = result["candidates"][0]["content"]["parts"][0]["text"]
+    except (KeyError, IndexError):
+        text = ""
+
+    # Wrap in OpenAI-compatible shape
+    return {
+        "id": f"gemini-{model}",
+        "object": "chat.completion",
+        "model": f"gemini:{model}",
+        "provider": "gemini",
+        "choices": [{
+            "index": 0,
+            "message": {"role": "assistant", "content": text},
+            "finish_reason": "stop",
+        }],
+    }
+
+
+def _stream_gemini_chat(payload):
+    """
+    Stream a chat response from Gemini and yield SSE chunks in the same format
+    used by _stream_chat_completion so callers need no changes.
+    """
+    api_key = _get_gemini_api_key()
+    if not api_key:
+        raise RuntimeError("GEMINI_API_KEY is not configured")
+
+    model = _get_gemini_model()
+    messages = payload.get("messages", [])
+    contents, system_parts = _openai_messages_to_gemini_contents(messages)
+
+    generation_config = {}
+    max_tokens = payload.get("max_tokens") or payload.get("max_completion_tokens")
+    if max_tokens:
+        generation_config["maxOutputTokens"] = int(max_tokens)
+    temperature = payload.get("temperature")
+    if temperature is not None:
+        generation_config["temperature"] = float(temperature)
+
+    body = {"contents": contents}
+    if generation_config:
+        body["generationConfig"] = generation_config
+    if system_parts:
+        body["systemInstruction"] = {"parts": [{"text": "\n\n".join(system_parts)}]}
+
+    url = GEMINI_STREAM_URL.format(model=model, key=api_key)
+    req = urllib_request.Request(
+        url,
+        data=json.dumps(body).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib_request.urlopen(req, timeout=300) as resp:
+            for raw_line in resp:
+                line = raw_line.decode("utf-8", errors="ignore").strip()
+                if not line or not line.startswith("data: "):
+                    continue
+                data_str = line[6:].strip()
+                if data_str == "[DONE]":
+                    break
+                try:
+                    parsed = json.loads(data_str)
+                    text_piece = (
+                        parsed.get("candidates", [{}])[0]
+                        .get("content", {})
+                        .get("parts", [{}])[0]
+                        .get("text", "")
+                    )
+                    if text_piece:
+                        yield "data: " + json.dumps({
+                            "provider": "gemini",
+                            "model": f"gemini:{model}",
+                            "content": text_piece,
+                        }) + "\n\n"
+                except Exception:
+                    continue
+        yield "data: [DONE]\n\n"
+    except HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="ignore") if exc.fp else str(exc)
+        raise RuntimeError(f"Gemini HTTP {exc.code}: {detail}")
+    except URLError as exc:
+        raise RuntimeError(f"Gemini network error: {exc.reason}")
+
+
 def _should_try_hf_fallback(error_message):
     lowered = str(error_message or "").lower()
     return (
@@ -401,6 +612,14 @@ def _fallback_chat_completion(payload, original_error):
 
 
 def _post_chat_completion(payload, api_key):
+    # ── Gemini primary path ───────────────────────────────────────────────────
+    if _is_gemini_provider():
+        try:
+            return _call_gemini_chat(payload)
+        except Exception as gemini_exc:
+            # Fall through to OpenAI if Gemini fails
+            pass
+
     payload = _with_resolved_model(payload)
 
     if not api_key:
@@ -430,6 +649,14 @@ def _post_chat_completion(payload, api_key):
 
 
 def _stream_chat_completion(payload, api_key):
+    # ── Gemini primary path ───────────────────────────────────────────────────
+    if _is_gemini_provider():
+        try:
+            yield from _stream_gemini_chat(payload)
+            return
+        except Exception:
+            pass  # Fall through to OpenAI
+
     payload = _with_resolved_model(payload)
     stream_model = str(payload.get("model") or "")
 

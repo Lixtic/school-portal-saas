@@ -40,6 +40,13 @@ if not DEBUG and (not SECRET_KEY or SECRET_KEY == DEFAULT_SECRET_KEY or SECRET_K
 # OpenAI Configuration
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 
+# Google Gemini Configuration
+# Set AI_PROVIDER=gemini to make Gemini the primary provider.
+# Supported models: gemini-2.5-pro-exp-03-25, gemini-2.0-flash, gemini-2.0-flash-lite
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
+GEMINI_MODEL   = os.environ.get('GEMINI_MODEL', 'gemini-2.5-pro-exp-03-25')
+AI_PROVIDER    = os.environ.get('AI_PROVIDER', 'openai')  # 'openai' | 'gemini'
+
 # Paystack Payment Gateway
 PAYSTACK_SECRET_KEY = os.environ.get('PAYSTACK_SECRET_KEY', '')
 PAYSTACK_PUBLIC_KEY = os.environ.get('PAYSTACK_PUBLIC_KEY', '')
