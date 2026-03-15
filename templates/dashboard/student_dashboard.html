@@ -80,6 +80,7 @@
         border-radius: 12px; border: 1px solid var(--sd-border);
         background: var(--sd-surface); text-decoration: none;
         transition: all .2s; color: inherit;
+        min-width: 0;
     }
     .sd-action-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.08); border-color: rgba(0,0,0,.12); transform: translateY(-1px); color: inherit; }
     [data-bs-theme="dark"] .sd-action-card:hover { border-color: rgba(255,255,255,.16); }
@@ -101,6 +102,17 @@
     }
     .sd-action-label { font-weight: 600; font-size: .875rem; color: var(--sd-heading); line-height: 1.2; }
     .sd-action-sub   { font-size: .75rem; color: var(--sd-muted); }
+    .sd-action-card > div { min-width: 0; }
+    .sd-action-label, .sd-action-sub {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .sd-report-row {
+        display: flex;
+        gap: .45rem;
+        min-width: 0;
+    }
 
     /* Alert action cards */
     .sd-alert-card {
@@ -189,7 +201,35 @@
         .sd-stats-row { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 640px) {
+        .sd-stats-row { grid-template-columns: 1fr; }
         .sd-action-icon { width: 36px; height: 36px; }
+        .sd-tools-grid { grid-template-columns: 1fr; }
+        .sd-action-card { padding: .85rem .9rem; }
+        .sd-stat { padding: 1rem; }
+        .sd-stat-value {
+            font-size: clamp(1.1rem, 6vw, 1.45rem);
+            line-height: 1.15;
+        }
+        .sd-report-row {
+            flex-direction: column;
+            gap: .55rem;
+        }
+        .sd-report-row > a {
+            width: 100%;
+        }
+        .sd-report-row > a:last-child {
+            justify-content: center;
+        }
+    }
+
+    @media (max-width: 380px) {
+        .sd-card-header,
+        .sd-item,
+        .sd-today-slot,
+        .sd-session-row {
+            padding-left: .8rem;
+            padding-right: .8rem;
+        }
     }
     .sd-main-grid {
         display: grid; grid-template-columns: 1fr 300px; gap: 1.25rem;
@@ -454,7 +494,7 @@
                 onclick="var p=document.getElementById('aura-prefs-bar');p.style.display=p.style.display==='none'||!p.style.display?'block':'none';"
                 style="position:absolute;top:6px;right:6px;background:rgba(108,71,255,0.15);border:none;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;z-index:1;color:#6c47ff;">⚙</button>
             </div>
-            <div style="display:flex;gap:.45rem;">
+            <div class="sd-report-row">
             <a href="{% url 'students:report_card' student.id %}" target="_blank" class="sd-action-card" style="flex:1;">
                 <div class="sd-action-icon si-blue"><i class="bi bi-award"></i></div>
                 <div>
