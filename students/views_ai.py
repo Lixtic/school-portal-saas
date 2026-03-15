@@ -847,6 +847,12 @@ def aura_arena_api(request):
                     created_at__gte=_battle_window)
             .last()
         )
+        stale_battle = (
+            StudyGroupMessage.objects
+            .filter(room=room, is_battle_question=True, battle_answered=False,
+                    created_at__lt=_battle_window)
+            .last()
+        )
         
         reply_to_id = payload.get('reply_to_id')
         reply_to_obj = None
@@ -893,19 +899,28 @@ def aura_arena_api(request):
         if active_battle and active_battle.battle_answer and not _is_aura_cmd:
             ans = (active_battle.battle_answer or '').strip().lower()
             msg_lower = content.lower()
+
+            def _norm(txt):
+                txt = str(txt or '').lower().strip()
+                txt = re.sub(r'[^a-z0-9\.\-\s]', '', txt)
+                txt = re.sub(r'\s+', ' ', txt)
+                return txt
+
+            ans_norm = _norm(ans)
+            msg_norm = _norm(content)
             matched = False
 
             if active_battle.battle_type == 'truefalse':
                 # Accept only "true" or "false" vote; any word match counts
-                if ans in msg_lower and ans in ('true', 'false'):
+                if ans_norm in msg_norm and ans_norm in ('true', 'false'):
                     matched = True
             elif active_battle.battle_type == 'math':
                 # Exact number match — strip spaces and compare
                 nums = re.findall(r'-?\d+\.?\d*', msg_lower)
-                matched = any(n == ans for n in nums)
+                matched = any(_norm(n) == ans_norm for n in nums)
             else:
                 # battle / riddle / spell — keyword must appear in message
-                matched = ans in msg_lower
+                matched = ans_norm in msg_norm if ans_norm else False
 
             if matched:
                 active_battle.battle_answered = True
@@ -957,6 +972,25 @@ def aura_arena_api(request):
                 'battle_active': True,
                 'battle_type': active_battle.battle_type,
                 'feedback': feedback_map.get(active_battle.battle_type, "Not correct yet — try again."),
+                'new_achievements': [],
+            })
+
+        # If user answers but the unresolved challenge has expired, close it
+        # explicitly so the client does not appear stuck.
+        if stale_battle and not _is_aura_cmd:
+            stale_battle.battle_answered = True
+            stale_battle.save(update_fields=['battle_answered'])
+            StudyGroupMessage.objects.create(
+                room=room,
+                is_aura=True,
+                content="⌛ That challenge expired. Start a fresh one with @aura battle, @aura riddle, @aura math, @aura spell, or @aura true or false."
+            )
+            return JsonResponse({
+                'status': 'expired',
+                'xp_earned': 0,
+                'is_winner': False,
+                'battle_active': False,
+                'feedback': 'Challenge expired. Start a new one.',
                 'new_achievements': [],
             })
 
