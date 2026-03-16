@@ -48,6 +48,7 @@ urlpatterns = [
     # path('home/', account_views.homepage, name='home'), # Redirect old home
     path('logout/', account_views.logout_view, name='logout'),
     path('dashboard/', account_views.dashboard, name='dashboard'),
+    path('help/', RedirectView.as_view(pattern_name='academics:help_page', permanent=False), name='help_page_shortcut'),
     path('health/env/', account_views.env_health, name='env_health'),
     path('password/change/', auth_views.PasswordChangeView.as_view(
         template_name='accounts/password_change.html',
