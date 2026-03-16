@@ -298,6 +298,31 @@ body { background: var(--arena-bg); }
     backdrop-filter: blur(12px);
     flex-shrink: 0;
 }
+.challenge-helper-chip {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    max-width: 100%;
+    margin-bottom: 8px;
+    padding: 7px 11px;
+    border-radius: 999px;
+    border: 1px solid rgba(245,158,11,0.28);
+    background: rgba(245,158,11,0.09);
+    color: #fcd34d;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.challenge-helper-chip.active { display: inline-flex; }
+.challenge-helper-label { opacity: 0.85; }
+.challenge-helper-hint {
+    font-weight: 600;
+    color: rgba(255,232,179,0.92);
+}
 .arena-quick-actions {
     display: flex;
     flex-wrap: wrap;
@@ -322,6 +347,49 @@ body { background: var(--arena-bg); }
     color: #dbeafe;
 }
 .arena-quick-btn:active { transform: translateY(1px); }
+.mobile-action-rail {
+    display: none;
+}
+.mobile-action-sheet {
+    display: none;
+}
+.mobile-action-sheet.open {
+    display: flex;
+}
+.mobile-rail-btn,
+.mobile-sheet-btn {
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.06);
+    color: var(--arena-text);
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    min-height: 44px;
+    padding: 0 12px;
+    transition: all 0.16s ease;
+}
+.mobile-rail-btn:hover,
+.mobile-sheet-btn:hover {
+    border-color: rgba(56,120,255,0.36);
+    background: rgba(56,120,255,0.14);
+    color: #dbeafe;
+}
+.mobile-rail-btn:active,
+.mobile-sheet-btn:active {
+    transform: translateY(1px);
+}
+.mobile-rail-btn.primary {
+    background: linear-gradient(135deg, rgba(124,58,237,0.85), rgba(56,120,255,0.85));
+    border-color: rgba(167,139,250,0.38);
+    color: #fff;
+}
+.mobile-rail-btn.send {
+    background: linear-gradient(135deg, #7c3aed, #3878ff);
+    border: none;
+    color: #fff;
+}
 .arena-input-form {
     display: flex; align-items: center; gap: 9px;
     background: rgba(255,255,255,0.04);
@@ -522,6 +590,74 @@ body { background: var(--arena-bg); }
     }
     .arena-sidebar.open { left: 0; }
     .mob-bar-btn { display: flex !important; }
+
+    .arena-feed {
+        padding-bottom: 18px;
+    }
+    .arena-input-bar {
+        position: relative;
+        padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    }
+    .arena-quick-actions {
+        display: none;
+    }
+    .mobile-action-rail {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 52px;
+        gap: 7px;
+        margin-bottom: 8px;
+        position: sticky;
+        bottom: 0;
+        z-index: 15;
+        padding-bottom: max(2px, env(safe-area-inset-bottom));
+    }
+    .mobile-action-sheet {
+        gap: 7px;
+        margin: 2px 0 8px;
+        flex-wrap: wrap;
+        background: rgba(11, 11, 24, 0.88);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        padding: 8px;
+        backdrop-filter: blur(8px);
+    }
+    .mobile-sheet-btn {
+        flex: 1 1 calc(50% - 4px);
+        min-width: 120px;
+    }
+    .arena-input-form {
+        border-radius: 12px;
+        padding: 4px 4px 4px 11px;
+    }
+    .arena-send-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 11px;
+        font-size: 13px;
+    }
+    .challenge-helper-chip {
+        width: 100%;
+        border-radius: 12px;
+        white-space: normal;
+    }
+}
+
+@media (hover: none), (pointer: coarse) {
+    .arena-quick-btn,
+    .msg-reply-btn,
+    .reaction-btn,
+    .arena-context-item,
+    .reply-preview-close,
+    .mob-bar-btn button {
+        min-height: 44px;
+    }
+    .arena-quick-btn {
+        padding: 10px 12px;
+    }
+    .arena-context-item {
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
 }
 .mob-bar-btn { display: none; }
 .mob-bar-btn button {
@@ -680,6 +816,11 @@ body { background: var(--arena-bg); }
         </div>
 
         <div class="arena-input-bar">
+            <div class="challenge-helper-chip" id="challengeHelperChip" role="status" aria-live="polite">
+                <i class="fa-solid fa-bullseye"></i>
+                <span class="challenge-helper-label">Active Challenge:</span>
+                <span class="challenge-helper-hint" id="challengeHelperHint">Answer format hint</span>
+            </div>
             <div class="arena-quick-actions" id="quickActionsBar">
                 <button type="button" class="arena-quick-btn" data-cmd="@aura battle" data-send="1">⚔ Battle</button>
                 <button type="button" class="arena-quick-btn" data-cmd="@aura riddle" data-send="1">🧩 Riddle</button>
@@ -687,6 +828,20 @@ body { background: var(--arena-bg); }
                 <button type="button" class="arena-quick-btn" data-cmd="@aura spell" data-send="1">📝 Spell</button>
                 <button type="button" class="arena-quick-btn" data-cmd="@aura true or false" data-send="1">❓ True/False</button>
                 <button type="button" class="arena-quick-btn" data-cmd="@aura hint" data-send="1">💡 Hint</button>
+            </div>
+            <div class="mobile-action-rail" id="mobileActionRail">
+                <button type="button" class="mobile-rail-btn primary" data-cmd="@aura battle" data-send="1">⚔ Battle</button>
+                <button type="button" class="mobile-rail-btn" data-cmd="@aura hint" data-send="1">💡 Hint</button>
+                <button type="button" class="mobile-rail-btn send" data-action="send">➤ Send</button>
+                <button type="button" class="mobile-rail-btn" data-action="more" aria-expanded="false" aria-controls="mobileActionSheet">⋯</button>
+            </div>
+            <div class="mobile-action-sheet" id="mobileActionSheet" aria-hidden="true">
+                <button type="button" class="mobile-sheet-btn" data-cmd="@aura riddle" data-send="1">🧩 Riddle</button>
+                <button type="button" class="mobile-sheet-btn" data-cmd="@aura math" data-send="1">🔢 Math</button>
+                <button type="button" class="mobile-sheet-btn" data-cmd="@aura spell" data-send="1">📝 Spell</button>
+                <button type="button" class="mobile-sheet-btn" data-cmd="@aura true or false" data-send="1">❓ True/False</button>
+                <button type="button" class="mobile-sheet-btn" data-action="focus">⌨ Focus Input</button>
+                <button type="button" class="mobile-sheet-btn" data-action="clear">🧹 Clear Draft</button>
             </div>
             <div class="reply-preview" id="replyPreview">
                 <i class="fa-solid fa-reply reply-preview-icon"></i>
@@ -780,6 +935,10 @@ body { background: var(--arena-bg); }
     const battleBanner       = document.getElementById('battleBanner');
     const charCount          = document.getElementById('charCount');
     const quickActionsBar    = document.getElementById('quickActionsBar');
+    const mobileActionRail   = document.getElementById('mobileActionRail');
+    const mobileActionSheet  = document.getElementById('mobileActionSheet');
+    const challengeHelperChip = document.getElementById('challengeHelperChip');
+    const challengeHelperHint = document.getElementById('challengeHelperHint');
     const arenaContextMenu   = document.getElementById('arenaContextMenu');
     const ctxReplyItem       = document.getElementById('ctxReplyItem');
     const ctxCopyItem        = document.getElementById('ctxCopyItem');
@@ -804,6 +963,7 @@ body { background: var(--arena-bg); }
     let thinkingRow   = null;
     let replyTo       = null;   // { id, sender, text }
     let battleActive  = false;  // is a battle question currently unanswered?
+    let activeBattleType = null;
     let contextMsgRef = null;
     let longPressTimer = null;
     let longPressPoint = null;
@@ -857,9 +1017,50 @@ body { background: var(--arena-bg); }
         }
     }
 
+    function haptic(kind) {
+        if (!navigator.vibrate) return;
+        const pattern = kind === 'win' ? [18, 24, 26] : [12];
+        try { navigator.vibrate(pattern); } catch (_) {}
+    }
+
+    function setChallengeHelper(type, isActive) {
+        const HINTS = {
+            battle: 'Trivia: answer with a short fact or phrase.',
+            riddle: 'Riddle: short phrase, avoid full sentences.',
+            math: 'Math: send only the final number.',
+            spell: 'Spelling: exact word, no extra punctuation.',
+            truefalse: 'True/False: type true or false.',
+        };
+
+        if (!challengeHelperChip || !challengeHelperHint) return;
+
+        if (!isActive) {
+            challengeHelperChip.classList.remove('active');
+            activeBattleType = null;
+            return;
+        }
+
+        activeBattleType = type || 'battle';
+        challengeHelperHint.textContent = HINTS[activeBattleType] || HINTS.battle;
+        challengeHelperChip.classList.add('active');
+    }
+
     function hideArenaContextMenu() {
         arenaContextMenu.classList.remove('open');
         contextMsgRef = null;
+    }
+
+    function toggleMobileActionSheet(forceOpen) {
+        if (!mobileActionSheet || !mobileActionRail) return;
+        const shouldOpen = typeof forceOpen === 'boolean'
+            ? forceOpen
+            : !mobileActionSheet.classList.contains('open');
+        mobileActionSheet.classList.toggle('open', shouldOpen);
+        mobileActionSheet.setAttribute('aria-hidden', shouldOpen ? 'false' : 'true');
+        const moreBtn = mobileActionRail.querySelector('[data-action="more"]');
+        if (moreBtn) {
+            moreBtn.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+        }
     }
 
     function openArenaContextMenuAt(target, x, y) {
@@ -1094,6 +1295,7 @@ body { background: var(--arena-bg); }
                 if (m.is_battle && !m.battle_answered) {
                     battleActive = true;
                     const bType = m.battle_type || 'battle';
+                    setChallengeHelper(bType, true);
                     const LABELS = {
                         battle:    '⚡ Trivia Battle active — type your answer!',
                         riddle:    '🧩 Riddle active — figure it out!',
@@ -1108,6 +1310,8 @@ body { background: var(--arena-bg); }
                 // Battle solved — win message
                 if (m.is_aura && (m.content || '').includes(' wins and earns ')) {
                     battleActive = false;
+                    setChallengeHelper(null, false);
+                    haptic('win');
                     battleBanner.classList.remove('active');
                 }
             });
@@ -1159,9 +1363,13 @@ body { background: var(--arena-bg); }
                 }
                 if (data.status === 'attempted' && data.battle_active) {
                     showArenaNotice(data.feedback || 'Not correct yet — keep trying!');
+                    setChallengeHelper(activeBattleType || 'battle', true);
                 }
                 if (data.status === 'expired') {
                     showArenaNotice(data.feedback || 'Challenge expired. Start a new one.');
+                    battleActive = false;
+                    battleBanner.classList.remove('active');
+                    setChallengeHelper(null, false);
                 }
                 isPolling = false; // unlock before forced poll
                 await poll();
@@ -1187,8 +1395,64 @@ body { background: var(--arena-bg); }
     quickActionsBar.addEventListener('click', (ev) => {
         const btn = ev.target.closest('.arena-quick-btn');
         if (!btn) return;
+        haptic('tap');
         runQuickCommand(btn.dataset.cmd || '', btn.dataset.send === '1');
     });
+
+    function runMobileAction(actionEl) {
+        if (!actionEl || sendBtn.disabled) return;
+        const action = actionEl.dataset.action;
+        if (actionEl.dataset.cmd) {
+            haptic('tap');
+            runQuickCommand(actionEl.dataset.cmd || '', actionEl.dataset.send === '1');
+            return;
+        }
+        if (action === 'send') {
+            haptic('tap');
+            if (input.value.trim()) {
+                form.requestSubmit();
+            } else {
+                input.focus();
+            }
+            return;
+        }
+        if (action === 'more') {
+            haptic('tap');
+            toggleMobileActionSheet();
+            return;
+        }
+        if (action === 'focus') {
+            input.focus();
+            toggleMobileActionSheet(false);
+            return;
+        }
+        if (action === 'clear') {
+            input.value = '';
+            updateCharCount();
+            clearReply();
+            input.focus();
+            toggleMobileActionSheet(false);
+        }
+    }
+
+    if (mobileActionRail) {
+        mobileActionRail.addEventListener('click', (ev) => {
+            runMobileAction(ev.target.closest('.mobile-rail-btn'));
+        });
+    }
+    if (mobileActionSheet) {
+        mobileActionSheet.addEventListener('click', (ev) => {
+            runMobileAction(ev.target.closest('.mobile-sheet-btn'));
+        });
+    }
+
+    if (challengeHelperChip) {
+        challengeHelperChip.addEventListener('click', () => {
+            if (!battleActive || sendBtn.disabled) return;
+            haptic('tap');
+            runQuickCommand('@aura hint', true);
+        });
+    }
 
     /* ── Right-click custom gaming menu ─────────────────── */
     arenaWrap.addEventListener('contextmenu', (ev) => {
@@ -1265,8 +1529,16 @@ body { background: var(--arena-bg); }
         if (!arenaContextMenu.contains(ev.target)) hideArenaContextMenu();
     });
 
+    document.addEventListener('click', (ev) => {
+        if (!mobileActionSheet || !mobileActionSheet.classList.contains('open')) return;
+        if (mobileActionSheet.contains(ev.target)) return;
+        if (mobileActionRail && mobileActionRail.contains(ev.target)) return;
+        toggleMobileActionSheet(false);
+    });
+
     document.addEventListener('keydown', (ev) => {
         if (ev.key === 'Escape') hideArenaContextMenu();
+        if (ev.key === 'Escape') toggleMobileActionSheet(false);
     });
 
     feed.addEventListener('scroll', hideArenaContextMenu);

@@ -3014,6 +3014,12 @@ HELP_FALLBACK_FAQ = [
 
 
 @login_required
+def help_page(request):
+    """Dedicated help page with assistant chat and quick guidance."""
+    return render(request, 'academics/help_page.html')
+
+
+@login_required
 def help_chat_api(request):
     """Role-aware AI help assistant for all authenticated users."""
     if request.method != 'POST':

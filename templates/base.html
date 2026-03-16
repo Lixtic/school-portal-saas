@@ -4401,6 +4401,11 @@
     transition: transform .18s, box-shadow .18s;
 }
 #help-widget-btn:hover { transform: scale(1.1); box-shadow: 0 6px 22px rgba(0,0,0,0.3); }
+#help-widget-btn.auto-hidden {
+    opacity: 0;
+    transform: translateY(10px) scale(0.92);
+    pointer-events: none;
+}
 #help-panel {
     position: fixed;
     bottom: 82px;
@@ -4507,6 +4512,7 @@
     <div id="help-panel-header">
         <i class="bi bi-robot"></i>
         <span>Help Assistant</span>
+        <a href="{% url 'academics:help_page' %}" aria-label="Open Help Page" style="margin-left:auto;color:rgba(255,255,255,.88);text-decoration:none;font-size:.78rem;font-weight:700;">Help Page</a>
         <button id="help-close" aria-label="Close help">&times;</button>
     </div>
     <div id="help-messages">
@@ -4528,15 +4534,59 @@
     const msgs  = document.getElementById('help-messages');
     const API   = "{% url 'academics:help_chat' %}";
     const CSRF  = '{{ csrf_token }}';
+    const AUTO_HIDE_MS = 8000;
     let history = [];
     let busy = false;
+    let autoHideTimer = null;
+
+    function setBtnHidden(hidden) {
+        if (panel.classList.contains('open')) hidden = false;
+        btn.classList.toggle('auto-hidden', !!hidden);
+    }
+
+    function resetBtnAutoHide() {
+        setBtnHidden(false);
+        if (autoHideTimer) clearTimeout(autoHideTimer);
+        if (!panel.classList.contains('open')) {
+            autoHideTimer = setTimeout(() => setBtnHidden(true), AUTO_HIDE_MS);
+        }
+    }
 
     btn.addEventListener('click', () => {
         panel.classList.toggle('open');
-        if (panel.classList.contains('open')) { input.focus(); scrollMsgs(); }
+        if (panel.classList.contains('open')) {
+            setBtnHidden(false);
+            if (autoHideTimer) clearTimeout(autoHideTimer);
+            input.focus();
+            scrollMsgs();
+            return;
+        }
+        resetBtnAutoHide();
     });
-    closeBtn.addEventListener('click', () => panel.classList.remove('open'));
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') panel.classList.remove('open'); });
+    closeBtn.addEventListener('click', () => {
+        panel.classList.remove('open');
+        resetBtnAutoHide();
+    });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            panel.classList.remove('open');
+            resetBtnAutoHide();
+            return;
+        }
+        resetBtnAutoHide();
+    });
+    document.addEventListener('click', (e) => {
+        if (!panel.classList.contains('open')) {
+            resetBtnAutoHide();
+            return;
+        }
+        if (panel.contains(e.target) || btn.contains(e.target)) return;
+        panel.classList.remove('open');
+        resetBtnAutoHide();
+    });
+    ['mousemove', 'touchstart', 'scroll'].forEach((evt) => {
+        document.addEventListener(evt, resetBtnAutoHide, { passive: true });
+    });
 
     function scrollMsgs() { msgs.scrollTop = msgs.scrollHeight; }
 
@@ -4594,6 +4644,7 @@
 
     send.addEventListener('click', () => askHelp(input.value.trim()));
     input.addEventListener('keydown', e => { if (e.key === 'Enter') askHelp(input.value.trim()); });
+    resetBtnAutoHide();
 })();
 </script>
 {% endif %}
