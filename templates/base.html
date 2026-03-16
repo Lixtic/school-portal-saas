@@ -4406,6 +4406,44 @@
     transform: translateY(10px) scale(0.92);
     pointer-events: none;
 }
+#help-widget-menu {
+    position: fixed;
+    min-width: 210px;
+    background: var(--bs-body-bg, #fff);
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 10px;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.2);
+    z-index: 1060;
+    display: none;
+    padding: 6px;
+}
+#help-widget-menu.open { display: block; }
+.help-widget-menu-title {
+    font-size: .72rem;
+    color: var(--bs-secondary-color, #6c757d);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    padding: 6px 8px 5px;
+    font-weight: 700;
+}
+.help-widget-menu-item {
+    width: 100%;
+    text-align: left;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--bs-body-color, #212529);
+    padding: 7px 9px;
+    font-size: .84rem;
+    cursor: pointer;
+}
+.help-widget-menu-item:hover {
+    background: rgba(13,110,253,.12);
+}
+.help-widget-menu-item.active {
+    background: rgba(13,110,253,.16);
+    font-weight: 700;
+}
 #help-panel {
     position: fixed;
     bottom: 82px;
@@ -4508,6 +4546,14 @@
     <i class="bi bi-question-lg"></i>
 </button>
 
+<div id="help-widget-menu" role="menu" aria-label="Help button options">
+    <div class="help-widget-menu-title">Auto-hide</div>
+    <button type="button" class="help-widget-menu-item" data-hide-mode="off" role="menuitem">Off</button>
+    <button type="button" class="help-widget-menu-item" data-hide-ms="8000" role="menuitem">8 seconds</button>
+    <button type="button" class="help-widget-menu-item" data-hide-ms="15000" role="menuitem">15 seconds</button>
+    <button type="button" class="help-widget-menu-item" data-hide-ms="30000" role="menuitem">30 seconds</button>
+</div>
+
 <div id="help-panel" role="dialog" aria-label="Help Assistant">
     <div id="help-panel-header">
         <i class="bi bi-robot"></i>
@@ -4532,12 +4578,60 @@
     const input = document.getElementById('help-input');
     const send  = document.getElementById('help-send');
     const msgs  = document.getElementById('help-messages');
+    const widgetMenu = document.getElementById('help-widget-menu');
     const API   = "{% url 'academics:help_chat' %}";
     const CSRF  = '{{ csrf_token }}';
-    const AUTO_HIDE_MS = 8000;
+    const AUTO_HIDE_DEFAULT_MS = 8000;
+    const AUTO_HIDE_STORAGE_KEY = 'help_widget_auto_hide_ms';
     let history = [];
     let busy = false;
     let autoHideTimer = null;
+    let autoHideMs = AUTO_HIDE_DEFAULT_MS;
+
+    function loadAutoHidePreference() {
+        try {
+            const saved = window.localStorage.getItem(AUTO_HIDE_STORAGE_KEY);
+            if (saved === 'off') {
+                autoHideMs = null;
+                return;
+            }
+            const parsed = parseInt(saved, 10);
+            if (!Number.isNaN(parsed) && parsed >= 1000) {
+                autoHideMs = parsed;
+            }
+        } catch (_) {}
+    }
+
+    function saveAutoHidePreference(modeOrMs) {
+        try {
+            window.localStorage.setItem(AUTO_HIDE_STORAGE_KEY, String(modeOrMs));
+        } catch (_) {}
+    }
+
+    function closeWidgetMenu() {
+        widgetMenu.classList.remove('open');
+    }
+
+    function markWidgetMenuActive() {
+        widgetMenu.querySelectorAll('.help-widget-menu-item').forEach((item) => {
+            const itemMs = item.dataset.hideMs ? parseInt(item.dataset.hideMs, 10) : null;
+            const isActive = item.dataset.hideMode === 'off'
+                ? autoHideMs === null
+                : autoHideMs === itemMs;
+            item.classList.toggle('active', !!isActive);
+        });
+    }
+
+    function openWidgetMenu(x, y) {
+        markWidgetMenuActive();
+        widgetMenu.classList.add('open');
+        const menuW = 220;
+        const menuH = 200;
+        const maxX = window.innerWidth - menuW - 8;
+        const maxY = window.innerHeight - menuH - 8;
+        widgetMenu.style.left = Math.max(8, Math.min(x, maxX)) + 'px';
+        widgetMenu.style.top = Math.max(8, Math.min(y, maxY)) + 'px';
+    }
 
     function setBtnHidden(hidden) {
         if (panel.classList.contains('open')) hidden = false;
@@ -4547,12 +4641,13 @@
     function resetBtnAutoHide() {
         setBtnHidden(false);
         if (autoHideTimer) clearTimeout(autoHideTimer);
-        if (!panel.classList.contains('open')) {
-            autoHideTimer = setTimeout(() => setBtnHidden(true), AUTO_HIDE_MS);
+        if (!panel.classList.contains('open') && autoHideMs !== null) {
+            autoHideTimer = setTimeout(() => setBtnHidden(true), autoHideMs);
         }
     }
 
     btn.addEventListener('click', () => {
+        closeWidgetMenu();
         panel.classList.toggle('open');
         if (panel.classList.contains('open')) {
             setBtnHidden(false);
@@ -4562,6 +4657,11 @@
             return;
         }
         resetBtnAutoHide();
+    });
+    btn.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        setBtnHidden(false);
+        openWidgetMenu(e.clientX, e.clientY);
     });
     closeBtn.addEventListener('click', () => {
         panel.classList.remove('open');
@@ -4576,6 +4676,9 @@
         resetBtnAutoHide();
     });
     document.addEventListener('click', (e) => {
+        if (widgetMenu.classList.contains('open') && !widgetMenu.contains(e.target) && !btn.contains(e.target)) {
+            closeWidgetMenu();
+        }
         if (!panel.classList.contains('open')) {
             resetBtnAutoHide();
             return;
@@ -4586,6 +4689,25 @@
     });
     ['mousemove', 'touchstart', 'scroll'].forEach((evt) => {
         document.addEventListener(evt, resetBtnAutoHide, { passive: true });
+    });
+
+    widgetMenu.addEventListener('click', (e) => {
+        const item = e.target.closest('.help-widget-menu-item');
+        if (!item) return;
+        if (item.dataset.hideMode === 'off') {
+            autoHideMs = null;
+            saveAutoHidePreference('off');
+        } else if (item.dataset.hideMs) {
+            autoHideMs = parseInt(item.dataset.hideMs, 10);
+            saveAutoHidePreference(autoHideMs);
+        }
+        markWidgetMenuActive();
+        closeWidgetMenu();
+        resetBtnAutoHide();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeWidgetMenu();
     });
 
     function scrollMsgs() { msgs.scrollTop = msgs.scrollHeight; }
@@ -4644,6 +4766,7 @@
 
     send.addEventListener('click', () => askHelp(input.value.trim()));
     input.addEventListener('keydown', e => { if (e.key === 'Enter') askHelp(input.value.trim()); });
+    loadAutoHidePreference();
     resetBtnAutoHide();
 })();
 </script>
