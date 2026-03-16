@@ -41,15 +41,23 @@ def manage_fees(request):
         return redirect('dashboard')
     
     heads = FeeHead.objects.all()
-    structures = (
+    sort_by = request.GET.get('sort', 'newest')
+
+    structures_qs = (
         FeeStructure.objects
         .select_related('head', 'class_level', 'academic_year')
         .annotate(
             assigned_students=Count('studentfee', distinct=True),
             paid_students=Count('studentfee', filter=Q(studentfee__status='paid'), distinct=True),
         )
-        .order_by('-id')
     )
+
+    if sort_by == 'class_asc':
+        structures = structures_qs.order_by('class_level__name', '-academic_year__start_date', 'head__name')
+    elif sort_by == 'class_desc':
+        structures = structures_qs.order_by('-class_level__name', '-academic_year__start_date', 'head__name')
+    else:
+        structures = structures_qs.order_by('-id')
 
     if request.method == 'POST':
         # Simple handler for creating a new Fee Head inline if needed
@@ -64,7 +72,8 @@ def manage_fees(request):
     return render(request, 'finance/manage_fees.html', {
         'heads': heads,
         'structures': structures,
-        'head_form': head_form
+        'head_form': head_form,
+        'sort_by': sort_by,
     })
 
 

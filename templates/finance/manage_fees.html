@@ -57,9 +57,19 @@
 <div class="container-fluid px-3 px-md-4 py-3 content-wrapper">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="mb-0 fw-semibold">Manage Fees</h4>
-        <a href="{% url 'finance:create_fee_structure' %}" class="btn btn-primary btn-sm px-3">
-            <i class="bi bi-plus-circle me-1"></i> Create Fee Structure
-        </a>
+        <div class="d-flex align-items-center gap-2">
+            <form method="get" class="d-flex align-items-center gap-2">
+                <label for="sortSelect" class="small text-muted mb-0">Sort:</label>
+                <select id="sortSelect" name="sort" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width:180px;">
+                    <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest First</option>
+                    <option value="class_asc" {% if sort_by == 'class_asc' %}selected{% endif %}>Class A to Z</option>
+                    <option value="class_desc" {% if sort_by == 'class_desc' %}selected{% endif %}>Class Z to A</option>
+                </select>
+            </form>
+            <a href="{% url 'finance:create_fee_structure' %}" class="btn btn-primary btn-sm px-3">
+                <i class="bi bi-plus-circle me-1"></i> Create Fee Structure
+            </a>
+        </div>
     </div>
 
     <div class="row">
