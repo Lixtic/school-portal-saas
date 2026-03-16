@@ -869,6 +869,10 @@ def revenue_analytics(request):
 def addon_marketplace(request):
     """Add-on marketplace - universally accessible for all school users"""
     from .models import AddOn, SchoolSubscription, SchoolAddOn
+    paystack_ready = bool(
+        (getattr(settings, 'PAYSTACK_SECRET_KEY', '') or '').strip()
+        and (getattr(settings, 'PAYSTACK_PUBLIC_KEY', '') or '').strip()
+    )
     
     # Block super admins from accessing marketplace
     if request.user.is_staff and (not hasattr(request, 'tenant') or request.tenant.schema_name == 'public'):
@@ -907,6 +911,11 @@ def addon_marketplace(request):
             addons_by_category[category] = []
         
         addon.is_purchased = addon.id in purchased_addon_ids
+        addon.is_blocked = False
+        addon.block_reason = ''
+        if addon.slug == 'online-payments' and not paystack_ready:
+            addon.is_blocked = True
+            addon.block_reason = 'Paystack keys are not configured yet by the platform admin.'
         addons_by_category[category].append(addon)
     
     context = {
@@ -918,6 +927,7 @@ def addon_marketplace(request):
             if addon.id in purchased_addon_ids and not addon.is_one_time
         ),
         'can_manage_addons': request.user.user_type == 'admin',  # Only admins can purchase/cancel
+        'paystack_ready': paystack_ready,
     }
     
     return render(request, 'tenants/addon_marketplace.html', context)
@@ -945,6 +955,19 @@ def purchase_addon(request, addon_id):
     
     # Get add-on
     addon = get_object_or_404(AddOn, id=addon_id, is_active=True)
+
+    # Server-side guard for paystack-backed online payments addon.
+    if addon.slug == 'online-payments':
+        paystack_ready = bool(
+            (getattr(settings, 'PAYSTACK_SECRET_KEY', '') or '').strip()
+            and (getattr(settings, 'PAYSTACK_PUBLIC_KEY', '') or '').strip()
+        )
+        if not paystack_ready:
+            messages.error(
+                request,
+                "Paystack is not configured yet. Ask the platform admin to set PAYSTACK_PUBLIC_KEY and PAYSTACK_SECRET_KEY first."
+            )
+            return redirect('tenants:addon_marketplace')
     
     # Idempotent purchase flow:
     # unique_together(subscription, addon) means canceled add-ons still occupy
