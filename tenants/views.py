@@ -946,22 +946,35 @@ def purchase_addon(request, addon_id):
     # Get add-on
     addon = get_object_or_404(AddOn, id=addon_id, is_active=True)
     
-    # Check if already purchased
-    if SchoolAddOn.objects.filter(subscription=subscription, addon=addon, is_active=True).exists():
-        messages.warning(request, f"You already have {addon.name}")
+    # Idempotent purchase flow:
+    # unique_together(subscription, addon) means canceled add-ons still occupy
+    # the row. Re-activate existing row instead of creating a duplicate.
+    try:
+        with transaction.atomic():
+            school_addon, created = SchoolAddOn.objects.get_or_create(
+                subscription=subscription,
+                addon=addon,
+                defaults={'is_active': True}
+            )
+
+            if created:
+                messages.success(request, f"Successfully purchased {addon.name}! Your billing has been updated.")
+            elif school_addon.is_active:
+                messages.warning(request, f"You already have {addon.name}")
+                return redirect('tenants:addon_marketplace')
+            else:
+                school_addon.is_active = True
+                school_addon.expires_at = None
+                school_addon.save(update_fields=['is_active', 'expires_at'])
+                messages.success(request, f"Successfully re-activated {addon.name}!")
+    except Exception:
+        logger.exception("Failed to purchase add-on. subscription=%s addon=%s", subscription.id, addon.id)
+        messages.error(request, "Could not complete add-on purchase right now. Please try again.")
         return redirect('tenants:addon_marketplace')
-    
-    # Create purchase
-    school_addon = SchoolAddOn.objects.create(
-        subscription=subscription,
-        addon=addon,
-        is_active=True
-    )
-    
-    # Recalculate MRR
+
+    # Recalculate MRR after create/reactivation.
     subscription.calculate_mrr()
-    
-    messages.success(request, f"Successfully purchased {addon.name}! Your billing has been updated.")
+
     return redirect('tenants:addon_marketplace')
 
 
