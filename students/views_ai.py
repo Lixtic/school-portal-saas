@@ -2,6 +2,7 @@
 import os
 import re
 import json
+import random
 import logging
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
@@ -919,7 +920,7 @@ def aura_arena_api(request):
                 nums = re.findall(r'-?\d+\.?\d*', msg_lower)
                 matched = any(_norm(n) == ans_norm for n in nums)
             else:
-                # battle / riddle / spell — keyword must appear in message
+                # battle / riddle / scrabble — keyword must appear in message
                 matched = ans_norm in msg_norm if ans_norm else False
 
             if matched:
@@ -936,7 +937,8 @@ def aura_arena_api(request):
                     'battle':    '⚡ Correct!',
                     'riddle':    '🧩 Solved!',
                     'math':      '🔢 Correct!',
-                    'spell':     '📝 Correct!',
+                    'scrabble':  '🔤 Great word!',
+                    'spell':     '🔤 Great word!',
                     'truefalse': '✅ Correct!',
                 }
                 label = type_labels.get(active_battle.battle_type, '⚡ Correct!')
@@ -963,7 +965,8 @@ def aura_arena_api(request):
                 'math': "Not quite. Enter only the final number (no extra words).",
                 'battle': "Not quite. Try again — check the key term in the question.",
                 'riddle': "Not quite. Try again — focus on the clue wording.",
-                'spell': "Not quite. Try again — spelling must be exact.",
+                'scrabble': "Not quite. Try again — build the correct word from the tiles.",
+                'spell': "Not quite. Try again — build the correct word from the tiles.",
             }
             return JsonResponse({
                 'status': 'attempted',
@@ -983,7 +986,7 @@ def aura_arena_api(request):
             StudyGroupMessage.objects.create(
                 room=room,
                 is_aura=True,
-                content="⌛ That challenge expired. Start a fresh one with @aura battle, @aura riddle, @aura math, @aura spell, or @aura true or false."
+                content="⌛ That challenge expired. Start a fresh one with @aura battle, @aura riddle, @aura math, @aura scrabble, or @aura true or false."
             )
             return JsonResponse({
                 'status': 'expired',
@@ -1011,7 +1014,7 @@ def aura_arena_api(request):
 
         # ── Cooldown: prevent game-command spam ─────────────────────────
         COOLDOWN_SECS = 90
-        _is_game_cmd = bool(re.search(r'@aura\s+(battle|riddle|math|spell|true|tf\b)', cmd))
+        _is_game_cmd = bool(re.search(r'@aura\s+(battle|riddle|math|scrabble|true|tf\b)', cmd))
         if _is_game_cmd and not active_battle:
             last_q = (
                 StudyGroupMessage.objects
@@ -1052,7 +1055,7 @@ def aura_arena_api(request):
             if not active_battle:
                 StudyGroupMessage.objects.create(
                     room=room, is_aura=True,
-                    content="💡 No active challenge right now. Start one with `@aura battle`, `@aura riddle`, `@aura math`, `@aura spell`, or `@aura true or false`."
+                    content="💡 No active challenge right now. Start one with `@aura battle`, `@aura riddle`, `@aura math`, `@aura scrabble`, or `@aura true or false`."
                 )
             else:
                 client = _gpt_client()
@@ -1188,8 +1191,8 @@ def aura_arena_api(request):
                         StudyGroupMessage.objects.create(room=room, is_aura=True,
                             content="⚠️ Couldn't generate a math problem right now. Try again!")
 
-        # ── @aura spell ────────────────────────────────────────────────
-        elif re.search(r'@aura\s+spell', cmd):
+        # ── @aura scrabble ─────────────────────────────────────────────
+        elif re.search(r'@aura\s+scrabble', cmd):
             if active_battle:
                 StudyGroupMessage.objects.create(room=room, is_aura=True,
                     content="⏳ There's already a challenge active! Answer it first, or type `@aura skip`.")
@@ -1202,9 +1205,9 @@ def aura_arena_api(request):
                     try:
                         class_name, _ = _class_ctx()
                         prompt = (
-                            f"Generate a vocabulary spelling challenge for a {class_name} class. "
-                            "Pick a word students should know, then give its definition without revealing the word. "
-                            "Return ONLY a valid JSON object with keys 'definition' and 'word'. No markdown, no other text."
+                            f"Generate a Scrabble-style word challenge for a {class_name} class. "
+                            "Pick one school-appropriate vocabulary word (3-10 letters, alphabetic only), and provide a short clue without revealing the word. "
+                            "Return ONLY a valid JSON object with keys 'clue' and 'word'. No markdown, no other text."
                         )
                         res = client.chat.completions.create(
                             model='gpt-4o-mini',
@@ -1213,16 +1216,31 @@ def aura_arena_api(request):
                         )
                         raw = res.choices[0].message.content.strip().replace("```json", "").replace("```", "").strip()
                         q = json.loads(raw)
+                        answer_word = re.sub(r'[^a-z]', '', str(q.get('word', '')).lower())
+                        if len(answer_word) < 3:
+                            raise ValueError('Invalid scrabble word generated')
+
+                        tiles = list(answer_word)
+                        random.shuffle(tiles)
+                        # Avoid showing tiles in original order for fairness.
+                        if ''.join(tiles) == answer_word and len(tiles) > 1:
+                            tiles = tiles[1:] + tiles[:1]
+                        tiles_display = ' '.join(tiles)
+
                         StudyGroupMessage.objects.create(
                             room=room, is_aura=True, is_battle_question=True,
-                            battle_type='spell', battle_xp=15,
-                            battle_answer=q.get('word', '').lower().strip(),
-                            content=f"📝 **SPELL IT!** Spell the word — first correct wins **+15 XP!**\n\n*Definition:* {q.get('definition', '')}"
+                            battle_type='scrabble', battle_xp=15,
+                            battle_answer=answer_word,
+                            content=(
+                                "🔤 **SCRABBLE ROUND!** Unscramble the tiles — first correct word wins **+15 XP!**\n\n"
+                                f"*Clue:* {q.get('clue', '')}\n\n"
+                                f"**Tiles:** `{tiles_display}`"
+                            )
                         )
                     except Exception as e:
-                        logger.exception(f"Aura Spell Error: {e}")
+                        logger.exception(f"Aura Scrabble Error: {e}")
                         StudyGroupMessage.objects.create(room=room, is_aura=True,
-                            content="⚠️ Couldn't generate a spelling challenge right now. Try again!")
+                            content="⚠️ Couldn't generate a scrabble challenge right now. Try again!")
 
         # ── @aura true or false  (also: @aura tf / @aura t/f) ─────────
         elif re.search(r'@aura\s+(true\s*(or|\/)\s*false|tf\b)', cmd):

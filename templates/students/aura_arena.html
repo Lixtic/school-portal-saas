@@ -728,8 +728,8 @@ body { background: var(--arena-bg); }
                 <span class="tip-desc">Arithmetic challenge — correct number wins <strong style="color:var(--arena-gold);">+10 XP</strong></span>
             </div>
             <div class="tip-row">
-                <span class="tip-chip" style="background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.3);color:#6ee7b7;">@aura spell</span>
-                <span class="tip-desc">Spell the hidden word — <strong style="color:var(--arena-gold);">+15 XP</strong></span>
+                <span class="tip-chip" style="background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.3);color:#6ee7b7;">@aura scrabble</span>
+                <span class="tip-desc">Unscramble the tiles into a word — <strong style="color:var(--arena-gold);">+15 XP</strong></span>
             </div>
             <div class="tip-row">
                 <span class="tip-chip" style="background:rgba(245,158,11,0.15);border-color:rgba(245,158,11,0.3);color:#fcd34d;">@aura true or false</span>
@@ -825,7 +825,7 @@ body { background: var(--arena-bg); }
                 <button type="button" class="arena-quick-btn" data-cmd="@aura battle" data-send="1">⚔ Battle</button>
                 <button type="button" class="arena-quick-btn" data-cmd="@aura riddle" data-send="1">🧩 Riddle</button>
                 <button type="button" class="arena-quick-btn" data-cmd="@aura math" data-send="1">🔢 Math</button>
-                <button type="button" class="arena-quick-btn" data-cmd="@aura spell" data-send="1">📝 Spell</button>
+                <button type="button" class="arena-quick-btn" data-cmd="@aura scrabble" data-send="1">🔤 Scrabble</button>
                 <button type="button" class="arena-quick-btn" data-cmd="@aura true or false" data-send="1">❓ True/False</button>
                 <button type="button" class="arena-quick-btn" data-cmd="@aura hint" data-send="1">💡 Hint</button>
             </div>
@@ -838,7 +838,7 @@ body { background: var(--arena-bg); }
             <div class="mobile-action-sheet" id="mobileActionSheet" aria-hidden="true">
                 <button type="button" class="mobile-sheet-btn" data-cmd="@aura riddle" data-send="1">🧩 Riddle</button>
                 <button type="button" class="mobile-sheet-btn" data-cmd="@aura math" data-send="1">🔢 Math</button>
-                <button type="button" class="mobile-sheet-btn" data-cmd="@aura spell" data-send="1">📝 Spell</button>
+                <button type="button" class="mobile-sheet-btn" data-cmd="@aura scrabble" data-send="1">🔤 Scrabble</button>
                 <button type="button" class="mobile-sheet-btn" data-cmd="@aura true or false" data-send="1">❓ True/False</button>
                 <button type="button" class="mobile-sheet-btn" data-action="focus">⌨ Focus Input</button>
                 <button type="button" class="mobile-sheet-btn" data-action="clear">🧹 Clear Draft</button>
@@ -872,10 +872,10 @@ body { background: var(--arena-bg); }
                 <code>@aura battle</code> &nbsp;&middot;&nbsp;
                 <code>@aura riddle</code> &nbsp;&middot;&nbsp;
                 <code>@aura math</code> &nbsp;&middot;&nbsp;
-                <code>@aura spell</code> &nbsp;&middot;&nbsp;
+                <code>@aura scrabble</code> &nbsp;&middot;&nbsp;
                 <code>@aura true or false</code>
                 <br>
-                <code>Alt+B</code> battle · <code>Alt+R</code> riddle · <code>Alt+M</code> math · <code>Alt+S</code> spell · <code>Alt+T</code> true/false · <code>Alt+H</code> hint
+                <code>Alt+B</code> battle · <code>Alt+R</code> riddle · <code>Alt+M</code> math · <code>Alt+S</code> scrabble · <code>Alt+T</code> true/false · <code>Alt+H</code> hint
                 <br>
                 <span style="opacity:.75;">Mobile: long-press a message for quick actions</span>
             </div>
@@ -902,7 +902,7 @@ body { background: var(--arena-bg); }
     <button type="button" class="arena-context-item" data-action="battle">⚔ Start battle now</button>
     <button type="button" class="arena-context-item" data-action="riddle">🧩 Launch riddle</button>
     <button type="button" class="arena-context-item" data-action="math">🔢 Launch math</button>
-    <button type="button" class="arena-context-item" data-action="spell">📝 Launch spelling</button>
+    <button type="button" class="arena-context-item" data-action="scrabble">🔤 Launch scrabble</button>
     <button type="button" class="arena-context-item" data-action="truefalse">❓ Launch true/false</button>
     <button type="button" class="arena-context-item" data-action="hint">💡 Ask hint</button>
     <button type="button" class="arena-context-item" data-action="reply" id="ctxReplyItem" hidden>↩ Reply to this message</button>
@@ -1028,7 +1028,8 @@ body { background: var(--arena-bg); }
             battle: 'Trivia: answer with a short fact or phrase.',
             riddle: 'Riddle: short phrase, avoid full sentences.',
             math: 'Math: send only the final number.',
-            spell: 'Spelling: exact word, no extra punctuation.',
+            scrabble: 'Scrabble: send only the completed word from tiles.',
+            spell: 'Scrabble: send only the completed word from tiles.',
             truefalse: 'True/False: type true or false.',
         };
 
@@ -1132,7 +1133,8 @@ body { background: var(--arena-bg); }
             battle:    { icon: '⚡', label: 'Aura Battle',  color: '#ef4444' },
             riddle:    { icon: '🧩', label: 'Riddle',       color: '#8b5cf6' },
             math:      { icon: '🔢', label: 'Math Challenge', color: '#3b82f6' },
-            spell:     { icon: '📝', label: 'Spelling',     color: '#10b981' },
+            scrabble:  { icon: '🔤', label: 'Scrabble',     color: '#10b981' },
+            spell:     { icon: '🔤', label: 'Scrabble',     color: '#10b981' },
             truefalse: { icon: '❓', label: 'True or False', color: '#f59e0b' },
         };
         const bMeta = BATTLE_META[bType] || BATTLE_META.battle;
@@ -1300,7 +1302,8 @@ body { background: var(--arena-bg); }
                         battle:    '⚡ Trivia Battle active — type your answer!',
                         riddle:    '🧩 Riddle active — figure it out!',
                         math:      '🔢 Math Challenge — type the number!',
-                        spell:     '📝 Spell the word correctly!',
+                        scrabble:  '🔤 Scrabble active — build the correct word from tiles!',
+                        spell:     '🔤 Scrabble active — build the correct word from tiles!',
                         truefalse: '❓ True or False — type `true` or `false`!',
                     };
                     battleBanner.querySelector('.battle-banner-text').textContent =
@@ -1504,7 +1507,7 @@ body { background: var(--arena-bg); }
         if (action === 'battle') runQuickCommand('@aura battle', true);
         if (action === 'riddle') runQuickCommand('@aura riddle', true);
         if (action === 'math') runQuickCommand('@aura math', true);
-        if (action === 'spell') runQuickCommand('@aura spell', true);
+        if (action === 'scrabble') runQuickCommand('@aura scrabble', true);
         if (action === 'truefalse') runQuickCommand('@aura true or false', true);
         if (action === 'hint') runQuickCommand('@aura hint', true);
         if (action === 'focus') input.focus();
@@ -1575,7 +1578,7 @@ body { background: var(--arena-bg); }
             b: '@aura battle',
             r: '@aura riddle',
             m: '@aura math',
-            s: '@aura spell',
+            s: '@aura scrabble',
             t: '@aura true or false',
             h: '@aura hint',
         };

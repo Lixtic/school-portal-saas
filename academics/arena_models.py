@@ -21,7 +21,8 @@ class StudyGroupMessage(models.Model):
         ('battle',    'Trivia Battle'),
         ('riddle',    'Riddle'),
         ('math',      'Math Challenge'),
-        ('spell',     'Spelling Challenge'),
+        ('scrabble',  'Scrabble Challenge'),
+        ('spell',     'Spelling Challenge (Legacy)'),
         ('truefalse', 'True or False'),
     ]
 
