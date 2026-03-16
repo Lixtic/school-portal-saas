@@ -8,7 +8,11 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_http_methods
 from accounts.models import User
+from django.db.utils import OperationalError, ProgrammingError
+import logging
 import json
+
+logger = logging.getLogger(__name__)
 
 
 def _create_announcement_notifications(announcement):
@@ -103,11 +107,20 @@ def manage_announcements(request):
 @login_required
 def notifications_unread_count(request):
     """Return the unread notification count + latest unread link as JSON (for client-side polling)."""
-    qs = request.user.notifications.filter(is_read=False).order_by('-created_at')
-    count = qs.count()
-    latest = qs.values('link', 'message').first()
-    latest_link = (latest.get('link') or '') if latest else ''
-    return JsonResponse({'count': count, 'latest_link': latest_link})
+    try:
+        qs = request.user.notifications.filter(is_read=False).order_by('-created_at')
+        count = qs.count()
+        latest = qs.values('link', 'message').first()
+        latest_link = (latest.get('link') or '') if latest else ''
+        return JsonResponse({'count': count, 'latest_link': latest_link})
+    except (ProgrammingError, OperationalError):
+        # Tenant schema may not have announcements tables yet.
+        logger.warning(
+            "notifications_unread_count fallback: notifications table missing/unavailable for user=%s",
+            getattr(request.user, 'id', None),
+            exc_info=True,
+        )
+        return JsonResponse({'count': 0, 'latest_link': ''})
 
 
 @login_required
