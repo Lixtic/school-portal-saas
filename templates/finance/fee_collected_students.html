@@ -15,7 +15,7 @@
     </div>
 
     <div class="row g-3 mb-3">
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <div class="text-muted small">Paid Students</div>
@@ -23,7 +23,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <div class="text-muted small">Total Collected</div>
@@ -31,11 +31,36 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <div class="text-muted small">Total Payable (Assigned)</div>
                     <div class="h4 mb-0">₵ {{ total_payable|floatformat:2 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <div class="text-muted small mb-1">Assigned Collector</div>
+                    {% if structure.assigned_collector %}
+                    <div class="fw-semibold">
+                        <i class="bi bi-person-check-fill text-success me-1"></i>
+                        {{ structure.assigned_collector.user.get_full_name }}
+                    </div>
+                    {% else %}
+                    <div class="text-muted fst-italic">Not assigned</div>
+                    {% endif %}
+                    <button type="button"
+                        class="btn btn-outline-primary btn-sm mt-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#assignCollectorModal"
+                        data-fee-id="{{ structure.id }}"
+                        data-fee-name="{{ structure.head.name }} – {{ structure.class_level.name }}"
+                        data-current-collector="{{ structure.assigned_collector.id|default:'' }}">
+                        <i class="bi bi-person-gear me-1"></i>
+                        {% if structure.assigned_collector %}Change{% else %}Assign{% endif %} Collector
+                    </button>
                 </div>
             </div>
         </div>
@@ -80,4 +105,48 @@
         </div>
     </div>
 </div>
+
+<!-- Assign Fee Collector Modal -->
+<div class="modal fade" id="assignCollectorModal" tabindex="-1" aria-labelledby="assignCollectorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-semibold" id="assignCollectorModalLabel">Assign Fee Collector</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" id="assignCollectorForm" action="{% url 'finance:assign_fee_collector' structure.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <div class="modal-body">
+                    <p class="text-muted small mb-3" id="assignCollectorFeeLabel"></p>
+                    <label class="form-label fw-medium">Select Teacher</label>
+                    <select name="teacher_id" class="form-select" id="assignCollectorSelect">
+                        <option value="">— Remove collector —</option>
+                        {% for teacher in teachers %}
+                        <option value="{{ teacher.id }}">{{ teacher.user.get_full_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text mt-2">Leave blank to remove the currently assigned collector.</div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4">Save Assignment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const modal = document.getElementById('assignCollectorModal');
+    if (!modal) return;
+    modal.addEventListener('show.bs.modal', function (e) {
+        const btn = e.relatedTarget;
+        document.getElementById('assignCollectorFeeLabel').textContent = 'Fee: ' + btn.dataset.feeName;
+        const sel = document.getElementById('assignCollectorSelect');
+        sel.value = btn.dataset.currentCollector || '';
+    });
+})();
+</script>
 {% endblock %}

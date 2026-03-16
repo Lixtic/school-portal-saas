@@ -9,6 +9,7 @@ urlpatterns = [
     path('create-structure/', views.create_fee_structure, name='create_fee_structure'),
     path('structure/<int:structure_id>/edit/', views.edit_fee_structure, name='edit_fee_structure'),
     path('structure/<int:structure_id>/collected/', views.fee_collected_students, name='fee_collected_students'),
+    path('structure/<int:structure_id>/assign-collector/', views.assign_fee_collector, name='assign_fee_collector'),
     path('category/<int:head_id>/edit/', views.edit_fee_head, name='edit_fee_head'),
     path('student/<int:student_id>/', views.student_fees, name='student_fees'),
     path('payment/add/<int:fee_id>/', views.record_payment, name='record_payment'),

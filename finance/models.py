@@ -31,6 +31,14 @@ class FeeStructure(models.Model):
     term = models.CharField(max_length=20, choices=TERM_CHOICES)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     due_date = models.DateField(null=True, blank=True)
+    assigned_collector = models.ForeignKey(
+        'teachers.Teacher',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='fee_collection_tasks',
+        verbose_name="Assigned Collector",
+        help_text="Teacher responsible for collecting this fee",
+    )
 
     class Meta:
         unique_together = ('head', 'class_level', 'academic_year', 'term')

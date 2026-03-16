@@ -10,6 +10,7 @@ from django.conf import settings
 from .models import FeeHead, FeeStructure, StudentFee, Payment
 from .forms import FeeHeadForm, FeeStructureForm, PaymentForm
 from students.models import Student
+from teachers.models import Teacher
 from academics.models import Class, AcademicYear, SchoolInfo
 from announcements.models import Notification
 
@@ -46,7 +47,7 @@ def manage_fees(request):
 
     structures_qs = (
         FeeStructure.objects
-        .select_related('head', 'class_level', 'academic_year')
+        .select_related('head', 'class_level', 'academic_year', 'assigned_collector__user')
         .annotate(
             assigned_students=Count('studentfee', distinct=True),
             paid_students=Count('studentfee', filter=Q(studentfee__status='paid'), distinct=True),
@@ -59,6 +60,8 @@ def manage_fees(request):
         structures = structures_qs.order_by('-class_level__name', '-academic_year__start_date', 'head__name')
     else:
         structures = structures_qs.order_by('-id')
+
+    teachers = Teacher.objects.select_related('user').order_by('user__last_name', 'user__first_name')
 
     if request.method == 'POST':
         # Simple handler for creating a new Fee Head inline if needed
@@ -75,6 +78,7 @@ def manage_fees(request):
         'structures': structures,
         'head_form': head_form,
         'sort_by': sort_by,
+        'teachers': teachers,
     })
 
 
@@ -85,7 +89,7 @@ def fee_collected_students(request, structure_id):
         return redirect('dashboard')
 
     structure = get_object_or_404(
-        FeeStructure.objects.select_related('head', 'class_level', 'academic_year'),
+        FeeStructure.objects.select_related('head', 'class_level', 'academic_year', 'assigned_collector__user'),
         id=structure_id,
     )
 
@@ -112,14 +116,49 @@ def fee_collected_students(request, structure_id):
         .aggregate(total=Coalesce(Sum('amount_payable'), Decimal('0')))['total']
     )
 
+    teachers = Teacher.objects.select_related('user').order_by('user__last_name', 'user__first_name')
+
     context = {
         'structure': structure,
         'paid_fees': paid_fees,
         'paid_count': paid_fees.count(),
         'total_collected': total_collected,
         'total_payable': total_payable,
+        'teachers': teachers,
     }
     return render(request, 'finance/fee_collected_students.html', context)
+
+
+@login_required
+def assign_fee_collector(request, structure_id):
+    """Assign or remove a teacher as the fee collector for a fee structure."""
+    if request.user.user_type != 'admin':
+        return redirect('dashboard')
+
+    if request.method != 'POST':
+        return redirect('finance:manage_fees')
+
+    structure = get_object_or_404(FeeStructure, id=structure_id)
+    teacher_id = request.POST.get('teacher_id', '').strip()
+
+    if teacher_id:
+        teacher = get_object_or_404(Teacher, id=teacher_id)
+        structure.assigned_collector = teacher
+        structure.save(update_fields=['assigned_collector'])
+        messages.success(
+            request,
+            f"{teacher.user.get_full_name()} assigned as collector for {structure.head.name} – {structure.class_level}."
+        )
+    else:
+        structure.assigned_collector = None
+        structure.save(update_fields=['assigned_collector'])
+        messages.success(request, "Collector removed from this fee.")
+
+    next_url = request.POST.get('next') or request.META.get('HTTP_REFERER', '')
+    if next_url:
+        return redirect(next_url)
+    return redirect('finance:manage_fees')
+
 
 @login_required
 def create_fee_structure(request):

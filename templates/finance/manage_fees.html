@@ -49,6 +49,34 @@
         background: rgba(255,255,255,0.05);
         color: #d1d5db;
     }
+    .collector-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 0.2rem 0.55rem;
+        border-radius: 20px;
+        background: #ecfdf5;
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+        white-space: nowrap;
+    }
+    [data-bs-theme="dark"] .collector-badge {
+        background: rgba(16,185,129,0.12);
+        color: #6ee7b7;
+        border-color: rgba(16,185,129,0.25);
+    }
+    .collector-unset {
+        background: #f9fafb;
+        color: #9ca3af;
+        border-color: #e5e7eb;
+    }
+    [data-bs-theme="dark"] .collector-unset {
+        background: rgba(255,255,255,0.04);
+        color: #6b7280;
+        border-color: rgba(255,255,255,0.08);
+    }
 </style>
 {% endblock %}
 
@@ -78,14 +106,39 @@
             <h6 class="mb-3 fw-semibold">Active Fee Structures</h6>
             {% for fee in structures %}
             <div class="fee-card">
-                <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-start justify-content-between gap-2 flex-wrap">
                     <div class="flex-grow-1">
                         <div class="fw-semibold mb-1">{{ fee.head.name }}</div>
-                        <div class="small text-muted">
+                        <div class="small text-muted mb-2">
                             {{ fee.get_term_display }} · {{ fee.academic_year }} · Due: {{ fee.due_date|default:"-" }}
                         </div>
+                        <!-- Collector row -->
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            {% if fee.assigned_collector %}
+                            <span class="collector-badge">
+                                <i class="bi bi-person-check-fill"></i>
+                                {{ fee.assigned_collector.user.get_full_name }}
+                            </span>
+                            {% else %}
+                            <span class="collector-badge collector-unset">
+                                <i class="bi bi-person-dash"></i>
+                                No collector assigned
+                            </span>
+                            {% endif %}
+                            <button type="button"
+                                class="btn btn-link btn-sm p-0 text-decoration-none"
+                                style="font-size:0.75rem;"
+                                data-bs-toggle="modal"
+                                data-bs-target="#assignCollectorModal"
+                                data-fee-id="{{ fee.id }}"
+                                data-fee-name="{{ fee.head.name }} – {{ fee.class_level.name }}"
+                                data-current-collector="{{ fee.assigned_collector.id|default:'' }}"
+                                title="Assign collector teacher">
+                                <i class="bi bi-pencil-square"></i> Assign
+                            </button>
+                        </div>
                     </div>
-                    <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
                         <span class="badge-minimal">{{ fee.class_level.name }}</span>
                         <a href="{% url 'finance:fee_collected_students' fee.id %}" class="btn btn-outline-success btn-sm px-2 py-1" title="View paid students for this fee">
                             Collected ({{ fee.paid_students }}/{{ fee.assigned_students }})
@@ -129,7 +182,58 @@
                     {% endfor %}
                 </div>
             </div>
+</div>
+
+<!-- Assign Fee Collector Modal -->
+<div class="modal fade" id="assignCollectorModal" tabindex="-1" aria-labelledby="assignCollectorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-semibold" id="assignCollectorModalLabel">Assign Fee Collector</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" id="assignCollectorForm" action="">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <div class="modal-body">
+                    <p class="text-muted small mb-3" id="assignCollectorFeeLabel"></p>
+                    <label class="form-label fw-medium">Select Teacher</label>
+                    <select name="teacher_id" class="form-select" id="assignCollectorSelect">
+                        <option value="">— Remove collector —</option>
+                        {% for teacher in teachers %}
+                        <option value="{{ teacher.id }}">{{ teacher.user.get_full_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text mt-2">Leave blank to remove the currently assigned collector.</div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4">Save Assignment</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    const modal = document.getElementById('assignCollectorModal');
+    if (!modal) return;
+    // Build a URL template by inserting a dummy ID we can replace
+    const urlTemplate = "{% url 'finance:assign_fee_collector' structure_id=0 %}".replace('/0/', '/__FEE_ID__/');
+
+    modal.addEventListener('show.bs.modal', function (e) {
+        const btn = e.relatedTarget;
+        const feeId = btn.dataset.feeId;
+        const feeName = btn.dataset.feeName;
+        const currentCollector = btn.dataset.currentCollector;
+
+        document.getElementById('assignCollectorFeeLabel').textContent = 'Fee: ' + feeName;
+        document.getElementById('assignCollectorForm').action = urlTemplate.replace('__FEE_ID__', feeId);
+
+        const sel = document.getElementById('assignCollectorSelect');
+        sel.value = currentCollector || '';
+    });
+})();
+</script>
 {% endblock %}
