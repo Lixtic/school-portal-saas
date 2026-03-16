@@ -3,7 +3,8 @@ from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
-from django.db.models import Sum, Q
+from django.db.models import Sum, Q, Count, Max
+from django.db.models.functions import Coalesce
 from django.conf import settings
 from .models import FeeHead, FeeStructure, StudentFee, Payment
 from .forms import FeeHeadForm, FeeStructureForm, PaymentForm
@@ -40,7 +41,15 @@ def manage_fees(request):
         return redirect('dashboard')
     
     heads = FeeHead.objects.all()
-    structures = FeeStructure.objects.select_related('head', 'class_level', 'academic_year').order_by('-id')
+    structures = (
+        FeeStructure.objects
+        .select_related('head', 'class_level', 'academic_year')
+        .annotate(
+            assigned_students=Count('studentfee', distinct=True),
+            paid_students=Count('studentfee', filter=Q(studentfee__status='paid'), distinct=True),
+        )
+        .order_by('-id')
+    )
 
     if request.method == 'POST':
         # Simple handler for creating a new Fee Head inline if needed
@@ -57,6 +66,50 @@ def manage_fees(request):
         'structures': structures,
         'head_form': head_form
     })
+
+
+@login_required
+def fee_collected_students(request, structure_id):
+    """Display students who have fully paid a specific fee structure."""
+    if request.user.user_type != 'admin':
+        return redirect('dashboard')
+
+    structure = get_object_or_404(
+        FeeStructure.objects.select_related('head', 'class_level', 'academic_year'),
+        id=structure_id,
+    )
+
+    paid_fees = (
+        StudentFee.objects
+        .filter(fee_structure=structure, status='paid')
+        .select_related('student__user', 'student__current_class')
+        .annotate(
+            total_paid_amount=Coalesce(Sum('payments__amount'), 0),
+            latest_payment_date=Max('payments__date'),
+        )
+        .order_by('student__user__last_name', 'student__user__first_name')
+    )
+
+    total_collected = (
+        Payment.objects
+        .filter(student_fee__fee_structure=structure)
+        .aggregate(total=Coalesce(Sum('amount'), 0))['total']
+    )
+
+    total_payable = (
+        StudentFee.objects
+        .filter(fee_structure=structure)
+        .aggregate(total=Coalesce(Sum('amount_payable'), 0))['total']
+    )
+
+    context = {
+        'structure': structure,
+        'paid_fees': paid_fees,
+        'paid_count': paid_fees.count(),
+        'total_collected': total_collected,
+        'total_payable': total_payable,
+    }
+    return render(request, 'finance/fee_collected_students.html', context)
 
 @login_required
 def create_fee_structure(request):

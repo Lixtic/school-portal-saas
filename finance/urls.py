@@ -8,6 +8,7 @@ urlpatterns = [
     path('manage/', views.manage_fees, name='manage_fees'),
     path('create-structure/', views.create_fee_structure, name='create_fee_structure'),
     path('structure/<int:structure_id>/edit/', views.edit_fee_structure, name='edit_fee_structure'),
+    path('structure/<int:structure_id>/collected/', views.fee_collected_students, name='fee_collected_students'),
     path('category/<int:head_id>/edit/', views.edit_fee_head, name='edit_fee_head'),
     path('student/<int:student_id>/', views.student_fees, name='student_fees'),
     path('payment/add/<int:fee_id>/', views.record_payment, name='record_payment'),

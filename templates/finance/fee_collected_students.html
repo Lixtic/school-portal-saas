@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 py-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <h4 class="mb-1 fw-semibold">Collected Students</h4>
+            <div class="text-muted small">
+                {{ structure.head.name }} · {{ structure.get_term_display }} · {{ structure.class_level.name }} · {{ structure.academic_year }}
+            </div>
+        </div>
+        <a href="{% url 'finance:manage_fees' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Back to Fee Management
+        </a>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="text-muted small">Paid Students</div>
+                    <div class="h4 mb-0">{{ paid_count }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="text-muted small">Total Collected</div>
+                    <div class="h4 mb-0 text-success">₵ {{ total_collected|floatformat:2 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="text-muted small">Total Payable (Assigned)</div>
+                    <div class="h4 mb-0">₵ {{ total_payable|floatformat:2 }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Student</th>
+                        <th>Class</th>
+                        <th>Amount Payable</th>
+                        <th>Total Paid</th>
+                        <th>Latest Payment</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fee in paid_fees %}
+                    <tr>
+                        <td>{{ fee.student.user.get_full_name }}</td>
+                        <td>{{ fee.student.current_class.name|default:'-' }}</td>
+                        <td>₵ {{ fee.amount_payable|floatformat:2 }}</td>
+                        <td class="text-success fw-semibold">₵ {{ fee.total_paid_amount|floatformat:2 }}</td>
+                        <td>{{ fee.latest_payment_date|date:'M d, Y'|default:'-' }}</td>
+                        <td class="text-end">
+                            <a href="{% url 'finance:student_fees' fee.student.id %}" class="btn btn-outline-primary btn-sm">
+                                View Student Fees
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            No fully paid students found for this fee structure yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
