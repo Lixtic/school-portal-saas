@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
@@ -93,7 +94,7 @@ def fee_collected_students(request, structure_id):
         .filter(fee_structure=structure, status='paid')
         .select_related('student__user', 'student__current_class')
         .annotate(
-            total_paid_amount=Coalesce(Sum('payments__amount'), 0),
+            total_paid_amount=Coalesce(Sum('payments__amount'), Decimal('0')),
             latest_payment_date=Max('payments__date'),
         )
         .order_by('student__user__last_name', 'student__user__first_name')
@@ -102,13 +103,13 @@ def fee_collected_students(request, structure_id):
     total_collected = (
         Payment.objects
         .filter(student_fee__fee_structure=structure)
-        .aggregate(total=Coalesce(Sum('amount'), 0))['total']
+        .aggregate(total=Coalesce(Sum('amount'), Decimal('0')))['total']
     )
 
     total_payable = (
         StudentFee.objects
         .filter(fee_structure=structure)
-        .aggregate(total=Coalesce(Sum('amount_payable'), 0))['total']
+        .aggregate(total=Coalesce(Sum('amount_payable'), Decimal('0')))['total']
     )
 
     context = {
