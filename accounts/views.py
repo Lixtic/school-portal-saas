@@ -1050,11 +1050,11 @@ import os
 @login_required
 def session_debug(request):
     """
-    Lightweight session diagnostic endpoint for debugging on Vercel.
-    Staff-only, DEBUG-only.
+    Lightweight session diagnostic endpoint.
+    Staff-only (works in production too so Vercel sessions can be inspected).
     """
     from django.conf import settings as _settings
-    if not request.user.is_staff or not _settings.DEBUG:
+    if not request.user.is_authenticated or not request.user.is_staff:
         raise Http404
     from django.db import connection as db_conn
     import os as _os
@@ -1117,6 +1117,9 @@ def session_debug(request):
             'HTTP_HOST': request.META.get('HTTP_HOST'),
             'is_secure': request.is_secure(),
         },
+        'search_path_set_schemas': getattr(db_conn, 'search_path_set_schemas', 'N/A'),
+        'connection_schema_name': getattr(db_conn, 'schema_name', 'N/A'),
+        'session_save_every_request': getattr(_settings, 'SESSION_SAVE_EVERY_REQUEST', False),
         'static_root': static_root,
         'static_files_count': static_files_count,
         'vercel': _os.environ.get('VERCEL', 'not set'),

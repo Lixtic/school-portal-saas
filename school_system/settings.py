@@ -356,27 +356,27 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'School Admin <noreply
 # =====================
 # Use signed-cookie sessions to avoid PostgreSQL schema lookup issues.
 #
-# Root cause of "users can't stay signed in":
-#   django.contrib.sessions is in BOTH SHARED_APPS and TENANT_APPS, so
-#   every tenant schema gets its own django_session table.  Whenever the
-#   tenant schema is not matched (cold start, DB hiccup, a path that
-#   bypasses TenantPathMiddleware), Django falls back to the PUBLIC
-#   django_session table — the user's row doesn't exist there → logged out.
+# django.contrib.sessions is in BOTH SHARED_APPS and TENANT_APPS so
+# every tenant schema gets its own django_session table.
+# TenantPathMiddleware sets the correct schema BEFORE SessionMiddleware
+# runs, so each tenant's sessions live in their own schema's table.
 #
-# Database-backed sessions: stored in django_session table per tenant schema.
-# TenantPathMiddleware sets the correct schema before SessionMiddleware runs,
-# so each tenant's sessions live in their own schema's django_session table.
-# More reliable than signed_cookies: not affected by SECRET_KEY rotation,
-# no 4 KB cookie limit, no _auth_user_hash decode failures.
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+# A custom session engine (school_system.session_backend) wraps the
+# default DB backend and explicitly forces the correct tenant schema
+# before every load / save / delete / exists operation.  This makes
+# sessions immune to search_path glitches, PgBouncer connection pooling,
+# Vercel cold starts, and any other edge case that might briefly leave
+# the connection pointing at the wrong schema.
+SESSION_ENGINE = 'school_system.session_backend'
 
 # "Keep me logged in" persistent session = 30 days.
-# When the checkbox is NOT checked the login view calls set_expiry(0),
-# which makes the session expire when the browser tab closes.
 SESSION_COOKIE_AGE = 30 * 24 * 60 * 60  # 30 days in seconds
 
-# Avoid a DB write on every GET request. Sessions are only saved when modified.
-SESSION_SAVE_EVERY_REQUEST = False
+# Re-save the session on every request so the cookie max-age is refreshed
+# and the expire_date in the DB stays current.  Without this, a single
+# failed DB read (empty session) could overwrite the browser cookie with
+# a new empty session key, permanently logging the user out.
+SESSION_SAVE_EVERY_REQUEST = True
 
 # Cookie flags
 SESSION_COOKIE_HTTPONLY = True   # block JS access (XSS protection)

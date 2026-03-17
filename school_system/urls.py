@@ -83,10 +83,14 @@ urlpatterns = [
     path('i18n/', include('django.conf.urls.i18n')),  # Language switcher
 ]
 
+# Session diagnostic available in all environments (staff-only gate is in the view)
+urlpatterns += [
+    path('debug/session/', account_views.session_debug, name='session_debug'),
+]
+
 if settings.DEBUG:
     urlpatterns += [
         path('debug/status/', account_views.debug_status, name='debug_status'),
-        path('debug/session/', account_views.session_debug, name='session_debug'),
         path('debug/tenant-schema-health/', account_views.tenant_schema_health, name='tenant_schema_health'),
     ]
 

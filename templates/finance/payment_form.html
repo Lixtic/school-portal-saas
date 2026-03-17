@@ -21,7 +21,11 @@
                     
                     <div class="d-grid mt-4">
                         <button type="submit" class="btn btn-success btn-lg">Confirm Payment</button>
+                        {% if request.user.user_type == 'teacher' %}
+                        <a href="{% url 'teachers:fee_task_detail' fee.fee_structure_id %}" class="btn btn-link text-muted mt-2">Cancel</a>
+                        {% else %}
                         <a href="{% url 'finance:student_fees' fee.student.id %}" class="btn btn-link text-muted mt-2">Cancel</a>
+                        {% endif %}
                     </div>
                 </form>
             </div>
