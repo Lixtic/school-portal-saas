@@ -368,17 +368,13 @@ def login_view(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
         
-        remember_me = request.POST.get('remember_me')  # checkbox value
         user = authenticate(request, username=username, password=password)
         
         if user is not None:
             login(request, user)
-            if remember_me:
-                # Keep session alive for SESSION_COOKIE_AGE (30 days)
-                request.session.set_expiry(settings.SESSION_COOKIE_AGE)
-            else:
-                # Session expires when the browser is closed
-                request.session.set_expiry(0)
+            # Keep sessions persistent by default so users stay signed in
+            # after closing and reopening the browser/app.
+            request.session.set_expiry(settings.SESSION_COOKIE_AGE)
             dashboard_url = request.META.get('SCRIPT_NAME', '') + '/dashboard/'
             return redirect(dashboard_url)
         else:
