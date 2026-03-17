@@ -124,6 +124,13 @@
                             <label for="indicatorPrompt" class="form-label fw-semibold">Target Indicator (GES)</label>
                             <textarea id="indicatorPrompt" name="indicator_prompt" class="form-control" rows="2" placeholder="Paste the exact indicator the lesson should achieve...">{{ prefill_indicator|default:'' }}</textarea>
                             <small class="text-muted">GES Draft uses this indicator as the primary target, not only the general topic.</small>
+                            <div id="indicatorCodeOnlyWarning" class="alert alert-warning py-2 px-3 mt-1 mb-0 d-none" style="font-size:.8rem;">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                <strong>Code-only indicator detected.</strong>
+                                This looks like a GES curriculum code with no descriptive text (e.g. <code>B8.2.1.1.1</code>).
+                                The AI will try to resolve it automatically, but for best results
+                                <strong>re-extract your Scheme of Work</strong> to capture the full indicator statement.
+                            </div>
                             <div class="d-flex gap-2 align-items-center mt-2 flex-wrap">
                                 <select id="sowIndicatorSelect" class="form-select form-select-sm" style="max-width: 520px;" disabled>
                                     <option value="">Pull indicators from Scheme of Work...</option>
@@ -241,8 +248,31 @@
     const pullBtn = document.getElementById('pullSowIndicatorsBtn');
     const hintEl = document.getElementById('sowIndicatorHint');
     const syncEl = document.getElementById('sowIndicatorSync');
+    const codeOnlyWarning = document.getElementById('indicatorCodeOnlyWarning');
     let topicDebounceTimer = null;
     let latestRequestToken = 0;
+
+    // GES code-only detector: e.g. "B8.2.1.1.1" with no descriptive text after it
+    function isCodeOnly(value) {
+        return /^[A-Z]{1,3}\d{1,2}(\.\d+){2,5}\s*$/.test((value || '').trim());
+    }
+
+    function updateCodeOnlyWarning(value) {
+        if (!codeOnlyWarning) return;
+        if (isCodeOnly(value)) {
+            codeOnlyWarning.classList.remove('d-none');
+        } else {
+            codeOnlyWarning.classList.add('d-none');
+        }
+    }
+
+    if (indicatorEl) {
+        indicatorEl.addEventListener('input', function () {
+            updateCodeOnlyWarning(this.value);
+        });
+        // Check on page load (pre-filled from SOW link)
+        updateCodeOnlyWarning(indicatorEl.value);
+    }
 
     if (!subjectEl || !classEl || !topicEl || !selectEl || !pullBtn) return;
 
@@ -259,9 +289,11 @@
         const opt = document.createElement('option');
         opt.value = item.indicator || '';
         opt.dataset.topic = item.topic || '';
+        opt.dataset.codeOnly = item.code_only ? '1' : '0';
         const topicLabel = (item.topic || 'Untitled topic').trim();
         const indicatorLabel = (item.indicator || 'No indicator captured').trim();
-        opt.textContent = (isMatched ? '[Match] ' : '') + topicLabel + ' -> ' + indicatorLabel;
+        const codeTag = item.code_only ? ' ⚠ code only' : '';
+        opt.textContent = (isMatched ? '[Match] ' : '') + topicLabel + ' → ' + indicatorLabel + codeTag;
         selectEl.appendChild(opt);
     }
 
@@ -364,6 +396,7 @@
             const selected = this.options[this.selectedIndex];
             const t = selected && selected.dataset.topic ? selected.dataset.topic : '';
             if (hintEl) hintEl.textContent = 'Indicator selected from topic: ' + t;
+            updateCodeOnlyWarning(picked);
         }
     });
 

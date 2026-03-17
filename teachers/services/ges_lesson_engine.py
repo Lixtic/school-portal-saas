@@ -10,6 +10,9 @@ from academics.ai_tutor import _post_chat_completion, get_openai_chat_model
 
 logger = logging.getLogger(__name__)
 
+# Matches bare GES indicator codes like B8.2.1.1.1 with no descriptive text after them.
+_GES_CODE_RE = re.compile(r'^[A-Z]{1,3}\d{1,2}(?:\.\d+){2,5}\s*$')
+
 
 class GESLessonEngine:
     """
@@ -42,6 +45,20 @@ class GESLessonEngine:
             if start != -1 and end != -1 and end > start:
                 return json.loads(raw[start:end + 1])
         return {}
+
+    @staticmethod
+    def is_code_only(indicator: str) -> bool:
+        """Return True when the indicator string is just a GES code (e.g. 'B8.2.1.1.1') with no descriptive text."""
+        return bool(_GES_CODE_RE.match((indicator or '').strip()))
+
+    @staticmethod
+    def _indicator_display(indicator: str) -> str:
+        """Return a human-readable label; for code-only values append a clarifying note."""
+        if GESLessonEngine.is_code_only(indicator):
+            return (
+                f"{indicator.strip()} [GES curriculum code — AI will resolve this to the full standard]"
+            )
+        return indicator
 
     @staticmethod
     def _indicator_keywords(indicator: str):
@@ -156,16 +173,31 @@ class GESLessonEngine:
         if not api_key:
             return GESLessonEngine._fallback(topic, indicator, subject, grade_level, week_number)
 
+        # When the indicator is a bare GES code, instruct the AI to resolve it to the
+        # full performance indicator statement before planning the lesson.
+        code_only = GESLessonEngine.is_code_only(indicator)
+        indicator_instruction = (
+            f"Target Indicator Code: {indicator.strip()}\n"
+            "IMPORTANT: This is a Ghana GES curriculum code. "
+            "First, determine the full performance indicator statement "
+            "that this code represents in the Ghana curriculum. "
+            "Use ONLY the descriptive statement (not the numeric code) as the "
+            "learning indicator throughout objectives, activities, and assessments. "
+            "Do NOT write phrases like 'achieve indicator B8.x.x.x.x' — instead "
+            "write out exactly what learners should be able to do."
+        ) if code_only else f"Target Indicator (must be achieved): {indicator}"
+
         system_prompt = f"""You are a Ghana GES lesson planner.
 Generate a weekly lesson notes draft for:
 - Subject: {subject}
 - Class: {grade_level}
 - Topic/Sub-strand: {topic}
-- Target Indicator (must be achieved): {indicator}
+- {indicator_instruction}
 - Week Number: {week_number}
 
 The output must match a traditional GES weekly lesson-notes table style and be concise, practical, and classroom-ready.
 Every activity, assessment, and homework item must directly align to and measure the target indicator.
+IMPORTANT: Never reference indicator codes (like B8.2.1.1.1) in the lesson objectives or activities — always use full descriptive sentences that explain what learners will do or demonstrate.
 
 Return ONLY valid JSON with this exact schema:
 {{
@@ -197,11 +229,21 @@ Return ONLY valid JSON with this exact schema:
 
         try:
             alignment_mode = 'primary'
-            user_prompt = (
-                f"Create a complete weekly lesson notes draft for Week {week_number}. "
-                f"The lesson must achieve this indicator exactly: {indicator}. "
-                'Use clear teacher actions, learner actions, and assessment steps.'
-            )
+            if code_only:
+                user_prompt = (
+                    f"Create a complete weekly lesson notes draft for Week {week_number}. "
+                    f"The GES curriculum code is {indicator.strip()}. "
+                    "Resolve this code to its full Ghana curriculum performance indicator statement, "
+                    "then design the entire lesson to achieve that statement. "
+                    "Write objectives and activities using the descriptive statement only — "
+                    "do not use the numeric code as a learning objective."
+                )
+            else:
+                user_prompt = (
+                    f"Create a complete weekly lesson notes draft for Week {week_number}. "
+                    f"The lesson must achieve this indicator exactly: {indicator}. "
+                    'Use clear teacher actions, learner actions, and assessment steps.'
+                )
             payload = GESLessonEngine._build_payload(system_prompt, user_prompt)
 
             response = _post_chat_completion(payload, api_key)
@@ -212,13 +254,22 @@ Return ONLY valid JSON with this exact schema:
 
             # Auto-regenerate once if the draft is not strongly aligned to the target indicator.
             if not GESLessonEngine._is_indicator_aligned(parsed, indicator):
-                strict_user_prompt = (
-                    f"Regenerate this as a strict indicator-aligned weekly notes plan for Week {week_number}. "
-                    f"Indicator: {indicator}. "
-                    'REQUIRED: evaluation and homework must each include at least one observable action verb '
-                    '(e.g., explain, apply, solve, demonstrate) and explicitly assess the same indicator. '
-                    'Do not drift to generic topic-only objectives.'
-                )
+                if code_only:
+                    strict_user_prompt = (
+                        f"Regenerate this as a strict indicator-aligned weekly notes plan for Week {week_number}. "
+                        f"GES code: {indicator.strip()}. Resolve this code to its full Ghana curriculum statement first, "
+                        "then ensure evaluation and homework each include at least one observable action verb "
+                        "(e.g., explain, apply, solve, demonstrate). "
+                        "Never reference the numeric code in lesson objectives or activities."
+                    )
+                else:
+                    strict_user_prompt = (
+                        f"Regenerate this as a strict indicator-aligned weekly notes plan for Week {week_number}. "
+                        f"Indicator: {indicator}. "
+                        'REQUIRED: evaluation and homework must each include at least one observable action verb '
+                        '(e.g., explain, apply, solve, demonstrate) and explicitly assess the same indicator. '
+                        'Do not drift to generic topic-only objectives.'
+                    )
                 strict_payload = GESLessonEngine._build_payload(system_prompt, strict_user_prompt)
                 strict_response = _post_chat_completion(strict_payload, api_key)
                 strict_content = strict_response['choices'][0]['message']['content']
@@ -269,14 +320,21 @@ Return ONLY valid JSON with this exact schema:
             }
 
         section_hints = {
-            'objectives': 'Write concise content standard and indicator-focused lesson objectives.',
+            'objectives': 'Write concise content standard and indicator-focused lesson objectives. Never reference GES numeric codes — use descriptive statements only.',
             'teaching_materials': 'List practical resources and teaching/learning materials needed.',
             'introduction': 'Write Phase 1 starter activities linked directly to the indicator.',
             'presentation': 'Write Phase 2 main learning activities that teach the indicator.',
-            'evaluation': 'Write assessable checks and questions that explicitly measure the indicator.',
-            'homework': 'Write homework that directly reinforces and checks the same indicator.',
+            'evaluation': 'Write assessable checks and questions that explicitly measure the indicator with observable action verbs.',
+            'homework': 'Write homework that directly reinforces and checks the same indicator with observable action verbs.',
             'remarks': 'Write short teacher reflection prompts tied to indicator mastery evidence.',
         }
+
+        code_only = GESLessonEngine.is_code_only(indicator)
+        indicator_instruction = (
+            f"Target Indicator Code: {indicator.strip()} — resolve this Ghana GES code to its full "
+            "performance indicator statement and use ONLY the descriptive text (never the numeric code) "
+            "in the regenerated section."
+        ) if code_only else f"Target Indicator (must be achieved): {indicator}"
 
         system_prompt = f"""You are a Ghana GES lesson planner.
 Regenerate ONLY one section of a weekly lesson notes plan.
@@ -285,7 +343,7 @@ Context:
 - Subject: {subject}
 - Class: {grade_level}
 - Topic/Sub-strand: {topic}
-- Target Indicator (must be achieved): {indicator}
+- {indicator_instruction}
 - Week Number: {week_number}
 - Section to regenerate: {section}
 
@@ -294,6 +352,7 @@ Rules:
 - Keep the output concise and teacher-ready
 - Keep strict alignment to the target indicator
 - Do not include content for other sections
+- NEVER reference GES numeric indicator codes (e.g. B8.2.1.1.1) in the text — use descriptive sentences
 
 JSON schema:
 {{

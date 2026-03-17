@@ -3575,6 +3575,16 @@ def scheme_of_work_indicators_api(request):
 
     items = []
     seen = set()
+
+    # Import code-only detection from the GES engine
+    try:
+        from teachers.services.ges_lesson_engine import GESLessonEngine as _GESLE
+        _ges_code_only = _GESLE.is_code_only
+    except Exception:
+        import re as _re
+        _GES_CODE_ONLY_RE = _re.compile(r'^[A-Z]{1,3}\d{1,2}(?:\.\d+){2,5}\s*$')
+        _ges_code_only = lambda ind: bool(_GES_CODE_ONLY_RE.match((ind or '').strip()))
+
     for scheme in schemes:
         indicators = scheme.get_indicators()
         topics = scheme.get_topics()
@@ -3588,7 +3598,7 @@ def scheme_of_work_indicators_api(request):
             if key in seen:
                 continue
             seen.add(key)
-            items.append({'topic': t, 'indicator': indicator})
+            items.append({'topic': t, 'indicator': indicator, 'code_only': _ges_code_only(indicator)})
 
         # Include indicators whose topics are in the dict but absent in extracted_topics list
         for t_raw, ind_raw in indicators.items():
@@ -3600,7 +3610,7 @@ def scheme_of_work_indicators_api(request):
             if key in seen:
                 continue
             seen.add(key)
-            items.append({'topic': t, 'indicator': indicator})
+            items.append({'topic': t, 'indicator': indicator, 'code_only': _ges_code_only(indicator)})
 
     matched_indicator = ''
     matched_topic = ''
