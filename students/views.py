@@ -556,13 +556,17 @@ def mark_attendance(request):
     })
 
 
-@login_required
 def get_class_students(request, class_id):
+    """AJAX endpoint — returns JSON only (no HTML redirects)."""
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Session expired. Please reload the page and log in again.'}, status=401)
     if request.user.user_type not in ['admin', 'teacher']:
         return JsonResponse({'error': 'Forbidden'}, status=403)
 
     classes_qs = Class.objects.filter(academic_year__is_current=True)
-    class_obj = get_object_or_404(classes_qs, id=class_id)
+    class_obj = classes_qs.filter(id=class_id).first()
+    if not class_obj:
+        return JsonResponse({'error': 'Class not found in the current academic year.'}, status=404)
 
     if request.user.user_type == 'teacher':
         teacher_profile = Teacher.objects.filter(user=request.user).first()

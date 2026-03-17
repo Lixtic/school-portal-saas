@@ -346,17 +346,26 @@ if (loadButton) {
 
     fetch(`${urlPattern}?date=${dateVal}`)
         .then(response => {
-            if (!response.ok) throw new Error('Network response was not ok');
-            return response.json();
+            const ct = response.headers.get('content-type') || '';
+            if (!ct.includes('application/json')) {
+                // Server returned HTML (login redirect, 404 page, 500 page)
+                if (response.status === 401 || response.redirected) {
+                    throw new Error('Session expired. Please reload the page and log in again.');
+                }
+                throw new Error('Server returned an unexpected response (status ' + response.status + '). Please reload and try again.');
+            }
+            return response.json().then(data => { return {ok: response.ok, data}; });
         })
-        .then(students => {
+        .then(({ok, data}) => {
             document.getElementById('loadingAttendance').style.display = 'none';
             
-            if (students.error) {
-                if(window.showToast) showToast(students.error, 'danger');
-                else alert(students.error);
+            if (!ok || data.error) {
+                const msg = data.error || 'Unknown error';
+                if(window.showToast) showToast(msg, 'danger');
+                else alert(msg);
                 return;
             }
+            const students = data;
             
             const container = document.getElementById('studentCardsContainer');
             container.innerHTML = '';
