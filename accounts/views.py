@@ -365,6 +365,10 @@ def login_view(request):
         next_url = request.GET.get('next') or request.POST.get('next', '')
         if next_url:
             from django.utils.http import url_has_allowed_host_and_scheme
+            # Prepend SCRIPT_NAME (tenant prefix) if @login_required stripped it.
+            script_name = request.META.get('SCRIPT_NAME', '')
+            if script_name and next_url.startswith('/') and not next_url.startswith(script_name + '/'):
+                next_url = script_name + next_url
             if url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
                 return redirect(next_url)
         dashboard_url = request.META.get('SCRIPT_NAME', '') + '/dashboard/'
@@ -385,6 +389,12 @@ def login_view(request):
             next_url = request.POST.get('next') or request.GET.get('next', '')
             if next_url:
                 from django.utils.http import url_has_allowed_host_and_scheme
+                # If @login_required supplied a next URL without the tenant prefix
+                # (it uses path_info which strips SCRIPT_NAME), prepend the prefix
+                # so the redirect lands on the correct tenant-scoped page.
+                script_name = request.META.get('SCRIPT_NAME', '')
+                if script_name and next_url.startswith('/') and not next_url.startswith(script_name + '/'):
+                    next_url = script_name + next_url
                 if url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
                     return redirect(next_url)
             dashboard_url = request.META.get('SCRIPT_NAME', '') + '/dashboard/'

@@ -376,6 +376,9 @@ def record_payment(request, fee_id):
                 payment.recorded_by = request.user
                 payment.save()
                 messages.success(request, 'Payment recorded successfully.')
+                # Teachers return to their fee task detail page; admins go to student fees.
+                if request.user.user_type == 'teacher':
+                    return redirect('teachers:fee_task_detail', structure_id=fee.fee_structure_id)
                 return redirect('finance:student_fees', student_id=fee.student.id)
     else:
         form = PaymentForm(initial={'amount': fee.balance}, fee=fee)
