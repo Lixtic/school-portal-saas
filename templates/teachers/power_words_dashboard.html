@@ -2,6 +2,7 @@
 {% load static %}
 
 {% block title %}Power Words — Teacher Command Center{% endblock %}
+{% block body_class %}has-skeleton-loader skeleton-soft skeleton-delay-medium skeleton-timeout-long{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -349,22 +350,34 @@
 {% block extra_js %}
 <script>
 const PW_ACTION_URL = '{% url "teachers:power_words_action" %}';
-const CSRF_TOKEN    = '{{ csrf_token }}';
+
+function getCsrfToken() {
+  const m = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : '';
+}
 
 function pwAction(action, studentId, btn) {
     const original = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> …';
+  if (window.showLoader) window.showLoader('Sending action...');
 
     fetch(PW_ACTION_URL, {
         method: 'POST',
+    credentials: 'same-origin',
         headers: {
             'Content-Type':  'application/json',
-            'X-CSRFToken':   CSRF_TOKEN,
+      'X-CSRFToken':   getCsrfToken(),
         },
         body: JSON.stringify({ action: action, student_id: studentId }),
     })
-    .then(r => r.json())
+  .then(async r => {
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      throw new Error(data.error || data.message || ('Request failed (' + r.status + ')'));
+    }
+    return data;
+  })
     .then(data => {
         btn.innerHTML = original;
         btn.disabled = false;
@@ -379,6 +392,9 @@ function pwAction(action, studentId, btn) {
         btn.innerHTML = original;
         btn.disabled = false;
         showPwToast('danger', '❌ Network error: ' + err.message);
+    })
+    .finally(() => {
+      if (window.hideLoader) window.hideLoader();
     });
 }
 

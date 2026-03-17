@@ -675,9 +675,11 @@
         
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
+        if (window.showLoader) window.showLoader('Sending intervention...');
 
         fetch("{% url 'teachers:boost_intervention' %}", {
             method: 'POST',
+            credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrfToken
@@ -687,7 +689,13 @@
                 interventionText: currentInterventionText
             })
         })
-        .then(response => response.json())
+        .then(async response => {
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(data.message || ('Request failed (' + response.status + ')'));
+            }
+            return data;
+        })
         .then(data => {
             if (interventionModal) {
                 interventionModal.hide();
@@ -707,6 +715,7 @@
             // Reset button state
             btn.disabled = false;
             btn.innerHTML = originalText;
+            if (window.hideLoader) window.hideLoader();
         });
     }
     </script>
