@@ -1,6 +1,46 @@
 {% extends 'base.html' %}
 {% load academic_tags %}
 
+{% block extra_css %}
+<style>
+    /* ── Dark mode fixes ──────────────────────────────── */
+    [data-bs-theme="dark"] .card {
+        background: var(--surface-card, #1e293b);
+        border-color: rgba(255,255,255,0.07);
+    }
+    /* Stat card numbers */
+    [data-bs-theme="dark"] .card .fs-2 {
+        color: inherit;
+    }
+    /* Nav tabs: active tab should visually connect to the card below */
+    [data-bs-theme="dark"] .nav-tabs {
+        border-bottom-color: rgba(255,255,255,0.12);
+    }
+    [data-bs-theme="dark"] .nav-tabs .nav-link {
+        color: var(--text-muted, #94a3b8);
+    }
+    [data-bs-theme="dark"] .nav-tabs .nav-link.active {
+        background-color: var(--surface-card, #1e293b);
+        border-color: rgba(255,255,255,0.12) rgba(255,255,255,0.12) var(--surface-card, #1e293b);
+        color: var(--text-main, #f1f5f9);
+    }
+    [data-bs-theme="dark"] .nav-tabs .nav-link:hover:not(.active) {
+        border-color: rgba(255,255,255,0.06);
+        color: var(--text-main, #f1f5f9);
+    }
+    /* Progress bar track */
+    [data-bs-theme="dark"] .progress {
+        background-color: rgba(255,255,255,0.1);
+    }
+    /* thead bg-light override — ensure th text is readable */
+    [data-bs-theme="dark"] thead.bg-light th {
+        background-color: rgba(255,255,255,0.06);
+        color: var(--text-muted, #94a3b8);
+        border-bottom-color: rgba(255,255,255,0.1);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid px-3 px-md-4 py-3">
 
@@ -112,7 +152,7 @@
                                 </td>
                                 <td>
                                     {% if sf.status == 'partial' %}
-                                        <span class="badge bg-warning text-dark">Partial</span>
+                                        <span class="badge text-bg-warning">Partial</span>
                                     {% else %}
                                         <span class="badge bg-danger">Unpaid</span>
                                     {% endif %}
