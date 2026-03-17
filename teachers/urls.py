@@ -117,6 +117,8 @@ urlpatterns = [
     path('live/<str:code>/time/', views.log_slide_time, name='log_slide_time'),
     path('presentations/<int:pk>/export-pptx/', views.presentation_export_pptx, name='presentation_export_pptx'),
     path('presentations/bulk-action/', views.presentation_bulk_action, name='presentation_bulk_action'),
+    # Fee collection tasks
+    path('fee-tasks/', views.my_fee_tasks, name='my_fee_tasks'),
 ]
 
 

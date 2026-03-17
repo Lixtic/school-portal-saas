@@ -130,6 +130,46 @@ def fee_collected_students(request, structure_id):
 
 
 @login_required
+def fee_collected_students_csv(request, structure_id):
+    """Download a CSV of fully-paid students for a fee structure."""
+    import csv
+    if request.user.user_type != 'admin':
+        return redirect('dashboard')
+
+    structure = get_object_or_404(
+        FeeStructure.objects.select_related('head', 'class_level', 'academic_year'),
+        id=structure_id,
+    )
+
+    paid_fees = (
+        StudentFee.objects
+        .filter(fee_structure=structure, status='paid')
+        .select_related('student__user', 'student__current_class')
+        .annotate(
+            total_paid_amount=Coalesce(Sum('payments__amount'), Decimal('0')),
+            latest_payment_date=Max('payments__date'),
+        )
+        .order_by('student__user__last_name', 'student__user__first_name')
+    )
+
+    filename = f"paid_{structure.head.name}_{structure.class_level}_{structure.term}.csv".replace(' ', '_')
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    writer = csv.writer(response)
+    writer.writerow(['#', 'Student Name', 'Class', 'Amount Paid (GHS)', 'Last Payment Date', 'Status'])
+
+    for idx, sf in enumerate(paid_fees, start=1):
+        student_name = sf.student.user.get_full_name()
+        class_name = sf.student.current_class.name if sf.student.current_class else '-'
+        amount = sf.total_paid_amount
+        last_date = sf.latest_payment_date.strftime('%Y-%m-%d') if sf.latest_payment_date else '-'
+        writer.writerow([idx, student_name, class_name, amount, last_date, 'Paid'])
+
+    return response
+
+
+@login_required
 def assign_fee_collector(request, structure_id):
     """Assign or remove a teacher as the fee collector for a fee structure."""
     if request.user.user_type != 'admin':
@@ -149,6 +189,24 @@ def assign_fee_collector(request, structure_id):
             request,
             f"{teacher.user.get_full_name()} assigned as collector for {structure.head.name} – {structure.class_level}."
         )
+        # Notify the assigned teacher
+        task_url = f"/{request.tenant.schema_name}/teachers/fee-tasks/"
+        Notification.objects.create(
+            recipient=teacher.user,
+            message=f"You have been assigned to collect {structure.head.name} fees for {structure.class_level} ({structure.term} term).",
+            link=task_url,
+            alert_type='general',
+        )
+        try:
+            from announcements.views import send_push_notification
+            send_push_notification(
+                teacher.user,
+                "New Fee Collection Task",
+                f"You've been assigned: {structure.head.name} – {structure.class_level}",
+                url=task_url,
+            )
+        except Exception:
+            pass  # Push notification failure must not break the main flow
     else:
         structure.assigned_collector = None
         structure.save(update_fields=['assigned_collector'])

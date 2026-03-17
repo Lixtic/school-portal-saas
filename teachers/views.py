@@ -6168,3 +6168,44 @@ def presentation_bulk_action(request):
         return JsonResponse({'ok': True, 'count': count})
 
     return JsonResponse({'error': 'Invalid action'}, status=400)
+
+
+@login_required
+def my_fee_tasks(request):
+    """Teacher view: fee structures I am assigned to collect."""
+    if request.user.user_type != 'teacher':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    from finance.models import FeeStructure, StudentFee
+    from decimal import Decimal as _Decimal
+    from django.db.models import Count, Q, Sum
+    from django.db.models.functions import Coalesce
+
+    teacher = Teacher.objects.get(user=request.user)
+
+    structures = (
+        FeeStructure.objects
+        .filter(assigned_collector=teacher)
+        .select_related('head', 'class_level', 'academic_year')
+        .annotate(
+            total_students=Count('studentfee', distinct=True),
+            paid_students=Count(
+                'studentfee',
+                filter=Q(studentfee__status='paid'),
+                distinct=True,
+            ),
+            unpaid_students=Count(
+                'studentfee',
+                filter=Q(studentfee__status__in=['unpaid', 'partial']),
+                distinct=True,
+            ),
+            total_collected=Coalesce(
+                Sum('studentfee__payments__amount'),
+                _Decimal('0'),
+            ),
+        )
+        .order_by('-id')
+    )
+
+    return render(request, 'teachers/my_fee_tasks.html', {'structures': structures})
