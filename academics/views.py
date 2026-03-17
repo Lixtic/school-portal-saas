@@ -728,7 +728,8 @@ def admissions_assistant(request):
     # Basic IP-based rate limiting (20 requests per 60s window)
     from django.core.cache import cache
     ip = request.META.get('REMOTE_ADDR', 'unknown')
-    rate_key = f"chatbot_rate_{ip}"
+    schema = connection.tenant.schema_name
+    rate_key = f"{schema}:chatbot_rate:{ip}"
     hits = cache.get(rate_key, 0)
     if hits >= 20:
         return JsonResponse({'error': 'Too many requests. Please wait a moment.'}, status=429)
@@ -873,7 +874,8 @@ def copilot_assistant(request):
     if not request.user.is_authenticated:
         from django.core.cache import cache
         ip = request.META.get('REMOTE_ADDR', 'unknown')
-        rate_key = f"copilot_rate_{ip}"
+        schema = connection.tenant.schema_name
+        rate_key = f"{schema}:copilot_rate:{ip}"
         hits = cache.get(rate_key, 0)
         if hits >= 30:
             return JsonResponse({'error': 'Too many requests. Please wait a moment.'}, status=429)
@@ -3027,7 +3029,8 @@ def help_chat_api(request):
 
     # Rate limiting: 30 requests per minute per user
     from django.core.cache import cache
-    rate_key = f"help_chat_{request.user.pk}"
+    schema = connection.tenant.schema_name
+    rate_key = f"{schema}:help_chat:{request.user.pk}"
     hits = cache.get(rate_key, 0)
     if hits >= 30:
         return JsonResponse({'error': 'Too many requests. Please wait a moment.'}, status=429)

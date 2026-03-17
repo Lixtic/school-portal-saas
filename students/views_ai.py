@@ -11,6 +11,7 @@ from django.contrib import messages
 from django.conf import settings
 from django.core import signing
 from django.core.cache import cache
+from django.db import connection
 from django.utils import timezone as dj_timezone
 
 logger = logging.getLogger(__name__)
@@ -53,10 +54,11 @@ def _client_ip(request):
 
 
 def _rate_limit(request, scope, limit=30, window_seconds=60):
-    """Simple cache-backed limiter keyed by user + IP + scope."""
+    """Simple cache-backed limiter keyed by tenant + user + IP + scope."""
+    schema = connection.tenant.schema_name
     uid = getattr(request.user, 'id', None) or 'anon'
     ip = _client_ip(request)
-    key = f"rl:{scope}:{uid}:{ip}"
+    key = f"{schema}:rl:{scope}:{uid}:{ip}"
     added = cache.add(key, 1, timeout=window_seconds)
     if added:
         return False
@@ -77,11 +79,13 @@ def _build_voice_xp_token(user_id, session_id):
 
 
 def _voice_active_session_cache_key(user_id):
-    return f"voice_xp:active:{user_id}"
+    schema = connection.tenant.schema_name
+    return f"{schema}:voice_xp:active:{user_id}"
 
 
 def _voice_ended_session_cache_key(user_id, session_id):
-    return f"voice_xp:ended:{user_id}:{session_id}"
+    schema = connection.tenant.schema_name
+    return f"{schema}:voice_xp:ended:{user_id}:{session_id}"
 
 
 def _map_class_to_cognitive_stage(class_name):
@@ -1391,13 +1395,14 @@ def voice_award_xp(request):
         logger.warning('voice_xp_denied reason=session_not_found uid=%s sid=%s', request.user.id, session_id)
         return JsonResponse({'error': 'Voice session not found'}, status=404)
 
-    cooldown_key = f"voice_xp:last:{request.user.id}:{session_id}"
+    schema = connection.tenant.schema_name
+    cooldown_key = f"{schema}:voice_xp:last:{request.user.id}:{session_id}"
     if cache.get(cooldown_key):
         logger.info('voice_xp_denied reason=cooldown uid=%s sid=%s', request.user.id, session_id)
         return JsonResponse({'error': 'XP award cooldown active'}, status=429)
     cache.set(cooldown_key, 1, VOICE_XP_MIN_INTERVAL_SECONDS)
 
-    total_key = f"voice_xp:sum:{request.user.id}:{session_id}"
+    total_key = f"{schema}:voice_xp:sum:{request.user.id}:{session_id}"
     awarded_total = int(cache.get(total_key, 0) or 0)
     if awarded_total >= VOICE_XP_MAX_PER_SESSION:
         logger.info('voice_xp_denied reason=session_cap uid=%s sid=%s total=%s', request.user.id, session_id, awarded_total)
