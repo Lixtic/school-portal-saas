@@ -1120,6 +1120,14 @@ def session_debug(request):
         'search_path_set_schemas': getattr(db_conn, 'search_path_set_schemas', 'N/A'),
         'connection_schema_name': getattr(db_conn, 'schema_name', 'N/A'),
         'session_save_every_request': getattr(_settings, 'SESSION_SAVE_EVERY_REQUEST', False),
+        'secret_key_source': (
+            'SECRET_KEY env' if _os.environ.get('SECRET_KEY') else
+            'DJANGO_SECRET_KEY env' if _os.environ.get('DJANGO_SECRET_KEY') else
+            'SECRET_KEY_BASE env' if _os.environ.get('SECRET_KEY_BASE') else
+            'DEFAULT (insecure!)'
+        ),
+        'secret_key_prefix': _settings.SECRET_KEY[:8] + '...',
+        'session_cookie_size_bytes': len(request.COOKIES.get('sessionid', '')),
         'static_root': static_root,
         'static_files_count': static_files_count,
         'vercel': _os.environ.get('VERCEL', 'not set'),

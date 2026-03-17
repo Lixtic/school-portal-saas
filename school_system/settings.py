@@ -354,29 +354,32 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'School Admin <noreply
 # =====================
 # SESSION PERSISTENCE (critical for serverless / Vercel)
 # =====================
-# Use signed-cookie sessions to avoid PostgreSQL schema lookup issues.
+# Signed-cookie sessions: session data lives entirely in the browser
+# cookie (HMAC-signed, HttpOnly, not readable by JS).  Zero DB queries
+# for session load/save, which completely sidesteps the multi-tenant
+# search_path problem.
 #
-# django.contrib.sessions is in BOTH SHARED_APPS and TENANT_APPS so
-# every tenant schema gets its own django_session table.
-# TenantPathMiddleware sets the correct schema BEFORE SessionMiddleware
-# runs, so each tenant's sessions live in their own schema's table.
+# Why NOT database sessions on this stack:
+#   django.contrib.sessions is in BOTH SHARED_APPS and TENANT_APPS,
+#   so every schema has its own django_session table.  Neon uses
+#   PgBouncer in transaction-pooling mode, which can reassign the
+#   underlying PostgreSQL connection between the "SET search_path"
+#   and the "SELECT FROM django_session" — causing Django to read
+#   from the wrong schema, get an empty result, and silently log
+#   the user out.  Signed cookies avoid this entirely.
 #
-# A custom session engine (school_system.session_backend) wraps the
-# default DB backend and explicitly forces the correct tenant schema
-# before every load / save / delete / exists operation.  This makes
-# sessions immune to search_path glitches, PgBouncer connection pooling,
-# Vercel cold starts, and any other edge case that might briefly leave
-# the connection pointing at the wrong schema.
-SESSION_ENGINE = 'school_system.session_backend'
+# Requirements for signed_cookies to work reliably:
+#   1. SECRET_KEY must be identical on every Vercel instance
+#      (set it as a Vercel env var — never rely on the default)
+#   2. Session data must stay under ~4 KB (we use <1 KB typically)
+SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
+SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
 
 # "Keep me logged in" persistent session = 30 days.
 SESSION_COOKIE_AGE = 30 * 24 * 60 * 60  # 30 days in seconds
 
-# Re-save the session on every request so the cookie max-age is refreshed
-# and the expire_date in the DB stays current.  Without this, a single
-# failed DB read (empty session) could overwrite the browser cookie with
-# a new empty session key, permanently logging the user out.
-SESSION_SAVE_EVERY_REQUEST = True
+# No need for SESSION_SAVE_EVERY_REQUEST with signed cookies — the
+# cookie is always sent and re-signed on modification.
 
 # Cookie flags
 SESSION_COOKIE_HTTPONLY = True   # block JS access (XSS protection)
