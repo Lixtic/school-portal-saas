@@ -4,6 +4,7 @@ from django.http import Http404, HttpResponseRedirect
 from django.urls import set_urlconf, set_script_prefix
 from django_tenants.middleware.main import TenantMainMiddleware
 from tenants.models import School
+from urllib.parse import urlparse
 import logging
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,33 @@ class TenantPathMiddleware(TenantMainMiddleware):
         # 2. Inspect Path
         path_parts = request.path.strip('/').split('/')
         possible_schema = path_parts[0] if path_parts else None
+
+        # 2b. Recovery guard: if a tenant app path is hit without tenant prefix
+        # (e.g., /finance/), recover the tenant from same-origin referrer and redirect.
+        tenant_app_roots = {
+            'teachers', 'students', 'parents', 'homework', 'academics',
+            'announcements', 'communication', 'finance'
+        }
+        if possible_schema in tenant_app_roots and len(path_parts) >= 1:
+            ref = request.META.get('HTTP_REFERER', '')
+            try:
+                ref_path = urlparse(ref).path or ''
+                ref_first = ref_path.strip('/').split('/')[0] if ref_path else ''
+            except Exception:
+                ref_first = ''
+
+            if ref_first and ref_first not in tenant_app_roots:
+                if ref_first not in [
+                    'static', 'media', 'admin', 'accounts', 'signup', 'login', 'logout', 'debug',
+                    'favicon.ico', 'favicon.png', 'apple-touch-icon.png', 'apple-touch-icon-precomposed.png',
+                    'favicon.svg', 'robots.txt', 'sitemap.xml', 'dashboard', 'tenants', 'find-school',
+                    'sw.js', 'offline', 'public'
+                ]:
+                    ref_tenant = School.objects.filter(schema_name=ref_first, is_active=True).first()
+                    if ref_tenant:
+                        qs = request.META.get('QUERY_STRING', '')
+                        suffix = f"?{qs}" if qs else ''
+                        return HttpResponseRedirect(f"/{ref_first}{request.path}{suffix}")
 
         tenant = None
 
