@@ -6219,31 +6219,113 @@ def my_fee_tasks(request):
     from decimal import Decimal as _Decimal
     from django.db.models import Count, Q, Sum
     from django.db.models.functions import Coalesce
+    from django.db.utils import ProgrammingError, OperationalError
 
-    teacher = Teacher.objects.get(user=request.user)
-
-    structures = (
-        FeeStructure.objects
-        .filter(assigned_collector=teacher)
-        .select_related('head', 'class_level', 'academic_year')
-        .annotate(
-            total_students=Count('studentfee', distinct=True),
-            paid_students=Count(
-                'studentfee',
-                filter=Q(studentfee__status='paid'),
-                distinct=True,
-            ),
-            unpaid_students=Count(
-                'studentfee',
-                filter=Q(studentfee__status__in=['unpaid', 'partial']),
-                distinct=True,
-            ),
-            total_collected=Coalesce(
-                Sum('studentfee__payments__amount'),
-                _Decimal('0'),
-            ),
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+    except Teacher.DoesNotExist:
+        messages.error(request, 'Your teacher profile was not found. Please contact an administrator.')
+        return redirect('dashboard')
+    except (ProgrammingError, OperationalError):
+        messages.error(
+            request,
+            'Fee tasks are temporarily unavailable for this school because teacher tables are not ready yet. '
+            'Please ask your administrator to run tenant migrations.'
         )
-        .order_by('-id')
-    )
+        return redirect('dashboard')
+
+    try:
+        structures = (
+            FeeStructure.objects
+            .filter(assigned_collector=teacher)
+            .select_related('head', 'class_level', 'academic_year')
+            .annotate(
+                total_students=Count('studentfee', distinct=True),
+                paid_students=Count(
+                    'studentfee',
+                    filter=Q(studentfee__status='paid'),
+                    distinct=True,
+                ),
+                unpaid_students=Count(
+                    'studentfee',
+                    filter=Q(studentfee__status__in=['unpaid', 'partial']),
+                    distinct=True,
+                ),
+                total_collected=Coalesce(
+                    Sum('studentfee__payments__amount'),
+                    _Decimal('0'),
+                ),
+            )
+            .order_by('-id')
+        )
+    except (ProgrammingError, OperationalError):
+        messages.error(
+            request,
+            'Fee tasks are temporarily unavailable for this school because finance/teacher tables are not ready yet. '
+            'Please ask your administrator to run tenant migrations.'
+        )
+        return redirect('dashboard')
 
     return render(request, 'teachers/my_fee_tasks.html', {'structures': structures})
+
+
+@login_required
+def fee_task_detail(request, structure_id):
+    """Teacher view: students who have paid and those who owe for a specific fee structure."""
+    if request.user.user_type != 'teacher':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    from finance.models import FeeStructure, StudentFee
+    from decimal import Decimal as _Decimal
+    from django.db.models import Sum, Q
+    from django.db.models.functions import Coalesce
+    from django.db.utils import ProgrammingError, OperationalError
+    from django.shortcuts import get_object_or_404
+
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+    except Teacher.DoesNotExist:
+        messages.error(request, 'Your teacher profile was not found.')
+        return redirect('dashboard')
+    except (ProgrammingError, OperationalError):
+        messages.error(request, 'Fee data is temporarily unavailable. Ask your administrator to run tenant migrations.')
+        return redirect('dashboard')
+
+    structure = get_object_or_404(
+        FeeStructure.objects.select_related('head', 'class_level', 'academic_year', 'assigned_collector'),
+        id=structure_id,
+        assigned_collector=teacher,
+    )
+
+    try:
+        student_fees = (
+            StudentFee.objects
+            .filter(fee_structure=structure)
+            .select_related('student__user', 'student__current_class')
+            .prefetch_related('payments')
+            .annotate(
+                total_paid_amount=Coalesce(Sum('payments__amount'), _Decimal('0')),
+            )
+            .order_by('student__user__last_name', 'student__user__first_name')
+        )
+    except (ProgrammingError, OperationalError):
+        messages.error(request, 'Fee data is temporarily unavailable.')
+        return redirect('teachers:my_fee_tasks')
+
+    paid_fees = [sf for sf in student_fees if sf.status == 'paid']
+    owing_fees = [sf for sf in student_fees if sf.status in ('unpaid', 'partial')]
+
+    total_collected = sum(sf.total_paid_amount for sf in paid_fees)
+    total_outstanding = sum(sf.amount_payable - sf.total_paid_amount for sf in owing_fees)
+
+    return render(request, 'teachers/fee_task_detail.html', {
+        'structure': structure,
+        'paid_fees': paid_fees,
+        'owing_fees': owing_fees,
+        'total_collected': total_collected,
+        'total_outstanding': total_outstanding,
+        'paid_count': len(paid_fees),
+        'owing_count': len(owing_fees),
+        'total_count': len(list(student_fees)),
+    })

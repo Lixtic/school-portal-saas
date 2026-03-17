@@ -4,6 +4,14 @@ import datetime
 register = template.Library()
 
 @register.filter
+def subtract(value, arg):
+    """Subtract arg from value. Usage: {{ amount_payable|subtract:total_paid_amount }}"""
+    try:
+        return value - arg
+    except (TypeError, ValueError):
+        return ''
+
+@register.filter
 def get_item(dictionary, key):
     return dictionary.get(key)
 

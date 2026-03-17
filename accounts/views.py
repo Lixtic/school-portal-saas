@@ -361,6 +361,12 @@ def homepage(request):
 
 def login_view(request):
     if request.user.is_authenticated:
+        # If there's a safe next URL, go there; otherwise go to dashboard.
+        next_url = request.GET.get('next') or request.POST.get('next', '')
+        if next_url:
+            from django.utils.http import url_has_allowed_host_and_scheme
+            if url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+                return redirect(next_url)
         dashboard_url = request.META.get('SCRIPT_NAME', '') + '/dashboard/'
         return redirect(dashboard_url)
     
@@ -375,12 +381,19 @@ def login_view(request):
             # Keep sessions persistent by default so users stay signed in
             # after closing and reopening the browser/app.
             request.session.set_expiry(settings.SESSION_COOKIE_AGE)
+            # Respect the ?next= parameter so @login_required redirects work.
+            next_url = request.POST.get('next') or request.GET.get('next', '')
+            if next_url:
+                from django.utils.http import url_has_allowed_host_and_scheme
+                if url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+                    return redirect(next_url)
             dashboard_url = request.META.get('SCRIPT_NAME', '') + '/dashboard/'
             return redirect(dashboard_url)
         else:
             messages.error(request, 'Invalid credentials')
     
-    return render(request, 'accounts/login.html')
+    next_url = request.GET.get('next', '')
+    return render(request, 'accounts/login.html', {'next': next_url})
 
 
 def find_school(request):
@@ -463,9 +476,10 @@ def find_school(request):
     return JsonResponse({'results': results})
 
 
-@login_required
 def logout_view(request):
-    logout(request)
+    """Log the user out. Works for both GET and POST to avoid @login_required loop."""
+    if request.user.is_authenticated:
+        logout(request)
     # Build proper redirect URL with tenant prefix
     login_url = request.META.get('SCRIPT_NAME', '') + '/login/'
     return redirect(login_url)
@@ -1099,6 +1113,57 @@ def session_debug(request):
         'allowed_hosts': _settings.ALLOWED_HOSTS,
     }
     return JsonResponse(data, json_dumps_params={'indent': 2})
+
+
+@login_required
+def tenant_schema_health(request):
+    """
+    Check whether critical tenant tables exist in the CURRENT schema.
+    Staff-only to avoid exposing internal schema details.
+    """
+    if not request.user.is_staff:
+        raise Http404
+
+    required_tables = [
+        'accounts_user',
+        'teachers_teacher',
+        'students_student',
+        'finance_feestructure',
+        'finance_studentfee',
+        'finance_payment',
+        'academics_class',
+        'academics_subject',
+        'django_migrations',
+    ]
+
+    try:
+        with connection.cursor() as cursor:
+            existing_tables = set(connection.introspection.table_names(cursor))
+    except Exception as exc:
+        return JsonResponse(
+            {
+                'ok': False,
+                'error': str(exc),
+                'tenant_schema': getattr(getattr(request, 'tenant', None), 'schema_name', 'unknown'),
+            },
+            status=500,
+        )
+
+    missing = [t for t in required_tables if t not in existing_tables]
+
+    return JsonResponse(
+        {
+            'ok': len(missing) == 0,
+            'tenant_schema': getattr(getattr(request, 'tenant', None), 'schema_name', 'unknown'),
+            'required_tables': required_tables,
+            'missing_tables': missing,
+            'hint': (
+                'Run tenant migrations for this schema, e.g. '
+                'python manage.py migrate_schemas --schema_name=<tenant_schema>'
+            ) if missing else 'All critical tenant tables are present.',
+        },
+        json_dumps_params={'indent': 2},
+    )
 
 
 def env_health(request):

@@ -363,18 +363,20 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'School Admin <noreply
 #   bypasses TenantPathMiddleware), Django falls back to the PUBLIC
 #   django_session table — the user's row doesn't exist there → logged out.
 #
-# Signed-cookie sessions store the session payload **in the cookie itself**,
-# signed with SECRET_KEY.  No DB read/write is needed for sessions, so
-# schema context is completely irrelevant.
-#
-# Data stored per session is tiny (auth user-id + hash + two small
-# filter strings ≈ 300-400 bytes) — well within the 4 KB cookie limit.
-SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
+# Database-backed sessions: stored in django_session table per tenant schema.
+# TenantPathMiddleware sets the correct schema before SessionMiddleware runs,
+# so each tenant's sessions live in their own schema's django_session table.
+# More reliable than signed_cookies: not affected by SECRET_KEY rotation,
+# no 4 KB cookie limit, no _auth_user_hash decode failures.
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
 # "Keep me logged in" persistent session = 30 days.
 # When the checkbox is NOT checked the login view calls set_expiry(0),
 # which makes the session expire when the browser tab closes.
 SESSION_COOKIE_AGE = 30 * 24 * 60 * 60  # 30 days in seconds
+
+# Avoid a DB write on every GET request. Sessions are only saved when modified.
+SESSION_SAVE_EVERY_REQUEST = False
 
 # Cookie flags
 SESSION_COOKIE_HTTPONLY = True   # block JS access (XSS protection)
