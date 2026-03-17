@@ -300,17 +300,29 @@ def edit_fee_head(request, head_id):
 @login_required
 def student_fees(request, student_id):
     student = get_object_or_404(Student, id=student_id)
-    
-    # Permission check: Only Admin or Assigned Class Teacher
+
+    # Permission check: Admin, Assigned Class Teacher, or Assigned Fee Collector
     allowed = False
+    collectible_fee_ids = set()  # StudentFee IDs this user can record payment for
+
     if request.user.user_type == 'admin':
         allowed = True
     elif request.user.user_type == 'teacher':
-        if student.current_class and student.current_class.class_teacher and student.current_class.class_teacher.user == request.user:
+        teacher = Teacher.objects.get(user=request.user)
+        if (student.current_class and student.current_class.class_teacher and
+                student.current_class.class_teacher.user == request.user):
             allowed = True
-            
+        # Also allow if assigned as collector for any of this student's fee structures
+        collector_fees = StudentFee.objects.filter(
+            student=student,
+            fee_structure__assigned_collector=teacher,
+        ).values_list('id', flat=True)
+        if collector_fees.exists():
+            allowed = True
+            collectible_fee_ids = set(collector_fees)
+
     if not allowed:
-        messages.error(request, "Access Denied. Only Admins or Class Teachers can view fees.")
+        messages.error(request, "Access Denied. Only Admins or assigned teachers can view fees.")
         return redirect('dashboard')
 
     fees = (
@@ -325,33 +337,45 @@ def student_fees(request, student_id):
         processed_fees.append({
             'obj': fee,
             'paid': fee.total_paid,
-            'balance': fee.balance
+            'balance': fee.balance,
+            'can_collect': request.user.user_type == 'admin' or fee.id in collectible_fee_ids,
         })
 
     return render(request, 'finance/student_fees.html', {
         'student': student,
-        'fees': processed_fees
+        'fees': processed_fees,
     })
 
 @login_required
 def record_payment(request, fee_id):
-    if request.user.user_type != 'admin':
+    fee = get_object_or_404(StudentFee.objects.select_related(
+        'fee_structure__assigned_collector__user', 'student'
+    ), id=fee_id)
+
+    # Permission: admin, or the teacher assigned as collector for this fee structure
+    allowed = False
+    if request.user.user_type == 'admin':
+        allowed = True
+    elif request.user.user_type == 'teacher':
+        collector = fee.fee_structure.assigned_collector
+        if collector and collector.user == request.user:
+            allowed = True
+
+    if not allowed:
+        messages.error(request, 'Access denied. You are not the assigned collector for this fee.')
         return redirect('dashboard')
-        
-    fee = get_object_or_404(StudentFee, id=fee_id)
-    
+
     if request.method == 'POST':
         form = PaymentForm(request.POST, fee=fee)
         if form.is_valid():
             from django.db import transaction
             with transaction.atomic():
-                # Re-fetch inside the transaction to get the current balance
                 fee = StudentFee.objects.select_for_update().get(pk=fee.pk)
                 payment = form.save(commit=False)
                 payment.student_fee = fee
                 payment.recorded_by = request.user
                 payment.save()
-                messages.success(request, 'Payment recorded successfully')
+                messages.success(request, 'Payment recorded successfully.')
                 return redirect('finance:student_fees', student_id=fee.student.id)
     else:
         form = PaymentForm(initial={'amount': fee.balance}, fee=fee)
@@ -360,15 +384,22 @@ def record_payment(request, fee_id):
 
 @login_required
 def print_receipt(request, payment_id):
-    payment = get_object_or_404(Payment, id=payment_id)
+    payment = get_object_or_404(Payment.objects.select_related(
+        'student_fee__fee_structure__assigned_collector__user',
+        'student_fee__student__current_class__class_teacher__user',
+    ), id=payment_id)
     student = payment.student_fee.student
-    
-    # Permission check: Admin, Assigned Class Teacher, or Parent of the student
+
+    # Permission: Admin, Assigned Class Teacher, Assigned Collector, or Parent
     allowed = False
     if request.user.user_type == 'admin':
         allowed = True
     elif request.user.user_type == 'teacher':
-        if student.current_class and student.current_class.class_teacher and student.current_class.class_teacher.user == request.user:
+        if (student.current_class and student.current_class.class_teacher and
+                student.current_class.class_teacher.user == request.user):
+            allowed = True
+        collector = payment.student_fee.fee_structure.assigned_collector
+        if collector and collector.user == request.user:
             allowed = True
     elif request.user.user_type == 'parent':
         from parents.models import Parent

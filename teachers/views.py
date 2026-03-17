@@ -1392,21 +1392,46 @@ def search_students(request):
     if request.user.user_type != 'teacher':
         messages.error(request, 'Access denied')
         return redirect('dashboard')
-    
+
     query = request.GET.get('q', '').strip()
-    students = []
-    
+    class_filter = request.GET.get('class_id', '').strip()
+    gender_filter = request.GET.get('gender', '').strip()
+
+    teacher = Teacher.objects.get(user=request.user)
+
+    # Determine which fee structures this teacher is assigned to collect
+    from finance.models import FeeStructure as _FeeStructure
+    collector_structure_ids = set(
+        _FeeStructure.objects.filter(assigned_collector=teacher).values_list('id', flat=True)
+    )
+
+    students = Student.objects.select_related('user', 'current_class').distinct()
+
     if query:
-        students = Student.objects.filter(
-            Q(user__first_name__icontains=query) | 
+        students = students.filter(
+            Q(user__first_name__icontains=query) |
             Q(user__last_name__icontains=query) |
             Q(admission_number__icontains=query)
-        ).select_related('user', 'current_class').distinct()[:20]
-        
+        )
+    if class_filter:
+        students = students.filter(current_class__id=class_filter)
+    if gender_filter:
+        students = students.filter(gender=gender_filter)
+
+    students = students.order_by('user__last_name', 'user__first_name')[:50]
+
+    all_classes = Class.objects.filter(
+        academic_year__is_current=True
+    ).order_by('name')
+
     return render(request, 'teachers/search_results.html', {
         'query': query,
         'students': students,
-        'school_name': SchoolInfo.objects.first().name if SchoolInfo.objects.exists() else 'School'
+        'school_name': SchoolInfo.objects.first().name if SchoolInfo.objects.exists() else 'School',
+        'all_classes': all_classes,
+        'class_filter': class_filter,
+        'gender_filter': gender_filter,
+        'collector_structure_ids': collector_structure_ids,
     })
 
 
