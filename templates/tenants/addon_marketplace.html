@@ -29,6 +29,9 @@
         flex-wrap: wrap;
         gap: 1rem;
     }
+    [data-bs-theme="dark"] .marketplace-hero {
+        box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
     .hero-left h1 { font-size: 1.35rem; font-weight: 700; margin: 0; }
     .hero-left p  { margin: 0.25rem 0 0; opacity: 0.85; font-size: 0.85rem; }
     .hero-stats   { display: flex; gap: 0.75rem; flex-wrap: wrap; }
@@ -63,6 +66,7 @@
         flex: 1; min-width: 200px;
         border: 1px solid #e5e7eb; border-radius: 8px;
         padding: 0.4rem 0.75rem; font-size: 0.85rem;
+        background: white; color: #111827;
     }
     [data-bs-theme="dark"] .filter-bar input {
         background: rgba(255,255,255,0.05);
@@ -84,6 +88,10 @@
     }
     [data-bs-theme="dark"] .category-pill {
         background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1);
+        color: #cbd5e1;
+    }
+    [data-bs-theme="dark"] .category-pill:hover {
+        border-color: #818cf8; color: #a5b4fc;
     }
 
     /* Category colour map */
@@ -122,15 +130,20 @@
         box-shadow: 0 6px 20px rgba(0,0,0,0.08);
         border-color: var(--cat, #6366f1);
     }
+    [data-bs-theme="dark"] .addon-card:hover {
+        box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+        border-color: var(--cat, #818cf8);
+    }
     .addon-card.active { border-color: #10b981; background: linear-gradient(to right, #f0fdf4, white); }
     .addon-card.active::before { background: #10b981; }
     [data-bs-theme="dark"] .addon-card {
         background: var(--surface-white); border-color: rgba(255,255,255,0.08);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
     [data-bs-theme="dark"] .addon-card.active {
-        background: linear-gradient(to right, rgba(16,185,129,0.06), var(--surface-white));
+        background: linear-gradient(to right, rgba(16,185,129,0.08), var(--surface-white));
+        border-color: rgba(16,185,129,0.35);
     }
-    [data-bs-theme="dark"] .addon-card:hover { border-color: var(--cat, #6366f1); }
 
     /* Card top row */
     .addon-top {
@@ -158,6 +171,7 @@
     .addon-price-inline small {
         font-size: 0.62rem; font-weight: 500; color: #9ca3af;
     }
+    [data-bs-theme="dark"] .addon-price-inline small { color: #64748b; }
 
     /* Card body */
     .addon-body { padding: 0 0.85rem 0.5rem 1.15rem; flex: 1; }
@@ -207,6 +221,9 @@
         border: 1.5px solid #fca5a5; font-size: 0.73rem;
     }
     .addon-action.danger:hover { background: #fef2f2; }
+    [data-bs-theme="dark"] .addon-action.danger {
+        color: #f87171; border-color: rgba(248,113,113,0.3);
+    }
     [data-bs-theme="dark"] .addon-action.danger:hover { background: rgba(239,68,68,0.1); }
 
     .addon-status {
@@ -220,12 +237,16 @@
 
     /* Active badge */
     .badge-indicator {
-        position: absolute; top: 0.5rem; right: 0.5rem;
+        position: absolute; top: 0.45rem; right: 0.45rem;
         background: #10b981; color: white;
-        padding: 0.15rem 0.45rem; border-radius: 999px;
-        font-size: 0.58rem; font-weight: 700;
+        padding: 0.12rem 0.4rem; border-radius: 999px;
+        font-size: 0.55rem; font-weight: 700;
         display: flex; align-items: center; gap: 0.2rem;
         letter-spacing: 0.03em; z-index: 10;
+        line-height: 1;
+    }
+    .addon-card.active .addon-top {
+        padding-top: 1.6rem;
     }
 
     /* Empty state */
@@ -236,6 +257,9 @@
     }
     [data-bs-theme="dark"] .empty-state { background: var(--surface-white); }
     .empty-state i { font-size: 3rem; color: #d1d5db; margin-bottom: 1rem; }
+    .empty-state h3 { color: #111827; }
+    [data-bs-theme="dark"] .empty-state h3 { color: #e2e8f0; }
+    [data-bs-theme="dark"] .empty-state i { color: #475569; }
 
     /* Category sections */
     .category-section { margin-bottom: 1.75rem; }
@@ -265,6 +289,10 @@
     .viewing-notice {
         background: rgba(255,255,255,0.9); border-radius: 10px;
         padding: 0.5rem 1rem; font-size: 0.78rem; margin-top: 0.75rem;
+        color: #1e293b;
+    }
+    [data-bs-theme="dark"] .viewing-notice {
+        background: rgba(255,255,255,0.08); color: #cbd5e1;
     }
 
     /* Responsive */
@@ -351,7 +379,7 @@
 
                     {% if addon.is_purchased %}
                     <div class="badge-indicator">
-                        <i class="bi bi-check-circle-fill"></i> ACTIVE
+                        <i class="bi bi-check-circle-fill"></i>ACTIVE
                     </div>
                     {% endif %}
 
