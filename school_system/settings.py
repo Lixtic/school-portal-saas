@@ -176,6 +176,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'accounts.middleware.OnboardingAutoMarkMiddleware',
 ]
 
 ROOT_URLCONF = 'school_system.urls'
@@ -195,6 +196,7 @@ TEMPLATES = [
                 'announcements.context_processors.user_notifications',
                 'teachers.context_processors.teacher_context',
                 'tenants.context_processors.trial_status',
+                'accounts.context_processors.onboarding_context',
             ],
             'string_if_invalid': '',  # Return empty string instead of raising errors for undefined variables
         },

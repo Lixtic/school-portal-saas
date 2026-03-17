@@ -1431,3 +1431,53 @@ def school_analytics(request):
         'aura_top_xp': locals().get('aura_top_xp', []),
     }
     return render(request, 'accounts/school_analytics.html', context)
+
+
+# ─── Onboarding endpoints ────────────────────────────────────────────────────
+
+@login_required
+def onboarding_dismiss(request):
+    """Mark onboarding as dismissed (POST only). Widget will not appear again."""
+    if request.method == 'POST':
+        from accounts.models import OnboardingProgress
+        progress, _ = OnboardingProgress.objects.get_or_create(user=request.user)
+        progress.dismissed = True
+        progress.save()
+        request.session['onboarding_done'] = True
+        return JsonResponse({'ok': True})
+    return JsonResponse({'error': 'POST required'}, status=405)
+
+
+@login_required
+def onboarding_complete_step(request):
+    """Manually mark a specific step as completed (POST only).
+    Body: step_id=<str>
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    step_id = request.POST.get('step_id', '').strip()
+    if not step_id:
+        return JsonResponse({'error': 'step_id required'}, status=400)
+
+    from accounts.onboarding import ONBOARDING_STEPS
+    from accounts.models import OnboardingProgress
+
+    role_steps = ONBOARDING_STEPS.get(request.user.user_type, [])
+    valid_ids = {s['id'] for s in role_steps}
+
+    if step_id not in valid_ids:
+        return JsonResponse({'error': 'Invalid step_id'}, status=400)
+
+    progress, _ = OnboardingProgress.objects.get_or_create(user=request.user)
+    changed = progress.mark_step(step_id)
+
+    all_done = valid_ids.issubset(set(progress.steps_completed))
+    if all_done and not progress.completed_at:
+        from django.utils import timezone
+        progress.completed_at = timezone.now()
+
+    if changed or all_done:
+        progress.save()
+
+    return JsonResponse({'ok': True, 'all_done': all_done})
