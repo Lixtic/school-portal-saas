@@ -1424,14 +1424,17 @@ def search_students(request):
         academic_year__is_current=True
     ).order_by('name')
 
+    searched = bool(query or class_filter or gender_filter)
+
     return render(request, 'teachers/search_results.html', {
         'query': query,
-        'students': students,
+        'students': students if searched else [],
         'school_name': SchoolInfo.objects.first().name if SchoolInfo.objects.exists() else 'School',
         'all_classes': all_classes,
         'class_filter': class_filter,
         'gender_filter': gender_filter,
         'collector_structure_ids': collector_structure_ids,
+        'searched': searched,
     })
 
 

@@ -87,16 +87,26 @@
     <div class="card shadow-sm border-0">
         <div class="card-header d-flex align-items-center justify-content-between bg-transparent border-bottom py-2">
             <span class="fw-semibold">
-                {% if students %}
-                    {{ students|length }} result{{ students|length|pluralize }} 
-                    {% if query %}for "<em>{{ query }}</em>"{% endif %}
+                {% if not searched %}
+                    All Students
+                {% elif students %}
+                    {{ students|length }} result{{ students|length|pluralize }}{% if query %} for "<em>{{ query }}</em>"{% endif %}
                 {% else %}
                     No results
                 {% endif %}
             </span>
         </div>
         <div class="card-body p-0">
-            {% if students %}
+            {% if not searched %}
+                {# ── Prompt state: no criteria submitted yet ── #}
+                <div class="text-center py-5 px-3">
+                    <div class="mb-3" style="opacity:.35;">
+                        <i class="bi bi-person-lines-fill" style="font-size:3rem;"></i>
+                    </div>
+                    <h5 class="fw-semibold mb-1">Search for a student</h5>
+                    <p class="text-muted small mb-0">Enter a name or admission number, or filter by class / gender above.</p>
+                </div>
+            {% elif students %}
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">

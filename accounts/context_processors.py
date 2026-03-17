@@ -61,13 +61,18 @@ def onboarding_context(request):
         # Consume the "just marked" nudge set by the middleware
         just_marked = request.session.pop('onboarding_just_marked', None)
 
+        # Auto-open / intro tip fires exactly once (on the very first page view)
+        is_first_visit = not request.session.get('ob_intro_shown', False)
+        if is_first_visit:
+            request.session['ob_intro_shown'] = True
+
         return {
             'onboarding_steps': steps,
             'onboarding_done_count': done_count,
             'onboarding_total': total,
             'onboarding_pct': pct,
             'onboarding_just_marked': just_marked,
-            'onboarding_is_first_visit': done_count == 0,
+            'onboarding_is_first_visit': is_first_visit,
             'onboarding_all_done': all_done,
         }
 
