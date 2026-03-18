@@ -80,6 +80,76 @@
         .ges-header h4 { font-size: 1rem; }
     }
 
+    /* ── Dark-mode: GES Document Area ─────────────────────────── */
+    [data-bs-theme="dark"] .ges-doc-area {
+        background: var(--surface-card, #1e293b) !important;
+        color: var(--text-main, #f1f5f9) !important;
+    }
+    [data-bs-theme="dark"] .ges-table th {
+        background-color: rgba(255,255,255,.05);
+        color: #94a3b8;
+    }
+    [data-bs-theme="dark"] .ges-table td {
+        color: var(--text-main, #f1f5f9);
+    }
+    [data-bs-theme="dark"] .ges-table th,
+    [data-bs-theme="dark"] .ges-table td {
+        border-color: rgba(255,255,255,.1);
+    }
+    [data-bs-theme="dark"] .ges-table textarea {
+        color: var(--text-main, #e2e8f0) !important;
+        background: transparent !important;
+    }
+    [data-bs-theme="dark"] .ges-table textarea:focus {
+        background: rgba(255,255,255,.04) !important;
+    }
+    [data-bs-theme="dark"] .ges-table textarea::placeholder {
+        color: #64748b;
+    }
+    [data-bs-theme="dark"] .ges-header {
+        color: var(--text-main, #f1f5f9);
+    }
+    [data-bs-theme="dark"] .ges-doc-area .border-top.border-dark {
+        border-color: rgba(255,255,255,.15) !important;
+    }
+    [data-bs-theme="dark"] .ges-doc-area .border-top.border-dark strong {
+        color: #94a3b8;
+    }
+    [data-bs-theme="dark"] .lp-signature {
+        color: #94a3b8 !important;
+    }
+    /* Save bar */
+    [data-bs-theme="dark"] #saveBar {
+        background: var(--surface-card, #1e293b) !important;
+        border-color: rgba(255,255,255,.1) !important;
+    }
+    [data-bs-theme="dark"] #saveBar .fw-bold {
+        color: var(--text-main, #f1f5f9) !important;
+    }
+    /* Document card */
+    [data-bs-theme="dark"] #printableArea {
+        border-color: rgba(255,255,255,.1) !important;
+    }
+    /* Header dropdown */
+    [data-bs-theme="dark"] .lp-header .dropdown-menu {
+        background: var(--surface-card, #1e293b) !important;
+        border-color: rgba(255,255,255,.1) !important;
+    }
+    [data-bs-theme="dark"] .lp-header .dropdown-item {
+        color: #cbd5e1 !important;
+    }
+    [data-bs-theme="dark"] .lp-header .dropdown-item:hover {
+        background: rgba(255,255,255,.06) !important;
+        color: #f1f5f9 !important;
+    }
+    [data-bs-theme="dark"] .lp-header .dropdown-header {
+        color: #64748b !important;
+    }
+    /* Footer muted text */
+    [data-bs-theme="dark"] .text-muted.small.print-hide {
+        color: #64748b !important;
+    }
+
     /* ── Print override: force black ink on white ─────────────── */
     @media print {
         .ges-table { color: #000 !important; }
@@ -573,7 +643,7 @@
                 <input type="hidden" name="topic" value="{{ lesson_plan.topic }}">
 
                 <div class="card border rounded-0 shadow-sm" id="printableArea">
-                    <div class="card-body p-4 p-md-5 bg-white text-black">
+                    <div class="card-body p-4 p-md-5 ges-doc-area" style="background:#fff;color:#000;">
                         
                         <div class="ges-header">
                             <h4>{{ lesson_plan.school_class.name }}</h4>
@@ -659,7 +729,7 @@
                             </table>
                         </div>
 
-                        <div class="mt-4 pt-4 d-flex justify-content-between flex-wrap gap-4" style="font-family: 'Times New Roman', serif;">
+                        <div class="mt-4 pt-4 d-flex justify-content-between flex-wrap gap-4 lp-signature" style="font-family: 'Times New Roman', serif;">
                             <div>
                                 <p class="mb-0">Teacher's Signature: ______________________</p>
                             </div>
@@ -671,8 +741,8 @@
                     </div>
                 </div>
 
-                <div class="text-center mt-4 print-hide fixed-bottom bg-white p-3 border-top shadow-lg d-none" id="saveBar">
-                    <span class="me-3 fw-bold text-dark">You have unsaved changes</span>
+                <div class="text-center mt-4 print-hide fixed-bottom p-3 border-top shadow-lg d-none" id="saveBar" style="background:#fff;">
+                    <span class="me-3 fw-bold" style="color:#1e293b;">You have unsaved changes</span>
                     <button type="submit" class="btn btn-success px-4 rounded-pill">
                         <i class="bi bi-check-circle me-2"></i>Save Changes
                     </button>
