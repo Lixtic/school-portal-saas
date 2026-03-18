@@ -706,10 +706,13 @@ Generate a complete teaching slide deck for {grade_level} {subject} on the topic
 Return a JSON object with EXACTLY this structure:
 {{
   "slides": [
-    {{"title": "...", "bullets": ["...", "..."], "notes": "..."}}
+    {{"title": "...", "bullets": ["...", "..."], "notes": "...", "emoji": "..."}}
   ],
   "activities": ["...", "..."]
 }}
+
+Each slide MUST include an "emoji" field — a single emoji character that visually represents the slide content.
+Examples: 🎯 for objectives, 📖 for definitions, 🔬 for experiments, 🧮 for maths, ❓ for questions, ✅ for summaries.
 
 ═══════════════════════════════════════════════════════
 SLIDE STRUCTURE — 8 SLIDES (MANDATORY)
@@ -853,10 +856,12 @@ CONTENT QUALITY RULES
             "Return a JSON object with EXACTLY this structure:\n"
             "{\n"
             '  "slides": [\n'
-            '    {"title": "...", "bullets": ["...", "..."], "notes": "..."}\n'
+            '    {"title": "...", "bullets": ["...", "..."], "notes": "...", "emoji": "..."}\n'
             "  ],\n"
             '  "activities": ["Activity 1", "Activity 2"]\n'
             "}\n\n"
+            "Each slide MUST include an \"emoji\" field — a single emoji representing the slide content.\n"
+            "Examples: 🎯 for goals, 📖 for definitions, 🔬 for experiments, ❓ for questions, ✅ for summaries.\n\n"
             "SLIDE STRUCTURE (8 slides):\n"
             "- Slide 1: Title & overview — introduce the topic, state what students will learn\n"
             "- Slide 2: Key Terms & Definitions — 3-4 essential terms with clear definitions\n"
@@ -949,10 +954,12 @@ CONTENT QUALITY RULES
             "Return JSON with EXACT structure:\n"
             "{\n"
             "  \"slides\": [\n"
-            "    {\"title\": \"...\", \"bullets\": [\"...\"], \"notes\": \"...\"}\n"
+            "    {\"title\": \"...\", \"bullets\": [\"...\"], \"notes\": \"...\", \"emoji\": \"...\"}\n"
             "  ],\n"
             "  \"activities\": [\"...\"]\n"
             "}\n\n"
+            "Each slide MUST include an \"emoji\" field — a single emoji representing the slide content.\n"
+            "Examples: 🎯 for goals, 📖 for definitions, 🔬 for experiments, ❓ for questions, ✅ for summaries.\n\n"
             "═══════════════════════════════════════════════════════\n"
             "SLIDE SEQUENCE — 8 TO 9 SLIDES\n"
             "═══════════════════════════════════════════════════════\n\n"
@@ -1422,10 +1429,22 @@ CONTENT QUALITY RULES
             if not notes:
                 notes = f"Explain {title.lower()} and connect it to the lesson objective."
 
+            # Extract or auto-assign emoji
+            emoji = ''
+            if isinstance(slide, dict):
+                emoji = str(slide.get('emoji') or '').strip()
+            if not emoji:
+                _EMOJI_MAP = {
+                    0: '🎯', 1: '📖', 2: '💡', 3: '📝', 4: '🌍',
+                    5: '🔍', 6: '❓', 7: '📋', 8: '✅', 9: '🎓',
+                }
+                emoji = _EMOJI_MAP.get(idx - 1, '📌')
+
             normalized.append({
                 "title": title,
                 "bullets": bullets,
                 "notes": notes,
+                "emoji": emoji,
             })
 
         return normalized[:10]
@@ -1451,6 +1470,7 @@ CONTENT QUALITY RULES
                     "Let's start with what you already know!",
                 ],
                 "notes": f"Set context for {grade_level} learners. Ask: 'Who can tell me one thing about {topic}?'",
+                "emoji": "\ud83c\udfaf",
             },
             {
                 "title": "Key Terms & Definitions",
@@ -1460,6 +1480,7 @@ CONTENT QUALITY RULES
                     f"Term 3 — a supporting concept for understanding {topic}",
                 ],
                 "notes": "Write these terms on the board. Have students copy them into their notebooks.",
+                "emoji": "\ud83d\udcd6",
             },
             {
                 "title": f"Understanding {topic}",
@@ -1469,6 +1490,7 @@ CONTENT QUALITY RULES
                     "Connect the idea to something students already know",
                 ],
                 "notes": "Use an analogy from everyday life to explain the concept. Model thinking aloud.",
+                "emoji": "\ud83d\udca1",
             },
             {
                 "title": "Worked Example",
@@ -1478,6 +1500,7 @@ CONTENT QUALITY RULES
                     "Step 3: Check our answer and explain our reasoning",
                 ],
                 "notes": "Walk through each step slowly. Ask students to predict the next step before showing it.",
+                "emoji": "\ud83d\udcdd",
             },
             {
                 "title": "Real-World Application",
@@ -1487,6 +1510,7 @@ CONTENT QUALITY RULES
                     "Why this matters beyond the classroom",
                 ],
                 "notes": "Use a local Ghanaian context. Ask: 'Where have you seen this in your community?'",
+                "emoji": "\ud83c\udf0d",
             },
             {
                 "title": "Check Your Understanding",
@@ -1496,6 +1520,7 @@ CONTENT QUALITY RULES
                     "Q3: Explain in your own words why this concept matters",
                 ],
                 "notes": "Give students 5 minutes to attempt. Walk around and check work.",
+                "emoji": "\u2753",
             },
             {
                 "title": "Sample Study Notes",
@@ -1506,6 +1531,7 @@ CONTENT QUALITY RULES
                     "Note one common mistake to avoid",
                 ],
                 "notes": "Model the note-taking format on the board. Have students copy into their notebooks.",
+                "emoji": "\ud83d\udccb",
             },
             {
                 "title": "Key Takeaways",
@@ -1515,6 +1541,7 @@ CONTENT QUALITY RULES
                     "Preview: next lesson we will build on this with more examples",
                 ],
                 "notes": "Use exit ticket responses to plan follow-up interventions.",
+                "emoji": "\u2705",
             },
         ]
 

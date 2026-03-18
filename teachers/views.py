@@ -5049,6 +5049,7 @@ def presentation_api(request):
                     title=s.get('title', ''),
                     content=content,
                     speaker_notes=s.get('notes', ''),
+                    emoji=s.get('emoji', ''),
                 )
                 created.append({
                     'slide_id':      slide.pk,
@@ -5161,6 +5162,7 @@ def presentation_api(request):
                     presentation=deck, order=i, layout=layout,
                     title=s.get('title', ''), content=content,
                     speaker_notes=s.get('notes', ''),
+                    emoji=s.get('emoji', ''),
                 )
                 created.append({
                     'slide_id': slide.pk, 'order': slide.order, 'layout': slide.layout,
@@ -5423,6 +5425,7 @@ def presentation_generate_from_doc(request):
                 title=s.get('title', ''),
                 content=content,
                 speaker_notes=s.get('notes', ''),
+                emoji=s.get('emoji', ''),
             )
             created.append({
                 'slide_id':      slide.pk,
@@ -5536,6 +5539,7 @@ def presentation_from_youtube(request):
                 presentation=deck, order=i, layout=layout,
                 title=s.get('title', ''), content=content,
                 speaker_notes=s.get('notes', ''),
+                emoji=s.get('emoji', ''),
             )
             created.append({
                 'slide_id':      slide.pk,

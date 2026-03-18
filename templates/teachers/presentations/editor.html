@@ -752,8 +752,13 @@ html, body { height: 100%; margin: 0; }
         <button class="gm-tb-drop-item" onclick="closeTbDrops();openEdShareModal()"><i class="fas fa-qrcode"></i> Share &amp; QR</button>
         <div class="gm-tb-drop-sep"></div>
         <button class="gm-tb-drop-item" onclick="closeTbDrops();toggleEditorFS()"><i class="fas fa-expand" id="edFsIcon"></i> <span id="edFsLabel">Fullscreen</span></button>
+        <div class="gm-tb-drop-sep"></div>
+        <button class="gm-tb-drop-item" onclick="closeTbDrops();openKbdHelp()"><i class="fas fa-keyboard"></i> Keyboard Shortcuts</button>
       </div>
     </div>
+    <button class="gm-tb-drop-btn" id="undoAiBtn" onclick="undoAIGeneration()" title="Undo last AI generation (Ctrl+Z)" style="display:none;color:#fbbf24;">
+      <i class="fas fa-undo"></i>
+    </button>
     <a href="{% url 'teachers:presentation_present' deck.pk %}" target="_blank" class="gm-present-btn">
       <i class="fas fa-play"></i> Present
     </a>
@@ -1063,6 +1068,28 @@ html, body { height: 100%; margin: 0; }
     <div class="gm-tpl-grid" id="tplGrid"></div>
     <div class="gm-modal-actions" style="margin-top:.9rem;">
       <button class="gm-modal-cancel" onclick="document.getElementById('templatesModal').classList.remove('open')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Keyboard Shortcuts Help Modal -->
+<div class="gm-modal-overlay" id="kbdHelpModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="gm-modal" onclick="event.stopPropagation()" style="max-width:420px;">
+    <h3><i class="fas fa-keyboard" style="margin-right:.4rem;color:#a78bfa;"></i> Keyboard Shortcuts</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.3rem .8rem;margin-top:.8rem;">
+      <div style="display:flex;align-items:center;gap:.4rem;padding:.35rem 0;"><kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">←</kbd><kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">→</kbd><span style="color:#94a3b8;font-size:.78rem;">Navigate slides</span></div>
+      <div style="display:flex;align-items:center;gap:.4rem;padding:.35rem 0;"><kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">Ctrl</kbd>+<kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">N</kbd><span style="color:#94a3b8;font-size:.78rem;">New slide</span></div>
+      <div style="display:flex;align-items:center;gap:.4rem;padding:.35rem 0;"><kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">Ctrl</kbd>+<kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">D</kbd><span style="color:#94a3b8;font-size:.78rem;">Duplicate slide</span></div>
+      <div style="display:flex;align-items:center;gap:.4rem;padding:.35rem 0;"><kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">Ctrl</kbd>+<kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">↑</kbd><kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">↓</kbd><span style="color:#94a3b8;font-size:.78rem;">Move slide</span></div>
+      <div style="display:flex;align-items:center;gap:.4rem;padding:.35rem 0;"><kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">Delete</kbd><span style="color:#94a3b8;font-size:.78rem;">Delete slide</span></div>
+      <div style="display:flex;align-items:center;gap:.4rem;padding:.35rem 0;"><kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">Ctrl</kbd>+<kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">Z</kbd><span style="color:#94a3b8;font-size:.78rem;">Undo AI generation</span></div>
+      <div style="display:flex;align-items:center;gap:.4rem;padding:.35rem 0;"><kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">F5</kbd><span style="color:#94a3b8;font-size:.78rem;">Present slideshow</span></div>
+      <div style="display:flex;align-items:center;gap:.4rem;padding:.35rem 0;"><kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">Ctrl</kbd>+<kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">E</kbd><span style="color:#94a3b8;font-size:.78rem;">Focus slide title</span></div>
+      <div style="display:flex;align-items:center;gap:.4rem;padding:.35rem 0;"><kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">?</kbd><span style="color:#94a3b8;font-size:.78rem;">Show this help</span></div>
+      <div style="display:flex;align-items:center;gap:.4rem;padding:.35rem 0;"><kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">Esc</kbd><span style="color:#94a3b8;font-size:.78rem;">Close modal</span></div>
+    </div>
+    <div class="gm-modal-actions" style="margin-top:.9rem;">
+      <button class="gm-modal-cancel" onclick="document.getElementById('kbdHelpModal').classList.remove('open')">Close</button>
     </div>
   </div>
 </div>
@@ -1533,6 +1560,7 @@ function runLessonPlanGenerate() {
   var sel = document.getElementById('planSelect');
   var planId = sel.value;
   if (!planId || planId === '') { alert('Please select a lesson plan from the list.'); return; }
+  snapshotSlides();
   var btn = document.getElementById('aiGoBtn');
   btn.disabled = true;
   btn.innerHTML = '<div class="gm-spinner"></div> Building from plan\u2026';
@@ -1568,6 +1596,7 @@ function runDocGenerate() {
     alert('Please select a .pdf or .docx file first.');
     return;
   }
+  snapshotSlides();
   var btn = document.getElementById('aiGoBtn');
   btn.disabled = true;
   btn.innerHTML = '<div class="gm-spinner"></div> Reading document\u2026';
@@ -1612,6 +1641,7 @@ function runDocGenerate() {
 function runAIGenerate() {
   var topic = document.getElementById('aiTopic').value.trim();
   if (!topic) { document.getElementById('aiTopic').focus(); return; }
+  snapshotSlides();
   var btn = document.getElementById('aiGoBtn');
   btn.disabled = true;
   btn.innerHTML = '<div class="gm-spinner"></div> Generating…';
@@ -1653,6 +1683,7 @@ function runAIGenerate() {
 function runYouTubeGenerate() {
   var url = document.getElementById('aiYoutubeUrl').value.trim();
   if (!url) { document.getElementById('aiYoutubeUrl').focus(); return; }
+  snapshotSlides();
   var btn = document.getElementById('aiGoBtn');
   btn.disabled = true;
   btn.innerHTML = '<div class="gm-spinner"></div> Fetching transcript\u2026';
@@ -2585,10 +2616,108 @@ function setupDrag(el) {
   });
 }
 
+// ── Undo AI Generation ───────────────────────────────────────────────
+var _undoSnapshot = null;
+
+function snapshotSlides() {
+  _undoSnapshot = {
+    title: document.getElementById('deckTitleInput').value,
+    slides: slides.map(function(s) {
+      return { id: s.id, order: s.order, layout: s.layout, title: s.title,
+               content: s.content, emoji: s.emoji || '', speaker_notes: s.speaker_notes || '',
+               image_url: s.image_url || '' };
+    }),
+  };
+  document.getElementById('undoAiBtn').style.display = 'inline-flex';
+}
+
+function undoAIGeneration() {
+  if (!_undoSnapshot || !_undoSnapshot.slides.length) {
+    alert('Nothing to undo.'); return;
+  }
+  if (!confirm('Restore slides from before the last AI generation?')) return;
+  // Restore via API: delete current, recreate old slides
+  var ops = _undoSnapshot.slides.map(function(s) {
+    return api({ action: 'add_slide', layout: s.layout, title: s.title });
+  });
+  // Simpler: use a full wipe + re-add flow
+  // First delete all current slides one by one, then add old ones back
+  var oldSlides = _undoSnapshot.slides;
+  var oldTitle  = _undoSnapshot.title;
+
+  // Step 1: delete all current slides
+  var deletePromises = slides.map(function(s) {
+    return api({ action: 'delete_slide', slide_id: s.id });
+  });
+  Promise.all(deletePromises).then(function() {
+    slides = [];
+    document.getElementById('thumbList').innerHTML = '';
+    document.querySelectorAll('.gm-slide-inner').forEach(function(el) { el.remove(); });
+    currentSlideId = null;
+
+    // Step 2: re-create old slides sequentially
+    var chain = Promise.resolve();
+    oldSlides.forEach(function(old, idx) {
+      chain = chain.then(function() {
+        return api({ action: 'add_slide', layout: old.layout, title: old.title }).then(function(d) {
+          if (!d.ok) return;
+          // Save full content back
+          return api({ action: 'save_slide', slide_id: d.slide_id, title: old.title,
+                       content: old.content, layout: old.layout, emoji: old.emoji,
+                       speaker_notes: old.speaker_notes }).then(function() {
+            var ns = { id: d.slide_id, order: idx, layout: old.layout, title: old.title,
+                       content: old.content, emoji: old.emoji, speaker_notes: old.speaker_notes,
+                       image_url: old.image_url || '' };
+            slides.push(ns);
+            appendThumb({ slide_id: ns.id, order: ns.order, layout: ns.layout,
+                          title: ns.title, content: ns.content, emoji: ns.emoji,
+                          speaker_notes: ns.speaker_notes });
+            appendCanvas({ slide_id: ns.id, order: ns.order, layout: ns.layout,
+                           title: ns.title, content: ns.content, emoji: ns.emoji,
+                           speaker_notes: ns.speaker_notes });
+          });
+        });
+      });
+    });
+    return chain;
+  }).then(function() {
+    // Step 3: restore title and order
+    document.getElementById('deckTitleInput').value = oldTitle;
+    saveDeckMeta();
+    api({ action: 'reorder', order: slides.map(function(s) { return s.id; }) });
+    updateSlideCount();
+    renumberThumbs();
+    if (slides.length) selectSlide(slides[0].id);
+    _undoSnapshot = null;
+    document.getElementById('undoAiBtn').style.display = 'none';
+    setSaveStatus('saved', '✓ Undo complete');
+  }).catch(function(err) {
+    alert('Undo failed: ' + err);
+  });
+}
+
+// ── Keyboard shortcuts help ──────────────────────────────────────────
+function openKbdHelp() {
+  document.getElementById('kbdHelpModal').classList.add('open');
+}
+
 // ── Keyboard shortcuts ───────────────────────────────────────────────
 document.addEventListener('keydown', function(e) {
   var tag = (document.activeElement.tagName || '').toLowerCase();
-  if (tag === 'input' || tag === 'textarea') return;
+  var isEditing = (tag === 'input' || tag === 'textarea' || document.activeElement.isContentEditable);
+
+  // Shortcuts that work even when editing
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (_undoSnapshot && _undoSnapshot.slides.length) {
+      e.preventDefault();
+      undoAIGeneration();
+      return;
+    }
+  }
+
+  // All other shortcuts only when not editing text
+  if (isEditing) return;
+
   if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
     var idx = slides.findIndex(function(s) { return s.id == currentSlideId; });
     if (idx < slides.length - 1) selectSlide(slides[idx + 1].id);
@@ -2612,6 +2741,19 @@ document.addEventListener('keydown', function(e) {
   if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowDown') {
     e.preventDefault();
     moveSlideDown();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+    e.preventDefault();
+    var titleInput = document.getElementById('panelTitle');
+    if (titleInput) titleInput.focus();
+  }
+  if (e.key === 'F5') {
+    e.preventDefault();
+    window.open('{% url "teachers:presentation_present" deck.pk %}', '_blank');
+  }
+  if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+    e.preventDefault();
+    openKbdHelp();
   }
   if (e.key === 'Delete' && currentSlideId) {
     deleteCurrentSlide();
