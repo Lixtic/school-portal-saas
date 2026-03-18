@@ -633,7 +633,24 @@ def dashboard(request):
 
         return render(request, 'dashboard/admin_dashboard.html', context)
     elif user.user_type == 'teacher':
-        teacher_profile = Teacher.objects.filter(user=user).first()
+        try:
+            teacher_profile = Teacher.objects.filter(user=user).first()
+        except (OperationalError, ProgrammingError):
+            messages.warning(request, "Teacher module is not yet set up. Please ask the school admin to complete the setup.")
+            return render(request, 'dashboard/teacher_dashboard.html', {
+                'user': user,
+                'teacher_has_classes': False,
+                'teacher_class_count': 0,
+                'total_students_taught': 0,
+                'notices': [],
+                'next_duty': None,
+                'todays_classes': [],
+                'next_class_reminder': None,
+                'recent_resources': [],
+                'resource_fields_available': False,
+                'pulse_summary': {'total_sessions': 0, 'last_session': None, 'last_response_rate': 0, 'last_at_risk_count': 0},
+                **calendar_widget,
+            })
         current_year = AcademicYear.objects.filter(is_current=True).first()
         if not current_year:
             # Fallback to the latest academic year if none is marked current
