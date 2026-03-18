@@ -1,3 +1,5 @@
+    # AI Slide Image Generation
+    path('presentations/api/generate-image/', views.generate_slide_image, name='presentation_generate_image'),
 from django.urls import path
 from . import views
 

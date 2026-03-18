@@ -147,6 +147,8 @@ class Presentation(models.Model):
         ('fade',  'Fade'),
         ('zoom',  'Zoom'),
         ('flip',  'Flip'),
+        ('swirl', 'Swirl'),
+        ('drop',  'Drop'),
     ]
     teacher      = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name='presentations')
     title        = models.CharField(max_length=200)

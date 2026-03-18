@@ -1,3 +1,11 @@
+<script>
+// AI Slide Image Generation Endpoint
+var GEN_IMAGE_URL = '/teachers/presentations/api/generate-image/';
+
+<script>
+// AI Slide Image Generation endpoint
+const GEN_IMAGE_URL = "{% url 'teachers:presentation_generate_image' %}";
+</script>
 {% extends "base.html" %}
 {% block title %}{{ deck.title }} — Editor{% endblock %}
 {% block body_class %}has-skeleton-loader skeleton-intense skeleton-delay-medium skeleton-timeout-long{% endblock %}
@@ -1052,6 +1060,10 @@ html, body { height: 100%; margin: 0; }
   <div class="gm-modal" onclick="event.stopPropagation()" style="max-width:480px;">
     <h3>&#10022; Deck Harmonizer</h3>
     <p>Aura reviews your deck for consistent terminology, tone, and style &mdash; and suggests improvements.</p>
+    <label style="display:flex;align-items:center;gap:.5em;font-size:.78rem;color:#94a3b8;margin-top:.5rem;cursor:pointer;">
+      <input type="checkbox" id="harmonizeAutoApply" style="accent-color:#7c3aed;">
+      Auto-apply changes without preview
+    </label>
     <div id="harmonizeContent" style="min-height:80px;margin:1rem 0;"></div>
     <div class="gm-modal-actions">
       <button class="gm-modal-cancel" onclick="document.getElementById('harmonizeModal').classList.remove('open')">Cancel</button>
@@ -1798,6 +1810,10 @@ function openHarmonizeModal() {
         applyBtn.textContent = 'Apply ' + _harmonizePending.length + ' change' + (_harmonizePending.length === 1 ? '' : 's');
       }
       document.getElementById('harmonizeContent').innerHTML = html;
+      // Auto-apply if checkbox is checked
+      if (document.getElementById('harmonizeAutoApply').checked && _harmonizePending.length > 0) {
+        applyHarmonize();
+      }
     })
     .catch(function() {
       document.getElementById('harmonizeContent').innerHTML =
@@ -2231,8 +2247,8 @@ function generateSlideImage() {
   setSaveStatus('saving', '⏳ Generating image…');
   fetchWithTimeout(GEN_IMAGE_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-    body: JSON.stringify({ prompt: prompt }),
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': csrfToken },
+    body: new URLSearchParams({ slide_id: currentSlideId, prompt: prompt }).toString(),
   }, 90000)
   .then(function(r) { return r.json(); })
   .then(function(d) {
