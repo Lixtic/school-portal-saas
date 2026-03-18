@@ -339,6 +339,19 @@
     [data-bs-theme="dark"] .td-search-card { background: var(--surface-card, #1e293b) !important; }
     [data-bs-theme="dark"] .td-search-card .form-control { background: rgba(255,255,255,.06) !important; color: #e2e8f0; }
     [data-bs-theme="dark"] .td-search-card .form-control::placeholder { color: #64748b; }
+    [data-bs-theme="dark"] .td-search-card .btn-primary { background: #4f46e5; border-color: #4f46e5; }
+
+    /* ── Digital Pulse card ──────────────────────────────────── */
+    [data-bs-theme="dark"] .pulse-card { background: linear-gradient(135deg, #1e1b2e 0%, #172032 100%) !important; }
+    [data-bs-theme="dark"] .pulse-card .pulse-label { color: #a78bfa !important; }
+    [data-bs-theme="dark"] .pulse-card .pulse-topic { color: #e2e8f0 !important; }
+    [data-bs-theme="dark"] .pulse-card .pulse-stat-value { color: #e2e8f0 !important; }
+    [data-bs-theme="dark"] .pulse-card .pulse-sessions-val { color: #e2e8f0 !important; }
+    [data-bs-theme="dark"] .pulse-card .btn-pulse-outline { background: rgba(139,92,246,0.15) !important; color: #a78bfa !important; }
+    [data-bs-theme="dark"] .pulse-card .vr { opacity: .15 !important; }
+    [data-bs-theme="dark"] .pulse-empty-card { background: var(--surface-card, #1e293b) !important; }
+    [data-bs-theme="dark"] .pulse-empty-card .pulse-empty-icon { background: rgba(139,92,246,0.15) !important; color: #a78bfa !important; }
+    [data-bs-theme="dark"] .pulse-empty-card .text-muted { color: #94a3b8 !important; }
 
     /* ── Mobile ─────────────────────────────────────────────── */
     @media (max-width: 575.98px) {
@@ -409,7 +422,7 @@
 </div>
 
 <!-- Search Bar -->
-<div class="card shadow-sm border-0 mb-4">
+<div class="card shadow-sm border-0 mb-4 td-search-card">
     <div class="card-body py-3">
         <form action="{% url 'teachers:search_students' %}" method="get" class="d-flex gap-2">
             <input type="text" name="q" class="form-control border-0 bg-light" placeholder="Search student by name or admission number..." required>
@@ -862,19 +875,19 @@
             <!-- Digital Pulse Summary -->
             <div id="widget-pulse-summary" class="mb-3">
             {% if pulse_summary.total_sessions > 0 %}
-            <div class="card border-0 shadow-sm rounded-4 overflow-hidden" style="background:linear-gradient(135deg,#fdf4ff 0%,#eff6ff 100%);">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden pulse-card" style="background:linear-gradient(135deg,#fdf4ff 0%,#eff6ff 100%);">
                 <div class="card-body p-3">
                     <div class="d-flex align-items-center gap-2 mb-2">
                         <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:34px;height:34px;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;font-size:0.85rem;">
                             <i class="bi bi-activity"></i>
                         </div>
-                        <span class="fw-bold" style="font-size:0.78rem;letter-spacing:0.04em;color:#5b21b6;">DIGITAL PULSE</span>
+                        <span class="fw-bold pulse-label" style="font-size:0.78rem;letter-spacing:0.04em;color:#5b21b6;">DIGITAL PULSE</span>
                         {% if pulse_summary.last_session.status == 'active' %}
                         <span class="badge rounded-pill ms-auto" style="font-size:0.62rem;background:#dc2626;color:#fff;"><i class="bi bi-circle-fill" style="font-size:0.4rem;vertical-align:middle;"></i> LIVE</span>
                         {% endif %}
                     </div>
                     {% if pulse_summary.last_session %}
-                    <div class="small text-truncate fw-semibold mb-2" style="color:#1e293b;">Last: {{ pulse_summary.last_session.lesson_plan.topic|truncatechars:40 }}</div>
+                    <div class="small text-truncate fw-semibold mb-2 pulse-topic" style="color:#1e293b;">Last: {{ pulse_summary.last_session.lesson_plan.topic|truncatechars:40 }}</div>
                     <div class="d-flex gap-3 mb-2">
                         <div class="text-center">
                             <div class="fw-bold" style="font-size:1.1rem;color:#4f46e5;">{{ pulse_summary.last_response_rate }}%</div>
@@ -887,13 +900,13 @@
                         </div>
                         <div class="vr opacity-25"></div>
                         <div class="text-center">
-                            <div class="fw-bold" style="font-size:1.1rem;color:#0f172a;">{{ pulse_summary.total_sessions }}</div>
+                            <div class="fw-bold pulse-sessions-val" style="font-size:1.1rem;color:#0f172a;">{{ pulse_summary.total_sessions }}</div>
                             <div class="text-muted" style="font-size:0.7rem;">Sessions</div>
                         </div>
                     </div>
                     {% endif %}
                     <div class="d-flex gap-2">
-                        <a href="{% url 'teachers:pulse_history' %}" class="btn btn-sm rounded-pill flex-fill" style="background:rgba(79,70,229,0.1);color:#4f46e5;font-size:0.75rem;border:none;">
+                        <a href="{% url 'teachers:pulse_history' %}" class="btn btn-sm rounded-pill flex-fill btn-pulse-outline" style="background:rgba(79,70,229,0.1);color:#4f46e5;font-size:0.75rem;border:none;">
                             <i class="bi bi-clock-history me-1"></i>History
                         </a>
                         <a href="{% url 'teachers:aura_command_center' %}" class="btn btn-sm rounded-pill flex-fill" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;font-size:0.75rem;border:none;">
@@ -903,9 +916,9 @@
                 </div>
             </div>
             {% else %}
-            <div class="card border-0 shadow-sm rounded-4 overflow-hidden" style="background:#f8fafc;">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden pulse-empty-card" style="background:#f8fafc;">
                 <div class="card-body p-3 text-center">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2" style="width:36px;height:36px;background:rgba(99,102,241,0.1);color:#6366f1;font-size:1rem;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2 pulse-empty-icon" style="width:36px;height:36px;background:rgba(99,102,241,0.1);color:#6366f1;font-size:1rem;">
                         <i class="bi bi-activity"></i>
                     </div>
                     <div class="small text-muted mb-2">No pulse sessions yet — launch one from a lesson plan!</div>
