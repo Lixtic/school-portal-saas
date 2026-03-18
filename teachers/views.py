@@ -1691,11 +1691,14 @@ def lesson_plan_create(request):
             return match.group(1).strip() if match else ""
 
         # Attempt to map Aura-T output format to LessonPlan model fields
-        parsed_topic = extract_section("Strand", ai_content) + ": " + extract_section("Sub Strand", ai_content)
-        if len(parsed_topic) < 5: parsed_topic = topic or "New Lesson Plan"
+        parsed_topic = extract_section("Strand", ai_content)
+        parsed_sub_strand = extract_section("Sub Strand", ai_content)
+        if not parsed_topic:
+            parsed_topic = topic or "New Lesson Plan"
             
         initial_data = {
             'topic': parsed_topic,
+            'sub_strand': parsed_sub_strand,
             'week_number': extract_section("WEEK", ai_content) or 1,
             'objectives': extract_section("Content Standard", ai_content) + "\n\n" + extract_section("Indicator", ai_content),
             'teaching_materials': extract_section("Resources", ai_content),
@@ -1983,11 +1986,13 @@ def aura_t_api(request):
 
             if action == 'generate_lesson':
                 topic = data.get('topic')
+                sub_strand = (data.get('sub_strand') or '').strip()
+                indicator = (data.get('indicator') or '').strip()
                 class_id = data.get('class_id')
                 subject_id = data.get('subject_id')
 
                 if not topic:
-                    return JsonResponse({"status": "error", "message": "Topic is required"}, status=400)
+                    return JsonResponse({"status": "error", "message": "Strand is required"}, status=400)
 
                 subject_name = "General Studies"
                 class_name = "General"
@@ -2001,7 +2006,13 @@ def aura_t_api(request):
                     class_name = school_class.name
 
                 check_and_consume(request.tenant, request.user.id, 'lesson_gen')
-                result = AuraGenEngine.generate_lesson_plan(topic, subject_name, class_name)
+                result = AuraGenEngine.generate_lesson_plan(
+                    topic=topic,
+                    subject=subject_name,
+                    grade_level=class_name,
+                    sub_strand=sub_strand,
+                    indicator=indicator,
+                )
                 return JsonResponse({"status": "success", "data": result})
             elif action == 'differentiate':
                 # Placeholder for differentiation logic
@@ -2376,6 +2387,7 @@ def ges_lesson_api(request):
         data = json.loads(request.body)
         topic = (data.get('topic') or '').strip()
         indicator = (data.get('indicator') or '').strip()
+        sub_strand = (data.get('sub_strand') or '').strip()
         section = (data.get('section') or '').strip()
         current_text = (data.get('current_text') or '').strip()
         class_id = data.get('class_id')
@@ -2415,6 +2427,7 @@ def ges_lesson_api(request):
                 week_number=week_number,
                 section=section,
                 current_text=current_text,
+                sub_strand=sub_strand,
             )
             return JsonResponse({"status": "success", "data": result})
 
@@ -2424,6 +2437,7 @@ def ges_lesson_api(request):
             subject=subject_name,
             grade_level=class_name,
             week_number=week_number,
+            sub_strand=sub_strand,
         )
         return JsonResponse({"status": "success", "data": result})
     except Exception as e:
@@ -4007,7 +4021,8 @@ def save_aura_t_plan(request):
         m = pat.search(text)
         return m.group(1).strip() if m else ''
 
-    topic = _extract('Sub Strand', lesson_body) or _extract('Strand', lesson_body) or lesson_title
+    topic = _extract('Strand', lesson_body) or lesson_title
+    sub_strand = _extract('Sub Strand', lesson_body)
 
     # Get first class the teacher is associated with
     from academics.models import ClassSubject
@@ -4019,6 +4034,7 @@ def save_aura_t_plan(request):
         school_class=class_subject.school_class if class_subject else None,
         week_number=1,
         topic=topic,
+        sub_strand=sub_strand,
         objectives=_extract('Content Standard', lesson_body) + '\n' + _extract('Indicator', lesson_body),
         introduction=_extract('PHASE 1: STARTER', lesson_body),
         presentation=_extract('PHASE 2: NEW LEARNING', lesson_body) or _extract('PHASE 2', lesson_body),

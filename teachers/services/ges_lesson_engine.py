@@ -168,7 +168,7 @@ class GESLessonEngine:
         }
 
     @staticmethod
-    def generate_weekly_notes(topic: str, indicator: str, subject: str, grade_level: str, week_number: int = 1) -> Dict:
+    def generate_weekly_notes(topic: str, indicator: str, subject: str, grade_level: str, week_number: int = 1, sub_strand: str = '') -> Dict:
         api_key = getattr(settings, 'OPENAI_API_KEY', '')
         if not api_key:
             return GESLessonEngine._fallback(topic, indicator, subject, grade_level, week_number)
@@ -187,11 +187,13 @@ class GESLessonEngine:
             "write out exactly what learners should be able to do."
         ) if code_only else f"Target Indicator (must be achieved): {indicator}"
 
+        sub_strand_line = f'\n- Sub-strand: {sub_strand}' if sub_strand else ''
+
         system_prompt = f"""You are a Ghana GES lesson planner.
 Generate a weekly lesson notes draft for:
 - Subject: {subject}
 - Class: {grade_level}
-- Topic/Sub-strand: {topic}
+- Strand/Topic: {topic}{sub_strand_line}
 - {indicator_instruction}
 - Week Number: {week_number}
 
@@ -294,7 +296,7 @@ Return ONLY valid JSON with this exact schema:
 
     @staticmethod
     def generate_section(topic: str, indicator: str, subject: str, grade_level: str,
-                         week_number: int, section: str, current_text: str = '') -> Dict:
+                         week_number: int, section: str, current_text: str = '', sub_strand: str = '') -> Dict:
         """Regenerate one lesson section while keeping indicator alignment."""
         section = (section or '').strip()
         if section not in GESLessonEngine._valid_sections():
@@ -336,13 +338,15 @@ Return ONLY valid JSON with this exact schema:
             "in the regenerated section."
         ) if code_only else f"Target Indicator (must be achieved): {indicator}"
 
+        sub_strand_line = f'\n- Sub-strand: {sub_strand}' if sub_strand else ''
+
         system_prompt = f"""You are a Ghana GES lesson planner.
 Regenerate ONLY one section of a weekly lesson notes plan.
 
 Context:
 - Subject: {subject}
 - Class: {grade_level}
-- Topic/Sub-strand: {topic}
+- Strand/Topic: {topic}{sub_strand_line}
 - {indicator_instruction}
 - Week Number: {week_number}
 - Section to regenerate: {section}

@@ -173,14 +173,19 @@ JSON SCHEMA — return EXACTLY this structure
             return AuraGenEngine._generate_mock_fallback(topic, subject, grade_level)
 
     @staticmethod
-    def generate_lesson_plan(topic: str, subject: str, grade_level: str) -> Dict:
+    def generate_lesson_plan(topic: str, subject: str, grade_level: str, sub_strand: str = '', indicator: str = '') -> Dict:
         """
         Generate a full structured lesson plan in the Aura-T format.
         Every plan MUST include: Localized Hook, AI Pulse Check, two Learning Paths,
         and a Data-Trigger. These are non-negotiable.
         """
+        # Build context line for sub-strand and indicator
+        sub_strand_ctx = f'\nSub-strand: "{sub_strand}"' if sub_strand else ''
+        indicator_ctx = f'\nTarget Indicator: {indicator}' if indicator else ''
+
         system_prompt = f"""You are Aura-T, an advanced pedagogical AI for Ghanaian teachers trained on the GES Competency-Based Curriculum.
-Generate a rigorous, dynamic lesson plan for {grade_level} {subject} on "{topic}".
+Generate a rigorous, dynamic lesson plan for {grade_level} {subject} on "{topic}".{sub_strand_ctx}{indicator_ctx}
+The lesson MUST be tailored specifically to the sub-strand and indicator provided — every activity, assessment, and homework must directly address and measure the target indicator.
 
 ═══════════════════════════════════════════════════════
 CONTEXT PILLARS — ANALYZE THESE BEFORE DRAFTING THE PLAN
@@ -648,10 +653,13 @@ If any cultural reference (proverb, symbol) is used, include its English meaning
                     {"role": "user", "content": (
                         f"Generate the full Aura-T lesson plan for '{topic}' "
                         f"({grade_level}, {subject}). "
-                        "STEP 1 — Context Pillars: Analyse Learner DNA (mastery baseline, prior-concept gap, top misconception), "
+                        + (f"Sub-strand: '{sub_strand}'. " if sub_strand else '')
+                        + (f"Target Indicator: {indicator}. " if indicator else '')
+                        + "STEP 1 — Context Pillars: Analyse Learner DNA (mastery baseline, prior-concept gap, top misconception), "
                         "map the exact GES CBC indicator code, and tag the three mandatory core competencies with phase/activity. "
                         "Output this as the 🧠 CONTEXT PILLARS ANALYSIS block at the top. "
                         "STEP 2 — Plan: Draft the full plan shaped by that analysis. "
+                        "Tailor all phases, activities, and assessments to directly address the sub-strand and indicator. "
                         "Enforce all seven Homework Rules strictly: "
                         "Support task pen-and-paper only and easier; Extension device-optional with paper fallback; "
                         "no concept drift; cultural references include English meaning + model sentence starter; "

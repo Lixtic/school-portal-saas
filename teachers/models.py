@@ -109,7 +109,8 @@ class LessonPlan(models.Model):
     subject = models.ForeignKey('academics.Subject', on_delete=models.CASCADE)
     school_class = models.ForeignKey('academics.Class', on_delete=models.CASCADE, verbose_name="Class")
     week_number = models.PositiveIntegerField()
-    topic = models.CharField(max_length=200)
+    topic = models.CharField(max_length=200, verbose_name="Strand")
+    sub_strand = models.CharField(max_length=255, blank=True, default='', verbose_name="Sub Strand")
     objectives = models.TextField(help_text="Specific learning outcomes")
     teaching_materials = models.TextField(blank=True, help_text="Materials needed for the lesson")
     

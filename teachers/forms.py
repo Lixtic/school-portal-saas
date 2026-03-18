@@ -101,7 +101,7 @@ class LessonPlanForm(forms.ModelForm):
     class Meta:
         model = LessonPlan
         fields = [
-            'week_number', 'subject', 'school_class', 'topic', 
+            'week_number', 'subject', 'school_class', 'topic', 'sub_strand',
             'objectives', 'teaching_materials', 
             'introduction', 'presentation', 'evaluation', 'homework', 'remarks'
         ]
@@ -109,7 +109,8 @@ class LessonPlanForm(forms.ModelForm):
             'subject': forms.Select(attrs={'class': 'form-select'}),
             'school_class': forms.Select(attrs={'class': 'form-select'}),
             'week_number': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 52}),
-            'topic': forms.TextInput(attrs={'class': 'form-control'}),
+            'topic': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Introduction to Web Technologies'}),
+            'sub_strand': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Web Design Basics'}),
             'objectives': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'teaching_materials': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'introduction': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),

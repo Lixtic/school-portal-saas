@@ -120,6 +120,7 @@
                         <div class="col-md-5">{{ form.subject|as_crispy_field }}</div>
                         <div class="col-md-4">{{ form.school_class|as_crispy_field }}</div>
                         <div class="col-12">{{ form.topic|as_crispy_field }}</div>
+                        <div class="col-12">{{ form.sub_strand|as_crispy_field }}</div>
                         <div class="col-12">
                             <label for="indicatorPrompt" class="form-label fw-semibold">Target Indicator (GES)</label>
                             <textarea id="indicatorPrompt" name="indicator_prompt" class="form-control" rows="2" placeholder="Paste the exact indicator the lesson should achieve...">{{ prefill_indicator|default:'' }}</textarea>
@@ -516,6 +517,8 @@
                 body: JSON.stringify({
                     action: 'generate_lesson',
                     topic: topic,
+                    sub_strand: (document.querySelector('[name="sub_strand"]') || {}).value || '',
+                    indicator: (document.getElementById('indicatorPrompt') || {}).value || '',
                     subject_id: subjectId,
                     class_id: classId
                 })
@@ -678,6 +681,7 @@
                 },
                 body: JSON.stringify({
                     topic: topic,
+                    sub_strand: (document.querySelector('[name="sub_strand"]') || {}).value || '',
                     indicator: indicator,
                     section: section,
                     current_text: fieldEl.value || '',
@@ -787,6 +791,7 @@
                 },
                 body: JSON.stringify({
                     topic: topic,
+                    sub_strand: (document.querySelector('[name="sub_strand"]') || {}).value || '',
                     indicator: indicator,
                     subject_id: subjectId,
                     class_id: classId,
