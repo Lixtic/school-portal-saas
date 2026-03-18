@@ -1,50 +1,3 @@
-# AI Slide Image Generation Endpoint
-@login_required
-@require_POST
-def generate_slide_image(request):
-    """Generate an AI image for a slide using OpenAI DALL·E."""
-    if request.user.user_type != 'teacher':
-        return JsonResponse({'status': 'error', 'message': 'Access denied'}, status=403)
-
-    slide_id = request.POST.get('slide_id')
-    prompt = request.POST.get('prompt', '').strip()
-    if not slide_id or not prompt:
-        return JsonResponse({'status': 'error', 'message': 'Missing slide_id or prompt.'}, status=400)
-
-    from teachers.models import Slide
-    slide = Slide.objects.filter(pk=slide_id).first()
-    if not slide:
-        return JsonResponse({'status': 'error', 'message': 'Slide not found.'}, status=404)
-
-    # Use OpenAI DALL·E API
-    import requests
-    api_key = os.environ.get('OPENAI_API_KEY')
-    if not api_key:
-        return JsonResponse({'status': 'error', 'message': 'OpenAI API key not configured.'}, status=500)
-
-    try:
-        dalle_url = 'https://api.openai.com/v1/images/generations'
-        payload = {
-            'model': 'dall-e-3',
-            'prompt': prompt,
-            'n': 1,
-            'size': '1024x1024',
-        }
-        headers = {
-            'Authorization': f'Bearer {api_key}',
-            'Content-Type': 'application/json',
-        }
-        resp = requests.post(dalle_url, json=payload, headers=headers, timeout=60)
-        resp.raise_for_status()
-        data = resp.json()
-        image_url = data['data'][0]['url'] if 'data' in data and data['data'] else ''
-        if not image_url:
-            return JsonResponse({'status': 'error', 'message': 'No image returned.'}, status=500)
-        slide.image_url = image_url
-        slide.save()
-        return JsonResponse({'status': 'success', 'image_url': image_url})
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': f'Image generation failed: {str(e)}'}, status=500)
 from django import forms
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db import models
@@ -5762,6 +5715,53 @@ def presentation_slide_image_upload(request):
     path = default_storage.save(filename, ContentFile(image_file.read()))
     url = request.build_absolute_uri(default_storage.url(path))
     return JsonResponse({'url': url})
+
+
+@login_required
+@require_POST
+def generate_slide_image(request):
+    """Generate an AI image for a slide using OpenAI DALL\u00b7E."""
+    if request.user.user_type != 'teacher':
+        return JsonResponse({'status': 'error', 'message': 'Access denied'}, status=403)
+
+    slide_id = request.POST.get('slide_id')
+    prompt = request.POST.get('prompt', '').strip()
+    if not slide_id or not prompt:
+        return JsonResponse({'status': 'error', 'message': 'Missing slide_id or prompt.'}, status=400)
+
+    from .models import Slide
+    slide = Slide.objects.filter(pk=slide_id).first()
+    if not slide:
+        return JsonResponse({'status': 'error', 'message': 'Slide not found.'}, status=404)
+
+    import requests as _requests
+    api_key = os.environ.get('OPENAI_API_KEY')
+    if not api_key:
+        return JsonResponse({'status': 'error', 'message': 'OpenAI API key not configured.'}, status=500)
+
+    try:
+        dalle_url = 'https://api.openai.com/v1/images/generations'
+        payload = {
+            'model': 'dall-e-3',
+            'prompt': prompt,
+            'n': 1,
+            'size': '1024x1024',
+        }
+        headers = {
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json',
+        }
+        resp = _requests.post(dalle_url, json=payload, headers=headers, timeout=60)
+        resp.raise_for_status()
+        data = resp.json()
+        image_url = data['data'][0]['url'] if 'data' in data and data['data'] else ''
+        if not image_url:
+            return JsonResponse({'status': 'error', 'message': 'No image returned.'}, status=500)
+        slide.image_url = image_url
+        slide.save()
+        return JsonResponse({'status': 'success', 'image_url': image_url})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Image generation failed: {str(e)}'}, status=500)
 
 
 @login_required
