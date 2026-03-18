@@ -91,6 +91,34 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 @keyframes dropIn   { from { opacity: 0; transform: translateY(-50px) scale(.9); }        to { opacity: 1; transform: none; } }
 @keyframes dropOut  { from { opacity: 1; transform: none; }                               to { opacity: 0; transform: translateY(50px) scale(.9); } }
 
+/* ── Content entrance animations ── */
+.ps-slide.active .sl-emoji    { animation: elFadeUp .5s  ease both .1s; }
+.ps-slide.active .sl-title    { animation: elFadeUp .5s  ease both .15s; }
+.ps-slide.active .sl-sub      { animation: elFadeUp .45s ease both .25s; }
+.ps-slide.active .sl-stat     { animation: elPop    .5s  cubic-bezier(.34,1.56,.64,1) both .2s; }
+.ps-slide.active .sl-quote    { animation: elFadeUp .55s ease both .15s; }
+.ps-slide.active .sl-author   { animation: elFadeUp .4s  ease both .35s; }
+.ps-slide.active .sl-image-wrap { animation: elFadeUp .5s ease both .2s; }
+.ps-slide.active .sl-caption  { animation: elFadeUp .4s  ease both .35s; }
+.ps-slide.active .sl-cols     { animation: elFadeUp .5s  ease both .2s; }
+.ps-slide.active .sl-poll-question,
+.ps-slide.active .sl-quiz-question { animation: elFadeUp .45s ease both .1s; }
+.ps-slide.active .sl-poll-opt { animation: elSlideIn .4s ease both; }
+.ps-slide.active .sl-poll-opt:nth-child(1) { animation-delay: .2s; }
+.ps-slide.active .sl-poll-opt:nth-child(2) { animation-delay: .28s; }
+.ps-slide.active .sl-poll-opt:nth-child(3) { animation-delay: .36s; }
+.ps-slide.active .sl-poll-opt:nth-child(4) { animation-delay: .44s; }
+.ps-slide.active .sl-quiz-opt { animation: elSlideIn .4s ease both; }
+.ps-slide.active .sl-quiz-opt:nth-child(1) { animation-delay: .2s; }
+.ps-slide.active .sl-quiz-opt:nth-child(2) { animation-delay: .28s; }
+.ps-slide.active .sl-quiz-opt:nth-child(3) { animation-delay: .36s; }
+.ps-slide.active .sl-quiz-opt:nth-child(4) { animation-delay: .44s; }
+.ps-slide.active .sl-video-wrap { animation: elFadeUp .5s ease both .2s; }
+
+@keyframes elFadeUp  { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes elPop     { from { opacity: 0; transform: scale(.6); }        to { opacity: 1; transform: none; } }
+@keyframes elSlideIn { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
+
 /* ── QR Modal ── */
 .ps-qr-modal {
   position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,.85);
@@ -353,6 +381,21 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 .ps-timer .ps-timer-icon { font-size: .65rem; }
 .ps-timer.warn { color: #f59e0b; border-color: rgba(245,158,11,.3); }
 .ps-timer.over  { color: #ef4444; border-color: rgba(239,68,68,.3); }
+.ps-total-timer { color: #64748b; font-size: .7rem; font-weight: 600; border-left: 1px solid rgba(255,255,255,.12); padding-left: 6px; }
+.pv-total-timer { font-size: 1.1rem; font-weight: 800; color: #94a3b8; letter-spacing: .05em; }
+
+/* ── Go-to-slide overlay ── */
+.ps-goto-overlay {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  z-index: 9500; background: rgba(15,23,42,.92); backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,.15); border-radius: 16px;
+  padding: 1.2rem 2rem; text-align: center; display: none;
+  box-shadow: 0 20px 50px rgba(0,0,0,.5);
+}
+.ps-goto-overlay.visible { display: block; animation: elFadeUp .2s ease; }
+.ps-goto-label { font-size: .7rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; margin-bottom: .3rem; }
+.ps-goto-num { font-size: 2.5rem; font-weight: 900; color: #e2e8f0; min-width: 80px; }
+.ps-goto-hint { font-size: .65rem; color: #475569; margin-top: .3rem; }
 
 /* ── Laser pointer ── */
 .ps-laser {
@@ -570,6 +613,13 @@ body.presenter-mode .pv-panel { display: flex; }
     <div id="notesText">(no speaker notes)</div>
   </div>
 
+  <!-- Go-to-slide overlay -->
+  <div class="ps-goto-overlay" id="gotoOverlay">
+    <div class="ps-goto-label">Go to slide</div>
+    <div class="ps-goto-num" id="gotoNum"></div>
+    <div class="ps-goto-hint">Press Enter to jump</div>
+  </div>
+
   <!-- Shortcuts overlay -->
   <div class="ps-shortcuts-overlay" id="shortcutsOverlay" onclick="if(event.target===this)toggleShortcuts()">
     <div class="ps-shortcuts-inner">
@@ -592,6 +642,7 @@ body.presenter-mode .pv-panel { display: flex; }
         <tr><td>?</td><td>Show shortcuts</td></tr>
         <tr><td>P</td><td>Open Presenter View</td></tr>
         <tr><td>Q</td><td>QR code share</td></tr>
+        <tr><td>1-9</td><td>Jump to slide number</td></tr>
         <tr><td>Esc</td><td>Exit / close overlay</td></tr>
       </table>
       <button class="close-btn" onclick="toggleShortcuts()">Close</button>
@@ -633,6 +684,7 @@ body.presenter-mode .pv-panel { display: flex; }
   <div class="ps-timer" id="slideTimer">
     <span class="ps-timer-icon">&#9201;</span>
     <span id="timerDisplay">0:00</span>
+    <span class="ps-total-timer" id="totalTimerDisplay" title="Total presentation time">0:00</span>
   </div>
 
   <!-- Laser pointer dot -->
@@ -724,6 +776,8 @@ body.presenter-mode .pv-panel { display: flex; }
   <div class="pv-footer">
     <div class="pv-big-timer" id="pvBigTimer">0:00</div>
     <div class="pv-timer-label">Slide time</div>
+    <div class="pv-total-timer" id="pvTotalTimer">0:00</div>
+    <div class="pv-timer-label" style="font-size:.55rem;">Total time</div>
     <div class="pv-counter-row">
       <div class="pv-slide-counter"><span id="pvCur">1</span>&nbsp;/&nbsp;{{ slides|length }}</div>
     </div>
@@ -1021,7 +1075,38 @@ function copyQRLink() {
   }, { passive: true });
 })();
 
+// ── Go-to-slide ─────────────────────────────────────────────────────────────
+var _gotoBuffer = '';
+var _gotoTimeout = null;
+function showGotoOverlay() {
+  var el = document.getElementById('gotoOverlay');
+  document.getElementById('gotoNum').textContent = _gotoBuffer;
+  el.classList.add('visible');
+}
+function hideGotoOverlay() {
+  document.getElementById('gotoOverlay').classList.remove('visible');
+  _gotoBuffer = '';
+  clearTimeout(_gotoTimeout);
+}
+function gotoSlideFromBuffer() {
+  var n = parseInt(_gotoBuffer, 10);
+  hideGotoOverlay();
+  if (isNaN(n) || n < 1) return;
+  goTo(Math.min(n, total) - 1);
+}
+
 document.addEventListener('keydown', function(e) {
+  // Digit accumulation for go-to-slide
+  if (/^[0-9]$/.test(e.key) && !drawMode) {
+    _gotoBuffer += e.key;
+    showGotoOverlay();
+    clearTimeout(_gotoTimeout);
+    _gotoTimeout = setTimeout(function() { gotoSlideFromBuffer(); }, 1500);
+    return;
+  }
+  if (e.key === 'Enter' && _gotoBuffer) { gotoSlideFromBuffer(); return; }
+  if (_gotoBuffer && e.key === 'Escape') { hideGotoOverlay(); return; }
+
   if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ')  nextSlide();
   if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')  prevSlide();
   if (e.key === 'Escape') {
@@ -1089,6 +1174,20 @@ function updateTimerDisplay() {
     pv.classList.toggle('over', slideSecondsElapsed >= 300);
   }
 }
+
+// ── Total presentation timer ────────────────────────────────────────────────
+var totalSecondsElapsed = 0;
+var totalTimerInterval = setInterval(function() {
+  totalSecondsElapsed++;
+  var h = Math.floor(totalSecondsElapsed / 3600);
+  var m = Math.floor((totalSecondsElapsed % 3600) / 60);
+  var s = totalSecondsElapsed % 60;
+  var disp = (h > 0 ? h + ':' + (m < 10 ? '0' : '') : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  var el = document.getElementById('totalTimerDisplay');
+  if (el) el.textContent = disp;
+  var pvEl = document.getElementById('pvTotalTimer');
+  if (pvEl) pvEl.textContent = disp;
+}, 1000);
 // Wrap goTo to reset timer on slide change
 var _origGoTo = goTo;
 goTo = function(n) {

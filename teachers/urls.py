@@ -1,5 +1,3 @@
-    # AI Slide Image Generation
-    path('presentations/api/generate-image/', views.generate_slide_image, name='presentation_generate_image'),
 from django.urls import path
 from . import views
 
@@ -98,6 +96,7 @@ urlpatterns = [
     path('presentations/api/from-youtube/', views.presentation_from_youtube, name='presentation_from_youtube'),
     path('presentations/api/lesson-plans/', views.presentation_lesson_plans, name='presentation_lesson_plans'),
     path('presentations/api/upload-image/', views.presentation_slide_image_upload, name='presentation_slide_image_upload'),
+    path('presentations/api/generate-image/', views.generate_slide_image, name='presentation_generate_image'),
     path('presentations/share/<uuid:token>/', views.presentation_share, name='presentation_share'),
     path('presentations/<int:pk>/edit/', views.presentation_editor, name='presentation_editor'),
     path('presentations/<int:pk>/present/', views.presentation_present, name='presentation_present'),

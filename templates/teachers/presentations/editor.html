@@ -1425,13 +1425,29 @@ function pickTransition(val) {
 }
 
 // ── Theme swatches ────────────────────────────────────────────────
+var _committedTheme = '{{ deck.theme }}';
 function pickTheme(theme) {
+  _committedTheme = theme;
   document.getElementById('themeSelect').value = theme;
   document.querySelectorAll('.gm-theme-swatch').forEach(function(s) {
     s.classList.toggle('active', s.dataset.theme === theme);
   });
   saveDeckMeta();
 }
+// Live preview on hover
+(function() {
+  document.querySelectorAll('.gm-theme-swatch').forEach(function(swatch) {
+    swatch.addEventListener('mouseenter', function() {
+      var theme = swatch.dataset.theme;
+      var canvas = document.getElementById('liveCanvas');
+      canvas.className = 'gm-slide-canvas theme-' + theme;
+    });
+    swatch.addEventListener('mouseleave', function() {
+      var canvas = document.getElementById('liveCanvas');
+      canvas.className = 'gm-slide-canvas theme-' + _committedTheme;
+    });
+  });
+})();
 // ── Zoom ────────────────────────────────────────────────────
 function setZoom(val) {
   var canvas = document.getElementById('liveCanvas');
