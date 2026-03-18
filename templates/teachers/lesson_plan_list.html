@@ -124,6 +124,33 @@
     [data-bs-theme="dark"] .form-control,
     [data-bs-theme="dark"] .form-select { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); color: #e2e8f0; }
 
+    /* ── Class Group Headers ────────────────────────────────── */
+    .class-group-header {
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        margin-top: 1.25rem;
+        margin-bottom: .625rem;
+        padding-bottom: .5rem;
+        border-bottom: 2px solid rgba(124,58,237,0.12);
+    }
+    .class-group-header:first-child { margin-top: 0; }
+    .class-group-icon {
+        width: 32px; height: 32px; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        background: #f5f3ff; color: #7c3aed; font-size: .85rem; flex-shrink: 0;
+    }
+    .class-group-name { font-weight: 700; font-size: .95rem; color: #1e293b; }
+    .class-group-count {
+        font-size: .7rem; font-weight: 600; color: #7c3aed;
+        background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.15);
+        padding: 2px 8px; border-radius: 20px;
+    }
+    [data-bs-theme="dark"] .class-group-header { border-bottom-color: rgba(167,139,250,0.15); }
+    [data-bs-theme="dark"] .class-group-icon { background: rgba(124,58,237,0.18); color: #a78bfa; }
+    [data-bs-theme="dark"] .class-group-name { color: #f1f5f9; }
+    [data-bs-theme="dark"] .class-group-count { background: rgba(124,58,237,0.15); color: #a78bfa; border-color: rgba(167,139,250,0.25); }
+
     /* Chevron rotation */
     [aria-expanded="true"] .collapse-chevron  { transform: rotate(180deg); }
     .collapse-chevron { transition: transform 0.2s ease; }
@@ -276,10 +303,17 @@
     </div><!-- /.collapse -->
 </div>
 
-<!-- Plans List -->
+<!-- Plans List (grouped by class) -->
 {% if lesson_plans %}
 <div class="slide-in delay-2">
-    {% for plan in lesson_plans %}
+    {% regroup lesson_plans by school_class.name as class_groups %}
+    {% for group in class_groups %}
+    <div class="class-group-header">
+        <div class="class-group-icon"><i class="bi bi-people-fill"></i></div>
+        <span class="class-group-name">{{ group.grouper|default:"Unassigned" }}</span>
+        <span class="class-group-count">{{ group.list|length }} plan{{ group.list|length|pluralize }}</span>
+    </div>
+    {% for plan in group.list %}
     <div class="plan-item">
         <!-- Week Badge -->
         <div class="plan-week-badge">
@@ -347,6 +381,7 @@
             {% endif %}
         </div>
     </div>
+    {% endfor %}
     {% endfor %}
 </div>
 {% else %}

@@ -1628,6 +1628,7 @@ def lesson_plan_list(request):
             )
         if aura_only:
             lesson_plans_qs = lesson_plans_qs.filter(introduction__icontains='PULSE CHECK')
+        lesson_plans_qs = lesson_plans_qs.order_by('school_class__name', '-date_added')
         lesson_plans = list(lesson_plans_qs)
         aura_drafted_count = sum(1 for p in lesson_plans if 'PULSE CHECK' in (p.introduction or ''))
     except (OperationalError, ProgrammingError):
