@@ -696,31 +696,107 @@ If any cultural reference (proverb, symbol) is used, include its English meaning
     @staticmethod
     def generate_slides_outline(topic: str, subject: str, grade_level: str) -> Dict:
         """
-        Generate a slide deck outline with titles, bullets, and speaker notes.
+        Generate a full, presentation-ready slide deck with rich content:
+        definitions, examples, scenarios, key terms, and assessment.
         """
-        system_prompt = f"""You are Aura-T, an expert teaching assistant.
-Generate a slide deck outline for a lesson.
-Return a JSON object with this structure:
+        system_prompt = f"""You are Aura-T, an expert Ghanaian classroom teaching assistant who creates rich, presentation-ready slide decks.
+
+Generate a complete teaching slide deck for {grade_level} {subject} on the topic: "{topic}".
+
+Return a JSON object with EXACTLY this structure:
 {{
   "slides": [
-    {{"title": "Slide title", "bullets": ["Point 1", "Point 2"], "notes": "Speaker notes"}}
+    {{"title": "...", "bullets": ["...", "..."], "notes": "..."}}
   ],
-  "activities": ["Short in-slide activity", "Quick check"]
+  "activities": ["...", "..."]
 }}
-Rules:
-- Return 6 to 8 slides.
-- Every slide must include non-empty title, bullets (2-4 items), and notes.
-- Keep bullets concise and student-friendly.
+
+═══════════════════════════════════════════════════════
+SLIDE STRUCTURE — 8 SLIDES (MANDATORY)
+═══════════════════════════════════════════════════════
+
+SLIDE 1 — TITLE & HOOK
+- Title: an engaging title for the lesson (not just the topic name)
+- Bullets: the topic, the learning objective, and a thought-provoking question that connects to students' lives
+- Notes: a brief local/Ghanaian hook the teacher can use to introduce the lesson
+
+SLIDE 2 — KEY VOCABULARY / KEY TERMS
+- Title: "Key Terms & Definitions"
+- Bullets: 3-4 essential terms with clear, student-friendly definitions
+  Format each bullet as: "Term — Definition in simple words"
+- Notes: pronunciation tips or memory tricks the teacher can share
+
+SLIDE 3 — CORE CONCEPT EXPLAINED
+- Title: a clear heading that names the concept
+- Bullets: break the concept into 3-4 digestible points, each explaining one aspect
+  Write FULL SENTENCES, not fragments. Each bullet should teach something concrete.
+- Notes: analogies or simplified explanations the teacher can use verbally
+
+SLIDE 4 — WORKED EXAMPLE
+- Title: "Worked Example" or a specific example title
+- Bullets: walk through a step-by-step example (3-4 steps)
+  Each bullet is one step: "Step 1: ...", "Step 2: ...", etc.
+  Use a realistic, relatable scenario (preferably Ghanaian context)
+- Notes: common mistakes to watch for and how to address them
+
+SLIDE 5 — REAL-WORLD SCENARIO / APPLICATION
+- Title: a scenario title (e.g., "Case Study: ..." or "In Practice: ...")
+- Bullets: present a real-world scenario and show how the concept applies
+  Include: the situation, how the concept is used, and the outcome
+- Notes: discussion prompts the teacher can pose to the class
+
+SLIDE 6 — VISUAL COMPARISON / DID YOU KNOW?
+- Title: comparison or interesting facts heading
+- Bullets: use comparisons, contrasts, or surprising facts to deepen understanding
+  Format: "X vs Y", "Myth vs Fact", or "Did you know: ..."
+- Notes: how the teacher can use this slide to correct misconceptions
+
+SLIDE 7 — PRACTICE QUESTIONS / CHECK YOUR UNDERSTANDING
+- Title: "Check Your Understanding"
+- Bullets: 3-4 practice questions or tasks of increasing difficulty
+  Q1: recall/definition level
+  Q2: application level
+  Q3: analysis/reasoning level
+  Q4 (optional): create/evaluate level
+- Notes: expected answers and marking guidance for the teacher
+
+SLIDE 8 — SUMMARY & TAKEAWAYS
+- Title: "Key Takeaways"
+- Bullets: 3-4 concise summary statements that capture the main ideas
+  Start each with an action verb: "Remember that...", "Always...", "The key difference is..."
+- Notes: preview of next lesson and homework suggestion
+
+═══════════════════════════════════════════════════════
+CONTENT QUALITY RULES
+═══════════════════════════════════════════════════════
+- Write FULL, MEANINGFUL content — not outlines or placeholders
+- Bullets must be complete thoughts that a student can read and learn from
+- Definitions must be accurate and age-appropriate for {grade_level}
+- Examples must use concrete numbers, names, or scenarios — never "e.g., ..."
+- Every slide must have 3-4 bullets (not fewer)
+- Speaker notes are for the TEACHER: include delivery tips, expected answers, time cues
+- Use Ghanaian context where natural (local names, currency, places, practices)
+- Activities must be specific and actionable (not generic "discuss" or "think about")
 """
+
+        user_prompt = (
+            f"Create a complete, content-rich presentation on '{topic}' "
+            f"for {grade_level} {subject}. "
+            "Fill every slide with real definitions, worked examples, scenarios, "
+            "and practice questions — not just outlines. "
+            "The slides should be ready to present in a classroom as-is."
+        )
+
         try:
             payload = {
                 "model": get_openai_chat_model(),
                 "messages": [
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Create slides for '{topic}' for {grade_level} {subject}."}
+                    {"role": "user", "content": user_prompt},
                 ],
                 "response_format": {"type": "json_object"},
-                "temperature": 0.7
+                "temperature": 0.65,
+                "max_tokens": 2800,
             }
             response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
             content = response['choices'][0]['message']['content']
@@ -773,27 +849,37 @@ Rules:
 
         system_prompt = (
             "You are Aura-T, an expert teaching assistant.\n"
-            "Given the content of an educational document, create a clear, engaging teaching slide deck.\n"
+            "Given the content of an educational document, create a PRESENTATION-READY teaching slide deck.\n"
             "Return a JSON object with EXACTLY this structure:\n"
             "{\n"
             '  "slides": [\n'
             '    {"title": "...", "bullets": ["...", "..."], "notes": "..."}\n'
             "  ],\n"
             '  "activities": ["Activity 1", "Activity 2"]\n'
-            "}\n"
-            "Rules:\n"
-            "- Generate 6 to 9 slides that teach the key ideas from the document.\n"
-            "- Slide 1 must be a title/overview slide introducing the topic.\n"
-            "- Last slide must be a summary or key-takeaways slide.\n"
-            "- Every slide needs: non-empty title, 2-4 concise bullet points, speaker notes.\n"
-            "- Rewrite content in clear, student-friendly language — do NOT copy text verbatim.\n"
-            "- Focus on the most important concepts and discard irrelevant details.\n"
+            "}\n\n"
+            "SLIDE STRUCTURE (8 slides):\n"
+            "- Slide 1: Title & overview — introduce the topic, state what students will learn\n"
+            "- Slide 2: Key Terms & Definitions — 3-4 essential terms with clear definitions\n"
+            "- Slides 3-5: Core content slides — each explains ONE key concept from the document\n"
+            "  Write FULL SENTENCES in bullets, not fragments. Include definitions, examples, specifics.\n"
+            "- Slide 6: Worked Example or Case Study — step-by-step application of a concept\n"
+            "- Slide 7: Check Your Understanding — 3-4 practice questions (recall → apply → analyse)\n"
+            "- Slide 8: Key Takeaways — summary statements students can use for revision\n\n"
+            "CONTENT RULES:\n"
+            "- Rewrite content in clear, student-friendly language — do NOT copy text verbatim\n"
+            "- Every bullet must be a COMPLETE THOUGHT that teaches something specific\n"
+            "- Include concrete examples, numbers, and real scenarios — not vague statements\n"
+            "- Every slide needs: non-empty title, 3-4 bullet points, speaker notes\n"
+            "- Speaker notes should include delivery tips and expected student responses\n"
+            "- Focus on the most important concepts and discard irrelevant details\n"
+            "- Activities must be specific and classroom-actionable\n"
         )
 
         user_prompt = (
             f"Document title hint: {title_hint}\n\n"
             f"Document content:\n{text_excerpt}\n\n"
-            "Create a structured teaching slide deck from the above content."
+            "Create a presentation-ready slide deck with full definitions, "
+            "examples, and practice questions from the above content."
         )
 
         try:
@@ -843,6 +929,7 @@ Rules:
         """
         Generate a learning-guide slide deck from a LessonPlan's fields.
         Prioritizes topic + indicator + objectives while still using plan activities.
+        Produces presentation-ready content with definitions, examples, and scenarios.
         """
         topic = str(plan.get('topic') or 'Lesson').strip()
         subject = str(plan.get('subject') or 'General').strip()
@@ -850,51 +937,93 @@ Rules:
         objectives = str(plan.get('objectives') or '').strip()
         indicator = str(plan.get('indicator') or '').strip()
         introduction = str(plan.get('introduction') or '').strip()
-        presentation = str(plan.get('presentation') or '').strip()
+        presentation_text = str(plan.get('presentation') or '').strip()
         evaluation = str(plan.get('evaluation') or '').strip()
         homework = str(plan.get('homework') or '').strip()
         demographic_context = str(plan.get('demographic_context') or '').strip()
 
         system_prompt = (
-            "You are Aura-T, an expert Ghanaian classroom teaching assistant.\\n"
-            "Create a student-friendly LEARNING GUIDE slide deck from a lesson plan.\\n"
-            "The deck must be anchored in TOPIC + INDICATOR + OBJECTIVES, not a direct lesson-plan dump.\\n"
-            "Return JSON with EXACT structure:\\n"
-            "{\\n"
-            "  \\\"slides\\\": [\\n"
-            "    {\\\"title\\\": \\\"...\\\", \\\"bullets\\\": [\\\"...\\\"], \\\"notes\\\": \\\"...\\\"}\\n"
-            "  ],\\n"
-            "  \\\"activities\\\": [\\\"...\\\"]\\n"
-            "}\\n"
-            "Rules:\\n"
-            "- Generate 7 to 9 slides.\\n"
-            "- Slide 1: clear hook tied to school/community demography when provided.\\n"
-            "- Include a slide that explicitly states the learning indicator and success criteria.\\n"
-            "- Include at least one worked example tied to the topic and indicator.\\n"
-            "- Include one 'Sample Study Notes' slide with concise student-shareable notes.\\n"
-            "- Last slide must be a recap + student self-check.\\n"
-            "- Every slide requires non-empty title, 2-4 bullets, and notes.\\n"
-            "- Notes must use two labels exactly: 'Teacher Cue:' then 'Student Notes:'.\\n"
-            "- 'Teacher Cue' gives delivery guidance; 'Student Notes' gives copy-friendly revision lines.\\n"
-            "- Bullets must be short, concrete, and age-appropriate for the class level.\\n"
-            "- Use lesson-plan sections as support context only (introduction/presentation/evaluation/homework).\\n"
-            "- Keep language practical for teacher use and student revision."
+            "You are Aura-T, an expert Ghanaian classroom teaching assistant.\n"
+            "Create a PRESENTATION-READY learning-guide slide deck from a lesson plan.\n"
+            "The deck must be anchored in TOPIC + INDICATOR + OBJECTIVES.\n\n"
+            "Return JSON with EXACT structure:\n"
+            "{\n"
+            "  \"slides\": [\n"
+            "    {\"title\": \"...\", \"bullets\": [\"...\"], \"notes\": \"...\"}\n"
+            "  ],\n"
+            "  \"activities\": [\"...\"]\n"
+            "}\n\n"
+            "═══════════════════════════════════════════════════════\n"
+            "SLIDE SEQUENCE — 8 TO 9 SLIDES\n"
+            "═══════════════════════════════════════════════════════\n\n"
+            "SLIDE 1 — HOOK & LEARNING GOAL\n"
+            "- Engaging title tied to school/community context when available\n"
+            "- Bullets: the topic, the learning indicator in student-friendly words, what success looks like\n"
+            "- Notes: 'Teacher Cue: [local hook or story]\\nStudent Notes: [topic + objective summary]'\n\n"
+            "SLIDE 2 — KEY VOCABULARY\n"
+            "- Title: 'Key Terms & Definitions'\n"
+            "- Bullets: 3-4 essential terms with clear definitions\n"
+            "  Format: 'Term — definition in simple words'\n"
+            "- Notes: 'Teacher Cue: [pronunciation/memory tips]\\nStudent Notes: [terms to copy into notebooks]'\n\n"
+            "SLIDE 3 — CORE CONCEPT\n"
+            "- Title naming the concept clearly\n"
+            "- Bullets: 3-4 FULL SENTENCES explaining the concept (not fragments)\n"
+            "- Notes: 'Teacher Cue: [analogies to use]\\nStudent Notes: [concept summary in simple words]'\n\n"
+            "SLIDE 4 — WORKED EXAMPLE\n"
+            "- Title: 'Worked Example' or specific example title\n"
+            "- Bullets: step-by-step walkthrough (Step 1, Step 2, Step 3...)\n"
+            "  Use a realistic Ghanaian scenario with concrete details\n"
+            "- Notes: 'Teacher Cue: [common mistakes to watch for]\\nStudent Notes: [copy this example into your notebook]'\n\n"
+            "SLIDE 5 — REAL-WORLD APPLICATION\n"
+            "- Present a scenario showing how the concept applies in real life\n"
+            "- Include: the situation, how the concept is used, and the outcome\n"
+            "- Notes: 'Teacher Cue: [discussion prompts]\\nStudent Notes: [application summary]'\n\n"
+            "SLIDE 6 — DEEPER UNDERSTANDING\n"
+            "- Comparisons, contrasts, myths vs facts, or 'Did You Know' items\n"
+            "- Bullets that challenge surface-level understanding\n"
+            "- Notes: 'Teacher Cue: [misconception correction]\\nStudent Notes: [key distinctions to remember]'\n\n"
+            "SLIDE 7 — PRACTICE QUESTIONS\n"
+            "- Title: 'Check Your Understanding'\n"
+            "- Bullets: 3-4 questions of increasing difficulty (recall → apply → analyse)\n"
+            "- Notes: 'Teacher Cue: [expected answers and marking tips]\\nStudent Notes: [attempt all questions in your exercise book]'\n\n"
+            "SLIDE 8 — SAMPLE STUDY NOTES\n"
+            "- Title: 'Sample Study Notes'\n"
+            "- Bullets: compact revision notes a student can copy directly\n"
+            "  Include: definition, key formula/rule, one example, one common mistake\n"
+            "- Notes: 'Teacher Cue: [model note-taking format]\\nStudent Notes: [rewrite these notes in your own words]'\n\n"
+            "SLIDE 9 — SUMMARY & TAKEAWAYS\n"
+            "- Title: 'Key Takeaways'\n"
+            "- Bullets: 3-4 concise summary statements + self-check question\n"
+            "- Notes: 'Teacher Cue: [preview next lesson, assign homework]\\nStudent Notes: [core ideas to review tonight]'\n\n"
+            "═══════════════════════════════════════════════════════\n"
+            "CONTENT QUALITY RULES\n"
+            "═══════════════════════════════════════════════════════\n"
+            "- Write FULL, MEANINGFUL content — never placeholders or outlines\n"
+            "- Definitions must be accurate and age-appropriate\n"
+            "- Examples must use concrete numbers, names, or scenarios\n"
+            "- Every slide needs 3-4 bullets minimum\n"
+            "- Notes MUST have 'Teacher Cue:' then 'Student Notes:' labels\n"
+            "- Use the lesson-plan sections as source material to enrich slides\n"
+            "- Ghanaian context where natural (local names, GH₵, places)\n"
+            "- Activities must be specific and actionable"
         )
 
         user_prompt = (
-            f"Topic: {topic}\\n"
-            f"Subject: {subject}\\n"
-            f"Class: {class_name}\\n"
-            f"Week: {plan.get('week', '')}\\n"
-            f"Learning Indicator: {indicator or 'Not provided'}\\n"
-            f"Learning Objectives: {objectives or 'Not provided'}\\n"
-            f"School / Demographic Context: {demographic_context or 'Not provided'}\\n\\n"
-            "Lesson-plan context (for support only):\\n"
-            f"Introduction/Hook: {introduction or 'N/A'}\\n"
-            f"Main Presentation: {presentation or 'N/A'}\\n"
-            f"Evaluation: {evaluation or 'N/A'}\\n"
-            f"Homework: {homework or 'N/A'}\\n\\n"
-            "Build a coherent learning-guide deck teachers can share with students."
+            f"Topic: {topic}\n"
+            f"Subject: {subject}\n"
+            f"Class: {class_name}\n"
+            f"Week: {plan.get('week', '')}\n"
+            f"Learning Indicator: {indicator or 'Not provided'}\n"
+            f"Learning Objectives: {objectives or 'Not provided'}\n"
+            f"School / Demographic Context: {demographic_context or 'Not provided'}\n\n"
+            "Lesson-plan content to draw from:\n"
+            f"Introduction/Hook: {introduction or 'N/A'}\n"
+            f"Main Presentation: {presentation_text or 'N/A'}\n"
+            f"Evaluation: {evaluation or 'N/A'}\n"
+            f"Homework: {homework or 'N/A'}\n\n"
+            "Build a content-rich, presentation-ready learning-guide deck. "
+            "Fill every slide with real definitions, worked examples, scenarios, "
+            "and practice questions — not just outlines."
         )
 
         try:
@@ -948,7 +1077,7 @@ Rules:
                 })
 
             if slides:
-                slides = slides[:9]
+                slides = slides[:10]
             if not slides:
                 slides = AuraGenEngine._fallback_slides_outline(topic, subject, class_name).get("slides", [])
             if not activities:
@@ -1286,7 +1415,7 @@ Rules:
 
             if not bullets:
                 bullets = [f"Core idea of {topic}", "Worked example", "Quick student check"]
-            bullets = bullets[:4]
+            bullets = bullets[:5]
             if len(bullets) < 2:
                 bullets.append("Class reflection question")
 
@@ -1299,7 +1428,7 @@ Rules:
                 "notes": notes,
             })
 
-        return normalized[:8]
+        return normalized[:10]
 
     @staticmethod
     def _normalize_activities(activities: Optional[List]) -> List[str]:
@@ -1315,58 +1444,77 @@ Rules:
     def _fallback_slides_outline(topic: str, subject: str, grade_level: str) -> Dict:
         slides = [
             {
-                "title": f"Lesson Goal: {topic}",
+                "title": f"Today's Lesson: {topic}",
                 "bullets": [
-                    f"What {topic} means in {subject}",
-                    "Why this topic matters",
-                    "Learning target for today",
+                    f"Topic: {topic} in {subject}",
+                    f"By the end of this lesson you will understand the key concepts of {topic}",
+                    "Let's start with what you already know!",
                 ],
-                "notes": f"Set context for {grade_level} learners and share success criteria.",
+                "notes": f"Set context for {grade_level} learners. Ask: 'Who can tell me one thing about {topic}?'",
             },
             {
-                "title": "Prior Knowledge Check",
+                "title": "Key Terms & Definitions",
                 "bullets": [
-                    "Recall related ideas from previous lessons",
-                    "Identify common misconceptions",
-                    "Quick warm-up prompt",
+                    f"Term 1 — a key concept related to {topic} (to be defined in class)",
+                    f"Term 2 — another important term in {subject} (to be defined in class)",
+                    f"Term 3 — a supporting concept for understanding {topic}",
                 ],
-                "notes": "Use 2-3 rapid questions to assess readiness.",
+                "notes": "Write these terms on the board. Have students copy them into their notebooks.",
             },
             {
-                "title": f"Core Concept: {topic}",
+                "title": f"Understanding {topic}",
                 "bullets": [
-                    "Define the core concept",
-                    "Show one clear example",
-                    "Highlight key terms",
+                    f"{topic} is a core concept in {subject} that students need to master",
+                    "Break the concept into smaller parts for easier understanding",
+                    "Connect the idea to something students already know",
                 ],
-                "notes": "Model thinking aloud and emphasize vocabulary.",
+                "notes": "Use an analogy from everyday life to explain the concept. Model thinking aloud.",
             },
             {
-                "title": "Guided Practice",
+                "title": "Worked Example",
                 "bullets": [
-                    "Work through a sample problem together",
-                    "Invite student reasoning",
-                    "Correct errors in real time",
+                    f"Step 1: Identify what we need to know about {topic}",
+                    "Step 2: Apply the concept or rule we just learned",
+                    "Step 3: Check our answer and explain our reasoning",
                 ],
-                "notes": "Pause after each step and ask checking questions.",
+                "notes": "Walk through each step slowly. Ask students to predict the next step before showing it.",
             },
             {
-                "title": "Independent Practice",
+                "title": "Real-World Application",
                 "bullets": [
-                    "Assign a short individual task",
-                    "Encourage peer comparison",
-                    "Collect quick evidence of understanding",
+                    f"How {topic} is used in everyday life",
+                    "A practical scenario students can relate to",
+                    "Why this matters beyond the classroom",
                 ],
-                "notes": "Monitor and support learners who need scaffolding.",
+                "notes": "Use a local Ghanaian context. Ask: 'Where have you seen this in your community?'",
             },
             {
-                "title": "Exit Check",
+                "title": "Check Your Understanding",
                 "bullets": [
-                    "One concise recap question",
-                    "One application question",
-                    "Preview next lesson",
+                    f"Q1: What is the definition of [key term from {topic}]?",
+                    f"Q2: Apply what you learned to solve this problem about {topic}",
+                    "Q3: Explain in your own words why this concept matters",
                 ],
-                "notes": "Use responses to plan follow-up interventions.",
+                "notes": "Give students 5 minutes to attempt. Walk around and check work.",
+            },
+            {
+                "title": "Sample Study Notes",
+                "bullets": [
+                    f"Define {topic} in one clear sentence",
+                    "Write the key rule or formula",
+                    "Include one worked example from class",
+                    "Note one common mistake to avoid",
+                ],
+                "notes": "Model the note-taking format on the board. Have students copy into their notebooks.",
+            },
+            {
+                "title": "Key Takeaways",
+                "bullets": [
+                    f"Remember: {topic} is essential for understanding {subject}",
+                    "Always check your work against the definition and key rules",
+                    "Preview: next lesson we will build on this with more examples",
+                ],
+                "notes": "Use exit ticket responses to plan follow-up interventions.",
             },
         ]
 

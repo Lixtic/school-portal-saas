@@ -4886,6 +4886,28 @@ def log_slide_time(request, code):
     return JsonResponse({'ok': True})
 
 
+def _detect_slide_layout(title, index, total):
+    """Pick a layout based on slide title keywords and position."""
+    if index == 0:
+        return 'title'
+    if index == total - 1:
+        return 'summary'
+    t = title.lower()
+    if any(w in t for w in ('practice', 'question', 'quiz', 'check your', 'check understanding')):
+        return 'quiz'
+    if any(w in t for w in ('vocabulary', 'definition', 'key term', 'key vocab')):
+        return 'two_col'
+    if any(w in t for w in ('comparison', 'compare', 'vs', 'versus', 'did you know')):
+        return 'two_col'
+    if any(w in t for w in ('quote', 'saying', 'proverb')):
+        return 'quote'
+    if any(w in t for w in ('stat', 'figure', 'number', 'big stat')):
+        return 'big_stat'
+    if any(w in t for w in ('poll', 'vote', 'survey')):
+        return 'poll'
+    return 'bullets'
+
+
 @login_required
 @require_POST
 def presentation_api(request):
@@ -5019,7 +5041,7 @@ def presentation_api(request):
             for i, s in enumerate(raw_slides):
                 bullets = s.get('bullets', [])
                 content = '\n'.join(bullets)
-                layout  = 'title' if i == 0 else ('summary' if i == len(raw_slides) - 1 else 'bullets')
+                layout  = _detect_slide_layout(s.get('title', ''), i, len(raw_slides))
                 slide   = Slide.objects.create(
                     presentation=deck,
                     order=i,
@@ -5134,7 +5156,7 @@ def presentation_api(request):
             for i, s in enumerate(raw_slides):
                 bullets = s.get('bullets', [])
                 content = '\n'.join(bullets)
-                layout = 'title' if i == 0 else ('summary' if i == len(raw_slides) - 1 else 'bullets')
+                layout = _detect_slide_layout(s.get('title', ''), i, len(raw_slides))
                 slide = Slide.objects.create(
                     presentation=deck, order=i, layout=layout,
                     title=s.get('title', ''), content=content,
@@ -5393,7 +5415,7 @@ def presentation_generate_from_doc(request):
         for i, s in enumerate(raw_slides):
             bullets = s.get('bullets', [])
             content = '\n'.join(bullets)
-            layout = 'title' if i == 0 else ('summary' if i == len(raw_slides) - 1 else 'bullets')
+            layout = _detect_slide_layout(s.get('title', ''), i, len(raw_slides))
             slide = Slide.objects.create(
                 presentation=deck,
                 order=i,
@@ -5509,7 +5531,7 @@ def presentation_from_youtube(request):
         created = []
         for i, s in enumerate(raw_slides):
             content = '\n'.join(s.get('bullets', []))
-            layout  = 'title' if i == 0 else ('summary' if i == len(raw_slides) - 1 else 'bullets')
+            layout  = _detect_slide_layout(s.get('title', ''), i, len(raw_slides))
             slide   = Slide.objects.create(
                 presentation=deck, order=i, layout=layout,
                 title=s.get('title', ''), content=content,
