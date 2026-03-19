@@ -1,5 +1,5 @@
-"""
-Error handler views for School Portal SaaS
+﻿"""
+Error handler views for Portals
 Handles custom 400, 403, 404, and 500 error pages
 """
 

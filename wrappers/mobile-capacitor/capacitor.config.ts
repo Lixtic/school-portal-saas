@@ -12,7 +12,7 @@ const isLocalUrl = serverUrl.startsWith('http://localhost') || serverUrl.startsW
 
 const config: CapacitorConfig = {
   appId: 'com.lixtic.schoolportal',
-  appName: 'School Portal',
+  appName: 'Portals',
   webDir: 'www',
   server: {
     url: serverUrl,

@@ -5,13 +5,32 @@
 
 {% block content %}
 <style>
-    /* Minimalist Signup Page */
+    /* ─── Portals Brand Tokens (Swiss palette) ─── */
+    :root {
+        --portals-black:  #0A0A0A;
+        --portals-white:  #FAFAFA;
+        --portals-red:    #D92B2B;
+        --portals-red-dk: #B01E1E;
+        --portals-gray1:  #F2F2F0;
+        --portals-gray2:  #E0DFD8;
+        --portals-gray3:  #AEADA5;
+        --portals-gray4:  #6B6A63;
+        --portals-gray5:  #3A3935;
+        /* override base vars so crispy forms inherit brand */
+        --primary-brand:  #D92B2B;
+        --primary-accent: #B01E1E;
+    }
+    [data-bs-theme="dark"] {
+        --portals-gray1:  #141414;
+        --portals-gray2:  #222220;
+        --portals-gray4:  #8A8980;
+    }
     .signup-container {
         min-height: calc(100vh - 76px);
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--surface-bg);
+        background: var(--portals-gray1);
         padding: 2rem 1rem;
     }
 
@@ -27,29 +46,39 @@
 
     .signup-header h1 {
         font-size: 2rem;
-        font-weight: 700;
-        color: var(--text-main);
+        font-weight: 900;
+        color: var(--portals-black);
         margin-bottom: 0.5rem;
-        letter-spacing: -0.5px;
+        letter-spacing: -0.04em;
+    }
+
+    [data-bs-theme="dark"] .signup-header h1 {
+        color: var(--portals-white);
     }
 
     .signup-header p {
         font-size: 1rem;
-        color: var(--text-muted);
+        color: var(--portals-gray4);
         margin: 0;
     }
 
     /* Form styling */
     .signup-form {
-        background: var(--surface-card);
-        border-radius: 12px;
+        background: var(--portals-white);
+        border-radius: 2px;
         padding: 0;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px var(--portals-gray2);
+    }
+
+    [data-bs-theme="dark"] .signup-form {
+        background: #1A1A1A;
+        box-shadow: none;
+        border: 1px solid rgba(255,255,255,0.06);
     }
 
     .form-group-section {
         padding: 1.5rem;
-        border-bottom: 1px solid rgba(0,0,0,0.05);
+        border-bottom: 1px solid var(--portals-gray2);
     }
 
     .form-group-section:last-child {
@@ -57,11 +86,11 @@
     }
 
     .form-group-section h6 {
-        font-size: 0.85rem;
-        font-weight: 600;
+        font-size: 0.72rem;
+        font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: var(--text-muted);
+        letter-spacing: 0.08em;
+        color: var(--portals-gray4);
         margin-bottom: 1.25rem;
     }
 
@@ -75,17 +104,17 @@
     }
 
     .form-control {
-        border: 1px solid rgba(0,0,0,0.08);
-        border-radius: 8px;
+        border: 1px solid var(--portals-gray2);
+        border-radius: 2px;
         padding: 0.75rem 1rem;
         font-size: 0.95rem;
         background: transparent;
-        transition: all 0.2s ease;
+        transition: all 0.15s ease;
     }
 
     .form-control:focus {
-        border-color: var(--primary-brand);
-        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        border-color: var(--portals-red);
+        box-shadow: 0 0 0 3px rgba(217, 43, 43, 0.1);
         outline: none;
     }
 
@@ -94,11 +123,15 @@
     }
 
     .form-label {
-        font-size: 0.9rem;
-        font-weight: 500;
-        color: var(--text-main);
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--portals-gray5);
         margin-bottom: 0.4rem;
         display: block;
+    }
+
+    [data-bs-theme="dark"] .form-label {
+        color: var(--portals-gray4);
     }
 
     .requiredField::after {
@@ -116,8 +149,8 @@
 
     .url-input-group input {
         flex: 1;
-        font-weight: 600;
-        color: var(--primary-brand);
+        font-weight: 700;
+        color: var(--portals-red);
         font-size: 1rem;
         letter-spacing: 0.3px;
     }
@@ -152,23 +185,23 @@
 
     /* File upload styling - minimalist */
     .file-upload-zone {
-        border: 1px dashed rgba(0,0,0,0.1);
-        border-radius: 8px;
+        border: 1px dashed var(--portals-gray3);
+        border-radius: 2px;
         padding: 1.25rem;
         text-align: center;
-        background: rgba(0,0,0,0.01);
-        transition: all 0.2s ease;
+        background: rgba(0,0,0,0.015);
+        transition: all 0.15s ease;
         cursor: pointer;
     }
 
     .file-upload-zone:hover {
-        border-color: var(--primary-brand);
-        background: rgba(67, 97, 238, 0.05);
+        border-color: var(--portals-red);
+        background: rgba(217, 43, 43, 0.04);
     }
 
     .file-upload-zone i {
         font-size: 1.5rem;
-        color: var(--primary-brand);
+        color: var(--portals-red);
         display: block;
         margin-bottom: 0.5rem;
     }
@@ -195,26 +228,29 @@
     .submit-btn {
         width: 100%;
         padding: 0.875rem 1.5rem;
-        background: var(--primary-brand);
+        background: var(--portals-red);
         color: white;
         border: none;
-        border-radius: 8px;
-        font-size: 1rem;
-        font-weight: 600;
+        border-radius: 2px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all 0.15s ease;
         margin-top: 1.5rem;
     }
 
     .submit-btn:hover {
-        background: var(--primary-accent);
+        background: var(--portals-red-dk);
         transform: translateY(-1px);
+        box-shadow: 0 8px 20px rgba(217, 43, 43, 0.25);
     }
 
     .submit-btn:active {
         transform: translateY(0);
+        box-shadow: none;
     }
-
     .submit-btn.loading {
         opacity: 0.7;
         pointer-events: none;
@@ -229,9 +265,9 @@
     }
 
     .signup-footer a {
-        color: var(--primary-brand);
+        color: var(--portals-red);
         text-decoration: none;
-        font-weight: 500;
+        font-weight: 600;
     }
 
     .signup-footer a:hover {
@@ -243,15 +279,22 @@
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
-        color: var(--text-muted);
+        color: var(--portals-gray4);
         text-decoration: none;
-        font-size: 0.95rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
         margin-bottom: 2rem;
-        transition: color 0.2s ease;
+        transition: color 0.15s ease;
     }
 
     .back-link:hover {
-        color: var(--text-main);
+        color: var(--portals-black);
+    }
+
+    [data-bs-theme="dark"] .back-link:hover {
+        color: var(--portals-white);
     }
 
     /* Error styling */
@@ -271,25 +314,24 @@
         border-color: #ef4444;
     }
 
-    /* Dark mode */
     [data-bs-theme="dark"] .form-control {
         border-color: rgba(255,255,255,0.1);
-        color: white;
+        color: var(--portals-white);
     }
 
     [data-bs-theme="dark"] .form-control:focus {
-        border-color: var(--primary-brand);
-        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+        border-color: var(--portals-red);
+        box-shadow: 0 0 0 3px rgba(217, 43, 43, 0.15);
     }
 
     [data-bs-theme="dark"] .file-upload-zone {
         background: rgba(255,255,255,0.02);
-        border-color: rgba(255,255,255,0.1);
+        border-color: rgba(255,255,255,0.12);
     }
 
     [data-bs-theme="dark"] .file-upload-zone:hover {
-        border-color: var(--primary-brand);
-        background: rgba(67, 97, 238, 0.08);
+        border-color: var(--portals-red);
+        background: rgba(217, 43, 43, 0.08);
     }
 
     [data-bs-theme="dark"] .signup-form {
@@ -306,7 +348,7 @@
         <div class="signup-header">
             <h1>Apply for School Access</h1>
             <p>Fill in your school details below. Your application will be reviewed within 1–2 business days, then you'll receive login credentials by email.</p>
-            <a href="{% url 'tenants:pricing' %}" class="d-inline-flex align-items-center gap-1 mt-2" style="font-size:0.85rem;color:var(--primary-brand);text-decoration:none;">
+            <a href="{% url 'tenants:pricing' %}" class="d-inline-flex align-items-center gap-1 mt-2" style="font-size:0.85rem;color:var(--portals-red);text-decoration:none;">
                 <i class="bi bi-tags"></i> View pricing plans
             </a>
         </div>
@@ -536,8 +578,8 @@
                     if (this.files.length > 0) {
                         const fileName = this.files[0].name;
                         zone.querySelector('.upload-label').textContent = fileName;
-                        zone.style.borderColor = 'var(--primary-brand)';
-                        zone.style.background = 'rgba(67, 97, 238, 0.05)';
+                        zone.style.borderColor = 'var(--portals-red)';
+                        zone.style.background = 'rgba(217, 43, 43, 0.05)';
                     }
                 });
             }

@@ -1,7 +1,7 @@
-# 🎨 Customized Error Pages Documentation
+﻿# 🎨 Customized Error Pages Documentation
 
 ## Overview
-School Portal SaaS now has professionally designed, fully responsive error pages that match the modern glass-morphism design system. All error pages support dark mode and are mobile-optimized.
+Portals now has professionally designed, fully responsive error pages that match the modern glass-morphism design system. All error pages support dark mode and are mobile-optimized.
 
 ## Error Pages Created
 

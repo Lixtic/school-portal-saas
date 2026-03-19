@@ -19,7 +19,7 @@ def school_info(request):
         
     if not info:
         # Check if we are in a tenant context
-        tenant_name = "School Portal"
+        tenant_name = "Portals"
         if hasattr(request, 'tenant') and request.tenant.schema_name != 'public':
             tenant_name = request.tenant.name
 

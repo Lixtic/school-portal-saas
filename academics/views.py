@@ -42,7 +42,7 @@ def about_us(request):
     return render(request, 'academics/about_us.html', context)
 
 def system_about(request):
-    """About the School Portal SaaS system"""
+    """About the Portals system"""
     return render(request, 'academics/system_about.html')
 
 def apply_admission(request):
@@ -3014,7 +3014,7 @@ def timetable_conflicts(request):
 
 HELP_ROLE_PROMPTS = {
     'admin': (
-        "You help school admins use the School Management System.\n"
+        "You help school admins use the Portals.\n"
         "Key sections they manage:\n"
         "- Students: enroll, edit, import via CSV, promote, view report cards\n"
         "- Teachers: add, edit, assign classes\n"
@@ -3029,7 +3029,7 @@ HELP_ROLE_PROMPTS = {
         "- AI Tools: Aura AI tutor for students, teacher AI lesson assistant\n"
     ),
     'teacher': (
-        "You help teachers use the School Management System.\n"
+        "You help teachers use the Portals.\n"
         "Key features available:\n"
         "- Enter Grades: input class scores and exam scores; system auto-calculates totals\n"
         "- My Classes: see assigned subjects and classes\n"
@@ -3044,7 +3044,7 @@ HELP_ROLE_PROMPTS = {
         "- Analytics: view class performance insights and at-risk students\n"
     ),
     'student': (
-        "You help students use the School Management System.\n"
+        "You help students use the Portals.\n"
         "Key features available:\n"
         "- Dashboard: quick overview of grades, attendance, upcoming homework\n"
         "- Report Card: view term report cards\n"
@@ -3057,7 +3057,7 @@ HELP_ROLE_PROMPTS = {
         "- Messages: communicate with teachers and staff\n"
     ),
     'parent': (
-        "You help parents use the School Management System.\n"
+        "You help parents use the Portals.\n"
         "Key features available:\n"
         "- My Children: view profile, attendance, and grades for each child\n"
         "- Fees: check fee balances, payment history, and download receipts\n"
@@ -3124,7 +3124,7 @@ def help_chat_api(request):
         school_name = 'your school'
 
     system_prompt = (
-        f"You are the friendly help assistant for {school_name}'s School Management System. "
+        f"You are the friendly help assistant for {school_name}'s Portals. "
         f"Your job is to guide users step-by-step.\n\n"
         f"{role_context}\n"
         "Rules:\n"

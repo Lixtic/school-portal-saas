@@ -1,4 +1,4 @@
-# Email Notification Configuration Guide
+﻿# Email Notification Configuration Guide
 
 ## Overview
 The school approval workflow automatically sends email notifications for:
@@ -41,7 +41,7 @@ EMAIL_PORT=587
 EMAIL_USE_TLS=True
 EMAIL_HOST_USER=your_brevo_login_email
 EMAIL_HOST_PASSWORD=your_smtp_key
-DEFAULT_FROM_EMAIL=School Portal <noreply@yourdomain.com>
+DEFAULT_FROM_EMAIL=Portals <noreply@yourdomain.com>
 ```
 
 ### Option 2: Gmail SMTP
@@ -56,7 +56,7 @@ EMAIL_PORT=587
 EMAIL_USE_TLS=True
 EMAIL_HOST_USER=your_email@gmail.com
 EMAIL_HOST_PASSWORD=your_app_password
-DEFAULT_FROM_EMAIL=School Portal <your_email@gmail.com>
+DEFAULT_FROM_EMAIL=Portals <your_email@gmail.com>
 ```
 
 ### Option 3: SendGrid
@@ -67,7 +67,7 @@ EMAIL_PORT=587
 EMAIL_USE_TLS=True
 EMAIL_HOST_USER=apikey
 EMAIL_HOST_PASSWORD=your_sendgrid_api_key
-DEFAULT_FROM_EMAIL=School Portal <verified_sender@yourdomain.com>
+DEFAULT_FROM_EMAIL=Portals <verified_sender@yourdomain.com>
 ```
 
 ### Option 4: AWS SES
@@ -78,7 +78,7 @@ EMAIL_PORT=587
 EMAIL_USE_TLS=True
 EMAIL_HOST_USER=your_ses_smtp_username
 EMAIL_HOST_PASSWORD=your_ses_smtp_password
-DEFAULT_FROM_EMAIL=School Portal <verified@yourdomain.com>
+DEFAULT_FROM_EMAIL=Portals <verified@yourdomain.com>
 ```
 
 ## Vercel Environment Variables
@@ -91,7 +91,7 @@ EMAIL_PORT=587
 EMAIL_USE_TLS=True
 EMAIL_HOST_USER=your_username
 EMAIL_HOST_PASSWORD=your_password
-DEFAULT_FROM_EMAIL=School Portal <noreply@yourdomain.com>
+DEFAULT_FROM_EMAIL=Portals <noreply@yourdomain.com>
 ```
 
 **Important**: Do NOT set `EMAIL_BACKEND_TYPE` in production (it defaults to SMTP).

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell } = require('electron');
+﻿const { app, BrowserWindow, shell } = require('electron');
 const path = require('path');
 
 const APP_ENV = process.env.SCHOOL_PORTAL_ENV || 'development';
@@ -16,7 +16,7 @@ function createWindow() {
     height: 840,
     minWidth: 1024,
     minHeight: 680,
-    title: 'School Portal',
+    title: 'Portals',
     backgroundColor: '#f4f8f7',
     autoHideMenuBar: true,
     webPreferences: {

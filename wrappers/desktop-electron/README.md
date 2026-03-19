@@ -1,6 +1,6 @@
-# Desktop Wrapper (Electron)
+﻿# Desktop Wrapper (Electron)
 
-This is a lightweight desktop shell for the School Portal web app.
+This is a lightweight desktop shell for the Portals web app.
 
 ## Quick start
 

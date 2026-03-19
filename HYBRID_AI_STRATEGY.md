@@ -1,5 +1,5 @@
-
-# Hybrid AI Architecture Plan for School Management System
+﻿
+# Hybrid AI Architecture Plan for Portals
 
 ## Overview
 This document outlines the strategy for moving towards a hybrid AI architecture where:

@@ -1,5 +1,5 @@
 """
-SMS utility for School Portal SaaS.
+SMS utility for Portals.
 Uses Africa's Talking as the SMS gateway.
 
 Required env vars (set in .env or Vercel / Railway dashboard):
@@ -30,7 +30,7 @@ def send_sms(recipients: list[str], message: str, sender_id: str = '') -> dict:
     Usage::
 
         from announcements.sms_service import send_sms
-        result = send_sms(['+233201234567'], 'Hello from School Portal!')
+        result = send_sms(['+233201234567'], 'Hello from Portals!')
     """
     username = getattr(settings, 'AFRICASTALKING_USERNAME', 'sandbox')
     api_key  = getattr(settings, 'AFRICASTALKING_API_KEY',  '')

@@ -1,6 +1,6 @@
-# Mobile Wrapper (Capacitor)
+﻿# Mobile Wrapper (Capacitor)
 
-This wrapper packages the School Portal web app for Android and iOS.
+This wrapper packages the Portals web app for Android and iOS.
 
 ## Quick start
 

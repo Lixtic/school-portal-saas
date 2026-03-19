@@ -1,4 +1,4 @@
-# Cascaded Speech-to-Speech (S2S) Implementation Plan
+﻿# Cascaded Speech-to-Speech (S2S) Implementation Plan
 
 ## Overview
 This document outlines the architecture for a Django-integrated S2S pipeline (ASR -> LLM -> TTS) using specific models:
@@ -137,7 +137,7 @@ For true "Talk to Aura" experience:
     -   *Workaround*: Sentence-level buffering. Send each sentence from Llama 3 to TTS immediately.
     -   *Library*: `miniaudio` or `pyaudio` on client to play chunks.
 
-## Recommendation for School Management System
+## Recommendation for Portals
 Start with **Option B (HF Endpoints)** via a Django View. It keeps the codebase simple and avoids managing complex GPU infrastructure/deployments.
 1.  Add `huggingface_hub` to `requirements.txt`.
 2.  Create `teachers/views_ai.py`.

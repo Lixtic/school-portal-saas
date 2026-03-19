@@ -1,4 +1,4 @@
-"""
+﻿"""
 Test ID card generation with mock data (no database required)
 """
 from io import BytesIO
@@ -60,7 +60,7 @@ def generate_sample_student_id_card(name="John Doe", student_id=1001, class_name
     
     # Header text
     draw.text((card_width // 2 - 80, 35), "STUDENT ID CARD", fill='white', font=title_font)
-    draw.text((card_width // 2 - 100, 70), "SchoolPortal", fill='white', font=small_font)
+    draw.text((card_width // 2 - 100, 70), "Portals", fill='white', font=small_font)
     
     # Student information
     draw.text((text_x, text_y), "NAME", fill=(100, 116, 139), font=label_font)
@@ -148,7 +148,7 @@ def generate_sample_teacher_id_card(name="Jane Smith", teacher_id=2001, subjects
     
     # Header text
     draw.text((card_width // 2 - 70, 35), "TEACHER ID CARD", fill='white', font=title_font)
-    draw.text((card_width // 2 - 100, 70), "SchoolPortal", fill='white', font=small_font)
+    draw.text((card_width // 2 - 100, 70), "Portals", fill='white', font=small_font)
     
     # Teacher information
     draw.text((text_x, text_y), "NAME", fill=(100, 116, 139), font=label_font)

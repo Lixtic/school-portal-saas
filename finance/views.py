@@ -676,7 +676,7 @@ def initiate_paystack_payment(request, fee_id):
     callback_url = request.build_absolute_uri(_rev('finance:paystack_callback'))
 
     payload = {
-        'email': email or f"student{fee.student.id}@schoolportal.app",
+        'email': email or f"student{fee.student.id}@Portals.app",
         'amount': amount_minor,
         'currency': getattr(settings, 'PAYSTACK_CURRENCY', 'GHS'),
         'reference': reference,

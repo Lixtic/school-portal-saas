@@ -1,4 +1,4 @@
-const SW_VERSION = 'v3';
+﻿const SW_VERSION = 'v3';
 const STATIC_CACHE = `school-static-${SW_VERSION}`;
 const RUNTIME_CACHE = `school-runtime-${SW_VERSION}`;
 const OFFLINE_URL = '/offline/';
@@ -121,7 +121,7 @@ self.addEventListener('message', (event) => {
 // ── Web Push Handlers ──────────────────────────────────────────────────────
 
 self.addEventListener('push', (event) => {
-  let data = { title: 'School Portal', body: 'You have a new notification.', url: '/' };
+  let data = { title: 'Portals', body: 'You have a new notification.', url: '/' };
   if (event.data) {
     try {
       data = Object.assign(data, JSON.parse(event.data.text()));

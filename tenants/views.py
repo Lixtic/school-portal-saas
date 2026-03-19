@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect, get_object_or_404
+﻿from django.shortcuts import render, redirect, get_object_or_404
 from django.db import transaction, connection, models
 from django.db.models import Sum, Avg, Count
 from django.contrib.auth.decorators import user_passes_test
@@ -263,7 +263,7 @@ def school_setup_wizard(request):
         return redirect('dashboard')
     # Ensure user is on a tenant schema (not public)
     if hasattr(request, 'tenant') and request.tenant.schema_name == 'public':
-        messages.error(request, "This page is only accessible from school portals.")
+        messages.error(request, "This page is only accessible from Portalss.")
         return redirect('home')
     
     # Check if already configured

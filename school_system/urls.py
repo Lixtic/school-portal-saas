@@ -1,4 +1,4 @@
-from django.contrib import admin
+﻿from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
@@ -26,9 +26,9 @@ def sw_view(request):
             return response
     raise Http404('sw.js not found')
 
-admin.site.site_header = "School Portal Administration"
+admin.site.site_header = "Portals Administration"
 admin.site.site_title = "School Admin"
-admin.site.index_title = "Welcome to School Management System"
+admin.site.index_title = "Welcome to Portals"
 
 
 urlpatterns = [

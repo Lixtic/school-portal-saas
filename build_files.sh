@@ -2,7 +2,7 @@
 
 # Build script for Vercel deployment with tenant migrations
 echo "=========================================="
-echo "Building School Portal SaaS"
+echo "Building Portals"
 echo "=========================================="
 
 # Install dependencies

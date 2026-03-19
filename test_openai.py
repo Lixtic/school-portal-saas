@@ -1,4 +1,4 @@
-"""
+﻿"""
 Quick test script to verify OpenAI API integration
 Run: python test_openai.py
 """
@@ -38,7 +38,7 @@ def test_openai_setup():
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": "Say 'Hello from School Portal!' in one sentence."}
+                {"role": "user", "content": "Say 'Hello from Portals!' in one sentence."}
             ],
             max_tokens=50
         )

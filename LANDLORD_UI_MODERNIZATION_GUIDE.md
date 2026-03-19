@@ -1,4 +1,4 @@
-# Platform Command Center - UI Modernization Implementation Guide
+﻿# Platform Command Center - UI Modernization Implementation Guide
 
 ## Overview
 This guide provides step-by-step instructions to modernize the landlord/SaaS admin back office from a fragmented design system (12 inconsistent pages, monolithic CSS, performance issues) to a cohesive, performant, accessible admin dashboard.
@@ -270,7 +270,7 @@ This guide provides step-by-step instructions to modernize the landlord/SaaS adm
 ```django
 {% extends 'admin/admin_base.html' %}
 
-{% block title %}Platform Dashboard - School Management System{% endblock %}
+{% block title %}Platform Dashboard - Portals{% endblock %}
 
 {% block admin_content %}
 <div class="landlord-dashboard">
