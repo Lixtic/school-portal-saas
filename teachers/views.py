@@ -6379,7 +6379,7 @@ def my_fee_tasks(request):
                     _Decimal('0'),
                 ),
             )
-            .order_by('-id')
+            .order_by('class_level__name', '-id')
         )
     except (ProgrammingError, OperationalError):
         messages.error(
