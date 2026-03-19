@@ -385,6 +385,20 @@ SESSION_COOKIE_AGE = 30 * 24 * 60 * 60  # 30 days in seconds
 SESSION_COOKIE_HTTPONLY = True   # block JS access (XSS protection)
 SESSION_COOKIE_SAMESITE  = 'Lax' # prevent cross-site request leakage
 
+# Only force secure cookies when running behind a known HTTPS platform
+# (Vercel/Railway) or when explicitly requested via env var.
+_running_on_hosted_https = bool(
+    os.environ.get('VERCEL')
+    or os.environ.get('RAILWAY_ENVIRONMENT')
+    or os.environ.get('RAILWAY_ENVIRONMENT_NAME')
+    or os.environ.get('RAILWAY_PROJECT_ID')
+)
+_force_secure_cookies = os.environ.get('FORCE_SECURE_COOKIES', '').lower() in ('1', 'true', 'yes', 'on')
+_use_secure_cookies = (not DEBUG) and (_running_on_hosted_https or _force_secure_cookies)
+
+SESSION_COOKIE_SECURE = _use_secure_cookies
+CSRF_COOKIE_SECURE = _use_secure_cookies
+
 # =====================
 # VERCEL / PRODUCTION SECURITY
 # =====================
@@ -395,11 +409,6 @@ if not DEBUG:
     # Security headers
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-
-    # Vercel / Railway handle HTTPS at the edge; SECURE_PROXY_SSL_HEADER
-    # allows request.is_secure() to work correctly behind the reverse proxy.
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
 # =====================
 # ERROR HANDLER CONFIGURATION
 # =====================

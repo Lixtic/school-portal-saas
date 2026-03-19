@@ -360,6 +360,22 @@ def homepage(request):
         return render(request, 'home.html', context)
 
 def login_view(request):
+    # If login is hit on the public path with a tenant-scoped next URL,
+    # bounce to the tenant-prefixed login so auth/session checks run in
+    # the correct tenant context from the start.
+    if not request.META.get('SCRIPT_NAME'):
+        next_hint = request.GET.get('next') or request.POST.get('next', '')
+        if next_hint.startswith('/'):
+            next_parts = next_hint.strip('/').split('/')
+            tenant_hint = next_parts[0] if next_parts else ''
+            if tenant_hint:
+                from tenants.models import School
+                tenant_exists = School.objects.filter(schema_name=tenant_hint, is_active=True).exists()
+                if tenant_exists:
+                    from urllib.parse import quote
+                    encoded_next = quote(next_hint, safe='/?:=&')
+                    return redirect(f'/{tenant_hint}/login/?next={encoded_next}')
+
     if request.user.is_authenticated:
         # If there's a safe next URL, go there; otherwise go to dashboard.
         next_url = request.GET.get('next') or request.POST.get('next', '')
