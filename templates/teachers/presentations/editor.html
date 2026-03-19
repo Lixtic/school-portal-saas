@@ -762,6 +762,9 @@ html, body { height: 100%; margin: 0; }
     <a href="{% url 'teachers:presentation_present' deck.pk %}" target="_blank" class="gm-present-btn">
       <i class="fas fa-play"></i> Present
     </a>
+    <button class="gm-present-btn" style="background:rgba(52,211,153,.15);color:#34d399;border:1px solid rgba(52,211,153,.25);margin-left:4px;" onclick="presentFromHere()" title="Present from current slide (Shift+F5)">
+      <i class="fas fa-forward"></i> From here
+    </button>
   </div>
 
   <!-- BODY -->
@@ -1088,6 +1091,7 @@ html, body { height: 100%; margin: 0; }
       <div style="display:flex;align-items:center;gap:.4rem;padding:.35rem 0;"><kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">Delete</kbd><span style="color:#94a3b8;font-size:.78rem;">Delete slide</span></div>
       <div style="display:flex;align-items:center;gap:.4rem;padding:.35rem 0;"><kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">Ctrl</kbd>+<kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">Z</kbd><span style="color:#94a3b8;font-size:.78rem;">Undo AI generation</span></div>
       <div style="display:flex;align-items:center;gap:.4rem;padding:.35rem 0;"><kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">F5</kbd><span style="color:#94a3b8;font-size:.78rem;">Present slideshow</span></div>
+      <div style="display:flex;align-items:center;gap:.4rem;padding:.35rem 0;"><kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">Shift</kbd>+<kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">F5</kbd><span style="color:#94a3b8;font-size:.78rem;">Present from current slide</span></div>
       <div style="display:flex;align-items:center;gap:.4rem;padding:.35rem 0;"><kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">Ctrl</kbd>+<kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">E</kbd><span style="color:#94a3b8;font-size:.78rem;">Focus slide title</span></div>
       <div style="display:flex;align-items:center;gap:.4rem;padding:.35rem 0;"><kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">?</kbd><span style="color:#94a3b8;font-size:.78rem;">Show this help</span></div>
       <div style="display:flex;align-items:center;gap:.4rem;padding:.35rem 0;"><kbd style="background:#334155;border:1px solid #475569;border-radius:4px;padding:2px 7px;font-size:.7rem;color:#e2e8f0;font-family:monospace;">Esc</kbd><span style="color:#94a3b8;font-size:.78rem;">Close modal</span></div>
@@ -1928,6 +1932,17 @@ function closeTbDrops() {
   document.querySelectorAll('.gm-tb-drop-menu.open').forEach(function(m) { m.classList.remove('open'); });
 }
 document.addEventListener('click', closeTbDrops);
+
+function presentFromHere() {
+  var idx = 0;
+  if (currentSlideId) {
+    for (var i = 0; i < slides.length; i++) {
+      if (slides[i].id === currentSlideId) { idx = i; break; }
+    }
+  }
+  var url = '{% url "teachers:presentation_present" deck.pk %}' + (idx > 0 ? '?start=' + idx : '');
+  window.open(url, '_blank');
+}
 
 function buildThumbInner(s) {
   var e = s.emoji || '';
@@ -2773,7 +2788,11 @@ document.addEventListener('keydown', function(e) {
   }
   if (e.key === 'F5') {
     e.preventDefault();
-    window.open('{% url "teachers:presentation_present" deck.pk %}', '_blank');
+    if (e.shiftKey) {
+      presentFromHere();
+    } else {
+      window.open('{% url "teachers:presentation_present" deck.pk %}', '_blank');
+    }
   }
   if (e.key === '?' || (e.shiftKey && e.key === '/')) {
     e.preventDefault();

@@ -408,6 +408,29 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 }
 .ps-laser.active { display: block; }
 
+/* ── Spotlight overlay ── */
+.ps-spotlight-overlay {
+  position: fixed; inset: 0; z-index: 7500;
+  pointer-events: none; display: none;
+  background: rgba(0,0,0,.78);
+  -webkit-mask-image: radial-gradient(circle 120px at var(--sx, 50%) var(--sy, 50%), transparent 0%, transparent 100%, black 100%);
+  mask-image: radial-gradient(circle 120px at var(--sx, 50%) var(--sy, 50%), transparent 0%, transparent 100%, black 100%);
+}
+.ps-spotlight-overlay.active { display: block; }
+
+/* ── Pace indicator ── */
+.ps-pace-ring {
+  width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,.15);
+  display: inline-flex; align-items: center; justify-content: center;
+  position: relative; margin-left: 6px; vertical-align: middle;
+}
+.ps-pace-ring svg { width: 22px; height: 22px; transform: rotate(-90deg); }
+.ps-pace-ring circle { fill: none; stroke-width: 2.5; }
+.ps-pace-ring .track { stroke: rgba(255,255,255,.1); }
+.ps-pace-ring .fill  { stroke: #34d399; stroke-dasharray: 62.83; stroke-dashoffset: 62.83; transition: stroke-dashoffset .8s ease, stroke .3s; }
+.ps-pace-ring .fill.warn  { stroke: #fbbf24; }
+.ps-pace-ring .fill.over  { stroke: #ef4444; }
+
 /* ── Draw overlay ── */
 .ps-draw-canvas {
   position: fixed; inset: 0; z-index: 8000;
@@ -450,6 +473,27 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
   padding: 2px 9px; cursor: pointer; transition: background .12s;
 }
 .ps-clear-btn:hover { background: rgba(239,68,68,.3); }
+.ps-eraser-btn {
+  background: rgba(148,163,184,.15); border: 1px solid rgba(148,163,184,.25);
+  color: #94a3b8; border-radius: 6px; font-size: .65rem; font-weight: 700;
+  padding: 2px 9px; cursor: pointer; transition: background .12s;
+}
+.ps-eraser-btn:hover { background: rgba(148,163,184,.3); color: #f1f5f9; }
+.ps-eraser-btn.active { background: rgba(148,163,184,.35); color: #fff; border-color: rgba(148,163,184,.5); }
+.ps-undo-btn {
+  background: rgba(99,102,241,.15); border: 1px solid rgba(99,102,241,.25);
+  color: #818cf8; border-radius: 6px; font-size: .65rem; font-weight: 700;
+  padding: 2px 9px; cursor: pointer; transition: background .12s;
+}
+.ps-undo-btn:hover { background: rgba(99,102,241,.3); color: #f1f5f9; }
+
+/* ── Bookmark indicator ── */
+.ps-bookmark-btn.bookmarked { color: #fbbf24 !important; text-shadow: 0 0 6px rgba(251,191,36,.4); }
+.ps-ov-wrap.bookmarked::after {
+  content: '\2605'; position: absolute; top: 4px; right: 6px;
+  font-size: .8rem; color: #fbbf24; text-shadow: 0 0 4px rgba(251,191,36,.5);
+  z-index: 1;
+}
 
 /* ── Slide overview ── */
 .ps-overview {
@@ -639,6 +683,10 @@ body.presenter-mode .pv-panel { display: flex; }
         <tr><td>B</td><td>Toggle bullet reveal</td></tr>
         <tr><td>V</td><td>Voice narration</td></tr>
         <tr><td>R</td><td>Reveal quiz answer</td></tr>
+        <tr><td>M</td><td>Bookmark current slide</td></tr>
+        <tr><td>S</td><td>Spotlight mode</td></tr>
+        <tr><td>E</td><td>Toggle eraser (draw mode)</td></tr>
+        <tr><td>Ctrl+Z</td><td>Undo drawing stroke</td></tr>
         <tr><td>?</td><td>Show shortcuts</td></tr>
         <tr><td>P</td><td>Open Presenter View</td></tr>
         <tr><td>Q</td><td>QR code share</td></tr>
@@ -664,6 +712,8 @@ body.presenter-mode .pv-panel { display: flex; }
     <span class="ps-ctrl-interval" id="autoIntervalDisplay" onclick="cycleAutoInterval()" title="Click to change interval">30s</span>
     <button class="ps-ctrl-btn" onclick="toggleLaser()" title="Laser pointer (L)" id="laserBtn"><i class="fas fa-circle" style="color:#f87171;font-size:.55rem;"></i></button>
     <button class="ps-ctrl-btn" onclick="toggleDraw()" title="Draw (D)" id="drawBtn"><i class="fas fa-pen"></i></button>
+    <button class="ps-ctrl-btn" onclick="toggleBookmark()" title="Bookmark slide (M)" id="bookmarkBtn"><i class="fas fa-star"></i></button>
+    <button class="ps-ctrl-btn" onclick="toggleSpotlight()" title="Spotlight (S)" id="spotlightBtn"><i class="fas fa-bullseye"></i></button>
     <button class="ps-ctrl-btn active" onclick="toggleBulletReveal()" title="Bullet reveal (B)" id="bulletRevealBtn"><i class="fas fa-list-ol"></i></button>
     <div style="width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 4px;"></div>
     <button class="ps-ctrl-btn" onclick="toggleFullscreen()" title="Fullscreen (F)" id="fsBtn"><i class="fas fa-expand" id="fsIcon"></i></button>
@@ -680,19 +730,24 @@ body.presenter-mode .pv-panel { display: flex; }
     <i class="fas fa-times"></i> Exit
   </a>
 
-  <!-- Slide timer -->
   <div class="ps-timer" id="slideTimer">
     <span class="ps-timer-icon">&#9201;</span>
     <span id="timerDisplay">0:00</span>
+    <span class="ps-pace-ring" id="paceRing" title="Slide pace ({{ pace_seconds|default:60 }}s target)">
+      <svg viewBox="0 0 22 22"><circle class="track" cx="11" cy="11" r="10"/><circle class="fill" id="paceFill" cx="11" cy="11" r="10"/></svg>
+    </span>
     <span class="ps-total-timer" id="totalTimerDisplay" title="Total presentation time">0:00</span>
   </div>
 
   <!-- Laser pointer dot -->
   <div class="ps-laser" id="laserDot"></div>
 
+  <!-- Spotlight overlay -->
+  <div class="ps-spotlight-overlay" id="spotlightOverlay"></div>
+
   <!-- Drawing canvas -->
   <canvas class="ps-draw-canvas" id="drawCanvas"></canvas>
-  <div class="ps-draw-label" id="drawLabel">&#9998; Drawing mode &mdash; D to exit, C to clear</div>
+  <div class="ps-draw-label" id="drawLabel">&#9998; Drawing mode &mdash; D exit, E eraser, C clear, Ctrl+Z undo</div>
   <div class="ps-draw-toolbar" id="drawToolbar">
     <button class="ps-col-btn sel" data-color="#ef4444" style="background:#ef4444;" onclick="setDrawColor(this,'#ef4444')" title="Red"></button>
     <button class="ps-col-btn" data-color="#f59e0b" style="background:#f59e0b;" onclick="setDrawColor(this,'#f59e0b')" title="Amber"></button>
@@ -702,6 +757,8 @@ body.presenter-mode .pv-panel { display: flex; }
     <button class="ps-sz-btn" onclick="setDrawSize(4)">S</button>
     <button class="ps-sz-btn" onclick="setDrawSize(7)">M</button>
     <button class="ps-sz-btn" onclick="setDrawSize(12)">L</button>
+    <button class="ps-eraser-btn" id="eraserBtn" onclick="toggleEraser()">&#9986; Eraser</button>
+    <button class="ps-undo-btn" onclick="undoDraw()" title="Undo (Ctrl+Z)">&#8617; Undo</button>
     <button class="ps-clear-btn" onclick="clearDraw()">&#10005; Clear</button>
   </div>
 
@@ -797,6 +854,8 @@ var DECK_TRANSITION = '{{ deck.transition }}';
 var SHARE_URL = '{{ share_url|escapejs }}';
 var DECK_PK = {{ deck.pk }};
 var PRESENTER_MODE = new URLSearchParams(location.search).get('presenter') === '1';
+var START_SLIDE = parseInt(new URLSearchParams(location.search).get('start')) || 0;
+var PACE_SECONDS = parseInt(new URLSearchParams(location.search).get('pace')) || 60;
 var _syncChannel = null;
 if (PRESENTER_MODE) { document.body.classList.add('presenter-mode'); }
 if (typeof BroadcastChannel !== 'undefined') {
@@ -911,6 +970,7 @@ function goTo(n) {
   allSlides[n].classList.add('active');
   current = n;
   document.getElementById('curSlide').textContent = n + 1;
+  if (typeof updateBookmarkBtn === 'function') updateBookmarkBtn();
   var pct = total > 0 ? Math.round((n + 1) / total * 100) : 100;
   document.getElementById('progressFill').style.width = pct + '%';
   // update notes
@@ -1132,6 +1192,10 @@ document.addEventListener('keydown', function(e) {
   if (e.key === 'q' || e.key === 'Q') { if (!drawMode) showQRCode(); }
   if (e.key === 'v' || e.key === 'V') toggleNarration();
   if (e.key === 'r' || e.key === 'R') revealQuizAnswer();
+  if (e.key === 'm' || e.key === 'M') toggleBookmark();
+  if (e.key === 's' || e.key === 'S') { if (!drawMode) toggleSpotlight(); }
+  if (e.key === 'e' || e.key === 'E') { if (drawMode) toggleEraser(); }
+  if (e.ctrlKey && e.key === 'z') { if (drawMode) { e.preventDefault(); undoDraw(); } }
   if (e.key === 'Home') goTo(0);
   if (e.key === 'End')  goTo(total - 1);
 });
@@ -1166,6 +1230,16 @@ function updateTimerDisplay() {
   var el = document.getElementById('slideTimer');
   el.classList.toggle('warn', slideSecondsElapsed >= 120 && slideSecondsElapsed < 300);
   el.classList.toggle('over', slideSecondsElapsed >= 300);
+  // ── Pace ring update ──
+  var paceTarget = PACE_SECONDS;
+  var paceFill = document.getElementById('paceFill');
+  if (paceFill && paceTarget > 0) {
+    var pct = Math.min(slideSecondsElapsed / paceTarget, 1);
+    var circumference = 62.83;
+    paceFill.style.strokeDashoffset = circumference * (1 - pct);
+    paceFill.classList.toggle('warn', pct >= 0.75 && pct < 1);
+    paceFill.classList.toggle('over', pct >= 1);
+  }
   // sync big timer in presenter panel
   var pv = document.getElementById('pvBigTimer');
   if (pv) {
@@ -1196,6 +1270,13 @@ goTo = function(n) {
   if (changed) startSlideTimer();
 };
 startSlideTimer();
+// ── Jump to ?start=N slide if given ──
+if (START_SLIDE > 0 && START_SLIDE < total) {
+  current = START_SLIDE;
+  var allSlidesInit = document.querySelectorAll('.ps-slide');
+  allSlidesInit.forEach(function(s, i) { s.classList.toggle('active', i === current); });
+  startSlideTimer();
+}
 // Activate video on first slide if applicable
 (function() { var vw = document.querySelector('.ps-slide.active .sl-video-wrap[data-video]'); if (vw) activateVideo(vw); })();
 // Initialize bullet reveal for first slide
@@ -1234,6 +1315,9 @@ var drawCtx = drawCanvas.getContext('2d');
 var drawColor = '#ef4444';
 var drawSize  = 4;
 var isPainting = false;
+var eraserMode = false;
+var drawUndoStack = [];
+var DRAW_UNDO_LIMIT = 30;
 function resizeCanvas() {
   var img = drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height);
   drawCanvas.width  = window.innerWidth;
@@ -1250,34 +1334,62 @@ function toggleDraw() {
   document.getElementById('drawToolbar').classList.toggle('active', drawMode);
   document.getElementById('drawBtn').classList.toggle('active', drawMode);
   if (laserMode && drawMode) toggleLaser();
+  if (spotlightMode && drawMode) toggleSpotlight();
+  if (!drawMode && eraserMode) toggleEraser();
 }
 function setDrawColor(btn, c) {
   drawColor = c;
   document.querySelectorAll('.ps-col-btn').forEach(function(b) { b.classList.remove('sel'); });
   btn.classList.add('sel');
+  if (eraserMode) toggleEraser();
 }
 function setDrawSize(sz) { drawSize = sz; }
 function clearDraw() {
+  drawUndoStack.push(drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height));
+  if (drawUndoStack.length > DRAW_UNDO_LIMIT) drawUndoStack.shift();
   drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
 }
+function toggleEraser() {
+  eraserMode = !eraserMode;
+  document.getElementById('eraserBtn').classList.toggle('active', eraserMode);
+  drawCanvas.style.cursor = eraserMode ? 'cell' : 'crosshair';
+}
+function undoDraw() {
+  if (!drawUndoStack.length) return;
+  var snap = drawUndoStack.pop();
+  drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+  drawCtx.putImageData(snap, 0, 0);
+}
+function _saveDrawSnapshot() {
+  drawUndoStack.push(drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height));
+  if (drawUndoStack.length > DRAW_UNDO_LIMIT) drawUndoStack.shift();
+}
 drawCanvas.addEventListener('mousedown', function(e) {
+  _saveDrawSnapshot();
   isPainting = true;
   drawCtx.beginPath();
   drawCtx.moveTo(e.clientX, e.clientY);
 });
 drawCanvas.addEventListener('mousemove', function(e) {
   if (!isPainting) return;
+  if (eraserMode) {
+    drawCtx.globalCompositeOperation = 'destination-out';
+    drawCtx.lineWidth = drawSize * 4;
+  } else {
+    drawCtx.globalCompositeOperation = 'source-over';
+    drawCtx.strokeStyle = drawColor;
+    drawCtx.lineWidth = drawSize;
+  }
   drawCtx.lineTo(e.clientX, e.clientY);
-  drawCtx.strokeStyle = drawColor;
-  drawCtx.lineWidth   = drawSize;
   drawCtx.lineCap = 'round'; drawCtx.lineJoin = 'round';
   drawCtx.stroke();
 });
-drawCanvas.addEventListener('mouseup',   function() { isPainting = false; });
-drawCanvas.addEventListener('mouseleave', function() { isPainting = false; });
+drawCanvas.addEventListener('mouseup',   function() { isPainting = false; drawCtx.globalCompositeOperation = 'source-over'; });
+drawCanvas.addEventListener('mouseleave', function() { isPainting = false; drawCtx.globalCompositeOperation = 'source-over'; });
 // touch drawing
 drawCanvas.addEventListener('touchstart', function(e) {
   e.preventDefault();
+  _saveDrawSnapshot();
   var t = e.touches[0];
   isPainting = true;
   drawCtx.beginPath(); drawCtx.moveTo(t.clientX, t.clientY);
@@ -1286,12 +1398,51 @@ drawCanvas.addEventListener('touchmove', function(e) {
   e.preventDefault();
   if (!isPainting) return;
   var t = e.touches[0];
+  if (eraserMode) {
+    drawCtx.globalCompositeOperation = 'destination-out';
+    drawCtx.lineWidth = drawSize * 4;
+  } else {
+    drawCtx.globalCompositeOperation = 'source-over';
+    drawCtx.strokeStyle = drawColor;
+    drawCtx.lineWidth = drawSize;
+  }
   drawCtx.lineTo(t.clientX, t.clientY);
-  drawCtx.strokeStyle = drawColor; drawCtx.lineWidth = drawSize;
   drawCtx.lineCap = 'round'; drawCtx.lineJoin = 'round';
   drawCtx.stroke();
 }, { passive: false });
-drawCanvas.addEventListener('touchend', function() { isPainting = false; });
+drawCanvas.addEventListener('touchend', function() { isPainting = false; drawCtx.globalCompositeOperation = 'source-over'; });
+
+// ── Slide bookmarking ────────────────────────────────────────────────────────
+var bookmarkedSlides = {};
+function toggleBookmark() {
+  var idx = current;
+  if (bookmarkedSlides[idx]) {
+    delete bookmarkedSlides[idx];
+  } else {
+    bookmarkedSlides[idx] = true;
+  }
+  updateBookmarkBtn();
+}
+function updateBookmarkBtn() {
+  var btn = document.getElementById('bookmarkBtn');
+  btn.classList.toggle('ps-bookmark-btn', true);
+  btn.classList.toggle('bookmarked', !!bookmarkedSlides[current]);
+}
+
+// ── Spotlight mode ────────────────────────────────────────────────────────────
+var spotlightMode = false;
+var spotlightOverlay = document.getElementById('spotlightOverlay');
+function toggleSpotlight() {
+  spotlightMode = !spotlightMode;
+  spotlightOverlay.classList.toggle('active', spotlightMode);
+  document.getElementById('spotlightBtn').classList.toggle('active', spotlightMode);
+  if (spotlightMode && laserMode) toggleLaser();
+}
+document.addEventListener('mousemove', function(e) {
+  if (!spotlightMode) return;
+  spotlightOverlay.style.setProperty('--sx', e.clientX + 'px');
+  spotlightOverlay.style.setProperty('--sy', e.clientY + 'px');
+});
 
 // ── Slide overview ─────────────────────────────────────────────────────────────
 var overviewMode = false;
@@ -1305,7 +1456,7 @@ function buildOverview() {
   var thumbH  = Math.round(vh * scale);
   slideEls.forEach(function(sl, i) {
     var wrap = document.createElement('div');
-    wrap.className = 'ps-ov-wrap theme-' + DECK_THEME + (i === current ? ' active' : '');
+    wrap.className = 'ps-ov-wrap theme-' + DECK_THEME + (i === current ? ' active' : '') + (bookmarkedSlides[i] ? ' bookmarked' : '');
     wrap.style.width  = THUMB_W + 'px';
     wrap.style.height = thumbH  + 'px';
     (function(idx) { wrap.onclick = function() { goTo(idx); toggleOverview(); }; })(i);
@@ -1327,7 +1478,10 @@ function toggleOverview() {
   overviewMode = !overviewMode;
   document.getElementById('psOverview').classList.toggle('active', overviewMode);
   document.getElementById('overviewBtn').classList.toggle('active', overviewMode);
-  if (overviewMode) buildOverview();
+  if (overviewMode) {
+    buildOverview();
+    if (spotlightMode) toggleSpotlight();
+  }
 }
 
 // ── Auto-advance ─────────────────────────────────────────────────────────────
