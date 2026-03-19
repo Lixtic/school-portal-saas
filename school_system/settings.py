@@ -358,18 +358,24 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'School Admin <noreply
 # is stored client-side in a signed (HMAC'd) cookie — no DB lookup needed,
 # so there is no schema-switching problem in multi-tenant path-based routing.
 #
-# The original admin-logout bug was caused by SESSION_COOKIE_SECURE being
-# forced to True even on localhost (via SECURE_PROXY_SSL_HEADER making
-# request.is_secure() return True).  That is fixed below with the env-aware
-# _use_secure_cookies flag — signed cookies are now safe for all users.
+# SESSION_COOKIE_NAME is set to '_sp_session' (not the default 'sessionid').
+# This ensures old DB-session cookies from any previous backend change are
+# ignored — they have a different name so the browser never sends them.
 SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 
-# "Keep me logged in" persistent session = 30 days.
+# Unique cookie name — avoids collisions with any previously set cookies
+# from earlier session-engine experiments (DB backend etc.)
+SESSION_COOKIE_NAME = '_sp_session'
+
+# Rolling 30-day expiry.
 SESSION_COOKIE_AGE = 30 * 24 * 60 * 60  # 30 days in seconds
 
+# Re-send the cookie on every response so the 30-day window is always rolling.
+SESSION_SAVE_EVERY_REQUEST = True
+
 # Cookie flags
-SESSION_COOKIE_HTTPONLY = True   # block JS access (XSS protection)
-SESSION_COOKIE_SAMESITE  = 'Lax' # prevent cross-site request leakage
+SESSION_COOKIE_HTTPONLY = True    # block JS access (XSS protection)
+SESSION_COOKIE_SAMESITE = 'Lax'  # prevent cross-site request leakage
 
 # Only force secure cookies when running behind a known HTTPS platform
 # (Vercel/Railway) or when explicitly requested via env var.
