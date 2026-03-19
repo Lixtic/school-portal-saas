@@ -7,6 +7,7 @@ urlpatterns = [
     path('setup/', views.school_setup_wizard, name='setup_wizard'),
     path('', views.landlord_landing, name='landlord_landing'),
     path('landlord/', views.landlord_dashboard, name='landlord_dashboard'),
+    path('landlord/landing-template/', views.landing_template_picker, name='landing_template_picker'),
     path('approval-queue/', views.approval_queue, name='approval_queue'),
     path('review/<int:school_id>/', views.review_school, name='review_school'),
     path('resend-credentials/<int:school_id>/', views.resend_school_credentials, name='resend_credentials'),

@@ -4,7 +4,8 @@ from django_tenants.admin import TenantAdminMixin
 from tenants.models import (
     School, Domain, SubscriptionPlan, AddOn, 
     SchoolSubscription, SchoolAddOn, Invoice, ChurnEvent,
-    SystemHealthMetric, SupportTicket, TicketComment, DatabaseBackup
+    SystemHealthMetric, SupportTicket, TicketComment, DatabaseBackup,
+    PlatformSettings,
 )
 
 @admin.register(School)
@@ -91,3 +92,16 @@ class DatabaseBackupAdmin(admin.ModelAdmin):
     list_filter = ('status', 'backup_type', 'started_at')
     search_fields = ('school__name', 'backup_file')
     readonly_fields = ('started_at', 'completed_at')
+
+
+@admin.register(PlatformSettings)
+class PlatformSettingsAdmin(admin.ModelAdmin):
+    list_display = ('landing_template', 'updated_at')
+    readonly_fields = ('updated_at',)
+
+    def has_add_permission(self, request):
+        # Only one row ever — prevent creating duplicates from Django admin
+        return not PlatformSettings.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False

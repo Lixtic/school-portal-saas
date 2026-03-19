@@ -3,7 +3,7 @@ from django.db import transaction, connection, models
 from django.db.models import Sum, Avg, Count
 from django.contrib.auth.decorators import user_passes_test
 from .forms import SchoolSignupForm, SchoolSetupForm, SchoolApprovalForm
-from .models import School, Domain
+from .models import School, Domain, PlatformSettings
 from django.contrib.auth import get_user_model, login
 from django.contrib import messages
 from django.conf import settings
@@ -332,6 +332,32 @@ def landlord_landing(request):
         'by_type': by_type,
     }
     return render(request, 'tenants/landlord_landing.html', context)
+
+
+@login_required
+def landing_template_picker(request):
+    """Landlord: choose which landing-page template is shown at /."""
+    if not request.user.is_staff:
+        messages.error(request, "Access denied. Platform admins only.")
+        return redirect('home')
+
+    platform = PlatformSettings.get()
+
+    if request.method == 'POST':
+        chosen = request.POST.get('landing_template', '')
+        valid_keys = [k for k, _ in PlatformSettings.TEMPLATE_CHOICES]
+        if chosen in valid_keys:
+            platform.landing_template = chosen
+            platform.save()
+            messages.success(request, f"Landing page updated to '{dict(PlatformSettings.TEMPLATE_CHOICES)[chosen]}'.")
+        else:
+            messages.error(request, "Invalid template selection.")
+        return redirect('tenants:landing_template_picker')
+
+    return render(request, 'tenants/landing_template_picker.html', {
+        'platform': platform,
+        'choices': PlatformSettings.TEMPLATE_CHOICES,
+    })
 
 
 @login_required

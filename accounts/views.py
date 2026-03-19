@@ -4,6 +4,7 @@ from django.contrib.auth.forms import SetPasswordForm
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from tenants.decorators import require_addon
+from tenants.models import PlatformSettings
 from django.conf import settings
 from django.http import JsonResponse, Http404
 from django.core.paginator import Paginator
@@ -242,9 +243,14 @@ def homepage(request):
     if hasattr(request, 'tenant'):
         is_public = (request.tenant.schema_name == 'public')
     
-    # 1. Public Tenant -> Show SaaS Landing
+    # 1. Public Tenant -> Show SaaS Landing (template chosen by landlord admin)
     if is_public:
-        return render(request, 'landing_public.html')
+        try:
+            platform = PlatformSettings.get()
+            template_name = platform.landing_template
+        except Exception:
+            template_name = 'home/swiss.html'
+        return render(request, template_name)
 
     # 2. School Tenant -> Show School Dashboard/Home or redirect to Login
     # If user is not logged in on school tenant, better to show login?

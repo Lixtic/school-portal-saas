@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Landing Page Template — Platform Settings{% endblock %}
+
+{% block content %}
+<style>
+  .sidebar, .mobile-bubble-menu, .mobile-bubble-overlay { display: none !important; }
+
+  .picker-wrap {
+    min-height: 100vh;
+    background: var(--surface-bg, #f8f9fa);
+    padding: 40px 0 80px;
+  }
+
+  .picker-header {
+    background: linear-gradient(135deg, #1a1f3a 0%, #0f3460 100%);
+    color: #fff;
+    padding: 48px 0 40px;
+    margin-bottom: 40px;
+  }
+
+  .picker-header h1 { font-size: 2rem; font-weight: 800; margin-bottom: 6px; }
+  .picker-header p  { opacity: .75; margin: 0; }
+
+  .template-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
+  }
+
+  .tpl-card {
+    border-radius: 16px;
+    overflow: hidden;
+    border: 2.5px solid transparent;
+    background: var(--surface-card, #fff);
+    box-shadow: 0 2px 12px rgba(0,0,0,.08);
+    transition: all .2s ease;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .tpl-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,.14); }
+
+  .tpl-card.active {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 4px rgba(79,70,229,.15), 0 8px 28px rgba(0,0,0,.1);
+  }
+
+  .tpl-preview {
+    height: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Each template's unique colour palette preview */
+  .tpl-preview.classic  { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 60%, #06b6d4 100%); }
+  .tpl-preview.modern   { background: linear-gradient(135deg, #1e293b 0%, #0ea5e9 100%); }
+  .tpl-preview.minimal  { background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); color: #334155; }
+  .tpl-preview.playful  { background: linear-gradient(135deg, #f472b6 0%, #fb923c 50%, #facc15 100%); }
+  .tpl-preview.elegant  { background: linear-gradient(135deg, #1e3a5f 0%, #b8872a 100%); }
+  .tpl-preview.swiss    { background: linear-gradient(135deg, #0a0a0a 0%, #D92B2B 45%, #0047AB 100%); }
+
+  .tpl-preview .tpl-dots {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 5px;
+  }
+
+  .tpl-dots span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.55);
+  }
+
+  .tpl-body { padding: 20px 22px 22px; }
+  .tpl-name { font-size: 1.05rem; font-weight: 700; margin-bottom: 4px; }
+  .tpl-desc { font-size: .84rem; color: #6b7280; line-height: 1.45; margin-bottom: 16px; }
+
+  .tpl-badge-active {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: #4f46e5;
+    color: #fff;
+    font-size: .72rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 999px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+
+  .btn-select {
+    width: 100%;
+    padding: 10px 0;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: .9rem;
+    transition: all .18s;
+  }
+
+  .btn-select:hover { opacity: .9; transform: translateY(-1px); }
+
+  [data-bs-theme="dark"] .tpl-card  { background: #1e293b; }
+  [data-bs-theme="dark"] .tpl-desc  { color: #94a3b8; }
+  [data-bs-theme="dark"] .picker-wrap { background: #0f172a; }
+</style>
+
+<div class="picker-header">
+  <div class="container">
+    <div class="d-flex align-items-center gap-3 mb-3">
+      <a href="{% url 'tenants:landlord_landing' %}" class="btn btn-outline-light btn-sm">
+        <i class="bi bi-arrow-left"></i> Back
+      </a>
+    </div>
+    <h1><i class="bi bi-palette me-2"></i> Landing Page Template</h1>
+    <p>Choose which public landing page visitors see at <strong>/</strong> — changes take effect immediately.</p>
+  </div>
+</div>
+
+<div class="picker-wrap">
+  <div class="container">
+
+    {% if messages %}
+      {% for msg in messages %}
+        <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show mb-4" role="alert">
+          {{ msg }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <div class="template-grid">
+
+      {% for key, label in choices %}
+        {% with slug=key|slice:"5:"|slice:":-5" %}
+        <div class="tpl-card {% if platform.landing_template == key %}active{% endif %}">
+
+          {% if platform.landing_template == key %}
+            <span class="tpl-badge-active"><i class="bi bi-check2-circle me-1"></i>Active</span>
+          {% endif %}
+
+          <div class="tpl-preview {{ slug }}">
+            {% if slug == 'classic' %}<i class="bi bi-layout-sidebar"></i>
+            {% elif slug == 'modern' %}<i class="bi bi-lightning-charge-fill text-white"></i>
+            {% elif slug == 'minimal' %}<i class="bi bi-card-text"></i>
+            {% elif slug == 'playful' %}<i class="bi bi-stars text-white"></i>
+            {% elif slug == 'elegant' %}<i class="bi bi-award text-white"></i>
+            {% elif slug == 'swiss' %}<i class="bi bi-grid-3x3 text-white"></i>
+            {% endif %}
+            <div class="tpl-dots">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+
+          <div class="tpl-body">
+            <div class="tpl-name">{{ label|cut:" — "|slice:":20" }}…</div>
+            <div class="tpl-desc">
+              {% if slug == 'classic' %}Sidebar navigation with professional layout. Great for established institutions.{% endif %}
+              {% if slug == 'modern' %}Hero-centered with bold typography and vivid gradients. High-energy feel.{% endif %}
+              {% if slug == 'minimal' %}Clean card-based layout. Understated, fast, and focussed.{% endif %}
+              {% if slug == 'playful' %}Colourful shapes and subtle animations. Warm and welcoming.{% endif %}
+              {% if slug == 'elegant' %}Navy &amp; gold premium aesthetic. Authoritative and refined.{% endif %}
+              {% if slug == 'swiss' %}Grid-system / Bauhaus-inspired. Ultra-clean with strong typographic hierarchy.{% endif %}
+            </div>
+
+            {% if platform.landing_template != key %}
+              <form method="post" action="{% url 'tenants:landing_template_picker' %}">
+                {% csrf_token %}
+                <input type="hidden" name="landing_template" value="{{ key }}">
+                <button type="submit" class="btn btn-primary btn-select">
+                  <i class="bi bi-check-circle me-1"></i> Use this template
+                </button>
+              </form>
+            {% else %}
+              <button class="btn btn-success btn-select" disabled>
+                <i class="bi bi-check2-all me-1"></i> Currently active
+              </button>
+            {% endif %}
+          </div>
+
+        </div>
+        {% endwith %}
+      {% endfor %}
+
+    </div><!-- /grid -->
+
+    <div class="mt-5 p-4 rounded-3 border" style="background:var(--surface-card,#fff)">
+      <h6 class="fw-bold mb-1"><i class="bi bi-info-circle me-2 text-primary"></i>Preview tip</h6>
+      <p class="mb-0 text-muted small">
+        Open <a href="/" target="_blank">/</a> in a separate tab to preview the active template.
+        Switching is instant — no server restart needed.
+      </p>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

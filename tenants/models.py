@@ -86,6 +86,47 @@ class Domain(DomainMixin):
     pass
 
 
+class PlatformSettings(models.Model):
+    """Singleton model for platform-wide settings (public schema only)."""
+
+    TEMPLATE_CHOICES = [
+        ('home/classic.html',  'Classic — Sidebar Navigation'),
+        ('home/modern.html',   'Modern — Bold Hero'),
+        ('home/minimal.html',  'Minimal — Clean Cards'),
+        ('home/playful.html',  'Playful — Colourful & Animated'),
+        ('home/elegant.html',  'Elegant — Navy / Gold'),
+        ('home/swiss.html',    'Swiss — Grid System'),
+    ]
+
+    landing_template = models.CharField(
+        max_length=60,
+        choices=TEMPLATE_CHOICES,
+        default='home/swiss.html',
+        help_text="Which landing page template to show at /",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Platform Settings"
+        verbose_name_plural = "Platform Settings"
+
+    def save(self, *args, **kwargs):
+        # Enforce singleton — always update row pk=1
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        pass  # never delete the singleton
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def __str__(self):
+        return f"Platform Settings (template: {self.landing_template})"
+
+
 # Import subscription models
 from .subscription_models import (
     SubscriptionPlan, AddOn, SchoolSubscription,
