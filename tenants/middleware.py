@@ -4,7 +4,7 @@ from django.http import Http404, HttpResponseRedirect
 from django.urls import set_urlconf, set_script_prefix
 from django_tenants.middleware.main import TenantMainMiddleware
 from tenants.models import School
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qsl, urlencode
 import logging
 
 logger = logging.getLogger(__name__)
@@ -166,3 +166,42 @@ class TenantPathMiddleware(TenantMainMiddleware):
             pass  # Missing subscription or DB error  do not block access
 
         return None
+
+    def process_response(self, request, response):
+        """Normalize auth redirects so tenant pages don't bounce via public /login/."""
+        try:
+            if response.status_code not in (301, 302, 303, 307, 308):
+                return response
+
+            location = response.get('Location')
+            if not location:
+                return response
+
+            parsed = urlparse(location)
+            # Only rewrite local-path redirects that currently target public /login/
+            if parsed.scheme or parsed.netloc or not parsed.path.startswith('/login/'):
+                return response
+
+            params = dict(parse_qsl(parsed.query, keep_blank_values=True))
+            next_url = params.get('next', '')
+            if not next_url.startswith('/'):
+                return response
+
+            next_parts = next_url.strip('/').split('/')
+            tenant_hint = next_parts[0] if next_parts else ''
+            if not tenant_hint:
+                return response
+
+            tenant_exists = School.objects.filter(schema_name=tenant_hint, is_active=True).exists()
+            if not tenant_exists:
+                return response
+
+            new_params = dict(params)
+            new_params['next'] = next_url
+            query = urlencode(new_params)
+            response['Location'] = f'/{tenant_hint}/login/?{query}'
+        except Exception:
+            # Never break responses due to redirect normalization issues.
+            return response
+
+        return response
