@@ -87,6 +87,9 @@
                     <div class="class-indicator" style="background:{{ cls_color }};"></div>
                     <h5><i class="bi bi-people-fill me-1" style="color:{{ cls_color }};"></i>{{ group.grouper }}</h5>
                     <span class="badge rounded-pill" style="background:{{ cls_color }};">{{ group.list|length }} task{{ group.list|length|pluralize }}</span>
+                    <span class="ms-auto fw-semibold small class-total" style="color:{{ cls_color }};">
+                        <i class="bi bi-currency-exchange me-1"></i>GHS <span class="class-total-amount">0.00</span> collected
+                    </span>
                 </div>
 
                 <div class="row g-3">
@@ -95,6 +98,7 @@
                         <div class="col-12 col-md-6 col-xl-4">
                             <a href="{% url 'teachers:fee_task_detail' s.id %}"
                                class="card border-0 shadow-sm h-100 text-decoration-none text-dark d-block fee-task-card"
+                               data-collected="{{ collected }}"
                                style="--class-color:{{ cls_color }};">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-start mb-2">
@@ -147,4 +151,15 @@
         {% endfor %}
     {% endif %}
 </div>
+
+<script>
+document.querySelectorAll('.class-group').forEach(function(group){
+    var total = 0;
+    group.querySelectorAll('.fee-task-card[data-collected]').forEach(function(card){
+        total += parseFloat(card.dataset.collected) || 0;
+    });
+    var el = group.querySelector('.class-total-amount');
+    if(el) el.textContent = total.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
+});
+</script>
 {% endblock %}
