@@ -1,0 +1,1469 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="SchoolPortal — A systematic AI infrastructure that unifies school administration, academic tracking, and institutional growth.">
+<title>SchoolPortal — Digital Lucidity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════
+   GLASS SYSTEM — ROOT TOKENS
+═══════════════════════════════════════════════════════ */
+:root {
+  --void:     #020817;
+  --violet:   #8B5CF6;
+  --cyan:     #06B6D4;
+  --rose:     #F43F5E;
+  --amber:    #F59E0B;
+  --emerald:  #10B981;
+
+  --glass-1:  rgba(255,255,255,0.04);
+  --glass-2:  rgba(255,255,255,0.08);
+  --glass-3:  rgba(255,255,255,0.13);
+  --glass-border:       rgba(255,255,255,0.10);
+  --glass-border-hi:    rgba(255,255,255,0.22);
+
+  --text-hi:   rgba(255,255,255,0.95);
+  --text-mid:  rgba(255,255,255,0.60);
+  --text-low:  rgba(255,255,255,0.32);
+
+  --gv: rgba(139,92,246,0.45);
+  --gc: rgba(6,182,212,0.45);
+  --gr: rgba(244,63,94,0.45);
+  --ga: rgba(245,158,11,0.45);
+  --ge: rgba(16,185,129,0.45);
+
+  --font:    'Outfit', system-ui, sans-serif;
+  --mono:    'Space Mono', monospace;
+}
+
+/* ═══════════════════════════════════════════════════════
+   RESET
+═══════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html  { scroll-behavior: smooth; }
+body  { font-family: var(--font); background: var(--void); color: var(--text-hi); overflow-x: hidden; }
+a     { color: inherit; text-decoration: none; }
+ul    { list-style: none; }
+
+/* ═══════════════════════════════════════════════════════
+   ANIMATED BACKGROUND CANVAS
+═══════════════════════════════════════════════════════ */
+.gl-canvas {
+  position: fixed; inset: 0; z-index: 0;
+  overflow: hidden; pointer-events: none;
+}
+.orb {
+  position: absolute; border-radius: 50%;
+  filter: blur(110px); opacity: 0;
+  animation: orb-breath 10s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+.orb-1 { width:700px;height:700px;background:var(--violet);top:-220px;left:-180px;animation-duration:14s;animation-delay:0s;  }
+.orb-2 { width:550px;height:550px;background:var(--cyan);  top:18%;right:-120px; animation-duration:11s;animation-delay:2.5s;}
+.orb-3 { width:480px;height:480px;background:var(--rose);  bottom:5%;left:8%;    animation-duration:13s;animation-delay:5s;  }
+.orb-4 { width:380px;height:380px;background:var(--amber); bottom:18%;right:12%; animation-duration:12s;animation-delay:1.5s;}
+.orb-5 { width:320px;height:320px;background:var(--emerald);top:48%;left:38%;   animation-duration:9s; animation-delay:3.5s;}
+
+@keyframes orb-breath {
+  0%,100% { opacity: 0.28; transform: translateY(0)   scale(1);    }
+  50%      { opacity: 0.48; transform: translateY(-36px) scale(1.06); }
+}
+
+.gl-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   PAGE CONTENT LAYER
+═══════════════════════════════════════════════════════ */
+.page { position: relative; z-index: 1; }
+
+/* ═══════════════════════════════════════════════════════
+   SHARED UTILITIES
+═══════════════════════════════════════════════════════ */
+.g-panel {
+  background: var(--glass-2);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid var(--glass-border);
+}
+.g-panel-dark {
+  background: rgba(2,8,23,0.72);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid var(--glass-border);
+}
+.g-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.62rem; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  padding: 4px 10px; border-radius: 4px;
+}
+.gp-v { color:var(--violet); border:1px solid rgba(139,92,246,.3); background:rgba(139,92,246,.08); }
+.gp-c { color:var(--cyan);   border:1px solid rgba(6,182,212,.3);  background:rgba(6,182,212,.08);  }
+.gp-r { color:var(--rose);   border:1px solid rgba(244,63,94,.3);  background:rgba(244,63,94,.08);  }
+.gp-a { color:var(--amber);  border:1px solid rgba(245,158,11,.3); background:rgba(245,158,11,.08); }
+.gp-e { color:var(--emerald);border:1px solid rgba(16,185,129,.3); background:rgba(16,185,129,.08); }
+.gp-w { color:rgba(255,255,255,.7); border:1px solid var(--glass-border); background:var(--glass-1); }
+
+.sw-container { max-width:1280px; margin:0 auto; padding:0 40px; }
+@media (max-width:768px) { .sw-container { padding:0 20px; } }
+
+.section { padding: 100px 0; }
+
+.gradient-text {
+  background: linear-gradient(90deg, var(--violet), var(--cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.gradient-text-3 {
+  background: linear-gradient(90deg, var(--violet), var(--cyan), var(--emerald));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Buttons */
+.btn-glow {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 26px; border-radius: 12px;
+  font-family: var(--font); font-weight: 700; font-size: .9rem;
+  color: #fff; cursor: pointer;
+  background: linear-gradient(135deg, var(--violet), var(--cyan));
+  border: none;
+  box-shadow: 0 0 28px rgba(139,92,246,.4);
+  transition: all .25s;
+}
+.btn-glow:hover { color:#fff; box-shadow: 0 0 48px rgba(139,92,246,.6); transform: translateY(-2px); }
+.btn-ghost {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 26px; border-radius: 12px;
+  font-family: var(--font); font-weight: 600; font-size: .9rem;
+  color: var(--text-mid); cursor: pointer;
+  background: var(--glass-1); border: 1px solid var(--glass-border);
+  transition: all .2s;
+}
+.btn-ghost:hover { color: var(--text-hi); background: var(--glass-2); border-color: var(--glass-border-hi); }
+
+/* Section header */
+.sec-head { display:flex; align-items:flex-start; gap:24px; margin-bottom:56px; }
+.sec-num  { font-family:var(--mono); font-size:.62rem; color:var(--text-low); letter-spacing:.2em; padding-top:5px; min-width:28px; }
+.sec-title {
+  font-size: clamp(2rem,4vw,3rem);
+  font-weight: 800; line-height: 1.1; letter-spacing: -.02em;
+}
+.sec-title em { font-style:normal; }
+
+/* Scroll reveals */
+.reveal { opacity:0; transform:translateY(22px); transition: opacity .65s ease, transform .65s ease; }
+.reveal.in-view { opacity:1; transform:translateY(0); }
+.d1{transition-delay:.1s} .d2{transition-delay:.2s} .d3{transition-delay:.3s}
+.d4{transition-delay:.4s} .d5{transition-delay:.5s}
+
+/* ═══════════════════════════════════════════════════════
+   NAV
+═══════════════════════════════════════════════════════ */
+.gl-nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+  padding: 18px 40px;
+  display: flex; align-items: center; justify-content: space-between;
+  transition: all .35s ease;
+}
+.gl-nav.scrolled {
+  background: rgba(2,8,23,0.78);
+  backdrop-filter: blur(36px) saturate(180%);
+  -webkit-backdrop-filter: blur(36px) saturate(180%);
+  border-bottom: 1px solid var(--glass-border);
+}
+.nav-logo { display:flex; align-items:center; gap:10px; font-weight:700; font-size:1.05rem; letter-spacing:-.01em; }
+.nav-mark  {
+  width:32px; height:32px; border-radius:9px;
+  background: linear-gradient(135deg, var(--violet), var(--cyan));
+  display:flex; align-items:center; justify-content:center;
+  font-size:.85rem; color:#fff;
+  box-shadow: 0 0 18px rgba(139,92,246,.5);
+}
+.nav-links { display:flex; gap:30px; }
+.nav-links a { font-size:.875rem; font-weight:500; color:var(--text-mid); transition:color .2s; }
+.nav-links a:hover { color:var(--text-hi); }
+.nav-cta { display:flex; align-items:center; gap:12px; }
+@media(max-width:900px){ .nav-links{display:none;} .gl-nav{padding:16px 20px;} }
+
+/* ═══════════════════════════════════════════════════════
+   HERO
+═══════════════════════════════════════════════════════ */
+.hero {
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 130px 40px 80px;
+  text-align: center; position: relative;
+}
+.hero-eyebrow { margin-bottom: 30px; display:flex; align-items:center; justify-content:center; gap:10px; }
+.eyebrow-pulse {
+  width:7px; height:7px; border-radius:50%;
+  background:var(--violet); box-shadow:0 0 10px var(--violet);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%,100%{ opacity:1; transform:scale(1);     }
+  50%    { opacity:.4; transform:scale(.75);  }
+}
+.hero h1 {
+  font-size: clamp(2.8rem,8vw,6.5rem);
+  font-weight: 900; line-height: 1.0; letter-spacing: -.035em;
+  margin-bottom: 30px; max-width: 960px;
+}
+.hero h1 .hl { display:block; }
+.hero-sub {
+  font-size: clamp(1rem,2vw,1.25rem);
+  color: var(--text-mid); max-width: 640px;
+  line-height: 1.75; margin-bottom: 48px;
+}
+.hero-actions { display:flex; align-items:center; justify-content:center; gap:16px; flex-wrap:wrap; margin-bottom:80px; }
+.hero-stats {
+  display: flex; border-radius: 18px;
+  overflow: hidden; border: 1px solid var(--glass-border);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+.hs-cell {
+  padding: 22px 36px; text-align: center; flex: 1;
+  background: var(--glass-1);
+  border-right: 1px solid var(--glass-border);
+}
+.hs-cell:last-child { border-right: none; }
+.hs-num {
+  font-size: clamp(1.4rem,2.5vw,2rem);
+  font-weight: 900; font-family:var(--mono);
+  line-height:1; margin-bottom:5px;
+}
+.hs-num.v { color:var(--violet); text-shadow:0 0 22px var(--gv); }
+.hs-num.c { color:var(--cyan);   text-shadow:0 0 22px var(--gc); }
+.hs-num.r { color:var(--rose);   text-shadow:0 0 22px var(--gr); }
+.hs-num.a { color:var(--amber);  text-shadow:0 0 22px var(--ga); }
+.hs-lbl { font-size:.62rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text-low); }
+
+.scroll-cue {
+  position:absolute; bottom:36px; left:50%; transform:translateX(-50%);
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  color:var(--text-low); font-size:.6rem; letter-spacing:.15em; text-transform:uppercase;
+  animation: bob 2.2s ease-in-out infinite;
+}
+@keyframes bob {
+  0%,100%{ transform:translateX(-50%) translateY(0);   }
+  50%    { transform:translateX(-50%) translateY(8px); }
+}
+@media(max-width:768px){
+  .hero{ padding:110px 20px 60px; }
+  .hero-stats{ flex-direction:column; border-radius:14px; }
+  .hs-cell{ border-right:none; border-bottom:1px solid var(--glass-border); }
+  .hs-cell:last-child{ border-bottom:none; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   DATA STRIP
+═══════════════════════════════════════════════════════ */
+.data-strip {
+  display:grid; grid-template-columns:repeat(5,1fr);
+  border-top:1px solid var(--glass-border);
+  border-bottom:1px solid var(--glass-border);
+  background:rgba(2,8,23,0.62);
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+}
+.ds-cell {
+  padding:28px 20px; border-right:1px solid var(--glass-border);
+  transition:background .2s;
+}
+.ds-cell:last-child{ border-right:none; }
+.ds-cell:hover{ background:var(--glass-1); }
+.ds-val {
+  font-size:2rem; font-weight:900; font-family:var(--mono);
+  line-height:1; margin-bottom:7px;
+}
+.ds-lbl { font-size:.62rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--text-mid); margin-bottom:3px; }
+.ds-sub { font-size:.68rem; color:var(--text-low); }
+@media(max-width:1000px){ .data-strip{ grid-template-columns:repeat(3,1fr); } }
+@media(max-width:600px) { .data-strip{ grid-template-columns:1fr 1fr; } }
+
+/* ═══════════════════════════════════════════════════════
+   MODULES GRID
+═══════════════════════════════════════════════════════ */
+.mod-grid {
+  display:grid; grid-template-columns:repeat(4,1fr);
+  gap:1px; background:var(--glass-border);
+}
+@media(max-width:1100px){ .mod-grid{grid-template-columns:repeat(2,1fr);} }
+@media(max-width:600px) { .mod-grid{grid-template-columns:1fr;} }
+
+.mod-card {
+  padding:36px 28px 40px;
+  background:rgba(2,8,23,0.62);
+  backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
+  position:relative; overflow:hidden;
+  transition:background .3s;
+}
+.mod-card:hover { background:rgba(2,8,23,0.42); }
+.mod-card-bar {
+  position:absolute; top:0; left:0; right:0; height:2px;
+  opacity:0; transition:opacity .35s;
+}
+.mod-card:hover .mod-card-bar { opacity:1; }
+.mod-card.mv .mod-card-bar { background:linear-gradient(90deg,var(--violet),var(--cyan)); }
+.mod-card.mc .mod-card-bar { background:linear-gradient(90deg,var(--cyan),var(--emerald)); }
+.mod-card.mr .mod-card-bar { background:linear-gradient(90deg,var(--rose),var(--amber)); }
+.mod-card.ma .mod-card-bar { background:linear-gradient(90deg,var(--amber),var(--rose)); }
+.mod-card.me .mod-card-bar { background:linear-gradient(90deg,var(--emerald),var(--cyan)); }
+
+.mod-glow {
+  position:absolute; width:160px; height:160px; border-radius:50%;
+  filter:blur(60px); opacity:0; top:-40px; right:-40px;
+  transition:opacity .4s; pointer-events:none;
+}
+.mod-card:hover .mod-glow { opacity:.22; }
+.mod-card.mv .mod-glow{background:var(--violet);}
+.mod-card.mc .mod-glow{background:var(--cyan);}
+.mod-card.mr .mod-glow{background:var(--rose);}
+.mod-card.ma .mod-glow{background:var(--amber);}
+.mod-card.me .mod-glow{background:var(--emerald);}
+
+.mod-icon {
+  width:50px; height:50px; border-radius:14px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.3rem; margin-bottom:20px;
+}
+.mod-card.mv .mod-icon{background:rgba(139,92,246,.14);color:var(--violet);box-shadow:0 0 18px rgba(139,92,246,.22);}
+.mod-card.mc .mod-icon{background:rgba(6,182,212,.14);  color:var(--cyan);  box-shadow:0 0 18px rgba(6,182,212,.22);}
+.mod-card.mr .mod-icon{background:rgba(244,63,94,.14);  color:var(--rose);  box-shadow:0 0 18px rgba(244,63,94,.22);}
+.mod-card.ma .mod-icon{background:rgba(245,158,11,.14); color:var(--amber); box-shadow:0 0 18px rgba(245,158,11,.22);}
+.mod-card.me .mod-icon{background:rgba(16,185,129,.14); color:var(--emerald);box-shadow:0 0 18px rgba(16,185,129,.22);}
+
+.mod-name { font-size:1rem; font-weight:700; margin-bottom:10px; letter-spacing:-.01em; }
+.mod-desc { font-size:.87rem; color:var(--text-mid); line-height:1.65; margin-bottom:20px; }
+.mod-tags { display:flex; flex-wrap:wrap; gap:6px; }
+.mod-tag  {
+  font-size:.66rem; font-weight:600; letter-spacing:.07em; text-transform:uppercase;
+  padding:3px 8px; border-radius:4px;
+  color:var(--text-low); border:1px solid var(--glass-border); background:var(--glass-1);
+}
+
+/* ═══════════════════════════════════════════════════════
+   SHOWCASE PANELS
+═══════════════════════════════════════════════════════ */
+.showcase { display:grid; grid-template-columns:1fr 1fr; }
+.showcase.flip{ direction:rtl; }
+.showcase.flip > *{ direction:ltr; }
+
+.sc-copy {
+  padding:80px 60px;
+  display:flex; flex-direction:column; justify-content:center;
+  border-right:1px solid var(--glass-border);
+}
+.showcase.flip .sc-copy{ border-right:none; border-left:1px solid var(--glass-border); }
+.sc-panel {
+  padding:60px 48px;
+  background:var(--glass-1);
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  display:flex; flex-direction:column; justify-content:center;
+}
+
+.sc-copy h2 {
+  font-size:clamp(1.9rem,3.2vw,2.7rem);
+  font-weight:800; line-height:1.15; letter-spacing:-.02em;
+  margin:14px 0 20px;
+}
+.sc-copy h2 em { font-style:normal; }
+.sc-copy p  { font-size:.92rem; color:var(--text-mid); line-height:1.78; margin-bottom:32px; }
+
+.feat-list { display:flex; flex-direction:column; gap:14px; }
+.feat-item { display:flex; align-items:flex-start; gap:12px; font-size:.88rem; color:var(--text-mid); }
+.fi-dot {
+  width:20px; height:20px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.65rem; margin-top:2px;
+}
+.fi-dot.v{background:rgba(139,92,246,.2);color:var(--violet);box-shadow:0 0 8px rgba(139,92,246,.3);}
+.fi-dot.c{background:rgba(6,182,212,.2);  color:var(--cyan);  box-shadow:0 0 8px rgba(6,182,212,.3);}
+.fi-dot.r{background:rgba(244,63,94,.2);  color:var(--rose);  box-shadow:0 0 8px rgba(244,63,94,.3);}
+
+/* Glass screen */
+.screen-g {
+  border-radius:16px; overflow:hidden;
+  border:1px solid var(--glass-border-hi);
+  background:rgba(255,255,255,0.04);
+  backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  box-shadow:0 24px 80px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.04);
+}
+.sg-bar {
+  padding:10px 16px; display:flex; align-items:center; gap:6px;
+  background:rgba(255,255,255,0.04); border-bottom:1px solid var(--glass-border);
+}
+.sg-dot  { width:10px; height:10px; border-radius:50%; }
+.sg-dot.r{background:var(--rose);  box-shadow:0 0 6px var(--rose);}
+.sg-dot.a{background:var(--amber); box-shadow:0 0 6px var(--amber);}
+.sg-dot.e{background:var(--emerald);box-shadow:0 0 6px var(--emerald);}
+.sg-body { padding:20px; }
+
+@media(max-width:900px){
+  .showcase,.showcase.flip{ grid-template-columns:1fr; direction:ltr; }
+  .sc-copy{ padding:48px 24px; border-right:none; border-bottom:1px solid var(--glass-border); }
+  .showcase.flip .sc-copy{ border-left:none; border-bottom:1px solid var(--glass-border); }
+  .sc-panel{ padding:40px 24px; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   AI SECTION — LAYERED INTELLIGENCE
+═══════════════════════════════════════════════════════ */
+.ai-section {
+  background:linear-gradient(135deg,rgba(139,92,246,.10) 0%,rgba(6,182,212,.07) 55%,rgba(16,185,129,.05) 100%);
+  border-top:1px solid var(--glass-border); border-bottom:1px solid var(--glass-border);
+  position:relative; overflow:hidden;
+}
+.ai-section::before {
+  content:''; position:absolute;
+  width:700px; height:700px; border-radius:50%;
+  background:radial-gradient(circle,rgba(139,92,246,.18),transparent 68%);
+  top:-280px; right:-220px; pointer-events:none;
+}
+.ai-inner {
+  display:grid; grid-template-columns:1fr 1fr; gap:72px; align-items:center;
+  max-width:1280px; margin:0 auto; padding:100px 40px;
+}
+@media(max-width:900px){ .ai-inner{grid-template-columns:1fr;gap:48px;padding:64px 20px;} }
+
+.ai-copy h2 {
+  font-size:clamp(1.9rem,3.2vw,3rem);
+  font-weight:800; line-height:1.1; letter-spacing:-.02em; margin:14px 0 20px;
+}
+.ai-copy p { font-size:.92rem; color:var(--text-mid); line-height:1.78; margin-bottom:32px; }
+
+.ai-chat {
+  border-radius:22px; overflow:hidden;
+  background:rgba(2,8,23,0.72);
+  backdrop-filter:blur(36px) saturate(200%);
+  -webkit-backdrop-filter:blur(36px) saturate(200%);
+  border:1px solid var(--glass-border);
+  box-shadow:0 0 60px rgba(139,92,246,.15), 0 24px 64px rgba(0,0,0,.5);
+}
+.ch-header {
+  padding:16px 20px; display:flex; align-items:center; gap:10px;
+  background:rgba(139,92,246,.08); border-bottom:1px solid var(--glass-border);
+}
+.ch-avatar {
+  width:28px; height:28px; border-radius:8px;
+  background:linear-gradient(135deg,var(--violet),var(--cyan));
+  display:flex; align-items:center; justify-content:center;
+  font-size:.75rem; color:#fff; box-shadow:0 0 12px rgba(139,92,246,.5);
+}
+.ch-title { font-size:.875rem; font-weight:700; }
+.ch-status {
+  margin-left:auto; display:flex; align-items:center; gap:5px;
+  font-size:.7rem; color:var(--emerald);
+}
+.ch-dot {
+  width:6px; height:6px; border-radius:50%;
+  background:var(--emerald); box-shadow:0 0 6px var(--emerald);
+  animation:pulse-dot 2s infinite;
+}
+.ch-body { padding:20px; display:flex; flex-direction:column; gap:12px; min-height:190px; }
+.bubble {
+  max-width:86%; padding:11px 15px; border-radius:14px;
+  font-size:.85rem; line-height:1.55;
+}
+.bubble.bot {
+  background:var(--glass-2); border:1px solid var(--glass-border);
+  border-radius:4px 14px 14px 14px; align-self:flex-start;
+}
+.bubble.usr {
+  background:linear-gradient(135deg,rgba(139,92,246,.22),rgba(6,182,212,.14));
+  border:1px solid rgba(139,92,246,.28);
+  border-radius:14px 4px 14px 14px; align-self:flex-end;
+}
+.ch-input {
+  padding:14px 20px; display:flex; gap:10px;
+  border-top:1px solid var(--glass-border);
+}
+.ci-g {
+  flex:1; background:var(--glass-1); border:1px solid var(--glass-border);
+  border-radius:10px; padding:10px 14px;
+  color:var(--text-hi); font-family:var(--font); font-size:.875rem; outline:none;
+  transition:all .2s;
+}
+.ci-g:focus{ border-color:rgba(139,92,246,.4); box-shadow:0 0 12px rgba(139,92,246,.15); }
+.ci-g::placeholder{ color:var(--text-low); }
+.cs-g {
+  padding:10px 18px; border-radius:10px;
+  background:linear-gradient(135deg,var(--violet),var(--cyan));
+  border:none; color:#fff; font-weight:700; font-size:.8rem; cursor:pointer;
+  box-shadow:0 0 16px rgba(139,92,246,.45); transition:all .2s;
+}
+.cs-g:hover{ box-shadow:0 0 28px rgba(139,92,246,.65); }
+
+.ai-meta {
+  display:grid; grid-template-columns:1fr 1fr; gap:1px;
+  margin-top:16px; background:var(--glass-border);
+}
+.am-cell {
+  padding:16px; text-align:center;
+  background:rgba(2,8,23,.7); backdrop-filter:blur(20px);
+}
+.am-cell.hi { background:linear-gradient(135deg,rgba(139,92,246,.15),rgba(6,182,212,.10)); border:1px solid rgba(139,92,246,.2); }
+.am-lbl { font-size:.6rem; letter-spacing:.12em; text-transform:uppercase; color:var(--text-low); margin-bottom:6px; }
+.am-val { font-family:var(--mono); font-size:1.2rem; font-weight:700; }
+.am-val.v{ color:var(--violet); text-shadow:0 0 16px var(--gv); }
+.am-val.c{ color:var(--cyan);   text-shadow:0 0 16px var(--gc); }
+
+/* ═══════════════════════════════════════════════════════
+   TESTIMONIALS
+═══════════════════════════════════════════════════════ */
+.testi-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+@media(max-width:900px){ .testi-grid{grid-template-columns:1fr;} }
+
+.tcard {
+  padding:34px 30px; border-radius:20px;
+  background:var(--glass-1);
+  backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
+  border:1px solid var(--glass-border);
+  position:relative; overflow:hidden; transition:all .3s;
+}
+.tcard:hover{ background:var(--glass-2); border-color:var(--glass-border-hi); transform:translateY(-4px); }
+.tcard-orb {
+  position:absolute; width:200px; height:200px; border-radius:50%;
+  filter:blur(64px); opacity:.07; top:-60px; right:-60px; pointer-events:none;
+}
+.tcard-q  { font-size:3.5rem; line-height:1; font-weight:900; opacity:.12; margin-bottom:-14px; }
+.tcard-txt{ font-size:.88rem; color:var(--text-mid); line-height:1.72; margin-bottom:24px; }
+.tcard-auth{ display:flex; align-items:center; gap:12px; }
+.tcard-av  {
+  width:40px; height:40px; border-radius:12px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.75rem; font-weight:700;
+  background:var(--glass-2); border:1px solid var(--glass-border);
+}
+.tcard-name{ font-size:.9rem; font-weight:700; }
+.tcard-role{ font-size:.74rem; color:var(--text-low); margin-top:1px; }
+
+/* ═══════════════════════════════════════════════════════
+   PRICING
+═══════════════════════════════════════════════════════ */
+.price-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+@media(max-width:900px){ .price-grid{grid-template-columns:1fr;} }
+
+.pcard {
+  border-radius:24px; overflow:hidden;
+  background:var(--glass-1);
+  backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
+  border:1px solid var(--glass-border);
+  transition:all .3s; position:relative;
+}
+.pcard.featured {
+  background:linear-gradient(135deg,rgba(139,92,246,.12),rgba(6,182,212,.08));
+  border-color:rgba(139,92,246,.35);
+  box-shadow:0 0 48px rgba(139,92,246,.15), 0 24px 60px rgba(0,0,0,.3);
+}
+.pcard:hover{ transform:translateY(-4px); }
+.pcard.featured:hover{ box-shadow:0 0 72px rgba(139,92,246,.28), 0 32px 80px rgba(0,0,0,.4); }
+
+.pcard-top { height:3px; background:var(--glass-border); }
+.pcard.featured .pcard-top {
+  background:linear-gradient(90deg,var(--violet),var(--cyan));
+  box-shadow:0 0 12px rgba(139,92,246,.5);
+}
+.pcard-body { padding:34px 30px; }
+.pcard-badge {
+  display:inline-block; font-size:.65rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  padding:3px 10px; border-radius:4px; margin-bottom:12px;
+  background:linear-gradient(90deg,rgba(139,92,246,.2),rgba(6,182,212,.2));
+  border:1px solid rgba(139,92,246,.3); color:var(--violet);
+}
+.pcard-name { font-size:1.1rem; font-weight:700; margin-bottom:12px; }
+.pcard-price {
+  font-size:clamp(1.8rem,3.5vw,2.6rem); font-weight:900; font-family:var(--mono);
+  line-height:1; margin-bottom:4px;
+}
+.pcard.featured .pcard-price { color:transparent; background:linear-gradient(90deg,var(--violet),var(--cyan)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.pcard-sub  { font-size:.76rem; color:var(--text-low); margin-bottom:22px; }
+.pcard-sep  { height:1px; background:var(--glass-border); margin-bottom:22px; }
+.pcard-desc { font-size:.875rem; color:var(--text-mid); line-height:1.6; margin-bottom:22px; }
+.pcard-feats{ display:flex; flex-direction:column; gap:11px; margin-bottom:28px; }
+.pcard-feat { display:flex; align-items:center; gap:10px; font-size:.875rem; color:var(--text-mid); }
+.pcard-feat .pf-i{ color:var(--emerald); font-size:.85rem; }
+.pcard-feat.off{ opacity:.38; }
+.pcard-feat.off .pf-i{ color:var(--text-low); }
+
+.btn-pcard {
+  display:block; width:100%; padding:13px; border-radius:12px;
+  font-weight:700; font-size:.9rem; text-align:center; cursor:pointer; transition:all .25s;
+}
+.btn-pcard.ghost{
+  background:var(--glass-2); border:1px solid var(--glass-border); color:var(--text-hi);
+}
+.btn-pcard.ghost:hover{ background:var(--glass-3); border-color:var(--glass-border-hi); color:var(--text-hi); }
+.btn-pcard.gradient{
+  background:linear-gradient(135deg,var(--violet),var(--cyan));
+  border:none; color:#fff;
+  box-shadow:0 0 24px rgba(139,92,246,.4);
+}
+.btn-pcard.gradient:hover{ box-shadow:0 0 44px rgba(139,92,246,.65); transform:translateY(-1px); color:#fff; }
+
+/* ═══════════════════════════════════════════════════════
+   CTA — STEP INTO THE LIGHT
+═══════════════════════════════════════════════════════ */
+.cta-block {
+  position:relative; overflow:hidden; padding:130px 40px;
+  text-align:center;
+  background:linear-gradient(135deg,rgba(139,92,246,.14) 0%,rgba(6,182,212,.09) 50%,rgba(16,185,129,.07) 100%);
+  border-top:1px solid var(--glass-border);
+}
+.cta-block::before {
+  content:''; position:absolute;
+  width:900px; height:900px; border-radius:50%;
+  background:radial-gradient(circle,rgba(139,92,246,.18) 0%,transparent 68%);
+  top:50%; left:50%; transform:translate(-50%,-50%);
+  pointer-events:none;
+}
+.cta-block h2 {
+  font-size:clamp(2.5rem,6vw,5rem);
+  font-weight:900; letter-spacing:-.035em; line-height:1.02; margin-bottom:24px;
+}
+.cta-block p  { font-size:1.1rem; color:var(--text-mid); max-width:520px; margin:0 auto 48px; line-height:1.72; }
+.cta-actions  { display:flex; align-items:center; justify-content:center; gap:16px; flex-wrap:wrap; }
+
+/* ═══════════════════════════════════════════════════════
+   CONTACT
+═══════════════════════════════════════════════════════ */
+.contact-grid { display:grid; grid-template-columns:1fr 1fr; }
+@media(max-width:900px){ .contact-grid{grid-template-columns:1fr;} }
+
+.ci-info {
+  padding:80px 60px; border-right:1px solid var(--glass-border);
+}
+@media(max-width:900px){ .ci-info{padding:48px 24px; border-right:none; border-bottom:1px solid var(--glass-border);} }
+.ci-info h2 { font-size:clamp(1.8rem,3vw,2.5rem); font-weight:800; line-height:1.2; letter-spacing:-.02em; margin-bottom:12px; }
+.ci-info p  { font-size:.9rem; color:var(--text-mid); line-height:1.72; margin-bottom:40px; }
+
+.cc { display:flex; align-items:center; gap:16px; padding:20px 0; border-bottom:1px solid var(--glass-border); }
+.cc:last-child{ border-bottom:none; }
+.cc-ic {
+  width:44px; height:44px; border-radius:12px; flex-shrink:0;
+  background:var(--glass-2); border:1px solid var(--glass-border);
+  display:flex; align-items:center; justify-content:center; font-size:1.1rem;
+}
+.cc-l { font-size:.72rem; color:var(--text-low); text-transform:uppercase; letter-spacing:.09em; margin-bottom:3px; }
+.cc-v { font-size:.95rem; font-weight:600; }
+
+.ci-form { padding:80px 60px; }
+@media(max-width:900px){ .ci-form{padding:48px 24px;} }
+.fg { margin-bottom:20px; }
+.fl {
+  display:block; font-size:.72rem; font-weight:700;
+  letter-spacing:.09em; text-transform:uppercase;
+  color:var(--text-mid); margin-bottom:8px;
+}
+.fc {
+  width:100%; padding:13px 16px; border-radius:12px;
+  background:var(--glass-1); border:1px solid var(--glass-border);
+  color:var(--text-hi); font-family:var(--font); font-size:.9rem; outline:none;
+  transition:all .2s;
+}
+.fc:focus{ border-color:rgba(139,92,246,.5); background:var(--glass-2); box-shadow:0 0 0 3px rgba(139,92,246,.1); }
+.fc::placeholder{ color:var(--text-low); }
+textarea.fc{ resize:vertical; min-height:100px; }
+
+/* ═══════════════════════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════════════════════ */
+.gl-footer {
+  border-top:1px solid var(--glass-border);
+  background:rgba(2,8,23,.82);
+  backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
+  padding:60px 0 32px;
+}
+.footer-grid {
+  display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:48px; margin-bottom:44px;
+}
+@media(max-width:900px){ .footer-grid{grid-template-columns:1fr 1fr;gap:32px;} }
+@media(max-width:600px) { .footer-grid{grid-template-columns:1fr;} }
+.footer-brand p { font-size:.875rem; color:var(--text-mid); line-height:1.7; margin-top:16px; max-width:240px; }
+.ft-head { font-size:.62rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--text-low); margin-bottom:16px; }
+.ft-links { display:flex; flex-direction:column; gap:10px; }
+.ft-links a { font-size:.875rem; color:var(--text-mid); transition:color .2s; }
+.ft-links a:hover { color:var(--text-hi); }
+.footer-bottom {
+  padding-top:28px; border-top:1px solid var(--glass-border);
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
+}
+.footer-bottom p{ font-size:.78rem; color:var(--text-low); }
+
+/* ═══════════════════════════════════════════════════════
+   AURA FLOATING WIDGET
+═══════════════════════════════════════════════════════ */
+.aura-fab {
+  position:fixed; bottom:28px; right:28px;
+  width:54px; height:54px; border-radius:50%;
+  background:linear-gradient(135deg,var(--violet),var(--cyan));
+  border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.3rem; color:#fff;
+  box-shadow:0 0 32px rgba(139,92,246,.55); z-index:999; transition:all .3s;
+}
+.aura-fab:hover{ box-shadow:0 0 56px rgba(139,92,246,.75); transform:scale(1.1); }
+
+.aura-pan {
+  position:fixed; bottom:96px; right:28px; width:340px;
+  border-radius:22px; overflow:hidden; display:none; z-index:998;
+  background:rgba(2,8,23,.88);
+  backdrop-filter:blur(44px); -webkit-backdrop-filter:blur(44px);
+  border:1px solid rgba(139,92,246,.32);
+  box-shadow:0 0 64px rgba(139,92,246,.22), 0 24px 64px rgba(0,0,0,.55);
+}
+.aura-pan.open{ display:flex; flex-direction:column; }
+.ah { padding:15px 18px; display:flex; align-items:center; gap:10px; background:rgba(139,92,246,.09); border-bottom:1px solid var(--glass-border); }
+.ah-av { width:29px; height:29px; border-radius:8px; background:linear-gradient(135deg,var(--violet),var(--cyan)); display:flex; align-items:center; justify-content:center; font-size:.78rem; color:#fff; box-shadow:0 0 10px rgba(139,92,246,.5); }
+.ah-title { font-weight:700; font-size:.88rem; }
+.ah-sub   { font-size:.68rem; color:var(--text-low); }
+.ah-close { margin-left:auto; background:none; border:none; color:var(--text-low); cursor:pointer; font-size:1.05rem; }
+.am { padding:16px; display:flex; flex-direction:column; gap:10px; min-height:200px; max-height:260px; overflow-y:auto; }
+.ai-row { padding:12px 16px; display:flex; gap:8px; border-top:1px solid var(--glass-border); }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+  ANIMATED BACKGROUND
+═══════════════════════════════════════════════════════ -->
+<div class="gl-canvas" aria-hidden="true">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="orb orb-4"></div>
+  <div class="orb orb-5"></div>
+  <div class="gl-grid"></div>
+</div>
+
+<div class="page">
+
+<!-- ═══════════════════════════════════════════════════════
+  NAV
+═══════════════════════════════════════════════════════ -->
+<nav class="gl-nav" id="glNav">
+  <div class="nav-logo">
+    <div class="nav-mark"><i class="bi bi-grid-3x3-gap-fill"></i></div>
+    <span>SchoolPortal</span>
+  </div>
+  <div class="nav-links">
+    <a href="#modules">System</a>
+    <a href="#ai">Intelligence</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#contact">Contact</a>
+  </div>
+  <div class="nav-cta">
+    <a href="{% url 'login' %}" class="btn-ghost">Sign In</a>
+    <a href="{% url 'signup' %}" class="btn-glow"><i class="bi bi-arrow-right"></i> Deploy</a>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════
+  HERO — TOTAL TRANSPARENCY
+═══════════════════════════════════════════════════════ -->
+<section class="hero" id="home">
+  <div class="hero-eyebrow reveal">
+    <div class="eyebrow-pulse"></div>
+    <span class="g-pill gp-v">School Management Infrastructure // AI-Powered</span>
+  </div>
+
+  <h1 class="reveal d2">
+    Intelligence. Order.
+    <span class="hl gradient-text-3">Education.</span>
+  </h1>
+
+  <p class="hero-sub reveal d3">
+    A systematic AI infrastructure designed to unify administration, academic tracking, and institutional growth into a single, high-fidelity interface.
+  </p>
+
+  <div class="hero-actions reveal d4">
+    <a href="{% url 'signup' %}" class="btn-glow" style="font-size:1rem;padding:14px 32px">
+      <i class="bi bi-arrow-right"></i> Deploy System
+    </a>
+    <a href="#modules" class="btn-ghost" style="font-size:1rem;padding:14px 32px">Access Framework</a>
+  </div>
+
+  <div class="hero-stats reveal d5">
+    <div class="hs-cell">
+      <div class="hs-num v">98%</div>
+      <div class="hs-lbl">Scheduling Precision</div>
+    </div>
+    <div class="hs-cell">
+      <div class="hs-num c">14K+</div>
+      <div class="hs-lbl">Data Points / Day</div>
+    </div>
+    <div class="hs-cell">
+      <div class="hs-num r">40%</div>
+      <div class="hs-lbl">Admin Efficiency</div>
+    </div>
+    <div class="hs-cell">
+      <div class="hs-num a">99.9%</div>
+      <div class="hs-lbl">Uptime SLA</div>
+    </div>
+  </div>
+
+  <div class="scroll-cue">
+    <span>Scroll</span>
+    <i class="bi bi-chevron-down"></i>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+  DATA STRIP
+═══════════════════════════════════════════════════════ -->
+<div class="data-strip">
+  <div class="ds-cell reveal d1">
+    <div class="ds-val" style="color:var(--violet);text-shadow:0 0 20px var(--gv)">50+</div>
+    <div class="ds-lbl">Institutions</div>
+    <div class="ds-sub">Active tenants</div>
+  </div>
+  <div class="ds-cell reveal d2">
+    <div class="ds-val" style="color:var(--cyan);text-shadow:0 0 20px var(--gc)">10K+</div>
+    <div class="ds-lbl">Students Managed</div>
+    <div class="ds-sub">Across all schools</div>
+  </div>
+  <div class="ds-cell reveal d3">
+    <div class="ds-val" style="color:var(--emerald);text-shadow:0 0 20px var(--ge)">08</div>
+    <div class="ds-lbl">Integrated Modules</div>
+    <div class="ds-sub">One platform</div>
+  </div>
+  <div class="ds-cell reveal d4">
+    <div class="ds-val" style="color:var(--rose);text-shadow:0 0 20px var(--gr)">24/7</div>
+    <div class="ds-lbl">AI Availability</div>
+    <div class="ds-sub">Always operational</div>
+  </div>
+  <div class="ds-cell reveal d5">
+    <div class="ds-val" style="color:var(--amber);text-shadow:0 0 20px var(--ga)">&lt;1.4s</div>
+    <div class="ds-lbl">AI Response Time</div>
+    <div class="ds-sub">Measured average</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+  MODULES — SYSTEM ARCHITECTURE
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="modules">
+  <div class="sw-container">
+    <div class="sec-head">
+      <div class="sec-num">01</div>
+      <div style="flex:1">
+        <div class="g-pill gp-v reveal" style="margin-bottom:14px">Platform Architecture</div>
+        <h2 class="sec-title reveal d2">Modular by design.<br><em class="gradient-text">Total operational coverage.</em></h2>
+      </div>
+      <div style="text-align:right" class="reveal d1">
+        <div style="font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-low)">Eight modules</div>
+        <div style="font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-low)">One platform</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mod-grid">
+    <div class="mod-card mv reveal d1">
+      <div class="mod-card-bar"></div>
+      <div class="mod-glow"></div>
+      <div class="mod-icon"><i class="bi bi-calendar4-week"></i></div>
+      <div class="mod-name">Automated Logistics</div>
+      <p class="mod-desc">AI-driven scheduling that eliminates resource conflicts and optimizes faculty hours through pure algorithmic precision.</p>
+      <div class="mod-tags"><span class="mod-tag">Scheduling</span><span class="mod-tag">Timetable</span><span class="mod-tag">Conflict-free</span></div>
+    </div>
+    <div class="mod-card mc reveal d2">
+      <div class="mod-card-bar"></div>
+      <div class="mod-glow"></div>
+      <div class="mod-icon"><i class="bi bi-graph-up-arrow"></i></div>
+      <div class="mod-name">Performance Analytics</div>
+      <p class="mod-desc">Real-time data synthesis. Transform student fragments into a cohesive narrative of academic progress and behavioral trends.</p>
+      <div class="mod-tags"><span class="mod-tag">Grades</span><span class="mod-tag">Reports</span><span class="mod-tag">Transcripts</span></div>
+    </div>
+    <div class="mod-card mr reveal d3">
+      <div class="mod-card-bar"></div>
+      <div class="mod-glow"></div>
+      <div class="mod-icon"><i class="bi bi-cash-coin"></i></div>
+      <div class="mod-name">Fiscal Architecture</div>
+      <p class="mod-desc">Transparent management of institutional resources, ensuring every asset is accounted for within a frictionless digital ledger.</p>
+      <div class="mod-tags"><span class="mod-tag">Receipts</span><span class="mod-tag">Ledger</span><span class="mod-tag">Bulk</span></div>
+    </div>
+    <div class="mod-card ma reveal d4">
+      <div class="mod-card-bar"></div>
+      <div class="mod-glow"></div>
+      <div class="mod-icon"><i class="bi bi-calendar-check-fill"></i></div>
+      <div class="mod-name">Presence Matrix</div>
+      <p class="mod-desc">Daily attendance logged per class. Pattern analytics, monthly heatmaps, and absence alerts delivered to parents automatically.</p>
+      <div class="mod-tags"><span class="mod-tag">Daily Roll</span><span class="mod-tag">Heatmap</span><span class="mod-tag">Alerts</span></div>
+    </div>
+    <div class="mod-card mv reveal d1">
+      <div class="mod-card-bar"></div>
+      <div class="mod-glow"></div>
+      <div class="mod-icon"><i class="bi bi-person-badge-fill"></i></div>
+      <div class="mod-name">Faculty Intelligence</div>
+      <p class="mod-desc">Staff profiles, subject assignments, duty rosters, and lesson plans. Every educator operates from a structured command interface.</p>
+      <div class="mod-tags"><span class="mod-tag">Rosters</span><span class="mod-tag">Plans</span><span class="mod-tag">Profiles</span></div>
+    </div>
+    <div class="mod-card me reveal d2">
+      <div class="mod-card-bar"></div>
+      <div class="mod-glow"></div>
+      <div class="mod-icon"><i class="bi bi-people-fill"></i></div>
+      <div class="mod-name">Parent Interface</div>
+      <p class="mod-desc">Parents access grades, attendance, fee balances, and announcements from any device — any time, any location.</p>
+      <div class="mod-tags"><span class="mod-tag">Grades</span><span class="mod-tag">Fees</span><span class="mod-tag">Notices</span></div>
+    </div>
+    <div class="mod-card mc reveal d3">
+      <div class="mod-card-bar"></div>
+      <div class="mod-glow"></div>
+      <div class="mod-icon"><i class="bi bi-megaphone-fill"></i></div>
+      <div class="mod-name">Broadcast Engine</div>
+      <p class="mod-desc">Targeted announcements across the institution. Segment by role, class, or year for surgical communication at scale.</p>
+      <div class="mod-tags"><span class="mod-tag">Notify</span><span class="mod-tag">Segment</span><span class="mod-tag">Archive</span></div>
+    </div>
+    <div class="mod-card mr reveal d4">
+      <div class="mod-card-bar"></div>
+      <div class="mod-glow"></div>
+      <div class="mod-icon"><i class="bi bi-robot"></i></div>
+      <div class="mod-name">AI Homework Engine</div>
+      <p class="mod-desc">AI generates assignments, students complete them online, system auto-marks and pushes scores directly to the grade book.</p>
+      <div class="mod-tags"><span class="mod-tag">AI Generate</span><span class="mod-tag">Auto-mark</span><span class="mod-tag">Push Grades</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+  SHOWCASE — PERFORMANCE ANALYTICS
+═══════════════════════════════════════════════════════ -->
+<section class="showcase section" id="showcase-grades">
+  <div class="sc-copy">
+    <div class="g-pill gp-v reveal" style="margin-bottom:16px">02 — Academic Engine</div>
+    <h2 class="reveal d2">Input marks.<br><em class="gradient-text">System does the rest.</em></h2>
+    <p class="reveal d3">Enter class scores and exam scores. SchoolPortal computes weighted totals, assigns grades, writes remarks, and renders polished PDF report cards — individual or full class — in one command.</p>
+    <ul class="feat-list reveal d4">
+      <li class="feat-item"><div class="fi-dot v"><i class="bi bi-check-lg"></i></div>Configurable weighting — class score vs. exam percentages per subject</li>
+      <li class="feat-item"><div class="fi-dot v"><i class="bi bi-check-lg"></i></div>One-click PDF generation for individual or whole-class reports</li>
+      <li class="feat-item"><div class="fi-dot v"><i class="bi bi-check-lg"></i></div>GES Primary, JHS and SHS grading systems supported</li>
+      <li class="feat-item"><div class="fi-dot c"><i class="bi bi-check-lg"></i></div>Grade analytics — averages, subject trends, rank lists</li>
+    </ul>
+  </div>
+  <div class="sc-panel">
+    <div class="screen-g reveal d2">
+      <div class="sg-bar">
+        <div class="sg-dot r"></div><div class="sg-dot a"></div><div class="sg-dot e"></div>
+        <span style="font-family:var(--mono);font-size:.62rem;color:var(--text-low);margin-left:10px">grade_engine.sys // Term 1 · Basic 9A</span>
+      </div>
+      <div class="sg-body">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--glass-border)">
+          <span style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-low)">Student Performance Matrix</span>
+          <span class="g-pill gp-e" style="font-size:.58rem">Live Sync</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(139,92,246,.08);border-radius:9px;border:1px solid rgba(139,92,246,.18)">
+            <span style="font-size:.78rem;font-weight:700;flex:1">Mensah, A.</span>
+            <span style="font-family:var(--mono);font-size:.78rem;color:var(--emerald)">A1</span>
+            <span style="font-size:.68rem;color:var(--text-low)">92/100</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--glass-1);border-radius:9px;border:1px solid var(--glass-border)">
+            <span style="font-size:.78rem;font-weight:700;flex:1">Osei, K.</span>
+            <span style="font-family:var(--mono);font-size:.78rem;color:var(--cyan)">B2</span>
+            <span style="font-size:.68rem;color:var(--text-low)">78/100</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--glass-1);border-radius:9px;border:1px solid var(--glass-border)">
+            <span style="font-size:.78rem;font-weight:700;flex:1">Darko, E.</span>
+            <span style="font-family:var(--mono);font-size:.78rem;color:var(--violet)">B3</span>
+            <span style="font-size:.68rem;color:var(--text-low)">74/100</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--glass-1);border-radius:9px;border:1px solid var(--glass-border)">
+            <span style="font-size:.78rem;font-weight:700;flex:1">Asante, P.</span>
+            <span style="font-family:var(--mono);font-size:.78rem;color:var(--amber)">C4</span>
+            <span style="font-size:.68rem;color:var(--text-low)">63/100</span>
+          </div>
+        </div>
+        <div style="margin-top:12px;padding:11px;background:linear-gradient(135deg,rgba(139,92,246,.12),rgba(6,182,212,.07));border-radius:9px;border:1px solid rgba(139,92,246,.2)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:.7rem;color:var(--text-low)">Class Average</span>
+            <span style="font-family:var(--mono);font-size:.95rem;font-weight:700;color:var(--violet);text-shadow:0 0 12px var(--gv)">76.8%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+  SHOWCASE — FISCAL ARCHITECTURE (flipped)
+═══════════════════════════════════════════════════════ -->
+<section class="showcase flip section" id="showcase-finance">
+  <div class="sc-copy">
+    <div class="g-pill gp-r reveal" style="margin-bottom:16px">03 — Fiscal Architecture</div>
+    <h2 class="reveal d2">Every asset<br><em style="font-style:normal;background:linear-gradient(90deg,var(--rose),var(--amber));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">accounted for.</em></h2>
+    <p class="reveal d3">Transparent management of institutional resources. Build fee structures per class and term, bulk-assign bills, record payments with auto-generated receipts, and track every balance through a frictionless digital ledger.</p>
+    <ul class="feat-list reveal d4">
+      <li class="feat-item"><div class="fi-dot r"><i class="bi bi-check-lg"></i></div>Fee structure templates per class, per term</li>
+      <li class="feat-item"><div class="fi-dot r"><i class="bi bi-check-lg"></i></div>Bulk student fee assignment with individual adjustments</li>
+      <li class="feat-item"><div class="fi-dot r"><i class="bi bi-check-lg"></i></div>Auto-generated, printable payment receipts</li>
+      <li class="feat-item"><div class="fi-dot v"><i class="bi bi-check-lg"></i></div>Real-time outstanding balance visibility per student</li>
+    </ul>
+  </div>
+  <div class="sc-panel">
+    <div class="screen-g reveal d2">
+      <div class="sg-bar">
+        <div class="sg-dot r"></div><div class="sg-dot a"></div><div class="sg-dot e"></div>
+        <span style="font-family:var(--mono);font-size:.62rem;color:var(--text-low);margin-left:10px">fiscal_ledger.sys // Term 1 · Basic 8</span>
+      </div>
+      <div class="sg-body">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--glass-border)">
+          <span style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-low)">Fee Collection Status</span>
+          <span class="g-pill gp-a" style="font-size:.58rem">₵3,400 Total</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(16,185,129,.08);border-radius:9px;border:1px solid rgba(16,185,129,.2)">
+            <span style="font-size:.78rem;font-weight:700;flex:1">Mensah, A.</span>
+            <span style="font-family:var(--mono);font-size:.72rem;font-weight:700;color:var(--emerald)">PAID</span>
+            <span style="font-size:.68rem;color:var(--text-low)">₵850</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(245,158,11,.08);border-radius:9px;border:1px solid rgba(245,158,11,.2)">
+            <span style="font-size:.78rem;font-weight:700;flex:1">Osei, K.</span>
+            <span style="font-family:var(--mono);font-size:.72rem;font-weight:700;color:var(--amber)">PARTIAL</span>
+            <span style="font-size:.68rem;color:var(--text-low)">₵510/850</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(244,63,94,.08);border-radius:9px;border:1px solid rgba(244,63,94,.2)">
+            <span style="font-size:.78rem;font-weight:700;flex:1">Boateng, A.</span>
+            <span style="font-family:var(--mono);font-size:.72rem;font-weight:700;color:var(--rose)">UNPAID</span>
+            <span style="font-size:.68rem;color:var(--text-low)">₵0/850</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(16,185,129,.08);border-radius:9px;border:1px solid rgba(16,185,129,.2)">
+            <span style="font-size:.78rem;font-weight:700;flex:1">Darko, A.</span>
+            <span style="font-family:var(--mono);font-size:.72rem;font-weight:700;color:var(--emerald)">PAID</span>
+            <span style="font-size:.68rem;color:var(--text-low)">₵850</span>
+          </div>
+        </div>
+        <div style="margin-top:12px;padding:11px;background:linear-gradient(135deg,rgba(244,63,94,.1),rgba(245,158,11,.08));border-radius:9px;border:1px solid rgba(244,63,94,.2)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:.7rem;color:var(--text-low)">Total Collected</span>
+            <span style="font-family:var(--mono);font-size:.95rem;font-weight:700;color:var(--rose);text-shadow:0 0 12px var(--gr)">₵2,210 / ₵3,400</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+  AI SECTION — LAYERED INTELLIGENCE
+═══════════════════════════════════════════════════════ -->
+<section class="ai-section section" id="ai">
+  <div class="ai-inner">
+    <div class="ai-copy">
+      <div class="g-pill gp-v reveal" style="margin-bottom:16px">05 — Aura AI Engine</div>
+      <h2 class="reveal d2">The Modernist Approach<br>to <em class="gradient-text">Learning.</em></h2>
+      <p class="reveal d3">Complexity is the enemy of education. Our AI doesn't replace the educator; it removes the administrative noise that surrounds them. By automating the mundane, we restore the focus to the only metric that matters: the student.</p>
+      <ul class="feat-list reveal d4">
+        <li class="feat-item"><div class="fi-dot v"><i class="bi bi-check-lg"></i></div>AI homework generation — teacher sets topic, Aura creates questions by difficulty</li>
+        <li class="feat-item"><div class="fi-dot v"><i class="bi bi-check-lg"></i></div>Auto-marking — students complete online, system grades and pushes to grade book</li>
+        <li class="feat-item"><div class="fi-dot v"><i class="bi bi-check-lg"></i></div>Admissions AI — parents get instant answers about enrollment, fees, term dates</li>
+        <li class="feat-item"><div class="fi-dot c"><i class="bi bi-check-lg"></i></div>Staff copilot — in-system help for admin and teachers across every workflow</li>
+      </ul>
+    </div>
+    <div class="reveal d3">
+      <div class="ai-chat">
+        <div class="ch-header">
+          <div class="ch-avatar"><i class="bi bi-stars"></i></div>
+          <div>
+            <div class="ch-title">Aura — SchoolPortal AI</div>
+          </div>
+          <div class="ch-status">
+            <div class="ch-dot"></div>
+            Online
+          </div>
+        </div>
+        <div class="ch-body">
+          <div class="bubble bot">Good morning. I'm Aura, your admissions assistant. How can I help you today?</div>
+          <div class="bubble usr">What documents are needed for enrollment?</div>
+          <div class="bubble bot">For enrollment you will need:<br>1. Birth certificate<br>2. Previous 2 term reports<br>3. Parent / guardian ID<br>4. Passport photograph<br><br>Would you like to schedule a school visit?</div>
+        </div>
+        <div class="ch-input">
+          <form id="auraInlineForm" style="display:flex;gap:8px;width:100%" method="post" action="{% url 'academics:admissions_assistant' %}">
+            {% csrf_token %}
+            <input class="ci-g" name="message" placeholder="Type your question…" autocomplete="off" required>
+            <button type="submit" class="cs-g"><i class="bi bi-send-fill"></i></button>
+          </form>
+        </div>
+      </div>
+      <div class="ai-meta">
+        <div class="am-cell">
+          <div class="am-lbl">Response Time</div>
+          <div class="am-val v">&lt;1.4s</div>
+        </div>
+        <div class="am-cell hi">
+          <div class="am-lbl">Availability</div>
+          <div class="am-val c">24 / 7</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+  TESTIMONIALS
+═══════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="sw-container">
+    <div class="sec-head">
+      <div class="sec-num">06</div>
+      <div>
+        <div class="g-pill gp-w reveal" style="margin-bottom:14px">Verified Results</div>
+        <h2 class="sec-title reveal d2">Institutions that chose<br><em class="gradient-text">systematic clarity.</em></h2>
+      </div>
+    </div>
+    <div class="testi-grid">
+      <div class="tcard reveal d1">
+        <div class="tcard-orb" style="background:var(--violet)"></div>
+        <div class="tcard-q" style="color:var(--violet)">"</div>
+        <p class="tcard-txt">SchoolPortal replaced three disconnected tools — fee collection, grading, and attendance — in one platform. The admin team went from overwhelmed to in control within a week.</p>
+        <div class="tcard-auth">
+          <div class="tcard-av" style="background:rgba(139,92,246,.15);color:var(--violet);border-color:rgba(139,92,246,.25)">AO</div>
+          <div>
+            <div class="tcard-name">Abena Osei-Bonsu</div>
+            <div class="tcard-role">Headmistress — Girls Model School</div>
+          </div>
+        </div>
+      </div>
+      <div class="tcard reveal d2">
+        <div class="tcard-orb" style="background:var(--cyan)"></div>
+        <div class="tcard-q" style="color:var(--cyan)">"</div>
+        <p class="tcard-txt">The AI homework feature saves me 4 hours a week. I set an assignment once, students complete it online, and the grades push straight to the report card. It's the future of teaching.</p>
+        <div class="tcard-auth">
+          <div class="tcard-av" style="background:rgba(6,182,212,.15);color:var(--cyan);border-color:rgba(6,182,212,.25)">KM</div>
+          <div>
+            <div class="tcard-name">Kwame Mensah</div>
+            <div class="tcard-role">Science Teacher — Tarbiat Academy</div>
+          </div>
+        </div>
+      </div>
+      <div class="tcard reveal d3">
+        <div class="tcard-orb" style="background:var(--rose)"></div>
+        <div class="tcard-q" style="color:var(--rose)">"</div>
+        <p class="tcard-txt">I check my daughter's grades, fee balance, and attendance from my phone. When I had a question about the new term, Aura answered me at midnight. Remarkable.</p>
+        <div class="tcard-auth">
+          <div class="tcard-av" style="background:rgba(244,63,94,.15);color:var(--rose);border-color:rgba(244,63,94,.25)">DA</div>
+          <div>
+            <div class="tcard-name">Doreen Asante</div>
+            <div class="tcard-role">Parent — Sunshine Cradle Care</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+  PRICING
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="pricing">
+  <div class="sw-container">
+    <div class="sec-head">
+      <div class="sec-num">07</div>
+      <div style="flex:1">
+        <div class="g-pill gp-w reveal" style="margin-bottom:14px">Pricing Structure</div>
+        <h2 class="sec-title reveal d2">Transparent tiers.<br><em class="gradient-text">Indisputable value.</em></h2>
+      </div>
+      <div style="text-align:right" class="reveal d1">
+        <div style="font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-low)">Every plan</div>
+        <div style="font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-low)">includes all modules</div>
+      </div>
+    </div>
+    <div class="price-grid">
+      <div class="pcard reveal d1">
+        <div class="pcard-top"></div>
+        <div class="pcard-body">
+          <div class="pcard-name">Starter</div>
+          <div class="pcard-price">Free</div>
+          <div class="pcard-sub">Forever — no card required</div>
+          <div class="pcard-sep"></div>
+          <p class="pcard-desc">For small schools stepping into systematic digital management for the first time.</p>
+          <ul class="pcard-feats">
+            <li class="pcard-feat"><i class="bi bi-check-lg pf-i"></i>Up to 50 students</li>
+            <li class="pcard-feat"><i class="bi bi-check-lg pf-i"></i>Basic report cards</li>
+            <li class="pcard-feat"><i class="bi bi-check-lg pf-i"></i>Attendance tracking</li>
+            <li class="pcard-feat"><i class="bi bi-check-lg pf-i"></i>Parent portal</li>
+            <li class="pcard-feat off"><i class="bi bi-x-lg pf-i"></i>AI Homework Engine</li>
+            <li class="pcard-feat off"><i class="bi bi-x-lg pf-i"></i>SMS alerts</li>
+          </ul>
+          <a href="{% url 'signup' %}" class="btn-pcard ghost">Get Started Free</a>
+        </div>
+      </div>
+      <div class="pcard featured reveal d2">
+        <div class="pcard-top"></div>
+        <div class="pcard-body">
+          <div class="pcard-badge"><i class="bi bi-stars"></i> Most Popular</div>
+          <div class="pcard-name">Growth</div>
+          <div class="pcard-price">₵10</div>
+          <div class="pcard-sub">per student / per term</div>
+          <div class="pcard-sep"></div>
+          <p class="pcard-desc">For growing schools that need full automation, analytics, and the complete AI suite.</p>
+          <ul class="pcard-feats">
+            <li class="pcard-feat"><i class="bi bi-check-lg pf-i"></i>Unlimited students</li>
+            <li class="pcard-feat"><i class="bi bi-check-lg pf-i"></i>AI Homework Engine</li>
+            <li class="pcard-feat"><i class="bi bi-check-lg pf-i"></i>Finance + auto receipts</li>
+            <li class="pcard-feat"><i class="bi bi-check-lg pf-i"></i>SMS &amp; email notifications</li>
+            <li class="pcard-feat"><i class="bi bi-check-lg pf-i"></i>Grade analytics dashboard</li>
+            <li class="pcard-feat"><i class="bi bi-check-lg pf-i"></i>Priority support</li>
+          </ul>
+          <a href="{% url 'signup' %}" class="btn-pcard gradient">Start Free Trial</a>
+        </div>
+      </div>
+      <div class="pcard reveal d3">
+        <div class="pcard-top" style="background:linear-gradient(90deg,var(--cyan),var(--emerald))"></div>
+        <div class="pcard-body">
+          <div class="pcard-name">Enterprise</div>
+          <div class="pcard-price">Custom</div>
+          <div class="pcard-sub">Contact the sales team</div>
+          <div class="pcard-sep"></div>
+          <p class="pcard-desc">For large institutions, districts, or circuits requiring custom integrations, domains, and SLAs.</p>
+          <ul class="pcard-feats">
+            <li class="pcard-feat"><i class="bi bi-check-lg pf-i"></i>Everything in Growth</li>
+            <li class="pcard-feat"><i class="bi bi-check-lg pf-i"></i>Custom domain</li>
+            <li class="pcard-feat"><i class="bi bi-check-lg pf-i"></i>Dedicated account manager</li>
+            <li class="pcard-feat"><i class="bi bi-check-lg pf-i"></i>Custom report templates</li>
+            <li class="pcard-feat"><i class="bi bi-check-lg pf-i"></i>API access</li>
+            <li class="pcard-feat"><i class="bi bi-check-lg pf-i"></i>On-site training</li>
+          </ul>
+          <a href="#contact" class="btn-pcard ghost">Talk to Sales</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+  CTA — STEP INTO THE LIGHT
+═══════════════════════════════════════════════════════ -->
+<div class="cta-block">
+  <div style="margin-bottom:24px" class="reveal">
+    <span class="g-pill gp-v">08 — Form Follows Faculty</span>
+  </div>
+  <h2 class="reveal d2">Form Follows <span class="gradient-text-3">Faculty.</span></h2>
+  <p class="reveal d3">Transition your institution into a state of permanent clarity. The grid is ready.</p>
+  <div class="cta-actions reveal d4">
+    <a href="{% url 'signup' %}" class="btn-glow" style="font-size:1rem;padding:15px 36px">
+      <i class="bi bi-arrow-right"></i> Initialize Integration
+    </a>
+    <span class="btn-ghost" style="font-size:.88rem;padding:13px 24px;cursor:default">No credit card required</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+  CONTACT
+═══════════════════════════════════════════════════════ -->
+<section class="section" id="contact" style="padding-top:0">
+  <div class="sec-head sw-container" style="padding-top:80px;margin-bottom:48px">
+    <div class="sec-num">09</div>
+    <div>
+      <div class="g-pill gp-w reveal" style="margin-bottom:14px">Get in Touch</div>
+      <h2 class="sec-title reveal d2">The grid awaits<br><em class="gradient-text">your institution.</em></h2>
+    </div>
+  </div>
+  <div class="contact-grid">
+    <div class="ci-info">
+      <p>Initiate a conversation with our deployment team. We are available to configure your institution's environment, discuss custom requirements, or answer any technical queries.</p>
+      <div class="cc reveal d1">
+        <div class="cc-ic"><i class="bi bi-envelope-fill" style="color:var(--violet)"></i></div>
+        <div><div class="cc-l">Email</div><div class="cc-v">deploy@schoolportal.app</div></div>
+      </div>
+      <div class="cc reveal d2">
+        <div class="cc-ic"><i class="bi bi-telephone-fill" style="color:var(--cyan)"></i></div>
+        <div><div class="cc-l">Phone</div><div class="cc-v">+233 55 000 0000</div></div>
+      </div>
+      <div class="cc reveal d3">
+        <div class="cc-ic"><i class="bi bi-geo-alt-fill" style="color:var(--rose)"></i></div>
+        <div><div class="cc-l">Location</div><div class="cc-v">Accra, Ghana</div></div>
+      </div>
+    </div>
+    <div class="ci-form">
+      <form method="post">
+        {% csrf_token %}
+        <div class="fg reveal d1">
+          <label class="fl">Institution Name</label>
+          <input type="text" class="fc" placeholder="e.g. Sunshine Academy JHS">
+        </div>
+        <div class="fg reveal d2">
+          <label class="fl">Contact Person</label>
+          <input type="text" class="fc" placeholder="Your full name">
+        </div>
+        <div class="fg reveal d3">
+          <label class="fl">Email Address</label>
+          <input type="email" class="fc" placeholder="admin@yourschool.edu">
+        </div>
+        <div class="fg reveal d4">
+          <label class="fl">Message</label>
+          <textarea class="fc" rows="4" placeholder="Describe your institution's requirements…"></textarea>
+        </div>
+        <button type="submit" class="btn-glow reveal d5" style="width:100%;padding:14px;justify-content:center;font-size:.95rem">
+          <i class="bi bi-send-fill"></i> Send Message
+        </button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+  FOOTER
+═══════════════════════════════════════════════════════ -->
+<footer class="gl-footer">
+  <div class="sw-container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="nav-logo">
+          <div class="nav-mark"><i class="bi bi-grid-3x3-gap-fill"></i></div>
+          <span>SchoolPortal</span>
+        </div>
+        <p>A systematic AI infrastructure for school management. Designed for administrators who demand order and clarity.</p>
+      </div>
+      <div>
+        <div class="ft-head">Platform</div>
+        <ul class="ft-links">
+          <li><a href="#modules">System Architecture</a></li>
+          <li><a href="#ai">Aura AI Engine</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="{% url 'signup' %}">Deploy</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="ft-head">Modules</div>
+        <ul class="ft-links">
+          <li><a href="#">Academics</a></li>
+          <li><a href="#">Finance</a></li>
+          <li><a href="#">Attendance</a></li>
+          <li><a href="#">Parent Portal</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="ft-head">Institution</div>
+        <ul class="ft-links">
+          <li><a href="#contact">Contact</a></li>
+          <li><a href="{% url 'login' %}">Sign In</a></li>
+          <li><a href="#">Privacy Policy</a></li>
+          <li><a href="#">Terms of Service</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 SchoolPortal. All rights reserved. Built for African education.</p>
+      <p style="font-family:var(--mono);font-size:.7rem" id="glClock">--:--:--</p>
+    </div>
+  </div>
+</footer>
+
+</div><!-- /page -->
+
+<!-- ═══════════════════════════════════════════════════════
+  AURA FLOATING WIDGET
+═══════════════════════════════════════════════════════ -->
+<button class="aura-fab" id="auraFab" title="Chat with Aura AI">
+  <i class="bi bi-stars"></i>
+</button>
+
+<div class="aura-pan" id="auraPan">
+  <div class="ah">
+    <div class="ah-av"><i class="bi bi-stars"></i></div>
+    <div>
+      <div class="ah-title">Aura AI</div>
+      <div class="ah-sub">Admissions Assistant</div>
+    </div>
+    <button class="ah-close" id="auraClose"><i class="bi bi-x-lg"></i></button>
+  </div>
+  <div class="am" id="auraMsgs">
+    <div class="bubble bot">Hi! I'm Aura. Ask me anything about admissions, fees, or term dates.</div>
+  </div>
+  <div class="ai-row">
+    <form id="auraWidgetForm" style="display:flex;gap:8px;width:100%" method="post" action="{% url 'academics:admissions_assistant' %}">
+      {% csrf_token %}
+      <input class="ci-g" id="auraWidgetMsg" name="message" placeholder="Ask anything…" autocomplete="off" required>
+      <button type="submit" class="cs-g"><i class="bi bi-send-fill"></i></button>
+    </form>
+  </div>
+</div>
+
+<script>
+/* ─── Nav scroll effect ─── */
+const glNav = document.getElementById('glNav');
+window.addEventListener('scroll', () => {
+  glNav.classList.toggle('scrolled', window.scrollY > 40);
+});
+
+/* ─── Live clock ─── */
+function tick() {
+  const el = document.getElementById('glClock');
+  if (el) el.textContent = new Date().toTimeString().slice(0, 8);
+}
+setInterval(tick, 1000); tick();
+
+/* ─── Scroll reveals ─── */
+const ro = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in-view'); });
+}, { threshold: 0.10 });
+document.querySelectorAll('.reveal').forEach(el => ro.observe(el));
+
+/* ─── Parallax orbs ─── */
+const orbs = document.querySelectorAll('.orb');
+window.addEventListener('scroll', () => {
+  const sy = window.scrollY;
+  orbs.forEach((o, i) => {
+    const f = (i % 2 === 0 ? 0.045 : -0.032) * (i + 1);
+    o.style.transform = `translateY(${sy * f}px)`;
+  });
+}, { passive: true });
+
+/* ─── Aura FAB ─── */
+const auraFab   = document.getElementById('auraFab');
+const auraPan   = document.getElementById('auraPan');
+const auraClose = document.getElementById('auraClose');
+const auraMsgs  = document.getElementById('auraMsgs');
+auraFab.addEventListener('click', () => auraPan.classList.toggle('open'));
+auraClose.addEventListener('click', () => auraPan.classList.remove('open'));
+
+document.getElementById('auraWidgetForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const input = document.getElementById('auraWidgetMsg');
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  const uB = document.createElement('div');
+  uB.className = 'bubble usr'; uB.textContent = msg;
+  auraMsgs.appendChild(uB);
+  input.value = '';
+  auraMsgs.scrollTop = auraMsgs.scrollHeight;
+
+  const bot = document.createElement('div');
+  bot.className = 'bubble bot';
+  bot.innerHTML = '<i class="bi bi-three-dots" style="opacity:.5"></i>';
+  auraMsgs.appendChild(bot);
+  auraMsgs.scrollTop = auraMsgs.scrollHeight;
+
+  try {
+    const fd = new FormData(e.target);
+    fd.set('message', msg);
+    const res = await fetch(e.target.action, {
+      method: 'POST', body: fd,
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    });
+    const data = await res.json();
+    bot.innerHTML = data.response || 'Sorry, I could not process that request.';
+  } catch {
+    bot.innerHTML = 'Connection error — please try again.';
+  }
+  auraMsgs.scrollTop = auraMsgs.scrollHeight;
+});
+</script>
+</body>
+</html>

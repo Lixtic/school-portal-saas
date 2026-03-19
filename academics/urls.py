@@ -50,6 +50,8 @@ urlpatterns = [
     path('about/', views.about_us, name='about_us'),
     path('system-about/', views.system_about, name='system_about'),
     path('apply/', views.apply_admission, name='apply_admission'),
+    path('admissions/', views.admission_applications, name='admission_applications'),
+    path('admissions/<int:pk>/', views.admission_application_detail, name='admission_application_detail'),
     
     # AI Tutor
     path('ai-tutor/', views.ai_tutor, name='ai_tutor'),

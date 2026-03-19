@@ -96,6 +96,7 @@ class PlatformSettings(models.Model):
         ('home/playful.html',  'Playful — Colourful & Animated'),
         ('home/elegant.html',  'Elegant — Navy / Gold'),
         ('home/swiss.html',    'Swiss — Grid System'),
+        ('home/glass.html',   'Glass — Digital Lucidity'),
     ]
 
     landing_template = models.CharField(

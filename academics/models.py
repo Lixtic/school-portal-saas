@@ -321,6 +321,55 @@ class SchemeOfWork(models.Model):
         return [(t, indicators.get(t, '')) for t in self.get_topics()]
 
 
+class AdmissionApplication(models.Model):
+    """Visitor-submitted admission application. Reviewed by admin; not yet enrolled."""
+
+    STATUS_CHOICES = [
+        ('pending',   'Pending Review'),
+        ('reviewing', 'Under Review'),
+        ('accepted',  'Accepted'),
+        ('rejected',  'Rejected'),
+    ]
+
+    # Student
+    first_name     = models.CharField(max_length=100)
+    last_name      = models.CharField(max_length=100)
+    date_of_birth  = models.DateField()
+    gender         = models.CharField(max_length=10, choices=[('male', 'Male'), ('female', 'Female')])
+    grade          = models.CharField(max_length=50)
+
+    # Parent / Guardian
+    parent_name    = models.CharField(max_length=150)
+    relationship   = models.CharField(max_length=20, choices=[
+        ('father', 'Father'), ('mother', 'Mother'), ('guardian', 'Guardian'),
+    ])
+    phone          = models.CharField(max_length=30)
+    email          = models.EmailField()
+    address        = models.TextField()
+
+    # Extra
+    previous_school = models.CharField(max_length=200, blank=True)
+    comments        = models.TextField(blank=True)
+
+    # Admin
+    status          = models.CharField(max_length=12, choices=STATUS_CHOICES, default='pending')
+    admin_notes     = models.TextField(blank=True)
+    submitted_at    = models.DateTimeField(auto_now_add=True)
+    updated_at      = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-submitted_at']
+        verbose_name = 'Admission Application'
+        verbose_name_plural = 'Admission Applications'
+
+    def __str__(self):
+        return f"{self.first_name} {self.last_name} — {self.grade} ({self.get_status_display()})"
+
+    @property
+    def student_name(self):
+        return f"{self.first_name} {self.last_name}"
+
+
 # Import AI Tutor/Copilot models
 from .tutor_models import (
     TutorSession,

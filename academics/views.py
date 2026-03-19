@@ -20,7 +20,7 @@ import logging
 logger = logging.getLogger(__name__)
 from accounts.models import User
 from announcements.models import Announcement
-from .models import Activity, GalleryImage, SchoolInfo, Class, Timetable, ClassSubject, Resource, AcademicYear, Subject
+from .models import Activity, GalleryImage, SchoolInfo, Class, Timetable, ClassSubject, Resource, AcademicYear, Subject, AdmissionApplication
 from students.models import Student, Attendance, Grade
 from .forms import SchoolInfoForm, GalleryImageForm, ResourceForm, ClassForm, SubjectForm, ClassSubjectForm, BulkClassForm, AcademicYearForm
 from teachers.models import Teacher
@@ -46,18 +46,85 @@ def system_about(request):
     return render(request, 'academics/system_about.html')
 
 def apply_admission(request):
-    """Public admission application page"""
+    """Public admission application page — saves form to AdmissionApplication."""
     school_info = SchoolInfo.objects.first()
-    
+
     if request.method == 'POST':
-        # Handle admission form submission
-        messages.success(request, 'Thank you for your interest! We will contact you soon.')
-        return redirect('academics:apply_admission')
-    
-    context = {
-        'school_info': school_info,
-    }
+        p = request.POST
+        required = ['first_name', 'last_name', 'date_of_birth', 'gender', 'grade',
+                    'parent_name', 'relationship', 'phone', 'email', 'address']
+        missing = [f for f in required if not p.get(f, '').strip()]
+        if missing:
+            messages.error(request, 'Please fill in all required fields.')
+        else:
+            AdmissionApplication.objects.create(
+                first_name=p['first_name'].strip(),
+                last_name=p['last_name'].strip(),
+                date_of_birth=p['date_of_birth'],
+                gender=p['gender'],
+                grade=p['grade'],
+                parent_name=p['parent_name'].strip(),
+                relationship=p['relationship'],
+                phone=p['phone'].strip(),
+                email=p['email'].strip(),
+                address=p['address'].strip(),
+                previous_school=p.get('previous_school', '').strip(),
+                comments=p.get('comments', '').strip(),
+            )
+            messages.success(request, 'Application submitted! Our admissions team will contact you within 3–5 business days.')
+            return redirect('academics:apply_admission')
+
+    context = {'school_info': school_info}
     return render(request, 'academics/apply_admission.html', context)
+
+
+@login_required
+def admission_applications(request):
+    """Admin view — list all admission applications with filtering."""
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    status_filter = request.GET.get('status', '')
+    qs = AdmissionApplication.objects.all()
+    if status_filter:
+        qs = qs.filter(status=status_filter)
+
+    context = {
+        'applications': qs,
+        'status_filter': status_filter,
+        'status_choices': AdmissionApplication.STATUS_CHOICES,
+        'counts': {
+            'all':       AdmissionApplication.objects.count(),
+            'pending':   AdmissionApplication.objects.filter(status='pending').count(),
+            'reviewing': AdmissionApplication.objects.filter(status='reviewing').count(),
+            'accepted':  AdmissionApplication.objects.filter(status='accepted').count(),
+            'rejected':  AdmissionApplication.objects.filter(status='rejected').count(),
+        },
+    }
+    return render(request, 'academics/admission_applications.html', context)
+
+
+@login_required
+def admission_application_detail(request, pk):
+    """Admin view — review and update a single application."""
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    app = get_object_or_404(AdmissionApplication, pk=pk)
+
+    if request.method == 'POST':
+        new_status  = request.POST.get('status', app.status)
+        admin_notes = request.POST.get('admin_notes', app.admin_notes)
+        if new_status in dict(AdmissionApplication.STATUS_CHOICES):
+            app.status      = new_status
+            app.admin_notes = admin_notes
+            app.save(update_fields=['status', 'admin_notes', 'updated_at'])
+            messages.success(request, f'Application updated to "{app.get_status_display()}".')
+        return redirect('academics:admission_application_detail', pk=pk)
+
+    return render(request, 'academics/admission_application_detail.html', {'app': app})
 
 @login_required
 def manage_classes(request):

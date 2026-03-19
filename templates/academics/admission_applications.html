@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+  <!-- Header -->
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+    <div>
+      <h4 class="fw-bold mb-1"><i class="bi bi-person-lines-fill me-2 text-primary"></i>Admission Applications</h4>
+      <p class="text-muted small mb-0">Review and manage incoming admission requests from prospective students.</p>
+    </div>
+    <a href="{% url 'academics:apply_admission' %}" class="btn btn-outline-primary btn-sm" target="_blank">
+      <i class="bi bi-box-arrow-up-right me-1"></i> View Public Form
+    </a>
+  </div>
+
+  <!-- Stat cards -->
+  <div class="row g-3 mb-4">
+    {% with c=counts %}
+    <div class="col-6 col-md-3 col-lg">
+      <a href="?status=" class="text-decoration-none">
+        <div class="card border-0 shadow-sm h-100 {% if not status_filter %}border-primary border-2{% endif %}">
+          <div class="card-body text-center py-3">
+            <div class="fs-3 fw-bold text-primary">{{ c.all }}</div>
+            <div class="small text-muted">All</div>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md-3 col-lg">
+      <a href="?status=pending" class="text-decoration-none">
+        <div class="card border-0 shadow-sm h-100 {% if status_filter == 'pending' %}border-warning border-2{% endif %}">
+          <div class="card-body text-center py-3">
+            <div class="fs-3 fw-bold text-warning">{{ c.pending }}</div>
+            <div class="small text-muted">Pending</div>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md-3 col-lg">
+      <a href="?status=reviewing" class="text-decoration-none">
+        <div class="card border-0 shadow-sm h-100 {% if status_filter == 'reviewing' %}border-info border-2{% endif %}">
+          <div class="card-body text-center py-3">
+            <div class="fs-3 fw-bold text-info">{{ c.reviewing }}</div>
+            <div class="small text-muted">Reviewing</div>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md-3 col-lg">
+      <a href="?status=accepted" class="text-decoration-none">
+        <div class="card border-0 shadow-sm h-100 {% if status_filter == 'accepted' %}border-success border-2{% endif %}">
+          <div class="card-body text-center py-3">
+            <div class="fs-3 fw-bold text-success">{{ c.accepted }}</div>
+            <div class="small text-muted">Accepted</div>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md-3 col-lg">
+      <a href="?status=rejected" class="text-decoration-none">
+        <div class="card border-0 shadow-sm h-100 {% if status_filter == 'rejected' %}border-danger border-2{% endif %}">
+          <div class="card-body text-center py-3">
+            <div class="fs-3 fw-bold text-danger">{{ c.rejected }}</div>
+            <div class="small text-muted">Rejected</div>
+          </div>
+        </div>
+      </a>
+    </div>
+    {% endwith %}
+  </div>
+
+  {% if messages %}
+    {% for m in messages %}
+      <div class="alert alert-{{ m.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        {{ m }} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- Table -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+      {% if applications %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Student</th>
+              <th>Grade</th>
+              <th>Parent / Guardian</th>
+              <th>Phone</th>
+              <th>Email</th>
+              <th>Status</th>
+              <th>Submitted</th>
+              <th class="pe-3"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for app in applications %}
+            <tr>
+              <td class="ps-3">
+                <div class="fw-semibold">{{ app.first_name }} {{ app.last_name }}</div>
+                <div class="small text-muted">{{ app.get_gender_display }}</div>
+              </td>
+              <td>{{ app.grade }}</td>
+              <td>
+                <div>{{ app.parent_name }}</div>
+                <div class="small text-muted">{{ app.get_relationship_display }}</div>
+              </td>
+              <td>{{ app.phone }}</td>
+              <td class="text-truncate" style="max-width:160px">{{ app.email }}</td>
+              <td>
+                {% if app.status == 'pending' %}
+                  <span class="badge bg-warning text-dark">Pending</span>
+                {% elif app.status == 'reviewing' %}
+                  <span class="badge bg-info text-dark">Reviewing</span>
+                {% elif app.status == 'accepted' %}
+                  <span class="badge bg-success">Accepted</span>
+                {% elif app.status == 'rejected' %}
+                  <span class="badge bg-danger">Rejected</span>
+                {% endif %}
+              </td>
+              <td class="small text-muted">{{ app.submitted_at|date:"d M Y" }}</td>
+              <td class="pe-3 text-end">
+                <a href="{% url 'academics:admission_application_detail' app.pk %}" class="btn btn-sm btn-outline-secondary">
+                  <i class="bi bi-eye"></i> Review
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center text-muted py-5">
+        <i class="bi bi-inbox fs-1 d-block mb-3 opacity-50"></i>
+        <p class="mb-0">No applications{% if status_filter %} with status "{{ status_filter }}"{% endif %} yet.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

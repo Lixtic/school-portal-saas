@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import AcademicYear, Class, Subject, ClassSubject, Activity, Timetable, SchoolInfo, GalleryImage, SchemeOfWork
+from .models import AcademicYear, Class, Subject, ClassSubject, Activity, Timetable, SchoolInfo, GalleryImage, SchemeOfWork, AdmissionApplication
 from .gamification_models import AuraSessionState
 
 
@@ -75,6 +75,15 @@ class TimetableAdmin(admin.ModelAdmin):
     list_display = ['class_subject', 'day', 'start_time', 'end_time', 'room']
     list_filter = ['day', 'class_subject__class_name']
     search_fields = ['class_subject__teacher__user__first_name', 'class_subject__teacher__user__last_name', 'room']
+
+
+@admin.register(AdmissionApplication)
+class AdmissionApplicationAdmin(admin.ModelAdmin):
+    list_display  = ['student_name', 'grade', 'parent_name', 'phone', 'status', 'submitted_at']
+    list_filter   = ['status', 'gender', 'grade']
+    search_fields = ['first_name', 'last_name', 'parent_name', 'email', 'phone']
+    readonly_fields = ['submitted_at', 'updated_at']
+    list_editable = ['status']
 
     def get_deleted_objects(self, objs, request):
         """

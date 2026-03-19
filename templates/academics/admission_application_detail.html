@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-4" style="max-width:800px">
+
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <a href="{% url 'academics:admission_applications' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left"></i> All Applications
+    </a>
+    <h5 class="fw-bold mb-0">Application #{{ app.pk }} — {{ app.student_name }}</h5>
+  </div>
+
+  {% if messages %}
+    {% for m in messages %}
+      <div class="alert alert-{{ m.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        {{ m }} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="row g-4">
+
+    <!-- Left column: application details -->
+    <div class="col-lg-8">
+
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent fw-semibold border-bottom">
+          <i class="bi bi-person-fill me-2 text-primary"></i>Student Information
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-sm-4 text-muted small">Full Name</dt>
+            <dd class="col-sm-8">{{ app.first_name }} {{ app.last_name }}</dd>
+
+            <dt class="col-sm-4 text-muted small">Date of Birth</dt>
+            <dd class="col-sm-8">{{ app.date_of_birth|date:"d M Y" }}</dd>
+
+            <dt class="col-sm-4 text-muted small">Gender</dt>
+            <dd class="col-sm-8">{{ app.get_gender_display }}</dd>
+
+            <dt class="col-sm-4 text-muted small">Applying For</dt>
+            <dd class="col-sm-8">{{ app.grade }}</dd>
+          </dl>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent fw-semibold border-bottom">
+          <i class="bi bi-people-fill me-2 text-primary"></i>Parent / Guardian
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0">
+            <dt class="col-sm-4 text-muted small">Name</dt>
+            <dd class="col-sm-8">{{ app.parent_name }}</dd>
+
+            <dt class="col-sm-4 text-muted small">Relationship</dt>
+            <dd class="col-sm-8">{{ app.get_relationship_display }}</dd>
+
+            <dt class="col-sm-4 text-muted small">Phone</dt>
+            <dd class="col-sm-8"><a href="tel:{{ app.phone }}">{{ app.phone }}</a></dd>
+
+            <dt class="col-sm-4 text-muted small">Email</dt>
+            <dd class="col-sm-8"><a href="mailto:{{ app.email }}">{{ app.email }}</a></dd>
+
+            <dt class="col-sm-4 text-muted small">Address</dt>
+            <dd class="col-sm-8">{{ app.address }}</dd>
+          </dl>
+        </div>
+      </div>
+
+      {% if app.previous_school or app.comments %}
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent fw-semibold border-bottom">
+          <i class="bi bi-info-circle me-2 text-primary"></i>Additional Information
+        </div>
+        <div class="card-body">
+          {% if app.previous_school %}
+          <dl class="row mb-2">
+            <dt class="col-sm-4 text-muted small">Previous School</dt>
+            <dd class="col-sm-8">{{ app.previous_school }}</dd>
+          </dl>
+          {% endif %}
+          {% if app.comments %}
+          <dl class="row mb-0">
+            <dt class="col-sm-4 text-muted small">Comments</dt>
+            <dd class="col-sm-8">{{ app.comments }}</dd>
+          </dl>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+
+    <!-- Right column: status update -->
+    <div class="col-lg-4">
+
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent fw-semibold border-bottom">
+          <i class="bi bi-sliders me-2 text-primary"></i>Decision
+        </div>
+        <div class="card-body">
+          <p class="small text-muted mb-3">
+            Submitted <strong>{{ app.submitted_at|date:"d M Y, H:i" }}</strong><br>
+            Last updated <strong>{{ app.updated_at|date:"d M Y, H:i" }}</strong>
+          </p>
+          <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label fw-semibold small">Status</label>
+              <select name="status" class="form-select form-select-sm">
+                {% for val, label in app.STATUS_CHOICES %}
+                <option value="{{ val }}" {% if app.status == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold small">Admin Notes</label>
+              <textarea name="admin_notes" class="form-control form-control-sm" rows="4" placeholder="Internal notes visible only to admins…">{{ app.admin_notes }}</textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm w-100">
+              <i class="bi bi-save me-1"></i> Save Decision
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Current status badge -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-4">
+          <div class="small text-muted mb-2">Current Status</div>
+          {% if app.status == 'pending' %}
+            <span class="badge bg-warning text-dark fs-6 px-3 py-2">⏳ Pending Review</span>
+          {% elif app.status == 'reviewing' %}
+            <span class="badge bg-info text-dark fs-6 px-3 py-2">🔍 Under Review</span>
+          {% elif app.status == 'accepted' %}
+            <span class="badge bg-success fs-6 px-3 py-2">✅ Accepted</span>
+          {% elif app.status == 'rejected' %}
+            <span class="badge bg-danger fs-6 px-3 py-2">❌ Rejected</span>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
