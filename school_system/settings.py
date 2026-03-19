@@ -352,28 +352,20 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'School Admin <noreply@school.com>')
 
 # =====================
-# SESSION PERSISTENCE (critical for serverless / Vercel)
+# SESSION PERSISTENCE
 # =====================
-# Uses a tenant-aware DB session backend (school_system/session_backend.py)
-# that stores sessions in each tenant's own django_session table and
-# explicitly forces the correct PostgreSQL search_path before every DB hit.
-# This is safe under Neon/PgBouncer connection pooling AND local PostgreSQL.
+# Uses Django's built-in signed-cookie session backend.  The entire session
+# is stored client-side in a signed (HMAC'd) cookie — no DB lookup needed,
+# so there is no schema-switching problem in multi-tenant path-based routing.
 #
-# django.contrib.sessions is in BOTH SHARED_APPS and TENANT_APPS so every
-# schema has its own django_session table — sessions are fully isolated per school.
-#
-# Tenant-aware DB session backend: stores sessions in *each tenant's own*
-# django_session table.  The custom backend (school_system/session_backend.py)
-# explicitly forces the correct search_path before every DB hit, which makes
-# it safe under Neon/PgBouncer connection pooling as well as local PostgreSQL.
-SESSION_ENGINE = 'school_system.session_backend'
-SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
+# The original admin-logout bug was caused by SESSION_COOKIE_SECURE being
+# forced to True even on localhost (via SECURE_PROXY_SSL_HEADER making
+# request.is_secure() return True).  That is fixed below with the env-aware
+# _use_secure_cookies flag — signed cookies are now safe for all users.
+SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 
 # "Keep me logged in" persistent session = 30 days.
 SESSION_COOKIE_AGE = 30 * 24 * 60 * 60  # 30 days in seconds
-
-# Save session on every request so the 30-day expiry is rolling.
-SESSION_SAVE_EVERY_REQUEST = True
 
 # Cookie flags
 SESSION_COOKIE_HTTPONLY = True   # block JS access (XSS protection)
