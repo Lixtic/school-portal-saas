@@ -31,6 +31,8 @@ class PaymentForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self._fee = kwargs.pop('fee', None)
         super().__init__(*args, **kwargs)
+        self.fields['reference'].widget.attrs['readonly'] = True
+        self.fields['reference'].help_text = 'Auto-generated. Will be assigned if left blank.'
 
     def clean_amount(self):
         amount = self.cleaned_data.get('amount')

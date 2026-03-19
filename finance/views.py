@@ -381,7 +381,8 @@ def record_payment(request, fee_id):
                     return redirect('teachers:fee_task_detail', structure_id=fee.fee_structure_id)
                 return redirect('finance:student_fees', student_id=fee.student.id)
     else:
-        form = PaymentForm(initial={'amount': fee.balance}, fee=fee)
+        from finance.models import generate_payment_reference
+        form = PaymentForm(initial={'amount': fee.balance, 'reference': generate_payment_reference()}, fee=fee)
 
     return render(request, 'finance/payment_form.html', {'form': form, 'fee': fee})
 

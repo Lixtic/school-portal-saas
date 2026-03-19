@@ -1,9 +1,27 @@
+import secrets
+import string
+
 from django.db import models
 from django.db.models import UniqueConstraint, Q
 from students.models import Student
 from academics.models import Class, AcademicYear
 from accounts.models import User
 from django.utils import timezone
+
+
+def generate_payment_reference():
+    """Generate a unique payment reference like RCP-20260319-A7X2."""
+    date_part = timezone.now().strftime('%Y%m%d')
+    chars = string.ascii_uppercase + string.digits
+    for _ in range(10):
+        suffix = ''.join(secrets.choice(chars) for _ in range(4))
+        ref = f'RCP-{date_part}-{suffix}'
+        from finance.models import Payment
+        if not Payment.objects.filter(reference=ref).exists():
+            return ref
+    # Fallback with longer suffix
+    suffix = ''.join(secrets.choice(chars) for _ in range(8))
+    return f'RCP-{date_part}-{suffix}'
 
 TERM_CHOICES = (
     ('first', 'First Term'),
@@ -115,5 +133,7 @@ class Payment(models.Model):
         return f"{self.amount} - {self.date}"
 
     def save(self, *args, **kwargs):
+        if not self.reference:
+            self.reference = generate_payment_reference()
         super().save(*args, **kwargs)
         self.student_fee.update_status()
