@@ -354,32 +354,26 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'School Admin <noreply
 # =====================
 # SESSION PERSISTENCE (critical for serverless / Vercel)
 # =====================
-# Signed-cookie sessions: session data lives entirely in the browser
-# cookie (HMAC-signed, HttpOnly, not readable by JS).  Zero DB queries
-# for session load/save, which completely sidesteps the multi-tenant
-# search_path problem.
+# Uses a tenant-aware DB session backend (school_system/session_backend.py)
+# that stores sessions in each tenant's own django_session table and
+# explicitly forces the correct PostgreSQL search_path before every DB hit.
+# This is safe under Neon/PgBouncer connection pooling AND local PostgreSQL.
 #
-# Why NOT database sessions on this stack:
-#   django.contrib.sessions is in BOTH SHARED_APPS and TENANT_APPS,
-#   so every schema has its own django_session table.  Neon uses
-#   PgBouncer in transaction-pooling mode, which can reassign the
-#   underlying PostgreSQL connection between the "SET search_path"
-#   and the "SELECT FROM django_session" — causing Django to read
-#   from the wrong schema, get an empty result, and silently log
-#   the user out.  Signed cookies avoid this entirely.
+# django.contrib.sessions is in BOTH SHARED_APPS and TENANT_APPS so every
+# schema has its own django_session table — sessions are fully isolated per school.
 #
-# Requirements for signed_cookies to work reliably:
-#   1. SECRET_KEY must be identical on every Vercel instance
-#      (set it as a Vercel env var — never rely on the default)
-#   2. Session data must stay under ~4 KB (we use <1 KB typically)
-SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
+# Tenant-aware DB session backend: stores sessions in *each tenant's own*
+# django_session table.  The custom backend (school_system/session_backend.py)
+# explicitly forces the correct search_path before every DB hit, which makes
+# it safe under Neon/PgBouncer connection pooling as well as local PostgreSQL.
+SESSION_ENGINE = 'school_system.session_backend'
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
 
 # "Keep me logged in" persistent session = 30 days.
 SESSION_COOKIE_AGE = 30 * 24 * 60 * 60  # 30 days in seconds
 
-# No need for SESSION_SAVE_EVERY_REQUEST with signed cookies — the
-# cookie is always sent and re-signed on modification.
+# Save session on every request so the 30-day expiry is rolling.
+SESSION_SAVE_EVERY_REQUEST = True
 
 # Cookie flags
 SESSION_COOKIE_HTTPONLY = True   # block JS access (XSS protection)
