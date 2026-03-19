@@ -159,6 +159,8 @@ class Presentation(models.Model):
     share_token  = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     created_at   = models.DateTimeField(auto_now_add=True)
     updated_at   = models.DateTimeField(auto_now=True)
+    times_presented  = models.PositiveIntegerField(default=0)
+    last_presented_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ['-updated_at']

@@ -276,11 +276,12 @@ body.select-mode .deck-select-cb { display: flex; }
     <button class="gm-sort-pill" data-sort="oldest" onclick="sortDecks('oldest',this)"><i class="fas fa-history me-1"></i>Oldest</button>
     <button class="gm-sort-pill" data-sort="az" onclick="sortDecks('az',this)"><i class="fas fa-sort-alpha-down me-1"></i>A – Z</button>
     <button class="gm-sort-pill" data-sort="slides" onclick="sortDecks('slides',this)"><i class="fas fa-clone me-1"></i>Most Slides</button>
+    <button class="gm-sort-pill" data-sort="presented" onclick="sortDecks('presented',this)"><i class="fas fa-play-circle me-1"></i>Most Presented</button>
   </div>
 
   <div class="deck-grid" id="deckGrid">
     {% for deck in decks %}
-    <div class="deck-card" data-pk="{{ deck.pk }}" data-title="{{ deck.title|lower|escapejs }}" data-slides="{{ deck.annotated_slide_count }}" data-updated="{{ deck.updated_at|date:'U' }}" data-subject-pk="{{ deck.subject.pk|default:'' }}" data-class-pk="{{ deck.school_class.pk|default:'' }}" data-subject-name="{{ deck.subject.name|default:'' }}" data-class-name="{{ deck.school_class.name|default:'' }}">
+    <div class="deck-card" data-pk="{{ deck.pk }}" data-title="{{ deck.title|lower|escapejs }}" data-slides="{{ deck.annotated_slide_count }}" data-updated="{{ deck.updated_at|date:'U' }}" data-presented="{{ deck.times_presented|default:0 }}" data-subject-pk="{{ deck.subject.pk|default:'' }}" data-class-pk="{{ deck.school_class.pk|default:'' }}" data-subject-name="{{ deck.subject.name|default:'' }}" data-class-name="{{ deck.school_class.name|default:'' }}">
       <div class="deck-select-cb" onclick="event.preventDefault();event.stopPropagation();toggleCardSelect(this)">
         <input type="checkbox" class="deck-cb-input">
       </div>
@@ -334,6 +335,9 @@ body.select-mode .deck-select-cb { display: flex; }
         </div>
         <div class="deck-meta">
             <span><i class="fas fa-clock me-1"></i>{{ deck.updated_at|timesince }} ago</span>
+            {% if deck.times_presented %}
+            <span><i class="fas fa-play-circle me-1"></i>{{ deck.times_presented }}&times; presented</span>
+            {% endif %}
           </div>
       </div>
       <div class="deck-actions">
@@ -420,6 +424,7 @@ function sortDecks(key, pill) {
     if (key === 'oldest') return parseInt(a.dataset.updated||0) - parseInt(b.dataset.updated||0);
     if (key === 'az')     return (a.dataset.title||'').localeCompare(b.dataset.title||'');
     if (key === 'slides') return parseInt(b.dataset.slides||0) - parseInt(a.dataset.slides||0);
+    if (key === 'presented') return parseInt(b.dataset.presented||0) - parseInt(a.dataset.presented||0);
     return 0;
   });
   cards.forEach(function(c) { grid.appendChild(c); });

@@ -1691,6 +1691,14 @@ def lesson_plan_create(request):
             match = pattern.search(text)
             return match.group(1).strip() if match else ""
 
+        def extract_phase(phase_num, text):
+            """Extract full phase content up to the next phase-level boundary."""
+            boundaries = {1: r'\*\*PHASE\s*2', 2: r'\*\*PHASE\s*3', 3: r'\*\*(?:Resources|Homework)'}
+            end = boundaries.get(phase_num, r'\Z')
+            pat = re.compile(rf"\*\*PHASE\s*{phase_num}[^*]*\*\*\s*(.*?)(?={end}|\Z)", re.DOTALL | re.IGNORECASE)
+            m = pat.search(text)
+            return m.group(1).strip() if m else ""
+
         # Attempt to map Aura-T output format to LessonPlan model fields
         parsed_topic = extract_section("Strand", ai_content)
         parsed_sub_strand = extract_section("Sub Strand", ai_content)
@@ -1703,9 +1711,9 @@ def lesson_plan_create(request):
             'week_number': extract_section("WEEK", ai_content) or 1,
             'objectives': extract_section("Content Standard", ai_content) + "\n\n" + extract_section("Indicator", ai_content),
             'teaching_materials': extract_section("Resources", ai_content),
-            'introduction': extract_section("PHASE 1: STARTER", ai_content),
-            'presentation': extract_section("PHASE 2: NEW LEARNING", ai_content),
-            'evaluation': extract_section("PHASE 3: REFLECTION", ai_content) or extract_section("Assessment", ai_content),
+            'introduction': extract_phase(1, ai_content),
+            'presentation': extract_phase(2, ai_content),
+            'evaluation': extract_phase(3, ai_content) or extract_section("Assessment", ai_content),
             'homework': extract_section("Homework", ai_content) or "Refer to textbook exercises.",
             'core_competencies': extract_section("Core Competencies", ai_content), # If you add this field to model later
         }
@@ -2334,18 +2342,29 @@ def aura_t_api(request):
                     m = pat.search(text)
                     return m.group(1).strip() if m else ''
 
+                def _extract_phase(phase_num, text):
+                    """Extract full phase content up to the next phase-level boundary."""
+                    boundaries = {
+                        1: r'\*\*PHASE\s*2',
+                        2: r'\*\*PHASE\s*3',
+                        3: r'\*\*(?:Resources|Homework)',
+                    }
+                    end = boundaries.get(phase_num, r'\Z')
+                    pat = _re.compile(
+                        rf"\*\*PHASE\s*{phase_num}[^*]*\*\*\s*(.*?)(?={end}|\Z)",
+                        _re.DOTALL | _re.IGNORECASE
+                    )
+                    m = pat.search(text)
+                    return m.group(1).strip() if m else ''
+
                 regen_plan.objectives = (
                     _extract_r('Content Standard', lesson_body) + '\n' +
                     _extract_r('Indicator', lesson_body)
                 ).strip() or regen_plan.objectives
-                regen_plan.introduction = _extract_r('PHASE 1: STARTER', lesson_body) or regen_plan.introduction
-                regen_plan.presentation = (
-                    _extract_r('PHASE 2: NEW LEARNING', lesson_body) or
-                    _extract_r('PHASE 2', lesson_body) or
-                    regen_plan.presentation
-                )
+                regen_plan.introduction = _extract_phase(1, lesson_body) or regen_plan.introduction
+                regen_plan.presentation = _extract_phase(2, lesson_body) or regen_plan.presentation
                 regen_plan.evaluation = (
-                    _extract_r('PHASE 3: REFLECTION', lesson_body) or
+                    _extract_phase(3, lesson_body) or
                     _extract_r('Assessment', lesson_body) or
                     regen_plan.evaluation
                 )
@@ -4022,6 +4041,14 @@ def save_aura_t_plan(request):
         m = pat.search(text)
         return m.group(1).strip() if m else ''
 
+    def _extract_phase(phase_num, text):
+        """Extract full phase content up to the next phase-level boundary."""
+        boundaries = {1: r'\*\*PHASE\s*2', 2: r'\*\*PHASE\s*3', 3: r'\*\*(?:Resources|Homework)'}
+        end = boundaries.get(phase_num, r'\Z')
+        pat = _re.compile(rf"\*\*PHASE\s*{phase_num}[^*]*\*\*\s*(.*?)(?={end}|\Z)", _re.DOTALL | _re.IGNORECASE)
+        m = pat.search(text)
+        return m.group(1).strip() if m else ''
+
     topic = _extract('Strand', lesson_body) or lesson_title
     sub_strand = _extract('Sub Strand', lesson_body)
 
@@ -4037,9 +4064,9 @@ def save_aura_t_plan(request):
         topic=topic,
         sub_strand=sub_strand,
         objectives=_extract('Content Standard', lesson_body) + '\n' + _extract('Indicator', lesson_body),
-        introduction=_extract('PHASE 1: STARTER', lesson_body),
-        presentation=_extract('PHASE 2: NEW LEARNING', lesson_body) or _extract('PHASE 2', lesson_body),
-        evaluation=_extract('PHASE 3: REFLECTION', lesson_body) or _extract('Assessment', lesson_body),
+        introduction=_extract_phase(1, lesson_body),
+        presentation=_extract_phase(2, lesson_body),
+        evaluation=_extract_phase(3, lesson_body) or _extract('Assessment', lesson_body),
         homework=_extract('Homework', lesson_body) or 'Refer to textbook exercises.',
     )
 
@@ -4624,10 +4651,16 @@ def presentation_present(request, pk):
     teacher = get_object_or_404(Teacher, user=request.user)
     from .models import Presentation
     from django.urls import reverse
+    from django.utils import timezone
     deck   = get_object_or_404(Presentation, pk=pk, teacher=teacher)
     slides = list(deck.slides.all())
     share_path = reverse('teachers:presentation_share', kwargs={'token': deck.share_token})
     share_url  = request.build_absolute_uri(share_path)
+    # Track presentation usage
+    Presentation.objects.filter(pk=pk).update(
+        times_presented=models.F('times_presented') + 1,
+        last_presented_at=timezone.now(),
+    )
     return render(request, 'teachers/presentations/present.html', {
         'deck': deck, 'slides': slides, 'share_url': share_url,
     })
