@@ -97,6 +97,7 @@ class PlatformSettings(models.Model):
         ('home/elegant.html',  'Elegant — Navy / Gold'),
         ('home/swiss.html',    'Swiss — Grid System'),
         ('home/glass.html',   'Glass — Digital Lucidity'),
+        ('home/artdeco.html', 'Art Deco — Gilded Authority'),
     ]
 
     landing_template = models.CharField(
