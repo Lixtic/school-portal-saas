@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% load crispy_forms_tags %}
 
 {% block title %}Create New School Tenant{% endblock %}
@@ -30,11 +31,31 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--portals-gray1);
         padding: 2rem 1rem;
+        position: relative;
+        background-image: url("{% static 'img/signup-bg.jpg' %}");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+    .signup-container::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: rgba(10, 10, 10, 0.62);
+        z-index: 0;
+    }
+    [data-bs-theme="dark"] .signup-container::before {
+        background: rgba(0, 0, 0, 0.78);
+    }
+    .signup-form-wrapper {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        max-width: 500px;
     }
 
-    .signup-form-wrapper {
+    .signup-form-wrapper-inner {
         width: 100%;
         max-width: 500px;
     }
@@ -47,18 +68,14 @@
     .signup-header h1 {
         font-size: 2rem;
         font-weight: 900;
-        color: var(--portals-black);
+        color: #fff;
         margin-bottom: 0.5rem;
         letter-spacing: -0.04em;
     }
 
-    [data-bs-theme="dark"] .signup-header h1 {
-        color: var(--portals-white);
-    }
-
     .signup-header p {
         font-size: 1rem;
-        color: var(--portals-gray4);
+        color: rgba(255,255,255,0.65);
         margin: 0;
     }
 
@@ -279,7 +296,7 @@
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
-        color: var(--portals-gray4);
+        color: rgba(255,255,255,0.55);
         text-decoration: none;
         font-size: 0.85rem;
         font-weight: 500;
@@ -290,11 +307,7 @@
     }
 
     .back-link:hover {
-        color: var(--portals-black);
-    }
-
-    [data-bs-theme="dark"] .back-link:hover {
-        color: var(--portals-white);
+        color: #fff;
     }
 
     /* Error styling */
