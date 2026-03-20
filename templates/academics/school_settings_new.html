@@ -336,6 +336,74 @@
     [data-bs-theme="dark"] .save-bar-text strong { color: #e2e8f0; }
     [data-bs-theme="dark"] .save-bar-text span { color: #64748b; }
 
+    /* ===== Template Card Picker ===== */
+    .template-picker {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.75rem;
+        margin-top: 0.25rem;
+    }
+    .tpl-card {
+        border: 2px solid rgba(0,0,0,0.08);
+        border-radius: 14px;
+        padding: 0.875rem;
+        cursor: pointer;
+        background: #f9fafb;
+        transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+        position: relative;
+        user-select: none;
+    }
+    .tpl-card:hover {
+        border-color: #93c5fd;
+        background: #eff6ff;
+        box-shadow: 0 2px 12px rgba(59,130,246,0.1);
+    }
+    .tpl-card.tpl-selected {
+        border-color: #3b82f6;
+        background: #eff6ff;
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    }
+    .tpl-check {
+        position: absolute; top: 0.55rem; right: 0.55rem;
+        width: 18px; height: 18px; border-radius: 50%;
+        background: #3b82f6; color: #fff;
+        display: none; align-items: center; justify-content: center;
+        font-size: 0.6rem; font-weight: 700;
+    }
+    .tpl-card.tpl-selected .tpl-check { display: flex; }
+    .tpl-swatches {
+        display: flex; gap: 3px; margin-bottom: 0.625rem;
+        border-radius: 7px; overflow: hidden; height: 28px;
+    }
+    .tpl-swatches span { flex: 1; }
+    .tpl-name {
+        font-size: 0.78rem; font-weight: 700; color: #111827;
+        margin-bottom: 0.2rem;
+    }
+    .tpl-desc {
+        font-size: 0.7rem; color: #6b7280; line-height: 1.35;
+    }
+    [data-bs-theme="dark"] .tpl-card {
+        background: rgba(255,255,255,0.03);
+        border-color: rgba(255,255,255,0.08);
+    }
+    [data-bs-theme="dark"] .tpl-card:hover {
+        background: rgba(59,130,246,0.08);
+        border-color: rgba(59,130,246,0.4);
+    }
+    [data-bs-theme="dark"] .tpl-card.tpl-selected {
+        background: rgba(59,130,246,0.12);
+        border-color: #3b82f6;
+    }
+    [data-bs-theme="dark"] .tpl-name { color: #e2e8f0; }
+    [data-bs-theme="dark"] .tpl-desc { color: #94a3b8; }
+    @media (max-width: 767px) {
+        .template-picker { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+    }
+    @media (max-width: 399px) {
+        .template-picker { grid-template-columns: 1fr; }
+    }
+
     /* ===== Responsive: Tablet ===== */
     @media (max-width: 991px) {
         .settings-layout {
@@ -552,8 +620,109 @@
                     
                     <div class="mb-4">
                         <label class="form-label">Homepage Template</label>
-                        {{ form.homepage_template }}
-                        <div class="help-text-small">Choose the layout style for your public homepage</div>
+                        <div class="help-text-small mb-3">Choose the layout style for your public-facing homepage</div>
+                        {# hidden native select — form still submits the right value #}
+                        <div class="d-none">{{ form.homepage_template }}</div>
+
+                        <div class="template-picker" id="templatePicker">
+
+                            <div class="tpl-card" data-value="default">
+                                <div class="tpl-swatches">
+                                    <span style="background:#4361ee"></span>
+                                    <span style="background:#4cc9f0"></span>
+                                    <span style="background:#e2e8f0"></span>
+                                    <span style="background:#ffffff;border:1px solid #e5e7eb"></span>
+                                </div>
+                                <div class="tpl-check"><i class="bi bi-check"></i></div>
+                                <div class="tpl-name">Default</div>
+                                <div class="tpl-desc">Activity feed with school announcements and events</div>
+                            </div>
+
+                            <div class="tpl-card" data-value="modern">
+                                <div class="tpl-swatches">
+                                    <span style="background:#0f0f0f"></span>
+                                    <span style="background:#4361ee"></span>
+                                    <span style="background:#4cc9f0"></span>
+                                    <span style="background:#e0e0e0"></span>
+                                </div>
+                                <div class="tpl-check"><i class="bi bi-check"></i></div>
+                                <div class="tpl-name">Modern</div>
+                                <div class="tpl-desc">Hero-centered design with bold typography</div>
+                            </div>
+
+                            <div class="tpl-card" data-value="classic">
+                                <div class="tpl-swatches">
+                                    <span style="background:#026e56"></span>
+                                    <span style="background:#0f3b57"></span>
+                                    <span style="background:#e8f5e9"></span>
+                                    <span style="background:#f0f4ff"></span>
+                                </div>
+                                <div class="tpl-check"><i class="bi bi-check"></i></div>
+                                <div class="tpl-name">Classic</div>
+                                <div class="tpl-desc">Sidebar navigation with professional layout</div>
+                            </div>
+
+                            <div class="tpl-card" data-value="minimal">
+                                <div class="tpl-swatches">
+                                    <span style="background:#111827"></span>
+                                    <span style="background:#6b7280"></span>
+                                    <span style="background:#e5e7eb"></span>
+                                    <span style="background:#fafafa;border:1px solid #e5e7eb"></span>
+                                </div>
+                                <div class="tpl-check"><i class="bi bi-check"></i></div>
+                                <div class="tpl-name">Minimal</div>
+                                <div class="tpl-desc">Clean, centered-card minimalist approach</div>
+                            </div>
+
+                            <div class="tpl-card" data-value="playful">
+                                <div class="tpl-swatches">
+                                    <span style="background:#7c3aed"></span>
+                                    <span style="background:#db2777"></span>
+                                    <span style="background:#fbbf24"></span>
+                                    <span style="background:#34d399"></span>
+                                </div>
+                                <div class="tpl-check"><i class="bi bi-check"></i></div>
+                                <div class="tpl-name">Playful</div>
+                                <div class="tpl-desc">Colorful layout with shapes and animations</div>
+                            </div>
+
+                            <div class="tpl-card" data-value="elegant">
+                                <div class="tpl-swatches">
+                                    <span style="background:#0c1b33"></span>
+                                    <span style="background:#1a3a6b"></span>
+                                    <span style="background:#c9a84c"></span>
+                                    <span style="background:#f8f3e6"></span>
+                                </div>
+                                <div class="tpl-check"><i class="bi bi-check"></i></div>
+                                <div class="tpl-name">Elegant</div>
+                                <div class="tpl-desc">Navy & gold — professional and structured</div>
+                            </div>
+
+                            <div class="tpl-card" data-value="artdeco">
+                                <div class="tpl-swatches">
+                                    <span style="background:#1a1a1a"></span>
+                                    <span style="background:#2d2d2d"></span>
+                                    <span style="background:#E8C547"></span>
+                                    <span style="background:#d4af37"></span>
+                                </div>
+                                <div class="tpl-check"><i class="bi bi-check"></i></div>
+                                <div class="tpl-name">Art Deco</div>
+                                <div class="tpl-desc">Bold geometric design, high contrast gold &amp; black</div>
+                            </div>
+
+                            <div class="tpl-card" data-value="japandi">
+                                <div class="tpl-swatches">
+                                    <span style="background:#F9F7F2;border:1px solid #e5e7eb"></span>
+                                    <span style="background:#4A5D4E"></span>
+                                    <span style="background:#BC8A5F"></span>
+                                    <span style="background:#2C2C2C"></span>
+                                </div>
+                                <div class="tpl-check"><i class="bi bi-check"></i></div>
+                                <div class="tpl-name">Japandi</div>
+                                <div class="tpl-desc">Calm &amp; minimal — warm neutrals, functional zen</div>
+                            </div>
+
+                        </div>
                     </div>
 
                     <div class="mb-4">
@@ -863,4 +1032,34 @@
 </form>
 </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    // Sync the visual template card picker with the hidden <select>
+    const sel = document.querySelector('[name="homepage_template"]');
+    if (!sel) return;
+
+    function activate(card) {
+        document.querySelectorAll('.tpl-card').forEach(c => c.classList.remove('tpl-selected'));
+        card.classList.add('tpl-selected');
+        sel.value = card.dataset.value;
+    }
+
+    // Set initial state from the server-rendered form value
+    document.querySelectorAll('.tpl-card').forEach(card => {
+        if (card.dataset.value === sel.value) {
+            card.classList.add('tpl-selected');
+        }
+        card.addEventListener('click', () => activate(card));
+    });
+
+    // Fallback: if nothing is selected, highlight default
+    if (!document.querySelector('.tpl-card.tpl-selected')) {
+        const def = document.querySelector('.tpl-card[data-value="default"]');
+        if (def) def.classList.add('tpl-selected');
+    }
+})();
+</script>
 {% endblock %}
