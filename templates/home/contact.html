@@ -1,0 +1,295 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact — Portals</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <script>if(localStorage.getItem('jp-theme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
+  <style>
+.header,.sidebar,#mobileBubbleMenu,.header-action-btn{display:none!important}
+.main-content{padding:0!important;margin:0!important;width:100%!important;max-width:100%!important}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+:root{
+  --washi:#F9F7F2;--linen:#EDE8DF;--stone:#D5CFC6;--pebble:#ADA79E;
+  --moss:#395440;--moss-lt:#4E6B55;--clay:#A0714F;--clay-lt:#C49070;
+  --ink:#1C1C1C;--charcoal:#2C2C2C;--ash:#787068;
+  --serif:'Cormorant Garamond',Georgia,serif;--sans:'Inter',system-ui,sans-serif;
+}
+[data-theme="dark"]{
+  --washi:#18191A;--linen:#1F2120;--stone:#2C312C;--pebble:#3E4440;
+  --moss:#4E6B55;--moss-lt:#6A8F6F;--ink:#EAE7E1;--charcoal:#D0CBC3;--ash:#8A8580;
+}
+body{font-family:var(--sans);background:var(--washi);color:var(--charcoal);line-height:1.7;overflow-x:hidden;transition:background .3s,color .3s}
+[data-theme="dark"] .jp-nav{background:rgba(24,25,26,.95)!important}
+
+.jp-nav{position:fixed;top:0;left:0;right:0;z-index:500;height:60px;background:rgba(249,247,242,.95);border-bottom:1px solid var(--stone);backdrop-filter:blur(12px);display:flex;align-items:center}
+.jp-nav-inner{width:100%;max-width:1160px;margin:0 auto;padding:0 48px;display:flex;align-items:center;justify-content:space-between}
+@media(max-width:768px){.jp-nav-inner{padding:0 24px}}
+.jp-logo{font-family:var(--serif);font-size:1.25rem;font-weight:500;color:var(--moss);text-decoration:none;letter-spacing:.04em;display:flex;align-items:center;gap:10px}
+.jp-logo-mark{width:32px;height:32px;border:1px solid var(--moss);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-family:var(--sans);font-weight:600;color:var(--moss);flex-shrink:0}
+.jp-nav-right{display:flex;align-items:center;gap:12px}
+.jp-nav-link{font-family:var(--sans);font-size:.78rem;color:var(--ash);text-decoration:none;letter-spacing:.04em;transition:color .2s}
+.jp-nav-link:hover{color:var(--moss)}
+.jp-nav-cta{font-family:var(--sans);font-size:.75rem;font-weight:500;letter-spacing:.08em;color:var(--washi);background:var(--moss);border:none;padding:9px 22px;text-decoration:none;transition:background .2s}
+.jp-nav-cta:hover{background:var(--moss-lt);color:var(--washi)}
+.jp-theme-btn{background:transparent;border:1px solid var(--stone);color:var(--ash);width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.85rem;transition:color .2s,border-color .2s}
+.jp-theme-btn:hover{color:var(--moss);border-color:var(--moss)}
+
+.jp-wrap{width:100%;max-width:1160px;margin:0 auto;padding:0 48px}
+.jp-narrow{max-width:760px;margin:0 auto;padding:0 48px}
+@media(max-width:768px){.jp-wrap,.jp-narrow{padding:0 24px}}
+
+.page-header{padding:120px 0 72px;border-bottom:1px solid var(--stone)}
+.page-eyebrow{font-family:var(--sans);font-size:.7rem;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:var(--clay);margin-bottom:16px;display:flex;align-items:center;gap:14px}
+.page-eyebrow::before{content:'';display:inline-block;width:28px;height:1px;background:var(--clay)}
+.page-title{font-family:var(--serif);font-size:clamp(2.2rem,5vw,3.8rem);font-weight:300;color:var(--ink);line-height:1.15;margin-bottom:16px}
+.page-sub{font-family:var(--sans);font-size:1rem;font-weight:300;color:var(--ash);max-width:560px;line-height:1.8}
+
+.page-body{padding:80px 0 100px}
+
+/* Contact grid */
+.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start}
+@media(max-width:768px){.contact-grid{grid-template-columns:1fr;gap:48px}}
+
+/* Contact channels */
+.contact-channel{display:flex;gap:20px;padding:28px 0;border-bottom:1px solid var(--stone)}
+.contact-channel:first-child{border-top:1px solid var(--stone)}
+.channel-icon{width:44px;height:44px;border:1px solid var(--stone);display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:var(--moss);flex-shrink:0;margin-top:2px}
+.channel-label{font-family:var(--sans);font-size:.7rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ash);margin-bottom:6px}
+.channel-value{font-family:var(--serif);font-size:1.1rem;color:var(--ink);margin-bottom:4px}
+.channel-note{font-family:var(--sans);font-size:.8rem;font-weight:300;color:var(--ash)}
+.channel-value a{color:var(--moss);text-decoration:none}
+.channel-value a:hover{text-decoration:underline}
+
+/* Form */
+.contact-form-title{font-family:var(--serif);font-size:1.8rem;font-weight:300;color:var(--ink);margin-bottom:28px}
+.form-group{margin-bottom:20px}
+.form-label{display:block;font-family:var(--sans);font-size:.72rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ash);margin-bottom:8px}
+.form-control{width:100%;background:var(--linen);border:1px solid var(--stone);color:var(--charcoal);font-family:var(--sans);font-size:.9rem;padding:11px 14px;outline:none;transition:border-color .2s;-webkit-appearance:none;resize:vertical}
+.form-control:focus{border-color:var(--moss)}
+.form-control::placeholder{color:var(--pebble)}
+[data-theme="dark"] .form-control{background:var(--linen);color:var(--charcoal)}
+textarea.form-control{min-height:140px}
+.form-select{width:100%;background:var(--linen);border:1px solid var(--stone);color:var(--charcoal);font-family:var(--sans);font-size:.9rem;padding:11px 14px;outline:none;transition:border-color .2s;-webkit-appearance:none;cursor:pointer}
+.form-select:focus{border-color:var(--moss)}
+[data-theme="dark"] .form-select{background:var(--linen);color:var(--charcoal)}
+.btn-moss{font-family:var(--sans);font-size:.78rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--washi);background:var(--moss);border:none;padding:14px 32px;cursor:pointer;transition:background .2s;display:inline-block;text-decoration:none}
+.btn-moss:hover{background:var(--moss-lt)}
+.form-success{display:none;background:var(--linen);border-left:3px solid var(--moss);padding:20px 24px;margin-top:20px;font-family:var(--sans);font-size:.9rem;color:var(--charcoal)}
+.form-error-msg{font-family:var(--sans);font-size:.78rem;color:#c0392b;margin-top:6px;display:none}
+
+/* FAQ */
+.faq-block{margin-top:64px}
+.faq-title{font-family:var(--serif);font-size:1.8rem;font-weight:300;color:var(--ink);margin-bottom:28px}
+.faq-item{border-bottom:1px solid var(--stone);padding:20px 0}
+.faq-item:first-of-type{border-top:1px solid var(--stone)}
+.faq-q{font-family:var(--sans);font-size:.9rem;font-weight:500;color:var(--charcoal);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.faq-q i{font-size:.75rem;color:var(--clay);flex-shrink:0;transition:transform .25s}
+.faq-a{font-family:var(--sans);font-size:.88rem;font-weight:300;color:var(--ash);line-height:1.8;max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s ease}
+.faq-item.open .faq-a{max-height:200px;padding-top:12px}
+.faq-item.open .faq-q i{transform:rotate(45deg)}
+
+/* Footer */
+.jp-footer{background:var(--ink);padding:48px 0 28px;border-top:1px solid rgba(249,247,242,.08)}
+[data-theme="dark"] .jp-footer{background:#0D0F0C}
+.jp-footer-inner{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:32px}
+.jp-footer-brand{font-family:var(--serif);font-size:1.2rem;color:var(--washi)}
+.jp-footer-links{display:flex;gap:24px;flex-wrap:wrap}
+.jp-footer-links a{font-family:var(--sans);font-size:.75rem;color:rgba(249,247,242,.45);text-decoration:none;transition:color .2s;letter-spacing:.06em}
+.jp-footer-links a:hover{color:rgba(249,247,242,.9)}
+.jp-footer-copy{font-family:var(--sans);font-size:.65rem;color:rgba(249,247,242,.25);letter-spacing:.1em;text-transform:uppercase;margin-top:28px;padding-top:20px;border-top:1px solid rgba(249,247,242,.06)}
+  </style>
+</head>
+<body>
+
+<nav class="jp-nav">
+  <div class="jp-nav-inner">
+    <a href="{% url 'home' %}" class="jp-logo">
+      <div class="jp-logo-mark">P</div>
+      Portals
+    </a>
+    <div class="jp-nav-right">
+      <button class="jp-theme-btn" id="jpThemeBtn" title="Toggle dark mode"><i class="bi bi-moon" id="jpThemeIcon"></i></button>
+      <a href="{% url 'login' %}" class="jp-nav-link">Sign In</a>
+      <a href="{% url 'signup' %}" class="jp-nav-cta">Begin</a>
+    </div>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="jp-narrow">
+    <div class="page-eyebrow">Get in Touch</div>
+    <h1 class="page-title">We're here to help.</h1>
+    <p class="page-sub">Questions about the platform, pricing, or your school's setup? Send us a message or reach out directly — we respond within one business day.</p>
+  </div>
+</div>
+
+<div class="page-body">
+  <div class="jp-wrap">
+    <div class="contact-grid">
+
+      <!-- Contact channels -->
+      <div>
+        <div class="contact-channel">
+          <div class="channel-icon"><i class="bi bi-envelope"></i></div>
+          <div>
+            <div class="channel-label">Email</div>
+            <div class="channel-value"><a href="mailto:hello@getportals.app">hello@getportals.app</a></div>
+            <div class="channel-note">General enquiries, partnerships, press</div>
+          </div>
+        </div>
+        <div class="contact-channel">
+          <div class="channel-icon"><i class="bi bi-headset"></i></div>
+          <div>
+            <div class="channel-label">Support</div>
+            <div class="channel-value"><a href="mailto:support@getportals.app">support@getportals.app</a></div>
+            <div class="channel-note">Technical help, account issues, billing</div>
+          </div>
+        </div>
+        <div class="contact-channel">
+          <div class="channel-icon"><i class="bi bi-telephone"></i></div>
+          <div>
+            <div class="channel-label">Phone</div>
+            <div class="channel-value">+233 20 000 0000</div>
+            <div class="channel-note">Mon – Fri, 8am – 5pm GMT</div>
+          </div>
+        </div>
+        <div class="contact-channel">
+          <div class="channel-icon"><i class="bi bi-geo-alt"></i></div>
+          <div>
+            <div class="channel-label">Location</div>
+            <div class="channel-value">Accra, Ghana</div>
+            <div class="channel-note">West Africa · Remote-first team</div>
+          </div>
+        </div>
+
+        <div class="faq-block">
+          <div class="faq-title">Common questions</div>
+          <div class="faq-item">
+            <div class="faq-q">How long does setup take? <i class="bi bi-plus-lg"></i></div>
+            <div class="faq-a">Most schools are live within five minutes. You create the account, enter your school details, and the platform is ready. Adding students and teachers can be done via CSV import or one by one.</div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">Is there a free plan? <i class="bi bi-plus-lg"></i></div>
+            <div class="faq-a">Yes. Schools with fewer than 100 students can use the core features — grades, attendance, and fees — at no cost. AI features like Aura-T and the Pulse Check require a paid plan.</div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">Can I migrate data from another system? <i class="bi bi-plus-lg"></i></div>
+            <div class="faq-a">Yes. We support CSV import for students, teachers, grades, and fee records. For larger migrations, our support team can assist directly.</div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">Is our school data private? <i class="bi bi-plus-lg"></i></div>
+            <div class="faq-a">Completely. Each school runs in its own isolated database schema. No other school can access your data, and we never share it with third parties.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contact form -->
+      <div>
+        <div class="contact-form-title">Send us a message</div>
+        <form id="contactForm" novalidate>
+          {% csrf_token %}
+          <div class="contact-grid" style="grid-template-columns:1fr 1fr;gap:16px;margin-bottom:0">
+            <div class="form-group">
+              <label class="form-label" for="cf-name">Your name</label>
+              <input type="text" class="form-control" id="cf-name" name="name" placeholder="Kwame Mensah" required>
+              <div class="form-error-msg" id="err-name">Please enter your name.</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="cf-email">Email address</label>
+              <input type="email" class="form-control" id="cf-email" name="email" placeholder="kwame@school.edu.gh" required>
+              <div class="form-error-msg" id="err-email">Please enter a valid email.</div>
+            </div>
+          </div>
+          <div class="form-group" style="margin-top:16px">
+            <label class="form-label" for="cf-topic">Topic</label>
+            <select class="form-select" id="cf-topic" name="topic">
+              <option value="">Select a topic…</option>
+              <option>General enquiry</option>
+              <option>Platform demo</option>
+              <option>Pricing &amp; plans</option>
+              <option>Technical support</option>
+              <option>Partnership</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="cf-msg">Message</label>
+            <textarea class="form-control" id="cf-msg" name="message" placeholder="Tell us how we can help…" required></textarea>
+            <div class="form-error-msg" id="err-msg">Please enter your message.</div>
+          </div>
+          <button type="submit" class="btn-moss">Send Message</button>
+          <div class="form-success" id="formSuccess">
+            <strong>Message sent.</strong> We'll get back to you within one business day.
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<footer class="jp-footer">
+  <div class="jp-wrap">
+    <div class="jp-footer-inner">
+      <div class="jp-footer-brand">Portals</div>
+      <div class="jp-footer-links">
+        <a href="{% url 'home' %}">Home</a>
+        <a href="{% url 'about' %}">About</a>
+        <a href="{% url 'contact' %}">Contact</a>
+        <a href="{% url 'privacy' %}">Privacy</a>
+        <a href="{% url 'terms' %}">Terms</a>
+        <a href="{% url 'signup' %}">Sign Up</a>
+        <a href="{% url 'login' %}">Sign In</a>
+      </div>
+    </div>
+    <div class="jp-footer-copy">© 2026 Portals. All rights reserved. Built for African education.</div>
+  </div>
+</footer>
+
+<script>
+// Dark mode
+const jpHtml = document.documentElement;
+const jpThemeBtn = document.getElementById('jpThemeBtn');
+const jpThemeIcon = document.getElementById('jpThemeIcon');
+function jpSetTheme(dark){
+  jpHtml.setAttribute('data-theme',dark?'dark':'light');
+  jpThemeIcon.className=dark?'bi bi-sun':'bi bi-moon';
+  localStorage.setItem('jp-theme',dark?'dark':'light');
+}
+jpSetTheme(jpHtml.getAttribute('data-theme')==='dark');
+jpThemeBtn.addEventListener('click',()=>jpSetTheme(jpHtml.getAttribute('data-theme')!=='dark'));
+
+// FAQ accordion
+document.querySelectorAll('.faq-item').forEach(item => {
+  item.querySelector('.faq-q').addEventListener('click', () => {
+    const isOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+    if (!isOpen) item.classList.add('open');
+  });
+});
+
+// Contact form — client-side only (logs to console; wire to backend as needed)
+document.getElementById('contactForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  let valid = true;
+  const name = document.getElementById('cf-name');
+  const email = document.getElementById('cf-email');
+  const msg = document.getElementById('cf-msg');
+  document.querySelectorAll('.form-error-msg').forEach(el => el.style.display = 'none');
+  if (!name.value.trim()) { document.getElementById('err-name').style.display = 'block'; valid = false; }
+  if (!email.value.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) { document.getElementById('err-email').style.display = 'block'; valid = false; }
+  if (!msg.value.trim()) { document.getElementById('err-msg').style.display = 'block'; valid = false; }
+  if (valid) {
+    document.getElementById('formSuccess').style.display = 'block';
+    this.reset();
+  }
+});
+</script>
+</body>
+</html>

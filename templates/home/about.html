@@ -1,0 +1,237 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About Portals — AI-Powered School Management</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <script>if(localStorage.getItem('jp-theme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
+  <style>
+.header,.sidebar,#mobileBubbleMenu,.header-action-btn{display:none!important}
+.main-content{padding:0!important;margin:0!important;width:100%!important;max-width:100%!important}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+:root{
+  --washi:#F9F7F2;--linen:#EDE8DF;--stone:#D5CFC6;--pebble:#ADA79E;
+  --moss:#395440;--moss-lt:#4E6B55;--clay:#A0714F;--clay-lt:#C49070;
+  --ink:#1C1C1C;--charcoal:#2C2C2C;--ash:#787068;
+  --serif:'Cormorant Garamond',Georgia,serif;--sans:'Inter',system-ui,sans-serif;
+}
+[data-theme="dark"]{
+  --washi:#18191A;--linen:#1F2120;--stone:#2C312C;--pebble:#3E4440;
+  --moss:#4E6B55;--moss-lt:#6A8F6F;--ink:#EAE7E1;--charcoal:#D0CBC3;--ash:#8A8580;
+}
+body{font-family:var(--sans);background:var(--washi);color:var(--charcoal);line-height:1.7;overflow-x:hidden;transition:background .3s,color .3s}
+[data-theme="dark"] .jp-nav{background:rgba(24,25,26,.95)!important}
+
+/* Nav */
+.jp-nav{position:fixed;top:0;left:0;right:0;z-index:500;height:60px;background:rgba(249,247,242,.95);border-bottom:1px solid var(--stone);backdrop-filter:blur(12px);display:flex;align-items:center}
+.jp-nav-inner{width:100%;max-width:1160px;margin:0 auto;padding:0 48px;display:flex;align-items:center;justify-content:space-between}
+@media(max-width:768px){.jp-nav-inner{padding:0 24px}}
+.jp-logo{font-family:var(--serif);font-size:1.25rem;font-weight:500;color:var(--moss);text-decoration:none;letter-spacing:.04em;display:flex;align-items:center;gap:10px}
+.jp-logo-mark{width:32px;height:32px;border:1px solid var(--moss);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-family:var(--sans);font-weight:600;color:var(--moss);flex-shrink:0}
+.jp-nav-right{display:flex;align-items:center;gap:12px}
+.jp-nav-link{font-family:var(--sans);font-size:.78rem;color:var(--ash);text-decoration:none;letter-spacing:.04em;transition:color .2s}
+.jp-nav-link:hover{color:var(--moss)}
+.jp-nav-cta{font-family:var(--sans);font-size:.75rem;font-weight:500;letter-spacing:.08em;color:var(--washi);background:var(--moss);border:none;padding:9px 22px;text-decoration:none;transition:background .2s}
+.jp-nav-cta:hover{background:var(--moss-lt);color:var(--washi)}
+.jp-theme-btn{background:transparent;border:1px solid var(--stone);color:var(--ash);width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.85rem;transition:color .2s,border-color .2s}
+.jp-theme-btn:hover{color:var(--moss);border-color:var(--moss)}
+
+/* Layout */
+.jp-wrap{width:100%;max-width:1160px;margin:0 auto;padding:0 48px}
+.jp-narrow{max-width:760px;margin:0 auto;padding:0 48px}
+@media(max-width:768px){.jp-wrap,.jp-narrow{padding:0 24px}}
+
+/* Page header */
+.page-header{padding:120px 0 72px;border-bottom:1px solid var(--stone)}
+.page-eyebrow{font-family:var(--sans);font-size:.7rem;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:var(--clay);margin-bottom:16px;display:flex;align-items:center;gap:14px}
+.page-eyebrow::before{content:'';display:inline-block;width:28px;height:1px;background:var(--clay)}
+.page-title{font-family:var(--serif);font-size:clamp(2.2rem,5vw,3.8rem);font-weight:300;color:var(--ink);line-height:1.15;margin-bottom:16px}
+.page-sub{font-family:var(--sans);font-size:1rem;font-weight:300;color:var(--ash);max-width:560px;line-height:1.8}
+
+/* Content */
+.page-body{padding:80px 0 100px}
+.section-block{margin-bottom:64px}
+.section-block h2{font-family:var(--serif);font-size:clamp(1.4rem,2.5vw,2rem);font-weight:400;color:var(--ink);margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--stone)}
+.section-block p{font-family:var(--sans);font-size:.95rem;font-weight:300;color:var(--ash);line-height:1.9;margin-bottom:16px}
+.section-block p:last-child{margin-bottom:0}
+.section-block ul{margin:12px 0 16px 0;display:flex;flex-direction:column;gap:10px}
+.section-block ul li{font-family:var(--sans);font-size:.9rem;font-weight:300;color:var(--ash);display:flex;gap:12px;align-items:flex-start}
+.section-block ul li::before{content:'—';color:var(--clay);flex-shrink:0;margin-top:1px}
+
+/* Values grid */
+.values-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--stone);border:1px solid var(--stone);margin:32px 0}
+@media(max-width:768px){.values-grid{grid-template-columns:1fr}}
+.value-card{background:var(--washi);padding:40px 32px}
+[data-theme="dark"] .value-card{background:var(--washi)}
+.value-icon{width:40px;height:40px;border:1px solid var(--stone);display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:var(--moss);margin-bottom:20px}
+.value-title{font-family:var(--serif);font-size:1.15rem;font-weight:500;color:var(--ink);margin-bottom:10px}
+.value-desc{font-family:var(--sans);font-size:.85rem;font-weight:300;color:var(--ash);line-height:1.75}
+
+/* Team strip */
+.team-strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1px;background:var(--stone);border:1px solid var(--stone);margin:32px 0}
+.team-card{background:var(--washi);padding:32px 24px}
+[data-theme="dark"] .team-card{background:var(--washi)}
+.team-avatar{width:48px;height:48px;background:var(--linen);border:1px solid var(--stone);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:1.3rem;color:var(--moss);margin-bottom:16px}
+.team-name{font-family:var(--serif);font-size:1rem;font-weight:500;color:var(--ink);margin-bottom:4px}
+.team-role{font-family:var(--sans);font-size:.75rem;font-weight:400;color:var(--ash);letter-spacing:.04em}
+
+/* Quote */
+.pull-quote{border-left:3px solid var(--clay);padding:24px 32px;margin:40px 0;background:var(--linen)}
+[data-theme="dark"] .pull-quote{background:var(--linen)}
+.pull-quote p{font-family:var(--serif);font-size:1.25rem;font-weight:300;font-style:italic;color:var(--ink);line-height:1.65}
+
+/* CTA strip */
+.page-cta{padding:72px 0;background:var(--moss);text-align:center}
+.page-cta h2{font-family:var(--serif);font-size:clamp(1.6rem,3vw,2.4rem);font-weight:300;color:var(--washi);margin-bottom:16px}
+.page-cta p{font-family:var(--sans);font-size:.95rem;font-weight:300;color:rgba(249,247,242,.7);margin-bottom:32px}
+.btn-washi{font-family:var(--sans);font-size:.78rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--moss);background:var(--washi);border:none;padding:14px 36px;text-decoration:none;display:inline-block;transition:background .2s}
+.btn-washi:hover{background:var(--linen);color:var(--moss)}
+
+/* Footer */
+.jp-footer{background:var(--ink);padding:48px 0 28px;border-top:1px solid rgba(249,247,242,.08)}
+[data-theme="dark"] .jp-footer{background:#0D0F0C}
+.jp-footer-inner{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:32px}
+.jp-footer-brand{font-family:var(--serif);font-size:1.2rem;color:var(--washi)}
+.jp-footer-links{display:flex;gap:24px;flex-wrap:wrap}
+.jp-footer-links a{font-family:var(--sans);font-size:.75rem;color:rgba(249,247,242,.45);text-decoration:none;transition:color .2s;letter-spacing:.06em}
+.jp-footer-links a:hover{color:rgba(249,247,242,.9)}
+.jp-footer-copy{font-family:var(--sans);font-size:.65rem;color:rgba(249,247,242,.25);letter-spacing:.1em;text-transform:uppercase;margin-top:28px;padding-top:20px;border-top:1px solid rgba(249,247,242,.06)}
+  </style>
+</head>
+<body>
+
+<nav class="jp-nav">
+  <div class="jp-nav-inner">
+    <a href="{% url 'home' %}" class="jp-logo">
+      <div class="jp-logo-mark">P</div>
+      Portals
+    </a>
+    <div class="jp-nav-right">
+      <button class="jp-theme-btn" id="jpThemeBtn" title="Toggle dark mode"><i class="bi bi-moon" id="jpThemeIcon"></i></button>
+      <a href="{% url 'login' %}" class="jp-nav-link">Sign In</a>
+      <a href="{% url 'signup' %}" class="jp-nav-cta">Begin</a>
+    </div>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="jp-narrow">
+    <div class="page-eyebrow">Our Story</div>
+    <h1 class="page-title">Built for schools that deserve better tools.</h1>
+    <p class="page-sub">Portals is an AI-powered school management platform designed specifically for African education — starting in Ghana, built to scale.</p>
+  </div>
+</div>
+
+<div class="page-body">
+  <div class="jp-narrow">
+
+    <div class="section-block">
+      <h2>Why Portals exists</h2>
+      <p>School administrators across Africa spend hours each week on work that should take minutes — entering marks into spreadsheets, chasing fee payments, coordinating timetables by hand. Teachers plan lessons on paper, often without access to curriculum resources or data on which students are falling behind.</p>
+      <p>Portals was built to change that. We started with a simple question: what would a school management system look like if it were designed from the ground up for Ghanaian schools, with AI built in from day one?</p>
+      <div class="pull-quote">
+        <p>"Every feature in Portals traces back to a real conversation with a headmaster, a class teacher, or a bursary officer. We build what they actually need."</p>
+      </div>
+      <p>The result is a platform that handles grades, attendance, fees, timetables, lesson planning, and parent communication — all in one place, all working together.</p>
+    </div>
+
+    <div class="section-block">
+      <h2>What makes Portals different</h2>
+      <div class="values-grid">
+        <div class="value-card">
+          <div class="value-icon"><i class="bi bi-geo-alt"></i></div>
+          <div class="value-title">Built for Africa</div>
+          <div class="value-desc">GES curriculum alignment, BECE and WASSCE grading, and fee structures that match how Ghanaian schools actually operate.</div>
+        </div>
+        <div class="value-card">
+          <div class="value-icon"><i class="bi bi-stars"></i></div>
+          <div class="value-title">AI That Actually Helps</div>
+          <div class="value-desc">Aura-T generates lesson plans, slides, and assignments in seconds. It flags struggling students and writes their report remarks automatically.</div>
+        </div>
+        <div class="value-card">
+          <div class="value-icon"><i class="bi bi-shield-check"></i></div>
+          <div class="value-title">School-Level Isolation</div>
+          <div class="value-desc">Every school runs in its own data schema. Your student records, grades, and fees are completely separate from every other school on the platform.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h2>Our mission</h2>
+      <p>To give every school in Africa — regardless of size or budget — access to the same quality of management tools that the best-resourced institutions in the world use. We measure success not in features shipped, but in hours saved for teachers and admins who can now spend that time where it matters most.</p>
+      <ul>
+        <li>Free tier available for schools with fewer than 100 students</li>
+        <li>No hardware required — works on any device with a browser</li>
+        <li>Built with offline-first design principles for low-connectivity environments</li>
+        <li>Priced in local currency with flexible payment terms</li>
+      </ul>
+    </div>
+
+    <div class="section-block">
+      <h2>The team</h2>
+      <p>Portals is built by a small team of engineers and educators with direct experience in Ghanaian school administration.</p>
+      <div class="team-strip">
+        <div class="team-card">
+          <div class="team-avatar">A</div>
+          <div class="team-name">A. Konrad</div>
+          <div class="team-role">Founder &amp; Engineering</div>
+        </div>
+        <div class="team-card">
+          <div class="team-avatar">K</div>
+          <div class="team-name">Curriculum Team</div>
+          <div class="team-role">GES Alignment &amp; Content</div>
+        </div>
+        <div class="team-card">
+          <div class="team-avatar">S</div>
+          <div class="team-name">School Partners</div>
+          <div class="team-role">Pilot Schools &amp; Advisors</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="page-cta">
+  <h2>Ready to see it in action?</h2>
+  <p>Set up your school in under five minutes. No contract, no credit card required.</p>
+  <a href="{% url 'signup' %}" class="btn-washi">Create Your School</a>
+</div>
+
+<footer class="jp-footer">
+  <div class="jp-wrap">
+    <div class="jp-footer-inner">
+      <div class="jp-footer-brand">Portals</div>
+      <div class="jp-footer-links">
+        <a href="{% url 'home' %}">Home</a>
+        <a href="{% url 'about' %}">About</a>
+        <a href="{% url 'contact' %}">Contact</a>
+        <a href="{% url 'privacy' %}">Privacy</a>
+        <a href="{% url 'terms' %}">Terms</a>
+        <a href="{% url 'signup' %}">Sign Up</a>
+        <a href="{% url 'login' %}">Sign In</a>
+      </div>
+    </div>
+    <div class="jp-footer-copy">© 2026 Portals. All rights reserved. Built for African education.</div>
+  </div>
+</footer>
+
+<script>
+const jpHtml = document.documentElement;
+const jpThemeBtn = document.getElementById('jpThemeBtn');
+const jpThemeIcon = document.getElementById('jpThemeIcon');
+function jpSetTheme(dark){
+  jpHtml.setAttribute('data-theme',dark?'dark':'light');
+  jpThemeIcon.className=dark?'bi bi-sun':'bi bi-moon';
+  localStorage.setItem('jp-theme',dark?'dark':'light');
+}
+jpSetTheme(jpHtml.getAttribute('data-theme')==='dark');
+jpThemeBtn.addEventListener('click',()=>jpSetTheme(jpHtml.getAttribute('data-theme')!=='dark'));
+</script>
+</body>
+</html>
