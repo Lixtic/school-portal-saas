@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <script>if(localStorage.getItem('jp-theme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
   <style>
 
 /* 
@@ -728,6 +729,83 @@ body{
 }
 .jp-chat-send:hover{background:var(--moss-lt)}
 
+/* ─────────────────────────────────────────────────
+   DARK MODE TOKENS
+───────────────────────────────────────────────── */
+[data-theme="dark"]{
+  --washi:   #18191A;
+  --linen:   #1F2120;
+  --stone:   #2C312C;
+  --pebble:  #3E4440;
+  --moss:    #4E6B55;
+  --moss-lt: #6A8F6F;
+  --clay:    #C49070;
+  --clay-lt: #D4A882;
+  --ink:     #EAE7E1;
+  --charcoal:#D0CBC3;
+  --ash:     #8A8580;
+}
+
+/* Nav — hardcoded rgba override */
+[data-theme="dark"] .jp-nav{background:rgba(24,25,26,.95)}
+
+/* Footer must stay near-black even though --ink is now light */
+[data-theme="dark"] .jp-footer{background:#0D0F0C}
+
+/* Surfaces inside screen mockups */
+[data-theme="dark"] .jp-screen,
+[data-theme="dark"] .jp-fw-screen,
+[data-theme="dark"] .jp-hero-visual,
+[data-theme="dark"] .jp-testy-frame{background:var(--linen);border-color:var(--stone)}
+
+[data-theme="dark"] .jp-screen-bar,
+[data-theme="dark"] .jp-fw-bar,[data-theme="dark"] .jp-screen-footer,
+[data-theme="dark"] .jp-ai-panel-hdr,[data-theme="dark"] .jp-ai-insight,
+[data-theme="dark"] .jp-chat-hdr{background:var(--washi)}
+
+/* AI panel */
+[data-theme="dark"] .jp-ai-panel{background:var(--washi);border-color:var(--stone)}
+[data-theme="dark"] .jp-data-bar{background:var(--pebble)}
+[data-theme="dark"] .jp-data-row{border-color:var(--stone)}
+
+/* Discipline grid */
+[data-theme="dark"] .jp-grid-3{background:var(--stone)}
+[data-theme="dark"] .jp-disc-card{background:var(--washi)}
+[data-theme="dark"] .jp-disc-card:hover{background:var(--linen)}
+
+/* Module visual panes */
+[data-theme="dark"] .jp-mod-visual{background:var(--linen)}
+[data-theme="dark"] .jp-mod-copy{border-color:var(--stone)}
+[data-theme="dark"] .jp-mod-row,.jp-mod-row.flip{border-color:var(--stone)}
+
+/* Row borders inside screens */
+[data-theme="dark"] .jp-fw-row,[data-theme="dark"] .jp-row{border-color:var(--stone)}
+[data-theme="dark"] .jp-screen-footer{border-color:var(--stone)}
+
+/* Stats */
+[data-theme="dark"] .jp-stats{border-color:var(--stone)}
+[data-theme="dark"] .jp-stats-grid{background:var(--stone)}
+[data-theme="dark"] .jp-stat{background:var(--washi)}
+
+/* Chat */
+[data-theme="dark"] .jp-chat{background:var(--washi);border-color:var(--stone)}
+[data-theme="dark"] .jp-chat-input{background:var(--linen);border-color:var(--stone);color:var(--charcoal)}
+[data-theme="dark"] .jp-msg.bot{background:var(--linen);color:var(--charcoal)}
+
+/* Scrollbar */
+[data-theme="dark"] ::-webkit-scrollbar-track{background:var(--washi)}
+[data-theme="dark"] ::-webkit-scrollbar-thumb{background:var(--stone)}
+
+/* Theme toggle button */
+.jp-theme-btn{
+  background:transparent;border:1px solid var(--stone);
+  color:var(--ash);width:32px;height:32px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:.85rem;flex-shrink:0;
+  transition:color .2s,border-color .2s;
+}
+.jp-theme-btn:hover{color:var(--moss);border-color:var(--moss)}
+
   </style>
 </head>
 <body>
@@ -751,7 +829,11 @@ body{
       <li><a href="#modules">Modules</a></li>
       <li><a href="#enroll">Enroll</a></li>
     </ul>
-    <a href="{% url 'signup' %}" class="jp-nav-cta">Begin</a>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="jp-theme-btn" id="jpThemeBtn" title="Toggle dark mode"><i class="bi bi-moon" id="jpThemeIcon"></i></button>
+      <a href="{% url 'login' %}" class="jp-nav-cta" style="background:transparent;color:var(--moss);border:1px solid var(--moss);">Sign In</a>
+      <a href="{% url 'signup' %}" class="jp-nav-cta">Begin</a>
+    </div>
   </div>
 </nav>
 
@@ -1246,6 +1328,24 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     const t = document.querySelector(a.getAttribute('href'));
     if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth' }); }
   });
+});
+
+// Dark mode
+const jpHtml = document.documentElement;
+const jpThemeBtn = document.getElementById('jpThemeBtn');
+const jpThemeIcon = document.getElementById('jpThemeIcon');
+
+function jpSetTheme(dark) {
+  jpHtml.setAttribute('data-theme', dark ? 'dark' : 'light');
+  jpThemeIcon.className = dark ? 'bi bi-sun' : 'bi bi-moon';
+  localStorage.setItem('jp-theme', dark ? 'dark' : 'light');
+}
+
+// Sync icon with current state (may have been set by anti-flash script)
+jpSetTheme(jpHtml.getAttribute('data-theme') === 'dark');
+
+jpThemeBtn.addEventListener('click', () => {
+  jpSetTheme(jpHtml.getAttribute('data-theme') !== 'dark');
 });
 </script>
 </body>
