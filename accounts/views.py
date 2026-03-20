@@ -343,6 +343,10 @@ def homepage(request):
         return render(request, 'home/playful.html', context)
     elif template_choice == 'elegant':
         return render(request, 'home/elegant.html', context)
+    elif template_choice == 'artdeco':
+        return render(request, 'home/artdeco.html', context)
+    elif template_choice == 'japandi':
+        return render(request, 'home/japandi.html', context)
     else:
         # Default View (Restoring original highlights for default)
         highlights = [
