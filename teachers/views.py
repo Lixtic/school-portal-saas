@@ -41,7 +41,7 @@ def _classify_ai_error(exception):
     ):
         return {
             'error_code': 'ai_quota_exceeded',
-            'message': 'Aura AI is temporarily unavailable because the OpenAI quota is exhausted. Please top up billing and try again.',
+            'message': 'Aura is temporarily unavailable. Please try again later or contact your administrator.',
             'http_status': 503,
             'retryable': False,
         }
@@ -69,14 +69,14 @@ def _classify_ai_error(exception):
     if 'openai http 5' in message_lower:
         return {
             'error_code': 'ai_upstream_error',
-            'message': 'Aura AI service is temporarily unavailable. Please try again shortly.',
+            'message': 'Aura is temporarily unavailable. Please try again shortly.',
             'http_status': 503,
             'retryable': True,
         }
 
     return {
         'error_code': 'ai_generation_failed',
-        'message': raw_message or 'Aura AI could not complete this request right now.',
+        'message': raw_message or 'Aura could not complete this request right now.',
         'http_status': 500,
         'retryable': True,
     }

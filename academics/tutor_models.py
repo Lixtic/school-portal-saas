@@ -389,7 +389,7 @@ class PowerWord(models.Model):
 
 
 class CopilotConversation(models.Model):
-    """Conversation thread for the global Portals Copilot assistant."""
+    """Conversation thread for the global Aura assistant."""
     user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='copilot_conversations')
     title = models.CharField(max_length=120, blank=True)
     user_role = models.CharField(max_length=20, blank=True)
