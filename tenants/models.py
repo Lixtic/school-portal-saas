@@ -98,6 +98,7 @@ class PlatformSettings(models.Model):
         ('home/swiss.html',    'Swiss — Grid System'),
         ('home/glass.html',   'Glass — Digital Lucidity'),
         ('home/artdeco.html', 'Art Deco — Gilded Authority'),
+        ('home/japandi.html', 'Japandi — Natural Clarity'),
     ]
 
     landing_template = models.CharField(

@@ -1,351 +1,1252 @@
-<!-- Japandi One-Page Landing for AI-Powered School Management System -->
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="A gentle, functional zen platform for school management. AI-powered logistics, grading, and scheduling in a Japandi-inspired environment.">
-  <title>The Silent Engine of Education — Japandi School AI</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:400,700|Cormorant+Garamond:700">
+  <meta name="description" content="A calm, functional AI platform for school management. Grades, attendance, and finance  thoughtfully arranged.">
+  <title>{% if school_name %}{{ school_name }}{% else %}Aura{% endif %}  Natural Clarity</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <style>
-    :root {
-      --washi-white: #F9F7F2;
-      --forest-moss: #4A5D4E;
-      --terracotta: #BC8A5F;
-      --charcoal: #2C2C2C;
-      --stone-grey: #E5E3DF;
-      --gold-kintsugi: #BC8A5F;
-      --oak-wood: #EAD7B7;
-      --serif: 'Cormorant Garamond', serif;
-      --sans: 'Inter', sans-serif;
-    }
-    html, body {
-      background: var(--washi-white);
-      color: var(--charcoal);
-      font-family: var(--sans);
-      font-size: 1.08rem;
-      min-height: 100vh;
-      margin: 0;
-      padding: 0;
-    }
-    .zen-hero {
-      display: flex;
-      align-items: center;
-      min-height: 60vh;
-      background: linear-gradient(120deg, var(--washi-white) 80%, var(--stone-grey) 100%);
-      padding: 0 0 0 7vw;
-      position: relative;
-      overflow: hidden;
-    }
-    .zen-hero-img {
-      position: absolute;
-      right: 0;
-      top: 0;
-      width: 60vw;
-      height: 100%;
-      background: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80') center/cover no-repeat;
-      opacity: 0.18;
-      filter: blur(2px);
-    }
-    .zen-hero-content {
-      z-index: 2;
-      width: 40vw;
-      min-width: 320px;
-      padding: 60px 0 60px 0;
-    }
-    .zen-headline {
-      font-family: var(--serif);
-      font-size: 2.8rem;
-      font-weight: 700;
-      margin-bottom: 18px;
-      color: var(--charcoal);
-      letter-spacing: 0.02em;
-      animation: inkfade 2.2s ease;
-    }
-    @keyframes inkfade {
-      0% { opacity: 0; filter: blur(8px); }
-      60% { opacity: 0.7; filter: blur(2px); }
-      100% { opacity: 1; filter: blur(0); }
-    }
-    .zen-sub {
-      font-family: var(--sans);
-      font-size: 1.2rem;
-      color: #4A5D4E;
-      margin-bottom: 32px;
-      letter-spacing: 0.01em;
-    }
-    .ai-indicator {
-      position: absolute;
-      right: 7vw;
-      top: 7vh;
-      background: var(--forest-moss);
-      color: var(--washi-white);
-      border-radius: 999px;
-      padding: 12px 24px;
-      font-size: 1.1rem;
-      font-weight: 700;
-      box-shadow: 0 2px 16px rgba(76,93,78,0.12);
-      letter-spacing: 0.04em;
-      opacity: 0.92;
-    }
-    /* Tatami Grid */
-    .tatami-section {
-      background: var(--stone-grey);
-      padding: 60px 0 60px 0;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 36px;
-      justify-content: center;
-    }
-    .tatami-mat {
-      background: var(--washi-white);
-      border-radius: 18px;
-      box-shadow: 0 2px 12px rgba(44,44,44,0.04);
-      min-width: 260px;
-      max-width: 340px;
-      flex: 1 1 320px;
-      margin: 0 12px;
-      padding: 36px 28px;
-      border: none;
-      border-left: 1px solid var(--charcoal);
-      border-right: 1px solid var(--charcoal);
-      transition: box-shadow 0.3s;
-    }
-    .tatami-mat:hover {
-      box-shadow: 0 6px 24px rgba(44,44,44,0.12);
-    }
-    .tatami-title {
-      font-family: var(--serif);
-      font-size: 1.4rem;
-      color: var(--forest-moss);
-      margin-bottom: 12px;
-      letter-spacing: 0.01em;
-    }
-    .tatami-desc {
-      font-size: 1.05rem;
-      color: var(--charcoal);
-      margin-bottom: 18px;
-    }
-    .tatami-divider {
-      height: 1px;
-      background: var(--charcoal);
-      opacity: 0.18;
-      margin: 18px 0;
-    }
-    /* Shoji Transition */
-    .shoji-section {
-      position: relative;
-      background: var(--washi-white);
-      padding: 60px 0;
-      min-height: 220px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .shoji-bg {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: url('https://images.unsplash.com/photo-1464983953574-0892a7162a1e?auto=format&fit=crop&w=1200&q=80') center/cover no-repeat;
-      opacity: 0.13;
-      z-index: 1;
-    }
-    .shoji-overlay {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(249,247,242,0.85);
-      z-index: 2;
-      animation: shoji-slide 2s ease;
-    }
-    @keyframes shoji-slide {
-      0% { transform: translateY(60px); opacity: 0; }
-      100% { transform: translateY(0); opacity: 1; }
-    }
-    .shoji-haiku {
-      position: relative;
-      z-index: 3;
-      font-family: var(--serif);
-      font-size: 1.3rem;
-      color: var(--forest-moss);
-      text-align: center;
-      padding: 32px 0;
-      letter-spacing: 0.02em;
-    }
-    /* Kintsugi Analytics */
-    .kintsugi-section {
-      background: var(--stone-grey);
-      padding: 60px 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .kintsugi-title {
-      font-family: var(--serif);
-      font-size: 1.4rem;
-      color: var(--terracotta);
-      margin-bottom: 18px;
-      letter-spacing: 0.01em;
-    }
-    .kintsugi-analytics {
-      display: flex;
-      gap: 36px;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-bottom: 24px;
-    }
-    .kintsugi-card {
-      background: var(--washi-white);
-      border-radius: 14px;
-      box-shadow: 0 2px 12px rgba(44,44,44,0.04);
-      min-width: 220px;
-      max-width: 320px;
-      flex: 1 1 220px;
-      margin: 0 12px;
-      padding: 28px 22px;
-      border-left: 2px solid var(--gold-kintsugi);
-      border-right: 2px solid var(--gold-kintsugi);
-      position: relative;
-    }
-    .kintsugi-gap {
-      position: absolute;
-      left: 0; top: 0; height: 100%; width: 2px;
-      background: var(--gold-kintsugi);
-      opacity: 0.7;
-      border-radius: 2px;
-    }
-    .kintsugi-label {
-      font-family: var(--serif);
-      font-size: 1.1rem;
-      color: var(--terracotta);
-      margin-bottom: 8px;
-    }
-    .kintsugi-value {
-      font-size: 1.2rem;
-      color: var(--forest-moss);
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-    .kintsugi-desc {
-      font-size: 0.98rem;
-      color: var(--charcoal);
-      opacity: 0.8;
-    }
-    /* Engawa Footer */
-    .engawa-footer {
-      background: url('https://images.unsplash.com/photo-1503676382389-8bfa1673b3a4?auto=format&fit=crop&w=1200&q=80') center/cover no-repeat;
-      background-blend-mode: multiply;
-      background-color: var(--oak-wood);
-      padding: 44px 0 24px 0;
-      text-align: center;
-      color: var(--charcoal);
-      font-family: var(--sans);
-      letter-spacing: 0.02em;
-      position: relative;
-    }
-    .engawa-logo {
-      font-family: var(--serif);
-      font-size: 1.3rem;
-      color: var(--forest-moss);
-      margin-bottom: 8px;
-      letter-spacing: 0.04em;
-    }
-    .engawa-btn {
-      background: var(--forest-moss);
-      color: var(--washi-white);
-      border: none;
-      border-radius: 999px;
-      padding: 16px 44px;
-      font-size: 1.1rem;
-      font-family: var(--sans);
-      font-weight: 700;
-      margin-top: 18px;
-      box-shadow: 0 2px 16px rgba(76,93,78,0.12);
-      transition: background 0.2s;
-      cursor: pointer;
-      letter-spacing: 0.04em;
-    }
-    .engawa-btn:hover {
-      background: var(--terracotta);
-      color: var(--washi-white);
-    }
-    .engawa-meta {
-      font-size: 0.82rem;
-      color: #6B6B6B;
-      margin-top: 18px;
-      letter-spacing: 0.02em;
-    }
+
+/* 
+   HIDE BASE CHROME
+ */
+.header,.sidebar,#mobileBubbleMenu,.header-action-btn{display:none!important}
+.main-content{padding:0!important;margin:0!important;width:100%!important;max-width:100%!important}
+
+/* 
+   SCROLL & BOX MODEL
+ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;font-size:16px}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--washi)}
+::-webkit-scrollbar-thumb{background:var(--stone)}
+
+/* 
+   TOKENS
+ */
+:root{
+  --washi:   #F9F7F2;
+  --linen:   #EDE8DF;
+  --stone:   #D5CFC6;
+  --pebble:  #ADA79E;
+  --moss:    #395440;
+  --moss-lt: #4E6B55;
+  --clay:    #A0714F;
+  --clay-lt: #C49070;
+  --ink:     #1C1C1C;
+  --charcoal:#2C2C2C;
+  --ash:     #787068;
+  --serif:   'Cormorant Garamond',Georgia,serif;
+  --sans:    'Inter',system-ui,sans-serif;
+}
+
+/* 
+   BASE
+ */
+body{
+  font-family:var(--sans);
+  background:var(--washi);
+  color:var(--charcoal);
+  line-height:1.7;
+  overflow-x:hidden;
+}
+
+/* 
+   LAYOUT
+ */
+.jp-wrap{width:100%;max-width:1160px;margin:0 auto;padding:0 48px}
+.jp-mid{max-width:860px;margin:0 auto;padding:0 48px}
+.jp-narrow{max-width:640px;margin:0 auto;padding:0 32px}
+@media(max-width:768px){.jp-wrap,.jp-mid,.jp-narrow{padding:0 24px}}
+
+/* 
+   REVEAL
+ */
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .8s ease,transform .8s ease}
+.reveal.in{opacity:1;transform:none}
+.d2{transition-delay:.12s}.d3{transition-delay:.24s}.d4{transition-delay:.36s}.d5{transition-delay:.48s}
+
+/* 
+   ORNAMENT  THIN RULE + DIAMOND
+ */
+.jp-rule{display:flex;align-items:center;gap:16px;margin:24px 0}
+.jp-rule::before,.jp-rule::after{content:'';flex:1;height:1px;background:var(--stone)}
+.jp-rule-mark{color:var(--clay);font-size:.65rem;letter-spacing:.2em}
+
+/* 
+   NAVIGATION
+ */
+.jp-nav{
+  position:fixed;top:0;left:0;right:0;z-index:500;
+  height:60px;background:rgba(249,247,242,.95);
+  border-bottom:1px solid var(--stone);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  display:flex;align-items:center;
+}
+.jp-nav-inner{
+  width:100%;max-width:1160px;margin:0 auto;padding:0 48px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+@media(max-width:768px){.jp-nav-inner{padding:0 24px}}
+
+.jp-logo{
+  font-family:var(--serif);font-size:1.25rem;font-weight:500;
+  color:var(--moss);text-decoration:none;letter-spacing:.04em;
+  display:flex;align-items:center;gap:10px;
+}
+.jp-logo-mark{
+  width:32px;height:32px;border:1px solid var(--moss);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.65rem;font-family:var(--sans);font-weight:600;
+  color:var(--moss);letter-spacing:.04em;flex-shrink:0;
+}
+
+.jp-nav-links{display:flex;align-items:center;gap:28px;list-style:none}
+@media(max-width:860px){.jp-nav-links{display:none}}
+.jp-nav-links a{
+  font-family:var(--sans);font-size:.78rem;font-weight:400;
+  color:var(--ash);text-decoration:none;letter-spacing:.06em;
+  transition:color .2s;
+}
+.jp-nav-links a:hover{color:var(--moss)}
+
+.jp-nav-cta{
+  font-family:var(--sans);font-size:.75rem;font-weight:500;
+  letter-spacing:.08em;color:var(--washi);background:var(--moss);
+  border:none;padding:9px 22px;text-decoration:none;
+  transition:background .2s;
+}
+.jp-nav-cta:hover{background:var(--moss-lt);color:var(--washi)}
+
+/* 
+   HERO
+ */
+.jp-hero{
+  min-height:100vh;padding:120px 48px 80px;
+  display:flex;align-items:center;
+  background:var(--washi);
+  position:relative;overflow:hidden;
+}
+@media(max-width:768px){.jp-hero{padding:100px 24px 64px}}
+
+/* Tatami grid overlay */
+.jp-hero::before{
+  content:'';position:absolute;inset:0;
+  background-image:
+    repeating-linear-gradient(0deg,rgba(53,84,64,.04) 0 1px,transparent 1px 60px),
+    repeating-linear-gradient(90deg,rgba(53,84,64,.04) 0 1px,transparent 1px 60px);
+  pointer-events:none;
+}
+
+/* Ink wash accent  top right */
+.jp-hero::after{
+  content:'';position:absolute;top:-120px;right:-80px;
+  width:500px;height:500px;border-radius:50%;
+  background:radial-gradient(ellipse,rgba(53,84,64,.06) 0%,transparent 70%);
+  pointer-events:none;
+}
+
+.jp-hero-inner{
+  position:relative;z-index:2;
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:80px;align-items:center;
+  max-width:1160px;margin:0 auto;width:100%;
+}
+@media(max-width:860px){.jp-hero-inner{grid-template-columns:1fr;gap:48px}}
+
+.jp-hero-text{}
+.jp-hero-eyebrow{
+  font-family:var(--sans);font-size:.7rem;font-weight:500;
+  letter-spacing:.22em;text-transform:uppercase;
+  color:var(--clay);margin-bottom:24px;
+}
+.jp-hero-title{
+  font-family:var(--serif);
+  font-size:clamp(2.6rem,5.5vw,4.4rem);
+  font-weight:300;color:var(--ink);
+  line-height:1.15;letter-spacing:.01em;
+  margin-bottom:12px;
+}
+.jp-hero-title em{font-style:italic;color:var(--moss);font-weight:400}
+.jp-hero-title-small{
+  font-family:var(--serif);font-size:1.3rem;font-weight:300;
+  color:var(--ash);font-style:italic;margin-bottom:28px;display:block;
+}
+.jp-hero-body{
+  font-family:var(--sans);font-size:1rem;font-weight:300;
+  color:var(--ash);line-height:1.8;max-width:480px;margin-bottom:40px;
+}
+.jp-hero-actions{display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+
+.btn-moss{
+  font-family:var(--sans);font-size:.78rem;font-weight:500;
+  letter-spacing:.1em;text-transform:uppercase;
+  color:var(--washi);background:var(--moss);
+  border:none;padding:14px 32px;text-decoration:none;
+  display:inline-block;transition:background .25s;
+}
+.btn-moss:hover{background:var(--moss-lt);color:var(--washi)}
+.btn-outline-moss{
+  font-family:var(--sans);font-size:.78rem;font-weight:400;
+  letter-spacing:.1em;text-transform:uppercase;
+  color:var(--moss);background:transparent;
+  border:1px solid var(--moss);padding:13px 32px;text-decoration:none;
+  display:inline-block;transition:all .25s;
+}
+.btn-outline-moss:hover{background:var(--moss);color:var(--washi)}
+
+/* Hero visual  framed screen mockup */
+.jp-hero-visual{
+  background:var(--linen);border:1px solid var(--stone);
+  padding:28px;position:relative;
+}
+@media(max-width:860px){.jp-hero-visual{display:none}}
+
+.jp-screen{background:var(--washi);border:1px solid var(--stone)}
+.jp-screen-bar{
+  height:32px;background:var(--linen);border-bottom:1px solid var(--stone);
+  padding:0 12px;display:flex;align-items:center;gap:8px;
+}
+.jp-dot{width:7px;height:7px;border-radius:50%}
+.jp-dot.r{background:#E07070}.jp-dot.y{background:var(--clay-lt)}.jp-dot.g{background:var(--moss-lt)}
+.jp-screen-title{
+  margin-left:6px;font-family:var(--sans);font-size:.62rem;
+  letter-spacing:.12em;color:var(--ash);text-transform:uppercase;
+}
+.jp-screen-body{padding:18px;display:flex;flex-direction:column;gap:10px}
+.jp-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 10px;border-bottom:1px solid var(--linen);
+  font-family:var(--serif);font-size:1rem;color:var(--charcoal);
+}
+.jp-row:last-child{border-bottom:none}
+.jp-badge{
+  font-family:var(--sans);font-size:.6rem;font-weight:600;
+  padding:3px 10px;letter-spacing:.06em;text-transform:uppercase;
+}
+.jp-b-p{background:var(--moss);color:var(--washi)}
+.jp-b-a{background:var(--clay);color:var(--washi)}
+.jp-b-l{background:var(--stone);color:var(--charcoal)}
+.jp-screen-footer{
+  border-top:1px solid var(--stone);padding:12px 18px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.jp-screen-stat-lbl{font-family:var(--sans);font-size:.62rem;letter-spacing:.12em;color:var(--ash);text-transform:uppercase}
+.jp-screen-stat-val{font-family:var(--serif);font-size:1.4rem;font-weight:600;color:var(--moss)}
+
+/* 
+   MA  PHILOSOPHY BAND
+ */
+.jp-ma{
+  padding:72px 0;
+  border-top:1px solid var(--stone);
+  border-bottom:1px solid var(--stone);
+  background:var(--linen);text-align:center;
+}
+.jp-ma-quote{
+  font-family:var(--serif);font-size:clamp(1.4rem,3vw,2.1rem);
+  font-weight:300;font-style:italic;
+  color:var(--ink);line-height:1.65;
+  max-width:720px;margin:20px auto;
+}
+.jp-ma-label{
+  font-family:var(--sans);font-size:.7rem;letter-spacing:.25em;
+  text-transform:uppercase;color:var(--clay);
+}
+
+/* 
+   THREE DISCIPLINES (PILLARS)
+ */
+.jp-disciplines{
+  padding:100px 0;background:var(--washi);
+}
+.jp-section-header{margin-bottom:64px}
+.jp-eyebrow{
+  font-family:var(--sans);font-size:.7rem;font-weight:500;
+  letter-spacing:.22em;text-transform:uppercase;
+  color:var(--clay);margin-bottom:16px;display:flex;
+  align-items:center;gap:14px;
+}
+.jp-eyebrow::before{content:'';display:inline-block;width:28px;height:1px;background:var(--clay)}
+.jp-section-title{
+  font-family:var(--serif);font-size:clamp(1.8rem,3.5vw,2.8rem);
+  font-weight:300;color:var(--ink);letter-spacing:.01em;
+  line-height:1.2;margin-bottom:14px;
+}
+.jp-section-sub{
+  font-family:var(--sans);font-size:.95rem;font-weight:300;
+  color:var(--ash);max-width:520px;
+}
+
+.jp-grid-3{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:1px;background:var(--stone);border:1px solid var(--stone);
+}
+@media(max-width:768px){.jp-grid-3{grid-template-columns:1fr}}
+
+.jp-disc-card{
+  background:var(--washi);padding:48px 36px;
+  position:relative;transition:background .3s;
+}
+.jp-disc-card:hover{background:var(--linen)}
+.jp-disc-number{
+  font-family:var(--serif);font-size:2.6rem;font-weight:300;
+  color:var(--stone);line-height:1;margin-bottom:20px;
+}
+.jp-disc-icon{
+  width:44px;height:44px;border:1px solid var(--stone);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.2rem;color:var(--moss);margin-bottom:24px;
+  transition:border-color .3s;
+}
+.jp-disc-card:hover .jp-disc-icon{border-color:var(--moss)}
+.jp-disc-title{
+  font-family:var(--serif);font-size:1.3rem;font-weight:500;
+  color:var(--ink);margin-bottom:14px;letter-spacing:.01em;
+}
+.jp-disc-body{
+  font-family:var(--sans);font-size:.9rem;font-weight:300;
+  color:var(--ash);line-height:1.8;margin-bottom:24px;
+}
+.jp-disc-features{list-style:none;display:flex;flex-direction:column;gap:8px}
+.jp-disc-features li{
+  font-family:var(--sans);font-size:.8rem;color:var(--ash);
+  display:flex;align-items:flex-start;gap:10px;
+}
+.jp-disc-features li::before{
+  content:'';color:var(--clay);font-size:.75rem;
+  flex-shrink:0;margin-top:1px;
+}
+
+/* 
+   AI SECTION
+ */
+.jp-ai{
+  padding:100px 0;background:var(--linen);
+  border-top:1px solid var(--stone);
+}
+.jp-ai-inner{
+  display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center;
+}
+@media(max-width:860px){.jp-ai-inner{grid-template-columns:1fr;gap:48px}}
+.jp-ai-title{
+  font-family:var(--serif);font-size:clamp(1.8rem,3.5vw,2.8rem);
+  font-weight:300;color:var(--ink);line-height:1.2;
+  margin-bottom:20px;
+}
+.jp-ai-title em{font-style:italic;color:var(--moss)}
+.jp-ai-body{
+  font-family:var(--sans);font-size:.95rem;font-weight:300;
+  color:var(--ash);line-height:1.85;margin-bottom:36px;
+}
+.jp-ai-feats{display:flex;flex-direction:column;gap:0}
+.jp-ai-feat{
+  display:flex;align-items:flex-start;gap:20px;
+  padding:20px 0;border-bottom:1px solid var(--stone);
+}
+.jp-ai-feat:last-child{border-bottom:none}
+.jp-ai-feat-icon{
+  width:36px;height:36px;flex-shrink:0;
+  border:1px solid var(--stone);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.95rem;color:var(--moss);margin-top:2px;
+}
+.jp-ai-feat-title{
+  font-family:var(--sans);font-size:.82rem;font-weight:600;
+  color:var(--charcoal);margin-bottom:5px;letter-spacing:.03em;
+}
+.jp-ai-feat-desc{
+  font-family:var(--sans);font-size:.82rem;font-weight:300;
+  color:var(--ash);line-height:1.7;
+}
+
+/* AI data panel */
+.jp-ai-panel{border:1px solid var(--stone);background:var(--washi)}
+.jp-ai-panel-hdr{
+  padding:14px 20px;border-bottom:1px solid var(--stone);
+  background:var(--linen);display:flex;align-items:center;gap:10px;
+}
+.jp-live-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--moss);animation:jpPulse 2.2s ease-in-out infinite;
+}
+@keyframes jpPulse{0%,100%{opacity:1}50%{opacity:.3}}
+.jp-ai-panel-title{
+  font-family:var(--sans);font-size:.68rem;letter-spacing:.14em;
+  color:var(--ash);text-transform:uppercase;font-weight:500;
+}
+.jp-ai-panel-body{padding:20px}
+.jp-data-row{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 0;border-bottom:1px solid var(--linen);
+}
+.jp-data-row:last-child{border-bottom:none}
+.jp-data-lbl{font-family:var(--sans);font-size:.8rem;color:var(--ash);width:120px;flex-shrink:0}
+.jp-data-bar{flex:1;height:2px;background:var(--stone);position:relative;overflow:hidden}
+.jp-data-fill{
+  position:absolute;left:0;top:0;height:100%;
+  background:var(--moss);
+  transform:scaleX(0);transform-origin:left;
+  animation:jpFill 2s cubic-bezier(.22,.68,0,1.2) forwards;
+}
+.jp-data-fill.d2{animation-delay:.2s}.jp-data-fill.d3{animation-delay:.4s}
+.jp-data-fill.d4{animation-delay:.6s}.jp-data-fill.d5{animation-delay:.8s}
+@keyframes jpFill{to{transform:scaleX(1)}}
+.jp-data-val{
+  font-family:var(--sans);font-size:.78rem;font-weight:600;
+  color:var(--moss);width:36px;text-align:right;flex-shrink:0;
+}
+.jp-ai-insight{
+  border-top:1px solid var(--stone);padding:16px 20px;
+  display:flex;gap:14px;align-items:flex-start;background:var(--linen);
+}
+.jp-ai-insight-icon{font-size:.9rem;color:var(--clay);flex-shrink:0;margin-top:2px}
+.jp-ai-insight-text{
+  font-family:var(--sans);font-size:.8rem;font-weight:300;
+  color:var(--ash);line-height:1.7;font-style:italic;
+}
+
+/* 
+   MODULE SHOWCASES
+ */
+.jp-modules{padding:100px 0;background:var(--washi);border-top:1px solid var(--stone)}
+
+.jp-mod-row{
+  display:grid;grid-template-columns:1fr 1fr;gap:0;
+  border:1px solid var(--stone);margin-bottom:1px;
+}
+.jp-mod-row.flip{direction:rtl}
+.jp-mod-row.flip>*{direction:ltr}
+@media(max-width:860px){.jp-mod-row,.jp-mod-row.flip{grid-template-columns:1fr;direction:ltr}}
+
+.jp-mod-copy{
+  padding:72px 60px;border-right:1px solid var(--stone);
+  display:flex;flex-direction:column;justify-content:center;
+}
+.jp-mod-row.flip .jp-mod-copy{border-right:none;border-left:1px solid var(--stone)}
+@media(max-width:860px){.jp-mod-copy,.jp-mod-row.flip .jp-mod-copy{padding:48px 24px;border:none}}
+
+.jp-mod-kicker{
+  font-family:var(--sans);font-size:.68rem;font-weight:500;
+  letter-spacing:.22em;text-transform:uppercase;
+  color:var(--clay);margin-bottom:16px;
+}
+.jp-mod-title{
+  font-family:var(--serif);font-size:clamp(1.5rem,2.5vw,2rem);
+  font-weight:300;color:var(--ink);line-height:1.25;
+  margin-bottom:18px;
+}
+.jp-mod-body{
+  font-family:var(--sans);font-size:.9rem;font-weight:300;
+  color:var(--ash);line-height:1.85;margin-bottom:24px;
+}
+.jp-mod-caps{display:flex;flex-direction:column;gap:10px}
+.jp-mod-cap{
+  font-family:var(--sans);font-size:.8rem;color:var(--ash);
+  display:flex;align-items:flex-start;gap:10px;
+}
+.jp-mod-cap i{color:var(--moss);font-size:.75rem;flex-shrink:0;margin-top:2px}
+
+.jp-mod-visual{
+  background:var(--linen);padding:36px;
+  display:flex;flex-direction:column;justify-content:center;
+  position:relative;overflow:hidden;
+  border-left:none;
+}
+.jp-mod-row.flip .jp-mod-visual{border-right:none}
+
+/* Screen mockup inside visual */
+.jp-fw-screen{background:var(--washi);border:1px solid var(--stone);width:100%}
+.jp-fw-bar{
+  height:30px;background:var(--linen);border-bottom:1px solid var(--stone);
+  padding:0 12px;display:flex;align-items:center;gap:6px;
+}
+.jp-fw-bar-title{
+  font-family:var(--sans);font-size:.6rem;letter-spacing:.12em;
+  color:var(--ash);text-transform:uppercase;margin-left:8px;
+}
+.jp-fw-body{padding:16px;display:flex;flex-direction:column;gap:8px}
+.jp-fw-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 0;border-bottom:1px solid var(--linen);
+  font-family:var(--serif);font-size:.95rem;color:var(--charcoal);
+}
+.jp-fw-row:last-child{border-bottom:none}
+
+/* Fee status pills */
+.jp-pill{
+  font-family:var(--sans);font-size:.58rem;font-weight:600;
+  padding:2px 9px;letter-spacing:.06em;text-transform:uppercase;
+}
+.jp-pill-p{background:var(--moss);color:var(--washi)}
+.jp-pill-q{background:var(--clay);color:var(--washi)}
+.jp-pill-r{background:var(--stone);color:var(--charcoal)}
+
+/* Attendance visual */
+.jp-att-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.jp-att-cell{
+  aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+  font-family:var(--sans);font-size:.58rem;font-weight:500;
+}
+.jp-ac-h{color:var(--pebble);font-size:.52rem}
+.jp-ac-p{background:var(--moss);color:var(--washi)}
+.jp-ac-a{background:var(--clay);color:var(--washi)}
+.jp-ac-l{background:var(--stone);color:var(--charcoal)}
+.jp-ac-x{opacity:.15}
+
+/* 
+   TESTIMONIAL
+ */
+.jp-testimony{
+  padding:100px 0;background:var(--linen);
+  border-top:1px solid var(--stone);text-align:center;
+}
+.jp-testy-frame{
+  max-width:760px;margin:0 auto;
+  border:1px solid var(--stone);padding:60px;
+  position:relative;background:var(--washi);
+}
+@media(max-width:768px){.jp-testy-frame{padding:40px 24px}}
+.jp-testy-mark{
+  font-family:var(--serif);font-size:4rem;color:var(--clay);
+  opacity:.25;line-height:.6;display:block;margin-bottom:20px;
+}
+.jp-testy-text{
+  font-family:var(--serif);font-size:clamp(1.2rem,2.2vw,1.6rem);
+  font-weight:300;font-style:italic;color:var(--ink);
+  line-height:1.7;margin-bottom:32px;
+}
+.jp-testy-author{
+  font-family:var(--sans);font-size:.72rem;font-weight:600;
+  letter-spacing:.15em;text-transform:uppercase;color:var(--moss);
+}
+.jp-testy-role{
+  font-family:var(--serif);font-size:.95rem;font-style:italic;
+  color:var(--ash);margin-top:4px;
+}
+
+/* 
+   STATS
+ */
+.jp-stats{
+  padding:80px 0;background:var(--washi);
+  border-top:1px solid var(--stone);border-bottom:1px solid var(--stone);
+}
+.jp-stats-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:1px;background:var(--stone);border:1px solid var(--stone);
+}
+@media(max-width:768px){.jp-stats-grid{grid-template-columns:repeat(2,1fr)}}
+.jp-stat{
+  background:var(--washi);padding:44px 32px;text-align:center;
+}
+.jp-stat-num{
+  font-family:var(--serif);font-size:clamp(2rem,4vw,3.2rem);
+  font-weight:300;color:var(--moss);display:block;line-height:1;margin-bottom:10px;
+}
+.jp-stat-lbl{
+  font-family:var(--sans);font-size:.68rem;font-weight:500;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--ash);
+}
+
+/* 
+   CTA
+ */
+.jp-cta{
+  padding:120px 0;background:var(--moss);
+  text-align:center;position:relative;overflow:hidden;
+}
+.jp-cta::before{
+  content:'';position:absolute;inset:0;
+  background-image:
+    repeating-linear-gradient(0deg,rgba(249,247,242,.04) 0 1px,transparent 1px 60px),
+    repeating-linear-gradient(90deg,rgba(249,247,242,.04) 0 1px,transparent 1px 60px);
+  pointer-events:none;
+}
+.jp-cta-inner{position:relative;z-index:2;max-width:640px;margin:0 auto;padding:0 32px}
+.jp-cta-eyebrow{
+  font-family:var(--sans);font-size:.7rem;font-weight:500;
+  letter-spacing:.22em;text-transform:uppercase;
+  color:rgba(249,247,242,.6);margin-bottom:20px;
+}
+.jp-cta-title{
+  font-family:var(--serif);font-size:clamp(2rem,4.5vw,3.5rem);
+  font-weight:300;color:var(--washi);line-height:1.2;
+  margin-bottom:20px;
+}
+.jp-cta-title em{font-style:italic;color:rgba(249,247,242,.75)}
+.jp-cta-body{
+  font-family:var(--sans);font-size:.95rem;font-weight:300;
+  color:rgba(249,247,242,.75);line-height:1.8;margin-bottom:44px;
+}
+.jp-cta-actions{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.btn-washi{
+  font-family:var(--sans);font-size:.78rem;font-weight:500;
+  letter-spacing:.1em;text-transform:uppercase;
+  color:var(--moss);background:var(--washi);
+  border:none;padding:14px 36px;text-decoration:none;
+  display:inline-block;transition:background .2s;
+}
+.btn-washi:hover{background:var(--linen);color:var(--moss)}
+.btn-outline-washi{
+  font-family:var(--sans);font-size:.78rem;font-weight:400;
+  letter-spacing:.1em;text-transform:uppercase;
+  color:var(--washi);background:transparent;
+  border:1px solid rgba(249,247,242,.4);padding:13px 36px;
+  text-decoration:none;display:inline-block;transition:all .2s;
+}
+.btn-outline-washi:hover{border-color:var(--washi);background:rgba(249,247,242,.08)}
+.jp-cta-note{
+  font-family:var(--sans);font-size:.65rem;letter-spacing:.14em;
+  color:rgba(249,247,242,.4);text-transform:uppercase;margin-top:24px;
+}
+
+/* 
+   FOOTER
+ */
+.jp-footer{
+  background:var(--ink);padding:72px 0 36px;
+  border-top:1px solid rgba(249,247,242,.08);
+}
+.jp-footer-top{
+  display:grid;grid-template-columns:1fr 2fr;gap:64px;margin-bottom:56px;
+}
+@media(max-width:768px){.jp-footer-top{grid-template-columns:1fr;gap:36px}}
+.jp-footer-brand-name{
+  font-family:var(--serif);font-size:1.5rem;font-weight:400;
+  color:var(--washi);letter-spacing:.06em;margin-bottom:10px;
+}
+.jp-footer-brand-tag{
+  font-family:var(--sans);font-size:.82rem;font-weight:300;
+  color:rgba(249,247,242,.45);line-height:1.75;
+}
+.jp-footer-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:32px}
+@media(max-width:600px){.jp-footer-cols{grid-template-columns:1fr}}
+.jp-fcol-title{
+  font-family:var(--sans);font-size:.66rem;font-weight:600;
+  letter-spacing:.22em;text-transform:uppercase;
+  color:rgba(249,247,242,.4);margin-bottom:18px;
+  padding-bottom:10px;border-bottom:1px solid rgba(249,247,242,.08);
+}
+.jp-fcol-links{list-style:none;display:flex;flex-direction:column;gap:10px}
+.jp-fcol-links a{
+  font-family:var(--sans);font-size:.82rem;font-weight:300;
+  color:rgba(249,247,242,.5);text-decoration:none;transition:color .2s;
+}
+.jp-fcol-links a:hover{color:rgba(249,247,242,.9)}
+.jp-footer-bottom{
+  border-top:1px solid rgba(249,247,242,.08);padding-top:24px;
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;
+}
+.jp-footer-copy,.jp-footer-policy a{
+  font-family:var(--sans);font-size:.65rem;letter-spacing:.12em;
+  color:rgba(249,247,242,.3);text-transform:uppercase;
+}
+.jp-footer-policy{display:flex;gap:20px}
+.jp-footer-policy a{text-decoration:none;transition:color .2s}
+.jp-footer-policy a:hover{color:rgba(249,247,242,.7)}
+
+/* 
+   AI CHAT WIDGET
+ */
+.jp-fab{
+  position:fixed;bottom:28px;right:28px;z-index:900;
+  width:48px;height:48px;background:var(--moss);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--washi);font-size:1.1rem;
+  transition:background .2s;box-shadow:0 4px 20px rgba(57,84,64,.25);
+}
+.jp-fab:hover{background:var(--moss-lt)}
+
+.jp-chat{
+  position:fixed;bottom:90px;right:28px;z-index:901;
+  width:340px;max-width:calc(100vw - 36px);
+  height:440px;max-height:calc(100vh - 130px);
+  background:var(--washi);border:1px solid var(--stone);
+  display:none;flex-direction:column;
+  box-shadow:0 16px 48px rgba(28,28,28,.12);
+}
+.jp-chat.open{display:flex}
+
+.jp-chat-hdr{
+  padding:14px 18px;border-bottom:1px solid var(--stone);
+  background:var(--linen);display:flex;align-items:center;gap:10px;flex-shrink:0;
+}
+.jp-chat-icon{
+  width:26px;height:26px;background:var(--moss);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.7rem;color:var(--washi);flex-shrink:0;
+}
+.jp-chat-title{
+  font-family:var(--sans);font-size:.72rem;font-weight:600;
+  letter-spacing:.08em;color:var(--charcoal);flex:1;
+}
+.jp-chat-close{
+  background:transparent;border:none;color:var(--ash);
+  cursor:pointer;font-size:.9rem;transition:color .2s;
+}
+.jp-chat-close:hover{color:var(--charcoal)}
+
+.jp-chat-msgs{
+  flex:1;overflow-y:auto;padding:16px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.jp-msg{
+  max-width:90%;padding:10px 14px;
+  font-family:var(--sans);font-size:.85rem;line-height:1.65;
+}
+.jp-msg.bot{
+  align-self:flex-start;background:var(--linen);
+  border-left:2px solid var(--moss);color:var(--charcoal);
+}
+.jp-msg.user{
+  align-self:flex-end;background:var(--moss);
+  color:var(--washi);
+}
+
+.jp-chat-input-row{
+  border-top:1px solid var(--stone);padding:10px;
+  display:flex;gap:8px;flex-shrink:0;
+}
+.jp-chat-input{
+  flex:1;background:var(--linen);border:1px solid var(--stone);
+  color:var(--charcoal);font-family:var(--sans);font-size:.85rem;
+  padding:9px 12px;outline:none;transition:border-color .2s;
+}
+.jp-chat-input:focus{border-color:var(--moss)}
+.jp-chat-input::placeholder{color:var(--pebble)}
+.jp-chat-send{
+  background:var(--moss);border:none;color:var(--washi);
+  width:36px;height:36px;cursor:pointer;font-size:.85rem;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .2s;flex-shrink:0;
+}
+.jp-chat-send:hover{background:var(--moss-lt)}
+
   </style>
 </head>
 <body>
-  <!-- Entryway (Hero Section) -->
-  <section class="zen-hero">
-    <div class="zen-hero-img"></div>
-    <div class="zen-hero-content">
-      <div class="zen-headline">The Quiet Engine for Learning</div>
-      <div class="zen-sub">Essential tools, thoughtfully arranged. The AI keeps things simple so your team can teach with calm and clarity.</div>
-    </div>
-    <div class="ai-indicator">Aura · Active</div>
-  </section>
 
-  <!-- Tatami Grid (Feature Modules) -->
-  <section class="tatami-section">
-    <div class="tatami-mat">
-        <div class="tatami-title">Timetable, Simplified</div>
-        <div class="tatami-desc">Create and adjust schedules that flow. The system prevents conflicts, adapts to change, and keeps each day steady and human.</div>
-      <div class="tatami-divider"></div>
-      <div style="color:var(--forest-moss);font-size:0.98rem;">Mobile roll-call, visual builder, conflict detection</div>
-    </div>
-    <div class="tatami-mat">
-      <div class="tatami-title">Student Growth</div>
-      <div class="tatami-desc">Progress at a glance. Grades, attendance, and trends presented gently, with clear suggestions that support learning rather than overwhelm.</div>
-      <div class="tatami-divider"></div>
-      <div style="color:var(--forest-moss);font-size:0.98rem;">Weighted grades, AI-generated remarks, PDF reports</div>
-    </div>
-    <div class="tatami-mat">
-      <div class="tatami-title">Daily Operations</div>
-      <div class="tatami-desc">Fees, messages, and staff planning—one calm place for the day’s work, designed to reduce noise and restore focus.</div>
-      <div class="tatami-divider"></div>
-      <div style="color:var(--forest-moss);font-size:0.98rem;">Fee templates, instant receipts, parent portal</div>
-    </div>
-  </section>
-
-  <!-- Shoji Transition (How it Works) -->
-  <section class="shoji-section">
-    <div class="shoji-bg"></div>
-    <div class="shoji-overlay"></div>
-    <div class="shoji-haiku">Paper meets pattern<br>order softens into clarity<br>and work breathes easier.</div>
-  </section>
-
-  <!-- Kintsugi Detail (Data & Analytics) -->
-  <section class="kintsugi-section">
-    <div class="kintsugi-title">AI-Driven Analytics & Repair</div>
-    <div class="kintsugi-analytics">
-      <div class="kintsugi-card">
-        <div class="kintsugi-gap"></div>
-        <div class="kintsugi-label">Attendance Notes</div>
-        <div class="kintsugi-value">2 late · 1 absent</div>
-        <div class="kintsugi-desc">Small absences are visible and contextualized; the system suggests discreet, constructive follow-ups.</div>
+<!--  NAV  -->
+<nav class="jp-nav">
+  <div class="jp-nav-inner">
+    <a href="{% url 'home' %}" class="jp-logo">
+      <div class="jp-logo-mark">
+        {% if school_logo %}
+          <img src="{{ school_logo.url }}" style="width:100%;height:100%;object-fit:cover;">
+        {% else %}
+          A
+        {% endif %}
       </div>
-      <div class="kintsugi-card">
-        <div class="kintsugi-gap"></div>
-        <div class="kintsugi-label">Progress</div>
-        <div class="kintsugi-value">+12% growth</div>
-        <div class="kintsugi-desc">Measured improvements are highlighted; clear next steps help teachers support steady, sustainable progress.</div>
-      </div>
-      <div class="kintsugi-card">
-        <div class="kintsugi-gap"></div>
-        <div class="kintsugi-label">Schedule Health</div>
-        <div class="kintsugi-value">0 conflicts</div>
-        <div class="kintsugi-desc">Conflicts are resolved quietly. Timetables remain steady so teaching and learning can proceed without interruption.</div>
+      {{ school_name|default:"Aura" }}
+    </a>
+    <ul class="jp-nav-links">
+      <li><a href="#disciplines">Disciplines</a></li>
+      <li><a href="#intelligence">Intelligence</a></li>
+      <li><a href="#modules">Modules</a></li>
+      <li><a href="#enroll">Enroll</a></li>
+    </ul>
+    <a href="{% url 'tenants:school_signup' %}" class="jp-nav-cta">Begin</a>
+  </div>
+</nav>
+
+<!--  HERO  -->
+<section class="jp-hero">
+  <div class="jp-hero-inner">
+    <div class="jp-hero-text">
+      <div class="jp-hero-eyebrow reveal">Aura  AI-Powered School Management</div>
+      <h1 class="jp-hero-title reveal d2">
+        The <em>quiet</em><br>engine for<br>learning.
+      </h1>
+      <span class="jp-hero-title-small reveal d3">Essential tools, thoughtfully arranged.</span>
+      <p class="jp-hero-body reveal d3">
+        Grades, attendance, fees, and timetables  managed from one calm, clear place. No complexity. No clutter. Just the information your school needs, when it needs it.
+      </p>
+      <div class="jp-hero-actions reveal d4">
+        <a href="{% url 'tenants:school_signup' %}" class="btn-moss">Start for Free</a>
+        <a href="#disciplines" class="btn-outline-moss">See How It Works</a>
       </div>
     </div>
-  </section>
 
-  <!-- Engawa (Footer & CTA) -->
-  <footer class="engawa-footer">
-    <div class="engawa-logo">Aura</div>
-    <button class="engawa-btn">Begin the Journey</button>
-    <div class="engawa-meta">Updated: {{ now|date:'F j, Y' }}</div>
-  </footer>
+    <div class="jp-hero-visual reveal d3">
+      <div class="jp-screen">
+        <div class="jp-screen-bar">
+          <div class="jp-dot r"></div><div class="jp-dot y"></div><div class="jp-dot g"></div>
+          <span class="jp-screen-title">Attendance  Basic 8A  March 2026</span>
+        </div>
+        <div class="jp-screen-body">
+          <div class="jp-row"><span>Ama Mensah</span><span class="jp-badge jp-b-p">Present</span></div>
+          <div class="jp-row"><span>Kweku Asante</span><span class="jp-badge jp-b-p">Present</span></div>
+          <div class="jp-row"><span>Abena Boateng</span><span class="jp-badge jp-b-l">Late</span></div>
+          <div class="jp-row"><span>Kofi Ofori</span><span class="jp-badge jp-b-a">Absent</span></div>
+          <div class="jp-row"><span>Adwoa Darko</span><span class="jp-badge jp-b-p">Present</span></div>
+        </div>
+        <div class="jp-screen-footer">
+          <span class="jp-screen-stat-lbl">Attendance Rate</span>
+          <span class="jp-screen-stat-val">90%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!--  MA  PHILOSOPHY  -->
+<div class="jp-ma">
+  <div class="jp-narrow">
+    <div class="jp-rule reveal"><span class="jp-rule-mark"></span></div>
+    <p class="jp-ma-quote reveal d2">
+      "A school runs on information. When that information is clear, organised, and always at hand  teaching becomes the priority again."
+    </p>
+    <div class="jp-ma-label reveal d3">The Aura Principle</div>
+    <div class="jp-rule reveal d4"><span class="jp-rule-mark"></span></div>
+  </div>
+</div>
+
+<!--  STATS  -->
+<section class="jp-stats">
+  <div class="jp-wrap">
+    <div class="jp-stats-grid">
+      <div class="jp-stat reveal d1">
+        <span class="jp-stat-num">10,000+</span>
+        <div class="jp-stat-lbl">Students Managed</div>
+      </div>
+      <div class="jp-stat reveal d2">
+        <span class="jp-stat-num">50+</span>
+        <div class="jp-stat-lbl">Schools Enrolled</div>
+      </div>
+      <div class="jp-stat reveal d3">
+        <span class="jp-stat-num">98%</span>
+        <div class="jp-stat-lbl">Scheduling Accuracy</div>
+      </div>
+      <div class="jp-stat reveal d4">
+        <span class="jp-stat-num">99.9%</span>
+        <div class="jp-stat-lbl">Uptime</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!--  THREE DISCIPLINES  -->
+<section class="jp-disciplines" id="disciplines">
+  <div class="jp-wrap">
+    <div class="jp-section-header">
+      <div class="jp-eyebrow reveal">Three Core Areas</div>
+      <h2 class="jp-section-title reveal d2">What Aura Manages</h2>
+      <p class="jp-section-sub reveal d3">Everything your school runs on  in one place, working together.</p>
+    </div>
+    <div class="jp-grid-3">
+
+      <div class="jp-disc-card reveal d1">
+        <div class="jp-disc-number">01</div>
+        <div class="jp-disc-icon"><i class="bi bi-mortarboard"></i></div>
+        <h3 class="jp-disc-title">Academic Records</h3>
+        <p class="jp-disc-body">Enter marks once. Aura calculates totals, assigns grades, writes remarks, and generates PDF report cards  ready to print or share.</p>
+        <ul class="jp-disc-features">
+          <li>Weighted class score and exam calculation</li>
+          <li>AI-generated teacher remarks per student</li>
+          <li>PDF reports  individual or full class</li>
+          <li>Term rankings and subject averages</li>
+          <li>GES, BECE, and WASSCE grading support</li>
+        </ul>
+      </div>
+
+      <div class="jp-disc-card reveal d2">
+        <div class="jp-disc-number">02</div>
+        <div class="jp-disc-icon"><i class="bi bi-calendar-check"></i></div>
+        <h3 class="jp-disc-title">Daily Operations</h3>
+        <p class="jp-disc-body">Attendance, timetables, and staff schedules  tracked and organised every day, with alerts sent automatically when something needs attention.</p>
+        <ul class="jp-disc-features">
+          <li>Mobile roll-call  works on any device</li>
+          <li>Monthly attendance heatmaps per student</li>
+          <li>Visual timetable builder with conflict detection</li>
+          <li>Teacher profiles, duty rosters, lesson plans</li>
+          <li>Automatic absence notifications to parents</li>
+        </ul>
+      </div>
+
+      <div class="jp-disc-card reveal d3">
+        <div class="jp-disc-number">03</div>
+        <div class="jp-disc-icon"><i class="bi bi-cash-coin"></i></div>
+        <h3 class="jp-disc-title">School Finance</h3>
+        <p class="jp-disc-body">Set fee structures per class, assign them in one click, and track every payment. Receipts are generated automatically. Parents see their balance in real time.</p>
+        <ul class="jp-disc-features">
+          <li>Configurable fee heads  tuition, PTA, bus</li>
+          <li>One-click bulk assignment from class templates</li>
+          <li>Auto-generated receipts with unique reference</li>
+          <li>Instant parent visibility via the parent portal</li>
+          <li>Outstanding balance reports by class or term</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!--  AI INTELLIGENCE  -->
+<section class="jp-ai" id="intelligence">
+  <div class="jp-wrap">
+    <div class="jp-ai-inner">
+      <div>
+        <div class="jp-eyebrow reveal">The Aura Engine</div>
+        <h2 class="jp-ai-title reveal d2">AI that works <em>quietly</em> in the background.</h2>
+        <p class="jp-ai-body reveal d3">
+          Aura monitors your school's data continuously. It spots patterns  a student's grades sliding, a class with rising absences  and surfaces them clearly, with suggestions for what to do next.
+        </p>
+        <div class="jp-ai-feats reveal d4">
+          <div class="jp-ai-feat">
+            <div class="jp-ai-feat-icon"><i class="bi bi-robot"></i></div>
+            <div>
+              <div class="jp-ai-feat-title">AI Homework Engine</div>
+              <div class="jp-ai-feat-desc">Generate subject-specific questions by difficulty level. Students submit online; the system marks and records scores to the grade book automatically.</div>
+            </div>
+          </div>
+          <div class="jp-ai-feat">
+            <div class="jp-ai-feat-icon"><i class="bi bi-chat-dots"></i></div>
+            <div>
+              <div class="jp-ai-feat-title">Admissions Assistant</div>
+              <div class="jp-ai-feat-desc">A 24-hour AI chat for prospective families. Questions about fees, term dates, and enrolment are answered instantly  no staff time needed.</div>
+            </div>
+          </div>
+          <div class="jp-ai-feat">
+            <div class="jp-ai-feat-icon"><i class="bi bi-graph-up"></i></div>
+            <div>
+              <div class="jp-ai-feat-title">Early Warning Flags</div>
+              <div class="jp-ai-feat-desc">Aura compares attendance and grade trends to flag students who need support before the end of term  giving teachers time to act.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="reveal d3">
+        <div class="jp-ai-panel">
+          <div class="jp-ai-panel-hdr">
+            <div class="jp-live-dot"></div>
+            <div class="jp-ai-panel-title">Aura  Grade Analysis  Term I</div>
+          </div>
+          <div class="jp-ai-panel-body">
+            <div class="jp-data-row">
+              <div class="jp-data-lbl">Mathematics</div>
+              <div class="jp-data-bar"><div class="jp-data-fill d2" style="width:88%"></div></div>
+              <div class="jp-data-val">88%</div>
+            </div>
+            <div class="jp-data-row">
+              <div class="jp-data-lbl">English</div>
+              <div class="jp-data-bar"><div class="jp-data-fill d3" style="width:76%"></div></div>
+              <div class="jp-data-val">76%</div>
+            </div>
+            <div class="jp-data-row">
+              <div class="jp-data-lbl">Science</div>
+              <div class="jp-data-bar"><div class="jp-data-fill d4" style="width:82%"></div></div>
+              <div class="jp-data-val">82%</div>
+            </div>
+            <div class="jp-data-row">
+              <div class="jp-data-lbl">Social Studies</div>
+              <div class="jp-data-bar"><div class="jp-data-fill d5" style="width:70%"></div></div>
+              <div class="jp-data-val">70%</div>
+            </div>
+            <div class="jp-data-row">
+              <div class="jp-data-lbl">French</div>
+              <div class="jp-data-bar"><div class="jp-data-fill d5" style="width:65%"></div></div>
+              <div class="jp-data-val">65%</div>
+            </div>
+          </div>
+          <div class="jp-ai-insight">
+            <div class="jp-ai-insight-icon"><i class="bi bi-lightbulb"></i></div>
+            <div class="jp-ai-insight-text">French is 11% below the class average. Consider targeted support in Basic 8A before Term 2 begins.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!--  MODULE SHOWCASES  -->
+<section class="jp-modules" id="modules">
+
+  <!-- Grades -->
+  <div class="jp-mod-row">
+    <div class="jp-mod-copy reveal d1">
+      <div class="jp-mod-kicker">Academic Module</div>
+      <h3 class="jp-mod-title">Enter marks.<br>The system does the rest.</h3>
+      <p class="jp-mod-body">Type in class scores and exam marks. Aura computes the weighted total, assigns the correct grade, writes a remark, and produces a print-ready PDF report card  one step, no spreadsheets.</p>
+      <div class="jp-mod-caps">
+        <div class="jp-mod-cap"><i class="bi bi-check-circle-fill"></i>Adjustable weighting  class score vs. exam percentage</div>
+        <div class="jp-mod-cap"><i class="bi bi-check-circle-fill"></i>PDF report cards for one student or the whole class</div>
+        <div class="jp-mod-cap"><i class="bi bi-check-circle-fill"></i>GES, BECE, and WASSCE grading systems built in</div>
+        <div class="jp-mod-cap"><i class="bi bi-check-circle-fill"></i>Class-wide averages, ranks, and trend tracking</div>
+      </div>
+    </div>
+    <div class="jp-mod-visual reveal d3">
+      <div class="jp-fw-screen">
+        <div class="jp-fw-bar">
+          <div class="jp-dot r"></div><div class="jp-dot y"></div><div class="jp-dot g"></div>
+          <span class="jp-fw-bar-title">Basic 8A  Term I Grade Record</span>
+        </div>
+        <div class="jp-fw-body">
+          <div class="jp-fw-row"><span>Mensah, Ama</span><span>90 / 100</span><span class="jp-pill jp-pill-p">A1</span></div>
+          <div class="jp-fw-row"><span>Asante, Kweku</span><span>79 / 100</span><span class="jp-pill jp-pill-q">B2</span></div>
+          <div class="jp-fw-row"><span>Boateng, Abena</span><span>70 / 100</span><span class="jp-pill jp-pill-q">B3</span></div>
+          <div class="jp-fw-row"><span>Ofori, Kofi</span><span>62 / 100</span><span class="jp-pill jp-pill-r">C4</span></div>
+          <div class="jp-fw-row"><span>Darko, Adwoa</span><span>86 / 100</span><span class="jp-pill jp-pill-p">A2</span></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:1px;margin-top:1px">
+        <div style="flex:1;background:var(--linen);border:1px solid var(--stone);padding:12px 16px">
+          <div style="font-family:var(--sans);font-size:.62rem;letter-spacing:.12em;color:var(--ash);text-transform:uppercase;margin-bottom:6px">Class Avg</div>
+          <div style="font-family:var(--serif);font-size:1.5rem;font-weight:500;color:var(--moss)">77.4</div>
+        </div>
+        <div style="flex:1;background:var(--moss);border:1px solid var(--moss-lt);padding:12px 16px">
+          <div style="font-family:var(--sans);font-size:.62rem;letter-spacing:.12em;color:rgba(249,247,242,.6);text-transform:uppercase;margin-bottom:6px">Distinctions</div>
+          <div style="font-family:var(--serif);font-size:1.5rem;font-weight:500;color:var(--washi)">40%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Finance (flipped) -->
+  <div class="jp-mod-row flip">
+    <div class="jp-mod-copy reveal d1">
+      <div class="jp-mod-kicker">Finance Module</div>
+      <h3 class="jp-mod-title">Know who has paid.<br>And who hasn't.</h3>
+      <p class="jp-mod-body">Set fee structures per class and term. Assign them to all students in one click. Every payment generates a unique receipt automatically. Parents check their balance from the parent portal  no calls needed.</p>
+      <div class="jp-mod-caps">
+        <div class="jp-mod-cap"><i class="bi bi-check-circle-fill"></i>Receipts with unique reference numbers, generated automatically</div>
+        <div class="jp-mod-cap"><i class="bi bi-check-circle-fill"></i>Bulk fee assignment from class-level templates</div>
+        <div class="jp-mod-cap"><i class="bi bi-check-circle-fill"></i>Real-time outstanding balances for staff and parents</div>
+        <div class="jp-mod-cap"><i class="bi bi-check-circle-fill"></i>Collection dashboards and term summary reports</div>
+      </div>
+    </div>
+    <div class="jp-mod-visual reveal d3">
+      <div class="jp-fw-screen">
+        <div class="jp-fw-bar">
+          <div class="jp-dot r"></div><div class="jp-dot y"></div><div class="jp-dot g"></div>
+          <span class="jp-fw-bar-title">Basic 9  Fee Collection  Term I</span>
+        </div>
+        <div class="jp-fw-body">
+          <div class="jp-fw-row">
+            <div><div>Mensah, Ama</div><div style="font-size:.7rem;color:var(--ash)">RCP-20260319-A7X2</div></div>
+            <div style="text-align:right"><div>850.00</div><span class="jp-pill jp-pill-p">Paid</span></div>
+          </div>
+          <div class="jp-fw-row">
+            <div><div>Asante, Kweku</div><div style="font-size:.7rem;color:var(--ash)">RCP-20260318-B3K9</div></div>
+            <div style="text-align:right"><div>510 / 850</div><span class="jp-pill jp-pill-q">Partial</span></div>
+          </div>
+          <div class="jp-fw-row">
+            <div><div>Boateng, Abena</div><div style="font-size:.7rem;color:var(--ash)"></div></div>
+            <div style="text-align:right"><div>0 / 850</div><span class="jp-pill jp-pill-r">Unpaid</span></div>
+          </div>
+          <div class="jp-fw-row">
+            <div><div>Darko, Adwoa</div><div style="font-size:.7rem;color:var(--ash)">RCP-20260317-M2P4</div></div>
+            <div style="text-align:right"><div>850.00</div><span class="jp-pill jp-pill-p">Paid</span></div>
+          </div>
+        </div>
+      </div>
+      <div style="background:var(--linen);border:1px solid var(--stone);border-top:none;padding:12px 18px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-family:var(--sans);font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ash)">Total Collected</span>
+        <span style="font-family:var(--serif);font-size:1.3rem;font-weight:500;color:var(--moss)">2,210 / 3,400</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Attendance -->
+  <div class="jp-mod-row">
+    <div class="jp-mod-copy reveal d1">
+      <div class="jp-mod-kicker">Attendance Module</div>
+      <h3 class="jp-mod-title">Every day on record.<br>Every pattern visible.</h3>
+      <p class="jp-mod-body">Teachers mark attendance by class  on any device. Monthly heatmaps show each student's patterns at a glance. When a student is absent, parents are notified automatically. No follow-up required.</p>
+      <div class="jp-mod-caps">
+        <div class="jp-mod-cap"><i class="bi bi-check-circle-fill"></i>Quick roll-call  works on mobile, tablet, or desktop</div>
+        <div class="jp-mod-cap"><i class="bi bi-check-circle-fill"></i>Calendar view  present, absent, and late per student</div>
+        <div class="jp-mod-cap"><i class="bi bi-check-circle-fill"></i>Automatic parent notification on unexplained absence</div>
+        <div class="jp-mod-cap"><i class="bi bi-check-circle-fill"></i>School-wide attendance rate by class and teacher</div>
+      </div>
+    </div>
+    <div class="jp-mod-visual reveal d3">
+      <div style="font-family:var(--sans);font-size:.65rem;letter-spacing:.16em;color:var(--ash);text-transform:uppercase;margin-bottom:14px">Ama Mensah  March 2026</div>
+      <div class="jp-att-grid">
+        <div class="jp-att-cell jp-ac-h">Mo</div><div class="jp-att-cell jp-ac-h">Tu</div><div class="jp-att-cell jp-ac-h">We</div><div class="jp-att-cell jp-ac-h">Th</div><div class="jp-att-cell jp-ac-h">Fr</div><div class="jp-att-cell jp-ac-h">Sa</div><div class="jp-att-cell jp-ac-h">Su</div>
+        <div class="jp-att-cell jp-ac-p">P</div><div class="jp-att-cell jp-ac-p">P</div><div class="jp-att-cell jp-ac-l">L</div><div class="jp-att-cell jp-ac-p">P</div><div class="jp-att-cell jp-ac-p">P</div><div class="jp-att-cell jp-ac-x"></div><div class="jp-att-cell jp-ac-x"></div>
+        <div class="jp-att-cell jp-ac-p">P</div><div class="jp-att-cell jp-ac-a">A</div><div class="jp-att-cell jp-ac-p">P</div><div class="jp-att-cell jp-ac-p">P</div><div class="jp-att-cell jp-ac-p">P</div><div class="jp-att-cell jp-ac-x"></div><div class="jp-att-cell jp-ac-x"></div>
+        <div class="jp-att-cell jp-ac-p">P</div><div class="jp-att-cell jp-ac-p">P</div><div class="jp-att-cell jp-ac-p">P</div><div class="jp-att-cell jp-ac-l">L</div><div class="jp-att-cell jp-ac-p">P</div><div class="jp-att-cell jp-ac-x"></div><div class="jp-att-cell jp-ac-x"></div>
+        <div class="jp-att-cell jp-ac-p">P</div><div class="jp-att-cell jp-ac-p">P</div><div class="jp-att-cell jp-ac-p">P</div><div class="jp-att-cell jp-ac-p">P</div><div class="jp-att-cell jp-ac-p">P</div><div class="jp-att-cell jp-ac-x"></div><div class="jp-att-cell jp-ac-x"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-top:10px">
+        <div style="background:var(--moss);padding:12px;text-align:center"><div style="font-family:var(--serif);font-weight:500;font-size:1.3rem;color:var(--washi)">17</div><div style="font-family:var(--sans);font-size:.55rem;letter-spacing:.14em;color:rgba(249,247,242,.6);text-transform:uppercase;margin-top:4px">Present</div></div>
+        <div style="background:var(--clay);padding:12px;text-align:center"><div style="font-family:var(--serif);font-weight:500;font-size:1.3rem;color:var(--washi)">1</div><div style="font-family:var(--sans);font-size:.55rem;letter-spacing:.14em;color:rgba(249,247,242,.6);text-transform:uppercase;margin-top:4px">Absent</div></div>
+        <div style="background:var(--stone);padding:12px;text-align:center"><div style="font-family:var(--serif);font-weight:500;font-size:1.3rem;color:var(--charcoal)">2</div><div style="font-family:var(--sans);font-size:.55rem;letter-spacing:.14em;color:var(--ash);text-transform:uppercase;margin-top:4px">Late</div></div>
+        <div style="background:var(--linen);border:1px solid var(--stone);padding:12px;text-align:center"><div style="font-family:var(--serif);font-weight:500;font-size:1.3rem;color:var(--moss)">90%</div><div style="font-family:var(--sans);font-size:.55rem;letter-spacing:.14em;color:var(--ash);text-transform:uppercase;margin-top:4px">Rate</div></div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!--  TESTIMONIAL  -->
+<section class="jp-testimony" id="testimony">
+  <div class="jp-narrow">
+    <div class="jp-eyebrow reveal" style="justify-content:center;margin-bottom:28px">From the Field</div>
+    <div class="jp-testy-frame reveal d2">
+      <span class="jp-testy-mark">"</span>
+      <p class="jp-testy-text">Aura replaced three separate tools  fee collection, grading, and attendance  with one platform that actually works together. Our admin team went from overwhelmed to fully in control within a single week.</p>
+      <div class="jp-testy-author">Abena Osei-Bonsu</div>
+      <div class="jp-testy-role">Headmistress, Girls Model School  Accra, Ghana</div>
+    </div>
+  </div>
+</section>
+
+<!--  CTA  -->
+<section class="jp-cta" id="enroll">
+  <div class="jp-cta-inner">
+    <div class="jp-cta-eyebrow reveal">Get Started</div>
+    <h2 class="jp-cta-title reveal d2">Your school,<br><em>organised.</em></h2>
+    <p class="jp-cta-body reveal d3">
+      Set up your school in under five minutes. Grades, fees, and attendance are all in one place from day one  clear and ready to use.
+    </p>
+    <div class="jp-cta-actions reveal d4">
+      <a href="{% url 'tenants:school_signup' %}" class="btn-washi">Create Your School</a>
+      <a href="{% url 'login' %}" class="btn-outline-washi">Sign In</a>
+    </div>
+    <p class="jp-cta-note reveal d5">Free to start  No contract  Cancel any time</p>
+  </div>
+</section>
+
+<!--  FOOTER  -->
+<footer class="jp-footer">
+  <div class="jp-wrap">
+    <div class="jp-footer-top">
+      <div>
+        <div class="jp-footer-brand-name reveal">{{ school_name|default:"Aura" }}</div>
+        <p class="jp-footer-brand-tag reveal d1">AI-powered school management. Simple, calm, and built for African education.</p>
+      </div>
+      <div class="jp-footer-cols">
+        <div class="reveal d1">
+          <div class="jp-fcol-title">Platform</div>
+          <ul class="jp-fcol-links">
+            <li><a href="#disciplines">How It Works</a></li>
+            <li><a href="#intelligence">AI Engine</a></li>
+            <li><a href="#modules">Module Tour</a></li>
+            <li><a href="{% url 'tenants:school_signup' %}">Get Started</a></li>
+            <li><a href="{% url 'login' %}">Sign In</a></li>
+          </ul>
+        </div>
+        <div class="reveal d2">
+          <div class="jp-fcol-title">Features</div>
+          <ul class="jp-fcol-links">
+            <li><a href="#">Grade Management</a></li>
+            <li><a href="#">Fee Collection</a></li>
+            <li><a href="#">Attendance Tracking</a></li>
+            <li><a href="#">AI Homework Engine</a></li>
+            <li><a href="#">Parent Portal</a></li>
+          </ul>
+        </div>
+        <div class="reveal d3">
+          <div class="jp-fcol-title">Company</div>
+          <ul class="jp-fcol-links">
+            <li><a href="#">About Portals</a></li>
+            <li><a href="#">Contact</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Service</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="jp-footer-bottom">
+      <div class="jp-footer-copy"> 2026 Portals. All rights reserved. Built for African education.</div>
+      <div class="jp-footer-policy">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Security</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!--  AI FAB  -->
+<button class="jp-fab" id="jpFab" title="Ask Aura AI">
+  <i class="bi bi-chat-dots"></i>
+</button>
+
+<div class="jp-chat" id="jpChat">
+  <div class="jp-chat-hdr">
+    <div class="jp-chat-icon"><i class="bi bi-stars"></i></div>
+    <div class="jp-chat-title">Aura  Admissions Assistant</div>
+    <button class="jp-chat-close" id="jpChatClose"><i class="bi bi-x-lg"></i></button>
+  </div>
+  <div class="jp-chat-msgs" id="jpChatMsgs">
+    <div class="jp-msg bot">Hello. I'm Aura. Ask me anything about admissions, fees, term dates, or how the platform works  I'm here to help.</div>
+  </div>
+  <div class="jp-chat-input-row">
+    <input type="text" class="jp-chat-input" id="jpChatInput" placeholder="Type your question" autocomplete="off">
+    <button class="jp-chat-send" id="jpChatSend"><i class="bi bi-arrow-right"></i></button>
+  </div>
+</div>
+
+<script>
+// Reveal on scroll
+const reveals = document.querySelectorAll('.reveal');
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+}, { threshold: 0.1 });
+reveals.forEach(r => io.observe(r));
+
+// FAB
+document.getElementById('jpFab').addEventListener('click', () => {
+  document.getElementById('jpChat').classList.toggle('open');
+});
+document.getElementById('jpChatClose').addEventListener('click', () => {
+  document.getElementById('jpChat').classList.remove('open');
+});
+
+// Chat
+const msgsEl = document.getElementById('jpChatMsgs');
+const inputEl = document.getElementById('jpChatInput');
+let busy = false;
+
+function addMsg(text, who) {
+  const d = document.createElement('div');
+  d.className = 'jp-msg ' + who;
+  d.textContent = text;
+  msgsEl.appendChild(d);
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+  return d;
+}
+
+async function send() {
+  const text = inputEl.value.trim();
+  if (!text || busy) return;
+  busy = true;
+  addMsg(text, 'user');
+  inputEl.value = '';
+  const thinking = addMsg('', 'bot');
+  try {
+    const r = await fetch('{% url "academics:admissions_assistant" %}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+      body: JSON.stringify({ message: text })
+    });
+    const data = await r.json();
+    thinking.textContent = data.reply || 'Aura is unavailable right now. Please try again shortly.';
+  } catch {
+    thinking.textContent = 'Could not connect to Aura. Please check your connection and try again.';
+  }
+  busy = false;
+}
+
+document.getElementById('jpChatSend').addEventListener('click', send);
+inputEl.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+
+// Smooth scroll
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const t = document.querySelector(a.getAttribute('href'));
+    if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth' }); }
+  });
+});
+</script>
 </body>
 </html>
