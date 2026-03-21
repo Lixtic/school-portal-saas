@@ -428,48 +428,50 @@ def landlord_dashboard(request):
     try:
         from .models import AIUsageLog, SchoolSubscription
         from django.db.models import Count as _Count
+        from django.db import transaction as _tx
         month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-        ai_total_month = AIUsageLog.objects.filter(created_at__gte=month_start).count()
+        with _tx.atomic():
+            ai_total_month = AIUsageLog.objects.filter(created_at__gte=month_start).count()
 
-        # Top 8 schools by AI calls this month
-        top_ai_schools_qs = (
-            AIUsageLog.objects
-            .filter(created_at__gte=month_start)
-            .values('school_id', 'school__name', 'school__schema_name')
-            .annotate(call_count=_Count('id'))
-            .order_by('-call_count')[:8]
-        )
+            # Top 8 schools by AI calls this month
+            top_ai_schools_qs = (
+                AIUsageLog.objects
+                .filter(created_at__gte=month_start)
+                .values('school_id', 'school__name', 'school__schema_name')
+                .annotate(call_count=_Count('id'))
+                .order_by('-call_count')[:8]
+            )
 
-        # Annotate each row with quota info (plan limit)
-        top_ai_schools = []
-        for row in top_ai_schools_qs:
-            try:
-                sub = SchoolSubscription.objects.select_related('plan').get(school_id=row['school_id'])
-                limit = sub.plan.ai_calls_per_month
-                used_pct = int(row['call_count'] / limit * 100) if limit > 0 else 0
-                near_quota = limit > 0 and used_pct >= 70
-            except SchoolSubscription.DoesNotExist:
-                limit = 0
-                used_pct = 0
-                near_quota = False
-            top_ai_schools.append({
-                'name': row['school__name'],
-                'schema_name': row['school__schema_name'],
-                'call_count': row['call_count'],
-                'limit': limit,
-                'used_pct': used_pct,
-                'near_quota': near_quota,
-            })
+            # Annotate each row with quota info (plan limit)
+            top_ai_schools = []
+            for row in top_ai_schools_qs:
+                try:
+                    sub = SchoolSubscription.objects.select_related('plan').get(school_id=row['school_id'])
+                    limit = sub.plan.ai_calls_per_month
+                    used_pct = int(row['call_count'] / limit * 100) if limit > 0 else 0
+                    near_quota = limit > 0 and used_pct >= 70
+                except SchoolSubscription.DoesNotExist:
+                    limit = 0
+                    used_pct = 0
+                    near_quota = False
+                top_ai_schools.append({
+                    'name': row['school__name'],
+                    'schema_name': row['school__schema_name'],
+                    'call_count': row['call_count'],
+                    'limit': limit,
+                    'used_pct': used_pct,
+                    'near_quota': near_quota,
+                })
 
-        # Action breakdown this month
-        ai_action_breakdown = (
-            AIUsageLog.objects
-            .filter(created_at__gte=month_start)
-            .values('action_type')
-            .annotate(count=_Count('id'))
-            .order_by('-count')[:5]
-        )
+            # Action breakdown this month
+            ai_action_breakdown = list(
+                AIUsageLog.objects
+                .filter(created_at__gte=month_start)
+                .values('action_type')
+                .annotate(count=_Count('id'))
+                .order_by('-count')[:5]
+            )
 
         context.update({
             'ai_total_month': ai_total_month,

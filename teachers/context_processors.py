@@ -2,6 +2,7 @@
 Context processor to provide teacher-specific data to templates.
 """
 from django.db.models import Avg
+from django.db import transaction
 
 
 def teacher_context(request):
@@ -29,13 +30,14 @@ def teacher_context(request):
         from academics.models import ClassSubject, AcademicYear, Subject, Class
         from students.models import Student, Grade
         
-        teacher = request.user.teacher
-        current_year = AcademicYear.objects.filter(is_current=True).first()
-        
-        # Get subjects and classes this teacher teaches
-        teacher_assignments = ClassSubject.objects.filter(
-            teacher=teacher
-        ).select_related('subject', 'class_name')
+        with transaction.atomic():
+            teacher = request.user.teacher
+            current_year = AcademicYear.objects.filter(is_current=True).first()
+            
+            # Get subjects and classes this teacher teaches
+            teacher_assignments = list(ClassSubject.objects.filter(
+                teacher=teacher
+            ).select_related('subject', 'class_name'))
         
         subjects = []
         classes = []
@@ -54,29 +56,28 @@ def teacher_context(request):
         
         # Get summary stats
         if class_ids:
-            students = Student.objects.filter(current_class_id__in=class_ids)
-            total_students = students.count()
-            
-            # Get struggling students (avg score < 50)
-            subject_ids = list(teacher_assignments.values_list('subject_id', flat=True))
-            struggling = []
-            
-            for student in students.select_related('user')[:50]:  # Limit to 50 students
-                grades = Grade.objects.filter(
-                    student=student, 
-                    subject_id__in=subject_ids
-                )
-                if current_year:
-                    grades = grades.filter(academic_year=current_year)
+            with transaction.atomic():
+                students = list(Student.objects.filter(current_class_id__in=class_ids).select_related('user')[:50])
+                total_students = len(students)
+                subject_ids = [a.subject_id for a in teacher_assignments if a.subject_id]
+                struggling = []
                 
-                scores = [g.total_score for g in grades if g.total_score is not None]
-                if scores:
-                    avg = sum(scores) / len(scores)
-                    if avg < 50:
-                        struggling.append({
-                            'name': student.user.first_name or student.user.username,
-                            'avg_score': round(avg, 1),
-                        })
+                for student in students:
+                    grades = Grade.objects.filter(
+                        student=student, 
+                        subject_id__in=subject_ids
+                    )
+                    if current_year:
+                        grades = grades.filter(academic_year=current_year)
+                    
+                    scores = [g.total_score for g in grades if g.total_score is not None]
+                    if scores:
+                        avg = sum(scores) / len(scores)
+                        if avg < 50:
+                            struggling.append({
+                                'name': student.user.first_name or student.user.username,
+                                'avg_score': round(avg, 1),
+                            })
             
             context['aura_class_summary'] = {
                 'total_students': total_students,

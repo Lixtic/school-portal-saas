@@ -1,5 +1,5 @@
 from .models import SchoolInfo, AcademicYear
-from django.db import connection
+from django.db import connection, transaction
 from django.conf import settings
 from django.core.cache import cache
 
@@ -20,10 +20,11 @@ def school_info(request):
         year_key = _cache_key('current_academic_year')
         current_year = cache.get(year_key)
         if current_year is None:
-            current_year = (
-                AcademicYear.objects.filter(is_current=True).first()
-                or AcademicYear.objects.order_by('-start_date').first()
-            )
+            with transaction.atomic():
+                current_year = (
+                    AcademicYear.objects.filter(is_current=True).first()
+                    or AcademicYear.objects.order_by('-start_date').first()
+                )
             cache.set(year_key, current_year, _CACHE_TTL)
         if current_year:
             current_academic_year = current_year.name or ''
@@ -34,7 +35,8 @@ def school_info(request):
         info_key = _cache_key('school_info')
         info = cache.get(info_key)
         if info is None:
-            info = SchoolInfo.objects.first()
+            with transaction.atomic():
+                info = SchoolInfo.objects.first()
             cache.set(info_key, info, _CACHE_TTL)
     except Exception:
         info = None

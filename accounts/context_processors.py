@@ -1,4 +1,5 @@
 from django.urls import NoReverseMatch
+from django.db import transaction
 
 
 def onboarding_context(request):
@@ -17,7 +18,8 @@ def onboarding_context(request):
     from django.urls import reverse
 
     try:
-        progress, _ = OnboardingProgress.objects.get_or_create(user=request.user)
+        with transaction.atomic():
+            progress, _ = OnboardingProgress.objects.get_or_create(user=request.user)
 
         if progress.dismissed:
             request.session['onboarding_done'] = True

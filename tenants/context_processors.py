@@ -1,4 +1,5 @@
 from django.utils import timezone
+from django.db import transaction
 
 
 def trial_status(request):
@@ -16,7 +17,8 @@ def trial_status(request):
         # Middleware didn't cache it — fall back to DB
         from .models import SchoolSubscription
         try:
-            sub = SchoolSubscription.objects.select_related('plan').get(school=request.tenant)
+            with transaction.atomic():
+                sub = SchoolSubscription.objects.select_related('plan').get(school=request.tenant)
         except SchoolSubscription.DoesNotExist:
             return {'trial_active': False}
         except Exception:
