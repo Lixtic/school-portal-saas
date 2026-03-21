@@ -163,49 +163,59 @@ class TenantPathMiddleware(TenantMainMiddleware):
         if request.tenant.schema_name == 'public':
             return None
 
-        # CRITICAL: Reset search_path tracking at the TOP of process_view, before any
-        # DB access (including the lazy request.user lookup below).  In pgBouncer
-        # transaction mode, autocommit queries (process_request, auth middleware, etc.)
-        # may each be dispatched to a different physical server connection.  If
-        # process_request's set_tenant() already set search_path_set_schemas, the next
-        # autocommit query (on a fresh server connection with search_path=public) would
-        # SKIP SET search_path because TENANT_LIMIT_SET_CALLS=True.  Resetting here
-        # forces SET search_path on the very first cursor opened in process_view.
-        if hasattr(connection, 'search_path_set_schemas'):
-            connection.search_path_set_schemas = None
-
-        if not getattr(request, 'user', None) or not request.user.is_authenticated:
-            return None
-
-        path = request.path_info or '/'
-        if any(path.startswith(p) for p in _TRIAL_EXEMPT_PATHS):
-            return None
-
+        # CRITICAL (pgBouncer transaction mode + TENANT_LIMIT_SET_CALLS=True):
+        # Use try/finally so that search_path_set_schemas is ALWAYS reset to None
+        # before process_view returns, no matter which early-return path is taken.
+        #
+        # Why: In pgBouncer transaction mode every autocommit query (process_request,
+        # auth middleware, here in process_view, …) may land on a different physical
+        # PostgreSQL server connection whose search_path defaults to "public".
+        # TENANT_LIMIT_SET_CALLS=True skips SET search_path when
+        # search_path_set_schemas is already set — so a cached value from a previous
+        # cursor would cause the *next* cursor to skip SET and hit the wrong schema.
+        #
+        # By resetting at the TOP (before any DB access, including the lazy
+        # request.user lookup) and guaranteeing a reset at the BOTTOM via finally,
+        # we ensure:
+        #   (a) Every DB call inside process_view always re-issues SET search_path.
+        #   (b) The ATOMIC_REQUESTS transaction that immediately follows also
+        #       re-issues SET search_path on its first cursor.
         try:
-            from .models import SchoolSubscription
-            from django.utils import timezone
-            sub = SchoolSubscription.objects.select_related('plan').get(school=request.tenant)
-            # Cache on request so context processors and views don't re-query
-            request._tenant_subscription = sub
-            if sub.status == 'trial' and sub.trial_ends_at and timezone.now() > sub.trial_ends_at:
-                sub_url = f"/{request.tenant.schema_name}/tenants/subscription/"
-                logger.info("Trial expired for %s  redirecting to subscription page", request.tenant.schema_name)
-                return HttpResponseRedirect(sub_url)
-        except SchoolSubscription.DoesNotExist:
-            request._tenant_subscription = None  # Cache miss so context processors skip DB hit
-        except Exception:
-            pass  # Other DB errors — do not block access
+            if hasattr(connection, 'search_path_set_schemas'):
+                connection.search_path_set_schemas = None
 
-        # CRITICAL: Reset search_path tracking so the ATOMIC_REQUESTS view transaction
-        # (which starts immediately after process_view returns) issues a fresh
-        # SET search_path on its first cursor.  Without this reset, the SchoolSubscription
-        # query above already consumed the "first cursor" and set search_path_set_schemas;
-        # the ATOMIC_REQUESTS BEGIN would then skip SET search_path and might land on a
-        # different pgBouncer server connection that has search_path=public.
-        if hasattr(connection, 'search_path_set_schemas'):
-            connection.search_path_set_schemas = None
+            if not getattr(request, 'user', None) or not request.user.is_authenticated:
+                return None
 
-        return None
+            path = request.path_info or '/'
+            if any(path.startswith(p) for p in _TRIAL_EXEMPT_PATHS):
+                return None
+
+            try:
+                from .models import SchoolSubscription
+                from django.utils import timezone
+                # Reset again before the subscription query — it may land on yet
+                # another pgBouncer server connection.
+                if hasattr(connection, 'search_path_set_schemas'):
+                    connection.search_path_set_schemas = None
+                sub = SchoolSubscription.objects.select_related('plan').get(school=request.tenant)
+                # Cache on request so context processors and views don't re-query
+                request._tenant_subscription = sub
+                if sub.status == 'trial' and sub.trial_ends_at and timezone.now() > sub.trial_ends_at:
+                    sub_url = f"/{request.tenant.schema_name}/tenants/subscription/"
+                    logger.info("Trial expired for %s  redirecting to subscription page", request.tenant.schema_name)
+                    return HttpResponseRedirect(sub_url)
+            except SchoolSubscription.DoesNotExist:
+                request._tenant_subscription = None  # Cache miss so context processors skip DB hit
+            except Exception:
+                pass  # Other DB errors — do not block access
+
+            return None
+        finally:
+            # Always reset before returning so the ATOMIC_REQUESTS view transaction
+            # re-issues SET search_path on its very first cursor.
+            if hasattr(connection, 'search_path_set_schemas'):
+                connection.search_path_set_schemas = None
 
     def process_response(self, request, response):
         """Normalize auth redirects so tenant pages don't bounce via public /login/."""
