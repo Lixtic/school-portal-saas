@@ -162,6 +162,18 @@ class TenantPathMiddleware(TenantMainMiddleware):
             return None
         if request.tenant.schema_name == 'public':
             return None
+
+        # CRITICAL: Reset search_path tracking at the TOP of process_view, before any
+        # DB access (including the lazy request.user lookup below).  In pgBouncer
+        # transaction mode, autocommit queries (process_request, auth middleware, etc.)
+        # may each be dispatched to a different physical server connection.  If
+        # process_request's set_tenant() already set search_path_set_schemas, the next
+        # autocommit query (on a fresh server connection with search_path=public) would
+        # SKIP SET search_path because TENANT_LIMIT_SET_CALLS=True.  Resetting here
+        # forces SET search_path on the very first cursor opened in process_view.
+        if hasattr(connection, 'search_path_set_schemas'):
+            connection.search_path_set_schemas = None
+
         if not getattr(request, 'user', None) or not request.user.is_authenticated:
             return None
 
