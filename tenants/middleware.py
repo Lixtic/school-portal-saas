@@ -161,12 +161,16 @@ class TenantPathMiddleware(TenantMainMiddleware):
             from .models import SchoolSubscription
             from django.utils import timezone
             sub = SchoolSubscription.objects.select_related('plan').get(school=request.tenant)
+            # Cache on request so context processors and views don't re-query
+            request._tenant_subscription = sub
             if sub.status == 'trial' and sub.trial_ends_at and timezone.now() > sub.trial_ends_at:
                 sub_url = f"/{request.tenant.schema_name}/tenants/subscription/"
                 logger.info("Trial expired for %s  redirecting to subscription page", request.tenant.schema_name)
                 return HttpResponseRedirect(sub_url)
+        except SchoolSubscription.DoesNotExist:
+            request._tenant_subscription = None  # Cache miss so context processors skip DB hit
         except Exception:
-            pass  # Missing subscription or DB error  do not block access
+            pass  # Other DB errors — do not block access
 
         return None
 

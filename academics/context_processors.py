@@ -1,19 +1,41 @@
 from .models import SchoolInfo, AcademicYear
 from django.db import connection
 from django.conf import settings
+from django.core.cache import cache
+
+# SchoolInfo and AcademicYear are updated infrequently (once per term at most).
+# Caching them per-tenant for 5 minutes saves 5+ DB round-trips per page.
+_CACHE_TTL = 300  # 5 minutes
+
+
+def _cache_key(prefix):
+    """Return a per-tenant cache key so tenants never share cached data."""
+    schema = getattr(connection, 'schema_name', 'public')
+    return f'{prefix}_{schema}'
 
 
 def school_info(request):
     current_academic_year = ''
     try:
-        current_year = AcademicYear.objects.filter(is_current=True).first() or AcademicYear.objects.order_by('-start_date').first()
+        year_key = _cache_key('current_academic_year')
+        current_year = cache.get(year_key)
+        if current_year is None:
+            current_year = (
+                AcademicYear.objects.filter(is_current=True).first()
+                or AcademicYear.objects.order_by('-start_date').first()
+            )
+            cache.set(year_key, current_year, _CACHE_TTL)
         if current_year:
             current_academic_year = current_year.name or ''
     except Exception:
         current_academic_year = ''
 
     try:
-        info = SchoolInfo.objects.first()
+        info_key = _cache_key('school_info')
+        info = cache.get(info_key)
+        if info is None:
+            info = SchoolInfo.objects.first()
+            cache.set(info_key, info, _CACHE_TTL)
     except Exception:
         info = None
         

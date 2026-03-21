@@ -26,6 +26,11 @@ class DatabaseWrapper(TenantDatabaseWrapper):
             self.close()
             # Reset connection to None to force recreation
             self.connection = None
+            # Reset search_path tracking so the next _cursor() call
+            # re-issues SET search_path on the new connection.
+            # Required when LIMIT_SET_CALLS=True: without this, the wrapper
+            # would believe the new connection already has the schema set.
+            self.search_path_set_schemas = None
         except Exception as e:
             logger.warning(f"Error during force reconnect: {e}")
     

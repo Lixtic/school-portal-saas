@@ -48,11 +48,14 @@ def _get_this_month_start():
     return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
 
-def get_quota_status(school):
+def get_quota_status(school, subscription=None):
     """
     Returns a dict with quota info for the school:
         {limit, used, remaining, unlimited, action_breakdown}
     Safe to call at any time — never raises.
+
+    Pass ``subscription`` (a SchoolSubscription instance or None) to reuse an
+    already-fetched subscription and avoid an extra DB round-trip.
     """
     from .models import SchoolSubscription, AIUsageLog
 
@@ -60,8 +63,10 @@ def get_quota_status(school):
     unlimited = False
 
     try:
-        sub = SchoolSubscription.objects.select_related('plan').get(school=school)
-        limit = sub.plan.ai_calls_per_month
+        if subscription is None:
+            subscription = SchoolSubscription.objects.select_related('plan').get(school=school)
+        if subscription is not None:
+            limit = subscription.plan.ai_calls_per_month
     except SchoolSubscription.DoesNotExist:
         pass
     except Exception:

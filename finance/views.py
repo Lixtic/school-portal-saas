@@ -25,7 +25,10 @@ def finance_dashboard(request):
     total_collected = Payment.objects.aggregate(Sum('amount'))['amount__sum'] or 0
     pending_amount = total_receivable - total_collected
 
-    recent_payments = Payment.objects.select_related('student_fee__student__user').order_by('-created_at')[:10]
+    recent_payments = Payment.objects.select_related(
+        'student_fee__student__user',
+        'student_fee__student__current_class',
+    ).order_by('-created_at')[:10]
     fee_structures = FeeStructure.objects.select_related('head', 'class_level').order_by('-id')[:5]
 
     context = {

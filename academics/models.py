@@ -1,6 +1,18 @@
 from django.db import models
 from accounts.models import User
 
+
+def _clear_tenant_cache(prefix):
+    """Invalidate the per-tenant cached value for this model."""
+    try:
+        from django.core.cache import cache
+        from django.db import connection
+        schema = getattr(connection, 'schema_name', 'public')
+        cache.delete(f'{prefix}_{schema}')
+    except Exception:
+        pass
+
+
 class AcademicYear(models.Model):
     name = models.CharField(max_length=20)
     start_date = models.DateField()
@@ -9,6 +21,10 @@ class AcademicYear(models.Model):
     
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        _clear_tenant_cache('current_academic_year')
     
     class Meta:
         ordering = ['-start_date']
@@ -116,6 +132,10 @@ class SchoolInfo(models.Model):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        _clear_tenant_cache('school_info')
 
     class Meta:
         verbose_name_plural = "School Information"

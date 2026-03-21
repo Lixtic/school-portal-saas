@@ -25,11 +25,27 @@ import secrets
 from django.db.utils import OperationalError, ProgrammingError
 
 
+from django.core.cache import cache as _cache
+
+def _tenant_cache_key(prefix):
+    """Return a per-tenant cache key to prevent cross-tenant data leakage."""
+    from django.db import connection as _conn
+    schema = getattr(_conn, 'schema_name', 'public')
+    return f'{prefix}_{schema}'
+
+
 def build_academic_calendar_widget(limit=5):
     today = timezone.now().date()
     
     try:
-        current_year = AcademicYear.objects.filter(is_current=True).first() or AcademicYear.objects.order_by('-start_date').first()
+        year_key = _tenant_cache_key('current_academic_year')
+        current_year = _cache.get(year_key)
+        if current_year is None:
+            current_year = (
+                AcademicYear.objects.filter(is_current=True).first()
+                or AcademicYear.objects.order_by('-start_date').first()
+            )
+            _cache.set(year_key, current_year, 300)
     except ProgrammingError:
         current_year = None
 
@@ -136,7 +152,11 @@ def build_onboarding_checklist():
     from django.urls import reverse
 
     try:
-        school_info = SchoolInfo.objects.first()
+        # Reuse the tenant cache primed by the dashboard setup check
+        school_info = _cache.get(_tenant_cache_key('school_info'))
+        if school_info is None:
+            school_info = SchoolInfo.objects.first()
+            _cache.set(_tenant_cache_key('school_info'), school_info, 300)
         school_profile_done = bool(school_info and school_info.name not in ('', 'School Name'))
     except Exception:
         school_info = None
@@ -550,10 +570,15 @@ def dashboard(request):
 
     # === TENANT (SCHOOL) DASHBOARD ===
     
-    # Check Onboarding Status for Admin
+    # Check Onboarding Status for Admin — use the tenant cache set by the
+    # context processor (or prime it now) to avoid a separate DB round-trip.
     if user.user_type == 'admin':
         try:
-            school_info = SchoolInfo.objects.first()
+            info_key = _tenant_cache_key('school_info')
+            school_info = _cache.get(info_key)
+            if school_info is None:
+                school_info = SchoolInfo.objects.first()
+                _cache.set(info_key, school_info, 300)
             # If no info or setup not complete, send to wizard
             if not school_info or not school_info.setup_complete:
                 return redirect('tenants:setup_wizard')
@@ -626,18 +651,20 @@ def dashboard(request):
         except Exception:
             onboarding = None
 
-        # Subscription / trial banner data
+        # Subscription / trial banner data — reuse request-level cache set by middleware
         subscription = None
         trial_days_left = None
         try:
-            from tenants.subscription_models import SchoolSubscription
             from django.utils import timezone as tz
-            tenant = getattr(request, 'tenant', None)
-            if tenant:
-                subscription = SchoolSubscription.objects.filter(school=tenant).first()
-                if subscription and subscription.status == 'trial' and subscription.trial_ends_at:
-                    delta = subscription.trial_ends_at - tz.now()
-                    trial_days_left = max(0, delta.days)
+            # _tenant_subscription is cached by TenantPathMiddleware.process_view();
+            # fall back to a DB query only when that cache key is absent.
+            subscription = getattr(request, '_tenant_subscription', None)
+            if subscription is None and hasattr(request, 'tenant'):
+                from tenants.subscription_models import SchoolSubscription
+                subscription = SchoolSubscription.objects.filter(school=request.tenant).first()
+            if subscription and subscription.status == 'trial' and subscription.trial_ends_at:
+                delta = subscription.trial_ends_at - tz.now()
+                trial_days_left = max(0, delta.days)
         except Exception:
             pass
 

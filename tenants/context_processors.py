@@ -6,13 +6,23 @@ def trial_status(request):
     if not hasattr(request, 'tenant') or not request.user.is_authenticated:
         return {}
 
-    from .models import SchoolSubscription
-    try:
-        sub = SchoolSubscription.objects.select_related('plan').get(school=request.tenant)
-    except SchoolSubscription.DoesNotExist:
+    # Use request-level cache set by TenantPathMiddleware.process_view() to avoid
+    # a redundant DB query (middleware already fetched the subscription).
+    # Sentinel: _tenant_subscription not set at all means middleware didn't run
+    # (e.g. exempt path); None means it ran but no subscription exists.
+    _sentinel = object()
+    sub = getattr(request, '_tenant_subscription', _sentinel)
+    if sub is _sentinel:
+        # Middleware didn't cache it — fall back to DB
+        from .models import SchoolSubscription
+        try:
+            sub = SchoolSubscription.objects.select_related('plan').get(school=request.tenant)
+        except SchoolSubscription.DoesNotExist:
+            return {'trial_active': False}
+        except Exception:
+            return {}
+    elif sub is None:
         return {'trial_active': False}
-    except Exception:
-        return {}
 
     ctx = {'trial_active': False, 'trial_subscription': sub}
 
@@ -24,10 +34,10 @@ def trial_status(request):
             'trial_ends_at': sub.trial_ends_at,
         })
 
-    # AI quota summary (inexpensive count query)
+    # AI quota summary — pass the already-fetched subscription to avoid extra DB query
     try:
         from .ai_quota import get_quota_status
-        quota = get_quota_status(request.tenant)
+        quota = get_quota_status(request.tenant, subscription=sub)
         ctx['ai_quota'] = quota
     except Exception:
         pass

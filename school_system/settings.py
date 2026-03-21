@@ -223,8 +223,10 @@ if DATABASE_URL:
         db_cfg['CONN_MAX_AGE'] = 0
         db_cfg['CONN_HEALTH_CHECKS'] = True
     else:
-        # Fallback for other prod hosts: prefer short-lived connections to avoid stale sockets
-        db_cfg['CONN_MAX_AGE'] = 0
+        # Non-serverless: reuse connections to avoid repeated SSL handshakes (~300-500ms each)
+        # With LIMIT_SET_CALLS=True, SET search_path is only re-issued via set_tenant()
+        # which the middleware calls on every request, so schema correctness is maintained.
+        db_cfg['CONN_MAX_AGE'] = 60
         db_cfg['CONN_HEALTH_CHECKS'] = True
 
     # Neon-friendly keepalive / timeouts to avoid stale connections on serverless
@@ -250,6 +252,18 @@ else:
             'PORT': '5432',
         }
     }
+
+
+# =====================
+# DJANGO-TENANTS PERFORMANCE
+# =====================
+# Limit SET search_path to once per connection (not on every cursor call).
+# Without this, the default is False, firing SET search_path on EVERY cursor
+# creation — which causes 20-30 extra network round-trips per request on a
+# cloud database such as Neon (~400ms each = 8-12s overhead per page).
+# The middleware calls connection.set_tenant() on every request, so the schema
+# is always correct even when connections are reused across requests.
+TENANT_LIMIT_SET_CALLS = True
 
 
 # Password validation

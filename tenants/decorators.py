@@ -35,7 +35,12 @@ def _school_has_addon(request, slug):
             return False
 
         from tenants.subscription_models import SchoolSubscription, SchoolAddOn
-        subscription = SchoolSubscription.objects.filter(school=tenant).first()
+        # Use the request-level cache set by TenantPathMiddleware.process_view()
+        # to avoid an extra DB round-trip per decorator call.
+        _sentinel = object()
+        subscription = getattr(request, '_tenant_subscription', _sentinel)
+        if subscription is _sentinel:
+            subscription = SchoolSubscription.objects.filter(school=tenant).first()
         if subscription is None:
             return False
 
