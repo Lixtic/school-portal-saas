@@ -257,12 +257,22 @@ else:
 # =====================
 # DJANGO-TENANTS PERFORMANCE
 # =====================
-# Limit SET search_path to once per connection (not on every cursor call).
+# Limit SET search_path to once per request (not on every cursor call).
 # Without this, the default is False, firing SET search_path on EVERY cursor
 # creation — which causes 20-30 extra network round-trips per request on a
 # cloud database such as Neon (~400ms each = 8-12s overhead per page).
-# The middleware calls connection.set_tenant() on every request, so the schema
-# is always correct even when connections are reused across requests.
+#
+# NOTE on pgBouncer (Neon) transaction mode:
+# With CONN_MAX_AGE > 0, pgBouncer may swap the physical PostgreSQL connection
+# between requests on the same logical Django connection.  The search_path
+# setting on the new physical connection defaults to "public", so if
+# TENANT_LIMIT_SET_CALLS=True skipped the SET command (because the tenant
+# wrapper still remembers the previous request's schema), queries would hit
+# the wrong schema and user-auth would fail.
+#
+# The middleware resets connection.search_path_set_schemas = None at the
+# start of every request, which forces SET search_path to be re-issued on
+# the first cursor of each request while still firing only once per request.
 TENANT_LIMIT_SET_CALLS = True
 
 

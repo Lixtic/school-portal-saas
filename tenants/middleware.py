@@ -99,6 +99,16 @@ class TenantPathMiddleware(TenantMainMiddleware):
             logger.debug("Original PATH_INFO=%s SCRIPT_NAME=%s", request.path_info, request.META.get('SCRIPT_NAME'))
 
             request.tenant = tenant
+            # CRITICAL FIX for pgBouncer transaction mode + TENANT_LIMIT_SET_CALLS=True:
+            # pgBouncer reassigns the physical PostgreSQL connection on each transaction.
+            # If we reuse a Django connection (CONN_MAX_AGE>0) and the tenant is the
+            # same as the previous request, set_tenant() sees search_path_set_schemas
+            # already matching and skips SET search_path — but the physical connection
+            # behind pgBouncer is fresh and has search_path="public".
+            # Resetting here forces SET search_path on the first cursor of every request
+            # while still only issuing it once per request (TENANT_LIMIT_SET_CALLS stays True).
+            if hasattr(connection, 'search_path_set_schemas'):
+                connection.search_path_set_schemas = None
             connection.set_tenant(request.tenant)
 
             if request.path == f"/{possible_schema}":
@@ -142,6 +152,8 @@ class TenantPathMiddleware(TenantMainMiddleware):
                 from tenants.models import School
                 request.tenant = School(schema_name='public', name='Public (Fallback)')
 
+            if hasattr(connection, 'search_path_set_schemas'):
+                connection.search_path_set_schemas = None
             connection.set_tenant(request.tenant)
 
     def process_view(self, request, view_func, view_args, view_kwargs):
