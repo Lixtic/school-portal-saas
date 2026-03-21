@@ -218,14 +218,23 @@ if DATABASE_URL:
         conn_max_age=600,
         engine='school_system.db_backend',  # Custom backend with retry logic
     )
+    # ATOMIC_REQUESTS=True is critical for pgBouncer transaction mode (Neon):
+    # pgBouncer may assign a different physical PostgreSQL server connection for each
+    # transaction (statement) in autocommit mode.  SET search_path is session-scoped,
+    # so a fresh server connection has search_path=public.  With ATOMIC_REQUESTS=True,
+    # Django wraps every view in a single BEGIN/COMMIT transaction.  pgBouncer holds
+    # ONE server connection for the entire transaction, so all queries in the view
+    # see the correct search_path set at transaction start.
+    db_cfg['ATOMIC_REQUESTS'] = True
+
     # On serverless (Vercel) keep connections short to avoid "connection already closed" reuse
     if os.environ.get('VERCEL') == '1':
         db_cfg['CONN_MAX_AGE'] = 0
         db_cfg['CONN_HEALTH_CHECKS'] = True
     else:
         # Non-serverless: reuse connections to avoid repeated SSL handshakes (~300-500ms each)
-        # With LIMIT_SET_CALLS=True, SET search_path is only re-issued via set_tenant()
-        # which the middleware calls on every request, so schema correctness is maintained.
+        # With LIMIT_SET_CALLS=True, SET search_path is only re-issued at the start of
+        # each atomic view transaction (see ATOMIC_REQUESTS above and process_view reset).
         db_cfg['CONN_MAX_AGE'] = 60
         db_cfg['CONN_HEALTH_CHECKS'] = True
 

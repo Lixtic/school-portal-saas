@@ -184,6 +184,15 @@ class TenantPathMiddleware(TenantMainMiddleware):
         except Exception:
             pass  # Other DB errors — do not block access
 
+        # CRITICAL: Reset search_path tracking so the ATOMIC_REQUESTS view transaction
+        # (which starts immediately after process_view returns) issues a fresh
+        # SET search_path on its first cursor.  Without this reset, the SchoolSubscription
+        # query above already consumed the "first cursor" and set search_path_set_schemas;
+        # the ATOMIC_REQUESTS BEGIN would then skip SET search_path and might land on a
+        # different pgBouncer server connection that has search_path=public.
+        if hasattr(connection, 'search_path_set_schemas'):
+            connection.search_path_set_schemas = None
+
         return None
 
     def process_response(self, request, response):
