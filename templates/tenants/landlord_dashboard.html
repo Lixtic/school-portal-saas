@@ -1,781 +1,391 @@
-﻿{% extends 'base.html' %}
-{% load static %}
+﻿{% load static %}
 {% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mission Control  Platform Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: #0F0F17;
+      color: #F1F0EE;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+    }
+    a { text-decoration: none; color: inherit; }
 
-{% block title %}Mission Control  Platform Admin{% endblock %}
+    /* ============================================================
+       MISSION CONTROL  SUPER ADMIN COMMAND CENTER
+       Design: Dark Ops / Operational Excellence
+       ============================================================ */
+    .mc {
+      --bg:           #0F0F17;
+      --surface:      #16161F;
+      --surface-2:    #1E1E2A;
+      --surface-3:    #252535;
+      --border:       rgba(255,255,255,0.07);
+      --border-2:     rgba(255,255,255,0.13);
+      --violet:       #7C3AED;
+      --violet-light: #A78BFA;
+      --violet-pale:  rgba(124,58,237,0.12);
+      --violet-mid:   rgba(124,58,237,0.26);
+      --emerald:      #10B981;
+      --emerald-pale: rgba(16,185,129,0.1);
+      --emerald-mid:  rgba(16,185,129,0.26);
+      --amber:        #F59E0B;
+      --amber-pale:   rgba(245,158,11,0.1);
+      --amber-mid:    rgba(245,158,11,0.26);
+      --rose:         #F43F5E;
+      --rose-pale:    rgba(244,63,94,0.1);
+      --rose-mid:     rgba(244,63,94,0.26);
+      --sky:          #38BDF8;
+      --sky-pale:     rgba(56,189,248,0.1);
+      --sky-mid:      rgba(56,189,248,0.26);
+      --text-1:       #F1F0EE;
+      --text-2:       rgba(241,240,238,0.60);
+      --text-3:       rgba(241,240,238,0.35);
+      --mono: 'JetBrains Mono', 'Consolas', monospace;
+      --sans: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text-1);
+      padding: 2rem 2.25rem 5rem;
+      min-height: 100vh;
+    }
 
-{% block extra_css %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-{% endblock %}
+    /* Animations */
+    @keyframes mc-fade-up {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes mc-pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.7); }
+    }
+    .mc-fade { opacity: 0; animation: mc-fade-up 0.48s cubic-bezier(0.22,1,0.36,1) forwards; }
+    .mc-fade:nth-child(1) { animation-delay: 0.04s; }
+    .mc-fade:nth-child(2) { animation-delay: 0.09s; }
+    .mc-fade:nth-child(3) { animation-delay: 0.14s; }
+    .mc-fade:nth-child(4) { animation-delay: 0.19s; }
+    .mc-fade:nth-child(5) { animation-delay: 0.24s; }
+    .mc-fade:nth-child(6) { animation-delay: 0.29s; }
 
-{% block content %}
-<style>
-/* ============================================================
-   MISSION CONTROL  SUPER ADMIN COMMAND CENTER v2
-   Design: Dark Ops / Operational Excellence
-   Palette: Deep Slate  Violet  Emerald  Amber  Rose
-   ============================================================ */
+    /* Header */
+    .mc-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-bottom: 1.5rem; border-bottom: 1px solid var(--border);
+      margin-bottom: 1.75rem; flex-wrap: wrap; gap: 0.875rem;
+    }
+    .mc-brand { display: flex; align-items: center; gap: 0.75rem; }
+    .mc-brand-icon {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, var(--violet) 0%, #4F46E5 100%);
+      border-radius: 9px; display: flex; align-items: center; justify-content: center;
+      font-size: 0.95rem; color: #fff; flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(124,58,237,0.4);
+    }
+    .mc-brand-name { font-size: 0.9375rem; font-weight: 600; letter-spacing: -0.015em; line-height: 1.2; }
+    .mc-brand-sub  { font-size: 0.6875rem; color: var(--text-3); font-weight: 400; }
+    .mc-header-right { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .mc-live-chip {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      padding: 0.3rem 0.7rem;
+      background: var(--emerald-pale); border: 1px solid var(--emerald-mid);
+      border-radius: 100px; font-size: 0.5875rem; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase; color: var(--emerald);
+    }
+    .mc-live-dot {
+      width: 5px; height: 5px; border-radius: 50%; background: var(--emerald);
+      animation: mc-pulse-dot 2.2s ease-in-out infinite;
+    }
+    .mc-clock {
+      font-family: var(--mono); font-size: 0.6875rem; color: var(--text-3);
+      padding: 0.3rem 0.625rem; background: var(--surface-2);
+      border: 1px solid var(--border); border-radius: 5px;
+    }
+    .mc-btn {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      padding: 0.375rem 0.875rem; background: var(--surface-2);
+      border: 1px solid var(--border); border-radius: 7px;
+      font-size: 0.75rem; font-weight: 500; color: var(--text-2); cursor: pointer;
+      transition: background 0.18s, border-color 0.18s, color 0.18s;
+    }
+    .mc-btn:hover { background: var(--surface-3); border-color: var(--border-2); color: var(--text-1); }
+    .mc-btn.--primary {
+      background: var(--violet); border-color: var(--violet); color: #fff;
+      box-shadow: 0 2px 8px rgba(124,58,237,0.35);
+    }
+    .mc-btn.--primary:hover { background: #6D28D9; border-color: #6D28D9; }
+    .mc-notification-badge {
+      background: var(--amber); color: #1a1100;
+      font-size: 0.5rem; font-weight: 700; padding: 1px 5px; border-radius: 10px;
+    }
 
-/* Suppress base.html chrome — landlord dashboard owns its full viewport */
-.header,
-.sidebar,
-.mobile-bubble-menu,
-.mobile-bubble-overlay,
-.trial-banner {
-  display: none !important;
-}
-#mainContent {
-  margin-left: 0 !important;
-  padding: 0 !important;
-  width: 100% !important;
-}
-body {
-  background: #0F0F17 !important;
-}
+    /* Alert */
+    .mc-alert {
+      display: flex; align-items: center; gap: 1rem;
+      background: var(--amber-pale); border: 1px solid var(--amber-mid);
+      border-radius: 8px; padding: 0.875rem 1.25rem; margin-bottom: 1.75rem;
+      animation: mc-fade-up 0.4s 0.05s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .mc-alert-icon { color: var(--amber); font-size: 1rem; flex-shrink: 0; }
+    .mc-alert-body { flex: 1; font-size: 0.8125rem; line-height: 1.45; }
+    .mc-alert-body strong { color: var(--amber); font-weight: 600; }
+    .mc-alert-cta {
+      font-size: 0.6875rem; font-weight: 600; color: var(--amber);
+      border: 1px solid var(--amber-mid); padding: 0.3125rem 0.875rem;
+      border-radius: 5px; white-space: nowrap; transition: background 0.18s, color 0.18s;
+    }
+    .mc-alert-cta:hover { background: var(--amber); color: #1a1100; }
 
-/* ---- Root scope ---- */
-.mc {
-  --bg:           #0F0F17;
-  --surface:      #16161F;
-  --surface-2:    #1E1E2A;
-  --surface-3:    #252535;
-  --border:       rgba(255,255,255,0.07);
-  --border-2:     rgba(255,255,255,0.13);
+    /* KPI Strip */
+    .mc-kpi-row {
+      display: grid; grid-template-columns: repeat(5, 1fr);
+      gap: 0.875rem; margin-bottom: 1.75rem;
+    }
+    .mc-kpi {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 1.25rem 1.375rem 1.125rem;
+      position: relative; overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .mc-kpi::after {
+      content: ''; position: absolute; top: 0; left: 0; right: 0;
+      height: 2px; border-radius: 10px 10px 0 0;
+    }
+    .mc-kpi.--violet::after  { background: var(--violet); }
+    .mc-kpi.--emerald::after { background: var(--emerald); }
+    .mc-kpi.--amber::after   { background: var(--amber); }
+    .mc-kpi.--rose::after    { background: var(--rose); }
+    .mc-kpi.--sky::after     { background: var(--sky); }
+    .mc-kpi:hover { border-color: var(--border-2); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    .mc-kpi-icon {
+      width: 28px; height: 28px; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; margin-bottom: 0.875rem;
+    }
+    .mc-kpi.--violet  .mc-kpi-icon { background: var(--violet-pale);  color: var(--violet-light); }
+    .mc-kpi.--emerald .mc-kpi-icon { background: var(--emerald-pale); color: var(--emerald); }
+    .mc-kpi.--amber   .mc-kpi-icon { background: var(--amber-pale);   color: var(--amber); }
+    .mc-kpi.--rose    .mc-kpi-icon { background: var(--rose-pale);    color: var(--rose); }
+    .mc-kpi.--sky     .mc-kpi-icon { background: var(--sky-pale);     color: var(--sky); }
+    .mc-kpi-label {
+      font-size: 0.5875rem; font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-3); margin-bottom: 0.375rem;
+    }
+    .mc-kpi-value {
+      font-family: var(--mono); font-size: 2rem; font-weight: 500;
+      letter-spacing: -0.025em; line-height: 1; margin-bottom: 0.375rem;
+    }
+    .mc-kpi.--violet  .mc-kpi-value { color: var(--violet-light); }
+    .mc-kpi.--emerald .mc-kpi-value { color: var(--emerald); }
+    .mc-kpi.--amber   .mc-kpi-value { color: var(--amber); }
+    .mc-kpi.--rose    .mc-kpi-value { color: var(--rose); }
+    .mc-kpi.--sky     .mc-kpi-value { color: var(--sky); }
+    .mc-kpi-note { font-size: 0.6875rem; color: var(--text-3); line-height: 1.3; }
 
-  --violet:       #7C3AED;
-  --violet-light: #A78BFA;
-  --violet-pale:  rgba(124,58,237,0.12);
-  --violet-mid:   rgba(124,58,237,0.26);
+    /* Panel */
+    .mc-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .mc-panel-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.9375rem 1.25rem; border-bottom: 1px solid var(--border);
+    }
+    .mc-panel-title { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em; display: flex; align-items: center; gap: 0.5rem; }
+    .mc-panel-title i { color: var(--text-3); font-size: 0.875rem; }
+    .mc-panel-action { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--violet-light); opacity: 0.75; transition: opacity 0.18s; }
+    .mc-panel-action:hover { opacity: 1; }
+    .mc-panel-body { padding: 1.25rem; }
 
-  --emerald:      #10B981;
-  --emerald-pale: rgba(16,185,129,0.1);
-  --emerald-mid:  rgba(16,185,129,0.26);
+    /* Main 3-col */
+    .mc-main { display: grid; grid-template-columns: 5fr 4fr 3fr; gap: 1rem; margin-bottom: 1.75rem; align-items: start; }
 
-  --amber:        #F59E0B;
-  --amber-pale:   rgba(245,158,11,0.1);
-  --amber-mid:    rgba(245,158,11,0.26);
+    /* Table */
+    .mc-table { width: 100%; border-collapse: collapse; }
+    .mc-table th {
+      font-size: 0.5625rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-3);
+      padding: 0 1.25rem 0.5rem; text-align: left; border-bottom: 1px solid var(--border);
+    }
+    .mc-table td {
+      padding: 0.7rem 1.25rem; font-size: 0.8125rem; color: var(--text-2);
+      border-bottom: 1px solid var(--border); vertical-align: middle;
+    }
+    .mc-table tr:last-child td { border-bottom: none; }
+    .mc-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .mc-school-name { font-size: 0.8125rem; font-weight: 500; color: var(--text-1); display: block; line-height: 1.3; }
+    .mc-school-slug { font-family: var(--mono); font-size: 0.5625rem; color: var(--text-3); letter-spacing: 0.04em; }
+    .mc-badge {
+      display: inline-flex; align-items: center; padding: 0.175rem 0.5rem;
+      border-radius: 4px; font-size: 0.5rem; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap;
+    }
+    .mc-badge.--active       { background: var(--emerald-pale); color: var(--emerald); border: 1px solid var(--emerald-mid); }
+    .mc-badge.--trial        { background: var(--amber-pale);   color: var(--amber);   border: 1px solid var(--amber-mid); }
+    .mc-badge.--inactive     { background: rgba(255,255,255,0.04); color: var(--text-3); border: 1px solid var(--border); }
+    .mc-badge.--pending      { background: var(--amber-pale);   color: var(--amber);   border: 1px solid var(--amber-mid); }
+    .mc-badge.--approved     { background: var(--emerald-pale); color: var(--emerald); border: 1px solid var(--emerald-mid); }
+    .mc-badge.--rejected     { background: var(--rose-pale);    color: var(--rose);    border: 1px solid var(--rose-mid); }
+    .mc-badge.--under_review { background: var(--sky-pale);     color: var(--sky);     border: 1px solid var(--sky-mid); }
+    .mc-badge.--requires_info{ background: var(--violet-pale);  color: var(--violet-light); border: 1px solid var(--violet-mid); }
 
-  --rose:         #F43F5E;
-  --rose-pale:    rgba(244,63,94,0.1);
-  --rose-mid:     rgba(244,63,94,0.26);
+    /* Pipeline */
+    .mc-pipeline-item {
+      display: flex; align-items: center; gap: 1rem; padding: 0.875rem 1.25rem;
+      border-bottom: 1px solid var(--border); transition: background 0.15s; color: inherit;
+    }
+    .mc-pipeline-item:last-child { border-bottom: none; }
+    .mc-pipeline-item:hover { background: rgba(255,255,255,0.023); }
+    .mc-pipeline-orb {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; font-size: 0.8rem; flex-shrink: 0;
+    }
+    .mc-pipeline-orb.--amber   { background: var(--amber-pale);   color: var(--amber);        border: 1px solid var(--amber-mid);   }
+    .mc-pipeline-orb.--sky     { background: var(--sky-pale);     color: var(--sky);          border: 1px solid var(--sky-mid);     }
+    .mc-pipeline-orb.--violet  { background: var(--violet-pale);  color: var(--violet-light); border: 1px solid var(--violet-mid);  }
+    .mc-pipeline-orb.--emerald { background: var(--emerald-pale); color: var(--emerald);      border: 1px solid var(--emerald-mid); }
+    .mc-pipeline-orb.--rose    { background: var(--rose-pale);    color: var(--rose);         border: 1px solid var(--rose-mid);    }
+    .mc-pipeline-label { flex: 1; font-size: 0.8125rem; color: var(--text-2); }
+    .mc-pipeline-num { font-family: var(--mono); font-size: 1rem; font-weight: 500; min-width: 2rem; text-align: right; }
+    .mc-pipeline-footer { padding: 0.875rem 1.25rem; border-top: 1px solid var(--border); display: flex; gap: 2rem; }
+    .mc-pipeline-stat-label { font-size: 0.5625rem; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-3); margin-bottom: 0.25rem; }
+    .mc-pipeline-stat-val { font-family: var(--mono); font-size: 1.25rem; font-weight: 500; }
+    .mc-pipeline-stat-val.--emerald { color: var(--emerald); }
 
-  --sky:          #38BDF8;
-  --sky-pale:     rgba(56,189,248,0.1);
-  --sky-mid:      rgba(56,189,248,0.26);
+    /* Quick Actions */
+    .mc-action {
+      display: flex; align-items: center; gap: 0.875rem; padding: 0.875rem 1.25rem;
+      border-bottom: 1px solid var(--border); transition: background 0.15s; color: inherit;
+    }
+    .mc-action:last-child { border-bottom: none; }
+    .mc-action:hover { background: rgba(255,255,255,0.023); }
+    .mc-action-icon { width: 30px; height: 30px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; flex-shrink: 0; }
+    .mc-action-text { flex: 1; }
+    .mc-action-name { font-size: 0.8125rem; font-weight: 500; }
+    .mc-action-desc { font-size: 0.6875rem; color: var(--text-3); }
+    .mc-action-chev { color: var(--text-3); font-size: 0.625rem; }
 
-  --text-1:       #F1F0EE;
-  --text-2:       rgba(241,240,238,0.60);
-  --text-3:       rgba(241,240,238,0.35);
+    /* Bottom grid */
+    .mc-bottom { display: grid; grid-template-columns: 8fr 4fr 5fr; gap: 1rem; margin-bottom: 1.75rem; align-items: start; }
 
-  --mono: 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
-  --sans: 'Inter', system-ui, -apple-system, sans-serif;
+    /* Sparkline */
+    .mc-sparkline { height: 96px; display: flex; align-items: flex-end; gap: 2px; }
+    .mc-spark-bar {
+      flex: 1; background: var(--violet); border-radius: 2px 2px 0 0;
+      min-height: 2px; opacity: 0.65;
+      transform: scaleY(0); transform-origin: bottom;
+      transition: transform 0.75s cubic-bezier(0.22,1,0.36,1), opacity 0.2s;
+      position: relative; cursor: default;
+    }
+    .mc-spark-bar.is-live { opacity: 0.75; }
+    .mc-spark-bar::after {
+      content: attr(data-tip); position: absolute; bottom: calc(100% + 5px); left: 50%;
+      transform: translateX(-50%); background: var(--surface-3); color: var(--text-1);
+      font-family: var(--mono); font-size: 0.5rem; padding: 3px 6px; border-radius: 4px;
+      border: 1px solid var(--border-2); white-space: nowrap;
+      opacity: 0; pointer-events: none; transition: opacity 0.15s; z-index: 10;
+    }
+    .mc-spark-bar:hover::after { opacity: 1; }
+    .mc-spark-bar:hover { opacity: 1; }
+    .mc-spark-floor { height: 1px; background: var(--border); margin-top: 4px; }
+    .mc-spark-labels { display: flex; justify-content: space-between; margin-top: 0.5rem; }
+    .mc-spark-label { font-family: var(--mono); font-size: 0.5rem; color: var(--text-3); }
 
-  font-family:  var(--sans);
-  background:   var(--bg);
-  color:        var(--text-1);
-  min-height:   100vh;
-  padding:      2rem 2.25rem 5rem;
-}
-.mc *, .mc *::before, .mc *::after { box-sizing: border-box; }
-.mc a { text-decoration: none; color: inherit; }
+    /* Fleet */
+    .mc-fleet-item { display: flex; align-items: center; gap: 0.875rem; padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border); }
+    .mc-fleet-item:last-child { border-bottom: none; }
+    .mc-fleet-name { font-size: 0.75rem; color: var(--text-2); flex: 1; text-transform: capitalize; }
+    .mc-fleet-track { flex: 2; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .mc-fleet-fill {
+      height: 100%; background: linear-gradient(90deg, var(--violet), var(--violet-light));
+      border-radius: 2px; transform: scaleX(0); transform-origin: left;
+      transition: transform 0.9s cubic-bezier(0.22,1,0.36,1);
+    }
+    .mc-fleet-fill.is-live { transform: scaleX(1); }
+    .mc-fleet-count { font-family: var(--mono); font-size: 0.8125rem; font-weight: 500; min-width: 2rem; text-align: right; }
 
-/* ---- Animations ---- */
-@keyframes mc-fade-up {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes mc-pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.4; transform: scale(0.7); }
-}
-.mc-fade { opacity: 0; animation: mc-fade-up 0.48s cubic-bezier(0.22,1,0.36,1) forwards; }
-.mc-fade:nth-child(1) { animation-delay: 0.04s; }
-.mc-fade:nth-child(2) { animation-delay: 0.09s; }
-.mc-fade:nth-child(3) { animation-delay: 0.14s; }
-.mc-fade:nth-child(4) { animation-delay: 0.19s; }
-.mc-fade:nth-child(5) { animation-delay: 0.24s; }
-.mc-fade:nth-child(6) { animation-delay: 0.29s; }
+    /* AI Observatory */
+    .mc-ai-item { display: flex; align-items: center; gap: 0.875rem; padding: 0.6875rem 1.25rem; border-bottom: 1px solid var(--border); }
+    .mc-ai-item:last-child { border-bottom: none; }
+    .mc-ai-name { font-size: 0.75rem; color: var(--text-2); flex: 2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mc-ai-track { flex: 3; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .mc-ai-fill { height: 100%; background: var(--emerald); border-radius: 2px; transform: scaleX(0); transform-origin: left; transition: transform 0.9s cubic-bezier(0.22,1,0.36,1); }
+    .mc-ai-fill.--over { background: var(--rose); }
+    .mc-ai-fill.is-live { transform: scaleX(1); }
+    .mc-ai-count { font-family: var(--mono); font-size: 0.75rem; font-weight: 500; min-width: 2.5rem; text-align: right; }
+    .mc-ai-breakdown { border-top: 1px solid var(--border); padding: 0.875rem 1.25rem 0.25rem; }
+    .mc-ai-breakdown-title { font-size: 0.5625rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); margin-bottom: 0.625rem; }
+    .mc-ai-brow { display: flex; justify-content: space-between; align-items: center; padding: 0.3rem 0; border-bottom: 1px solid var(--border); }
+    .mc-ai-brow:last-child { border-bottom: none; }
+    .mc-ai-brow-label { font-size: 0.6875rem; color: var(--text-2); text-transform: capitalize; }
+    .mc-ai-brow-count { font-family: var(--mono); font-size: 0.75rem; }
 
-/* ================================================================
-   HEADER
-================================================================ */
-.mc-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 1.75rem;
-  flex-wrap: wrap;
-  gap: 0.875rem;
-}
-.mc-brand {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.mc-brand-icon {
-  width: 38px; height: 38px;
-  background: linear-gradient(135deg, var(--violet) 0%, #4F46E5 100%);
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.95rem;
-  color: #fff;
-  flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(124,58,237,0.4);
-}
-.mc-brand-name {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  color: var(--text-1);
-  line-height: 1.2;
-}
-.mc-brand-sub {
-  font-size: 0.6875rem;
-  color: var(--text-3);
-  font-weight: 400;
-}
-.mc-header-right {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-.mc-live-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.3rem 0.7rem;
-  background: var(--emerald-pale);
-  border: 1px solid var(--emerald-mid);
-  border-radius: 100px;
-  font-size: 0.5875rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--emerald);
-}
-.mc-live-dot {
-  width: 5px; height: 5px;
-  border-radius: 50%;
-  background: var(--emerald);
-  animation: mc-pulse-dot 2.2s ease-in-out infinite;
-}
-.mc-clock {
-  font-family: var(--mono);
-  font-size: 0.6875rem;
-  color: var(--text-3);
-  padding: 0.3rem 0.625rem;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 5px;
-}
-.mc-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.375rem 0.875rem;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--text-2);
-  cursor: pointer;
-  transition: background 0.18s, border-color 0.18s, color 0.18s;
-}
-.mc-btn:hover {
-  background: var(--surface-3);
-  border-color: var(--border-2);
-  color: var(--text-1);
-}
-.mc-btn.--primary {
-  background: var(--violet);
-  border-color: var(--violet);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(124,58,237,0.35);
-}
-.mc-btn.--primary:hover {
-  background: #6D28D9;
-  border-color: #6D28D9;
-  color: #fff;
-}
-.mc-notification-badge {
-  background: var(--amber);
-  color: #1a1100;
-  font-size: 0.5rem;
-  font-weight: 700;
-  padding: 1px 5px;
-  border-radius: 10px;
-}
+    /* Section heading */
+    .mc-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.875rem; }
+    .mc-heading-label {
+      font-size: 0.5875rem; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase;
+      color: var(--text-3); display: flex; align-items: center; gap: 0.5rem;
+    }
+    .mc-heading-label::before { content: ''; display: inline-block; width: 14px; height: 1px; background: var(--border-2); }
+    .mc-heading-meta { font-family: var(--mono); font-size: 0.5875rem; color: var(--text-3); }
 
-/* ================================================================
-   ALERT BANNER
-================================================================ */
-.mc-alert {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  background: var(--amber-pale);
-  border: 1px solid var(--amber-mid);
-  border-radius: 8px;
-  padding: 0.875rem 1.25rem;
-  margin-bottom: 1.75rem;
-  animation: mc-fade-up 0.4s 0.05s cubic-bezier(0.22,1,0.36,1) both;
-}
-.mc-alert-icon { color: var(--amber); font-size: 1rem; flex-shrink: 0; }
-.mc-alert-body { flex: 1; font-size: 0.8125rem; line-height: 1.45; color: var(--text-1); }
-.mc-alert-body strong { color: var(--amber); font-weight: 600; }
-.mc-alert-cta {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--amber);
-  border: 1px solid var(--amber-mid);
-  padding: 0.3125rem 0.875rem;
-  border-radius: 5px;
-  white-space: nowrap;
-  transition: background 0.18s, color 0.18s;
-}
-.mc-alert-cta:hover { background: var(--amber); color: #1a1100; }
+    /* Nav grid */
+    .mc-nav-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.75rem; margin-bottom: 2rem; }
+    .mc-nav-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem;
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+      position: relative; overflow: hidden; cursor: pointer;
+    }
+    .mc-nav-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(124,58,237,0.07), transparent 55%);
+      opacity: 0; transition: opacity 0.22s;
+    }
+    .mc-nav-card:hover { border-color: var(--violet-mid); box-shadow: 0 6px 24px rgba(0,0,0,0.35); transform: translateY(-2px); }
+    .mc-nav-card:hover::before { opacity: 1; }
+    .mc-nav-icon { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; margin-bottom: 0.375rem; }
+    .mc-nav-name { font-size: 0.8125rem; font-weight: 600; line-height: 1.2; }
+    .mc-nav-desc { font-size: 0.6875rem; color: var(--text-3); line-height: 1.35; }
 
-/* ================================================================
-   KPI STRIP
-================================================================ */
-.mc-kpi-row {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 0.875rem;
-  margin-bottom: 1.75rem;
-}
-.mc-kpi {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 1.25rem 1.375rem 1.125rem;
-  position: relative;
-  overflow: hidden;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  cursor: default;
-}
-.mc-kpi::after {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  border-radius: 10px 10px 0 0;
-}
-.mc-kpi.--violet::after  { background: var(--violet); }
-.mc-kpi.--emerald::after { background: var(--emerald); }
-.mc-kpi.--amber::after   { background: var(--amber); }
-.mc-kpi.--rose::after    { background: var(--rose); }
-.mc-kpi.--sky::after     { background: var(--sky); }
-.mc-kpi:hover { border-color: var(--border-2); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
-.mc-kpi-icon {
-  width: 28px; height: 28px;
-  border-radius: 7px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  margin-bottom: 0.875rem;
-}
-.mc-kpi.--violet  .mc-kpi-icon { background: var(--violet-pale);  color: var(--violet-light); }
-.mc-kpi.--emerald .mc-kpi-icon { background: var(--emerald-pale); color: var(--emerald); }
-.mc-kpi.--amber   .mc-kpi-icon { background: var(--amber-pale);   color: var(--amber); }
-.mc-kpi.--rose    .mc-kpi-icon { background: var(--rose-pale);    color: var(--rose); }
-.mc-kpi.--sky     .mc-kpi-icon { background: var(--sky-pale);     color: var(--sky); }
-.mc-kpi-label {
-  font-size: 0.5875rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-3);
-  margin-bottom: 0.375rem;
-}
-.mc-kpi-value {
-  font-family: var(--mono);
-  font-size: 2rem;
-  font-weight: 500;
-  letter-spacing: -0.025em;
-  line-height: 1;
-  margin-bottom: 0.375rem;
-}
-.mc-kpi.--violet  .mc-kpi-value { color: var(--violet-light); }
-.mc-kpi.--emerald .mc-kpi-value { color: var(--emerald); }
-.mc-kpi.--amber   .mc-kpi-value { color: var(--amber); }
-.mc-kpi.--rose    .mc-kpi-value { color: var(--rose); }
-.mc-kpi.--sky     .mc-kpi-value { color: var(--sky); }
-.mc-kpi-note { font-size: 0.6875rem; color: var(--text-3); line-height: 1.3; }
+    /* Footer */
+    .mc-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 1.5rem; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 0.5rem; }
+    .mc-footer-left { font-size: 0.6875rem; color: var(--text-3); }
+    .mc-footer-right { font-family: var(--mono); font-size: 0.6rem; color: var(--text-3); }
 
-/* ================================================================
-   PANEL
-================================================================ */
-.mc-panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
-}
-.mc-panel-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.9375rem 1.25rem;
-  border-bottom: 1px solid var(--border);
-}
-.mc-panel-title {
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--text-1);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.mc-panel-title i { color: var(--text-3); font-size: 0.875rem; }
-.mc-panel-action {
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--violet-light);
-  opacity: 0.75;
-  transition: opacity 0.18s;
-}
-.mc-panel-action:hover { opacity: 1; }
-.mc-panel-body { padding: 1.25rem; }
-
-/* ================================================================
-   MAIN GRID (3-col)
-================================================================ */
-.mc-main {
-  display: grid;
-  grid-template-columns: 5fr 4fr 3fr;
-  gap: 1rem;
-  margin-bottom: 1.75rem;
-  align-items: start;
-}
-
-/* ---- Recent schools table ---- */
-.mc-table { width: 100%; border-collapse: collapse; }
-.mc-table th {
-  font-size: 0.5625rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-3);
-  padding: 0 1.25rem 0.5rem;
-  text-align: left;
-  border-bottom: 1px solid var(--border);
-}
-.mc-table td {
-  padding: 0.7rem 1.25rem;
-  font-size: 0.8125rem;
-  color: var(--text-2);
-  border-bottom: 1px solid var(--border);
-  vertical-align: middle;
-}
-.mc-table tr:last-child td { border-bottom: none; }
-.mc-table tr:hover td { background: rgba(255,255,255,0.02); }
-.mc-school-name {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--text-1);
-  display: block;
-  line-height: 1.3;
-}
-.mc-school-slug {
-  font-family: var(--mono);
-  font-size: 0.5625rem;
-  color: var(--text-3);
-  letter-spacing: 0.04em;
-}
-.mc-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.175rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.5rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.mc-badge.--active      { background: var(--emerald-pale); color: var(--emerald); border: 1px solid var(--emerald-mid); }
-.mc-badge.--trial       { background: var(--amber-pale);   color: var(--amber);   border: 1px solid var(--amber-mid); }
-.mc-badge.--inactive    { background: rgba(255,255,255,0.04); color: var(--text-3); border: 1px solid var(--border); }
-.mc-badge.--pending     { background: var(--amber-pale);   color: var(--amber);   border: 1px solid var(--amber-mid); }
-.mc-badge.--approved    { background: var(--emerald-pale); color: var(--emerald); border: 1px solid var(--emerald-mid); }
-.mc-badge.--rejected    { background: var(--rose-pale);    color: var(--rose);    border: 1px solid var(--rose-mid); }
-.mc-badge.--under_review { background: var(--sky-pale);    color: var(--sky);     border: 1px solid var(--sky-mid); }
-.mc-badge.--requires_info { background: var(--violet-pale); color: var(--violet-light); border: 1px solid var(--violet-mid); }
-
-/* ---- Approval pipeline ---- */
-.mc-pipeline-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.875rem 1.25rem;
-  border-bottom: 1px solid var(--border);
-  transition: background 0.15s;
-  color: inherit;
-}
-.mc-pipeline-item:last-child { border-bottom: none; }
-.mc-pipeline-item:hover { background: rgba(255,255,255,0.023); }
-.mc-pipeline-orb {
-  width: 32px; height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.8rem;
-  flex-shrink: 0;
-}
-.mc-pipeline-orb.--amber   { background: var(--amber-pale);   color: var(--amber);        border: 1px solid var(--amber-mid);   }
-.mc-pipeline-orb.--sky     { background: var(--sky-pale);     color: var(--sky);          border: 1px solid var(--sky-mid);     }
-.mc-pipeline-orb.--violet  { background: var(--violet-pale);  color: var(--violet-light); border: 1px solid var(--violet-mid);  }
-.mc-pipeline-orb.--emerald { background: var(--emerald-pale); color: var(--emerald);      border: 1px solid var(--emerald-mid); }
-.mc-pipeline-orb.--rose    { background: var(--rose-pale);    color: var(--rose);         border: 1px solid var(--rose-mid);    }
-.mc-pipeline-label { flex: 1; font-size: 0.8125rem; color: var(--text-2); }
-.mc-pipeline-num {
-  font-family: var(--mono);
-  font-size: 1rem;
-  font-weight: 500;
-  color: var(--text-1);
-  min-width: 2rem;
-  text-align: right;
-}
-.mc-pipeline-footer {
-  padding: 0.875rem 1.25rem;
-  border-top: 1px solid var(--border);
-  display: flex;
-  gap: 2rem;
-}
-.mc-pipeline-stat-label {
-  font-size: 0.5625rem;
-  font-weight: 600;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--text-3);
-  margin-bottom: 0.25rem;
-}
-.mc-pipeline-stat-val {
-  font-family: var(--mono);
-  font-size: 1.25rem;
-  font-weight: 500;
-  color: var(--text-1);
-}
-.mc-pipeline-stat-val.--emerald { color: var(--emerald); }
-
-/* ---- Quick actions ---- */
-.mc-action {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-  padding: 0.875rem 1.25rem;
-  border-bottom: 1px solid var(--border);
-  transition: background 0.15s;
-  color: inherit;
-}
-.mc-action:last-child { border-bottom: none; }
-.mc-action:hover { background: rgba(255,255,255,0.023); }
-.mc-action-icon {
-  width: 30px; height: 30px;
-  border-radius: 7px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  flex-shrink: 0;
-}
-.mc-action-text { flex: 1; }
-.mc-action-name  { font-size: 0.8125rem; font-weight: 500; color: var(--text-1); }
-.mc-action-desc  { font-size: 0.6875rem; color: var(--text-3); }
-.mc-action-chev  { color: var(--text-3); font-size: 0.625rem; }
-
-/* ================================================================
-   BOTTOM GRID (3-col)
-================================================================ */
-.mc-bottom {
-  display: grid;
-  grid-template-columns: 8fr 4fr 5fr;
-  gap: 1rem;
-  margin-bottom: 1.75rem;
-  align-items: start;
-}
-
-/* ---- Sparkline ---- */
-.mc-sparkline {
-  height: 96px;
-  display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  position: relative;
-}
-.mc-spark-bar {
-  flex: 1;
-  background: var(--violet);
-  border-radius: 2px 2px 0 0;
-  min-height: 2px;
-  opacity: 0.65;
-  transform: scaleY(0);
-  transform-origin: bottom;
-  transition: transform 0.75s cubic-bezier(0.22,1,0.36,1), opacity 0.2s;
-  cursor: default;
-  position: relative;
-}
-.mc-spark-bar.is-live { opacity: 0.75; }
-.mc-spark-bar::after {
-  content: attr(data-tip);
-  position: absolute;
-  bottom: calc(100% + 5px);
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--surface-3);
-  color: var(--text-1);
-  font-family: var(--mono);
-  font-size: 0.5rem;
-  padding: 3px 6px;
-  border-radius: 4px;
-  border: 1px solid var(--border-2);
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s;
-  z-index: 10;
-}
-.mc-spark-bar:hover::after { opacity: 1; }
-.mc-spark-bar:hover { opacity: 1; }
-.mc-spark-floor { height: 1px; background: var(--border); margin-top: 4px; }
-.mc-spark-labels {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 0.5rem;
-}
-.mc-spark-label { font-family: var(--mono); font-size: 0.5rem; color: var(--text-3); }
-
-/* ---- Fleet breakdown ---- */
-.mc-fleet-item {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-  padding: 0.75rem 1.25rem;
-  border-bottom: 1px solid var(--border);
-}
-.mc-fleet-item:last-child { border-bottom: none; }
-.mc-fleet-name {
-  font-size: 0.75rem;
-  font-weight: 400;
-  color: var(--text-2);
-  flex: 1;
-  text-transform: capitalize;
-}
-.mc-fleet-track { flex: 2; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
-.mc-fleet-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--violet), var(--violet-light));
-  border-radius: 2px;
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 0.9s cubic-bezier(0.22,1,0.36,1);
-}
-.mc-fleet-fill.is-live { transform: scaleX(1); }
-.mc-fleet-count {
-  font-family: var(--mono);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--text-1);
-  min-width: 2rem;
-  text-align: right;
-}
-
-/* ---- AI Observatory ---- */
-.mc-ai-item {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-  padding: 0.6875rem 1.25rem;
-  border-bottom: 1px solid var(--border);
-}
-.mc-ai-item:last-child { border-bottom: none; }
-.mc-ai-name {
-  font-size: 0.75rem;
-  color: var(--text-2);
-  flex: 2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.mc-ai-track { flex: 3; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
-.mc-ai-fill {
-  height: 100%;
-  background: var(--emerald);
-  border-radius: 2px;
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 0.9s cubic-bezier(0.22,1,0.36,1);
-}
-.mc-ai-fill.--over { background: var(--rose); }
-.mc-ai-fill.is-live { transform: scaleX(1); }
-.mc-ai-count {
-  font-family: var(--mono);
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--text-1);
-  min-width: 2.5rem;
-  text-align: right;
-}
-.mc-ai-breakdown {
-  border-top: 1px solid var(--border);
-  padding: 0.875rem 1.25rem 0.25rem;
-}
-.mc-ai-breakdown-title {
-  font-size: 0.5625rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-3);
-  margin-bottom: 0.625rem;
-}
-.mc-ai-brow {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.3rem 0;
-  border-bottom: 1px solid var(--border);
-}
-.mc-ai-brow:last-child { border-bottom: none; }
-.mc-ai-brow-label { font-size: 0.6875rem; color: var(--text-2); text-transform: capitalize; }
-.mc-ai-brow-count { font-family: var(--mono); font-size: 0.75rem; color: var(--text-1); }
-
-/* ================================================================
-   SECTION HEADING
-================================================================ */
-.mc-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.875rem;
-}
-.mc-heading-label {
-  font-size: 0.5875rem;
-  font-weight: 700;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: var(--text-3);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.mc-heading-label::before {
-  content: '';
-  display: inline-block;
-  width: 14px;
-  height: 1px;
-  background: var(--border-2);
-}
-.mc-heading-meta { font-family: var(--mono); font-size: 0.5875rem; color: var(--text-3); }
-
-/* ================================================================
-   NAV GRID
-================================================================ */
-.mc-nav-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 0.75rem;
-  margin-bottom: 2rem;
-}
-.mc-nav-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
-}
-.mc-nav-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(124,58,237,0.07), transparent 55%);
-  opacity: 0;
-  transition: opacity 0.22s;
-}
-.mc-nav-card:hover {
-  border-color: var(--violet-mid);
-  box-shadow: 0 6px 24px rgba(0,0,0,0.35);
-  transform: translateY(-2px);
-}
-.mc-nav-card:hover::before { opacity: 1; }
-.mc-nav-icon {
-  width: 34px; height: 34px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.875rem;
-  margin-bottom: 0.375rem;
-}
-.mc-nav-name { font-size: 0.8125rem; font-weight: 600; color: var(--text-1); line-height: 1.2; }
-.mc-nav-desc { font-size: 0.6875rem; color: var(--text-3); line-height: 1.35; }
-
-/* ================================================================
-   FOOTER
-================================================================ */
-.mc-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border);
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-.mc-footer-left { font-size: 0.6875rem; color: var(--text-3); }
-.mc-footer-right { font-family: var(--mono); font-size: 0.6rem; color: var(--text-3); }
-
-/* ================================================================
-   RESPONSIVE
-================================================================ */
-@media (max-width: 1280px) {
-  .mc-main   { grid-template-columns: 1fr 1fr; }
-  .mc-bottom { grid-template-columns: 1fr 1fr; }
-  .mc-nav-grid { grid-template-columns: repeat(3, 1fr); }
-}
-@media (max-width: 1024px) {
-  .mc-kpi-row { grid-template-columns: repeat(3, 1fr); }
-}
-@media (max-width: 768px) {
-  .mc { padding: 1.25rem 1rem 4rem; }
-  .mc-kpi-row   { grid-template-columns: repeat(2, 1fr); }
-  .mc-main      { grid-template-columns: 1fr; }
-  .mc-bottom    { grid-template-columns: 1fr; }
-  .mc-nav-grid  { grid-template-columns: repeat(2, 1fr); }
-}
-</style>
-
+    /* Responsive */
+    @media (max-width: 1280px) {
+      .mc-main   { grid-template-columns: 1fr 1fr; }
+      .mc-bottom { grid-template-columns: 1fr 1fr; }
+      .mc-nav-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 1024px) {
+      .mc-kpi-row { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .mc { padding: 1.25rem 1rem 4rem; }
+      .mc-kpi-row  { grid-template-columns: repeat(2, 1fr); }
+      .mc-main     { grid-template-columns: 1fr; }
+      .mc-bottom   { grid-template-columns: 1fr; }
+      .mc-nav-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
 <div class="mc">
 
-  <!-- 
-       HEADER
-   -->
+  <!-- HEADER -->
   <header class="mc-header mc-fade">
     <div class="mc-brand">
       <div class="mc-brand-icon"><i class="bi bi-grid-3x3-gap-fill"></i></div>
       <div>
         <div class="mc-brand-name">Platform Command Center</div>
-        <div class="mc-brand-sub">Super Admin    {{ request.user.get_full_name|default:request.user.username }}</div>
+        <div class="mc-brand-sub">Super Admin &middot; {{ request.user.get_full_name|default:request.user.username }}</div>
       </div>
     </div>
     <div class="mc-header-right">
@@ -790,9 +400,7 @@ body {
     </div>
   </header>
 
-  <!-- 
-       ALERT BAND
-   -->
+  <!-- ALERT BAND -->
   {% if pending_count or under_review_count or requires_info_count %}
   <div class="mc-alert">
     <i class="bi bi-exclamation-triangle-fill mc-alert-icon"></i>
@@ -801,13 +409,11 @@ body {
       {% if under_review_count %}{{ under_review_count }} under review. {% endif %}
       {% if requires_info_count %}{{ requires_info_count }} require{{ requires_info_count|pluralize:"s," }} additional information.{% endif %}
     </div>
-    <a href="{% url 'tenants:approval_queue' %}" class="mc-alert-cta">Open Queue <i class="bi bi-arrow-right"></i></a>
+    <a href="{% url 'tenants:approval_queue' %}" class="mc-alert-cta">Open Queue &rarr;</a>
   </div>
   {% endif %}
 
-  <!-- 
-       KPI STRIP
-   -->
+  <!-- KPI STRIP -->
   <div class="mc-kpi-row">
     <div class="mc-kpi --violet mc-fade">
       <div class="mc-kpi-icon"><i class="bi bi-buildings-fill"></i></div>
@@ -841,16 +447,14 @@ body {
     </div>
   </div>
 
-  <!-- 
-       MAIN 3-COL GRID
-   -->
+  <!-- MAIN 3-COL GRID -->
   <div class="mc-main">
 
-    <!-- LEFT: Recent Registrations -->
+    <!-- Recent Registrations -->
     <div class="mc-panel mc-fade">
       <div class="mc-panel-head">
         <div class="mc-panel-title"><i class="bi bi-buildings"></i> Recent Registrations</div>
-        <a href="{% url 'tenants:approval_queue' %}" class="mc-panel-action">View all </a>
+        <a href="{% url 'tenants:approval_queue' %}" class="mc-panel-action">View all &rarr;</a>
       </div>
       <table class="mc-table">
         <thead>
@@ -869,39 +473,29 @@ body {
               <span class="mc-school-slug">{{ school.schema_name }}</span>
             </td>
             <td>
-              {% if school.on_trial %}
-                <span class="mc-badge --trial">Trial</span>
-              {% elif school.is_active %}
-                <span class="mc-badge --active">Active</span>
-              {% else %}
-                <span class="mc-badge --inactive">Inactive</span>
-              {% endif %}
+              {% if school.on_trial %}<span class="mc-badge --trial">Trial</span>
+              {% elif school.is_active %}<span class="mc-badge --active">Active</span>
+              {% else %}<span class="mc-badge --inactive">Inactive</span>{% endif %}
             </td>
             <td>
-              <span class="mc-badge --{{ school.approval_status }}">
-                {{ school.approval_status|title|cut:"_" }}
-              </span>
+              <span class="mc-badge --{{ school.approval_status }}">{{ school.approval_status|title|cut:"_" }}</span>
             </td>
             <td style="font-family:var(--mono);font-size:0.6875rem;color:var(--text-3);">
               {{ school.created_on|date:"M j, Y" }}
             </td>
           </tr>
           {% empty %}
-          <tr>
-            <td colspan="4" style="text-align:center;color:var(--text-3);padding:2.5rem;">
-              No schools registered yet.
-            </td>
-          </tr>
+          <tr><td colspan="4" style="text-align:center;color:var(--text-3);padding:2.5rem;">No schools registered yet.</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
 
-    <!-- CENTRE: Approval Pipeline -->
+    <!-- Approval Pipeline -->
     <div class="mc-panel mc-fade">
       <div class="mc-panel-head">
         <div class="mc-panel-title"><i class="bi bi-funnel-fill"></i> Approval Pipeline</div>
-        <a href="{% url 'tenants:approval_queue' %}" class="mc-panel-action">Manage </a>
+        <a href="{% url 'tenants:approval_queue' %}" class="mc-panel-action">Manage &rarr;</a>
       </div>
       <a href="{% url 'tenants:approval_queue' %}?status=pending" class="mc-pipeline-item">
         <div class="mc-pipeline-orb --amber"><i class="bi bi-hourglass-split"></i></div>
@@ -939,112 +533,71 @@ body {
           {% if total %}
             <div class="mc-pipeline-stat-val --emerald">{% widthratio approved_count total 100 %}%</div>
           {% else %}
-            <div class="mc-pipeline-stat-val" style="color:var(--text-3);"></div>
+            <div class="mc-pipeline-stat-val" style="color:var(--text-3);">&mdash;</div>
           {% endif %}
           {% endwith %}
         </div>
       </div>
     </div>
 
-    <!-- RIGHT: Quick Actions -->
+    <!-- Quick Actions -->
     <div class="mc-panel mc-fade">
       <div class="mc-panel-head">
         <div class="mc-panel-title"><i class="bi bi-lightning-charge-fill"></i> Quick Actions</div>
       </div>
       <a href="{% url 'tenants:approval_queue' %}" class="mc-action">
-        <div class="mc-action-icon" style="background:var(--amber-pale);color:var(--amber);border:1px solid var(--amber-mid);">
-          <i class="bi bi-check2-square"></i>
-        </div>
-        <div class="mc-action-text">
-          <div class="mc-action-name">Approval Queue</div>
-          <div class="mc-action-desc">Review pending schools</div>
-        </div>
+        <div class="mc-action-icon" style="background:var(--amber-pale);color:var(--amber);border:1px solid var(--amber-mid);"><i class="bi bi-check2-square"></i></div>
+        <div class="mc-action-text"><div class="mc-action-name">Approval Queue</div><div class="mc-action-desc">Review pending schools</div></div>
         <i class="bi bi-chevron-right mc-action-chev"></i>
       </a>
       <a href="{% url 'tenants:revenue_analytics' %}" class="mc-action">
-        <div class="mc-action-icon" style="background:var(--emerald-pale);color:var(--emerald);border:1px solid var(--emerald-mid);">
-          <i class="bi bi-graph-up-arrow"></i>
-        </div>
-        <div class="mc-action-text">
-          <div class="mc-action-name">Revenue Analytics</div>
-          <div class="mc-action-desc">Financial overview</div>
-        </div>
+        <div class="mc-action-icon" style="background:var(--emerald-pale);color:var(--emerald);border:1px solid var(--emerald-mid);"><i class="bi bi-graph-up-arrow"></i></div>
+        <div class="mc-action-text"><div class="mc-action-name">Revenue Analytics</div><div class="mc-action-desc">Financial overview</div></div>
         <i class="bi bi-chevron-right mc-action-chev"></i>
       </a>
       <a href="{% url 'tenants:system_health' %}" class="mc-action">
-        <div class="mc-action-icon" style="background:var(--sky-pale);color:var(--sky);border:1px solid var(--sky-mid);">
-          <i class="bi bi-activity"></i>
-        </div>
-        <div class="mc-action-text">
-          <div class="mc-action-name">System Health</div>
-          <div class="mc-action-desc">Uptime & performance</div>
-        </div>
+        <div class="mc-action-icon" style="background:var(--sky-pale);color:var(--sky);border:1px solid var(--sky-mid);"><i class="bi bi-activity"></i></div>
+        <div class="mc-action-text"><div class="mc-action-name">System Health</div><div class="mc-action-desc">Uptime &amp; performance</div></div>
         <i class="bi bi-chevron-right mc-action-chev"></i>
       </a>
       <a href="{% url 'tenants:support_tickets' %}" class="mc-action">
-        <div class="mc-action-icon" style="background:var(--violet-pale);color:var(--violet-light);border:1px solid var(--violet-mid);">
-          <i class="bi bi-headset"></i>
-        </div>
-        <div class="mc-action-text">
-          <div class="mc-action-name">Support Tickets</div>
-          <div class="mc-action-desc">Help desk</div>
-        </div>
+        <div class="mc-action-icon" style="background:var(--violet-pale);color:var(--violet-light);border:1px solid var(--violet-mid);"><i class="bi bi-headset"></i></div>
+        <div class="mc-action-text"><div class="mc-action-name">Support Tickets</div><div class="mc-action-desc">Help desk</div></div>
         <i class="bi bi-chevron-right mc-action-chev"></i>
       </a>
       <a href="{% url 'tenants:addon_marketplace' %}" class="mc-action">
-        <div class="mc-action-icon" style="background:var(--rose-pale);color:var(--rose);border:1px solid var(--rose-mid);">
-          <i class="bi bi-shop"></i>
-        </div>
-        <div class="mc-action-text">
-          <div class="mc-action-name">Marketplace</div>
-          <div class="mc-action-desc">Addons & plugins</div>
-        </div>
+        <div class="mc-action-icon" style="background:var(--rose-pale);color:var(--rose);border:1px solid var(--rose-mid);"><i class="bi bi-shop"></i></div>
+        <div class="mc-action-text"><div class="mc-action-name">Marketplace</div><div class="mc-action-desc">Addons &amp; plugins</div></div>
         <i class="bi bi-chevron-right mc-action-chev"></i>
       </a>
       <a href="/admin/" class="mc-action">
-        <div class="mc-action-icon" style="background:rgba(255,255,255,0.05);color:var(--text-2);border:1px solid var(--border);">
-          <i class="bi bi-wrench-adjustable"></i>
-        </div>
-        <div class="mc-action-text">
-          <div class="mc-action-name">Django Admin</div>
-          <div class="mc-action-desc">Database & configs</div>
-        </div>
+        <div class="mc-action-icon" style="background:rgba(255,255,255,0.05);color:var(--text-2);border:1px solid var(--border);"><i class="bi bi-wrench-adjustable"></i></div>
+        <div class="mc-action-text"><div class="mc-action-name">Django Admin</div><div class="mc-action-desc">Database &amp; configs</div></div>
         <i class="bi bi-chevron-right mc-action-chev"></i>
       </a>
     </div>
 
   </div><!-- /mc-main -->
 
-  <!-- 
-       ANALYTICS ROW
-   -->
+  <!-- ANALYTICS ROW -->
   <div class="mc-heading">
     <div class="mc-heading-label">Platform Analytics</div>
     <span class="mc-heading-meta">Last 30 days</span>
   </div>
-
   <div class="mc-bottom">
 
-    <!-- Signup Pulse Chart -->
+    <!-- Signup Pulse -->
     <div class="mc-panel mc-fade">
       <div class="mc-panel-head">
         <div class="mc-panel-title"><i class="bi bi-bar-chart-line-fill"></i> 30-Day Signup Pulse</div>
-        <span style="font-family:var(--mono);font-size:.625rem;color:var(--text-3);">
-          {{ signups_chart|length }} active day{{ signups_chart|length|pluralize }}
-        </span>
+        <span style="font-family:var(--mono);font-size:.625rem;color:var(--text-3);">{{ signups_chart|length }} active day{{ signups_chart|length|pluralize }}</span>
       </div>
-      <div class="mc-panel-body" id="mc-pulse-wrap">
+      <div class="mc-panel-body">
         <div class="mc-sparkline" id="mc-pulse">
           {% for day in signups_chart %}
-          <div class="mc-spark-bar"
-               style="height:{{ day.pct }}%;"
-               data-pct="{{ day.pct }}"
-               data-tip="{{ day.date|date:'M j' }}: {{ day.total }}">
-          </div>
+          <div class="mc-spark-bar" style="height:{{ day.pct }}%;" data-pct="{{ day.pct }}" data-tip="{{ day.date|date:'M j' }}: {{ day.total }}"></div>
           {% empty %}
-          <div style="width:100%;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:.75rem;height:96px;">
-            No signup data for this period.
-          </div>
+          <div style="width:100%;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:.75rem;height:96px;">No signup data for this period.</div>
           {% endfor %}
         </div>
         {% if signups_chart %}
@@ -1057,7 +610,7 @@ body {
       </div>
     </div>
 
-    <!-- Fleet Breakdown -->
+    <!-- Fleet by Type -->
     <div class="mc-panel mc-fade">
       <div class="mc-panel-head">
         <div class="mc-panel-title"><i class="bi bi-diagram-3-fill"></i> Fleet by Type</div>
@@ -1066,12 +619,7 @@ body {
       {% for t in by_type %}
       <div class="mc-fleet-item">
         <div class="mc-fleet-name">{{ t.school_type|title }}</div>
-        <div class="mc-fleet-track">
-          <div class="mc-fleet-fill"
-               style="width:{% widthratio t.total schools_count 100 %}%;"
-               data-pct="{% widthratio t.total schools_count 100 %}">
-          </div>
-        </div>
+        <div class="mc-fleet-track"><div class="mc-fleet-fill" style="width:{% widthratio t.total schools_count 100 %}%;" data-pct="{% widthratio t.total schools_count 100 %}"></div></div>
         <div class="mc-fleet-count">{{ t.total }}</div>
       </div>
       {% empty %}
@@ -1083,19 +631,12 @@ body {
     <div class="mc-panel mc-fade">
       <div class="mc-panel-head">
         <div class="mc-panel-title"><i class="bi bi-stars"></i> AI Observatory</div>
-        {% if ai_total_month %}
-        <span style="font-family:var(--mono);font-size:.625rem;color:var(--emerald);">{{ ai_total_month|intcomma }} calls</span>
-        {% endif %}
+        {% if ai_total_month %}<span style="font-family:var(--mono);font-size:.625rem;color:var(--emerald);">{{ ai_total_month|intcomma }} calls</span>{% endif %}
       </div>
       {% for school in top_ai_schools %}
       <div class="mc-ai-item">
         <div class="mc-ai-name" title="{{ school.name }}">{{ school.name }}</div>
-        <div class="mc-ai-track">
-          <div class="mc-ai-fill {% if school.near_quota %}--over{% endif %}"
-               style="width:{{ school.used_pct }}%;"
-               data-pct="{{ school.used_pct }}">
-          </div>
-        </div>
+        <div class="mc-ai-track"><div class="mc-ai-fill {% if school.near_quota %}--over{% endif %}" style="width:{{ school.used_pct }}%;" data-pct="{{ school.used_pct }}"></div></div>
         <div class="mc-ai-count">{{ school.call_count }}</div>
       </div>
       {% empty %}
@@ -1116,60 +657,42 @@ body {
 
   </div><!-- /mc-bottom -->
 
-  <!-- 
-       NAVIGATION GRID
-   -->
-  <div class="mc-heading">
-    <div class="mc-heading-label">Navigation</div>
-  </div>
+  <!-- NAV GRID -->
+  <div class="mc-heading"><div class="mc-heading-label">Navigation</div></div>
   <div class="mc-nav-grid">
     <a href="{% url 'tenants:approval_queue' %}" class="mc-nav-card mc-fade">
-      <div class="mc-nav-icon" style="background:var(--amber-pale);color:var(--amber);border:1px solid var(--amber-mid);">
-        <i class="bi bi-check2-circle"></i>
-      </div>
+      <div class="mc-nav-icon" style="background:var(--amber-pale);color:var(--amber);border:1px solid var(--amber-mid);"><i class="bi bi-check2-circle"></i></div>
       <div class="mc-nav-name">Approval Queue</div>
-      <div class="mc-nav-desc">Manage school onboarding applications</div>
+      <div class="mc-nav-desc">Manage school onboarding</div>
     </a>
     <a href="{% url 'tenants:revenue_analytics' %}" class="mc-nav-card mc-fade">
-      <div class="mc-nav-icon" style="background:var(--emerald-pale);color:var(--emerald);border:1px solid var(--emerald-mid);">
-        <i class="bi bi-graph-up-arrow"></i>
-      </div>
+      <div class="mc-nav-icon" style="background:var(--emerald-pale);color:var(--emerald);border:1px solid var(--emerald-mid);"><i class="bi bi-graph-up-arrow"></i></div>
       <div class="mc-nav-name">Revenue</div>
-      <div class="mc-nav-desc">Subscriptions, billing & financials</div>
+      <div class="mc-nav-desc">Subscriptions &amp; billing</div>
     </a>
     <a href="{% url 'tenants:system_health' %}" class="mc-nav-card mc-fade">
-      <div class="mc-nav-icon" style="background:var(--sky-pale);color:var(--sky);border:1px solid var(--sky-mid);">
-        <i class="bi bi-heart-pulse-fill"></i>
-      </div>
+      <div class="mc-nav-icon" style="background:var(--sky-pale);color:var(--sky);border:1px solid var(--sky-mid);"><i class="bi bi-heart-pulse-fill"></i></div>
       <div class="mc-nav-name">System Health</div>
-      <div class="mc-nav-desc">Uptime, performance & alerts</div>
+      <div class="mc-nav-desc">Uptime &amp; performance</div>
     </a>
     <a href="{% url 'tenants:support_tickets' %}" class="mc-nav-card mc-fade">
-      <div class="mc-nav-icon" style="background:var(--violet-pale);color:var(--violet-light);border:1px solid var(--violet-mid);">
-        <i class="bi bi-headset"></i>
-      </div>
+      <div class="mc-nav-icon" style="background:var(--violet-pale);color:var(--violet-light);border:1px solid var(--violet-mid);"><i class="bi bi-headset"></i></div>
       <div class="mc-nav-name">Support</div>
-      <div class="mc-nav-desc">Help desk & ticket management</div>
+      <div class="mc-nav-desc">Help desk &amp; tickets</div>
     </a>
     <a href="{% url 'tenants:database_backups' %}" class="mc-nav-card mc-fade">
-      <div class="mc-nav-icon" style="background:var(--rose-pale);color:var(--rose);border:1px solid var(--rose-mid);">
-        <i class="bi bi-database-fill"></i>
-      </div>
+      <div class="mc-nav-icon" style="background:var(--rose-pale);color:var(--rose);border:1px solid var(--rose-mid);"><i class="bi bi-database-fill"></i></div>
       <div class="mc-nav-name">Backups</div>
-      <div class="mc-nav-desc">Database backup & restore</div>
+      <div class="mc-nav-desc">Database backup &amp; restore</div>
     </a>
     <a href="{% url 'tenants:addon_marketplace' %}" class="mc-nav-card mc-fade">
-      <div class="mc-nav-icon" style="background:rgba(255,255,255,0.05);color:var(--text-2);border:1px solid var(--border);">
-        <i class="bi bi-puzzle-fill"></i>
-      </div>
+      <div class="mc-nav-icon" style="background:rgba(255,255,255,0.05);color:var(--text-2);border:1px solid var(--border);"><i class="bi bi-puzzle-fill"></i></div>
       <div class="mc-nav-name">Marketplace</div>
-      <div class="mc-nav-desc">Addons, plugins & extensions</div>
+      <div class="mc-nav-desc">Addons &amp; extensions</div>
     </a>
   </div>
 
-  <!-- 
-       FOOTER
-   -->
+  <!-- FOOTER -->
   <div class="mc-footer">
     <div class="mc-footer-left">Platform Command Center &middot; {{ request.user.get_full_name|default:request.user.username }}</div>
     <div class="mc-footer-right" id="mc-footer-dt"></div>
@@ -1181,65 +704,47 @@ body {
 (function () {
   'use strict';
 
-  /*  Live Clock  */
   function tick() {
-    const now = new Date();
-    const time = now.toLocaleTimeString('en-GB', { hour12: false });
-    const date = now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-    const c = document.getElementById('mc-clock');
-    const f = document.getElementById('mc-footer-dt');
+    var now  = new Date();
+    var time = now.toLocaleTimeString('en-GB', { hour12: false });
+    var date = now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    var c = document.getElementById('mc-clock');
+    var f = document.getElementById('mc-footer-dt');
     if (c) c.textContent = time;
-    if (f) f.textContent = date + '  ' + time;
+    if (f) f.textContent = date + ' \u00b7 ' + time;
   }
   tick();
   setInterval(tick, 1000);
 
-  /*  IntersectionObserver: animate bars  */
-  const io = new IntersectionObserver(function (entries) {
+  var io = new IntersectionObserver(function (entries) {
     entries.forEach(function (entry) {
       if (!entry.isIntersecting) return;
-      const el = entry.target;
-
-      /* Sparkline bars */
+      var el = entry.target;
       el.querySelectorAll('.mc-spark-bar[data-pct]').forEach(function (bar, i) {
-        setTimeout(function () {
-          bar.style.transform = 'scaleY(1)';
-          bar.classList.add('is-live');
-        }, i * 10);
+        setTimeout(function () { bar.style.transform = 'scaleY(1)'; bar.classList.add('is-live'); }, i * 10);
       });
-
-      /* Fleet fill bars */
       el.querySelectorAll('.mc-fleet-fill[data-pct]').forEach(function (bar, i) {
         setTimeout(function () { bar.classList.add('is-live'); }, i * 90);
       });
-
-      /* AI fill bars */
       el.querySelectorAll('.mc-ai-fill[data-pct]').forEach(function (bar, i) {
         setTimeout(function () { bar.classList.add('is-live'); }, i * 90);
       });
-
       io.unobserve(el);
     });
   }, { threshold: 0.15 });
 
-  document.querySelectorAll('.mc-panel, .mc-kpi-row').forEach(function (el) {
-    io.observe(el);
-  });
+  document.querySelectorAll('.mc-panel, .mc-kpi-row').forEach(function (el) { io.observe(el); });
 
-  /*  Nav card subtle tilt on hover  */
   document.querySelectorAll('.mc-nav-card').forEach(function (card) {
     card.addEventListener('mousemove', function (e) {
-      const r = card.getBoundingClientRect();
-      const x = ((e.clientX - r.left) / r.width  - 0.5) * 7;
-      const y = ((e.clientY - r.top)  / r.height - 0.5) * 7;
+      var r = card.getBoundingClientRect();
+      var x = ((e.clientX - r.left) / r.width  - 0.5) * 7;
+      var y = ((e.clientY - r.top)  / r.height - 0.5) * 7;
       card.style.transform = 'translateY(-2px) perspective(500px) rotateX(' + (-y) + 'deg) rotateY(' + x + 'deg)';
     });
-    card.addEventListener('mouseleave', function () {
-      card.style.transform = '';
-    });
+    card.addEventListener('mouseleave', function () { card.style.transform = ''; });
   });
-
 }());
 </script>
-
-{% endblock %}
+</body>
+</html>
