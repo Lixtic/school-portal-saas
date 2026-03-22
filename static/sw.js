@@ -1,4 +1,4 @@
-﻿const SW_VERSION = 'v3';
+﻿const SW_VERSION = 'v4';
 const STATIC_CACHE = `school-static-${SW_VERSION}`;
 const RUNTIME_CACHE = `school-runtime-${SW_VERSION}`;
 const OFFLINE_URL = '/offline/';
@@ -108,6 +108,19 @@ self.addEventListener('fetch', (event) => {
 
   if (!isSameOrigin) {
     return;
+  }
+
+  // Never cache AJAX / API calls — these return JSON and must always
+  // hit the live server so authentication & tenant schema are correct.
+  // Detecting by Accept header, X-Requested-With, or known API path segments.
+  const isApiCall = (
+    url.pathname.includes('/get-class-students/') ||
+    url.pathname.includes('/api/') ||
+    request.headers.get('Accept') === 'application/json' ||
+    request.headers.get('X-Requested-With') === 'XMLHttpRequest'
+  );
+  if (isApiCall) {
+    return; // Let the browser handle it directly — no SW interception
   }
 
   event.respondWith(networkFirst(request));

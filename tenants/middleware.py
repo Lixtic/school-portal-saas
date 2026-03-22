@@ -1,6 +1,6 @@
 ﻿from django.conf import settings
 from django.db import connection, close_old_connections
-from django.http import Http404, HttpResponseRedirect
+from django.http import Http404, HttpResponseRedirect, JsonResponse
 from django.urls import set_urlconf, set_script_prefix
 from django_tenants.middleware.main import TenantMainMiddleware
 from tenants.models import School
@@ -8,6 +8,15 @@ from urllib.parse import urlparse, parse_qsl, urlencode
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _is_ajax(request):
+    """Return True if the request was sent via fetch/XHR expecting JSON."""
+    return (
+        request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        or request.headers.get('Accept', '').startswith('application/json')
+    )
+
 
 # Paths (relative to tenant root) that remain accessible after trial expiry
 _TRIAL_EXEMPT_PATHS = (
@@ -53,9 +62,7 @@ class TenantPathMiddleware(TenantMainMiddleware):
                     'favicon.svg', 'robots.txt', 'sitemap.xml', 'dashboard', 'tenants', 'find-school',
                     'sw.js', 'offline', 'public'
                 ]:
-                    from django.db import transaction
-                    with transaction.atomic():
-                        ref_tenant = School.objects.filter(schema_name=ref_first, is_active=True).first()
+                    ref_tenant = School.objects.filter(schema_name=ref_first, is_active=True).first()
                     if ref_tenant:
                         qs = request.META.get('QUERY_STRING', '')
                         suffix = f"?{qs}" if qs else ''
@@ -77,9 +84,7 @@ class TenantPathMiddleware(TenantMainMiddleware):
             logger.debug("Checking tenant candidate: %s", possible_schema)
             try:
                 from tenants.models import School
-                from django.db import transaction
-                with transaction.atomic():
-                    tenant = School.objects.filter(schema_name=possible_schema).first()
+                tenant = School.objects.filter(schema_name=possible_schema).first()
             except Exception as e:
                 logger.error("Tenant DB lookup error for %s: %s", possible_schema, e)
                 if settings.DEBUG:
@@ -150,10 +155,8 @@ class TenantPathMiddleware(TenantMainMiddleware):
             # === PUBLIC CONTEXT ===
             try:
                 from tenants.models import School
-                from django.db import transaction
                 public_schema = getattr(settings, 'PUBLIC_SCHEMA_NAME', 'public')
-                with transaction.atomic():
-                    request.tenant = School.objects.get(schema_name=public_schema)
+                request.tenant = School.objects.get(schema_name=public_schema)
             except Exception:
                 from tenants.models import School
                 request.tenant = School(schema_name='public', name='Public (Fallback)')
@@ -170,40 +173,57 @@ class TenantPathMiddleware(TenantMainMiddleware):
             return None
 
         # CRITICAL (pgBouncer transaction mode + TENANT_LIMIT_SET_CALLS=True):
-        # We must wrap early User evaluation and DB queries in a transaction.atomic()
-        # block. Why? Because middlewares run outside the ATOMIC_REQUESTS block.
-        # In autocommit mode, pgBouncer will execute SET search_path, return the connection
-        # to the pool, and then dispatch the subsequent SELECT statement to a DIFFERENT
-        # connection (which defaults to the public schema). By wrapping in an atomic block,
-        # pgBouncer ties the session to a single physical connection from BEGIN to COMMIT.
-        from django.db import transaction
+        # Use try/finally so that search_path_set_schemas is ALWAYS reset to None
+        # before process_view returns, no matter which early-return path is taken.
+        #
+        # Why: In pgBouncer transaction mode every autocommit query (process_request,
+        # auth middleware, here in process_view, …) may land on a different physical
+        # PostgreSQL server connection whose search_path defaults to "public".
+        # TENANT_LIMIT_SET_CALLS=True skips SET search_path when
+        # search_path_set_schemas is already set — so a cached value from a previous
+        # cursor would cause the *next* cursor to skip SET and hit the wrong schema.
+        #
+        # By resetting at the TOP (before any DB access, including the lazy
+        # request.user lookup) and guaranteeing a reset at the BOTTOM via finally,
+        # we ensure:
+        #   (a) Every DB call inside process_view always re-issues SET search_path.
+        #   (b) The ATOMIC_REQUESTS transaction that immediately follows also
+        #       re-issues SET search_path on its first cursor.
         try:
-            with transaction.atomic():
+            if hasattr(connection, 'search_path_set_schemas'):
+                connection.search_path_set_schemas = None
+
+            if not getattr(request, 'user', None) or not request.user.is_authenticated:
+                return None
+
+            path = request.path_info or '/'
+            if any(path.startswith(p) for p in _TRIAL_EXEMPT_PATHS):
+                return None
+
+            try:
+                from .models import SchoolSubscription
+                from django.utils import timezone
+                # Reset again before the subscription query — it may land on yet
+                # another pgBouncer server connection.
                 if hasattr(connection, 'search_path_set_schemas'):
                     connection.search_path_set_schemas = None
-
-                # By evaluating this here inside atomic(), the lazy query fires safely
-                is_auth = getattr(request, 'user', None) and request.user.is_authenticated
-                if not is_auth:
-                    return None
-
-                path = request.path_info or '/'
-                if any(path.startswith(p) for p in _TRIAL_EXEMPT_PATHS):
-                    return None
-
-                try:
-                    from .models import SchoolSubscription
-                    from django.utils import timezone
-                    sub = SchoolSubscription.objects.select_related('plan').get(school=request.tenant)
-                    request._tenant_subscription = sub
-                    if sub.status == 'trial' and sub.trial_ends_at and timezone.now() > sub.trial_ends_at:
-                        sub_url = f"/{request.tenant.schema_name}/tenants/subscription/"
-                        logger.info("Trial expired for %s  redirecting to subscription page", request.tenant.schema_name)
-                        return HttpResponseRedirect(sub_url)
-                except SchoolSubscription.DoesNotExist:
-                    request._tenant_subscription = None
-                except Exception:
-                    pass
+                sub = SchoolSubscription.objects.select_related('plan').get(school=request.tenant)
+                # Cache on request so context processors and views don't re-query
+                request._tenant_subscription = sub
+                if sub.status == 'trial' and sub.trial_ends_at and timezone.now() > sub.trial_ends_at:
+                    sub_url = f"/{request.tenant.schema_name}/tenants/subscription/"
+                    logger.info("Trial expired for %s  redirecting to subscription page", request.tenant.schema_name)
+                    if _is_ajax(request):
+                        return JsonResponse(
+                            {'error': 'Your free trial has expired. Please subscribe to continue.',
+                             'redirect': sub_url},
+                            status=402,
+                        )
+                    return HttpResponseRedirect(sub_url)
+            except SchoolSubscription.DoesNotExist:
+                request._tenant_subscription = None  # Cache miss so context processors skip DB hit
+            except Exception:
+                pass  # Other DB errors — do not block access
 
             return None
         finally:
@@ -237,9 +257,7 @@ class TenantPathMiddleware(TenantMainMiddleware):
             if not tenant_hint:
                 return response
 
-            from django.db import transaction
-            with transaction.atomic():
-                tenant_exists = School.objects.filter(schema_name=tenant_hint, is_active=True).exists()
+            tenant_exists = School.objects.filter(schema_name=tenant_hint, is_active=True).exists()
             if not tenant_exists:
                 return response
 

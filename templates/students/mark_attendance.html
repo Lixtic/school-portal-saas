@@ -344,9 +344,24 @@ if (loadButton) {
     // Construct URL using Django reversematch to handle tenant prefix
     const urlPattern = "{% url 'students:get_class_students' 0 %}".replace('/0/', '/' + classId + '/');
 
-    fetch(`${urlPattern}?date=${dateVal}`)
+    fetch(`${urlPattern}?date=${dateVal}`, {
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin'
+    })
         .then(response => {
             const ct = response.headers.get('content-type') || '';
+            if (response.status === 402) {
+                // Trial expired — parse JSON body for redirect URL
+                return response.json().then(data => {
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                    }
+                    throw new Error(data.error || 'Your free trial has expired.');
+                });
+            }
             if (!ct.includes('application/json')) {
                 // Server returned HTML (login redirect, 404 page, 500 page)
                 if (response.status === 401 || response.redirected) {
