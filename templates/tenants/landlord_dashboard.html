@@ -1,481 +1,999 @@
-{% extends 'admin/admin_base.html' %}
+﻿{% extends 'admin/admin_base.html' %}
 {% load static %}
+{% load humanize %}
 
-{% block title %}Platform Command Center{% endblock %}
+{% block title %}Command Center  Aura Platform{% endblock %}
+
+{% block extra_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+{% endblock %}
 
 {% block admin_content %}
-<link rel="stylesheet" href="{% static 'css/admin-landlord-dashboard.css' %}">
+<style>
+/* ================================================================
+   A U R A    LUXURY MINIMAL COMMAND CENTER
+   Design Language: "Effortless Power  Exclusive Clarity"
+   Palette: Champagne Gold  Deep Charcoal  Warm Paper
+================================================================ */
 
-<div class="glass-bg"></div>
+.cmd {
+  --paper:          #F9F7F4;
+  --ink:            #1B1916;
+  --ink-muted:      rgba(27, 25, 22, 0.42);
+  --ink-faint:      rgba(27, 25, 22, 0.07);
+  --hairline:       rgba(27, 25, 22, 0.09);
+  --gold:           #C09B3A;
+  --gold-pale:      rgba(192, 155, 58, 0.09);
+  --gold-mid:       rgba(192, 155, 58, 0.28);
+  --gold-text:      #9E7C1C;
+  --emerald:        #2A5741;
+  --emerald-pale:   rgba(42, 87, 65, 0.07);
+  --ember:          #883122;
+  --ember-pale:     rgba(136, 49, 34, 0.07);
+  --slate:          #2C3E50;
+  --slate-pale:     rgba(44, 62, 80, 0.07);
 
-<div class="landlord-dashboard">
-    <!-- Hero Section -->
-    <div class="glass-card p-4 mb-4">
-        <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-            <div>
-                <div class="d-inline-flex align-items-center gap-2 mb-3">
-                    <div class="section-icon">
-                        <i class="bi bi-grid-3x3-gap"></i>
-                    </div>
-                    <div>
-                        <h1 class="section-title mb-0">Command Center</h1>
-                        <small class="text-muted d-none d-md-inline">Real-time analytics • Public schema</small>
-                        <small class="text-muted d-md-none">Real-time analytics</small>
-                    </div>
-                </div>
-                <p class="mb-0 text-muted d-none d-md-block">Monitor all tenants, domains, and growth trends with AI-powered insights.</p>
-            </div>
-            <div class="d-flex flex-column flex-md-row flex-wrap hero-actions gap-2 w-100 w-lg-auto">
-                <a class="glass-btn glass-btn-primary" href="{% url 'tenants:revenue_analytics' %}">
-                    <i class="bi bi-graph-up-arrow me-2"></i>Revenue
-                </a>
-                <a class="glass-btn glass-btn-primary" href="{% url 'tenants:approval_queue' %}">
-                    <i class="bi bi-clipboard-check me-2"></i><span class="d-none d-sm-inline">Approval Queue</span><span class="d-sm-none">Approvals</span>
-                    {% if pending_count > 0 %}
-                        <span class="badge bg-danger ms-1">{{ pending_count }}</span>
-                    {% endif %}
-                </a>
-                <a class="glass-btn d-none d-md-inline-flex" href="/admin/" target="_blank">
-                    <i class="bi bi-gear me-2"></i>Admin
-                </a>
-                <a class="glass-btn d-none d-md-inline-flex" href="{% url 'signup' %}">
-                    <i class="bi bi-plus-circle me-2"></i>New Tenant
-                </a>
-            </div>
+  --serif:  'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --sans:   'DM Sans', system-ui, -apple-system, sans-serif;
+
+  font-family:  var(--sans);
+  background:   var(--paper);
+  color:        var(--ink);
+  padding:      3.5rem 3rem 6rem;
+  min-height:   100vh;
+}
+
+.admin-container { background: var(--paper) !important; padding: 0 !important; max-width: none !important; }
+.cmd *, .cmd *::before, .cmd *::after { box-sizing: border-box; margin: 0; }
+.cmd a { text-decoration: none; }
+.cmd hr { border: none; }
+
+/*  OVERLINE LABEL  */
+.cmd-label {
+  font-family: var(--sans);
+  font-size: 0.5875rem;
+  font-weight: 500;
+  letter-spacing: 0.175em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+/*  HAIRLINE RULE  */
+.cmd-rule {
+  border-top: 1px solid var(--hairline);
+  margin: 3.5rem 0;
+  border: none;
+}
+.cmd-rule { border-top: 1px solid var(--hairline); }
+
+/*  SECTION HEADER  */
+.cmd-section-hd {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  gap: 1rem;
+}
+
+.cmd-section-title {
+  font-family: var(--serif);
+  font-size: 1.5rem;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.cmd-section-link {
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold-text);
+  transition: opacity 0.2s;
+  white-space: nowrap;
+}
+.cmd-section-link:hover { opacity: 0.55; color: var(--gold-text); }
+
+/* ================================================================
+   I. ALERT BAND
+================================================================ */
+.cmd-alert {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: var(--gold-pale);
+  border-left: 1.5px solid var(--gold);
+  padding: 0.9rem 1.25rem;
+  margin-bottom: 3.5rem;
+  border-radius: 0 1px 1px 0;
+  opacity: 0;
+  animation: cmd-bloom 0.5s 0.05s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.cmd-alert i { color: var(--gold); font-size: 0.625rem; flex-shrink: 0; }
+.cmd-alert-text { font-size: 0.8125rem; color: var(--ink); font-weight: 400; line-height: 1.4; }
+.cmd-alert-text strong { font-weight: 600; }
+.cmd-alert-cta {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 0.5875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold-text);
+  padding: 0.35rem 0.875rem;
+  border: 1px solid var(--gold-mid);
+  border-radius: 1px;
+  transition: background 0.2s, color 0.2s;
+}
+.cmd-alert-cta:hover { background: var(--gold); color: var(--paper); border-color: var(--gold); }
+
+/* ================================================================
+   II. HERO  GOD VIEW
+================================================================ */
+.cmd-hero {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 3rem;
+  padding-bottom: 3.5rem;
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 3.5rem;
+  opacity: 0;
+  animation: cmd-bloom 0.7s 0.1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.cmd-hero-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  margin-bottom: 1.5rem;
+}
+
+.cmd-live-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--gold);
+  animation: cmd-pulse-gold 2.8s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes cmd-pulse-gold {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.55; transform: scale(0.75); }
+}
+
+.cmd-hero-wordmark {
+  font-family: var(--serif);
+  font-size: clamp(2.25rem, 4.5vw, 3.875rem);
+  font-weight: 300;
+  letter-spacing: -0.025em;
+  line-height: 1.08;
+  color: var(--ink);
+}
+.cmd-hero-wordmark em { font-style: italic; font-weight: 300; color: var(--ink-muted); }
+
+.cmd-hero-sub {
+  margin-top: 1rem;
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+  font-weight: 300;
+  line-height: 1.6;
+  max-width: 480px;
+}
+.cmd-hero-sub strong { font-weight: 500; color: var(--ink); }
+
+.cmd-hero-stat { text-align: right; }
+
+.cmd-hero-num {
+  font-family: var(--serif);
+  font-size: clamp(5rem, 10vw, 8.5rem);
+  font-weight: 300;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  color: var(--ink);
+  display: block;
+}
+
+.cmd-hero-num-label {
+  font-size: 0.5875rem;
+  font-weight: 500;
+  letter-spacing: 0.175em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  display: block;
+  margin-top: 0.375rem;
+}
+
+/* ================================================================
+   III. PLATFORM METRICS
+================================================================ */
+.cmd-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin-bottom: 3.5rem;
+}
+
+.cmd-metric {
+  padding: 0 2rem 0 0;
+  margin-right: 2rem;
+  border-right: 1px solid var(--hairline);
+  opacity: 0;
+  animation: cmd-bloom 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.cmd-metric:last-child { border-right: none; padding-right: 0; margin-right: 0; }
+.cmd-metric:nth-child(1) { animation-delay: 0.14s; }
+.cmd-metric:nth-child(2) { animation-delay: 0.20s; }
+.cmd-metric:nth-child(3) { animation-delay: 0.26s; }
+.cmd-metric:nth-child(4) { animation-delay: 0.32s; }
+
+.cmd-metric-value {
+  font-family: var(--serif);
+  font-size: 3.25rem;
+  font-weight: 300;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  display: block;
+  margin: 0.6rem 0 0.4rem;
+}
+.cmd-metric-value.--emerald { color: var(--emerald); }
+.cmd-metric-value.--gold    { color: var(--gold-text); }
+.cmd-metric-value.--ember   { color: var(--ember); }
+
+.cmd-metric-note {
+  font-size: 0.6875rem;
+  color: var(--ink-muted);
+  font-weight: 300;
+  line-height: 1.4;
+}
+
+/* ================================================================
+   IV. 30-DAY GROWTH PULSE
+================================================================ */
+.cmd-pulse-wrap {
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  background: var(--paper);
+  margin-bottom: 3.5rem;
+  overflow: hidden;
+}
+.cmd-pulse-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.75rem;
+  border-bottom: 1px solid var(--hairline);
+}
+.cmd-pulse-chart {
+  padding: 1.75rem 1.75rem 0;
+  height: 100px;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  position: relative;
+}
+.cmd-pulse-bar {
+  flex: 1;
+  background: var(--gold);
+  opacity: 0;
+  border-radius: 1px 1px 0 0;
+  transform: scaleY(0);
+  transform-origin: bottom;
+  min-height: 2px;
+  transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease;
+  position: relative;
+}
+.cmd-pulse-bar.is-live { opacity: 0.72; }
+.cmd-pulse-bar::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--sans);
+  font-size: 0.5625rem;
+  letter-spacing: 0.06em;
+  padding: 3px 7px;
+  border-radius: 2px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  z-index: 10;
+}
+.cmd-pulse-bar:hover::after { opacity: 1; }
+.cmd-pulse-floor { width: 100%; height: 1px; background: var(--hairline); margin: 0 1.75rem; }
+.cmd-pulse-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.875rem 1.75rem;
+}
+
+/* ================================================================
+   V. APPROVAL INTELLIGENCE
+================================================================ */
+.cmd-approvals {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 3.5rem;
+}
+.cmd-approval-cell {
+  padding: 2.25rem 1.25rem 2rem;
+  border-right: 1px solid var(--hairline);
+  text-align: center;
+  position: relative;
+  transition: background 0.25s ease;
+  opacity: 0;
+  animation: cmd-bloom 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.cmd-approval-cell:last-child { border-right: none; }
+.cmd-approval-cell:hover { background: rgba(27,25,22,0.018); }
+.cmd-approval-cell:nth-child(1) { animation-delay: 0.10s; }
+.cmd-approval-cell:nth-child(2) { animation-delay: 0.16s; }
+.cmd-approval-cell:nth-child(3) { animation-delay: 0.22s; }
+.cmd-approval-cell:nth-child(4) { animation-delay: 0.28s; }
+.cmd-approval-cell:nth-child(5) { animation-delay: 0.34s; }
+.cmd-approval-cell.--alert::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--gold);
+}
+.cmd-approval-orb {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+  font-size: 1rem;
+}
+.cmd-approval-orb.--gold    { background: var(--gold-pale);    border: 1px solid var(--gold-mid);              color: var(--gold-text); }
+.cmd-approval-orb.--slate   { background: var(--slate-pale);   border: 1px solid rgba(44,62,80,.22);           color: var(--slate); }
+.cmd-approval-orb.--emerald { background: var(--emerald-pale); border: 1px solid rgba(42,87,65,.22);           color: var(--emerald); }
+.cmd-approval-orb.--ember   { background: var(--ember-pale);   border: 1px solid rgba(136,49,34,.22);          color: var(--ember); }
+.cmd-approval-orb.--neutral { background: var(--ink-faint);    border: 1px solid var(--hairline);              color: var(--ink-muted); }
+
+.cmd-approval-num {
+  font-family: var(--serif);
+  font-size: 2.375rem;
+  font-weight: 300;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  color: var(--ink);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+.cmd-approval-name {
+  font-size: 0.5625rem;
+  letter-spacing: 0.155em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  font-weight: 500;
+}
+
+/* ================================================================
+   VI. FLEET + AI SPLIT
+================================================================ */
+.cmd-split {
+  display: grid;
+  grid-template-columns: 5fr 6fr;
+  gap: 5rem;
+  margin-bottom: 3.5rem;
+  align-items: start;
+}
+
+/* Fleet */
+.cmd-fleet-row {
+  display: grid;
+  grid-template-columns: 72px 1fr 28px;
+  align-items: center;
+  gap: 1.125rem;
+  padding: 0.875rem 0;
+  border-bottom: 1px solid var(--hairline);
+  opacity: 0;
+  animation: cmd-bloom 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.cmd-fleet-row:last-child { border-bottom: none; }
+.cmd-fleet-row:nth-child(1) { animation-delay: 0.08s; }
+.cmd-fleet-row:nth-child(2) { animation-delay: 0.15s; }
+.cmd-fleet-row:nth-child(3) { animation-delay: 0.22s; }
+.cmd-fleet-row:nth-child(4) { animation-delay: 0.29s; }
+.cmd-fleet-row:nth-child(5) { animation-delay: 0.36s; }
+
+.cmd-fleet-label {
+  font-size: 0.5625rem; font-weight: 500;
+  letter-spacing: 0.13em; text-transform: uppercase; color: var(--ink-muted);
+}
+.cmd-fleet-track { height: 1px; background: var(--hairline); position: relative; border-radius: 1px; }
+.cmd-fleet-fill {
+  position: absolute; inset: 0;
+  background: var(--ink); border-radius: 1px;
+  transform: scaleX(0); transform-origin: left;
+  transition: transform 1s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.cmd-fleet-fill.is-live { transform: scaleX(1); }
+.cmd-fleet-count {
+  font-family: var(--serif); font-size: 1.125rem; font-weight: 400;
+  color: var(--ink); text-align: right; letter-spacing: -0.01em;
+}
+
+/* AI Observatory */
+.cmd-ai-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr 44px;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--hairline);
+  opacity: 0;
+  animation: cmd-bloom 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.cmd-ai-row:last-child { border-bottom: none; }
+.cmd-ai-row:nth-child(1) { animation-delay: 0.05s; }
+.cmd-ai-row:nth-child(2) { animation-delay: 0.11s; }
+.cmd-ai-row:nth-child(3) { animation-delay: 0.17s; }
+.cmd-ai-row:nth-child(4) { animation-delay: 0.23s; }
+.cmd-ai-row:nth-child(5) { animation-delay: 0.29s; }
+.cmd-ai-row:nth-child(6) { animation-delay: 0.35s; }
+.cmd-ai-row:nth-child(7) { animation-delay: 0.41s; }
+
+.cmd-ai-name {
+  font-size: 0.75rem; font-weight: 400; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cmd-ai-bar-track { height: 1px; background: var(--hairline); position: relative; border-radius: 1px; }
+.cmd-ai-bar-fill {
+  position: absolute; inset: 0;
+  background: var(--gold); border-radius: 1px;
+  transform: scaleX(0); transform-origin: left;
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.cmd-ai-bar-fill.--near-quota { background: var(--ember); }
+.cmd-ai-bar-fill.is-live { transform: scaleX(1); }
+
+.cmd-ai-meta { text-align: right; }
+.cmd-ai-calls {
+  font-family: var(--serif); font-size: 1rem; font-weight: 400;
+  color: var(--ink); display: block; line-height: 1.2; letter-spacing: -0.01em;
+}
+.cmd-ai-pct { font-size: 0.5625rem; color: var(--ink-muted); letter-spacing: 0.06em; }
+
+.cmd-ai-breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.cmd-ai-breakdown-row:last-child { border-bottom: none; }
+.cmd-ai-breakdown-label { font-size: 0.6875rem; color: var(--ink); text-transform: capitalize; }
+.cmd-ai-breakdown-count { font-family: var(--serif); font-size: 0.9375rem; color: var(--ink); }
+
+/* ================================================================
+   VII. RECENT ARRIVALS
+================================================================ */
+.cmd-recent-hd {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 2rem;
+  padding-bottom: 0.875rem;
+  border-bottom: 1px solid var(--hairline);
+}
+.cmd-recent-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: 2rem;
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--hairline);
+  opacity: 0;
+  animation: cmd-bloom 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.cmd-recent-row:last-child { border-bottom: none; }
+.cmd-recent-row:nth-child(1) { animation-delay: 0.06s; }
+.cmd-recent-row:nth-child(2) { animation-delay: 0.12s; }
+.cmd-recent-row:nth-child(3) { animation-delay: 0.18s; }
+.cmd-recent-row:nth-child(4) { animation-delay: 0.24s; }
+.cmd-recent-row:nth-child(5) { animation-delay: 0.30s; }
+.cmd-recent-row:nth-child(6) { animation-delay: 0.36s; }
+
+.cmd-school-name { font-size: 0.875rem; font-weight: 400; color: var(--ink); line-height: 1.3; }
+.cmd-school-sub  { font-size: 0.625rem; color: var(--ink-muted); font-weight: 300; margin-top: 0.2rem; letter-spacing: 0.03em; }
+
+.cmd-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.7rem;
+  border-radius: 1px;
+  font-size: 0.525rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.cmd-pill.--active   { color: var(--emerald);   border-color: rgba(42,87,65,.25);    background: var(--emerald-pale); }
+.cmd-pill.--trial    { color: var(--gold-text);  border-color: var(--gold-mid);       background: var(--gold-pale); }
+.cmd-pill.--offline  { color: var(--ink-muted);  border-color: var(--hairline);       background: transparent; }
+.cmd-pill.--pending  { color: var(--gold-text);  border-color: var(--gold-mid);       background: var(--gold-pale); }
+.cmd-pill.--approved { color: var(--emerald);    border-color: rgba(42,87,65,.25);    background: var(--emerald-pale); }
+.cmd-pill.--review   { color: var(--slate);      border-color: rgba(44,62,80,.22);    background: var(--slate-pale); }
+.cmd-pill.--other    { color: var(--ink-muted);  border-color: var(--hairline);       background: transparent; }
+
+.cmd-recent-date { font-size: 0.6875rem; color: var(--ink-muted); font-weight: 300; white-space: nowrap; }
+
+/* ================================================================
+   VIII. COMMAND FINALE
+================================================================ */
+.cmd-finale {
+  margin-top: 3.5rem;
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1px;
+  background: var(--hairline);
+}
+.cmd-action {
+  background: var(--paper);
+  padding: 2.25rem 1.5rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  color: var(--ink);
+  transition: background 0.3s cubic-bezier(0.22, 1, 0.36, 1), color 0.3s;
+}
+.cmd-action:hover { background: var(--ink); color: var(--paper); }
+.cmd-action:hover .cmd-action-overline { color: rgba(249,247,244,0.45); }
+.cmd-action:hover .cmd-action-icon     { color: var(--gold); }
+.cmd-action:hover .cmd-action-badge    { color: rgba(192,155,58,0.85); }
+
+.cmd-action-icon     { font-size: 1.125rem; color: var(--ink-muted); transition: color 0.3s; }
+.cmd-action-overline {
+  font-size: 0.5rem; font-weight: 500;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--ink-muted); transition: color 0.3s;
+}
+.cmd-action-title {
+  font-family: var(--serif);
+  font-size: 1.0625rem; font-weight: 400;
+  line-height: 1.25; letter-spacing: -0.005em;
+}
+.cmd-action-badge {
+  display: inline-block;
+  font-size: 0.5rem; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--gold-text);
+  font-weight: 600; margin-top: auto;
+  transition: color 0.3s;
+}
+
+/* ================================================================
+   IX. SIGNATURE
+================================================================ */
+.cmd-sig {
+  margin-top: 4rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.cmd-sig-mark  { font-family: var(--serif); font-size: 0.8125rem; font-style: italic; font-weight: 300; color: var(--ink-muted); }
+.cmd-sig-time  { font-size: 0.5625rem; font-weight: 400; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-muted); }
+
+/* ================================================================
+   ANIMATIONS
+================================================================ */
+@keyframes cmd-bloom {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ================================================================
+   RESPONSIVE
+================================================================ */
+@media (max-width: 1200px) {
+  .cmd { padding: 2.5rem 2rem 5rem; }
+  .cmd-split { grid-template-columns: 1fr 1fr; gap: 3rem; }
+  .cmd-finale { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 992px) {
+  .cmd { padding: 2rem 1.5rem 4.5rem; }
+  .cmd-hero { grid-template-columns: 1fr; gap: 2rem; }
+  .cmd-hero-stat { text-align: left; }
+  .cmd-metrics { grid-template-columns: repeat(2, 1fr); }
+  .cmd-metric:nth-child(odd)  { border-right: 1px solid var(--hairline); margin-right: 2rem; padding-right: 2rem; }
+  .cmd-metric:nth-child(even) { border-right: none; padding-right: 0; margin-right: 0; }
+  .cmd-metric:nth-child(3),
+  .cmd-metric:nth-child(4) { padding-top: 1.5rem; border-top: 1px solid var(--hairline); }
+  .cmd-approvals { grid-template-columns: repeat(3, 1fr); }
+  .cmd-approval-cell:nth-child(3) { border-right: none; }
+  .cmd-approval-cell:nth-child(4),
+  .cmd-approval-cell:nth-child(5) { border-top: 1px solid var(--hairline); }
+  .cmd-approval-cell:nth-child(5) { border-right: none; }
+  .cmd-split { grid-template-columns: 1fr; gap: 2rem; }
+  .cmd-recent-hd,
+  .cmd-recent-row { grid-template-columns: 1fr auto auto; gap: 1.25rem; }
+  .cmd-recent-date { display: none; }
+  .cmd-finale { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 576px) {
+  .cmd { padding: 1.5rem 1.25rem 4rem; }
+  .cmd-approvals { grid-template-columns: repeat(2, 1fr); }
+  .cmd-finale { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+
+<div class="cmd" id="cmd-root">
+
+  <!-- I. ALERT BAND -->
+  {% if pending_count or under_review_count %}
+  <div class="cmd-alert">
+    <i class="bi bi-circle-fill"></i>
+    <span class="cmd-alert-text">
+      {% if pending_count %}<strong>{{ pending_count }} school{{ pending_count|pluralize }}</strong> awaiting initial review.{% endif %}
+      {% if under_review_count %}<strong>{{ under_review_count }}</strong> currently under review.{% endif %}
+    </span>
+    <a href="{% url 'tenants:approval_queue' %}" class="cmd-alert-cta">Review Queue &rarr;</a>
+  </div>
+  {% endif %}
+
+  <!-- II. HERO -->
+  <header class="cmd-hero">
+    <div>
+      <div class="cmd-hero-eyebrow">
+        <span class="cmd-live-dot"></span>
+        <span class="cmd-label">Platform Command Center &nbsp;&middot;&nbsp; Live Data</span>
+      </div>
+      <h1 class="cmd-hero-wordmark">
+        The Educational<br>
+        <em>Empire at a Glance</em>
+      </h1>
+      <p class="cmd-hero-sub">
+        You are overseeing
+        <strong>{{ active_count }} active institution{{ active_count|pluralize }}</strong>
+        across your infrastructure.
+        {% if trial_count %}{{ trial_count }} on trial.{% endif %}
+        {% if inactive_count %}{{ inactive_count }} offline.{% endif %}
+        Total domain{{ domains_count|pluralize }} registered: {{ domains_count }}.
+      </p>
+    </div>
+    <div class="cmd-hero-stat">
+      <span class="cmd-hero-num">{{ schools_count }}</span>
+      <span class="cmd-hero-num-label">Total Schools</span>
+    </div>
+  </header>
+
+  <!-- III. PLATFORM METRICS -->
+  <div class="cmd-metrics">
+    <div class="cmd-metric">
+      <span class="cmd-label">Active</span>
+      <span class="cmd-metric-value --emerald">{{ active_count }}</span>
+      <div class="cmd-metric-note">Running live operations</div>
+    </div>
+    <div class="cmd-metric">
+      <span class="cmd-label">Trial</span>
+      <span class="cmd-metric-value --gold">{{ trial_count }}</span>
+      <div class="cmd-metric-note">In evaluation period</div>
+    </div>
+    <div class="cmd-metric">
+      <span class="cmd-label">Offline</span>
+      <span class="cmd-metric-value">{{ inactive_count }}</span>
+      <div class="cmd-metric-note">Deactivated or suspended</div>
+    </div>
+    <div class="cmd-metric">
+      <span class="cmd-label">Domains</span>
+      <span class="cmd-metric-value">{{ domains_count }}</span>
+      <div class="cmd-metric-note">{{ primary_domains }} primary assigned</div>
+    </div>
+  </div>
+
+  <hr class="cmd-rule">
+
+  <!-- IV. 30-DAY GROWTH PULSE -->
+  <div class="cmd-section-hd">
+    <h2 class="cmd-section-title">30-Day Enrollment Pulse</h2>
+    <span class="cmd-label">{{ signups_chart|length }} day{{ signups_chart|length|pluralize }} with activity</span>
+  </div>
+
+  <div class="cmd-pulse-wrap" id="cmd-pulse-wrap">
+    <div class="cmd-pulse-header">
+      <span class="cmd-label">Daily school registrations &mdash; trailing 30 days</span>
+      {% if ai_total_month is not None %}
+      <span class="cmd-label">{{ ai_total_month|intcomma }} AI call{{ ai_total_month|pluralize }} this month</span>
+      {% endif %}
+    </div>
+    <div class="cmd-pulse-chart" id="cmd-pulse-chart">
+      {% for day in signups_chart %}
+      <div class="cmd-pulse-bar"
+           data-pct="{{ day.pct }}"
+           data-tip="{{ day.date|date:'M d' }}: {{ day.total }} signup{{ day.total|pluralize }}"
+           style="height: 2px; opacity: 0;"></div>
+      {% empty %}
+      <div style="width:100%; display:flex; align-items:center; justify-content:center; height:100%;">
+        <span class="cmd-label">No signups recorded in the last 30 days.</span>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="cmd-pulse-floor"></div>
+    <div class="cmd-pulse-footer">
+      <span class="cmd-label">&larr; 30 days ago</span>
+      <span class="cmd-label">Today &rarr;</span>
+    </div>
+  </div>
+
+  <!-- V. APPROVAL INTELLIGENCE -->
+  <div class="cmd-section-hd">
+    <h2 class="cmd-section-title">Approval Intelligence</h2>
+    <a href="{% url 'tenants:approval_queue' %}" class="cmd-section-link">Open Queue &rarr;</a>
+  </div>
+
+  <div class="cmd-approvals">
+    <div class="cmd-approval-cell {% if pending_count %}--alert{% endif %}">
+      <div class="cmd-approval-orb --gold"><i class="bi bi-hourglass-split"></i></div>
+      <span class="cmd-approval-num">{{ pending_count }}</span>
+      <div class="cmd-approval-name">Pending</div>
+    </div>
+    <div class="cmd-approval-cell">
+      <div class="cmd-approval-orb --slate"><i class="bi bi-eye"></i></div>
+      <span class="cmd-approval-num">{{ under_review_count }}</span>
+      <div class="cmd-approval-name">Under Review</div>
+    </div>
+    <div class="cmd-approval-cell">
+      <div class="cmd-approval-orb --emerald"><i class="bi bi-check-lg"></i></div>
+      <span class="cmd-approval-num">{{ approved_count }}</span>
+      <div class="cmd-approval-name">Approved</div>
+    </div>
+    <div class="cmd-approval-cell">
+      <div class="cmd-approval-orb --ember"><i class="bi bi-x-lg"></i></div>
+      <span class="cmd-approval-num">{{ rejected_count }}</span>
+      <div class="cmd-approval-name">Rejected</div>
+    </div>
+    <div class="cmd-approval-cell">
+      <div class="cmd-approval-orb --neutral"><i class="bi bi-info-lg"></i></div>
+      <span class="cmd-approval-num">{{ requires_info_count }}</span>
+      <div class="cmd-approval-name">Needs Info</div>
+    </div>
+  </div>
+
+  <hr class="cmd-rule">
+
+  <!-- VI. FLEET + AI SPLIT -->
+  <div class="cmd-split">
+
+    <!-- Fleet Composition -->
+    <div>
+      <div class="cmd-section-hd">
+        <h2 class="cmd-section-title">Fleet Composition</h2>
+      </div>
+      <div id="cmd-fleet">
+        {% for item in by_type %}
+        <div class="cmd-fleet-row">
+          <span class="cmd-fleet-label">
+            {% if item.school_type == 'primary' %}Primary
+            {% elif item.school_type == 'jhs' %}JHS
+            {% elif item.school_type == 'shs' %}SHS
+            {% elif item.school_type == 'basic' %}Basic
+            {% else %}Other{% endif %}
+          </span>
+          <div class="cmd-fleet-track">
+            <div class="cmd-fleet-fill"
+                 style="width: {% if schools_count %}{% widthratio item.total schools_count 100 %}{% else %}0{% endif %}%;"></div>
+          </div>
+          <span class="cmd-fleet-count">{{ item.total }}</span>
         </div>
+        {% empty %}
+        <p class="cmd-label" style="padding: 1.5rem 0;">No type classification data available.</p>
+        {% endfor %}
+      </div>
     </div>
 
-    <!-- Platform Metrics Grid -->
-    <div class="row g-3 mb-4">
-        <!-- Desktop Stats -->
-        <div class="col-md-6 col-xl-3">
-            <div class="glass-card analytics-tile p-4" style="min-height: 140px;">
-                <div class="d-flex align-items-start justify-content-between mb-3">
-                    <div class="flex-grow-1">
-                        <p class="text-muted mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px; font-weight: 600;">Total Schools</p>
-                        <h2 class="metric-value mb-0">{{ schools_count }}</h2>
-                    </div>
-                    <div class="metric-icon-wrapper" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.05));">
-                        <i class="bi bi-building text-success"></i>
-                    </div>
-                </div>
-                <div class="d-flex align-items-center gap-2 text-success mt-auto">
-                    <i class="bi bi-arrow-up-right"></i>
-                    <small class="fw-semibold">All time</small>
-                </div>
-            </div>
+    <!-- AI Observatory -->
+    <div>
+      {% if ai_total_month is not None %}
+      <div class="cmd-section-hd">
+        <h2 class="cmd-section-title">AI Observatory</h2>
+        <span class="cmd-label">{{ ai_total_month|intcomma }} call{{ ai_total_month|pluralize }}</span>
+      </div>
+      <div id="cmd-ai-list">
+        {% for school in top_ai_schools %}
+        <div class="cmd-ai-row">
+          <span class="cmd-ai-name" title="{{ school.name }}">{{ school.name }}</span>
+          <div class="cmd-ai-bar-track">
+            <div class="cmd-ai-bar-fill {% if school.near_quota %}--near-quota{% endif %}"
+                 style="width: {{ school.used_pct }}%;"></div>
+          </div>
+          <div class="cmd-ai-meta">
+            <span class="cmd-ai-calls">{{ school.call_count }}</span>
+            <span class="cmd-ai-pct">{{ school.used_pct }}%</span>
+          </div>
         </div>
-        
-        <div class="col-md-6 col-xl-3">
-            <div class="glass-card analytics-tile p-4" style="min-height: 140px;">
-                <div class="d-flex align-items-start justify-content-between mb-3">
-                    <div class="flex-grow-1">
-                        <p class="text-muted mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px; font-weight: 600;">Active</p>
-                        <h2 class="metric-value mb-0">{{ active_count }}</h2>
-                    </div>
-                    <div class="metric-icon-wrapper" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.05));">
-                        <i class="bi bi-activity text-primary"></i>
-                    </div>
-                </div>
-                <div class="d-flex align-items-center gap-2 text-primary mt-auto">
-                    <span class="status-indicator bg-primary"></span>
-                    <small class="fw-semibold">Live tenants</small>
-                </div>
-            </div>
+        {% empty %}
+        <p class="cmd-label" style="padding: 1rem 0;">No AI usage recorded this month.</p>
+        {% endfor %}
+      </div>
+      {% if ai_action_breakdown %}
+      <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--hairline);">
+        <div class="cmd-label" style="margin-bottom: 1rem;">Top Action Types</div>
+        {% for row in ai_action_breakdown %}
+        <div class="cmd-ai-breakdown-row">
+          <span class="cmd-ai-breakdown-label">{{ row.action_type }}</span>
+          <span class="cmd-ai-breakdown-count">{{ row.count }}</span>
         </div>
-        
-        <div class="col-md-6 col-xl-3">
-            <div class="glass-card analytics-tile p-4" style="min-height: 140px;">
-                <div class="d-flex align-items-start justify-content-between mb-3">
-                    <div class="flex-grow-1">
-                        <p class="text-muted mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px; font-weight: 600;">On Trial</p>
-                        <h2 class="metric-value mb-0">{{ trial_count }}</h2>
-                    </div>
-                    <div class="metric-icon-wrapper" style="background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.05));">
-                        <i class="bi bi-hourglass-split text-warning"></i>
-                    </div>
-                </div>
-                <div class="d-flex align-items-center gap-2 text-warning mt-auto">
-                    <i class="bi bi-clock-history"></i>
-                    <small class="fw-semibold">Evaluation mode</small>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-6 col-xl-3">
-            <div class="glass-card analytics-tile p-4" style="min-height: 140px;">
-                <div class="d-flex align-items-start justify-content-between mb-3">
-                    <div class="flex-grow-1">
-                        <p class="text-muted mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px; font-weight: 600;">Inactive</p>
-                        <h2 class="metric-value mb-0">{{ inactive_count }}</h2>
-                    </div>
-                    <div class="metric-icon-wrapper" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.05));">
-                        <i class="bi bi-slash-circle text-danger"></i>
-                    </div>
-                </div>
-                <div class="d-flex align-items-center gap-2 text-danger mt-auto">
-                    <i class="bi bi-pause-circle"></i>
-                    <small class="fw-semibold">Paused</small>
-                </div>
-            </div>
-        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% else %}
+      <div class="cmd-section-hd"><h2 class="cmd-section-title">AI Observatory</h2></div>
+      <p class="cmd-label" style="padding: 1rem 0;">AI usage module not initialised.</p>
+      {% endif %}
     </div>
 
-    <!-- Approval Status Tiles -->
-    <div class="row g-3 mb-4">
-        <div class="col-12">
-            <div class="glass-card p-3">
-                <h6 class="text-muted text-uppercase mb-3" style="font-size: 0.75rem; letter-spacing: 1px; font-weight: 600;">
-                    <i class="bi bi-clipboard-check me-2"></i><span class="d-none d-sm-inline">School Onboarding Pipeline</span><span class="d-sm-none">Onboarding</span>
-                </h6>
-                <div class="row g-2">
-                    <div class="col-6 col-md">
-                        <a href="{% url 'tenants:approval_queue' %}?status=pending" class="text-decoration-none">
-                            <div class="glass-card p-3 text-center h-100 analytics-tile pipeline-tile">
-                                <i class="bi bi-hourglass text-warning fs-2 mb-2 d-none d-md-block"></i>
-                                <i class="bi bi-hourglass text-warning fs-4 mb-1 d-md-none"></i>
-                                <h4 class="metric-value mb-1">{{ pending_count }}</h4>
-                                <small class="text-muted">Pending</small>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="col-6 col-md">
-                        <a href="{% url 'tenants:approval_queue' %}?status=under_review" class="text-decoration-none">
-                            <div class="glass-card p-3 text-center h-100 analytics-tile pipeline-tile">
-                                <i class="bi bi-eye text-primary fs-2 mb-2 d-none d-md-block"></i>
-                                <i class="bi bi-eye text-primary fs-4 mb-1 d-md-none"></i>
-                                <h4 class="metric-value mb-1">{{ under_review_count }}</h4>
-                                <small class="text-muted d-none d-sm-inline">Under Review</small>
-                                <small class="text-muted d-sm-none">Review</small>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="col-6 col-md">
-                        <a href="{% url 'tenants:approval_queue' %}?status=approved" class="text-decoration-none">
-                            <div class="glass-card p-3 text-center h-100 analytics-tile pipeline-tile">
-                                <i class="bi bi-check-circle text-success fs-2 mb-2 d-none d-md-block"></i>
-                                <i class="bi bi-check-circle text-success fs-4 mb-1 d-md-none"></i>
-                                <h4 class="metric-value mb-1">{{ approved_count }}</h4>
-                                <small class="text-muted">Approved</small>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="col-6 col-md">
-                        <a href="{% url 'tenants:approval_queue' %}?status=rejected" class="text-decoration-none">
-                            <div class="glass-card p-3 text-center h-100 analytics-tile pipeline-tile">
-                                <i class="bi bi-x-circle text-danger fs-2 mb-2 d-none d-md-block"></i>
-                                <i class="bi bi-x-circle text-danger fs-4 mb-1 d-md-none"></i>
-                                <h4 class="metric-value mb-1">{{ rejected_count }}</h4>
-                                <small class="text-muted">Rejected</small>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="col-12 col-md d-none d-md-block">
-                        <a href="{% url 'tenants:approval_queue' %}?status=requires_info" class="text-decoration-none">
-                            <div class="glass-card p-3 text-center h-100 analytics-tile pipeline-tile">
-                                <i class="bi bi-info-circle text-secondary fs-2 mb-2"></i>
-                                <h4 class="metric-value mb-1">{{ requires_info_count }}</h4>
-                                <small class="text-muted">Needs Info</small>
-                            </div>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
+  </div>
+
+  <hr class="cmd-rule">
+
+  <!-- VII. RECENT ARRIVALS -->
+  <div class="cmd-section-hd">
+    <h2 class="cmd-section-title">Recent Arrivals</h2>
+    <a href="{% url 'tenants:approval_queue' %}" class="cmd-section-link">All Schools &rarr;</a>
+  </div>
+
+  <div class="cmd-recent-hd">
+    <span class="cmd-label">Institution</span>
+    <span class="cmd-label">Status</span>
+    <span class="cmd-label">Approval</span>
+    <span class="cmd-label">Joined</span>
+  </div>
+
+  <div id="cmd-recent">
+    {% for school in recent_schools %}
+    <div class="cmd-recent-row">
+      <div>
+        <div class="cmd-school-name">{{ school.name }}</div>
+        <div class="cmd-school-sub">{{ school.schema_name }}&nbsp;&nbsp;&middot;&nbsp;&nbsp;{{ school.get_school_type_display }}</div>
+      </div>
+      <span class="cmd-pill {% if school.on_trial %}--trial{% elif school.is_active %}--active{% else %}--offline{% endif %}">
+        {% if school.on_trial %}Trial{% elif school.is_active %}Active{% else %}Offline{% endif %}
+      </span>
+      <span class="cmd-pill {% if school.approval_status == 'approved' %}--approved{% elif school.approval_status == 'pending' %}--pending{% elif school.approval_status == 'under_review' %}--review{% else %}--other{% endif %}">
+        {{ school.get_approval_status_display }}
+      </span>
+      <span class="cmd-recent-date">{{ school.created_on|date:"M d, Y" }}</span>
     </div>
+    {% empty %}
+    <p class="cmd-label" style="padding: 2rem 0;">No schools registered yet.</p>
+    {% endfor %}
+  </div>
 
-    <!-- Trend Visualization & Domains -->
-    <div class="row g-3 mb-4">
-        <div class="col-lg-8">
-            <div class="glass-card p-4 h-100">
-                <div class="section-header">
-                    <div class="section-icon">
-                        <i class="bi bi-graph-up-arrow"></i>
-                    </div>
-                    <div class="flex-grow-1">
-                        <h3 class="section-title">Signup Trend</h3>
-                        <small class="text-muted d-none d-md-inline">Last 30 days • AI predictions enabled</small>
-                        <small class="text-muted d-md-none">Last 30 days</small>
-                    </div>
-                </div>
-                <div class="d-flex flex-column gap-3 mt-3">
-                    {% if signups_chart %}
-                        {% for day in signups_chart %}
-                            <div>
-                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <small class="text-muted fw-semibold" style="min-width: 70px;">{{ day.date|date:"M d" }}</small>
-                                    <span class="badge rounded-pill" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">{{ day.total }}</span>
-                                </div>
-                                <div class="trend-bar">
-                                    <div class="trend-fill" style="width: {{ day.pct }}%;"></div>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="text-center py-5">
-                            <i class="bi bi-graph-down text-muted" style="font-size: 3rem; opacity: 0.3;"></i>
-                            <p class="text-muted mt-3 mb-0">No signups in the last 30 days.</p>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-4">
-            <div class="glass-card p-4 h-100">
-                <div class="section-header">
-                    <div class="section-icon">
-                        <i class="bi bi-globe"></i>
-                    </div>
-                    <div class="flex-grow-1">
-                        <h3 class="section-title">Domains</h3>
-                        <small class="text-muted d-none d-md-inline">DNS management</small>
-                    </div>
-                </div>
-                <div class="mt-4">
-                    <div class="d-flex align-items-center justify-content-between mb-3 pb-3" style="border-bottom: 1px solid rgba(139, 92, 246, 0.1);">
-                        <span class="text-muted">Total domains</span>
-                        <span class="fs-4 fw-bold text-gradient">{{ domains_count }}</span>
-                    </div>
-                    <div class="d-flex align-items-center justify-content-between mb-4">
-                        <span class="text-muted">Primary domains</span>
-                        <span class="badge rounded-pill bg-success">{{ primary_domains }}</span>
-                    </div>
-                    <p class="text-muted small mb-3 d-none d-md-block">Monitor custom domains and SSL status.</p>
-                    <a class="glass-btn w-100 text-center" href="/admin/tenants/domain/" target="_blank">
-                        <i class="bi bi-box-arrow-up-right me-2"></i>Manage
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
+  <!-- VIII. COMMAND FINALE -->
+  <div class="cmd-finale">
+    <a href="{% url 'tenants:approval_queue' %}" class="cmd-action">
+      <i class="bi bi-clipboard-check cmd-action-icon"></i>
+      <div>
+        <div class="cmd-action-overline">Review</div>
+        <div class="cmd-action-title">Approval Queue</div>
+      </div>
+      {% if pending_count %}<span class="cmd-action-badge">{{ pending_count }} Pending</span>{% endif %}
+    </a>
+    <a href="{% url 'tenants:revenue_analytics' %}" class="cmd-action">
+      <i class="bi bi-graph-up-arrow cmd-action-icon"></i>
+      <div>
+        <div class="cmd-action-overline">Finance</div>
+        <div class="cmd-action-title">Revenue Analytics</div>
+      </div>
+    </a>
+    <a href="{% url 'tenants:system_health' %}" class="cmd-action">
+      <i class="bi bi-activity cmd-action-icon"></i>
+      <div>
+        <div class="cmd-action-overline">Infrastructure</div>
+        <div class="cmd-action-title">System Health</div>
+      </div>
+    </a>
+    <a href="{% url 'tenants:support_tickets' %}" class="cmd-action">
+      <i class="bi bi-headset cmd-action-icon"></i>
+      <div>
+        <div class="cmd-action-overline">Support</div>
+        <div class="cmd-action-title">Ticket Centre</div>
+      </div>
+    </a>
+    <a href="{% url 'signup' %}" class="cmd-action">
+      <i class="bi bi-plus cmd-action-icon"></i>
+      <div>
+        <div class="cmd-action-overline">Provision</div>
+        <div class="cmd-action-title">New School</div>
+      </div>
+    </a>
+    <a href="/admin/" class="cmd-action">
+      <i class="bi bi-terminal cmd-action-icon"></i>
+      <div>
+        <div class="cmd-action-overline">Django</div>
+        <div class="cmd-action-title">Admin Console</div>
+      </div>
+    </a>
+  </div>
 
-    <!-- Data Tables -->
-    <div class="row g-3 mb-4">
-        <div class="col-lg-6">
-            <div class="glass-card p-4 h-100">
-                <div class="section-header">
-                    <div class="section-icon">
-                        <i class="bi bi-pie-chart"></i>
-                    </div>
-                    <div>
-                        <h3 class="section-title">Tenant Mix</h3>
-                        <small class="text-muted">By school type</small>
-                    </div>
-                </div>
-                <table class="table glass-table align-middle mb-0 mt-3">
-                    <thead>
-                        <tr>
-                            <th>Type</th>
-                            <th class="text-end">Count</th>
-                            <th class="text-end">%</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in by_type %}
-                        <tr>
-                            <td>
-                                <i class="bi bi-circle-fill me-2" style="font-size: 0.5rem; color: {% cycle '#8b5cf6' '#6366f1' '#3b82f6' '#10b981' '#f59e0b' %}"></i>
-                                <span class="text-capitalize fw-semibold">{{ row.school_type|default:"Unknown" }}</span>
-                            </td>
-                            <td class="text-end">
-                                <span class="badge rounded-pill" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6;">{{ row.total }}</span>
-                            </td>
-                            <td class="text-end text-muted">
-                                {% widthratio row.total schools_count 100 %}%
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="3" class="text-center text-muted py-4">No data available</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        
-        <div class="col-lg-6">
-            <div class="glass-card p-4 h-100">
-                <div class="section-header">
-                    <div class="section-icon">
-                        <i class="bi bi-clock-history"></i>
-                    </div>
-                    <div>
-                        <h3 class="section-title">Recent Activity</h3>
-                        <small class="text-muted">Latest 6 schools</small>
-                    </div>
-                </div>
-                <table class="table glass-table align-middle mb-0 mt-3">
-                    <thead>
-                        <tr>
-                            <th>School</th>
-                            <th class="d-none d-sm-table-cell">Status</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for school in recent_schools %}
-                        <tr>
-                            <td>
-                                <div>
-                                    <div class="fw-bold">{{ school.name }}</div>
-                                    <small class="text-muted d-none d-md-inline">
-                                        <code>{{ school.schema_name }}</code>
-                                        <span class="mx-1">•</span>
-                                        {{ school.created_on|date:"M d, Y" }}
-                                    </small>
-                                    <small class="text-muted d-md-none">
-                                        {{ school.created_on|date:"M d" }}
-                                    </small>
-                                </div>
-                            </td>
-                            <td class="d-none d-sm-table-cell">
-                                {% if school.is_active %}
-                                <span class="badge rounded-pill bg-success">
-                                    <span class="status-indicator" style="background: rgba(255,255,255,0.7); box-shadow: 0 0 6px rgba(255,255,255,0.5);"></span>
-                                    Active
-                                </span>
-                                {% else %}
-                                <span class="badge rounded-pill bg-warning">Inactive</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-end">
-                                <a class="glass-btn py-1 px-3" href="/{{ school.schema_name }}/login/" target="_blank" style="font-size: 0.875rem;">
-                                    <i class="bi bi-box-arrow-up-right"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="3" class="text-center text-muted py-4">No schools created yet.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+  <!-- IX. SIGNATURE -->
+  <div class="cmd-sig">
+    <span class="cmd-sig-mark">Aura &mdash; Platform Command Center</span>
+    <span class="cmd-sig-time" id="cmd-clock"></span>
+  </div>
 
-    <!-- AI Usage Section -->
-    {% if ai_total_month is not None %}
-    <div class="row g-3 mb-4">
-        <div class="col-lg-6">
-            <div class="glass-card p-4 h-100">
-                <div class="section-header mb-3">
-                    <div class="section-icon" style="background: linear-gradient(135deg, rgba(99,102,241,.25), rgba(139,92,246,.1));">
-                        <i class="bi bi-robot" style="color:#818cf8;"></i>
-                    </div>
-                    <div>
-                        <h3 class="section-title">AI Usage This Month</h3>
-                        <small class="text-muted">Aura-T calls across all schools</small>
-                    </div>
-                </div>
+</div><!-- /cmd -->
 
-                <div class="d-flex align-items-center gap-3 mb-3">
-                    <div>
-                        <span style="font-size:2.2rem;font-weight:800;background:linear-gradient(135deg,#818cf8,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
-                            {{ ai_total_month|default:"0" }}
-                        </span>
-                        <span class="text-muted ms-1" style="font-size:.85rem;">total AI calls</span>
-                    </div>
-                </div>
+<script>
+(function () {
+  'use strict';
 
-                {% if ai_action_breakdown %}
-                <div class="d-flex flex-wrap gap-2">
-                    {% for action in ai_action_breakdown %}
-                    <span class="badge rounded-pill py-1 px-2" style="background:rgba(99,102,241,.12);color:#818cf8;font-size:.75rem;font-weight:600;">
-                        {{ action.action_type|title }}: {{ action.count }}
-                    </span>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <p class="text-muted small">No AI activity this month yet.</p>
-                {% endif %}
-            </div>
-        </div>
+  /* Live clock */
+  var clockEl = document.getElementById('cmd-clock');
+  function tick() {
+    if (!clockEl) return;
+    var n = new Date();
+    clockEl.textContent = n.toLocaleString('en-GB', {
+      weekday: 'short', year: 'numeric', month: 'short',
+      day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+  }
+  tick();
+  setInterval(tick, 1000);
 
-        <div class="col-lg-6">
-            <div class="glass-card p-4 h-100">
-                <div class="section-header mb-3">
-                    <div class="section-icon" style="background: linear-gradient(135deg, rgba(251,191,36,.25), rgba(239,68,68,.1));">
-                        <i class="bi bi-graph-up-arrow" style="color:#fbbf24;"></i>
-                    </div>
-                    <div>
-                        <h3 class="section-title">Top Schools by AI Usage</h3>
-                        <small class="text-muted">This month — schools near quota flagged</small>
-                    </div>
-                </div>
-                {% if top_ai_schools %}
-                <table class="table glass-table align-middle mb-0" style="font-size:.82rem;">
-                    <thead>
-                        <tr>
-                            <th>School</th>
-                            <th class="text-end">Calls</th>
-                            <th class="text-end d-none d-sm-table-cell">Quota</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for s in top_ai_schools %}
-                        <tr {% if s.near_quota %}style="background:rgba(239,68,68,.05);"{% endif %}>
-                            <td>
-                                <span class="fw-semibold">{{ s.name }}</span>
-                                {% if s.near_quota %}
-                                <span class="badge bg-danger ms-1" style="font-size:.65rem;">Near Limit</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-end fw-bold">{{ s.call_count }}</td>
-                            <td class="text-end d-none d-sm-table-cell text-muted">
-                                {% if s.limit > 0 %}{{ s.used_pct }}%{% else %}∞{% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                {% else %}
-                <p class="text-muted small mt-2">No AI usage recorded yet this month.</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    {% endif %}
+  /* IntersectionObserver helper */
+  function watchEl(el, cb) {
+    if (!el) return;
+    if (!('IntersectionObserver' in window)) { cb(); return; }
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { cb(); obs.unobserve(e.target); }
+      });
+    }, { threshold: 0.12 });
+    obs.observe(el);
+  }
 
-    <!-- Quick Actions -->
-    <div class="glass-card p-4">
-        <div class="section-header">
-            <div class="section-icon">
-                <i class="bi bi-lightning"></i>
-            </div>
-            <h3 class="section-title">Quick Operations</h3>
-        </div>
-        <div class="quick-ops-bar mt-3">
-            <!-- Tenant management group -->
-            <a class="glass-btn" href="/admin/tenants/school/" target="_blank">
-                <i class="bi bi-list-check me-2"></i>Manage Tenants
-            </a>
-            <a class="glass-btn glass-btn-primary" href="{% url 'signup' %}">
-                <i class="bi bi-plus-circle me-2"></i>New Tenant
-            </a>
-            <div class="vr d-none d-md-block mx-1" style="opacity: 0.25;"></div>
-            <!-- Analytics group -->
-            <a class="glass-btn" href="{% url 'tenants:revenue_analytics' %}">
-                <i class="bi bi-graph-up me-2"></i>Revenue
-            </a>
-            <a class="glass-btn" href="{% url 'tenants:system_health' %}">
-                <i class="bi bi-activity me-2"></i>Health
-            </a>
-            <div class="vr d-none d-md-block mx-1" style="opacity: 0.25;"></div>
-            <!-- Support & admin group -->
-            <a class="glass-btn" href="{% url 'tenants:support_tickets' %}">
-                <i class="bi bi-headset me-2"></i>Support
-            </a>
-            <a class="glass-btn" href="{% url 'tenants:database_backups' %}">
-                <i class="bi bi-shield-check me-2"></i>Backups
-            </a>
-            <a class="glass-btn" href="/admin/auth/user/" target="_blank">
-                <i class="bi bi-people me-2"></i>Users
-            </a>
-            <a class="glass-btn" href="/admin/" target="_blank">
-                <i class="bi bi-gear me-2"></i>Full Admin
-            </a>
-        </div>
-    </div>
-</div>
+  /* Growth pulse chart */
+  var chartEl = document.getElementById('cmd-pulse-chart');
+  if (chartEl) {
+    watchEl(chartEl, function () {
+      var bars = chartEl.querySelectorAll('.cmd-pulse-bar');
+      bars.forEach(function (bar, i) {
+        var pct = parseInt(bar.dataset.pct || '0', 10);
+        setTimeout(function () {
+          bar.style.height = Math.max(pct, 3) + '%';
+          bar.classList.add('is-live');
+        }, i * 18);
+      });
+    });
+  }
+
+  /* Fleet fills */
+  var fleet = document.getElementById('cmd-fleet');
+  if (fleet) {
+    watchEl(fleet, function () {
+      fleet.querySelectorAll('.cmd-fleet-fill').forEach(function (el) {
+        el.classList.add('is-live');
+      });
+    });
+  }
+
+  /* AI bars */
+  var aiList = document.getElementById('cmd-ai-list');
+  if (aiList) {
+    watchEl(aiList, function () {
+      aiList.querySelectorAll('.cmd-ai-bar-fill').forEach(function (el) {
+        el.classList.add('is-live');
+      });
+    });
+  }
+
+})();
+</script>
 
 {% endblock %}
