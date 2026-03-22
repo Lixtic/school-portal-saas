@@ -556,25 +556,9 @@ def mark_attendance(request):
     })
 
 
+@login_required
 def get_class_students(request, class_id):
-    """AJAX endpoint — returns JSON only (no HTML redirects)."""
-    # Force SET search_path before any DB access (belt-and-suspenders for
-    # pgBouncer transaction mode where the physical server connection may
-    # have changed since the middleware last issued SET search_path).
-    from django.db import connection as _conn
-    if hasattr(_conn, 'search_path_set_schemas'):
-        _conn.search_path_set_schemas = None
-
-    if not request.user.is_authenticated:
-        import logging
-        _logger = logging.getLogger(__name__)
-        _logger.warning(
-            "get_class_students AUTH FAIL: schema=%s, user=%s, class_id=%s",
-            getattr(_conn, 'schema_name', '?'),
-            request.user,
-            class_id,
-        )
-        return JsonResponse({'error': 'Session expired. Please reload the page and log in again.'}, status=401)
+    """AJAX endpoint — returns student list as JSON."""
     if request.user.user_type not in ['admin', 'teacher']:
         return JsonResponse({'error': 'Forbidden'}, status=403)
 
