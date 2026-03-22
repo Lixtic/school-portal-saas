@@ -1,4 +1,4 @@
-﻿const SW_VERSION = 'v4';
+﻿const SW_VERSION = 'v5';
 const STATIC_CACHE = `school-static-${SW_VERSION}`;
 const RUNTIME_CACHE = `school-runtime-${SW_VERSION}`;
 const OFFLINE_URL = '/offline/';

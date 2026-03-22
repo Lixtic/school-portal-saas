@@ -13,10 +13,23 @@
 {% block admin_content %}
 <style>
 /* ================================================================
-   A U R A    LUXURY MINIMAL COMMAND CENTER
-   Design Language: "Effortless Power  Exclusive Clarity"
-   Palette: Champagne Gold  Deep Charcoal  Warm Paper
+   A U R A  —  LUXURY MINIMAL COMMAND CENTER
+   Design: "Effortless Power · Exclusive Clarity"
+   Palette: Champagne Gold · Deep Charcoal · Warm Paper
 ================================================================ */
+
+/* Override admin shell using hardcoded hex — CSS custom properties
+   cascade DOWN only, so ancestor elements (.admin-main sits above
+   .cmd in the DOM) cannot read vars defined on .cmd. */
+.admin-layout,
+.admin-main,
+.admin-container {
+  background: #F9F7F4 !important;
+}
+.admin-container {
+  padding: 0 !important;
+  max-width: none !important;
+}
 
 .cmd {
   --paper:          #F9F7F4;
@@ -45,19 +58,6 @@
   min-height:   100vh;
 }
 
-/* Override admin shell to let our design breathe */
-.admin-container {
-  background: var(--paper) !important;
-  padding: 0 !important;
-  max-width: none !important;
-}
-.admin-main {
-  background: var(--paper) !important;
-}
-/* Pull .cmd flush to the container edges */
-.admin-container > .cmd {
-  margin: 0;
-}
 .cmd *, .cmd *::before, .cmd *::after { box-sizing: border-box; margin: 0; }
 .cmd a { text-decoration: none; }
 .cmd hr { border: none; }
