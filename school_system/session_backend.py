@@ -28,6 +28,7 @@ we guarantee the correct table is hit regardless of connection state.
 import logging
 from django.contrib.sessions.backends.db import SessionStore as _DBStore
 from django.db import connection
+from django.db import transaction
 
 logger = logging.getLogger('session.tenant')
 
@@ -41,7 +42,7 @@ def _ensure_tenant_schema():
     schema = getattr(connection, 'schema_name', None)
     if not schema:
         return
-    # Invalidate the cached search_path so the next cursor call re-issues SET.
+    # Invalidate the cached search_path so the next cursor call re-issues SET.  
     connection.search_path_set_schemas = None
 
 
@@ -50,22 +51,27 @@ class SessionStore(_DBStore):
     that guarantees the tenant schema is active for every DB hit."""
 
     def load(self):
-        _ensure_tenant_schema()
-        return super().load()
+        with transaction.atomic():
+            _ensure_tenant_schema()
+            return super().load()
 
     def exists(self, session_key):
-        _ensure_tenant_schema()
-        return super().exists(session_key)
+        with transaction.atomic():
+            _ensure_tenant_schema()
+            return super().exists(session_key)
 
     def save(self, must_create=False):
-        _ensure_tenant_schema()
-        return super().save(must_create=must_create)
+        with transaction.atomic():
+            _ensure_tenant_schema()
+            return super().save(must_create=must_create)
 
     def delete(self, session_key=None):
-        _ensure_tenant_schema()
-        return super().delete(session_key)
+        with transaction.atomic():
+            _ensure_tenant_schema()
+            return super().delete(session_key)
 
     @classmethod
     def clear_expired(cls):
-        _ensure_tenant_schema()
-        return super().clear_expired()
+        with transaction.atomic():
+            _ensure_tenant_schema()
+            return super().clear_expired()

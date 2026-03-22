@@ -42,29 +42,33 @@ class OnboardingAutoMarkMiddleware:
                 return
 
             from accounts.models import OnboardingProgress
+            from django.db import connection, transaction
 
-            progress, _ = OnboardingProgress.objects.get_or_create(user=request.user)
-            if progress.dismissed or progress.completed_at:
-                request.session['onboarding_done'] = True
-                return
+            with transaction.atomic():
+                if hasattr(connection, 'search_path_set_schemas'):
+                    connection.search_path_set_schemas = None
+                progress, _ = OnboardingProgress.objects.get_or_create(user=request.user)
+                if progress.dismissed or progress.completed_at:
+                    request.session['onboarding_done'] = True
+                    return
 
-            changed = False
-            just_marked = None
-            for s in triggered:
-                if progress.mark_step(s['id']):
-                    just_marked = s
-                    changed = True
+                changed = False
+                just_marked = None
+                for s in triggered:
+                    if progress.mark_step(s['id']):
+                        just_marked = s
+                        changed = True
 
-            if not changed:
-                return
+                if not changed:
+                    return
 
-            # Detect full completion
-            all_ids = {s['id'] for s in role_steps}
-            if all_ids.issubset(set(progress.steps_completed)):
-                from django.utils import timezone
-                progress.completed_at = timezone.now()
+                # Detect full completion
+                all_ids = {s['id'] for s in role_steps}
+                if all_ids.issubset(set(progress.steps_completed)):
+                    from django.utils import timezone
+                    progress.completed_at = timezone.now()
 
-            progress.save()
+                progress.save()
 
             # Store nudge for the context processor to display on the NEXT page
             if just_marked:

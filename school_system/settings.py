@@ -394,11 +394,10 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'School Admin <noreply
 # SESSION_COOKIE_NAME is set to '_sp_session' (not the default 'sessionid').
 # This ensures old DB-session cookies from any previous backend change are
 # ignored — they have a different name so the browser never sends them.
-SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
+SESSION_ENGINE = 'school_system.session_backend'
 
 # Unique cookie name — avoids collisions with any previously set cookies
-# from earlier session-engine experiments (DB backend etc.)
-SESSION_COOKIE_NAME = '_sp_session'
+SESSION_COOKIE_NAME = '_sp_session_db2'
 
 # Rolling 30-day expiry.
 SESSION_COOKIE_AGE = 30 * 24 * 60 * 60  # 30 days in seconds
