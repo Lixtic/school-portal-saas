@@ -108,17 +108,14 @@ class TenantPathMiddleware(TenantMainMiddleware):
             logger.debug("Original PATH_INFO=%s SCRIPT_NAME=%s", request.path_info, request.META.get('SCRIPT_NAME'))
 
             request.tenant = tenant
-            # CRITICAL FIX for pgBouncer transaction mode + TENANT_LIMIT_SET_CALLS=True:
-            # pgBouncer reassigns the physical PostgreSQL connection on each transaction.
-            # If we reuse a Django connection (CONN_MAX_AGE>0) and the tenant is the
-            # same as the previous request, set_tenant() sees search_path_set_schemas
-            # already matching and skips SET search_path — but the physical connection
-            # behind pgBouncer is fresh and has search_path="public".
-            # Resetting here forces SET search_path on the first cursor of every request
-            # while still only issuing it once per request (TENANT_LIMIT_SET_CALLS stays True).
+            # pgBouncer transaction mode: reset before AND after set_tenant() so
+            # every subsequent autocommit cursor (e.g. AuthenticationMiddleware's
+            # User query) re-issues SET search_path on its actual physical connection.
             if hasattr(connection, 'search_path_set_schemas'):
                 connection.search_path_set_schemas = None
             connection.set_tenant(request.tenant)
+            if hasattr(connection, 'search_path_set_schemas'):
+                connection.search_path_set_schemas = None
 
             if request.path == f"/{possible_schema}":
                 request.path_info = '/'
@@ -164,6 +161,8 @@ class TenantPathMiddleware(TenantMainMiddleware):
             if hasattr(connection, 'search_path_set_schemas'):
                 connection.search_path_set_schemas = None
             connection.set_tenant(request.tenant)
+            if hasattr(connection, 'search_path_set_schemas'):
+                connection.search_path_set_schemas = None
 
     def process_view(self, request, view_func, view_args, view_kwargs):
         """Block access for schools whose trial has expired."""
@@ -172,23 +171,9 @@ class TenantPathMiddleware(TenantMainMiddleware):
         if request.tenant.schema_name == 'public':
             return None
 
-        # CRITICAL (pgBouncer transaction mode + TENANT_LIMIT_SET_CALLS=True):
-        # Use try/finally so that search_path_set_schemas is ALWAYS reset to None
-        # before process_view returns, no matter which early-return path is taken.
-        #
-        # Why: In pgBouncer transaction mode every autocommit query (process_request,
-        # auth middleware, here in process_view, …) may land on a different physical
-        # PostgreSQL server connection whose search_path defaults to "public".
-        # TENANT_LIMIT_SET_CALLS=True skips SET search_path when
-        # search_path_set_schemas is already set — so a cached value from a previous
-        # cursor would cause the *next* cursor to skip SET and hit the wrong schema.
-        #
-        # By resetting at the TOP (before any DB access, including the lazy
-        # request.user lookup) and guaranteeing a reset at the BOTTOM via finally,
-        # we ensure:
-        #   (a) Every DB call inside process_view always re-issues SET search_path.
-        #   (b) The ATOMIC_REQUESTS transaction that immediately follows also
-        #       re-issues SET search_path on its first cursor.
+        # Reset search_path cache before any DB access in this middleware phase.
+        # With TENANT_LIMIT_SET_CALLS=False this is a harmless no-op, but it
+        # provides defence-in-depth if the setting is ever re-enabled.
         try:
             if hasattr(connection, 'search_path_set_schemas'):
                 connection.search_path_set_schemas = None
@@ -203,12 +188,7 @@ class TenantPathMiddleware(TenantMainMiddleware):
             try:
                 from .models import SchoolSubscription
                 from django.utils import timezone
-                # Reset again before the subscription query — it may land on yet
-                # another pgBouncer server connection.
-                if hasattr(connection, 'search_path_set_schemas'):
-                    connection.search_path_set_schemas = None
                 sub = SchoolSubscription.objects.select_related('plan').get(school=request.tenant)
-                # Cache on request so context processors and views don't re-query
                 request._tenant_subscription = sub
                 if sub.status == 'trial' and sub.trial_ends_at and timezone.now() > sub.trial_ends_at:
                     sub_url = f"/{request.tenant.schema_name}/tenants/subscription/"
@@ -221,14 +201,12 @@ class TenantPathMiddleware(TenantMainMiddleware):
                         )
                     return HttpResponseRedirect(sub_url)
             except SchoolSubscription.DoesNotExist:
-                request._tenant_subscription = None  # Cache miss so context processors skip DB hit
+                request._tenant_subscription = None
             except Exception:
-                pass  # Other DB errors — do not block access
+                pass
 
             return None
         finally:
-            # Always reset before returning so the ATOMIC_REQUESTS view transaction
-            # re-issues SET search_path on its very first cursor.
             if hasattr(connection, 'search_path_set_schemas'):
                 connection.search_path_set_schemas = None
 

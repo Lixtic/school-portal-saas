@@ -233,8 +233,6 @@ if DATABASE_URL:
         db_cfg['CONN_HEALTH_CHECKS'] = True
     else:
         # Non-serverless: reuse connections to avoid repeated SSL handshakes (~300-500ms each)
-        # With LIMIT_SET_CALLS=True, SET search_path is only re-issued at the start of
-        # each atomic view transaction (see ATOMIC_REQUESTS above and process_view reset).
         db_cfg['CONN_MAX_AGE'] = 60
         db_cfg['CONN_HEALTH_CHECKS'] = True
 
@@ -267,22 +265,22 @@ else:
 # DJANGO-TENANTS PERFORMANCE
 # =====================
 # Limit SET search_path to once per request (not on every cursor call).
-# Without this, the default is False, firing SET search_path on EVERY cursor
-# creation — which causes 20-30 extra network round-trips per request on a
-# cloud database such as Neon (~400ms each = 8-12s overhead per page).
+# pgBouncer transaction mode (Neon) can silently swap the physical PostgreSQL
+# server connection between autocommit statements.  SET search_path is
+# session-scoped, so a fresh server connection resets to search_path=public.
 #
-# NOTE on pgBouncer (Neon) transaction mode:
-# With CONN_MAX_AGE > 0, pgBouncer may swap the physical PostgreSQL connection
-# between requests on the same logical Django connection.  The search_path
-# setting on the new physical connection defaults to "public", so if
-# TENANT_LIMIT_SET_CALLS=True skipped the SET command (because the tenant
-# wrapper still remembers the previous request's schema), queries would hit
-# the wrong schema and user-auth would fail.
+# With TENANT_LIMIT_SET_CALLS=True, django-tenants caches whether SET was
+# already issued and SKIPS it on subsequent cursors.  This is UNSAFE with
+# pgBouncer: the middleware issues SET on cursor 1 (connection A), then
+# AuthenticationMiddleware opens cursor 2, which may hit connection B (fresh,
+# search_path=public).  Because the cache says "already set," SET is skipped
+# and the User query hits the public schema → user not found → AnonymousUser.
 #
-# The middleware resets connection.search_path_set_schemas = None at the
-# start of every request, which forces SET search_path to be re-issued on
-# the first cursor of each request while still firing only once per request.
-TENANT_LIMIT_SET_CALLS = True
+# Setting False forces SET search_path on EVERY cursor.  With ATOMIC_REQUESTS
+# the view's queries all share one transaction (= one pgBouncer connection),
+# so the cost is just one extra SET per cursor in the 2-3 autocommit
+# middleware queries — negligible compared to Neon network latency.
+TENANT_LIMIT_SET_CALLS = False
 
 
 # Password validation
