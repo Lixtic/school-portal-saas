@@ -118,10 +118,16 @@
                         <td>{{ backup.expires_at|date:"M d, Y"|default:"—" }}</td>
                         <td>
                             {% if backup.status == 'completed' %}
-                            <button class="btn btn-sm btn-outline-primary" disabled>
+                            {% if backup.file_path %}
+                            <a href="{{ MEDIA_URL }}{{ backup.file_path }}" class="btn btn-sm btn-outline-primary" download>
+                                <i class="bi bi-download"></i> Download
+                            </a>
+                            {% else %}
+                            <button class="btn btn-sm btn-outline-primary" disabled title="File not yet available">
                                 <i class="bi bi-download"></i> Download
                             </button>
-                            <button class="btn btn-sm btn-outline-warning" disabled>
+                            {% endif %}
+                            <button class="btn btn-sm btn-outline-warning" disabled title="Contact support to restore">
                                 <i class="bi bi-arrow-clockwise"></i> Restore
                             </button>
                             {% endif %}
