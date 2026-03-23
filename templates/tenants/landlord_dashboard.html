@@ -5,7 +5,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mission Control  Platform Admin</title>
+  <title>Platform Command Center — Aura</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -57,6 +57,8 @@
       color: var(--text-1);
       padding: 2rem 2.25rem 5rem;
       min-height: 100vh;
+      max-width: 1680px;
+      margin: 0 auto;
     }
 
     /* Animations */
@@ -180,8 +182,9 @@
       text-transform: uppercase; color: var(--text-3); margin-bottom: 0.375rem;
     }
     .mc-kpi-value {
-      font-family: var(--mono); font-size: 2rem; font-weight: 500;
-      letter-spacing: -0.025em; line-height: 1; margin-bottom: 0.375rem;
+      font-family: var(--sans); font-size: 2rem; font-weight: 700;
+      letter-spacing: -0.04em; line-height: 1; margin-bottom: 0.375rem;
+      font-variant-numeric: tabular-nums;
     }
     .mc-kpi.--violet  .mc-kpi-value { color: var(--violet-light); }
     .mc-kpi.--emerald .mc-kpi-value { color: var(--emerald); }
@@ -358,6 +361,25 @@
     .mc-footer-left { font-size: 0.6875rem; color: var(--text-3); }
     .mc-footer-right { font-family: var(--mono); font-size: 0.6rem; color: var(--text-3); }
 
+    /* User / logout controls */
+    .mc-user {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.3rem 0.625rem; background: var(--surface-2);
+      border: 1px solid var(--border); border-radius: 7px;
+      font-size: 0.75rem; color: var(--text-2);
+    }
+    .mc-user-avatar {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--violet), #4F46E5);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.55rem; font-weight: 700; color: #fff; flex-shrink: 0; letter-spacing: 0;
+    }
+    .mc-user-name { max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mc-btn.--logout {
+      color: var(--rose); border-color: var(--rose-mid);
+    }
+    .mc-btn.--logout:hover { background: var(--rose-pale); color: var(--rose); border-color: var(--rose); }
+
     /* Responsive */
     @media (max-width: 1280px) {
       .mc-main   { grid-template-columns: 1fr 1fr; }
@@ -366,6 +388,9 @@
     }
     @media (max-width: 1024px) {
       .mc-kpi-row { grid-template-columns: repeat(3, 1fr); }
+      /* Collapse some header labels on small screens */
+      .mc-btn .mc-btn-label { display: none; }
+      .mc-user-name { display: none; }
     }
     @media (max-width: 768px) {
       .mc { padding: 1.25rem 1rem 4rem; }
@@ -373,6 +398,7 @@
       .mc-main     { grid-template-columns: 1fr; }
       .mc-bottom   { grid-template-columns: 1fr; }
       .mc-nav-grid { grid-template-columns: repeat(2, 1fr); }
+      .mc-header-right { justify-content: flex-end; }
     }
   </style>
 </head>
@@ -392,11 +418,18 @@
       <div class="mc-live-chip"><div class="mc-live-dot"></div>Live</div>
       <div class="mc-clock" id="mc-clock">--:--:--</div>
       <a href="{% url 'tenants:approval_queue' %}" class="mc-btn">
-        <i class="bi bi-check2-circle"></i> Approvals
+        <i class="bi bi-check2-circle"></i><span class="mc-btn-label"> Approvals</span>
         {% if pending_count %}<span class="mc-notification-badge">{{ pending_count }}</span>{% endif %}
       </a>
-      <a href="/admin/" class="mc-btn"><i class="bi bi-gear-fill"></i> Django Admin</a>
-      <a href="{% url 'signup' %}" class="mc-btn --primary"><i class="bi bi-plus-lg"></i> New School</a>
+      <a href="/admin/" class="mc-btn"><i class="bi bi-gear-fill"></i><span class="mc-btn-label"> Django Admin</span></a>
+      <a href="{% url 'signup' %}" class="mc-btn --primary"><i class="bi bi-plus-lg"></i><span class="mc-btn-label"> New School</span></a>
+      <div class="mc-user" title="{{ request.user.email }}">
+        <div class="mc-user-avatar">{{ request.user.get_full_name|default:request.user.username|make_list|first|upper }}{{ request.user.last_name|make_list|first|upper }}</div>
+        <span class="mc-user-name">{{ request.user.get_full_name|default:request.user.username }}</span>
+      </div>
+      <a href="{% url 'logout' %}" class="mc-btn --logout" title="Sign out">
+        <i class="bi bi-box-arrow-right"></i><span class="mc-btn-label"> Sign out</span>
+      </a>
     </div>
   </header>
 
