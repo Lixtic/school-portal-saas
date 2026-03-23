@@ -358,7 +358,7 @@ def superadmin_create_school(request):
     recent_schools = School.objects.filter(
         approval_status='approved',
         is_active=True
-    ).order_by('-created')[:10]
+    ).order_by('-created_on')[:10]
     
     context = {
         'form': form,
