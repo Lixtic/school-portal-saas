@@ -34,7 +34,7 @@
                 <span>Health</span>
             </a>
             <a href="{% url 'tenants:support_tickets' %}" 
-               class="sidebar-nav-link {% if request.resolver_match.url_name == 'support_tickets' %}active{% endif %}">
+               class="sidebar-nav-link {% if request.resolver_match.url_name == 'support_tickets' or request.resolver_match.url_name == 'support_ticket_detail' or request.resolver_match.url_name == 'create_support_ticket' %}active{% endif %}">
                 <i class="bi bi-headset"></i>
                 <span>Support</span>
             </a>
@@ -46,7 +46,8 @@
         <!-- Admin Links -->
         <div class="sidebar-section-title">Operations</div>
         <nav class="sidebar-nav">
-            <a href="{% url 'tenants:database_backups' %}" class="sidebar-nav-link">
+            <a href="{% url 'tenants:database_backups' %}"
+               class="sidebar-nav-link {% if request.resolver_match.url_name == 'database_backups' %}active{% endif %}">
                 <i class="bi bi-shield-check"></i>
                 <span>Backups</span>
             </a>

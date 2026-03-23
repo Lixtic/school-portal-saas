@@ -88,6 +88,11 @@
             Support
         </a>
         <div class="mobile-nav-divider"></div>
+        <a href="{% url 'tenants:database_backups' %}" class="mobile-nav-link">
+            <i class="bi bi-archive"></i>
+            Backups
+        </a>
+        <div class="mobile-nav-divider"></div>
         <a href="/admin/" class="mobile-nav-link d-lg-none">
             <i class="bi bi-shield-check"></i>
             Full Admin
@@ -295,38 +300,87 @@
 </style>
 
 <script>
-    // Mobile menu toggle
+    // ===== Sidebar drawer (mobile) =====
+    const sidebar  = document.getElementById('adminSidebar');
+    const overlay  = document.getElementById('adminSidebarOverlay');
     const menuToggle = document.getElementById('mobileMenuToggle');
     const mobileMenu = document.getElementById('mobileMenu');
-    const themeToggle = document.getElementById('themeToggle');
-    
-    if (menuToggle && mobileMenu) {
+
+    function openSidebar() {
+        if (!sidebar) return;
+        sidebar.classList.add('active');
+        if (overlay) overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeSidebar() {
+        if (!sidebar) return;
+        sidebar.classList.remove('active');
+        if (overlay) overlay.classList.remove('active');
+        document.body.style.overflow = '';
+        if (mobileMenu) mobileMenu.classList.remove('active');
+    }
+
+    if (menuToggle) {
         menuToggle.addEventListener('click', () => {
-            mobileMenu.classList.toggle('active');
+            const isOpen = sidebar && sidebar.classList.contains('active');
+            isOpen ? closeSidebar() : openSidebar();
         });
-        
-        // Close menu when link is clicked
-        mobileMenu.querySelectorAll('.mobile-nav-link').forEach(link => {
+    }
+    if (overlay) overlay.addEventListener('click', closeSidebar);
+
+    // Close on nav link click
+    if (sidebar) {
+        sidebar.querySelectorAll('.sidebar-nav-link').forEach(link => {
             link.addEventListener('click', () => {
-                mobileMenu.classList.remove('active');
+                if (window.innerWidth <= 1024) closeSidebar();
             });
         });
     }
-    
-    // Theme toggle
+
+    // ===== Aura Page Loading Bar =====
+    const loaderBar = document.getElementById('auraLoaderBar');
+    function startLoader() {
+        if (!loaderBar) return;
+        loaderBar.classList.remove('done');
+        loaderBar.style.width = '0%';
+        // Trigger reflow before adding loading class
+        void loaderBar.offsetWidth;
+        loaderBar.classList.add('loading');
+    }
+    function finishLoader() {
+        if (!loaderBar) return;
+        loaderBar.classList.remove('loading');
+        loaderBar.classList.add('done');
+        setTimeout(() => {
+            loaderBar.classList.remove('done');
+            loaderBar.style.width = '0%';
+        }, 500);
+    }
+    // Trigger on all anchor clicks (page navigations)
+    document.addEventListener('click', e => {
+        const anchor = e.target.closest('a[href]');
+        if (!anchor) return;
+        const href = anchor.getAttribute('href');
+        if (!href || href.startsWith('#') || href.startsWith('javascript') ||
+            anchor.target === '_blank' || e.ctrlKey || e.metaKey || e.shiftKey) return;
+        startLoader();
+    });
+    // Finish bar when page is fully loaded
+    window.addEventListener('load', finishLoader);
+    window.addEventListener('pageshow', finishLoader);
+
+    // ===== Theme toggle =====
+    const themeToggle = document.getElementById('themeToggle');
     if (themeToggle) {
         themeToggle.addEventListener('click', () => {
             const html = document.documentElement;
             const isDark = html.getAttribute('data-bs-theme') === 'dark';
             html.setAttribute('data-bs-theme', isDark ? 'light' : 'dark');
             localStorage.setItem('admin-theme', isDark ? 'light' : 'dark');
-            
-            // Update icon
             const icon = themeToggle.querySelector('i');
             icon.className = isDark ? 'bi bi-moon' : 'bi bi-sun';
         });
-        
-        // Restore theme preference
+
         const savedTheme = localStorage.getItem('admin-theme') || 'light';
         document.documentElement.setAttribute('data-bs-theme', savedTheme);
         const icon = themeToggle.querySelector('i');

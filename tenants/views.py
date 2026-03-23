@@ -2,7 +2,7 @@
 from django.db import transaction, connection, models
 from django.db.models import Sum, Avg, Count
 from django.contrib.auth.decorators import user_passes_test
-from .forms import SchoolSignupForm, SchoolSetupForm, SchoolApprovalForm
+from .forms import SchoolSignupForm, SchoolSetupForm, SchoolApprovalForm, SuperAdminSchoolCreateForm
 from .models import School, Domain, PlatformSettings
 from django.contrib.auth import get_user_model, login
 from django.contrib import messages
@@ -253,6 +253,118 @@ def _create_sample_data(tenant, school_type='basic', phone='', address=''):
         if address: info.address = address
         if phone: info.phone = phone
         info.save()
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser, login_url='/login/')
+def superadmin_create_school(request):
+    """Super admin only: Direct school creation (bypasses approval flow)"""
+    if request.method == 'POST':
+        form = SuperAdminSchoolCreateForm(request.POST)
+        if form.is_valid():
+            schema_name = form.cleaned_data['schema_name']
+            school_name = form.cleaned_data['school_name']
+            school_type = form.cleaned_data['school_type']
+            admin_email = form.cleaned_data['admin_email']
+            phone = form.cleaned_data.get('phone', '')
+            address = form.cleaned_data.get('address', '')
+            on_trial = form.cleaned_data.get('on_trial', True)
+            
+            try:
+                import secrets
+                temp_password = secrets.token_urlsafe(12)
+                
+                # Create tenant (active immediately)
+                logger.info("Super admin creating school: %s", schema_name)
+                tenant = School(
+                    schema_name=schema_name,
+                    name=school_name,
+                    school_type=school_type,
+                    phone_number=phone,
+                    address=address,
+                    country='Ghana',
+                    on_trial=on_trial,
+                    is_active=True,
+                    approval_status='approved',
+                    contact_person_email=admin_email,
+                    reviewed_by=request.user,
+                    reviewed_at=timezone.now()
+                )
+                tenant.auto_create_schema = True
+                tenant.save()
+                tenant.create_schema(check_if_exists=True, verbosity=1)
+                
+                # Create domain
+                domain = Domain()
+                base_domain = getattr(settings, 'BASE_SCHOOL_DOMAIN', 'local')
+                if base_domain == 'local':
+                    domain.domain = f"{schema_name}.local"
+                else:
+                    domain.domain = f"{schema_name}.{base_domain}"
+                domain.tenant = tenant
+                domain.is_primary = True
+                domain.save()
+                
+                # Switch to tenant schema and setup
+                connection.set_tenant(tenant)
+                try:
+                    User = get_user_model()
+                    admin_user = User.objects.create_superuser(
+                        username='admin',
+                        email=admin_email,
+                        password=temp_password,
+                        user_type='admin'
+                    )
+                    
+                    # Create sample data
+                    _create_sample_data(tenant, school_type=school_type, phone=phone, address=address)
+                finally:
+                    connection.set_schema_to_public()
+                
+                # Create subscription if trial enabled
+                if on_trial:
+                    from .models import SubscriptionPlan, SchoolSubscription
+                    try:
+                        trial_plan = SubscriptionPlan.objects.get(plan_type='trial')
+                        trial_ends = timezone.now() + timedelta(days=14)
+                        SchoolSubscription.objects.create(
+                            school=tenant,
+                            plan=trial_plan,
+                            status='trial',
+                            trial_ends_at=trial_ends,
+                            current_period_end=trial_ends,
+                            mrr=0,
+                        )
+                    except SubscriptionPlan.DoesNotExist:
+                        logger.warning("Trial plan not found")
+                
+                messages.success(
+                    request, 
+                    f"✅ School '{school_name}' created successfully! "
+                    f"Login URL: /{schema_name}/login/ | Username: admin | Password: {temp_password}"
+                )
+                
+                # Redirect to a success page or back to create form
+                return redirect('tenants:superadmin_create_school')
+                
+            except Exception as e:
+                logger.error("Super admin school creation failed: %s", e, exc_info=True)
+                connection.set_schema_to_public()
+                messages.error(request, f"Error creating school: {e}")
+    else:
+        form = SuperAdminSchoolCreateForm()
+    
+    # Get recently created schools for reference
+    recent_schools = School.objects.filter(
+        approval_status='approved',
+        is_active=True
+    ).order_by('-created')[:10]
+    
+    context = {
+        'form': form,
+        'recent_schools': recent_schools,
+    }
+    return render(request, 'tenants/superadmin_create_school.html', context)
 
 
 @login_required

@@ -88,6 +88,86 @@ class SchoolApprovalForm(forms.ModelForm):
         }
 
 
+class SuperAdminSchoolCreateForm(forms.Form):
+    """Minimal form for super admin to directly create and activate schools"""
+    school_name = forms.CharField(
+        label="School Name", 
+        max_length=100, 
+        widget=forms.TextInput(attrs={
+            'class': 'form-control', 
+            'placeholder': 'e.g., Kings College'
+        })
+    )
+    schema_name = forms.CharField(
+        label="Schema ID", 
+        max_length=50, 
+        help_text="Lowercase letters and numbers only, no spaces",
+        widget=forms.TextInput(attrs={
+            'class': 'form-control', 
+            'placeholder': 'e.g., kings'
+        })
+    )
+    
+    SCHOOL_TYPES = (
+        ('primary', 'Primary School'),
+        ('jhs', 'Junior High School'),
+        ('shs', 'Senior High School'),
+        ('basic', 'Basic School (KG - JHS 3)'),
+        ('other', 'Other / Tertiary'),
+    )
+    school_type = forms.ChoiceField(
+        choices=SCHOOL_TYPES, 
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    
+    admin_email = forms.EmailField(
+        label="Admin Email", 
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control', 
+            'placeholder': 'admin@school.edu'
+        })
+    )
+    
+    phone = forms.CharField(
+        required=False, 
+        widget=forms.TextInput(attrs={
+            'class': 'form-control', 
+            'placeholder': 'Optional'
+        })
+    )
+    
+    address = forms.CharField(
+        required=False, 
+        widget=forms.Textarea(attrs={
+            'class': 'form-control', 
+            'rows': 2, 
+            'placeholder': 'Optional'
+        })
+    )
+    
+    on_trial = forms.BooleanField(
+        label="Start on trial (14 days)", 
+        required=False, 
+        initial=True,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+    
+    def clean_schema_name(self):
+        data = self.cleaned_data['schema_name'].lower().strip()
+        
+        if not re.match(r'^[a-z0-9]+$', data):
+            raise ValidationError("Schema ID must contain only lowercase letters and numbers.")
+            
+        reserved = ['public', 'admin', 'static', 'media', 'accounts', 'school', 'login', 'signup', 'register']
+        if data in reserved:
+            raise ValidationError(f"'{data}' is reserved.")
+            
+        if School.objects.filter(schema_name=data).exists():
+            raise ValidationError(f"'{data}' already exists.")
+            
+        return data
+
+
 class SchoolSetupForm(forms.ModelForm):
     primary_color = forms.CharField(
         label="Primary Color",
