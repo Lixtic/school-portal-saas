@@ -364,6 +364,7 @@ def landing_template_picker(request):
 
 
 @login_required
+@user_passes_test(lambda u: u.is_staff)
 def landlord_dashboard(request):
     """Public-schema landlord dashboard for platform admins."""
     if not request.user.is_staff:
