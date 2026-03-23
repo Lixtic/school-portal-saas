@@ -291,11 +291,14 @@ def school_setup_wizard(request):
 
 
 @login_required
+def landlord_redirect(request):
+    """Redirect the old /tenants/landlord/ and /tenants/ paths to the canonical /landlord/ URL."""
+    return redirect('/landlord/')
+
+
 def landlord_landing(request):
-    """Landlord landing/welcome page with overview."""
-    if not request.user.is_staff:
-        messages.error(request, "Access denied. Admins only.")
-        return redirect('home')
+    """Redirects legacy /tenants/ landing to canonical /landlord/ dashboard."""
+    return redirect('/landlord/')
 
     schools_count = School.objects.count()
     active_count = School.objects.filter(is_active=True).count()
@@ -1264,22 +1267,85 @@ def database_backups(request):
         action = request.POST.get('action')
         
         if action == 'trigger_backup':
+            import subprocess, os, tempfile, shutil
+            from django.conf import settings as _settings
+            from django.utils import timezone as _tz
+
             school_id = request.POST.get('school_id')
             backup_type = request.POST.get('backup_type', 'full')
-            
+
             school = None
+            schema_name = 'public'
             if school_id:
                 school = School.objects.get(id=school_id)
-            
+                schema_name = school.schema_name
+
             backup = DatabaseBackup.objects.create(
                 school=school,
                 backup_type=backup_type,
-                status='pending',
+                status='in_progress',
             )
-            
-            # TODO: Trigger actual backup process (Celery task, Cloud Function, etc.)
-            
-            messages.success(request, f"Backup initiated: {backup.id}")
+
+            try:
+                # Build output path inside MEDIA_ROOT/backups/
+                backup_dir = os.path.join(_settings.MEDIA_ROOT, 'backups')
+                os.makedirs(backup_dir, exist_ok=True)
+                timestamp = _tz.now().strftime('%Y%m%d_%H%M%S')
+                filename = f'backup_{schema_name}_{timestamp}.dump'
+                output_path = os.path.join(backup_dir, filename)
+
+                # Parse DATABASE_URL or fall back to individual settings
+                db = _settings.DATABASES['default']
+                env = os.environ.copy()
+                env['PGPASSWORD'] = db.get('PASSWORD', '')
+
+                cmd = [
+                    'pg_dump',
+                    '--format=custom',
+                    f'--host={db.get("HOST", "localhost")}',
+                    f'--port={db.get("PORT", 5432)}',
+                    f'--username={db.get("USER", "postgres")}',
+                    f'--schema={schema_name}',
+                    '--no-password',
+                    f'--file={output_path}',
+                    db.get('NAME', ''),
+                ]
+
+                result = subprocess.run(
+                    cmd, env=env, capture_output=True, text=True, timeout=300
+                )
+
+                if result.returncode == 0:
+                    file_size_mb = round(os.path.getsize(output_path) / (1024 * 1024), 3)
+                    backup.status = 'completed'
+                    backup.file_path = f'backups/{filename}'
+                    backup.file_size_mb = file_size_mb
+                    backup.completed_at = _tz.now()
+                    backup.save()
+                    messages.success(request, f'Backup completed: {filename} ({file_size_mb} MB)')
+                else:
+                    backup.status = 'failed'
+                    backup.notes = result.stderr[:500]
+                    backup.save()
+                    messages.error(request, f'pg_dump failed: {result.stderr[:200]}')
+
+            except FileNotFoundError:
+                # pg_dump not available (e.g. serverless/Vercel)
+                backup.status = 'failed'
+                backup.notes = 'pg_dump binary not found on this host. Use a database-level backup tool instead.'
+                backup.save()
+                messages.warning(request, 'pg_dump is not available on this hosting environment. Use your database provider\'s backup tool (e.g. Neon Console).')
+            except subprocess.TimeoutExpired:
+                backup.status = 'failed'
+                backup.notes = 'pg_dump timed out after 300 seconds.'
+                backup.save()
+                messages.error(request, 'Backup timed out. Try a smaller scope backup.')
+            except Exception as exc:
+                backup.status = 'failed'
+                backup.notes = str(exc)[:500]
+                backup.save()
+                messages.error(request, f'Backup error: {exc}')
+
             return redirect('tenants:database_backups')
     
     # Get recent backups
