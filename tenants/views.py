@@ -1,6 +1,7 @@
 ﻿from django.shortcuts import render, redirect, get_object_or_404
 from django.db import transaction, connection, models
 from django.db.models import Sum, Avg, Count
+from django.db.utils import ProgrammingError
 from django.contrib.auth.decorators import user_passes_test
 from .forms import SchoolSignupForm, SchoolSetupForm, SchoolApprovalForm, SuperAdminSchoolCreateForm
 from .models import School, Domain, PlatformSettings
@@ -17,6 +18,30 @@ from .email_notifications import send_submission_confirmation, send_approval_not
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _get_school_subscription_safe(school):
+    """Fetch subscription with backward-compatible fallback for legacy tenant schemas."""
+    from .models import SchoolSubscription
+
+    try:
+        return SchoolSubscription.objects.get(school=school)
+    except ProgrammingError as exc:
+        err_msg = str(exc)
+        if (
+            'paystack_subscription_code' not in err_msg
+            and 'paystack_customer_code' not in err_msg
+        ):
+            raise
+
+        logger.warning(
+            "Legacy SchoolSubscription schema in tenant '%s'; retrying with deferred Paystack fields.",
+            getattr(school, 'schema_name', 'unknown'),
+        )
+        return SchoolSubscription.objects.defer(
+            'paystack_subscription_code',
+            'paystack_customer_code',
+        ).get(school=school)
 
 def school_signup(request):
     if request.method == 'POST':
@@ -994,9 +1019,12 @@ def addon_marketplace(request):
     
     # Get school's subscription
     try:
-        subscription = SchoolSubscription.objects.get(school=request.tenant)
+        subscription = _get_school_subscription_safe(request.tenant)
     except SchoolSubscription.DoesNotExist:
         messages.error(request, "No active subscription found")
+        return redirect('dashboard')
+    except ProgrammingError:
+        messages.error(request, "Subscription data is outdated for this school. Please ask support to run tenant migrations.")
         return redirect('dashboard')
     
     # Get available add-ons for this plan
@@ -1056,9 +1084,12 @@ def purchase_addon(request, addon_id):
     
     # Get subscription
     try:
-        subscription = SchoolSubscription.objects.get(school=request.tenant)
+        subscription = _get_school_subscription_safe(request.tenant)
     except SchoolSubscription.DoesNotExist:
         messages.error(request, "No active subscription found")
+        return redirect('dashboard')
+    except ProgrammingError:
+        messages.error(request, "Subscription data is outdated for this school. Please ask support to run tenant migrations.")
         return redirect('dashboard')
     
     # Get add-on
@@ -1124,9 +1155,12 @@ def cancel_addon(request, addon_id):
     
     # Get subscription
     try:
-        subscription = SchoolSubscription.objects.get(school=request.tenant)
+        subscription = _get_school_subscription_safe(request.tenant)
     except SchoolSubscription.DoesNotExist:
         messages.error(request, "No active subscription found")
+        return redirect('dashboard')
+    except ProgrammingError:
+        messages.error(request, "Subscription data is outdated for this school. Please ask support to run tenant migrations.")
         return redirect('dashboard')
     
     # Get school add-on
@@ -1518,10 +1552,13 @@ def initiate_plan_upgrade(request):
         return redirect('tenants:school_subscription')
 
     try:
-        subscription = SchoolSubscription.objects.get(school=request.tenant)
+        subscription = _get_school_subscription_safe(request.tenant)
         email = request.user.email or f"admin_{request.tenant.schema_name}@schoolportal.app"
     except SchoolSubscription.DoesNotExist:
         messages.error(request, "No subscription found for your school.")
+        return redirect('tenants:school_subscription')
+    except ProgrammingError:
+        messages.error(request, "Subscription data is outdated for this school. Please ask support to run tenant migrations.")
         return redirect('tenants:school_subscription')
 
     # Double-payment guard: block same plan/cycle if already active and >7 days remaining
@@ -1645,9 +1682,12 @@ def upgrade_plan_callback(request):
         return redirect('tenants:school_subscription')
 
     try:
-        subscription = SchoolSubscription.objects.get(school=request.tenant)
+        subscription = _get_school_subscription_safe(request.tenant)
     except SchoolSubscription.DoesNotExist:
         messages.error(request, 'No subscription found. Contact support.')
+        return redirect('tenants:school_subscription')
+    except ProgrammingError:
+        messages.error(request, "Subscription data is outdated for this school. Please ask support to run tenant migrations.")
         return redirect('tenants:school_subscription')
 
     # Calculate new period end
