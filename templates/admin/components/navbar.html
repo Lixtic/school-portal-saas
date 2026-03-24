@@ -9,7 +9,35 @@
         
         <!-- Page Title / Breadcrumb Area (will be populated dynamically if needed) -->
         <div class="navbar-title">
-            <span class="current-page"></span>
+            <span class="current-page">
+                {% if breadcrumbs %}
+                    {% with last_crumb=breadcrumbs|last %}
+                        {{ last_crumb.label|default:'Admin Console' }}
+                    {% endwith %}
+                {% elif request.resolver_match.url_name == 'landlord_dashboard' %}
+                    Dashboard
+                {% elif request.resolver_match.url_name == 'approval_queue' %}
+                    Approval Queue
+                {% elif request.resolver_match.url_name == 'review_school' %}
+                    Review School
+                {% elif request.resolver_match.url_name == 'superadmin_create_school' %}
+                    Quick Create School
+                {% elif request.resolver_match.url_name == 'revenue_analytics' %}
+                    Revenue Analytics
+                {% elif request.resolver_match.url_name == 'system_health' %}
+                    System Health
+                {% elif request.resolver_match.url_name == 'support_tickets' %}
+                    Support Tickets
+                {% elif request.resolver_match.url_name == 'support_ticket_detail' %}
+                    Ticket Details
+                {% elif request.resolver_match.url_name == 'create_support_ticket' %}
+                    Create Ticket
+                {% elif request.resolver_match.url_name == 'database_backups' %}
+                    Database Backups
+                {% else %}
+                    Admin Console
+                {% endif %}
+            </span>
         </div>
         
         <!-- Right Actions -->
@@ -67,6 +95,17 @@
     font-size: 0.95rem;
     font-weight: 600;
     color: var(--admin-text-muted);
+}
+
+.current-page {
+    color: var(--admin-text-primary);
+    letter-spacing: 0.01em;
+}
+
+@media (max-width: 768px) {
+    .current-page {
+        font-size: 0.9rem;
+    }
 }
 
 .navbar-actions {
@@ -154,247 +193,11 @@
 }
 </style>
 
-<!-- Mobile Navigation Menu -->
-<div class="mobile-menu" id="mobileMenu">
-    <nav class="mobile-nav">
-        <a href="{% url 'tenants:landlord_dashboard' %}" class="mobile-nav-link">
-            <i class="bi bi-speedometer2"></i>
-            Dashboard
-        </a>
-        <a href="{% url 'tenants:approval_queue' %}" class="mobile-nav-link">
-            <i class="bi bi-clipboard-check"></i>
-            Approvals
-        </a>
-        <a href="{% url 'tenants:revenue_analytics' %}" class="mobile-nav-link">
-            <i class="bi bi-graph-up"></i>
-            Revenue
-        </a>
-        <a href="{% url 'tenants:system_health' %}" class="mobile-nav-link">
-            <i class="bi bi-activity"></i>
-            Health
-        </a>
-        <a href="{% url 'tenants:support_tickets' %}" class="mobile-nav-link">
-            <i class="bi bi-headset"></i>
-            Support
-        </a>
-        <div class="mobile-nav-divider"></div>
-        <a href="{% url 'tenants:database_backups' %}" class="mobile-nav-link">
-            <i class="bi bi-archive"></i>
-            Backups
-        </a>
-        <div class="mobile-nav-divider"></div>
-        <a href="/admin/" class="mobile-nav-link d-lg-none">
-            <i class="bi bi-shield-check"></i>
-            Full Admin
-        </a>
-    </nav>
-</div>
-
-<style>
-    /* Navbar */
-    .admin-navbar {
-        background: var(--admin-card-bg);
-        border-bottom: 1px solid var(--admin-border);
-        height: var(--admin-nav-height);
-        display: flex;
-        align-items: center;
-        padding: 0 var(--admin-spacing-lg);
-        position: sticky;
-        top: 0;
-        z-index: 100;
-        box-shadow: var(--admin-shadow-sm);
-    }
-    
-    .navbar-content {
-        display: flex;
-        align-items: center;
-        gap: var(--admin-spacing-lg);
-        width: 100%;
-    }
-    
-    .navbar-menu-toggle {
-        display: none;
-        background: none;
-        border: none;
-        cursor: pointer;
-        font-size: 1.25rem;
-        color: var(--admin-primary);
-        padding: 0;
-        width: 40px;
-        height: 40px;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .navbar-brand {
-        display: flex;
-        align-items: center;
-        gap: var(--admin-spacing-md);
-        text-decoration: none;
-        font-weight: 600;
-        color: var(--admin-text-primary);
-        white-space: nowrap;
-    }
-    
-    .navbar-brand a {
-        display: flex;
-        align-items: center;
-        gap: var(--admin-spacing-sm);
-        text-decoration: none;
-        color: inherit;
-    }
-    
-    .brand-icon {
-        font-size: 1.5rem;
-        color: var(--admin-primary);
-    }
-    
-    .navbar-menu {
-        display: flex;
-        gap: var(--admin-spacing-lg);
-        flex: 1;
-    }
-    
-    .nav-link {
-        color: var(--admin-text-secondary);
-        text-decoration: none;
-        display: flex;
-        align-items: center;
-        gap: var(--admin-spacing-sm);
-        padding: var(--admin-spacing-sm) 0;
-        transition: var(--admin-transition-fast);
-        white-space: nowrap;
-        font-size: 0.95rem;
-    }
-    
-    .nav-link:hover,
-    .nav-link.active {
-        color: var(--admin-primary);
-    }
-    
-    .nav-link.active {
-        font-weight: 600;
-        border-bottom: 2px solid var(--admin-primary);
-    }
-    
-    .navbar-actions {
-        display: flex;
-        align-items: center;
-        gap: var(--admin-spacing-lg);
-    }
-    
-    .theme-toggle {
-        background: none;
-        border: none;
-        cursor: pointer;
-        font-size: 1.25rem;
-        color: var(--admin-text-secondary);
-        transition: var(--admin-transition-fast);
-        padding: 0;
-        display: flex;
-        align-items: center;
-        width: 40px;
-        height: 40px;
-        justify-content: center;
-        border-radius: var(--admin-radius-md);
-    }
-    
-    .theme-toggle:hover {
-        background: var(--admin-bg-secondary);
-        color: var(--admin-primary);
-    }
-    
-    .user-menu {
-        display: flex;
-        align-items: center;
-        gap: var(--admin-spacing-md);
-        padding: var(--admin-spacing-sm) var(--admin-spacing-md);
-        border-radius: var(--admin-radius-md);
-        cursor: pointer;
-        transition: var(--admin-transition-fast);
-    }
-    
-    .user-menu:hover {
-        background: var(--admin-bg-secondary);
-    }
-    
-    .user-avatar {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        object-fit: cover;
-    }
-    
-    .user-name {
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: var(--admin-text-primary);
-    }
-    
-    /* Mobile Menu */
-    .mobile-menu {
-        display: none;
-        position: fixed;
-        top: var(--admin-nav-height);
-        left: 0;
-        right: 0;
-        background: var(--admin-card-bg);
-        border-bottom: 1px solid var(--admin-border);
-        max-height: calc(100vh - var(--admin-nav-height));
-        overflow-y: auto;
-        z-index: 99;
-    }
-    
-    .mobile-menu.active {
-        display: block;
-    }
-    
-    .mobile-nav {
-        display: flex;
-        flex-direction: column;
-        padding: var(--admin-spacing-lg) 0;
-    }
-    
-    .mobile-nav-link {
-        padding: var(--admin-spacing-lg);
-        color: var(--admin-text-secondary);
-        text-decoration: none;
-        border-bottom: 1px solid var(--admin-border);
-        display: flex;
-        align-items: center;
-        gap: var(--admin-spacing-md);
-        transition: var(--admin-transition-fast);
-    }
-    
-    .mobile-nav-link:last-child {
-        border-bottom: none;
-    }
-    
-    .mobile-nav-link:hover {
-        background: var(--admin-bg-secondary);
-        color: var(--admin-primary);
-    }
-    
-    .mobile-nav-divider {
-        height: 1px;
-        background: var(--admin-border);
-        margin: var(--admin-spacing-md) 0;
-    }
-    
-    /* Responsive */
-    @media (max-width: 1024px) {
-        .navbar-menu-toggle {
-            display: flex;
-        }
-    }
-</style>
-
 <script>
     // ===== Sidebar drawer (mobile) =====
     const sidebar  = document.getElementById('adminSidebar');
     const overlay  = document.getElementById('adminSidebarOverlay');
     const menuToggle = document.getElementById('mobileMenuToggle');
-    const mobileMenu = document.getElementById('mobileMenu');
 
     function openSidebar() {
         if (!sidebar) return;
@@ -407,7 +210,6 @@
         sidebar.classList.remove('active');
         if (overlay) overlay.classList.remove('active');
         document.body.style.overflow = '';
-        if (mobileMenu) mobileMenu.classList.remove('active');
     }
 
     if (menuToggle) {
@@ -426,38 +228,6 @@
             });
         });
     }
-
-    // ===== Aura Page Loading Bar =====
-    const loaderBar = document.getElementById('auraLoaderBar');
-    function startLoader() {
-        if (!loaderBar) return;
-        loaderBar.classList.remove('done');
-        loaderBar.style.width = '0%';
-        // Trigger reflow before adding loading class
-        void loaderBar.offsetWidth;
-        loaderBar.classList.add('loading');
-    }
-    function finishLoader() {
-        if (!loaderBar) return;
-        loaderBar.classList.remove('loading');
-        loaderBar.classList.add('done');
-        setTimeout(() => {
-            loaderBar.classList.remove('done');
-            loaderBar.style.width = '0%';
-        }, 500);
-    }
-    // Trigger on all anchor clicks (page navigations)
-    document.addEventListener('click', e => {
-        const anchor = e.target.closest('a[href]');
-        if (!anchor) return;
-        const href = anchor.getAttribute('href');
-        if (!href || href.startsWith('#') || href.startsWith('javascript') ||
-            anchor.target === '_blank' || e.ctrlKey || e.metaKey || e.shiftKey) return;
-        startLoader();
-    });
-    // Finish bar when page is fully loaded
-    window.addEventListener('load', finishLoader);
-    window.addEventListener('pageshow', finishLoader);
 
     // ===== Theme toggle =====
     const themeToggle = document.getElementById('themeToggle');

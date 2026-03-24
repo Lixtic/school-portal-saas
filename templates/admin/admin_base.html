@@ -48,9 +48,6 @@
 <!-- Mobile Sidebar Overlay -->
 <div class="admin-sidebar-overlay" id="adminSidebarOverlay"></div>
 
-<!-- Aura Page Loading Bar -->
-<div class="aura-loader-bar" id="auraLoaderBar"></div>
-
 <style>
     /* Hide base.html elements - we use admin components instead */
     .header {
@@ -85,49 +82,6 @@
         to   { opacity: 1; }
     }
 
-    /* ===== Aura Shimmer Loading Bar ===== */
-    .aura-loader-bar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 0%;
-        height: 3px;
-        z-index: 9999;
-        pointer-events: none;
-        border-radius: 0 3px 3px 0;
-        background: linear-gradient(
-            90deg,
-            transparent          0%,
-            rgba(67,97,238,.55) 25%,
-            #7c3aed              50%,
-            rgba(167,139,250,.9) 72%,
-            transparent          100%
-        );
-        background-size: 200% 100%;
-        opacity: 0;
-        transition: opacity 0.15s ease;
-    }
-    .aura-loader-bar.loading {
-        opacity: 1;
-        animation: auraBarExpand 0.6s cubic-bezier(0.37,0,0.63,1) forwards,
-                   auraBarShimmer 1.2s linear infinite;
-    }
-    .aura-loader-bar.done {
-        width: 100% !important;
-        opacity: 0;
-        transition: opacity 0.3s ease 0.1s, width 0.2s ease;
-    }
-    @keyframes auraBarExpand {
-        0%   { width: 0%; }
-        30%  { width: 60%; }
-        70%  { width: 82%; }
-        100% { width: 92%; }
-    }
-    @keyframes auraBarShimmer {
-        0%   { background-position: 200% 0; }
-        100% { background-position: -200% 0; }
-    }
-    
     /* Reset main-content for admin layout - it needs to take full space */
     #mainContent {
         margin-left: 0 !important;
