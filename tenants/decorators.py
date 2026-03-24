@@ -100,3 +100,102 @@ def require_addon(slug):
 
         return wrapper
     return decorator
+
+
+# ---------------------------------------------------------------------------
+# Plan-level gating
+# ---------------------------------------------------------------------------
+
+def _school_plan_type(request):
+    """
+    Return the current tenant's active plan_type string (e.g. 'basic', 'pro',
+    'enterprise', 'trial'), or None when it cannot be determined.
+    Staff / superusers always bypass plan checks.
+    """
+    if request.user.is_staff or request.user.is_superuser:
+        return 'enterprise'  # unrestricted for staff
+
+    try:
+        tenant = getattr(request, 'tenant', None)
+        if tenant is None or tenant.schema_name == 'public':
+            return None
+
+        from tenants.subscription_models import SchoolSubscription
+        _sentinel = object()
+        subscription = getattr(request, '_tenant_subscription', _sentinel)
+        if subscription is _sentinel:
+            subscription = SchoolSubscription.objects.select_related('plan').filter(school=tenant).first()
+        if subscription is None:
+            return None
+        if subscription.status not in ('trial', 'active'):
+            return None  # treat suspended / past_due / cancelled as no access
+        return subscription.plan.plan_type
+    except Exception:
+        return None
+
+
+def require_plan(*plan_types):
+    """
+    View decorator — only allow access when the school's active plan is one of
+    the given plan_types.
+
+    Usage::
+
+        @login_required
+        @require_plan('basic', 'pro', 'enterprise')
+        def premium_view(request):
+            ...
+
+        @login_required
+        @require_plan('pro', 'enterprise')
+        def advanced_view(request):
+            ...
+
+    * Trial schools are blocked unless 'trial' is in plan_types.
+    * Staff / superusers always pass through.
+    * AJAX / JSON → 402 response.
+    * Normal requests → redirect to upgrade page with a message.
+    """
+    allowed = set(plan_types)
+
+    def decorator(view_func):
+        @functools.wraps(view_func)
+        def wrapper(request, *args, **kwargs):
+            current_plan = _school_plan_type(request)
+            # Staff bypass: _school_plan_type returns 'enterprise' for staff
+            if current_plan not in allowed:
+                is_json = (
+                    request.headers.get('Accept', '').startswith('application/json')
+                    or request.content_type == 'application/json'
+                    or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+                )
+                if is_json:
+                    return JsonResponse(
+                        {
+                            'error': 'plan_upgrade_required',
+                            'required_plans': list(allowed),
+                            'current_plan': current_plan,
+                            'message': (
+                                'Your current plan does not include this feature. '
+                                'Upgrade your subscription to unlock it.'
+                            ),
+                        },
+                        status=402,
+                    )
+
+                plan_display = ' or '.join(p.title() for p in sorted(allowed - {'trial'}))
+                messages.warning(
+                    request,
+                    f'This feature requires a {plan_display} plan. '
+                    f'Upgrade your subscription to unlock it.',
+                )
+                # Redirect to subscription / billing page; fall back to dashboard
+                try:
+                    from django.urls import reverse
+                    return redirect(reverse('tenants:addon_marketplace'))
+                except Exception:
+                    return redirect('/')
+
+            return view_func(request, *args, **kwargs)
+        return wrapper
+    return decorator

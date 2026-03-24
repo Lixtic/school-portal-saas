@@ -4,364 +4,105 @@
 {% block title %}Revenue Analytics{% endblock %}
 
 {% block admin_content %}
-<style>
-    :root {
-        --card-bg: #ffffff;
-        --text-primary: #1a1a1a;
-        --text-secondary: #6b7280;
-        --text-muted: #9ca3af;
-        --border-color: #f0f0f0;
-        --bar-bg: #f3f4f6;
-        --admin-primary: #7c3aed;
-    }
-    
-    [data-bs-theme="dark"] {
-        --card-bg: #0f172a;
-        --text-primary: #f1f5f9;
-        --text-secondary: #cbd5e1;
-        --text-muted: #94a3b8;
-        --border-color: #1e293b;
-        --bar-bg: #1e293b;
-        --admin-primary: #a78bfa;
-    }
-    
-    .analytics-container {
-        padding: 1.5rem;
-        min-height: 100vh;
-    }
-    
-    .analytics-header {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 2rem;
-    }
-    
-    .main-metric {
-        margin-bottom: 2.5rem;
-    }
-    
-    .main-value {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-bottom: 0.25rem;
-    }
-    
-    .main-label {
-        font-size: 0.875rem;
-        color: var(--text-secondary);
-    }
-    
-    .period-selector {
-        float: right;
-        margin-top: -3rem;
-    }
-    
-    .period-btn {
-        background: var(--bar-bg);
-        border: none;
-        padding: 0.375rem 0.75rem;
-        border-radius: 8px;
-        font-size: 0.875rem;
-        color: var(--text-secondary);
-        cursor: pointer;
-    }
-    
-    .chart-container {
-        margin-bottom: 2.5rem;
-        padding: 1.5rem 0;
-        border-top: 1px solid var(--border-color);
-        border-bottom: 1px solid var(--border-color);
-    }
-    
-    .chart-label {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin-bottom: 1rem;
-    }
-    
-    .chart-month {
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: var(--text-primary);
-    }
-    
-    .chart-change {
-        font-size: 0.875rem;
-        color: #22c55e;
-        font-weight: 600;
-    }
-    
-    .simple-chart {
-        display: flex;
-        align-items: flex-end;
-        gap: 1.5rem;
-        height: 100px;
-        margin-bottom: 1rem;
-    }
-    
-    .chart-month-label {
-        display: flex;
-        justify-content: space-between;
-        padding: 0 0.5rem;
-    }
-    
-    .month-label {
-        font-size: 0.75rem;
-        color: var(--text-muted);
-    }
-    
-    .chart-bar {
-        flex: 1;
-        background: linear-gradient(to top, #e5e7eb, #f3f4f6);
-        border-radius: 4px 4px 0 0;
-        position: relative;
-        transition: all 0.3s ease;
-    }
-    
-    [data-bs-theme="dark"] .chart-bar {
-        background: linear-gradient(to top, #475569, #64748b);
-    }
-    
-    .list-section {
-        margin-bottom: 2rem;
-    }
-    
-    .list-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.5rem;
-    }
-    
-    .list-title {
-        font-size: 1rem;
-        font-weight: 600;
-        color: var(--text-primary);
-    }
-    
-    .list-subtitle {
-        font-size: 0.875rem;
-        color: var(--text-secondary);
-    }
-    
-    .list-item {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        padding: 1rem 0;
-        border-bottom: 1px solid var(--border-color);
-    }
-    
-    .list-item:last-child {
-        border-bottom: none;
-    }
-    
-    .item-icon {
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1rem;
-        flex-shrink: 0;
-    }
-    
-    .icon-primary { background: rgba(124, 58, 255, 0.1); color: #7c3aff; }
-    .icon-success { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
-    .icon-warning { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
-    .icon-purple { background: rgba(168, 85, 247, 0.1); color: #a855f7; }
-    
-    [data-bs-theme="dark"] .icon-primary { background: rgba(124, 58, 255, 0.15); color: #a78bfa; }
-    [data-bs-theme="dark"] .icon-success { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
-    [data-bs-theme="dark"] .icon-warning { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
-    [data-bs-theme="dark"] .icon-purple { background: rgba(168, 85, 247, 0.15); color: #d8b4fe; }
-    
-    .item-content {
-        flex: 1;
-        min-width: 0;
-    }
-    
-    .item-name {
-        font-size: 0.9375rem;
-        font-weight: 500;
-        color: var(--text-primary);
-        margin-bottom: 0.375rem;
-    }
-    
-    .progress-bar-wrapper {
-        width: 100%;
-        height: 6px;
-        background: var(--bar-bg);
-        border-radius: 3px;
-        overflow: hidden;
-        margin-bottom: 0.25rem;
-    }
-    
-    .progress-bar-fill {
-        height: 100%;
-        border-radius: 3px;
-        transition: width 0.5s ease;
-    }
-    
-    .fill-primary { background: #7c3aff; }
-    .fill-success { background: #22c55e; }
-    .fill-warning { background: #f59e0b; }
-    .fill-purple { background: #a855f7; }
-    
-    [data-bs-theme="dark"] .fill-primary { background: #a78bfa; }
-    [data-bs-theme="dark"] .fill-success { background: #4ade80; }
-    [data-bs-theme="dark"] .fill-warning { background: #fbbf24; }
-    [data-bs-theme="dark"] .fill-purple { background: #d8b4fe; }
-    
-    .item-value {
-        font-size: 0.875rem;
-        color: var(--text-secondary);
-    }
-    
-    .item-percentage {
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        flex-shrink: 0;
-    }
-    
-    .metric-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
-        margin-top: 2rem;
-    }
-    
-    .mini-metric {
-        text-align: center;
-        padding: 1rem;
-    }
-    
-    .mini-value {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-bottom: 0.25rem;
-    }
-    
-    .mini-label {
-        font-size: 0.75rem;
-        color: var(--text-secondary);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    @media (max-width: 576px) {
-        .analytics-container {
-            padding: 1rem;
-        }
-        
-        .main-value {
-            font-size: 2rem;
-        }
-        
-        .simple-chart {
-            gap: 1rem;
-        }
-    }
-</style>
+<link rel="stylesheet" href="{% static 'css/mc-landlord.css' %}">
 
-<div class="analytics-container">
+<div class="mc-page">
     <!-- Header -->
-    <div class="analytics-header">
-        <a href="{% url 'tenants:landlord_dashboard' %}" class="btn btn-sm btn-outline-secondary me-2">
-            <i class="bi bi-arrow-left me-1"></i>Back
+    <div class="mc-header">
+        <div>
+            <h1 class="mc-title"><i class="bi bi-graph-up-arrow"></i>Revenue Analytics</h1>
+            <p class="mc-subtitle">MRR, plan distribution and growth</p>
+        </div>
+        <a href="{% url 'tenants:landlord_dashboard' %}" class="mc-btn mc-btn-ghost">
+            <i class="bi bi-arrow-left"></i>Dashboard
         </a>
-        Revenue Analytics
     </div>
 
-    <!-- Main Metric -->
-    <div class="main-metric">
-        <div class="main-value">₵{{ total_mrr|floatformat:0 }}</div>
-        <div class="main-label">{% if all_zero_mrr %}Schools acquired (all on trial — no paid MRR yet){% else %}Total monthly recurring revenue{% endif %}</div>
-        <div class="period-selector">
-            <button class="period-btn">6M <i class="bi bi-chevron-down ms-1"></i></button>
+    <!-- KPI Row -->
+    <div class="mc-stats-grid">
+        <div class="mc-stat">
+            <div class="mc-stat-icon green"><i class="bi bi-currency-dollar"></i></div>
+            <div class="mc-stat-value" style="font-size:1.4rem;">₵{{ total_mrr|floatformat:0 }}</div>
+            <div class="mc-stat-label">Total MRR</div>
+        </div>
+        <div class="mc-stat">
+            <div class="mc-stat-icon"><i class="bi bi-buildings"></i></div>
+            <div class="mc-stat-value">{{ active_count }}</div>
+            <div class="mc-stat-label">Active Schools</div>
+        </div>
+        <div class="mc-stat">
+            <div class="mc-stat-icon amber"><i class="bi bi-hourglass-split"></i></div>
+            <div class="mc-stat-value">{{ trial_count }}</div>
+            <div class="mc-stat-label">On Trial</div>
+        </div>
+        <div class="mc-stat">
+            <div class="mc-stat-icon red"><i class="bi bi-bar-chart-down"></i></div>
+            <div class="mc-stat-value">{{ churn_rate }}%</div>
+            <div class="mc-stat-label">Churn Rate</div>
         </div>
     </div>
 
-    <!-- Simple Chart -->
-    <div class="chart-container">
-        <div class="chart-label">
-            <span class="chart-month">{{ current_month }}</span>
-            <span class="chart-change">
+    <!-- MRR Chart -->
+    <div class="mc-card">
+        <div class="mc-card-header">
+            <div class="mc-card-icon"><i class="bi bi-bar-chart"></i></div>
+            <h5 class="mc-card-title">
+                {{ current_month }}
                 {% if growth_rate != 0 %}
+                <span style="font-size:.8rem;font-weight:500;color:{% if growth_rate > 0 %}var(--mc-green){% else %}var(--mc-red){% endif %};margin-left:.5rem;">
                     <i class="bi bi-arrow-{% if growth_rate > 0 %}up{% else %}down{% endif %}"></i>{{ growth_rate|floatformat:1 }}%
+                </span>
                 {% endif %}
-            </span>
+            </h5>
         </div>
-        {% if all_zero_mrr %}
-        <p style="font-size:.75rem;color:#94a3b8;margin:0 0 .5rem;text-align:center;">
-            📊 Showing new school registrations per month (MRR will appear once schools pay)
-        </p>
-        {% endif %}
-        <div class="simple-chart">
-            {% for height in chart_heights %}
-            <div class="chart-bar" style="height: {{ height }}%"></div>
-            {% endfor %}
-        </div>
-        <div class="chart-month-label">
-            {% for label in chart_labels %}
-            <span class="month-label">{{ label }}</span>
-            {% endfor %}
+        <div class="mc-card-body">
+            {% if all_zero_mrr %}
+            <p style="font-size:.78rem;color:var(--mc-text-lo);margin:0 0 .75rem;">
+                Showing new school registrations per month — MRR will appear once schools are on paid plans.
+            </p>
+            {% endif %}
+            <div class="mc-chart-wrap">
+                {% for height in chart_heights %}
+                <div class="mc-chart-bar" style="height:{{ height }}%"></div>
+                {% endfor %}
+            </div>
+            <div class="mc-chart-labels">
+                {% for label in chart_labels %}
+                <span>{{ label }}</span>
+                {% endfor %}
+            </div>
         </div>
     </div>
 
-    <!-- Plan Distribution List -->
-    <div class="list-section">
-        <div class="list-header">
-            <div>
-                <div class="list-title">{{ schools_count|default:"0" }}</div>
-                <div class="list-subtitle">Total schools by plan</div>
-            </div>
+    <!-- Plan Distribution -->
+    <div class="mc-card">
+        <div class="mc-card-header">
+            <div class="mc-card-icon"><i class="bi bi-pie-chart"></i></div>
+            <h5 class="mc-card-title">Plan Distribution &mdash; {{ schools_count|default:"0" }} total schools</h5>
         </div>
-        
-        {% for plan in plan_distribution %}
-        <div class="list-item">
-            <div class="item-icon {% cycle 'icon-primary' 'icon-success' 'icon-warning' 'icon-purple' %}">
-                <i class="bi bi-building"></i>
-            </div>
-            <div class="item-content">
-                <div class="item-name">{{ plan.plan__name }}</div>
-                <div class="progress-bar-wrapper">
-                    <div class="progress-bar-fill {% cycle 'fill-primary' 'fill-success' 'fill-warning' 'fill-purple' %}" 
-                         style="width: {% widthratio plan.count schools_count 100 %}%"></div>
+        <div class="mc-card-body" style="padding:0 1.25rem;">
+            {% for plan in plan_distribution %}
+            <div class="mc-metric-row">
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:.88rem;font-weight:500;color:var(--mc-text-hi);margin-bottom:.3rem;">{{ plan.plan__name }}</div>
+                    <div class="mc-progress-bar">
+                        <div class="mc-progress-fill" style="width:{% widthratio plan.count schools_count 100 %}%;"></div>
+                    </div>
+                    <div style="font-size:.73rem;color:var(--mc-text-lo);margin-top:.25rem;">{{ plan.count }} schools &middot; ₵{{ plan.revenue|floatformat:0 }}</div>
                 </div>
-                <div class="item-value">{{ plan.count }} schools · ₵{{ plan.revenue|floatformat:0 }}</div>
+                <div style="font-size:.9rem;font-weight:600;color:var(--mc-text-hi);margin-left:1.25rem;">{% widthratio plan.count schools_count 100 %}%</div>
             </div>
-            <div class="item-percentage">{% widthratio plan.count schools_count 100 %}%</div>
+            {% empty %}
+            <div class="mc-empty" style="padding:2rem 0;"><i class="bi bi-pie-chart"></i>No plan data available</div>
+            {% endfor %}
         </div>
-        {% empty %}
-        <div class="text-center text-muted py-4">No plan data available</div>
-        {% endfor %}
     </div>
 
-    <!-- Quick Stats Grid -->
-    <div class="metric-grid">
-        <div class="mini-metric">
-            <div class="mini-value">{{ churn_rate }}%</div>
-            <div class="mini-label">Churn Rate</div>
-        </div>
-        <div class="mini-metric">
-            <div class="mini-value">₵{{ arpa|floatformat:0 }}</div>
-            <div class="mini-label">ARPA</div>
-        </div>
-        <div class="mini-metric">
-            <div class="mini-value">{{ active_count }}</div>
-            <div class="mini-label">Active</div>
-        </div>
-        <div class="mini-metric">
-            <div class="mini-value">{{ trial_count }}</div>
-            <div class="mini-label">On Trial</div>
-        </div>
+    <!-- ARPA mini metric -->
+    <div class="mc-stat" style="text-align:center;border-radius:14px;">
+        <div class="mc-stat-icon blue"><i class="bi bi-person-fill-check"></i></div>
+        <div class="mc-stat-value" style="font-size:1.6rem;">₵{{ arpa|floatformat:0 }}</div>
+        <div class="mc-stat-label">ARPA (Average Revenue Per Account)</div>
     </div>
 </div>
 {% endblock admin_content %}

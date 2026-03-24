@@ -4,253 +4,58 @@
 {% block title %}Database Backups{% endblock %}
 
 {% block admin_content %}
-<style>
-    :root {
-        --card-bg: #ffffff;
-        --card-header-bg: #f8fafc;
-        --text-primary: #1a1a1a;
-        --text-secondary: #6b7280;
-        --text-muted: #9ca3af;
-        --border-color: #e2e8f0;
-        --bar-bg: #f3f4f6;
-        --admin-primary: #7c3aed;
-        --input-bg: #ffffff;
-    }
-    [data-bs-theme="dark"] {
-        --card-bg: #0f172a;
-        --card-header-bg: #1e293b;
-        --text-primary: #f1f5f9;
-        --text-secondary: #cbd5e1;
-        --text-muted: #94a3b8;
-        --border-color: #1e293b;
-        --bar-bg: #1e293b;
-        --admin-primary: #a78bfa;
-        --input-bg: #1e293b;
-    }
+<link rel="stylesheet" href="{% static 'css/mc-landlord.css' %}">
 
-    .db-container { padding: 1.5rem; min-height: 100vh; }
-
-    .db-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 1.75rem;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-    }
-    .db-title {
-        font-size: 1.2rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin: 0;
-    }
-    .db-back {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        font-size: 0.85rem;
-        font-weight: 500;
-        color: var(--text-secondary);
-        text-decoration: none;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        padding: 0.35rem 0.75rem;
-        background: var(--card-bg);
-        transition: color .15s, border-color .15s;
-    }
-    .db-back:hover { color: var(--admin-primary); border-color: var(--admin-primary); }
-
-    .db-stats {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 0.75rem;
-        margin-bottom: 1.5rem;
-    }
-    @media (max-width: 768px) { .db-stats { grid-template-columns: repeat(2, 1fr); } }
-
-    .db-stat {
-        background: var(--card-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 14px;
-        padding: 1.1rem 1rem;
-        text-align: center;
-    }
-    .db-stat-icon {
-        font-size: 1.4rem;
-        margin-bottom: 0.4rem;
-    }
-    .db-stat-value {
-        font-size: 1.6rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        font-variant-numeric: tabular-nums;
-        line-height: 1.1;
-    }
-    .db-stat-label {
-        font-size: 0.75rem;
-        color: var(--text-muted);
-        margin-top: 0.2rem;
-    }
-    .db-stat-icon.archive  { color: var(--admin-primary); }
-    .db-stat-icon.success  { color: #10b981; }
-    .db-stat-icon.danger   { color: #ef4444; }
-    .db-stat-icon.info     { color: #3b82f6; }
-
-    .db-card {
-        background: var(--card-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 16px;
-        overflow: hidden;
-        margin-bottom: 1.25rem;
-    }
-    .db-card-header {
-        background: var(--card-header-bg);
-        border-bottom: 1px solid var(--border-color);
-        padding: 0.9rem 1.25rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    .db-card-title {
-        font-size: 0.9rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin: 0;
-    }
-    .db-card-icon {
-        width: 28px; height: 28px;
-        border-radius: 7px;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 0.85rem;
-    }
-    .db-card-icon.purple { background: rgba(124,58,255,0.1); color: var(--admin-primary); }
-    .db-card-icon.slate  { background: rgba(100,116,139,0.12); color: #64748b; }
-    .db-card-body { padding: 1.25rem; }
-
-    /* Trigger form */
-    .db-form-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 0.75rem; align-items: end; }
-    @media (max-width: 640px) { .db-form-grid { grid-template-columns: 1fr; } }
-
-    .db-label {
-        font-size: 0.78rem;
-        font-weight: 600;
-        color: var(--text-muted);
-        text-transform: uppercase;
-        letter-spacing: .04em;
-        display: block;
-        margin-bottom: 0.35rem;
-    }
-    .db-select {
-        width: 100%;
-        border: 1px solid var(--border-color);
-        border-radius: 10px;
-        padding: 0.6rem 0.85rem;
-        font-size: 0.87rem;
-        background: var(--input-bg);
-        color: var(--text-primary);
-        outline: none;
-        font-family: inherit;
-    }
-    .db-select:focus { border-color: var(--admin-primary); }
-
-    .db-btn-primary {
-        background: var(--admin-primary);
-        color: #fff;
-        border: none;
-        border-radius: 10px;
-        padding: 0.6rem 1.25rem;
-        font-size: 0.87rem;
-        font-weight: 600;
-        cursor: pointer;
-        white-space: nowrap;
-        transition: opacity .15s;
-    }
-    .db-btn-primary:hover { opacity: 0.88; }
-
-    /* Table */
-    .db-table { width: 100%; border-collapse: collapse; }
-    .db-table th {
-        font-size: 0.72rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: .05em;
-        color: var(--text-muted);
-        padding: 0.7rem 0.9rem;
-        background: var(--bar-bg);
-        text-align: left;
-        white-space: nowrap;
-    }
-    .db-table td {
-        padding: 0.75rem 0.9rem;
-        font-size: 0.85rem;
-        color: var(--text-secondary);
-        border-bottom: 1px solid var(--border-color);
-        vertical-align: middle;
-    }
-    .db-table tr:last-child td { border-bottom: none; }
-    .db-table tr:hover td { background: color-mix(in srgb, var(--bar-bg) 60%, transparent); }
-
-    .db-badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.2rem 0.55rem;
-        border-radius: 20px;
-        font-size: 0.72rem;
-        font-weight: 600;
-    }
-    .db-badge-completed { background: rgba(16,185,129,.15); color: #10b981; }
-    .db-badge-failed    { background: rgba(239,68,68,.15);  color: #ef4444; }
-    .db-badge-progress  { background: rgba(245,158,11,.15); color: #f59e0b; }
-    .db-badge-secondary { background: rgba(148,163,184,.15); color: #64748b; }
-    .db-badge-type      { background: rgba(124,58,255,.12); color: var(--admin-primary); }
-</style>
-
-<div class="db-container">
-    <div class="db-header">
-        <h2 class="db-title">Database Backup & Restore</h2>
-        <a href="{% url 'tenants:landlord_dashboard' %}" class="db-back">
-            <i class="bi bi-arrow-left me-1"></i>Back
+<div class="mc-page">
+    <!-- Header -->
+    <div class="mc-header">
+        <div>
+            <h1 class="mc-title"><i class="bi bi-hdd-stack"></i>Database Backup &amp; Restore</h1>
+            <p class="mc-subtitle">Manage schema snapshots and restore points</p>
+        </div>
+        <a href="{% url 'tenants:landlord_dashboard' %}" class="mc-btn mc-btn-ghost">
+            <i class="bi bi-arrow-left"></i>Dashboard
         </a>
     </div>
 
     <!-- Stats -->
-    <div class="db-stats">
-        <div class="db-stat">
-            <div class="db-stat-icon archive"><i class="bi bi-archive"></i></div>
-            <div class="db-stat-value">{{ total_backups }}</div>
-            <div class="db-stat-label">Total Backups</div>
+    <div class="mc-stats-grid">
+        <div class="mc-stat">
+            <div class="mc-stat-icon"><i class="bi bi-archive"></i></div>
+            <div class="mc-stat-value">{{ total_backups }}</div>
+            <div class="mc-stat-label">Total Backups</div>
         </div>
-        <div class="db-stat">
-            <div class="db-stat-icon success"><i class="bi bi-check-circle"></i></div>
-            <div class="db-stat-value">{{ completed_backups }}</div>
-            <div class="db-stat-label">Completed</div>
+        <div class="mc-stat">
+            <div class="mc-stat-icon green"><i class="bi bi-check-circle"></i></div>
+            <div class="mc-stat-value">{{ completed_backups }}</div>
+            <div class="mc-stat-label">Completed</div>
         </div>
-        <div class="db-stat">
-            <div class="db-stat-icon danger"><i class="bi bi-x-circle"></i></div>
-            <div class="db-stat-value">{{ failed_backups }}</div>
-            <div class="db-stat-label">Failed</div>
+        <div class="mc-stat">
+            <div class="mc-stat-icon red"><i class="bi bi-x-circle"></i></div>
+            <div class="mc-stat-value">{{ failed_backups }}</div>
+            <div class="mc-stat-label">Failed</div>
         </div>
-        <div class="db-stat">
-            <div class="db-stat-icon info"><i class="bi bi-hdd"></i></div>
-            <div class="db-stat-value">{{ total_size_gb }} <span style="font-size:.9rem;font-weight:500;">GB</span></div>
-            <div class="db-stat-label">Total Size</div>
+        <div class="mc-stat">
+            <div class="mc-stat-icon blue"><i class="bi bi-hdd"></i></div>
+            <div class="mc-stat-value">{{ total_size_gb }}<span style="font-size:.9rem;font-weight:500;"> GB</span></div>
+            <div class="mc-stat-label">Total Size</div>
         </div>
     </div>
 
     <!-- Trigger Backup -->
-    <div class="db-card">
-        <div class="db-card-header">
-            <div class="db-card-icon purple"><i class="bi bi-cloud-upload"></i></div>
-            <h5 class="db-card-title">Trigger New Backup</h5>
+    <div class="mc-card">
+        <div class="mc-card-header">
+            <div class="mc-card-icon"><i class="bi bi-cloud-upload"></i></div>
+            <h5 class="mc-card-title">Trigger New Backup</h5>
         </div>
-        <div class="db-card-body">
+        <div class="mc-card-body">
             <form method="post">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="trigger_backup">
-                <div class="db-form-grid">
+                <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:.75rem;align-items:end;">
                     <div>
-                        <label class="db-label" for="school">School</label>
-                        <select class="db-select" id="school" name="school_id">
+                        <label class="mc-label" for="school">School</label>
+                        <select class="mc-select" id="school" name="school_id">
                             <option value="">All Schools (System-wide)</option>
                             {% for school in schools %}
                             <option value="{{ school.id }}">{{ school.name }}</option>
@@ -258,31 +63,29 @@
                         </select>
                     </div>
                     <div>
-                        <label class="db-label" for="backupType">Backup Type</label>
-                        <select class="db-select" id="backupType" name="backup_type">
+                        <label class="mc-label" for="backupType">Backup Type</label>
+                        <select class="mc-select" id="backupType" name="backup_type">
                             <option value="full">Full Backup</option>
                             <option value="incremental">Incremental</option>
                             <option value="schema_only">Schema Only</option>
                         </select>
                     </div>
-                    <div>
-                        <button type="submit" class="db-btn-primary">
-                            <i class="bi bi-cloud-upload me-1"></i>Start Backup
-                        </button>
-                    </div>
+                    <button type="submit" class="mc-btn mc-btn-vi">
+                        <i class="bi bi-cloud-upload"></i>Start Backup
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Recent Backups -->
-    <div class="db-card">
-        <div class="db-card-header">
-            <div class="db-card-icon slate"><i class="bi bi-clock-history"></i></div>
-            <h5 class="db-card-title">Recent Backups</h5>
+    <!-- Recent Backups Table -->
+    <div class="mc-card">
+        <div class="mc-card-header">
+            <div class="mc-card-icon" style="background:rgba(100,116,139,.12);color:#64748b;"><i class="bi bi-clock-history"></i></div>
+            <h5 class="mc-card-title">Recent Backups</h5>
         </div>
-        <div style="overflow-x: auto;">
-            <table class="db-table">
+        <div style="overflow-x:auto;">
+            <table class="mc-table">
                 <thead>
                     <tr>
                         <th>School</th>
@@ -299,13 +102,13 @@
                     {% for backup in backups %}
                     <tr>
                         <td>{{ backup.school.name|default:"System-wide" }}</td>
-                        <td><span class="db-badge db-badge-type">{{ backup.get_backup_type_display }}</span></td>
+                        <td><span class="mc-badge mc-badge-vi">{{ backup.get_backup_type_display }}</span></td>
                         <td>
-                            <span class="db-badge
-                                {% if backup.status == 'completed' %}db-badge-completed
-                                {% elif backup.status == 'failed' %}db-badge-failed
-                                {% elif backup.status == 'in_progress' %}db-badge-progress
-                                {% else %}db-badge-secondary{% endif %}">
+                            <span class="mc-badge
+                                {% if backup.status == 'completed' %}mc-badge-green
+                                {% elif backup.status == 'failed' %}mc-badge-red
+                                {% elif backup.status == 'in_progress' %}mc-badge-amber
+                                {% else %}mc-badge-slate{% endif %}">
                                 {{ backup.get_status_display }}
                             </span>
                         </td>
@@ -316,25 +119,23 @@
                         <td>
                             {% if backup.status == 'completed' %}
                             {% if backup.file_path %}
-                            <a href="{{ MEDIA_URL }}{{ backup.file_path }}" class="btn btn-sm btn-outline-primary" download>
-                                <i class="bi bi-download"></i> Download
+                            <a href="{{ MEDIA_URL }}{{ backup.file_path }}" class="mc-btn mc-btn-ghost" style="font-size:.78rem;padding:.28rem .7rem;" download>
+                                <i class="bi bi-download"></i>Download
                             </a>
                             {% else %}
-                            <button class="btn btn-sm btn-outline-primary" disabled title="File not yet available">
-                                <i class="bi bi-download"></i> Download
+                            <button class="mc-btn mc-btn-ghost" style="font-size:.78rem;padding:.28rem .7rem;" disabled>
+                                <i class="bi bi-download"></i>Download
                             </button>
                             {% endif %}
-                            <button class="btn btn-sm btn-outline-secondary" disabled title="Contact support to restore">
-                                <i class="bi bi-arrow-clockwise"></i> Restore
-                            </button>
                             {% endif %}
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" style="text-align:center;padding:2.5rem;color:var(--text-muted);font-size:.87rem;">
-                            <i class="bi bi-archive" style="font-size:1.5rem;display:block;margin-bottom:.5rem;"></i>
-                            No backups found
+                        <td colspan="8">
+                            <div class="mc-empty" style="padding:2rem 0;">
+                                <i class="bi bi-archive"></i>No backups found
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}

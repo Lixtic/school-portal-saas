@@ -1,0 +1,564 @@
+/*
+ * Mission Control — Landlord Admin Theme
+ * Unified dark-first token layer for all landlord admin pages.
+ * Works alongside admin/admin_base.html sidebar structure.
+ *
+ * Palette:
+ *   bg-base    #0F0F17   deepest background
+ *   bg-surface #16161F   card surface
+ *   bg-raised  #1C1C28   elevated / header within card
+ *   vi-500     #7C3AED   primary violet
+ *   vi-400     #9D5FFF   lighter violet / hover
+ *   border     rgba(255,255,255,0.06)
+ *   text-hi    #F0F0FA   high-contrast text
+ *   text-lo    #8B8BA8   muted / secondary text
+ *   green      #22C55E
+ *   amber      #F59E0B
+ *   red        #EF4444
+ *   blue       #60A5FA
+ */
+
+/* ── Override admin_base body background ──────────────────────────── */
+.admin-wrapper,
+.admin-main,
+.admin-content-area,
+body {
+    --mc-bg:        #0F0F17;
+    --mc-surface:   #16161F;
+    --mc-raised:    #1C1C28;
+    --mc-border:    rgba(255,255,255,0.06);
+    --mc-vi:        #7C3AED;
+    --mc-vi-light:  #9D5FFF;
+    --mc-text-hi:   #F0F0FA;
+    --mc-text-lo:   #8B8BA8;
+    --mc-green:     #22C55E;
+    --mc-amber:     #F59E0B;
+    --mc-red:       #EF4444;
+    --mc-blue:      #60A5FA;
+
+    /* Map to the generic token names used by individual templates */
+    --card-bg:          var(--mc-surface);
+    --card-header-bg:   var(--mc-raised);
+    --text-primary:     var(--mc-text-hi);
+    --text-secondary:   #A0A0BC;
+    --text-muted:       var(--mc-text-lo);
+    --border-color:     var(--mc-border);
+    --bar-bg:           var(--mc-raised);
+    --admin-primary:    var(--mc-vi);
+    --input-bg:         var(--mc-surface);
+
+    /* Queue-specific tokens */
+    --q-surface:    var(--mc-surface);
+    --q-border:     var(--mc-border);
+    --q-heading:    var(--mc-text-hi);
+    --q-muted:      var(--mc-text-lo);
+    --q-blue:       var(--mc-blue);
+    --q-purple:     var(--mc-vi);
+    --q-green:      var(--mc-green);
+    --q-amber:      var(--mc-amber);
+    --q-red:        var(--mc-red);
+}
+
+/* ── Scoped dark panel for each page ─────────────────────────────── */
+.mc-page {
+    background: var(--mc-bg);
+    color: var(--mc-text-hi);
+    min-height: 100%;
+    padding: 1.5rem;
+    font-family: 'Inter', 'Manrope', system-ui, sans-serif;
+}
+
+/* ── Page header bar ─────────────────────────────────────────────── */
+.mc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.75rem;
+}
+
+.mc-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--mc-text-hi);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.mc-title i { color: var(--mc-vi); }
+
+.mc-subtitle {
+    font-size: 0.8rem;
+    color: var(--mc-text-lo);
+    margin: 0.15rem 0 0;
+}
+
+/* ── Back link ───────────────────────────────────────────────────── */
+.mc-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--mc-text-lo);
+    text-decoration: none;
+    border: 1px solid var(--mc-border);
+    border-radius: 8px;
+    padding: 0.35rem 0.85rem;
+    background: var(--mc-surface);
+    transition: color .15s, border-color .15s;
+}
+.mc-back:hover { color: var(--mc-vi); border-color: var(--mc-vi); }
+
+/* ── Stat / metric cards ─────────────────────────────────────────── */
+.mc-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+@media (max-width: 768px) { .mc-stats-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .mc-stats-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.mc-stat {
+    background: var(--mc-surface);
+    border: 1px solid var(--mc-border);
+    border-radius: 14px;
+    padding: 1.1rem 1rem;
+    text-align: center;
+    transition: border-color .15s;
+}
+.mc-stat:hover { border-color: rgba(124,58,237,0.3); }
+
+.mc-stat-icon {
+    font-size: 1.3rem;
+    margin-bottom: 0.4rem;
+    color: var(--mc-vi);
+}
+.mc-stat-icon.green { color: var(--mc-green); }
+.mc-stat-icon.red   { color: var(--mc-red); }
+.mc-stat-icon.blue  { color: var(--mc-blue); }
+.mc-stat-icon.amber { color: var(--mc-amber); }
+
+.mc-stat-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--mc-text-hi);
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+.mc-stat-label {
+    font-size: 0.72rem;
+    color: var(--mc-text-lo);
+    margin-top: 0.2rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+/* ── Cards ───────────────────────────────────────────────────────── */
+.mc-card {
+    background: var(--mc-surface);
+    border: 1px solid var(--mc-border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+}
+
+.mc-card-header {
+    background: var(--mc-raised);
+    border-bottom: 1px solid var(--mc-border);
+    padding: 0.85rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+}
+.mc-card-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--mc-text-hi);
+    margin: 0;
+}
+.mc-card-icon {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem;
+    background: rgba(124,58,237,0.15);
+    color: var(--mc-vi);
+}
+.mc-card-body { padding: 1.25rem; }
+
+/* ── Tables ──────────────────────────────────────────────────────── */
+.mc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+.mc-table th {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--mc-text-lo);
+    padding: 0.7rem 0.9rem;
+    background: var(--mc-raised);
+    text-align: left;
+    white-space: nowrap;
+}
+.mc-table td {
+    padding: 0.75rem 0.9rem;
+    color: var(--mc-text-hi);
+    border-bottom: 1px solid var(--mc-border);
+    vertical-align: middle;
+}
+.mc-table tr:last-child td { border-bottom: none; }
+.mc-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* ── Badges ──────────────────────────────────────────────────────── */
+.mc-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+}
+.mc-badge-vi       { background: rgba(124,58,237,0.2);  color: #a78bfa; }
+.mc-badge-green    { background: rgba(34,197,94,0.15);  color: #4ade80; }
+.mc-badge-amber    { background: rgba(245,158,11,0.15); color: #fbbf24; }
+.mc-badge-red      { background: rgba(239,68,68,0.15);  color: #fca5a5; }
+.mc-badge-blue     { background: rgba(96,165,250,0.15); color: #93c5fd; }
+.mc-badge-slate    { background: rgba(148,163,184,0.1); color: #94a3b8; }
+
+/* ── Form controls ───────────────────────────────────────────────── */
+.mc-select,
+.mc-input,
+.mc-textarea {
+    width: 100%;
+    border: 1px solid var(--mc-border);
+    border-radius: 10px;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.87rem;
+    background: var(--mc-raised);
+    color: var(--mc-text-hi);
+    outline: none;
+    font-family: inherit;
+    transition: border-color .15s;
+}
+.mc-select:focus,
+.mc-input:focus,
+.mc-textarea:focus {
+    border-color: var(--mc-vi);
+    box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
+}
+.mc-textarea { resize: vertical; min-height: 100px; }
+
+.mc-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--mc-text-lo);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    display: block;
+    margin-bottom: 0.35rem;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────── */
+.mc-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1.1rem;
+    border-radius: 9px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: opacity .15s, background .15s;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.mc-btn-vi    { background: var(--mc-vi);     color: #fff; }
+.mc-btn-vi:hover { opacity: 0.88; color: #fff; }
+.mc-btn-ghost {
+    background: transparent;
+    color: var(--mc-text-lo);
+    border: 1px solid var(--mc-border);
+}
+.mc-btn-ghost:hover { color: var(--mc-vi); border-color: rgba(124,58,237,0.4); }
+.mc-btn-red { background: rgba(239,68,68,0.15); color: #fca5a5; border: none; }
+.mc-btn-red:hover { background: rgba(239,68,68,0.25); }
+.mc-btn-green { background: rgba(34,197,94,0.15); color: #4ade80; border: none; }
+.mc-btn-green:hover { background: rgba(34,197,94,0.25); }
+
+/* ── Metric / progress row ───────────────────────────────────────── */
+.mc-metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid var(--mc-border);
+}
+.mc-metric-row:last-child { border-bottom: none; }
+
+.mc-progress-bar {
+    width: 100%;
+    height: 5px;
+    background: var(--mc-raised);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 0.35rem;
+}
+.mc-progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--mc-vi);
+    transition: width .5s ease;
+}
+.mc-progress-fill.green  { background: var(--mc-green); }
+.mc-progress-fill.amber  { background: var(--mc-amber); }
+.mc-progress-fill.blue   { background: var(--mc-blue); }
+
+/* ── Alert / notice banner ───────────────────────────────────────── */
+.mc-alert-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    background: var(--mc-raised);
+    border: 1px solid var(--mc-border);
+    margin-bottom: 0.65rem;
+}
+.mc-alert-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+    background: rgba(245,158,11,0.15);
+    color: var(--mc-amber);
+}
+
+/* ── Empty state ─────────────────────────────────────────────────── */
+.mc-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--mc-text-lo);
+}
+.mc-empty i { font-size: 2.2rem; opacity: .25; display: block; margin-bottom: .6rem; }
+
+/* ── Section heading ─────────────────────────────────────────────── */
+.mc-section-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--mc-text-lo);
+    margin: 1.5rem 0 0.85rem;
+}
+
+/* ── Chart bars (revenue) ────────────────────────────────────────── */
+.mc-chart-wrap {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+    height: 100px;
+    padding: 0 0.25rem;
+    margin-bottom: 0.5rem;
+}
+.mc-chart-bar {
+    flex: 1;
+    border-radius: 4px 4px 0 0;
+    background: rgba(124,58,237,0.35);
+    transition: background .2s;
+    position: relative;
+    cursor: pointer;
+}
+.mc-chart-bar:hover { background: rgba(124,58,237,0.65); }
+.mc-chart-labels {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 0.25rem;
+    font-size: 0.7rem;
+    color: var(--mc-text-lo);
+}
+
+/* ── Comment thread (support ticket detail) ──────────────────────── */
+.mc-comment {
+    padding: 0.9rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--mc-border);
+    margin-bottom: 0.65rem;
+    background: var(--mc-raised);
+}
+.mc-comment.staff {
+    border-left: 3px solid var(--mc-vi);
+    background: rgba(124,58,237,0.06);
+}
+.mc-comment-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.45rem;
+}
+.mc-comment-author { font-size: 0.85rem; font-weight: 600; color: var(--mc-text-hi); }
+.mc-comment-time   { font-size: 0.73rem; color: var(--mc-text-lo); }
+.mc-comment-body   { font-size: 0.87rem; color: var(--mc-text-hi); line-height: 1.6; }
+
+/* ── Ticket list item ────────────────────────────────────────────── */
+.mc-ticket {
+    display: block;
+    padding: 1rem 1.1rem;
+    border-radius: 12px;
+    border: 1px solid var(--mc-border);
+    background: var(--mc-surface);
+    margin-bottom: 0.65rem;
+    text-decoration: none;
+    transition: border-color .15s, background .15s;
+}
+.mc-ticket:hover {
+    border-color: rgba(124,58,237,0.3);
+    background: rgba(124,58,237,0.04);
+}
+
+/* ── Filter / status tab bar ─────────────────────────────────────── */
+.mc-tabs { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+.mc-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.38rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--mc-text-lo);
+    border: 1px solid transparent;
+    background: transparent;
+    transition: all .15s;
+}
+.mc-tab:hover { background: rgba(124,58,237,0.08); color: var(--mc-vi); }
+.mc-tab.active {
+    background: rgba(124,58,237,0.15);
+    color: #a78bfa;
+    border-color: rgba(124,58,237,0.3);
+}
+.mc-tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 99px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    background: rgba(124,58,237,0.15);
+    color: #a78bfa;
+}
+.mc-tab.active .mc-tab-count { background: var(--mc-vi); color: #fff; }
+
+/* ── Search bar ──────────────────────────────────────────────────── */
+.mc-search { position: relative; margin-bottom: 1rem; }
+.mc-search input {
+    width: 100%;
+    padding: 0.5rem 0.85rem 0.5rem 2.2rem;
+    border: 1px solid var(--mc-border);
+    border-radius: 10px;
+    background: var(--mc-raised);
+    color: var(--mc-text-hi);
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color .15s;
+}
+.mc-search input::placeholder { color: var(--mc-text-lo); }
+.mc-search input:focus { border-color: var(--mc-vi); }
+.mc-search i {
+    position: absolute;
+    left: 0.7rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--mc-text-lo);
+    font-size: 0.85rem;
+    pointer-events: none;
+}
+
+/* ── School card (approval queue) ────────────────────────────────── */
+.mc-school-card {
+    background: var(--mc-surface);
+    border: 1px solid var(--mc-border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 0.65rem;
+    transition: border-color .15s;
+}
+.mc-school-card:hover { border-color: rgba(124,58,237,0.3); }
+.mc-school-card-body {
+    padding: 0.9rem 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+.mc-avatar {
+    width: 44px; height: 44px;
+    border-radius: 11px;
+    background: rgba(124,58,237,0.15);
+    color: var(--mc-vi);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+.mc-school-name { font-weight: 700; font-size: 0.9rem; color: var(--mc-text-hi); }
+.mc-school-meta {
+    font-size: 0.73rem;
+    color: var(--mc-text-lo);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.15rem;
+}
+.mc-meta-chip { display: inline-flex; align-items: center; gap: 0.2rem; }
+.mc-doc-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+}
+.mc-doc-dot.yes { background: var(--mc-green); }
+.mc-doc-dot.no  { background: rgba(255,255,255,0.15); }
+
+/* ── Status overview banner ──────────────────────────────────────── */
+.mc-status-banner {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: 14px;
+    border: 1px solid var(--mc-border);
+    background: var(--mc-surface);
+    margin-bottom: 1.5rem;
+}
+.mc-status-icon {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+}
+.mc-status-icon.ok      { background: rgba(34,197,94,0.15); color: var(--mc-green); }
+.mc-status-icon.warn    { background: rgba(245,158,11,0.15); color: var(--mc-amber); }
+.mc-status-icon.danger  { background: rgba(239,68,68,0.15);  color: var(--mc-red); }
+
+.mc-status-text h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--mc-text-hi);
+    margin: 0 0 0.2rem;
+}
+.mc-status-text p { font-size: 0.85rem; color: var(--mc-text-lo); margin: 0; }

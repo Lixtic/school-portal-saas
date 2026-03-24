@@ -524,6 +524,31 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
     transform: scale(1.05);
     box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
 }
+.aura-mic-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--aura-radius-sm);
+    background: var(--aura-bg-glass);
+    border: 1px solid var(--aura-border);
+    color: var(--aura-text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--aura-transition-fast);
+    flex-shrink: 0;
+}
+.aura-mic-btn:hover { border-color: var(--aura-accent-violet); color: var(--aura-accent-violet); }
+.aura-mic-btn.recording {
+    background: rgba(244,63,94,.15);
+    border-color: rgba(244,63,94,.6);
+    color: #f43f5e;
+    animation: aura-mic-pulse 1s ease-in-out infinite;
+}
+@keyframes aura-mic-pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(244,63,94,.4); }
+    50%      { box-shadow: 0 0 0 6px rgba(244,63,94,0); }
+}
 
 /* ── Syllabus Progress Card ──────────────────────────────────────────────── */
 .aura-syllabus-card {
@@ -1226,6 +1251,7 @@ html[data-aura-page][data-bs-theme="dark"] .main-content {
             <form class="aura-chat-input" id="auraChatForm" data-no-loader>
                 {% csrf_token %}
                 <input type="text" id="auraChatInput" placeholder="Ask Aura anything..." autocomplete="off" required>
+                <button type="button" class="aura-mic-btn" id="auraMicBtn" title="Voice input"><i class="fas fa-microphone" id="auraMicIcon"></i></button>
                 <button type="submit"><i class="fas fa-paper-plane"></i></button>
             </form>
         </div>
@@ -1908,6 +1934,66 @@ document.addEventListener('DOMContentLoaded', () => {
             tile.style.zIndex = '';
         });
     });
+
+    // ── Voice Input (Web Speech API) ──
+    (function(){
+        var micBtn  = document.getElementById('auraMicBtn');
+        var micIcon = document.getElementById('auraMicIcon');
+        var input   = document.getElementById('auraChatInput');
+        if (!micBtn) return;
+
+        var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            micBtn.title = 'Voice input not supported in this browser';
+            micBtn.style.opacity = '0.4';
+            micBtn.style.cursor  = 'not-allowed';
+            return;
+        }
+
+        var recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+        var isRecording = false;
+        var savedText = '';
+
+        recognition.onstart = function() {
+            isRecording = true;
+            micBtn.classList.add('recording');
+            micIcon.className = 'fas fa-stop';
+            micBtn.title = 'Click to stop recording';
+            savedText = input.value;
+        };
+
+        recognition.onresult = function(e) {
+            var interim = '';
+            var final   = '';
+            for (var i = e.resultIndex; i < e.results.length; i++) {
+                if (e.results[i].isFinal) final += e.results[i][0].transcript;
+                else interim += e.results[i][0].transcript;
+            }
+            input.value = (savedText ? savedText + ' ' : '') + (final || interim);
+            if (final) savedText = input.value;
+        };
+
+        recognition.onerror = function(e) {
+            if (e.error !== 'no-speech') console.warn('Speech recognition error:', e.error);
+        };
+
+        recognition.onend = function() {
+            isRecording = false;
+            micBtn.classList.remove('recording');
+            micIcon.className = 'fas fa-microphone';
+            micBtn.title = 'Voice input';
+            if (input.value.trim()) input.focus();
+        };
+
+        micBtn.addEventListener('click', function() {
+            if (isRecording) { recognition.stop(); return; }
+            // Request mic permission by starting recognition
+            try { recognition.start(); } catch(err) { console.warn(err); }
+        });
+    })();
 
     // ── Plan Filter ──
     (function(){
