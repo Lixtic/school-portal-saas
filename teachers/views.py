@@ -728,6 +728,7 @@ def analytics_dashboard(request):
 
 
 @login_required
+@require_plan('pro', 'enterprise')
 def generate_remedial_lesson(request):
     """
     Called from analytics dashboard to 'Generate Lesson' for a misconception.
@@ -2463,6 +2464,7 @@ def ges_lesson_api(request):
         return _ai_json_error_response(e)
 
 @login_required
+@require_plan('basic', 'pro', 'enterprise')
 def aura_command_center(request):
     """
     Aura-T Command Center — teachers go to the unified AI sessions page,
@@ -2544,6 +2546,7 @@ def aura_command_center(request):
 
 
 @login_required
+@require_plan('basic', 'pro', 'enterprise')
 def aura_flight_manual(request):
     """
     Aura-T Teacher Flight Manual — quick-start guide for the AI-integrated lesson.

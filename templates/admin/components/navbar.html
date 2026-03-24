@@ -14,8 +14,18 @@
         
         <!-- Right Actions -->
         <div class="navbar-actions">
+            <!-- Quick Create (Super Admin Only) -->
+            {% if request.user.is_superuser %}
+            <a href="{% url 'tenants:superadmin_create_school' %}" 
+               class="navbar-action-btn" 
+               title="Quick Create School">
+                <i class="bi bi-lightning-charge-fill"></i>
+                <span class="d-none d-lg-inline">Quick Create</span>
+            </a>
+            {% endif %}
+            
             <!-- Theme Toggle -->
-            <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
+            <button class="navbar-action-btn theme-toggle" id="themeToggle" title="Toggle dark mode">
                 <i class="bi bi-moon"></i>
             </button>
             
@@ -29,6 +39,120 @@
         </div>
     </div>
 </nav>
+
+<style>
+/* Admin Navbar - Simplified (no duplicate nav) */
+.admin-navbar {
+    background: var(--admin-card-bg);
+    border-bottom: 1px solid var(--admin-border);
+    height: 64px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.navbar-content {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    gap: 1rem;
+}
+
+.navbar-title {
+    flex: 1;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--admin-text-muted);
+}
+
+.navbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.navbar-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.875rem;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--admin-text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+}
+
+.navbar-action-btn:hover {
+    background: rgba(124, 58, 237, 0.1);
+    color: var(--admin-primary);
+}
+
+.navbar-action-btn i {
+    font-size: 1.1rem;
+}
+
+.user-menu {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 999px;
+    background: rgba(124, 58, 237, 0.08);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.user-menu:hover {
+    background: rgba(124, 58, 237, 0.12);
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.user-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--admin-text-primary);
+}
+
+.navbar-menu-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--admin-text-primary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.navbar-menu-toggle:hover {
+    background: rgba(124, 58, 237, 0.1);
+}
+
+@media (max-width: 1024px) {
+    .navbar-menu-toggle {
+        display: flex;
+    }
+}
+</style>
 
 <!-- Mobile Navigation Menu -->
 <div class="mobile-menu" id="mobileMenu">
