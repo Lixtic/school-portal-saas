@@ -2467,7 +2467,7 @@ def ges_lesson_api(request):
 @require_plan('basic', 'pro', 'enterprise')
 def aura_command_center(request):
     """
-    Aura-T Command Center — teachers go to the unified AI sessions page,
+    Aura-T Command Center - teachers go to the unified AI sessions page,
     admins get the full multi-teacher plan overview.
     """
     if request.user.user_type == 'teacher':
@@ -2549,7 +2549,7 @@ def aura_command_center(request):
 @require_plan('basic', 'pro', 'enterprise')
 def aura_flight_manual(request):
     """
-    Aura-T Teacher Flight Manual — quick-start guide for the AI-integrated lesson.
+    Aura-T Teacher Flight Manual - quick-start guide for the AI-integrated lesson.
     """
     is_teacher = request.user.user_type == 'teacher'
     is_admin   = request.user.user_type == 'admin'
