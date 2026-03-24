@@ -1979,6 +1979,7 @@ def lesson_plan_pdf(request, pk):
 @login_required
 @require_plan('pro', 'enterprise')
 def aura_t_api(request):
+    """
     Handles AJAX requests for lesson plan generation, differentiation, and assignment creation.
     """
     if request.method == "POST":
@@ -2762,7 +2763,7 @@ from communication.models import Conversation, Message
 from parents.models import Parent
 
 
-# ─── Power Words — Teacher Command Center ──────────────────────────────────
+# --- Power Words - Teacher Command Center ---
 
 @login_required
 def power_words_dashboard(request):
