@@ -1883,9 +1883,31 @@ captureBtn.addEventListener('click', () => {
     // Close camera
     if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
     cameraOverlay.classList.remove('visible');
-    // TODO: Send image to vision API endpoint
-    substatusText.textContent = 'Image captured — vision analysis coming soon';
-    setTimeout(() => { if (state === 'READY') substatusText.textContent = 'Start speaking — I\'m listening'; }, 3000);
+    // Send image to vision API endpoint
+    substatusText.textContent = 'Analysing image…';
+    try {
+        const visionRes = await fetch('{% url "students:voice_vision_analyze" %}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ image: dataUrl }),
+        });
+        const visionData = await visionRes.json();
+        if (visionRes.ok && visionData.answer) {
+            // Append the explanation to the transcript
+            const msgEl = document.createElement('div');
+            msgEl.className = 'aura-transcript-item bot';
+            msgEl.textContent = '🔍 ' + visionData.answer;
+            const transcriptEl = document.getElementById('auraTranscript');
+            if (transcriptEl) { transcriptEl.appendChild(msgEl); transcriptEl.scrollTop = transcriptEl.scrollHeight; }
+            substatusText.textContent = 'Image analysed — ' + visionData.answer.substring(0, 60) + '…';
+        } else {
+            substatusText.textContent = 'Could not analyse image — please try again';
+        }
+    } catch(visionErr) {
+        console.error('Vision error:', visionErr);
+        substatusText.textContent = 'Image analysis failed';
+    }
+    setTimeout(() => { if (state === 'READY') substatusText.textContent = 'Start speaking — I\'m listening'; }, 4000);
 });
 
 

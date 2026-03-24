@@ -130,6 +130,14 @@ class SchoolSubscription(models.Model):
     
     # Billing
     mrr = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Monthly Recurring Revenue")
+    paystack_subscription_code = models.CharField(
+        max_length=100, blank=True, default='',
+        help_text="Paystack subscription code (PLN-xxx) for recurring billing"
+    )
+    paystack_customer_code = models.CharField(
+        max_length=100, blank=True, default='',
+        help_text="Paystack customer code (CUS-xxx)"
+    )
     
     # Usage tracking
     current_students = models.IntegerField(default=0)
@@ -228,6 +236,11 @@ class Invoice(models.Model):
     
     # Items (JSON)
     line_items = models.JSONField(default=list, help_text="List of invoice items")
+    
+    payment_reference = models.CharField(
+        max_length=100, blank=True, default='',
+        help_text="Paystack transaction reference that settled this invoice"
+    )
     
     notes = models.TextField(blank=True)
     

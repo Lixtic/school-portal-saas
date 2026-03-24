@@ -412,42 +412,6 @@ def landlord_landing(request):
     """Redirects legacy /tenants/ landing to canonical /landlord/ dashboard."""
     return redirect('/landlord/')
 
-    schools_count = School.objects.count()
-    active_count = School.objects.filter(is_active=True).count()
-    trial_count = School.objects.filter(on_trial=True).count()
-    inactive_count = schools_count - active_count
-    domains_count = Domain.objects.count()
-    primary_domains = Domain.objects.filter(is_primary=True).count()
-    
-    # Approval stats
-    pending_count = School.objects.filter(approval_status='pending').count()
-    under_review_count = School.objects.filter(approval_status='under_review').count()
-    approved_count = School.objects.filter(approval_status='approved').count()
-    rejected_count = School.objects.filter(approval_status='rejected').count()
-    requires_info_count = School.objects.filter(approval_status='requires_info').count()
-
-    by_type = (
-        School.objects.values('school_type')
-        .order_by('school_type')
-        .annotate(total=models.Count('id'))
-    )
-
-    context = {
-        'schools_count': schools_count,
-        'active_count': active_count,
-        'trial_count': trial_count,
-        'inactive_count': inactive_count,
-        'domains_count': domains_count,
-        'primary_domains': primary_domains,
-        'pending_count': pending_count,
-        'under_review_count': under_review_count,
-        'approved_count': approved_count,
-        'rejected_count': rejected_count,
-        'requires_info_count': requires_info_count,
-        'by_type': by_type,
-    }
-    return render(request, 'tenants/landlord_landing.html', context)
-
 
 @login_required
 def landing_template_picker(request):
@@ -1999,17 +1963,25 @@ def paystack_subscription_webhook(request):
         mrr          = plan.monthly_price
         invoice_amt  = plan.monthly_price
 
-    subscription.plan                 = plan
-    subscription.billing_cycle        = billing_cycle
-    subscription.status               = 'active'
-    subscription.current_period_start = now_dt
-    subscription.current_period_end   = period_end
-    subscription.trial_ends_at        = None
-    subscription.mrr                  = mrr
+    subscription.plan                      = plan
+    subscription.billing_cycle             = billing_cycle
+    subscription.status                    = 'active'
+    subscription.current_period_start      = now_dt
+    subscription.current_period_end        = period_end
+    subscription.trial_ends_at             = None
+    subscription.mrr                       = mrr
+    # Store Paystack identifiers for future reference / renewals
+    ps_sub_code = meta.get('subscription_code', '') or trx.get('subscription_code', '')
+    ps_cust_code = (trx.get('customer') or {}).get('customer_code', '')
+    if ps_sub_code:
+        subscription.paystack_subscription_code = ps_sub_code
+    if ps_cust_code:
+        subscription.paystack_customer_code = ps_cust_code
     subscription.save(update_fields=[
         'plan', 'billing_cycle', 'status',
         'current_period_start', 'current_period_end',
         'trial_ends_at', 'mrr',
+        'paystack_subscription_code', 'paystack_customer_code',
     ])
 
     Invoice.objects.get_or_create(
@@ -2023,6 +1995,7 @@ def paystack_subscription_webhook(request):
             'issued_at': now_dt,
             'due_at': now_dt,
             'paid_at': now_dt,
+            'payment_reference': reference,
             'line_items': [
                 {'description': f"{plan.name} ({billing_cycle})", 'amount': str(invoice_amt)}
             ],

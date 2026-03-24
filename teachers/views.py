@@ -6,7 +6,7 @@ from django.db.utils import OperationalError, ProgrammingError
 import django
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from tenants.decorators import require_addon
+from tenants.decorators import require_addon, require_plan
 from django.http import JsonResponse, HttpResponse
 from decimal import Decimal, InvalidOperation
 from django.utils import timezone
@@ -1976,9 +1976,8 @@ def lesson_plan_pdf(request, pk):
     })
 
 @login_required
+@require_plan('pro', 'enterprise')
 def aura_t_api(request):
-    """
-    API Endpoint for Aura-T (Teacher Copilot) features.
     Handles AJAX requests for lesson plan generation, differentiation, and assignment creation.
     """
     if request.method == "POST":
@@ -3403,6 +3402,7 @@ def ai_session_delete(request, session_id):
     return redirect('teachers:ai_sessions_list')
 
 @login_required
+@require_plan('basic', 'pro', 'enterprise')
 def assignment_creator(request):
     """
     View for Aura-T Assignment Creator Interface.

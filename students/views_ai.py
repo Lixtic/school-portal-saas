@@ -13,6 +13,7 @@ from django.core import signing
 from django.core.cache import cache
 from django.db import connection
 from django.utils import timezone as dj_timezone
+from tenants.decorators import require_plan
 
 logger = logging.getLogger(__name__)
 
@@ -422,6 +423,7 @@ def _build_student_context(student):
 
 
 @login_required
+@require_plan('pro', 'enterprise')
 def aura_voice_view(request):
     """Render the voice interface — students only."""
     if request.user.user_type != 'student':
@@ -517,6 +519,7 @@ def voice_board_generate(request):
 
 
 @login_required
+@require_plan('pro', 'enterprise')
 def create_realtime_session(request):
     """
     Create an ephemeral token for OpenAI Realtime API (WebRTC).
@@ -1436,6 +1439,82 @@ def voice_award_xp(request):
         'level': xp_profile.level,
         'current_streak': xp_profile.current_streak,
     })
+
+
+@login_required
+@require_plan('pro', 'enterprise')
+def voice_vision_analyze(request):
+    """
+    POST { "image": "<base64 data-url>" }
+    Sends the captured image to GPT-4o vision and returns a friendly
+    educational explanation the student can hear / read.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST only'}, status=405)
+    if request.user.user_type != 'student':
+        return JsonResponse({'error': 'Students only'}, status=403)
+    if _rate_limit(request, 'voice_vision_analyze', limit=6, window_seconds=60):
+        return JsonResponse({'error': 'Too many requests'}, status=429)
+
+    try:
+        body = json.loads(request.body.decode('utf-8'))
+        image_data = (body.get('image') or '').strip()
+    except Exception:
+        return JsonResponse({'error': 'Invalid payload'}, status=400)
+
+    if not image_data:
+        return JsonResponse({'error': 'No image provided'}, status=400)
+
+    # Accept only data-URL JPEG / PNG (browser canvas always sends one of these)
+    if not (image_data.startswith('data:image/jpeg;base64,') or
+            image_data.startswith('data:image/png;base64,')):
+        return JsonResponse({'error': 'Unsupported image format'}, status=400)
+
+    api_key = get_openai_api_key()
+    if not api_key:
+        return JsonResponse({'error': 'AI service unavailable'}, status=503)
+
+    system_prompt = (
+        "You are Aura, a friendly AI tutor for school students in Ghana. "
+        "The student has just taken a photo of something — it could be a maths problem, "
+        "a science diagram, a page of text, or anything school-related. "
+        "Analyse the image and give a concise, encouraging explanation that helps the student understand it. "
+        "Keep your response under 120 words, in plain conversational English suited to the student's level. "
+        "If the image is not school-related, politely say you can only help with academic content. "
+        "Do NOT wrap your response in markdown — plain text only."
+    )
+
+    try:
+        import requests as http_requests
+        resp = http_requests.post(
+            'https://api.openai.com/v1/chat/completions',
+            headers={'Authorization': f'Bearer {api_key}', 'Content-Type': 'application/json'},
+            json={
+                'model': 'gpt-4o',
+                'messages': [
+                    {'role': 'system', 'content': system_prompt},
+                    {
+                        'role': 'user',
+                        'content': [
+                            {'type': 'text', 'text': 'Please explain this image for me.'},
+                            {'type': 'image_url', 'image_url': {'url': image_data, 'detail': 'low'}},
+                        ],
+                    },
+                ],
+                'max_tokens': 250,
+                'temperature': 0.4,
+            },
+            timeout=25,
+        )
+        if resp.status_code != 200:
+            logger.warning('voice_vision_analyze API error %s: %s', resp.status_code, resp.text[:200])
+            return JsonResponse({'error': 'AI service error'}, status=502)
+
+        answer = resp.json()['choices'][0]['message']['content'].strip()
+        return JsonResponse({'answer': answer})
+    except Exception as e:
+        logger.warning('voice_vision_analyze error: %s', e)
+        return JsonResponse({'error': 'Failed to analyse image'}, status=500)
 
 
 @login_required
