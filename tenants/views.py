@@ -1777,7 +1777,13 @@ def school_subscription(request):
     from django.utils import timezone
 
     try:
-        subscription = SchoolSubscription.objects.select_related('plan').get(school=request.tenant)
+        try:
+            with transaction.atomic():
+                subscription = SchoolSubscription.objects.select_related('plan').get(school=request.tenant)
+        except ProgrammingError:
+            subscription = SchoolSubscription.objects.defer(
+                'paystack_subscription_code', 'paystack_customer_code', 'mrr',
+            ).select_related('plan').get(school=request.tenant)
     except SchoolSubscription.DoesNotExist:
         subscription = None
 
@@ -1857,7 +1863,13 @@ def activate_school_plan(request, school_id):
 
     # Existing subscription (may not exist)
     try:
-        subscription = SchoolSubscription.objects.select_related('plan').get(school=school)
+        try:
+            with transaction.atomic():
+                subscription = SchoolSubscription.objects.select_related('plan').get(school=school)
+        except ProgrammingError:
+            subscription = SchoolSubscription.objects.defer(
+                'paystack_subscription_code', 'paystack_customer_code', 'mrr',
+            ).select_related('plan').get(school=school)
     except SchoolSubscription.DoesNotExist:
         subscription = None
 
@@ -1994,7 +2006,13 @@ def paystack_subscription_webhook(request):
         logger.error(f"Paystack subscription webhook: plan {plan_id} or school {school_id} not found (ref={reference})")
         return HttpResponse(status=200)
 
-    subscription = SchoolSubscription.objects.filter(school=school).first()
+    try:
+        with transaction.atomic():
+            subscription = SchoolSubscription.objects.filter(school=school).first()
+    except ProgrammingError:
+        subscription = SchoolSubscription.objects.defer(
+            'paystack_subscription_code', 'paystack_customer_code', 'mrr',
+        ).filter(school=school).first()
     if not subscription:
         logger.error(f"Paystack subscription webhook: no subscription for school {school_id} (ref={reference})")
         return HttpResponse(status=200)
