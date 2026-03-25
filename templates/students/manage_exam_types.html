@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+
+{% block title %}Exam Types{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h2 class="h4 fw-bold mb-0"><i class="fas fa-journal-check me-2 text-primary"></i>Exam Types</h2>
+      <p class="text-muted small mb-0">Create assessment categories for your school (e.g. Midterm, End of Term).</p>
+    </div>
+    <a href="{% url 'students:student_list' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i>Back
+    </a>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show" role="alert">
+      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="row g-4">
+    <div class="col-lg-5">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-primary text-white fw-semibold">
+          {% if editing_exam_type %}
+          <i class="fas fa-edit me-2"></i>Edit Exam Type
+          {% else %}
+          <i class="fas fa-plus-circle me-2"></i>Create Exam Type
+          {% endif %}
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+            {% if editing_exam_type %}
+            <input type="hidden" name="editing_id" value="{{ editing_exam_type.id }}">
+            {% endif %}
+            <div class="mb-3">
+              <label class="form-label" for="id_name">Name</label>
+              {{ form.name }}
+              {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="id_description">Description</label>
+              {{ form.description }}
+              {% if form.description.errors %}<div class="text-danger small mt-1">{{ form.description.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="id_weight_percent">Weight (%)</label>
+              {{ form.weight_percent }}
+              {% if form.weight_percent.errors %}<div class="text-danger small mt-1">{{ form.weight_percent.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="form-check mb-3">
+              {{ form.is_active }}
+              <label class="form-check-label" for="id_is_active">Active</label>
+            </div>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save me-1"></i>{% if editing_exam_type %}Update Exam Type{% else %}Save Exam Type{% endif %}
+            </button>
+            {% if editing_exam_type %}
+            <a href="{% url 'students:manage_exam_types' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
+            {% endif %}
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-7">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-light fw-semibold">Configured Exam Types</div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">Name</th>
+                  <th>Description</th>
+                  <th>Weight</th>
+                  <th>Status</th>
+                  <th class="text-end pe-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for exam_type in exam_types %}
+                <tr>
+                  <td class="ps-3 fw-semibold">{{ exam_type.name }}</td>
+                  <td>{{ exam_type.description|default:'-' }}</td>
+                  <td>{{ exam_type.weight_percent }}%</td>
+                  <td>
+                    {% if exam_type.is_active %}
+                      <span class="badge bg-success">Active</span>
+                    {% else %}
+                      <span class="badge bg-secondary">Inactive</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-end pe-3">
+                    <a href="{% url 'students:manage_exam_types' %}?edit={{ exam_type.id }}" class="btn btn-sm btn-outline-primary">
+                      <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <form method="post" class="d-inline">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="toggle_status">
+                      <input type="hidden" name="exam_type_id" value="{{ exam_type.id }}">
+                      <button type="submit" class="btn btn-sm btn-outline-warning">
+                        {% if exam_type.is_active %}<i class="fas fa-pause"></i> Deactivate{% else %}<i class="fas fa-play"></i> Activate{% endif %}
+                      </button>
+                    </form>
+                    <form method="post" class="d-inline" onsubmit="return confirm('Delete exam type {{ exam_type.name }}?');">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="delete_exam_type">
+                      <input type="hidden" name="exam_type_id" value="{{ exam_type.id }}">
+                      <button type="submit" class="btn btn-sm btn-outline-danger">
+                        <i class="fas fa-trash"></i> Delete
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="5" class="text-center text-muted py-4">No exam types configured yet.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

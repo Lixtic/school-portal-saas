@@ -33,6 +33,7 @@ urlpatterns = [
 
     # Student Promotion
     path('promote/', views.promote_students, name='promote_students'),
+    path('exam-types/', views.manage_exam_types, name='manage_exam_types'),
     
     # AI Voice Interface
     path('aura/voice/', views_ai.aura_voice_view, name='aura_voice'),

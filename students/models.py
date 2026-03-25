@@ -220,6 +220,25 @@ class Grade(models.Model):
         ordering = ['-created_at']
         unique_together = ['student', 'subject', 'academic_year', 'term']
 
+
+class ExamType(models.Model):
+    """Tenant-configurable exam/assessment category."""
+
+    name = models.CharField(max_length=80, unique=True)
+    description = models.TextField(blank=True)
+    weight_percent = models.DecimalField(max_digits=5, decimal_places=2, default=100)
+    is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        status = 'active' if self.is_active else 'inactive'
+        return f"{self.name} ({status})"
+
 class ClassExercise(models.Model):
     class_subject = models.ForeignKey('academics.ClassSubject', on_delete=models.CASCADE)
     term = models.CharField(max_length=10, choices=Grade.TERM_CHOICES, default='first')

@@ -1411,6 +1411,39 @@ def manage_users(request):
         'role_filter': role_filter
     })
 
+
+@login_required
+def delete_user(request, user_id):
+    User = get_user_model()
+    if getattr(request.user, 'user_type', 'none') != 'admin':
+        messages.error(request, 'Access denied. Admin only.')
+        return redirect('dashboard')
+
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method.')
+        return redirect('accounts:manage_users')
+
+    target_user = get_object_or_404(User, pk=user_id)
+
+    if target_user.id == request.user.id:
+        messages.error(request, 'You cannot delete your own account while logged in.')
+        return redirect('accounts:manage_users')
+
+    if target_user.user_type == 'admin':
+        remaining_admins = User.objects.filter(user_type='admin').exclude(id=target_user.id).count()
+        if remaining_admins == 0:
+            messages.error(request, 'Cannot delete the last admin account.')
+            return redirect('accounts:manage_users')
+
+    username = target_user.username
+    try:
+        target_user.delete()
+        messages.success(request, f'User "{username}" was removed successfully.')
+    except Exception as exc:
+        messages.error(request, f'Could not remove user "{username}": {exc}')
+
+    return redirect('accounts:manage_users')
+
 @login_required
 def admin_password_reset(request, user_id):
     User = get_user_model()

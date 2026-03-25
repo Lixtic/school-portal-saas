@@ -5,7 +5,7 @@ from django import forms
 from django.utils.text import slugify
 from accounts.models import User
 from academics.models import Class
-from .models import Student
+from .models import Student, ExamType
 
 
 class StudentQuickAddForm(forms.Form):
@@ -176,3 +176,15 @@ class AuraPreferencesForm(forms.ModelForm):
         if raw:
             return [item.strip() for item in raw.split(',') if item.strip()]
         return []
+
+
+class ExamTypeForm(forms.ModelForm):
+    class Meta:
+        model = ExamType
+        fields = ['name', 'description', 'weight_percent', 'is_active']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Midterm Exam'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Optional details'}),
+            'weight_percent': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'max': '100', 'step': '0.01'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }

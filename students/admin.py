@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import reverse
 from django.utils.html import format_html
-from .models import Student, Attendance, Grade
+from .models import Student, Attendance, Grade, ExamType
 from .forms import StudentQuickAddForm
 
 @admin.register(Student)
@@ -95,3 +95,10 @@ class GradeAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         })
     )
+
+
+@admin.register(ExamType)
+class ExamTypeAdmin(admin.ModelAdmin):
+    list_display = ['name', 'weight_percent', 'is_active', 'created_at']
+    list_filter = ['is_active', 'created_at']
+    search_fields = ['name', 'description']

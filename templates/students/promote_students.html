@@ -28,6 +28,40 @@
   {% else %}
   <form method="post">
     {% csrf_token %}
+    <div class="card shadow-sm border-0 mb-3">
+      <div class="card-header bg-light fw-semibold">
+        <i class="fas fa-sliders-h me-2"></i>Promotion Rules
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label d-block mb-2">Promotion mode</label>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="promotion_mode" id="mode_all" value="all" checked>
+              <label class="form-check-label" for="mode_all">Promote all students in selected classes</label>
+            </div>
+            <div class="form-check mt-1">
+              <input class="form-check-input" type="radio" name="promotion_mode" id="mode_perf" value="performance">
+              <label class="form-check-label" for="mode_perf">Promote only students who meet performance threshold</label>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <label for="min_average" class="form-label">Minimum average (%)</label>
+            <input type="number" step="0.1" min="0" max="100" id="min_average" name="min_average" class="form-control" value="50">
+          </div>
+          <div class="col-md-3 d-flex align-items-end">
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="checkbox" id="include_no_grades" name="include_no_grades">
+              <label class="form-check-label" for="include_no_grades">Include students with no grades</label>
+            </div>
+          </div>
+        </div>
+        <div class="small text-muted mt-2">
+          Performance mode uses each student's average total score for the current academic year.
+        </div>
+      </div>
+    </div>
+
     <div class="card shadow-sm border-0">
       <div class="card-header bg-warning text-dark fw-semibold">
         <i class="fas fa-exchange-alt me-2"></i>Class Mapping

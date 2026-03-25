@@ -12,8 +12,8 @@ import calendar
 import csv
 import random
 import string
-from .models import Student, Attendance, Grade
-from .forms import StudentForm, CSVImportForm, AuraPreferencesForm
+from .models import Student, Attendance, Grade, ExamType
+from .forms import StudentForm, CSVImportForm, AuraPreferencesForm, ExamTypeForm
 from accounts.models import User
 
 from .utils import calculate_class_position, normalize_term, term_filter_values
@@ -2075,7 +2075,17 @@ def promote_students(request):
     all_classes  = Class.objects.filter(academic_year=current_year).order_by('name')
 
     if request.method == 'POST':
+        promotion_mode = request.POST.get('promotion_mode', 'all')
+        include_no_grades = request.POST.get('include_no_grades') == 'on'
+        min_average_raw = (request.POST.get('min_average') or '50').strip()
+        try:
+            min_average = float(min_average_raw)
+        except ValueError:
+            min_average = 50.0
+        min_average = max(0.0, min(100.0, min_average))
+
         promoted_total = 0
+        skipped_total = 0
         errors = []
 
         source_class_ids = request.POST.getlist('source_class_ids')
@@ -2091,11 +2101,34 @@ def promote_students(request):
             if src_cls == tgt_cls:
                 continue
 
-            count = Student.objects.filter(current_class=src_cls).update(current_class=tgt_cls)
+            class_students = Student.objects.filter(current_class=src_cls)
+            if promotion_mode == 'performance':
+                student_ids = list(class_students.values_list('id', flat=True))
+                score_rows = (
+                    Grade.objects
+                    .filter(student_id__in=student_ids, academic_year=current_year)
+                    .values('student_id')
+                    .annotate(avg_score=Avg('total_score'))
+                )
+                score_map = {row['student_id']: float(row['avg_score']) for row in score_rows if row['avg_score'] is not None}
+
+                eligible_ids = [sid for sid in student_ids if sid in score_map and score_map[sid] >= min_average]
+                if include_no_grades:
+                    eligible_ids.extend([sid for sid in student_ids if sid not in score_map])
+
+                count = Student.objects.filter(id__in=eligible_ids, current_class=src_cls).update(current_class=tgt_cls)
+                skipped_total += max(0, len(student_ids) - count)
+            else:
+                count = class_students.update(current_class=tgt_cls)
+
             promoted_total += count
 
         if promoted_total:
             msg = f'Successfully promoted {promoted_total} student(s).'
+            if promotion_mode == 'performance':
+                msg += f' Performance rule applied (min average: {min_average:.1f}).'
+                if skipped_total:
+                    msg += f' Skipped {skipped_total} student(s) who did not meet criteria.'
             if errors:
                 msg += f' Some errors: {"; ".join(errors[:3])}'
             messages.success(request, msg)
@@ -2107,6 +2140,61 @@ def promote_students(request):
     return render(request, 'students/promote_students.html', {
         'current_year': current_year,
         'all_classes': all_classes,
+    })
+
+
+@login_required
+def manage_exam_types(request):
+    """Tenant admin: create and manage exam types used in assessments."""
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied. Admins only.')
+        return redirect('dashboard')
+
+    editing_id = request.POST.get('editing_id') or request.GET.get('edit')
+    editing_exam_type = None
+    if editing_id:
+        editing_exam_type = get_object_or_404(ExamType, id=editing_id)
+
+    if request.method == 'POST':
+        action = request.POST.get('action', '').strip()
+
+        if action == 'toggle_status':
+            target = get_object_or_404(ExamType, id=request.POST.get('exam_type_id'))
+            target.is_active = not target.is_active
+            target.save(update_fields=['is_active', 'updated_at'])
+            state = 'activated' if target.is_active else 'deactivated'
+            messages.success(request, f'Exam type "{target.name}" {state}.')
+            return redirect('students:manage_exam_types')
+
+        if action == 'delete_exam_type':
+            target = get_object_or_404(ExamType, id=request.POST.get('exam_type_id'))
+            name = target.name
+            target.delete()
+            messages.success(request, f'Exam type "{name}" deleted successfully.')
+            return redirect('students:manage_exam_types')
+
+        form = ExamTypeForm(request.POST, instance=editing_exam_type)
+        if form.is_valid():
+            exam_type = form.save(commit=False)
+            if not exam_type.created_by_id:
+                exam_type.created_by = request.user
+            exam_type.save()
+            if editing_exam_type:
+                messages.success(request, f'Exam type "{exam_type.name}" updated successfully.')
+            else:
+                messages.success(request, f'Exam type "{exam_type.name}" created successfully.')
+            return redirect('students:manage_exam_types')
+    else:
+        if editing_exam_type:
+            form = ExamTypeForm(instance=editing_exam_type)
+        else:
+            form = ExamTypeForm(initial={'is_active': True, 'weight_percent': 100})
+
+    exam_types = ExamType.objects.all().order_by('name')
+    return render(request, 'students/manage_exam_types.html', {
+        'form': form,
+        'exam_types': exam_types,
+        'editing_exam_type': editing_exam_type,
     })
 
 
