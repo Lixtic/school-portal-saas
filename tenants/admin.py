@@ -61,6 +61,16 @@ class SchoolAddOnAdmin(admin.ModelAdmin):
     list_filter = ('is_active', 'addon__category')
     search_fields = ('subscription__school__name', 'addon__name')
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        try:
+            with transaction.atomic():
+                list(qs[:1])
+        except ProgrammingError:
+            # FK join to SchoolSubscription pulls its missing columns.
+            qs = qs.select_related(None)  # drop default joins
+        return qs
+
 
 @admin.register(Invoice)
 class InvoiceAdmin(admin.ModelAdmin):
@@ -68,6 +78,17 @@ class InvoiceAdmin(admin.ModelAdmin):
     list_filter = ('status',)
     search_fields = ('invoice_number', 'subscription__school__name')
     readonly_fields = ('created_at', 'updated_at')
+
+    _LEGACY_DEFER = ('payment_reference',)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        try:
+            with transaction.atomic():
+                list(qs[:1])
+        except ProgrammingError:
+            qs = qs.defer(*self._LEGACY_DEFER).select_related(None)
+        return qs
 
 
 @admin.register(ChurnEvent)

@@ -2,6 +2,7 @@
 from django.db import connection, close_old_connections
 from django.http import Http404, HttpResponseRedirect, JsonResponse
 from django.urls import set_urlconf, set_script_prefix
+from django.contrib.auth import logout
 from django_tenants.middleware.main import TenantMainMiddleware
 from tenants.models import School
 from urllib.parse import urlparse, parse_qsl, urlencode
@@ -169,6 +170,33 @@ class TenantPathMiddleware(TenantMainMiddleware):
         """Block access for schools whose trial has expired."""
         if not hasattr(request, 'tenant'):
             return None
+
+        # Session isolation guard: auth sessions must stay bound to a single tenant schema.
+        # Without this, a valid session from one tenant can be interpreted in another tenant
+        # (ID collision risk across tenant-local auth tables).
+        try:
+            if getattr(request, 'user', None) and request.user.is_authenticated and request.tenant.schema_name != 'public':
+                current_schema = request.tenant.schema_name
+                bound_schema = request.session.get('auth_tenant_schema')
+
+                if bound_schema and bound_schema != current_schema:
+                    logout(request)
+                    if _is_ajax(request):
+                        return JsonResponse(
+                            {
+                                'error': 'Your session belongs to a different school. Please sign in again.',
+                                'redirect': f'/{current_schema}/login/',
+                            },
+                            status=401,
+                        )
+                    return HttpResponseRedirect(f'/{current_schema}/login/?next={request.path}')
+
+                # Backfill for legacy sessions that predate tenant binding.
+                if not bound_schema:
+                    request.session['auth_tenant_schema'] = current_schema
+        except Exception:
+            pass
+
         if request.tenant.schema_name == 'public':
             return None
 

@@ -431,6 +431,13 @@ def login_view(request):
             # Keep sessions persistent by default so users stay signed in
             # after closing and reopening the browser/app.
             request.session.set_expiry(settings.SESSION_COOKIE_AGE)
+            # Bind session to the current tenant schema to prevent cross-tenant
+            # identity leakage when users navigate between tenant paths.
+            tenant_obj = getattr(request, 'tenant', None)
+            if tenant_obj and getattr(tenant_obj, 'schema_name', '') and tenant_obj.schema_name != 'public':
+                request.session['auth_tenant_schema'] = tenant_obj.schema_name
+            else:
+                request.session.pop('auth_tenant_schema', None)
             # Respect the ?next= parameter so @login_required redirects work.
             next_url = request.POST.get('next') or request.GET.get('next', '')
             if next_url:
@@ -551,6 +558,12 @@ def dashboard(request):
         is_public = (request.tenant.schema_name == 'public')
         
     if is_public:
+        # If a tenant-bound school user lands on public dashboard, route back
+        # to their school context to avoid confusing cross-context sessions.
+        bound_schema = request.session.get('auth_tenant_schema')
+        if bound_schema and not user.is_staff:
+            return redirect(f'/{bound_schema}/dashboard/')
+
         # Redirect staff users to landlord dashboard
         if user.is_staff:
             return redirect('/tenants/landlord/')

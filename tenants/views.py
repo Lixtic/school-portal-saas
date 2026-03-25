@@ -1804,14 +1804,23 @@ def school_subscription(request):
     active_addons = []
     if subscription:
         from .models import Invoice, SchoolAddOn
-        recent_invoices = list(
-            Invoice.objects.filter(subscription=subscription)
-            .order_by('-issued_at')[:6]
-        )
-        active_addons = list(
-            SchoolAddOn.objects.filter(subscription=subscription, is_active=True)
-            .select_related('addon')
-        )
+        try:
+            with transaction.atomic():
+                recent_invoices = list(
+                    Invoice.objects.defer('payment_reference')
+                    .filter(subscription=subscription)
+                    .order_by('-issued_at')[:6]
+                )
+        except (ProgrammingError, Exception):
+            recent_invoices = []
+        try:
+            with transaction.atomic():
+                active_addons = list(
+                    SchoolAddOn.objects.filter(subscription=subscription, is_active=True)
+                    .select_related('addon')
+                )
+        except (ProgrammingError, Exception):
+            active_addons = []
 
         # Sync live counts into the subscription usage fields
         from accounts.models import User as _User
