@@ -14,7 +14,7 @@ from students.models import Student, Attendance
 from announcements.models import Announcement, Notification
 from django.db.models import Q, Count, F, Window
 from django.db.models.functions import RowNumber
-from django.db import connection
+from django.db import connection, transaction
 from django.utils import timezone
 from django.views.decorators.csrf import ensure_csrf_cookie
 import calendar
@@ -661,7 +661,19 @@ def dashboard(request):
             subscription = getattr(request, '_tenant_subscription', None)
             if subscription is None and hasattr(request, 'tenant'):
                 from tenants.subscription_models import SchoolSubscription
-                subscription = SchoolSubscription.objects.filter(school=request.tenant).first()
+                # Use a savepoint so a ProgrammingError (missing column in legacy
+                # tenant schemas) rolls back only the inner atomic block, leaving
+                # the outer ATOMIC_REQUESTS transaction in a clean state.
+                try:
+                    with transaction.atomic():
+                        subscription = SchoolSubscription.objects.defer(
+                            'paystack_subscription_code',
+                            'paystack_customer_code',
+                            'paystack_plan_code',
+                            'mrr',
+                        ).filter(school=request.tenant).first()
+                except Exception:
+                    subscription = None
             if subscription and subscription.status == 'trial' and subscription.trial_ends_at:
                 delta = subscription.trial_ends_at - tz.now()
                 trial_days_left = max(0, delta.days)

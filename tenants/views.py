@@ -21,16 +21,27 @@ logger = logging.getLogger(__name__)
 
 
 def _get_school_subscription_safe(school):
-    """Fetch subscription with backward-compatible fallback for legacy tenant schemas."""
+    """Fetch subscription with backward-compatible fallback for legacy tenant schemas.
+
+    With ATOMIC_REQUESTS=True every request runs inside an open transaction.
+    A PostgreSQL-level ProgrammingError (e.g. missing column in a legacy schema)
+    marks the whole connection as aborted — subsequent queries all fail with
+    InFailedSqlTransaction.  Wrapping the first attempt in transaction.atomic()
+    creates a savepoint; if the query fails the savepoint is automatically rolled
+    back, leaving the outer request transaction intact so the retry can proceed.
+    """
     from .models import SchoolSubscription
 
     try:
-        return SchoolSubscription.objects.get(school=school)
+        with transaction.atomic():
+            return SchoolSubscription.objects.get(school=school)
     except ProgrammingError as exc:
         err_msg = str(exc)
         if (
             'paystack_subscription_code' not in err_msg
             and 'paystack_customer_code' not in err_msg
+            and 'paystack_plan_code' not in err_msg
+            and 'mrr' not in err_msg
         ):
             raise
 
@@ -38,9 +49,13 @@ def _get_school_subscription_safe(school):
             "Legacy SchoolSubscription schema in tenant '%s'; retrying with deferred Paystack fields.",
             getattr(school, 'schema_name', 'unknown'),
         )
+        # The savepoint was already rolled back when ProgrammingError propagated
+        # out of transaction.atomic(); the outer transaction is clean — retry now.
         return SchoolSubscription.objects.defer(
             'paystack_subscription_code',
             'paystack_customer_code',
+            'paystack_plan_code',
+            'mrr',
         ).get(school=school)
 
 def school_signup(request):
