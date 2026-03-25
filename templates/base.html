@@ -1670,7 +1670,9 @@
                                 <li><a class="dropdown-item" href="{% url 'finance:manage_fees' %}"><i class="bi bi-receipt"></i> Manage Fees</a></li>
                                 <li><a class="dropdown-item" href="{% url 'announcements:manage' %}"><i class="bi bi-megaphone"></i> Notices</a></li>
                                 <li><a class="dropdown-item" href="{% url 'accounts:manage_users' %}"><i class="bi bi-people-fill"></i> Manage Users</a></li>
-                                <li><a class="dropdown-item" href="{% url 'students:manage_exam_types' %}"><i class="bi bi-journal-check"></i> Exam Types</a></li>
+                                {% if has_basic9_class %}
+                                <li><a class="dropdown-item" href="{% url 'students:manage_exam_types' %}"><i class="bi bi-journal-check"></i> Basic 9 Exam Types</a></li>
+                                {% endif %}
                                 <li><a class="dropdown-item" href="{% url 'students:promote_students' %}"><i class="bi bi-arrow-up-right-circle"></i> Student Promotion</a></li>
                                 <li><a class="dropdown-item" href="{% url 'academics:school_settings' %}"><i class="bi bi-gear-fill"></i> School Settings</a></li>
                                 {% endif %}
@@ -1920,7 +1922,9 @@
                     <li class="mobile-bubble-item"><a href="{% url 'students:import_csv' %}"><i class="bi bi-upload"></i>Import Students</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'students:export_students' %}"><i class="bi bi-download"></i>Export Students</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'students:bulk_report_cards' %}"><i class="bi bi-printer"></i>Bulk Report Cards</a></li>
-                    <li class="mobile-bubble-item"><a href="{% url 'students:manage_exam_types' %}"><i class="bi bi-journal-check"></i>Exam Types</a></li>
+                    {% if has_basic9_class %}
+                    <li class="mobile-bubble-item"><a href="{% url 'students:manage_exam_types' %}"><i class="bi bi-journal-check"></i>Basic 9 Exam Types</a></li>
+                    {% endif %}
                 </ul>
                 <div class="mobile-nav-label">Finance</div>
                 <ul class="mobile-bubble-list">
@@ -2206,12 +2210,14 @@
                     <span>Manage Users</span>
                 </a>
             </div>
+            {% if has_basic9_class %}
             <div class="nav-item">
-                <a href="{% url 'students:manage_exam_types' %}" class="nav-link {% if request.resolver_match.url_name == 'manage_exam_types' %}active{% endif %}" title="Exam Types">
+                <a href="{% url 'students:manage_exam_types' %}" class="nav-link {% if request.resolver_match.url_name == 'manage_exam_types' %}active{% endif %}" title="Basic 9 Exam Types">
                     <i class="bi bi-journal-check"></i>
-                    <span>Exam Types</span>
+                    <span>Basic 9 Exam Types</span>
                 </a>
             </div>
+            {% endif %}
             <div class="nav-item">
                 <a href="{% url 'students:promote_students' %}" class="nav-link {% if request.resolver_match.url_name == 'promote_students' %}active{% endif %}" title="Student Promotion">
                     <i class="bi bi-arrow-up-right-circle"></i>

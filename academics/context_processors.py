@@ -1,4 +1,4 @@
-from .models import SchoolInfo, AcademicYear
+from .models import SchoolInfo, AcademicYear, Class
 from django.db import connection, transaction
 from django.conf import settings
 from django.core.cache import cache
@@ -16,6 +16,13 @@ def _cache_key(prefix):
 
 def school_info(request):
     current_academic_year = ''
+    has_basic9_class = False
+
+    def _is_basic9_name(name):
+        normalized = (name or '').strip().upper()
+        tokens = ['BASIC 9', 'BASIC9', 'JHS 3', 'JHS3', 'FORM 3', 'GRADE 9']
+        return any(token in normalized for token in tokens)
+
     try:
         year_key = _cache_key('current_academic_year')
         current_year = cache.get(year_key)
@@ -28,8 +35,19 @@ def school_info(request):
             cache.set(year_key, current_year, _CACHE_TTL)
         if current_year:
             current_academic_year = current_year.name or ''
+
+        basic9_key = _cache_key('has_basic9_class')
+        has_basic9_class_cached = cache.get(basic9_key)
+        if has_basic9_class_cached is None:
+            classes_qs = Class.objects.all()
+            if current_year:
+                classes_qs = classes_qs.filter(academic_year=current_year)
+            has_basic9_class_cached = any(_is_basic9_name(name) for name in classes_qs.values_list('name', flat=True))
+            cache.set(basic9_key, has_basic9_class_cached, _CACHE_TTL)
+        has_basic9_class = bool(has_basic9_class_cached)
     except Exception:
         current_academic_year = ''
+        has_basic9_class = False
 
     try:
         info_key = _cache_key('school_info')
@@ -56,6 +74,7 @@ def school_info(request):
             'school_phone': None,
             'school_info': None,
             'current_academic_year': current_academic_year,
+            'has_basic9_class': has_basic9_class,
             'vapid_public_key': getattr(settings, 'VAPID_PUBLIC_KEY', ''),
             'paystack_public_key': getattr(settings, 'PAYSTACK_PUBLIC_KEY', ''),
         }
@@ -86,6 +105,7 @@ def school_info(request):
         'school_logo': info.logo,
         'school_info': info,
         'current_academic_year': current_academic_year,
+        'has_basic9_class': has_basic9_class,
         'vapid_public_key': getattr(settings, 'VAPID_PUBLIC_KEY', ''),
         'paystack_public_key': getattr(settings, 'PAYSTACK_PUBLIC_KEY', ''),
     }

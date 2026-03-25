@@ -917,6 +917,12 @@ def teacher_classes(request):
     return render(request, 'teachers/my_classes.html', {'class_subjects': class_subjects})
 
 
+def _is_basic9_class_name(class_name):
+    normalized = (class_name or '').strip().upper()
+    tokens = ['BASIC 9', 'BASIC9', 'JHS 3', 'JHS3', 'FORM 3', 'GRADE 9']
+    return any(token in normalized for token in tokens)
+
+
 @login_required
 def enter_grades(request):
     if request.user.user_type != 'teacher':
@@ -935,15 +941,6 @@ def enter_grades(request):
         exam_type_id = (request.POST.get('exam_type_id') or '').strip()
         student_ids = request.POST.getlist('student_id[]') or request.POST.getlist('student_id')
 
-        if not exam_type_id:
-            messages.error(request, 'Please select an exam type before saving grades.')
-            return redirect('teachers:enter_grades')
-
-        exam_type = ExamType.objects.filter(id=exam_type_id, is_active=True).first()
-        if not exam_type:
-            messages.error(request, 'Invalid or inactive exam type selected.')
-            return redirect('teachers:enter_grades')
-
         academic_year = AcademicYear.objects.filter(is_current=True).first()
         if not academic_year:
             messages.error(request, 'No academic year is marked as current.')
@@ -954,6 +951,17 @@ def enter_grades(request):
         except ClassSubject.DoesNotExist:
             messages.error(request, 'Invalid class/subject selection.')
             return redirect('teachers:enter_grades')
+
+        is_basic9_class = _is_basic9_class_name(cs.class_name.name)
+        exam_type = None
+        if is_basic9_class:
+            if not exam_type_id:
+                messages.error(request, 'Please select an exam type for Basic 9 grade entry.')
+                return redirect('teachers:enter_grades')
+            exam_type = ExamType.objects.filter(id=exam_type_id, is_active=True).first()
+            if not exam_type:
+                messages.error(request, 'Invalid or inactive exam type selected.')
+                return redirect('teachers:enter_grades')
 
         created_count = 0
         for student_id in student_ids:
@@ -999,7 +1007,10 @@ def enter_grades(request):
         if created_count == 0:
             messages.warning(request, 'No grades were saved. Please ensure you loaded students and entered scores.')
         else:
-            messages.success(request, f'Grades entered/updated for {created_count} students in {cs.class_name} - {cs.subject} ({exam_type.name}).')
+            if exam_type:
+                messages.success(request, f'Grades entered/updated for {created_count} students in {cs.class_name} - {cs.subject} ({exam_type.name}).')
+            else:
+                messages.success(request, f'Grades entered/updated for {created_count} students in {cs.class_name} - {cs.subject}.')
         return redirect('teachers:enter_grades')
     
     return render(request, 'teachers/enter_grades.html', {
@@ -1096,6 +1107,8 @@ def get_students(request, class_id):
     subject_id = request.GET.get('subject_id')
     term = normalize_term(request.GET.get('term', 'first'))
     exam_type_id = request.GET.get('exam_type_id')
+    class_obj = Class.objects.filter(id=class_id).first()
+    is_basic9_class = _is_basic9_class_name(class_obj.name) if class_obj else False
 
     students = Student.objects.filter(current_class_id=class_id).select_related('user')
 
@@ -1108,7 +1121,7 @@ def get_students(request, class_id):
             academic_year=academic_year,
             term=term,
         )
-        if exam_type_id:
+        if is_basic9_class and exam_type_id:
             grades = grades.filter(exam_type_id=exam_type_id)
         else:
             grades = grades.filter(exam_type__isnull=True)

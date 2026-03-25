@@ -83,14 +83,17 @@
                         {% for group in class_groups %}
                             <optgroup label="{{ group.grouper }}">
                                 {% for cs in group.list %}
+                                    {% with class_name_upper=cs.class_name.name|upper %}
                                     <option value="{{ cs.id }}"
                                             data-class-id="{{ cs.class_name.id }}"
                                             data-subject="{{ cs.subject.id }}"
                                             data-subject-name="{{ cs.subject.name }}"
+                                            data-is-basic9="{% if 'BASIC 9' in class_name_upper or 'BASIC9' in class_name_upper or 'JHS 3' in class_name_upper or 'JHS3' in class_name_upper or 'FORM 3' in class_name_upper or 'GRADE 9' in class_name_upper %}1{% else %}0{% endif %}"
                                             data-label="{{ group.grouper }} {{ cs.subject.name }}"
                                             {% if cs.id|stringformat:'s' == selected_cs_id %}selected{% endif %}>
                                         {{ cs.subject.name }} ({{ group.grouper }})
                                     </option>
+                                    {% endwith %}
                                 {% endfor %}
                             </optgroup>
                         {% endfor %}
@@ -108,7 +111,7 @@
                     </div>
                 </div>
 
-                <div class="col-12 col-md-2">
+                <div class="col-12 col-md-2" id="examTypeWrapper" style="display:none;">
                     <label class="form-label fw-bold text-secondary text-uppercase small ls-1">Exam Type</label>
                     <select name="exam_type_id" id="examTypeSelect" class="select-flat w-100" required>
                         <option value="" disabled {% if not selected_exam_type_id %}selected{% endif %}>Select...</option>
@@ -226,6 +229,7 @@ document.getElementById('loadStudents').addEventListener('click', function() {
     const csId = select.value;
     const classId = selectedOption?.dataset.classId;
     const subjectId = selectedOption?.dataset.subject;
+    const isBasic9 = selectedOption?.dataset.isBasic9 === '1';
     const examTypeId = document.getElementById('examTypeSelect').value;
     const term = document.querySelector('select[name="term"]').value;
     
@@ -234,8 +238,8 @@ document.getElementById('loadStudents').addEventListener('click', function() {
         return;
     }
 
-    if (!examTypeId) {
-        showToast('Please select an exam type first', 'warning');
+    if (isBasic9 && !examTypeId) {
+        showToast('Please select an exam type for Basic 9', 'warning');
         return;
     }
 
@@ -245,7 +249,12 @@ document.getElementById('loadStudents').addEventListener('click', function() {
     // Construct URL using Django reversematch to handle tenant prefix
     const urlPattern = "{% url 'teachers:get_students' 0 %}".replace('/0/', '/' + classId + '/');
     
-    fetch(`${urlPattern}?subject_id=${subjectId}&term=${term}&exam_type_id=${examTypeId}`)
+    const params = new URLSearchParams({ subject_id: subjectId, term: term });
+    if (isBasic9 && examTypeId) {
+        params.set('exam_type_id', examTypeId);
+    }
+
+    fetch(`${urlPattern}?${params.toString()}`)
         .then(response => {
             if (!response.ok) throw new Error('Network response was not ok');
             return response.json();
@@ -413,6 +422,26 @@ function calculateTotal(studentId) {
         select.value = presetCs;
     }
 })();
+
+function syncExamTypeVisibility() {
+    const classSubjectSelect = document.getElementById('classSubjectSelect');
+    const selectedOption = classSubjectSelect.options[classSubjectSelect.selectedIndex];
+    const isBasic9 = selectedOption?.dataset?.isBasic9 === '1';
+    const wrapper = document.getElementById('examTypeWrapper');
+    const examTypeSelect = document.getElementById('examTypeSelect');
+
+    if (isBasic9) {
+        wrapper.style.display = '';
+        examTypeSelect.required = true;
+    } else {
+        wrapper.style.display = 'none';
+        examTypeSelect.required = false;
+        examTypeSelect.value = '';
+    }
+}
+
+document.getElementById('classSubjectSelect').addEventListener('change', syncExamTypeVisibility);
+syncExamTypeVisibility();
 
 // AI Scan Logic
 document.getElementById('btnScanImage').addEventListener('click', function() {
