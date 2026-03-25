@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.db import transaction
+from django.db.utils import ProgrammingError
 from django_tenants.admin import TenantAdminMixin
 
 from tenants.models import (
@@ -38,6 +40,19 @@ class SchoolSubscriptionAdmin(admin.ModelAdmin):
     list_filter = ('status', 'billing_cycle', 'plan')
     search_fields = ('school__name',)
     readonly_fields = ('mrr', 'created_at', 'updated_at')
+
+    _LEGACY_DEFER = ('paystack_subscription_code', 'paystack_customer_code')
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        # Legacy tenant schemas may not have all Paystack columns.
+        # Probe with a savepoint; if the initial fetch fails, retry deferring them.
+        try:
+            with transaction.atomic():
+                list(qs[:1])
+        except ProgrammingError:
+            qs = qs.defer(*self._LEGACY_DEFER)
+        return qs
 
 
 @admin.register(SchoolAddOn)
