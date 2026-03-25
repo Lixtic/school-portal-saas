@@ -669,7 +669,6 @@ def dashboard(request):
                         subscription = SchoolSubscription.objects.defer(
                             'paystack_subscription_code',
                             'paystack_customer_code',
-                            'paystack_plan_code',
                             'mrr',
                         ).filter(school=request.tenant).first()
                 except Exception:

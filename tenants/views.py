@@ -51,10 +51,12 @@ def _get_school_subscription_safe(school):
         )
         # The savepoint was already rolled back when ProgrammingError propagated
         # out of transaction.atomic(); the outer transaction is clean — retry now.
+        # Only defer fields that actually exist on the model (paystack_plan_code
+        # is a stale DB column present in old schemas but removed from the model,
+        # so passing it to .defer() raises FieldDoesNotExist before the query runs).
         return SchoolSubscription.objects.defer(
             'paystack_subscription_code',
             'paystack_customer_code',
-            'paystack_plan_code',
             'mrr',
         ).get(school=school)
 
