@@ -910,6 +910,16 @@
             overflow: hidden;
         }
 
+        /* Reduce mobile double-tap delays and improve single-tap responsiveness */
+        a,
+        button,
+        .btn,
+        [role="button"],
+        input[type="submit"],
+        input[type="button"] {
+            touch-action: manipulation;
+        }
+
         .mobile-tap-loader-target::before {
             content: '';
             position: absolute;
@@ -3363,6 +3373,8 @@
         let __pageLoaderVisibleSince = 0;
         let __mobileTapLoaderClearTimer = null;
         let __activeMobileTapLoaderEl = null;
+        let __navigationInFlight = false;
+        let __lastTouchTs = 0;
         const __pageLoaderDelayMs = 120;
         const __pageLoaderMinVisibleMs = 260;
 
@@ -3507,12 +3519,18 @@
                 btn.classList.remove('btn-loading');
             });
 
+            __navigationInFlight = false;
             clearMobileTapLoader();
         }
 
         document.addEventListener('DOMContentLoaded', function() {
             // Event Delegation for Links (Click)
             document.body.addEventListener('click', function(e) {
+                // Ignore synthetic click fired shortly after a touch to avoid duplicate tap flows.
+                if (Date.now() - __lastTouchTs < 450) {
+                    return;
+                }
+
                 // Find closest anchor tag
                 const link = e.target.closest('a');
                 
@@ -3534,6 +3552,7 @@
                     !link.closest('[data-no-loader]') &&
                     link.origin === window.location.origin
                 ) {
+                    __navigationInFlight = true;
                     setMobileTapLoader(link);
                     scheduleTopBarLoader();
                 }
@@ -3541,6 +3560,7 @@
 
             // Generic mobile tap feedback for JS-driven buttons/cards (non-link actions)
             document.body.addEventListener('touchstart', function (e) {
+                __lastTouchTs = Date.now();
                 const target = findActionableTapTarget(e.target);
                 if (!target || !isTapLoaderEligible(target)) return;
 
@@ -3576,6 +3596,7 @@
                 
                 // Only show the global loader for forms that do NOT opt out
                 if (!form.hasAttribute('data-no-loader')) {
+                    __navigationInFlight = true;
                     // Visual feedback on submit button
                     const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
                     if (submitBtn && !submitBtn.classList.contains('no-loader')) {
@@ -3595,9 +3616,16 @@
                 }
             });
 
-            // If navigation is canceled or the browser keeps us on the same page, clear delayed loader.
-            window.addEventListener('visibilitychange', function () {
-                if (document.visibilityState === 'visible') {
+            // If the browser restores page visibility without navigation, clear stale pending loaders.
+            document.addEventListener('visibilitychange', function () {
+                if (!__navigationInFlight && document.visibilityState === 'visible') {
+                    hideLoader();
+                }
+            });
+
+            // Ensure loader clears if browser aborts navigation and keeps user on current page.
+            window.addEventListener('pagehide', function() {
+                if (!__navigationInFlight) {
                     hideLoader();
                 }
             });
