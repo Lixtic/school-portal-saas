@@ -25,6 +25,20 @@ from academics.tutor_models import generate_student_id_card, export_id_card_to_p
 logger = logging.getLogger(__name__)
 
 
+def _is_basic9_name(name):
+    normalized = (name or '').strip().upper()
+    tokens = ['BASIC 9', 'BASIC9', 'JHS 3', 'JHS3', 'FORM 3', 'GRADE 9']
+    return any(token in normalized for token in tokens)
+
+
+def _tenant_has_basic9_class():
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    classes_qs = Class.objects.all()
+    if current_year:
+        classes_qs = classes_qs.filter(academic_year=current_year)
+    return any(_is_basic9_name(name) for name in classes_qs.values_list('name', flat=True))
+
+
 def build_academic_calendar_widget(limit=5):
     today = timezone.now().date()
     current_year = AcademicYear.objects.filter(is_current=True).first() or AcademicYear.objects.order_by('-start_date').first()
@@ -2166,6 +2180,10 @@ def manage_exam_types(request):
     """Tenant admin: create and manage exam types used in assessments."""
     if request.user.user_type != 'admin':
         messages.error(request, 'Access denied. Admins only.')
+        return redirect('dashboard')
+
+    if not _tenant_has_basic9_class():
+        messages.info(request, 'Exam type management is available only when a Basic 9 class exists.')
         return redirect('dashboard')
 
     editing_id = request.POST.get('editing_id') or request.GET.get('edit')
