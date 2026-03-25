@@ -4,60 +4,185 @@
 
 {% block content %}
 <style>
-  [data-bs-theme="dark"] .card {
-    background: var(--surface-card, #1e293b);
-    border-color: rgba(255,255,255,0.08) !important;
-    color: var(--text-main, #f1f5f9);
+  .exam-shell {
+    --exam-primary: #4361ee;
+    --exam-accent: #4cc9f0;
+    --exam-border: #dbe3f0;
+    --exam-surface: #ffffff;
+    --exam-surface-soft: #f8fbff;
+    --exam-text: #111827;
+    --exam-muted: #5b667a;
+    position: relative;
   }
-  [data-bs-theme="dark"] .card-header.bg-primary {
+
+  .exam-shell::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 10% 12%, rgba(67, 97, 238, 0.12), transparent 44%),
+      radial-gradient(circle at 86% 88%, rgba(76, 201, 240, 0.1), transparent 46%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .exam-shell > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .exam-hero {
+    border: 1px solid var(--exam-border);
+    border-radius: 16px;
+    padding: .95rem 1rem;
+    background: linear-gradient(135deg, rgba(67, 97, 238, .08), rgba(76, 201, 240, .08));
+    box-shadow: 0 8px 22px rgba(67, 97, 238, .06);
+    margin-bottom: 1rem;
+  }
+
+  .exam-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    font-size: .72rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--exam-primary);
+  }
+
+  .exam-card {
+    border: 1px solid var(--exam-border) !important;
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--exam-surface);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  }
+
+  .exam-card .card-header {
+    border-bottom: 1px solid var(--exam-border);
+  }
+
+  .exam-card-header-primary {
     background: linear-gradient(135deg, #4361ee 0%, #4cc9f0 100%) !important;
     color: #fff !important;
-    border-color: rgba(76, 201, 240, 0.35) !important;
   }
-  [data-bs-theme="dark"] .card-header.bg-light {
-    background: rgba(255,255,255,0.04) !important;
-    color: #e2e8f0 !important;
-    border-color: rgba(255,255,255,0.08) !important;
+
+  .exam-card-header-soft {
+    background: var(--exam-surface-soft) !important;
+    color: var(--exam-text) !important;
   }
-  [data-bs-theme="dark"] .table,
-  [data-bs-theme="dark"] .table th,
-  [data-bs-theme="dark"] .table td {
+
+  .exam-table thead th {
+    border-bottom: 1px solid var(--exam-border);
+    color: #344054;
+    font-size: .79rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+
+  .exam-table th,
+  .exam-table td {
+    border-color: var(--exam-border) !important;
+  }
+
+  .exam-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: .35rem;
+    flex-wrap: wrap;
+  }
+
+  .exam-actions .btn {
+    white-space: nowrap;
+  }
+
+  .exam-muted {
+    color: var(--exam-muted) !important;
+  }
+
+  [data-bs-theme="dark"] .exam-shell {
+    --exam-border: rgba(255,255,255,0.12);
+    --exam-surface: #1e293b;
+    --exam-surface-soft: rgba(255,255,255,0.04);
+    --exam-text: #f1f5f9;
+    --exam-muted: #94a3b8;
+  }
+
+  [data-bs-theme="dark"] .exam-shell::before {
+    background:
+      radial-gradient(circle at 12% 12%, rgba(76, 201, 240, 0.15), transparent 48%),
+      radial-gradient(circle at 88% 84%, rgba(67, 97, 238, 0.18), transparent 46%);
+  }
+
+  [data-bs-theme="dark"] .exam-hero {
+    background: linear-gradient(135deg, rgba(67, 97, 238, .18), rgba(76, 201, 240, .16));
+  }
+
+  [data-bs-theme="dark"] .exam-kicker {
+    color: #8adcf8;
+  }
+
+  [data-bs-theme="dark"] .exam-table,
+  [data-bs-theme="dark"] .exam-table th,
+  [data-bs-theme="dark"] .exam-table td {
     color: #e5e7eb !important;
-    border-color: rgba(255,255,255,0.08) !important;
   }
-  [data-bs-theme="dark"] .table-light,
-  [data-bs-theme="dark"] .table-light th {
-    background: rgba(255,255,255,0.04) !important;
-    color: #cbd5e1 !important;
+
+  [data-bs-theme="dark"] .exam-table thead th {
+    color: #cbd5e1;
   }
+
   [data-bs-theme="dark"] .form-control,
   [data-bs-theme="dark"] .form-select {
     background: rgba(255,255,255,0.04);
     border-color: rgba(255,255,255,0.12);
     color: #e2e8f0;
   }
+
   [data-bs-theme="dark"] .form-control:focus,
   [data-bs-theme="dark"] .form-select:focus {
     border-color: #4cc9f0;
-    box-shadow: 0 0 0 0.2rem rgba(76, 201, 240, 0.2);
+    box-shadow: 0 0 0 .2rem rgba(76, 201, 240, .2);
   }
-  [data-bs-theme="dark"] .text-muted {
-    color: #94a3b8 !important;
-  }
+
   [data-bs-theme="dark"] .btn-outline-secondary {
     color: #cbd5e1;
     border-color: rgba(255,255,255,0.18);
   }
+
   [data-bs-theme="dark"] .btn-outline-secondary:hover {
     background: rgba(255,255,255,0.08);
     color: #fff;
   }
+
+  @media (max-width: 991px) {
+    .exam-actions {
+      justify-content: flex-start;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .exam-hero {
+      padding: .85rem .85rem;
+    }
+
+    .exam-card {
+      border-radius: 14px;
+    }
+
+    .exam-actions .btn {
+      font-size: .75rem;
+      padding: .28rem .45rem;
+    }
+  }
 </style>
-<div class="container-fluid py-4">
-  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+<div class="container-fluid py-4 exam-shell">
+  <div class="exam-hero d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
+      <div class="exam-kicker"><i class="fas fa-graduation-cap"></i> Assessment Settings</div>
       <h2 class="h4 fw-bold mb-0"><i class="fas fa-journal-check me-2 text-primary"></i>Exam Types</h2>
-      <p class="text-muted small mb-0">Create assessment categories for your school (e.g. Midterm, End of Term).</p>
+      <p class="exam-muted small mb-0">Create assessment categories for your school (e.g. Midterm, End of Term).</p>
     </div>
     <a href="{% url 'students:student_list' %}" class="btn btn-outline-secondary btn-sm">
       <i class="fas fa-arrow-left me-1"></i>Back
@@ -74,8 +199,8 @@
 
   <div class="row g-4">
     <div class="col-lg-5">
-      <div class="card shadow-sm border-0">
-        <div class="card-header bg-primary text-white fw-semibold">
+      <div class="card exam-card">
+        <div class="card-header exam-card-header-primary fw-semibold">
           {% if editing_exam_type %}
           <i class="fas fa-edit me-2"></i>Edit Exam Type
           {% else %}
@@ -119,12 +244,12 @@
     </div>
 
     <div class="col-lg-7">
-      <div class="card shadow-sm border-0">
-        <div class="card-header bg-light fw-semibold">Configured Exam Types</div>
+      <div class="card exam-card">
+        <div class="card-header exam-card-header-soft fw-semibold">Configured Exam Types</div>
         <div class="card-body p-0">
           <div class="table-responsive">
-            <table class="table table-hover mb-0 align-middle">
-              <thead class="table-light">
+            <table class="table table-hover mb-0 align-middle exam-table">
+              <thead>
                 <tr>
                   <th class="ps-3">Name</th>
                   <th>Description</th>
@@ -147,25 +272,27 @@
                     {% endif %}
                   </td>
                   <td class="text-end pe-3">
-                    <a href="{% url 'students:manage_exam_types' %}?edit={{ exam_type.id }}" class="btn btn-sm btn-outline-primary">
-                      <i class="fas fa-edit"></i> Edit
-                    </a>
-                    <form method="post" class="d-inline">
-                      {% csrf_token %}
-                      <input type="hidden" name="action" value="toggle_status">
-                      <input type="hidden" name="exam_type_id" value="{{ exam_type.id }}">
-                      <button type="submit" class="btn btn-sm btn-outline-warning">
-                        {% if exam_type.is_active %}<i class="fas fa-pause"></i> Deactivate{% else %}<i class="fas fa-play"></i> Activate{% endif %}
-                      </button>
-                    </form>
-                    <form method="post" class="d-inline" onsubmit="return confirm('Delete exam type {{ exam_type.name }}?');">
-                      {% csrf_token %}
-                      <input type="hidden" name="action" value="delete_exam_type">
-                      <input type="hidden" name="exam_type_id" value="{{ exam_type.id }}">
-                      <button type="submit" class="btn btn-sm btn-outline-danger">
-                        <i class="fas fa-trash"></i> Delete
-                      </button>
-                    </form>
+                    <div class="exam-actions">
+                      <a href="{% url 'students:manage_exam_types' %}?edit={{ exam_type.id }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-edit"></i> Edit
+                      </a>
+                      <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="toggle_status">
+                        <input type="hidden" name="exam_type_id" value="{{ exam_type.id }}">
+                        <button type="submit" class="btn btn-sm btn-outline-warning">
+                          {% if exam_type.is_active %}<i class="fas fa-pause"></i> Deactivate{% else %}<i class="fas fa-play"></i> Activate{% endif %}
+                        </button>
+                      </form>
+                      <form method="post" class="d-inline" onsubmit="return confirm('Delete exam type {{ exam_type.name }}?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete_exam_type">
+                        <input type="hidden" name="exam_type_id" value="{{ exam_type.id }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                          <i class="fas fa-trash"></i> Delete
+                        </button>
+                      </form>
+                    </div>
                   </td>
                 </tr>
                 {% empty %}
