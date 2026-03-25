@@ -2,53 +2,200 @@
 {% block title %}Promote Students{% endblock %}
 {% block content %}
 <style>
-  [data-bs-theme="dark"] .card {
-    background: var(--surface-card, #1e293b);
-    border-color: rgba(255,255,255,0.08) !important;
-    color: var(--text-main, #f1f5f9);
+  .promotion-shell {
+    --promo-primary: #4361ee;
+    --promo-accent: #4cc9f0;
+    --promo-amber: #f59e0b;
+    --promo-border: #dbe3f0;
+    --promo-surface: #ffffff;
+    --promo-surface-soft: #f8fbff;
+    --promo-text: #111827;
+    --promo-muted: #5b667a;
+    position: relative;
   }
-  [data-bs-theme="dark"] .card-header.bg-warning {
-    background: rgba(245, 158, 11, 0.22) !important;
-    color: #fde68a !important;
-    border-color: rgba(245, 158, 11, 0.35) !important;
+
+  .promotion-shell::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 12% 10%, rgba(67, 97, 238, 0.13), transparent 45%),
+      radial-gradient(circle at 88% 92%, rgba(76, 201, 240, 0.12), transparent 42%);
+    pointer-events: none;
+    z-index: 0;
   }
-  [data-bs-theme="dark"] .card-header.bg-light {
-    background: rgba(255,255,255,0.04) !important;
-    color: #e2e8f0 !important;
-    border-color: rgba(255,255,255,0.08) !important;
+
+  .promotion-shell > * {
+    position: relative;
+    z-index: 1;
   }
-  [data-bs-theme="dark"] .table,
-  [data-bs-theme="dark"] .table th,
-  [data-bs-theme="dark"] .table td {
-    color: #e5e7eb !important;
-    border-color: rgba(255,255,255,0.08) !important;
+
+  .promo-hero {
+    border: 1px solid var(--promo-border);
+    border-radius: 16px;
+    padding: 1rem 1.1rem;
+    background: linear-gradient(135deg, rgba(67, 97, 238, 0.08) 0%, rgba(76, 201, 240, 0.08) 100%);
+    box-shadow: 0 8px 22px rgba(67, 97, 238, 0.06);
   }
-  [data-bs-theme="dark"] .table-light,
-  [data-bs-theme="dark"] .table-light th {
-    background: rgba(255,255,255,0.04) !important;
-    color: #cbd5e1 !important;
+
+  .promo-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    font-size: .72rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--promo-primary);
+    margin-bottom: .35rem;
   }
-  [data-bs-theme="dark"] .table-striped > tbody > tr:nth-of-type(odd) > * {
-    background: rgba(255,255,255,0.02) !important;
+
+  .promo-card {
+    border: 1px solid var(--promo-border) !important;
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--promo-surface);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
   }
-  [data-bs-theme="dark"] .form-control,
-  [data-bs-theme="dark"] .form-select {
-    background: rgba(255,255,255,0.04);
-    border-color: rgba(255,255,255,0.12);
-    color: #e2e8f0;
+
+  .promo-card .card-header {
+    border-bottom: 1px solid var(--promo-border);
+    background: var(--promo-surface-soft);
+    color: var(--promo-text);
   }
-  [data-bs-theme="dark"] .form-control:focus,
-  [data-bs-theme="dark"] .form-select:focus {
-    border-color: #4cc9f0;
-    box-shadow: 0 0 0 0.2rem rgba(76, 201, 240, 0.2);
+
+  .promo-card-header-amber {
+    background: linear-gradient(135deg, rgba(245, 158, 11, .16), rgba(245, 158, 11, .08)) !important;
+    color: #7c2d12 !important;
   }
-  [data-bs-theme="dark"] .text-muted {
-    color: #94a3b8 !important;
+
+  .promo-mode-chip {
+    border: 1px solid var(--promo-border);
+    border-radius: 12px;
+    padding: .6rem .75rem;
+    background: #fff;
+    transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+  }
+
+  .promo-mode-chip:hover {
+    border-color: rgba(67, 97, 238, .45);
+    box-shadow: 0 6px 16px rgba(67, 97, 238, .08);
+    transform: translateY(-1px);
+  }
+
+  .promo-note {
+    border-left: 3px solid var(--promo-primary);
+    background: rgba(67, 97, 238, 0.07);
+    border-radius: 8px;
+    padding: .55rem .75rem;
+    color: var(--promo-muted);
+  }
+
+  .promo-submit {
+    border: 0;
+    background: linear-gradient(135deg, #4361ee 0%, #4cc9f0 100%);
+    color: #fff;
+    font-weight: 700;
+    letter-spacing: .01em;
+    box-shadow: 0 10px 22px rgba(67, 97, 238, 0.24);
+  }
+
+  .promo-submit:hover {
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 12px 26px rgba(67, 97, 238, 0.3);
+  }
+
+  .promo-table thead th {
+    border-bottom: 1px solid var(--promo-border);
+    color: #344054;
+    font-size: .79rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+
+  .promo-table td,
+  .promo-table th {
+    border-color: var(--promo-border) !important;
+  }
+
+  .promo-count {
+    background: rgba(67, 97, 238, 0.12) !important;
+    color: #1d4ed8 !important;
+    font-weight: 700;
+  }
+
+  .promo-warning {
+    color: var(--promo-muted);
+  }
+
+  [data-bs-theme="dark"] .promotion-shell {
+    --promo-border: rgba(255,255,255,0.12);
+    --promo-surface: #1e293b;
+    --promo-surface-soft: rgba(255,255,255,0.04);
+    --promo-text: #f1f5f9;
+    --promo-muted: #94a3b8;
+  }
+
+  [data-bs-theme="dark"] .promotion-shell::before {
+    background:
+      radial-gradient(circle at 14% 8%, rgba(76, 201, 240, 0.14), transparent 48%),
+      radial-gradient(circle at 88% 88%, rgba(67, 97, 238, 0.18), transparent 46%);
+  }
+
+  [data-bs-theme="dark"] .promo-hero {
+    background: linear-gradient(135deg, rgba(67, 97, 238, 0.18), rgba(76, 201, 240, 0.16));
+    box-shadow: 0 8px 20px rgba(0,0,0,0.28);
+  }
+
+  [data-bs-theme="dark"] .promo-kicker {
+    color: #8adcf8;
+  }
+
+  [data-bs-theme="dark"] .promo-mode-chip {
+    background: rgba(255,255,255,0.03);
+  }
+
+  [data-bs-theme="dark"] .promo-note {
+    background: rgba(76, 201, 240, 0.12);
+    color: #c7d2fe;
+    border-left-color: #4cc9f0;
+  }
+
+  [data-bs-theme="dark"] .promo-card-header-amber {
+    background: linear-gradient(135deg, rgba(245, 158, 11, .22), rgba(245, 158, 11, .1)) !important;
+    color: #fcd34d !important;
+  }
+
+  [data-bs-theme="dark"] .promo-table thead th {
+    color: #cbd5e1;
+  }
+
+  [data-bs-theme="dark"] .promo-count {
+    background: rgba(67, 97, 238, 0.24) !important;
+    color: #bfdbfe !important;
+  }
+
+  [data-bs-theme="dark"] .promo-warning {
+    color: #94a3b8;
+  }
+
+  @media (max-width: 767px) {
+    .promo-hero {
+      padding: .9rem .9rem;
+    }
+    .promo-card {
+      border-radius: 14px;
+    }
+    .promo-mode-chip {
+      padding: .5rem .6rem;
+    }
   }
 </style>
-<div class="container-fluid py-4">
-  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+<div class="container-fluid py-4 promotion-shell">
+  <div class="promo-hero d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
     <div>
+      <div class="promo-kicker"><i class="fas fa-school"></i> Year End Operations</div>
       <h2 class="h4 fw-bold mb-0"><i class="fas fa-level-up-alt me-2 text-warning"></i>Student Promotion</h2>
       <p class="text-muted small mb-0">
         Year-end rollover — map each source class to a target class and promote all students in one click.
@@ -73,19 +220,19 @@
   {% else %}
   <form method="post">
     {% csrf_token %}
-    <div class="card shadow-sm border-0 mb-3">
-      <div class="card-header bg-light fw-semibold">
+    <div class="card promo-card mb-3">
+      <div class="card-header fw-semibold">
         <i class="fas fa-sliders-h me-2"></i>Promotion Rules
       </div>
       <div class="card-body">
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label d-block mb-2">Promotion mode</label>
-            <div class="form-check">
+            <div class="form-check promo-mode-chip">
               <input class="form-check-input" type="radio" name="promotion_mode" id="mode_all" value="all" checked>
               <label class="form-check-label" for="mode_all">Promote all students in selected classes</label>
             </div>
-            <div class="form-check mt-1">
+            <div class="form-check mt-2 promo-mode-chip">
               <input class="form-check-input" type="radio" name="promotion_mode" id="mode_perf" value="performance">
               <label class="form-check-label" for="mode_perf">Promote only students who meet performance threshold</label>
             </div>
@@ -101,19 +248,19 @@
             </div>
           </div>
         </div>
-        <div class="small text-muted mt-2">
+        <div class="small promo-note mt-3">
           Performance mode uses each student's average total score for the current academic year.
         </div>
       </div>
     </div>
 
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-warning text-dark fw-semibold">
+    <div class="card promo-card">
+      <div class="card-header promo-card-header-amber fw-semibold">
         <i class="fas fa-exchange-alt me-2"></i>Class Mapping
       </div>
       <div class="card-body p-0">
         <div class="table-responsive">
-          <table class="table table-striped table-hover mb-0 align-middle">
+          <table class="table table-striped table-hover mb-0 align-middle promo-table">
             <thead class="table-light">
               <tr>
                 <th><input type="checkbox" id="checkAll"> Select</th>
@@ -130,7 +277,7 @@
                 </td>
                 <td class="fw-semibold">{{ cls.name }}</td>
                 <td>
-                  <span class="badge bg-secondary">{{ cls.student_set.count }}</span>
+                  <span class="badge promo-count">{{ cls.student_set.count }}</span>
                 </td>
                 <td>
                   <select name="target_{{ cls.id }}" class="form-select form-select-sm" style="max-width:200px;">
@@ -149,11 +296,11 @@
         </div>
       </div>
       <div class="card-footer d-flex gap-2 align-items-center">
-        <button type="submit" class="btn btn-warning"
+        <button type="submit" class="btn promo-submit"
           onclick="return confirm('This will move students to their new class. Proceed?')">
           <i class="fas fa-level-up-alt me-1"></i>Promote Selected Students
         </button>
-        <span class="text-muted small">
+        <span class="small promo-warning">
           <i class="fas fa-exclamation-circle text-danger me-1"></i>
           This action updates students' current class immediately. Ensure your class mapping is correct.
         </span>
@@ -167,5 +314,20 @@
 document.getElementById('checkAll').addEventListener('change', function() {
   document.querySelectorAll('.row-check').forEach(cb => cb.checked = this.checked);
 });
+
+const modeAll = document.getElementById('mode_all');
+const modePerf = document.getElementById('mode_perf');
+const minAverage = document.getElementById('min_average');
+const includeNoGrades = document.getElementById('include_no_grades');
+
+function syncPromotionMode() {
+  const performanceMode = modePerf.checked;
+  minAverage.disabled = !performanceMode;
+  includeNoGrades.disabled = !performanceMode;
+}
+
+modeAll.addEventListener('change', syncPromotionMode);
+modePerf.addEventListener('change', syncPromotionMode);
+syncPromotionMode();
 </script>
 {% endblock %}
