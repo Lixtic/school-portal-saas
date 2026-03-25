@@ -10,6 +10,8 @@ Usage in views:
         return JsonResponse({'status': 'error', 'error_code': 'quota_exceeded',
                              'message': e.user_message, 'used': e.used, 'limit': e.limit}, status=429)
 """
+from django.db import transaction as _transaction
+from django.db.utils import ProgrammingError as _ProgrammingError
 from django.utils import timezone
 
 
@@ -57,18 +59,20 @@ def get_quota_status(school, subscription=None):
     Pass ``subscription`` (a SchoolSubscription instance or None) to reuse an
     already-fetched subscription and avoid an extra DB round-trip.
     """
-    from .models import SchoolSubscription, AIUsageLog
-
     limit = _DEFAULTS_BY_STATUS['no_subscription']
     unlimited = False
 
     try:
-        if subscription is None:
-            subscription = SchoolSubscription.objects.select_related('plan').get(school=school)
-        if subscription is not None:
-            limit = subscription.plan.ai_calls_per_month
-    except SchoolSubscription.DoesNotExist:
-        pass
+        with _transaction.atomic():
+            if subscription is None:
+                from .models import SchoolSubscription
+                subscription = SchoolSubscription.objects.defer(
+                    'paystack_subscription_code',
+                    'paystack_customer_code',
+                    'mrr',
+                ).select_related('plan').get(school=school)
+            if subscription is not None:
+                limit = subscription.plan.ai_calls_per_month
     except Exception:
         pass
 
@@ -76,15 +80,20 @@ def get_quota_status(school, subscription=None):
         unlimited = True
 
     month_start = _get_this_month_start()
-    qs = AIUsageLog.objects.filter(school=school, created_at__gte=month_start)
-    used = qs.count()
-
-    # Per-action breakdown
-    from django.db.models import Count
-    breakdown = {
-        row['action_type']: row['n']
-        for row in qs.values('action_type').annotate(n=Count('id'))
-    }
+    used = 0
+    breakdown = {}
+    try:
+        from .models import AIUsageLog
+        with _transaction.atomic():
+            qs = AIUsageLog.objects.filter(school=school, created_at__gte=month_start)
+            used = qs.count()
+            from django.db.models import Count
+            breakdown = {
+                row['action_type']: row['n']
+                for row in qs.values('action_type').annotate(n=Count('id'))
+            }
+    except Exception:
+        pass
 
     return {
         'limit': limit,

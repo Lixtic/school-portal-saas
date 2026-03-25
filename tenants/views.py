@@ -1798,7 +1798,7 @@ def school_subscription(request):
     ).exclude(plan_type='trial').order_by('monthly_price')
 
     from .ai_quota import get_quota_status
-    quota = get_quota_status(request.tenant)
+    quota = get_quota_status(request.tenant, subscription=subscription)
 
     recent_invoices = []
     active_addons = []
