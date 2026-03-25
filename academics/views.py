@@ -1461,8 +1461,10 @@ def preview_homepage(request):
         messages.error(request, 'Access denied')
         return redirect('dashboard')
     
-    # Get preview data from session
-    preview_data = request.session.get('preview_data', {})
+    # Get preview data from session and remove it immediately to prevent cookie bloat.
+    # signed_cookies backend stores ALL session data in the cookie; preview_data
+    # can be 500-1200 bytes and browsers silently drop cookies >4KB.
+    preview_data = request.session.pop('preview_data', {})
     if not preview_data:
         messages.warning(request, 'No preview data found. Please try again.')
         return redirect('academics:school_settings')

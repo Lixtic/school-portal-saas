@@ -254,7 +254,14 @@ class TenantPathMiddleware(TenantMainMiddleware):
                 connection.search_path_set_schemas = None
 
     def process_response(self, request, response):
-        """Normalize auth redirects so tenant pages don't bounce via public /login/."""
+        """Normalize auth redirects so tenant pages don't bounce via public /login/.
+
+        Handles two cases:
+        1. @login_required fires with SCRIPT_NAME unset → Location: /login/?next=/tenant/path/
+           Rewrite to /{tenant}/login/?next=/tenant/path/
+        2. @login_required fires with SCRIPT_NAME set → Location: /{tenant}/login/?next=/path/
+           Already correct — but prepend tenant to 'next' so login_view can redirect back.
+        """
         try:
             if response.status_code not in (301, 302, 303, 307, 308):
                 return response
@@ -264,28 +271,37 @@ class TenantPathMiddleware(TenantMainMiddleware):
                 return response
 
             parsed = urlparse(location)
-            # Only rewrite local-path redirects that currently target public /login/
-            if parsed.scheme or parsed.netloc or not parsed.path.startswith('/login/'):
+            # Only rewrite local-path redirects (no scheme/netloc = same-origin)
+            if parsed.scheme or parsed.netloc:
                 return response
 
-            params = dict(parse_qsl(parsed.query, keep_blank_values=True))
-            next_url = params.get('next', '')
-            if not next_url.startswith('/'):
+            # Determine tenant context from the current request
+            tenant_schema = getattr(getattr(request, 'tenant', None), 'schema_name', '')
+            if not tenant_schema or tenant_schema == 'public':
                 return response
 
-            next_parts = next_url.strip('/').split('/')
-            tenant_hint = next_parts[0] if next_parts else ''
-            if not tenant_hint:
+            # Case 1: bare /login/ redirect (SCRIPT_NAME not set)
+            if parsed.path == '/login/' or parsed.path == '/login':
+                params = dict(parse_qsl(parsed.query, keep_blank_values=True))
+                next_url = params.get('next', '')
+                # If next already has tenant prefix, trust it; otherwise prepend
+                if next_url and not next_url.startswith(f'/{tenant_schema}/'):
+                    params['next'] = f'/{tenant_schema}{next_url}'
+                query = urlencode(params)
+                suffix = f'?{query}' if query else ''
+                response['Location'] = f'/{tenant_schema}/login/{suffix}'
                 return response
 
-            tenant_exists = School.objects.filter(schema_name=tenant_hint, is_active=True).exists()
-            if not tenant_exists:
+            # Case 2: tenant-prefixed login redirect — ensure next param has tenant prefix
+            if parsed.path == f'/{tenant_schema}/login/' or parsed.path == f'/{tenant_schema}/login':
+                params = dict(parse_qsl(parsed.query, keep_blank_values=True))
+                next_url = params.get('next', '')
+                if next_url and next_url.startswith('/') and not next_url.startswith(f'/{tenant_schema}/'):
+                    params['next'] = f'/{tenant_schema}{next_url}'
+                    query = urlencode(params)
+                    response['Location'] = f'/{tenant_schema}/login/?{query}'
                 return response
 
-            new_params = dict(params)
-            new_params['next'] = next_url
-            query = urlencode(new_params)
-            response['Location'] = f'/{tenant_hint}/login/?{query}'
         except Exception:
             # Never break responses due to redirect normalization issues.
             return response

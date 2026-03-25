@@ -422,6 +422,11 @@ _use_secure_cookies = (not DEBUG) and (_running_on_hosted_https or _force_secure
 SESSION_COOKIE_SECURE = _use_secure_cookies
 CSRF_COOKIE_SECURE = _use_secure_cookies
 
+# Explicit: cookie is valid for the exact request domain only.
+# With path-based multi-tenancy (/{school}/), all tenants share a single
+# domain, so the default (None → current host) is correct.
+SESSION_COOKIE_DOMAIN = None
+
 # =====================
 # VERCEL / PRODUCTION SECURITY
 # =====================
