@@ -1877,6 +1877,7 @@ def import_grades_csv(request):
                     subject=subject,
                     academic_year=academic_year,
                     term=term,
+                    exam_type=None,
                 )
                 grade_obj.class_score  = float(class_score_raw)
                 grade_obj.exams_score  = float(exam_score_raw)
@@ -2074,6 +2075,11 @@ def promote_students(request):
     current_year = AcademicYear.objects.filter(is_current=True).first()
     all_classes  = Class.objects.filter(academic_year=current_year).order_by('name')
 
+    def _is_completion_class(name):
+        normalized = (name or '').strip().upper()
+        completion_tokens = ['BASIC 9', 'JHS 3', 'FORM 3', 'GRADE 9', 'JHS3', 'BASIC9']
+        return any(token in normalized for token in completion_tokens)
+
     if request.method == 'POST':
         promotion_mode = request.POST.get('promotion_mode', 'all')
         include_no_grades = request.POST.get('include_no_grades') == 'on'
@@ -2094,16 +2100,19 @@ def promote_students(request):
             if not target_id:
                 continue
             src_cls = Class.objects.filter(id=src_id).first()
-            tgt_cls = Class.objects.filter(id=target_id).first()
-            if not src_cls or not tgt_cls:
-                errors.append(f'Class id {src_id}/{target_id} not found')
+            if not src_cls:
+                errors.append(f'Source class id {src_id} not found')
                 continue
-            if src_cls == tgt_cls:
+
+            is_completion_source = _is_completion_class(src_cls.name)
+            if target_id in ['completed', 'graduated'] and not is_completion_source:
+                errors.append(f'Completion target allowed only for Basic 9 equivalent classes ({src_cls.name}).')
                 continue
 
             class_students = Student.objects.filter(current_class=src_cls)
+            student_ids = list(class_students.values_list('id', flat=True))
+            eligible_ids = student_ids
             if promotion_mode == 'performance':
-                student_ids = list(class_students.values_list('id', flat=True))
                 score_rows = (
                     Grade.objects
                     .filter(student_id__in=student_ids, academic_year=current_year)
@@ -2116,10 +2125,19 @@ def promote_students(request):
                 if include_no_grades:
                     eligible_ids.extend([sid for sid in student_ids if sid not in score_map])
 
-                count = Student.objects.filter(id__in=eligible_ids, current_class=src_cls).update(current_class=tgt_cls)
+            if target_id in ['completed', 'graduated']:
+                count = Student.objects.filter(id__in=eligible_ids, current_class=src_cls).update(current_class=None)
                 skipped_total += max(0, len(student_ids) - count)
             else:
-                count = class_students.update(current_class=tgt_cls)
+                tgt_cls = Class.objects.filter(id=target_id).first()
+                if not tgt_cls:
+                    errors.append(f'Target class id {target_id} not found')
+                    continue
+                if src_cls == tgt_cls:
+                    continue
+                count = Student.objects.filter(id__in=eligible_ids, current_class=src_cls).update(current_class=tgt_cls)
+                if promotion_mode == 'performance':
+                    skipped_total += max(0, len(student_ids) - count)
 
             promoted_total += count
 

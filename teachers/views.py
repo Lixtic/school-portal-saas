@@ -18,7 +18,7 @@ import string
 from datetime import date
 from teachers.models import Teacher, DutyWeek, LessonPlan
 from academics.models import ClassSubject, AcademicYear, Timetable, SchoolInfo, Resource, Class, Subject, SchemeOfWork
-from students.models import Student, Grade, ClassExercise, StudentExerciseScore
+from students.models import Student, Grade, ClassExercise, StudentExerciseScore, ExamType
 from students.utils import normalize_term
 from .forms import ResourceForm, LessonPlanForm, TeacherCreateForm, TeacherCSVImportForm #, HomeworkForm
 from .models import LessonGenerationSession
@@ -926,11 +926,23 @@ def enter_grades(request):
     teacher = Teacher.objects.get(user=request.user)
     class_subjects = ClassSubject.objects.filter(teacher=teacher).select_related('class_name', 'subject')
     selected_cs_id = request.GET.get('class_subject_id')
+    exam_types = ExamType.objects.filter(is_active=True).order_by('name')
+    selected_exam_type_id = request.GET.get('exam_type_id')
     
     if request.method == 'POST':
         term = normalize_term(request.POST.get('term', 'first'))
         class_subject_id = request.POST.get('class_subject_id') or request.POST.get('class_subject')
+        exam_type_id = (request.POST.get('exam_type_id') or '').strip()
         student_ids = request.POST.getlist('student_id[]') or request.POST.getlist('student_id')
+
+        if not exam_type_id:
+            messages.error(request, 'Please select an exam type before saving grades.')
+            return redirect('teachers:enter_grades')
+
+        exam_type = ExamType.objects.filter(id=exam_type_id, is_active=True).first()
+        if not exam_type:
+            messages.error(request, 'Invalid or inactive exam type selected.')
+            return redirect('teachers:enter_grades')
 
         academic_year = AcademicYear.objects.filter(is_current=True).first()
         if not academic_year:
@@ -975,6 +987,7 @@ def enter_grades(request):
                 subject=cs.subject,
                 academic_year=academic_year,
                 term=term,
+                exam_type=exam_type,
                 defaults={
                     'class_score': class_score,
                     'exams_score': exams_score,
@@ -986,12 +999,14 @@ def enter_grades(request):
         if created_count == 0:
             messages.warning(request, 'No grades were saved. Please ensure you loaded students and entered scores.')
         else:
-            messages.success(request, f'Grades entered/updated for {created_count} students in {cs.class_name} - {cs.subject}.')
+            messages.success(request, f'Grades entered/updated for {created_count} students in {cs.class_name} - {cs.subject} ({exam_type.name}).')
         return redirect('teachers:enter_grades')
     
     return render(request, 'teachers/enter_grades.html', {
         'class_subjects': class_subjects,
         'selected_cs_id': selected_cs_id,
+        'exam_types': exam_types,
+        'selected_exam_type_id': selected_exam_type_id,
     })
 
 
@@ -1080,6 +1095,7 @@ If a score is missing or unable to be read, set it to null. Ensure the response 
 def get_students(request, class_id):
     subject_id = request.GET.get('subject_id')
     term = normalize_term(request.GET.get('term', 'first'))
+    exam_type_id = request.GET.get('exam_type_id')
 
     students = Student.objects.filter(current_class_id=class_id).select_related('user')
 
@@ -1092,6 +1108,10 @@ def get_students(request, class_id):
             academic_year=academic_year,
             term=term,
         )
+        if exam_type_id:
+            grades = grades.filter(exam_type_id=exam_type_id)
+        else:
+            grades = grades.filter(exam_type__isnull=True)
         grades_by_student = {g.student_id: g for g in grades}
 
     data = []
@@ -1361,6 +1381,7 @@ def enter_exercise_scores(request, exercise_id):
                             subject=exercise.class_subject.subject,
                             academic_year=current_year,
                             term=exercise.term,
+                            exam_type=None,
                             defaults={'created_by': request.user}
                         )
                         grade_obj.class_score = new_class_score

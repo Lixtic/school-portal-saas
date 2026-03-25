@@ -90,6 +90,7 @@ class Grade(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     subject = models.ForeignKey('academics.Subject', on_delete=models.CASCADE)
     academic_year = models.ForeignKey('academics.AcademicYear', on_delete=models.CASCADE)
+    exam_type = models.ForeignKey('students.ExamType', on_delete=models.SET_NULL, null=True, blank=True)
     
     # FIXED: Proper CharField with choices and reduced max_length
     term = models.CharField(
@@ -214,11 +215,12 @@ class Grade(models.Model):
     
     def __str__(self):
         term_display = self.get_term_display()
-        return f"{self.student} - {self.subject} - {term_display} ({self.academic_year})"
+        exam_label = f" - {self.exam_type.name}" if self.exam_type else ''
+        return f"{self.student} - {self.subject}{exam_label} - {term_display} ({self.academic_year})"
     
     class Meta:
         ordering = ['-created_at']
-        unique_together = ['student', 'subject', 'academic_year', 'term']
+        unique_together = ['student', 'subject', 'academic_year', 'term', 'exam_type']
 
 
 class ExamType(models.Model):

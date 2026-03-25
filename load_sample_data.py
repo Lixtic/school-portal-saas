@@ -232,6 +232,7 @@ for student, subject, class_score, exam_score in sample_grades:
         subject=subject,
         academic_year=ay,
         term='first',
+        exam_type=None,
         defaults={
             'class_score': class_score,
             'exams_score': exam_score,

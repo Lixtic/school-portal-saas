@@ -1,5 +1,6 @@
 ﻿from django.conf import settings
-from django.db import connection, close_old_connections
+from django.db import connection, close_old_connections, transaction
+from django.db.utils import ProgrammingError
 from django.http import Http404, HttpResponseRedirect, JsonResponse
 from django.urls import set_urlconf, set_script_prefix
 from django.contrib.auth import logout
@@ -217,7 +218,20 @@ class TenantPathMiddleware(TenantMainMiddleware):
             try:
                 from .models import SchoolSubscription
                 from django.utils import timezone
-                sub = SchoolSubscription.objects.select_related('plan').get(school=request.tenant)
+                # Use a savepoint so ProgrammingError (missing columns on legacy
+                # schemas) rolls back only the inner block, not the whole request.
+                try:
+                    with transaction.atomic():
+                        sub = SchoolSubscription.objects.defer(
+                            'paystack_subscription_code',
+                            'paystack_customer_code',
+                        ).select_related('plan').get(school=request.tenant)
+                except ProgrammingError:
+                    sub = SchoolSubscription.objects.defer(
+                        'paystack_subscription_code',
+                        'paystack_customer_code',
+                        'mrr',
+                    ).select_related('plan').get(school=request.tenant)
                 request._tenant_subscription = sub
                 if sub.status == 'trial' and sub.trial_ends_at and timezone.now() > sub.trial_ends_at:
                     sub_url = f"/{request.tenant.schema_name}/tenants/subscription/"

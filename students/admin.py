@@ -73,15 +73,15 @@ class AttendanceAdmin(admin.ModelAdmin):
 
 @admin.register(Grade)
 class GradeAdmin(admin.ModelAdmin):
-    list_display = ['student', 'subject', 'term', 'class_score', 'exams_score', 
+    list_display = ['student', 'subject', 'exam_type', 'term', 'class_score', 'exams_score', 
                     'total_score', 'grade', 'subject_position', 'remarks']
-    list_filter = ['academic_year', 'term', 'subject', 'grade']
+    list_filter = ['academic_year', 'term', 'subject', 'exam_type', 'grade']
     search_fields = ['student__user__first_name', 'student__user__last_name']
     readonly_fields = ['total_score', 'grade', 'remarks', 'subject_position']
     
     fieldsets = (
         ('Student Information', {
-            'fields': ('student', 'subject', 'academic_year', 'term')
+            'fields': ('student', 'subject', 'exam_type', 'academic_year', 'term')
         }),
         ('Scores', {
             'fields': ('class_score', 'exams_score')

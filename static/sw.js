@@ -1,4 +1,4 @@
-﻿const SW_VERSION = 'v5';
+﻿const SW_VERSION = 'v6';
 const STATIC_CACHE = `school-static-${SW_VERSION}`;
 const RUNTIME_CACHE = `school-runtime-${SW_VERSION}`;
 const OFFLINE_URL = '/offline/';
@@ -45,7 +45,7 @@ async function staleWhileRevalidate(request) {
   const cached = await cache.match(request);
   const networkPromise = fetch(request)
     .then((response) => {
-      if (response && response.ok) {
+      if (response && response.ok && !response.redirected) {
         cache.put(request, response.clone());
       }
       return response;
@@ -59,7 +59,9 @@ async function networkFirst(request) {
   const cache = await caches.open(RUNTIME_CACHE);
   try {
     const response = await fetch(request);
-    if (response && response.ok) {
+    // Never cache redirected responses — a 302→login followed by fetch
+    // produces a 200 login page that would be stored under the original URL.
+    if (response && response.ok && !response.redirected) {
       cache.put(request, response.clone());
     }
     return response;

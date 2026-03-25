@@ -864,6 +864,7 @@ def homework_push_grades(request, pk):
                 subject=homework.subject,
                 academic_year=academic_year,
                 term=term,
+                exam_type=None,
                 defaults={
                     'class_score': class_score_value,
                     'created_by': request.user,

@@ -108,9 +108,24 @@
                     </div>
                 </div>
 
-                <div class="col-6 col-md-4">
+                <div class="col-12 col-md-2">
+                    <label class="form-label fw-bold text-secondary text-uppercase small ls-1">Exam Type</label>
+                    <select name="exam_type_id" id="examTypeSelect" class="select-flat w-100" required>
+                        <option value="" disabled {% if not selected_exam_type_id %}selected{% endif %}>Select...</option>
+                        {% for exam_type in exam_types %}
+                        <option value="{{ exam_type.id }}" {% if exam_type.id|stringformat:'s' == selected_exam_type_id %}selected{% endif %}>
+                            {{ exam_type.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% if not exam_types %}
+                    <div class="small text-danger mt-1">No active exam types. Ask admin to configure one.</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 col-md-2">
                     <label class="form-label d-none d-md-block">&nbsp;</label>
-                    <button type="button" id="loadStudents" class="btn btn-primary w-100 py-2">
+                    <button type="button" id="loadStudents" class="btn btn-primary w-100 py-2" {% if not exam_types %}disabled{% endif %}>
                         <i class="bi bi-people-fill me-2"></i>Load Students
                     </button>
                 </div>
@@ -211,10 +226,16 @@ document.getElementById('loadStudents').addEventListener('click', function() {
     const csId = select.value;
     const classId = selectedOption?.dataset.classId;
     const subjectId = selectedOption?.dataset.subject;
+    const examTypeId = document.getElementById('examTypeSelect').value;
     const term = document.querySelector('select[name="term"]').value;
     
     if (!csId || !classId || !subjectId) {
         showToast('Please select a class and subject first', 'warning');
+        return;
+    }
+
+    if (!examTypeId) {
+        showToast('Please select an exam type first', 'warning');
         return;
     }
 
@@ -224,7 +245,7 @@ document.getElementById('loadStudents').addEventListener('click', function() {
     // Construct URL using Django reversematch to handle tenant prefix
     const urlPattern = "{% url 'teachers:get_students' 0 %}".replace('/0/', '/' + classId + '/');
     
-    fetch(`${urlPattern}?subject_id=${subjectId}&term=${term}`)
+    fetch(`${urlPattern}?subject_id=${subjectId}&term=${term}&exam_type_id=${examTypeId}`)
         .then(response => {
             if (!response.ok) throw new Error('Network response was not ok');
             return response.json();

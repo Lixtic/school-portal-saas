@@ -312,6 +312,12 @@
                 <td>
                   <select name="target_{{ cls.id }}" class="form-select form-select-sm" style="max-width:200px;">
                     <option value="">— keep in same class —</option>
+                    {% with class_name_upper=cls.name|upper %}
+                      {% if 'BASIC 9' in class_name_upper or 'BASIC9' in class_name_upper or 'JHS 3' in class_name_upper or 'JHS3' in class_name_upper or 'FORM 3' in class_name_upper or 'GRADE 9' in class_name_upper %}
+                        <option value="completed">Completed</option>
+                        <option value="graduated">Graduated</option>
+                      {% endif %}
+                    {% endwith %}
                     {% for target in all_classes %}
                       {% if target.id != cls.id %}
                         <option value="{{ target.id }}">{{ target.name }}</option>
