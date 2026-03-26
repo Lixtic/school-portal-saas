@@ -172,6 +172,27 @@ class TenantPathMiddleware(TenantMainMiddleware):
         if not hasattr(request, 'tenant'):
             return None
 
+        # ── Force-resolve request.user inside a transaction ──────────
+        # AuthenticationMiddleware sets request.user as a SimpleLazyObject.
+        # The actual DB query (User.objects.get) fires on first access.
+        # On Neon (pgBouncer transaction mode), each autocommit statement
+        # may land on a different physical PostgreSQL connection.
+        # django-tenants issues SET search_path as a separate statement
+        # from the SELECT, so in autocommit mode the SELECT can hit a
+        # connection that still has search_path=public → user not found
+        # → AnonymousUser → redirect to login on every request.
+        #
+        # Wrapping the first access in transaction.atomic() ensures
+        # SET search_path + SELECT run in ONE transaction → pgBouncer
+        # keeps them on the same physical server connection.
+        if getattr(request, 'user', None) and request.tenant.schema_name != 'public':
+            try:
+                with transaction.atomic():
+                    # Force the lazy object to resolve NOW, inside the txn.
+                    _is_auth = request.user.is_authenticated  # noqa: F841
+            except Exception:
+                pass
+
         # Session isolation guard: auth sessions must stay bound to a single tenant schema.
         # Without this, a valid session from one tenant can be interpreted in another tenant
         # (ID collision risk across tenant-local auth tables).

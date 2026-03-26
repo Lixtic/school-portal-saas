@@ -225,6 +225,14 @@ if DATABASE_URL:
     # Django wraps every view in a single BEGIN/COMMIT transaction.  pgBouncer holds
     # ONE server connection for the entire transaction, so all queries in the view
     # see the correct search_path set at transaction start.
+    #
+    # NOTE: ATOMIC_REQUESTS only covers the view — middleware (including
+    # AuthenticationMiddleware's User lookup) runs in autocommit mode.
+    # TenantPathMiddleware.process_view wraps the first request.user access
+    # in transaction.atomic() to keep SET search_path + SELECT on one
+    # pgBouncer server connection.  Any NEW middleware or code that runs
+    # tenant-scoped DB queries outside a view MUST also use
+    # transaction.atomic() for the same reason.
     db_cfg['ATOMIC_REQUESTS'] = True
 
     # On serverless (Vercel) keep connections short to avoid "connection already closed" reuse
