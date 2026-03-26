@@ -1,7 +1,7 @@
 import re
 from django import forms
 from django.core.exceptions import ValidationError
-from .models import School, Domain
+from .models import School, Domain, PlatformSettings
 from academics.models import SchoolInfo
 
 class SchoolSignupForm(forms.Form):
@@ -192,4 +192,67 @@ class SchoolSetupForm(forms.ModelForm):
             'motto': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Excellence and Integrity'}),
             'logo': forms.FileInput(attrs={'class': 'form-control'}),
         }
+
+
+AI_MODEL_CHOICES = [
+    (
+        'OpenAI - Fast / Cost Optimized',
+        [
+            ('openai:gpt-4o-mini', 'gpt-4o-mini'),
+            ('openai:gpt-5-nano', 'gpt-5-nano'),
+        ],
+    ),
+    (
+        'OpenAI - Balanced / Reasoning',
+        [
+            ('openai:gpt-5-mini', 'gpt-5-mini'),
+            ('openai:gpt-4o', 'gpt-4o'),
+        ],
+    ),
+    (
+        'Gemini - Fast / Cost Optimized',
+        [
+            ('gemini:gemini-2.5-flash', 'gemini-2.5-flash'),
+        ],
+    ),
+    (
+        'Gemini - High Quality',
+        [
+            ('gemini:gemini-2.5-pro', 'gemini-2.5-pro'),
+        ],
+    ),
+]
+
+
+class PlatformAIModelSettingsForm(forms.ModelForm):
+    ai_primary_provider = forms.ChoiceField(
+        choices=PlatformSettings.AI_PROVIDER_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    ai_model_general = forms.ChoiceField(
+        choices=AI_MODEL_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    ai_model_admissions = forms.ChoiceField(
+        choices=AI_MODEL_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    ai_model_tutor = forms.ChoiceField(
+        choices=AI_MODEL_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    ai_model_analytics = forms.ChoiceField(
+        choices=AI_MODEL_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
+    class Meta:
+        model = PlatformSettings
+        fields = [
+            'ai_primary_provider',
+            'ai_model_general',
+            'ai_model_admissions',
+            'ai_model_tutor',
+            'ai_model_analytics',
+        ]
 

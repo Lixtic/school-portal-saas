@@ -107,6 +107,37 @@ class PlatformSettings(models.Model):
         default='home/swiss.html',
         help_text="Which landing page template to show at /",
     )
+    AI_PROVIDER_CHOICES = [
+        ('openai', 'OpenAI'),
+        ('gemini', 'Google Gemini'),
+    ]
+
+    ai_primary_provider = models.CharField(
+        max_length=20,
+        choices=AI_PROVIDER_CHOICES,
+        default='openai',
+        help_text="Default provider used across AI features unless a category model overrides provider.",
+    )
+    ai_model_general = models.CharField(
+        max_length=80,
+        default='openai:gpt-5-mini',
+        help_text="General AI model for global assistant-style tasks.",
+    )
+    ai_model_admissions = models.CharField(
+        max_length=80,
+        default='openai:gpt-4o-mini',
+        help_text="Admissions and public FAQ assistant model.",
+    )
+    ai_model_tutor = models.CharField(
+        max_length=80,
+        default='openai:gpt-5-nano',
+        help_text="Tutor/copilot classroom workflows model.",
+    )
+    ai_model_analytics = models.CharField(
+        max_length=80,
+        default='openai:gpt-5-mini',
+        help_text="Reports, summaries, and analytics-oriented model.",
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -128,6 +159,36 @@ class PlatformSettings(models.Model):
 
     def __str__(self):
         return f"Platform Settings (template: {self.landing_template})"
+
+    @staticmethod
+    def parse_model_ref(model_ref, fallback_provider='openai'):
+        raw = str(model_ref or '').strip()
+        provider = str(fallback_provider or 'openai').strip().lower()
+        model = raw
+
+        if ':' in raw:
+            pfx, rest = raw.split(':', 1)
+            pfx = pfx.strip().lower()
+            if pfx in {'openai', 'gemini'} and rest.strip():
+                provider = pfx
+                model = rest.strip()
+        elif raw.startswith('gemini'):
+            provider = 'gemini'
+        elif raw.startswith('gpt-') or raw.startswith('o'):
+            provider = 'openai'
+
+        return provider, model
+
+    def get_ai_category_config(self, category='general'):
+        field_name = f'ai_model_{category}'
+        model_ref = getattr(self, field_name, '') if hasattr(self, field_name) else ''
+        provider, model = self.parse_model_ref(model_ref, fallback_provider=self.ai_primary_provider)
+        return {
+            'category': category,
+            'provider': provider,
+            'model': model,
+            'model_ref': f'{provider}:{model}' if model else '',
+        }
 
 
 # Import subscription models

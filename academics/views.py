@@ -844,14 +844,29 @@ def admissions_assistant(request):
                 break
         return answer_text
 
-    # Try OpenAI API first with streaming response
+    # Try configured AI model first with streaming response
     from django.conf import settings
     logger.debug("Chatbot OpenAI API key configured: %s", bool(settings.OPENAI_API_KEY))
-    
-    if settings.OPENAI_API_KEY:
+
+    try:
+        from academics.ai_tutor import (
+            _stream_chat_completion_text,
+            _stream_gemini_chat,
+            get_active_ai_model,
+            get_active_ai_provider,
+        )
+
+        active_model = get_active_ai_model('admissions')
+        active_provider = get_active_ai_provider('admissions')
+
+        can_call_openai = bool(settings.OPENAI_API_KEY)
+        can_call_gemini = bool(getattr(settings, 'GEMINI_API_KEY', None) or os.environ.get('GEMINI_API_KEY'))
+
+        if (active_provider == 'openai' and not can_call_openai) or (active_provider == 'gemini' and not can_call_gemini):
+            raise RuntimeError(f"Configured provider '{active_provider}' is missing API key")
+
         try:
-            logger.debug("Chatbot calling OpenAI API via REST")
-            from academics.ai_tutor import _stream_chat_completion_text, get_openai_chat_model
+            logger.debug("Chatbot calling AI provider '%s' via REST", active_provider)
             
             # Build context from school info
             school_context = f"""
@@ -875,7 +890,7 @@ Please provide helpful, concise answers about admissions, fees, term dates, and 
 """
 
             payload = {
-                "model": get_openai_chat_model(),
+                "model": active_model,
                 "messages": [
                     {"role": "system", "content": school_context},
                     {"role": "user", "content": question}
@@ -887,15 +902,31 @@ Please provide helpful, concise answers about admissions, fees, term dates, and 
 
             def stream_chat():
                 try:
-                    for chunk in _stream_chat_completion_text(payload, settings.OPENAI_API_KEY):
-                        yield chunk
+                    if active_provider == 'gemini':
+                        for sse in _stream_gemini_chat(payload, model_override=active_model):
+                            if not sse.startswith("data: "):
+                                continue
+                            data_str = sse[6:].strip()
+                            if data_str == "[DONE]":
+                                break
+                            try:
+                                piece = json.loads(data_str).get("content", "")
+                                if piece:
+                                    yield piece
+                            except Exception:
+                                continue
+                    else:
+                        for chunk in _stream_chat_completion_text(payload, settings.OPENAI_API_KEY):
+                            yield chunk
                 except Exception as e:
                     logger.error("Chatbot streaming error: %s", e, exc_info=True)
                 
             return StreamingHttpResponse(stream_chat(), content_type='text/plain; charset=utf-8')
         except Exception as e:
-            # Fall back to FAQ if OpenAI fails
-            logger.error("Chatbot OpenAI API error: %s", e, exc_info=True)
+            # Fall back to FAQ if provider call fails
+            logger.error("Chatbot AI API error: %s", e, exc_info=True)
+    except Exception as e:
+        logger.error("Chatbot AI routing setup error: %s", e, exc_info=True)
 
     # Fallback FAQ system (plain text)
     fallback_text = fallback_answer()

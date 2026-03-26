@@ -8,6 +8,7 @@ from urllib import request as urllib_request
 from urllib.error import HTTPError, URLError
 from django.conf import settings
 from django.utils import timezone
+from tenants.ai_model_config import get_platform_ai_provider, get_platform_model_config
 
 
 OPENAI_CHAT_COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions"
@@ -151,12 +152,15 @@ def extract_scheme_of_work_data(image_path_or_url: str) -> dict:
     return {'topics': [], 'indicators': {}}
 
 
-def _resolve_openai_model(payload):
+def _resolve_openai_model(payload, category='tutor'):
     requested_model = str((payload or {}).get("model") or "").strip()
     env_model = str(os.environ.get("OPENAI_CHAT_MODEL", "")).strip()
 
     if requested_model:
         return requested_model
+    configured = get_platform_model_config(category)
+    if configured.get('provider') == 'openai' and configured.get('model'):
+        return str(configured.get('model')).strip()
     if env_model:
         return env_model
     return OPENAI_CHAT_MODELS[0]
@@ -169,20 +173,28 @@ def _get_openai_api_key():
     return os.environ.get("OPENAI_API_KEY")
 
 
-def get_openai_chat_model():
-    return _resolve_openai_model({})
+def get_openai_chat_model(category='tutor'):
+    return _resolve_openai_model({}, category=category)
 
 
-def get_active_ai_model():
+def get_active_ai_model(category='tutor'):
     """Return the display name of whichever model is currently active."""
-    if _is_gemini_provider():
-        return _get_gemini_model()
-    return get_openai_chat_model()
+    configured = get_platform_model_config(category)
+    if configured.get('model'):
+        return configured.get('model')
+    if _is_gemini_provider(category=category):
+        return _get_gemini_model(category=category)
+    return get_openai_chat_model(category=category)
 
 
-def get_active_ai_provider():
+def get_active_ai_provider(category='tutor'):
     """Return the provider string ('gemini' | 'openai') currently in use."""
-    if _is_gemini_provider():
+    configured = get_platform_model_config(category)
+    if configured.get('provider') == 'gemini':
+        return "gemini"
+    if configured.get('provider') == 'openai':
+        return "openai"
+    if _is_gemini_provider(category=category):
         return "gemini"
     return "openai"
 
@@ -416,7 +428,10 @@ def _get_gemini_api_key():
     return os.environ.get("GEMINI_API_KEY")
 
 
-def _get_gemini_model():
+def _get_gemini_model(category='tutor'):
+    configured = get_platform_model_config(category)
+    if configured.get('provider') == 'gemini' and configured.get('model'):
+        return str(configured.get('model')).strip().replace("gemini:", "", 1)
     configured = getattr(settings, "GEMINI_MODEL", None)
     if configured:
         return str(configured).strip().replace("gemini:", "", 1)
@@ -433,12 +448,13 @@ def _normalize_gemini_model_name(model_name):
     return model
 
 
-def _is_gemini_provider():
+def _is_gemini_provider(category='tutor'):
     """Return True when Gemini is configured as the primary AI provider."""
-    provider = (
-        getattr(settings, "AI_PROVIDER", None)
-        or os.environ.get("AI_PROVIDER", "openai")
-    ).lower()
+    configured = get_platform_model_config(category)
+    if configured.get('provider') in {'openai', 'gemini'}:
+        provider = configured.get('provider')
+    else:
+        provider = get_platform_ai_provider()
     return provider == "gemini"
 
 

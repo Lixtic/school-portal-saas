@@ -8,6 +8,7 @@ urlpatterns = [
     path('', views.landlord_landing, name='landlord_landing'),
     path('landlord/', views.landlord_redirect, name='landlord_dashboard'),
     path('landlord/landing-template/', views.landing_template_picker, name='landing_template_picker'),
+    path('landlord/ai-models/', views.ai_model_settings, name='ai_model_settings'),
     
     # Super Admin: Direct school creation
     path('superadmin/create-school/', views.superadmin_create_school, name='superadmin_create_school'),

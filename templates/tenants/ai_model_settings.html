@@ -1,0 +1,128 @@
+{% extends "admin/admin_base.html" %}
+{% load static %}
+
+{% block title %}AI Model Settings{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/mc-landlord.css' %}?v=20260326">
+<style>
+  .ai-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .ai-hint {
+    border: 1px dashed var(--mc-border);
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    background: var(--mc-raised);
+    font-size: 0.8rem;
+    color: var(--mc-text-lo);
+    line-height: 1.45;
+  }
+
+  @media (max-width: 900px) {
+    .ai-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="mc-page">
+  <div class="mc-header">
+    <div>
+      <h1 class="mc-title"><i class="bi bi-cpu"></i>AI Model Settings</h1>
+      <p class="mc-subtitle">Configure global provider and categorized models for the entire platform.</p>
+    </div>
+    <a href="{% url 'tenants:landlord_dashboard' %}" class="mc-btn mc-btn-ghost">
+      <i class="bi bi-arrow-left"></i>Dashboard
+    </a>
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="mc-alert-item {% if message.tags == 'error' %}is-danger{% elif message.tags == 'warning' %}is-warning{% else %}is-success{% endif %}">
+        <div class="mc-alert-icon"><i class="bi bi-info-circle"></i></div>
+        <div>{{ message }}</div>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="mc-card">
+      <div class="mc-card-header">
+        <div class="mc-card-icon"><i class="bi bi-sliders2-vertical"></i></div>
+        <h5 class="mc-card-title">Global Provider</h5>
+      </div>
+      <div class="mc-card-body">
+        <label class="mc-label" for="{{ form.ai_primary_provider.id_for_label }}">Primary AI Provider</label>
+        {{ form.ai_primary_provider }}
+        <div class="ai-hint" style="margin-top:.65rem;">
+          This provider is the default routing layer. Each category below can still point to any provider by selected model.
+        </div>
+      </div>
+    </div>
+
+    <div class="ai-grid mc-stagger">
+      <div class="mc-card">
+        <div class="mc-card-header">
+          <div class="mc-card-icon"><i class="bi bi-chat-dots"></i></div>
+          <h5 class="mc-card-title">General Assistant</h5>
+        </div>
+        <div class="mc-card-body">
+          <label class="mc-label" for="{{ form.ai_model_general.id_for_label }}">Model</label>
+          {{ form.ai_model_general }}
+          <div class="ai-hint" style="margin-top:.65rem;">Used for platform-wide general text tasks and default assistant behavior.</div>
+        </div>
+      </div>
+
+      <div class="mc-card">
+        <div class="mc-card-header">
+          <div class="mc-card-icon"><i class="bi bi-megaphone"></i></div>
+          <h5 class="mc-card-title">Admissions Assistant</h5>
+        </div>
+        <div class="mc-card-body">
+          <label class="mc-label" for="{{ form.ai_model_admissions.id_for_label }}">Model</label>
+          {{ form.ai_model_admissions }}
+          <div class="ai-hint" style="margin-top:.65rem;">Used for admissions chatbot, enrollment FAQs, and prospect responses.</div>
+        </div>
+      </div>
+
+      <div class="mc-card">
+        <div class="mc-card-header">
+          <div class="mc-card-icon"><i class="bi bi-mortarboard"></i></div>
+          <h5 class="mc-card-title">Tutor & Classroom Copilot</h5>
+        </div>
+        <div class="mc-card-body">
+          <label class="mc-label" for="{{ form.ai_model_tutor.id_for_label }}">Model</label>
+          {{ form.ai_model_tutor }}
+          <div class="ai-hint" style="margin-top:.65rem;">Used for tutor, classroom copilot, and teaching workflows.</div>
+        </div>
+      </div>
+
+      <div class="mc-card">
+        <div class="mc-card-header">
+          <div class="mc-card-icon"><i class="bi bi-bar-chart"></i></div>
+          <h5 class="mc-card-title">Analytics & Reports</h5>
+        </div>
+        <div class="mc-card-body">
+          <label class="mc-label" for="{{ form.ai_model_analytics.id_for_label }}">Model</label>
+          {{ form.ai_model_analytics }}
+          <div class="ai-hint" style="margin-top:.65rem;">Used for summaries, analysis, and report-generation tasks.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:1rem;display:flex;justify-content:flex-end;">
+      <button type="submit" class="mc-btn mc-btn-vi">
+        <i class="bi bi-check2-circle"></i>Save AI Settings
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

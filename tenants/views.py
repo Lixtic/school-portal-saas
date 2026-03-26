@@ -3,7 +3,13 @@ from django.db import transaction, connection, models
 from django.db.models import Sum, Avg, Count
 from django.db.utils import ProgrammingError
 from django.contrib.auth.decorators import user_passes_test
-from .forms import SchoolSignupForm, SchoolSetupForm, SchoolApprovalForm, SuperAdminSchoolCreateForm
+from .forms import (
+    SchoolSignupForm,
+    SchoolSetupForm,
+    SchoolApprovalForm,
+    SuperAdminSchoolCreateForm,
+    PlatformAIModelSettingsForm,
+)
 from .models import School, Domain, PlatformSettings
 from django.contrib.auth import get_user_model, login
 from django.contrib import messages
@@ -479,6 +485,27 @@ def landing_template_picker(request):
     return render(request, 'tenants/landing_template_picker.html', {
         'platform': platform,
         'choices': PlatformSettings.TEMPLATE_CHOICES,
+    })
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser, login_url='/login/')
+def ai_model_settings(request):
+    """Super admin: choose global AI provider and categorized models."""
+    platform = PlatformSettings.get()
+
+    if request.method == 'POST':
+        form = PlatformAIModelSettingsForm(request.POST, instance=platform)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'AI model settings updated successfully.')
+            return redirect('tenants:ai_model_settings')
+        messages.error(request, 'Please fix the highlighted errors and try again.')
+    else:
+        form = PlatformAIModelSettingsForm(instance=platform)
+
+    return render(request, 'tenants/ai_model_settings.html', {
+        'form': form,
     })
 
 

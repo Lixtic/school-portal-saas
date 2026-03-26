@@ -51,6 +51,13 @@
                 <i class="bi bi-shield-check"></i>
                 <span>Backups</span>
             </a>
+            {% if request.user.is_superuser %}
+            <a href="{% url 'tenants:ai_model_settings' %}"
+               class="sidebar-nav-link {% if request.resolver_match.url_name == 'ai_model_settings' %}active{% endif %}">
+                <i class="bi bi-cpu"></i>
+                <span>AI Models</span>
+            </a>
+            {% endif %}
             <a href="/admin/tenants/school/" class="sidebar-nav-link" target="_blank">
                 <i class="bi bi-list-check"></i>
                 <span>Tenants</span>
