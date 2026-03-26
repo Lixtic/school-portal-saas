@@ -5086,11 +5086,20 @@ body.ptr-active {
     const indicator = document.getElementById('pullToRefreshIndicator');
     const threshold = 80; // Distance to trigger refresh
     const maxPull = 120; // Maximum pull distance
+    const gestureStartThreshold = 12;
     
     let startY = 0;
+    let startX = 0;
     let currentY = 0;
+    let currentX = 0;
     let pulling = false;
     let refreshing = false;
+    let ptrEligible = false;
+
+    function isInteractiveTarget(element) {
+        if (!element || !element.closest) return false;
+        return !!element.closest('a, button, input, select, textarea, label, [role="button"], [contenteditable="true"], [data-no-ptr]');
+    }
 
     function getScrollableParent(element) {
         if (!element || element === document.body) {
@@ -5107,14 +5116,14 @@ body.ptr-active {
         return getScrollableParent(element.parentElement);
     }
 
-    function canPull() {
+    function canPull(originElement) {
         // Don't pull if already refreshing
         if (refreshing) {
             return false;
         }
 
         // Check if page is scrolled to top
-        const scrollableElement = getScrollableParent(document.activeElement);
+        const scrollableElement = getScrollableParent(originElement || document.activeElement || document.body);
         
         if (scrollableElement === window) {
             return window.scrollY === 0;
@@ -5124,21 +5133,50 @@ body.ptr-active {
     }
 
     function handleTouchStart(e) {
-        if (!canPull()) {
+        if (!e.touches || e.touches.length !== 1) {
+            ptrEligible = false;
             return;
         }
-        
+
+        const target = e.target;
+        if (isInteractiveTarget(target) || !canPull(target)) {
+            ptrEligible = false;
+            return;
+        }
+
+        ptrEligible = true;
+        startX = e.touches[0].clientX;
         startY = e.touches[0].clientY;
+        currentX = startX;
         currentY = startY;
+        pulling = false;
     }
 
     function handleTouchMove(e) {
-        if (!canPull() || refreshing) {
+        if (!ptrEligible || refreshing || !e.touches || e.touches.length !== 1) {
             return;
         }
 
+        currentX = e.touches[0].clientX;
         currentY = e.touches[0].clientY;
-        const pullDistance = Math.min(currentY - startY, maxPull);
+        const deltaX = currentX - startX;
+        const deltaY = currentY - startY;
+
+        // Ignore horizontal swipes and tiny motions so taps don't become pull gestures.
+        if (!pulling) {
+            if (Math.abs(deltaY) < gestureStartThreshold) {
+                return;
+            }
+            if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                ptrEligible = false;
+                return;
+            }
+            if (deltaY <= 0) {
+                return;
+            }
+        }
+
+        const pullDistance = Math.min(deltaY, maxPull);
 
         if (pullDistance > 0) {
             pulling = true;
@@ -5165,6 +5203,7 @@ body.ptr-active {
     }
 
     function handleTouchEnd() {
+        ptrEligible = false;
         if (!pulling || refreshing) {
             pulling = false;
             document.body.classList.remove('ptr-active');
@@ -5191,7 +5230,9 @@ body.ptr-active {
 
         pulling = false;
         document.body.classList.remove('ptr-active');
+        startX = 0;
         startY = 0;
+        currentX = 0;
         currentY = 0;
     }
 
