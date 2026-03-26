@@ -1,29 +1,19 @@
-﻿{% load static %}
+﻿{% extends "admin/admin_base.html" %}
+{% load static %}
 {% load humanize %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Platform Command Center — Aura</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-    body {
-      background: #0F0F17;
-      color: #F1F0EE;
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      min-height: 100vh;
-    }
+
+{% block title %}Platform Command Center — Aura{% endblock %}
+
+{% block admin_content %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
     a { text-decoration: none; color: inherit; }
 
     /* ============================================================
        MISSION CONTROL  SUPER ADMIN COMMAND CENTER
-       Design: Dark Ops / Operational Excellence
+       Design: Dark Ops / Operational Excellence — with light mode
        ============================================================ */
     .mc {
       --bg:           #0F0F17;
@@ -51,14 +41,47 @@
       --text-1:       #F1F0EE;
       --text-2:       rgba(241,240,238,0.60);
       --text-3:       rgba(241,240,238,0.35);
+      --hover-bg:     rgba(255,255,255,0.023);
+      --hover-shadow: rgba(0,0,0,0.35);
       --mono: 'JetBrains Mono', 'Consolas', monospace;
       --sans: 'Inter', system-ui, sans-serif;
       background: var(--bg);
       color: var(--text-1);
-      padding: 2rem 2.25rem 5rem;
-      min-height: 100vh;
+      padding: 1.5rem 2rem 4rem;
+      min-height: 100%;
       max-width: 1680px;
       margin: 0 auto;
+    }
+
+    /* ── Light mode overrides ──────────────────────────────────── */
+    [data-bs-theme="light"] .mc {
+      --bg:           #f3f4f6;
+      --surface:      #ffffff;
+      --surface-2:    #f8f9fa;
+      --surface-3:    #e9ecef;
+      --border:       rgba(0,0,0,0.08);
+      --border-2:     rgba(0,0,0,0.15);
+      --violet:       #7C3AED;
+      --violet-light: #6D28D9;
+      --violet-pale:  rgba(124,58,237,0.08);
+      --violet-mid:   rgba(124,58,237,0.18);
+      --emerald:      #059669;
+      --emerald-pale: rgba(5,150,105,0.08);
+      --emerald-mid:  rgba(5,150,105,0.18);
+      --amber:        #d97706;
+      --amber-pale:   rgba(217,119,6,0.08);
+      --amber-mid:    rgba(217,119,6,0.18);
+      --rose:         #e11d48;
+      --rose-pale:    rgba(225,29,72,0.08);
+      --rose-mid:     rgba(225,29,72,0.18);
+      --sky:          #0284c7;
+      --sky-pale:     rgba(2,132,199,0.08);
+      --sky-mid:      rgba(2,132,199,0.18);
+      --text-1:       #111827;
+      --text-2:       #4b5563;
+      --text-3:       #9ca3af;
+      --hover-bg:     rgba(0,0,0,0.025);
+      --hover-shadow: rgba(0,0,0,0.1);
     }
 
     /* Animations */
@@ -166,7 +189,7 @@
     .mc-kpi.--amber::after   { background: var(--amber); }
     .mc-kpi.--rose::after    { background: var(--rose); }
     .mc-kpi.--sky::after     { background: var(--sky); }
-    .mc-kpi:hover { border-color: var(--border-2); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    .mc-kpi:hover { border-color: var(--border-2); box-shadow: 0 4px 20px var(--hover-shadow); }
     .mc-kpi-icon {
       width: 28px; height: 28px; border-radius: 7px;
       display: flex; align-items: center; justify-content: center;
@@ -220,7 +243,7 @@
       border-bottom: 1px solid var(--border); vertical-align: middle;
     }
     .mc-table tr:last-child td { border-bottom: none; }
-    .mc-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .mc-table tr:hover td { background: var(--hover-bg); }
     .mc-school-name { font-size: 0.8125rem; font-weight: 500; color: var(--text-1); display: block; line-height: 1.3; }
     .mc-school-slug { font-family: var(--mono); font-size: 0.5625rem; color: var(--text-3); letter-spacing: 0.04em; }
     .mc-badge {
@@ -230,7 +253,7 @@
     }
     .mc-badge.--active       { background: var(--emerald-pale); color: var(--emerald); border: 1px solid var(--emerald-mid); }
     .mc-badge.--trial        { background: var(--amber-pale);   color: var(--amber);   border: 1px solid var(--amber-mid); }
-    .mc-badge.--inactive     { background: rgba(255,255,255,0.04); color: var(--text-3); border: 1px solid var(--border); }
+    .mc-badge.--inactive     { background: var(--hover-bg); color: var(--text-3); border: 1px solid var(--border); }
     .mc-badge.--pending      { background: var(--amber-pale);   color: var(--amber);   border: 1px solid var(--amber-mid); }
     .mc-badge.--approved     { background: var(--emerald-pale); color: var(--emerald); border: 1px solid var(--emerald-mid); }
     .mc-badge.--rejected     { background: var(--rose-pale);    color: var(--rose);    border: 1px solid var(--rose-mid); }
@@ -243,7 +266,7 @@
       border-bottom: 1px solid var(--border); transition: background 0.15s; color: inherit;
     }
     .mc-pipeline-item:last-child { border-bottom: none; }
-    .mc-pipeline-item:hover { background: rgba(255,255,255,0.023); }
+    .mc-pipeline-item:hover { background: var(--hover-bg); }
     .mc-pipeline-orb {
       width: 32px; height: 32px; border-radius: 8px;
       display: flex; align-items: center; justify-content: center; font-size: 0.8rem; flex-shrink: 0;
@@ -266,7 +289,7 @@
       border-bottom: 1px solid var(--border); transition: background 0.15s; color: inherit;
     }
     .mc-action:last-child { border-bottom: none; }
-    .mc-action:hover { background: rgba(255,255,255,0.023); }
+    .mc-action:hover { background: var(--hover-bg); }
     .mc-action-icon { width: 30px; height: 30px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; flex-shrink: 0; }
     .mc-action-text { flex: 1; }
     .mc-action-name { font-size: 0.8125rem; font-weight: 500; }
@@ -350,7 +373,7 @@
       background: linear-gradient(135deg, rgba(124,58,237,0.07), transparent 55%);
       opacity: 0; transition: opacity 0.22s;
     }
-    .mc-nav-card:hover { border-color: var(--violet-mid); box-shadow: 0 6px 24px rgba(0,0,0,0.35); transform: translateY(-2px); }
+    .mc-nav-card:hover { border-color: var(--violet-mid); box-shadow: 0 6px 24px var(--hover-shadow); transform: translateY(-2px); }
     .mc-nav-card:hover::before { opacity: 1; }
     .mc-nav-icon { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; margin-bottom: 0.375rem; }
     .mc-nav-name { font-size: 0.8125rem; font-weight: 600; line-height: 1.2; }
@@ -401,8 +424,6 @@
       .mc-header-right { justify-content: flex-end; }
     }
   </style>
-</head>
-<body>
 <div class="mc">
 
   <!-- HEADER -->
@@ -425,13 +446,6 @@
       {% if request.user.is_superuser %}
         <a href="{% url 'tenants:superadmin_create_school' %}" class="mc-btn --primary"><i class="bi bi-lightning-charge-fill"></i><span class="mc-btn-label"> Quick Create</span></a>
       {% endif %}
-      <div class="mc-user" title="{{ request.user.email }}">
-        <div class="mc-user-avatar">{{ request.user.get_full_name|default:request.user.username|make_list|first|upper }}{{ request.user.last_name|make_list|first|upper }}</div>
-        <span class="mc-user-name">{{ request.user.get_full_name|default:request.user.username }}</span>
-      </div>
-      <a href="{% url 'logout' %}" class="mc-btn --logout" title="Sign out">
-        <i class="bi bi-box-arrow-right"></i><span class="mc-btn-label"> Sign out</span>
-      </a>
     </div>
   </header>
 
@@ -606,7 +620,7 @@
         <i class="bi bi-chevron-right mc-action-chev"></i>
       </a>
       <a href="/admin/" class="mc-action">
-        <div class="mc-action-icon" style="background:rgba(255,255,255,0.05);color:var(--text-2);border:1px solid var(--border);"><i class="bi bi-wrench-adjustable"></i></div>
+        <div class="mc-action-icon" style="background:var(--surface-2);color:var(--text-2);border:1px solid var(--border);"><i class="bi bi-wrench-adjustable"></i></div>
         <div class="mc-action-text"><div class="mc-action-name">Django Admin</div><div class="mc-action-desc">Database &amp; configs</div></div>
         <i class="bi bi-chevron-right mc-action-chev"></i>
       </a>
@@ -721,7 +735,7 @@
       <div class="mc-nav-desc">Database backup &amp; restore</div>
     </a>
     <a href="{% url 'tenants:addon_marketplace' %}" class="mc-nav-card mc-fade">
-      <div class="mc-nav-icon" style="background:rgba(255,255,255,0.05);color:var(--text-2);border:1px solid var(--border);"><i class="bi bi-puzzle-fill"></i></div>
+      <div class="mc-nav-icon" style="background:var(--surface-2);color:var(--text-2);border:1px solid var(--border);"><i class="bi bi-puzzle-fill"></i></div>
       <div class="mc-nav-name">Marketplace</div>
       <div class="mc-nav-desc">Addons &amp; extensions</div>
     </a>
@@ -781,5 +795,4 @@
   });
 }());
 </script>
-</body>
-</html>
+{% endblock %}
