@@ -4,303 +4,107 @@
 {% block title %}Create New School{% endblock %}
 
 {% block admin_content %}
-<style>
-    :root {
-        --create-primary: #4361ee;
-        --create-accent: #7c3aed;
-        --create-success: #10b981;
-        --create-surface: #ffffff;
-        --create-border: rgba(124,58,237,0.12);
-        --create-heading: #0f172a;
-        --create-text: #374151;
-        --create-muted: #9ca3af;
-        --create-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    }
-    
-    [data-bs-theme="dark"] {
-        --create-surface: #1e293b;
-        --create-border: rgba(124,58,237,0.2);
-        --create-heading: #f1f5f9;
-        --create-text: #cbd5e1;
-        --create-muted: #64748b;
-        --create-shadow: 0 1px 3px rgba(0,0,0,0.2);
-    }
+<link rel="stylesheet" href="{% static 'css/mc-landlord.css' %}">
 
-    .create-container {
-        max-width: 680px;
-        margin: 0 auto;
-        padding: 1.5rem 0;
-    }
-
-    .create-header {
-        margin-bottom: 2rem;
-        text-align: center;
-    }
-
-    .create-header h1 {
-        font-size: 1.75rem;
-        font-weight: 700;
-        color: var(--create-heading);
-        margin-bottom: 0.5rem;
-        letter-spacing: -0.02em;
-    }
-
-    .create-header p {
-        color: var(--create-muted);
-        font-size: 0.95rem;
-    }
-
-    .create-card {
-        background: var(--create-surface);
-        border: 1px solid var(--create-border);
-        border-radius: 12px;
-        padding: 2rem;
-        box-shadow: var(--create-shadow);
-        margin-bottom: 2rem;
-    }
-
-    .form-label {
-        font-weight: 600;
-        font-size: 0.875rem;
-        color: var(--create-heading);
-        margin-bottom: 0.5rem;
-    }
-
-    .form-control, .form-select {
-        border: 1px solid var(--create-border);
-        border-radius: 8px;
-        padding: 0.625rem 0.875rem;
-        font-size: 0.9375rem;
-        transition: all 0.15s;
-    }
-
-    .form-control:focus, .form-select:focus {
-        border-color: var(--create-primary);
-        box-shadow: 0 0 0 3px rgba(67,97,238,0.1);
-    }
-
-    .form-text {
-        font-size: 0.8125rem;
-        color: var(--create-muted);
-        margin-top: 0.375rem;
-    }
-
-    .btn-create-primary {
-        background: linear-gradient(135deg, #4361ee, #7c3aed);
-        color: white;
-        font-weight: 600;
-        padding: 0.75rem 2rem;
-        border-radius: 8px;
-        border: none;
-        font-size: 0.9375rem;
-        transition: all 0.2s;
-        box-shadow: 0 2px 8px rgba(67,97,238,0.25);
-    }
-
-    .btn-create-primary:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(67,97,238,0.35);
-    }
-
-    .form-check-input {
-        border: 1.5px solid var(--create-border);
-    }
-
-    .form-check-input:checked {
-        background-color: var(--create-primary);
-        border-color: var(--create-primary);
-    }
-
-    .recent-schools {
-        background: var(--create-surface);
-        border: 1px solid var(--create-border);
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: var(--create-shadow);
-    }
-
-    .recent-schools h3 {
-        font-size: 1.125rem;
-        font-weight: 700;
-        color: var(--create-heading);
-        margin-bottom: 1rem;
-    }
-
-    .school-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.75rem 0;
-        border-bottom: 1px solid var(--create-border);
-    }
-
-    .school-item:last-child {
-        border-bottom: none;
-    }
-
-    .school-name {
-        font-weight: 500;
-        color: var(--create-heading);
-        font-size: 0.9375rem;
-    }
-
-    .school-schema {
-        font-size: 0.8125rem;
-        color: var(--create-muted);
-        font-family: 'Courier New', monospace;
-    }
-
-    .badge-trial {
-        background: rgba(67,97,238,0.1);
-        color: var(--create-primary);
-        font-size: 0.75rem;
-        padding: 0.25rem 0.625rem;
-        border-radius: 99px;
-        font-weight: 600;
-    }
-
-    .alert {
-        border-radius: 8px;
-        border: none;
-        padding: 1rem 1.25rem;
-    }
-
-    .alert-success {
-        background: rgba(16,185,129,0.1);
-        color: var(--create-success);
-    }
-
-    .alert-danger {
-        background: rgba(239,68,68,0.1);
-        color: #ef4444;
-    }
-
-    @media (max-width: 768px) {
-        .create-container {
-            padding: 1rem;
-        }
-        
-        .create-card {
-            padding: 1.5rem;
-        }
-    }
-</style>
-
-<div class="create-container">
-    <div class="create-header">
-        <h1>Create New School</h1>
-        <p>Super Admin: Directly create and activate a new school tenant</p>
+<div class="mc-page">
+  <div class="mc-header">
+    <div>
+      <h1 class="mc-title"><i class="bi bi-lightning-charge"></i>Quick Create School</h1>
+      <p class="mc-subtitle">Provision a tenant instantly from Command Center</p>
     </div>
+    <a href="{% url 'tenants:landlord_dashboard' %}" class="mc-btn mc-btn-ghost"><i class="bi bi-arrow-left"></i>Dashboard</a>
+  </div>
 
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        {% endfor %}
-    {% endif %}
+  {% if messages %}
+    {% for message in messages %}
+      <div class="mc-alert-item"><div class="mc-alert-icon"><i class="bi bi-info-circle"></i></div><div>{{ message }}</div></div>
+    {% endfor %}
+  {% endif %}
 
-    <div class="create-card">
-        <form method="post" novalidate>
-            {% csrf_token %}
-            
-            <div class="mb-3">
-                <label class="form-label" for="{{ form.school_name.id_for_label }}">
-                    School Name *
-                </label>
-                {{ form.school_name }}
-                {% if form.school_name.errors %}
-                    <div class="text-danger small mt-1">{{ form.school_name.errors }}</div>
-                {% endif %}
-            </div>
+  <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(280px,1fr);gap:1rem;align-items:start;">
+    <div class="mc-card">
+      <div class="mc-card-header"><div class="mc-card-icon"><i class="bi bi-buildings"></i></div><h5 class="mc-card-title">School Provisioning Form</h5></div>
+      <div class="mc-card-body">
+        <form method="post" novalidate class="mc-form-shell">
+          {% csrf_token %}
 
-            <div class="mb-3">
-                <label class="form-label" for="{{ form.schema_name.id_for_label }}">
-                    Schema ID *
-                </label>
-                {{ form.schema_name }}
-                <div class="form-text">{{ form.schema_name.help_text }}</div>
-                {% if form.schema_name.errors %}
-                    <div class="text-danger small mt-1">{{ form.schema_name.errors }}</div>
-                {% endif %}
-            </div>
+          <div class="mb-3">
+            <label class="mc-label" for="{{ form.school_name.id_for_label }}">School Name</label>
+            {{ form.school_name }}
+            {% if form.school_name.errors %}<div class="text-danger small mt-1">{{ form.school_name.errors }}</div>{% endif %}
+          </div>
 
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label" for="{{ form.school_type.id_for_label }}">
-                        School Type *
-                    </label>
-                    {{ form.school_type }}
-                    {% if form.school_type.errors %}
-                        <div class="text-danger small mt-1">{{ form.school_type.errors }}</div>
-                    {% endif %}
-                </div>
+          <div class="mb-3">
+            <label class="mc-label" for="{{ form.schema_name.id_for_label }}">Schema ID</label>
+            {{ form.schema_name }}
+            <div style="font-size:.74rem;color:var(--mc-text-lo);margin-top:.35rem;">{{ form.schema_name.help_text }}</div>
+            {% if form.schema_name.errors %}<div class="text-danger small mt-1">{{ form.schema_name.errors }}</div>{% endif %}
+          </div>
 
-                <div class="col-md-6 mb-3">
-                    <label class="form-label" for="{{ form.admin_email.id_for_label }}">
-                        Admin Email *
-                    </label>
-                    {{ form.admin_email }}
-                    {% if form.admin_email.errors %}
-                        <div class="text-danger small mt-1">{{ form.admin_email.errors }}</div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label" for="{{ form.phone.id_for_label }}">
-                    Phone
-                </label>
-                {{ form.phone }}
-                {% if form.phone.errors %}
-                    <div class="text-danger small mt-1">{{ form.phone.errors }}</div>
-                {% endif %}
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label" for="{{ form.address.id_for_label }}">
-                    Address
-                </label>
-                {{ form.address }}
-                {% if form.address.errors %}
-                    <div class="text-danger small mt-1">{{ form.address.errors }}</div>
-                {% endif %}
-            </div>
-
-            <div class="mb-4">
-                <div class="form-check">
-                    {{ form.on_trial }}
-                    <label class="form-check-label" for="{{ form.on_trial.id_for_label }}">
-                        {{ form.on_trial.label }}
-                    </label>
-                </div>
-            </div>
-
-            <div class="d-grid">
-                <button type="submit" class="btn btn-create-primary">
-                    <i class="bi bi-plus-circle me-2"></i>
-                    Create School
-                </button>
-            </div>
-        </form>
-    </div>
-
-    {% if recent_schools %}
-    <div class="recent-schools">
-        <h3>Recently Created Schools</h3>
-        {% for school in recent_schools %}
-        <div class="school-item">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div>
-                <div class="school-name">{{ school.name }}</div>
-                <div class="school-schema">/{{ school.schema_name }}/</div>
+              <label class="mc-label" for="{{ form.school_type.id_for_label }}">School Type</label>
+              {{ form.school_type }}
+              {% if form.school_type.errors %}<div class="text-danger small mt-1">{{ form.school_type.errors }}</div>{% endif %}
             </div>
-            {% if school.on_trial %}
-                <span class="badge-trial">Trial</span>
-            {% endif %}
-        </div>
-        {% endfor %}
+            <div>
+              <label class="mc-label" for="{{ form.admin_email.id_for_label }}">Admin Email</label>
+              {{ form.admin_email }}
+              {% if form.admin_email.errors %}<div class="text-danger small mt-1">{{ form.admin_email.errors }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem;">
+            <div>
+              <label class="mc-label" for="{{ form.phone.id_for_label }}">Phone</label>
+              {{ form.phone }}
+            </div>
+            <div>
+              <label class="mc-label" for="{{ form.address.id_for_label }}">Address</label>
+              {{ form.address }}
+            </div>
+          </div>
+
+          <label style="display:flex;align-items:center;gap:.55rem;font-size:.83rem;color:var(--mc-text-lo);margin:1rem 0 1.1rem;cursor:pointer;">
+            {{ form.on_trial }}
+            <span>{{ form.on_trial.label }}</span>
+          </label>
+
+          <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+            <button type="submit" class="mc-btn mc-btn-vi"><i class="bi bi-plus-circle"></i>Create School</button>
+            <a href="{% url 'tenants:landlord_dashboard' %}" class="mc-btn mc-btn-ghost">Cancel</a>
+          </div>
+        </form>
+      </div>
     </div>
-    {% endif %}
+
+    <div class="mc-card">
+      <div class="mc-card-header"><div class="mc-card-icon"><i class="bi bi-clock-history"></i></div><h5 class="mc-card-title">Recent Schools</h5></div>
+      <div class="mc-card-body" style="padding:0.9rem;">
+        {% if recent_schools %}
+          {% for school in recent_schools %}
+            <div class="mc-ticket" style="margin-bottom:.5rem;padding:.75rem .8rem;">
+              <div style="font-size:.85rem;font-weight:600;color:var(--mc-text-hi);">{{ school.name }}</div>
+              <div style="font-size:.72rem;color:var(--mc-text-lo);font-family:monospace;">/{{ school.schema_name }}/</div>
+              {% if school.on_trial %}<span class="mc-badge mc-badge-blue" style="margin-top:.35rem;">Trial</span>{% else %}<span class="mc-badge mc-badge-green" style="margin-top:.35rem;">Active</span>{% endif %}
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="mc-empty" style="padding:2rem .6rem;"><i class="bi bi-buildings"></i>No recent schools</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
 </div>
+
+<style>
+.mc-form-shell input[type="text"], .mc-form-shell input[type="email"], .mc-form-shell input[type="tel"], .mc-form-shell select, .mc-form-shell textarea {
+  width:100%; border:1px solid var(--mc-border); border-radius:10px; padding:.62rem .85rem; font-size:.86rem;
+  background:var(--mc-raised); color:var(--mc-text-hi); outline:none; transition:border-color .15s;
+}
+.mc-form-shell input:focus, .mc-form-shell select:focus, .mc-form-shell textarea:focus {
+  border-color:var(--mc-vi); box-shadow:0 0 0 3px rgba(124,58,237,.16);
+}
+.mc-form-shell input[type="checkbox"] { width:16px; height:16px; accent-color:var(--mc-vi); }
+</style>
 {% endblock %}

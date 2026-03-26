@@ -4,181 +4,45 @@
 {% block title %}Create Support Ticket{% endblock %}
 
 {% block admin_content %}
-<style>
-    :root {
-        --card-bg: #ffffff;
-        --card-header-bg: #f8fafc;
-        --text-primary: #1a1a1a;
-        --text-secondary: #6b7280;
-        --text-muted: #9ca3af;
-        --border-color: #e2e8f0;
-        --bar-bg: #f3f4f6;
-        --admin-primary: #7c3aed;
-        --input-bg: #ffffff;
-    }
-    [data-bs-theme="dark"] {
-        --card-bg: #0f172a;
-        --card-header-bg: #1e293b;
-        --text-primary: #f1f5f9;
-        --text-secondary: #cbd5e1;
-        --text-muted: #94a3b8;
-        --border-color: #1e293b;
-        --bar-bg: #1e293b;
-        --admin-primary: #a78bfa;
-        --input-bg: #1e293b;
-    }
+<link rel="stylesheet" href="{% static 'css/mc-landlord.css' %}">
 
-    .ct-container { padding: 1.5rem; min-height: 100vh; }
-
-    .ct-back {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        font-size: 0.85rem;
-        font-weight: 500;
-        color: var(--text-secondary);
-        text-decoration: none;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        padding: 0.35rem 0.75rem;
-        background: var(--card-bg);
-        transition: color .15s, border-color .15s;
-        margin-bottom: 1.5rem;
-    }
-    .ct-back:hover { color: var(--admin-primary); border-color: var(--admin-primary); }
-
-    .ct-card {
-        background: var(--card-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 16px;
-        overflow: hidden;
-        max-width: 720px;
-    }
-
-    .ct-card-header {
-        background: var(--card-header-bg);
-        border-bottom: 1px solid var(--border-color);
-        padding: 1rem 1.25rem;
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-    }
-    .ct-card-title {
-        font-size: 0.95rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin: 0;
-    }
-    .ct-card-icon {
-        width: 30px;
-        height: 30px;
-        background: rgba(124,58,255,0.1);
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--admin-primary);
-        font-size: 0.9rem;
-    }
-
-    .ct-card-body { padding: 1.5rem 1.25rem; }
-
-    .ct-label {
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: var(--text-muted);
-        text-transform: uppercase;
-        letter-spacing: .04em;
-        margin-bottom: 0.4rem;
-        display: block;
-    }
-
-    .ct-input, .ct-select, .ct-textarea {
-        width: 100%;
-        border: 1px solid var(--border-color);
-        border-radius: 10px;
-        padding: 0.65rem 0.85rem;
-        font-size: 0.87rem;
-        background: var(--input-bg);
-        color: var(--text-primary);
-        transition: border-color .15s;
-        outline: none;
-        font-family: inherit;
-        margin-bottom: 1.1rem;
-    }
-    .ct-input:focus, .ct-select:focus, .ct-textarea:focus {
-        border-color: var(--admin-primary);
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--admin-primary) 15%, transparent);
-    }
-    .ct-textarea { resize: vertical; min-height: 140px; margin-bottom: 0; }
-    .ct-hint {
-        font-size: 0.75rem;
-        color: var(--text-muted);
-        margin-top: 0.3rem;
-        margin-bottom: 1.1rem;
-    }
-
-    .ct-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; }
-    @media (max-width: 576px) { .ct-row { grid-template-columns: 1fr; } }
-
-    .ct-btn-primary {
-        background: var(--admin-primary);
-        color: #fff;
-        border: none;
-        border-radius: 10px;
-        padding: 0.6rem 1.4rem;
-        font-size: 0.87rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: opacity .15s;
-    }
-    .ct-btn-primary:hover { opacity: 0.88; }
-
-    .ct-btn-secondary {
-        background: var(--bar-bg);
-        color: var(--text-primary);
-        border: 1px solid var(--border-color);
-        border-radius: 10px;
-        padding: 0.6rem 1.4rem;
-        font-size: 0.87rem;
-        font-weight: 600;
-        cursor: pointer;
-        text-decoration: none;
-        transition: border-color .15s;
-    }
-    .ct-btn-secondary:hover { border-color: var(--admin-primary); color: var(--text-primary); }
-</style>
-
-<div class="ct-container">
-    <a href="{% url 'tenants:support_tickets' %}" class="ct-back">
-        <i class="bi bi-arrow-left"></i> Back to Support Desk
-    </a>
-
-    <div class="ct-card">
-        <div class="ct-card-header">
-            <div class="ct-card-icon"><i class="bi bi-ticket-perforated"></i></div>
-            <h5 class="ct-card-title">Create Support Ticket</h5>
+<div class="mc-page">
+    <div class="mc-header">
+        <div>
+            <h1 class="mc-title"><i class="bi bi-ticket-perforated"></i>Create Support Ticket</h1>
+            <p class="mc-subtitle">Open a new support issue for a school or platform operation</p>
         </div>
-        <div class="ct-card-body">
+        <a href="{% url 'tenants:support_tickets' %}" class="mc-btn mc-btn-ghost">
+            <i class="bi bi-arrow-left"></i>Back to Support Desk
+        </a>
+    </div>
+
+    <div class="mc-card" style="max-width:860px;">
+        <div class="mc-card-header">
+            <div class="mc-card-icon"><i class="bi bi-pencil-square"></i></div>
+            <h5 class="mc-card-title">Ticket Details</h5>
+        </div>
+        <div class="mc-card-body">
             <form method="post">
                 {% csrf_token %}
 
-                <label class="ct-label" for="subject">Subject *</label>
-                <input type="text" class="ct-input" id="subject" name="subject"
-                       placeholder="Brief description of the issue" required>
+                <div class="mb-3">
+                    <label class="mc-label" for="subject">Subject</label>
+                    <input type="text" class="mc-input" id="subject" name="subject" placeholder="Brief summary of the issue" required>
+                </div>
 
-                <div class="ct-row">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
                     <div>
-                        <label class="ct-label" for="category">Category *</label>
-                        <select class="ct-select" id="category" name="category" required>
+                        <label class="mc-label" for="category">Category</label>
+                        <select class="mc-select" id="category" name="category" required>
                             {% for value, label in categories %}
                             <option value="{{ value }}">{{ label }}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div>
-                        <label class="ct-label" for="priority">Priority *</label>
-                        <select class="ct-select" id="priority" name="priority" required>
+                        <label class="mc-label" for="priority">Priority</label>
+                        <select class="mc-select" id="priority" name="priority" required>
                             {% for value, label in priorities %}
                             <option value="{{ value }}" {% if value == 'normal' %}selected{% endif %}>{{ label }}</option>
                             {% endfor %}
@@ -186,16 +50,19 @@
                     </div>
                 </div>
 
-                <label class="ct-label" for="description">Description *</label>
-                <textarea class="ct-textarea" id="description" name="description" rows="6"
-                          placeholder="Describe the issue in detail..." required></textarea>
-                <p class="ct-hint">Please provide as much detail as possible to help us resolve this quickly.</p>
+                <div class="mt-3 mb-3">
+                    <label class="mc-label" for="description">Description</label>
+                    <textarea class="mc-textarea" id="description" name="description" rows="7" placeholder="Describe the issue with enough detail for fast resolution..." required></textarea>
+                    <p style="font-size:.76rem;color:var(--mc-text-lo);margin-top:.45rem;">
+                        Include expected behavior, current behavior, and any relevant school or user context.
+                    </p>
+                </div>
 
-                <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
-                    <button type="submit" class="ct-btn-primary">
-                        <i class="bi bi-check-circle me-1"></i>Create Ticket
+                <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+                    <button type="submit" class="mc-btn mc-btn-vi">
+                        <i class="bi bi-check2-circle"></i>Create Ticket
                     </button>
-                    <a href="{% url 'tenants:support_tickets' %}" class="ct-btn-secondary">Cancel</a>
+                    <a href="{% url 'tenants:support_tickets' %}" class="mc-btn mc-btn-ghost">Cancel</a>
                 </div>
             </form>
         </div>

@@ -49,6 +49,8 @@
 <div class="admin-sidebar-overlay" id="adminSidebarOverlay"></div>
 
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
     /* Hide base.html elements - we use admin components instead */
     .header {
         display: none !important;
@@ -92,18 +94,30 @@
         --admin-sidebar-width: 260px;
         --admin-nav-height: 56px;
     }
+
+    .admin-layout,
+    .admin-main,
+    .admin-container,
+    .admin-navbar,
+    .admin-sidebar,
+    .admin-footer {
+        font-family: 'Manrope', system-ui, sans-serif;
+    }
     
     .admin-layout {
         display: grid;
         grid-template-columns: var(--admin-sidebar-width) 1fr;
         min-height: 100vh;
-        background: var(--admin-bg);
+        background:
+            radial-gradient(circle at 0% 0%, rgba(124, 58, 237, 0.16), transparent 42%),
+            radial-gradient(circle at 100% 100%, rgba(76, 201, 240, 0.09), transparent 44%),
+            var(--admin-bg);
     }
     
     .admin-main {
         display: flex;
         flex-direction: column;
-        background: var(--admin-bg);
+        background: transparent;
     }
     
     .admin-container {
@@ -111,6 +125,21 @@
         padding: var(--admin-spacing-xl);
         overflow-y: auto;
         max-width: 100%;
+        background: transparent;
+    }
+
+    [data-bs-theme="light"] .admin-layout {
+        background:
+            radial-gradient(circle at 0% 0%, rgba(124, 58, 237, 0.1), transparent 44%),
+            radial-gradient(circle at 100% 100%, rgba(67, 97, 238, 0.08), transparent 44%),
+            var(--admin-bg);
+    }
+
+    [data-bs-theme="dark"] .admin-layout {
+        background:
+            radial-gradient(circle at 0% 0%, rgba(124, 58, 237, 0.14), transparent 40%),
+            radial-gradient(circle at 100% 100%, rgba(76, 201, 240, 0.07), transparent 45%),
+            var(--admin-bg);
     }
     
     /* Breadcrumbs */
