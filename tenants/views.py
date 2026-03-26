@@ -776,18 +776,25 @@ def resend_school_credentials(request, school_id):
         temp_password = secrets.token_urlsafe(12)
         
         # Update admin user password in school's schema
+        admin_username = f'admin_{school.schema_name}'
         connection.set_tenant(school)
         User = get_user_model()
         
         try:
-            admin_user = User.objects.get(username='admin')
+            # Try new-style username first, fall back to legacy 'admin'
+            try:
+                admin_user = User.objects.get(username=admin_username)
+            except User.DoesNotExist:
+                admin_user = User.objects.get(username='admin', user_type='admin')
+                # Rename to new-style while we're here
+                admin_user.username = admin_username
             admin_user.set_password(temp_password)
             admin_user.save()
-            logger.info("Updated admin password for school %s", school.schema_name)
+            logger.info("Updated admin password for school %s (username: %s)", school.schema_name, admin_username)
         except User.DoesNotExist:
             logger.info("No admin user found for %s, creating one", school.schema_name)
             admin_user = User.objects.create_superuser(
-                username='admin',
+                username=admin_username,
                 email=school.contact_person_email or 'admin@example.com',
                 password=temp_password,
                 user_type='admin'
@@ -801,7 +808,7 @@ def resend_school_credentials(request, school_id):
             'contact_name': school.contact_person_name or 'Administrator',
             'login_url': f"/{school.schema_name}/login/",
             'temp_password': temp_password,
-            'admin_username': 'admin',
+            'admin_username': admin_username,
         }
         
         email_sent = send_approval_notification(school, status_changed_by=request.user, extra_context=context)
