@@ -3,9 +3,11 @@
 
 {% block title %}Review {{ school.name }}{% endblock %}
 
-{% block admin_content %}
+{% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/mc-landlord.css' %}">
+{% endblock %}
 
+{% block admin_content %}
 <div class="mc-page">
     <div class="mc-header">
         <div>
@@ -28,7 +30,7 @@
         {% endfor %}
     {% endif %}
 
-    <div style="display:grid;grid-template-columns:minmax(0, 2fr) minmax(300px, 1fr);gap:1rem;align-items:start;">
+    <div class="mc-shell-grid mc-stagger">
         <div>
             <div class="mc-card">
                 <div class="mc-card-header">
@@ -36,7 +38,7 @@
                     <h5 class="mc-card-title">School Information</h5>
                 </div>
                 <div class="mc-card-body">
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem 1.2rem;">
+                    <div class="review-grid-2">
                         <div><div class="mc-label">School Name</div><div style="color:var(--mc-text-hi);font-weight:600;">{{ school.name }}</div></div>
                         <div><div class="mc-label">Schema ID</div><div style="color:var(--mc-text-hi);font-family:monospace;">{{ school.schema_name }}</div></div>
                         <div><div class="mc-label">Type</div><div style="color:var(--mc-text-hi);">{{ school.get_school_type_display }}</div></div>
@@ -61,7 +63,7 @@
                     <h5 class="mc-card-title">Contact Person</h5>
                 </div>
                 <div class="mc-card-body">
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem 1.2rem;">
+                    <div class="review-grid-2">
                         <div><div class="mc-label">Name</div><div style="color:var(--mc-text-hi);">{{ school.contact_person_name|default:'N/A' }}</div></div>
                         <div><div class="mc-label">Title</div><div style="color:var(--mc-text-hi);">{{ school.contact_person_title|default:'N/A' }}</div></div>
                         <div><div class="mc-label">Email</div><div style="color:var(--mc-text-hi);">{{ school.contact_person_email|default:'N/A' }}</div></div>
@@ -103,7 +105,7 @@
                     <h5 class="mc-card-title">Previous Decision</h5>
                 </div>
                 <div class="mc-card-body">
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem 1.2rem;">
+                    <div class="review-grid-2">
                         <div><div class="mc-label">Reviewed At</div><div style="color:var(--mc-text-hi);">{{ school.reviewed_at|date:"M d, Y H:i" }}</div></div>
                         <div><div class="mc-label">Reviewed By</div><div style="color:var(--mc-text-hi);">{{ school.reviewed_by.get_full_name|default:school.reviewed_by.username }}</div></div>
                     </div>
@@ -118,7 +120,7 @@
             {% endif %}
         </div>
 
-        <div style="position:sticky;top:1.2rem;">
+        <div class="review-sticky-panel">
             <div class="mc-card">
                 <div class="mc-card-header">
                     <div class="mc-card-icon"><i class="bi bi-gavel"></i></div>
@@ -173,6 +175,17 @@
     gap: .45rem;
 }
 
+.review-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .8rem 1.2rem;
+}
+
+.review-sticky-panel {
+    position: sticky;
+    top: 1.2rem;
+}
+
 .decision-btn {
     justify-content: center;
 }
@@ -183,6 +196,14 @@
 }
 
 @media (max-width: 900px) {
+    .review-grid-2 {
+        grid-template-columns: 1fr;
+    }
+
+    .review-sticky-panel {
+        position: static;
+    }
+
     .decision-grid {
         grid-template-columns: 1fr;
     }

@@ -17,11 +17,16 @@
 
   {% if messages %}
     {% for message in messages %}
-      <div class="mc-alert-item"><div class="mc-alert-icon"><i class="bi bi-info-circle"></i></div><div>{{ message }}</div></div>
+      <div class="mc-alert-item" style="border-color:{% if message.tags == 'error' %}rgba(239,68,68,0.35){% elif message.tags == 'warning' %}rgba(245,158,11,0.35){% else %}rgba(34,197,94,0.35){% endif %};">
+        <div class="mc-alert-icon" style="background:{% if message.tags == 'error' %}rgba(239,68,68,0.14){% elif message.tags == 'warning' %}rgba(245,158,11,0.14){% else %}rgba(34,197,94,0.14){% endif %};color:{% if message.tags == 'error' %}var(--mc-red){% elif message.tags == 'warning' %}var(--mc-amber){% else %}var(--mc-green){% endif %};">
+          <i class="bi {% if message.tags == 'error' %}bi-x-circle{% elif message.tags == 'warning' %}bi-exclamation-triangle{% else %}bi-check-circle{% endif %}"></i>
+        </div>
+        <div>{{ message }}</div>
+      </div>
     {% endfor %}
   {% endif %}
 
-  <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(280px,1fr);gap:1rem;align-items:start;">
+  <div class="mc-shell-grid mc-stagger">
     <div class="mc-card">
       <div class="mc-card-header"><div class="mc-card-icon"><i class="bi bi-buildings"></i></div><h5 class="mc-card-title">School Provisioning Form</h5></div>
       <div class="mc-card-body">
@@ -41,7 +46,7 @@
             {% if form.schema_name.errors %}<div class="text-danger small mt-1">{{ form.schema_name.errors }}</div>{% endif %}
           </div>
 
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+          <div class="mc-grid-2">
             <div>
               <label class="mc-label" for="{{ form.school_type.id_for_label }}">School Type</label>
               {{ form.school_type }}
@@ -54,7 +59,7 @@
             </div>
           </div>
 
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem;">
+          <div class="mc-grid-2" style="margin-top:1rem;">
             <div>
               <label class="mc-label" for="{{ form.phone.id_for_label }}">Phone</label>
               {{ form.phone }}

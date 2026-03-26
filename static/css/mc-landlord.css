@@ -108,7 +108,30 @@ body {
     color: var(--mc-text-hi);
     min-height: 100%;
     padding: 1.5rem;
-    font-family: 'Inter', 'Manrope', system-ui, sans-serif;
+    font-family: 'Manrope', system-ui, sans-serif;
+    animation: mcPageIn 0.35s ease;
+}
+
+@keyframes mcPageIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.mc-stagger > * {
+    opacity: 0;
+    animation: mcItemIn 0.32s ease forwards;
+}
+
+.mc-stagger > *:nth-child(1) { animation-delay: 0.03s; }
+.mc-stagger > *:nth-child(2) { animation-delay: 0.06s; }
+.mc-stagger > *:nth-child(3) { animation-delay: 0.09s; }
+.mc-stagger > *:nth-child(4) { animation-delay: 0.12s; }
+.mc-stagger > *:nth-child(5) { animation-delay: 0.15s; }
+.mc-stagger > *:nth-child(6) { animation-delay: 0.18s; }
+
+@keyframes mcItemIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* ── Page header bar ─────────────────────────────────────────────── */
@@ -208,6 +231,13 @@ body {
     border-radius: 16px;
     overflow: hidden;
     margin-bottom: 1.25rem;
+    transition: border-color .16s, box-shadow .16s, transform .16s;
+}
+
+.mc-card:hover {
+    border-color: rgba(124, 58, 237, 0.34);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
+    transform: translateY(-1px);
 }
 
 .mc-card-header {
@@ -463,11 +493,12 @@ body {
     background: var(--mc-surface);
     margin-bottom: 0.65rem;
     text-decoration: none;
-    transition: border-color .15s, background .15s;
+    transition: border-color .15s, background .15s, transform .15s;
 }
 .mc-ticket:hover {
     border-color: rgba(124,58,237,0.3);
     background: rgba(124,58,237,0.04);
+    transform: translateY(-1px);
 }
 
 /* ── Filter / status tab bar ─────────────────────────────────────── */
@@ -606,6 +637,27 @@ body {
 }
 .mc-status-text p { font-size: 0.85rem; color: var(--mc-text-lo); margin: 0; }
 
+/* ── Reusable layout helpers ───────────────────────────────────── */
+.mc-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.mc-shell-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .mc-grid-2,
+    .mc-shell-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* ══════════════════════════════════════════════════════════════════
    LIGHT MODE — Component Overrides
    Adjusts elements that use hardcoded dark-theme colors
@@ -652,6 +704,9 @@ body {
 [data-bs-theme="light"] .mc-card { box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
 [data-bs-theme="light"] .mc-card-icon {
     background: rgba(124,58,237,0.08);
+}
+[data-bs-theme="light"] .mc-card:hover {
+    box-shadow: 0 10px 20px rgba(17, 24, 39, 0.08);
 }
 
 /* School cards (approval queue) */
