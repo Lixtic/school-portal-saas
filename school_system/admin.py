@@ -5,9 +5,9 @@ from django.shortcuts import redirect
 
 class SchoolAdminSite(admin.AdminSite):
     """Custom admin site with proper logout handling for Django 5+"""
-    site_header = "Portals Administration"
-    site_title = "School Admin"
-    index_title = "Welcome to Portals"
+    site_header = "Django administration"
+    site_title = "Django site admin"
+    index_title = "Site administration"
     
     def logout(self, request, extra_context=None):
         """Handle logout - support both GET and POST for backwards compatibility"""

@@ -26,9 +26,9 @@ def sw_view(request):
             return response
     raise Http404('sw.js not found')
 
-admin.site.site_header = "Portals Administration"
-admin.site.site_title = "School Admin"
-admin.site.index_title = "Welcome to Portals"
+admin.site.site_header = "Django administration"
+admin.site.site_title = "Django site admin"
+admin.site.index_title = "Site administration"
 
 
 urlpatterns = [
