@@ -227,23 +227,23 @@ AI_MODEL_CHOICES = [
 class PlatformAIModelSettingsForm(forms.ModelForm):
     ai_primary_provider = forms.ChoiceField(
         choices=PlatformSettings.AI_PROVIDER_CHOICES,
-        widget=forms.Select(attrs={'class': 'form-select'})
+        widget=forms.Select(attrs={'class': 'form-select mc-select'})
     )
     ai_model_general = forms.ChoiceField(
         choices=AI_MODEL_CHOICES,
-        widget=forms.Select(attrs={'class': 'form-select'})
+        widget=forms.Select(attrs={'class': 'form-select mc-select'})
     )
     ai_model_admissions = forms.ChoiceField(
         choices=AI_MODEL_CHOICES,
-        widget=forms.Select(attrs={'class': 'form-select'})
+        widget=forms.Select(attrs={'class': 'form-select mc-select'})
     )
     ai_model_tutor = forms.ChoiceField(
         choices=AI_MODEL_CHOICES,
-        widget=forms.Select(attrs={'class': 'form-select'})
+        widget=forms.Select(attrs={'class': 'form-select mc-select'})
     )
     ai_model_analytics = forms.ChoiceField(
         choices=AI_MODEL_CHOICES,
-        widget=forms.Select(attrs={'class': 'form-select'})
+        widget=forms.Select(attrs={'class': 'form-select mc-select'})
     )
 
     class Meta:

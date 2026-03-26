@@ -62,6 +62,25 @@
     cursor: pointer; transition: opacity .15s;
 }
 .ap-submit:hover { opacity: .88; }
+
+.ap-select {
+    border-radius: 10px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    background: var(--surface-card, #ffffff);
+    color: var(--text-main, #111827);
+}
+
+[data-bs-theme="dark"] .ap-select {
+    background: #1e293b;
+    border-color: #334155;
+    color: #f1f5f9;
+}
+
+[data-bs-theme="dark"] .ap-select option,
+[data-bs-theme="dark"] .ap-select optgroup {
+    background: #1e293b;
+    color: #f1f5f9;
+}
 </style>
 
 <div class="ap-page">
@@ -155,7 +174,7 @@
             <div class="row g-3 mb-4">
                 <div class="col-md-4">
                     <label class="ap-section-label d-block" for="id_status">Status</label>
-                    <select name="status" id="id_status" class="form-select form-select-sm">
+                    <select name="status" id="id_status" class="form-select form-select-sm ap-select">
                         <option value="active" {% if subscription and subscription.status == 'active' %}selected{% endif %}>Active (Paid)</option>
                         <option value="trial" {% if not subscription or subscription.status == 'trial' %}selected{% endif %}>Trial</option>
                         <option value="past_due" {% if subscription and subscription.status == 'past_due' %}selected{% endif %}>Past Due</option>
@@ -166,7 +185,7 @@
 
                 <div class="col-md-4">
                     <label class="ap-section-label d-block" for="id_billing_cycle">Billing Cycle</label>
-                    <select name="billing_cycle" id="id_billing_cycle" class="form-select form-select-sm">
+                    <select name="billing_cycle" id="id_billing_cycle" class="form-select form-select-sm ap-select">
                         <option value="monthly" {% if subscription and subscription.billing_cycle == 'monthly' %}selected{% endif %}>Monthly</option>
                         <option value="quarterly" {% if subscription and subscription.billing_cycle == 'quarterly' %}selected{% endif %}>Quarterly</option>
                         <option value="annual" {% if subscription and subscription.billing_cycle == 'annual' %}selected{% endif %}>Annual</option>
