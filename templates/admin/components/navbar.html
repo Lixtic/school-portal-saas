@@ -100,6 +100,26 @@
 .current-page {
     color: var(--admin-text-primary);
     letter-spacing: 0.01em;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    animation: navTitleIn .3s ease;
+}
+
+.current-page::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -7px;
+    width: 34px;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--admin-primary), transparent);
+}
+
+@keyframes navTitleIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 @media (max-width: 768px) {
@@ -128,11 +148,14 @@
     cursor: pointer;
     transition: all 0.15s;
     text-decoration: none;
+    border: 1px solid transparent;
 }
 
 .navbar-action-btn:hover {
     background: rgba(124, 58, 237, 0.1);
     color: var(--admin-primary);
+    border-color: rgba(124, 58, 237, 0.24);
+    transform: translateY(-1px);
 }
 
 .navbar-action-btn i {
@@ -148,10 +171,12 @@
     background: rgba(124, 58, 237, 0.08);
     cursor: pointer;
     transition: all 0.15s;
+    border: 1px solid transparent;
 }
 
 .user-menu:hover {
     background: rgba(124, 58, 237, 0.12);
+    border-color: rgba(124, 58, 237, 0.24);
 }
 
 .user-avatar {

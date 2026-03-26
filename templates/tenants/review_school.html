@@ -4,7 +4,7 @@
 {% block title %}Review {{ school.name }}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/mc-landlord.css' %}">
+<link rel="stylesheet" href="{% static 'css/mc-landlord.css' %}?v=20260326">
 {% endblock %}
 
 {% block admin_content %}
@@ -21,8 +21,8 @@
 
     {% if messages %}
         {% for message in messages %}
-        <div class="mc-alert-item" style="border-color:{% if message.tags == 'error' %}rgba(239,68,68,0.35){% elif message.tags == 'warning' %}rgba(245,158,11,0.35){% else %}rgba(34,197,94,0.35){% endif %};">
-            <div class="mc-alert-icon" style="background:{% if message.tags == 'error' %}rgba(239,68,68,0.14){% elif message.tags == 'warning' %}rgba(245,158,11,0.14){% else %}rgba(34,197,94,0.14){% endif %};color:{% if message.tags == 'error' %}var(--mc-red){% elif message.tags == 'warning' %}var(--mc-amber){% else %}var(--mc-green){% endif %};">
+        <div class="mc-alert-item {% if message.tags == 'error' %}is-danger{% elif message.tags == 'warning' %}is-warning{% else %}is-success{% endif %}">
+            <div class="mc-alert-icon {% if message.tags == 'error' %}danger{% elif message.tags == 'warning' %}warning{% else %}success{% endif %}">
                 <i class="bi {% if message.tags == 'error' %}bi-x-circle{% elif message.tags == 'warning' %}bi-exclamation-triangle{% else %}bi-check-circle{% endif %}"></i>
             </div>
             <div style="font-size:.86rem;color:var(--mc-text-hi);">{{ message }}</div>
