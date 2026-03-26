@@ -193,7 +193,7 @@
 }
 
 .navbar-menu-toggle {
-    display: none;
+    display: flex;
     align-items: center;
     justify-content: center;
     width: 40px;
@@ -211,18 +211,32 @@
     background: rgba(124, 58, 237, 0.1);
 }
 
-@media (max-width: 1024px) {
-    .navbar-menu-toggle {
-        display: flex;
-    }
-}
 </style>
 
 <script>
-    // ===== Sidebar drawer (mobile) =====
+    // ===== Sidebar behavior (desktop auto-hide + mobile drawer) =====
     const sidebar  = document.getElementById('adminSidebar');
     const overlay  = document.getElementById('adminSidebarOverlay');
     const menuToggle = document.getElementById('mobileMenuToggle');
+    const adminLayout = document.querySelector('.admin-layout');
+    const SIDEBAR_COLLAPSED_KEY = 'admin-sidebar-collapsed';
+
+    function isMobileView() {
+        return window.matchMedia('(max-width: 1024px)').matches;
+    }
+
+    function setDesktopCollapsed(collapsed) {
+        if (!adminLayout) return;
+        adminLayout.classList.toggle('sidebar-collapsed', collapsed);
+        localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? 'true' : 'false');
+    }
+
+    function initializeDesktopSidebar() {
+        if (isMobileView() || !adminLayout) return;
+        const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+        const collapsed = stored === null ? true : stored === 'true';
+        adminLayout.classList.toggle('sidebar-collapsed', collapsed);
+    }
 
     function openSidebar() {
         if (!sidebar) return;
@@ -239,11 +253,36 @@
 
     if (menuToggle) {
         menuToggle.addEventListener('click', () => {
-            const isOpen = sidebar && sidebar.classList.contains('active');
-            isOpen ? closeSidebar() : openSidebar();
+            if (isMobileView()) {
+                const isOpen = sidebar && sidebar.classList.contains('active');
+                isOpen ? closeSidebar() : openSidebar();
+                return;
+            }
+
+            const collapsed = adminLayout && adminLayout.classList.contains('sidebar-collapsed');
+            setDesktopCollapsed(!collapsed);
         });
     }
     if (overlay) overlay.addEventListener('click', closeSidebar);
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && isMobileView()) {
+            closeSidebar();
+        }
+    });
+
+    window.addEventListener('resize', () => {
+        if (!sidebar) return;
+
+        if (isMobileView()) {
+            if (adminLayout) {
+                adminLayout.classList.remove('sidebar-collapsed');
+            }
+        } else {
+            closeSidebar();
+            initializeDesktopSidebar();
+        }
+    });
 
     // Close on nav link click
     if (sidebar) {
@@ -253,6 +292,8 @@
             });
         });
     }
+
+    initializeDesktopSidebar();
 
     // ===== Theme toggle =====
     const themeToggle = document.getElementById('themeToggle');

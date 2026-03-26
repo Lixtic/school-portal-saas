@@ -92,6 +92,7 @@
     
     :root {
         --admin-sidebar-width: 260px;
+        --admin-sidebar-collapsed-width: 84px;
         --admin-nav-height: 56px;
     }
 
@@ -108,10 +109,17 @@
         display: grid;
         grid-template-columns: var(--admin-sidebar-width) 1fr;
         min-height: 100vh;
+        transition: grid-template-columns 0.24s ease;
         background:
             radial-gradient(circle at 0% 0%, rgba(124, 58, 237, 0.16), transparent 42%),
             radial-gradient(circle at 100% 100%, rgba(76, 201, 240, 0.09), transparent 44%),
             var(--admin-bg);
+    }
+
+    @media (min-width: 1025px) {
+        .admin-layout.sidebar-collapsed {
+            grid-template-columns: var(--admin-sidebar-collapsed-width) 1fr;
+        }
     }
     
     .admin-main {
