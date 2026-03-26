@@ -25,8 +25,12 @@ SECRET_KEY = (
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# Defaults to False unless explicitly set. Use DEBUG=True in local .env
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+# Local default is DEBUG=True unless explicitly overridden.
+_debug_env = os.environ.get('DEBUG')
+if _debug_env is None:
+    DEBUG = not (os.environ.get('VERCEL') == '1' or os.environ.get('PROD') == '1')
+else:
+    DEBUG = _debug_env.strip().lower() in ('1', 'true', 'yes', 'on')
 
 # Warn loudly if still using the insecure default in production.
 # Does NOT crash the app — set SECRET_KEY (or DJANGO_SECRET_KEY / SECRET_KEY_BASE) in Vercel env vars.
@@ -325,6 +329,11 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # WhiteNoise for serving static files in production
 # Use simple Compressed storage to avoid 500 errors if manifest is missing
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+
+# In local/dev, serve static files directly from app/static directories.
+# This keeps Django admin styling available even before collectstatic is run.
+if DEBUG:
+    WHITENOISE_USE_FINDERS = True
 
 
 # Media files
