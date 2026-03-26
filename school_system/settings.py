@@ -330,9 +330,10 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # Use simple Compressed storage to avoid 500 errors if manifest is missing
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
-# In local/dev, serve static files directly from app/static directories.
-# This keeps Django admin styling available even before collectstatic is run.
-if DEBUG:
+# Serve static files directly from app/static directories in environments
+# where collected static artifacts may be unavailable (local + Vercel).
+# This keeps Django admin CSS/JS available at /static/admin/*.
+if DEBUG or os.environ.get('VERCEL') == '1':
     WHITENOISE_USE_FINDERS = True
 
 
