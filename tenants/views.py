@@ -348,11 +348,12 @@ def superadmin_create_school(request):
                 domain.save()
                 
                 # Switch to tenant schema and setup
+                admin_username = f'admin_{schema_name}'
                 connection.set_tenant(tenant)
                 try:
                     User = get_user_model()
                     admin_user = User.objects.create_superuser(
-                        username='admin',
+                        username=admin_username,
                         email=admin_email,
                         password=temp_password,
                         user_type='admin'
@@ -383,7 +384,7 @@ def superadmin_create_school(request):
                 messages.success(
                     request, 
                     f"✅ School '{school_name}' created successfully! "
-                    f"Login URL: /{schema_name}/login/ | Username: admin | Password: {temp_password}"
+                    f"Login URL: /{schema_name}/login/ | Username: {admin_username} | Password: {temp_password}"
                 )
                 
                 # Redirect to a success page or back to create form
@@ -666,13 +667,14 @@ def review_school(request, school_id):
                     
                     # Switch to tenant and create admin user + sample data
                     connection.set_tenant(school)
+                    admin_username = f'admin_{school.schema_name}'
                     try:
                         User = get_user_model()
                         
-                        if not User.objects.filter(username='admin').exists():
+                        if not User.objects.filter(username=admin_username).exists():
                             temp_email = school.contact_person_email or 'admin@example.com'
                             admin_user = User.objects.create_superuser(
-                                username='admin',
+                                username=admin_username,
                                 email=temp_email,
                                 password=temp_password,
                                 user_type='admin'
@@ -709,7 +711,7 @@ def review_school(request, school_id):
                         'contact_name': school.contact_person_name or 'Administrator',
                         'login_url': f"/{school.schema_name}/login/",
                         'temp_password': temp_password,
-                        'admin_username': 'admin',
+                        'admin_username': admin_username,
                     }
                     
                     logger.debug("Sending approval email to %s for %s", school.contact_person_email, school.name)
