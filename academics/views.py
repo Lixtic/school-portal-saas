@@ -816,7 +816,7 @@ def admissions_assistant(request):
     logger.debug("Chatbot question received: %s", question[:120])
     
     if not question:
-        return JsonResponse({'answer': 'Please ask a question about admissions, fees, or term dates.'})
+        return JsonResponse({'answer': 'Ask me what School Portals does for students, parents, teachers, and administrators.'})
 
     # Safely get school info
     try:
@@ -828,15 +828,17 @@ def admissions_assistant(request):
 
     def fallback_answer():
         faq = [
-            (('fee', 'tuition', 'fees', 'payment'), "Our fees vary by class. Please see the fee structure shared during enrollment or ask which class you're interested in."),
-            (('term', 'calendar', 'date', 'schedule'), "Terms follow a three-term calendar: First (Sept-Dec), Second (Jan-Apr), Third (May-Jul). Exact dates are in the school calendar."),
-            (('apply', 'enroll', 'admission', 'register'), "You can apply online via the Apply page. Submit student details, parent contact, and prior school info if available."),
-            (('document', 'requirements', 'forms'), "Commonly needed: birth certificate, prior report (if any), passport photo, and completed application form."),
-            (('scholarship', 'discount', 'financial aid'), "Limited scholarships/fee waivers may be available. Please indicate interest in your application or ask admin for current options."),
+            (('feature', 'module', 'what can', 'capabilities', 'do'), "School Portals includes student records, attendance, grading, finance, timetables, announcements, parent access, and AI-assisted teaching workflows."),
+            (('teacher', 'staff', 'lesson', 'homework'), "Teachers can create lesson plans, manage attendance, grade students, assign homework, and use AI support for instructional planning."),
+            (('parent', 'guardian'), "Parents can monitor attendance, grades, announcements, and fee status from their portal in real time."),
+            (('student', 'learner'), "Students can view class information, assignments, progress, and key school updates in one place."),
+            (('fee', 'tuition', 'fees', 'payment', 'finance'), "The finance module supports fee structures, student billing, payment tracking, and clear paid/partial/unpaid status updates."),
+            (('term', 'calendar', 'date', 'schedule', 'timetable'), "The academics module manages academic years, classes, subjects, term planning, and timetables for smooth daily operations."),
+            (('apply', 'enroll', 'admission', 'register'), "The platform also supports admissions workflows alongside full school operations after enrollment."),
             (('contact', 'phone', 'email'), f"You can reach us at {school_info.phone if school_info else 'the school office phone'} or {school_info.email if school_info else 'our email'} for more details."),
         ]
 
-        answer_text = "I can help with admissions, fees, and term dates. What would you like to know?"
+        answer_text = "I can walk you through what School Portals does and which modules are most useful for your school."
         question_lower = question.lower()
         for keywords, response in faq:
             if any(k in question_lower for k in keywords):
@@ -870,7 +872,7 @@ def admissions_assistant(request):
             
             # Build context from school info
             school_context = f"""
-You are a helpful admissions assistant for {school_info.name if school_info else 'our school'}.
+You are Aura, a helpful School Portals platform assistant for {school_info.name if school_info else 'our school'}.
 
 School Information:
 - Name: {school_info.name if school_info else 'N/A'}
@@ -879,14 +881,16 @@ School Information:
 - Address: {school_info.address if school_info else 'Contact admin'}
 - Motto: {school_info.motto if school_info else 'Excellence in Education'}
 
-General Information:
-- Academic Calendar: Three terms - First (Sept-Dec), Second (Jan-Apr), Third (May-Jul)
-- Admission Process: Apply online via our Apply page with student details, parent contact, and prior school info
-- Required Documents: Birth certificate, prior report card (if any), passport photo, completed application form
-- Scholarships: Limited scholarships and fee waivers may be available - indicate interest in application
-- Fee Structure: Varies by class level - details provided during enrollment process
+Platform Capabilities:
+- Student information management
+- Attendance and grading workflows
+- Timetable and academic planning
+- Fee setup, billing, and payment tracking
+- Teacher planning and classroom support
+- Parent communication and notifications
+- AI support for academic and administrative workflows
 
-Please provide helpful, concise answers about admissions, fees, term dates, and enrollment processes.
+Please provide concise, practical answers that explain what the platform does and how each role (admin, teacher, parent, student) benefits. If asked about admissions, include that capability as one part of the platform.
 """
 
             payload = {
