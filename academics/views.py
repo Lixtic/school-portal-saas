@@ -1007,11 +1007,84 @@ def copilot_assistant(request):
         return JsonResponse({'error': 'Invalid payload', 'details': str(e)}, status=400)
 
     question = (payload.get('question') or '').strip()
-    user_role = (payload.get('role') or '').strip()
+    user_role = (payload.get('role') or '').strip().lower()
     incoming_conversation_id = payload.get('conversation_id')
 
+    def normalize_role(raw_role: str) -> str:
+        role = (raw_role or '').strip().lower()
+        role_map = {
+            'student': 'student',
+            'students': 'student',
+            'parent': 'parent',
+            'parents': 'parent',
+            'teacher': 'teacher',
+            'teachers': 'teacher',
+            'staff': 'teacher',
+            'staff member': 'teacher',
+            'admin': 'admin',
+            'administrator': 'admin',
+            'school admin': 'admin',
+        }
+        return role_map.get(role, '')
+
+    def infer_role_from_text(text: str) -> str:
+        normalized = (text or '').strip().lower().strip('.!?,:;')
+        direct = normalize_role(normalized)
+        if direct:
+            return direct
+
+        alias_patterns = {
+            'student': [' student', 'student ', 'i am a student', "i'm a student", 'as a student', 'student here'],
+            'parent': [' parent', 'parent ', 'i am a parent', "i'm a parent", 'as a parent', 'parent here'],
+            'teacher': [' teacher', 'teacher ', ' staff', 'staff ', 'i am a teacher', "i'm a teacher", 'i am staff'],
+            'admin': [' admin', 'administrator', 'school admin', 'i am an admin', "i'm an admin"],
+        }
+        padded = f" {normalized} "
+        for canonical, patterns in alias_patterns.items():
+            if any(pattern in padded for pattern in patterns):
+                return canonical
+        return ''
+
+    # Some public widgets send placeholders like "visitor"; treat them as unknown.
+    user_role = normalize_role(user_role)
+
+    # Reuse role from session for anonymous/public conversations.
+    if not user_role:
+        try:
+            user_role = normalize_role(request.session.get('copilot_role', ''))
+        except Exception:
+            user_role = ''
+
     if not user_role and request.user.is_authenticated:
-        user_role = getattr(request.user, 'user_type', '') or ''
+        user_role = normalize_role(getattr(request.user, 'user_type', '') or '')
+
+    # If the user typed only their role (e.g., "student"), capture it and continue.
+    if not user_role:
+        inferred_role = infer_role_from_text(question)
+        if inferred_role:
+            user_role = inferred_role
+            try:
+                request.session['copilot_role'] = user_role
+                request.session.modified = True
+            except Exception:
+                pass
+            role_ready_message = {
+                'student': 'Perfect, I will support you as a student. What do you need help with right now?',
+                'parent': 'Great, I will assist you as a parent. How can I help today?',
+                'teacher': 'Excellent, I will assist you as staff. What would you like to work on?',
+                'admin': 'Great, I will assist you as an administrator. What do you need help with?',
+            }
+            return HttpResponse(
+                role_ready_message.get(user_role, 'Role noted. How can I help you today?'),
+                content_type='text/plain; charset=utf-8',
+            )
+
+    if user_role:
+        try:
+            request.session['copilot_role'] = user_role
+            request.session.modified = True
+        except Exception:
+            pass
 
     logger.debug("Copilot role=%s question=%s", user_role, question[:120])
 

@@ -29,6 +29,7 @@
     const body = document.getElementById('assistantBody');
     const form = document.getElementById('assistantForm');
     const input = document.getElementById('assistantQuestion');
+    const ROLE_STORAGE_KEY = 'aura_copilot_role';
 
     if (!panel || !toggle || !closeBtn || !body || !form || !input) {
         return;
@@ -57,6 +58,40 @@
         const indicator = document.getElementById('typingIndicator');
         if (indicator) {
             indicator.remove();
+        }
+    }
+
+    function normalizeRole(text) {
+        const raw = (text || '').trim().toLowerCase().replace(/[.!?,:;]+$/g, '');
+        const roleMap = {
+            student: 'student',
+            students: 'student',
+            parent: 'parent',
+            parents: 'parent',
+            teacher: 'teacher',
+            teachers: 'teacher',
+            staff: 'teacher',
+            admin: 'admin',
+            administrator: 'admin',
+        };
+        return roleMap[raw] || '';
+    }
+
+    function readStoredRole() {
+        try {
+            return normalizeRole(window.localStorage.getItem(ROLE_STORAGE_KEY) || '');
+        } catch (e) {
+            return '';
+        }
+    }
+
+    function storeRole(role) {
+        try {
+            if (role) {
+                window.localStorage.setItem(ROLE_STORAGE_KEY, role);
+            }
+        } catch (e) {
+            // Ignore storage failures.
         }
     }
 
@@ -89,6 +124,12 @@
         const question = input.value.trim();
         if (!question) return;
 
+        const roleFromMessage = normalizeRole(question);
+        const role = roleFromMessage || readStoredRole();
+        if (roleFromMessage) {
+            storeRole(roleFromMessage);
+        }
+
         appendBubble(question, 'user');
         input.value = '';
         appendBubble('', 'typing');
@@ -100,7 +141,7 @@
                     'Content-Type': 'application/json',
                     'X-CSRFToken': csrftoken,
                 },
-                body: JSON.stringify({ question, role: 'visitor' }),
+                body: JSON.stringify({ question, role }),
             });
 
             removeTypingIndicator();
