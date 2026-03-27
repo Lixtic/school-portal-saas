@@ -428,9 +428,13 @@ def login_view(request):
         
         if user is not None:
             login(request, user)
-            # Keep sessions persistent by default so users stay signed in
-            # after closing and reopening the browser/app.
-            request.session.set_expiry(settings.SESSION_COOKIE_AGE)
+            # If "Remember Me" is checked, persist the session for 1 year.
+            # Otherwise the session is a browser-session cookie (expires on close).
+            remember_me = request.POST.get('remember_me') == '1'
+            if remember_me:
+                request.session.set_expiry(365 * 24 * 60 * 60)  # 1 year
+            else:
+                request.session.set_expiry(0)  # browser close
             # Bind session to the current tenant schema to prevent cross-tenant
             # identity leakage when users navigate between tenant paths.
             tenant_obj = getattr(request, 'tenant', None)
