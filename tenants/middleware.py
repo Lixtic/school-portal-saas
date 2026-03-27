@@ -1,15 +1,37 @@
 ﻿from django.conf import settings
 from django.db import connection, close_old_connections, transaction
-from django.db.utils import ProgrammingError
 from django.http import Http404, HttpResponseRedirect, JsonResponse
 from django.urls import set_urlconf, set_script_prefix
 from django.contrib.auth import logout
 from django_tenants.middleware.main import TenantMainMiddleware
-from tenants.models import School
+from tenants.models import School, SchoolSubscription
+from django.utils import timezone
 from urllib.parse import urlparse, parse_qsl, urlencode
 import logging
 
 logger = logging.getLogger(__name__)
+
+# Reserved non-tenant paths
+RESERVED_PATHS = {
+    'static', 'media', 'admin', 'accounts', 'signup', 'login', 'logout', 
+    'debug', 'favicon.ico', 'favicon.png', 'apple-touch-icon.png', 
+    'apple-touch-icon-precomposed.png', 'favicon.svg', 'robots.txt', 
+    'sitemap.xml', 'dashboard', 'tenants', 'find-school', 'sw.js', 
+    'offline', 'about', 'contact', 'privacy', 'terms', 'health', 'landlord', 
+    'public', 'password', 'reset', 'i18n'
+}
+
+def get_tenant_app_roots():
+    """Lazily load tenant app roots to avoid early-import circularities with settings."""
+    _BASE_TENANT_APPS = getattr(settings, 'TENANT_APPS', [])
+    return {app.split('.')[-1] for app in _BASE_TENANT_APPS} - {
+        'admin', 'auth', 'contenttypes', 'sessions', 'messages', 'staticfiles',
+        'humanize', 'crispy_forms', 'crispy_bootstrap5', 'django_tenants', 
+        'cloudinary', 'cloudinary_storage'
+    }
+
+def get_reserved_paths_strict():
+    return set(RESERVED_PATHS) | get_tenant_app_roots() | {''}
 
 
 def _is_ajax(request):
@@ -44,71 +66,54 @@ class TenantPathMiddleware(TenantMainMiddleware):
         possible_schema = path_parts[0] if path_parts else None
 
         # 2b. Recovery guard: if a tenant app path is hit without tenant prefix
-        # (e.g., /finance/), recover the tenant from same-origin referrer and redirect.
-        tenant_app_roots = {
-            'teachers', 'students', 'parents', 'homework', 'academics',
-            'announcements', 'communication', 'finance'
-        }
+        # (e.g., /finance/), recover the tenant from session or same-origin referrer and redirect.
+        tenant_app_roots = get_tenant_app_roots()
+        reserved_paths_strict = get_reserved_paths_strict()
+        
         if possible_schema in tenant_app_roots and len(path_parts) >= 1:
-            ref = request.META.get('HTTP_REFERER', '')
-            try:
-                ref_path = urlparse(ref).path or ''
-                ref_first = ref_path.strip('/').split('/')[0] if ref_path else ''
-            except Exception:
-                ref_first = ''
+            recovery_schema = None
 
-            if ref_first and ref_first not in tenant_app_roots:
-                if ref_first not in [
-                    'static', 'media', 'admin', 'accounts', 'signup', 'login', 'logout', 'debug',
-                    'favicon.ico', 'favicon.png', 'apple-touch-icon.png', 'apple-touch-icon-precomposed.png',
-                    'favicon.svg', 'robots.txt', 'sitemap.xml', 'dashboard', 'tenants', 'find-school',
-                    'sw.js', 'offline', 'public'
-                ]:
-                    try:
-                        ref_tenant = School.objects.filter(schema_name=ref_first, is_active=True).first()
-                    except Exception as e:
-                        logger.warning("Tenant recovery lookup failed for referrer schema '%s': %s", ref_first, e)
-                        ref_tenant = None
-
-                    if ref_tenant:
-                        qs = request.META.get('QUERY_STRING', '')
-                        suffix = f"?{qs}" if qs else ''
-                        return HttpResponseRedirect(f"/{ref_first}{request.path}{suffix}")
-
-            # If referrer is unavailable, try session-bound schema as a safe recovery source.
+            # a. Try session-bound schema first (most reliable/secure source)
             session_schema = request.session.get('auth_tenant_schema') if hasattr(request, 'session') else None
             if session_schema and session_schema not in tenant_app_roots:
                 try:
                     session_tenant = School.objects.filter(schema_name=session_schema, is_active=True).first()
+                    if session_tenant:
+                        recovery_schema = session_schema
                 except Exception as e:
-                    logger.warning("Tenant recovery lookup failed for session schema '%s': %s", session_schema, e)
-                    session_tenant = None
+                    logger.debug("Tenant recovery lookup failed for session schema '%s': %s", session_schema, e, exc_info=True)
 
-                if session_tenant:
-                    qs = request.META.get('QUERY_STRING', '')
-                    suffix = f"?{qs}" if qs else ''
-                    return HttpResponseRedirect(f"/{session_schema}{request.path}{suffix}")
+            # b. Fall back to HTTP_REFERER if session is unavailable
+            if not recovery_schema:
+                ref = request.META.get('HTTP_REFERER', '')
+                try:
+                    ref_path = urlparse(ref).path or ''
+                    ref_first = ref_path.strip('/').split('/')[0] if ref_path else ''
+                except Exception:
+                    ref_first = ''
+
+                if ref_first and ref_first not in tenant_app_roots and ref_first not in reserved_paths_strict:
+                    try:
+                        ref_tenant = School.objects.filter(schema_name=ref_first, is_active=True).first()
+                        if ref_tenant:
+                            recovery_schema = ref_first
+                    except Exception as e:
+                        logger.debug("Tenant recovery lookup failed for referrer schema '%s': %s", ref_first, e, exc_info=True)
+
+            if recovery_schema:
+                qs = request.META.get('QUERY_STRING', '')
+                suffix = f"?{qs}" if qs else ''
+                return HttpResponseRedirect(f"/{recovery_schema}{request.path}{suffix}")
 
         tenant = None
 
         # 3. Check if the first segment matches a valid School schema (excluding 'public')
-        reserved_paths = [
-            'static', 'media', 'admin', 'accounts',
-            'signup', 'login', 'logout', 'debug', 'favicon.ico', 'favicon.png',
-            'apple-touch-icon.png', 'apple-touch-icon-precomposed.png',
-            'favicon.svg', 'robots.txt', 'sitemap.xml',
-            'dashboard', 'tenants', 'find-school', 'sw.js', 'offline',
-            'about', 'contact', 'privacy', 'terms', 'health',
-            'landlord',
-        ]
-
-        if possible_schema and possible_schema != 'public' and possible_schema not in reserved_paths:
+        if possible_schema and possible_schema != 'public' and possible_schema not in RESERVED_PATHS:
             logger.debug("Checking tenant candidate: %s", possible_schema)
             try:
-                from tenants.models import School
                 tenant = School.objects.filter(schema_name=possible_schema).first()
             except Exception as e:
-                logger.error("Tenant DB lookup error for %s: %s", possible_schema, e)
+                logger.error("Tenant DB lookup error for %s: %s", possible_schema, e, exc_info=True)
                 if settings.DEBUG:
                     raise e
                 tenant = None
@@ -159,28 +164,16 @@ class TenantPathMiddleware(TenantMainMiddleware):
 
         else:
             # === TENANT NOT FOUND ===
-            reserved_paths_strict = [
-                'admin', 'static', 'media', 'signup', 'login', 'logout',
-                'dashboard', 'favicon.ico', 'favicon.png', 'favicon.svg',
-                'robots.txt', 'sitemap.xml', 'debug', 'accounts', 'tenants', 'find-school',
-                'password', 'reset', 'sw.js', 'offline', 'apple-touch-icon.png',
-                'apple-touch-icon-precomposed.png',
-                'about', 'contact', 'privacy', 'terms', 'health', 'landlord',
-                'teachers', 'students', 'parents', 'homework', 'academics',
-                'announcements', 'communication', 'finance',
-                ''
-            ]
             if possible_schema and possible_schema not in reserved_paths_strict and possible_schema != 'public':
                 logger.debug("Tenant '%s' not found and not reserved", possible_schema)
                 raise Http404(f"School '{possible_schema}' does not exist.")
 
             # === PUBLIC CONTEXT ===
             try:
-                from tenants.models import School
                 public_schema = getattr(settings, 'PUBLIC_SCHEMA_NAME', 'public')
                 request.tenant = School.objects.get(schema_name=public_schema)
-            except Exception:
-                from tenants.models import School
+            except Exception as e:
+                logger.debug("Failed to pull public schema: %s", e, exc_info=True)
                 request.tenant = School(schema_name='public', name='Public (Fallback)')
 
             if hasattr(connection, 'search_path_set_schemas'):
@@ -212,14 +205,14 @@ class TenantPathMiddleware(TenantMainMiddleware):
                 with transaction.atomic():
                     # Force the lazy object to resolve NOW, inside the txn.
                     _is_auth = request.user.is_authenticated  # noqa: F841
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Failed to force-resolve user auth status: %s", e, exc_info=True)
 
         # Session isolation guard: auth sessions must stay bound to a single tenant schema.
         # Without this, a valid session from one tenant can be interpreted in another tenant
         # (ID collision risk across tenant-local auth tables).
         try:
-            if getattr(request, 'user', None) and request.user.is_authenticated and request.tenant.schema_name != 'public':
+            if getattr(request, 'user', None) and getattr(request.user, 'is_authenticated', False) and request.tenant.schema_name != 'public':
                 current_schema = request.tenant.schema_name
                 bound_schema = request.session.get('auth_tenant_schema')
 
@@ -238,8 +231,8 @@ class TenantPathMiddleware(TenantMainMiddleware):
                 # Backfill for legacy sessions that predate tenant binding.
                 if not bound_schema:
                     request.session['auth_tenant_schema'] = current_schema
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Tenant session isolation validation failed: %s", e, exc_info=True)
 
         if request.tenant.schema_name == 'public':
             return None
@@ -251,7 +244,7 @@ class TenantPathMiddleware(TenantMainMiddleware):
             if hasattr(connection, 'search_path_set_schemas'):
                 connection.search_path_set_schemas = None
 
-            if not getattr(request, 'user', None) or not request.user.is_authenticated:
+            if not getattr(request, 'user', None) or not getattr(request.user, 'is_authenticated', False):
                 return None
 
             path = request.path_info or '/'
@@ -259,22 +252,11 @@ class TenantPathMiddleware(TenantMainMiddleware):
                 return None
 
             try:
-                from .models import SchoolSubscription
-                from django.utils import timezone
-                # Use a savepoint so ProgrammingError (missing columns on legacy
-                # schemas) rolls back only the inner block, not the whole request.
-                try:
-                    with transaction.atomic():
-                        sub = SchoolSubscription.objects.defer(
-                            'paystack_subscription_code',
-                            'paystack_customer_code',
-                        ).select_related('plan').get(school=request.tenant)
-                except ProgrammingError:
-                    sub = SchoolSubscription.objects.defer(
-                        'paystack_subscription_code',
-                        'paystack_customer_code',
-                        'mrr',
-                    ).select_related('plan').get(school=request.tenant)
+                sub = SchoolSubscription.objects.defer(
+                    'paystack_subscription_code',
+                    'paystack_customer_code',
+                ).select_related('plan').get(school=request.tenant)
+                
                 request._tenant_subscription = sub
                 if sub.status == 'trial' and sub.trial_ends_at and timezone.now() > sub.trial_ends_at:
                     sub_url = f"/{request.tenant.schema_name}/tenants/subscription/"
@@ -288,8 +270,8 @@ class TenantPathMiddleware(TenantMainMiddleware):
                     return HttpResponseRedirect(sub_url)
             except SchoolSubscription.DoesNotExist:
                 request._tenant_subscription = None
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Failed validating school subscription: %s", e, exc_info=True)
 
             return None
         finally:
@@ -345,8 +327,9 @@ class TenantPathMiddleware(TenantMainMiddleware):
                     response['Location'] = f'/{tenant_schema}/login/?{query}'
                 return response
 
-        except Exception:
+        except Exception as e:
             # Never break responses due to redirect normalization issues.
+            logger.debug("Failed redirect normalization in process_response: %s", e, exc_info=True)
             return response
 
         return response
