@@ -64,11 +64,30 @@ class TenantPathMiddleware(TenantMainMiddleware):
                     'favicon.svg', 'robots.txt', 'sitemap.xml', 'dashboard', 'tenants', 'find-school',
                     'sw.js', 'offline', 'public'
                 ]:
-                    ref_tenant = School.objects.filter(schema_name=ref_first, is_active=True).first()
+                    try:
+                        ref_tenant = School.objects.filter(schema_name=ref_first, is_active=True).first()
+                    except Exception as e:
+                        logger.warning("Tenant recovery lookup failed for referrer schema '%s': %s", ref_first, e)
+                        ref_tenant = None
+
                     if ref_tenant:
                         qs = request.META.get('QUERY_STRING', '')
                         suffix = f"?{qs}" if qs else ''
                         return HttpResponseRedirect(f"/{ref_first}{request.path}{suffix}")
+
+            # If referrer is unavailable, try session-bound schema as a safe recovery source.
+            session_schema = request.session.get('auth_tenant_schema') if hasattr(request, 'session') else None
+            if session_schema and session_schema not in tenant_app_roots:
+                try:
+                    session_tenant = School.objects.filter(schema_name=session_schema, is_active=True).first()
+                except Exception as e:
+                    logger.warning("Tenant recovery lookup failed for session schema '%s': %s", session_schema, e)
+                    session_tenant = None
+
+                if session_tenant:
+                    qs = request.META.get('QUERY_STRING', '')
+                    suffix = f"?{qs}" if qs else ''
+                    return HttpResponseRedirect(f"/{session_schema}{request.path}{suffix}")
 
         tenant = None
 
@@ -146,7 +165,10 @@ class TenantPathMiddleware(TenantMainMiddleware):
                 'robots.txt', 'sitemap.xml', 'debug', 'accounts', 'tenants', 'find-school',
                 'password', 'reset', 'sw.js', 'offline', 'apple-touch-icon.png',
                 'apple-touch-icon-precomposed.png',
-                'about', 'contact', 'privacy', 'terms', 'health', 'landlord', ''
+                'about', 'contact', 'privacy', 'terms', 'health', 'landlord',
+                'teachers', 'students', 'parents', 'homework', 'academics',
+                'announcements', 'communication', 'finance',
+                ''
             ]
             if possible_schema and possible_schema not in reserved_paths_strict and possible_schema != 'public':
                 logger.debug("Tenant '%s' not found and not reserved", possible_schema)

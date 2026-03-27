@@ -795,7 +795,7 @@ def admissions_assistant(request):
     # Basic IP-based rate limiting (20 requests per 60s window)
     from django.core.cache import cache
     ip = request.META.get('REMOTE_ADDR', 'unknown')
-    schema = connection.tenant.schema_name
+    schema = getattr(getattr(connection, 'tenant', None), 'schema_name', 'public')
     rate_key = f"{schema}:chatbot_rate:{ip}"
     hits = cache.get(rate_key, 0)
     if hits >= 20:
@@ -812,7 +812,7 @@ def admissions_assistant(request):
         logger.warning("Chatbot payload parsing error: %s", e)
         return JsonResponse({'error': 'Invalid payload', 'details': str(e)}, status=400)
 
-    question = (payload.get('question') or '').strip()
+    question = (payload.get('question') or payload.get('message') or '').strip()
     logger.debug("Chatbot question received: %s", question[:120])
     
     if not question:

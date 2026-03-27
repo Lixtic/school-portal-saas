@@ -8,7 +8,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_http_methods
 from accounts.models import User
-from django.db.utils import OperationalError, ProgrammingError
+from django.db.utils import OperationalError, ProgrammingError, DatabaseError
 import logging
 import json
 
@@ -113,7 +113,7 @@ def notifications_unread_count(request):
         latest = qs.values('link', 'message').first()
         latest_link = (latest.get('link') or '') if latest else ''
         return JsonResponse({'count': count, 'latest_link': latest_link})
-    except (ProgrammingError, OperationalError):
+    except (ProgrammingError, OperationalError, DatabaseError):
         # Tenant schema may not have announcements tables yet.
         logger.warning(
             "notifications_unread_count fallback: notifications table missing/unavailable for user=%s",
