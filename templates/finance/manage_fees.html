@@ -134,7 +134,7 @@
                                 data-fee-name="{{ fee.head.name }} – {{ fee.class_level.name }}"
                                 data-current-collector="{{ fee.assigned_collector.id|default:'' }}"
                                 title="Assign collector teacher">
-                                <i class="bi bi-pencil-square"></i> Assign
+                                <i class="bi bi-pencil-square" style="pointer-events:none;"></i> Assign
                             </button>
                         </div>
                     </div>
@@ -223,7 +223,7 @@
     const urlTemplate = "{% url 'finance:assign_fee_collector' structure_id=0 %}".replace('/0/', '/__FEE_ID__/');
 
     modal.addEventListener('show.bs.modal', function (e) {
-        const btn = e.relatedTarget;
+        const btn = e.relatedTarget && e.relatedTarget.closest('[data-fee-id]') || e.relatedTarget;
         const feeId = btn.dataset.feeId;
         const feeName = btn.dataset.feeName;
         const currentCollector = btn.dataset.currentCollector;
