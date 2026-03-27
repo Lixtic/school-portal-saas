@@ -113,6 +113,9 @@ class TenantPathMiddleware(TenantMainMiddleware):
                 suffix = f"?{qs}" if qs else ''
                 return HttpResponseRedirect(f"/{recovery_schema}{request.path}{suffix}")
 
+            # No recovery info available — guide the user to school search.
+            return HttpResponseRedirect('/find-school/')
+
         tenant = None
 
         # 3. Check if the first segment matches a valid School schema (excluding 'public')
