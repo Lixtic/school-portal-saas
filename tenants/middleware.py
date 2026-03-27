@@ -75,6 +75,7 @@ class TenantPathMiddleware(TenantMainMiddleware):
         # 2b. Recovery guard: if a tenant app path is hit without tenant prefix
         # (e.g., /finance/), recover the tenant from session or same-origin referrer and redirect.
         tenant_app_roots = get_tenant_app_roots()
+        reserved_paths = get_reserved_paths()
         reserved_paths_strict = get_reserved_paths_strict()
         
         if possible_schema in tenant_app_roots and len(path_parts) >= 1:
@@ -115,7 +116,7 @@ class TenantPathMiddleware(TenantMainMiddleware):
         tenant = None
 
         # 3. Check if the first segment matches a valid School schema (excluding 'public')
-        if possible_schema and possible_schema != 'public' and possible_schema not in RESERVED_PATHS:
+        if possible_schema and possible_schema != 'public' and possible_schema not in reserved_paths:
             logger.debug("Checking tenant candidate: %s", possible_schema)
             try:
                 tenant = School.objects.filter(schema_name=possible_schema).first()
