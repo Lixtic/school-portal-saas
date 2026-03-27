@@ -1,37 +1,44 @@
-﻿from django.conf import settings
+from django.conf import settings
 from django.db import connection, close_old_connections, transaction
 from django.http import Http404, HttpResponseRedirect, JsonResponse
-from django.urls import set_urlconf, set_script_prefix
+from django.urls import set_script_prefix
 from django.contrib.auth import logout
 from django_tenants.middleware.main import TenantMainMiddleware
 from tenants.models import School, SchoolSubscription
 from django.utils import timezone
 from urllib.parse import urlparse, parse_qsl, urlencode
+from functools import lru_cache
 import logging
 
 logger = logging.getLogger(__name__)
 
-# Reserved non-tenant paths
-RESERVED_PATHS = {
-    'static', 'media', 'admin', 'accounts', 'signup', 'login', 'logout', 
-    'debug', 'favicon.ico', 'favicon.png', 'apple-touch-icon.png', 
-    'apple-touch-icon-precomposed.png', 'favicon.svg', 'robots.txt', 
-    'sitemap.xml', 'dashboard', 'tenants', 'find-school', 'sw.js', 
-    'offline', 'about', 'contact', 'privacy', 'terms', 'health', 'landlord', 
-    'public', 'password', 'reset', 'i18n'
-}
+@lru_cache(maxsize=1)
+def get_reserved_paths():
+    """Reserved non-tenant paths — cached to avoid recomputation per request."""
+    return {
+        'static', 'media', 'admin', 'accounts', 'signup', 'login', 'logout',
+        'debug', 'favicon.ico', 'favicon.png', 'apple-touch-icon.png',
+        'apple-touch-icon-precomposed.png', 'favicon.svg', 'robots.txt',
+        'sitemap.xml', 'dashboard', 'tenants', 'find-school', 'sw.js',
+        'offline', 'about', 'contact', 'privacy', 'terms', 'health', 'landlord',
+        'public', 'password', 'reset', 'i18n'
+    }
 
+
+@lru_cache(maxsize=1)
 def get_tenant_app_roots():
     """Lazily load tenant app roots to avoid early-import circularities with settings."""
     _BASE_TENANT_APPS = getattr(settings, 'TENANT_APPS', [])
     return {app.split('.')[-1] for app in _BASE_TENANT_APPS} - {
         'admin', 'auth', 'contenttypes', 'sessions', 'messages', 'staticfiles',
-        'humanize', 'crispy_forms', 'crispy_bootstrap5', 'django_tenants', 
+        'humanize', 'crispy_forms', 'crispy_bootstrap5', 'django_tenants',
         'cloudinary', 'cloudinary_storage'
     }
 
+
+@lru_cache(maxsize=1)
 def get_reserved_paths_strict():
-    return set(RESERVED_PATHS) | get_tenant_app_roots() | {''}
+    return set(get_reserved_paths()) | get_tenant_app_roots() | {''}
 
 
 def _is_ajax(request):

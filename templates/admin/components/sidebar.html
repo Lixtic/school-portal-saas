@@ -15,31 +15,31 @@
         <nav class="sidebar-nav">
             <a href="{% url 'tenants:landlord_dashboard' %}" 
                class="sidebar-nav-link {% if request.resolver_match.url_name == 'landlord_dashboard' %}active{% endif %}"
-               title="Dashboard">
+               data-tooltip="Dashboard">
                 <i class="bi bi-speedometer2"></i>
                 <span>Dashboard</span>
             </a>
             <a href="{% url 'tenants:approval_queue' %}" 
                class="sidebar-nav-link {% if request.resolver_match.url_name == 'approval_queue' %}active{% endif %}"
-               title="Approvals">
+               data-tooltip="Approvals">
                 <i class="bi bi-clipboard-check"></i>
                 <span>Approvals</span>
             </a>
             <a href="{% url 'tenants:revenue_analytics' %}" 
                class="sidebar-nav-link {% if request.resolver_match.url_name == 'revenue_analytics' %}active{% endif %}"
-               title="Revenue">
+               data-tooltip="Revenue">
                 <i class="bi bi-graph-up"></i>
                 <span>Revenue</span>
             </a>
             <a href="{% url 'tenants:system_health' %}" 
                class="sidebar-nav-link {% if request.resolver_match.url_name == 'system_health' %}active{% endif %}"
-               title="Health">
+               data-tooltip="Health">
                 <i class="bi bi-activity"></i>
                 <span>Health</span>
             </a>
             <a href="{% url 'tenants:support_tickets' %}" 
                class="sidebar-nav-link {% if request.resolver_match.url_name == 'support_tickets' or request.resolver_match.url_name == 'support_ticket_detail' or request.resolver_match.url_name == 'create_support_ticket' %}active{% endif %}"
-               title="Support">
+               data-tooltip="Support">
                 <i class="bi bi-headset"></i>
                 <span>Support</span>
             </a>
@@ -53,23 +53,23 @@
         <nav class="sidebar-nav">
             <a href="{% url 'tenants:database_backups' %}"
                class="sidebar-nav-link {% if request.resolver_match.url_name == 'database_backups' %}active{% endif %}"
-               title="Backups">
+               data-tooltip="Backups">
                 <i class="bi bi-shield-check"></i>
                 <span>Backups</span>
             </a>
             {% if request.user.is_superuser %}
             <a href="{% url 'tenants:ai_model_settings' %}"
                class="sidebar-nav-link {% if request.resolver_match.url_name == 'ai_model_settings' %}active{% endif %}"
-               title="AI Models">
+               data-tooltip="AI Models">
                 <i class="bi bi-cpu"></i>
                 <span>AI Models</span>
             </a>
             {% endif %}
-            <a href="/admin/tenants/school/" class="sidebar-nav-link" target="_blank" title="Tenants">
+            <a href="/admin/tenants/school/" class="sidebar-nav-link" target="_blank" data-tooltip="Tenants">
                 <i class="bi bi-list-check"></i>
                 <span>Tenants</span>
             </a>
-            <a href="/admin/" class="sidebar-nav-link" target="_blank" title="Settings">
+            <a href="/admin/" class="sidebar-nav-link" target="_blank" data-tooltip="Settings">
                 <i class="bi bi-gear"></i>
                 <span>Settings</span>
             </a>
@@ -355,65 +355,129 @@
             padding-top: var(--admin-spacing-md);
         }
     }
+
+    /* ===== Sidebar Icon Tooltips ===== */
+    .sidebar-tooltip {
+        position: fixed;
+        z-index: 99999;
+        pointer-events: none;
+        white-space: nowrap;
+        font-family: 'Manrope', system-ui, sans-serif;
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.025em;
+        padding: 0.42rem 0.85rem 0.42rem 0.75rem;
+        border-radius: 10px;
+        border: 1px solid color-mix(in srgb, var(--admin-primary, #7c3aed) 30%, var(--admin-border, #334155) 70%);
+        border-left: 3px solid var(--admin-primary, #7c3aed);
+        background: var(--admin-card-bg, #1e293b);
+        color: var(--admin-text-primary, #f1f5f9);
+        box-shadow:
+            0 4px 24px rgba(124, 58, 237, 0.18),
+            0 2px 10px rgba(0, 0, 0, 0.22);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        /* Initial hidden state */
+        opacity: 0;
+        transform: translateX(-8px) translateY(-50%);
+        transition:
+            opacity 0.18s cubic-bezier(.4, 0, .2, 1),
+            transform 0.18s cubic-bezier(.4, 0, .2, 1);
+    }
+
+    .sidebar-tooltip.sidebar-tooltip--visible {
+        opacity: 1;
+        transform: translateX(0) translateY(-50%);
+    }
+
+    /* Left-pointing arrow */
+    .sidebar-tooltip::before {
+        content: '';
+        position: absolute;
+        left: -5px;
+        top: 50%;
+        transform: translateY(-50%) rotate(45deg);
+        width: 8px;
+        height: 8px;
+        background: var(--admin-card-bg, #1e293b);
+        border-left: 1px solid color-mix(in srgb, var(--admin-primary, #7c3aed) 30%, var(--admin-border, #334155) 70%);
+        border-bottom: 1px solid color-mix(in srgb, var(--admin-primary, #7c3aed) 30%, var(--admin-border, #334155) 70%);
+        border-radius: 0 0 0 2px;
+    }
+
+    /* Subtle violet shimmer on the tooltip */
+    .sidebar-tooltip::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: linear-gradient(135deg, rgba(124, 58, 237, 0.07) 0%, transparent 60%);
+        pointer-events: none;
+    }
 </style>
 
-/* Custom sidebar tooltip styles */
-.sidebar-nav-link {
-    position: relative;
-}
-.sidebar-tooltip {
-    visibility: hidden;
-    opacity: 0;
-    pointer-events: none;
-    position: absolute;
-    left: 100%;
-    top: 50%;
-    transform: translateY(-50%) translateX(12px);
-    background: var(--admin-primary-dark, #6d28d9);
-    color: #fff;
-    font-size: 0.92rem;
-    font-weight: 600;
-    padding: 7px 16px;
-    border-radius: 8px;
-    white-space: nowrap;
-    box-shadow: 0 4px 24px rgba(76, 33, 140, 0.13);
-    z-index: 1200;
-    transition: opacity 0.18s cubic-bezier(.4,0,.2,1), visibility 0.18s cubic-bezier(.4,0,.2,1);
-    letter-spacing: 0.01em;
-}
-.admin-layout.sidebar-collapsed .sidebar-nav-link:hover .sidebar-tooltip {
-    visibility: visible;
-    opacity: 1;
-}
-@media (max-width: 1024px) {
-    .sidebar-tooltip { display: none !important; }
-}
-
 <script>
-// Custom tooltips for collapsed sidebar
-(function() {
+(function () {
+    'use strict';
+    var _tip = null;
+
+    function getTip() {
+        if (!_tip) {
+            _tip = document.createElement('div');
+            _tip.className = 'sidebar-tooltip';
+            document.body.appendChild(_tip);
+        }
+        return _tip;
+    }
+
     function isCollapsed() {
         var layout = document.querySelector('.admin-layout');
         return layout && layout.classList.contains('sidebar-collapsed') && window.innerWidth > 1024;
     }
-    document.querySelectorAll('.sidebar-nav-link').forEach(function(link) {
-        var label = link.querySelector('span');
-        var text = label ? label.textContent.trim() : link.title;
-        if (!link.querySelector('.sidebar-tooltip')) {
-            var tooltip = document.createElement('span');
-            tooltip.className = 'sidebar-tooltip';
-            tooltip.innerText = text;
-            link.appendChild(tooltip);
-        }
-        link.addEventListener('mouseenter', function() {
-            if (isCollapsed()) {
-                var tooltip = link.querySelector('.sidebar-tooltip');
-                if (tooltip) tooltip.style.display = 'block';
-            }
+
+    function showTooltip(el) {
+        if (!isCollapsed()) return;
+        var label = el.getAttribute('data-tooltip');
+        if (!label) return;
+
+        var rect = el.getBoundingClientRect();
+        var t = getTip();
+
+        // Reset before repositioning to avoid flash
+        t.classList.remove('sidebar-tooltip--visible');
+        t.textContent = label;
+
+        // Position: right of the collapsed sidebar icon, vertically centered
+        t.style.left = (rect.right + 14) + 'px';
+        t.style.top  = (rect.top + rect.height / 2) + 'px';
+
+        // Force reflow so transition plays from the start state
+        void t.offsetWidth;
+        t.classList.add('sidebar-tooltip--visible');
+    }
+
+    function hideTooltip() {
+        if (_tip) _tip.classList.remove('sidebar-tooltip--visible');
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var sidebar = document.getElementById('adminSidebar');
+        if (!sidebar) return;
+
+        sidebar.querySelectorAll('[data-tooltip]').forEach(function (el) {
+            el.addEventListener('mouseenter', function () { showTooltip(el); });
+            el.addEventListener('mouseleave', hideTooltip);
+            el.addEventListener('click', hideTooltip);
         });
-        link.addEventListener('mouseleave', function() {
-            var tooltip = link.querySelector('.sidebar-tooltip');
-            if (tooltip) tooltip.style.display = '';
+
+        // Also hide when sidebar expands
+        var observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (m) {
+                if (m.attributeName === 'class') hideTooltip();
+            });
         });
+        var layout = document.querySelector('.admin-layout');
+        if (layout) observer.observe(layout, { attributes: true });
     });
-})();
+}());
+</script>
