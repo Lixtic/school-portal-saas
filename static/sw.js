@@ -1,6 +1,7 @@
-﻿const SW_VERSION = 'v6';
+﻿const SW_VERSION = 'v7';
 const STATIC_CACHE = `school-static-${SW_VERSION}`;
 const RUNTIME_CACHE = `school-runtime-${SW_VERSION}`;
+const NAV_CACHE = `school-nav-${SW_VERSION}`;
 const OFFLINE_URL = '/offline/';
 const PRECACHE_URLS = [
   '/',
@@ -32,7 +33,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((key) => key.startsWith('school-') && ![STATIC_CACHE, RUNTIME_CACHE].includes(key))
+          .filter((key) => key.startsWith('school-') && ![STATIC_CACHE, RUNTIME_CACHE, NAV_CACHE].includes(key))
           .map((key) => caches.delete(key))
       )
     )
@@ -82,6 +83,39 @@ async function networkFirst(request) {
   }
 }
 
+// Stale-while-revalidate for navigation: serves cached page instantly,
+// fetches fresh copy in background. Makes repeat visits feel app-like.
+async function navStaleWhileRevalidate(request) {
+  const cache = await caches.open(NAV_CACHE);
+  const cached = await cache.match(request);
+  const networkPromise = fetch(request)
+    .then((response) => {
+      if (response && response.ok && !response.redirected) {
+        cache.put(request, response.clone());
+      }
+      return response;
+    })
+    .catch(() => cached);
+
+  // If we have a cached copy, serve it immediately.
+  // The network fetch updates the cache in the background.
+  return cached || networkPromise;
+}
+
+// Check if a navigation URL is a tenant page (not auth/login/signup).
+function isTenantAppPage(url) {
+  const path = url.pathname;
+  // Tenant paths look like /{schema_name}/... with at least two segments
+  const segments = path.split('/').filter(Boolean);
+  if (segments.length < 2) return false;
+  // Exclude auth-related pages that must always be fresh
+  const authPaths = ['login', 'logout', 'signup', 'password_reset', 'register'];
+  if (authPaths.includes(segments[1])) return false;
+  // Exclude public/admin paths
+  if (['admin', 'public', '__debug__'].includes(segments[0])) return false;
+  return true;
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
@@ -94,7 +128,14 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (request.mode === 'navigate') {
-    event.respondWith(networkFirst(request));
+    const url = new URL(request.url);
+    // Tenant app pages: stale-while-revalidate (instant repeat visits).
+    // Auth/public pages: network-first (always fresh).
+    if (isTenantAppPage(url)) {
+      event.respondWith(navStaleWhileRevalidate(request));
+    } else {
+      event.respondWith(networkFirst(request));
+    }
     return;
   }
 

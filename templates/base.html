@@ -314,6 +314,83 @@
                 transform: none;
             }
         }
+
+        /* ── 6. INSTANT NAVIGATION OVERLAY ──────────────────────────────
+           Covers ONLY the content area on link clicks so sidebar/header
+           stay visible — mimics app-like instant navigation.             */
+        #navTransitionOverlay {
+            position: fixed;
+            top: var(--header-height, 70px);
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 99;
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.12s ease-out, visibility 0.12s ease-out;
+            background: var(--surface-bg, #f3f4f6);
+        }
+        #navTransitionOverlay.active {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+        /* Skeleton placeholder rows inside the overlay */
+        .nav-skeleton-rows {
+            padding: 1.5rem 1.25rem;
+            max-width: 900px;
+        }
+        .nav-skeleton-block {
+            border-radius: 12px;
+            background: var(--surface-card, #fff);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            position: relative;
+            overflow: hidden;
+        }
+        .nav-skeleton-block::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(100deg,
+                rgba(148,163,184,0.08) 20%,
+                rgba(203,213,225,0.28) 40%,
+                rgba(148,163,184,0.08) 60%);
+            transform: translateX(-100%);
+            animation: navSkeletonSweep 1.2s ease-in-out infinite;
+        }
+        .nav-skeleton-block.skel-header { height: 56px; margin-bottom: 1rem; }
+        .nav-skeleton-block.skel-card   { height: 88px; margin-bottom: 0.75rem; }
+        .nav-skeleton-block.skel-wide   { height: 160px; margin-bottom: 0.75rem; }
+        .nav-skeleton-block.skel-half   { height: 88px; margin-bottom: 0.75rem; }
+        @keyframes navSkeletonSweep {
+            100% { transform: translateX(100%); }
+        }
+        [data-bs-theme="dark"] #navTransitionOverlay {
+            background: var(--surface-bg, #0f172a);
+        }
+        [data-bs-theme="dark"] .nav-skeleton-block {
+            background: var(--surface-card, #1e293b);
+        }
+        [data-bs-theme="dark"] .nav-skeleton-block::after {
+            background: linear-gradient(100deg,
+                rgba(148,163,184,0.05) 20%,
+                rgba(203,213,225,0.14) 40%,
+                rgba(148,163,184,0.05) 60%);
+        }
+        /* On desktop, offset by sidebar width */
+        @media (min-width: 992px) {
+            #navTransitionOverlay {
+                left: var(--sidebar-width, 260px);
+            }
+            body.sidebar-collapsed #navTransitionOverlay {
+                left: var(--sidebar-collapsed-width, 70px);
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .nav-skeleton-block::after { animation: none; transform: none; }
+            #navTransitionOverlay { transition: none; }
+        }
     </style>
 
     <style>
@@ -1519,7 +1596,48 @@
             .mobile-bottom-nav { display: flex; }
 
             /* keep content reachable above nav */
-            main { padding-bottom: 190px; }
+            .main-content,
+            body.mobile-app-shell .main-content { padding-bottom: calc(190px + env(safe-area-inset-bottom, 0px)) !important; }
+        }
+
+        @media (max-width: 768px) and (max-height: 760px) {
+            .mobile-bottom-nav {
+                width: min(320px, 86vw);
+                padding: 6px;
+                border-radius: 12px;
+                gap: 3px;
+                bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+            }
+
+            .bottom-nav-item {
+                padding: 8px 3px;
+                gap: 0;
+            }
+
+            .bottom-nav-item.active {
+                flex: 1.2;
+                transform: translateY(-1px);
+            }
+
+            .bottom-nav-item i { font-size: 1.05rem; }
+
+            .bottom-nav-item span:last-child {
+                display: none;
+                font-size: 0.58rem;
+                line-height: 1;
+                margin-top: 2px;
+            }
+
+            .bottom-nav-item.active span:last-child { display: block; }
+
+            .main-content,
+            body.mobile-app-shell .main-content { padding-bottom: calc(165px + env(safe-area-inset-bottom, 0px)) !important; }
+
+            #help-widget-btn { bottom: calc(82px + env(safe-area-inset-bottom, 0px)); }
+            #help-panel { bottom: calc(122px + env(safe-area-inset-bottom, 0px)); max-height: 56vh; }
+            .copilot-launcher,
+            .copilot-recall { bottom: calc(90px + env(safe-area-inset-bottom, 0px)) !important; }
+            .copilot-panel { bottom: calc(146px + env(safe-area-inset-bottom, 0px)) !important; }
         }
 
         /* Drawer footer */
@@ -1636,6 +1754,22 @@
     <!-- Aura Expressive Loader: Top Bar -->
     <div id="pageLoader" aria-hidden="true"></div>
 
+    <!-- Instant Navigation Overlay: skeleton shell covering content area only -->
+    <div id="navTransitionOverlay" aria-hidden="true">
+        <div class="nav-skeleton-rows">
+            <div class="nav-skeleton-block skel-header"></div>
+            <div class="row g-3 mb-3">
+                <div class="col-6"><div class="nav-skeleton-block skel-card"></div></div>
+                <div class="col-6"><div class="nav-skeleton-block skel-card"></div></div>
+            </div>
+            <div class="nav-skeleton-block skel-wide"></div>
+            <div class="row g-3">
+                <div class="col-6"><div class="nav-skeleton-block skel-half"></div></div>
+                <div class="col-6"><div class="nav-skeleton-block skel-half"></div></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Aura Expressive Loader: Form-Submit Overlay -->
     <div class="loading-overlay" id="globalLoader" aria-live="polite" aria-label="Loading">
         <div class="aura-loader-card">
@@ -1650,7 +1784,20 @@
     <script>
         (function () {
             const body = document.body;
-            if (!body || !body.classList.contains('has-skeleton-loader')) return;
+            if (!body) return;
+
+            // Auto-apply skeleton mode for all authenticated pages that have
+            // cards/tables in .main-content. Pages can still opt OUT with
+            // body_class "no-skeleton". This makes every page feel as fast
+            // as the sidebar drawer.
+            if (!body.classList.contains('has-skeleton-loader') && !body.classList.contains('no-skeleton')) {
+                // Only auto-apply for authenticated (has .main-content)
+                if (document.querySelector('.main-content')) {
+                    body.classList.add('has-skeleton-loader', 'skeleton-soft');
+                }
+            }
+
+            if (!body.classList.contains('has-skeleton-loader')) return;
             body.classList.add('is-page-loading');
 
             const clearDelayMs = body.classList.contains('skeleton-delay-medium') ? 220 :
@@ -2898,9 +3045,9 @@
         .typing-dot:nth-child(3) { animation-delay: 0.4s; }
         @keyframes copilot-bounce { 0%, 80%, 100% { transform: scale(0.7); opacity: 0.6; } 40% { transform: scale(1); opacity: 1; } }
         @media (max-width: 576px) {
-            .copilot-panel { right: 12px; bottom: 84px; height: 70vh; }
-            .copilot-launcher { right: 12px; bottom: 12px; }
-            .copilot-recall { right: 12px; bottom: 12px; }
+            .copilot-panel { right: 12px; bottom: calc(178px + env(safe-area-inset-bottom, 0px)); height: 70vh; }
+            .copilot-launcher { right: 12px; bottom: calc(108px + env(safe-area-inset-bottom, 0px)); }
+            .copilot-recall { right: 12px; bottom: calc(108px + env(safe-area-inset-bottom, 0px)); }
         }
     </style>
     <div class="copilot-launcher">
@@ -3562,6 +3709,16 @@
             __pageLoaderVisibleSince = Date.now();
         }
 
+        function showNavOverlay() {
+            const overlay = document.getElementById('navTransitionOverlay');
+            if (overlay) overlay.classList.add('active');
+        }
+
+        function hideNavOverlay() {
+            const overlay = document.getElementById('navTransitionOverlay');
+            if (overlay) overlay.classList.remove('active');
+        }
+
         function scheduleTopBarLoader() {
             if (__pageLoaderDelayTimer) return;
             __pageLoaderDelayTimer = setTimeout(function () {
@@ -3611,6 +3768,9 @@
             // Hide overlay immediately
             const loader = document.getElementById('globalLoader');
             if (loader) loader.classList.remove('active');
+
+            // Hide navigation transition overlay
+            hideNavOverlay();
 
             // Completion sweep on the top bar, with a minimum visible duration to avoid flicker.
             const bar = document.getElementById('pageLoader');
@@ -3669,6 +3829,11 @@
                     __navigationInFlight = true;
                     setMobileTapLoader(link);
                     scheduleTopBarLoader();
+
+                    // Show content-area skeleton overlay after a tiny delay
+                    // so the tap feedback registers first, then the content
+                    // area transitions — sidebar/header stay visible.
+                    setTimeout(showNavOverlay, 60);
                 }
             });
 
