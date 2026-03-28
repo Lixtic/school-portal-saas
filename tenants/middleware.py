@@ -3,6 +3,7 @@ from django.db import connection, close_old_connections, transaction
 from django.http import Http404, HttpResponseRedirect, JsonResponse
 from django.urls import set_script_prefix
 from django.contrib.auth import logout
+from django.contrib.auth.models import AnonymousUser
 from django_tenants.middleware.main import TenantMainMiddleware
 from tenants.models import School, SchoolSubscription
 from django.utils import timezone
@@ -211,13 +212,18 @@ class TenantPathMiddleware(TenantMainMiddleware):
         # Wrapping the first access in transaction.atomic() ensures
         # SET search_path + SELECT run in ONE transaction → pgBouncer
         # keeps them on the same physical server connection.
-        if getattr(request, 'user', None) and request.tenant.schema_name != 'public':
+        # hasattr() checks attribute existence WITHOUT calling __bool__(),
+        # so the SimpleLazyObject stays unresolved until inside the txn.
+        if hasattr(request, 'user') and request.tenant.schema_name != 'public':
             try:
                 with transaction.atomic():
                     # Force the lazy object to resolve NOW, inside the txn.
                     _is_auth = request.user.is_authenticated  # noqa: F841
             except Exception as e:
                 logger.debug("Failed to force-resolve user auth status: %s", e, exc_info=True)
+                # Prevent a second resolution attempt outside the transaction
+                # which could hit the wrong schema via pgBouncer.
+                request.user = AnonymousUser()
 
         # Session isolation guard: auth sessions must stay bound to a single tenant schema.
         # Without this, a valid session from one tenant can be interpreted in another tenant
