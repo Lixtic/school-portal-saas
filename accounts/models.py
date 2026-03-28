@@ -20,6 +20,33 @@ class User(AbstractUser):
         return f"{self.username} ({self.get_user_type_display()})"
 
 
+class UserSettings(models.Model):
+    """Per-user application preferences — stored per tenant schema."""
+    user = models.OneToOneField(
+        'User',
+        on_delete=models.CASCADE,
+        related_name='settings',
+    )
+    # Notification toggles
+    notify_announcements = models.BooleanField(default=True)
+    notify_grades        = models.BooleanField(default=True)
+    notify_attendance    = models.BooleanField(default=True)
+    notify_messages      = models.BooleanField(default=True)
+    email_notifications  = models.BooleanField(default=False)
+
+    # UI preferences
+    compact_view = models.BooleanField(default=False)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'User Settings'
+        verbose_name_plural = 'User Settings'
+
+    def __str__(self):
+        return f"Settings({self.user.username})"
+
+
 class OnboardingProgress(models.Model):
     """Tracks per-user onboarding checklist progress."""
     user = models.OneToOneField(

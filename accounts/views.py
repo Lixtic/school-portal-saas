@@ -1696,3 +1696,47 @@ def onboarding_complete_step(request):
         progress.save()
 
     return JsonResponse({'ok': True, 'all_done': all_done})
+
+
+@login_required
+def user_settings(request):
+    """User-facing app settings: profile info and notification preferences."""
+    from accounts.models import UserSettings
+    from accounts.forms import UserProfileForm, UserSettingsForm
+
+    user_prefs, _ = UserSettings.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        action = request.POST.get('action', 'profile')
+
+        if action == 'profile':
+            profile_form = UserProfileForm(request.POST, request.FILES, instance=request.user)
+            prefs_form = UserSettingsForm(instance=user_prefs)
+            if profile_form.is_valid():
+                profile_form.save()
+                messages.success(request, 'Profile updated successfully.')
+                return redirect(request.path + '?tab=profile')
+            else:
+                messages.error(request, 'Please correct the errors below.')
+
+        elif action == 'notifications':
+            profile_form = UserProfileForm(instance=request.user)
+            prefs_form = UserSettingsForm(request.POST, instance=user_prefs)
+            if prefs_form.is_valid():
+                prefs_form.save()
+                messages.success(request, 'Notification preferences saved.')
+                return redirect(request.path + '?tab=notifications')
+
+        else:
+            profile_form = UserProfileForm(instance=request.user)
+            prefs_form = UserSettingsForm(instance=user_prefs)
+    else:
+        profile_form = UserProfileForm(instance=request.user)
+        prefs_form = UserSettingsForm(instance=user_prefs)
+
+    return render(request, 'accounts/settings.html', {
+        'profile_form': profile_form,
+        'prefs_form': prefs_form,
+        'active_tab': request.GET.get('tab', 'profile'),
+    })
+

@@ -1465,7 +1465,7 @@
             border-radius: 18px;
             display: none;
             gap: 6px;
-            z-index: 1001;
+            z-index: 1062;
             backdrop-filter: blur(12px);
         }
 
@@ -1517,6 +1517,9 @@
 
         @media (max-width: 768px) {
             .mobile-bottom-nav { display: flex; }
+
+            /* keep content reachable above nav */
+            main { padding-bottom: 120px; }
         }
 
         /* Drawer footer */
@@ -1917,6 +1920,11 @@
                                     </a>
                                 </li>
                                 <li>
+                                    <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{% url 'accounts:user_settings' %}">
+                                        <i class="bi bi-gear text-secondary"></i> App Settings
+                                    </a>
+                                </li>
+                                <li>
                                     <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{% url 'password_change' %}">
                                         <i class="bi bi-key text-warning"></i> Change Password
                                     </a>
@@ -2017,6 +2025,7 @@
                 <div class="mobile-nav-label">Settings</div>
                 <ul class="mobile-bubble-list">
                     <li class="mobile-bubble-item"><a href="{% url 'academics:school_settings' %}"><i class="bi bi-gear"></i>School Settings</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'accounts:user_settings' %}"><i class="bi bi-person-gear"></i>App Settings</a></li>
                 </ul>
                 {% endif %}
 
@@ -2681,9 +2690,9 @@
             </span>
             <span>Messages</span>
         </a>
-        <button type="button" class="bottom-nav-item" data-bs-toggle="modal" data-bs-target="#searchModal" aria-label="Search">
-            <i class="bi bi-search"></i>
-            <span>Search</span>
+        <button type="button" class="bottom-nav-item" onclick="toggleHelpWidgetFromNav()" aria-label="Help">
+            <i class="bi bi-question-circle"></i>
+            <span>Help</span>
         </button>
         <button type="button" class="bottom-nav-item {% if url_name == 'home' %}active{% endif %}" onclick="toggleMobileMenu()" aria-controls="mobileBubbleMenu" aria-expanded="false">
             <i class="bi bi-grid-3x3-gap"></i>
@@ -4735,7 +4744,17 @@
 </style>
 
 <button id="help-widget-btn" title="Help Assistant" aria-label="Open Help Chat">
-    <i class="bi bi-question-lg"></i>
+    .copilot-launcher { right: 12px; bottom: 12px; }
+
+    /* park help widget above the bottom nav and scale down */
+    #help-widget-btn { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); left: 16px; width: 44px; height: 44px; font-size: 1.1rem; box-shadow: 0 6px 18px rgba(0,0,0,0.24); }
+    #help-panel { bottom: calc(140px + env(safe-area-inset-bottom, 0px)); left: 12px; width: min(360px, 94vw); max-height: 440px; }
+    #help-widget-menu { bottom: auto; top: auto; }
+
+    /* allow hiding floating elements if needed */
+    body.mobile-help-hidden #help-widget-btn,
+    body.mobile-help-hidden #help-panel,
+    body.mobile-help-hidden #help-widget-menu { display: none !important; }
 </button>
 
 <div id="help-widget-menu" role="menu" aria-label="Help button options">
@@ -4800,6 +4819,15 @@
         } catch (_) {}
     }
 
+    // Mobile bottom nav hook
+    window.toggleHelpWidgetFromNav = function() {
+        if (window.innerWidth <= 992) {
+            // Hide floating help entirely if user previously opted out
+            if (document.body.classList.contains('mobile-help-hidden')) return;
+        }
+        toggleWidget();
+    };
+
     function closeWidgetMenu() {
         widgetMenu.classList.remove('open');
     }
@@ -4820,7 +4848,7 @@
         const menuW = 220;
         const menuH = 200;
         const maxX = window.innerWidth - menuW - 8;
-        const maxY = window.innerHeight - menuH - 8;
+        const maxY = window.innerHeight - menuH - 96; // keep above bottom nav
         widgetMenu.style.left = Math.max(8, Math.min(x, maxX)) + 'px';
         widgetMenu.style.top = Math.max(8, Math.min(y, maxY)) + 'px';
     }

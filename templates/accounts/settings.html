@@ -1,0 +1,459 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block extra_css %}
+<style>
+    /* ── Page shell ─────────────────────────────────────────── */
+    .settings-page { max-width: 780px; margin: 0 auto; }
+
+    /* ── Sidebar nav ─────────────────────────────────────────── */
+    .settings-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .settings-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.7rem 1rem;
+        border-radius: 10px;
+        color: var(--text-muted);
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.15s;
+        cursor: pointer;
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+    }
+    .settings-nav-item:hover {
+        background: rgba(67,97,238,0.07);
+        color: var(--primary-brand, #4361ee);
+    }
+    .settings-nav-item.active {
+        background: rgba(67,97,238,0.1);
+        color: var(--primary-brand, #4361ee);
+        font-weight: 600;
+    }
+    .settings-nav-item .nav-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        background: rgba(67,97,238,0.08);
+        flex-shrink: 0;
+    }
+    .settings-nav-item.active .nav-icon {
+        background: var(--primary-brand, #4361ee);
+        color: #fff;
+    }
+
+    /* ── Panel card ──────────────────────────────────────────── */
+    .settings-panel {
+        background: var(--surface-card, #fff);
+        border: 1px solid var(--admin-border, #e5e7eb);
+        border-radius: 14px;
+        padding: 2rem;
+    }
+    [data-bs-theme="dark"] .settings-panel {
+        background: var(--surface-card, #1e293b);
+        border-color: var(--admin-border, #334155);
+    }
+    .settings-panel-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 0.25rem;
+    }
+    .settings-panel-sub {
+        font-size: 0.82rem;
+        color: var(--text-muted);
+        margin-bottom: 1.5rem;
+    }
+
+    /* ── Avatar uploader ─────────────────────────────────────── */
+    .avatar-ring {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #4361ee 0%, #4cc9f0 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #fff;
+        flex-shrink: 0;
+        overflow: hidden;
+    }
+    .avatar-ring img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* ── Toggle row (notification prefs) ─────────────────────── */
+    .pref-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.9rem 0;
+        border-bottom: 1px solid var(--admin-border, #f3f4f6);
+    }
+    .pref-row:last-child { border-bottom: none; }
+    [data-bs-theme="dark"] .pref-row {
+        border-color: rgba(255,255,255,0.06);
+    }
+    .pref-label { font-size: 0.875rem; font-weight: 500; color: var(--text-main); }
+    .pref-desc  { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+
+    /* iOS-style toggle */
+    .form-switch .form-check-input {
+        width: 2.5em;
+        height: 1.4em;
+        cursor: pointer;
+    }
+    .form-switch .form-check-input:checked {
+        background-color: var(--primary-brand, #4361ee);
+        border-color: var(--primary-brand, #4361ee);
+    }
+
+    /* ── Security item ───────────────────────────────────────── */
+    .security-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 1.25rem;
+        border: 1px solid var(--admin-border, #e5e7eb);
+        border-radius: 10px;
+        margin-bottom: 0.75rem;
+        transition: border-color 0.15s;
+        text-decoration: none;
+        color: inherit;
+    }
+    .security-item:hover { border-color: var(--primary-brand, #4361ee); color: inherit; }
+    [data-bs-theme="dark"] .security-item { border-color: rgba(255,255,255,0.08); }
+    .security-icon {
+        width: 40px; height: 40px;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+
+    /* ── Mobile tab bar (xs only) ────────────────────────────── */
+    .settings-tab-bar {
+        display: flex;
+        gap: 4px;
+        background: var(--surface-bg, #f3f4f6);
+        border-radius: 10px;
+        padding: 4px;
+        margin-bottom: 1.25rem;
+    }
+    .settings-tab-bar .tab-btn {
+        flex: 1;
+        padding: 0.5rem 0.5rem;
+        border: none;
+        background: none;
+        border-radius: 7px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.15s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+    }
+    .settings-tab-bar .tab-btn.active {
+        background: var(--surface-card, #fff);
+        color: var(--primary-brand, #4361ee);
+        font-weight: 600;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    [data-bs-theme="dark"] .settings-tab-bar { background: rgba(255,255,255,0.04); }
+    [data-bs-theme="dark"] .settings-tab-bar .tab-btn.active { background: var(--surface-card, #1e293b); }
+
+    @media (min-width: 768px) {
+        .settings-tab-bar { display: none; }
+    }
+    @media (max-width: 767px) {
+        .settings-sidebar { display: none !important; }
+        .settings-panel { padding: 1.25rem; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 py-4">
+<div class="settings-page">
+
+    <!-- Page header -->
+    <div class="mb-4">
+        <h4 class="fw-bold mb-1">Account Settings</h4>
+        <p class="text-muted small mb-0">Manage your profile, notifications, and security preferences.</p>
+    </div>
+
+    <!-- Mobile tab bar -->
+    <div class="settings-tab-bar d-md-none">
+        <button class="tab-btn {% if active_tab == 'profile' %}active{% endif %}" onclick="switchTab('profile')">
+            <i class="bi bi-person"></i> Profile
+        </button>
+        <button class="tab-btn {% if active_tab == 'notifications' %}active{% endif %}" onclick="switchTab('notifications')">
+            <i class="bi bi-bell"></i> Alerts
+        </button>
+        <button class="tab-btn {% if active_tab == 'security' %}active{% endif %}" onclick="switchTab('security')">
+            <i class="bi bi-shield-lock"></i> Security
+        </button>
+    </div>
+
+    <div class="row g-3">
+        <!-- Sidebar (desktop) -->
+        <div class="col-md-3 settings-sidebar">
+            <div class="settings-panel p-3">
+                <nav class="settings-nav">
+                    <button class="settings-nav-item {% if active_tab == 'profile' %}active{% endif %}" onclick="switchTab('profile')">
+                        <span class="nav-icon"><i class="bi bi-person-fill"></i></span>
+                        Profile
+                    </button>
+                    <button class="settings-nav-item {% if active_tab == 'notifications' %}active{% endif %}" onclick="switchTab('notifications')">
+                        <span class="nav-icon"><i class="bi bi-bell-fill"></i></span>
+                        Notifications
+                    </button>
+                    <button class="settings-nav-item {% if active_tab == 'security' %}active{% endif %}" onclick="switchTab('security')">
+                        <span class="nav-icon"><i class="bi bi-shield-lock-fill"></i></span>
+                        Security
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Main content -->
+        <div class="col-md-9">
+
+            <!-- ── PROFILE TAB ─────────────────────────────────── -->
+            <div id="tab-profile" class="settings-tab-pane {% if active_tab != 'profile' %}d-none{% endif %}">
+                <div class="settings-panel">
+                    <div class="settings-panel-title">Profile Information</div>
+                    <p class="settings-panel-sub">Update your name, contact details, and profile photo.</p>
+
+                    {% if messages %}
+                    {% for message in messages %}
+                    {% if message.tags == 'success' and active_tab == 'profile' %}
+                    <div class="alert alert-success border-0 rounded-3 small py-2 mb-3" style="background:#f0fdf4;color:#15803d;">
+                        <i class="bi bi-check-circle-fill me-1"></i> {{ message }}
+                    </div>
+                    {% endif %}{% endfor %}{% endif %}
+
+                    <!-- Avatar -->
+                    <div class="d-flex align-items-center gap-3 mb-4">
+                        <div class="avatar-ring">
+                            {% if user.profile_picture %}
+                            <img src="{{ user.profile_picture.url }}" alt="Profile photo">
+                            {% else %}
+                            {{ user.get_full_name|first|upper }}
+                            {% endif %}
+                        </div>
+                        <div>
+                            <div class="fw-semibold" style="font-size:0.9rem;">{{ user.get_full_name }}</div>
+                            <div class="text-muted small text-uppercase" style="letter-spacing:0.5px;">{{ user.get_user_type_display }}</div>
+                        </div>
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="profile">
+                        <div class="row g-3">
+                            <div class="col-sm-6">
+                                <label class="form-label small fw-medium">First Name</label>
+                                {{ profile_form.first_name }}
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label small fw-medium">Last Name</label>
+                                {{ profile_form.last_name }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-medium">Email Address</label>
+                                {{ profile_form.email }}
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label small fw-medium">Phone</label>
+                                {{ profile_form.phone }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-medium">Address</label>
+                                {{ profile_form.address }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-medium">Profile Photo</label>
+                                {{ profile_form.profile_picture }}
+                                <div class="form-text">JPG, PNG or GIF · max 2 MB</div>
+                            </div>
+                        </div>
+                        <div class="mt-4 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary px-4 btn-sm">
+                                <i class="bi bi-check2 me-1"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- ── NOTIFICATIONS TAB ───────────────────────────── -->
+            <div id="tab-notifications" class="settings-tab-pane {% if active_tab != 'notifications' %}d-none{% endif %}">
+                <div class="settings-panel">
+                    <div class="settings-panel-title">Notification Preferences</div>
+                    <p class="settings-panel-sub">Choose what in-app alerts you want to receive.</p>
+
+                    {% if messages %}
+                    {% for message in messages %}
+                    {% if message.tags == 'success' and active_tab == 'notifications' %}
+                    <div class="alert alert-success border-0 rounded-3 small py-2 mb-3" style="background:#f0fdf4;color:#15803d;">
+                        <i class="bi bi-check-circle-fill me-1"></i> {{ message }}
+                    </div>
+                    {% endif %}{% endfor %}{% endif %}
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="notifications">
+
+                        <div class="pref-row">
+                            <div>
+                                <div class="pref-label">Announcements</div>
+                                <div class="pref-desc">Notices and school-wide announcements</div>
+                            </div>
+                            <div class="form-check form-switch mb-0">
+                                {{ prefs_form.notify_announcements }}
+                            </div>
+                        </div>
+
+                        <div class="pref-row">
+                            <div>
+                                <div class="pref-label">Grades & Results</div>
+                                <div class="pref-desc">When scores or report cards are published</div>
+                            </div>
+                            <div class="form-check form-switch mb-0">
+                                {{ prefs_form.notify_grades }}
+                            </div>
+                        </div>
+
+                        <div class="pref-row">
+                            <div>
+                                <div class="pref-label">Attendance Alerts</div>
+                                <div class="pref-desc">Absence and late-arrival notifications</div>
+                            </div>
+                            <div class="form-check form-switch mb-0">
+                                {{ prefs_form.notify_attendance }}
+                            </div>
+                        </div>
+
+                        <div class="pref-row">
+                            <div>
+                                <div class="pref-label">Messages</div>
+                                <div class="pref-desc">Direct messages from teachers and staff</div>
+                            </div>
+                            <div class="form-check form-switch mb-0">
+                                {{ prefs_form.notify_messages }}
+                            </div>
+                        </div>
+
+                        <div class="pref-row">
+                            <div>
+                                <div class="pref-label">Email Notifications</div>
+                                <div class="pref-desc">Send selected alerts to {{ user.email|default:"your email" }}</div>
+                            </div>
+                            <div class="form-check form-switch mb-0">
+                                {{ prefs_form.email_notifications }}
+                            </div>
+                        </div>
+
+                        <div class="pref-row">
+                            <div>
+                                <div class="pref-label">Compact View</div>
+                                <div class="pref-desc">Reduce card sizes for a denser interface</div>
+                            </div>
+                            <div class="form-check form-switch mb-0">
+                                {{ prefs_form.compact_view }}
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary btn-sm px-4">
+                                <i class="bi bi-check2 me-1"></i> Save Preferences
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- ── SECURITY TAB ────────────────────────────────── -->
+            <div id="tab-security" class="settings-tab-pane {% if active_tab != 'security' %}d-none{% endif %}">
+                <div class="settings-panel">
+                    <div class="settings-panel-title">Security</div>
+                    <p class="settings-panel-sub">Keep your account safe with a strong password.</p>
+
+                    <a href="{% url 'password_change' %}" class="security-item">
+                        <div class="security-icon" style="background:rgba(67,97,238,0.1);color:#4361ee;">
+                            <i class="bi bi-key-fill"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="fw-semibold" style="font-size:0.875rem;">Change Password</div>
+                            <div class="text-muted small">Update your login password</div>
+                        </div>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </a>
+
+                    <div class="security-item" style="cursor:default;">
+                        <div class="security-icon" style="background:rgba(16,185,129,0.1);color:#10b981;">
+                            <i class="bi bi-person-check-fill"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="fw-semibold" style="font-size:0.875rem;">Account Role</div>
+                            <div class="text-muted small text-capitalize">{{ user.get_user_type_display }} · {{ user.username }}</div>
+                        </div>
+                    </div>
+
+                    <div class="security-item" style="cursor:default;">
+                        <div class="security-icon" style="background:rgba(245,158,11,0.1);color:#f59e0b;">
+                            <i class="bi bi-calendar3"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="fw-semibold" style="font-size:0.875rem;">Member Since</div>
+                            <div class="text-muted small">{{ user.date_joined|date:"F j, Y" }}</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 pt-2 border-top">
+                        <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm px-4">
+                            <i class="bi bi-box-arrow-right me-1"></i> Sign Out
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function switchTab(name) {
+    document.querySelectorAll('.settings-tab-pane').forEach(p => p.classList.add('d-none'));
+    document.getElementById('tab-' + name)?.classList.remove('d-none');
+
+    document.querySelectorAll('.settings-nav-item, .tab-btn').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('onclick') === `switchTab('${name}')`);
+    });
+
+    // Update URL without reload
+    const url = new URL(window.location);
+    url.searchParams.set('tab', name);
+    history.replaceState(null, '', url);
+}
+</script>
+{% endblock %}
