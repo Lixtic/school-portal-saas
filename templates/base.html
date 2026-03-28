@@ -1458,13 +1458,13 @@
             left: 50%;
             bottom: calc(14px + env(safe-area-inset-bottom, 0px));
             transform: translateX(-50%);
-            width: min(420px, 92vw);
-            padding: 10px;
+            width: min(360px, 88vw);
+            padding: 8px;
             background: rgba(255, 255, 255, 0.92);
             box-shadow: 0 10px 60px rgba(0, 0, 0, 0.18);
-            border-radius: 18px;
+            border-radius: 14px;
             display: none;
-            gap: 6px;
+            gap: 4px;
             z-index: 1062;
             backdrop-filter: blur(12px);
         }
@@ -1481,12 +1481,12 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 4px;
-            padding: 10px 6px;
-            border-radius: 12px;
+            gap: 2px;
+            padding: 9px 4px;
+            border-radius: 10px;
             color: var(--text-muted);
             text-decoration: none;
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             font-weight: 700;
             letter-spacing: 0.01em;
             border: none;
@@ -1519,7 +1519,7 @@
             .mobile-bottom-nav { display: flex; }
 
             /* keep content reachable above nav */
-            main { padding-bottom: 150px; }
+            main { padding-bottom: 190px; }
         }
 
         /* Drawer footer */
@@ -2690,10 +2690,17 @@
             </span>
             <span>Messages</span>
         </a>
+        {% if user.user_type == 'teacher' or user.user_type == 'admin' %}
+        <a href="{% url 'teachers:aura_command_center' %}" class="bottom-nav-item {% if url_name == 'aura_command_center' %}active{% endif %}" aria-label="Command Center">
+            <i class="bi bi-lightning-charge"></i>
+            <span>Command</span>
+        </a>
+        {% else %}
         <button type="button" class="bottom-nav-item" onclick="toggleHelpWidgetFromNav()" aria-label="Help">
             <i class="bi bi-question-circle"></i>
             <span>Help</span>
         </button>
+        {% endif %}
         <button type="button" class="bottom-nav-item {% if url_name == 'home' %}active{% endif %}" onclick="toggleMobileMenu()" aria-controls="mobileBubbleMenu" aria-expanded="false">
             <i class="bi bi-grid-3x3-gap"></i>
             <span>Menu</span>
@@ -3914,6 +3921,13 @@
         flex-direction: column;
         align-items: flex-end;
         pointer-events: none; /* Prevent blocking clicks on elements below */
+    }
+    @media (max-width: 768px) {
+        /* Lift the Aura orb above the mobile bottom nav bar (~76px tall + 14px offset) */
+        #aura-copilot-container {
+            bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+            right: 12px;
+        }
     }
     .aura-orb-btn {
         width: 60px;
