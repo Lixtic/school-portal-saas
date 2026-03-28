@@ -1738,6 +1738,200 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
+    <!-- ── PWA Splash Screen ─────────────────────────────────────────
+         Shown on cold launch / first load. Dismisses once DOM is interactive.
+         Only visible in standalone PWA mode or first page load.            -->
+    <div id="auraSplash" aria-hidden="true">
+        <div class="splash-glow"></div>
+        <div class="splash-content">
+            <div class="splash-logo-ring">
+                <img src="{% static 'img/logo.png' %}" alt="" class="splash-logo" width="72" height="72">
+            </div>
+            <div class="splash-wordmark">Aura</div>
+            <div class="splash-tagline">School Management</div>
+            <div class="splash-dots">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+    </div>
+    <style>
+        /* ── Splash Screen ────────────────────────────────────────── */
+        #auraSplash {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0b1120;
+            overflow: hidden;
+            opacity: 1;
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                        transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #auraSplash.splash-dismiss {
+            opacity: 0;
+            transform: scale(1.04);
+            pointer-events: none;
+        }
+        #auraSplash.splash-gone { display: none; }
+
+        /* Ambient glow */
+        .splash-glow {
+            position: absolute;
+            width: 340px;
+            height: 340px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(67,97,238,0.28) 0%, rgba(76,201,240,0.12) 40%, transparent 70%);
+            filter: blur(60px);
+            animation: splashGlowPulse 2.4s ease-in-out infinite alternate;
+        }
+
+        .splash-content {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+        }
+
+        /* Logo container with ring */
+        .splash-logo-ring {
+            width: 96px;
+            height: 96px;
+            border-radius: 24px;
+            background: linear-gradient(135deg, rgba(67,97,238,0.15), rgba(76,201,240,0.1));
+            border: 1.5px solid rgba(255,255,255,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: splashLogoEntrance 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
+            box-shadow: 0 8px 40px rgba(67,97,238,0.2), 0 0 0 1px rgba(255,255,255,0.04);
+        }
+        .splash-logo {
+            border-radius: 12px;
+            object-fit: contain;
+        }
+
+        /* Wordmark */
+        .splash-wordmark {
+            font-family: 'Manrope', -apple-system, sans-serif;
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #fff 0%, rgba(76,201,240,0.9) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-top: 1.25rem;
+            animation: splashTextEntrance 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+        }
+
+        .splash-tagline {
+            font-family: 'Manrope', -apple-system, sans-serif;
+            font-size: 0.8rem;
+            font-weight: 500;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: rgba(148,163,184,0.7);
+            margin-top: 0.25rem;
+            animation: splashTextEntrance 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.45s both;
+        }
+
+        /* Loading dots */
+        .splash-dots {
+            display: flex;
+            gap: 6px;
+            margin-top: 2rem;
+            animation: splashTextEntrance 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.6s both;
+        }
+        .splash-dots span {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: rgba(67,97,238,0.7);
+            animation: splashDotPulse 1s ease-in-out infinite;
+        }
+        .splash-dots span:nth-child(2) { animation-delay: 0.15s; }
+        .splash-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+        @keyframes splashGlowPulse {
+            0%   { transform: scale(0.85); opacity: 0.6; }
+            100% { transform: scale(1.1); opacity: 1; }
+        }
+        @keyframes splashLogoEntrance {
+            0%   { opacity: 0; transform: scale(0.5) translateY(12px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes splashTextEntrance {
+            0%   { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes splashDotPulse {
+            0%, 100% { opacity: 0.3; transform: scale(0.8); }
+            50%      { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* Light mode: keep dark splash regardless (consistent native feel) */
+        @media (prefers-reduced-motion: reduce) {
+            .splash-glow { animation: none; }
+            .splash-logo-ring { animation: none; opacity: 1; }
+            .splash-wordmark, .splash-tagline, .splash-dots { animation: none; opacity: 1; }
+            .splash-dots span { animation: none; opacity: 0.6; }
+            #auraSplash { transition: opacity 0.2s ease; }
+        }
+    </style>
+    <script>
+        // Dismiss splash once DOM content is ready + minimum display time.
+        // On repeat navigations (BFCache) splash is already hidden.
+        (function() {
+            var splash = document.getElementById('auraSplash');
+            if (!splash) return;
+
+            // Skip splash on back/forward cache restore
+            var navEntry = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+            var isReload = navEntry && navEntry.type === 'back_forward';
+            if (isReload) { splash.classList.add('splash-gone'); return; }
+
+            // In standalone PWA: always show splash on cold launch.
+            // In browser tab: only show on first visit per session.
+            var isPWA = window.matchMedia('(display-mode: standalone)').matches
+                     || window.navigator.standalone === true;
+            if (!isPWA) {
+                try {
+                    if (sessionStorage.getItem('_auraSplashShown')) {
+                        splash.classList.add('splash-gone');
+                        return;
+                    }
+                    sessionStorage.setItem('_auraSplashShown', '1');
+                } catch(e) {}
+            }
+
+            var MIN_DISPLAY_MS = 1200;
+            var showTime = Date.now();
+
+            function dismiss() {
+                var elapsed = Date.now() - showTime;
+                var delay = Math.max(0, MIN_DISPLAY_MS - elapsed);
+                setTimeout(function() {
+                    splash.classList.add('splash-dismiss');
+                    setTimeout(function() {
+                        splash.classList.add('splash-gone');
+                    }, 450);
+                }, delay);
+            }
+
+            // Trigger dismissal when page is interactive
+            if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                dismiss();
+            } else {
+                document.addEventListener('DOMContentLoaded', dismiss);
+                // Failsafe: never block user longer than 5s
+                setTimeout(dismiss, 5000);
+            }
+        })();
+    </script>
+
     <!-- Preview Mode Banner -->
     {% if is_preview %}
     <div class="alert alert-warning mb-0 rounded-0 text-center py-3" style="position: sticky; top: 0; z-index: 1100; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
@@ -2824,11 +3018,35 @@
     <!-- Toast container -->
     <div class="position-fixed top-0 end-0 p-3" style="z-index: 1200; width: 320px;" id="toastContainer"></div>
 
+    {% if user.is_authenticated %}
     {% with url_name=request.resolver_match.url_name|default:'' app_name=request.resolver_match.app_name|default:'' %}
     <nav class="mobile-bottom-nav d-lg-none d-print-none" aria-label="Primary navigation" id="mobileBottomNav">
+        {% if user.is_staff and app_name == 'tenants' and request.tenant.schema_name == 'public' %}
+        <a href="{% url 'tenants:landlord_dashboard' %}" class="bottom-nav-item {% if url_name == 'landlord_dashboard' %}active{% endif %}" aria-label="Command Center">
+            <i class="bi bi-grid-3x3-gap"></i>
+            <span>Center</span>
+        </a>
+        <a href="{% url 'tenants:revenue_analytics' %}" class="bottom-nav-item {% if url_name == 'revenue_analytics' %}active{% endif %}" aria-label="Revenue">
+            <i class="bi bi-graph-up-arrow"></i>
+            <span>Revenue</span>
+        </a>
+        <a href="{% url 'tenants:approval_queue' %}" class="bottom-nav-item {% if url_name == 'approval_queue' %}active{% endif %}" aria-label="Approvals">
+            <i class="bi bi-clipboard-check"></i>
+            <span>Approvals</span>
+        </a>
+        <button type="button" class="bottom-nav-item" onclick="toggleMobileMenu()" aria-controls="mobileBubbleMenu" aria-expanded="false">
+            <i class="bi bi-list"></i>
+            <span>Menu</span>
+        </button>
+
+        {% elif user.user_type == 'admin' %}
         <a href="{% url 'dashboard' %}" class="bottom-nav-item {% if url_name == 'dashboard' %}active{% endif %}" aria-label="Dashboard">
             <i class="bi bi-speedometer2"></i>
             <span>Home</span>
+        </a>
+        <a href="{% url 'finance:dashboard' %}" class="bottom-nav-item {% if app_name == 'finance' %}active{% endif %}" aria-label="Finance">
+            <i class="bi bi-wallet2"></i>
+            <span>Finance</span>
         </a>
         <a href="{% url 'communication:inbox' %}" class="bottom-nav-item {% if 'communication' in request.resolver_match.app_names %}active{% endif %}" aria-label="Messages">
             <span class="d-flex align-items-center gap-1">
@@ -2837,23 +3055,95 @@
             </span>
             <span>Messages</span>
         </a>
-        {% if user.user_type == 'teacher' or user.user_type == 'admin' %}
+        <button type="button" class="bottom-nav-item" onclick="toggleMobileMenu()" aria-controls="mobileBubbleMenu" aria-expanded="false">
+            <i class="bi bi-grid-3x3-gap"></i>
+            <span>Menu</span>
+        </button>
+
+        {% elif user.user_type == 'teacher' %}
+        <a href="{% url 'dashboard' %}" class="bottom-nav-item {% if url_name == 'dashboard' %}active{% endif %}" aria-label="Dashboard">
+            <i class="bi bi-speedometer2"></i>
+            <span>Home</span>
+        </a>
         <a href="{% url 'teachers:aura_command_center' %}" class="bottom-nav-item {% if url_name == 'aura_command_center' %}active{% endif %}" aria-label="Command Center">
             <i class="bi bi-lightning-charge"></i>
             <span>Command</span>
         </a>
+        <a href="{% url 'communication:inbox' %}" class="bottom-nav-item {% if 'communication' in request.resolver_match.app_names %}active{% endif %}" aria-label="Messages">
+            <span class="d-flex align-items-center gap-1">
+                <i class="bi bi-chat-dots"></i>
+                <span class="badge bg-danger bottom-nav-badge unread-badge-mobile" style="display:none">0</span>
+            </span>
+            <span>Messages</span>
+        </a>
+        <button type="button" class="bottom-nav-item" onclick="toggleMobileMenu()" aria-controls="mobileBubbleMenu" aria-expanded="false">
+            <i class="bi bi-grid-3x3-gap"></i>
+            <span>Menu</span>
+        </button>
+
+        {% elif user.user_type == 'student' %}
+        <a href="{% url 'dashboard' %}" class="bottom-nav-item {% if url_name == 'dashboard' %}active{% endif %}" aria-label="Dashboard">
+            <i class="bi bi-speedometer2"></i>
+            <span>Home</span>
+        </a>
+        <a href="{% url 'homework:homework_list' %}" class="bottom-nav-item {% if app_name == 'homework' %}active{% endif %}" aria-label="Homework">
+            <i class="bi bi-journal-text"></i>
+            <span>Homework</span>
+        </a>
+        <a href="{% url 'academics:ai_tutor' %}" class="bottom-nav-item {% if url_name == 'ai_tutor' %}active{% endif %}" aria-label="AI Tutor">
+            <i class="bi bi-robot"></i>
+            <span>Tutor</span>
+        </a>
+        <button type="button" class="bottom-nav-item" onclick="toggleMobileMenu()" aria-controls="mobileBubbleMenu" aria-expanded="false">
+            <i class="bi bi-grid-3x3-gap"></i>
+            <span>Menu</span>
+        </button>
+
+        {% elif user.user_type == 'parent' %}
+        <a href="{% url 'dashboard' %}" class="bottom-nav-item {% if url_name == 'dashboard' %}active{% endif %}" aria-label="Dashboard">
+            <i class="bi bi-speedometer2"></i>
+            <span>Home</span>
+        </a>
+        <a href="{% url 'parents:my_children' %}" class="bottom-nav-item {% if url_name == 'my_children' %}active{% endif %}" aria-label="My Children">
+            <i class="bi bi-person-hearts"></i>
+            <span>Children</span>
+        </a>
+        <a href="{% url 'communication:inbox' %}" class="bottom-nav-item {% if 'communication' in request.resolver_match.app_names %}active{% endif %}" aria-label="Messages">
+            <span class="d-flex align-items-center gap-1">
+                <i class="bi bi-chat-dots"></i>
+                <span class="badge bg-danger bottom-nav-badge unread-badge-mobile" style="display:none">0</span>
+            </span>
+            <span>Messages</span>
+        </a>
+        <button type="button" class="bottom-nav-item" onclick="toggleMobileMenu()" aria-controls="mobileBubbleMenu" aria-expanded="false">
+            <i class="bi bi-grid-3x3-gap"></i>
+            <span>Menu</span>
+        </button>
+
         {% else %}
+        <a href="{% url 'dashboard' %}" class="bottom-nav-item {% if url_name == 'dashboard' %}active{% endif %}" aria-label="Dashboard">
+            <i class="bi bi-speedometer2"></i>
+            <span>Home</span>
+        </a>
         <button type="button" class="bottom-nav-item" onclick="toggleHelpWidgetFromNav()" aria-label="Help">
             <i class="bi bi-question-circle"></i>
             <span>Help</span>
         </button>
-        {% endif %}
-        <button type="button" class="bottom-nav-item {% if url_name == 'home' %}active{% endif %}" onclick="toggleMobileMenu()" aria-controls="mobileBubbleMenu" aria-expanded="false">
+        <a href="{% url 'communication:inbox' %}" class="bottom-nav-item {% if 'communication' in request.resolver_match.app_names %}active{% endif %}" aria-label="Messages">
+            <span class="d-flex align-items-center gap-1">
+                <i class="bi bi-chat-dots"></i>
+                <span class="badge bg-danger bottom-nav-badge unread-badge-mobile" style="display:none">0</span>
+            </span>
+            <span>Messages</span>
+        </a>
+        <button type="button" class="bottom-nav-item" onclick="toggleMobileMenu()" aria-controls="mobileBubbleMenu" aria-expanded="false">
             <i class="bi bi-grid-3x3-gap"></i>
             <span>Menu</span>
         </button>
+        {% endif %}
     </nav>
     {% endwith %}
+    {% endif %}
 
     <!-- Global Search Modal -->
     <div class="modal fade" id="searchModal" tabindex="-1">
