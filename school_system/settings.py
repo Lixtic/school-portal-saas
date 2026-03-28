@@ -416,8 +416,10 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 # from earlier session-engine experiments (DB backend etc.)
 SESSION_COOKIE_NAME = '_sp_session'
 
-# Rolling 30-day expiry.
-SESSION_COOKIE_AGE = 30 * 24 * 60 * 60  # 30 days in seconds
+# Rolling 1-year expiry — tenant admin accounts use this maximum;
+# regular users who uncheck "Keep me logged in" get set_expiry(0)
+# (browser-session cookie) which overrides this per-session.
+SESSION_COOKIE_AGE = 365 * 24 * 60 * 60  # 1 year in seconds
 
 # Re-send the cookie on every response so the 30-day window is always rolling.
 SESSION_SAVE_EVERY_REQUEST = True

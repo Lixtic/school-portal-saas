@@ -428,11 +428,13 @@ def login_view(request):
         
         if user is not None:
             login(request, user)
-            # If "Remember Me" is checked, persist the session for 1 year.
-            # Otherwise the session is a browser-session cookie (expires on close).
-            remember_me = request.POST.get('remember_me') == '1'
+            # Tenant admin accounts always get a persistent 1-year session so
+            # they are never unexpectedly logged out after server restarts or
+            # browser closes.  Other users follow the "Keep me logged in" checkbox.
+            is_tenant_admin = getattr(user, 'user_type', None) == 'admin'
+            remember_me = is_tenant_admin or (request.POST.get('remember_me') == '1')
             if remember_me:
-                request.session.set_expiry(365 * 24 * 60 * 60)  # 1 year
+                request.session.set_expiry(365 * 24 * 60 * 60)  # 1 year in seconds
             else:
                 request.session.set_expiry(0)  # browser close
             # Bind session to the current tenant schema to prevent cross-tenant
