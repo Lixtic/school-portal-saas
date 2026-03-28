@@ -1709,7 +1709,22 @@ def user_settings(request):
     # (e.g. a superuser browsing a tenant URL).  Check BEFORE doing any INSERT
     # so we never corrupt the outer ATOMIC_REQUESTS transaction with a FK
     # violation that PostgreSQL would abort the whole connection for.
-    _user_exists_in_tenant = TenantUser.objects.filter(pk=request.user.pk).exists()
+    #
+    # IMPORTANT: We must query the tenant-specific table directly.
+    # A normal ORM .exists() check uses search_path which includes 'public'
+    # as fallback — so a user that only exists in public.accounts_user
+    # would appear to exist, but the FK on the tenant's accounts_usersettings
+    # points to the tenant's accounts_user table where that user is absent.
+    from django.db import connection as _conn
+    _tenant_schema = getattr(getattr(request, 'tenant', None), 'schema_name', 'public')
+    with _conn.cursor() as _cur:
+        _cur.execute(
+            'SELECT 1 FROM "{}".accounts_user WHERE id = %s LIMIT 1'.format(
+                _tenant_schema.replace('"', '')
+            ),
+            [request.user.pk],
+        )
+        _user_exists_in_tenant = _cur.fetchone() is not None
     if _user_exists_in_tenant:
         user_prefs, _ = UserSettings.objects.get_or_create(user=request.user)
     else:

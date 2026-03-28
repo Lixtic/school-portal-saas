@@ -225,6 +225,33 @@ class TenantPathMiddleware(TenantMainMiddleware):
                 # which could hit the wrong schema via pgBouncer.
                 request.user = AnonymousUser()
 
+            # ── Tenant-specific user existence check ─────────────────
+            # Because 'accounts' is in both SHARED_APPS and TENANT_APPS,
+            # search_path = "<tenant>, public" lets Django authenticate a
+            # user that only exists in public.accounts_user.  Views that
+            # INSERT into tenant-local tables (UserSettings, etc.) then
+            # hit FK violations because the tenant's accounts_user table
+            # doesn't have that row.
+            #
+            # Fix: after resolving the user, verify their PK exists in the
+            # TENANT-SPECIFIC accounts_user table (not via public fallback).
+            if getattr(request.user, 'is_authenticated', False):
+                try:
+                    with connection.cursor() as _cur:
+                        _schema = request.tenant.schema_name.replace('"', '')
+                        _cur.execute(
+                            'SELECT 1 FROM "{}".accounts_user WHERE id = %s LIMIT 1'.format(_schema),
+                            [request.user.pk],
+                        )
+                        if _cur.fetchone() is None:
+                            logger.info(
+                                "User pk=%s exists in public but not in tenant '%s' — forcing AnonymousUser",
+                                request.user.pk, _schema,
+                            )
+                            request.user = AnonymousUser()
+                except Exception as e:
+                    logger.debug("Tenant user existence check failed: %s", e, exc_info=True)
+
         # Session isolation guard: auth sessions must stay bound to a single tenant schema.
         # Without this, a valid session from one tenant can be interpreted in another tenant
         # (ID collision risk across tenant-local auth tables).
