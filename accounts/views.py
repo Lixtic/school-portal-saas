@@ -1701,19 +1701,19 @@ def onboarding_complete_step(request):
 @login_required
 def user_settings(request):
     """User-facing app settings: profile info and notification preferences."""
-    from accounts.models import UserSettings
+    from accounts.models import UserSettings, User as TenantUser
     from accounts.forms import UserProfileForm, UserSettingsForm
     from django.db import IntegrityError
 
-    # In multi-tenant mode the user may exist only in the public schema
-    # (e.g. a superuser browsing a tenant).  Guard against the FK violation
-    # that would occur when trying to create UserSettings in a tenant schema
-    # for a user_id that is not present in that schema's accounts_user table.
-    try:
+    # In multi-tenant mode the current user may only exist in the public schema
+    # (e.g. a superuser browsing a tenant URL).  Check BEFORE doing any INSERT
+    # so we never corrupt the outer ATOMIC_REQUESTS transaction with a FK
+    # violation that PostgreSQL would abort the whole connection for.
+    _user_exists_in_tenant = TenantUser.objects.filter(pk=request.user.pk).exists()
+    if _user_exists_in_tenant:
         user_prefs, _ = UserSettings.objects.get_or_create(user=request.user)
-    except (IntegrityError, Exception):
-        # Fall back to an in-memory instance so the page still renders.
-        user_prefs = UserSettings(user=request.user)
+    else:
+        user_prefs = UserSettings(user=request.user)  # in-memory, not saved
 
     if request.method == 'POST':
         action = request.POST.get('action', 'profile')
@@ -1722,11 +1722,11 @@ def user_settings(request):
             profile_form = UserProfileForm(request.POST, request.FILES, instance=request.user)
             prefs_form = UserSettingsForm(instance=user_prefs)
             if profile_form.is_valid():
-                try:
+                if _user_exists_in_tenant:
                     profile_form.save()
                     messages.success(request, 'Profile updated successfully.')
-                except (IntegrityError, Exception):
-                    messages.error(request, 'Profile could not be saved in this tenant context.')
+                else:
+                    messages.warning(request, 'Profile changes cannot be saved in this tenant context.')
                 return redirect(request.path + '?tab=profile')
             else:
                 messages.error(request, 'Please correct the errors below.')
@@ -1735,11 +1735,11 @@ def user_settings(request):
             profile_form = UserProfileForm(instance=request.user)
             prefs_form = UserSettingsForm(request.POST, instance=user_prefs)
             if prefs_form.is_valid():
-                try:
+                if _user_exists_in_tenant:
                     prefs_form.save()
                     messages.success(request, 'Notification preferences saved.')
-                except (IntegrityError, Exception):
-                    messages.error(request, 'Preferences could not be saved in this tenant context.')
+                else:
+                    messages.warning(request, 'Preferences cannot be saved in this tenant context.')
                 return redirect(request.path + '?tab=notifications')
 
         else:
