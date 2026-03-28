@@ -1519,7 +1519,7 @@
             .mobile-bottom-nav { display: flex; }
 
             /* keep content reachable above nav */
-            main { padding-bottom: 120px; }
+            main { padding-bottom: 150px; }
         }
 
         /* Drawer footer */
@@ -2792,6 +2792,12 @@
             overflow: hidden;
             z-index: 1300;
             border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        @media (max-width: 768px) {
+            .copilot-launcher { right: 12px; bottom: calc(108px + env(safe-area-inset-bottom, 0px)); }
+            .copilot-recall { right: 12px; bottom: calc(108px + env(safe-area-inset-bottom, 0px)); }
+            .copilot-panel { right: 12px; bottom: calc(178px + env(safe-area-inset-bottom, 0px)); width: min(360px, 94vw); }
         }
         .copilot-panel.open { display: flex; }
         .copilot-header {
@@ -4741,11 +4747,8 @@
     font-size: .9rem;
 }
 #help-send:hover { opacity: .85; }
-</style>
 
-<button id="help-widget-btn" title="Help Assistant" aria-label="Open Help Chat">
-    .copilot-launcher { right: 12px; bottom: 12px; }
-
+@media (max-width: 768px) {
     /* park help widget above the bottom nav and scale down */
     #help-widget-btn { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); left: 16px; width: 44px; height: 44px; font-size: 1.1rem; box-shadow: 0 6px 18px rgba(0,0,0,0.24); }
     #help-panel { bottom: calc(140px + env(safe-area-inset-bottom, 0px)); left: 12px; width: min(360px, 94vw); max-height: 440px; }
@@ -4755,6 +4758,11 @@
     body.mobile-help-hidden #help-widget-btn,
     body.mobile-help-hidden #help-panel,
     body.mobile-help-hidden #help-widget-menu { display: none !important; }
+}
+</style>
+
+<button id="help-widget-btn" title="Help Assistant" aria-label="Open Help Chat">
+    <i class="bi bi-question-lg"></i>
 </button>
 
 <div id="help-widget-menu" role="menu" aria-label="Help button options">

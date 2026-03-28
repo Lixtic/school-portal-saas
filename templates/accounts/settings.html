@@ -143,6 +143,85 @@
         flex-shrink: 0;
     }
 
+    /* ── Theme cards ─────────────────────────────────────────── */
+    .theme-cards { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .theme-card {
+        flex: 1; min-width: 100px;
+        border: 2px solid var(--admin-border, #e5e7eb);
+        border-radius: 12px;
+        padding: 0.75rem 0.5rem 0.6rem;
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.18s;
+        background: var(--surface-bg, #f9fafb);
+        position: relative;
+    }
+    .theme-card:hover { border-color: var(--primary-brand, #4361ee); }
+    .theme-card.selected {
+        border-color: var(--primary-brand, #4361ee);
+        background: rgba(67,97,238,0.06);
+    }
+    .theme-card .check-dot {
+        position: absolute; top: 8px; right: 8px;
+        width: 18px; height: 18px;
+        border-radius: 50%;
+        background: var(--primary-brand, #4361ee);
+        color: #fff;
+        font-size: 0.6rem;
+        display: none;
+        align-items: center;
+        justify-content: center;
+    }
+    .theme-card.selected .check-dot { display: flex; }
+    .theme-card-preview {
+        width: 100%; height: 52px;
+        border-radius: 7px;
+        overflow: hidden;
+        margin-bottom: 0.5rem;
+        border: 1px solid rgba(0,0,0,0.07);
+        display: flex;
+        flex-direction: column;
+    }
+    .tc-bar { height: 14px; }
+    .tc-body { flex: 1; display: flex; }
+    .tc-sidebar { width: 30%; }
+    .tc-main { flex: 1; }
+    /* Light preview */
+    .tc-light .tc-bar { background: #fff; border-bottom: 1px solid #e5e7eb; }
+    .tc-light .tc-sidebar { background: #f3f4f6; }
+    .tc-light .tc-main { background: #fff; }
+    /* Dark preview */
+    .tc-dark .tc-bar { background: #1e293b; border-bottom: 1px solid #334155; }
+    .tc-dark .tc-sidebar { background: #0f172a; }
+    .tc-dark .tc-main { background: #1e293b; }
+    /* System preview — split */
+    .tc-system .tc-bar { background: linear-gradient(90deg, #fff 50%, #1e293b 50%); border-bottom: 1px solid #e5e7eb; }
+    .tc-system .tc-sidebar { background: linear-gradient(180deg, #f3f4f6 50%, #0f172a 50%); }
+    .tc-system .tc-main { background: linear-gradient(180deg, #fff 50%, #1e293b 50%); }
+    .theme-card-label { font-size: 0.78rem; font-weight: 600; color: var(--text-main); }
+    [data-bs-theme="dark"] .theme-card { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.08); }
+    [data-bs-theme="dark"] .theme-card.selected { background: rgba(67,97,238,0.12); border-color: var(--primary-brand, #4361ee); }
+
+    /* ── Sidebar pref grid ───────────────────────────────────── */
+    .sidebar-options { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .sidebar-opt {
+        border: 2px solid var(--admin-border, #e5e7eb);
+        border-radius: 12px;
+        padding: 1rem;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .sidebar-opt:hover { border-color: var(--primary-brand, #4361ee); }
+    .sidebar-opt.selected {
+        border-color: var(--primary-brand, #4361ee);
+        background: rgba(67,97,238,0.06);
+    }
+    [data-bs-theme="dark"] .sidebar-opt { border-color: rgba(255,255,255,0.08); }
+    [data-bs-theme="dark"] .sidebar-opt.selected { background: rgba(67,97,238,0.12); }
+    .sidebar-opt-icon { font-size: 1.4rem; margin-bottom: 0.35rem; }
+    .sidebar-opt-label { font-size: 0.78rem; font-weight: 600; color: var(--text-main); }
+    .sidebar-opt-desc  { font-size: 0.7rem; color: var(--text-muted); }
+
     /* ── Mobile tab bar (xs only) ────────────────────────────── */
     .settings-tab-bar {
         display: flex;
@@ -151,14 +230,16 @@
         border-radius: 10px;
         padding: 4px;
         margin-bottom: 1.25rem;
+        overflow-x: auto;
     }
     .settings-tab-bar .tab-btn {
         flex: 1;
-        padding: 0.5rem 0.5rem;
+        min-width: max-content;
+        padding: 0.5rem 0.6rem;
         border: none;
         background: none;
         border-radius: 7px;
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         font-weight: 500;
         color: var(--text-muted);
         cursor: pointer;
@@ -167,6 +248,7 @@
         align-items: center;
         justify-content: center;
         gap: 4px;
+        white-space: nowrap;
     }
     .settings-tab-bar .tab-btn.active {
         background: var(--surface-card, #fff);
@@ -205,6 +287,9 @@
         <button class="tab-btn {% if active_tab == 'notifications' %}active{% endif %}" onclick="switchTab('notifications')">
             <i class="bi bi-bell"></i> Alerts
         </button>
+        <button class="tab-btn {% if active_tab == 'appearance' %}active{% endif %}" onclick="switchTab('appearance')">
+            <i class="bi bi-palette"></i> Appearance
+        </button>
         <button class="tab-btn {% if active_tab == 'security' %}active{% endif %}" onclick="switchTab('security')">
             <i class="bi bi-shield-lock"></i> Security
         </button>
@@ -222,6 +307,10 @@
                     <button class="settings-nav-item {% if active_tab == 'notifications' %}active{% endif %}" onclick="switchTab('notifications')">
                         <span class="nav-icon"><i class="bi bi-bell-fill"></i></span>
                         Notifications
+                    </button>
+                    <button class="settings-nav-item {% if active_tab == 'appearance' %}active{% endif %}" onclick="switchTab('appearance')">
+                        <span class="nav-icon"><i class="bi bi-palette-fill"></i></span>
+                        Appearance
                     </button>
                     <button class="settings-nav-item {% if active_tab == 'security' %}active{% endif %}" onclick="switchTab('security')">
                         <span class="nav-icon"><i class="bi bi-shield-lock-fill"></i></span>
@@ -370,22 +459,102 @@
                             </div>
                         </div>
 
-                        <div class="pref-row">
-                            <div>
-                                <div class="pref-label">Compact View</div>
-                                <div class="pref-desc">Reduce card sizes for a denser interface</div>
-                            </div>
-                            <div class="form-check form-switch mb-0">
-                                {{ prefs_form.compact_view }}
-                            </div>
-                        </div>
-
-                        <div class="mt-4">
+                        <div class="mt-4"><!--compact_view moved to Appearance-->
                             <button type="submit" class="btn btn-primary btn-sm px-4">
                                 <i class="bi bi-check2 me-1"></i> Save Preferences
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+
+            <!-- ── APPEARANCE TAB ─────────────────────────────────── -->
+            <div id="tab-appearance" class="settings-tab-pane {% if active_tab != 'appearance' %}d-none{% endif %}">
+                <div class="settings-panel">
+                    <div class="settings-panel-title">Appearance</div>
+                    <p class="settings-panel-sub">Customize how the app looks and feels across all your devices.</p>
+
+                    <!-- Theme mode cards -->
+                    <div class="mb-4">
+                        <div class="fw-semibold mb-1" style="font-size:0.85rem;">Color Theme</div>
+                        <p class="text-muted mb-3" style="font-size:0.75rem;">Applied instantly and saved in your browser.</p>
+                        <div class="theme-cards" id="themeCards">
+                            <div class="theme-card" data-theme="light" onclick="applyThemeChoice('light')">
+                                <div class="check-dot"><i class="bi bi-check2"></i></div>
+                                <div class="theme-card-preview tc-light">
+                                    <div class="tc-bar"></div>
+                                    <div class="tc-body"><div class="tc-sidebar"></div><div class="tc-main"></div></div>
+                                </div>
+                                <div class="theme-card-label">Light</div>
+                            </div>
+                            <div class="theme-card" data-theme="dark" onclick="applyThemeChoice('dark')">
+                                <div class="check-dot"><i class="bi bi-check2"></i></div>
+                                <div class="theme-card-preview tc-dark">
+                                    <div class="tc-bar"></div>
+                                    <div class="tc-body"><div class="tc-sidebar"></div><div class="tc-main"></div></div>
+                                </div>
+                                <div class="theme-card-label">Dark</div>
+                            </div>
+                            <div class="theme-card" data-theme="system" onclick="applyThemeChoice('system')">
+                                <div class="check-dot"><i class="bi bi-check2"></i></div>
+                                <div class="theme-card-preview tc-system">
+                                    <div class="tc-bar"></div>
+                                    <div class="tc-body"><div class="tc-sidebar"></div><div class="tc-main"></div></div>
+                                </div>
+                                <div class="theme-card-label">System</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr style="opacity:0.08;">
+
+                    <!-- Sidebar default -->
+                    <div class="mb-4 mt-4">
+                        <div class="fw-semibold mb-1" style="font-size:0.85rem;">Sidebar Default</div>
+                        <p class="text-muted mb-3" style="font-size:0.75rem;">Choose whether the sidebar starts expanded or collapsed on desktop.</p>
+                        <div class="sidebar-options" id="sidebarOptions">
+                            <div class="sidebar-opt" data-sidebar="expanded" onclick="applySidebarChoice('expanded')">
+                                <div class="sidebar-opt-icon">&#9776;</div>
+                                <div class="sidebar-opt-label">Expanded</div>
+                                <div class="sidebar-opt-desc">Show labels alongside icons</div>
+                            </div>
+                            <div class="sidebar-opt" data-sidebar="collapsed" onclick="applySidebarChoice('collapsed')">
+                                <div class="sidebar-opt-icon">&#8594;</div>
+                                <div class="sidebar-opt-label">Collapsed</div>
+                                <div class="sidebar-opt-desc">Icons only — more content space</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr style="opacity:0.08;">
+
+                    <!-- Compact View (DB setting saved via existing notifications form) -->
+                    <div class="mt-4">
+                        <div class="fw-semibold mb-1" style="font-size:0.85rem;">Density</div>
+                        <p class="text-muted mb-2" style="font-size:0.75rem;">Reduce spacing for a denser, information-rich layout.</p>
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="notifications">
+                            <!-- carry along other notification prefs so they aren't wiped -->
+                            {% if prefs_form.notify_announcements.value %}<input type="hidden" name="notify_announcements" value="on">{% endif %}
+                            {% if prefs_form.notify_grades.value %}<input type="hidden" name="notify_grades" value="on">{% endif %}
+                            {% if prefs_form.notify_attendance.value %}<input type="hidden" name="notify_attendance" value="on">{% endif %}
+                            {% if prefs_form.notify_messages.value %}<input type="hidden" name="notify_messages" value="on">{% endif %}
+                            {% if prefs_form.email_notifications.value %}<input type="hidden" name="email_notifications" value="on">{% endif %}
+                            <div class="pref-row" style="border:none; padding-top:0;">
+                                <div>
+                                    <div class="pref-label">Compact View</div>
+                                    <div class="pref-desc">Reduce card sizes and padding throughout the app</div>
+                                </div>
+                                <div class="form-check form-switch mb-0">
+                                    {{ prefs_form.compact_view }}
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm px-4 mt-3">
+                                <i class="bi bi-check2 me-1"></i> Save
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
 
@@ -455,5 +624,48 @@ function switchTab(name) {
     url.searchParams.set('tab', name);
     history.replaceState(null, '', url);
 }
+
+/* ─── Appearance: Theme picker ────────────────────────────────── */
+function applyThemeChoice(mode) {
+    if (mode === 'system') {
+        localStorage.removeItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (window.__setTheme) window.__setTheme(prefersDark ? 'dark' : 'light');
+    } else {
+        if (window.__setTheme) window.__setTheme(mode);
+    }
+    localStorage.setItem('themeChoice', mode);
+    _syncThemeCards(mode);
+}
+
+function _syncThemeCards(mode) {
+    document.querySelectorAll('#themeCards .theme-card').forEach(function(c) {
+        c.classList.toggle('selected', c.dataset.theme === mode);
+    });
+}
+
+/* ─── Appearance: Sidebar picker ─────────────────────────────── */
+function applySidebarChoice(pref) {
+    localStorage.setItem('sidebarCollapsed', pref === 'collapsed' ? 'true' : 'false');
+    _syncSidebarOpts(pref);
+    if (window.innerWidth >= 993) {
+        document.body.classList.toggle('sidebar-collapsed', pref === 'collapsed');
+    }
+}
+
+function _syncSidebarOpts(pref) {
+    document.querySelectorAll('#sidebarOptions .sidebar-opt').forEach(function(o) {
+        o.classList.toggle('selected', o.dataset.sidebar === pref);
+    });
+}
+
+/* ─── Sync card selections with current localStorage on load ─── */
+document.addEventListener('DOMContentLoaded', function() {
+    var themeStored = localStorage.getItem('themeChoice') || localStorage.getItem('theme') || 'light';
+    _syncThemeCards(themeStored);
+
+    var sidebarStored = localStorage.getItem('sidebarCollapsed') === 'true' ? 'collapsed' : 'expanded';
+    _syncSidebarOpts(sidebarStored);
+});
 </script>
 {% endblock %}
