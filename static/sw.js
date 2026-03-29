@@ -1,7 +1,7 @@
-﻿const SW_VERSION = 'v8';
+﻿const SW_VERSION = 'v9';
 const STATIC_CACHE = `school-static-${SW_VERSION}`;
 const RUNTIME_CACHE = `school-runtime-${SW_VERSION}`;
-const NAV_CACHE = `school-nav-${SW_VERSION}`;
+
 const OFFLINE_URL = '/offline/';
 const SYNC_TAG = 'aura-form-sync';
 const PRECACHE_URLS = [
@@ -35,7 +35,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((key) => key.startsWith('school-') && ![STATIC_CACHE, RUNTIME_CACHE, NAV_CACHE].includes(key))
+          .filter((key) => key.startsWith('school-') && ![STATIC_CACHE, RUNTIME_CACHE].includes(key))
           .map((key) => caches.delete(key))
       )
     )
@@ -85,24 +85,6 @@ async function networkFirst(request) {
   }
 }
 
-// Stale-while-revalidate for navigation: serves cached page instantly,
-// fetches fresh copy in background. Makes repeat visits feel app-like.
-async function navStaleWhileRevalidate(request) {
-  const cache = await caches.open(NAV_CACHE);
-  const cached = await cache.match(request);
-  const networkPromise = fetch(request)
-    .then((response) => {
-      if (response && response.ok && !response.redirected) {
-        cache.put(request, response.clone());
-      }
-      return response;
-    })
-    .catch(() => cached);
-
-  // If we have a cached copy, serve it immediately.
-  // The network fetch updates the cache in the background.
-  return cached || networkPromise;
-}
 
 // Check if a navigation URL is a tenant page (not auth/login/signup).
 function isTenantAppPage(url) {
@@ -189,14 +171,10 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (request.mode === 'navigate') {
-    const url = new URL(request.url);
-    // Tenant app pages: stale-while-revalidate (instant repeat visits).
-    // Auth/public pages: network-first (always fresh).
-    if (isTenantAppPage(url)) {
-      event.respondWith(navStaleWhileRevalidate(request));
-    } else {
-      event.respondWith(networkFirst(request));
-    }
+    // All navigation uses network-first so CSRF tokens, session cookies,
+    // and server-side messages are always fresh.  Cached pages still serve
+    // as offline fallback inside networkFirst().
+    event.respondWith(networkFirst(request));
     return;
   }
 
@@ -337,10 +315,10 @@ self.addEventListener('periodicsync', (event) => {
 
 async function refreshCachedPages() {
   try {
-    const cache = await caches.open(NAV_CACHE);
+    const cache = await caches.open(RUNTIME_CACHE);
     const keys = await cache.keys();
     // Re-fetch up to 10 cached pages to keep them fresh
-    const toRefresh = keys.slice(0, 10);
+    const toRefresh = keys.filter(r => r.mode === 'navigate').slice(0, 10);
     await Promise.allSettled(
       toRefresh.map(async (request) => {
         try {
@@ -363,10 +341,13 @@ async function refreshCachedPages() {
 async function getCachedPageList() {
   const pages = [];
   try {
-    const cache = await caches.open(NAV_CACHE);
+    const cache = await caches.open(RUNTIME_CACHE);
     const keys = await cache.keys();
     for (const request of keys) {
       const url = new URL(request.url);
+      // Only include HTML navigation pages, not static assets or API calls
+      if (url.origin !== self.location.origin) continue;
+      if (url.pathname.startsWith('/static/')) continue;
       pages.push({
         url: url.pathname,
         fullUrl: request.url,
