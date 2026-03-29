@@ -174,6 +174,7 @@ def fee_collected_students_csv(request, structure_id):
 
 
 @login_required
+@login_required
 def assign_fee_collector(request, structure_id):
     """Assign or remove a teacher as the fee collector for a fee structure."""
     if request.user.user_type != 'admin':

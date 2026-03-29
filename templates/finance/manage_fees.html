@@ -127,15 +127,15 @@
                             </span>
                             {% endif %}
                             <button type="button"
-                                class="btn btn-link btn-sm p-0 text-decoration-none"
-                                style="font-size:0.75rem;"
+                                class="btn btn-outline-secondary btn-sm px-2 py-1"
                                 data-bs-toggle="modal"
                                 data-bs-target="#assignCollectorModal"
                                 data-fee-id="{{ fee.id }}"
                                 data-fee-name="{{ fee.head.name }} – {{ fee.class_level.name }}"
                                 data-current-collector="{{ fee.assigned_collector.id|default:'' }}"
+                                data-url="{% url 'finance:assign_fee_collector' structure_id=fee.id %}"
                                 title="Assign collector teacher">
-                                <i class="bi bi-pencil-square" style="pointer-events:none;"></i> Assign
+                                <i class="bi bi-person-check" style="pointer-events:none;"></i> Assign
                             </button>
                         </div>
                     </div>
@@ -216,24 +216,27 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
 <script>
 (function () {
     const modal = document.getElementById('assignCollectorModal');
     if (!modal) return;
-    // Build a URL template by inserting a dummy ID we can replace
-    const urlTemplate = "{% url 'finance:assign_fee_collector' structure_id=0 %}".replace('/0/', '/__FEE_ID__/');
 
     modal.addEventListener('show.bs.modal', function (e) {
-        const btn = e.relatedTarget && e.relatedTarget.closest('[data-fee-id]') || e.relatedTarget;
-        const feeId = btn.dataset.feeId;
-        const feeName = btn.dataset.feeName;
-        const currentCollector = btn.dataset.currentCollector;
+        const btn = e.relatedTarget ? e.relatedTarget.closest('[data-url]') || e.relatedTarget : null;
+        if (!btn) return;
+
+        const url = btn.dataset.url;
+        const feeName = btn.dataset.feeName || '';
+        const currentCollector = btn.dataset.currentCollector || '';
 
         document.getElementById('assignCollectorFeeLabel').textContent = 'Fee: ' + feeName;
-        document.getElementById('assignCollectorForm').action = urlTemplate.replace('__FEE_ID__', feeId);
+        document.getElementById('assignCollectorForm').action = url;
 
         const sel = document.getElementById('assignCollectorSelect');
-        sel.value = currentCollector || '';
+        if (sel) sel.value = currentCollector;
     });
 })();
 </script>
