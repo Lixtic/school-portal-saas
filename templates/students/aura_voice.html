@@ -1885,7 +1885,7 @@ closeCameraBtn.addEventListener('click', () => {
     cameraOverlay.classList.remove('visible');
 });
 
-captureBtn.addEventListener('click', () => {
+captureBtn.addEventListener('click', async () => {
     const c = document.createElement('canvas');
     c.width = cameraVideo.videoWidth;
     c.height = cameraVideo.videoHeight;
@@ -1904,12 +1904,7 @@ captureBtn.addEventListener('click', () => {
         });
         const visionData = await visionRes.json();
         if (visionRes.ok && visionData.answer) {
-            // Append the explanation to the transcript
-            const msgEl = document.createElement('div');
-            msgEl.className = 'aura-transcript-item bot';
-            msgEl.textContent = '🔍 ' + visionData.answer;
-            const transcriptEl = document.getElementById('auraTranscript');
-            if (transcriptEl) { transcriptEl.appendChild(msgEl); transcriptEl.scrollTop = transcriptEl.scrollHeight; }
+            addTranscriptLine('🔍 ' + visionData.answer, 'aura');
             substatusText.textContent = 'Image analysed — ' + visionData.answer.substring(0, 60) + '…';
         } else {
             substatusText.textContent = 'Could not analyse image — please try again';
