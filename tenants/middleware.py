@@ -13,367 +13,427 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
+# ── Cached Path Sets ──────────────────────────────────────────────────────────
+
 @lru_cache(maxsize=1)
 def get_reserved_paths():
-    """Reserved non-tenant paths — cached to avoid recomputation per request."""
-    return {
+    """Reserved non-tenant URL segments — cached once per process."""
+    return frozenset({
         'static', 'media', 'admin', 'accounts', 'signup', 'login', 'logout',
         'debug', 'favicon.ico', 'favicon.png', 'apple-touch-icon.png',
         'apple-touch-icon-precomposed.png', 'favicon.svg', 'robots.txt',
         'sitemap.xml', 'dashboard', 'tenants', 'find-school', 'sw.js',
         'offline', 'about', 'contact', 'privacy', 'terms', 'health', 'landlord',
-        'public', 'password', 'reset', 'i18n'
-    }
+        'public', 'password', 'reset', 'i18n',
+    })
 
 
 @lru_cache(maxsize=1)
 def get_tenant_app_roots():
-    """Lazily load tenant app roots to avoid early-import circularities with settings."""
-    _BASE_TENANT_APPS = getattr(settings, 'TENANT_APPS', [])
-    return {app.split('.')[-1] for app in _BASE_TENANT_APPS} - {
+    """App-label segments that could collide with tenant slugs."""
+    _apps = getattr(settings, 'TENANT_APPS', [])
+    _framework = {
         'admin', 'auth', 'contenttypes', 'sessions', 'messages', 'staticfiles',
         'humanize', 'crispy_forms', 'crispy_bootstrap5', 'django_tenants',
-        'cloudinary', 'cloudinary_storage'
+        'cloudinary', 'cloudinary_storage',
     }
+    return frozenset({app.split('.')[-1] for app in _apps} - _framework)
 
 
 @lru_cache(maxsize=1)
-def get_reserved_paths_strict():
-    return set(get_reserved_paths()) | get_tenant_app_roots() | {''}
+def get_all_reserved():
+    """Union of reserved paths + tenant app roots + empty string."""
+    return get_reserved_paths() | get_tenant_app_roots() | frozenset({'', 'public'})
 
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _is_ajax(request):
-    """Return True if the request was sent via fetch/XHR expecting JSON."""
+    """Return True if the request expects a JSON response."""
     return (
         request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         or request.headers.get('Accept', '').startswith('application/json')
     )
 
 
-# Paths (relative to tenant root) that remain accessible after trial expiry
+def _reset_search_path():
+    """Clear cached search_path so next query re-issues SET search_path."""
+    if hasattr(connection, 'search_path_set_schemas'):
+        connection.search_path_set_schemas = None
+
+
+def _set_tenant_on_connection(tenant):
+    """Set tenant schema on connection, resetting search_path cache around it."""
+    _reset_search_path()
+    connection.set_tenant(tenant)
+    _reset_search_path()
+
+
+def _get_public_tenant():
+    """Return the public schema tenant, with a safe fallback."""
+    public_name = getattr(settings, 'PUBLIC_SCHEMA_NAME', 'public')
+    try:
+        return School.objects.get(schema_name=public_name)
+    except Exception:
+        return School(schema_name='public', name='Public (Fallback)')
+
+
+# Paths (relative to tenant root) that stay accessible after trial expiry.
 _TRIAL_EXEMPT_PATHS = (
     '/login/',
     '/logout/',
     '/tenants/subscription/',
     '/tenants/pricing/',
-    '/password',  # password reset/change
+    '/password',
     '/accounts/profile/',
 )
 
 
-class TenantPathMiddleware(TenantMainMiddleware):
-    def process_request(self, request):
-        # 0. Force close stale connections on serverless/Vercel before processing
-        close_old_connections()
+# ── Middleware ─────────────────────────────────────────────────────────────────
 
-        # 1. Start with Public context to be safe
+class TenantPathMiddleware(TenantMainMiddleware):
+    """
+    Path-based multi-tenancy middleware.
+
+    URL structure:  /<schema_name>/app/view/
+    - Parses the first path segment to identify the tenant.
+    - Rewrites SCRIPT_NAME / path_info so url reversals produce correct URLs.
+    - Falls back to the public schema for non-tenant paths.
+
+    Also handles (in process_view, after auth middleware runs):
+    - pgBouncer user resolution
+    - Cross-tenant session isolation
+    - Subscription / trial expiry gating
+    """
+
+    # ── Request Phase ─────────────────────────────────────────────────────
+
+    def process_request(self, request):
+        close_old_connections()
         connection.set_schema_to_public()
 
-        # 2. Inspect Path
-        path_parts = request.path.strip('/').split('/')
-        possible_schema = path_parts[0] if path_parts else None
+        slug = self._extract_slug(request)
+        all_reserved = get_all_reserved()
 
-        # 2b. Recovery guard: if a tenant app path is hit without tenant prefix
-        # (e.g., /finance/), recover the tenant from session or same-origin referrer and redirect.
-        tenant_app_roots = get_tenant_app_roots()
-        reserved_paths = get_reserved_paths()
-        reserved_paths_strict = get_reserved_paths_strict()
-        
-        if possible_schema in tenant_app_roots and len(path_parts) >= 1:
-            recovery_schema = None
+        # Recover bare app-root hits (e.g. /finance/) to the correct tenant.
+        if slug in get_tenant_app_roots():
+            return self._recover_tenant_redirect(request, slug, all_reserved)
 
-            # a. Try session-bound schema first (most reliable/secure source)
-            session_schema = request.session.get('auth_tenant_schema') if hasattr(request, 'session') else None
-            if session_schema and session_schema not in tenant_app_roots:
-                try:
-                    session_tenant = School.objects.filter(schema_name=session_schema, is_active=True).first()
-                    if session_tenant:
-                        recovery_schema = session_schema
-                except Exception as e:
-                    logger.debug("Tenant recovery lookup failed for session schema '%s': %s", session_schema, e, exc_info=True)
-
-            # b. Fall back to HTTP_REFERER if session is unavailable
-            if not recovery_schema:
-                ref = request.META.get('HTTP_REFERER', '')
-                try:
-                    ref_path = urlparse(ref).path or ''
-                    ref_first = ref_path.strip('/').split('/')[0] if ref_path else ''
-                except Exception:
-                    ref_first = ''
-
-                if ref_first and ref_first not in tenant_app_roots and ref_first not in reserved_paths_strict:
-                    try:
-                        ref_tenant = School.objects.filter(schema_name=ref_first, is_active=True).first()
-                        if ref_tenant:
-                            recovery_schema = ref_first
-                    except Exception as e:
-                        logger.debug("Tenant recovery lookup failed for referrer schema '%s': %s", ref_first, e, exc_info=True)
-
-            if recovery_schema:
-                qs = request.META.get('QUERY_STRING', '')
-                suffix = f"?{qs}" if qs else ''
-                return HttpResponseRedirect(f"/{recovery_schema}{request.path}{suffix}")
-
-            # No recovery info available — guide the user to school search.
-            return HttpResponseRedirect('/find-school/')
-
-        tenant = None
-
-        # 3. Check if the first segment matches a valid School schema (excluding 'public')
-        if possible_schema and possible_schema != 'public' and possible_schema not in reserved_paths:
-            logger.debug("Checking tenant candidate: %s", possible_schema)
-            try:
-                tenant = School.objects.filter(schema_name=possible_schema).first()
-            except Exception as e:
-                logger.error("Tenant DB lookup error for %s: %s", possible_schema, e, exc_info=True)
-                if settings.DEBUG:
-                    raise e
-                tenant = None
-
-            if not tenant:
-                logger.debug("Tenant '%s' looked up but returned None", possible_schema)
-                if settings.DEBUG:
-                    all_tenants = list(School.objects.values_list('schema_name', flat=True))
-                    raise Http404(f"School '{possible_schema}' not found. Available schools in DB: {all_tenants}")
-                raise Http404(f"School '{possible_schema}' not found in registry.")
-
-            if not tenant.is_active:
-                logger.info("Tenant '%s' is deactivated — blocking access.", possible_schema)
-                raise Http404("This school is currently inactive.")
+        tenant = self._resolve_tenant(slug, all_reserved)
 
         if tenant:
-            # === TENANT FOUND ===
-            logger.debug("Tenant '%s' found. Rewriting URLs.", possible_schema)
-            logger.debug("Original PATH_INFO=%s SCRIPT_NAME=%s", request.path_info, request.META.get('SCRIPT_NAME'))
-
-            request.tenant = tenant
-            # pgBouncer transaction mode: reset before AND after set_tenant() so
-            # every subsequent autocommit cursor (e.g. AuthenticationMiddleware's
-            # User query) re-issues SET search_path on its actual physical connection.
-            if hasattr(connection, 'search_path_set_schemas'):
-                connection.search_path_set_schemas = None
-            connection.set_tenant(request.tenant)
-            if hasattr(connection, 'search_path_set_schemas'):
-                connection.search_path_set_schemas = None
-
-            if request.path == f"/{possible_schema}":
-                request.path_info = '/'
-
-            if request.path.startswith(f"/{possible_schema}"):
-                if not hasattr(request, '_original_script_prefix'):
-                    request._original_script_prefix = request.META.get('SCRIPT_NAME', '')
-
-                request.META['SCRIPT_NAME'] = f"/{possible_schema}"
-                request.path_info = request.path[len(f"/{possible_schema}"):]
-
-                if not request.path_info.startswith('/'):
-                    request.path_info = '/' + request.path_info
-
-                logger.debug("New PATH_INFO=%s SCRIPT_NAME=%s", request.path_info, request.META['SCRIPT_NAME'])
-                set_script_prefix(f"/{possible_schema}")
-            else:
-                logger.warning("Path '%s' did not start with '/%s'", request.path, possible_schema)
-
+            self._activate_tenant(request, tenant, slug)
         else:
-            # === TENANT NOT FOUND ===
-            if possible_schema and possible_schema not in reserved_paths_strict and possible_schema != 'public':
-                logger.debug("Tenant '%s' not found and not reserved", possible_schema)
-                raise Http404(f"School '{possible_schema}' does not exist.")
+            self._activate_public(request)
 
-            # === PUBLIC CONTEXT ===
-            try:
-                public_schema = getattr(settings, 'PUBLIC_SCHEMA_NAME', 'public')
-                request.tenant = School.objects.get(schema_name=public_schema)
-            except Exception as e:
-                logger.debug("Failed to pull public schema: %s", e, exc_info=True)
-                request.tenant = School(schema_name='public', name='Public (Fallback)')
-
-            if hasattr(connection, 'search_path_set_schemas'):
-                connection.search_path_set_schemas = None
-            connection.set_tenant(request.tenant)
-            if hasattr(connection, 'search_path_set_schemas'):
-                connection.search_path_set_schemas = None
+    # ── View Phase ────────────────────────────────────────────────────────
 
     def process_view(self, request, view_func, view_args, view_kwargs):
-        """Block access for schools whose trial has expired."""
         if not hasattr(request, 'tenant'):
             return None
 
-        # ── Force-resolve request.user inside a transaction ──────────
-        # AuthenticationMiddleware sets request.user as a SimpleLazyObject.
-        # The actual DB query (User.objects.get) fires on first access.
-        # On Neon (pgBouncer transaction mode), each autocommit statement
-        # may land on a different physical PostgreSQL connection.
-        # django-tenants issues SET search_path as a separate statement
-        # from the SELECT, so in autocommit mode the SELECT can hit a
-        # connection that still has search_path=public → user not found
-        # → AnonymousUser → redirect to login on every request.
-        #
-        # Wrapping the first access in transaction.atomic() ensures
-        # SET search_path + SELECT run in ONE transaction → pgBouncer
-        # keeps them on the same physical server connection.
-        # hasattr() checks attribute existence WITHOUT calling __bool__(),
-        # so the SimpleLazyObject stays unresolved until inside the txn.
-        if hasattr(request, 'user') and request.tenant.schema_name != 'public':
-            try:
-                with transaction.atomic():
-                    # Force the lazy object to resolve NOW, inside the txn.
-                    _is_auth = request.user.is_authenticated  # noqa: F841
-            except Exception as e:
-                logger.debug("Failed to force-resolve user auth status: %s", e, exc_info=True)
-                # Prevent a second resolution attempt outside the transaction
-                # which could hit the wrong schema via pgBouncer.
-                request.user = AnonymousUser()
+        is_tenant_ctx = request.tenant.schema_name != 'public'
 
-            # ── Tenant-specific user existence check ─────────────────
-            # Because 'accounts' is in both SHARED_APPS and TENANT_APPS,
-            # search_path = "<tenant>, public" lets Django authenticate a
-            # user that only exists in public.accounts_user.  Views that
-            # INSERT into tenant-local tables (UserSettings, etc.) then
-            # hit FK violations because the tenant's accounts_user table
-            # doesn't have that row.
-            #
-            # Fix: after resolving the user, verify their PK exists in the
-            # TENANT-SPECIFIC accounts_user table (not via public fallback).
-            if getattr(request.user, 'is_authenticated', False):
-                try:
-                    with connection.cursor() as _cur:
-                        _schema = request.tenant.schema_name.replace('"', '')
-                        _cur.execute(
-                            'SELECT 1 FROM "{}".accounts_user WHERE id = %s LIMIT 1'.format(_schema),
-                            [request.user.pk],
-                        )
-                        if _cur.fetchone() is None:
-                            logger.info(
-                                "User pk=%s exists in public but not in tenant '%s' — forcing AnonymousUser",
-                                request.user.pk, _schema,
-                            )
-                            request.user = AnonymousUser()
-                except Exception as e:
-                    logger.debug("Tenant user existence check failed: %s", e, exc_info=True)
+        if is_tenant_ctx:
+            self._force_resolve_user(request)
+            self._verify_user_in_tenant(request)
+            response = self._enforce_session_isolation(request)
+            if response:
+                return response
 
-        # Session isolation guard: auth sessions must stay bound to a single tenant schema.
-        # Without this, a valid session from one tenant can be interpreted in another tenant
-        # (ID collision risk across tenant-local auth tables).
-        try:
-            if getattr(request, 'user', None) and getattr(request.user, 'is_authenticated', False) and request.tenant.schema_name != 'public':
-                current_schema = request.tenant.schema_name
-                bound_schema = request.session.get('auth_tenant_schema')
-
-                if bound_schema and bound_schema != current_schema:
-                    logout(request)
-                    if _is_ajax(request):
-                        return JsonResponse(
-                            {
-                                'error': 'Your session belongs to a different school. Please sign in again.',
-                                'redirect': f'/{current_schema}/login/',
-                            },
-                            status=401,
-                        )
-                    return HttpResponseRedirect(f'/{current_schema}/login/?next={request.path}')
-
-                # Backfill for legacy sessions that predate tenant binding.
-                if not bound_schema:
-                    request.session['auth_tenant_schema'] = current_schema
-        except Exception as e:
-            logger.debug("Tenant session isolation validation failed: %s", e, exc_info=True)
-
-        if request.tenant.schema_name == 'public':
+        if not is_tenant_ctx:
             return None
 
-        # Reset search_path cache before any DB access in this middleware phase.
-        # With TENANT_LIMIT_SET_CALLS=False this is a harmless no-op, but it
-        # provides defence-in-depth if the setting is ever re-enabled.
+        _reset_search_path()
         try:
-            if hasattr(connection, 'search_path_set_schemas'):
-                connection.search_path_set_schemas = None
-
-            if not getattr(request, 'user', None) or not getattr(request.user, 'is_authenticated', False):
-                return None
-
-            path = request.path_info or '/'
-            if any(path.startswith(p) for p in _TRIAL_EXEMPT_PATHS):
-                return None
-
-            try:
-                sub = SchoolSubscription.objects.defer(
-                    'paystack_subscription_code',
-                    'paystack_customer_code',
-                ).select_related('plan').get(school=request.tenant)
-                
-                request._tenant_subscription = sub
-                if sub.status == 'trial' and sub.trial_ends_at and timezone.now() > sub.trial_ends_at:
-                    sub_url = f"/{request.tenant.schema_name}/tenants/subscription/"
-                    logger.info("Trial expired for %s  redirecting to subscription page", request.tenant.schema_name)
-                    if _is_ajax(request):
-                        return JsonResponse(
-                            {'error': 'Your free trial has expired. Please subscribe to continue.',
-                             'redirect': sub_url},
-                            status=402,
-                        )
-                    return HttpResponseRedirect(sub_url)
-            except SchoolSubscription.DoesNotExist:
-                request._tenant_subscription = None
-            except Exception as e:
-                logger.debug("Failed validating school subscription: %s", e, exc_info=True)
-
-            return None
+            return self._check_trial_expiry(request)
         finally:
-            if hasattr(connection, 'search_path_set_schemas'):
-                connection.search_path_set_schemas = None
+            _reset_search_path()
+
+    # ── Response Phase ────────────────────────────────────────────────────
 
     def process_response(self, request, response):
-        """Normalize auth redirects so tenant pages don't bounce via public /login/.
-
-        Handles two cases:
-        1. @login_required fires with SCRIPT_NAME unset → Location: /login/?next=/tenant/path/
-           Rewrite to /{tenant}/login/?next=/tenant/path/
-        2. @login_required fires with SCRIPT_NAME set → Location: /{tenant}/login/?next=/path/
-           Already correct — but prepend tenant to 'next' so login_view can redirect back.
-        """
-        try:
-            if response.status_code not in (301, 302, 303, 307, 308):
-                return response
-
-            location = response.get('Location')
-            if not location:
-                return response
-
-            parsed = urlparse(location)
-            # Only rewrite local-path redirects (no scheme/netloc = same-origin)
-            if parsed.scheme or parsed.netloc:
-                return response
-
-            # Determine tenant context from the current request
-            tenant_schema = getattr(getattr(request, 'tenant', None), 'schema_name', '')
-            if not tenant_schema or tenant_schema == 'public':
-                return response
-
-            # Case 1: bare /login/ redirect (SCRIPT_NAME not set)
-            if parsed.path == '/login/' or parsed.path == '/login':
-                params = dict(parse_qsl(parsed.query, keep_blank_values=True))
-                next_url = params.get('next', '')
-                # If next already has tenant prefix, trust it; otherwise prepend
-                if next_url and not next_url.startswith(f'/{tenant_schema}/'):
-                    params['next'] = f'/{tenant_schema}{next_url}'
-                query = urlencode(params)
-                suffix = f'?{query}' if query else ''
-                response['Location'] = f'/{tenant_schema}/login/{suffix}'
-                return response
-
-            # Case 2: tenant-prefixed login redirect — ensure next param has tenant prefix
-            if parsed.path == f'/{tenant_schema}/login/' or parsed.path == f'/{tenant_schema}/login':
-                params = dict(parse_qsl(parsed.query, keep_blank_values=True))
-                next_url = params.get('next', '')
-                if next_url and next_url.startswith('/') and not next_url.startswith(f'/{tenant_schema}/'):
-                    params['next'] = f'/{tenant_schema}{next_url}'
-                    query = urlencode(params)
-                    response['Location'] = f'/{tenant_schema}/login/?{query}'
-                return response
-
-        except Exception as e:
-            # Never break responses due to redirect normalization issues.
-            logger.debug("Failed redirect normalization in process_response: %s", e, exc_info=True)
+        if response.status_code not in (301, 302, 303, 307, 308):
             return response
 
+        location = response.get('Location', '')
+        if not location:
+            return response
+
+        parsed = urlparse(location)
+        if parsed.scheme or parsed.netloc:
+            return response  # external redirect — leave untouched
+
+        tenant_schema = getattr(getattr(request, 'tenant', None), 'schema_name', '')
+        if not tenant_schema or tenant_schema == 'public':
+            return response
+
+        try:
+            response['Location'] = self._normalize_login_redirect(
+                parsed, tenant_schema
+            ) or location
+        except Exception as exc:
+            logger.debug("Redirect normalization error: %s", exc, exc_info=True)
+
         return response
+
+    # ══════════════════════════════════════════════════════════════════════
+    #  Private helpers
+    # ══════════════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def _extract_slug(request):
+        """Return the first path segment (candidate tenant slug)."""
+        parts = request.path.strip('/').split('/')
+        return parts[0] if parts else ''
+
+    # ── Tenant Resolution ─────────────────────────────────────────────────
+
+    def _resolve_tenant(self, slug, all_reserved):
+        """Look up a School by schema_name.  Returns None for public context."""
+        if not slug or slug in all_reserved:
+            return None
+
+        logger.debug("Tenant lookup: %s", slug)
+        try:
+            tenant = School.objects.filter(schema_name=slug).first()
+        except Exception as exc:
+            logger.error("Tenant DB error for '%s': %s", slug, exc, exc_info=True)
+            if settings.DEBUG:
+                raise
+            raise Http404(f"School '{slug}' lookup failed.") from exc
+
+        if tenant is None:
+            if settings.DEBUG:
+                all_names = list(School.objects.values_list('schema_name', flat=True))
+                raise Http404(
+                    f"School '{slug}' not found. Available: {all_names}"
+                )
+            raise Http404(f"School '{slug}' not found in registry.")
+
+        if not tenant.is_active:
+            logger.info("Tenant '%s' is deactivated.", slug)
+            raise Http404("This school is currently inactive.")
+
+        return tenant
+
+    # ── Activation ────────────────────────────────────────────────────────
+
+    def _activate_tenant(self, request, tenant, slug):
+        """Switch to tenant schema and rewrite SCRIPT_NAME / path_info."""
+        request.tenant = tenant
+        _set_tenant_on_connection(tenant)
+
+        prefix = f"/{slug}"
+        if request.path == prefix:
+            request.path_info = '/'
+        elif request.path.startswith(prefix):
+            if not hasattr(request, '_original_script_prefix'):
+                request._original_script_prefix = request.META.get('SCRIPT_NAME', '')
+            request.META['SCRIPT_NAME'] = prefix
+            tail = request.path[len(prefix):]
+            request.path_info = tail if tail.startswith('/') else f"/{tail}"
+        else:
+            logger.warning("Path '%s' doesn't start with '/%s'", request.path, slug)
+
+        set_script_prefix(prefix)
+        logger.debug("Tenant active: schema=%s  path_info=%s", slug, request.path_info)
+
+    def _activate_public(self, request):
+        """Fall back to the public schema."""
+        request.tenant = _get_public_tenant()
+        _set_tenant_on_connection(request.tenant)
+
+    # ── Bare-App Recovery ─────────────────────────────────────────────────
+
+    def _recover_tenant_redirect(self, request, slug, all_reserved):
+        """
+        When a user hits /finance/ (an app root without tenant prefix),
+        try to recover the correct tenant from the session or referrer
+        and redirect to /<tenant>/finance/...
+        """
+        schema = self._recover_schema_from_session(request, all_reserved)
+        if not schema:
+            schema = self._recover_schema_from_referrer(request, all_reserved)
+
+        if schema:
+            qs = request.META.get('QUERY_STRING', '')
+            suffix = f"?{qs}" if qs else ''
+            return HttpResponseRedirect(f"/{schema}{request.path}{suffix}")
+
+        return HttpResponseRedirect('/find-school/')
+
+    def _recover_schema_from_session(self, request, all_reserved):
+        if not hasattr(request, 'session'):
+            return None
+        schema = request.session.get('auth_tenant_schema')
+        if not schema or schema in all_reserved:
+            return None
+        try:
+            if School.objects.filter(schema_name=schema, is_active=True).exists():
+                return schema
+        except Exception as exc:
+            logger.debug("Session recovery failed for '%s': %s", schema, exc)
+        return None
+
+    def _recover_schema_from_referrer(self, request, all_reserved):
+        ref = request.META.get('HTTP_REFERER', '')
+        if not ref:
+            return None
+        try:
+            first = urlparse(ref).path.strip('/').split('/')[0]
+        except Exception:
+            return None
+        if not first or first in all_reserved:
+            return None
+        try:
+            if School.objects.filter(schema_name=first, is_active=True).exists():
+                return first
+        except Exception as exc:
+            logger.debug("Referrer recovery failed for '%s': %s", first, exc)
+        return None
+
+    # ── User Resolution (pgBouncer-safe) ──────────────────────────────────
+
+    @staticmethod
+    def _force_resolve_user(request):
+        """
+        Resolve the lazy user object inside a transaction so that
+        SET search_path + SELECT share the same pgBouncer connection.
+        """
+        if not hasattr(request, 'user'):
+            return
+        try:
+            with transaction.atomic():
+                _ = request.user.is_authenticated  # force resolution
+        except Exception as exc:
+            logger.debug("User resolution failed: %s", exc, exc_info=True)
+            request.user = AnonymousUser()
+
+    @staticmethod
+    def _verify_user_in_tenant(request):
+        """
+        Ensure the authenticated user actually exists in this tenant's
+        accounts_user table (not just via the public schema fallback).
+        """
+        if not getattr(request.user, 'is_authenticated', False):
+            return
+        schema = request.tenant.schema_name.replace('"', '')
+        try:
+            with connection.cursor() as cur:
+                cur.execute(
+                    f'SELECT 1 FROM "{schema}".accounts_user WHERE id = %s LIMIT 1',
+                    [request.user.pk],
+                )
+                if cur.fetchone() is None:
+                    logger.info(
+                        "User pk=%s not in tenant '%s' — demoting to AnonymousUser",
+                        request.user.pk, schema,
+                    )
+                    request.user = AnonymousUser()
+        except Exception as exc:
+            logger.debug("Tenant user check error: %s", exc, exc_info=True)
+
+    # ── Session Isolation ─────────────────────────────────────────────────
+
+    def _enforce_session_isolation(self, request):
+        """
+        If the user's session was created under a different tenant,
+        log them out and redirect to this tenant's login page.
+        """
+        user = getattr(request, 'user', None)
+        if not user or not getattr(user, 'is_authenticated', False):
+            return None
+
+        current = request.tenant.schema_name
+        bound = request.session.get('auth_tenant_schema')
+
+        if bound and bound != current:
+            logout(request)
+            login_url = f'/{current}/login/?next={request.path}'
+            if _is_ajax(request):
+                return JsonResponse(
+                    {'error': 'Session belongs to a different school. Please sign in again.',
+                     'redirect': f'/{current}/login/'},
+                    status=401,
+                )
+            return HttpResponseRedirect(login_url)
+
+        # Back-fill for sessions created before tenant binding was added.
+        if not bound:
+            request.session['auth_tenant_schema'] = current
+
+        return None
+
+    # ── Subscription / Trial Gating ───────────────────────────────────────
+
+    @staticmethod
+    def _check_trial_expiry(request):
+        """Block access if the school's free trial has expired."""
+        user = getattr(request, 'user', None)
+        if not user or not getattr(user, 'is_authenticated', False):
+            return None
+
+        path = request.path_info or '/'
+        if any(path.startswith(p) for p in _TRIAL_EXEMPT_PATHS):
+            return None
+
+        try:
+            sub = SchoolSubscription.objects.defer(
+                'paystack_subscription_code',
+                'paystack_customer_code',
+            ).select_related('plan').get(school=request.tenant)
+
+            request._tenant_subscription = sub
+
+            if sub.status == 'trial' and sub.trial_ends_at and timezone.now() > sub.trial_ends_at:
+                sub_url = f"/{request.tenant.schema_name}/tenants/subscription/"
+                logger.info("Trial expired for '%s'", request.tenant.schema_name)
+                if _is_ajax(request):
+                    return JsonResponse(
+                        {'error': 'Your free trial has expired. Please subscribe to continue.',
+                         'redirect': sub_url},
+                        status=402,
+                    )
+                return HttpResponseRedirect(sub_url)
+        except SchoolSubscription.DoesNotExist:
+            request._tenant_subscription = None
+        except Exception as exc:
+            logger.debug("Subscription check error: %s", exc, exc_info=True)
+
+        return None
+
+    # ── Login Redirect Normalization ──────────────────────────────────────
+
+    @staticmethod
+    def _normalize_login_redirect(parsed, tenant_schema):
+        """
+        Rewrite login redirects so @login_required bounces to the correct
+        tenant login URL with a proper `next` parameter.
+
+        Returns the corrected Location string, or None to keep the original.
+        """
+        prefix = f'/{tenant_schema}'
+        login_bare = '/login/'
+        login_tenant = f'{prefix}/login/'
+
+        # Case 1: bare /login/ → /<tenant>/login/?next=/<tenant>/…
+        if parsed.path in ('/login/', '/login'):
+            params = dict(parse_qsl(parsed.query, keep_blank_values=True))
+            next_url = params.get('next', '')
+            if next_url and not next_url.startswith(prefix + '/'):
+                params['next'] = f'{prefix}{next_url}'
+            qs = urlencode(params)
+            return f'{login_tenant}?{qs}' if qs else login_tenant
+
+        # Case 2: /<tenant>/login/ — ensure next has tenant prefix
+        if parsed.path in (login_tenant, login_tenant.rstrip('/')):
+            params = dict(parse_qsl(parsed.query, keep_blank_values=True))
+            next_url = params.get('next', '')
+            if next_url and next_url.startswith('/') and not next_url.startswith(prefix + '/'):
+                params['next'] = f'{prefix}{next_url}'
+                qs = urlencode(params)
+                return f'{login_tenant}?{qs}'
+
+        return None
