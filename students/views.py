@@ -763,7 +763,14 @@ def student_dashboard_view(request):
         },
         **build_academic_calendar_widget(),
     }
-    
+
+    # Voice feature gating — pass flag so the template can show locked state
+    try:
+        from tenants.decorators import _school_plan_type
+        context['voice_enabled'] = _school_plan_type(request) in ('pro', 'enterprise')
+    except Exception:
+        context['voice_enabled'] = False
+
     return render(request, 'dashboard/student_dashboard.html', context)
 
 def _get_student_report_context(student, academic_year, term, raw_term):

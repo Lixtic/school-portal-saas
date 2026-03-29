@@ -442,6 +442,7 @@
                 </div>
             </a>
             <div style="position:relative;">
+            {% if voice_enabled %}
             <a href="{% url 'students:aura_voice' %}" class="sd-action-card">
                 <div class="sd-action-icon sd-action-icon-voice">
                     <i class="bi bi-mic-fill"></i>
@@ -451,6 +452,18 @@
                     <div class="sd-action-sub">Voice Practice</div>
                 </div>
             </a>
+            {% else %}
+            <div class="sd-action-card" style="opacity:.55;cursor:not-allowed;" title="Requires Pro plan">
+                <div class="sd-action-icon sd-action-icon-voice" style="position:relative;">
+                    <i class="bi bi-mic-fill"></i>
+                    <span style="position:absolute;top:-4px;right:-4px;background:#f59e0b;border-radius:50%;width:15px;height:15px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;"><i class="bi bi-lock-fill"></i></span>
+                </div>
+                <div>
+                    <div class="sd-action-label">Talk to Aura</div>
+                    <div class="sd-action-sub" style="color:#f59e0b;">Pro feature</div>
+                </div>
+            </div>
+            {% endif %}
             <button id="aura-prefs-toggle" title="Aura Preferences"
                 onclick="var p=document.getElementById('aura-prefs-bar');p.style.display=p.style.display==='none'||!p.style.display?'block':'none';"
                 style="position:absolute;top:6px;right:6px;background:rgba(108,71,255,0.15);border:none;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;z-index:1;color:#6c47ff;">⚙</button>
