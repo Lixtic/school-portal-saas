@@ -295,12 +295,17 @@ def push_campaign(request):
         return redirect('dashboard')
 
     # Stats for the template
-    total_subscribers = PushSubscription.objects.count()
+    total_subs = PushSubscription.objects.count()
+    total_users = PushSubscription.objects.values('user').distinct().count()
     subscriber_counts = {}
+    device_counts = {}
     for role in ('admin', 'teacher', 'student', 'parent'):
         subscriber_counts[role] = PushSubscription.objects.filter(
             user__user_type=role
         ).values('user').distinct().count()
+        device_counts[role] = PushSubscription.objects.filter(
+            user__user_type=role
+        ).count()
 
     # Class list for targeting
     from academics.models import Class, AcademicYear
@@ -316,6 +321,10 @@ def push_campaign(request):
         url = request.POST.get('url', '').strip() or '/dashboard/'
         target = request.POST.get('target', 'all')
         target_class = request.POST.get('target_class', '').strip()
+
+        # Sanitize URL — only allow relative paths
+        if not url.startswith('/'):
+            url = '/dashboard/'
 
         if not title or not body:
             messages.error(request, 'Title and message body are required.')
@@ -370,7 +379,9 @@ def push_campaign(request):
                     if ex.response and ex.response.status_code in (404, 410):
                         expired_ids.append(sub.id)
                     failed_count += 1
-                except Exception:
+                except Exception as ex:
+                    import logging
+                    logging.getLogger(__name__).warning('Push send error for sub %s: %s', sub.id, ex)
                     failed_count += 1
 
             # Clean up expired subscriptions
@@ -383,8 +394,10 @@ def push_campaign(request):
                 messages.warning(request, f'{failed_count} delivery(ies) failed (expired subscriptions cleaned up).')
 
     return render(request, 'announcements/push_campaign.html', {
-        'total_subscribers': total_subscribers,
+        'total_subscribers': total_subs,
+        'total_users': total_users,
         'subscriber_counts': subscriber_counts,
+        'device_counts': device_counts,
         'classes': classes,
         'sent_count': sent_count,
         'failed_count': failed_count,

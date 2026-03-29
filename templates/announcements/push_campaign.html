@@ -172,26 +172,43 @@
 <!-- Subscriber stats -->
 <div class="pc-stats-grid">
     <div class="pc-stat">
-        <div class="pc-stat-value" style="color:#7c3aed;">{{ total_subscribers }}</div>
-        <div class="pc-stat-label">Total Devices</div>
+        <div class="pc-stat-value" style="color:#7c3aed;">{{ total_users }}</div>
+        <div class="pc-stat-label">Subscribed Users</div>
+        <div style="font-size:.65rem;color:var(--pc-muted);margin-top:.15rem;">{{ total_subscribers }} device{{ total_subscribers|pluralize }}</div>
     </div>
     <div class="pc-stat">
         <div class="pc-stat-value" style="color:#3b82f6;">{{ subscriber_counts.teacher }}</div>
         <div class="pc-stat-label">Teachers</div>
+        <div style="font-size:.65rem;color:var(--pc-muted);margin-top:.15rem;">{{ device_counts.teacher }} device{{ device_counts.teacher|pluralize }}</div>
     </div>
     <div class="pc-stat">
         <div class="pc-stat-value" style="color:#10b981;">{{ subscriber_counts.student }}</div>
         <div class="pc-stat-label">Students</div>
+        <div style="font-size:.65rem;color:var(--pc-muted);margin-top:.15rem;">{{ device_counts.student }} device{{ device_counts.student|pluralize }}</div>
     </div>
     <div class="pc-stat">
         <div class="pc-stat-value" style="color:#f59e0b;">{{ subscriber_counts.parent }}</div>
         <div class="pc-stat-label">Parents</div>
+        <div style="font-size:.65rem;color:var(--pc-muted);margin-top:.15rem;">{{ device_counts.parent }} device{{ device_counts.parent|pluralize }}</div>
     </div>
     <div class="pc-stat">
         <div class="pc-stat-value" style="color:#6b7280;">{{ subscriber_counts.admin }}</div>
         <div class="pc-stat-label">Admins</div>
+        <div style="font-size:.65rem;color:var(--pc-muted);margin-top:.15rem;">{{ device_counts.admin }} device{{ device_counts.admin|pluralize }}</div>
     </div>
 </div>
+
+{% if total_subscribers == 0 %}
+<div class="alert alert-warning d-flex align-items-center gap-2 mb-3" style="border-radius:10px; font-size:.85rem;">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <div>
+        <strong>No subscribers yet.</strong> Users must enable push notifications on their device before they can receive campaigns.
+        <button onclick="window.requestPushPermission && window.requestPushPermission()" class="btn btn-sm btn-warning ms-2" style="font-size:.78rem;">
+            <i class="bi bi-bell me-1"></i>Enable on This Device
+        </button>
+    </div>
+</div>
+{% endif %}
 
 {% if messages %}
 <div class="mb-3">
@@ -227,11 +244,11 @@
             <div class="pc-form-group">
                 <label for="target">Target Audience</label>
                 <select id="target" name="target">
-                    <option value="all">All Users ({{ total_subscribers }} devices)</option>
-                    <option value="staff">Staff Only (Admins + Teachers)</option>
-                    <option value="teachers">Teachers Only ({{ subscriber_counts.teacher }})</option>
-                    <option value="students">Students Only ({{ subscriber_counts.student }})</option>
-                    <option value="parents">Parents Only ({{ subscriber_counts.parent }})</option>
+                    <option value="all">All Users ({{ total_subscribers }} device{{ total_subscribers|pluralize }})</option>
+                    <option value="staff">Staff Only ({{ device_counts.admin|add:device_counts.teacher }} device{{ device_counts.admin|add:device_counts.teacher|pluralize }})</option>
+                    <option value="teachers">Teachers Only ({{ device_counts.teacher }} device{{ device_counts.teacher|pluralize }})</option>
+                    <option value="students">Students Only ({{ device_counts.student }} device{{ device_counts.student|pluralize }})</option>
+                    <option value="parents">Parents Only ({{ device_counts.parent }} device{{ device_counts.parent|pluralize }})</option>
                     <option value="class">Specific Class</option>
                 </select>
                 <div class="pc-class-select" id="classSelectWrapper">
