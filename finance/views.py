@@ -1,13 +1,14 @@
+import json
 from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
-from django.db.models import Sum, Q, Count, Max
+from django.db.models import Sum, Q, Count, Max, F, Value, CharField
 from django.db.models.functions import Coalesce
 from django.conf import settings
-from .models import FeeHead, FeeStructure, StudentFee, Payment
+from .models import FeeHead, FeeStructure, StudentFee, Payment, TERM_CHOICES
 from .forms import FeeHeadForm, FeeStructureForm, PaymentForm
 from students.models import Student
 from teachers.models import Teacher
@@ -865,3 +866,130 @@ def send_sms_fee_reminders(request):
         'total_balance': total_balance,
         'phones_missing': phones_missing,
     })
+
+@login_required
+def fee_collection_report(request):
+    """Class-wise and term-wise fee collection breakdown report."""
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access Denied')
+        return redirect('dashboard')
+
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    selected_term = request.GET.get('term', '')
+    selected_year_id = request.GET.get('year', '')
+
+    years = AcademicYear.objects.order_by('-start_date')
+    report_year = current_year
+    if selected_year_id:
+        report_year = AcademicYear.objects.filter(id=selected_year_id).first() or current_year
+
+    # Base queryset for the selected academic year
+    base_fees = StudentFee.objects.filter(fee_structure__academic_year=report_year)
+    if selected_term:
+        base_fees = base_fees.filter(fee_structure__term=selected_term)
+
+    # --- Class-wise breakdown ---
+    classes = Class.objects.filter(academic_year=report_year).order_by('name')
+    class_data = []
+    for cls in classes:
+        cls_fees = base_fees.filter(fee_structure__class_level=cls)
+        agg = cls_fees.aggregate(
+            expected=Coalesce(Sum('amount_payable'), Decimal('0')),
+            collected=Coalesce(Sum('payments__amount'), Decimal('0')),
+            total_students=Count('student', distinct=True),
+            paid_count=Count('student', filter=Q(status='paid'), distinct=True),
+        )
+        expected = agg['expected']
+        collected = agg['collected']
+        outstanding = expected - collected
+        rate = round((collected / expected * 100), 1) if expected > 0 else 0
+        class_data.append({
+            'name': str(cls),
+            'expected': expected,
+            'collected': collected,
+            'outstanding': outstanding,
+            'rate': rate,
+            'total_students': agg['total_students'],
+            'paid_count': agg['paid_count'],
+        })
+
+    # --- Term-wise breakdown ---
+    term_data = []
+    for value, label in TERM_CHOICES:
+        term_fees = StudentFee.objects.filter(
+            fee_structure__academic_year=report_year,
+            fee_structure__term=value,
+        )
+        agg = term_fees.aggregate(
+            expected=Coalesce(Sum('amount_payable'), Decimal('0')),
+            collected=Coalesce(Sum('payments__amount'), Decimal('0')),
+        )
+        expected = agg['expected']
+        collected = agg['collected']
+        outstanding = expected - collected
+        rate = round((collected / expected * 100), 1) if expected > 0 else 0
+        term_data.append({
+            'term': label,
+            'expected': expected,
+            'collected': collected,
+            'outstanding': outstanding,
+            'rate': rate,
+        })
+
+    # --- Fee-type breakdown ---
+    heads = FeeHead.objects.all()
+    head_data = []
+    for head in heads:
+        head_fees = base_fees.filter(fee_structure__head=head)
+        agg = head_fees.aggregate(
+            expected=Coalesce(Sum('amount_payable'), Decimal('0')),
+            collected=Coalesce(Sum('payments__amount'), Decimal('0')),
+        )
+        if agg['expected'] > 0:
+            head_data.append({
+                'name': head.name,
+                'expected': agg['expected'],
+                'collected': agg['collected'],
+                'outstanding': agg['expected'] - agg['collected'],
+                'rate': round((agg['collected'] / agg['expected'] * 100), 1),
+            })
+
+    # Grand totals
+    totals = base_fees.aggregate(
+        expected=Coalesce(Sum('amount_payable'), Decimal('0')),
+        collected=Coalesce(Sum('payments__amount'), Decimal('0')),
+    )
+    grand_expected = totals['expected']
+    grand_collected = totals['collected']
+    grand_outstanding = grand_expected - grand_collected
+    grand_rate = round((grand_collected / grand_expected * 100), 1) if grand_expected > 0 else 0
+
+    # Chart JSON
+    chart_class_labels = json.dumps([c['name'] for c in class_data])
+    chart_class_collected = json.dumps([float(c['collected']) for c in class_data])
+    chart_class_outstanding = json.dumps([float(c['outstanding']) for c in class_data])
+    chart_term_labels = json.dumps([t['term'] for t in term_data])
+    chart_term_collected = json.dumps([float(t['collected']) for t in term_data])
+    chart_term_outstanding = json.dumps([float(t['outstanding']) for t in term_data])
+
+    context = {
+        'report_year': report_year,
+        'years': years,
+        'selected_term': selected_term,
+        'selected_year_id': str(report_year.id) if report_year else '',
+        'term_choices': TERM_CHOICES,
+        'class_data': class_data,
+        'term_data': term_data,
+        'head_data': head_data,
+        'grand_expected': grand_expected,
+        'grand_collected': grand_collected,
+        'grand_outstanding': grand_outstanding,
+        'grand_rate': grand_rate,
+        'chart_class_labels': chart_class_labels,
+        'chart_class_collected': chart_class_collected,
+        'chart_class_outstanding': chart_class_outstanding,
+        'chart_term_labels': chart_term_labels,
+        'chart_term_collected': chart_term_collected,
+        'chart_term_outstanding': chart_term_outstanding,
+    }
+    return render(request, 'finance/fee_collection_report.html', context)

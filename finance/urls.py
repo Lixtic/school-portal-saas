@@ -24,4 +24,6 @@ urlpatterns = [
     path('paystack/webhook/', views.paystack_webhook, name='paystack_webhook'),
     # SMS fee reminders
     path('sms-reminders/', views.send_sms_fee_reminders, name='sms_fee_reminders'),
+    # Collection report
+    path('collection-report/', views.fee_collection_report, name='fee_collection_report'),
 ]

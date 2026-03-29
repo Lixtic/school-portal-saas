@@ -1,0 +1,368 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<style>
+    .report-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        background: #fff;
+        overflow: hidden;
+    }
+    .report-card-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid #e5e7eb;
+        background: #f9fafb;
+    }
+    .report-card-body { padding: 1.25rem; }
+    .stat-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.25rem;
+        border-radius: 10px;
+        border: 1px solid #e5e7eb;
+        background: #fff;
+    }
+    .stat-pill .label { font-size: 0.75rem; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.03em; }
+    .stat-pill .value { font-size: 1.25rem; font-weight: 600; }
+    .progress-bar-thin {
+        height: 6px;
+        border-radius: 3px;
+        background: #e5e7eb;
+        overflow: hidden;
+    }
+    .progress-bar-thin .fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.6s ease;
+    }
+    .rate-good { color: #059669; }
+    .rate-mid { color: #d97706; }
+    .rate-low { color: #dc2626; }
+    .table-report th {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #6b7280;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    .table-report td {
+        vertical-align: middle;
+        font-size: 0.875rem;
+    }
+    
+    [data-bs-theme="dark"] .report-card {
+        background: var(--surface-white);
+        border-color: rgba(255,255,255,0.08);
+    }
+    [data-bs-theme="dark"] .report-card-header {
+        background: rgba(255,255,255,0.03);
+        border-color: rgba(255,255,255,0.08);
+    }
+    [data-bs-theme="dark"] .stat-pill {
+        background: var(--surface-white);
+        border-color: rgba(255,255,255,0.08);
+    }
+    [data-bs-theme="dark"] .stat-pill .label { color: #9ca3af; }
+    [data-bs-theme="dark"] .stat-pill .value { color: #f3f4f6; }
+    [data-bs-theme="dark"] .progress-bar-thin { background: rgba(255,255,255,0.1); }
+    [data-bs-theme="dark"] .table-report th { color: #9ca3af; border-color: rgba(255,255,255,0.08); }
+</style>
+
+<div class="container-fluid px-3 px-md-4 py-3">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <h4 class="mb-1 fw-semibold">Fee Collection Report</h4>
+            <p class="text-muted mb-0 small">{{ report_year }}</p>
+        </div>
+        <a href="{% url 'finance:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Back to Finance
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="report-card mb-4">
+        <div class="report-card-body py-3">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-auto">
+                    <label class="form-label small fw-semibold mb-1">Academic Year</label>
+                    <select name="year" class="form-select form-select-sm">
+                        {% for y in years %}
+                        <option value="{{ y.id }}" {% if selected_year_id == y.id|stringformat:"d" %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label small fw-semibold mb-1">Term</label>
+                    <select name="term" class="form-select form-select-sm">
+                        <option value="">All Terms</option>
+                        {% for val, label in term_choices %}
+                        <option value="{{ val }}" {% if selected_term == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary btn-sm px-3">
+                        <i class="bi bi-funnel me-1"></i> Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Grand Totals -->
+    <div class="d-flex flex-wrap gap-3 mb-4">
+        <div class="stat-pill flex-fill">
+            <div>
+                <div class="label">Expected</div>
+                <div class="value">₵ {{ grand_expected|intcomma }}</div>
+            </div>
+        </div>
+        <div class="stat-pill flex-fill">
+            <div>
+                <div class="label">Collected</div>
+                <div class="value text-success">₵ {{ grand_collected|intcomma }}</div>
+            </div>
+        </div>
+        <div class="stat-pill flex-fill">
+            <div>
+                <div class="label">Outstanding</div>
+                <div class="value text-warning">₵ {{ grand_outstanding|intcomma }}</div>
+            </div>
+        </div>
+        <div class="stat-pill">
+            <div>
+                <div class="label">Collection Rate</div>
+                <div class="value {% if grand_rate >= 75 %}rate-good{% elif grand_rate >= 50 %}rate-mid{% else %}rate-low{% endif %}">{{ grand_rate }}%</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-7">
+            <div class="report-card h-100">
+                <div class="report-card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-semibold">Collection by Class</h6>
+                </div>
+                <div class="report-card-body">
+                    <canvas id="classChart" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="report-card h-100">
+                <div class="report-card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-semibold">Collection by Term</h6>
+                </div>
+                <div class="report-card-body">
+                    <canvas id="termChart" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Class-wise Table -->
+    <div class="report-card mb-4">
+        <div class="report-card-header">
+            <h6 class="mb-0 fw-semibold"><i class="bi bi-building me-2"></i>Class-wise Breakdown</h6>
+        </div>
+        <div class="report-card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-report mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-3">Class</th>
+                            <th>Students</th>
+                            <th>Fully Paid</th>
+                            <th class="text-end">Expected</th>
+                            <th class="text-end">Collected</th>
+                            <th class="text-end">Outstanding</th>
+                            <th style="width:140px">Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in class_data %}
+                        <tr>
+                            <td class="ps-3 fw-semibold">{{ row.name }}</td>
+                            <td>{{ row.total_students }}</td>
+                            <td>
+                                <span class="badge {% if row.paid_count == row.total_students %}bg-success{% else %}bg-secondary{% endif %} bg-opacity-10 text-{% if row.paid_count == row.total_students %}success{% else %}body{% endif %}">
+                                    {{ row.paid_count }}/{{ row.total_students }}
+                                </span>
+                            </td>
+                            <td class="text-end">₵ {{ row.expected|intcomma }}</td>
+                            <td class="text-end text-success fw-semibold">₵ {{ row.collected|intcomma }}</td>
+                            <td class="text-end text-warning">₵ {{ row.outstanding|intcomma }}</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="progress-bar-thin flex-grow-1">
+                                        <div class="fill {% if row.rate >= 75 %}bg-success{% elif row.rate >= 50 %}bg-warning{% else %}bg-danger{% endif %}" style="width: {{ row.rate }}%"></div>
+                                    </div>
+                                    <span class="small fw-semibold {% if row.rate >= 75 %}rate-good{% elif row.rate >= 50 %}rate-mid{% else %}rate-low{% endif %}">{{ row.rate }}%</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" class="text-center text-muted py-4">No class data for this period</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Term-wise Table -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-6">
+            <div class="report-card h-100">
+                <div class="report-card-header">
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-calendar3 me-2"></i>Term-wise Breakdown</h6>
+                </div>
+                <div class="report-card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-report mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-3">Term</th>
+                                    <th class="text-end">Expected</th>
+                                    <th class="text-end">Collected</th>
+                                    <th class="text-end">Outstanding</th>
+                                    <th style="width:120px">Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in term_data %}
+                                <tr>
+                                    <td class="ps-3 fw-semibold">{{ row.term }}</td>
+                                    <td class="text-end">₵ {{ row.expected|intcomma }}</td>
+                                    <td class="text-end text-success fw-semibold">₵ {{ row.collected|intcomma }}</td>
+                                    <td class="text-end text-warning">₵ {{ row.outstanding|intcomma }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="progress-bar-thin flex-grow-1">
+                                                <div class="fill {% if row.rate >= 75 %}bg-success{% elif row.rate >= 50 %}bg-warning{% else %}bg-danger{% endif %}" style="width: {{ row.rate }}%"></div>
+                                            </div>
+                                            <span class="small fw-semibold {% if row.rate >= 75 %}rate-good{% elif row.rate >= 50 %}rate-mid{% else %}rate-low{% endif %}">{{ row.rate }}%</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fee-type Table -->
+        <div class="col-lg-6">
+            <div class="report-card h-100">
+                <div class="report-card-header">
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-tags me-2"></i>By Fee Type</h6>
+                </div>
+                <div class="report-card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-report mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-3">Fee Type</th>
+                                    <th class="text-end">Expected</th>
+                                    <th class="text-end">Collected</th>
+                                    <th style="width:120px">Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in head_data %}
+                                <tr>
+                                    <td class="ps-3 fw-semibold">{{ row.name }}</td>
+                                    <td class="text-end">₵ {{ row.expected|intcomma }}</td>
+                                    <td class="text-end text-success fw-semibold">₵ {{ row.collected|intcomma }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="progress-bar-thin flex-grow-1">
+                                                <div class="fill {% if row.rate >= 75 %}bg-success{% elif row.rate >= 50 %}bg-warning{% else %}bg-danger{% endif %}" style="width: {{ row.rate }}%"></div>
+                                            </div>
+                                            <span class="small fw-semibold {% if row.rate >= 75 %}rate-good{% elif row.rate >= 50 %}rate-mid{% else %}rate-low{% endif %}">{{ row.rate }}%</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="4" class="text-center text-muted py-4">No fee type data</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+    const textColor = isDark ? '#9ca3af' : '#6b7280';
+
+    // Class chart - stacked bar
+    new Chart(document.getElementById('classChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ chart_class_labels|safe }},
+            datasets: [
+                {
+                    label: 'Collected',
+                    data: {{ chart_class_collected|safe }},
+                    backgroundColor: '#059669',
+                    borderRadius: 4,
+                },
+                {
+                    label: 'Outstanding',
+                    data: {{ chart_class_outstanding|safe }},
+                    backgroundColor: '#d97706',
+                    borderRadius: 4,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top', labels: { color: textColor, boxWidth: 12, padding: 16, font: { size: 12 } } },
+            },
+            scales: {
+                x: { stacked: true, grid: { display: false }, ticks: { color: textColor, font: { size: 11 } } },
+                y: { stacked: true, grid: { color: gridColor }, ticks: { color: textColor, font: { size: 11 }, callback: v => '₵' + v.toLocaleString() } },
+            }
+        }
+    });
+
+    // Term chart - doughnut
+    new Chart(document.getElementById('termChart'), {
+        type: 'doughnut',
+        data: {
+            labels: {{ chart_term_labels|safe }},
+            datasets: [{
+                data: {{ chart_term_collected|safe }},
+                backgroundColor: ['#4361ee', '#059669', '#d97706'],
+                borderWidth: 0,
+                hoverOffset: 6,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '60%',
+            plugins: {
+                legend: { position: 'bottom', labels: { color: textColor, padding: 16, font: { size: 12 } } },
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
