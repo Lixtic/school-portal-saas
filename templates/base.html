@@ -228,6 +228,81 @@
             --bs-btn-font-size: 0.82rem;
         }
 
+        /* 4b. OFFLINE QUEUE BADGE */
+        #offlineQueueBadge {
+            display: none;
+            position: fixed;
+            right: 16px;
+            bottom: 56px;
+            z-index: 1091;
+            min-width: 28px;
+            height: 28px;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #fff;
+            font-size: 0.78rem;
+            font-weight: 700;
+            border-radius: 14px;
+            padding: 0 8px;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+            cursor: pointer;
+            animation: queueBadgePulse 2s ease-in-out infinite;
+        }
+        #offlineQueueBadge::before {
+            content: '\F150'; /* bi-cloud-arrow-up */
+            font-family: 'bootstrap-icons';
+            margin-right: 4px;
+            font-size: 0.85rem;
+        }
+        @keyframes queueBadgePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        /* 4c. SYNCED TOAST */
+        #syncedToast {
+            position: fixed;
+            left: 50%;
+            bottom: 56px;
+            transform: translateX(-50%) translateY(20px);
+            background: #065f46;
+            color: #fff;
+            border-radius: 12px;
+            padding: 10px 18px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            box-shadow: 0 8px 24px rgba(6, 95, 70, 0.3);
+            z-index: 1092;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        #syncedToast.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+            pointer-events: auto;
+        }
+
+        /* 4d. OFFLINE INDICATOR */
+        .offline-indicator {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #f59e0b, #ef4444, #f59e0b);
+            background-size: 200% 100%;
+            animation: offlineStripe 2s linear infinite;
+            z-index: 1100;
+        }
+        .offline-indicator.active { display: block; }
+        @keyframes offlineStripe {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
         /* 5. PAGE SKELETON MODE (opt-in via body class: has-skeleton-loader) */
         .has-skeleton-loader {
             --skeleton-overlay-low: rgba(148, 163, 184, 0.14);
@@ -1535,6 +1610,9 @@
             left: 50%;
             bottom: calc(14px + env(safe-area-inset-bottom, 0px));
             transform: translateX(-50%);
+            --nav-accent: var(--primary-brand);
+            --nav-accent-soft: rgba(67, 97, 238, 0.08);
+            --nav-accent-soft-dark: rgba(67, 97, 238, 0.18);
             width: min(360px, 88vw);
             padding: 8px;
             background: rgba(255, 255, 255, 0.92);
@@ -1576,12 +1654,47 @@
         .bottom-nav-item:focus-visible { outline: 2px solid var(--primary-brand); outline-offset: 2px; }
 
         .bottom-nav-item.active {
-            color: var(--primary-brand);
-            background: rgba(67, 97, 238, 0.08);
+            color: var(--nav-accent);
+            background: var(--nav-accent-soft);
             transform: translateY(-2px);
         }
 
-        [data-bs-theme="dark"] .bottom-nav-item.active { background: rgba(67, 97, 238, 0.18); }
+        .bottom-nav-item.active i {
+            color: var(--nav-accent);
+            filter: drop-shadow(0 0 8px color-mix(in srgb, var(--nav-accent) 35%, transparent));
+        }
+
+        [data-bs-theme="dark"] .bottom-nav-item.active { background: var(--nav-accent-soft-dark); }
+
+        .mobile-bottom-nav[data-nav-role="landlord"] {
+            --nav-accent: #f59e0b;
+            --nav-accent-soft: rgba(245, 158, 11, 0.16);
+            --nav-accent-soft-dark: rgba(245, 158, 11, 0.26);
+        }
+
+        .mobile-bottom-nav[data-nav-role="admin"] {
+            --nav-accent: #3b82f6;
+            --nav-accent-soft: rgba(59, 130, 246, 0.14);
+            --nav-accent-soft-dark: rgba(59, 130, 246, 0.24);
+        }
+
+        .mobile-bottom-nav[data-nav-role="teacher"] {
+            --nav-accent: #06b6d4;
+            --nav-accent-soft: rgba(6, 182, 212, 0.14);
+            --nav-accent-soft-dark: rgba(6, 182, 212, 0.24);
+        }
+
+        .mobile-bottom-nav[data-nav-role="student"] {
+            --nav-accent: #22c55e;
+            --nav-accent-soft: rgba(34, 197, 94, 0.14);
+            --nav-accent-soft-dark: rgba(34, 197, 94, 0.24);
+        }
+
+        .mobile-bottom-nav[data-nav-role="parent"] {
+            --nav-accent: #ec4899;
+            --nav-accent-soft: rgba(236, 72, 153, 0.14);
+            --nav-accent-soft-dark: rgba(236, 72, 153, 0.24);
+        }
 
         .bottom-nav-badge {
             min-width: 18px;
@@ -3020,19 +3133,22 @@
 
     {% if user.is_authenticated %}
     {% with url_name=request.resolver_match.url_name|default:'' app_name=request.resolver_match.app_name|default:'' %}
-    <nav class="mobile-bottom-nav d-lg-none d-print-none" aria-label="Primary navigation" id="mobileBottomNav">
+    <nav class="mobile-bottom-nav d-lg-none d-print-none" aria-label="Primary navigation" id="mobileBottomNav" data-nav-role="{% if user.is_staff and app_name == 'tenants' and request.tenant.schema_name == 'public' %}landlord{% elif user.user_type == 'admin' %}admin{% elif user.user_type == 'teacher' %}teacher{% elif user.user_type == 'student' %}student{% elif user.user_type == 'parent' %}parent{% else %}default{% endif %}">
         {% if user.is_staff and app_name == 'tenants' and request.tenant.schema_name == 'public' %}
         <a href="{% url 'tenants:landlord_dashboard' %}" class="bottom-nav-item {% if url_name == 'landlord_dashboard' %}active{% endif %}" aria-label="Command Center">
             <i class="bi bi-grid-3x3-gap"></i>
             <span>Center</span>
         </a>
-        <a href="{% url 'tenants:revenue_analytics' %}" class="bottom-nav-item {% if url_name == 'revenue_analytics' %}active{% endif %}" aria-label="Revenue">
+        <a href="{% url 'tenants:revenue_analytics' %}" class="bottom-nav-item {% if url_name == 'revenue_analytics' %}active{% endif %}" aria-label="Operations">
             <i class="bi bi-graph-up-arrow"></i>
-            <span>Revenue</span>
+            <span>Ops</span>
         </a>
-        <a href="{% url 'tenants:approval_queue' %}" class="bottom-nav-item {% if url_name == 'approval_queue' %}active{% endif %}" aria-label="Approvals">
-            <i class="bi bi-clipboard-check"></i>
-            <span>Approvals</span>
+        <a href="{% url 'tenants:approval_queue' %}" class="bottom-nav-item {% if url_name == 'approval_queue' %}active{% endif %}" aria-label="Queue">
+            <span class="d-flex align-items-center gap-1">
+                <i class="bi bi-clipboard-check"></i>
+                <span class="badge bg-danger bottom-nav-badge landlord-approval-badge" {% if pending_count %}style="display:inline-block"{% else %}style="display:none"{% endif %}>{{ pending_count|default:0 }}</span>
+            </span>
+            <span>Queue</span>
         </a>
         <button type="button" class="bottom-nav-item" onclick="toggleMobileMenu()" aria-controls="mobileBubbleMenu" aria-expanded="false">
             <i class="bi bi-list"></i>
@@ -4318,6 +4434,9 @@
     (function() {
         "use strict";
         const apiUrl = "{% url 'communication:api_unread' %}";
+        const approvalCountUrl = "{% url 'tenants:approval_pending_count' %}";
+        const POLL_INTERVAL_MS = 30000;
+        let pollTimerId = null;
 
         function updateAllBadges(count) {
             // Select all badges we added (sidebar, menu dropdown, mobile menu)
@@ -4353,9 +4472,63 @@
                 .catch(function(e) { console.debug('Unread fetch error', e); });
         }
 
-        // Fetch immediately and then every 30s
-        fetchUnread();
-        setInterval(fetchUnread, 30000); 
+        function updateLandlordApprovalBadges(count) {
+            const badges = document.querySelectorAll('.landlord-approval-badge');
+            badges.forEach(function(el) {
+                if (count > 0) {
+                    el.textContent = count > 99 ? '99+' : count;
+                    el.style.display = 'inline-block';
+                    el.classList.remove('d-none');
+                } else {
+                    el.style.display = 'none';
+                    el.classList.add('d-none');
+                }
+            });
+        }
+
+        function fetchLandlordApprovals() {
+            const hasApprovalBadge = document.querySelector('.landlord-approval-badge');
+            if (!hasApprovalBadge) return;
+
+            fetch(approvalCountUrl, {credentials: 'same-origin'})
+                .then(function(r) { return r.ok ? r.json() : null; })
+                .then(function(data) {
+                    if (!data) return;
+                    const count = typeof data.pending === 'number' ? data.pending : 0;
+                    updateLandlordApprovalBadges(count);
+                })
+                .catch(function(e) { console.debug('Approval count fetch error', e); });
+        }
+
+        function runPollCycle() {
+            fetchUnread();
+            fetchLandlordApprovals();
+        }
+
+        function startPolling() {
+            if (pollTimerId !== null) return;
+            pollTimerId = window.setInterval(runPollCycle, POLL_INTERVAL_MS);
+        }
+
+        function stopPolling() {
+            if (pollTimerId === null) return;
+            window.clearInterval(pollTimerId);
+            pollTimerId = null;
+        }
+
+        function handleVisibilityChange() {
+            if (document.hidden) {
+                stopPolling();
+                return;
+            }
+            runPollCycle();
+            startPolling();
+        }
+
+        // Initial fetch + lifecycle-aware polling
+        runPollCycle();
+        startPolling();
+        document.addEventListener('visibilitychange', handleVisibilityChange);
     })();
     </script>
     {% endif %}
@@ -4950,6 +5123,17 @@
             const reg = await navigator.serviceWorker.register('/sw.js');
             wireUpdateFlow(reg);
 
+            // Register periodic background sync for cache refresh (if available)
+            if ('periodicSync' in reg) {
+                try {
+                    await reg.periodicSync.register('aura-refresh-cache', {
+                        minInterval: 12 * 60 * 60 * 1000, // 12 hours
+                    });
+                } catch (err) {
+                    // Periodic sync not granted — fine
+                }
+            }
+
             setInterval(() => {
                 reg.update().catch(() => {});
             }, 30 * 60 * 1000);
@@ -4960,8 +5144,10 @@
 })();
 </script>
 
+<script src="{% static 'js/offline-store.js' %}"></script>
+
 <script>
-// ── Offline UX + tenant recovery helpers ─────────────────────────────────
+// ── Offline UX + tenant recovery + form queue + sync ─────────────────────
 (function () {
     'use strict';
 
@@ -4982,7 +5168,7 @@
         const banner = document.createElement('div');
         banner.id = 'offlineBanner';
         banner.innerHTML = [
-            '<span class="msg">You are offline. Some actions are temporarily unavailable.</span>',
+            '<span class="msg"><i class="bi bi-wifi-off me-1"></i>You are offline. Changes will sync when connected.</span>',
             '<div class="actions">',
             '<button type="button" class="btn btn-light btn-sm" id="offlineRetryBtn">Retry</button>',
             '<button type="button" class="btn btn-outline-light btn-sm" id="offlineDismissBtn">Dismiss</button>',
@@ -4991,45 +5177,124 @@
         return banner;
     }
 
+    function buildQueueBadge() {
+        const badge = document.createElement('div');
+        badge.id = 'offlineQueueBadge';
+        badge.title = 'Pending offline submissions — click to sync now';
+        badge.textContent = '0';
+        badge.addEventListener('click', function () {
+            if (navigator.onLine && window.AuraOffline) {
+                window.AuraOffline.replayQueue().then(function (r) {
+                    if (r.sent > 0) showSyncedToast(r.sent + ' action' + (r.sent > 1 ? 's' : '') + ' synced');
+                    updateQueueBadge();
+                });
+            }
+        });
+        return badge;
+    }
+
+    function buildSyncedToast() {
+        const toast = document.createElement('div');
+        toast.id = 'syncedToast';
+        return toast;
+    }
+
+    function buildOfflineStripe() {
+        const stripe = document.createElement('div');
+        stripe.className = 'offline-indicator';
+        stripe.id = 'offlineStripe';
+        return stripe;
+    }
+
+    function showSyncedToast(msg) {
+        var toast = document.getElementById('syncedToast');
+        if (!toast) return;
+        toast.innerHTML = '<i class="bi bi-check-circle me-1"></i>' + msg;
+        toast.classList.add('visible');
+        setTimeout(function () { toast.classList.remove('visible'); }, 3500);
+    }
+
     function setBannerState(banner, active) {
         banner.classList.toggle('active', active);
     }
 
-    function blockOfflineFormSubmissions() {
-        document.addEventListener('submit', function (event) {
-            if (navigator.onLine) {
-                return;
+    async function updateQueueBadge() {
+        var badge = document.getElementById('offlineQueueBadge');
+        if (!badge) return;
+        try {
+            if (window.AuraOffline) {
+                var items = await window.AuraOffline.getQueuedSubmissions();
+                badge.textContent = items.length;
+                badge.style.display = items.length > 0 ? 'inline-flex' : 'none';
             }
+        } catch (err) {
+            badge.style.display = 'none';
+        }
+    }
 
-            const form = event.target;
-            if (!(form instanceof HTMLFormElement)) {
-                return;
-            }
+    function interceptOfflineForms() {
+        document.addEventListener('submit', async function (event) {
+            if (navigator.onLine) return;
 
-            const method = (form.getAttribute('method') || 'get').toLowerCase();
-            if (method === 'get') {
-                return;
-            }
+            var form = event.target;
+            if (!(form instanceof HTMLFormElement)) return;
 
+            var method = (form.getAttribute('method') || 'get').toLowerCase();
+            if (method === 'get') return;
+
+            // Queue the form submission for later sync
             event.preventDefault();
-            const banner = document.getElementById('offlineBanner');
-            if (banner) {
-                setBannerState(banner, true);
+
+            if (window.AuraOffline) {
+                var fd = new FormData(form);
+                var data = {};
+                for (var pair of fd.entries()) {
+                    if (typeof pair[1] === 'string') {
+                        data[pair[0]] = pair[1];
+                    }
+                }
+                var action = form.action || window.location.href;
+                await window.AuraOffline.queueFormSubmission(data, action, method);
+                updateQueueBadge();
+
+                // Show user feedback
+                var msg = form.closest('.card, .modal, main');
+                if (msg) {
+                    var alert = document.createElement('div');
+                    alert.className = 'alert alert-warning alert-dismissible fade show mt-2';
+                    alert.setAttribute('role', 'alert');
+                    alert.innerHTML = '<i class="bi bi-cloud-arrow-up me-1"></i>Saved offline. Will submit automatically when connected.' +
+                        '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+                    msg.prepend(alert);
+                }
+            } else {
+                // Fallback: just show the banner
+                var banner = document.getElementById('offlineBanner');
+                if (banner) setBannerState(banner, true);
             }
         }, true);
     }
 
     window.addEventListener('load', function () {
         saveLastPath();
-        const banner = buildBanner();
-        document.body.appendChild(banner);
 
-        const retryBtn = document.getElementById('offlineRetryBtn');
-        const dismissBtn = document.getElementById('offlineDismissBtn');
+        var banner = buildBanner();
+        var badge = buildQueueBadge();
+        var toast = buildSyncedToast();
+        var stripe = buildOfflineStripe();
+        document.body.appendChild(banner);
+        document.body.appendChild(badge);
+        document.body.appendChild(toast);
+        document.body.appendChild(stripe);
+
+        var retryBtn = document.getElementById('offlineRetryBtn');
+        var dismissBtn = document.getElementById('offlineDismissBtn');
 
         function syncBanner() {
-            setBannerState(banner, !navigator.onLine);
-            if (navigator.onLine) {
+            var isOffline = !navigator.onLine;
+            setBannerState(banner, isOffline);
+            stripe.classList.toggle('active', isOffline);
+            if (!isOffline) {
                 saveLastPath();
             }
         }
@@ -5042,11 +5307,38 @@
             setBannerState(banner, false);
         });
 
-        window.addEventListener('online', syncBanner);
+        window.addEventListener('online', function () {
+            syncBanner();
+            // Auto-replay queue when back online
+            if (window.AuraOffline) {
+                window.AuraOffline.replayQueue().then(function (r) {
+                    if (r.sent > 0) showSyncedToast(r.sent + ' action' + (r.sent > 1 ? 's' : '') + ' synced');
+                    updateQueueBadge();
+                });
+            }
+        });
+
         window.addEventListener('offline', syncBanner);
         syncBanner();
 
-        blockOfflineFormSubmissions();
+        interceptOfflineForms();
+        updateQueueBadge();
+
+        // Listen for SW messages about queued forms / sync results
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', function (event) {
+                if (event.data && event.data.type === 'FORM_QUEUED') {
+                    updateQueueBadge();
+                    showSyncedToast('Action saved offline');
+                }
+                if (event.data && event.data.type === 'QUEUE_SYNCED') {
+                    updateQueueBadge();
+                    if (event.data.sent > 0) {
+                        showSyncedToast(event.data.sent + ' action' + (event.data.sent > 1 ? 's' : '') + ' synced');
+                    }
+                }
+            });
+        }
     });
 })();
 </script>

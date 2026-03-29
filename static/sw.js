@@ -1,12 +1,14 @@
-﻿const SW_VERSION = 'v7';
+﻿const SW_VERSION = 'v8';
 const STATIC_CACHE = `school-static-${SW_VERSION}`;
 const RUNTIME_CACHE = `school-runtime-${SW_VERSION}`;
 const NAV_CACHE = `school-nav-${SW_VERSION}`;
 const OFFLINE_URL = '/offline/';
+const SYNC_TAG = 'aura-form-sync';
 const PRECACHE_URLS = [
   '/',
   OFFLINE_URL,
   '/static/img/logo.png',
+  '/static/js/offline-store.js',
   '/static/css/admin-variables.css',
   '/static/css/admin-components.css',
   '/static/css/admin-utilities.css',
@@ -119,11 +121,70 @@ function isTenantAppPage(url) {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
-  if (request.method !== 'GET') {
+  if (!request.url.startsWith('http')) {
     return;
   }
 
-  if (!request.url.startsWith('http')) {
+  // ── Handle POST requests: queue for background sync when offline ──────
+  if (request.method === 'POST') {
+    const url = new URL(request.url);
+    if (url.origin !== self.location.origin) return;
+    // Only queue tenant form submissions (not API calls, not login)
+    if (!isTenantAppPage(url)) return;
+
+    event.respondWith(
+      fetch(request.clone()).catch(async () => {
+        // Network failed — store in IDB queue for later sync
+        try {
+          const formData = await request.clone().formData();
+          const serialized = {};
+          for (const [key, value] of formData.entries()) {
+            if (typeof value === 'string') {
+              serialized[key] = value;
+            }
+          }
+          const db = await openSyncDB();
+          const tx = db.transaction('sync-queue', 'readwrite');
+          tx.objectStore('sync-queue').add({
+            url: request.url,
+            method: 'POST',
+            data: serialized,
+            timestamp: Date.now(),
+          });
+          await new Promise((resolve, reject) => {
+            tx.oncomplete = resolve;
+            tx.onerror = reject;
+          });
+          db.close();
+
+          // Request background sync if available
+          if (self.registration.sync) {
+            await self.registration.sync.register(SYNC_TAG);
+          }
+
+          // Notify the client that submission was queued
+          const clients = await self.clients.matchAll({ type: 'window' });
+          for (const client of clients) {
+            client.postMessage({ type: 'FORM_QUEUED', url: request.url });
+          }
+        } catch (err) {
+          // Could not queue — nothing we can do
+        }
+
+        // Return a synthetic response so the page doesn't crash
+        return new Response(
+          JSON.stringify({ queued: true, message: 'Saved offline. Will sync when connected.' }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      })
+    );
+    return;
+  }
+
+  if (request.method !== 'GET') {
     return;
   }
 
@@ -173,7 +234,149 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
+  // Client can request sync replay
+  if (event.data && event.data.type === 'REPLAY_QUEUE') {
+    replaySyncQueue().then((result) => {
+      event.source.postMessage({ type: 'QUEUE_REPLAYED', ...result });
+    });
+  }
+  // Client can request cached page list
+  if (event.data && event.data.type === 'GET_CACHED_PAGES') {
+    getCachedPageList().then((pages) => {
+      event.source.postMessage({ type: 'CACHED_PAGES', pages });
+    });
+  }
 });
+
+// ── IndexedDB for Background Sync Queue ────────────────────────────────
+
+function openSyncDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('aura-sync', 1);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('sync-queue')) {
+        db.createObjectStore('sync-queue', { keyPath: 'id', autoIncrement: true });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function replaySyncQueue() {
+  let sent = 0;
+  let failed = 0;
+
+  try {
+    const db = await openSyncDB();
+    const tx = db.transaction('sync-queue', 'readonly');
+    const store = tx.objectStore('sync-queue');
+    const items = await new Promise((resolve) => {
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => resolve([]);
+    });
+
+    for (const item of items) {
+      try {
+        const fd = new FormData();
+        for (const [k, v] of Object.entries(item.data)) {
+          fd.append(k, v);
+        }
+
+        const resp = await fetch(item.url, {
+          method: item.method || 'POST',
+          body: fd,
+          credentials: 'same-origin',
+        });
+
+        if (resp.ok || resp.status === 302) {
+          const delTx = db.transaction('sync-queue', 'readwrite');
+          delTx.objectStore('sync-queue').delete(item.id);
+          await new Promise((r) => { delTx.oncomplete = r; });
+          sent++;
+        } else {
+          failed++;
+        }
+      } catch (err) {
+        failed++;
+      }
+    }
+
+    db.close();
+  } catch (err) {
+    // DB inaccessible
+  }
+
+  // Notify all clients
+  const clients = await self.clients.matchAll({ type: 'window' });
+  for (const client of clients) {
+    client.postMessage({ type: 'QUEUE_SYNCED', sent, failed });
+  }
+
+  return { sent, failed };
+}
+
+// ── Background Sync Handler ────────────────────────────────────────────
+
+self.addEventListener('sync', (event) => {
+  if (event.tag === SYNC_TAG) {
+    event.waitUntil(replaySyncQueue());
+  }
+});
+
+// ── Periodic Background Sync (if available) ────────────────────────────
+// Auto-refresh cached pages in the background so offline data stays fresh
+
+self.addEventListener('periodicsync', (event) => {
+  if (event.tag === 'aura-refresh-cache') {
+    event.waitUntil(refreshCachedPages());
+  }
+});
+
+async function refreshCachedPages() {
+  try {
+    const cache = await caches.open(NAV_CACHE);
+    const keys = await cache.keys();
+    // Re-fetch up to 10 cached pages to keep them fresh
+    const toRefresh = keys.slice(0, 10);
+    await Promise.allSettled(
+      toRefresh.map(async (request) => {
+        try {
+          const response = await fetch(request, { credentials: 'same-origin' });
+          if (response && response.ok && !response.redirected) {
+            await cache.put(request, response);
+          }
+        } catch (err) {
+          // Skip pages that fail to refresh
+        }
+      })
+    );
+  } catch (err) {
+    // Cache inaccessible
+  }
+}
+
+// ── Get list of cached navigation pages ────────────────────────────────
+
+async function getCachedPageList() {
+  const pages = [];
+  try {
+    const cache = await caches.open(NAV_CACHE);
+    const keys = await cache.keys();
+    for (const request of keys) {
+      const url = new URL(request.url);
+      pages.push({
+        url: url.pathname,
+        fullUrl: request.url,
+      });
+    }
+  } catch (err) {
+    // ignore
+  }
+  return pages;
+}
 // ── Web Push Handlers ──────────────────────────────────────────────────────
 
 self.addEventListener('push', (event) => {

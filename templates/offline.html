@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Offline | Aura</title>
     <meta name="theme-color" content="#026e56">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
         :root {
             --bg: #f4f8f7;
@@ -23,8 +24,9 @@
         body {
             margin: 0;
             min-height: 100vh;
-            display: grid;
-            place-items: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             font-family: Manrope, Segoe UI, Tahoma, sans-serif;
             color: var(--text);
             background:
@@ -32,6 +34,7 @@
                 radial-gradient(700px 450px at 100% 120%, rgba(0, 161, 125, 0.16), transparent 60%),
                 var(--bg);
             padding: 24px;
+            padding-top: min(12vh, 80px);
         }
 
         .card {
@@ -84,7 +87,7 @@
         }
 
         button,
-        a {
+        a.btn-link {
             appearance: none;
             border: 0;
             border-radius: 12px;
@@ -93,6 +96,7 @@
             text-decoration: none;
             cursor: pointer;
             transition: transform 0.15s ease, filter 0.15s ease;
+            font-size: 0.92rem;
         }
 
         button {
@@ -100,13 +104,14 @@
             background: linear-gradient(120deg, var(--accent), var(--accent-2));
         }
 
-        a {
+        a.btn-link {
             color: var(--accent);
             background: rgba(2, 110, 86, 0.1);
+            display: inline-block;
         }
 
         button:hover,
-        a:hover {
+        a.btn-link:hover {
             transform: translateY(-1px);
             filter: brightness(1.03);
         }
@@ -115,6 +120,124 @@
             margin-top: 16px;
             font-size: 0.9rem;
             color: #6f817d;
+        }
+
+        /* ── Cached Pages Section ── */
+        .cached-section {
+            width: min(560px, 100%);
+            margin-top: 20px;
+        }
+
+        .cached-section h3 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--muted);
+            margin: 0 0 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cached-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            gap: 8px;
+        }
+
+        .cached-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: var(--card);
+            border-radius: 14px;
+            border: 1px solid rgba(2, 110, 86, 0.08);
+            box-shadow: 0 2px 8px rgba(2, 61, 49, 0.06);
+            text-decoration: none;
+            color: var(--text);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .cached-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(2, 61, 49, 0.12);
+        }
+
+        .cached-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(2, 110, 86, 0.12), rgba(0, 161, 125, 0.08));
+            display: grid;
+            place-items: center;
+            font-size: 1rem;
+            color: var(--accent);
+            flex-shrink: 0;
+        }
+
+        .cached-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .cached-title {
+            font-weight: 600;
+            font-size: 0.92rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .cached-url {
+            font-size: 0.78rem;
+            color: var(--muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .cached-time {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            white-space: nowrap;
+        }
+
+        /* ── Pending Queue Section ── */
+        .queue-section {
+            width: min(560px, 100%);
+            margin-top: 16px;
+        }
+
+        .queue-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            background: #fffbeb;
+            border-radius: 12px;
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            margin-bottom: 6px;
+        }
+
+        .queue-icon {
+            color: #d97706;
+            font-size: 1.1rem;
+        }
+
+        .no-cached {
+            text-align: center;
+            padding: 24px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .no-cached i {
+            display: block;
+            font-size: 2rem;
+            margin-bottom: 8px;
+            opacity: 0.4;
         }
     </style>
 </head>
@@ -125,26 +248,41 @@
             <h1>Aura</h1>
         </div>
 
-        <h2>You are offline right now.</h2>
-        <p>This page appears when your network is unavailable. You can still reopen cached pages, and new content will sync once your connection is restored.</p>
+        <h2><i class="bi bi-wifi-off" style="opacity:0.5"></i> You are offline right now.</h2>
+        <p>Your previously visited pages are available below. New content will sync once your connection is restored.</p>
 
         <div class="actions">
-            <button type="button" onclick="window.location.reload()">Try Again</button>
-            <a href="/">Go to Home</a>
-            <a href="#" id="returnLastPage" style="display:none;">Return to Last Page</a>
+            <button type="button" onclick="window.location.reload()"><i class="bi bi-arrow-clockwise me-1"></i>Try Again</button>
+            <a href="/" class="btn-link">Go to Home</a>
+            <a href="#" id="returnLastPage" class="btn-link" style="display:none;"><i class="bi bi-arrow-left me-1"></i>Last Page</a>
         </div>
 
         <p class="meta" id="connectionState">Checking connection status...</p>
     </main>
 
+    <!-- Queued actions (pending form submissions) -->
+    <section class="queue-section" id="queueSection" style="display:none;">
+        <h3 style="font-size:0.95rem;font-weight:700;color:#5a6f6b;margin:0 0 10px;display:flex;align-items:center;gap:8px;">
+            <i class="bi bi-cloud-arrow-up"></i> Pending Actions
+        </h3>
+        <div id="queueList"></div>
+    </section>
+
+    <!-- Cached pages -->
+    <section class="cached-section" id="cachedSection" style="display:none;">
+        <h3><i class="bi bi-archive"></i> Available Offline Pages</h3>
+        <ul class="cached-list" id="cachedList"></ul>
+    </section>
+
+    <script src="{% static 'js/offline-store.js' %}"></script>
     <script>
         (function () {
-            const el = document.getElementById('connectionState');
-            const returnLink = document.getElementById('returnLastPage');
-            const STORAGE_KEY = 'pwa:lastPath';
+            var el = document.getElementById('connectionState');
+            var returnLink = document.getElementById('returnLastPage');
+            var STORAGE_KEY = 'pwa:lastPath';
 
             try {
-                const lastPath = localStorage.getItem(STORAGE_KEY);
+                var lastPath = localStorage.getItem(STORAGE_KEY);
                 if (lastPath && lastPath.startsWith('/') && !lastPath.startsWith('/offline')) {
                     returnLink.href = lastPath;
                     returnLink.style.display = 'inline-block';
@@ -155,13 +293,168 @@
 
             function updateState() {
                 el.textContent = navigator.onLine
-                    ? 'Connection restored. You can retry now.'
+                    ? 'Connection restored — you can retry now.'
                     : 'No internet connection detected.';
+                if (navigator.onLine) {
+                    el.innerHTML = '<i class="bi bi-check-circle text-success me-1"></i>' + el.textContent;
+                }
             }
 
             window.addEventListener('online', updateState);
             window.addEventListener('offline', updateState);
             updateState();
+
+            // ── Render cached pages from IndexedDB ──
+
+            var PAGE_ICONS = {
+                dashboard: 'bi-speedometer2',
+                timetable: 'bi-calendar-week',
+                grades: 'bi-bar-chart-line',
+                attendance: 'bi-check2-square',
+                announcements: 'bi-megaphone',
+                fees: 'bi-cash-stack',
+                students: 'bi-people',
+                teachers: 'bi-person-badge',
+                subjects: 'bi-book',
+                children: 'bi-people-fill',
+                report: 'bi-file-earmark-bar-graph',
+                lessons: 'bi-journal-text',
+                page: 'bi-file-text',
+            };
+
+            function timeAgo(ts) {
+                var diff = (Date.now() - ts) / 1000;
+                if (diff < 60) return 'just now';
+                if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+                if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+                return Math.floor(diff / 86400) + 'd ago';
+            }
+
+            async function loadCachedPages() {
+                if (!window.AuraOffline) return;
+
+                try {
+                    var pages = await window.AuraOffline.getAllPages();
+                    if (!pages || !pages.length) {
+                        // Also try the Cache API via SW
+                        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                            navigator.serviceWorker.controller.postMessage({ type: 'GET_CACHED_PAGES' });
+                        }
+                        return;
+                    }
+
+                    renderPageList(pages);
+                } catch (err) {
+                    // Silent
+                }
+            }
+
+            function renderPageList(pages) {
+                var section = document.getElementById('cachedSection');
+                var list = document.getElementById('cachedList');
+                if (!pages.length) return;
+
+                // Deduplicate and limit to 12 most recent
+                var seen = {};
+                var unique = [];
+                for (var i = 0; i < pages.length; i++) {
+                    var p = pages[i];
+                    var key = p.url || p.fullUrl;
+                    if (!seen[key]) {
+                        seen[key] = true;
+                        unique.push(p);
+                    }
+                    if (unique.length >= 12) break;
+                }
+
+                list.innerHTML = '';
+                unique.forEach(function (page) {
+                    var icon = PAGE_ICONS[page.pageType] || PAGE_ICONS.page;
+                    var title = page.title || page.url || page.fullUrl;
+                    // Clean title — remove " | Aura" suffix
+                    title = title.replace(/\s*\|\s*Aura$/i, '').trim();
+                    var url = page.url || new URL(page.fullUrl).pathname;
+
+                    var li = document.createElement('li');
+                    var a = document.createElement('a');
+                    a.className = 'cached-item';
+                    a.href = url;
+                    a.innerHTML =
+                        '<span class="cached-icon"><i class="bi ' + icon + '"></i></span>' +
+                        '<span class="cached-info">' +
+                            '<span class="cached-title">' + escapeHtml(title) + '</span>' +
+                            '<span class="cached-url">' + escapeHtml(url) + '</span>' +
+                        '</span>' +
+                        (page.timestamp ? '<span class="cached-time">' + timeAgo(page.timestamp) + '</span>' : '');
+                    li.appendChild(a);
+                    list.appendChild(li);
+                });
+
+                section.style.display = 'block';
+            }
+
+            function escapeHtml(str) {
+                var div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // ── Render queued actions ──
+
+            async function loadQueuedActions() {
+                if (!window.AuraOffline) return;
+                try {
+                    var items = await window.AuraOffline.getQueuedSubmissions();
+                    if (!items || !items.length) return;
+
+                    var section = document.getElementById('queueSection');
+                    var list = document.getElementById('queueList');
+                    section.style.display = 'block';
+                    list.innerHTML = '';
+
+                    items.forEach(function (item) {
+                        var div = document.createElement('div');
+                        div.className = 'queue-item';
+                        var actionUrl = item.action || '';
+                        try { actionUrl = new URL(actionUrl).pathname; } catch (e) {}
+                        div.innerHTML =
+                            '<span class="queue-icon"><i class="bi bi-hourglass-split"></i></span>' +
+                            '<span style="flex:1;font-size:0.88rem;font-weight:600;">' +
+                                escapeHtml(actionUrl) +
+                            '</span>' +
+                            '<span style="font-size:0.75rem;color:#9ca3af;">' + timeAgo(item.timestamp) + '</span>';
+                        list.appendChild(div);
+                    });
+                } catch (err) {
+                    // Silent
+                }
+            }
+
+            // ── Listen for SW cached page list (fallback) ──
+
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.addEventListener('message', function (event) {
+                    if (event.data && event.data.type === 'CACHED_PAGES' && event.data.pages) {
+                        var mapped = event.data.pages.map(function (p) {
+                            var segs = p.url.split('/').filter(Boolean);
+                            var type = 'page';
+                            var typeMap = {
+                                'dashboard': 'dashboard', 'timetable': 'timetable', 'grades': 'grades',
+                                'attendance': 'attendance', 'announcements': 'announcements', 'fees': 'fees',
+                                'students': 'students', 'teachers': 'teachers'
+                            };
+                            for (var j = 0; j < segs.length; j++) {
+                                if (typeMap[segs[j]]) { type = typeMap[segs[j]]; break; }
+                            }
+                            return { url: p.url, title: p.url, pageType: type, timestamp: null };
+                        });
+                        renderPageList(mapped);
+                    }
+                });
+            }
+
+            loadCachedPages();
+            loadQueuedActions();
         })();
     </script>
 </body>
