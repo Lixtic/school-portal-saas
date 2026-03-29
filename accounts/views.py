@@ -1554,6 +1554,9 @@ def school_analytics(request):
     heatmap_data = []
     grade_labels = []
     grade_data = []
+    grade_dist_labels = []
+    grade_dist_data = []
+    attendance_rate = 0
     recent_payments = []
 
     try:
@@ -1601,6 +1604,35 @@ def school_analytics(request):
         grade_labels = [r['student__current_class__name'] for r in grade_qs]
         grade_data = [round(float(r['avg']), 1) if r['avg'] else 0 for r in grade_qs]
 
+        # --- Grade distribution (A+ through F) ---
+        all_grades = Grade.objects.all()
+        if current_year:
+            all_grades = all_grades.filter(academic_year=current_year)
+        grade_buckets = {'A+': 0, 'A': 0, 'B+': 0, 'B': 0, 'C': 0, 'F': 0}
+        for g in all_grades.values_list('total_score', flat=True):
+            if g is None:
+                continue
+            pct = float(g)
+            if pct >= 90:
+                grade_buckets['A+'] += 1
+            elif pct >= 80:
+                grade_buckets['A'] += 1
+            elif pct >= 70:
+                grade_buckets['B+'] += 1
+            elif pct >= 60:
+                grade_buckets['B'] += 1
+            elif pct >= 50:
+                grade_buckets['C'] += 1
+            else:
+                grade_buckets['F'] += 1
+        grade_dist_labels = list(grade_buckets.keys())
+        grade_dist_data = list(grade_buckets.values())
+
+        # --- Overall attendance rate ---
+        total_records = Attendance.objects.count()
+        present_records = Attendance.objects.filter(status='present').count()
+        attendance_rate = round((present_records / total_records * 100), 1) if total_records else 0
+
         # --- Recent 10 payments ---
         recent_payments = list(Payment.objects.select_related(
             'student_fee__student__user'
@@ -1637,6 +1669,9 @@ def school_analytics(request):
         'heatmap_data': json.dumps(heatmap_data),
         'grade_labels': json.dumps(grade_labels),
         'grade_data': json.dumps(grade_data),
+        'grade_dist_labels': json.dumps(grade_dist_labels),
+        'grade_dist_data': json.dumps(grade_dist_data),
+        'attendance_rate': attendance_rate,
         'recent_payments': recent_payments,
         'current_year': current_year,
         # Aura AI

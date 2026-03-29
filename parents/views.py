@@ -9,6 +9,7 @@ from accounts.models import User
 
 from students.models import Student, Attendance, Grade
 from finance.models import StudentFee
+from teachers.models import Teacher
 from django.db.models import Sum
 from django.db.models import Q
 
@@ -371,3 +372,77 @@ def send_message_to_school(request):
         return redirect('parents:my_children')
 
     return redirect('parents:my_children')
+
+
+@login_required
+def contact_teachers(request):
+    """List teachers of the parent's children with direct messaging links."""
+    if request.user.user_type != 'parent':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    try:
+        parent = Parent.objects.get(user=request.user)
+    except Parent.DoesNotExist:
+        messages.error(request, 'Parent profile not found.')
+        return redirect('dashboard')
+
+    children = parent.children.select_related('user', 'current_class').all()
+
+    # Build a mapping: teacher → list of children they teach + subjects
+    from academics.models import ClassSubject
+    teacher_map = {}
+    for child in children:
+        if not child.current_class:
+            continue
+        # Class teacher
+        ct = getattr(child.current_class, 'class_teacher', None)
+        if ct:
+            key = ct.user_id
+            if key not in teacher_map:
+                teacher_map[key] = {
+                    'teacher': ct,
+                    'user': ct.user,
+                    'is_class_teacher': True,
+                    'children': set(),
+                    'subjects': set(),
+                }
+            teacher_map[key]['children'].add(child)
+            teacher_map[key]['is_class_teacher'] = True
+
+        # Subject teachers
+        class_subjects = ClassSubject.objects.filter(
+            class_name=child.current_class
+        ).select_related('teacher__user', 'subject')
+        for cs in class_subjects:
+            if not cs.teacher:
+                continue
+            key = cs.teacher.user_id
+            if key not in teacher_map:
+                teacher_map[key] = {
+                    'teacher': cs.teacher,
+                    'user': cs.teacher.user,
+                    'is_class_teacher': False,
+                    'children': set(),
+                    'subjects': set(),
+                }
+            teacher_map[key]['children'].add(child)
+            teacher_map[key]['subjects'].add(cs.subject.name)
+
+    # Convert sets to sorted lists for template
+    teacher_list = []
+    for info in teacher_map.values():
+        teacher_list.append({
+            'teacher': info['teacher'],
+            'user': info['user'],
+            'is_class_teacher': info['is_class_teacher'],
+            'children': sorted(info['children'], key=lambda c: c.user.get_full_name()),
+            'subjects': sorted(info['subjects']),
+        })
+    # Sort: class teachers first, then alphabetically
+    teacher_list.sort(key=lambda t: (not t['is_class_teacher'], t['user'].get_full_name()))
+
+    return render(request, 'parents/contact_teachers.html', {
+        'teacher_list': teacher_list,
+        'children': children,
+    })

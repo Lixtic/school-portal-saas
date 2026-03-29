@@ -13,6 +13,7 @@ urlpatterns = [
     # Push subscription endpoints
     path('push/subscribe/', views.push_subscribe, name='push_subscribe'),
     path('push/unsubscribe/', views.push_unsubscribe, name='push_unsubscribe'),
+    path('push/campaign/', views.push_campaign, name='push_campaign'),
 
     # Offline Data API
     path('api/offline/', views.offline_announcements_json, name='offline_announcements'),

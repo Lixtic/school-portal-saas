@@ -206,6 +206,11 @@
             <div class="an-stat-value" style="color:#d97706;">₵{{ fee_total_collected|floatformat:0 }}</div>
             <div class="an-stat-sub">of ₵{{ fee_total_expected|floatformat:0 }}</div>
         </div>
+        <div class="an-stat">
+            <div class="an-stat-label">Attendance Rate</div>
+            <div class="an-stat-value" style="color:#6366f1;">{{ attendance_rate }}%</div>
+            <div class="an-stat-sub">overall present</div>
+        </div>
     </div>
 
     <!-- Charts row -->
@@ -234,10 +239,19 @@
         <canvas id="heatmapChart" height="100"></canvas>
     </div>
 
-    <!-- Average grade per class -->
-    <div class="an-card">
-        <div class="an-card-title"><i class="bi bi-graph-up me-1"></i>Average Score by Class</div>
-        <canvas id="gradeChart" height="110"></canvas>
+    <!-- Grade distribution + Average score side by side -->
+    <div class="an-charts-grid">
+        <!-- Grade Distribution -->
+        <div class="an-card">
+            <div class="an-card-title"><i class="bi bi-mortarboard me-1"></i>Grade Distribution{% if current_year %} ({{ current_year }}){% endif %}</div>
+            <canvas id="gradeDistChart" height="200"></canvas>
+        </div>
+
+        <!-- Average grade per class -->
+        <div class="an-card">
+            <div class="an-card-title"><i class="bi bi-graph-up me-1"></i>Average Score by Class</div>
+            <canvas id="gradeChart" height="200"></canvas>
+        </div>
     </div>
 
     <!-- Aura AI Analytics -->
@@ -413,6 +427,31 @@
             }
         }
     });
+
+    // ── Grade distribution bar chart ──
+    const gradeDistEl = document.getElementById('gradeDistChart');
+    if (gradeDistEl) {
+        new Chart(gradeDistEl, {
+            type: 'bar',
+            data: {
+                labels: {{ grade_dist_labels|safe }},
+                datasets: [{
+                    label: 'Students',
+                    data: {{ grade_dist_data|safe }},
+                    backgroundColor: ['#059669', '#10b981', '#3b82f6', '#6366f1', '#f59e0b', '#ef4444'],
+                    borderRadius: 6,
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { beginAtZero: true, grid: { color: gridColor }, ticks: { stepSize: 1 } },
+                    y: { grid: { display: false } }
+                }
+            }
+        });
+    }
 })();
 </script>
 {% endblock %}

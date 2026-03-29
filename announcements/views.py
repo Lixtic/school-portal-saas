@@ -281,3 +281,111 @@ def offline_announcements_json(request):
         })
 
     return JsonResponse({'announcements': announcements})
+
+
+# ---------------------------------------------------------------------------
+# Push Notification Campaigns
+# ---------------------------------------------------------------------------
+
+@login_required
+def push_campaign(request):
+    """Admin UI for sending targeted push notification campaigns."""
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    # Stats for the template
+    total_subscribers = PushSubscription.objects.count()
+    subscriber_counts = {}
+    for role in ('admin', 'teacher', 'student', 'parent'):
+        subscriber_counts[role] = PushSubscription.objects.filter(
+            user__user_type=role
+        ).values('user').distinct().count()
+
+    # Class list for targeting
+    from academics.models import Class, AcademicYear
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    classes = Class.objects.filter(academic_year=current_year) if current_year else Class.objects.all()
+
+    sent_count = None
+    failed_count = None
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        body = request.POST.get('body', '').strip()
+        url = request.POST.get('url', '').strip() or '/dashboard/'
+        target = request.POST.get('target', 'all')
+        target_class = request.POST.get('target_class', '').strip()
+
+        if not title or not body:
+            messages.error(request, 'Title and message body are required.')
+        else:
+            # Build recipient queryset
+            subs = PushSubscription.objects.select_related('user').all()
+
+            if target == 'teachers':
+                subs = subs.filter(user__user_type='teacher')
+            elif target == 'students':
+                subs = subs.filter(user__user_type='student')
+            elif target == 'parents':
+                subs = subs.filter(user__user_type='parent')
+            elif target == 'staff':
+                subs = subs.filter(user__user_type__in=['admin', 'teacher'])
+            elif target == 'class' and target_class:
+                from students.models import Student
+                student_user_ids = Student.objects.filter(
+                    current_class_id=target_class
+                ).values_list('user_id', flat=True)
+                subs = subs.filter(user_id__in=student_user_ids)
+
+            # Send push notifications
+            from django.conf import settings as _settings
+            try:
+                from pywebpush import webpush, WebPushException
+            except ImportError:
+                messages.error(request, 'pywebpush not installed.')
+                return redirect('announcements:push_campaign')
+
+            private_key = _settings.VAPID_PRIVATE_KEY_PEM
+            claims = _settings.VAPID_CLAIMS
+            payload = json.dumps({'title': title, 'body': body, 'url': url})
+
+            sent_count = 0
+            failed_count = 0
+            expired_ids = []
+
+            for sub in subs:
+                try:
+                    webpush(
+                        subscription_info={
+                            'endpoint': sub.endpoint,
+                            'keys': {'p256dh': sub.p256dh, 'auth': sub.auth},
+                        },
+                        data=payload,
+                        vapid_private_key=private_key,
+                        vapid_claims=claims,
+                    )
+                    sent_count += 1
+                except WebPushException as ex:
+                    if ex.response and ex.response.status_code in (404, 410):
+                        expired_ids.append(sub.id)
+                    failed_count += 1
+                except Exception:
+                    failed_count += 1
+
+            # Clean up expired subscriptions
+            if expired_ids:
+                PushSubscription.objects.filter(id__in=expired_ids).delete()
+
+            if sent_count:
+                messages.success(request, f'Push notification sent to {sent_count} device(s).')
+            if failed_count:
+                messages.warning(request, f'{failed_count} delivery(ies) failed (expired subscriptions cleaned up).')
+
+    return render(request, 'announcements/push_campaign.html', {
+        'total_subscribers': total_subscribers,
+        'subscriber_counts': subscriber_counts,
+        'classes': classes,
+        'sent_count': sent_count,
+        'failed_count': failed_count,
+    })
