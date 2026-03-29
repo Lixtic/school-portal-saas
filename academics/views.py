@@ -2669,6 +2669,45 @@ def rename_tutor_session(request, session_id):
 
 
 @login_required
+def delete_tutor_session(request, session_id):
+    """DELETE a single tutor session. The authenticated student must own it."""
+    if request.method != 'DELETE':
+        return JsonResponse({'error': 'DELETE only'}, status=405)
+    try:
+        from .models import TutorSession
+        student, _subjects, error_message = _get_student_tutor_context(
+            request.user, getattr(request, 'tenant', None)
+        )
+        if error_message:
+            return JsonResponse({'error': error_message}, status=403)
+        session = TutorSession.objects.get(id=session_id, student=student)
+        session.delete()
+        return JsonResponse({'ok': True})
+    except TutorSession.DoesNotExist:
+        return JsonResponse({'error': 'Session not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def delete_all_tutor_sessions(request):
+    """DELETE all tutor sessions for the authenticated student."""
+    if request.method != 'DELETE':
+        return JsonResponse({'error': 'DELETE only'}, status=405)
+    try:
+        from .models import TutorSession
+        student, _subjects, error_message = _get_student_tutor_context(
+            request.user, getattr(request, 'tenant', None)
+        )
+        if error_message:
+            return JsonResponse({'error': error_message}, status=403)
+        deleted_count, _ = TutorSession.objects.filter(student=student).delete()
+        return JsonResponse({'ok': True, 'deleted': deleted_count})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
 def generate_practice(request):
     """Generate practice questions"""
     from .ai_tutor import generate_practice_questions

@@ -15,6 +15,11 @@
             <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle px-3 py-2">
                 Total Sessions: {{ sessions|length }}
             </span>
+            {% if sessions %}
+            <button class="btn btn-outline-danger rounded-3" id="deleteAllBtn" title="Clear all session history">
+                <i class="bi bi-trash3 me-1"></i>Clear All
+            </button>
+            {% endif %}
             <a href="{% url 'academics:ai_tutor' %}" class="btn btn-primary rounded-3">
                 <i class="bi bi-robot me-1"></i>Back to AI Tutor
             </a>
@@ -71,6 +76,12 @@
                                 <a href="{% url 'academics:ai_tutor' %}?session={{ session.id }}" class="btn btn-sm btn-outline-primary">
                                     <i class="bi bi-box-arrow-in-right"></i> Resume
                                 </a>
+                                <button class="btn btn-sm btn-outline-danger ms-1 delete-session-btn"
+                                        data-session-id="{{ session.id }}"
+                                        data-url="{% url 'academics:delete_session' session.id %}"
+                                        title="Delete this session">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
                             </td>
                         </tr>
                         {% endfor %}
@@ -90,4 +101,92 @@
         </div>
     </div>
 </div>
+
+<!-- Confirm delete modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i><span id="deleteModalTitle">Delete session?</span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <p class="text-body-secondary mb-0" id="deleteModalBody">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button class="btn btn-outline-secondary rounded-3" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-danger rounded-3" id="deleteConfirmBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF = '{{ csrf_token }}';
+const DELETE_ALL_URL = '{% url "academics:delete_all_sessions" %}';
+let _pendingDeleteUrl = null;
+let _pendingDeleteRow = null;
+
+const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+const deleteModalTitle = document.getElementById('deleteModalTitle');
+const deleteModalBody = document.getElementById('deleteModalBody');
+const deleteConfirmBtn = document.getElementById('deleteConfirmBtn');
+
+// Per-row delete
+document.querySelectorAll('.delete-session-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        _pendingDeleteUrl = btn.dataset.url;
+        _pendingDeleteRow = btn.closest('tr');
+        deleteModalTitle.textContent = 'Delete this session?';
+        deleteModalBody.textContent = 'All messages in this session will be permanently deleted.';
+        deleteModal.show();
+    });
+});
+
+// Clear all
+const deleteAllBtn = document.getElementById('deleteAllBtn');
+if (deleteAllBtn) {
+    deleteAllBtn.addEventListener('click', () => {
+        _pendingDeleteUrl = DELETE_ALL_URL;
+        _pendingDeleteRow = null;
+        deleteModalTitle.textContent = 'Clear all session history?';
+        deleteModalBody.textContent = 'Every session and its messages will be permanently deleted. This cannot be undone.';
+        deleteModal.show();
+    });
+}
+
+deleteConfirmBtn.addEventListener('click', async () => {
+    deleteConfirmBtn.disabled = true;
+    deleteConfirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Deleting…';
+    try {
+        const res = await fetch(_pendingDeleteUrl, {
+            method: 'DELETE',
+            headers: { 'X-CSRFToken': CSRF }
+        });
+        if (!res.ok) throw new Error('Server error');
+        deleteModal.hide();
+        if (_pendingDeleteRow) {
+            // Fade out the single row
+            _pendingDeleteRow.style.transition = 'opacity 0.3s';
+            _pendingDeleteRow.style.opacity = '0';
+            setTimeout(() => {
+                _pendingDeleteRow.remove();
+                // If table is now empty, reload to show empty state
+                if (!document.querySelector('.delete-session-btn')) location.reload();
+            }, 300);
+        } else {
+            // All deleted — reload page
+            location.reload();
+        }
+    } catch (e) {
+        deleteModal.hide();
+        alert('Failed to delete. Please try again.');
+    } finally {
+        deleteConfirmBtn.disabled = false;
+        deleteConfirmBtn.innerHTML = 'Delete';
+    }
+});
+</script>
 {% endblock %}
