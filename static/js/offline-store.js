@@ -334,6 +334,36 @@
     }
   }
 
+  // ── Sync data APIs (timetable, announcements) ────────────────────────────
+  // Proactively fetches structured JSON data and stores in the data cache
+  // so key screens can render offline from cached data.
+
+  async function syncOfflineData() {
+    if (!navigator.onLine) return;
+
+    var current = location.pathname;
+    var segments = current.split('/').filter(Boolean);
+    if (segments.length < 2) return;
+    var tenant = segments[0];
+
+    var apis = [
+      { key: tenant + ':timetable', url: '/' + tenant + '/academics/api/offline/timetable/' },
+      { key: tenant + ':announcements', url: '/' + tenant + '/announcements/api/offline/' },
+    ];
+
+    for (var i = 0; i < apis.length; i++) {
+      try {
+        var resp = await fetch(apis[i].url, { credentials: 'same-origin' });
+        if (resp.ok) {
+          var json = await resp.json();
+          await saveData(apis[i].key, json);
+        }
+      } catch (err) {
+        // Silently skip — data will be fetched next time
+      }
+    }
+  }
+
   // ── Auto-save on page load ───────────────────────────────────────────────
 
   function init() {
@@ -341,10 +371,12 @@
     if (document.readyState === 'complete') {
       setTimeout(savePageSnapshot, 800);
       setTimeout(prefetchLinkedPages, 2000);
+      setTimeout(syncOfflineData, 3000);
     } else {
       window.addEventListener('load', () => {
         setTimeout(savePageSnapshot, 800);
         setTimeout(prefetchLinkedPages, 2000);
+        setTimeout(syncOfflineData, 3000);
       });
     }
 
@@ -380,6 +412,7 @@
     saveData,
     getData,
     prefetchLinkedPages,
+    syncOfflineData,
     init,
   };
 

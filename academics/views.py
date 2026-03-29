@@ -3399,3 +3399,61 @@ def assign_practice_as_homework(request, practice_set_id):
     except Exception as e:
         logger.error('assign_practice_as_homework error: %s', e, exc_info=True)
         return JsonResponse({'error': str(e)}, status=500)
+
+
+# ── Offline Data API ────────────────────────────────────────────────────────
+
+@login_required
+def offline_timetable_json(request):
+    """Return timetable data as JSON for offline caching."""
+    from .models import Timetable, Class, AcademicYear
+
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    if not current_year:
+        return JsonResponse({'entries': [], 'days': []})
+
+    # Determine which class to show
+    class_id = request.GET.get('class_id')
+    user = request.user
+
+    if class_id:
+        entries = Timetable.objects.filter(
+            class_subject__class_name_id=class_id,
+            class_subject__class_name__academic_year=current_year
+        ).select_related('class_subject__subject', 'class_subject__teacher__user', 'class_subject__class_name')
+    elif hasattr(user, 'student_profile'):
+        student = user.student_profile
+        if student.current_class:
+            entries = Timetable.objects.filter(
+                class_subject__class_name=student.current_class,
+            ).select_related('class_subject__subject', 'class_subject__teacher__user', 'class_subject__class_name')
+        else:
+            entries = Timetable.objects.none()
+    elif hasattr(user, 'teacher_profile'):
+        entries = Timetable.objects.filter(
+            class_subject__teacher=user.teacher_profile,
+            class_subject__class_name__academic_year=current_year,
+        ).select_related('class_subject__subject', 'class_subject__teacher__user', 'class_subject__class_name')
+    else:
+        entries = Timetable.objects.filter(
+            class_subject__class_name__academic_year=current_year,
+        ).select_related('class_subject__subject', 'class_subject__teacher__user', 'class_subject__class_name')
+
+    data = []
+    for e in entries:
+        data.append({
+            'id': e.id,
+            'day': e.day,
+            'day_name': e.get_day_display(),
+            'start_time': e.start_time.strftime('%H:%M') if e.start_time else '',
+            'end_time': e.end_time.strftime('%H:%M') if e.end_time else '',
+            'room': e.room or '',
+            'subject': e.class_subject.subject.name if e.class_subject and e.class_subject.subject else '',
+            'class_name': str(e.class_subject.class_name) if e.class_subject and e.class_subject.class_name else '',
+            'teacher': e.class_subject.teacher.user.get_full_name() if e.class_subject and e.class_subject.teacher else '',
+        })
+
+    return JsonResponse({
+        'entries': data,
+        'days': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    })

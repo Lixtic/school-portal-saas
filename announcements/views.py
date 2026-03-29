@@ -248,3 +248,36 @@ def send_push_notification(user, title, body, url='/'):
             # Subscription expired — clean up
             if ex.response and ex.response.status_code in (404, 410):
                 sub.delete()
+
+
+# ── Offline Data API ────────────────────────────────────────────────────────
+
+@login_required
+def offline_announcements_json(request):
+    """Return recent announcements as JSON for offline caching."""
+    user = request.user
+    user_type = getattr(user, 'user_type', 'student')
+
+    qs = Announcement.objects.filter(is_active=True).order_by('-created_at')
+
+    if user_type == 'admin':
+        pass  # admins see all
+    elif user_type in ('teacher',):
+        qs = qs.filter(target_audience__in=['all', 'staff', 'teachers'])
+    elif user_type == 'student':
+        qs = qs.filter(target_audience__in=['all', 'students'])
+    elif user_type == 'parent':
+        qs = qs.filter(target_audience__in=['all', 'parents'])
+
+    announcements = []
+    for a in qs[:20]:
+        announcements.append({
+            'id': a.id,
+            'title': a.title,
+            'content': a.content[:500],
+            'audience': a.target_audience,
+            'created_at': a.created_at.isoformat() if a.created_at else '',
+            'author': a.created_by.get_full_name() if a.created_by else '',
+        })
+
+    return JsonResponse({'announcements': announcements})

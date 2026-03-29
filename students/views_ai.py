@@ -29,20 +29,25 @@ def get_openai_api_key():
 # Allowed Realtime API models
 # ═══════════════════════════════════════════════════════════
 ALLOWED_REALTIME_MODELS = [
+    'gpt-4o-realtime-preview',
+    'gpt-4o-mini-realtime-preview',
+    # Legacy short-hand aliases we accept from the frontend
     'gpt-realtime',
     'gpt-realtime-mini',
-    # Legacy names (mapped to GA equivalents)
+    # Date-stamped legacy names
     'gpt-4o-realtime-preview-2024-12-17',
     'gpt-4o-mini-realtime-preview-2024-12-17',
 ]
 
-# Map legacy model names to GA equivalents
+# Map all legacy/alias model names to the current GA model IDs
 MODEL_MIGRATION_MAP = {
-    'gpt-4o-realtime-preview-2024-12-17': 'gpt-realtime',
-    'gpt-4o-mini-realtime-preview-2024-12-17': 'gpt-realtime-mini',
+    'gpt-realtime':                          'gpt-4o-realtime-preview',
+    'gpt-realtime-mini':                     'gpt-4o-mini-realtime-preview',
+    'gpt-4o-realtime-preview-2024-12-17':    'gpt-4o-realtime-preview',
+    'gpt-4o-mini-realtime-preview-2024-12-17': 'gpt-4o-mini-realtime-preview',
 }
 
-DEFAULT_REALTIME_MODEL = 'gpt-realtime'
+DEFAULT_REALTIME_MODEL = 'gpt-4o-realtime-preview'
 VOICE_XP_TOKEN_SALT = 'students.voice_xp'
 VOICE_XP_TOKEN_MAX_AGE_SECONDS = 60 * 60 * 3
 VOICE_XP_MIN_INTERVAL_SECONDS = 8
@@ -622,22 +627,17 @@ def create_realtime_session(request):
         if not api_key:
             return JsonResponse({"error": "OpenAI API key not configured"}, status=500)
         
+        # Correct endpoint: POST /v1/realtime/sessions
+        # Returns: { id, object, model, ..., client_secret: { value, expires_at } }
         response = http_requests.post(
-            "https://api.openai.com/v1/realtime/client_secrets",
+            "https://api.openai.com/v1/realtime/sessions",
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json"
             },
             json={
-                "session": {
-                    "type": "realtime",
-                    "model": model,
-                    "audio": {
-                        "output": {
-                            "voice": voice
-                        }
-                    }
-                }
+                "model": model,
+                "voice": voice,
             },
             timeout=30
         )
@@ -645,30 +645,31 @@ def create_realtime_session(request):
         if response.status_code != 200:
             logger.error(f"Realtime session API error {response.status_code}: {response.text[:500]}")
             return JsonResponse({
-                "error": "OpenAI session creation failed"
+                "error": "OpenAI session creation failed",
+                "detail": response.text[:200],
             }, status=502)
         
         session_data = response.json()
-        # /v1/realtime/client_secrets returns {value, expires_at, session} at top level
-        client_secret = session_data.get("value", "")
+        # /v1/realtime/sessions returns { client_secret: { value, expires_at }, model, ... }
+        client_secret_obj = session_data.get("client_secret", {})
+        client_secret = ""
+        if isinstance(client_secret_obj, dict):
+            client_secret = client_secret_obj.get("value", "")
+        # Defensive fallback: top-level value key (in case API format changes)
+        if not client_secret:
+            client_secret = session_data.get("value", "")
         
         if not client_secret:
-            # Fallback: try nested client_secret.value format
-            client_secret_obj = session_data.get("client_secret", {})
-            if isinstance(client_secret_obj, dict):
-                client_secret = client_secret_obj.get("value", "")
-        
-        if not client_secret:
-            logger.error(f"Realtime client_secret response missing value: {session_data}")
+            logger.error(f"Realtime client_secret missing in response: {session_data}")
             return JsonResponse({
                 "error": "No client_secret in response",
                 "detail": str(session_data)[:300]
             }, status=500)
         
-        session_info = session_data.get("session", {})
+        resolved_model = session_data.get("model", model)
         return JsonResponse({
             "client_secret": client_secret,
-            "model": session_info.get("model", model),
+            "model": resolved_model,
             "voice": voice,
             "student_context": student_context,
             "system_instructions": system_instructions,

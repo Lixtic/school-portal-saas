@@ -68,4 +68,7 @@ urlpatterns = [
     path('aura/state/', views.aura_session_state, name='aura_session_state'),
     # Session rename (inline edit in sidebar)
     path('ai-tutor/sessions/<int:session_id>/rename/', views.rename_tutor_session, name='rename_session'),
+
+    # Offline Data API
+    path('api/offline/timetable/', views.offline_timetable_json, name='offline_timetable'),
 ]

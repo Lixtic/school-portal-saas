@@ -1036,8 +1036,8 @@
 
         <label class="aura-label">Model</label>
         <select id="modelSelect" class="aura-select" style="margin-bottom:20px">
-            <option value="gpt-realtime" selected>GPT Realtime — Best quality</option>
-            <option value="gpt-realtime-mini">GPT Realtime Mini — Faster &amp; lighter</option>
+            <option value="gpt-4o-realtime-preview" selected>GPT Realtime — Best quality</option>
+            <option value="gpt-4o-mini-realtime-preview">GPT Realtime Mini — Faster &amp; lighter</option>
         </select>
 
         <label class="aura-label">Voice</label>
@@ -1444,11 +1444,13 @@ let retryCount = 0;
 const MAX_RETRIES = 2;
 
 // Settings
-let voiceSettings = JSON.parse(localStorage.getItem('auraVoiceSettings') || '{"voice":"coral","speed":1.0,"model":"gpt-realtime"}');
-// Migrate legacy model names from localStorage
+let voiceSettings = JSON.parse(localStorage.getItem('auraVoiceSettings') || '{"voice":"coral","speed":1.0,"model":"gpt-4o-realtime-preview"}');
+// Migrate legacy/alias model names to real OpenAI model IDs
 const _modelMigration = {
-    'gpt-4o-realtime-preview-2024-12-17': 'gpt-realtime',
-    'gpt-4o-mini-realtime-preview-2024-12-17': 'gpt-realtime-mini'
+    'gpt-realtime':                          'gpt-4o-realtime-preview',
+    'gpt-realtime-mini':                     'gpt-4o-mini-realtime-preview',
+    'gpt-4o-realtime-preview-2024-12-17':    'gpt-4o-realtime-preview',
+    'gpt-4o-mini-realtime-preview-2024-12-17': 'gpt-4o-mini-realtime-preview'
 };
 if (_modelMigration[voiceSettings.model]) {
     voiceSettings.model = _modelMigration[voiceSettings.model];
@@ -1461,7 +1463,7 @@ let sessionStartTime = null;
 
 // Init settings UI
 voiceSelect.value = voiceSettings.voice;
-modelSelect.value = voiceSettings.model || 'gpt-realtime';
+modelSelect.value = voiceSettings.model || 'gpt-4o-realtime-preview';
 speedSlider.value = voiceSettings.speed;
 speedValue.textContent = voiceSettings.speed + 'x';
 sessionLengthSelect.value = sessionMinutes;
@@ -1469,7 +1471,7 @@ sessionLengthSelect.value = sessionMinutes;
 (function() {
     const _chip = document.getElementById('voiceModelLabel');
     if (_chip) {
-        const _ml = { 'gpt-realtime': 'GPT Realtime', 'gpt-realtime-mini': 'Mini' };
+        const _ml = { 'gpt-4o-realtime-preview': 'GPT Realtime', 'gpt-4o-mini-realtime-preview': 'GPT Realtime Mini', 'gpt-realtime': 'GPT Realtime', 'gpt-realtime-mini': 'Mini' };
         _chip.textContent = _ml[voiceSettings.model] || voiceSettings.model || 'GPT Realtime';
     }
 })();
@@ -1838,7 +1840,7 @@ saveSettingsBtn.addEventListener('click', () => {
     // Update HUD model chip
     const _chip = document.getElementById('voiceModelLabel');
     if (_chip) {
-        const _mlabels = { 'gpt-realtime': 'GPT Realtime', 'gpt-realtime-mini': 'Mini' };
+        const _mlabels = { 'gpt-4o-realtime-preview': 'GPT Realtime', 'gpt-4o-mini-realtime-preview': 'GPT Realtime Mini', 'gpt-realtime': 'GPT Realtime', 'gpt-realtime-mini': 'Mini' };
         _chip.textContent = _mlabels[voiceSettings.model] || voiceSettings.model;
     }
     sessionMinutes = parseInt(sessionLengthSelect.value);
@@ -2227,7 +2229,8 @@ async function connectRealtime() {
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
 
-        const sdpResponse = await fetch('https://api.openai.com/v1/realtime/calls', {
+        // Correct WebRTC SDP exchange endpoint: POST /v1/realtime?model=MODEL_ID
+        const sdpResponse = await fetch(`https://api.openai.com/v1/realtime?model=${encodeURIComponent(model)}`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${ephemeralKey}`,

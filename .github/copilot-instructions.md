@@ -13,7 +13,7 @@
   - `announcements`: Notifications with context processor
   - `parents`: Parent portal
   - `tenants`: School (TenantMixin), Domain, Custom Middleware
-- **Inactive Apps**: `communication` (files exist but not in INSTALLED_APPS)
+- **Inactive Apps**: None (all apps are active)
 
 ## Multi-Tenancy Architecture
 - **Django-Tenants Integration**: Uses `django_tenants.postgresql_backend` engine. **SQLite NOT supported**—PostgreSQL required locally and in production.
