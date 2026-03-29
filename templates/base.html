@@ -4501,6 +4501,7 @@
         }
 
         function runPollCycle() {
+            if (document.hidden || !navigator.onLine) return;
             fetchUnread();
             fetchLandlordApprovals();
         }
@@ -4525,10 +4526,21 @@
             startPolling();
         }
 
+        function handleOnline() {
+            runPollCycle();
+            startPolling();
+        }
+
+        function handleOffline() {
+            stopPolling();
+        }
+
         // Initial fetch + lifecycle-aware polling
         runPollCycle();
         startPolling();
         document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
     })();
     </script>
     {% endif %}

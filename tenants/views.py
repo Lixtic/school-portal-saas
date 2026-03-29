@@ -15,7 +15,7 @@ from django.contrib.auth import get_user_model, login
 from django.contrib import messages
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from academics.models import SchoolInfo, AcademicYear, Class, Subject, ClassSubject
 from django.utils import timezone
@@ -658,6 +658,23 @@ def approval_queue(request):
         'requires_info_count': School.objects.filter(approval_status='requires_info').count(),
     }
     return render(request, 'tenants/approval_queue.html', context)
+
+
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+def approval_pending_count_api(request):
+    """Lightweight JSON endpoint for landlord mobile queue badge refresh."""
+    tenant = getattr(request, 'tenant', None)
+    if tenant and getattr(tenant, 'schema_name', None) != 'public':
+        return JsonResponse({'detail': 'Forbidden'}, status=403)
+
+    pending = School.objects.filter(approval_status='pending').count()
+    under_review = School.objects.filter(approval_status='under_review').count()
+    return JsonResponse({
+        'pending': pending,
+        'under_review': under_review,
+        'total_actionable': pending + under_review,
+    })
 
 
 @login_required

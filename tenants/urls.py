@@ -14,6 +14,7 @@ urlpatterns = [
     path('superadmin/create-school/', views.superadmin_create_school, name='superadmin_create_school'),
     
     path('approval-queue/', views.approval_queue, name='approval_queue'),
+    path('approval-queue/count/', views.approval_pending_count_api, name='approval_pending_count'),
     path('review/<int:school_id>/', views.review_school, name='review_school'),
     path('resend-credentials/<int:school_id>/', views.resend_school_credentials, name='resend_credentials'),
     path('revenue/', views.revenue_analytics, name='revenue_analytics'),
