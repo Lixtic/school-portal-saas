@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% block title %}Random Picker{% endblock %}
+
+{% block content %}
+<style>
+:root{--rp-bg:#f4f6fb;--rp-card:#fff;--rp-ink:#0b1120;--rp-muted:#8892a4;--rp-border:#e4e8f2;--rp-accent:#6366f1;--rp-accent2:#a78bfa;}
+[data-bs-theme="dark"]{--rp-bg:#0f172a;--rp-card:#1e293b;--rp-ink:#f1f5f9;--rp-muted:#94a3b8;--rp-border:#334155;}
+.rp-wrap{max-width:680px;margin:0 auto;padding:1rem 0;}
+.rp-card{background:var(--rp-card);border:1px solid var(--rp-border);border-radius:18px;overflow:hidden;}
+.rp-head{padding:1.2rem 1.5rem;border-bottom:1px solid var(--rp-border);display:flex;align-items:center;justify-content:space-between;}
+.rp-head h2{margin:0;font-size:1.15rem;font-weight:800;color:var(--rp-ink);}
+.rp-body{padding:1.5rem;text-align:center;}
+.rp-canvas-wrap{position:relative;width:320px;height:320px;margin:0 auto 1.5rem;}
+canvas#wheel{width:320px;height:320px;cursor:pointer;}
+.rp-result{font-size:1.6rem;font-weight:900;color:var(--rp-accent);min-height:2.2rem;margin-bottom:1rem;transition:all .3s;}
+.rp-result.pop{animation:rpPop .5s ease;}
+@keyframes rpPop{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+.rp-spin-btn{background:linear-gradient(135deg,#4361ee,#4cc9f0);color:#fff;border:none;padding:.6rem 2rem;border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer;transition:transform .15s;}
+.rp-spin-btn:hover{transform:scale(1.04);}
+.rp-spin-btn:disabled{opacity:.5;cursor:not-allowed;}
+.rp-history{margin-top:1.2rem;padding:1rem 1.5rem;border-top:1px solid var(--rp-border);text-align:left;}
+.rp-history h4{font-size:.78rem;font-weight:700;color:var(--rp-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.5rem;}
+.rp-tag{display:inline-block;padding:.2rem .55rem;border-radius:6px;font-size:.78rem;font-weight:600;background:rgba(99,102,241,.1);color:var(--rp-accent);margin:.15rem .1rem;}
+.rp-class-sel{padding:.35rem .7rem;border-radius:8px;border:1px solid var(--rp-border);font-size:.85rem;background:var(--rp-card);color:var(--rp-ink);}
+.rp-mode-btn{padding:.25rem .6rem;border-radius:8px;font-size:.78rem;font-weight:600;border:1px solid var(--rp-border);background:var(--rp-card);color:var(--rp-ink);cursor:pointer;margin-left:.3rem;}
+.rp-mode-btn.active{background:var(--rp-accent);color:#fff;border-color:var(--rp-accent);}
+</style>
+
+<div class="rp-wrap">
+<div class="rp-card">
+    <div class="rp-head">
+        <h2><i class="bi bi-bullseye me-2" style="color:var(--rp-accent);"></i>Random Picker</h2>
+        <div style="display:flex;align-items:center;gap:.4rem;">
+            <select id="classSelect" class="rp-class-sel" onchange="loadStudents()">
+                <option value="">— Select Class —</option>
+                {% for c in classes %}
+                <option value="{{ c.id }}">{{ c.name }}</option>
+                {% endfor %}
+            </select>
+            <button class="rp-mode-btn active" data-mode="single" onclick="setMode('single',this)">Single</button>
+            <button class="rp-mode-btn" data-mode="group" onclick="setMode('group',this)">Groups</button>
+        </div>
+    </div>
+    <div class="rp-body">
+        <div class="rp-canvas-wrap">
+            <canvas id="wheel" width="320" height="320"></canvas>
+        </div>
+        <div class="rp-result" id="result">&nbsp;</div>
+        <button class="rp-spin-btn" id="spinBtn" onclick="spin()" disabled>
+            <i class="bi bi-arrow-clockwise me-1"></i>Spin
+        </button>
+    </div>
+    <div class="rp-history" id="historyPanel" style="display:none;">
+        <h4><i class="bi bi-clock-history me-1"></i>History</h4>
+        <div id="historyTags"></div>
+    </div>
+</div>
+</div>
+
+<script>
+const COLORS=['#4361ee','#f72585','#4cc9f0','#7209b7','#3a86ff','#fb5607','#06d6a0','#ffd166','#ef476f','#118ab2','#8338ec','#06d6a0'];
+let students=[],mode='single',spinning=false,history=[];
+const canvas=document.getElementById('wheel'),ctx=canvas.getContext('2d');
+const resultEl=document.getElementById('result'),spinBtn=document.getElementById('spinBtn');
+
+function setMode(m,btn){
+    mode=m;
+    document.querySelectorAll('.rp-mode-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+function loadStudents(){
+    const cid=document.getElementById('classSelect').value;
+    if(!cid){students=[];drawWheel();spinBtn.disabled=true;return;}
+    fetch(`{% url 'teachers:get_students' 0 %}`.replace('/0/','/'+cid+'/'))
+    .then(r=>r.json()).then(data=>{
+        students=(data.students||[]).map(s=>s.name||s.full_name||`${s.first_name} ${s.last_name}`);
+        drawWheel();
+        spinBtn.disabled=students.length<2;
+    });
+}
+
+function drawWheel(highlight=-1){
+    const n=students.length;
+    if(!n){ctx.clearRect(0,0,320,320);ctx.fillStyle='var(--rp-muted,#888)';ctx.font='600 14px Manrope,sans-serif';ctx.textAlign='center';ctx.fillText('Select a class',160,165);return;}
+    const arc=2*Math.PI/n, cx=160,cy=160,r=150;
+    ctx.clearRect(0,0,320,320);
+    for(let i=0;i<n;i++){
+        ctx.beginPath();ctx.moveTo(cx,cy);
+        ctx.arc(cx,cy,r,i*arc,(i+1)*arc);
+        ctx.closePath();
+        ctx.fillStyle=highlight===i?'#ffd166':COLORS[i%COLORS.length];
+        ctx.fill();
+        ctx.strokeStyle='rgba(255,255,255,.3)';ctx.lineWidth=2;ctx.stroke();
+        // label
+        ctx.save();ctx.translate(cx,cy);ctx.rotate(i*arc+arc/2);
+        ctx.fillStyle='#fff';ctx.font='bold '+(n>20?'9':'11')+'px Manrope,sans-serif';
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        const name=students[i].length>12?students[i].slice(0,11)+'…':students[i];
+        ctx.fillText(name,r*.6,0);
+        ctx.restore();
+    }
+    // center dot
+    ctx.beginPath();ctx.arc(cx,cy,18,0,2*Math.PI);ctx.fillStyle=highlight>=0?'#f72585':'#4361ee';ctx.fill();
+    ctx.beginPath();ctx.arc(cx,cy,8,0,2*Math.PI);ctx.fillStyle='#fff';ctx.fill();
+    // pointer triangle
+    ctx.beginPath();ctx.moveTo(305,155);ctx.lineTo(305,165);ctx.lineTo(318,160);ctx.closePath();ctx.fillStyle='#ef4444';ctx.fill();
+}
+
+function spin(){
+    if(spinning||students.length<2)return;
+    spinning=true;spinBtn.disabled=true;resultEl.innerHTML='&nbsp;';
+    if(mode==='group'){spinGroups();return;}
+    const n=students.length,winner=Math.floor(Math.random()*n);
+    const totalRot=5+Math.random()*3, arc=2*Math.PI/n;
+    let frame=0,total=Math.round(totalRot*n)+winner,cur=0;
+    function animate(){
+        if(cur>=total){
+            drawWheel(winner);
+            resultEl.textContent=students[winner];
+            resultEl.classList.remove('pop');void resultEl.offsetWidth;resultEl.classList.add('pop');
+            history.unshift(students[winner]);showHistory();
+            spinning=false;spinBtn.disabled=false;return;
+        }
+        drawWheel(cur%n);cur++;
+        const delay=cur>total-10?80+((cur-(total-10))*20):40;
+        setTimeout(animate,delay);
+    }
+    animate();
+}
+
+function spinGroups(){
+    const size=prompt('How many per group?','4');
+    if(!size){spinning=false;spinBtn.disabled=false;return;}
+    const gs=parseInt(size)||4;
+    const shuffled=[...students].sort(()=>Math.random()-.5);
+    const groups=[];
+    for(let i=0;i<shuffled.length;i+=gs) groups.push(shuffled.slice(i,i+gs));
+    resultEl.innerHTML=groups.map((g,i)=>`<div style="margin:.3rem 0"><strong>Group ${i+1}:</strong> ${g.join(', ')}</div>`).join('');
+    resultEl.classList.remove('pop');void resultEl.offsetWidth;resultEl.classList.add('pop');
+    spinning=false;spinBtn.disabled=false;
+}
+
+function showHistory(){
+    if(!history.length)return;
+    document.getElementById('historyPanel').style.display='';
+    document.getElementById('historyTags').innerHTML=history.slice(0,20).map(h=>`<span class="rp-tag">${h}</span>`).join('');
+}
+
+drawWheel();
+</script>
+{% endblock %}

@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block title %}Task Board{% endblock %}
+
+{% block content %}
+<style>
+:root{--tb-bg:#f4f6fb;--tb-card:#fff;--tb-ink:#0b1120;--tb-muted:#8892a4;--tb-border:#e4e8f2;}
+[data-bs-theme="dark"]{--tb-bg:#0f172a;--tb-card:#1e293b;--tb-ink:#f1f5f9;--tb-muted:#94a3b8;--tb-border:#334155;}
+.tb-wrap{max-width:980px;margin:0 auto;padding:1rem 0;}
+.tb-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem;}
+.tb-header h2{margin:0;font-size:1.15rem;font-weight:800;color:var(--tb-ink);}
+.tb-board{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;}
+@media(max-width:768px){.tb-board{grid-template-columns:1fr;}}
+.tb-col{background:var(--tb-bg);border:1px solid var(--tb-border);border-radius:14px;min-height:200px;padding:.6rem;}
+.tb-col-head{padding:.5rem .7rem;font-size:.78rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--tb-muted);display:flex;align-items:center;justify-content:space-between;}
+.tb-col-head .badge{font-size:.7rem;font-weight:700;padding:.15rem .45rem;border-radius:6px;}
+.tb-item{background:var(--tb-card);border:1px solid var(--tb-border);border-radius:10px;padding:.6rem .8rem;margin:.4rem 0;cursor:grab;transition:box-shadow .15s,transform .15s;position:relative;}
+.tb-item:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);transform:translateY(-1px);}
+.tb-item.dragging{opacity:.4;transform:rotate(2deg);}
+.tb-item-title{font-size:.88rem;font-weight:700;color:var(--tb-ink);margin-bottom:.2rem;}
+.tb-item-meta{font-size:.72rem;color:var(--tb-muted);display:flex;gap:.5rem;align-items:center;}
+.tb-prio{display:inline-block;width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tb-prio-high{background:#ef4444;}.tb-prio-medium{background:#f59e0b;}.tb-prio-low{background:#10b981;}
+.tb-item-actions{position:absolute;top:.4rem;right:.4rem;display:none;}
+.tb-item:hover .tb-item-actions{display:flex;gap:.2rem;}
+.tb-item-actions button{background:none;border:none;color:var(--tb-muted);font-size:.78rem;cursor:pointer;padding:.1rem .25rem;border-radius:4px;}
+.tb-item-actions button:hover{color:#ef4444;background:rgba(239,68,68,.08);}
+.tb-add-input{width:100%;padding:.4rem .6rem;border:1px dashed var(--tb-border);border-radius:8px;font-size:.82rem;background:transparent;color:var(--tb-ink);margin-top:.3rem;}
+.tb-add-input:focus{border-color:#4361ee;outline:none;}
+.tb-add-row{display:flex;gap:.3rem;margin-top:.3rem;}
+.tb-add-row select,.tb-add-row input{padding:.3rem .5rem;border:1px solid var(--tb-border);border-radius:6px;font-size:.78rem;background:var(--tb-card);color:var(--tb-ink);}
+.tb-add-btn{background:#4361ee;color:#fff;border:none;padding:.3rem .6rem;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;}
+.tb-drop-zone{border:2px dashed #4361ee;border-radius:10px;min-height:40px;margin:.3rem 0;opacity:0;transition:opacity .15s;}
+.tb-drop-zone.active{opacity:1;}
+</style>
+
+<div class="tb-wrap">
+    <div class="tb-header">
+        <h2><i class="bi bi-kanban me-2" style="color:#4361ee;"></i>Task Board</h2>
+        <span style="font-size:.78rem;color:var(--tb-muted);">{{ cards|length }} task{{ cards|length|pluralize }}</span>
+    </div>
+
+    <div class="tb-board">
+        {% for col_id, col_label in columns %}
+        <div class="tb-col" data-col="{{ col_id }}" ondragover="dragOver(event)" ondrop="dropCard(event)">
+            <div class="tb-col-head">
+                {{ col_label }}
+                <span class="badge bg-{% if col_id == 'todo' %}primary{% elif col_id == 'doing' %}warning{% else %}success{% endif %}" id="count-{{ col_id }}">0</span>
+            </div>
+            <div id="col-{{ col_id }}">
+                {% for card in cards %}
+                {% if card.column == col_id %}
+                <div class="tb-item" draggable="true" data-id="{{ card.id }}" ondragstart="dragStart(event)" ondragend="dragEnd(event)">
+                    <div class="tb-item-actions">
+                        <button onclick="deleteCard({{ card.id }})" title="Delete"><i class="bi bi-x-lg"></i></button>
+                    </div>
+                    <div class="tb-item-title">{{ card.title }}</div>
+                    <div class="tb-item-meta">
+                        <span class="tb-prio tb-prio-{{ card.priority }}"></span>
+                        {{ card.get_priority_display }}
+                        {% if card.due_date %}<span><i class="bi bi-calendar3 me-1"></i>{{ card.due_date|date:"M d" }}</span>{% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+            <!-- Add new task inline -->
+            {% if col_id == 'todo' %}
+            <form method="post" style="margin-top:.4rem;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create">
+                <input type="text" name="title" class="tb-add-input" placeholder="+ Add a task…" required>
+                <div class="tb-add-row">
+                    <select name="priority">
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="low">Low</option>
+                    </select>
+                    <input type="date" name="due_date">
+                    <button type="submit" class="tb-add-btn"><i class="bi bi-plus-lg"></i></button>
+                </div>
+            </form>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+// Update column counts
+document.querySelectorAll('.tb-col').forEach(col=>{
+    const id=col.dataset.col;
+    const n=col.querySelectorAll('.tb-item').length;
+    const badge=document.getElementById('count-'+id);
+    if(badge)badge.textContent=n;
+});
+
+let dragId=null;
+function dragStart(e){dragId=e.target.dataset.id;e.target.classList.add('dragging');}
+function dragEnd(e){e.target.classList.remove('dragging');}
+function dragOver(e){e.preventDefault();}
+function dropCard(e){
+    e.preventDefault();
+    const col=e.currentTarget.dataset.col;
+    if(!dragId||!col)return;
+    // POST move
+    const form=new FormData();
+    form.append('action','move');
+    form.append('card_id',dragId);
+    form.append('column',col);
+    form.append('csrfmiddlewaretoken','{{ csrf_token }}');
+    fetch('',{method:'POST',body:form}).then(()=>location.reload());
+}
+function deleteCard(id){
+    if(!confirm('Delete this task?'))return;
+    const form=new FormData();
+    form.append('action','delete');
+    form.append('card_id',id);
+    form.append('csrfmiddlewaretoken','{{ csrf_token }}');
+    fetch('',{method:'POST',body:form}).then(()=>location.reload());
+}
+</script>
+{% endblock %}

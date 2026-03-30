@@ -35,6 +35,46 @@ ADDON_FEATURE_MAP = {
         'label': 'Quick Report Writer',
         'gates': ['lesson_plan_pdf', 'lesson_plan_cards_print'],
     },
+    'task-board': {
+        'label': 'Task Board',
+        'gates': ['addon_task_board'],
+    },
+    'cpd-tracker': {
+        'label': 'CPD Tracker',
+        'gates': ['addon_cpd_tracker'],
+    },
+    'observation-notes': {
+        'label': 'Observation Notes',
+        'gates': ['addon_observation_notes'],
+    },
+    'rubric-designer': {
+        'label': 'Rubric Designer',
+        'gates': ['addon_rubric_designer'],
+    },
+    'study-guide-builder': {
+        'label': 'Study Guide Builder',
+        'gates': ['addon_study_guide', 'study_guide_ai'],
+    },
+    'random-picker': {
+        'label': 'Random Picker',
+        'gates': ['addon_random_picker'],
+    },
+    'countdown-timer': {
+        'label': 'Countdown Timer',
+        'gates': ['addon_countdown_timer'],
+    },
+    'noise-meter': {
+        'label': 'Noise Meter',
+        'gates': ['addon_noise_meter'],
+    },
+    'stem-activity-pack': {
+        'label': 'STEM Activity Pack',
+        'gates': ['addon_stem_pack'],
+    },
+    'creative-arts-kit': {
+        'label': 'Creative Arts Kit',
+        'gates': ['addon_creative_arts'],
+    },
 }
 
 # Reverse map: view_name → addon_slug

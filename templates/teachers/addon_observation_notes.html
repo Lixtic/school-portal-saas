@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block title %}Observation Notes{% endblock %}
+
+{% block content %}
+<style>
+:root{--on-card:#fff;--on-ink:#0b1120;--on-muted:#8892a4;--on-border:#e4e8f2;--on-accent:#7c3aed;}
+[data-bs-theme="dark"]{--on-card:#1e293b;--on-ink:#f1f5f9;--on-muted:#94a3b8;--on-border:#334155;}
+.on-wrap{max-width:780px;margin:0 auto;padding:1rem 0;}
+.on-card{background:var(--on-card);border:1px solid var(--on-border);border-radius:14px;overflow:hidden;margin-bottom:1rem;}
+.on-head{padding:1rem 1.3rem;border-bottom:1px solid var(--on-border);display:flex;align-items:center;justify-content:space-between;}
+.on-head h2{margin:0;font-size:1.1rem;font-weight:800;color:var(--on-ink);}
+.on-body{padding:1.2rem 1.3rem;}
+.on-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;}
+@media(max-width:640px){.on-form-grid{grid-template-columns:1fr;}}
+.on-full{grid-column:span 2;}
+@media(max-width:640px){.on-full{grid-column:span 1;}}
+.on-label{display:block;font-size:.72rem;font-weight:700;color:var(--on-muted);text-transform:uppercase;margin-bottom:.2rem;}
+.on-input,.on-textarea,.on-select{width:100%;padding:.45rem .65rem;border:1px solid var(--on-border);border-radius:8px;font-size:.84rem;background:var(--on-card);color:var(--on-ink);}
+.on-input:focus,.on-textarea:focus,.on-select:focus{border-color:var(--on-accent);outline:none;}
+.on-textarea{min-height:80px;resize:vertical;}
+.on-btn{background:var(--on-accent);color:#fff;border:none;padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;cursor:pointer;margin-top:.3rem;}
+.on-list-item{border:1px solid var(--on-border);border-radius:12px;padding:.9rem 1.1rem;margin-bottom:.7rem;background:var(--on-card);transition:box-shadow .15s;}
+.on-list-item:hover{box-shadow:0 4px 16px rgba(0,0,0,.06);}
+.on-list-date{font-size:.75rem;font-weight:700;color:var(--on-accent);}
+.on-list-class{font-size:.78rem;color:var(--on-muted);margin-left:.5rem;}
+.on-section-label{font-size:.7rem;font-weight:700;color:var(--on-muted);text-transform:uppercase;margin-top:.4rem;margin-bottom:.15rem;}
+.on-section-text{font-size:.84rem;color:var(--on-ink);white-space:pre-line;}
+.on-private-tag{font-size:.68rem;padding:.12rem .4rem;border-radius:5px;background:rgba(239,68,68,.1);color:#ef4444;font-weight:600;}
+.on-shared-tag{font-size:.68rem;padding:.12rem .4rem;border-radius:5px;background:rgba(16,185,129,.1);color:#10b981;font-weight:600;}
+.on-del{background:none;border:none;color:var(--on-muted);cursor:pointer;font-size:.8rem;float:right;}
+.on-del:hover{color:#ef4444;}
+.on-empty{padding:2rem;text-align:center;color:var(--on-muted);font-size:.88rem;}
+</style>
+
+<div class="on-wrap">
+    <!-- Form -->
+    <div class="on-card">
+        <div class="on-head">
+            <h2><i class="bi bi-binoculars me-2" style="color:var(--on-accent);"></i>Observation Notes</h2>
+            <span style="font-size:.78rem;color:var(--on-muted);">{{ notes|length }} note{{ notes|length|pluralize }}</span>
+        </div>
+        <div class="on-body">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create">
+                <div class="on-form-grid">
+                    <div>
+                        <label class="on-label">Date</label>
+                        <input type="date" name="date" class="on-input" required>
+                    </div>
+                    <div>
+                        <label class="on-label">Class Observed</label>
+                        <select name="observed_class" class="on-select">
+                            <option value="">— Optional —</option>
+                            {% for c in classes %}
+                            <option value="{{ c.id }}">{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="on-full">
+                        <label class="on-label">Strengths Observed</label>
+                        <textarea name="strengths" class="on-textarea" placeholder="What went well…"></textarea>
+                    </div>
+                    <div class="on-full">
+                        <label class="on-label">Areas for Growth</label>
+                        <textarea name="growth_areas" class="on-textarea" placeholder="What could improve…"></textarea>
+                    </div>
+                    <div class="on-full">
+                        <label class="on-label">Action Plan</label>
+                        <textarea name="action_plan" class="on-textarea" placeholder="Next steps…"></textarea>
+                    </div>
+                    <div>
+                        <label class="on-label">Visibility</label>
+                        <select name="is_private" class="on-select">
+                            <option value="1">Private (only me)</option>
+                            <option value="0">Shared with admin</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="on-btn"><i class="bi bi-plus-lg me-1"></i>Save Note</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- List -->
+    {% if notes %}
+    {% for n in notes %}
+    <div class="on-list-item">
+        <form method="post" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="note_id" value="{{ n.id }}">
+            <button type="submit" class="on-del" onclick="return confirm('Delete?')"><i class="bi bi-trash3"></i></button>
+        </form>
+        <span class="on-list-date">{{ n.date|date:"M d, Y" }}</span>
+        {% if n.observed_class %}<span class="on-list-class">{{ n.observed_class.name }}</span>{% endif %}
+        {% if n.is_private %}<span class="on-private-tag ms-1">Private</span>{% else %}<span class="on-shared-tag ms-1">Shared</span>{% endif %}
+        {% if n.strengths %}<div class="on-section-label">Strengths</div><div class="on-section-text">{{ n.strengths }}</div>{% endif %}
+        {% if n.growth_areas %}<div class="on-section-label">Growth Areas</div><div class="on-section-text">{{ n.growth_areas }}</div>{% endif %}
+        {% if n.action_plan %}<div class="on-section-label">Action Plan</div><div class="on-section-text">{{ n.action_plan }}</div>{% endif %}
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="on-card"><div class="on-empty"><i class="bi bi-binoculars" style="font-size:1.4rem;display:block;margin-bottom:.5rem;opacity:.3;"></i>No observation notes yet.</div></div>
+    {% endif %}
+</div>
+{% endblock %}

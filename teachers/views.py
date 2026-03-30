@@ -6790,6 +6790,35 @@ def my_addons(request):
             p.status_label = 'Deactivated'
             inactive.append(p)
 
+    # Map addon slug → URL name so "Launch" links work
+    ADDON_LAUNCH_URLS = {
+        'task-board': 'teachers:addon_task_board',
+        'cpd-tracker': 'teachers:addon_cpd_tracker',
+        'observation-notes': 'teachers:addon_observation_notes',
+        'rubric-designer': 'teachers:addon_rubric_designer',
+        'study-guide-builder': 'teachers:addon_study_guide',
+        'random-picker': 'teachers:addon_random_picker',
+        'countdown-timer': 'teachers:addon_countdown_timer',
+        'noise-meter': 'teachers:addon_noise_meter',
+        'stem-activity-pack': 'teachers:addon_stem_pack',
+        'creative-arts-kit': 'teachers:addon_creative_arts',
+        'aura-slide-generator': 'teachers:presentation_list',
+        'smart-planner-pro': 'teachers:aura_command_center',
+        'exercise-maker': 'teachers:my_classes',
+        'grade-insight-dashboard': 'teachers:analytics_dashboard',
+        'quick-report-writer': 'teachers:lesson_plan_list',
+    }
+    from django.urls import reverse
+    for p in active:
+        url_name = ADDON_LAUNCH_URLS.get(p.addon.slug)
+        if url_name:
+            try:
+                p.launch_url = reverse(url_name)
+            except Exception:
+                p.launch_url = None
+        else:
+            p.launch_url = None
+
     total_spent = sum(p.amount_paid for p in purchases)
 
     return render(request, 'teachers/my_addons.html', {
@@ -6843,3 +6872,252 @@ def teacher_store_trial(request, addon_id):
     )
     messages.success(request, f'🎉 Free {addon.trial_days}-day trial for "{addon.name}" activated!')
     return redirect('teachers:teacher_store')
+
+
+# ---------------------------------------------------------------------------
+# Add-On Feature Views
+# ---------------------------------------------------------------------------
+
+@login_required
+@requires_addon('task-board')
+def addon_task_board(request):
+    """Kanban-style task board for teachers."""
+    from teachers.models import TaskCard
+    teacher = request.user
+    COLUMNS = [('todo', 'To Do'), ('doing', 'In Progress'), ('done', 'Done')]
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add':
+            TaskCard.objects.create(
+                teacher=teacher,
+                title=request.POST.get('title', '').strip()[:200] or 'Untitled',
+                column='todo',
+                priority=request.POST.get('priority', 'medium'),
+                due_date=request.POST.get('due_date') or None,
+            )
+        elif action == 'move':
+            card = get_object_or_404(TaskCard, id=request.POST.get('card_id'), teacher=teacher)
+            new_col = request.POST.get('column', 'todo')
+            if new_col in dict(COLUMNS):
+                card.column = new_col
+                card.save(update_fields=['column'])
+        elif action == 'delete':
+            TaskCard.objects.filter(id=request.POST.get('card_id'), teacher=teacher).delete()
+        return redirect('teachers:addon_task_board')
+
+    cards = TaskCard.objects.filter(teacher=teacher)
+    columns = [(key, label, cards.filter(column=key)) for key, label in COLUMNS]
+    return render(request, 'teachers/addon_task_board.html', {'columns': columns, 'cards': cards})
+
+
+@login_required
+@requires_addon('cpd-tracker')
+def addon_cpd_tracker(request):
+    """Continuing Professional Development tracker."""
+    from teachers.models import CPDEntry
+    teacher = request.user
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add':
+            CPDEntry.objects.create(
+                teacher=teacher,
+                title=request.POST.get('title', '').strip()[:200] or 'Untitled',
+                category=request.POST.get('category', 'other'),
+                hours=Decimal(request.POST.get('hours', '1') or '1'),
+                date=request.POST.get('date') or date.today(),
+                notes=request.POST.get('notes', '').strip(),
+            )
+        elif action == 'delete':
+            CPDEntry.objects.filter(id=request.POST.get('entry_id'), teacher=teacher).delete()
+        return redirect('teachers:addon_cpd_tracker')
+
+    entries = CPDEntry.objects.filter(teacher=teacher)
+    total_hours = entries.aggregate(t=Sum('hours'))['t'] or 0
+    return render(request, 'teachers/addon_cpd_tracker.html', {
+        'entries': entries, 'total_hours': total_hours,
+    })
+
+
+@login_required
+@requires_addon('observation-notes')
+def addon_observation_notes(request):
+    """Classroom observation notes for peer review / mentoring."""
+    from teachers.models import ObservationNote
+    teacher = request.user
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add':
+            cls_id = request.POST.get('observed_class')
+            ObservationNote.objects.create(
+                teacher=teacher,
+                observed_class_id=cls_id if cls_id else None,
+                date=request.POST.get('date') or date.today(),
+                strengths=request.POST.get('strengths', '').strip(),
+                growth_areas=request.POST.get('growth_areas', '').strip(),
+                action_plan=request.POST.get('action_plan', '').strip(),
+                is_private=request.POST.get('is_private') == 'on',
+            )
+        elif action == 'delete':
+            ObservationNote.objects.filter(id=request.POST.get('note_id'), teacher=teacher).delete()
+        return redirect('teachers:addon_observation_notes')
+
+    notes = ObservationNote.objects.filter(teacher=teacher).select_related('observed_class')
+    classes = Class.objects.all()
+    return render(request, 'teachers/addon_observation_notes.html', {
+        'notes': notes, 'classes': classes,
+    })
+
+
+@login_required
+@requires_addon('rubric-designer')
+def addon_rubric_designer(request):
+    """Design assessment rubrics with JSON criteria."""
+    from teachers.models import Rubric
+    teacher = request.user
+
+    edit_id = request.GET.get('edit')
+    rubric = None
+    if edit_id:
+        rubric = get_object_or_404(Rubric, id=edit_id, teacher=teacher)
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'save':
+            title = request.POST.get('title', '').strip()[:200] or 'Untitled Rubric'
+            subject_id = request.POST.get('subject') or None
+            criteria_json = request.POST.get('criteria', '[]')
+            try:
+                criteria = json.loads(criteria_json)
+            except json.JSONDecodeError:
+                criteria = []
+            rid = request.POST.get('rubric_id')
+            if rid:
+                r = get_object_or_404(Rubric, id=rid, teacher=teacher)
+                r.title = title
+                r.subject_id = subject_id
+                r.criteria = criteria
+                r.save(update_fields=['title', 'subject', 'criteria', 'updated_at'])
+            else:
+                Rubric.objects.create(
+                    teacher=teacher, title=title, subject_id=subject_id, criteria=criteria,
+                )
+            return redirect('teachers:addon_rubric_designer')
+        elif action == 'delete':
+            Rubric.objects.filter(id=request.POST.get('rubric_id'), teacher=teacher).delete()
+            return redirect('teachers:addon_rubric_designer')
+
+    subjects = Subject.objects.all()
+    rubrics = Rubric.objects.filter(teacher=teacher).select_related('subject')
+    return render(request, 'teachers/addon_rubric_designer.html', {
+        'subjects': subjects, 'rubrics': rubrics,
+        'rubric': rubric, 'editing': rubric is not None,
+        'show_list': not rubric,
+    })
+
+
+@login_required
+@requires_addon('study-guide-builder')
+def addon_study_guide(request):
+    """Create study guides from lesson content."""
+    from teachers.models import StudyGuide
+    teacher = request.user
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'save':
+            StudyGuide.objects.create(
+                teacher=teacher,
+                title=request.POST.get('title', '').strip()[:200] or 'Untitled Guide',
+                subject_id=request.POST.get('subject') or None,
+                target_class_id=request.POST.get('target_class') or None,
+                source_notes=request.POST.get('source_notes', '').strip(),
+                content_html=request.POST.get('content_html', '').strip(),
+            )
+            return redirect('teachers:addon_study_guide')
+        elif action == 'delete':
+            StudyGuide.objects.filter(id=request.POST.get('guide_id'), teacher=teacher).delete()
+            return redirect('teachers:addon_study_guide')
+
+    subjects = Subject.objects.all()
+    classes = Class.objects.all()
+    guides = StudyGuide.objects.filter(teacher=teacher).select_related('subject', 'target_class')
+    return render(request, 'teachers/addon_study_guide.html', {
+        'subjects': subjects, 'classes': classes, 'guides': guides,
+    })
+
+
+@login_required
+@requires_addon('study-guide-builder')
+def study_guide_ai(request):
+    """AJAX endpoint: generate study guide HTML from teacher notes using AI."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST only'}, status=405)
+
+    body = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    notes = body.get('notes', '').strip()
+    if not notes:
+        return JsonResponse({'error': 'No notes provided'}, status=400)
+
+    # Use OpenAI / Gemini if available, otherwise return a formatted version
+    try:
+        import google.generativeai as genai
+        api_key = os.environ.get('GEMINI_API_KEY', '')
+        if api_key:
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel('gemini-2.0-flash')
+            prompt = (
+                "You are a Ghanaian JHS teacher assistant. Turn the following lesson notes into a "
+                "well-structured HTML study guide for students. Use <h3>, <ul>, <li>, <strong>, <p> tags. "
+                "Include a summary, key points, and revision questions.\n\n"
+                f"NOTES:\n{notes[:3000]}"
+            )
+            resp = model.generate_content(prompt)
+            return JsonResponse({'html': resp.text})
+    except Exception:
+        pass
+
+    # Fallback: simple formatting
+    paragraphs = notes.split('\n\n')
+    html = '<h3>Study Guide</h3>'
+    html += ''.join(f'<p>{p.strip()}</p>' for p in paragraphs if p.strip())
+    html += '<h4>Revision Questions</h4><p><em>Review the notes above and test yourself.</em></p>'
+    return JsonResponse({'html': html})
+
+
+@login_required
+@requires_addon('random-picker')
+def addon_random_picker(request):
+    """Random student picker — template is client-side, just needs class list."""
+    classes = Class.objects.all()
+    return render(request, 'teachers/addon_random_picker.html', {'classes': classes})
+
+
+@login_required
+@requires_addon('countdown-timer')
+def addon_countdown_timer(request):
+    """Classroom countdown timer — fully client-side."""
+    return render(request, 'teachers/addon_countdown_timer.html')
+
+
+@login_required
+@requires_addon('noise-meter')
+def addon_noise_meter(request):
+    """Visual noise level meter — uses Web Audio API, fully client-side."""
+    return render(request, 'teachers/addon_noise_meter.html')
+
+
+@login_required
+@requires_addon('stem-activity-pack')
+def addon_stem_pack(request):
+    """Curated STEM activity library — static content pack."""
+    return render(request, 'teachers/addon_stem_pack.html')
+
+
+@login_required
+@requires_addon('creative-arts-kit')
+def addon_creative_arts(request):
+    """Curated creative arts activity library — static content pack."""
+    return render(request, 'teachers/addon_creative_arts.html')

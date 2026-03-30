@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block title %}CPD Tracker{% endblock %}
+
+{% block content %}
+<style>
+:root{--cpd-card:#fff;--cpd-ink:#0b1120;--cpd-muted:#8892a4;--cpd-border:#e4e8f2;--cpd-accent:#4361ee;}
+[data-bs-theme="dark"]{--cpd-card:#1e293b;--cpd-ink:#f1f5f9;--cpd-muted:#94a3b8;--cpd-border:#334155;}
+.cpd-wrap{max-width:780px;margin:0 auto;padding:1rem 0;}
+.cpd-card{background:var(--cpd-card);border:1px solid var(--cpd-border);border-radius:14px;overflow:hidden;margin-bottom:1rem;}
+.cpd-head{padding:1rem 1.3rem;border-bottom:1px solid var(--cpd-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+.cpd-head h2{margin:0;font-size:1.1rem;font-weight:800;color:var(--cpd-ink);}
+.cpd-stats{display:flex;gap:.8rem;flex-wrap:wrap;}
+.cpd-stat{text-align:center;}
+.cpd-stat-val{font-size:1.5rem;font-weight:900;color:var(--cpd-accent);line-height:1;}
+.cpd-stat-lbl{font-size:.68rem;font-weight:700;color:var(--cpd-muted);text-transform:uppercase;letter-spacing:.03em;}
+.cpd-form{padding:1rem 1.3rem;border-bottom:1px solid var(--cpd-border);display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:.5rem;align-items:end;}
+@media(max-width:640px){.cpd-form{grid-template-columns:1fr 1fr;}}
+.cpd-form label{font-size:.72rem;font-weight:700;color:var(--cpd-muted);text-transform:uppercase;display:block;margin-bottom:.15rem;}
+.cpd-form input,.cpd-form select{padding:.4rem .6rem;border:1px solid var(--cpd-border);border-radius:8px;font-size:.82rem;background:var(--cpd-card);color:var(--cpd-ink);}
+.cpd-form input:focus,.cpd-form select:focus{border-color:var(--cpd-accent);outline:none;}
+.cpd-form button{background:var(--cpd-accent);color:#fff;border:none;padding:.5rem .8rem;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;}
+.cpd-table{width:100%;border-collapse:separate;border-spacing:0;}
+.cpd-table th{padding:.5rem .8rem;font-size:.72rem;font-weight:700;color:var(--cpd-muted);text-transform:uppercase;border-bottom:1px solid var(--cpd-border);text-align:left;}
+.cpd-table td{padding:.5rem .8rem;font-size:.84rem;color:var(--cpd-ink);border-bottom:1px solid var(--cpd-border);}
+.cpd-table tr:last-child td{border-bottom:none;}
+.cpd-cat-tag{display:inline-block;padding:.15rem .45rem;border-radius:5px;font-size:.72rem;font-weight:600;background:rgba(67,97,238,.1);color:var(--cpd-accent);}
+.cpd-del{background:none;border:none;color:var(--cpd-muted);cursor:pointer;font-size:.82rem;padding:.15rem .3rem;border-radius:4px;}
+.cpd-del:hover{color:#ef4444;background:rgba(239,68,68,.08);}
+.cpd-empty{padding:2rem;text-align:center;color:var(--cpd-muted);font-size:.88rem;}
+</style>
+
+<div class="cpd-wrap">
+    <div class="cpd-card">
+        <div class="cpd-head">
+            <h2><i class="bi bi-award me-2" style="color:var(--cpd-accent);"></i>CPD Tracker</h2>
+            <div class="cpd-stats">
+                <div class="cpd-stat"><div class="cpd-stat-val">{{ total_hours|floatformat:1 }}</div><div class="cpd-stat-lbl">Hours</div></div>
+                <div class="cpd-stat"><div class="cpd-stat-val">{{ entries|length }}</div><div class="cpd-stat-lbl">Entries</div></div>
+            </div>
+        </div>
+        <form method="post" class="cpd-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create">
+            <div><label>Activity</label><input type="text" name="title" required placeholder="e.g. INSET Day Workshop"></div>
+            <div><label>Category</label>
+                <select name="category">
+                    <option value="workshop">Workshop</option>
+                    <option value="course">Course</option>
+                    <option value="conference">Conference</option>
+                    <option value="self_study">Self-Study</option>
+                    <option value="mentoring">Mentoring</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div><label>Hours</label><input type="number" name="hours" step="0.5" min="0.5" value="1" required></div>
+            <div><label>Date</label><input type="date" name="date" required></div>
+            <button type="submit"><i class="bi bi-plus-lg me-1"></i>Log</button>
+        </form>
+
+        {% if entries %}
+        <table class="cpd-table">
+            <thead><tr><th>Date</th><th>Activity</th><th>Category</th><th>Hours</th><th></th></tr></thead>
+            <tbody>
+            {% for e in entries %}
+            <tr>
+                <td>{{ e.date|date:"M d, Y" }}</td>
+                <td style="font-weight:600;">{{ e.title }}</td>
+                <td><span class="cpd-cat-tag">{{ e.get_category_display }}</span></td>
+                <td style="font-weight:700;">{{ e.hours|floatformat:1 }}h</td>
+                <td>
+                    <form method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="entry_id" value="{{ e.id }}">
+                        <button type="submit" class="cpd-del" onclick="return confirm('Delete?')"><i class="bi bi-trash3"></i></button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="cpd-empty"><i class="bi bi-journal-text" style="font-size:1.4rem;display:block;margin-bottom:.5rem;opacity:.3;"></i>No CPD entries yet. Log your first activity above.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

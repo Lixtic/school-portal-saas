@@ -130,6 +130,19 @@ urlpatterns = [
     path('store/trial/<int:addon_id>/', views.teacher_store_trial, name='teacher_store_trial'),
     path('store/webhook/', views.paystack_teacher_webhook, name='paystack_teacher_webhook'),
     path('my-addons/', views.my_addons, name='my_addons'),
+
+    # Add-On Feature Views
+    path('addons/task-board/', views.addon_task_board, name='addon_task_board'),
+    path('addons/cpd-tracker/', views.addon_cpd_tracker, name='addon_cpd_tracker'),
+    path('addons/observation-notes/', views.addon_observation_notes, name='addon_observation_notes'),
+    path('addons/rubric-designer/', views.addon_rubric_designer, name='addon_rubric_designer'),
+    path('addons/study-guide/', views.addon_study_guide, name='addon_study_guide'),
+    path('addons/study-guide/ai/', views.study_guide_ai, name='study_guide_ai'),
+    path('addons/random-picker/', views.addon_random_picker, name='addon_random_picker'),
+    path('addons/countdown-timer/', views.addon_countdown_timer, name='addon_countdown_timer'),
+    path('addons/noise-meter/', views.addon_noise_meter, name='addon_noise_meter'),
+    path('addons/stem-pack/', views.addon_stem_pack, name='addon_stem_pack'),
+    path('addons/creative-arts/', views.addon_creative_arts, name='addon_creative_arts'),
 ]
 
 

@@ -281,6 +281,11 @@
                 <span class="ma-badge ma-badge--active">Active</span>
                 {% endif %}
                 <div class="ma-card-actions">
+                    {% if p.launch_url %}
+                    <a href="{{ p.launch_url }}" class="ma-btn ma-btn--primary">
+                        <i class="bi bi-box-arrow-up-right"></i> Launch
+                    </a>
+                    {% endif %}
                     <form method="post" action="{% url 'teachers:teacher_store_cancel' p.addon.id %}"
                           onsubmit="return confirm('Deactivate {{ p.addon.name }}?')">
                         {% csrf_token %}

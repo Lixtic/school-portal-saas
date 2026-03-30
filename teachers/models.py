@@ -309,3 +309,100 @@ class TeacherAddOnPurchase(models.Model):
 
     def __str__(self):
         return f"{self.teacher.get_full_name()} → {self.addon.name}"
+
+
+# ---------------------------------------------------------------------------
+# Add-on feature models
+# ---------------------------------------------------------------------------
+
+class TaskCard(models.Model):
+    """Kanban card for the Task Board add-on."""
+    COLUMN_CHOICES = [('todo', 'To Do'), ('doing', 'In Progress'), ('done', 'Done')]
+    PRIORITY_CHOICES = [('low', 'Low'), ('medium', 'Medium'), ('high', 'High')]
+
+    teacher = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='task_cards')
+    title = models.CharField(max_length=200)
+    column = models.CharField(max_length=10, choices=COLUMN_CHOICES, default='todo')
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
+    due_date = models.DateField(null=True, blank=True)
+    position = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['column', 'position', '-created_at']
+
+    def __str__(self):
+        return self.title
+
+
+class CPDEntry(models.Model):
+    """Continuing Professional Development log entry."""
+    CATEGORY_CHOICES = [
+        ('workshop', 'Workshop'), ('course', 'Course'),
+        ('conference', 'Conference'), ('self_study', 'Self-Study'),
+        ('mentoring', 'Mentoring'), ('other', 'Other'),
+    ]
+    teacher = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='cpd_entries')
+    title = models.CharField(max_length=200)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='workshop')
+    hours = models.DecimalField(max_digits=5, decimal_places=1)
+    date = models.DateField()
+    notes = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.title} ({self.hours}h)"
+
+
+class ObservationNote(models.Model):
+    """Classroom observation note for peer review / mentoring."""
+    teacher = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='observation_notes')
+    observed_class = models.ForeignKey('academics.Class', on_delete=models.SET_NULL, null=True, blank=True)
+    date = models.DateField()
+    strengths = models.TextField(blank=True, default='')
+    growth_areas = models.TextField(blank=True, default='')
+    action_plan = models.TextField(blank=True, default='')
+    is_private = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"Observation {self.date}"
+
+
+class Rubric(models.Model):
+    """Assessment rubric with JSON criteria rows."""
+    teacher = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='rubrics')
+    title = models.CharField(max_length=200)
+    subject = models.ForeignKey('academics.Subject', on_delete=models.SET_NULL, null=True, blank=True)
+    criteria = models.JSONField(default=list, help_text='[{"name":"…","levels":["Excellent","Good","Fair","Poor"]}]')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return self.title
+
+
+class StudyGuide(models.Model):
+    """AI-generated study guide from lesson content."""
+    teacher = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='study_guides')
+    title = models.CharField(max_length=200)
+    subject = models.ForeignKey('academics.Subject', on_delete=models.SET_NULL, null=True, blank=True)
+    target_class = models.ForeignKey('academics.Class', on_delete=models.SET_NULL, null=True, blank=True)
+    content_html = models.TextField(blank=True, default='')
+    source_notes = models.TextField(blank=True, default='', help_text='Teacher notes used to generate guide')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title

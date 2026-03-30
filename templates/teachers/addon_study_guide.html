@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% block title %}Study Guide Builder{% endblock %}
+
+{% block content %}
+<style>
+:root{--sg-card:#fff;--sg-ink:#0b1120;--sg-muted:#8892a4;--sg-border:#e4e8f2;--sg-accent:#3b82f6;}
+[data-bs-theme="dark"]{--sg-card:#1e293b;--sg-ink:#f1f5f9;--sg-muted:#94a3b8;--sg-border:#334155;}
+.sg-wrap{max-width:780px;margin:0 auto;padding:1rem 0;}
+.sg-card{background:var(--sg-card);border:1px solid var(--sg-border);border-radius:14px;overflow:hidden;margin-bottom:1rem;}
+.sg-head{padding:1rem 1.3rem;border-bottom:1px solid var(--sg-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+.sg-head h2{margin:0;font-size:1.1rem;font-weight:800;color:var(--sg-ink);}
+.sg-body{padding:1.2rem 1.3rem;}
+.sg-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;}
+@media(max-width:640px){.sg-form-grid{grid-template-columns:1fr;}}
+.sg-full{grid-column:span 2;}
+@media(max-width:640px){.sg-full{grid-column:span 1;}}
+.sg-label{display:block;font-size:.72rem;font-weight:700;color:var(--sg-muted);text-transform:uppercase;margin-bottom:.2rem;}
+.sg-input,.sg-select,.sg-textarea{width:100%;padding:.45rem .65rem;border:1px solid var(--sg-border);border-radius:8px;font-size:.84rem;background:var(--sg-card);color:var(--sg-ink);}
+.sg-textarea{min-height:120px;resize:vertical;}
+.sg-input:focus,.sg-select:focus,.sg-textarea:focus{border-color:var(--sg-accent);outline:none;}
+.sg-btn{padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;border:none;cursor:pointer;}
+.sg-btn-ai{background:linear-gradient(135deg,#4361ee,#4cc9f0);color:#fff;}
+.sg-btn-save{background:var(--sg-accent);color:#fff;}
+.sg-btn-secondary{background:var(--sg-border);color:var(--sg-ink);}
+.sg-guide-item{border:1px solid var(--sg-border);border-radius:12px;padding:.8rem 1rem;margin-bottom:.6rem;background:var(--sg-card);transition:box-shadow .15s;}
+.sg-guide-item:hover{box-shadow:0 4px 12px rgba(0,0,0,.06);}
+.sg-guide-item h4{margin:0 0 .2rem;font-size:.92rem;font-weight:700;color:var(--sg-ink);}
+.sg-guide-meta{font-size:.75rem;color:var(--sg-muted);}
+.sg-guide-actions{display:flex;gap:.3rem;margin-top:.5rem;}
+.sg-empty{padding:2rem;text-align:center;color:var(--sg-muted);font-size:.88rem;}
+.sg-preview{padding:1rem;border:1px solid var(--sg-border);border-radius:10px;background:var(--sg-card);margin-top:.8rem;font-size:.88rem;color:var(--sg-ink);line-height:1.7;}
+.sg-preview h1,.sg-preview h2,.sg-preview h3{color:var(--sg-accent);}
+.sg-spinner{display:none;margin:.5rem 0;}
+.sg-spinner.active{display:inline-block;animation:spin 1s infinite linear;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+
+<div class="sg-wrap">
+    <div class="sg-card">
+        <div class="sg-head">
+            <h2><i class="bi bi-book-half me-2" style="color:var(--sg-accent);"></i>Study Guide Builder</h2>
+            <span style="font-size:.78rem;color:var(--sg-muted);">{{ guides|length }} guide{{ guides|length|pluralize }}</span>
+        </div>
+        <div class="sg-body">
+            <form method="post" id="sgForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create">
+                <div class="sg-form-grid">
+                    <div>
+                        <label class="sg-label">Title</label>
+                        <input type="text" name="title" class="sg-input" required placeholder="e.g. Photosynthesis Revision Guide">
+                    </div>
+                    <div>
+                        <label class="sg-label">Subject</label>
+                        <select name="subject" class="sg-select">
+                            <option value="">— Select —</option>
+                            {% for s in subjects %}
+                            <option value="{{ s.id }}">{{ s.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="sg-label">Class</label>
+                        <select name="target_class" class="sg-select">
+                            <option value="">— Select —</option>
+                            {% for c in classes %}
+                            <option value="{{ c.id }}">{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div></div>
+                    <div class="sg-full">
+                        <label class="sg-label">Your Notes / Key Content</label>
+                        <textarea name="source_notes" class="sg-textarea" placeholder="Paste your lesson notes, key concepts, or topics here. The AI will generate a structured revision guide from this content…"></textarea>
+                    </div>
+                    <div class="sg-full">
+                        <label class="sg-label">Guide Content (HTML)</label>
+                        <textarea name="content_html" class="sg-textarea" id="contentHtml" placeholder="Generated or hand-written guide HTML…" style="min-height:160px;"></textarea>
+                    </div>
+                </div>
+                <div style="display:flex;gap:.4rem;margin-top:.8rem;flex-wrap:wrap;">
+                    <button type="button" class="sg-btn sg-btn-ai" onclick="generateGuide()">
+                        <i class="bi bi-stars me-1"></i>Generate with AI
+                        <i class="bi bi-arrow-repeat sg-spinner" id="aiSpinner"></i>
+                    </button>
+                    <button type="submit" class="sg-btn sg-btn-save"><i class="bi bi-check-lg me-1"></i>Save Guide</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Existing Guides -->
+    {% if guides %}
+    {% for g in guides %}
+    <div class="sg-guide-item">
+        <h4>{{ g.title }}</h4>
+        <div class="sg-guide-meta">
+            {% if g.subject %}{{ g.subject.name }} · {% endif %}{% if g.target_class %}{{ g.target_class.name }} · {% endif %}{{ g.created_at|date:"M d, Y" }}
+        </div>
+        <div class="sg-guide-actions">
+            <button type="button" class="sg-btn sg-btn-secondary" style="font-size:.78rem;padding:.3rem .6rem;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'"><i class="bi bi-eye me-1"></i>Preview</button>
+            <div style="display:none;width:100%;"><div class="sg-preview">{{ g.content_html|safe }}</div></div>
+            <form method="post" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="guide_id" value="{{ g.id }}">
+                <button type="submit" class="sg-btn sg-btn-secondary" style="font-size:.78rem;padding:.3rem .6rem;" onclick="return confirm('Delete?')"><i class="bi bi-trash3"></i></button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="sg-card"><div class="sg-empty"><i class="bi bi-book-half" style="font-size:1.4rem;display:block;margin-bottom:.5rem;opacity:.3;"></i>No study guides yet.</div></div>
+    {% endif %}
+</div>
+
+<script>
+async function generateGuide(){
+    const notes=document.querySelector('[name=source_notes]').value;
+    const title=document.querySelector('[name=title]').value;
+    if(!notes){alert('Paste some notes first.');return;}
+    const spinner=document.getElementById('aiSpinner');
+    spinner.classList.add('active');
+    try{
+        const r=await fetch('{% url "teachers:study_guide_ai" %}',{
+            method:'POST',
+            headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+            body:JSON.stringify({notes,title})
+        });
+        const data=await r.json();
+        if(data.html){document.getElementById('contentHtml').value=data.html;}
+        else{alert(data.error||'AI generation failed.');}
+    }catch(e){alert('Network error.');}
+    spinner.classList.remove('active');
+}
+</script>
+{% endblock %}

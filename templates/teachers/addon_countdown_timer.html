@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block title %}Countdown Timer{% endblock %}
+
+{% block content %}
+<style>
+:root{--ct-bg:#f4f6fb;--ct-card:#fff;--ct-ink:#0b1120;--ct-muted:#8892a4;--ct-border:#e4e8f2;}
+[data-bs-theme="dark"]{--ct-bg:#0f172a;--ct-card:#1e293b;--ct-ink:#f1f5f9;--ct-muted:#94a3b8;--ct-border:#334155;}
+.ct-wrap{max-width:600px;margin:0 auto;padding:1rem 0;}
+.ct-card{background:var(--ct-card);border:1px solid var(--ct-border);border-radius:18px;overflow:hidden;}
+.ct-head{padding:1rem 1.5rem;border-bottom:1px solid var(--ct-border);display:flex;align-items:center;justify-content:space-between;}
+.ct-head h2{margin:0;font-size:1.1rem;font-weight:800;color:var(--ct-ink);}
+.ct-body{padding:2rem 1.5rem;text-align:center;position:relative;}
+.ct-display{font-family:'Manrope',monospace;font-size:5.5rem;font-weight:900;letter-spacing:-.04em;transition:color .4s;color:var(--ct-ink);}
+.ct-display.warning{color:#f59e0b;}
+.ct-display.danger{color:#ef4444;animation:ctPulse 1s infinite;}
+.ct-display.done{color:#10b981;animation:ctPop .6s ease;}
+@keyframes ctPulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes ctPop{0%{transform:scale(.8)}60%{transform:scale(1.1)}100%{transform:scale(1)}}
+.ct-progress{height:6px;border-radius:3px;background:var(--ct-border);margin:1.5rem 0;overflow:hidden;}
+.ct-progress-bar{height:100%;border-radius:3px;background:linear-gradient(90deg,#4361ee,#4cc9f0);transition:width .3s;}
+.ct-presets{display:flex;gap:.4rem;justify-content:center;flex-wrap:wrap;margin-bottom:1.2rem;}
+.ct-preset{padding:.35rem .75rem;border-radius:8px;border:1px solid var(--ct-border);background:var(--ct-card);color:var(--ct-ink);font-size:.82rem;font-weight:600;cursor:pointer;transition:all .15s;}
+.ct-preset:hover,.ct-preset.active{background:#4361ee;color:#fff;border-color:#4361ee;}
+.ct-controls{display:flex;gap:.5rem;justify-content:center;margin-top:1rem;}
+.ct-btn{padding:.5rem 1.5rem;border-radius:10px;border:none;font-size:.9rem;font-weight:700;cursor:pointer;transition:transform .15s;}
+.ct-btn:hover{transform:scale(1.04);}
+.ct-btn-primary{background:linear-gradient(135deg,#4361ee,#4cc9f0);color:#fff;}
+.ct-btn-danger{background:#ef4444;color:#fff;}
+.ct-btn-secondary{background:var(--ct-border);color:var(--ct-ink);}
+.ct-custom{display:flex;gap:.4rem;justify-content:center;align-items:center;margin-bottom:1rem;}
+.ct-custom input{width:60px;padding:.3rem .4rem;border-radius:8px;border:1px solid var(--ct-border);text-align:center;font-size:.88rem;font-weight:600;background:var(--ct-card);color:var(--ct-ink);}
+.ct-custom label{font-size:.75rem;font-weight:700;color:var(--ct-muted);text-transform:uppercase;}
+.ct-fs-btn{position:absolute;top:.8rem;right:.8rem;background:none;border:none;color:var(--ct-muted);font-size:1.2rem;cursor:pointer;}
+.ct-fullscreen{position:fixed!important;inset:0;z-index:9999;background:var(--ct-card);border-radius:0!important;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.ct-fullscreen .ct-display{font-size:12rem;}
+.ct-fullscreen .ct-progress{width:80%;max-width:600px;}
+</style>
+
+<div class="ct-wrap">
+<div class="ct-card" id="timerCard">
+    <div class="ct-head">
+        <h2><i class="bi bi-stopwatch me-2" style="color:#4361ee;"></i>Countdown Timer</h2>
+        <button class="ct-fs-btn" onclick="toggleFS()" title="Fullscreen"><i class="bi bi-arrows-fullscreen"></i></button>
+    </div>
+    <div class="ct-body">
+        <button class="ct-fs-btn" onclick="toggleFS()" title="Fullscreen"><i class="bi bi-arrows-fullscreen"></i></button>
+        <div class="ct-presets">
+            <button class="ct-preset active" onclick="setPreset(60,this)">1 min</button>
+            <button class="ct-preset" onclick="setPreset(120,this)">2 min</button>
+            <button class="ct-preset" onclick="setPreset(300,this)">5 min</button>
+            <button class="ct-preset" onclick="setPreset(600,this)">10 min</button>
+            <button class="ct-preset" onclick="setPreset(900,this)">15 min</button>
+            <button class="ct-preset" onclick="setPreset(1800,this)">30 min</button>
+        </div>
+        <div class="ct-custom">
+            <label>Custom:</label>
+            <input type="number" id="custMin" value="1" min="0" max="99">
+            <span style="font-weight:700;color:var(--ct-muted);">:</span>
+            <input type="number" id="custSec" value="0" min="0" max="59">
+            <button class="ct-preset" onclick="setCustom()">Set</button>
+        </div>
+        <div class="ct-display" id="display">01:00</div>
+        <div class="ct-progress"><div class="ct-progress-bar" id="progressBar" style="width:100%;"></div></div>
+        <div class="ct-controls">
+            <button class="ct-btn ct-btn-primary" id="startBtn" onclick="startTimer()"><i class="bi bi-play-fill me-1"></i>Start</button>
+            <button class="ct-btn ct-btn-danger" id="stopBtn" onclick="stopTimer()" style="display:none;"><i class="bi bi-pause-fill me-1"></i>Pause</button>
+            <button class="ct-btn ct-btn-secondary" onclick="resetTimer()"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</button>
+        </div>
+    </div>
+</div>
+</div>
+
+<script>
+let totalSecs=60,remaining=60,interval=null,running=false;
+const display=document.getElementById('display'),bar=document.getElementById('progressBar');
+const startBtn=document.getElementById('startBtn'),stopBtn=document.getElementById('stopBtn');
+
+function fmt(s){const m=Math.floor(s/60),ss=s%60;return String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0');}
+
+function setPreset(s,btn){
+    if(running)return;
+    document.querySelectorAll('.ct-preset').forEach(b=>b.classList.remove('active'));
+    if(btn)btn.classList.add('active');
+    totalSecs=s;remaining=s;render();
+}
+function setCustom(){
+    const m=parseInt(document.getElementById('custMin').value)||0;
+    const s=parseInt(document.getElementById('custSec').value)||0;
+    setPreset(m*60+s,null);
+}
+function render(){
+    display.textContent=fmt(remaining);
+    const pct=totalSecs?((remaining/totalSecs)*100):0;
+    bar.style.width=pct+'%';
+    display.className='ct-display';
+    if(remaining<=0){display.classList.add('done');display.textContent="TIME'S UP!";}
+    else if(remaining<=10)display.classList.add('danger');
+    else if(remaining<=30)display.classList.add('warning');
+}
+function startTimer(){
+    if(running||remaining<=0)return;
+    running=true;startBtn.style.display='none';stopBtn.style.display='';
+    interval=setInterval(()=>{
+        remaining--;render();
+        if(remaining<=0){clearInterval(interval);running=false;stopBtn.style.display='none';startBtn.style.display='';playBeep();}
+    },1000);
+}
+function stopTimer(){
+    clearInterval(interval);running=false;
+    stopBtn.style.display='none';startBtn.style.display='';
+}
+function resetTimer(){stopTimer();remaining=totalSecs;render();}
+function toggleFS(){document.getElementById('timerCard').classList.toggle('ct-fullscreen');}
+function playBeep(){
+    try{const a=new AudioContext(),o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.frequency.value=880;o.type='square';g.gain.value=.15;o.start();setTimeout(()=>{o.stop();a.close();},600);}catch(e){}
+}
+render();
+</script>
+{% endblock %}
