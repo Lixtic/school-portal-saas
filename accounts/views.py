@@ -1037,6 +1037,63 @@ def dashboard(request):
         except Exception:
             pass
 
+        # === Homework Status Summary ===
+        hw_summary = {'active': 0, 'submissions_pending': 0, 'overdue': 0}
+        try:
+            from homework.models import Homework, Submission
+            today = timezone.localdate()
+            teacher_hw = Homework.objects.filter(teacher=teacher_profile)
+            active_hw = teacher_hw.filter(due_date__gte=today)
+            hw_summary['active'] = active_hw.count()
+            hw_summary['overdue'] = teacher_hw.filter(due_date__lt=today).count()
+            # Pending = students who haven't submitted active homework
+            for hw in active_hw[:10]:  # cap to avoid heavy queries
+                expected = Student.objects.filter(current_class=hw.target_class).count()
+                submitted = Submission.objects.filter(homework=hw).values('student').distinct().count()
+                hw_summary['submissions_pending'] += max(0, expected - submitted)
+        except Exception:
+            pass
+
+        # === Class Performance Snapshot (avg total_score per class) ===
+        class_perf = []
+        try:
+            from students.models import Grade
+            from django.db.models import Avg
+            if current_year and class_ids:
+                perf_qs = (
+                    Grade.objects.filter(
+                        academic_year=current_year,
+                        student__current_class_id__in=class_ids,
+                    )
+                    .values('student__current_class__name')
+                    .annotate(avg_score=Avg('total_score'))
+                    .order_by('student__current_class__name')
+                )
+                class_perf = [
+                    {'class_name': p['student__current_class__name'], 'avg': round(float(p['avg_score'] or 0), 1)}
+                    for p in perf_qs
+                ]
+        except Exception:
+            pass
+
+        # === Today's Attendance Pulse ===
+        att_pulse = {'marked': 0, 'present': 0, 'absent': 0, 'total_expected': 0}
+        try:
+            today = timezone.localdate()
+            if class_ids:
+                att_qs = Attendance.objects.filter(
+                    date=today,
+                    student__current_class_id__in=class_ids,
+                )
+                att_pulse['marked'] = att_qs.count()
+                att_pulse['present'] = att_qs.filter(status='present').count()
+                att_pulse['absent'] = att_qs.filter(status='absent').count()
+                att_pulse['total_expected'] = Student.objects.filter(
+                    current_class_id__in=class_ids
+                ).count()
+        except Exception:
+            pass
+
         teacher_context = {
             'user': user,
             'teacher_has_classes': len(class_ids) > 0,
@@ -1049,6 +1106,10 @@ def dashboard(request):
             'recent_resources': recent_resources,
             'resource_fields_available': resource_fields_available,
             'pulse_summary': pulse_summary,
+            'hw_summary': hw_summary,
+            'class_perf': class_perf,
+            'class_perf_json': json.dumps(class_perf),
+            'att_pulse': att_pulse,
             **calendar_widget,
         }
 
