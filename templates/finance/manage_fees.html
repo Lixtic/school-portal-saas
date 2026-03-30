@@ -209,7 +209,7 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary btn-sm px-4">Save Assignment</button>
+                    <button type="submit" id="assignSaveBtn" class="btn btn-primary btn-sm px-4">Save Assignment</button>
                 </div>
             </form>
         </div>
@@ -224,19 +224,71 @@
     const modal = document.getElementById('assignCollectorModal');
     if (!modal) return;
 
+    let _activeBtn = null;
+
     modal.addEventListener('show.bs.modal', function (e) {
-        const btn = e.relatedTarget ? e.relatedTarget.closest('[data-url]') || e.relatedTarget : null;
-        if (!btn) return;
+        // e.relatedTarget is the trigger button (Bootstrap 5 guarantee)
+        _activeBtn = e.relatedTarget ? (e.relatedTarget.closest('[data-url]') || e.relatedTarget) : null;
+        if (!_activeBtn) return;
 
-        const url = btn.dataset.url;
-        const feeName = btn.dataset.feeName || '';
-        const currentCollector = btn.dataset.currentCollector || '';
-
-        document.getElementById('assignCollectorFeeLabel').textContent = 'Fee: ' + feeName;
-        document.getElementById('assignCollectorForm').action = url;
+        document.getElementById('assignCollectorFeeLabel').textContent = 'Fee: ' + (_activeBtn.dataset.feeName || '');
 
         const sel = document.getElementById('assignCollectorSelect');
-        if (sel) sel.value = currentCollector;
+        if (sel) sel.value = _activeBtn.dataset.currentCollector || '';
+    });
+
+    document.getElementById('assignCollectorForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        if (!_activeBtn || !_activeBtn.dataset.url) {
+            alert('Could not determine fee structure. Please refresh the page and try again.');
+            return;
+        }
+
+        const url = _activeBtn.dataset.url;
+        const saveBtn = document.getElementById('assignSaveBtn');
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving…';
+
+        const formData = new FormData(this);
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            });
+            const data = await res.json();
+
+            if (!res.ok || !data.ok) {
+                alert(data.error || 'Assignment failed. Please try again.');
+                return;
+            }
+
+            // Update the badge on the fee card without page reload
+            const feeCard = _activeBtn.closest('.fee-card');
+            const badge = feeCard ? feeCard.querySelector('.collector-badge') : null;
+
+            if (badge) {
+                if (data.collector_name) {
+                    badge.className = 'collector-badge';
+                    badge.innerHTML = '<i class="bi bi-person-check-fill"></i> ' + data.collector_name;
+                } else {
+                    badge.className = 'collector-badge collector-unset';
+                    badge.innerHTML = '<i class="bi bi-person-dash"></i> No collector assigned';
+                }
+            }
+
+            // Update the button’s data-current-collector for future opens
+            _activeBtn.dataset.currentCollector = data.collector_id || '';
+
+            bootstrap.Modal.getInstance(modal).hide();
+        } catch (err) {
+            console.error('Assign collector error:', err);
+            alert('Network error. Please try again.');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = 'Save Assignment';
+        }
     });
 })();
 </script>

@@ -1,5 +1,53 @@
 {% extends 'base.html' %}
 
+{% block extra_css %}
+<style>
+    .stat-card {
+        border: 1px solid var(--bs-border-color);
+        border-radius: 12px;
+        background: var(--bs-body-bg);
+        padding: 1rem 1.25rem;
+    }
+    .stat-label {
+        font-size: 0.75rem;
+        color: var(--bs-secondary-color);
+        margin-bottom: 0.25rem;
+    }
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--bs-body-color);
+        line-height: 1.2;
+    }
+    .data-table thead th {
+        background: var(--bs-tertiary-bg);
+        color: var(--bs-secondary-color);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 600;
+        border-bottom: 1px solid var(--bs-border-color);
+        padding: 0.75rem 1rem;
+    }
+    .data-table tbody tr {
+        border-bottom: 1px solid var(--bs-border-color-translucent);
+    }
+    .data-table tbody tr:hover {
+        background: var(--bs-tertiary-bg);
+    }
+    .data-table td {
+        padding: 0.75rem 1rem;
+        color: var(--bs-body-color);
+    }
+    .table-wrap {
+        border: 1px solid var(--bs-border-color);
+        border-radius: 12px;
+        overflow: hidden;
+        background: var(--bs-body-bg);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid px-3 px-md-4 py-3">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
@@ -21,60 +69,53 @@
 
     <div class="row g-3 mb-3">
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="text-muted small">Paid Students</div>
-                    <div class="h4 mb-0">{{ paid_count }}</div>
-                </div>
+            <div class="stat-card">
+                <div class="stat-label">Paid Students</div>
+                <div class="stat-value">{{ paid_count }}</div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="text-muted small">Total Collected</div>
-                    <div class="h4 mb-0 text-success">₵ {{ total_collected|floatformat:2 }}</div>
-                </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Collected</div>
+                <div class="stat-value text-success">₵ {{ total_collected|floatformat:2 }}</div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="text-muted small">Total Payable (Assigned)</div>
-                    <div class="h4 mb-0">₵ {{ total_payable|floatformat:2 }}</div>
-                </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Payable (Assigned)</div>
+                <div class="stat-value">₵ {{ total_payable|floatformat:2 }}</div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body d-flex flex-column justify-content-between">
-                    <div class="text-muted small mb-1">Assigned Collector</div>
+            <div class="stat-card d-flex flex-column justify-content-between" style="min-height:100px;">
+                <div class="stat-label">Assigned Collector</div>
+                <div id="collectorDisplay" class="fw-semibold my-1">
                     {% if structure.assigned_collector %}
-                    <div class="fw-semibold">
-                        <i class="bi bi-person-check-fill text-success me-1"></i>
-                        {{ structure.assigned_collector.user.get_full_name }}
-                    </div>
+                    <i class="bi bi-person-check-fill text-success me-1"></i>
+                    {{ structure.assigned_collector.user.get_full_name }}
                     {% else %}
-                    <div class="text-muted fst-italic">Not assigned</div>
+                    <span class="text-secondary fst-italic">Not assigned</span>
                     {% endif %}
-                    <button type="button"
-                        class="btn btn-outline-primary btn-sm mt-2"
-                        data-bs-toggle="modal"
-                        data-bs-target="#assignCollectorModal"
-                        data-fee-id="{{ structure.id }}"
-                        data-fee-name="{{ structure.head.name }} – {{ structure.class_level.name }}"
-                        data-current-collector="{{ structure.assigned_collector.id|default:'' }}">
-                        <i class="bi bi-person-gear me-1"></i>
-                        {% if structure.assigned_collector %}Change{% else %}Assign{% endif %} Collector
-                    </button>
                 </div>
+                <button type="button"
+                    id="assignCollectorBtn"
+                    class="btn btn-outline-primary btn-sm mt-1"
+                    data-bs-toggle="modal"
+                    data-bs-target="#assignCollectorModal"
+                    data-url="{% url 'finance:assign_fee_collector' structure_id=structure.id %}"
+                    data-fee-name="{{ structure.head.name }} – {{ structure.class_level.name }}"
+                    data-current-collector="{{ structure.assigned_collector.id|default:'' }}">
+                    <i class="bi bi-person-gear me-1"></i>
+                    <span id="collectorBtnLabel">{% if structure.assigned_collector %}Change{% else %}Assign{% endif %}</span> Collector
+                </button>
             </div>
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm">
+    <div class="table-wrap">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
+            <table class="table data-table align-middle mb-0">
+                <thead>
                     <tr>
                         <th>Student</th>
                         <th>Class</th>
@@ -100,7 +141,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="text-center py-4 text-muted">
+                        <td colspan="6" class="text-center py-4 text-secondary">
                             No fully paid students found for this fee structure yet.
                         </td>
                     </tr>
@@ -119,39 +160,79 @@
                 <h6 class="modal-title fw-semibold" id="assignCollectorModalLabel">Assign Fee Collector</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form method="post" id="assignCollectorForm" action="{% url 'finance:assign_fee_collector' structure.id %}">
-                {% csrf_token %}
-                <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                <div class="modal-body">
-                    <p class="text-muted small mb-3" id="assignCollectorFeeLabel"></p>
-                    <label class="form-label fw-medium">Select Teacher</label>
-                    <select name="teacher_id" class="form-select" id="assignCollectorSelect">
-                        <option value="">— Remove collector —</option>
-                        {% for teacher in teachers %}
-                        <option value="{{ teacher.id }}">{{ teacher.user.get_full_name }}</option>
-                        {% endfor %}
-                    </select>
-                    <div class="form-text mt-2">Leave blank to remove the currently assigned collector.</div>
-                </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary btn-sm px-4">Save Assignment</button>
-                </div>
-            </form>
+            <div class="modal-body">
+                <p class="text-secondary small mb-3" id="assignCollectorFeeLabel"></p>
+                <label class="form-label fw-medium">Select Teacher</label>
+                <select class="form-select" id="assignCollectorSelect">
+                    <option value="">— Remove collector —</option>
+                    {% for teacher in teachers %}
+                    <option value="{{ teacher.id }}">{{ teacher.user.get_full_name }}</option>
+                    {% endfor %}
+                </select>
+                <div class="form-text mt-2">Leave blank to remove the currently assigned collector.</div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm px-4" id="assignSaveBtn">Save Assignment</button>
+            </div>
         </div>
     </div>
 </div>
 
+{% block extra_js %}
 <script>
 (function () {
     const modal = document.getElementById('assignCollectorModal');
-    if (!modal) return;
-    modal.addEventListener('show.bs.modal', function (e) {
-        const btn = e.relatedTarget;
+    const btn = document.getElementById('assignCollectorBtn');
+    if (!modal || !btn) return;
+
+    modal.addEventListener('show.bs.modal', function () {
         document.getElementById('assignCollectorFeeLabel').textContent = 'Fee: ' + btn.dataset.feeName;
         const sel = document.getElementById('assignCollectorSelect');
         sel.value = btn.dataset.currentCollector || '';
     });
+
+    document.getElementById('assignSaveBtn').addEventListener('click', async function () {
+        const saveBtn = this;
+        const url = btn.dataset.url;
+        const teacherId = document.getElementById('assignCollectorSelect').value;
+
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving…';
+
+        const body = new FormData();
+        body.append('teacher_id', teacherId);
+        body.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        try {
+            const resp = await fetch(url, { method: 'POST', body });
+            if (!resp.ok) throw new Error('Server error ' + resp.status);
+            const data = await resp.json();
+
+            if (data.ok) {
+                const display = document.getElementById('collectorDisplay');
+                if (data.collector_name) {
+                    display.innerHTML = '<i class="bi bi-person-check-fill text-success me-1"></i>' + data.collector_name;
+                    btn.dataset.currentCollector = data.collector_id;
+                    document.getElementById('collectorBtnLabel').textContent = 'Change';
+                } else {
+                    display.innerHTML = '<span class="text-secondary fst-italic">Not assigned</span>';
+                    btn.dataset.currentCollector = '';
+                    document.getElementById('collectorBtnLabel').textContent = 'Assign';
+                }
+                bootstrap.Modal.getInstance(modal).hide();
+            } else {
+                alert(data.error || 'Failed to save. Please try again.');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('An error occurred. Please try again.');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Assignment';
+        }
+    });
 })();
 </script>
+{% endblock %}
 {% endblock %}

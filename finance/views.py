@@ -178,10 +178,10 @@ def fee_collected_students_csv(request, structure_id):
 def assign_fee_collector(request, structure_id):
     """Assign or remove a teacher as the fee collector for a fee structure."""
     if request.user.user_type != 'admin':
-        return redirect('dashboard')
+        return JsonResponse({'error': 'Access denied'}, status=403)
 
     if request.method != 'POST':
-        return redirect('finance:manage_fees')
+        return JsonResponse({'error': 'POST only'}, status=405)
 
     structure = get_object_or_404(FeeStructure, id=structure_id)
     teacher_id = request.POST.get('teacher_id', '').strip()
@@ -190,10 +190,7 @@ def assign_fee_collector(request, structure_id):
         teacher = get_object_or_404(Teacher, id=teacher_id)
         structure.assigned_collector = teacher
         structure.save(update_fields=['assigned_collector'])
-        messages.success(
-            request,
-            f"{teacher.user.get_full_name()} assigned as collector for {structure.head.name} – {structure.class_level}."
-        )
+        collector_name = teacher.user.get_full_name()
         # Notify the assigned teacher
         task_url = f"/{request.tenant.schema_name}/teachers/fee-tasks/"
         Notification.objects.create(
@@ -211,16 +208,12 @@ def assign_fee_collector(request, structure_id):
                 url=task_url,
             )
         except Exception:
-            pass  # Push notification failure must not break the main flow
+            pass
+        return JsonResponse({'ok': True, 'collector_name': collector_name, 'collector_id': teacher.id})
     else:
         structure.assigned_collector = None
         structure.save(update_fields=['assigned_collector'])
-        messages.success(request, "Collector removed from this fee.")
-
-    next_url = request.POST.get('next') or request.META.get('HTTP_REFERER', '')
-    if next_url:
-        return redirect(next_url)
-    return redirect('finance:manage_fees')
+        return JsonResponse({'ok': True, 'collector_name': None, 'collector_id': None})
 
 
 @login_required
