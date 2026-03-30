@@ -1494,7 +1494,8 @@ def curriculum_library(request):
         with connection.cursor() as cursor:
             cols = [col.name for col in connection.introspection.get_table_description(cursor, Resource._meta.db_table)]
         resource_fields_available = 'resource_type' in cols and 'curriculum' in cols
-    except Exception:
+    except (OperationalError, ProgrammingError) as exc:
+        logger.debug('Resource field introspection failed: %s', exc)
         resource_fields_available = False
 
     try:
@@ -1543,7 +1544,8 @@ def class_resources(request, class_subject_id):
         with connection.cursor() as cursor:
             cols = [col.name for col in connection.introspection.get_table_description(cursor, Resource._meta.db_table)]
         resource_fields_available = 'resource_type' in cols and 'curriculum' in cols
-    except Exception:
+    except (OperationalError, ProgrammingError) as exc:
+        logger.debug('Resource field introspection failed: %s', exc)
         resource_fields_available = False
 
     resource_type_filter = request.GET.get('type', 'all')

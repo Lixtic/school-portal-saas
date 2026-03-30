@@ -424,6 +424,17 @@ def contact_teachers(request):
     # Build a mapping: teacher → list of children they teach + subjects
     from academics.models import ClassSubject
     teacher_map = {}
+
+    # Bulk-fetch all ClassSubjects for children's classes (avoids N+1)
+    class_ids = [c.current_class_id for c in children if c.current_class_id]
+    all_class_subjects = (
+        ClassSubject.objects.filter(class_name_id__in=class_ids)
+        .select_related('teacher__user', 'subject')
+    ) if class_ids else ClassSubject.objects.none()
+    cs_by_class = {}
+    for cs in all_class_subjects:
+        cs_by_class.setdefault(cs.class_name_id, []).append(cs)
+
     for child in children:
         if not child.current_class:
             continue
@@ -442,11 +453,8 @@ def contact_teachers(request):
             teacher_map[key]['children'].add(child)
             teacher_map[key]['is_class_teacher'] = True
 
-        # Subject teachers
-        class_subjects = ClassSubject.objects.filter(
-            class_name=child.current_class
-        ).select_related('teacher__user', 'subject')
-        for cs in class_subjects:
+        # Subject teachers (from pre-fetched data)
+        for cs in cs_by_class.get(child.current_class_id, []):
             if not cs.teacher:
                 continue
             key = cs.teacher.user_id

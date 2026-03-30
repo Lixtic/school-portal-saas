@@ -1,4 +1,5 @@
 import json
+import logging
 from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
@@ -13,6 +14,8 @@ from .forms import FeeHeadForm, FeeStructureForm, PaymentForm
 from students.models import Student
 from teachers.models import Teacher
 from academics.models import Class, AcademicYear, SchoolInfo
+
+logger = logging.getLogger(__name__)
 from announcements.models import Notification
 
 @login_required
@@ -642,7 +645,7 @@ def initiate_paystack_payment(request, fee_id):
             from students.models import Student as _S
             if _S.objects.get(user=request.user) == fee.student:
                 allowed = True
-        except Exception:
+        except _S.DoesNotExist:
             pass
     elif request.user.user_type == 'parent':
         from parents.models import Parent
@@ -650,7 +653,7 @@ def initiate_paystack_payment(request, fee_id):
             parent = Parent.objects.get(user=request.user)
             if fee.student in parent.children.all():
                 allowed = True
-        except Exception:
+        except Parent.DoesNotExist:
             pass
 
     if not allowed:
@@ -785,7 +788,8 @@ def paystack_webhook(request):
 
     try:
         payload = _json.loads(body)
-    except Exception:
+    except (ValueError, _json.JSONDecodeError):
+        logger.warning('Paystack webhook: invalid JSON payload')
         return HttpResponse(status=400)
 
     if payload.get('event') != 'charge.success':

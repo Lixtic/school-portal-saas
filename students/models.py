@@ -243,6 +243,10 @@ class Grade(models.Model):
     class Meta:
         ordering = ['-created_at']
         unique_together = ['student', 'subject', 'academic_year', 'term', 'exam_type']
+        indexes = [
+            models.Index(fields=['student', 'term'], name='grade_student_term_idx'),
+            models.Index(fields=['student', 'academic_year', 'term'], name='grade_student_year_term_idx'),
+        ]
 
 
 class ExamType(models.Model):

@@ -1206,11 +1206,13 @@ def copilot_assistant(request):
                         # Add Trend insight for Parent
                         try:
                             from django.db.models import Avg
-                            term_avgs = []
-                            for t in ['first', 'second', 'third']:
-                                qs = Grade.objects.filter(student=child, term__iexact=t, total_score__isnull=False)
-                                if qs.exists():
-                                    term_avgs.append(round(qs.aggregate(val=Avg('total_score'))['val'], 1))
+                            term_order = ['first', 'second', 'third']
+                            avg_by_term = dict(
+                                Grade.objects.filter(
+                                    student=child, term__in=term_order, total_score__isnull=False
+                                ).values('term').annotate(val=Avg('total_score')).values_list('term', 'val')
+                            )
+                            term_avgs = [round(avg_by_term[t], 1) for t in term_order if t in avg_by_term]
                             if len(term_avgs) > 1:
                                 if term_avgs[-1] >= term_avgs[-2] + 2:
                                     line += f" | Trend: Improving (Latest Avg: {term_avgs[-1]}%)"
