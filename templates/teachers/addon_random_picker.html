@@ -72,12 +72,16 @@ function setMode(m,btn){
 function loadStudents(){
     const cid=document.getElementById('classSelect').value;
     if(!cid){students=[];drawWheel();spinBtn.disabled=true;return;}
-    fetch(`{% url 'teachers:get_students' 0 %}`.replace('/0/','/'+cid+'/'))
-    .then(r=>r.json()).then(data=>{
-        students=(data.students||[]).map(s=>s.name||s.full_name||`${s.first_name} ${s.last_name}`);
+    fetch(`{% url 'teachers:get_students' 0 %}`.replace('/0/','/'+cid+'/'),{credentials:'same-origin'})
+    .then(r=>{if(!r.ok)throw new Error(r.status);return r.json();})
+    .then(data=>{
+        const list=Array.isArray(data)?data:(data.students||[]);
+        students=list.map(s=>s.name||s.full_name||`${s.first_name} ${s.last_name}`).filter(Boolean);
         drawWheel();
         spinBtn.disabled=students.length<2;
-    });
+        if(!students.length) resultEl.textContent='No students found';
+    })
+    .catch(()=>{students=[];drawWheel();resultEl.textContent='Failed to load students';});
 }
 
 function drawWheel(highlight=-1){
