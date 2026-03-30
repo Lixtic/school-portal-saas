@@ -318,11 +318,6 @@ if (preselectClassId && classSelect) {
     classSelect.value = preselectClassId;
 }
 
-// Auto-load if a class is selected (via URL param or server-side default)
-if (classSelect && classSelect.value && loadButton) {
-    loadButton.click();
-}
-
 if (loadButton) {
     loadButton.addEventListener('click', function() {
     const classId = document.getElementById('classSelect').value;
@@ -437,6 +432,11 @@ if (loadButton) {
             else alert('Error loading students: ' + error.message);
         });
     });
+}
+
+// Auto-load if a class is already selected (via URL param or server-side default)
+if (classSelect && classSelect.value && loadButton) {
+    loadButton.click();
 }
 
 function renderStatusOption(studentId, value, label, iconClass, currentStatus) {
