@@ -332,12 +332,42 @@ textarea {
     -webkit-tap-highlight-color: transparent;
     -webkit-user-select: none;
     user-select: none;
+    touch-action: manipulation;
 }
 
 /* Keep text selectable */
 p, span, small {
     -webkit-user-select: text;
     user-select: text;
+}
+
+/* ========== Universal Mobile Tap Feedback ========== */
+/* Visible pressed state for ALL tappable elements on touch devices */
+@media (hover: none) and (pointer: coarse) {
+    /* Bootstrap .btn pressed states */
+    .btn:active:not(:disabled) {
+        transform: scale(0.96) !important;
+        transition-duration: 0.05s !important;
+        filter: brightness(0.88);
+    }
+
+    /* Anchor buttons / nav links */
+    a.btn:active,
+    .nav-link:active,
+    .dropdown-item:active,
+    .list-group-item-action:active {
+        transform: scale(0.97);
+        opacity: 0.85;
+        transition-duration: 0.05s;
+    }
+
+    /* Card taps */
+    .admin-card:active,
+    .glass-card:active,
+    .card:active {
+        transform: scale(0.98);
+        transition-duration: 0.08s;
+    }
 }
 
 /* ========== Mobile Performance Optimization ========== */
