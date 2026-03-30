@@ -470,8 +470,11 @@
     </div>
 </div>
 
+<script src="https://js.paystack.co/v2/inline.js"></script>
 <script>
 let currentCategory = 'all';
+const CSRF = '{{ csrf_token }}';
+const VERIFY_URL = '{% url "tenants:marketplace_verify" %}';
 
 function filterByCategory(category, el) {
     currentCategory = category;
@@ -495,6 +498,63 @@ function filterAddons() {
     const total = document.querySelectorAll('.addon-item').length;
     document.getElementById('resultCount').textContent = visible + ' of ' + total;
 }
+
+/* Paystack purchase flow for paid add-ons */
+document.querySelectorAll('[data-buy-addon]').forEach(btn => {
+    btn.addEventListener('click', async function () {
+        const addonId   = this.dataset.buyAddon;
+        const url       = this.dataset.buyUrl;
+        const addonName = this.dataset.addonName;
+        btn.disabled  = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Processing\u2026';
+
+        try {
+            const fd = new FormData();
+            fd.append('csrfmiddlewaretoken', CSRF);
+            const res  = await fetch(url, { method: 'POST', body: fd });
+
+            /* If redirect (free/dev-mode) — follow it */
+            if (res.redirected) { location.href = res.url; return; }
+
+            const data = await res.json();
+            if (!data.paystack) { location.reload(); return; }
+
+            const popup = new PaystackPop();
+            popup.newTransaction({
+                key:       data.public_key,
+                email:     data.email,
+                amount:    data.amount,
+                currency:  data.currency,
+                ref:       data.reference,
+                metadata:  { addon_id: addonId, addon_name: data.addon_name },
+                onSuccess: async (txn) => {
+                    const vRes = await fetch(VERIFY_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                        body: JSON.stringify({ reference: txn.reference, addon_id: addonId }),
+                    });
+                    const vData = await vRes.json();
+                    if (vData.ok) {
+                        location.reload();
+                    } else {
+                        alert(vData.error || 'Verification failed. Contact support.');
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="bi bi-plus-circle"></i> Add to School';
+                    }
+                },
+                onCancel: () => {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-plus-circle"></i> Add to School';
+                },
+            });
+        } catch (err) {
+            console.error('Purchase error:', err);
+            alert('An error occurred. Please try again.');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-plus-circle"></i> Add to School';
+        }
+    });
+});
 
 document.addEventListener('DOMContentLoaded', filterAddons);
 </script>

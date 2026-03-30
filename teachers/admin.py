@@ -94,7 +94,7 @@ class PresentationAdmin(admin.ModelAdmin):
 
 @admin.register(TeacherAddOn)
 class TeacherAddOnAdmin(admin.ModelAdmin):
-    list_display = ('name', 'category', 'price', 'is_free', 'is_active', 'badge_label')
+    list_display = ('name', 'category', 'price', 'is_free', 'is_active', 'trial_days', 'badge_label')
     list_filter = ('category', 'is_active', 'is_free')
     search_fields = ('name', 'slug')
     prepopulated_fields = {'slug': ('name',)}
@@ -102,6 +102,6 @@ class TeacherAddOnAdmin(admin.ModelAdmin):
 
 @admin.register(TeacherAddOnPurchase)
 class TeacherAddOnPurchaseAdmin(admin.ModelAdmin):
-    list_display = ('teacher', 'addon', 'purchased_at', 'is_active')
+    list_display = ('teacher', 'addon', 'purchased_at', 'is_active', 'expires_at')
     list_filter = ('is_active', 'addon__category')
     search_fields = ('teacher__first_name', 'teacher__last_name', 'addon__name')
