@@ -466,10 +466,32 @@ def _openai_messages_to_gemini_contents(messages):
         role = str(msg.get("role", "user")).lower()
         content = msg.get("content", "")
         if isinstance(content, list):
-            # Multimodal — extract text parts only for now
-            content = " ".join(
-                p.get("text", "") for p in content if isinstance(p, dict) and "text" in p
-            )
+            # Multimodal — convert text and image parts
+            parts = []
+            for p in content:
+                if not isinstance(p, dict):
+                    continue
+                if "text" in p:
+                    parts.append({"text": p["text"]})
+                elif p.get("type") == "image_url":
+                    url = (p.get("image_url") or {}).get("url", "")
+                    if url.startswith("data:"):
+                        # data:image/png;base64,XXXX → inline_data
+                        header, b64_data = url.split(",", 1)
+                        mime = header.split(":", 1)[1].split(";", 1)[0]
+                        parts.append({"inline_data": {"mime_type": mime, "data": b64_data}})
+                    elif url:
+                        # Remote URL — use fileData
+                        parts.append({"file_data": {"file_uri": url, "mime_type": "image/jpeg"}})
+            if not parts:
+                continue
+            if role == "system":
+                system_parts.extend(p.get("text", "") for p in parts if "text" in p)
+            elif role == "assistant":
+                contents.append({"role": "model", "parts": parts})
+            else:
+                contents.append({"role": "user", "parts": parts})
+            continue
         content = str(content).strip()
         if not content:
             continue

@@ -1045,7 +1045,7 @@ def scan_grades_sheet(request):
     try:
         import base64
         import json
-        from academics.ai_tutor import _post_chat_completion
+        from academics.ai_tutor import _post_chat_completion, _get_openai_api_key
         
         image_file = request.FILES['image']
         image_b64 = base64.b64encode(image_file.read()).decode('utf-8')
@@ -1086,7 +1086,7 @@ If a score is missing or unable to be read, set it to null. Ensure the response 
             "max_tokens": 1000
         }
 
-        response_data = _post_chat_completion(payload)
+        response_data = _post_chat_completion(payload, _get_openai_api_key())
         
         if 'error' in response_data:
              return JsonResponse({'status': 'error', 'message': f"AI Error: {response_data['error']}"}, status=500)
