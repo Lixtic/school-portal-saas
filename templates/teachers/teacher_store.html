@@ -432,10 +432,10 @@
                 <strong>{{ purchased_count }}</strong>
                 <span>Active</span>
             </div>
-            <div class="tk-stat-pill">
-                <strong>{{ categories|length }}</strong>
-                <span>Categories</span>
-            </div>
+            <a href="{% url 'teachers:my_addons' %}" class="tk-stat-pill text-decoration-none" style="cursor:pointer;">
+                <i class="bi bi-box-seam"></i>
+                <span>My Add-Ons</span>
+            </a>
         </div>
     </div>
 
@@ -568,6 +568,14 @@
                                 </button>
                             </form>
                             {% else %}
+                            {% if addon.trial_days > 0 %}
+                            <form method="post" action="{% url 'teachers:teacher_store_trial' addon.id %}" class="m-0 me-1">
+                                {% csrf_token %}
+                                <button type="submit" class="tk-btn" style="background:rgba(139,92,246,.1);color:#7c3aed;font-size:.68rem;">
+                                    <i class="bi bi-clock-history"></i> {{ addon.trial_days }}-day trial
+                                </button>
+                            </form>
+                            {% endif %}
                             <button type="button" class="tk-btn tk-btn-get"
                                     data-pay-addon="{{ addon.id }}"
                                     data-pay-url="{% url 'teachers:teacher_store_purchase' addon.id %}">

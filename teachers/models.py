@@ -275,6 +275,7 @@ class TeacherAddOn(models.Model):
     # Pricing
     price = models.DecimalField(max_digits=8, decimal_places=2, help_text='One-time price in school currency')
     is_free = models.BooleanField(default=False)
+    trial_days = models.PositiveIntegerField(default=0, help_text='Free trial period in days (0 = no trial)')
 
     # Feature bullets (stored as JSON list of strings)
     features = models.JSONField(default=list, blank=True, help_text='["Feature 1","Feature 2",…]')
@@ -298,6 +299,7 @@ class TeacherAddOnPurchase(models.Model):
     addon = models.ForeignKey(TeacherAddOn, on_delete=models.PROTECT, related_name='purchases')
     purchased_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
+    expires_at = models.DateTimeField(null=True, blank=True, help_text='Null = never expires')
     payment_reference = models.CharField(max_length=100, blank=True, default='')
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 

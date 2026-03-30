@@ -35,6 +35,8 @@ def _school_has_addon(request, slug):
             return False
 
         from tenants.subscription_models import SchoolSubscription, SchoolAddOn
+        from django.db.models import Q
+        from django.utils import timezone
         # Use the request-level cache set by TenantPathMiddleware.process_view()
         # to avoid an extra DB round-trip per decorator call.
         _sentinel = object()
@@ -44,7 +46,9 @@ def _school_has_addon(request, slug):
         if subscription is None:
             return False
 
+        now = timezone.now()
         return SchoolAddOn.objects.filter(
+            Q(expires_at__isnull=True) | Q(expires_at__gt=now),
             subscription=subscription,
             addon__slug=slug,
             is_active=True,

@@ -6657,3 +6657,174 @@ def teacher_store_cancel(request, addon_id):
 
     messages.info(request, f'"{addon.name}" deactivated.')
     return redirect('teachers:teacher_store')
+
+
+# ── Paystack Webhook (server-to-server) ────────────────────────────
+from django.views.decorators.csrf import csrf_exempt
+import hashlib
+import hmac
+
+
+@csrf_exempt
+def paystack_teacher_webhook(request):
+    """Paystack sends charge.success events here. HMAC-verified, idempotent."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST only'}, status=405)
+
+    secret = getattr(settings, 'PAYSTACK_SECRET_KEY', '')
+    if not secret:
+        return JsonResponse({'error': 'not configured'}, status=503)
+
+    # Verify HMAC-SHA512 signature
+    sig = request.headers.get('X-Paystack-Signature', '')
+    expected = hmac.new(secret.encode(), request.body, hashlib.sha512).hexdigest()
+    if not hmac.compare_digest(sig, expected):
+        return JsonResponse({'error': 'bad signature'}, status=403)
+
+    try:
+        payload = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'bad json'}, status=400)
+
+    event = payload.get('event')
+    data = payload.get('data', {})
+
+    if event == 'charge.success':
+        reference = data.get('reference', '')
+        # Teacher add-on references start with "TA-"
+        if reference.startswith('TA-'):
+            _handle_teacher_addon_payment(reference, data)
+
+    return JsonResponse({'ok': True})
+
+
+def _handle_teacher_addon_payment(reference, data):
+    """Activate a teacher add-on from a confirmed Paystack charge."""
+    from teachers.models import TeacherAddOn, TeacherAddOnPurchase
+    from decimal import Decimal
+
+    # Parse reference: TA-{user_id}-{addon_id}-{uuid}
+    parts = reference.split('-')
+    if len(parts) < 3:
+        return
+    try:
+        user_id = int(parts[1])
+        addon_id = int(parts[2])
+    except (ValueError, IndexError):
+        return
+
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    try:
+        user = User.objects.get(id=user_id, user_type='teacher')
+        addon = TeacherAddOn.objects.get(id=addon_id, is_active=True)
+    except (User.DoesNotExist, TeacherAddOn.DoesNotExist):
+        return
+
+    amount_paid = Decimal(str(data.get('amount', 0))) / 100
+
+    obj, created = TeacherAddOnPurchase.objects.get_or_create(
+        teacher=user,
+        addon=addon,
+        defaults={
+            'is_active': True,
+            'payment_reference': reference,
+            'amount_paid': amount_paid,
+        },
+    )
+    if not created and not obj.is_active:
+        obj.is_active = True
+        obj.payment_reference = reference
+        obj.amount_paid = amount_paid
+        obj.save(update_fields=['is_active', 'payment_reference', 'amount_paid'])
+
+
+# ── My Add-Ons ─────────────────────────────────────────────────────
+
+@login_required
+def my_addons(request):
+    """Teacher's personal add-on dashboard — active, expired, purchase history."""
+    if request.user.user_type != 'teacher':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    from teachers.models import TeacherAddOn, TeacherAddOnPurchase
+    from django.utils import timezone
+
+    now = timezone.now()
+    purchases = (
+        TeacherAddOnPurchase.objects
+        .filter(teacher=request.user)
+        .select_related('addon')
+        .order_by('-purchased_at')
+    )
+
+    active = []
+    expired = []
+    inactive = []
+    for p in purchases:
+        if p.is_active and (p.expires_at is None or p.expires_at > now):
+            p.status_label = 'Active'
+            if p.expires_at:
+                p.days_left = (p.expires_at - now).days
+            active.append(p)
+        elif p.is_active and p.expires_at and p.expires_at <= now:
+            p.status_label = 'Expired'
+            expired.append(p)
+        else:
+            p.status_label = 'Deactivated'
+            inactive.append(p)
+
+    total_spent = sum(p.amount_paid for p in purchases)
+
+    return render(request, 'teachers/my_addons.html', {
+        'active': active,
+        'expired': expired,
+        'inactive': inactive,
+        'total_spent': total_spent,
+        'total_active': len(active),
+    })
+
+
+# ── Start Trial ────────────────────────────────────────────────────
+
+@login_required
+def teacher_store_trial(request, addon_id):
+    """Start a free trial for a paid add-on that supports trial_days > 0."""
+    if request.user.user_type != 'teacher':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+    if request.method != 'POST':
+        return redirect('teachers:teacher_store')
+
+    from teachers.models import TeacherAddOn, TeacherAddOnPurchase
+    from django.utils import timezone
+    from datetime import timedelta
+
+    addon = get_object_or_404(TeacherAddOn, id=addon_id, is_active=True)
+
+    if addon.trial_days <= 0:
+        messages.warning(request, f'"{addon.name}" does not offer a free trial.')
+        return redirect('teachers:teacher_store')
+
+    # Check if already purchased or trialed
+    existing = TeacherAddOnPurchase.objects.filter(
+        teacher=request.user, addon=addon
+    ).first()
+    if existing:
+        if existing.is_active:
+            messages.info(request, f'You already have "{addon.name}".')
+        else:
+            messages.warning(request, f'You have already used a trial for "{addon.name}". Purchase to re-activate.')
+        return redirect('teachers:teacher_store')
+
+    TeacherAddOnPurchase.objects.create(
+        teacher=request.user,
+        addon=addon,
+        is_active=True,
+        expires_at=timezone.now() + timedelta(days=addon.trial_days),
+        payment_reference=f'TRIAL-{request.user.id}-{addon.id}',
+        amount_paid=0,
+    )
+    messages.success(request, f'🎉 Free {addon.trial_days}-day trial for "{addon.name}" activated!')
+    return redirect('teachers:teacher_store')

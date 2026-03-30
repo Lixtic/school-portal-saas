@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}QR Attendance{% endblock %}
+
+{% block content %}
+<style>
+    .qr-wrap{max-width:520px;margin:0 auto;}
+    .qr-card{background:var(--surface-card,#fff);border:1px solid var(--admin-border,#d1d5db);border-radius:16px;overflow:hidden;}
+    .qr-header{padding:1rem 1.25rem;border-bottom:1px solid var(--admin-border,#d1d5db);display:flex;align-items:center;gap:.75rem;}
+    .qr-header h2{margin:0;font-size:1.1rem;font-weight:800;color:var(--text-main,#111827);}
+    .qr-body{padding:1.5rem 1.25rem;text-align:center;}
+    .qr-canvas{margin:1rem auto;border:3px solid var(--admin-border,#d1d5db);border-radius:12px;padding:8px;background:#fff;display:inline-block;}
+    .qr-date{font-size:.82rem;color:var(--admin-text-muted,#9ca3af);margin-top:.5rem;}
+    .qr-select{width:100%;padding:.5rem .75rem;font-size:.88rem;border:1px solid var(--admin-border,#d1d5db);border-radius:10px;background:var(--surface-bg,#f3f4f6);color:var(--text-main,#111827);}
+    .qr-select:focus{outline:none;border-color:#4361ee;box-shadow:0 0 0 2px rgba(67,97,238,.15);}
+    .qr-hint{font-size:.76rem;color:var(--admin-text-muted,#9ca3af);margin-top:1rem;line-height:1.5;}
+    [data-bs-theme="dark"] .qr-canvas{border-color:#334155;}
+</style>
+
+<div class="qr-wrap">
+    <div style="margin-bottom:1rem;">
+        <a href="{% url 'students:mark_attendance' %}" class="btn btn-outline-secondary btn-sm" style="border-radius:8px;font-size:.8rem;">
+            <i class="bi bi-arrow-left me-1"></i>Manual Attendance
+        </a>
+    </div>
+
+    <div class="qr-card">
+        <div class="qr-header">
+            <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#4361ee,#4cc9f0);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1rem;">
+                <i class="bi bi-qr-code-scan"></i>
+            </div>
+            <h2>QR Attendance</h2>
+        </div>
+        <div class="qr-body">
+            {% if classes %}
+            <select class="qr-select" id="classSelect">
+                <option value="">— Select a class —</option>
+                {% for cls in classes %}
+                <option value="{{ cls.id }}">{{ cls.name }}</option>
+                {% endfor %}
+            </select>
+
+            <div id="qrDisplay" style="display:none;">
+                <div class="qr-canvas">
+                    <canvas id="qrCanvas" width="240" height="240"></canvas>
+                </div>
+                <div class="qr-date"><i class="bi bi-calendar-event me-1"></i><span id="qrDate">{{ today }}</span></div>
+                <div style="margin-top:.75rem;">
+                    <button class="btn btn-sm btn-outline-primary" style="border-radius:8px;font-size:.8rem;" onclick="refreshQR()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                    </button>
+                </div>
+            </div>
+
+            <div class="qr-hint">
+                Students scan this code with their phone camera while logged in. Attendance is marked automatically as <strong>Present</strong>.
+                QR codes expire at the end of the day.
+            </div>
+            {% else %}
+            <div style="padding:1.5rem;color:var(--admin-text-muted,#9ca3af);font-size:.88rem;">
+                <i class="bi bi-exclamation-triangle me-1"></i>No classes assigned. Only class teachers can generate QR codes.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script>
+const select = document.getElementById('classSelect');
+const display = document.getElementById('qrDisplay');
+const canvas = document.getElementById('qrCanvas');
+
+function refreshQR() {
+    const classId = select.value;
+    if (!classId) { display.style.display = 'none'; return; }
+
+    fetch(`{% url 'students:qr_attendance_generate' %}?class_id=${classId}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) { alert(data.error); return; }
+            const qr = qrcode(0, 'M');
+            qr.addData(data.qr_data);
+            qr.make();
+
+            const ctx = canvas.getContext('2d');
+            const size = 240;
+            ctx.clearRect(0, 0, size, size);
+            const cells = qr.getModuleCount();
+            const cellSize = size / cells;
+            for (let r = 0; r < cells; r++) {
+                for (let c = 0; c < cells; c++) {
+                    ctx.fillStyle = qr.isDark(r, c) ? '#111827' : '#ffffff';
+                    ctx.fillRect(c * cellSize, r * cellSize, cellSize + 1, cellSize + 1);
+                }
+            }
+            document.getElementById('qrDate').textContent = data.date;
+            display.style.display = 'block';
+        })
+        .catch(err => alert('Failed to generate QR: ' + err));
+}
+
+if (select) select.addEventListener('change', refreshQR);
+</script>
+{% endblock %}

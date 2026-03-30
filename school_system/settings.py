@@ -57,9 +57,10 @@ PAYSTACK_PUBLIC_KEY = os.environ.get('PAYSTACK_PUBLIC_KEY', '')
 # Currency code sent to Paystack (GHS, NGN, KES, USD …)
 PAYSTACK_CURRENCY  = os.environ.get('PAYSTACK_CURRENCY', 'GHS')
 
-# Africa's Talking SMS
+# Africa's Talking SMS & WhatsApp
 AFRICASTALKING_USERNAME = os.environ.get('AT_USERNAME', 'sandbox')
 AFRICASTALKING_API_KEY  = os.environ.get('AT_API_KEY', '')
+AT_WHATSAPP_PRODUCT_ID  = os.environ.get('AT_WHATSAPP_PRODUCT_ID', '')
 
 # Web Push / VAPID Configuration
 # Generate new keys: python -c "from py_vapid import Vapid; v=Vapid(); v.generate_keys(); ..."
@@ -127,6 +128,7 @@ SHARED_APPS = [
     'cloudinary',
     'crispy_forms',
     'crispy_bootstrap5',
+    'rest_framework',
     
     # Local apps that need to exist in public schema (e.g. for superuser)
     'accounts', 
@@ -383,6 +385,21 @@ BASE_SCHOOL_DOMAIN = os.environ.get('BASE_SCHOOL_DOMAIN', 'local')
 # =====================
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
+
+# =====================
+# DJANGO REST FRAMEWORK
+# =====================
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 50,
+}
 
 
 # =====================

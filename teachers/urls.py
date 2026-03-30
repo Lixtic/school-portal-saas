@@ -127,6 +127,9 @@ urlpatterns = [
     path('store/purchase/<int:addon_id>/', views.teacher_store_purchase, name='teacher_store_purchase'),
     path('store/verify/', views.teacher_store_verify, name='teacher_store_verify'),
     path('store/cancel/<int:addon_id>/', views.teacher_store_cancel, name='teacher_store_cancel'),
+    path('store/trial/<int:addon_id>/', views.teacher_store_trial, name='teacher_store_trial'),
+    path('store/webhook/', views.paystack_teacher_webhook, name='paystack_teacher_webhook'),
+    path('my-addons/', views.my_addons, name='my_addons'),
 ]
 
 

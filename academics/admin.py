@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import AcademicYear, Class, Subject, ClassSubject, Activity, Timetable, SchoolInfo, GalleryImage, SchemeOfWork, AdmissionApplication
+from .models import AcademicYear, Class, Subject, ClassSubject, Activity, Timetable, SchoolInfo, GalleryImage, SchemeOfWork, AdmissionApplication, GradingScale, ExamSchedule
 from .gamification_models import AuraSessionState
 
 
@@ -31,6 +31,17 @@ class AcademicYearAdmin(admin.ModelAdmin):
     list_display = ['name', 'start_date', 'end_date', 'is_current']
     list_filter = ['is_current']
     list_editable = ['is_current']
+
+@admin.register(GradingScale)
+class GradingScaleAdmin(admin.ModelAdmin):
+    list_display = ['grade_label', 'min_score', 'remarks', 'ordering']
+    ordering = ['-min_score']
+
+@admin.register(ExamSchedule)
+class ExamScheduleAdmin(admin.ModelAdmin):
+    list_display = ['subject', 'target_class', 'date', 'start_time', 'end_time', 'room', 'invigilator']
+    list_filter = ['academic_year', 'term', 'date']
+    search_fields = ['subject__name', 'target_class__name', 'room']
 
 @admin.register(SchoolInfo)
 class SchoolInfoAdmin(admin.ModelAdmin):

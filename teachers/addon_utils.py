@@ -3,6 +3,7 @@ from functools import wraps
 
 from django.contrib import messages
 from django.shortcuts import redirect
+from django.utils import timezone
 
 
 # ── Add-on slug → gated view names ─────────────────────────────
@@ -44,22 +45,28 @@ for _slug, _info in ADDON_FEATURE_MAP.items():
 
 
 def has_addon(user, slug):
-    """Return True if *user* has an active purchase for the add-on *slug*."""
+    """Return True if *user* has an active, non-expired purchase for the add-on *slug*."""
     if not user.is_authenticated or user.user_type != 'teacher':
         return False
     from teachers.models import TeacherAddOnPurchase
+    from django.db.models import Q
+    now = timezone.now()
     return TeacherAddOnPurchase.objects.filter(
+        Q(expires_at__isnull=True) | Q(expires_at__gt=now),
         teacher=user, addon__slug=slug, is_active=True,
     ).exists()
 
 
 def get_purchased_slugs(user):
-    """Return a set of active add-on slugs for the given teacher."""
+    """Return a set of active, non-expired add-on slugs for the given teacher."""
     if not user.is_authenticated or user.user_type != 'teacher':
         return set()
     from teachers.models import TeacherAddOnPurchase
+    from django.db.models import Q
+    now = timezone.now()
     return set(
         TeacherAddOnPurchase.objects.filter(
+            Q(expires_at__isnull=True) | Q(expires_at__gt=now),
             teacher=user, is_active=True,
         ).values_list('addon__slug', flat=True)
     )

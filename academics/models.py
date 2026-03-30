@@ -222,6 +222,54 @@ class Timetable(models.Model):
             # Fallback if database access fails (e.g., broken transaction)
             return f"Timetable #{self.id}"
 
+
+class GradingScale(models.Model):
+    """Per-tenant configurable grading thresholds. Rows ordered by min_score DESC."""
+    min_score = models.DecimalField(max_digits=5, decimal_places=2)
+    grade_label = models.CharField(max_length=5, help_text="e.g. 1, A+, A")
+    remarks = models.CharField(max_length=60)
+    ordering = models.PositiveIntegerField(default=0, help_text="Lower = higher grade")
+
+    class Meta:
+        ordering = ['-min_score']
+        verbose_name_plural = "Grading Scale"
+
+    def __str__(self):
+        return f"{self.grade_label} (≥{self.min_score}%) — {self.remarks}"
+
+
+class ExamSchedule(models.Model):
+    """Scheduled exam with date, time, room, and invigilator."""
+    TERM_CHOICES = (
+        ('first', 'First Term'),
+        ('second', 'Second Term'),
+        ('third', 'Third Term'),
+    )
+
+    academic_year = models.ForeignKey(AcademicYear, on_delete=models.CASCADE)
+    term = models.CharField(max_length=10, choices=TERM_CHOICES)
+    subject = models.ForeignKey('Subject', on_delete=models.CASCADE)
+    target_class = models.ForeignKey('Class', on_delete=models.CASCADE)
+    date = models.DateField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    room = models.CharField(max_length=80, blank=True, help_text="e.g. Hall A, Room 102")
+    invigilator = models.ForeignKey(
+        'teachers.Teacher', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='invigilator_duties',
+    )
+    notes = models.TextField(blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['date', 'start_time']
+        unique_together = ['target_class', 'subject', 'academic_year', 'term']
+
+    def __str__(self):
+        return f"{self.subject.name} — {self.target_class.name} ({self.date})"
+
+
 class GalleryImage(models.Model):
     CATEGORY_CHOICES = [
         ('campus', 'Campus'),

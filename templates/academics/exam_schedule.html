@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Exam Schedule{% endblock %}
+
+{% block content %}
+<style>
+    .es-wrap{max-width:860px;margin:0 auto;}
+    .es-card{background:var(--surface-card,#fff);border:1px solid var(--admin-border,#d1d5db);border-radius:14px;overflow:hidden;margin-bottom:1rem;}
+    .es-header{padding:.85rem 1.25rem;border-bottom:1px solid var(--admin-border,#d1d5db);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+    .es-header h2{margin:0;font-size:1.1rem;font-weight:800;color:var(--text-main,#111827);}
+    .es-day{padding:.65rem 1.1rem;font-weight:700;font-size:.82rem;color:#4361ee;background:rgba(67,97,238,.06);border-bottom:1px solid var(--admin-border,#d1d5db);}
+    .es-row{display:grid;grid-template-columns:1.2fr 1fr .7fr .8fr .8fr auto;align-items:center;gap:.5rem;padding:.55rem 1.1rem;border-bottom:1px solid var(--admin-border,#d1d5db);font-size:.82rem;color:var(--text-main,#111827);}
+    .es-row:last-child{border-bottom:none;}
+    .es-label{font-size:.7rem;color:var(--admin-text-muted,#9ca3af);text-transform:uppercase;font-weight:700;letter-spacing:.04em;}
+    .es-term-tabs{display:flex;gap:.3rem;}
+    .es-term-tab{padding:.3rem .7rem;border-radius:8px;font-size:.8rem;font-weight:600;text-decoration:none;color:var(--text-muted,#374151);border:1px solid var(--admin-border,#d1d5db);}
+    .es-term-tab.active{background:#4361ee;color:#fff;border-color:#4361ee;}
+    .es-actions a,.es-actions form{display:inline;}
+    .es-empty{padding:2rem;text-align:center;color:var(--admin-text-muted,#9ca3af);font-size:.88rem;}
+    @media(max-width:640px){.es-row{grid-template-columns:1fr 1fr;gap:.3rem;}.es-label{display:none;}}
+</style>
+
+<div class="es-wrap">
+    <div class="es-card">
+        <div class="es-header">
+            <h2><i class="bi bi-calendar2-week me-2" style="color:#4361ee;"></i>Exam Schedule</h2>
+            <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
+                <div class="es-term-tabs">
+                    <a href="?term=first" class="es-term-tab {% if current_term == 'first' %}active{% endif %}">1st</a>
+                    <a href="?term=second" class="es-term-tab {% if current_term == 'second' %}active{% endif %}">2nd</a>
+                    <a href="?term=third" class="es-term-tab {% if current_term == 'third' %}active{% endif %}">3rd</a>
+                </div>
+                {% if request.user.user_type == 'admin' %}
+                <a href="{% url 'academics:exam_schedule_create' %}" class="btn btn-primary btn-sm" style="border-radius:8px;font-size:.82rem;">
+                    <i class="bi bi-plus-lg me-1"></i>Add Exam
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if grouped %}
+            <!-- Column labels -->
+            <div class="es-row" style="background:var(--surface-bg,#f3f4f6);border-bottom:1px solid var(--admin-border,#d1d5db);">
+                <span class="es-label">Subject</span>
+                <span class="es-label">Class</span>
+                <span class="es-label">Time</span>
+                <span class="es-label">Room</span>
+                <span class="es-label">Invigilator</span>
+                <span class="es-label"></span>
+            </div>
+
+            {% for day, exams in grouped.items %}
+            <div class="es-day">
+                <i class="bi bi-calendar-event me-1"></i>{{ day|date:"l, M d Y" }}
+            </div>
+            {% for exam in exams %}
+            <div class="es-row">
+                <div>
+                    <span style="font-weight:600;">{{ exam.subject.name }}</span>
+                </div>
+                <div>{{ exam.target_class.name }}</div>
+                <div style="font-size:.78rem;">
+                    {{ exam.start_time|time:"H:i" }} — {{ exam.end_time|time:"H:i" }}
+                </div>
+                <div>{{ exam.room|default:"—" }}</div>
+                <div>
+                    {% if exam.invigilator %}
+                        {{ exam.invigilator.user.get_full_name }}
+                    {% else %}
+                        <span style="color:var(--admin-text-muted,#9ca3af);">—</span>
+                    {% endif %}
+                </div>
+                <div class="es-actions">
+                    {% if request.user.user_type == 'admin' %}
+                    <a href="{% url 'academics:exam_schedule_edit' exam.pk %}" class="btn btn-sm btn-outline-primary" style="font-size:.72rem;padding:.15rem .45rem;border-radius:6px;" title="Edit">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <form method="post" action="{% url 'academics:exam_schedule_delete' exam.pk %}" style="display:inline;" onsubmit="return confirm('Remove this exam?')">
+                        {% csrf_token %}
+                        <button class="btn btn-sm btn-outline-danger" style="font-size:.72rem;padding:.15rem .45rem;border-radius:6px;" title="Delete">
+                            <i class="bi bi-trash3"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+            {% endfor %}
+        {% else %}
+            <div class="es-empty">
+                <i class="bi bi-calendar-x" style="font-size:1.5rem;display:block;margin-bottom:.5rem;opacity:.3;"></i>
+                No exams scheduled for this term yet.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

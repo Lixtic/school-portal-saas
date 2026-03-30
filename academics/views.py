@@ -3496,3 +3496,170 @@ def offline_timetable_json(request):
         'entries': data,
         'days': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
     })
+
+
+# ── Grading Scale Config ───────────────────────────────────────
+@login_required
+def grading_scale_view(request):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    from .models import GradingScale
+    import json
+
+    if request.method == 'POST':
+        # Clear existing and rebuild from form data
+        GradingScale.objects.all().delete()
+        rows_json = request.POST.get('rows', '[]')
+        try:
+            rows = json.loads(rows_json)
+            for i, row in enumerate(rows):
+                min_score = row.get('min_score', 0)
+                grade_label = (row.get('grade_label') or '').strip()[:5]
+                remarks = (row.get('remarks') or '').strip()[:60]
+                if grade_label:
+                    GradingScale.objects.create(
+                        min_score=min_score,
+                        grade_label=grade_label,
+                        remarks=remarks,
+                        ordering=i,
+                    )
+            messages.success(request, 'Grading scale saved.')
+        except (json.JSONDecodeError, TypeError):
+            messages.error(request, 'Invalid data submitted.')
+        return redirect('academics:grading_scale')
+
+    scale = list(GradingScale.objects.values('min_score', 'grade_label', 'remarks'))
+    return render(request, 'academics/grading_scale.html', {
+        'scale_json': json.dumps(scale, default=str),
+        'has_custom_scale': len(scale) > 0,
+    })
+
+
+# ── Exam Scheduling ────────────────────────────────────────────
+@login_required
+def exam_schedule_list(request):
+    if request.user.user_type not in ('admin', 'teacher'):
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    from .models import ExamSchedule, AcademicYear
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    term = request.GET.get('term', 'first')
+
+    schedules = (
+        ExamSchedule.objects
+        .filter(academic_year=current_year, term=term)
+        .select_related('subject', 'target_class', 'invigilator__user')
+        .order_by('date', 'start_time')
+    )
+
+    # Group by date
+    from collections import OrderedDict
+    grouped = OrderedDict()
+    for s in schedules:
+        grouped.setdefault(s.date, []).append(s)
+
+    return render(request, 'academics/exam_schedule.html', {
+        'grouped': grouped,
+        'current_term': term,
+        'current_year': current_year,
+    })
+
+
+@login_required
+def exam_schedule_create(request):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    from .models import ExamSchedule, AcademicYear, Class, Subject
+    from teachers.models import Teacher
+
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    classes = Class.objects.filter(academic_year=current_year)
+    subjects = Subject.objects.all()
+    teachers = Teacher.objects.select_related('user').all()
+
+    if request.method == 'POST':
+        try:
+            ExamSchedule.objects.create(
+                academic_year=current_year,
+                term=request.POST.get('term', 'first'),
+                subject_id=request.POST['subject'],
+                target_class_id=request.POST['target_class'],
+                date=request.POST['date'],
+                start_time=request.POST['start_time'],
+                end_time=request.POST['end_time'],
+                room=request.POST.get('room', ''),
+                invigilator_id=request.POST.get('invigilator') or None,
+                notes=request.POST.get('notes', ''),
+                created_by=request.user,
+            )
+            messages.success(request, 'Exam scheduled successfully.')
+            return redirect('academics:exam_schedule')
+        except Exception as e:
+            messages.error(request, f'Error: {e}')
+
+    return render(request, 'academics/exam_schedule_form.html', {
+        'classes': classes,
+        'subjects': subjects,
+        'teachers': teachers,
+        'current_year': current_year,
+    })
+
+
+@login_required
+def exam_schedule_edit(request, pk):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    from .models import ExamSchedule, Class, Subject
+    from teachers.models import Teacher
+
+    exam = get_object_or_404(ExamSchedule, pk=pk)
+    classes = Class.objects.filter(academic_year=exam.academic_year)
+    subjects = Subject.objects.all()
+    teachers = Teacher.objects.select_related('user').all()
+
+    if request.method == 'POST':
+        try:
+            exam.term = request.POST.get('term', exam.term)
+            exam.subject_id = request.POST['subject']
+            exam.target_class_id = request.POST['target_class']
+            exam.date = request.POST['date']
+            exam.start_time = request.POST['start_time']
+            exam.end_time = request.POST['end_time']
+            exam.room = request.POST.get('room', '')
+            exam.invigilator_id = request.POST.get('invigilator') or None
+            exam.notes = request.POST.get('notes', '')
+            exam.save()
+            messages.success(request, 'Exam schedule updated.')
+            return redirect('academics:exam_schedule')
+        except Exception as e:
+            messages.error(request, f'Error: {e}')
+
+    return render(request, 'academics/exam_schedule_form.html', {
+        'exam': exam,
+        'classes': classes,
+        'subjects': subjects,
+        'teachers': teachers,
+        'current_year': exam.academic_year,
+        'editing': True,
+    })
+
+
+@login_required
+def exam_schedule_delete(request, pk):
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    from .models import ExamSchedule
+    exam = get_object_or_404(ExamSchedule, pk=pk)
+    if request.method == 'POST':
+        exam.delete()
+        messages.success(request, 'Exam removed from schedule.')
+    return redirect('academics:exam_schedule')

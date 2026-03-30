@@ -134,34 +134,56 @@ class Grade(models.Model):
         if self.total_score > Decimal('100'):
             self.total_score = Decimal('100.00')
         
-        # Determine grade based on total score (Ghana grading system)
-        if self.total_score >= Decimal('80'):
-            self.grade = '1'
-            self.remarks = 'Highest'
-        elif self.total_score >= Decimal('70'):
-            self.grade = '2'
-            self.remarks = 'Higher'
-        elif self.total_score >= Decimal('65'):
-            self.grade = '3'
-            self.remarks = 'High'
-        elif self.total_score >= Decimal('60'):
-            self.grade = '4'
-            self.remarks = 'High Average'
-        elif self.total_score >= Decimal('55'):
-            self.grade = '5'
-            self.remarks = 'Average'
-        elif self.total_score >= Decimal('50'):
-            self.grade = '6'
-            self.remarks = 'Low Average'
-        elif self.total_score >= Decimal('45'):
-            self.grade = '7'
-            self.remarks = 'Low'
-        elif self.total_score >= Decimal('40'):
-            self.grade = '8'
-            self.remarks = 'Lower'
-        else:
-            self.grade = '9'
-            self.remarks = 'Lowest'
+        # Determine grade based on total score
+        # Use per-tenant GradingScale if configured, else Ghana default
+        graded = False
+        try:
+            from academics.models import GradingScale
+            scale = GradingScale.objects.all()  # ordered by -min_score
+            if scale.exists():
+                for row in scale:
+                    if self.total_score >= row.min_score:
+                        self.grade = row.grade_label
+                        self.remarks = row.remarks
+                        graded = True
+                        break
+                if not graded:
+                    last = scale.last()
+                    self.grade = last.grade_label
+                    self.remarks = last.remarks
+                    graded = True
+        except Exception:
+            pass
+
+        if not graded:
+            # Fallback: Ghana grading system (hardcoded default)
+            if self.total_score >= Decimal('80'):
+                self.grade = '1'
+                self.remarks = 'Highest'
+            elif self.total_score >= Decimal('70'):
+                self.grade = '2'
+                self.remarks = 'Higher'
+            elif self.total_score >= Decimal('65'):
+                self.grade = '3'
+                self.remarks = 'High'
+            elif self.total_score >= Decimal('60'):
+                self.grade = '4'
+                self.remarks = 'High Average'
+            elif self.total_score >= Decimal('55'):
+                self.grade = '5'
+                self.remarks = 'Average'
+            elif self.total_score >= Decimal('50'):
+                self.grade = '6'
+                self.remarks = 'Low Average'
+            elif self.total_score >= Decimal('45'):
+                self.grade = '7'
+                self.remarks = 'Low'
+            elif self.total_score >= Decimal('40'):
+                self.grade = '8'
+                self.remarks = 'Lower'
+            else:
+                self.grade = '9'
+                self.remarks = 'Lowest'
         
         super().save(*args, **kwargs)
         

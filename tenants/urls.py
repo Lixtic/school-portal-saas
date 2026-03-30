@@ -20,6 +20,8 @@ urlpatterns = [
     path('revenue/', views.revenue_analytics, name='revenue_analytics'),
     path('marketplace/', views.addon_marketplace, name='addon_marketplace'),
     path('marketplace/purchase/<int:addon_id>/', views.purchase_addon, name='purchase_addon'),
+    path('marketplace/verify/', views.marketplace_verify, name='marketplace_verify'),
+    path('marketplace/webhook/', views.paystack_school_webhook, name='paystack_school_webhook'),
     path('marketplace/cancel/<int:addon_id>/', views.cancel_addon, name='cancel_addon'),
     
     # System Health & Support

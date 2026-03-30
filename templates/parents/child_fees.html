@@ -74,6 +74,19 @@
     </a>
 </div>
 
+{% if total_balance > 0 %}
+<div class="cf-card" style="margin-bottom:.75rem;border:1px solid rgba(67,97,238,.25);background:linear-gradient(135deg,rgba(67,97,238,.04),rgba(76,201,240,.04));">
+    <div style="padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
+        <div>
+            <div style="font-size:.82rem;font-weight:700;color:var(--cf-heading);">
+                <i class="bi bi-wallet2 me-1" style="color:#4361ee;"></i>Outstanding: <span style="color:#dc2626;">GH&#8373;{{ total_balance|floatformat:2|intcomma }}</span>
+            </div>
+            <div style="font-size:.72rem;color:var(--cf-muted);">Click any unpaid fee below to pay via Paystack</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Summary stats -->
 <div class="cf-card" style="margin-bottom:1.1rem;">
     <div class="cf-stats-grid">
@@ -135,6 +148,15 @@
     <!-- Payment history (collapsed by default) -->
     <div id="fee-{{ fee.id }}" style="display:none;">
         <div class="cf-payments">
+            {% if fee.status != 'paid' %}
+            <div style="padding:.6rem .25rem;border-bottom:1px solid var(--cf-border);">
+                <a href="{% url 'finance:paystack_pay' fee.id %}"
+                   class="btn btn-sm w-100"
+                   style="background:linear-gradient(135deg,#4361ee,#4cc9f0);color:#fff;border:none;border-radius:8px;font-size:.8rem;font-weight:700;padding:.45rem;">
+                    <i class="bi bi-credit-card me-1"></i>Pay GH&#8373;{{ fee.balance|floatformat:2|intcomma }} Online
+                </a>
+            </div>
+            {% endif %}
             {% with payments=fee.payments.all %}
             {% if payments %}
             <div style="font-size:.73rem;font-weight:700;color:var(--cf-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem;">Payment Transactions</div>

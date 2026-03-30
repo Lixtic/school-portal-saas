@@ -1141,7 +1141,8 @@ def addon_marketplace(request):
 
 @login_required
 def purchase_addon(request, addon_id):
-    """Purchase an add-on (admin only)"""
+    """Purchase an add-on (admin only). Free add-ons activate instantly.
+    Paid ones return Paystack params for inline popup."""
     from .models import AddOn, SchoolSubscription, SchoolAddOn
     
     # Restrict to school admins only
@@ -1177,10 +1178,36 @@ def purchase_addon(request, addon_id):
                 "Paystack is not configured yet. Ask the platform admin to set PAYSTACK_PUBLIC_KEY and PAYSTACK_SECRET_KEY first."
             )
             return redirect('tenants:addon_marketplace')
-    
-    # Idempotent purchase flow:
-    # unique_together(subscription, addon) means canceled add-ons still occupy
-    # the row. Re-activate existing row instead of creating a duplicate.
+
+    # Already active?
+    existing = SchoolAddOn.objects.filter(
+        subscription=subscription, addon=addon, is_active=True
+    ).first()
+    if existing:
+        messages.warning(request, f"You already have {addon.name}")
+        return redirect('tenants:addon_marketplace')
+
+    # Paid add-ons: return Paystack params if price > 0 and Paystack is configured
+    if addon.monthly_price > 0:
+        secret = getattr(settings, 'PAYSTACK_SECRET_KEY', '')
+        public = getattr(settings, 'PAYSTACK_PUBLIC_KEY', '')
+        if secret and public:
+            import uuid
+            schema = getattr(request.tenant, 'schema_name', 'unknown')
+            ref = f"SA-{schema}-{addon.id}-{uuid.uuid4().hex[:8]}"
+            return JsonResponse({
+                'paystack': True,
+                'public_key': public,
+                'email': request.user.email or f'{request.user.username}@school.local',
+                'amount': int(addon.monthly_price * 100),
+                'currency': getattr(settings, 'PAYSTACK_CURRENCY', 'GHS'),
+                'reference': ref,
+                'addon_name': addon.name,
+                'addon_id': addon.id,
+            })
+        # No Paystack keys — fall through to free activation (dev mode)
+
+    # Free add-on or dev-mode activation
     try:
         with transaction.atomic():
             school_addon, created = SchoolAddOn.objects.get_or_create(
@@ -1189,25 +1216,75 @@ def purchase_addon(request, addon_id):
                 defaults={'is_active': True}
             )
 
-            if created:
-                messages.success(request, f"Successfully purchased {addon.name}! Your billing has been updated.")
-            elif school_addon.is_active:
-                messages.warning(request, f"You already have {addon.name}")
-                return redirect('tenants:addon_marketplace')
-            else:
+            if not created:
                 school_addon.is_active = True
                 school_addon.expires_at = None
                 school_addon.save(update_fields=['is_active', 'expires_at'])
                 messages.success(request, f"Successfully re-activated {addon.name}!")
+            else:
+                messages.success(request, f"Successfully activated {addon.name}!")
     except Exception:
         logger.exception("Failed to purchase add-on. subscription=%s addon=%s", subscription.id, addon.id)
         messages.error(request, "Could not complete add-on purchase right now. Please try again.")
         return redirect('tenants:addon_marketplace')
 
-    # Recalculate MRR after create/reactivation.
     subscription.calculate_mrr()
-
     return redirect('tenants:addon_marketplace')
+
+
+@login_required
+def marketplace_verify(request):
+    """POST — verify a Paystack payment and activate a school add-on."""
+    if request.user.user_type != 'admin':
+        return JsonResponse({'ok': False, 'error': 'Access denied'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'error': 'POST only'}, status=405)
+
+    import json
+    import requests as http_requests
+    from .subscription_models import SchoolSubscription, SchoolAddOn, AddOn
+
+    try:
+        body = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'ok': False, 'error': 'Bad JSON'}, status=400)
+
+    reference = body.get('reference', '')
+    addon_id = body.get('addon_id')
+    if not reference or not addon_id:
+        return JsonResponse({'ok': False, 'error': 'Missing data'}, status=400)
+
+    addon = get_object_or_404(AddOn, id=addon_id, is_active=True)
+
+    secret = getattr(settings, 'PAYSTACK_SECRET_KEY', '')
+    if secret:
+        resp = http_requests.get(
+            f'https://api.paystack.co/transaction/verify/{reference}',
+            headers={'Authorization': f'Bearer {secret}'},
+            timeout=15,
+        )
+        data = resp.json()
+        if not data.get('status') or data.get('data', {}).get('status') != 'success':
+            return JsonResponse({'ok': False, 'error': 'Payment verification failed'}, status=402)
+
+    try:
+        subscription = _get_school_subscription_safe(request.tenant)
+    except Exception:
+        return JsonResponse({'ok': False, 'error': 'No subscription'}, status=400)
+
+    with transaction.atomic():
+        school_addon, created = SchoolAddOn.objects.get_or_create(
+            subscription=subscription,
+            addon=addon,
+            defaults={'is_active': True}
+        )
+        if not created:
+            school_addon.is_active = True
+            school_addon.expires_at = None
+            school_addon.save(update_fields=['is_active', 'expires_at'])
+
+    subscription.calculate_mrr()
+    return JsonResponse({'ok': True, 'addon_name': addon.name})
 
 
 @login_required
@@ -1250,6 +1327,78 @@ def cancel_addon(request, addon_id):
     
     messages.success(request, f"Cancelled {school_addon.addon.name}. Changes will apply at next billing cycle.")
     return redirect('tenants:addon_marketplace')
+
+
+@csrf_exempt
+def paystack_school_webhook(request):
+    """Paystack server-to-server webhook for school add-on payments.
+    Verifies HMAC-SHA512 signature. Handles charge.success events."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST only'}, status=405)
+
+    import json
+    import hmac
+    import hashlib
+
+    secret = getattr(settings, 'PAYSTACK_SECRET_KEY', '')
+    if not secret:
+        return JsonResponse({'error': 'not configured'}, status=503)
+
+    sig = request.headers.get('X-Paystack-Signature', '')
+    expected = hmac.new(secret.encode(), request.body, hashlib.sha512).hexdigest()
+    if not hmac.compare_digest(sig, expected):
+        return JsonResponse({'error': 'bad signature'}, status=403)
+
+    try:
+        payload = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'bad json'}, status=400)
+
+    event = payload.get('event')
+    data = payload.get('data', {})
+
+    if event == 'charge.success':
+        reference = data.get('reference', '')
+        # School add-on references start with "SA-"
+        if reference.startswith('SA-'):
+            _handle_school_addon_payment(reference, data)
+
+    return JsonResponse({'ok': True})
+
+
+def _handle_school_addon_payment(reference, data):
+    """Activate a school add-on from a confirmed Paystack charge."""
+    from .subscription_models import SchoolSubscription, SchoolAddOn, AddOn
+    from tenants.models import School
+
+    # Parse reference: SA-{schema}-{addon_id}-{uuid}
+    parts = reference.split('-')
+    if len(parts) < 3:
+        return
+    try:
+        schema_name = parts[1]
+        addon_id = int(parts[2])
+    except (ValueError, IndexError):
+        return
+
+    try:
+        school = School.objects.get(schema_name=schema_name)
+        subscription = SchoolSubscription.objects.get(school=school)
+        addon = AddOn.objects.get(id=addon_id, is_active=True)
+    except (School.DoesNotExist, SchoolSubscription.DoesNotExist, AddOn.DoesNotExist):
+        return
+
+    school_addon, created = SchoolAddOn.objects.get_or_create(
+        subscription=subscription,
+        addon=addon,
+        defaults={'is_active': True}
+    )
+    if not created and not school_addon.is_active:
+        school_addon.is_active = True
+        school_addon.expires_at = None
+        school_addon.save(update_fields=['is_active', 'expires_at'])
+
+    subscription.calculate_mrr()
 
 
 # =====================

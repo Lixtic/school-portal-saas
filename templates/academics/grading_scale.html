@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Grading Scale — Settings{% endblock %}
+
+{% block content %}
+<style>
+    .gs-wrap{max-width:680px;margin:0 auto;}
+    .gs-card{background:var(--surface-card,#fff);border:1px solid var(--admin-border,#d1d5db);border-radius:14px;overflow:hidden;}
+    .gs-header{padding:1rem 1.25rem;border-bottom:1px solid var(--admin-border,#d1d5db);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+    .gs-header h2{margin:0;font-size:1.1rem;font-weight:800;color:var(--text-main,#111827);}
+    .gs-body{padding:1rem 1.25rem;}
+    .gs-row{display:grid;grid-template-columns:90px 80px 1fr 40px;gap:.5rem;align-items:center;margin-bottom:.5rem;}
+    .gs-row input{font-size:.82rem;padding:.35rem .5rem;border:1px solid var(--admin-border,#d1d5db);border-radius:8px;background:var(--surface-bg,#f3f4f6);color:var(--text-main,#111827);}
+    .gs-row input:focus{outline:none;border-color:#4361ee;box-shadow:0 0 0 2px rgba(67,97,238,.15);}
+    .gs-del{border:none;background:none;color:#ef4444;font-size:1rem;cursor:pointer;padding:.2rem;border-radius:6px;}
+    .gs-del:hover{background:rgba(239,68,68,.1);}
+    .gs-labels{display:grid;grid-template-columns:90px 80px 1fr 40px;gap:.5rem;margin-bottom:.4rem;font-size:.72rem;font-weight:700;color:var(--admin-text-muted,#9ca3af);text-transform:uppercase;letter-spacing:.04em;}
+    .gs-add-btn{font-size:.8rem;padding:.35rem .85rem;border-radius:8px;}
+    .gs-hint{font-size:.74rem;color:var(--admin-text-muted,#9ca3af);margin-top:.75rem;line-height:1.5;}
+    .gs-default{padding:.75rem 1rem;border-radius:10px;background:rgba(67,97,238,.06);border:1px dashed rgba(67,97,238,.25);font-size:.82rem;color:var(--text-muted,#374151);margin-bottom:1rem;}
+    [data-bs-theme="dark"] .gs-row input{background:var(--surface-bg,#0f172a);}
+</style>
+
+<div class="gs-wrap">
+    <div style="margin-bottom:1rem;">
+        <a href="{% url 'academics:school_settings' %}" class="btn btn-outline-secondary btn-sm" style="border-radius:8px;font-size:.8rem;">
+            <i class="bi bi-arrow-left me-1"></i>Back to Settings
+        </a>
+    </div>
+
+    <div class="gs-card">
+        <div class="gs-header">
+            <h2><i class="bi bi-sliders me-2" style="color:#4361ee;"></i>Grading Scale</h2>
+            <button type="button" class="btn btn-primary btn-sm gs-add-btn" onclick="addRow()">
+                <i class="bi bi-plus-lg me-1"></i>Add Grade
+            </button>
+        </div>
+        <div class="gs-body">
+            {% if not has_custom_scale %}
+            <div class="gs-default">
+                <i class="bi bi-info-circle me-1"></i>
+                No custom scale set. The <strong>Ghana default</strong> (grades 1–9) is active.
+                Add rows below to override it.
+            </div>
+            {% endif %}
+
+            <form method="post" id="scaleForm">
+                {% csrf_token %}
+                <input type="hidden" name="rows" id="rowsInput">
+                <div class="gs-labels">
+                    <span>Min Score %</span>
+                    <span>Grade</span>
+                    <span>Remarks</span>
+                    <span></span>
+                </div>
+                <div id="rowContainer"></div>
+                <div style="display:flex;gap:.5rem;margin-top:1rem;flex-wrap:wrap;">
+                    <button type="submit" class="btn btn-primary btn-sm" style="border-radius:8px;font-size:.82rem;">
+                        <i class="bi bi-check-lg me-1"></i>Save Scale
+                    </button>
+                    {% if has_custom_scale %}
+                    <button type="button" class="btn btn-outline-danger btn-sm" style="border-radius:8px;font-size:.82rem;" onclick="clearAll()">
+                        <i class="bi bi-trash3 me-1"></i>Reset to Default
+                    </button>
+                    {% endif %}
+                </div>
+            </form>
+            <div class="gs-hint">
+                <strong>How it works:</strong> Scores are matched top-down. A student scoring 72% will get the first grade whose minimum score ≤ 72.
+                Leave this empty to use the built-in Ghana grading system (1–9).
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const DEFAULTS = [
+    {min_score:'80', grade_label:'1', remarks:'Highest'},
+    {min_score:'70', grade_label:'2', remarks:'Higher'},
+    {min_score:'65', grade_label:'3', remarks:'High'},
+    {min_score:'60', grade_label:'4', remarks:'High Average'},
+    {min_score:'55', grade_label:'5', remarks:'Average'},
+    {min_score:'50', grade_label:'6', remarks:'Low Average'},
+    {min_score:'45', grade_label:'7', remarks:'Low'},
+    {min_score:'40', grade_label:'8', remarks:'Lower'},
+    {min_score:'0',  grade_label:'9', remarks:'Lowest'},
+];
+
+let rows = JSON.parse('{{ scale_json|escapejs }}');
+if (!rows.length) rows = [...DEFAULTS];
+
+const container = document.getElementById('rowContainer');
+
+function render() {
+    container.innerHTML = '';
+    rows.forEach((r, i) => {
+        const div = document.createElement('div');
+        div.className = 'gs-row';
+        div.innerHTML = `
+            <input type="number" step="0.01" min="0" max="100" value="${r.min_score}" onchange="rows[${i}].min_score=this.value" placeholder="0">
+            <input type="text" maxlength="5" value="${r.grade_label||''}" onchange="rows[${i}].grade_label=this.value" placeholder="A+">
+            <input type="text" maxlength="60" value="${r.remarks||''}" onchange="rows[${i}].remarks=this.value" placeholder="Description">
+            <button type="button" class="gs-del" onclick="rows.splice(${i},1);render();" title="Remove"><i class="bi bi-x-lg"></i></button>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function addRow() {
+    rows.push({min_score:'0', grade_label:'', remarks:''});
+    render();
+    container.lastChild.querySelector('input:nth-child(2)').focus();
+}
+
+function clearAll() {
+    rows = [];
+    render();
+    document.getElementById('rowsInput').value = '[]';
+    document.getElementById('scaleForm').submit();
+}
+
+document.getElementById('scaleForm').addEventListener('submit', function(e) {
+    // Sort descending by min_score before saving
+    rows.sort((a,b) => parseFloat(b.min_score||0) - parseFloat(a.min_score||0));
+    document.getElementById('rowsInput').value = JSON.stringify(rows);
+});
+
+render();
+</script>
+{% endblock %}

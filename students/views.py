@@ -2672,3 +2672,113 @@ def pulse_submit(request, session_id):
     )
     return JsonResponse({'ok': True})
 
+
+# ── QR Attendance ──────────────────────────────────────────────
+import hashlib, hmac, json as _json
+
+def _qr_token(class_id, date_str, secret):
+    """HMAC-based token to prevent forging QR codes."""
+    msg = f"{class_id}:{date_str}"
+    return hmac.new(secret.encode(), msg.encode(), hashlib.sha256).hexdigest()[:16]
+
+
+@login_required
+def qr_attendance_generate(request):
+    """Teacher generates a QR code for a class + today's date."""
+    if request.user.user_type not in ('admin', 'teacher'):
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    from django.conf import settings as _s
+    from academics.models import Class
+
+    class_id = request.GET.get('class_id')
+    if not class_id:
+        return JsonResponse({'error': 'class_id required'}, status=400)
+
+    cls = get_object_or_404(Class, id=class_id, academic_year__is_current=True)
+    today = date.today().isoformat()
+    secret = getattr(_s, 'SECRET_KEY', 'fallback')
+    token = _qr_token(cls.id, today, secret)
+
+    # Build the URL students would scan
+    from django.urls import reverse
+    scan_path = reverse('students:qr_attendance_scan')
+    payload = f"{request.build_absolute_uri(scan_path)}?c={cls.id}&d={today}&t={token}"
+
+    return JsonResponse({
+        'qr_data': payload,
+        'class_name': str(cls),
+        'date': today,
+    })
+
+
+@login_required
+def qr_attendance_scan(request):
+    """Student scans QR → marks themselves present."""
+    from django.conf import settings as _s
+
+    class_id = request.GET.get('c')
+    date_str = request.GET.get('d')
+    token = request.GET.get('t')
+
+    if not all([class_id, date_str, token]):
+        messages.error(request, 'Invalid QR code.')
+        return redirect('dashboard')
+
+    secret = getattr(_s, 'SECRET_KEY', 'fallback')
+    expected = _qr_token(class_id, date_str, secret)
+    if not hmac.compare_digest(token, expected):
+        messages.error(request, 'QR code is invalid or expired.')
+        return redirect('dashboard')
+
+    # Check date is today
+    from datetime import datetime as _dtp
+    try:
+        att_date = _dtp.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        messages.error(request, 'Invalid date in QR code.')
+        return redirect('dashboard')
+
+    if att_date != date.today():
+        messages.error(request, 'This QR code has expired (different day).')
+        return redirect('dashboard')
+
+    # Must be a student in the right class
+    if request.user.user_type != 'student':
+        messages.error(request, 'Only students can check in via QR.')
+        return redirect('dashboard')
+
+    student = Student.objects.filter(user=request.user, current_class_id=class_id).first()
+    if not student:
+        messages.error(request, 'You are not enrolled in this class.')
+        return redirect('dashboard')
+
+    Attendance.objects.update_or_create(
+        student=student,
+        date=att_date,
+        defaults={'status': 'present', 'marked_by': request.user, 'remarks': 'QR check-in'},
+    )
+    messages.success(request, f'Attendance marked — {student.user.get_full_name()} present.')
+    return redirect('dashboard')
+
+
+@login_required
+def qr_attendance_page(request):
+    """Teacher page to display the QR code for scanning."""
+    if request.user.user_type not in ('admin', 'teacher'):
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    from teachers.models import Teacher
+    from academics.models import Class
+
+    classes_qs = Class.objects.filter(academic_year__is_current=True)
+    if request.user.user_type == 'teacher':
+        tp = Teacher.objects.filter(user=request.user).first()
+        classes_qs = classes_qs.filter(class_teacher=tp)
+
+    return render(request, 'students/qr_attendance.html', {
+        'classes': classes_qs,
+        'today': date.today().isoformat(),
+    })
+

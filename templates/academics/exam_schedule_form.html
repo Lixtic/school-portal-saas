@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}{% if editing %}Edit Exam{% else %}Schedule Exam{% endif %}{% endblock %}
+
+{% block content %}
+<style>
+    .ef-wrap{max-width:620px;margin:0 auto;}
+    .ef-card{background:var(--surface-card,#fff);border:1px solid var(--admin-border,#d1d5db);border-radius:14px;padding:1.5rem;margin-bottom:1rem;}
+    .ef-card h2{font-size:1.1rem;font-weight:800;margin-bottom:1.2rem;color:var(--text-main,#111827);}
+    .ef-row{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:.8rem;}
+    .ef-full{grid-column:span 2;}
+    .ef-label{display:block;font-size:.78rem;font-weight:700;margin-bottom:.25rem;color:var(--text-muted,#374151);text-transform:uppercase;letter-spacing:.03em;}
+    .ef-input{width:100%;padding:.5rem .7rem;border:1px solid var(--admin-border,#d1d5db);border-radius:8px;font-size:.88rem;background:var(--surface-card,#fff);color:var(--text-main,#111827);}
+    .ef-input:focus{border-color:#4361ee;outline:none;box-shadow:0 0 0 2px rgba(67,97,238,.15);}
+    .ef-btns{display:flex;gap:.5rem;margin-top:1rem;}
+</style>
+
+<div class="ef-wrap">
+    <div class="ef-card">
+        <h2>
+            <i class="bi bi-calendar2-plus me-2" style="color:#4361ee;"></i>
+            {% if editing %}Edit Exam{% else %}Schedule Exam{% endif %}
+        </h2>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="ef-row">
+                <div>
+                    <label class="ef-label" for="term">Term</label>
+                    <select name="term" id="term" class="ef-input" required>
+                        <option value="first" {% if editing and exam.term == 'first' %}selected{% endif %}>First</option>
+                        <option value="second" {% if editing and exam.term == 'second' %}selected{% endif %}>Second</option>
+                        <option value="third" {% if editing and exam.term == 'third' %}selected{% endif %}>Third</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="ef-label" for="subject">Subject</label>
+                    <select name="subject" id="subject" class="ef-input" required>
+                        <option value="">— Select —</option>
+                        {% for s in subjects %}
+                        <option value="{{ s.id }}" {% if editing and exam.subject_id == s.id %}selected{% endif %}>{{ s.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="ef-row">
+                <div>
+                    <label class="ef-label" for="target_class">Class</label>
+                    <select name="target_class" id="target_class" class="ef-input" required>
+                        <option value="">— Select —</option>
+                        {% for c in classes %}
+                        <option value="{{ c.id }}" {% if editing and exam.target_class_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="ef-label" for="date">Date</label>
+                    <input type="date" name="date" id="date" class="ef-input" required
+                           value="{% if editing %}{{ exam.date|date:'Y-m-d' }}{% endif %}">
+                </div>
+            </div>
+
+            <div class="ef-row">
+                <div>
+                    <label class="ef-label" for="start_time">Start Time</label>
+                    <input type="time" name="start_time" id="start_time" class="ef-input" required
+                           value="{% if editing %}{{ exam.start_time|time:'H:i' }}{% endif %}">
+                </div>
+                <div>
+                    <label class="ef-label" for="end_time">End Time</label>
+                    <input type="time" name="end_time" id="end_time" class="ef-input" required
+                           value="{% if editing %}{{ exam.end_time|time:'H:i' }}{% endif %}">
+                </div>
+            </div>
+
+            <div class="ef-row">
+                <div>
+                    <label class="ef-label" for="room">Room</label>
+                    <input type="text" name="room" id="room" class="ef-input" placeholder="e.g. Hall A"
+                           value="{% if editing %}{{ exam.room }}{% endif %}">
+                </div>
+                <div>
+                    <label class="ef-label" for="invigilator">Invigilator</label>
+                    <select name="invigilator" id="invigilator" class="ef-input">
+                        <option value="">— None —</option>
+                        {% for t in teachers %}
+                        <option value="{{ t.id }}" {% if editing and exam.invigilator_id == t.id %}selected{% endif %}>{{ t.user.get_full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="ef-row">
+                <div class="ef-full">
+                    <label class="ef-label" for="notes">Notes</label>
+                    <textarea name="notes" id="notes" class="ef-input" rows="3" placeholder="Optional instructions…">{% if editing %}{{ exam.notes }}{% endif %}</textarea>
+                </div>
+            </div>
+
+            <div class="ef-btns">
+                <button type="submit" class="btn btn-primary btn-sm" style="border-radius:8px;font-size:.85rem;">
+                    <i class="bi bi-check-lg me-1"></i>{% if editing %}Update Schedule{% else %}Schedule Exam{% endif %}
+                </button>
+                <a href="{% url 'academics:exam_schedule' %}" class="btn btn-outline-secondary btn-sm" style="border-radius:8px;font-size:.85rem;">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
