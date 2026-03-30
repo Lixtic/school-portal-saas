@@ -7,7 +7,7 @@ import django
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from tenants.decorators import require_addon, require_plan
-from teachers.addon_utils import requires_addon
+from teachers.addon_utils import requires_addon, requires_addon_freemium
 from django.http import JsonResponse, HttpResponse
 from decimal import Decimal, InvalidOperation
 from django.utils import timezone
@@ -1823,11 +1823,21 @@ def lesson_plan_create(request):
     else:
         form = LessonPlanForm(teacher=teacher, initial=initial_data)
         
+    # Freemium usage info for lesson generation
+    from teachers.addon_utils import get_free_generation_count, FREE_GENERATION_LIMIT, has_addon
+    lesson_gen_used = get_free_generation_count(request.user, 'lesson_gen') if request.user.user_type == 'teacher' else 0
+    has_planner_pro = has_addon(request.user, 'smart-planner-pro') if request.user.user_type == 'teacher' else True
+    lesson_gen_remaining = max(0, FREE_GENERATION_LIMIT - lesson_gen_used)
+
     return render(request, 'teachers/lesson_plan_form.html', {
         'form': form,
         'title': 'Create Lesson Plan',
         'prefill_indicator': indicator,
         'auto_ges': request.GET.get('auto_ges') == '1',
+        'lesson_gen_used': lesson_gen_used,
+        'lesson_gen_limit': FREE_GENERATION_LIMIT,
+        'lesson_gen_remaining': lesson_gen_remaining,
+        'has_planner_pro': has_planner_pro,
     })
 
 
@@ -1864,10 +1874,19 @@ def lesson_plan_edit(request, pk):
             return redirect('teachers:lesson_plan_list')
     else:
         form = LessonPlanForm(instance=lesson_plan, teacher=teacher)
-        
+
+    from teachers.addon_utils import get_free_generation_count, FREE_GENERATION_LIMIT, has_addon
+    lesson_gen_used = get_free_generation_count(request.user, 'lesson_gen')
+    has_planner_pro = has_addon(request.user, 'smart-planner-pro')
+    lesson_gen_remaining = max(0, FREE_GENERATION_LIMIT - lesson_gen_used)
+
     return render(request, 'teachers/lesson_plan_form.html', {
         'form': form,
-        'title': 'Edit Lesson Plan'
+        'title': 'Edit Lesson Plan',
+        'lesson_gen_used': lesson_gen_used,
+        'lesson_gen_limit': FREE_GENERATION_LIMIT,
+        'lesson_gen_remaining': lesson_gen_remaining,
+        'has_planner_pro': has_planner_pro,
     })
 
 @login_required
@@ -2020,7 +2039,7 @@ def lesson_plan_pdf(request, pk):
 
 @login_required
 @require_plan('pro', 'enterprise')
-@requires_addon('smart-planner-pro')
+@requires_addon_freemium('smart-planner-pro')
 def aura_t_api(request):
     """
     Handles AJAX requests for lesson plan generation, differentiation, and assignment creation.
@@ -2432,7 +2451,7 @@ def aura_t_api(request):
 
 
 @login_required
-@requires_addon('smart-planner-pro')
+@requires_addon_freemium('smart-planner-pro')
 def ges_lesson_api(request):
     """
     Separate GES Weekly Notes generator endpoint.
@@ -2510,7 +2529,6 @@ def ges_lesson_api(request):
 
 @login_required
 @require_plan('basic', 'pro', 'enterprise')
-@requires_addon('smart-planner-pro')
 def aura_command_center(request):
     """
     Aura-T Command Center - teachers go to the unified AI sessions page,
@@ -2593,7 +2611,6 @@ def aura_command_center(request):
 
 @login_required
 @require_plan('basic', 'pro', 'enterprise')
-@requires_addon('smart-planner-pro')
 def aura_flight_manual(request):
     """
     Aura-T Teacher Flight Manual - quick-start guide for the AI-integrated lesson.
@@ -4070,7 +4087,6 @@ def submit_to_hod(request):
 
 
 @login_required
-@requires_addon('smart-planner-pro')
 def save_aura_t_plan(request):
     """Save the Aura-T command centre lesson plan preview as a LessonPlan record."""
     if request.method != 'POST':

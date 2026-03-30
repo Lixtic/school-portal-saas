@@ -19,8 +19,7 @@ ADDON_FEATURE_MAP = {
     'smart-planner-pro': {
         'label': 'Smart Planner Pro',
         'gates': [
-            'aura_command_center', 'aura_t_api', 'ges_lesson_api',
-            'save_aura_t_plan', 'aura_flight_manual',
+            'aura_t_api', 'ges_lesson_api',
         ],
     },
     'exercise-maker': {
@@ -127,6 +126,69 @@ def requires_addon(slug):
                 request,
                 f'This feature requires the "{label}" add-on. '
                 f'Visit the Add-on Store to activate it.',
+            )
+            return redirect('teachers:teacher_store')
+        return wrapper
+    return decorator
+
+
+# ── Freemium gating ─────────────────────────────────────────────
+
+FREE_GENERATION_LIMIT = 10
+
+
+def get_free_generation_count(user, action_type='lesson_gen'):
+    """Count how many AI generation calls this teacher has made (all-time)."""
+    if not user.is_authenticated:
+        return 0
+    try:
+        from tenants.subscription_models import AIUsageLog
+        return AIUsageLog.objects.filter(
+            user_id=user.id, action_type=action_type,
+        ).count()
+    except Exception:
+        return 0
+
+
+def requires_addon_freemium(slug, free_limit=FREE_GENERATION_LIMIT, action_type='lesson_gen'):
+    """Decorator: allow *free_limit* free generations, then require the add-on.
+
+    For AJAX/JSON endpoints: returns a JSON 403 with remaining/used counts.
+    For regular views: redirects to the store with a flash message.
+    """
+    def decorator(view_fn):
+        @wraps(view_fn)
+        def wrapper(request, *args, **kwargs):
+            if request.user.user_type != 'teacher':
+                return view_fn(request, *args, **kwargs)
+            if has_addon(request.user, slug):
+                return view_fn(request, *args, **kwargs)
+            # Check free-tier budget
+            used = get_free_generation_count(request.user, action_type)
+            if used < free_limit:
+                return view_fn(request, *args, **kwargs)
+            # Over free limit — block
+            label = ADDON_FEATURE_MAP.get(slug, {}).get('label', slug)
+            is_ajax = (
+                request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+                or request.content_type == 'application/json'
+            )
+            if is_ajax:
+                from django.http import JsonResponse
+                return JsonResponse({
+                    'status': 'error',
+                    'error_code': 'freemium_limit',
+                    'message': (
+                        f'You\'ve used all {free_limit} free generations. '
+                        f'Purchase "{label}" from the Add-on Store to continue.'
+                    ),
+                    'used': used,
+                    'limit': free_limit,
+                }, status=403)
+            messages.warning(
+                request,
+                f'You\'ve used all {free_limit} free lesson generations. '
+                f'Purchase "{label}" from the Add-on Store to unlock unlimited access.',
             )
             return redirect('teachers:teacher_store')
         return wrapper
