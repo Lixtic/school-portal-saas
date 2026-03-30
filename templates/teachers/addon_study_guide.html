@@ -36,6 +36,20 @@
 </style>
 
 <div class="sg-wrap">
+
+    {% if not has_sg_addon %}
+    <div style="max-width:780px;margin:0 auto .6rem;padding:.5rem .8rem;background:linear-gradient(135deg,#3b82f610,#4cc9f010);border:1px solid #3b82f630;border-radius:10px;font-size:.78rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <span style="font-weight:700;color:#3b82f6;"><i class="bi bi-stars"></i> Free AI</span>
+      <div style="flex:1;min-width:120px;height:6px;background:#e4e8f2;border-radius:3px;overflow:hidden;">
+        <div style="width:{% widthratio sg_gen_used sg_gen_limit 100 %}%;height:100%;background:linear-gradient(90deg,#3b82f6,#4cc9f0);border-radius:3px;transition:width .3s;"></div>
+      </div>
+      <span style="color:#64748b;">{{ sg_gen_used }}/{{ sg_gen_limit }} used</span>
+      {% if sg_gen_remaining == 0 %}
+      <a href="{% url 'teachers:teacher_store' %}" style="color:#3b82f6;font-weight:600;text-decoration:none;">Get Study Guide Builder &rarr;</a>
+      {% endif %}
+    </div>
+    {% endif %}
+
     <div class="sg-card">
         <div class="sg-head">
             <h2><i class="bi bi-book-half me-2" style="color:var(--sg-accent);"></i>Study Guide Builder</h2>
@@ -44,7 +58,7 @@
         <div class="sg-body">
             <form method="post" id="sgForm">
                 {% csrf_token %}
-                <input type="hidden" name="action" value="create">
+                <input type="hidden" name="action" value="save">
                 <div class="sg-form-grid">
                     <div>
                         <label class="sg-label">Title</label>
@@ -128,10 +142,21 @@ async function generateGuide(){
             body:JSON.stringify({notes,title})
         });
         const data=await r.json();
-        if(data.html){document.getElementById('contentHtml').value=data.html;}
+        if(r.status===403 && data.error_code==='freemium_limit'){
+            const toast=document.getElementById('sgFreemiumToast');
+            if(toast){toast.style.display='block';setTimeout(()=>{toast.style.display='none';},8000);}
+            else{alert(data.message);}
+        }else if(data.html){document.getElementById('contentHtml').value=data.html;}
         else{alert(data.error||'AI generation failed.');}
     }catch(e){alert('Network error.');}
     spinner.classList.remove('active');
 }
 </script>
+
+<!-- Freemium limit toast -->
+<div id="sgFreemiumToast" style="display:none;position:fixed;bottom:1.5rem;right:1.5rem;max-width:380px;z-index:9999;background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff;padding:1rem 1.2rem;border-radius:14px;box-shadow:0 8px 24px rgba(139,92,246,.3);font-size:.85rem;">
+  <div style="font-weight:700;margin-bottom:.3rem;"><i class="bi bi-lock-fill me-1"></i>Free Limit Reached</div>
+  <div style="opacity:.9;">You've used all {{ sg_gen_limit }} free AI study guide generations.</div>
+  <a href="{% url 'teachers:teacher_store' %}" style="display:inline-block;margin-top:.5rem;padding:.35rem .8rem;background:#fff;color:#6d28d9;border-radius:8px;font-weight:700;text-decoration:none;font-size:.8rem;">Get Study Guide Builder &rarr;</a>
+</div>
 {% endblock %}

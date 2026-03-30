@@ -815,6 +815,20 @@ body.editor-multiselect .gm-thumb .gm-thumb-cb { display: flex; }
 
 {% block content %}
 {% include 'teachers/_quota_exceeded_ui.html' %}
+
+{% if not has_slide_addon %}
+<div style="max-width:600px;margin:0 auto .6rem;padding:.5rem .8rem;background:linear-gradient(135deg,#4361ee10,#4cc9f010);border:1px solid #4361ee30;border-radius:10px;font-size:.78rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
+  <span style="font-weight:700;color:#4361ee;"><i class="bi bi-stars"></i> Free AI</span>
+  <div style="flex:1;min-width:120px;height:6px;background:#e4e8f2;border-radius:3px;overflow:hidden;">
+    <div style="width:{% widthratio slide_gen_used slide_gen_limit 100 %}%;height:100%;background:linear-gradient(90deg,#4361ee,#4cc9f0);border-radius:3px;transition:width .3s;"></div>
+  </div>
+  <span style="color:#64748b;">{{ slide_gen_used }}/{{ slide_gen_limit }} used</span>
+  {% if slide_gen_remaining == 0 %}
+  <a href="{% url 'teachers:teacher_store' %}" style="color:#4361ee;font-weight:600;text-decoration:none;">Get Slide Generator &rarr;</a>
+  {% endif %}
+</div>
+{% endif %}
+
 <div class="gm-shell">
 
   <!-- TOP BAR -->
@@ -1249,6 +1263,19 @@ var DECK_ID   = {{ deck.pk }};
 var DECK_THEME= "{{ deck.theme }}";
 var csrfToken = "{{ csrf_token }}";
 
+// ── Freemium / quota error helper ───────────────────────────────
+function checkAiErrors(d) {
+  if (d._freemium_limit || d.error_code === 'freemium_limit') {
+    showFreemiumLimitReached(d.used, d.limit);
+    return true;
+  }
+  if (d._quota_exceeded || d.error_code === 'quota_exceeded') {
+    showAiQuotaExceeded(d.used, d.limit);
+    return true;
+  }
+  return false;
+}
+
 // Slide state — built from server data
 var slides = JSON.parse(document.getElementById('slideDataJSON').textContent || '[]');
 var currentSlideId = slides.length ? slides[0].id : null;
@@ -1272,6 +1299,7 @@ function api(payload) {
   }, 90000).then(function(r) {
     return r.json().then(function(d) {
       if (r.status === 429) { d._quota_exceeded = true; }
+      if (r.status === 403 && d.error_code === 'freemium_limit') { d._freemium_limit = true; }
       return d;
     });
   });
@@ -1743,7 +1771,7 @@ function runLessonPlanGenerate() {
   btn.innerHTML = '<div class="gm-spinner"></div> Building from plan\u2026';
   api({ action: 'from_lesson_plan', plan_id: parseInt(planId) })
     .then(function(d) {
-      if (d._quota_exceeded || d.error_code === 'quota_exceeded') { showAiQuotaExceeded(d.used, d.limit); return; }
+      if (checkAiErrors(d)) return;
       if (d.error) { alert('Error: ' + d.error); return; }
       document.getElementById('aiModal').classList.remove('open');
       if (d.deck_title) document.getElementById('deckTitleInput').value = d.deck_title;
@@ -1785,8 +1813,9 @@ function runDocGenerate() {
     headers: { 'X-CSRFToken': csrfToken },
     body: fd,
   }, 90000)
-    .then(function(r) { return r.json(); })
+    .then(function(r) { return r.json().then(function(d) { d._status = r.status; return d; }); })
     .then(function(d) {
+      if (checkAiErrors(d)) return;
       if (d.error) { alert('Error: ' + d.error); return; }
       document.getElementById('aiModal').classList.remove('open');
       if (d.deck_title) document.getElementById('deckTitleInput').value = d.deck_title;
@@ -1827,7 +1856,7 @@ function runAIGenerate() {
   api({ action: 'ai_generate', topic: topic,
         subject_id: subject_id, class_id: class_id, update_title: true })
     .then(function(d) {
-      if (d._quota_exceeded || d.error_code === 'quota_exceeded') { showAiQuotaExceeded(d.used, d.limit); return; }
+      if (checkAiErrors(d)) return;
       if (d.error) { alert('AI error: ' + d.error); return; }
       document.getElementById('aiModal').classList.remove('open');
       // update deck title in topbar
@@ -1869,8 +1898,9 @@ function runYouTubeGenerate() {
     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
     body: JSON.stringify({ deck_id: DECK_ID, youtube_url: url }),
   }, 90000)
-    .then(function(r) { return r.json(); })
+    .then(function(r) { return r.json().then(function(d) { d._status = r.status; return d; }); })
     .then(function(d) {
+      if (checkAiErrors(d)) return;
       if (d.error) { alert('Error: ' + d.error); return; }
       document.getElementById('aiModal').classList.remove('open');
       if (d.deck_title) document.getElementById('deckTitleInput').value = d.deck_title;
@@ -1901,7 +1931,7 @@ function smartLayouts() {
   if (btn) { btn.disabled = true; btn.innerHTML = '<div class="gm-spinner" style="width:12px;height:12px;border-width:2px;"></div> Analysing\u2026'; }
   api({ action: 'suggest_layouts' })
     .then(function(d) {
-      if (d._quota_exceeded || d.error_code === 'quota_exceeded') { showAiQuotaExceeded(d.used, d.limit); return; }
+      if (checkAiErrors(d)) return;
       if (d.error) { alert('Error: ' + d.error); return; }
       var n = d.count || 0;
       if (n === 0) { setSaveStatus('saved', '\u2713 Layouts already optimal'); return; }
@@ -1948,6 +1978,7 @@ function openHarmonizeModal() {
   _harmonizePending = [];
   api({ action: 'harmonize_deck' })
     .then(function(d) {
+      if (checkAiErrors(d)) { document.getElementById('harmonizeContent').innerHTML = ''; return; }
       _harmonizePending = d.updates || [];
       var html = '<div style="color:#94a3b8;font-size:.79rem;margin-bottom:.8rem;">' + esc(d.summary) + '</div>';
       if (_harmonizePending.length === 0) {
@@ -2427,8 +2458,9 @@ function generateSlideImage() {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': csrfToken },
     body: new URLSearchParams({ slide_id: currentSlideId, prompt: prompt }).toString(),
   }, 90000)
-  .then(function(r) { return r.json(); })
+  .then(function(r) { return r.json().then(function(d) { d._status = r.status; return d; }); })
   .then(function(d) {
+    if (d.error_code === 'freemium_limit') { showFreemiumLimitReached(d.used, d.limit); status.textContent=''; return; }
     if (d.image_url) {
       slide.image_url = d.image_url;
       document.getElementById('imageUrlInput').value = '';
@@ -2576,7 +2608,7 @@ function suggestBullets() {
   var subjectName = (sel && sel.selectedIndex > 0) ? sel.options[sel.selectedIndex].text : 'General';
   api({ action: 'suggest_bullets', title: title, subject: subjectName })
     .then(function(d) {
-      if (d._quota_exceeded || d.error_code === 'quota_exceeded') { showAiQuotaExceeded(d.used, d.limit); return; }
+      if (checkAiErrors(d)) return;
       if (d.ok && d.bullets && d.bullets.length) {
         var ta = document.getElementById('panelContent');
         var existing = (ta.value || '').trim();
@@ -2603,6 +2635,7 @@ function refineSlide() {
   var subject = (sel && sel.selectedIndex > 0) ? sel.options[sel.selectedIndex].text : 'General';
   api({ action: 'refine_slide', slide_id: currentSlideId, instruction: instruction, subject: subject })
     .then(function(d) {
+      if (checkAiErrors(d)) { if (status) status.style.display = 'none'; return; }
       if (d.ok) {
         var slide = slides.find(function(s) { return s.id == currentSlideId; });
         if (slide) { slide.title = d.title; slide.content = d.content; }

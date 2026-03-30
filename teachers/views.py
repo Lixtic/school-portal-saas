@@ -7,7 +7,7 @@ import django
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from tenants.decorators import require_addon, require_plan
-from teachers.addon_utils import requires_addon, requires_addon_freemium
+from teachers.addon_utils import requires_addon, requires_addon_freemium, check_freemium_limit, has_addon, get_free_generation_count, FREE_GENERATION_LIMIT
 from django.http import JsonResponse, HttpResponse
 from decimal import Decimal, InvalidOperation
 from django.utils import timezone
@@ -4492,7 +4492,6 @@ def presentation_list(request):
 
 @login_required
 @require_addon('presentations')
-@requires_addon('aura-slide-generator')
 def presentation_create(request):
     """Create a new blank (or AI-seeded) presentation, then redirect to editor."""
     if request.user.user_type not in ('teacher', 'admin'):
@@ -4683,6 +4682,9 @@ def presentation_editor(request, pk):
     _share_path = _reverse('teachers:presentation_share', kwargs={'token': deck.share_token})
     _share_url  = request.build_absolute_uri(_share_path)
 
+    slide_gen_used = get_free_generation_count(request.user, 'slide_gen')
+    has_slide_addon = has_addon(request.user, 'aura-slide-generator')
+
     return render(request, 'teachers/presentations/editor.html', {
         'deck':     deck,
         'slides':   slides,
@@ -4690,6 +4692,10 @@ def presentation_editor(request, pk):
         'classes':  classes,
         'slides_json':    slides_json,
         'share_url':      _share_url,
+        'slide_gen_used':  slide_gen_used,
+        'slide_gen_limit': FREE_GENERATION_LIMIT,
+        'slide_gen_remaining': max(0, FREE_GENERATION_LIMIT - slide_gen_used),
+        'has_slide_addon': has_slide_addon,
         'LAYOUT_CHOICES':     Slide.LAYOUT_CHOICES,
         'THEME_CHOICES':      Presentation.THEME_CHOICES,
         'TRANSITION_CHOICES': Presentation.TRANSITION_CHOICES,
@@ -5114,6 +5120,9 @@ def presentation_api(request):
 
     # ── ai_generate ─────────────────────────────────────────────────────────
     elif action == 'ai_generate':
+        ok, err = check_freemium_limit(request.user, 'aura-slide-generator', 'slide_gen')
+        if not ok:
+            return JsonResponse(err, status=403)
         topic      = data.get('topic', '').strip()
         subject_id = data.get('subject_id')
         class_id   = data.get('class_id')
@@ -5206,6 +5215,9 @@ def presentation_api(request):
 
     # ── from_lesson_plan ─────────────────────────────────────────────────────────
     elif action == 'from_lesson_plan':
+        ok, err = check_freemium_limit(request.user, 'aura-slide-generator', 'slide_gen')
+        if not ok:
+            return JsonResponse(err, status=403)
         plan_id = data.get('plan_id')
         if not plan_id:
             return JsonResponse({'error': 'plan_id is required'}, status=400)
@@ -5283,6 +5295,9 @@ def presentation_api(request):
 
     # ── suggest_bullets ──────────────────────────────────────────────────────
     elif action == 'suggest_bullets':
+        ok, err = check_freemium_limit(request.user, 'aura-slide-generator', 'slide_gen')
+        if not ok:
+            return JsonResponse(err, status=403)
         title = data.get('title', '').strip()
         if not title:
             return JsonResponse({'error': 'title is required'}, status=400)
@@ -5298,6 +5313,9 @@ def presentation_api(request):
 
     # ── suggest_layouts ──────────────────────────────────────────────────────
     elif action == 'suggest_layouts':
+        ok, err = check_freemium_limit(request.user, 'aura-slide-generator', 'slide_gen')
+        if not ok:
+            return JsonResponse(err, status=403)
         slides_qs = deck.slides.order_by('order')
         slides_data = [
             {'slide_id': s.pk, 'order': s.order, 'title': s.title, 'content': s.content}
@@ -5324,6 +5342,9 @@ def presentation_api(request):
 
     # ── harmonize_deck ──────────────────────────────────────────────────────
     elif action == 'harmonize_deck':
+        ok, err = check_freemium_limit(request.user, 'aura-slide-generator', 'slide_gen')
+        if not ok:
+            return JsonResponse(err, status=403)
         slides_qs = deck.slides.order_by('order')
         slides_data = [
             {'slide_id': s.pk, 'title': s.title, 'content': s.content}
@@ -5441,6 +5462,9 @@ def presentation_api(request):
 
     # ── refine_slide ─────────────────────────────────────────────────────────
     elif action == 'refine_slide':
+        ok, err = check_freemium_limit(request.user, 'aura-slide-generator', 'slide_gen')
+        if not ok:
+            return JsonResponse(err, status=403)
         slide_id    = data.get('slide_id')
         instruction = data.get('instruction', '').strip()
         slide       = get_object_or_404(Slide, pk=slide_id, presentation=deck)
@@ -5461,7 +5485,7 @@ def presentation_api(request):
 
 
 @login_required
-@requires_addon('aura-slide-generator')
+@requires_addon_freemium('aura-slide-generator', action_type='slide_gen')
 def presentation_generate_from_doc(request):
     """
     Accepts a multipart POST with:
@@ -5553,7 +5577,7 @@ def presentation_generate_from_doc(request):
 
 
 @login_required
-@requires_addon('aura-slide-generator')
+@requires_addon_freemium('aura-slide-generator', action_type='slide_gen')
 def presentation_from_youtube(request):
     """
     POST JSON: {deck_id: int, youtube_url: str}
@@ -5826,7 +5850,7 @@ def presentation_slide_image_upload(request):
 
 @login_required
 @require_POST
-@requires_addon('aura-slide-generator')
+@requires_addon_freemium('aura-slide-generator', action_type='slide_gen')
 def generate_slide_image(request):
     """Generate an AI image for a slide using OpenAI DALL\u00b7E."""
     if request.user.user_type != 'teacher':
@@ -5885,6 +5909,9 @@ def presentation_study_guide(request, pk):
         import json as _json
         action = request.POST.get('action') or ''
         if action == 'generate_ai':
+            ok, err = check_freemium_limit(request.user, 'aura-slide-generator', 'study_guide')
+            if not ok:
+                return JsonResponse(err, status=403)
             slides = list(deck.slides.values('title', 'content', 'layout', 'speaker_notes', 'emoji'))
             from teachers.services.aura_gen_engine import AuraGenEngine
             from tenants.ai_quota import check_and_consume, QuotaExceeded
@@ -7037,7 +7064,6 @@ def addon_rubric_designer(request):
 
 
 @login_required
-@requires_addon('study-guide-builder')
 def addon_study_guide(request):
     """Create study guides from lesson content."""
     from teachers.models import StudyGuide
@@ -7062,13 +7088,18 @@ def addon_study_guide(request):
     subjects = Subject.objects.all()
     classes = Class.objects.all()
     guides = StudyGuide.objects.filter(teacher=teacher).select_related('subject', 'target_class')
+    sg_used = get_free_generation_count(teacher, 'study_guide')
     return render(request, 'teachers/addon_study_guide.html', {
         'subjects': subjects, 'classes': classes, 'guides': guides,
+        'sg_gen_used': sg_used,
+        'sg_gen_limit': FREE_GENERATION_LIMIT,
+        'sg_gen_remaining': max(0, FREE_GENERATION_LIMIT - sg_used),
+        'has_sg_addon': has_addon(teacher, 'study-guide-builder'),
     })
 
 
 @login_required
-@requires_addon('study-guide-builder')
+@requires_addon_freemium('study-guide-builder', action_type='study_guide')
 def study_guide_ai(request):
     """AJAX endpoint: generate study guide HTML from teacher notes using AI."""
     if request.method != 'POST':
@@ -7081,6 +7112,12 @@ def study_guide_ai(request):
 
     # Use OpenAI / Gemini if available, otherwise return a formatted version
     try:
+        from tenants.ai_quota import check_and_consume, QuotaExceeded
+        try:
+            check_and_consume(request.tenant, request.user.id, 'study_guide')
+        except QuotaExceeded as e:
+            return JsonResponse({'error': e.user_message, 'error_code': 'quota_exceeded', 'used': e.used, 'limit': e.limit}, status=429)
+
         import google.generativeai as genai
         api_key = os.environ.get('GEMINI_API_KEY', '')
         if api_key:

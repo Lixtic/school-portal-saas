@@ -11,7 +11,7 @@ ADDON_FEATURE_MAP = {
     'aura-slide-generator': {
         'label': 'Aura Slide Generator',
         'gates': [
-            'presentation_create', 'presentation_api',
+            'presentation_api',
             'presentation_generate_from_doc', 'presentation_from_youtube',
             'presentation_generate_image',
         ],
@@ -52,7 +52,7 @@ ADDON_FEATURE_MAP = {
     },
     'study-guide-builder': {
         'label': 'Study Guide Builder',
-        'gates': ['addon_study_guide', 'study_guide_ai'],
+        'gates': ['study_guide_ai'],
     },
     'random-picker': {
         'label': 'Random Picker',
@@ -148,6 +148,32 @@ def get_free_generation_count(user, action_type='lesson_gen'):
         ).count()
     except Exception:
         return 0
+
+
+def check_freemium_limit(user, slug, action_type='lesson_gen', free_limit=FREE_GENERATION_LIMIT):
+    """Inline freemium check. Returns (allowed, error_dict_or_None).
+
+    Use inside multi-action views where a decorator can't target one branch.
+    If ``allowed`` is False, return ``JsonResponse(err, status=403)`` to the client.
+    """
+    if getattr(user, 'user_type', '') != 'teacher':
+        return True, None
+    if has_addon(user, slug):
+        return True, None
+    used = get_free_generation_count(user, action_type)
+    if used < free_limit:
+        return True, None
+    label = ADDON_FEATURE_MAP.get(slug, {}).get('label', slug)
+    return False, {
+        'status': 'error',
+        'error_code': 'freemium_limit',
+        'message': (
+            f'You\'ve used all {free_limit} free generations. '
+            f'Purchase "{label}" from the Add-on Store to continue.'
+        ),
+        'used': used,
+        'limit': free_limit,
+    }
 
 
 def requires_addon_freemium(slug, free_limit=FREE_GENERATION_LIMIT, action_type='lesson_gen'):

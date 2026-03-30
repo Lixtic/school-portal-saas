@@ -40,15 +40,14 @@
     </div>
 
     <div class="tb-board">
-        {% for col_id, col_label in columns %}
+        {% for col_id, col_label, col_cards in columns %}
         <div class="tb-col" data-col="{{ col_id }}" ondragover="dragOver(event)" ondrop="dropCard(event)">
             <div class="tb-col-head">
                 {{ col_label }}
                 <span class="badge bg-{% if col_id == 'todo' %}primary{% elif col_id == 'doing' %}warning{% else %}success{% endif %}" id="count-{{ col_id }}">0</span>
             </div>
             <div id="col-{{ col_id }}">
-                {% for card in cards %}
-                {% if card.column == col_id %}
+                {% for card in col_cards %}
                 <div class="tb-item" draggable="true" data-id="{{ card.id }}" ondragstart="dragStart(event)" ondragend="dragEnd(event)">
                     <div class="tb-item-actions">
                         <button onclick="deleteCard({{ card.id }})" title="Delete"><i class="bi bi-x-lg"></i></button>
@@ -60,14 +59,13 @@
                         {% if card.due_date %}<span><i class="bi bi-calendar3 me-1"></i>{{ card.due_date|date:"M d" }}</span>{% endif %}
                     </div>
                 </div>
-                {% endif %}
                 {% endfor %}
             </div>
             <!-- Add new task inline -->
             {% if col_id == 'todo' %}
             <form method="post" style="margin-top:.4rem;">
                 {% csrf_token %}
-                <input type="hidden" name="action" value="create">
+                <input type="hidden" name="action" value="add">
                 <input type="text" name="title" class="tb-add-input" placeholder="+ Add a task…" required>
                 <div class="tb-add-row">
                     <select name="priority">
