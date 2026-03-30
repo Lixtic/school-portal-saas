@@ -414,10 +414,10 @@ function calculateTotal(studentId) {
     gradeBadge.className = `badge rounded-pill ${gradeClass}`;
 }
 
-// Preselect and optionally load students based on query params
+// Preselect from query param or server-side default
 (function preselectFromQuery() {
     const select = document.getElementById('classSubjectSelect');
-    const presetCs = '{{ selected_cs_id|default:"" }}';
+    const presetCs = '{{ selected_cs_id|default:"" }}' || '{{ default_cs_id|default:"" }}';
     if (presetCs) {
         select.value = presetCs;
     }
@@ -440,8 +440,27 @@ function syncExamTypeVisibility() {
     }
 }
 
-document.getElementById('classSubjectSelect').addEventListener('change', syncExamTypeVisibility);
+document.getElementById('classSubjectSelect').addEventListener('change', function() {
+    syncExamTypeVisibility();
+    autoReload();
+});
 syncExamTypeVisibility();
+
+// Re-load students when term or exam type changes
+const termSelect = document.querySelector('select[name="term"]');
+const examTypeSelect = document.getElementById('examTypeSelect');
+const loadBtn = document.getElementById('loadStudents');
+
+function autoReload() {
+    const cs = document.getElementById('classSubjectSelect');
+    if (cs && cs.value && loadBtn) loadBtn.click();
+}
+
+termSelect.addEventListener('change', autoReload);
+examTypeSelect.addEventListener('change', autoReload);
+
+// Auto-load on page open if a class/subject is already selected
+autoReload();
 
 // AI Scan Logic
 document.getElementById('btnScanImage').addEventListener('click', function() {

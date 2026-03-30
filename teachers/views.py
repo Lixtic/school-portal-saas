@@ -1019,9 +1019,15 @@ def enter_grades(request):
                 messages.success(request, f'Grades entered/updated for {created_count} students in {cs.class_name} - {cs.subject}.')
         return redirect('teachers:enter_grades')
     
+    # Auto-select if teacher has exactly one assignment
+    default_cs_id = selected_cs_id
+    if not default_cs_id and class_subjects.count() == 1:
+        default_cs_id = str(class_subjects.first().id)
+
     return render(request, 'teachers/enter_grades.html', {
         'class_subjects': class_subjects,
         'selected_cs_id': selected_cs_id,
+        'default_cs_id': default_cs_id,
         'exam_types': exam_types,
         'selected_exam_type_id': selected_exam_type_id,
     })
