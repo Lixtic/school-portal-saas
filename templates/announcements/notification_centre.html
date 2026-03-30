@@ -94,10 +94,10 @@
                 <h1><i class="bi bi-bell-fill me-2" style="font-size:1.1rem;"></i>Notification Centre</h1>
                 <p>All your notifications in one place</p>
             </div>
-            {% if unread_count_before > 0 %}
-            <span class="badge bg-white text-primary fw-bold px-3 py-2 rounded-pill" style="font-size:.8rem;">
-                {{ unread_count_before }} marked as read
-            </span>
+            {% if unread_ids %}
+            <a href="{% url 'announcements:mark_all_read' %}" class="badge bg-white text-primary fw-bold px-3 py-2 rounded-pill text-decoration-none" style="font-size:.8rem;">
+                <i class="bi bi-check2-all me-1"></i>Mark all read ({{ unread_ids|length }})
+            </a>
             {% endif %}
         </div>
         <div class="nc-tabs">
@@ -113,7 +113,7 @@
         {% for notif in notifications %}
         {% with was_unread=notif.id|stringformat:"s" %}
         <a href="{% url 'announcements:mark_read' notif.id %}"
-           class="nc-item{% if notif.id in unread_ids_before %} was-unread{% endif %}"
+           class="nc-item{% if notif.id in unread_ids %} was-unread{% endif %}"
            title="{{ notif.message }}">
             <div class="nc-icon
                 {% if notif.alert_type == 'announcement' %}ic-announcement

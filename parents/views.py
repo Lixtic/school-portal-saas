@@ -10,8 +10,8 @@ import json
 from students.models import Student, Attendance, Grade
 from finance.models import StudentFee
 from teachers.models import Teacher
-from django.db.models import Sum
-from django.db.models import Q
+from django.db.models import Sum, Q, Count, Value, OuterRef, Subquery, DecimalField
+from django.db.models.functions import Coalesce
 
 @login_required
 def parent_children(request):
@@ -25,33 +25,42 @@ def parent_children(request):
         messages.error(request, 'Parent profile not found. Please contact administrator.')
         return redirect('dashboard')
     
-    # Get all children with additional stats
-    children = parent.children.all()
-    children_data = []
-    
-    for child in children:
-        # Calculate attendance percentage
-        total_attendance = Attendance.objects.filter(student=child).count()
-        present_count = Attendance.objects.filter(student=child, status='present').count()
-        
-        attendance_percentage = 0
-        if total_attendance > 0:
-            attendance_percentage = round((present_count / total_attendance) * 100, 2)
-        
-        # Get grade count
-        grade_count = Grade.objects.filter(student=child).count()
+    # Single annotated query — no per-child loops
+    fee_payable_sq = (
+        StudentFee.objects.filter(student=OuterRef('pk'))
+        .values('student')
+        .annotate(total=Sum('amount_payable'))
+        .values('total')
+    )
+    from finance.models import Payment
+    fee_paid_sq = (
+        Payment.objects.filter(student_fee__student=OuterRef('pk'))
+        .values('student_fee__student')
+        .annotate(total=Sum('amount'))
+        .values('total')
+    )
 
-        # Calculate Fee Balance
-        fees = StudentFee.objects.filter(student=child)
-        total_payable = sum(fee.amount_payable for fee in fees)
-        total_paid = sum(fee.total_paid for fee in fees)
-        balance = total_payable - total_paid
-        
-        child.attendance_percentage = attendance_percentage
-        child.grade_count = grade_count
-        child.fee_balance = balance
+    children = (
+        parent.children
+        .select_related('user', 'current_class')
+        .annotate(
+            total_attendance=Count('attendance', distinct=True),
+            present_count=Count('attendance', filter=Q(attendance__status='present'), distinct=True),
+            grade_count=Count('grade', distinct=True),
+            fee_payable=Coalesce(Subquery(fee_payable_sq), Value(0)),
+            fee_paid=Coalesce(Subquery(fee_paid_sq), Value(0)),
+        )
+    )
+
+    children_data = []
+    for child in children:
+        child.attendance_percentage = (
+            round((child.present_count / child.total_attendance) * 100, 2)
+            if child.total_attendance > 0 else 0
+        )
+        child.fee_balance = child.fee_payable - child.fee_paid
         children_data.append(child)
-    
+
     return render(request, 'parents/my_children.html', {'children': children_data})
 
 

@@ -238,15 +238,13 @@ def notification_centre(request):
     if filter_tab == 'unread':
         qs = qs.filter(is_read=False)
 
-    # Mark all fetched notifications as read (passive auto-read)
-    unread_ids = list(qs.filter(is_read=False).values_list('id', flat=True))
-    if unread_ids:
-        Notification.objects.filter(id__in=unread_ids).update(is_read=True)
+    # Collect unread IDs for visual highlighting (blue left-border)
+    unread_ids = set(qs.filter(is_read=False).values_list('id', flat=True))
 
     return render(request, 'announcements/notification_centre.html', {
         'notifications': qs,
         'active_tab': filter_tab,
-        'unread_count_before': len(unread_ids),
+        'unread_ids': unread_ids,
     })
 
 
