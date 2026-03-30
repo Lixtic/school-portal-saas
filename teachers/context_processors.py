@@ -90,4 +90,11 @@ def teacher_context(request):
         import logging
         logging.getLogger(__name__).debug(f"Aura context error: {e}")
     
+    # Purchased add-on slugs (set) for sidebar gating
+    try:
+        from teachers.addon_utils import get_purchased_slugs
+        context['purchased_addon_slugs'] = get_purchased_slugs(request.user)
+    except Exception:
+        context['purchased_addon_slugs'] = set()
+
     return context

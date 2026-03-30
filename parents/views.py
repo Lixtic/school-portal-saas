@@ -5,7 +5,7 @@ from parents.models import Parent
 from homework.models import Homework, Submission
 from .forms import ParentForm
 from accounts.models import User
-
+import json
 
 from students.models import Student, Attendance, Grade
 from finance.models import StudentFee
@@ -170,6 +170,33 @@ def child_details(request, student_id):
     fee_total_paid = sum(f.total_paid for f in fees)
     fee_total_balance = fee_total_payable - fee_total_paid
 
+    # ── Chart data: weekly attendance trend (last 8 weeks) ──
+    import datetime as _dt
+    from collections import OrderedDict
+    today = _dt.date.today()
+    week_labels = []
+    week_present = []
+    week_total = []
+    for i in range(7, -1, -1):
+        start = today - _dt.timedelta(weeks=i, days=today.weekday())
+        end = start + _dt.timedelta(days=4)
+        week_att = Attendance.objects.filter(student=student, date__gte=start, date__lte=end)
+        wt = week_att.count()
+        wp = week_att.filter(status='present').count()
+        week_labels.append(start.strftime('%b %d'))
+        week_total.append(wt)
+        week_present.append(wp)
+
+    # ── Chart data: grade average per subject ──
+    from itertools import groupby
+    from operator import attrgetter
+    subject_scores = {}
+    for g in grades:
+        sname = g.subject.name if g.subject else 'Unknown'
+        subject_scores.setdefault(sname, []).append(g.total_score or 0)
+    subject_labels = list(subject_scores.keys())
+    subject_avgs = [round(sum(v) / len(v), 1) for v in subject_scores.values()]
+
     context = {
         'student': student,
         'attendances': attendances,
@@ -187,6 +214,11 @@ def child_details(request, student_id):
         'fee_total_payable': fee_total_payable,
         'fee_total_paid': fee_total_paid,
         'fee_total_balance': fee_total_balance,
+        'att_week_labels': json.dumps(week_labels),
+        'att_week_present': json.dumps(week_present),
+        'att_week_total': json.dumps(week_total),
+        'subject_labels': json.dumps(subject_labels),
+        'subject_avgs': json.dumps(subject_avgs),
     }
     
     return render(request, 'parents/child_details.html', context)

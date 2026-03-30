@@ -1,469 +1,703 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Teacher Toolkit – {{ school_name }}{% endblock %}
+{% block title %}Teacher Toolkit  {{ school_name }}{% endblock %}
 
 {% block extra_css %}
 <style>
-/* ── Palette & variables ──────────────────────────────────────────── */
+/* 
+   TEACHER TOOLKIT  Design tokens
+ */
 :root {
-    --ts-accent:     #0ea5e9;
-    --ts-accent-h:   #0284c7;
-    --ts-warm:       #f97316;
-    --ts-surface:    #ffffff;
-    --ts-bg:         #f0f4f8;
-    --ts-border:     #e2e8f0;
-    --ts-heading:    #0f172a;
-    --ts-body:       #334155;
-    --ts-muted:      #94a3b8;
-    --ts-card-hover: 0 12px 28px rgba(14,165,233,.12);
-    --ts-radius:     14px;
+    --tk-ink:       #0b1120;
+    --tk-surface:   #ffffff;
+    --tk-bg:        #f4f6fb;
+    --tk-border:    #e4e8f2;
+    --tk-muted:     #8892a4;
+    --tk-body:      #3d4a60;
+    --tk-shadow:    0 2px 12px rgba(11,17,32,.07);
+    --tk-shadow-lg: 0 12px 36px rgba(11,17,32,.12);
+    --tk-radius:    16px;
+    --tk-radius-sm: 10px;
+
+    --cat-prod:  #0ea5e9;
+    --cat-ai:    #8b5cf6;
+    --cat-assess:#f59e0b;
+    --cat-cont:  #10b981;
+    --cat-prof:  #ef4444;
+    --cat-class: #6366f1;
 }
 [data-bs-theme="dark"] {
-    --ts-surface:    #1e293b;
-    --ts-bg:         #0f172a;
-    --ts-border:     rgba(255,255,255,.08);
-    --ts-heading:    #f1f5f9;
-    --ts-body:       #cbd5e1;
-    --ts-muted:      #64748b;
-    --ts-card-hover: 0 12px 28px rgba(0,0,0,.35);
+    --tk-ink:     #f0f4ff;
+    --tk-surface: #1a2236;
+    --tk-bg:      #0f172a;
+    --tk-border:  rgba(255,255,255,.07);
+    --tk-muted:   #5a6880;
+    --tk-body:    #8fa0bc;
+    --tk-shadow:    0 2px 12px rgba(0,0,0,.25);
+    --tk-shadow-lg: 0 12px 36px rgba(0,0,0,.4);
 }
 
-/* ── Hero banner ──────────────────────────────────────────────────── */
-.ts-hero {
-    background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 50%, #a855f7 100%);
-    border-radius: 1rem;
-    padding: 1.75rem 2rem;
-    color: #fff;
+/* Page shell */
+.tk-page {
+    background: var(--tk-bg);
+    min-height: 100vh;
+    padding: 1.5rem 1.25rem 3rem;
+}
+
+/* Hero */
+.tk-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: 20px;
+    padding: 2rem 2.25rem;
     margin-bottom: 1.5rem;
+    background: linear-gradient(140deg, #1e2f6e 0%, #3730a3 38%, #6d28d9 70%, #7c3aed 100%);
+    color: #fff;
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 1rem;
-    box-shadow: 0 8px 32px rgba(14,165,233,.22);
-    position: relative;
-    overflow: hidden;
+    gap: 1.25rem;
+    isolation: isolate;
 }
-.ts-hero::before {
+.tk-hero::before,
+.tk-hero::after {
     content: '';
     position: absolute;
+    border-radius: 50%;
+    filter: blur(56px);
+    pointer-events: none;
+    z-index: -1;
+}
+.tk-hero::before {
+    width: 280px; height: 280px;
+    background: rgba(124,58,237,.55);
+    top: -60px; right: 15%;
+}
+.tk-hero::after {
+    width: 200px; height: 200px;
+    background: rgba(14,165,233,.4);
+    bottom: -50px; left: 30%;
+}
+.tk-hero-grid {
+    position: absolute;
     inset: 0;
-    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+    background-image:
+        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size: 28px 28px;
     pointer-events: none;
 }
-[data-bs-theme="dark"] .ts-hero { box-shadow: 0 8px 32px rgba(0,0,0,.45); }
-.ts-hero h2 { font-size: 1.4rem; font-weight: 800; margin: 0; position: relative; }
-.ts-hero p  { opacity: .85; font-size: .85rem; margin: .25rem 0 0; position: relative; }
-.ts-hero-stats { display: flex; gap: .65rem; position: relative; }
-.ts-hero-pill {
-    background: rgba(255,255,255,.15);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255,255,255,.18);
-    border-radius: 10px;
-    padding: .45rem .9rem;
-    text-align: center;
-    min-width: 80px;
+.tk-hero-copy { position: relative; }
+.tk-hero-copy .tk-eyebrow {
+    font-size: .65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: rgba(255,255,255,.55);
+    margin-bottom: .35rem;
 }
-.ts-hero-pill strong { display: block; font-size: 1.2rem; font-weight: 700; }
-.ts-hero-pill span { font-size: .65rem; text-transform: uppercase; letter-spacing: .04em; opacity: .8; }
+.tk-hero-copy h1 {
+    font-size: clamp(1.3rem, 3vw, 1.75rem);
+    font-weight: 800;
+    margin: 0 0 .3rem;
+    line-height: 1.2;
+    letter-spacing: -.02em;
+}
+.tk-hero-copy p {
+    font-size: .83rem;
+    color: rgba(255,255,255,.72);
+    margin: 0;
+    max-width: 360px;
+}
+.tk-hero-stats {
+    display: flex;
+    gap: .65rem;
+    flex-wrap: wrap;
+    position: relative;
+}
+.tk-stat-pill {
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.18);
+    backdrop-filter: blur(12px);
+    border-radius: 12px;
+    padding: .6rem 1.1rem;
+    text-align: center;
+    min-width: 88px;
+}
+.tk-stat-pill strong {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 800;
+    line-height: 1;
+}
+.tk-stat-pill span {
+    font-size: .62rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: rgba(255,255,255,.65);
+    margin-top: .2rem;
+    display: block;
+}
 
-/* ── Filter strip ─────────────────────────────────────────────────── */
-.ts-filter {
-    background: var(--ts-surface);
-    border: 1px solid var(--ts-border);
-    border-radius: var(--ts-radius);
+/* Active tools banner */
+.tk-owned-bar {
+    background: linear-gradient(90deg, rgba(16,185,129,.08) 0%, rgba(16,185,129,.04) 100%);
+    border: 1px solid rgba(16,185,129,.18);
+    border-radius: var(--tk-radius-sm);
     padding: .65rem 1rem;
     margin-bottom: 1.25rem;
+    font-size: .8rem;
+    color: #10b981;
     display: flex;
     align-items: center;
     gap: .5rem;
+}
+.tk-owned-bar i { font-size: 1rem; }
+.tk-owned-bar b { color: inherit; font-weight: 700; }
+
+/* Filter bar */
+.tk-filter {
+    background: var(--tk-surface);
+    border: 1px solid var(--tk-border);
+    border-radius: var(--tk-radius);
+    box-shadow: var(--tk-shadow);
+    padding: .8rem 1.1rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: .55rem;
     flex-wrap: wrap;
 }
-.ts-filter input {
+.tk-search-wrap {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
     flex: 1;
     min-width: 140px;
-    border: none;
-    background: transparent;
-    color: var(--ts-heading);
-    outline: none;
-    font-size: .85rem;
+    background: var(--tk-bg);
+    border: 1px solid var(--tk-border);
+    border-radius: 9px;
+    padding: .35rem .75rem;
 }
-.ts-filter input::placeholder { color: var(--ts-muted); }
-.ts-pill-btn {
-    border: 1px solid var(--ts-border);
+.tk-search-wrap i { color: var(--tk-muted); font-size: .8rem; flex-shrink: 0; }
+.tk-search-wrap input {
+    border: none; background: transparent;
+    color: var(--tk-ink); outline: none;
+    font-size: .83rem; width: 100%;
+}
+.tk-search-wrap input::placeholder { color: var(--tk-muted); }
+.tk-filter-sep { width: 1px; height: 22px; background: var(--tk-border); flex-shrink: 0; }
+
+.tk-chip {
+    border: 1.5px solid var(--tk-border);
     background: transparent;
-    color: var(--ts-body);
-    padding: .3rem .7rem;
+    color: var(--tk-body);
+    padding: .28rem .7rem;
     border-radius: 8px;
-    font-size: .72rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all .2s ease;
-    white-space: nowrap;
-}
-.ts-pill-btn:hover,
-.ts-pill-btn.active {
-    background: var(--ts-accent);
-    border-color: var(--ts-accent);
-    color: #fff;
-}
-.ts-result-badge {
-    font-size: .68rem;
-    background: var(--ts-accent);
-    color: #fff;
-    padding: .2rem .55rem;
-    border-radius: 6px;
-    font-weight: 600;
-    margin-left: auto;
-}
-
-/* ── Category section ─────────────────────────────────────────────── */
-.ts-cat-heading {
-    font-size: .78rem;
+    font-size: .71rem;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .06em;
-    color: var(--ts-muted);
-    margin: 1.25rem 0 .65rem;
-    display: flex;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s;
+    white-space: nowrap;
+    display: inline-flex;
     align-items: center;
-    gap: .4rem;
+    gap: .3rem;
 }
-.ts-cat-heading::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--ts-border);
+.tk-chip .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: .55;
+    display: inline-block;
 }
+.tk-chip[data-cat="all"]           { color: var(--tk-body); }
+.tk-chip[data-cat="all"].active    { background: #6366f1; border-color: #6366f1; color: #fff; }
+.tk-chip[data-cat="productivity"]  { color: var(--cat-prod);  border-color: rgba(14,165,233,.3); }
+.tk-chip[data-cat="ai_tools"]      { color: var(--cat-ai);   border-color: rgba(139,92,246,.3); }
+.tk-chip[data-cat="assessment"]    { color: var(--cat-assess);border-color: rgba(245,158,11,.3);}
+.tk-chip[data-cat="content"]       { color: var(--cat-cont); border-color: rgba(16,185,129,.3); }
+.tk-chip[data-cat="professional"]  { color: var(--cat-prof); border-color: rgba(239,68,68,.3); }
+.tk-chip[data-cat="classroom"]     { color: var(--cat-class);border-color: rgba(99,102,241,.3);}
+.tk-chip.active                    { background: currentColor; border-color: currentColor; color: #fff; }
+.tk-chip[data-cat="all"].active .dot,
+.tk-chip.active .dot               { background: #fff; opacity: .7; }
 
-/* ── Add-on card ──────────────────────────────────────────────────── */
-.ts-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
-    gap: 1rem;
-}
-.ts-card {
-    background: var(--ts-surface);
-    border: 1px solid var(--ts-border);
-    border-radius: var(--ts-radius);
-    padding: 1.15rem;
-    display: flex;
-    flex-direction: column;
-    transition: box-shadow .25s ease, transform .25s ease;
-    position: relative;
-}
-.ts-card:hover {
-    box-shadow: var(--ts-card-hover);
-    transform: translateY(-3px);
-}
-
-/* Icon circle */
-.ts-card-icon {
-    width: 44px; height: 44px;
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 12px;
-    font-size: 1.2rem;
+.tk-count-badge {
+    margin-left: auto;
+    font-size: .68rem;
+    font-weight: 700;
+    background: var(--tk-bg);
+    border: 1px solid var(--tk-border);
+    color: var(--tk-muted);
+    padding: .25rem .6rem;
+    border-radius: 7px;
+    white-space: nowrap;
     flex-shrink: 0;
 }
-/* category colors */
-.ts-cat-productivity  { background: rgba(14,165,233,.12); color: #0ea5e9; }
-.ts-cat-ai_tools      { background: rgba(168,85,247,.12); color: #a855f7; }
-.ts-cat-assessment    { background: rgba(245,158,11,.12); color: #f59e0b; }
-.ts-cat-content       { background: rgba(16,185,129,.12); color: #10b981; }
-.ts-cat-professional  { background: rgba(239,68,68,.12);  color: #ef4444; }
-.ts-cat-classroom     { background: rgba(99,102,241,.12); color: #6366f1; }
 
-[data-bs-theme="dark"] .ts-cat-productivity  { background: rgba(14,165,233,.18); }
-[data-bs-theme="dark"] .ts-cat-ai_tools      { background: rgba(168,85,247,.18); }
-[data-bs-theme="dark"] .ts-cat-assessment    { background: rgba(245,158,11,.18); }
-[data-bs-theme="dark"] .ts-cat-content       { background: rgba(16,185,129,.18); }
-[data-bs-theme="dark"] .ts-cat-professional  { background: rgba(239,68,68,.18); }
-[data-bs-theme="dark"] .ts-cat-classroom     { background: rgba(99,102,241,.18); }
+/* Category heading */
+.tk-cat-row {
+    display: flex; align-items: center; gap: .6rem;
+    margin: 1.5rem 0 .8rem;
+}
+.tk-cat-icon {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .85rem; flex-shrink: 0;
+}
+.tk-cat-label {
+    font-size: .72rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .08em;
+    color: var(--tk-muted);
+}
+.tk-cat-line { flex: 1; height: 1px; background: var(--tk-border); }
+.tk-cat-num {
+    font-size: .65rem; font-weight: 700;
+    background: var(--tk-border); color: var(--tk-muted);
+    padding: .15rem .45rem; border-radius: 5px;
+}
+.tk-cat-icon.cat-productivity  { background: rgba(14,165,233,.1); color: var(--cat-prod); }
+.tk-cat-icon.cat-ai_tools      { background: rgba(139,92,246,.1); color: var(--cat-ai);  }
+.tk-cat-icon.cat-assessment    { background: rgba(245,158,11,.1); color: var(--cat-assess);}
+.tk-cat-icon.cat-content       { background: rgba(16,185,129,.1); color: var(--cat-cont);}
+.tk-cat-icon.cat-professional  { background: rgba(239,68,68,.1);  color: var(--cat-prof);}
+.tk-cat-icon.cat-classroom     { background: rgba(99,102,241,.1); color: var(--cat-class);}
 
-.ts-card-head {
-    display: flex;
-    align-items: flex-start;
-    gap: .75rem;
-    margin-bottom: .65rem;
+/* Card grid */
+.tk-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
+    gap: 1.1rem;
 }
-.ts-card-head h3 {
-    font-size: .92rem;
-    font-weight: 700;
-    color: var(--ts-heading);
-    margin: 0;
-    line-height: 1.3;
+.tk-card {
+    background: var(--tk-surface);
+    border: 1.5px solid var(--tk-border);
+    border-radius: var(--tk-radius);
+    padding: 1.2rem;
+    display: flex; flex-direction: column;
+    transition: box-shadow .22s ease, transform .22s ease, border-color .22s ease;
+    position: relative; overflow: hidden;
+    box-shadow: var(--tk-shadow);
+    animation: tkFadeUp .35s ease both;
 }
-.ts-card-head .ts-tagline {
-    font-size: .73rem;
-    color: var(--ts-muted);
-    margin: .15rem 0 0;
+@keyframes tkFadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
-
-.ts-badge {
+.tk-card:hover { box-shadow: var(--tk-shadow-lg); transform: translateY(-4px); }
+.tk-card.is-owned { border-color: rgba(16,185,129,.35); }
+.tk-card.is-owned::before {
+    content: '';
     position: absolute;
-    top: .75rem; right: .75rem;
-    font-size: .58rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: .06em;
-    padding: .2rem .5rem;
-    border-radius: 6px;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #10b981, #34d399);
+    border-radius: var(--tk-radius) var(--tk-radius) 0 0;
 }
-.ts-badge-new  { background: #10b981; color: #fff; }
-.ts-badge-pop  { background: var(--ts-warm); color: #fff; }
-.ts-badge-free { background: #6366f1; color: #fff; }
-.ts-badge-owned {
+.tk-badge {
+    position: absolute;
+    top: .8rem; right: .8rem;
+    font-size: .58rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .07em;
+    padding: .22rem .52rem;
+    border-radius: 6px; line-height: 1.4; z-index: 1;
+    display: inline-flex; align-items: center; gap: .25rem;
+}
+.tk-badge-new   { background: #10b981; color: #fff; }
+.tk-badge-pop   { background: #f97316; color: #fff; }
+.tk-badge-free  { background: #6366f1; color: #fff; }
+.tk-badge-owned {
     background: rgba(16,185,129,.12);
     color: #10b981;
-    border: 1px solid rgba(16,185,129,.25);
+    border: 1px solid rgba(16,185,129,.28);
 }
 
-/* Feature list */
-.ts-features {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 .75rem;
-    flex: 1;
+.tk-icon-wrap {
+    width: 48px; height: 48px;
+    border-radius: 13px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.25rem; flex-shrink: 0;
+    margin-bottom: .9rem;
 }
-.ts-features li {
-    font-size: .76rem;
-    color: var(--ts-body);
-    padding: .2rem 0;
-    display: flex;
-    align-items: baseline;
-    gap: .35rem;
-}
-.ts-features li i { color: var(--ts-accent); font-size: .65rem; flex-shrink: 0; }
+.ic-productivity { background: rgba(14,165,233,.1); color: var(--cat-prod); }
+.ic-ai_tools     { background: rgba(139,92,246,.1); color: var(--cat-ai);  }
+.ic-assessment   { background: rgba(245,158,11,.1); color: var(--cat-assess);}
+.ic-content      { background: rgba(16,185,129,.1); color: var(--cat-cont);}
+.ic-professional { background: rgba(239,68,68,.1);  color: var(--cat-prof);}
+.ic-classroom    { background: rgba(99,102,241,.1); color: var(--cat-class);}
+[data-bs-theme="dark"] .ic-productivity { background: rgba(14,165,233,.18); }
+[data-bs-theme="dark"] .ic-ai_tools     { background: rgba(139,92,246,.18); }
+[data-bs-theme="dark"] .ic-assessment   { background: rgba(245,158,11,.18); }
+[data-bs-theme="dark"] .ic-content      { background: rgba(16,185,129,.18); }
+[data-bs-theme="dark"] .ic-professional { background: rgba(239,68,68,.18);  }
+[data-bs-theme="dark"] .ic-classroom    { background: rgba(99,102,241,.18); }
 
-/* Price row */
-.ts-price-row {
-    display: flex;
-    align-items: center;
+.tk-card h3 {
+    font-size: .95rem; font-weight: 800;
+    color: var(--tk-ink); margin: 0 0 .1rem;
+    line-height: 1.3; padding-right: 1.5rem;
+}
+.tk-tagline { font-size: .75rem; color: var(--tk-muted); margin: 0 0 .75rem; }
+
+.tk-features {
+    list-style: none; padding: 0; margin: 0 0 .85rem; flex: 1;
+}
+.tk-features li {
+    font-size: .76rem; color: var(--tk-body);
+    padding: .19rem 0;
+    display: flex; align-items: flex-start; gap: .4rem;
+    line-height: 1.4;
+}
+.tk-features li .bi { font-size: .62rem; color: #10b981; margin-top: .22rem; flex-shrink: 0; }
+
+.tk-desc { font-size: .78rem; color: var(--tk-body); line-height: 1.55; flex: 1; margin-bottom: .85rem; }
+
+.tk-foot {
+    display: flex; align-items: center;
     justify-content: space-between;
-    border-top: 1px solid var(--ts-border);
-    padding-top: .65rem;
-    margin-top: auto;
+    border-top: 1px solid var(--tk-border);
+    padding-top: .75rem; margin-top: auto; gap: .5rem;
 }
-.ts-price {
-    font-size: 1rem;
-    font-weight: 800;
-    color: var(--ts-heading);
-}
-.ts-price-free {
-    font-size: .82rem;
-    font-weight: 700;
-    color: #10b981;
-}
+.tk-price { font-size: 1.05rem; font-weight: 800; color: var(--tk-ink); font-variant-numeric: tabular-nums; }
+.tk-price-free { font-size: .82rem; font-weight: 700; color: #10b981; display: flex; align-items: center; gap: .3rem; }
 
-/* Buttons */
-.ts-btn {
-    border: none;
-    padding: .38rem .85rem;
-    border-radius: 9px;
-    font-size: .75rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all .2s ease;
+.tk-btn {
+    border: none; padding: .42rem .95rem;
+    border-radius: 9px; font-size: .76rem; font-weight: 700;
+    cursor: pointer; transition: all .18s ease;
+    display: inline-flex; align-items: center; gap: .3rem;
+    white-space: nowrap;
 }
-.ts-btn-get {
-    background: linear-gradient(135deg, #0ea5e9, #6366f1);
+.tk-btn-get {
+    background: linear-gradient(135deg, #4361ee, #7c3aed);
     color: #fff;
-    box-shadow: 0 2px 8px rgba(14,165,233,.25);
+    box-shadow: 0 3px 10px rgba(67,97,238,.3);
 }
-.ts-btn-get:hover { transform: scale(1.04); box-shadow: 0 4px 14px rgba(14,165,233,.35); }
-.ts-btn-owned {
-    background: rgba(16,185,129,.1);
-    color: #10b981;
-    border: 1px solid rgba(16,185,129,.25);
-    cursor: default;
+.tk-btn-get:hover { filter: brightness(1.08); box-shadow: 0 5px 16px rgba(67,97,238,.4); transform: translateY(-1px); }
+.tk-btn-owned { background: rgba(16,185,129,.1); color: #10b981; border: 1.5px solid rgba(16,185,129,.25); cursor: default; }
+.tk-btn-remove {
+    padding: .38rem .52rem; border-radius: 8px;
+    background: transparent; border: 1.5px solid var(--tk-border);
+    color: var(--tk-muted); font-size: .72rem; cursor: pointer;
+    transition: all .15s; display: inline-flex; align-items: center;
 }
-.ts-btn-cancel {
-    background: transparent;
-    color: var(--ts-muted);
-    border: 1px solid var(--ts-border);
-    font-size: .68rem;
-    padding: .3rem .6rem;
-}
-.ts-btn-cancel:hover { border-color: #ef4444; color: #ef4444; }
+.tk-btn-remove:hover { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,.05); }
 
-/* ── Empty state ──────────────────────────────────────────────────── */
-.ts-empty {
-    text-align: center;
-    padding: 3rem 1rem;
-    color: var(--ts-muted);
+.tk-empty { text-align: center; padding: 4rem 1rem; color: var(--tk-muted); }
+.tk-empty-icon {
+    width: 72px; height: 72px; border-radius: 18px;
+    background: var(--tk-bg); border: 1.5px solid var(--tk-border);
+    margin: 0 auto 1rem;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; color: var(--tk-muted);
 }
-.ts-empty i { font-size: 2.5rem; margin-bottom: .75rem; display: block; opacity: .5; }
+.tk-empty h5 { font-size: .95rem; color: var(--tk-ink); margin-bottom: .35rem; }
+.tk-empty p  { font-size: .82rem; max-width: 280px; margin: 0 auto; }
+.tk-no-results { display: none; text-align: center; padding: 3rem 1rem; color: var(--tk-muted); font-size: .85rem; }
 
-/* ── Responsive ───────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-    .ts-hero { padding: 1.25rem 1.25rem; flex-direction: column; align-items: flex-start; }
-    .ts-grid { grid-template-columns: 1fr; }
-    .ts-filter { flex-direction: column; }
-    .ts-result-badge { margin-left: 0; }
+    .tk-page { padding: 1rem .75rem 2.5rem; }
+    .tk-hero { padding: 1.4rem 1.25rem; }
+    .tk-hero-copy h1 { font-size: 1.3rem; }
+    .tk-hero-stats { gap: .5rem; }
+    .tk-stat-pill { min-width: 74px; padding: .5rem .85rem; }
+    .tk-stat-pill strong { font-size: 1.2rem; }
+    .tk-grid { grid-template-columns: 1fr; }
+    .tk-filter { padding: .65rem .85rem; }
+    .tk-filter-sep { display: none; }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- Hero -->
-<div class="ts-hero">
-    <div>
-        <h2><i class="bi bi-shop-window me-2"></i>Teacher Toolkit</h2>
-        <p>Personal add-ons to supercharge your teaching workflow</p>
-    </div>
-    <div class="ts-hero-stats">
-        <div class="ts-hero-pill">
-            <strong>{{ total_count }}</strong>
-            <span>Available</span>
+<div class="tk-page">
+
+    <!-- Hero -->
+    <div class="tk-hero">
+        <div class="tk-hero-grid"></div>
+        <div class="tk-hero-copy">
+            <div class="tk-eyebrow"><i class="bi bi-shop-window me-1"></i>Teacher Toolkit</div>
+            <h1>Supercharge your<br>teaching workflow</h1>
+            <p>Activate curated tools, AI assistants, and resource packs  tailored for your classroom.</p>
         </div>
-        <div class="ts-hero-pill">
-            <strong>{{ purchased_count }}</strong>
-            <span>Active</span>
+        <div class="tk-hero-stats">
+            <div class="tk-stat-pill">
+                <strong>{{ total_count }}</strong>
+                <span>Available</span>
+            </div>
+            <div class="tk-stat-pill">
+                <strong>{{ purchased_count }}</strong>
+                <span>Active</span>
+            </div>
+            <div class="tk-stat-pill">
+                <strong>{{ categories|length }}</strong>
+                <span>Categories</span>
+            </div>
         </div>
     </div>
-</div>
 
-{% if messages %}
-<div class="mb-3">
-    {% for message in messages %}
-    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    {% endfor %}
-</div>
-{% endif %}
-
-<!-- Filter -->
-<div class="ts-filter" id="filterBar">
-    <i class="bi bi-search" style="color:var(--ts-muted);font-size:.85rem;"></i>
-    <input type="text" id="tsSearch" placeholder="Search tools…" autocomplete="off">
-    <button class="ts-pill-btn active" data-cat="all">All</button>
-    <button class="ts-pill-btn" data-cat="productivity">Productivity</button>
-    <button class="ts-pill-btn" data-cat="ai_tools">AI</button>
-    <button class="ts-pill-btn" data-cat="assessment">Assessment</button>
-    <button class="ts-pill-btn" data-cat="content">Content</button>
-    <button class="ts-pill-btn" data-cat="professional">Prof Dev</button>
-    <button class="ts-pill-btn" data-cat="classroom">Classroom</button>
-    <span class="ts-result-badge" id="resultCount">{{ total_count }} tools</span>
-</div>
-
-<!-- Cards -->
-{% for cat_label, addons in categories.items %}
-<div class="ts-cat-section" data-cat-section>
-    <div class="ts-cat-heading">{{ cat_label }}</div>
-    <div class="ts-grid">
-        {% for addon in addons %}
-        <div class="ts-card" data-name="{{ addon.name|lower }}" data-cat="{{ addon.category }}" data-desc="{{ addon.description|lower }}">
-            {% if addon.badge_label %}
-                {% if addon.badge_label == 'NEW' %}
-                    <span class="ts-badge ts-badge-new">{{ addon.badge_label }}</span>
-                {% elif addon.badge_label == 'POPULAR' %}
-                    <span class="ts-badge ts-badge-pop">{{ addon.badge_label }}</span>
-                {% elif addon.is_free %}
-                    <span class="ts-badge ts-badge-free">FREE</span>
-                {% else %}
-                    <span class="ts-badge ts-badge-new">{{ addon.badge_label }}</span>
-                {% endif %}
-            {% elif addon.is_free %}
-                <span class="ts-badge ts-badge-free">FREE</span>
-            {% endif %}
-            {% if addon.is_purchased %}
-                <span class="ts-badge ts-badge-owned"><i class="bi bi-check-circle-fill me-1"></i>ACTIVE</span>
-            {% endif %}
-
-            <div class="ts-card-head">
-                <div class="ts-card-icon ts-cat-{{ addon.category }}">
-                    <i class="{{ addon.icon }}"></i>
-                </div>
-                <div>
-                    <h3>{{ addon.name }}</h3>
-                    {% if addon.tagline %}<p class="ts-tagline">{{ addon.tagline }}</p>{% endif %}
-                </div>
-            </div>
-
-            {% if addon.features %}
-            <ul class="ts-features">
-                {% for feat in addon.features %}
-                <li><i class="bi bi-check2"></i> {{ feat }}</li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <p style="font-size:.78rem;color:var(--ts-body);flex:1;">{{ addon.description|truncatewords:25 }}</p>
-            {% endif %}
-
-            <div class="ts-price-row">
-                {% if addon.is_free %}
-                    <span class="ts-price-free"><i class="bi bi-gift me-1"></i>Free</span>
-                {% else %}
-                    <span class="ts-price">{{ addon.price }}</span>
-                {% endif %}
-
-                {% if addon.is_purchased %}
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="ts-btn ts-btn-owned"><i class="bi bi-check-lg me-1"></i>Owned</span>
-                        <form method="post" action="{% url 'teachers:teacher_store_cancel' addon.id %}" class="d-inline">
-                            {% csrf_token %}
-                            <button type="submit" class="ts-btn ts-btn-cancel" title="Deactivate">
-                                <i class="bi bi-x-lg"></i>
-                            </button>
-                        </form>
-                    </div>
-                {% else %}
-                    <form method="post" action="{% url 'teachers:teacher_store_purchase' addon.id %}">
-                        {% csrf_token %}
-                        <button type="submit" class="ts-btn ts-btn-get">
-                            {% if addon.is_free %}Activate{% else %}Get{% endif %} <i class="bi bi-arrow-right ms-1"></i>
-                        </button>
-                    </form>
-                {% endif %}
-            </div>
+    <!-- Messages -->
+    {% if messages %}
+    <div class="mb-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         {% endfor %}
     </div>
-</div>
-{% empty %}
-<div class="ts-empty">
-    <i class="bi bi-box-seam"></i>
-    <h5>No tools available yet</h5>
-    <p>Check back soon — new teacher add-ons are being curated.</p>
-</div>
-{% endfor %}
+    {% endif %}
 
+    <!-- Owned banner -->
+    {% if purchased_count > 0 %}
+    <div class="tk-owned-bar">
+        <i class="bi bi-patch-check-fill"></i>
+        You have <b>{{ purchased_count }} tool{{ purchased_count|pluralize }}</b> active  look for the green stripe on cards below.
+    </div>
+    {% endif %}
+
+    <!-- Filter bar -->
+    <div class="tk-filter">
+        <div class="tk-search-wrap">
+            <i class="bi bi-search"></i>
+            <input type="text" id="tkSearch" placeholder="Search tools" autocomplete="off">
+        </div>
+        <div class="tk-filter-sep"></div>
+        <button class="tk-chip active" data-cat="all"><span class="dot"></span>All</button>
+        <button class="tk-chip" data-cat="productivity"><span class="dot"></span>Productivity</button>
+        <button class="tk-chip" data-cat="ai_tools"><span class="dot"></span>AI</button>
+        <button class="tk-chip" data-cat="assessment"><span class="dot"></span>Assessment</button>
+        <button class="tk-chip" data-cat="content"><span class="dot"></span>Content</button>
+        <button class="tk-chip" data-cat="professional"><span class="dot"></span>Prof Dev</button>
+        <button class="tk-chip" data-cat="classroom"><span class="dot"></span>Classroom</button>
+        <span class="tk-count-badge" id="resultCount">{{ total_count }} tools</span>
+    </div>
+
+    <!-- No results -->
+    <div class="tk-no-results" id="noResults">
+        <i class="bi bi-search" style="font-size:1.75rem;opacity:.3;display:block;margin-bottom:.5rem;"></i>
+        No tools match your search.
+    </div>
+
+    <!-- Category sections -->
+    {% for cat_label, addons in categories.items %}
+    {% with cat_key=addons.0.category %}
+    <div class="tk-cat-section" data-cat-section="{{ cat_key }}">
+        <div class="tk-cat-row">
+            <div class="tk-cat-icon cat-{{ cat_key }}">
+                {% if cat_key == 'productivity' %}<i class="bi bi-lightning-fill"></i>
+                {% elif cat_key == 'ai_tools' %}<i class="bi bi-cpu-fill"></i>
+                {% elif cat_key == 'assessment' %}<i class="bi bi-clipboard2-check-fill"></i>
+                {% elif cat_key == 'content' %}<i class="bi bi-collection-fill"></i>
+                {% elif cat_key == 'professional' %}<i class="bi bi-mortarboard-fill"></i>
+                {% elif cat_key == 'classroom' %}<i class="bi bi-people-fill"></i>
+                {% else %}<i class="bi bi-grid-fill"></i>
+                {% endif %}
+            </div>
+            <span class="tk-cat-label">{{ cat_label }}</span>
+            <div class="tk-cat-line"></div>
+            <span class="tk-cat-num">{{ addons|length }}</span>
+        </div>
+
+        <div class="tk-grid">
+            {% for addon in addons %}
+            <div class="tk-card{% if addon.is_purchased %} is-owned{% endif %}"
+                 data-name="{{ addon.name|lower }}"
+                 data-cat="{{ addon.category }}"
+                 data-desc="{{ addon.description|lower }} {{ addon.tagline|lower }}">
+
+                <!-- Badge: owned state takes priority, then promo badges -->
+                {% if addon.is_purchased %}
+                    <span class="tk-badge tk-badge-owned">
+                        <i class="bi bi-check-circle-fill"></i>Active
+                    </span>
+                {% elif addon.badge_label == 'NEW' %}
+                    <span class="tk-badge tk-badge-new">New</span>
+                {% elif addon.badge_label == 'POPULAR' %}
+                    <span class="tk-badge tk-badge-pop">Popular</span>
+                {% elif addon.is_free %}
+                    <span class="tk-badge tk-badge-free">Free</span>
+                {% elif addon.badge_label %}
+                    <span class="tk-badge tk-badge-new">{{ addon.badge_label }}</span>
+                {% endif %}
+
+                <div class="tk-icon-wrap ic-{{ addon.category }}">
+                    <i class="{{ addon.icon }}"></i>
+                </div>
+
+                <h3>{{ addon.name }}</h3>
+                {% if addon.tagline %}<p class="tk-tagline">{{ addon.tagline }}</p>{% endif %}
+
+                {% if addon.features %}
+                <ul class="tk-features">
+                    {% for feat in addon.features|slice:":4" %}
+                    <li><i class="bi bi-check2-circle"></i>{{ feat }}</li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="tk-desc">{{ addon.description|truncatewords:22 }}</p>
+                {% endif %}
+
+                <div class="tk-foot">
+                    {% if addon.is_free %}
+                        <span class="tk-price-free"><i class="bi bi-gift-fill"></i>Free</span>
+                    {% else %}
+                        <span class="tk-price">GHS {{ addon.price }}</span>
+                    {% endif %}
+
+                    <div class="d-flex align-items-center gap-2">
+                        {% if addon.is_purchased %}
+                            <span class="tk-btn tk-btn-owned">
+                                <i class="bi bi-check-lg"></i>Owned
+                            </span>
+                            <form method="post" action="{% url 'teachers:teacher_store_cancel' addon.id %}" class="m-0">
+                                {% csrf_token %}
+                                <button type="submit" class="tk-btn-remove" title="Deactivate">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </form>
+                        {% else %}
+                            {% if addon.is_free %}
+                            <form method="post" action="{% url 'teachers:teacher_store_purchase' addon.id %}" class="m-0">
+                                {% csrf_token %}
+                                <button type="submit" class="tk-btn tk-btn-get">
+                                    Activate <i class="bi bi-arrow-right"></i>
+                                </button>
+                            </form>
+                            {% else %}
+                            <button type="button" class="tk-btn tk-btn-get"
+                                    data-pay-addon="{{ addon.id }}"
+                                    data-pay-url="{% url 'teachers:teacher_store_purchase' addon.id %}">
+                                Purchase <i class="bi bi-credit-card"></i>
+                            </button>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endwith %}
+    {% empty %}
+    <div class="tk-empty">
+        <div class="tk-empty-icon"><i class="bi bi-box-seam"></i></div>
+        <h5>No tools available yet</h5>
+        <p>Check back soon  new teacher add-ons are being curated.</p>
+    </div>
+    {% endfor %}
+
+</div>
+
+{% block extra_js %}
+<script src="https://js.paystack.co/v2/inline.js"></script>
 <script>
-(function(){
-    const search = document.getElementById('tsSearch');
-    const pills  = document.querySelectorAll('.ts-pill-btn');
-    const cards   = document.querySelectorAll('.ts-card');
-    const sections = document.querySelectorAll('[data-cat-section]');
-    const badge   = document.getElementById('resultCount');
-    let activeCat = 'all';
+(function () {
+    const CSRF = '{{ csrf_token }}';
+    const VERIFY_URL = '{% url "teachers:teacher_store_verify" %}';
 
-    function filter(){
+    /* ── Category / search filter ──────────────────────── */
+    const search   = document.getElementById('tkSearch');
+    const chips    = document.querySelectorAll('.tk-chip');
+    const cards    = document.querySelectorAll('.tk-card');
+    const sections = document.querySelectorAll('[data-cat-section]');
+    const badge    = document.getElementById('resultCount');
+    const noRes    = document.getElementById('noResults');
+    let activeCat  = 'all';
+
+    function filter() {
         const q = (search.value || '').toLowerCase().trim();
         let visible = 0;
-        cards.forEach(c => {
-            const catMatch = activeCat === 'all' || c.dataset.cat === activeCat;
-            const textMatch = !q || c.dataset.name.includes(q) || c.dataset.desc.includes(q);
-            const show = catMatch && textMatch;
-            c.style.display = show ? '' : 'none';
-            if(show) visible++;
+        cards.forEach(card => {
+            const catOk  = activeCat === 'all' || card.dataset.cat === activeCat;
+            const textOk = !q || card.dataset.name.includes(q) || card.dataset.desc.includes(q);
+            const show   = catOk && textOk;
+            card.style.display = show ? '' : 'none';
+            if (show) visible++;
         });
-        sections.forEach(s => {
-            const any = [...s.querySelectorAll('.ts-card')].some(c => c.style.display !== 'none');
-            s.style.display = any ? '' : 'none';
+        sections.forEach(sec => {
+            const anyVisible = [...sec.querySelectorAll('.tk-card')].some(c => c.style.display !== 'none');
+            sec.style.display = anyVisible ? '' : 'none';
         });
         badge.textContent = visible + ' tool' + (visible !== 1 ? 's' : '');
+        noRes.style.display = visible === 0 ? 'block' : 'none';
     }
 
-    pills.forEach(p => p.addEventListener('click', () => {
-        pills.forEach(b => b.classList.remove('active'));
-        p.classList.add('active');
-        activeCat = p.dataset.cat;
-        filter();
-    }));
+    chips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            chips.forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            activeCat = chip.dataset.cat;
+            filter();
+        });
+    });
     search.addEventListener('input', filter);
+
+    /* ── Paystack paid purchase flow ───────────────────── */
+    document.querySelectorAll('[data-pay-addon]').forEach(btn => {
+        btn.addEventListener('click', async function () {
+            const addonId = this.dataset.payAddon;
+            const url     = this.dataset.payUrl;
+            btn.disabled  = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Loading\u2026';
+
+            try {
+                const fd = new FormData();
+                fd.append('csrfmiddlewaretoken', CSRF);
+                const res  = await fetch(url, { method: 'POST', body: fd });
+                const data = await res.json();
+
+                if (!data.paystack) {
+                    /* Should not happen for paid add-ons, but handle gracefully */
+                    location.reload();
+                    return;
+                }
+
+                /* Open Paystack Inline */
+                const popup = new PaystackPop();
+                popup.newTransaction({
+                    key:       data.public_key,
+                    email:     data.email,
+                    amount:    data.amount,
+                    currency:  data.currency,
+                    ref:       data.reference,
+                    metadata:  { addon_id: addonId, addon_name: data.addon_name },
+                    onSuccess: async (txn) => {
+                        /* Verify on server */
+                        const vRes = await fetch(VERIFY_URL, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': CSRF,
+                            },
+                            body: JSON.stringify({ reference: txn.reference, addon_id: addonId }),
+                        });
+                        const vData = await vRes.json();
+                        if (vData.ok) {
+                            location.reload();
+                        } else {
+                            alert(vData.error || 'Verification failed. Please contact support.');
+                            btn.disabled = false;
+                            btn.innerHTML = 'Purchase <i class="bi bi-credit-card"></i>';
+                        }
+                    },
+                    onCancel: () => {
+                        btn.disabled = false;
+                        btn.innerHTML = 'Purchase <i class="bi bi-credit-card"></i>';
+                    },
+                });
+            } catch (err) {
+                console.error('Purchase error:', err);
+                alert('An error occurred. Please try again.');
+                btn.disabled = false;
+                btn.innerHTML = 'Purchase <i class="bi bi-credit-card"></i>';
+            }
+        });
+    });
 })();
 </script>
+{% endblock %}
 {% endblock %}

@@ -7,6 +7,7 @@ import django
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from tenants.decorators import require_addon, require_plan
+from teachers.addon_utils import requires_addon
 from django.http import JsonResponse, HttpResponse
 from decimal import Decimal, InvalidOperation
 from django.utils import timezone
@@ -470,6 +471,7 @@ def teacher_detail(request, teacher_id):
 
 
 @login_required
+@requires_addon('grade-insight-dashboard')
 def analytics_dashboard(request):
     if request.user.user_type not in ['teacher', 'admin']:
         messages.error(request, 'Access denied')
@@ -729,6 +731,7 @@ def analytics_dashboard(request):
 
 @login_required
 @require_plan('pro', 'enterprise')
+@requires_addon('grade-insight-dashboard')
 def generate_remedial_lesson(request):
     """
     Called from analytics dashboard to 'Generate Lesson' for a misconception.
@@ -1291,6 +1294,7 @@ def generate_duty_weeks(request):
 
 
 @login_required
+@requires_addon('exercise-maker')
 def manage_exercises(request, class_subject_id):
     if request.user.user_type != 'teacher':
         messages.error(request, 'Access denied')
@@ -1975,6 +1979,7 @@ def lesson_plan_print(request, pk):
 
 
 @login_required
+@requires_addon('quick-report-writer')
 def lesson_plan_pdf(request, pk):
     """Read-only B7 weekly layout optimized for browser Save as PDF."""
     is_teacher = request.user.user_type == 'teacher'
@@ -2012,6 +2017,7 @@ def lesson_plan_pdf(request, pk):
 
 @login_required
 @require_plan('pro', 'enterprise')
+@requires_addon('smart-planner-pro')
 def aura_t_api(request):
     """
     Handles AJAX requests for lesson plan generation, differentiation, and assignment creation.
@@ -2423,6 +2429,7 @@ def aura_t_api(request):
 
 
 @login_required
+@requires_addon('smart-planner-pro')
 def ges_lesson_api(request):
     """
     Separate GES Weekly Notes generator endpoint.
@@ -2500,6 +2507,7 @@ def ges_lesson_api(request):
 
 @login_required
 @require_plan('basic', 'pro', 'enterprise')
+@requires_addon('smart-planner-pro')
 def aura_command_center(request):
     """
     Aura-T Command Center - teachers go to the unified AI sessions page,
@@ -2582,6 +2590,7 @@ def aura_command_center(request):
 
 @login_required
 @require_plan('basic', 'pro', 'enterprise')
+@requires_addon('smart-planner-pro')
 def aura_flight_manual(request):
     """
     Aura-T Teacher Flight Manual - quick-start guide for the AI-integrated lesson.
@@ -2598,6 +2607,7 @@ def aura_flight_manual(request):
 
 
 @login_required
+@requires_addon('quick-report-writer')
 def lesson_plan_cards_print(request, pk):
     """
     Printable Student Nuggets + Mastery Sprint cards for a lesson plan.
@@ -3020,6 +3030,7 @@ def power_words_action(request):
 
 @require_POST
 @login_required
+@requires_addon('grade-insight-dashboard')
 def boost_intervention(request):
     """
     AJAX endpoint to trigger an AI intervention 'Boost'.
@@ -4056,6 +4067,7 @@ def submit_to_hod(request):
 
 
 @login_required
+@requires_addon('smart-planner-pro')
 def save_aura_t_plan(request):
     """Save the Aura-T command centre lesson plan preview as a LessonPlan record."""
     if request.method != 'POST':
@@ -4459,6 +4471,7 @@ def presentation_list(request):
 
 @login_required
 @require_addon('presentations')
+@requires_addon('aura-slide-generator')
 def presentation_create(request):
     """Create a new blank (or AI-seeded) presentation, then redirect to editor."""
     if request.user.user_type not in ('teacher', 'admin'):
@@ -5427,6 +5440,7 @@ def presentation_api(request):
 
 
 @login_required
+@requires_addon('aura-slide-generator')
 def presentation_generate_from_doc(request):
     """
     Accepts a multipart POST with:
@@ -5518,6 +5532,7 @@ def presentation_generate_from_doc(request):
 
 
 @login_required
+@requires_addon('aura-slide-generator')
 def presentation_from_youtube(request):
     """
     POST JSON: {deck_id: int, youtube_url: str}
@@ -5790,6 +5805,7 @@ def presentation_slide_image_upload(request):
 
 @login_required
 @require_POST
+@requires_addon('aura-slide-generator')
 def generate_slide_image(request):
     """Generate an AI image for a slide using OpenAI DALL\u00b7E."""
     if request.user.user_type != 'teacher':
@@ -6528,7 +6544,8 @@ def teacher_store(request):
 
 @login_required
 def teacher_store_purchase(request, addon_id):
-    """Purchase (activate) a teacher add-on."""
+    """Purchase (activate) a teacher add-on — free add-ons activate instantly,
+    paid ones require Paystack verification via teacher_store_verify."""
     if request.user.user_type != 'teacher':
         messages.error(request, 'Access denied')
         return redirect('dashboard')
@@ -6538,17 +6555,88 @@ def teacher_store_purchase(request, addon_id):
     from teachers.models import TeacherAddOn, TeacherAddOnPurchase
 
     addon = get_object_or_404(TeacherAddOn, id=addon_id, is_active=True)
+
+    if addon.is_free or addon.price <= 0:
+        # Free add-ons: activate immediately
+        obj, created = TeacherAddOnPurchase.objects.get_or_create(
+            teacher=request.user,
+            addon=addon,
+            defaults={'is_active': True},
+        )
+        if not created and not obj.is_active:
+            obj.is_active = True
+            obj.save(update_fields=['is_active'])
+        messages.success(request, f'"{addon.name}" activated!')
+        return redirect('teachers:teacher_store')
+
+    # Paid add-ons: return JSON with Paystack params for inline popup
+    from django.conf import settings
+    import uuid
+    ref = f"TA-{request.user.id}-{addon.id}-{uuid.uuid4().hex[:8]}"
+    return JsonResponse({
+        'paystack': True,
+        'public_key': settings.PAYSTACK_PUBLIC_KEY,
+        'email': request.user.email or f'{request.user.username}@school.local',
+        'amount': int(addon.price * 100),  # kobo/pesewas
+        'currency': settings.PAYSTACK_CURRENCY,
+        'reference': ref,
+        'addon_name': addon.name,
+    })
+
+
+@login_required
+def teacher_store_verify(request):
+    """POST — verify a Paystack payment and activate the add-on."""
+    if request.user.user_type != 'teacher':
+        return JsonResponse({'ok': False, 'error': 'Access denied'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'error': 'POST only'}, status=405)
+
+    import requests as http_requests
+    from django.conf import settings
+    from teachers.models import TeacherAddOn, TeacherAddOnPurchase
+
+    body = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    reference = body.get('reference', '')
+    addon_id = body.get('addon_id')
+
+    if not reference or not addon_id:
+        return JsonResponse({'ok': False, 'error': 'Missing data'}, status=400)
+
+    addon = get_object_or_404(TeacherAddOn, id=addon_id, is_active=True)
+
+    # Verify with Paystack API
+    secret = settings.PAYSTACK_SECRET_KEY
+    if secret:
+        resp = http_requests.get(
+            f'https://api.paystack.co/transaction/verify/{reference}',
+            headers={'Authorization': f'Bearer {secret}'},
+            timeout=15,
+        )
+        data = resp.json()
+        if not data.get('status') or data.get('data', {}).get('status') != 'success':
+            return JsonResponse({'ok': False, 'error': 'Payment verification failed'}, status=402)
+        amount_paid = Decimal(str(data['data']['amount'])) / 100
+    else:
+        # Dev mode: no Paystack key configured — accept reference at face value
+        amount_paid = addon.price
+
     obj, created = TeacherAddOnPurchase.objects.get_or_create(
         teacher=request.user,
         addon=addon,
-        defaults={'is_active': True},
+        defaults={
+            'is_active': True,
+            'payment_reference': reference,
+            'amount_paid': amount_paid,
+        },
     )
-    if not created and not obj.is_active:
+    if not created:
         obj.is_active = True
-        obj.save(update_fields=['is_active'])
+        obj.payment_reference = reference
+        obj.amount_paid = amount_paid
+        obj.save(update_fields=['is_active', 'payment_reference', 'amount_paid'])
 
-    messages.success(request, f'"{addon.name}" activated!')
-    return redirect('teachers:teacher_store')
+    return JsonResponse({'ok': True, 'addon_name': addon.name})
 
 
 @login_required

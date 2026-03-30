@@ -9,8 +9,11 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_http_methods
 from accounts.models import User
 from django.db.utils import OperationalError, ProgrammingError, DatabaseError
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
 import logging
 import json
+import threading
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +49,60 @@ def _create_announcement_notifications(announcement):
         for user in recipients
     ]
     Notification.objects.bulk_create(notifications, ignore_conflicts=True)
+
+
+def _email_announcement(announcement, recipients_qs):
+    """Send announcement email to all recipients in a background thread."""
+    # Snapshot the data we need before leaving the request thread
+    title = announcement.title
+    content = announcement.content
+    audience = announcement.get_target_audience_display()
+    created_by = announcement.created_by.get_full_name() or announcement.created_by.username
+
+    recipient_list = list(
+        recipients_qs.exclude(email='').values_list('email', 'first_name', 'last_name', 'username')
+    )
+    if not recipient_list:
+        return
+
+    def _send():
+        sent = 0
+        for email_addr, first, last, uname in recipient_list:
+            name = f"{first} {last}".strip() or uname
+            ctx = {
+                'recipient_name': name,
+                'title': title,
+                'content': content,
+                'audience': audience,
+                'posted_by': created_by,
+            }
+            text_body = (
+                f"Dear {name},\n\n"
+                f"New Announcement: {title}\n\n"
+                f"{content}\n\n"
+                f"— {created_by}"
+            )
+            try:
+                html_body = render_to_string('announcements/emails/announcement.html', ctx)
+            except Exception:
+                html_body = None
+
+            try:
+                msg = EmailMultiAlternatives(
+                    subject=f"📢 {title}",
+                    body=text_body,
+                    to=[email_addr],
+                )
+                if html_body:
+                    msg.attach_alternative(html_body, 'text/html')
+                msg.send(fail_silently=True)
+                sent += 1
+            except Exception as exc:
+                logger.warning('Announcement email failed for %s: %s', email_addr, exc)
+        logger.info('Sent %d announcement email(s) for "%s"', sent, title)
+
+    thread = threading.Thread(target=_send, daemon=True)
+    thread.start()
 
 
 @login_required
@@ -93,6 +150,20 @@ def manage_announcements(request):
             announcement.created_by = request.user
             announcement.save()
             _create_announcement_notifications(announcement)
+
+            # Build recipient QS for email
+            audience = announcement.target_audience
+            email_qs = User.objects.exclude(pk=announcement.created_by_id)
+            if audience == 'staff':
+                email_qs = email_qs.filter(user_type__in=['admin', 'teacher'])
+            elif audience == 'teachers':
+                email_qs = email_qs.filter(user_type='teacher')
+            elif audience == 'students':
+                email_qs = email_qs.filter(user_type='student')
+            elif audience == 'parents':
+                email_qs = email_qs.filter(user_type='parent')
+            _email_announcement(announcement, email_qs)
+
             messages.success(request, 'Announcement posted successfully.')
             return redirect('announcements:manage')
             

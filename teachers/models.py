@@ -298,6 +298,8 @@ class TeacherAddOnPurchase(models.Model):
     addon = models.ForeignKey(TeacherAddOn, on_delete=models.PROTECT, related_name='purchases')
     purchased_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
+    payment_reference = models.CharField(max_length=100, blank=True, default='')
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     class Meta:
         unique_together = ['teacher', 'addon']

@@ -6,153 +6,295 @@
 
 {% block content %}
 <style>
-    .page-bg-fixed {
-        position: fixed; inset: 0; width: 100vw; height: 100vh;
-        background-image: url('https://img.freepik.com/free-vector/ginkgo-leaf-frame-design-colorful-background_53876-120237.jpg?semt=ais_user_personalization&w=740&q=80');
-        background-size: cover; background-position: center;
-        opacity: 0.12; pointer-events: none; z-index: 0;
-    }
-    [data-bs-theme="dark"] .page-bg-fixed { opacity: 0.05; filter: grayscale(0.5); }
-    .content-wrapper { position: relative; z-index: 1; }
+/* ── Layout ─────────────────────────────────────────── */
+.tt-edit-wrap{display:flex;gap:1rem;min-height:60vh}
+.tt-palette{width:220px;flex-shrink:0}
+.tt-grid-area{flex:1;overflow-x:auto}
 
-    /* Responsive Timetable Edit Styles */
-    @media (max-width: 768px) {
-        /* Hide table headers on mobile */
-        .mobile-responsive-table thead { 
-            display: none; 
-        }
-        
-        /* Turn rows into cards */
-        .mobile-responsive-table tbody tr {
-            display: block;
-            margin-bottom: 1.5rem;
-            background: #fff;
-            border: 1px solid #e3e6f0;
-            border-radius: 0.5rem;
-            box-shadow: 0 0.15rem 0.5rem 0 rgba(0, 0, 0, 0.05);
-        }
+/* ── Subject chips (palette) ────────────────────────── */
+.subject-chip{
+    display:flex;align-items:center;gap:.4rem;padding:.45rem .65rem;
+    border-radius:8px;font-size:.78rem;font-weight:600;cursor:grab;
+    background:var(--chip-bg,#e0e7ff);color:var(--chip-fg,#3730a3);
+    border:1.5px solid transparent;user-select:none;
+    transition:box-shadow .15s,transform .15s;margin-bottom:.35rem;
+}
+.subject-chip:active{cursor:grabbing;transform:scale(.97)}
+.subject-chip:hover{box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.subject-chip .chip-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.subject-chip.no-teacher{opacity:.6;border:1.5px dashed #ef4444}
 
-        /* Style the Time Slot header (first cell) */
-        .mobile-responsive-table tbody td:first-child {
-            display: block;
-            background-color: #f8f9fa;
-            border-bottom: 1px solid #e3e6f0;
-            padding: 1rem;
-            border-radius: 0.5rem 0.5rem 0 0;
-            position: relative;
-        }
-        
-        /* Style day cells */
-        .mobile-responsive-table tbody td:not(:first-child) {
-            display: block;
-            padding: 1rem;
-            border-bottom: 1px solid #f0f0f0;
-            text-align: left;
-        }
-         
-        .mobile-responsive-table tbody td:last-child {
-            border-bottom: none;
-        }
+/* ── Grid table ─────────────────────────────────────── */
+.tt-table{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed}
+.tt-table th{
+    background:var(--surface-light,#f1f5f9);font-size:.75rem;font-weight:700;
+    text-transform:uppercase;letter-spacing:.04em;padding:.55rem .4rem;
+    text-align:center;border:1px solid #dee2e6;color:var(--text-main,#334155);
+}
+.tt-table .slot-label{
+    font-size:.72rem;font-weight:700;color:var(--text-muted,#64748b);
+    white-space:nowrap;padding:.4rem .5rem;background:var(--surface-light,#f8fafc);
+    border:1px solid #dee2e6;
+}
 
-        /* Inject labels using data-label attribute */
-        .mobile-responsive-table tbody td:not(:first-child)::before {
-            content: attr(data-label);
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-            display: block;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.05em;
-        }
-        
-        /* Make form controls full width */
-        .mobile-responsive-table select.form-select {
-            width: 100%;
-        }
-        
-        /* Card Body padding tweak for mobile */
-        .card-body {
-            padding: 0.5rem;
-        }
-    }
-    
-    /* Desktop enhancements: make sure selects aren't too narrow */
-    @media (min-width: 769px) {
-        select.form-select {
-            min-width: 150px;
-        }
-    }
+/* ── Drop cells ─────────────────────────────────────── */
+.drop-cell{
+    border:1px solid #dee2e6;padding:.35rem;min-height:54px;
+    vertical-align:top;position:relative;transition:background .15s;
+}
+.drop-cell.drag-over{background:rgba(67,97,238,.08);border-color:var(--primary-brand,#4361ee)}
+.drop-cell .placed-chip{
+    display:flex;align-items:center;gap:.35rem;padding:.3rem .5rem;
+    border-radius:6px;font-size:.72rem;font-weight:600;
+    background:var(--chip-bg,#e0e7ff);color:var(--chip-fg,#3730a3);
+    cursor:grab;position:relative;
+}
+.drop-cell .placed-chip .remove-btn{
+    position:absolute;top:-5px;right:-5px;width:16px;height:16px;
+    border-radius:50%;background:#ef4444;color:#fff;border:none;
+    font-size:10px;line-height:16px;text-align:center;padding:0;
+    cursor:pointer;display:none;
+}
+.drop-cell .placed-chip:hover .remove-btn{display:block}
+
+/* ── Dark mode ──────────────────────────────────────── */
+[data-bs-theme="dark"] .subject-chip{background:rgba(67,97,238,.18);color:#93c5fd}
+[data-bs-theme="dark"] .tt-table th,[data-bs-theme="dark"] .tt-table .slot-label{
+    background:#1e293b;border-color:rgba(255,255,255,.1);color:#94a3b8}
+[data-bs-theme="dark"] .drop-cell{border-color:rgba(255,255,255,.1)}
+[data-bs-theme="dark"] .drop-cell.drag-over{background:rgba(67,97,238,.15)}
+[data-bs-theme="dark"] .drop-cell .placed-chip{background:rgba(67,97,238,.22);color:#93c5fd}
+
+/* ── Mobile: palette becomes horizontal scroller ──── */
+@media(max-width:768px){
+    .tt-edit-wrap{flex-direction:column}
+    .tt-palette{width:100%;max-height:none}
+    .palette-list{display:flex;flex-wrap:wrap;gap:.35rem}
+}
 </style>
 
-<div class="page-bg-fixed"></div>
-<div class="container-fluid py-4 content-wrapper">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="container-fluid py-4">
+    <!-- ── Header ────────────────────────────────────── -->
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <div>
-            <h1 class="h3 mb-0 text-gray-800">Edit Timetable: {{ school_class.name }}</h1>
-            <p class="text-muted small">Update the schedule for this class</p>
+            <h1 class="h4 mb-0 fw-bold"><i class="bi bi-calendar3-week me-2 text-primary"></i>Edit Timetable: {{ school_class.name }}</h1>
+            <p class="text-muted small mb-0">Drag subjects into time slots &middot; click <span class="text-danger">✕</span> to remove</p>
         </div>
-        <div>
-            <a href="{% url 'academics:timetable' %}?class_id={{ school_class.id }}" class="btn btn-secondary me-2">
-                <i class="fas fa-times me-1"></i> Cancel
+        <div class="d-flex gap-2">
+            <a href="{% url 'academics:timetable' %}?class_id={{ school_class.id }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-x-lg me-1"></i>Cancel
             </a>
-            <button type="submit" form="timetableForm" class="btn btn-primary">
-                <i class="fas fa-save me-1"></i> Save Changes
+            <button type="submit" form="timetableForm" class="btn btn-primary btn-sm" id="saveBtn">
+                <i class="bi bi-check-lg me-1"></i>Save Changes
             </button>
         </div>
     </div>
 
-    <div class="card shadow mb-4">
-        <div class="card-body">
-            <form method="post" id="timetableForm">
-                {% csrf_token %}
-                
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover mobile-responsive-table">
-                        <thead>
-                            <tr class="table-light">
-                                <th style="width: 15%">Time Slot</th>
-                                {% for day in days %}
-                                <th class="text-center" style="width: 17%">{{ day }}</th>
-                                {% endfor %}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for slot in slots %}
-                            <tr>
-                                <td class="align-middle bg-light">
-                                    <strong>{{ slot.label }}</strong><br>
-                                    <small class="text-muted">{{ slot.start|slice:":5" }} - {{ slot.end|slice:":5" }}</small>
-                                </td>
-                                {% for day in days %}
-                                {% with idx=forloop.counter0 %}
-                                <td data-label="{{ day }}">
-                                    <!-- Construct field name: slot_DAYNAME_SLOTINDEX -->
-                                    <select name="slot_{{ day }}_{{ forloop.parentloop.counter0 }}" class="form-select form-select-sm">
-                                        <option value="">-- Free / Break --</option>
-                                        {% for cs in class_subjects %}
-                                            {% with time_key=slot.start|slice:":8" %}
-                                            {% with key=day|add:"_"|add:time_key %}
-                                            <option value="{{ cs.id }}" 
-                                                {% if timetable_data|get_item:key == cs.id %}selected{% endif %}
-                                                {% if not cs.teacher %}class="text-danger fw-bold"{% endif %}
-                                            >
-                                                {{ cs.subject.name }} ({{ cs.teacher|default:"NO TEACHER" }})
-                                            </option>
-                                            {% endwith %}
-                                            {% endwith %}
-                                        {% endfor %}
-                                    </select>
-                                </td>
-                                {% endwith %}
-                                {% endfor %}
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+    <form method="post" id="timetableForm">
+        {% csrf_token %}
+        <!-- hidden inputs are injected by JS before submit -->
+    </form>
+
+    <div class="tt-edit-wrap">
+        <!-- ── Subject Palette ───────────────────────── -->
+        <div class="tt-palette">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-2">
+                    <h6 class="mb-0 fw-bold" style="font-size:.8rem">
+                        <i class="bi bi-palette me-1 text-primary"></i>Subjects
+                    </h6>
                 </div>
-            </form>
+                <div class="card-body p-2">
+                    <div class="palette-list">
+                        {% for cs in class_subjects %}
+                        <div class="subject-chip{% if not cs.teacher %} no-teacher{% endif %}"
+                             draggable="true"
+                             data-cs-id="{{ cs.id }}"
+                             data-cs-name="{{ cs.subject.name }}"
+                             data-cs-teacher="{{ cs.teacher.user.last_name|default:'—' }}"
+                             data-cs-color="{{ forloop.counter0 }}">
+                            <span class="chip-dot" style="background:var(--chip-c)"></span>
+                            <span>{{ cs.subject.name }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <hr class="my-2">
+                    <small class="text-muted" style="font-size:.7rem">
+                        <i class="bi bi-info-circle me-1"></i>Dashed border = no teacher assigned
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Timetable Grid ────────────────────────── -->
+        <div class="tt-grid-area">
+            <table class="tt-table" id="ttGrid">
+                <thead>
+                    <tr>
+                        <th style="width:90px">Time</th>
+                        {% for day in days %}
+                        <th>{{ day }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for slot in slots %}
+                    <tr>
+                        <td class="slot-label">
+                            {{ slot.label }}<br>
+                            <small>{{ slot.start|slice:":5" }}&ndash;{{ slot.end|slice:":5" }}</small>
+                        </td>
+                        {% for day in days %}
+                        <td class="drop-cell"
+                            data-day="{{ day }}"
+                            data-slot="{{ forloop.parentloop.counter0 }}"
+                            data-start="{{ slot.start }}"
+                            data-end="{{ slot.end }}">
+                            {% with time_key=slot.start|slice:":8" %}
+                            {% with key=day|add:"_"|add:time_key %}
+                            {% with current_id=timetable_data|get_item:key %}
+                            {% if current_id %}
+                                {% for cs in class_subjects %}
+                                {% if cs.id == current_id %}
+                                <div class="placed-chip"
+                                     draggable="true"
+                                     data-cs-id="{{ cs.id }}"
+                                     data-cs-name="{{ cs.subject.name }}"
+                                     data-cs-teacher="{{ cs.teacher.user.last_name|default:'—' }}">
+                                    <span>{{ cs.subject.name }}</span>
+                                    <button type="button" class="remove-btn" title="Remove">&times;</button>
+                                </div>
+                                {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                            {% endwith %}
+                            {% endwith %}
+                            {% endwith %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+    /* ── Colour palette for subject chips ─────────── */
+    const COLORS=[
+        ['#e0e7ff','#3730a3'],['#d1fae5','#065f46'],['#fef3c7','#92400e'],
+        ['#fce7f3','#9d174d'],['#ede9fe','#5b21b6'],['#ccfbf1','#134e4a'],
+        ['#fee2e2','#991b1b'],['#e0f2fe','#075985'],['#fef9c3','#854d0e'],
+        ['#f3e8ff','#6b21a8'],['#dbeafe','#1e40af'],['#cffafe','#155e75'],
+    ];
+    function chipColor(idx){return COLORS[idx % COLORS.length]}
+
+    /* Apply palette colours */
+    document.querySelectorAll('.subject-chip[data-cs-color]').forEach(el=>{
+        const c=chipColor(parseInt(el.dataset.csColor));
+        el.style.setProperty('--chip-bg',c[0]);
+        el.style.setProperty('--chip-fg',c[1]);
+        el.querySelector('.chip-dot').style.background=c[1];
+    });
+
+    /* Apply colours to pre-filled placed chips */
+    const csNodes=document.querySelectorAll('.subject-chip[data-cs-id]');
+    const csColorMap={};
+    csNodes.forEach(el=>{csColorMap[el.dataset.csId]=chipColor(parseInt(el.dataset.csColor))});
+    document.querySelectorAll('.placed-chip[data-cs-id]').forEach(el=>{
+        const c=csColorMap[el.dataset.csId];
+        if(c){el.style.background=c[0];el.style.color=c[1]}
+    });
+
+    /* ── Drag & Drop ──────────────────────────────── */
+    let dragData=null;
+
+    function startDrag(e){
+        const el=e.target.closest('[data-cs-id]');
+        if(!el)return;
+        dragData={
+            id:el.dataset.csId,
+            name:el.dataset.csName,
+            teacher:el.dataset.csTeacher,
+            sourceCell:el.closest('.drop-cell')||null
+        };
+        e.dataTransfer.effectAllowed='move';
+        e.dataTransfer.setData('text/plain',el.dataset.csId);
+        el.style.opacity='.4';
+        setTimeout(()=>el.style.opacity='1',0);
+    }
+
+    /* Palette chips */
+    document.querySelectorAll('.subject-chip').forEach(el=>{
+        el.addEventListener('dragstart',startDrag);
+    });
+
+    /* Placed chips inside cells */
+    document.querySelectorAll('.placed-chip').forEach(el=>{
+        el.addEventListener('dragstart',startDrag);
+    });
+
+    /* Drop cells */
+    document.querySelectorAll('.drop-cell').forEach(cell=>{
+        cell.addEventListener('dragover',e=>{e.preventDefault();cell.classList.add('drag-over')});
+        cell.addEventListener('dragleave',()=>cell.classList.remove('drag-over'));
+        cell.addEventListener('drop',e=>{
+            e.preventDefault();
+            cell.classList.remove('drag-over');
+            if(!dragData)return;
+
+            /* Remove from source cell if moving between cells */
+            if(dragData.sourceCell){
+                dragData.sourceCell.querySelector('.placed-chip')?.remove();
+            }
+
+            /* Clear existing chip in target cell */
+            cell.querySelector('.placed-chip')?.remove();
+
+            /* Create new placed chip */
+            const chip=document.createElement('div');
+            chip.className='placed-chip';
+            chip.draggable=true;
+            chip.dataset.csId=dragData.id;
+            chip.dataset.csName=dragData.name;
+            chip.dataset.csTeacher=dragData.teacher;
+            const c=csColorMap[dragData.id];
+            if(c){chip.style.background=c[0];chip.style.color=c[1]}
+            chip.innerHTML=`<span>${dragData.name}</span><button type="button" class="remove-btn" title="Remove">&times;</button>`;
+
+            chip.addEventListener('dragstart',startDrag);
+            chip.querySelector('.remove-btn').addEventListener('click',function(){chip.remove()});
+            cell.appendChild(chip);
+            dragData=null;
+        });
+    });
+
+    /* Remove buttons on existing chips */
+    document.querySelectorAll('.placed-chip .remove-btn').forEach(btn=>{
+        btn.addEventListener('click',function(){btn.closest('.placed-chip').remove()});
+    });
+
+    /* ── Form submission: inject hidden fields ────── */
+    document.getElementById('timetableForm').addEventListener('submit',function(e){
+        /* Remove old hidden inputs */
+        this.querySelectorAll('input[name^="slot_"]').forEach(i=>i.remove());
+
+        document.querySelectorAll('.drop-cell').forEach(cell=>{
+            const day=cell.dataset.day;
+            const slot=cell.dataset.slot;
+            const chip=cell.querySelector('.placed-chip');
+            const val=chip?chip.dataset.csId:'';
+            const input=document.createElement('input');
+            input.type='hidden';
+            input.name='slot_'+day+'_'+slot;
+            input.value=val;
+            this.appendChild(input);
+        });
+    });
+})();
+</script>
 {% endblock %}
