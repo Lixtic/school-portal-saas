@@ -128,11 +128,17 @@ SHARED_APPS = [
     'cloudinary',
     'crispy_forms',
     'crispy_bootstrap5',
-    'rest_framework',
     
     # Local apps that need to exist in public schema (e.g. for superuser)
     'accounts', 
 ]
+
+# Conditionally add rest_framework if installed
+try:
+    import rest_framework  # noqa: F401
+    SHARED_APPS.insert(-1, 'rest_framework')
+except ImportError:
+    pass
 
 TENANT_APPS = [
     # Django apps that need to be isolated per tenant
@@ -389,17 +395,21 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 # =====================
 # DJANGO REST FRAMEWORK
 # =====================
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.TokenAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 50,
-}
+try:
+    import rest_framework  # noqa: F401
+    REST_FRAMEWORK = {
+        'DEFAULT_AUTHENTICATION_CLASSES': [
+            'rest_framework.authentication.SessionAuthentication',
+            'rest_framework.authentication.TokenAuthentication',
+        ],
+        'DEFAULT_PERMISSION_CLASSES': [
+            'rest_framework.permissions.IsAuthenticated',
+        ],
+        'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+        'PAGE_SIZE': 50,
+    }
+except ImportError:
+    pass
 
 
 # =====================

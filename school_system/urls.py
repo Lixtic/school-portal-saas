@@ -45,7 +45,6 @@ urlpatterns = [
     path('privacy/', TemplateView.as_view(template_name='home/privacy.html'), name='privacy'),
     path('terms/', TemplateView.as_view(template_name='home/terms.html'), name='terms'),
     path('admin/', admin.site.urls),
-    path('api/', include('api.urls')),
     path('', account_views.homepage, name='home'),
     path('find-school/', account_views.find_school, name='find_school'),
     path('landlord/', tenant_views.landlord_dashboard, name='landlord_dashboard'),
@@ -88,6 +87,13 @@ urlpatterns = [
     path('tenants/', include('tenants.urls')),
     path('i18n/', include('django.conf.urls.i18n')),  # Language switcher
 ]
+
+# REST API (only if djangorestframework is installed)
+try:
+    import rest_framework  # noqa: F401
+    urlpatterns.insert(0, path('api/', include('api.urls')))
+except ImportError:
+    pass
 
 # Session diagnostic available in all environments (staff-only gate is in the view)
 urlpatterns += [
