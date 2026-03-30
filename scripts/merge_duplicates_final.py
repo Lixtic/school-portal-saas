@@ -10,6 +10,17 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'school_system.settings')
 django.setup()
 
+from django.db import connection
+from tenants.models import School
+
+schema_name = sys.argv[1] if len(sys.argv) > 1 else None
+if not schema_name:
+    tenants = list(School.objects.exclude(schema_name='public').values_list('schema_name', flat=True))
+    print(f"Usage: python scripts/merge_duplicates_final.py <schema_name>\nAvailable: {', '.join(tenants)}")
+    sys.exit(1)
+tenant = School.objects.get(schema_name=schema_name)
+connection.set_tenant(tenant)
+
 from accounts.models import User
 from students.models import Student, Grade, StudentExerciseScore, Attendance
 from teachers.models import Teacher, DutyAssignment

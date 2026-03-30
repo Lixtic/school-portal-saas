@@ -14,6 +14,7 @@ from django.utils import timezone
 import os
 import csv
 import json
+import logging
 import random
 import string
 from datetime import date
@@ -23,6 +24,8 @@ from students.models import Student, Grade, ClassExercise, StudentExerciseScore,
 from students.utils import normalize_term
 from .forms import ResourceForm, LessonPlanForm, TeacherCreateForm, TeacherCSVImportForm #, HomeworkForm
 from .models import LessonGenerationSession
+
+logger = logging.getLogger(__name__)
 from accounts.models import User
 from academics.tutor_models import generate_teacher_id_card, export_id_card_to_pdf, export_multiple_id_cards_to_pdf, TutorSession, TutorMessage
 from parents.models import Parent
@@ -6706,11 +6709,13 @@ def _handle_teacher_addon_payment(reference, data):
     # Parse reference: TA-{user_id}-{addon_id}-{uuid}
     parts = reference.split('-')
     if len(parts) < 3:
+        logger.warning("Webhook: bad teacher addon reference format: %s", reference)
         return
     try:
         user_id = int(parts[1])
         addon_id = int(parts[2])
     except (ValueError, IndexError):
+        logger.warning("Webhook: unparseable teacher addon reference: %s", reference)
         return
 
     from django.contrib.auth import get_user_model
@@ -6719,6 +6724,12 @@ def _handle_teacher_addon_payment(reference, data):
         user = User.objects.get(id=user_id, user_type='teacher')
         addon = TeacherAddOn.objects.get(id=addon_id, is_active=True)
     except (User.DoesNotExist, TeacherAddOn.DoesNotExist):
+        logger.warning("Webhook: teacher/addon not found for ref %s", reference)
+        return
+
+    # Deduplicate by payment_reference
+    if TeacherAddOnPurchase.objects.filter(payment_reference=reference).exists():
+        logger.info("Webhook: duplicate payment ref %s, skipping", reference)
         return
 
     amount_paid = Decimal(str(data.get('amount', 0))) / 100
@@ -6736,7 +6747,11 @@ def _handle_teacher_addon_payment(reference, data):
         obj.is_active = True
         obj.payment_reference = reference
         obj.amount_paid = amount_paid
-        obj.save(update_fields=['is_active', 'payment_reference', 'amount_paid'])
+        obj.expires_at = None
+        obj.save(update_fields=['is_active', 'payment_reference', 'amount_paid', 'expires_at'])
+        logger.info("Webhook: re-activated addon %s for user %s (ref %s)", addon.slug, user_id, reference)
+    elif created:
+        logger.info("Webhook: activated addon %s for user %s (ref %s)", addon.slug, user_id, reference)
 
 
 # ── My Add-Ons ─────────────────────────────────────────────────────

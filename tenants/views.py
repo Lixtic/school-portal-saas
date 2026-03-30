@@ -1374,11 +1374,13 @@ def _handle_school_addon_payment(reference, data):
     # Parse reference: SA-{schema}-{addon_id}-{uuid}
     parts = reference.split('-')
     if len(parts) < 3:
+        logger.warning("Webhook: bad school addon reference format: %s", reference)
         return
     try:
         schema_name = parts[1]
         addon_id = int(parts[2])
     except (ValueError, IndexError):
+        logger.warning("Webhook: unparseable school addon reference: %s", reference)
         return
 
     try:
@@ -1386,6 +1388,7 @@ def _handle_school_addon_payment(reference, data):
         subscription = SchoolSubscription.objects.get(school=school)
         addon = AddOn.objects.get(id=addon_id, is_active=True)
     except (School.DoesNotExist, SchoolSubscription.DoesNotExist, AddOn.DoesNotExist):
+        logger.warning("Webhook: school/subscription/addon not found for ref %s", reference)
         return
 
     school_addon, created = SchoolAddOn.objects.get_or_create(
@@ -1397,6 +1400,11 @@ def _handle_school_addon_payment(reference, data):
         school_addon.is_active = True
         school_addon.expires_at = None
         school_addon.save(update_fields=['is_active', 'expires_at'])
+        logger.info("Webhook: re-activated school addon %s for %s (ref %s)", addon.slug, schema_name, reference)
+    elif created:
+        logger.info("Webhook: activated school addon %s for %s (ref %s)", addon.slug, schema_name, reference)
+    else:
+        logger.info("Webhook: school addon %s already active for %s (ref %s)", addon.slug, schema_name, reference)
 
     subscription.calculate_mrr()
 

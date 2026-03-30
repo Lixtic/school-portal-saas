@@ -1,12 +1,9 @@
 """
 Seed the TeacherAddOn catalog with curated tools for teachers.
 
-Run inside a tenant schema:
-    python manage.py tenant_command shell --schema=GirlsModel
-    >>> exec(open('scripts/seed_teacher_addons.py').read())
+Run:  python scripts/seed_teacher_addons.py [schema_name]
 
-Or directly (it sets up Django itself):
-    python scripts/seed_teacher_addons.py
+Without a schema argument it seeds ALL tenant schemas automatically.
 """
 
 import os, sys, django
@@ -14,6 +11,8 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'school_system.settings')
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 django.setup()
 
+from django.db import connection
+from tenants.models import School
 from teachers.models import TeacherAddOn
 
 ADDONS = [
@@ -291,6 +290,19 @@ def seed():
     print(f"TeacherAddOn catalog: {created} created, {updated} updated (total {len(ADDONS)})")
 
 if __name__ == '__main__':
-    seed()
+    schema_arg = sys.argv[1] if len(sys.argv) > 1 else None
+    tenants = School.objects.exclude(schema_name='public')
+    if schema_arg:
+        tenants = tenants.filter(schema_name=schema_arg)
+    if not tenants.exists():
+        print(f"No tenant found{' for ' + schema_arg if schema_arg else ''}.")
+        sys.exit(1)
+    for tenant in tenants:
+        connection.set_tenant(tenant)
+        print(f"\n-- {tenant.schema_name} --")
+        try:
+            seed()
+        except Exception as e:
+            print(f"  SKIPPED ({e.__class__.__name__}: {e})")
 else:
     seed()

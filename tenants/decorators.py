@@ -15,9 +15,12 @@ For JSON/AJAX endpoints, a 402 JSON response is returned instead.
 """
 
 import functools
+import logging
 from django.contrib import messages
 from django.http import JsonResponse
 from django.shortcuts import redirect
+
+logger = logging.getLogger(__name__)
 
 
 def _school_has_addon(request, slug):
@@ -53,7 +56,8 @@ def _school_has_addon(request, slug):
             addon__slug=slug,
             is_active=True,
         ).exists()
-    except Exception:
+    except Exception as exc:
+        logger.debug("Addon check for '%s' failed: %s", slug, exc)
         return False
 
 
@@ -134,7 +138,8 @@ def _school_plan_type(request):
         if subscription.status not in ('trial', 'active'):
             return None  # treat suspended / past_due / cancelled as no access
         return subscription.plan.plan_type
-    except Exception:
+    except Exception as exc:
+        logger.debug("Plan check failed: %s", exc)
         return None
 
 
