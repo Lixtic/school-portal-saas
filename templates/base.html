@@ -3056,12 +3056,17 @@
             <div class="px-3 pb-2">
                 <div class="d-flex justify-content-between mb-1" style="font-size:0.72rem;color:var(--text-muted);">
                     <span><i class="bi bi-stars me-1"></i>AI quota</span>
-                    <span>{{ ai_quota.used }}/{{ ai_quota.limit }}</span>
+                    <span>{{ ai_quota.used }}/{{ ai_quota.limit }}{% if ai_quota.addon_boost %} <i class="bi bi-lightning-charge-fill" style="color:#8b5cf6;" title="Includes +{{ ai_quota.addon_boost }} from add-ons"></i>{% endif %}</span>
                 </div>
                 <div class="usage-bar-wrap">
                     <div class="usage-bar {% if ai_use_pct >= 90 %}crit{% else %}warn{% endif %}"
                          style="width:{{ ai_use_pct }}%;height:5px;border-radius:4px;"></div>
                 </div>
+                {% if ai_quota.addon_boost %}
+                <div style="font-size:0.62rem;color:var(--text-muted);margin-top:2px;">
+                    Plan: {{ ai_quota.base_limit }} + Add-ons: +{{ ai_quota.addon_boost }}
+                </div>
+                {% endif %}
             </div>
             {% endif %}
             {% endif %}

@@ -1636,10 +1636,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (merged.includes('quota_exceeded') || merged.includes('ai_quota_exceeded') || merged.includes('insufficient_quota') || merged.includes('openai http 429')) {
             const used = (source && source.used) ? source.used : null;
             const limit = (source && source.limit) ? source.limit : null;
+            const boost = (source && source.addon_boost) ? parseInt(source.addon_boost) : 0;
             if (used !== null && limit !== null && parseInt(limit) > 0) {
-                return `\u{1F6AB} Monthly AI quota reached (${used}/${limit} calls used). <a href="/tenants/subscription/" style="color:#818cf8;">Upgrade your plan</a> to continue.`;
+                let detail = `${used}/${limit} calls used`;
+                if (boost > 0) detail += ` (incl. +${boost} add-on boost)`;
+                return `\u{1F6AB} Monthly AI quota reached (${detail}). <a href="/tenants/subscription/" style="color:#818cf8;">Upgrade plan</a> or <a href="{% url 'teachers:teacher_store' %}" style="color:#a78bfa;">buy add-ons</a> for more.`;
             }
-            return '\u{1F6AB} Monthly AI quota reached. <a href="/tenants/subscription/" style="color:#818cf8;">Upgrade your plan</a> to continue using Aura-T.';
+            return '\u{1F6AB} Monthly AI quota reached. <a href="/tenants/subscription/" style="color:#818cf8;">Upgrade your plan</a> or <a href="{% url \'teachers:teacher_store\' %}" style="color:#a78bfa;">buy add-ons</a> for more.';
         }
         if (merged.includes('ai_not_configured') || merged.includes('api key') || merged.includes('not configured')) {
             return 'Aura AI is not configured on this server yet. Please contact your administrator.';

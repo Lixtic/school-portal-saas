@@ -33,14 +33,15 @@ _ACTION_LABELS = {
 
 
 class QuotaExceeded(Exception):
-    def __init__(self, used, limit, action_type):
+    def __init__(self, used, limit, action_type, addon_boost=0):
         self.used = used
         self.limit = limit
+        self.addon_boost = addon_boost
         self.action_type = action_type
         label = _ACTION_LABELS.get(action_type, 'AI generation')
         self.user_message = (
             f"Your school has reached its monthly AI quota ({used}/{limit} calls used). "
-            f"Upgrade your plan to unlock more {label}."
+            f"Upgrade your plan or purchase add-ons to unlock more {label}."
         )
         super().__init__(self.user_message)
 
@@ -48,6 +49,22 @@ class QuotaExceeded(Exception):
 def _get_this_month_start():
     now = timezone.now()
     return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+
+def _get_addon_boost():
+    """Sum quota_boost from all active, non-expired teacher add-on purchases in the current tenant schema."""
+    try:
+        from teachers.models import TeacherAddOnPurchase
+        from django.db.models import Q, Sum
+        now = timezone.now()
+        total = TeacherAddOnPurchase.objects.filter(
+            Q(expires_at__isnull=True) | Q(expires_at__gt=now),
+            is_active=True,
+            addon__quota_boost__gt=0,
+        ).aggregate(total=Sum('addon__quota_boost'))['total']
+        return total or 0
+    except Exception:
+        return 0
 
 
 def get_quota_status(school, subscription=None):
@@ -79,6 +96,12 @@ def get_quota_status(school, subscription=None):
     if limit == -1:
         unlimited = True
 
+    # Add quota boosts from teacher add-on purchases
+    boost = _get_addon_boost()
+    base_limit = limit
+    if not unlimited and limit > 0:
+        limit = limit + boost
+
     month_start = _get_this_month_start()
     used = 0
     breakdown = {}
@@ -97,6 +120,8 @@ def get_quota_status(school, subscription=None):
 
     return {
         'limit': limit,
+        'base_limit': base_limit,
+        'addon_boost': boost,
         'used': used,
         'remaining': None if unlimited else max(0, limit - used),
         'unlimited': unlimited,
@@ -136,11 +161,15 @@ def check_and_consume(school, user_id, action_type, call_count=1):
     if limit == 0:
         raise QuotaExceeded(0, 0, action_type)
 
+    # Add quota boosts from teacher add-on purchases
+    boost = _get_addon_boost()
+    limit = limit + boost
+
     month_start = _get_this_month_start()
     used = AIUsageLog.objects.filter(school=school, created_at__gte=month_start).count()
 
     if used + call_count > limit:
-        raise QuotaExceeded(used, limit, action_type)
+        raise QuotaExceeded(used, limit, action_type, addon_boost=boost)
 
     _log_usage(school, user_id, action_type, call_count)
     return True

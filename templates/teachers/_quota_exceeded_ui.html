@@ -47,12 +47,18 @@
 </div>
 
 <script>
-function showAiQuotaExceeded(used, limit) {
+function showAiQuotaExceeded(used, limit, addonBoost) {
   var msg = document.getElementById('aiQuotaMsg');
   if (limit && parseInt(limit) > 0) {
-    msg.textContent = 'You\u2019ve used ' + used + ' of ' + limit + ' AI calls this month. Upgrade your plan to continue.';
+    var txt = 'You\u2019ve used ' + used + ' of ' + limit + ' AI calls this month.';
+    if (addonBoost && parseInt(addonBoost) > 0) {
+      var base = parseInt(limit) - parseInt(addonBoost);
+      txt += ' (Plan: ' + base + ' + Add-on boosts: +' + addonBoost + ')';
+    }
+    txt += ' Upgrade your plan or purchase add-ons to continue.';
+    msg.textContent = txt;
   } else {
-    msg.textContent = 'Your school\u2019s monthly AI quota has been exhausted. Upgrade your plan to continue using Aura-T.';
+    msg.textContent = 'Your school\u2019s monthly AI quota has been exhausted. Upgrade your plan or purchase add-ons to continue.';
   }
   var toast = document.getElementById('aiQuotaToast');
   toast.style.display = 'block';

@@ -97,6 +97,7 @@ def _ai_json_error_response(exception):
                 'message': exception.user_message,
                 'used': exception.used,
                 'limit': exception.limit,
+                'addon_boost': exception.addon_boost,
                 'retryable': False,
             },
             status=429,
@@ -3805,6 +3806,7 @@ def scheme_of_work_bulk_generate(request, pk):
                 'error_code': 'quota_exceeded',
                 'used': e.used,
                 'limit': e.limit,
+                'addon_boost': e.addon_boost,
             }, status=429)
 
     from teachers.services.aura_gen_engine import AuraGenEngine
@@ -5149,7 +5151,7 @@ def presentation_api(request):
         try:
             check_and_consume(request.tenant, request.user.id, 'slide_gen')
         except QuotaExceeded as e:
-            return JsonResponse({'error': e.user_message, 'error_code': 'quota_exceeded', 'used': e.used, 'limit': e.limit}, status=429)
+            return JsonResponse({'error': e.user_message, 'error_code': 'quota_exceeded', 'used': e.used, 'limit': e.limit, 'addon_boost': e.addon_boost}, status=429)
         from teachers.services.aura_gen_engine import AuraGenEngine
         result = AuraGenEngine.generate_slides_outline(topic, subject_name, class_name)
         raw_slides = result.get('slides', [])
@@ -5271,7 +5273,7 @@ def presentation_api(request):
         try:
             check_and_consume(request.tenant, request.user.id, 'slide_gen')
         except QuotaExceeded as e:
-            return JsonResponse({'error': e.user_message, 'error_code': 'quota_exceeded', 'used': e.used, 'limit': e.limit}, status=429)
+            return JsonResponse({'error': e.user_message, 'error_code': 'quota_exceeded', 'used': e.used, 'limit': e.limit, 'addon_boost': e.addon_boost}, status=429)
         result = AuraGenEngine.generate_slides_from_lesson_plan(plan_dict)
         raw_slides = result.get('slides', [])
         with transaction.atomic():
@@ -5312,7 +5314,7 @@ def presentation_api(request):
         try:
             check_and_consume(request.tenant, request.user.id, 'slide_gen')
         except QuotaExceeded as e:
-            return JsonResponse({'error': e.user_message, 'error_code': 'quota_exceeded', 'used': e.used, 'limit': e.limit}, status=429)
+            return JsonResponse({'error': e.user_message, 'error_code': 'quota_exceeded', 'used': e.used, 'limit': e.limit, 'addon_boost': e.addon_boost}, status=429)
         from teachers.services.aura_gen_engine import AuraGenEngine
         result = AuraGenEngine.suggest_slide_bullets(title, subject_name)
         return JsonResponse({'ok': True, 'bullets': result.get('bullets', [])})
@@ -5333,7 +5335,7 @@ def presentation_api(request):
         try:
             check_and_consume(request.tenant, request.user.id, 'slide_gen')
         except QuotaExceeded as e:
-            return JsonResponse({'error': e.user_message, 'error_code': 'quota_exceeded', 'used': e.used, 'limit': e.limit}, status=429)
+            return JsonResponse({'error': e.user_message, 'error_code': 'quota_exceeded', 'used': e.used, 'limit': e.limit, 'addon_boost': e.addon_boost}, status=429)
         from teachers.services.aura_gen_engine import AuraGenEngine
         result = AuraGenEngine.suggest_slide_layouts(slides_data)
         updates = result.get('updates', [])
@@ -5924,7 +5926,7 @@ def presentation_study_guide(request, pk):
             try:
                 check_and_consume(request.tenant, request.user.id, 'study_guide')
             except QuotaExceeded as e:
-                return JsonResponse({'error': e.user_message, 'error_code': 'quota_exceeded', 'used': e.used, 'limit': e.limit}, status=429)
+                return JsonResponse({'error': e.user_message, 'error_code': 'quota_exceeded', 'used': e.used, 'limit': e.limit, 'addon_boost': e.addon_boost}, status=429)
             result = AuraGenEngine.generate_study_guide(slides)
             return JsonResponse(result)
         return JsonResponse({'error': 'Unknown action'}, status=400)
@@ -6871,6 +6873,7 @@ def my_addons(request):
             p.launch_url = None
 
     total_spent = sum(p.amount_paid for p in purchases)
+    total_boost = sum(p.addon.quota_boost for p in active if p.addon.quota_boost)
 
     return render(request, 'teachers/my_addons.html', {
         'active': active,
@@ -6878,6 +6881,7 @@ def my_addons(request):
         'inactive': inactive,
         'total_spent': total_spent,
         'total_active': len(active),
+        'total_boost': total_boost,
     })
 
 
@@ -7122,7 +7126,7 @@ def study_guide_ai(request):
         try:
             check_and_consume(request.tenant, request.user.id, 'study_guide')
         except QuotaExceeded as e:
-            return JsonResponse({'error': e.user_message, 'error_code': 'quota_exceeded', 'used': e.used, 'limit': e.limit}, status=429)
+            return JsonResponse({'error': e.user_message, 'error_code': 'quota_exceeded', 'used': e.used, 'limit': e.limit, 'addon_boost': e.addon_boost}, status=429)
 
         import google.generativeai as genai
         api_key = os.environ.get('GEMINI_API_KEY', '')

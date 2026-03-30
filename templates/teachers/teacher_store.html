@@ -364,6 +364,17 @@
 .tk-price { font-size: 1.05rem; font-weight: 800; color: var(--tk-ink); font-variant-numeric: tabular-nums; }
 .tk-price-free { font-size: .82rem; font-weight: 700; color: #10b981; display: flex; align-items: center; gap: .3rem; }
 
+.tk-boost {
+    display: inline-flex; align-items: center; gap: .3rem;
+    font-size: .65rem; font-weight: 700;
+    color: #8b5cf6; background: rgba(139,92,246,.08);
+    border: 1px solid rgba(139,92,246,.2);
+    border-radius: 7px; padding: .18rem .55rem;
+    margin-top: .4rem;
+}
+.tk-boost i { font-size: .7rem; }
+[data-bs-theme="dark"] .tk-boost { background: rgba(139,92,246,.15); border-color: rgba(139,92,246,.3); }
+
 .tk-btn {
     border: none; padding: .42rem .95rem;
     border-radius: 9px; font-size: .76rem; font-weight: 700;
@@ -539,6 +550,13 @@
                 </ul>
                 {% else %}
                 <p class="tk-desc">{{ addon.description|truncatewords:22 }}</p>
+                {% endif %}
+
+                {% if addon.quota_boost %}
+                <div class="tk-boost">
+                    <i class="bi bi-lightning-charge-fill"></i>
+                    +{{ addon.quota_boost }} AI calls/month for your school
+                </div>
                 {% endif %}
 
                 <div class="tk-foot">

@@ -280,6 +280,12 @@ class TeacherAddOn(models.Model):
     # Feature bullets (stored as JSON list of strings)
     features = models.JSONField(default=list, blank=True, help_text='["Feature 1","Feature 2",…]')
 
+    # AI quota boost — purchasing this add-on adds extra monthly AI calls to school pool
+    quota_boost = models.PositiveIntegerField(
+        default=0,
+        help_text='Extra monthly AI calls added to school quota when purchased (0 = no boost)',
+    )
+
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

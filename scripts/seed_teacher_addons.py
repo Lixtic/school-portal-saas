@@ -26,6 +26,7 @@ ADDONS = [
         'icon': 'bi bi-calendar2-week',
         'badge_label': 'POPULAR',
         'price': 15.00,
+        'quota_boost': 25,
         'features': [
             'Auto-generate weekly plans from scheme',
             'Drag-and-drop schedule builder',
@@ -77,6 +78,7 @@ ADDONS = [
         'icon': 'bi bi-easel2',
         'badge_label': 'POPULAR',
         'price': 20.00,
+        'quota_boost': 25,
         'features': [
             'AI-generated slide content',
             'Auto-add visuals & diagrams',
@@ -109,6 +111,7 @@ ADDONS = [
         'icon': 'bi bi-book-half',
         'badge_label': 'NEW',
         'price': 8.00,
+        'quota_boost': 15,
         'features': [
             'Key concepts summary',
             'Practice questions per topic',
@@ -143,6 +146,7 @@ ADDONS = [
         'icon': 'bi bi-graph-up-arrow',
         'badge_label': '',
         'price': 10.00,
+        'quota_boost': 10,
         'features': [
             'Term-over-term trend charts',
             'Class & subject breakdowns',
@@ -279,9 +283,10 @@ def seed():
     for data in ADDONS:
         features = data.pop('features', [])
         is_free = data.pop('is_free', False)
+        quota_boost = data.pop('quota_boost', 0)
         obj, was_created = TeacherAddOn.objects.update_or_create(
             slug=data['slug'],
-            defaults={**data, 'features': features, 'is_free': is_free},
+            defaults={**data, 'features': features, 'is_free': is_free, 'quota_boost': quota_boost},
         )
         if was_created:
             created += 1
