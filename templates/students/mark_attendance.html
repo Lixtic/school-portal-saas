@@ -226,7 +226,7 @@
                         <select name="class_id" id="classSelect" class="form-select border-start-0 ps-0 bg-light" required>
                             <option value="">Select a class...</option>
                             {% for class in classes %}
-                                <option value="{{ class.id }}">{{ class }}</option>
+                                <option value="{{ class.id }}" {% if class.id == default_class_id %}selected{% endif %}>{{ class }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -316,9 +316,11 @@ if (preselectDate && dateInput) {
 
 if (preselectClassId && classSelect) {
     classSelect.value = preselectClassId;
-    if (loadButton) {
-        loadButton.click();
-    }
+}
+
+// Auto-load if a class is selected (via URL param or server-side default)
+if (classSelect && classSelect.value && loadButton) {
+    loadButton.click();
 }
 
 if (loadButton) {

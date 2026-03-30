@@ -564,9 +564,11 @@ def mark_attendance(request):
         return redirect('students:mark_attendance')
     
     classes = allowed_classes
+    default_class = allowed_classes.first() if allowed_classes.count() == 1 else None
     return render(request, 'students/mark_attendance.html', {
         'classes': classes,
-        'today': date.today()
+        'today': date.today(),
+        'default_class_id': default_class.id if default_class else '',
     })
 
 
