@@ -336,6 +336,9 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 if DEBUG or os.environ.get('VERCEL') == '1':
     WHITENOISE_USE_FINDERS = True
 
+# Ensure STATIC_ROOT exists so WhiteNoise doesn't warn on every cold start.
+STATIC_ROOT.mkdir(exist_ok=True)
+
 
 # Media files
 MEDIA_URL = '/media/'
