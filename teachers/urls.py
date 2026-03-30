@@ -121,6 +121,11 @@ urlpatterns = [
     # Fee collection tasks
     path('fee-tasks/', views.my_fee_tasks, name='my_fee_tasks'),
     path('fee-tasks/<int:structure_id>/', views.fee_task_detail, name='fee_task_detail'),
+
+    # Teacher Add-On Store
+    path('store/', views.teacher_store, name='teacher_store'),
+    path('store/purchase/<int:addon_id>/', views.teacher_store_purchase, name='teacher_store_purchase'),
+    path('store/cancel/<int:addon_id>/', views.teacher_store_cancel, name='teacher_store_cancel'),
 ]
 
 

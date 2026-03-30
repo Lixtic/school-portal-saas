@@ -246,3 +246,62 @@ class PollResponse(models.Model):
 
     def __str__(self):
         return f"{self.student_name}: {self.choice} on slide {self.slide_id}"
+
+
+# ---------------------------------------------------------------------------
+# Teacher Add-On Store
+# ---------------------------------------------------------------------------
+
+class TeacherAddOn(models.Model):
+    """Catalog item: a tool or resource pack teachers can purchase."""
+
+    CATEGORY_CHOICES = [
+        ('productivity', 'Productivity'),
+        ('ai_tools', 'AI Tools'),
+        ('assessment', 'Assessment'),
+        ('content', 'Content Packs'),
+        ('professional', 'Professional Dev'),
+        ('classroom', 'Classroom Tools'),
+    ]
+
+    name = models.CharField(max_length=120)
+    slug = models.SlugField(unique=True)
+    tagline = models.CharField(max_length=200, blank=True, default='')
+    description = models.TextField()
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
+    icon = models.CharField(max_length=50, default='bi-box-seam', help_text='Bootstrap icon class')
+    badge_label = models.CharField(max_length=30, blank=True, default='', help_text='e.g. "NEW", "POPULAR"')
+
+    # Pricing
+    price = models.DecimalField(max_digits=8, decimal_places=2, help_text='One-time price in school currency')
+    is_free = models.BooleanField(default=False)
+
+    # Feature bullets (stored as JSON list of strings)
+    features = models.JSONField(default=list, blank=True, help_text='["Feature 1","Feature 2",…]')
+
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['category', 'price']
+
+    def __str__(self):
+        return self.name
+
+
+class TeacherAddOnPurchase(models.Model):
+    """Records a teacher's purchase of an add-on."""
+
+    teacher = models.ForeignKey(
+        'accounts.User', on_delete=models.CASCADE, related_name='addon_purchases',
+    )
+    addon = models.ForeignKey(TeacherAddOn, on_delete=models.PROTECT, related_name='purchases')
+    purchased_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ['teacher', 'addon']
+        ordering = ['-purchased_at']
+
+    def __str__(self):
+        return f"{self.teacher.get_full_name()} → {self.addon.name}"

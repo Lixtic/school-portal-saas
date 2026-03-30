@@ -6490,3 +6490,82 @@ def fee_task_detail(request, structure_id):
         'owing_count': len(owing_fees),
         'total_count': len(list(student_fees)),
     })
+
+
+# ---------------------------------------------------------------------------
+# Teacher Add-On Store
+# ---------------------------------------------------------------------------
+
+@login_required
+def teacher_store(request):
+    """Browse & manage personal teacher add-ons."""
+    if request.user.user_type != 'teacher':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    from teachers.models import TeacherAddOn, TeacherAddOnPurchase
+
+    addons = TeacherAddOn.objects.filter(is_active=True)
+    purchased_ids = set(
+        TeacherAddOnPurchase.objects.filter(
+            teacher=request.user, is_active=True
+        ).values_list('addon_id', flat=True)
+    )
+
+    # Group by category
+    categories = {}
+    for addon in addons:
+        addon.is_purchased = addon.id in purchased_ids
+        label = addon.get_category_display()
+        categories.setdefault(label, []).append(addon)
+
+    return render(request, 'teachers/teacher_store.html', {
+        'categories': categories,
+        'purchased_count': len(purchased_ids),
+        'total_count': addons.count(),
+    })
+
+
+@login_required
+def teacher_store_purchase(request, addon_id):
+    """Purchase (activate) a teacher add-on."""
+    if request.user.user_type != 'teacher':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+    if request.method != 'POST':
+        return redirect('teachers:teacher_store')
+
+    from teachers.models import TeacherAddOn, TeacherAddOnPurchase
+
+    addon = get_object_or_404(TeacherAddOn, id=addon_id, is_active=True)
+    obj, created = TeacherAddOnPurchase.objects.get_or_create(
+        teacher=request.user,
+        addon=addon,
+        defaults={'is_active': True},
+    )
+    if not created and not obj.is_active:
+        obj.is_active = True
+        obj.save(update_fields=['is_active'])
+
+    messages.success(request, f'"{addon.name}" activated!')
+    return redirect('teachers:teacher_store')
+
+
+@login_required
+def teacher_store_cancel(request, addon_id):
+    """Deactivate a purchased teacher add-on."""
+    if request.user.user_type != 'teacher':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+    if request.method != 'POST':
+        return redirect('teachers:teacher_store')
+
+    from teachers.models import TeacherAddOn, TeacherAddOnPurchase
+
+    addon = get_object_or_404(TeacherAddOn, id=addon_id)
+    TeacherAddOnPurchase.objects.filter(
+        teacher=request.user, addon=addon
+    ).update(is_active=False)
+
+    messages.info(request, f'"{addon.name}" deactivated.')
+    return redirect('teachers:teacher_store')

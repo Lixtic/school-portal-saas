@@ -503,6 +503,15 @@ for week_num, s_date, e_date, assignments, remarks in duty_weeks_data_t2:
                 )
                 print(f"   -> Assigned {t_username} as {role}")
 
+# --- 11. Seed Teacher Add-On catalog ---
+print("\n" + "="*60)
+print("📦 Seeding Teacher Add-On Store catalog...")
+try:
+    from scripts.seed_teacher_addons import seed as seed_teacher_addons
+    seed_teacher_addons()
+except Exception as e:
+    print(f"   ⚠️  Skipped teacher add-ons: {e}")
+
 print("\n" + "="*60)
 print("🎉 SAMPLE DATA LOADED SUCCESSFULLY!")
 print("="*60)

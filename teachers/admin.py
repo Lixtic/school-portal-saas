@@ -1,7 +1,7 @@
 # teachers/admin.py
 from django.contrib import admin, messages
 import secrets
-from .models import Teacher, DutyWeek, DutyAssignment, Presentation, Slide
+from .models import Teacher, DutyWeek, DutyAssignment, Presentation, Slide, TeacherAddOn, TeacherAddOnPurchase
 from .forms import TeacherQuickAddForm
 
 @admin.register(Teacher)
@@ -90,3 +90,18 @@ class PresentationAdmin(admin.ModelAdmin):
     search_fields = ('title', 'teacher__user__first_name', 'teacher__user__last_name')
     inlines       = [SlideInline]
     readonly_fields = ('created_at', 'updated_at')
+
+
+@admin.register(TeacherAddOn)
+class TeacherAddOnAdmin(admin.ModelAdmin):
+    list_display = ('name', 'category', 'price', 'is_free', 'is_active', 'badge_label')
+    list_filter = ('category', 'is_active', 'is_free')
+    search_fields = ('name', 'slug')
+    prepopulated_fields = {'slug': ('name',)}
+
+
+@admin.register(TeacherAddOnPurchase)
+class TeacherAddOnPurchaseAdmin(admin.ModelAdmin):
+    list_display = ('teacher', 'addon', 'purchased_at', 'is_active')
+    list_filter = ('is_active', 'addon__category')
+    search_fields = ('teacher__first_name', 'teacher__last_name', 'addon__name')

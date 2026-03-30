@@ -1,0 +1,469 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Teacher Toolkit – {{ school_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Palette & variables ──────────────────────────────────────────── */
+:root {
+    --ts-accent:     #0ea5e9;
+    --ts-accent-h:   #0284c7;
+    --ts-warm:       #f97316;
+    --ts-surface:    #ffffff;
+    --ts-bg:         #f0f4f8;
+    --ts-border:     #e2e8f0;
+    --ts-heading:    #0f172a;
+    --ts-body:       #334155;
+    --ts-muted:      #94a3b8;
+    --ts-card-hover: 0 12px 28px rgba(14,165,233,.12);
+    --ts-radius:     14px;
+}
+[data-bs-theme="dark"] {
+    --ts-surface:    #1e293b;
+    --ts-bg:         #0f172a;
+    --ts-border:     rgba(255,255,255,.08);
+    --ts-heading:    #f1f5f9;
+    --ts-body:       #cbd5e1;
+    --ts-muted:      #64748b;
+    --ts-card-hover: 0 12px 28px rgba(0,0,0,.35);
+}
+
+/* ── Hero banner ──────────────────────────────────────────────────── */
+.ts-hero {
+    background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 50%, #a855f7 100%);
+    border-radius: 1rem;
+    padding: 1.75rem 2rem;
+    color: #fff;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    box-shadow: 0 8px 32px rgba(14,165,233,.22);
+    position: relative;
+    overflow: hidden;
+}
+.ts-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+    pointer-events: none;
+}
+[data-bs-theme="dark"] .ts-hero { box-shadow: 0 8px 32px rgba(0,0,0,.45); }
+.ts-hero h2 { font-size: 1.4rem; font-weight: 800; margin: 0; position: relative; }
+.ts-hero p  { opacity: .85; font-size: .85rem; margin: .25rem 0 0; position: relative; }
+.ts-hero-stats { display: flex; gap: .65rem; position: relative; }
+.ts-hero-pill {
+    background: rgba(255,255,255,.15);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,.18);
+    border-radius: 10px;
+    padding: .45rem .9rem;
+    text-align: center;
+    min-width: 80px;
+}
+.ts-hero-pill strong { display: block; font-size: 1.2rem; font-weight: 700; }
+.ts-hero-pill span { font-size: .65rem; text-transform: uppercase; letter-spacing: .04em; opacity: .8; }
+
+/* ── Filter strip ─────────────────────────────────────────────────── */
+.ts-filter {
+    background: var(--ts-surface);
+    border: 1px solid var(--ts-border);
+    border-radius: var(--ts-radius);
+    padding: .65rem 1rem;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    flex-wrap: wrap;
+}
+.ts-filter input {
+    flex: 1;
+    min-width: 140px;
+    border: none;
+    background: transparent;
+    color: var(--ts-heading);
+    outline: none;
+    font-size: .85rem;
+}
+.ts-filter input::placeholder { color: var(--ts-muted); }
+.ts-pill-btn {
+    border: 1px solid var(--ts-border);
+    background: transparent;
+    color: var(--ts-body);
+    padding: .3rem .7rem;
+    border-radius: 8px;
+    font-size: .72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s ease;
+    white-space: nowrap;
+}
+.ts-pill-btn:hover,
+.ts-pill-btn.active {
+    background: var(--ts-accent);
+    border-color: var(--ts-accent);
+    color: #fff;
+}
+.ts-result-badge {
+    font-size: .68rem;
+    background: var(--ts-accent);
+    color: #fff;
+    padding: .2rem .55rem;
+    border-radius: 6px;
+    font-weight: 600;
+    margin-left: auto;
+}
+
+/* ── Category section ─────────────────────────────────────────────── */
+.ts-cat-heading {
+    font-size: .78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--ts-muted);
+    margin: 1.25rem 0 .65rem;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+}
+.ts-cat-heading::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--ts-border);
+}
+
+/* ── Add-on card ──────────────────────────────────────────────────── */
+.ts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+    gap: 1rem;
+}
+.ts-card {
+    background: var(--ts-surface);
+    border: 1px solid var(--ts-border);
+    border-radius: var(--ts-radius);
+    padding: 1.15rem;
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow .25s ease, transform .25s ease;
+    position: relative;
+}
+.ts-card:hover {
+    box-shadow: var(--ts-card-hover);
+    transform: translateY(-3px);
+}
+
+/* Icon circle */
+.ts-card-icon {
+    width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 12px;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+/* category colors */
+.ts-cat-productivity  { background: rgba(14,165,233,.12); color: #0ea5e9; }
+.ts-cat-ai_tools      { background: rgba(168,85,247,.12); color: #a855f7; }
+.ts-cat-assessment    { background: rgba(245,158,11,.12); color: #f59e0b; }
+.ts-cat-content       { background: rgba(16,185,129,.12); color: #10b981; }
+.ts-cat-professional  { background: rgba(239,68,68,.12);  color: #ef4444; }
+.ts-cat-classroom     { background: rgba(99,102,241,.12); color: #6366f1; }
+
+[data-bs-theme="dark"] .ts-cat-productivity  { background: rgba(14,165,233,.18); }
+[data-bs-theme="dark"] .ts-cat-ai_tools      { background: rgba(168,85,247,.18); }
+[data-bs-theme="dark"] .ts-cat-assessment    { background: rgba(245,158,11,.18); }
+[data-bs-theme="dark"] .ts-cat-content       { background: rgba(16,185,129,.18); }
+[data-bs-theme="dark"] .ts-cat-professional  { background: rgba(239,68,68,.18); }
+[data-bs-theme="dark"] .ts-cat-classroom     { background: rgba(99,102,241,.18); }
+
+.ts-card-head {
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+    margin-bottom: .65rem;
+}
+.ts-card-head h3 {
+    font-size: .92rem;
+    font-weight: 700;
+    color: var(--ts-heading);
+    margin: 0;
+    line-height: 1.3;
+}
+.ts-card-head .ts-tagline {
+    font-size: .73rem;
+    color: var(--ts-muted);
+    margin: .15rem 0 0;
+}
+
+.ts-badge {
+    position: absolute;
+    top: .75rem; right: .75rem;
+    font-size: .58rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    padding: .2rem .5rem;
+    border-radius: 6px;
+}
+.ts-badge-new  { background: #10b981; color: #fff; }
+.ts-badge-pop  { background: var(--ts-warm); color: #fff; }
+.ts-badge-free { background: #6366f1; color: #fff; }
+.ts-badge-owned {
+    background: rgba(16,185,129,.12);
+    color: #10b981;
+    border: 1px solid rgba(16,185,129,.25);
+}
+
+/* Feature list */
+.ts-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 .75rem;
+    flex: 1;
+}
+.ts-features li {
+    font-size: .76rem;
+    color: var(--ts-body);
+    padding: .2rem 0;
+    display: flex;
+    align-items: baseline;
+    gap: .35rem;
+}
+.ts-features li i { color: var(--ts-accent); font-size: .65rem; flex-shrink: 0; }
+
+/* Price row */
+.ts-price-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid var(--ts-border);
+    padding-top: .65rem;
+    margin-top: auto;
+}
+.ts-price {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--ts-heading);
+}
+.ts-price-free {
+    font-size: .82rem;
+    font-weight: 700;
+    color: #10b981;
+}
+
+/* Buttons */
+.ts-btn {
+    border: none;
+    padding: .38rem .85rem;
+    border-radius: 9px;
+    font-size: .75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .2s ease;
+}
+.ts-btn-get {
+    background: linear-gradient(135deg, #0ea5e9, #6366f1);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(14,165,233,.25);
+}
+.ts-btn-get:hover { transform: scale(1.04); box-shadow: 0 4px 14px rgba(14,165,233,.35); }
+.ts-btn-owned {
+    background: rgba(16,185,129,.1);
+    color: #10b981;
+    border: 1px solid rgba(16,185,129,.25);
+    cursor: default;
+}
+.ts-btn-cancel {
+    background: transparent;
+    color: var(--ts-muted);
+    border: 1px solid var(--ts-border);
+    font-size: .68rem;
+    padding: .3rem .6rem;
+}
+.ts-btn-cancel:hover { border-color: #ef4444; color: #ef4444; }
+
+/* ── Empty state ──────────────────────────────────────────────────── */
+.ts-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--ts-muted);
+}
+.ts-empty i { font-size: 2.5rem; margin-bottom: .75rem; display: block; opacity: .5; }
+
+/* ── Responsive ───────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .ts-hero { padding: 1.25rem 1.25rem; flex-direction: column; align-items: flex-start; }
+    .ts-grid { grid-template-columns: 1fr; }
+    .ts-filter { flex-direction: column; }
+    .ts-result-badge { margin-left: 0; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<div class="ts-hero">
+    <div>
+        <h2><i class="bi bi-shop-window me-2"></i>Teacher Toolkit</h2>
+        <p>Personal add-ons to supercharge your teaching workflow</p>
+    </div>
+    <div class="ts-hero-stats">
+        <div class="ts-hero-pill">
+            <strong>{{ total_count }}</strong>
+            <span>Available</span>
+        </div>
+        <div class="ts-hero-pill">
+            <strong>{{ purchased_count }}</strong>
+            <span>Active</span>
+        </div>
+    </div>
+</div>
+
+{% if messages %}
+<div class="mb-3">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Filter -->
+<div class="ts-filter" id="filterBar">
+    <i class="bi bi-search" style="color:var(--ts-muted);font-size:.85rem;"></i>
+    <input type="text" id="tsSearch" placeholder="Search tools…" autocomplete="off">
+    <button class="ts-pill-btn active" data-cat="all">All</button>
+    <button class="ts-pill-btn" data-cat="productivity">Productivity</button>
+    <button class="ts-pill-btn" data-cat="ai_tools">AI</button>
+    <button class="ts-pill-btn" data-cat="assessment">Assessment</button>
+    <button class="ts-pill-btn" data-cat="content">Content</button>
+    <button class="ts-pill-btn" data-cat="professional">Prof Dev</button>
+    <button class="ts-pill-btn" data-cat="classroom">Classroom</button>
+    <span class="ts-result-badge" id="resultCount">{{ total_count }} tools</span>
+</div>
+
+<!-- Cards -->
+{% for cat_label, addons in categories.items %}
+<div class="ts-cat-section" data-cat-section>
+    <div class="ts-cat-heading">{{ cat_label }}</div>
+    <div class="ts-grid">
+        {% for addon in addons %}
+        <div class="ts-card" data-name="{{ addon.name|lower }}" data-cat="{{ addon.category }}" data-desc="{{ addon.description|lower }}">
+            {% if addon.badge_label %}
+                {% if addon.badge_label == 'NEW' %}
+                    <span class="ts-badge ts-badge-new">{{ addon.badge_label }}</span>
+                {% elif addon.badge_label == 'POPULAR' %}
+                    <span class="ts-badge ts-badge-pop">{{ addon.badge_label }}</span>
+                {% elif addon.is_free %}
+                    <span class="ts-badge ts-badge-free">FREE</span>
+                {% else %}
+                    <span class="ts-badge ts-badge-new">{{ addon.badge_label }}</span>
+                {% endif %}
+            {% elif addon.is_free %}
+                <span class="ts-badge ts-badge-free">FREE</span>
+            {% endif %}
+            {% if addon.is_purchased %}
+                <span class="ts-badge ts-badge-owned"><i class="bi bi-check-circle-fill me-1"></i>ACTIVE</span>
+            {% endif %}
+
+            <div class="ts-card-head">
+                <div class="ts-card-icon ts-cat-{{ addon.category }}">
+                    <i class="{{ addon.icon }}"></i>
+                </div>
+                <div>
+                    <h3>{{ addon.name }}</h3>
+                    {% if addon.tagline %}<p class="ts-tagline">{{ addon.tagline }}</p>{% endif %}
+                </div>
+            </div>
+
+            {% if addon.features %}
+            <ul class="ts-features">
+                {% for feat in addon.features %}
+                <li><i class="bi bi-check2"></i> {{ feat }}</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p style="font-size:.78rem;color:var(--ts-body);flex:1;">{{ addon.description|truncatewords:25 }}</p>
+            {% endif %}
+
+            <div class="ts-price-row">
+                {% if addon.is_free %}
+                    <span class="ts-price-free"><i class="bi bi-gift me-1"></i>Free</span>
+                {% else %}
+                    <span class="ts-price">{{ addon.price }}</span>
+                {% endif %}
+
+                {% if addon.is_purchased %}
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="ts-btn ts-btn-owned"><i class="bi bi-check-lg me-1"></i>Owned</span>
+                        <form method="post" action="{% url 'teachers:teacher_store_cancel' addon.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="ts-btn ts-btn-cancel" title="Deactivate">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </form>
+                    </div>
+                {% else %}
+                    <form method="post" action="{% url 'teachers:teacher_store_purchase' addon.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="ts-btn ts-btn-get">
+                            {% if addon.is_free %}Activate{% else %}Get{% endif %} <i class="bi bi-arrow-right ms-1"></i>
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% empty %}
+<div class="ts-empty">
+    <i class="bi bi-box-seam"></i>
+    <h5>No tools available yet</h5>
+    <p>Check back soon — new teacher add-ons are being curated.</p>
+</div>
+{% endfor %}
+
+<script>
+(function(){
+    const search = document.getElementById('tsSearch');
+    const pills  = document.querySelectorAll('.ts-pill-btn');
+    const cards   = document.querySelectorAll('.ts-card');
+    const sections = document.querySelectorAll('[data-cat-section]');
+    const badge   = document.getElementById('resultCount');
+    let activeCat = 'all';
+
+    function filter(){
+        const q = (search.value || '').toLowerCase().trim();
+        let visible = 0;
+        cards.forEach(c => {
+            const catMatch = activeCat === 'all' || c.dataset.cat === activeCat;
+            const textMatch = !q || c.dataset.name.includes(q) || c.dataset.desc.includes(q);
+            const show = catMatch && textMatch;
+            c.style.display = show ? '' : 'none';
+            if(show) visible++;
+        });
+        sections.forEach(s => {
+            const any = [...s.querySelectorAll('.ts-card')].some(c => c.style.display !== 'none');
+            s.style.display = any ? '' : 'none';
+        });
+        badge.textContent = visible + ' tool' + (visible !== 1 ? 's' : '');
+    }
+
+    pills.forEach(p => p.addEventListener('click', () => {
+        pills.forEach(b => b.classList.remove('active'));
+        p.classList.add('active');
+        activeCat = p.dataset.cat;
+        filter();
+    }));
+    search.addEventListener('input', filter);
+})();
+</script>
+{% endblock %}
