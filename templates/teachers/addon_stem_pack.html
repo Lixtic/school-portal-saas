@@ -3,19 +3,29 @@
 
 {% block content %}
 <style>
-:root{--st-card:#fff;--st-ink:#0b1120;--st-muted:#8892a4;--st-border:#e4e8f2;--st-accent:#10b981;}
+:root{--st-card:#fff;--st-ink:#0b1120;--st-muted:#8892a4;--st-border:#e4e8f2;--st-accent:#10b981;--st-accent2:#059669;}
 [data-bs-theme="dark"]{--st-card:#1e293b;--st-ink:#f1f5f9;--st-muted:#94a3b8;--st-border:#334155;}
-.st-wrap{max-width:860px;margin:0 auto;padding:1rem 0;}
+.st-wrap{max-width:960px;margin:0 auto;padding:1rem .5rem;}
+.st-hero{background:linear-gradient(135deg,var(--st-accent),#0d9488);border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1rem;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;}
+.st-hero h1{margin:0;font-size:1.25rem;font-weight:800;letter-spacing:-.02em;}
+.st-hero-sub{font-size:.78rem;opacity:.85;margin-top:.15rem;}
+.st-hero-stats{display:flex;gap:1rem;}
+.st-stat{text-align:center;}.st-stat-num{font-size:1.5rem;font-weight:800;line-height:1;}.st-stat-lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;opacity:.8;}
 .st-card{background:var(--st-card);border:1px solid var(--st-border);border-radius:14px;overflow:hidden;margin-bottom:1rem;}
-.st-head{padding:1rem 1.3rem;border-bottom:1px solid var(--st-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
-.st-head h2{margin:0;font-size:1.1rem;font-weight:800;color:var(--st-ink);}
-.st-filters{display:flex;gap:.3rem;flex-wrap:wrap;padding:.8rem 1.3rem;border-bottom:1px solid var(--st-border);}
-.st-filter{padding:.3rem .7rem;border-radius:8px;font-size:.78rem;font-weight:600;border:1px solid var(--st-border);background:var(--st-card);color:var(--st-ink);cursor:pointer;text-decoration:none;}
+.st-toolbar{padding:.8rem 1.3rem;border-bottom:1px solid var(--st-border);display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;}
+.st-search{position:relative;flex:1;min-width:180px;}
+.st-search input{width:100%;padding:.45rem .65rem .45rem 2rem;border:1px solid var(--st-border);border-radius:8px;font-size:.84rem;background:var(--st-card);color:var(--st-ink);transition:border-color .15s;}
+.st-search input:focus{border-color:var(--st-accent);outline:none;box-shadow:0 0 0 3px rgba(16,185,129,.12);}
+.st-search i{position:absolute;left:.65rem;top:50%;transform:translateY(-50%);color:var(--st-muted);font-size:.82rem;}
+.st-filters{display:flex;gap:.3rem;flex-wrap:wrap;}
+.st-filter{padding:.35rem .7rem;border-radius:8px;font-size:.78rem;font-weight:600;border:1px solid var(--st-border);background:var(--st-card);color:var(--st-ink);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem;}
+.st-filter:hover{border-color:var(--st-accent);color:var(--st-accent);}
 .st-filter.active{background:var(--st-accent);color:#fff;border-color:var(--st-accent);}
-.st-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.8rem;padding:1rem 1.3rem;}
-.st-item{border:1px solid var(--st-border);border-radius:12px;padding:.9rem 1rem;background:var(--st-card);transition:box-shadow .15s,transform .15s;}
-.st-item:hover{box-shadow:0 6px 20px rgba(0,0,0,.07);transform:translateY(-2px);}
-.st-item-icon{font-size:1.5rem;margin-bottom:.4rem;}
+.st-filter-badge{font-size:.6rem;font-weight:800;background:rgba(255,255,255,.25);padding:.05rem .3rem;border-radius:8px;}
+.st-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.8rem;padding:1rem 1.3rem;}
+.st-item{border:1px solid var(--st-border);border-radius:12px;padding:1rem;background:var(--st-card);transition:box-shadow .15s,transform .15s,border-color .15s;position:relative;}
+.st-item:hover{box-shadow:0 8px 24px rgba(0,0,0,.07);transform:translateY(-2px);border-color:rgba(16,185,129,.25);}
+.st-item-icon{font-size:1.6rem;margin-bottom:.5rem;}
 .st-item h4{font-size:.92rem;font-weight:700;color:var(--st-ink);margin:0 0 .3rem;}
 .st-item p{font-size:.8rem;color:var(--st-muted);margin:0 0 .5rem;line-height:1.5;}
 .st-tag{display:inline-block;padding:.12rem .4rem;border-radius:5px;font-size:.68rem;font-weight:600;margin-right:.2rem;}
@@ -23,22 +33,42 @@
 .st-tag-math{background:rgba(245,158,11,.1);color:#f59e0b;}
 .st-tag-ict{background:rgba(124,58,237,.1);color:#7c3aed;}
 .st-tag-level{background:rgba(16,185,129,.1);color:#10b981;}
-.st-materials{font-size:.72rem;color:var(--st-muted);margin-top:.4rem;border-top:1px dashed var(--st-border);padding-top:.4rem;}
-.st-count{font-size:.78rem;color:var(--st-muted);}
-</style>
+.st-materials{font-size:.72rem;color:var(--st-muted);margin-top:.5rem;border-top:1px dashed var(--st-border);padding-top:.5rem;}
+.st-materials i{color:var(--st-accent);}
+.st-bookmark{position:absolute;top:.6rem;right:.6rem;background:none;border:none;color:var(--st-muted);cursor:pointer;font-size:1rem;transition:color .15s,transform .15s;}
+.st-bookmark:hover,.st-bookmark.saved{color:#f59e0b;transform:scale(1.15);}
+.st-empty{padding:2.5rem 1rem;text-align:center;color:var(--st-muted);font-size:.88rem;}
+.st-empty i{font-size:2rem;display:block;margin-bottom:.5rem;opacity:.25;}
+.st-count{font-size:.78rem;color:var(--st-muted);padding:0 1.3rem .6rem;}</style>
 
 <div class="st-wrap">
+    <!-- Hero -->
+    <div class="st-hero">
+        <div>
+            <h1><i class="bi bi-rocket-takeoff me-2"></i>STEM Activity Pack</h1>
+            <div class="st-hero-sub">Hands-on Science, Maths &amp; ICT activities for JHS classrooms</div>
+        </div>
+        <div class="st-hero-stats">
+            <div class="st-stat"><div class="st-stat-num" id="totalCount">25</div><div class="st-stat-lbl">Activities</div></div>
+            <div class="st-stat"><div class="st-stat-num">3</div><div class="st-stat-lbl">Categories</div></div>
+        </div>
+    </div>
+
     <div class="st-card">
-        <div class="st-head">
-            <h2><i class="bi bi-rocket-takeoff me-2" style="color:var(--st-accent);"></i>STEM Activity Pack</h2>
-            <span class="st-count" id="activityCount"></span>
+        <div class="st-toolbar">
+            <div class="st-search">
+                <i class="bi bi-search"></i>
+                <input type="text" id="stSearch" placeholder="Search activities…" oninput="render()">
+            </div>
+            <div class="st-filters" id="stFilters">
+                <button class="st-filter active" onclick="filterCat('all',this)">All</button>
+                <button class="st-filter" onclick="filterCat('science',this)"><i class="bi bi-eyedropper"></i> Science</button>
+                <button class="st-filter" onclick="filterCat('math',this)"><i class="bi bi-calculator"></i> Maths</button>
+                <button class="st-filter" onclick="filterCat('ict',this)"><i class="bi bi-laptop"></i> ICT</button>
+                <button class="st-filter" onclick="filterCat('saved',this)"><i class="bi bi-bookmark-fill"></i> Saved</button>
+            </div>
         </div>
-        <div class="st-filters">
-            <button class="st-filter active" onclick="filterCat('all',this)">All</button>
-            <button class="st-filter" onclick="filterCat('science',this)">Science</button>
-            <button class="st-filter" onclick="filterCat('math',this)">Mathematics</button>
-            <button class="st-filter" onclick="filterCat('ict',this)">ICT</button>
-        </div>
+        <div class="st-count" id="activityCount"></div>
         <div class="st-grid" id="activityGrid"></div>
     </div>
 </div>
@@ -73,25 +103,44 @@ const ACTIVITIES=[
 ];
 
 let currentCat='all';
+let savedItems=JSON.parse(localStorage.getItem('stem_saved')||'[]');
+
 function filterCat(cat,btn){
     currentCat=cat;
     document.querySelectorAll('.st-filter').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     render();
 }
+
+function toggleSave(title){
+    const idx=savedItems.indexOf(title);
+    if(idx===-1)savedItems.push(title);else savedItems.splice(idx,1);
+    localStorage.setItem('stem_saved',JSON.stringify(savedItems));
+    render();
+}
+
 function render(){
-    const items=currentCat==='all'?ACTIVITIES:ACTIVITIES.filter(a=>a.c===currentCat);
+    const search=(document.getElementById('stSearch').value||'').toLowerCase();
+    let items=currentCat==='saved'?ACTIVITIES.filter(a=>savedItems.includes(a.t)):currentCat==='all'?ACTIVITIES:ACTIVITIES.filter(a=>a.c===currentCat);
+    if(search)items=items.filter(a=>a.t.toLowerCase().includes(search)||a.d.toLowerCase().includes(search)||a.mat.toLowerCase().includes(search));
     const grid=document.getElementById('activityGrid');
-    document.getElementById('activityCount').textContent=items.length+' activities';
-    grid.innerHTML=items.map(a=>`
-        <div class="st-item">
+    document.getElementById('activityCount').textContent=items.length+' activit'+(items.length===1?'y':'ies')+' shown';
+    if(!items.length){
+        grid.innerHTML='<div class="st-empty" style="grid-column:1/-1;"><i class="bi bi-rocket-takeoff"></i>No activities match your search.</div>';
+        return;
+    }
+    grid.innerHTML=items.map(a=>{
+        const isSaved=savedItems.includes(a.t);
+        return `<div class="st-item">
+            <button class="st-bookmark ${isSaved?'saved':''}" onclick="toggleSave('${a.t.replace(/'/g,"\\'")}')" title="${isSaved?'Remove bookmark':'Bookmark'}"><i class="bi bi-bookmark${isSaved?'-fill':''}"></i></button>
             <div class="st-item-icon">${a.c==='science'?'🔬':a.c==='math'?'📐':'💻'}</div>
             <h4>${a.t}</h4>
             <p>${a.d}</p>
             <span class="st-tag st-tag-${a.c}">${a.c==='ict'?'ICT':a.c.charAt(0).toUpperCase()+a.c.slice(1)}</span>
             <span class="st-tag st-tag-level">${a.lvl}</span>
             <div class="st-materials"><i class="bi bi-box-seam me-1"></i>${a.mat}</div>
-        </div>`).join('');
+        </div>`;
+    }).join('');
 }
 render();
 </script>

@@ -3,42 +3,76 @@
 
 {% block content %}
 <style>
-:root{--cpd-card:#fff;--cpd-ink:#0b1120;--cpd-muted:#8892a4;--cpd-border:#e4e8f2;--cpd-accent:#4361ee;}
+:root{--cpd-card:#fff;--cpd-ink:#0b1120;--cpd-muted:#8892a4;--cpd-border:#e4e8f2;--cpd-accent:#4361ee;--cpd-accent2:#10b981;}
 [data-bs-theme="dark"]{--cpd-card:#1e293b;--cpd-ink:#f1f5f9;--cpd-muted:#94a3b8;--cpd-border:#334155;}
-.cpd-wrap{max-width:780px;margin:0 auto;padding:1rem 0;}
+.cpd-wrap{max-width:860px;margin:0 auto;padding:1rem .5rem;}
+.cpd-hero{background:linear-gradient(135deg,var(--cpd-accent),#7c3aed);border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1rem;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;}
+.cpd-hero h1{margin:0;font-size:1.25rem;font-weight:800;letter-spacing:-.02em;}
+.cpd-hero-sub{font-size:.78rem;opacity:.85;margin-top:.15rem;}
+.cpd-hero-stats{display:flex;gap:1.2rem;}
+.cpd-h-stat{text-align:center;}.cpd-h-num{font-size:1.5rem;font-weight:800;line-height:1;}.cpd-h-lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;opacity:.8;}
 .cpd-card{background:var(--cpd-card);border:1px solid var(--cpd-border);border-radius:14px;overflow:hidden;margin-bottom:1rem;}
-.cpd-head{padding:1rem 1.3rem;border-bottom:1px solid var(--cpd-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
-.cpd-head h2{margin:0;font-size:1.1rem;font-weight:800;color:var(--cpd-ink);}
-.cpd-stats{display:flex;gap:.8rem;flex-wrap:wrap;}
-.cpd-stat{text-align:center;}
-.cpd-stat-val{font-size:1.5rem;font-weight:900;color:var(--cpd-accent);line-height:1;}
-.cpd-stat-lbl{font-size:.68rem;font-weight:700;color:var(--cpd-muted);text-transform:uppercase;letter-spacing:.03em;}
+.cpd-head{padding:.8rem 1.3rem;border-bottom:1px solid var(--cpd-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+.cpd-head h2{margin:0;font-size:1rem;font-weight:800;color:var(--cpd-ink);}
+.cpd-toggle-form{font-size:.78rem;color:var(--cpd-accent);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:.25rem;background:none;border:none;}
 .cpd-form{padding:1rem 1.3rem;border-bottom:1px solid var(--cpd-border);display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:.5rem;align-items:end;}
 @media(max-width:640px){.cpd-form{grid-template-columns:1fr 1fr;}}
 .cpd-form label{font-size:.72rem;font-weight:700;color:var(--cpd-muted);text-transform:uppercase;display:block;margin-bottom:.15rem;}
-.cpd-form input,.cpd-form select{padding:.4rem .6rem;border:1px solid var(--cpd-border);border-radius:8px;font-size:.82rem;background:var(--cpd-card);color:var(--cpd-ink);}
-.cpd-form input:focus,.cpd-form select:focus{border-color:var(--cpd-accent);outline:none;}
-.cpd-form button{background:var(--cpd-accent);color:#fff;border:none;padding:.5rem .8rem;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;}
+.cpd-form input,.cpd-form select{padding:.4rem .6rem;border:1px solid var(--cpd-border);border-radius:8px;font-size:.82rem;background:var(--cpd-card);color:var(--cpd-ink);transition:border-color .15s;}
+.cpd-form input:focus,.cpd-form select:focus{border-color:var(--cpd-accent);outline:none;box-shadow:0 0 0 3px rgba(67,97,238,.12);}
+.cpd-form button{background:linear-gradient(135deg,var(--cpd-accent),#7c3aed);color:#fff;border:none;padding:.5rem .8rem;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;transition:box-shadow .15s;display:inline-flex;align-items:center;gap:.3rem;}
+.cpd-form button:hover{box-shadow:0 4px 16px rgba(67,97,238,.35);}
+.cpd-toolbar{display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center;}
+.cpd-search{flex:1;min-width:180px;position:relative;}
+.cpd-search i{position:absolute;left:.65rem;top:50%;transform:translateY(-50%);color:var(--cpd-muted);font-size:.85rem;}
+.cpd-search input{width:100%;padding:.45rem .65rem .45rem 2rem;border:1px solid var(--cpd-border);border-radius:8px;font-size:.84rem;background:var(--cpd-card);color:var(--cpd-ink);}
+.cpd-search input:focus{border-color:var(--cpd-accent);outline:none;box-shadow:0 0 0 3px rgba(67,97,238,.12);}
+.cpd-pill{padding:.3rem .7rem;border-radius:20px;font-size:.75rem;font-weight:600;border:1px solid var(--cpd-border);background:var(--cpd-card);color:var(--cpd-muted);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.25rem;}
+.cpd-pill:hover,.cpd-pill.active{background:var(--cpd-accent);color:#fff;border-color:var(--cpd-accent);}
 .cpd-table{width:100%;border-collapse:separate;border-spacing:0;}
-.cpd-table th{padding:.5rem .8rem;font-size:.72rem;font-weight:700;color:var(--cpd-muted);text-transform:uppercase;border-bottom:1px solid var(--cpd-border);text-align:left;}
-.cpd-table td{padding:.5rem .8rem;font-size:.84rem;color:var(--cpd-ink);border-bottom:1px solid var(--cpd-border);}
+.cpd-table th{padding:.55rem .8rem;font-size:.72rem;font-weight:700;color:var(--cpd-muted);text-transform:uppercase;border-bottom:1px solid var(--cpd-border);text-align:left;cursor:pointer;user-select:none;transition:color .15s;}
+.cpd-table th:hover{color:var(--cpd-accent);}
+.cpd-table th .sort-icon{margin-left:.2rem;font-size:.6rem;opacity:.5;}
+.cpd-table td{padding:.55rem .8rem;font-size:.84rem;color:var(--cpd-ink);border-bottom:1px solid var(--cpd-border);transition:background .1s;}
 .cpd-table tr:last-child td{border-bottom:none;}
-.cpd-cat-tag{display:inline-block;padding:.15rem .45rem;border-radius:5px;font-size:.72rem;font-weight:600;background:rgba(67,97,238,.1);color:var(--cpd-accent);}
+.cpd-table tbody tr:hover td{background:rgba(67,97,238,.03);}
+.cpd-cat-tag{display:inline-block;padding:.15rem .45rem;border-radius:5px;font-size:.72rem;font-weight:600;}
+.cpd-cat-workshop{background:rgba(67,97,238,.1);color:#4361ee;}
+.cpd-cat-course{background:rgba(124,58,237,.1);color:#7c3aed;}
+.cpd-cat-conference{background:rgba(245,158,11,.1);color:#d97706;}
+.cpd-cat-self_study{background:rgba(16,185,129,.1);color:#10b981;}
+.cpd-cat-mentoring{background:rgba(236,72,153,.1);color:#ec4899;}
+.cpd-cat-other{background:rgba(136,146,164,.1);color:#8892a4;}
 .cpd-del{background:none;border:none;color:var(--cpd-muted);cursor:pointer;font-size:.82rem;padding:.15rem .3rem;border-radius:4px;}
 .cpd-del:hover{color:#ef4444;background:rgba(239,68,68,.08);}
-.cpd-empty{padding:2rem;text-align:center;color:var(--cpd-muted);font-size:.88rem;}
+.cpd-empty{padding:2.5rem 1rem;text-align:center;color:var(--cpd-muted);font-size:.88rem;}
+.cpd-empty i{font-size:2rem;display:block;margin-bottom:.5rem;opacity:.25;}
+.cpd-count{font-size:.78rem;color:var(--cpd-muted);margin-bottom:.5rem;}
+.cpd-progress{height:6px;border-radius:3px;background:var(--cpd-border);overflow:hidden;margin-top:.6rem;}
+.cpd-progress-bar{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--cpd-accent),var(--cpd-accent2));transition:width .4s ease;}
 </style>
 
 <div class="cpd-wrap">
-    <div class="cpd-card">
-        <div class="cpd-head">
-            <h2><i class="bi bi-award me-2" style="color:var(--cpd-accent);"></i>CPD Tracker</h2>
-            <div class="cpd-stats">
-                <div class="cpd-stat"><div class="cpd-stat-val">{{ total_hours|floatformat:1 }}</div><div class="cpd-stat-lbl">Hours</div></div>
-                <div class="cpd-stat"><div class="cpd-stat-val">{{ entries|length }}</div><div class="cpd-stat-lbl">Entries</div></div>
-            </div>
+    <!-- Hero -->
+    <div class="cpd-hero">
+        <div>
+            <h1><i class="bi bi-award me-2"></i>CPD Tracker</h1>
+            <div class="cpd-hero-sub">Track your professional development activities &amp; hours</div>
         </div>
-        <form method="post" class="cpd-form">
+        <div class="cpd-hero-stats">
+            <div class="cpd-h-stat"><div class="cpd-h-num">{{ total_hours|floatformat:1 }}</div><div class="cpd-h-lbl">Hours</div></div>
+            <div class="cpd-h-stat"><div class="cpd-h-num">{{ entries|length }}</div><div class="cpd-h-lbl">Activities</div></div>
+        </div>
+    </div>
+
+    <div class="cpd-card">
+        <!-- Form Header -->
+        <div class="cpd-head">
+            <h2><i class="bi bi-plus-circle me-2" style="color:var(--cpd-accent);"></i>Log Activity</h2>
+            <button class="cpd-toggle-form" onclick="toggleCpdForm()"><i class="bi bi-chevron-up" id="cpdFormChev"></i></button>
+        </div>
+        <!-- Inline Form -->
+        <form method="post" class="cpd-form" id="cpdFormBody">
             {% csrf_token %}
             <input type="hidden" name="action" value="create">
             <div><label>Activity</label><input type="text" name="title" required placeholder="e.g. INSET Day Workshop"></div>
@@ -58,14 +92,35 @@
         </form>
 
         {% if entries %}
+        <!-- Toolbar: Search + Category Filter -->
+        <div class="cpd-toolbar" style="padding:.8rem 1.3rem .2rem;">
+            <div class="cpd-search">
+                <i class="bi bi-search"></i>
+                <input type="text" id="cpdSearch" placeholder="Search activities…">
+            </div>
+            <span class="cpd-pill active" data-cat="all" onclick="filterCpd('all',this)"><i class="bi bi-grid-3x3-gap"></i> All</span>
+            <span class="cpd-pill" data-cat="workshop" onclick="filterCpd('workshop',this)"><i class="bi bi-easel"></i> Workshop</span>
+            <span class="cpd-pill" data-cat="course" onclick="filterCpd('course',this)"><i class="bi bi-book"></i> Course</span>
+            <span class="cpd-pill" data-cat="conference" onclick="filterCpd('conference',this)"><i class="bi bi-mic"></i> Conf</span>
+            <span class="cpd-pill" data-cat="self_study" onclick="filterCpd('self_study',this)"><i class="bi bi-journal-text"></i> Study</span>
+            <span class="cpd-pill" data-cat="mentoring" onclick="filterCpd('mentoring',this)"><i class="bi bi-people"></i> Mentor</span>
+        </div>
+        <div class="cpd-count" style="padding:0 1.3rem;" id="cpdCount"></div>
+
         <table class="cpd-table">
-            <thead><tr><th>Date</th><th>Activity</th><th>Category</th><th>Hours</th><th></th></tr></thead>
-            <tbody>
+            <thead><tr>
+                <th onclick="sortCpd('date')">Date <i class="bi bi-chevron-expand sort-icon"></i></th>
+                <th onclick="sortCpd('title')">Activity <i class="bi bi-chevron-expand sort-icon"></i></th>
+                <th>Category</th>
+                <th onclick="sortCpd('hours')">Hours <i class="bi bi-chevron-expand sort-icon"></i></th>
+                <th></th>
+            </tr></thead>
+            <tbody id="cpdBody">
             {% for e in entries %}
-            <tr>
+            <tr data-cat="{{ e.category }}" data-search="{{ e.title }} {{ e.get_category_display }} {{ e.date|date:'Y-m-d' }}" data-date="{{ e.date|date:'Y-m-d' }}" data-title="{{ e.title }}" data-hours="{{ e.hours }}">
                 <td>{{ e.date|date:"M d, Y" }}</td>
                 <td style="font-weight:600;">{{ e.title }}</td>
-                <td><span class="cpd-cat-tag">{{ e.get_category_display }}</span></td>
+                <td><span class="cpd-cat-tag cpd-cat-{{ e.category }}">{{ e.get_category_display }}</span></td>
                 <td style="font-weight:700;">{{ e.hours|floatformat:1 }}h</td>
                 <td>
                     <form method="post" style="display:inline;">
@@ -80,8 +135,59 @@
             </tbody>
         </table>
         {% else %}
-        <div class="cpd-empty"><i class="bi bi-journal-text" style="font-size:1.4rem;display:block;margin-bottom:.5rem;opacity:.3;"></i>No CPD entries yet. Log your first activity above.</div>
+        <div class="cpd-empty"><i class="bi bi-journal-text"></i>No CPD entries yet.<br><span style="font-size:.78rem;opacity:.7;">Log your first professional development activity above.</span></div>
         {% endif %}
     </div>
 </div>
+
+<script>
+function toggleCpdForm(){
+    const body=document.getElementById('cpdFormBody');
+    const chev=document.getElementById('cpdFormChev');
+    if(body.style.display==='none'){body.style.display='';chev.className='bi bi-chevron-up';}
+    else{body.style.display='none';chev.className='bi bi-chevron-down';}
+}
+let cpdFilter='all';
+function filterCpd(cat,el){
+    cpdFilter=cat;
+    document.querySelectorAll('.cpd-pill').forEach(p=>p.classList.remove('active'));
+    el.classList.add('active');
+    applyCpdFilters();
+}
+let sortCol='date',sortAsc=false;
+function sortCpd(col){
+    if(sortCol===col) sortAsc=!sortAsc; else{sortCol=col;sortAsc=true;}
+    const tbody=document.getElementById('cpdBody');
+    const rows=[...tbody.querySelectorAll('tr')];
+    rows.sort((a,b)=>{
+        let va=a.dataset[col]||'',vb=b.dataset[col]||'';
+        if(col==='hours'){va=parseFloat(va);vb=parseFloat(vb);}
+        if(va<vb) return sortAsc?-1:1;
+        if(va>vb) return sortAsc?1:-1;
+        return 0;
+    });
+    rows.forEach(r=>tbody.appendChild(r));
+    applyCpdFilters();
+}
+function applyCpdFilters(){
+    const q=(document.getElementById('cpdSearch')||{}).value||'';
+    const ql=q.toLowerCase();
+    const rows=document.querySelectorAll('#cpdBody tr');
+    let vis=0;
+    rows.forEach(r=>{
+        const cat=r.dataset.cat;
+        const text=(r.dataset.search||'').toLowerCase();
+        const mCat=cpdFilter==='all'||cat===cpdFilter;
+        const mQ=!ql||text.includes(ql);
+        r.style.display=(mCat&&mQ)?'':'none';
+        if(mCat&&mQ) vis++;
+    });
+    const cnt=document.getElementById('cpdCount');
+    if(cnt) cnt.textContent=vis+' of '+rows.length+' entries shown';
+}
+if(document.getElementById('cpdSearch')){
+    document.getElementById('cpdSearch').addEventListener('input',applyCpdFilters);
+    applyCpdFilters();
+}
+</script>
 {% endblock %}

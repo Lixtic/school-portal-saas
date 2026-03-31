@@ -3,19 +3,28 @@
 
 {% block content %}
 <style>
-:root{--ca-card:#fff;--ca-ink:#0b1120;--ca-muted:#8892a4;--ca-border:#e4e8f2;--ca-accent:#e11d48;}
+:root{--ca-card:#fff;--ca-ink:#0b1120;--ca-muted:#8892a4;--ca-border:#e4e8f2;--ca-accent:#e11d48;--ca-accent2:#be123c;}
 [data-bs-theme="dark"]{--ca-card:#1e293b;--ca-ink:#f1f5f9;--ca-muted:#94a3b8;--ca-border:#334155;}
-.ca-wrap{max-width:860px;margin:0 auto;padding:1rem 0;}
+.ca-wrap{max-width:960px;margin:0 auto;padding:1rem .5rem;}
+.ca-hero{background:linear-gradient(135deg,var(--ca-accent),#9333ea);border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1rem;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;}
+.ca-hero h1{margin:0;font-size:1.25rem;font-weight:800;letter-spacing:-.02em;}
+.ca-hero-sub{font-size:.78rem;opacity:.85;margin-top:.15rem;}
+.ca-hero-stats{display:flex;gap:1rem;}
+.ca-stat{text-align:center;}.ca-stat-num{font-size:1.5rem;font-weight:800;line-height:1;}.ca-stat-lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;opacity:.8;}
 .ca-card{background:var(--ca-card);border:1px solid var(--ca-border);border-radius:14px;overflow:hidden;margin-bottom:1rem;}
-.ca-head{padding:1rem 1.3rem;border-bottom:1px solid var(--ca-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
-.ca-head h2{margin:0;font-size:1.1rem;font-weight:800;color:var(--ca-ink);}
-.ca-filters{display:flex;gap:.3rem;flex-wrap:wrap;padding:.8rem 1.3rem;border-bottom:1px solid var(--ca-border);}
-.ca-filter{padding:.3rem .7rem;border-radius:8px;font-size:.78rem;font-weight:600;border:1px solid var(--ca-border);background:var(--ca-card);color:var(--ca-ink);cursor:pointer;text-decoration:none;}
+.ca-toolbar{padding:.8rem 1.3rem;border-bottom:1px solid var(--ca-border);display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;}
+.ca-search{position:relative;flex:1;min-width:180px;}
+.ca-search input{width:100%;padding:.45rem .65rem .45rem 2rem;border:1px solid var(--ca-border);border-radius:8px;font-size:.84rem;background:var(--ca-card);color:var(--ca-ink);transition:border-color .15s;}
+.ca-search input:focus{border-color:var(--ca-accent);outline:none;box-shadow:0 0 0 3px rgba(225,29,72,.12);}
+.ca-search i{position:absolute;left:.65rem;top:50%;transform:translateY(-50%);color:var(--ca-muted);font-size:.82rem;}
+.ca-filters{display:flex;gap:.3rem;flex-wrap:wrap;}
+.ca-filter{padding:.35rem .7rem;border-radius:8px;font-size:.78rem;font-weight:600;border:1px solid var(--ca-border);background:var(--ca-card);color:var(--ca-ink);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.3rem;}
+.ca-filter:hover{border-color:var(--ca-accent);color:var(--ca-accent);}
 .ca-filter.active{background:var(--ca-accent);color:#fff;border-color:var(--ca-accent);}
-.ca-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.8rem;padding:1rem 1.3rem;}
-.ca-item{border:1px solid var(--ca-border);border-radius:12px;padding:.9rem 1rem;background:var(--ca-card);transition:box-shadow .15s,transform .15s;}
-.ca-item:hover{box-shadow:0 6px 20px rgba(0,0,0,.07);transform:translateY(-2px);}
-.ca-item-icon{font-size:1.5rem;margin-bottom:.4rem;}
+.ca-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.8rem;padding:1rem 1.3rem;}
+.ca-item{border:1px solid var(--ca-border);border-radius:12px;padding:1rem;background:var(--ca-card);transition:box-shadow .15s,transform .15s,border-color .15s;position:relative;}
+.ca-item:hover{box-shadow:0 8px 24px rgba(0,0,0,.07);transform:translateY(-2px);border-color:rgba(225,29,72,.2);}
+.ca-item-icon{font-size:1.6rem;margin-bottom:.5rem;}
 .ca-item h4{font-size:.92rem;font-weight:700;color:var(--ca-ink);margin:0 0 .3rem;}
 .ca-item p{font-size:.8rem;color:var(--ca-muted);margin:0 0 .5rem;line-height:1.5;}
 .ca-tag{display:inline-block;padding:.12rem .4rem;border-radius:5px;font-size:.68rem;font-weight:600;margin-right:.2rem;}
@@ -24,23 +33,44 @@
 .ca-tag-visual{background:rgba(245,158,11,.1);color:#f59e0b;}
 .ca-tag-dance{background:rgba(16,185,129,.1);color:#10b981;}
 .ca-tag-level{background:rgba(100,116,139,.1);color:#64748b;}
-.ca-materials{font-size:.72rem;color:var(--ca-muted);margin-top:.4rem;border-top:1px dashed var(--ca-border);padding-top:.4rem;}
-.ca-count{font-size:.78rem;color:var(--ca-muted);}
+.ca-materials{font-size:.72rem;color:var(--ca-muted);margin-top:.5rem;border-top:1px dashed var(--ca-border);padding-top:.5rem;}
+.ca-materials i{color:var(--ca-accent);}
+.ca-bookmark{position:absolute;top:.6rem;right:.6rem;background:none;border:none;color:var(--ca-muted);cursor:pointer;font-size:1rem;transition:color .15s,transform .15s;}
+.ca-bookmark:hover,.ca-bookmark.saved{color:#f59e0b;transform:scale(1.15);}
+.ca-empty{padding:2.5rem 1rem;text-align:center;color:var(--ca-muted);font-size:.88rem;}
+.ca-empty i{font-size:2rem;display:block;margin-bottom:.5rem;opacity:.25;}
+.ca-count{font-size:.78rem;color:var(--ca-muted);padding:0 1.3rem .6rem;}
 </style>
 
 <div class="ca-wrap">
+    <!-- Hero -->
+    <div class="ca-hero">
+        <div>
+            <h1><i class="bi bi-palette me-2"></i>Creative Arts Kit</h1>
+            <div class="ca-hero-sub">Visual arts, music, drama &amp; dance activities for JHS</div>
+        </div>
+        <div class="ca-hero-stats">
+            <div class="ca-stat"><div class="ca-stat-num" id="totalArt">24</div><div class="ca-stat-lbl">Activities</div></div>
+            <div class="ca-stat"><div class="ca-stat-num">4</div><div class="ca-stat-lbl">Categories</div></div>
+        </div>
+    </div>
+
     <div class="ca-card">
-        <div class="ca-head">
-            <h2><i class="bi bi-palette me-2" style="color:var(--ca-accent);"></i>Creative Arts Kit</h2>
-            <span class="ca-count" id="artCount"></span>
+        <div class="ca-toolbar">
+            <div class="ca-search">
+                <i class="bi bi-search"></i>
+                <input type="text" id="caSearch" placeholder="Search activities…" oninput="renderArts()">
+            </div>
+            <div class="ca-filters">
+                <button class="ca-filter active" onclick="filterArt('all',this)">All</button>
+                <button class="ca-filter" onclick="filterArt('visual',this)"><i class="bi bi-brush"></i> Visual</button>
+                <button class="ca-filter" onclick="filterArt('music',this)"><i class="bi bi-music-note-beamed"></i> Music</button>
+                <button class="ca-filter" onclick="filterArt('drama',this)"><i class="bi bi-award"></i> Drama</button>
+                <button class="ca-filter" onclick="filterArt('dance',this)"><i class="bi bi-person-arms-up"></i> Dance</button>
+                <button class="ca-filter" onclick="filterArt('saved',this)"><i class="bi bi-bookmark-fill"></i> Saved</button>
+            </div>
         </div>
-        <div class="ca-filters">
-            <button class="ca-filter active" onclick="filterArt('all',this)">All</button>
-            <button class="ca-filter" onclick="filterArt('visual',this)">Visual Arts</button>
-            <button class="ca-filter" onclick="filterArt('music',this)">Music</button>
-            <button class="ca-filter" onclick="filterArt('drama',this)">Drama</button>
-            <button class="ca-filter" onclick="filterArt('dance',this)">Dance</button>
-        </div>
+        <div class="ca-count" id="artCount"></div>
         <div class="ca-grid" id="artGrid"></div>
     </div>
 </div>
@@ -74,26 +104,45 @@ const ARTS=[
 ];
 
 let curArt='all';
+let artSaved=JSON.parse(localStorage.getItem('arts_saved')||'[]');
+
 function filterArt(cat,btn){
     curArt=cat;
     document.querySelectorAll('.ca-filter').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     renderArts();
 }
+
+function toggleArtSave(title){
+    const idx=artSaved.indexOf(title);
+    if(idx===-1)artSaved.push(title);else artSaved.splice(idx,1);
+    localStorage.setItem('arts_saved',JSON.stringify(artSaved));
+    renderArts();
+}
+
 function renderArts(){
-    const items=curArt==='all'?ARTS:ARTS.filter(a=>a.c===curArt);
+    const search=(document.getElementById('caSearch').value||'').toLowerCase();
+    let items=curArt==='saved'?ARTS.filter(a=>artSaved.includes(a.t)):curArt==='all'?ARTS:ARTS.filter(a=>a.c===curArt);
+    if(search)items=items.filter(a=>a.t.toLowerCase().includes(search)||a.d.toLowerCase().includes(search)||a.mat.toLowerCase().includes(search));
     const grid=document.getElementById('artGrid');
-    document.getElementById('artCount').textContent=items.length+' activities';
+    document.getElementById('artCount').textContent=items.length+' activit'+(items.length===1?'y':'ies')+' shown';
     const icons={visual:'🎨',music:'🎵',drama:'🎭',dance:'💃'};
-    grid.innerHTML=items.map(a=>`
-        <div class="ca-item">
+    if(!items.length){
+        grid.innerHTML='<div class="ca-empty" style="grid-column:1/-1;"><i class="bi bi-palette"></i>No activities match your search.</div>';
+        return;
+    }
+    grid.innerHTML=items.map(a=>{
+        const isSaved=artSaved.includes(a.t);
+        return `<div class="ca-item">
+            <button class="ca-bookmark ${isSaved?'saved':''}" onclick="toggleArtSave('${a.t.replace(/'/g,"\\'")}')" title="${isSaved?'Remove bookmark':'Bookmark'}"><i class="bi bi-bookmark${isSaved?'-fill':''}"></i></button>
             <div class="ca-item-icon">${icons[a.c]||'🎨'}</div>
             <h4>${a.t}</h4>
             <p>${a.d}</p>
             <span class="ca-tag ca-tag-${a.c}">${a.c.charAt(0).toUpperCase()+a.c.slice(1)}</span>
             <span class="ca-tag ca-tag-level">${a.lvl}</span>
             <div class="ca-materials"><i class="bi bi-box-seam me-1"></i>${a.mat}</div>
-        </div>`).join('');
+        </div>`;
+    }).join('');
 }
 renderArts();
 </script>

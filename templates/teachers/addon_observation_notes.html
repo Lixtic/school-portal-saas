@@ -3,43 +3,89 @@
 
 {% block content %}
 <style>
-:root{--on-card:#fff;--on-ink:#0b1120;--on-muted:#8892a4;--on-border:#e4e8f2;--on-accent:#7c3aed;}
+:root{--on-card:#fff;--on-ink:#0b1120;--on-muted:#8892a4;--on-border:#e4e8f2;--on-accent:#4361ee;--on-accent2:#7c3aed;}
 [data-bs-theme="dark"]{--on-card:#1e293b;--on-ink:#f1f5f9;--on-muted:#94a3b8;--on-border:#334155;}
-.on-wrap{max-width:780px;margin:0 auto;padding:1rem 0;}
+.on-wrap{max-width:860px;margin:0 auto;padding:1rem .5rem;}
+.on-hero{background:linear-gradient(135deg,var(--on-accent),var(--on-accent2));border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1rem;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;}
+.on-hero h1{margin:0;font-size:1.25rem;font-weight:800;letter-spacing:-.02em;}
+.on-hero-sub{font-size:.78rem;opacity:.85;margin-top:.15rem;}
+.on-hero-stats{display:flex;gap:1rem;}
+.on-stat{text-align:center;}.on-stat-num{font-size:1.5rem;font-weight:800;line-height:1;}.on-stat-lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;opacity:.8;}
+.on-toolbar{display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center;}
+.on-search{flex:1;min-width:180px;position:relative;}
+.on-search i{position:absolute;left:.65rem;top:50%;transform:translateY(-50%);color:var(--on-muted);font-size:.85rem;}
+.on-search input{width:100%;padding:.45rem .65rem .45rem 2rem;border:1px solid var(--on-border);border-radius:8px;font-size:.84rem;background:var(--on-card);color:var(--on-ink);}
+.on-search input:focus{border-color:var(--on-accent);outline:none;box-shadow:0 0 0 3px rgba(67,97,238,.12);}
+.on-filter-pill{padding:.3rem .7rem;border-radius:20px;font-size:.75rem;font-weight:600;border:1px solid var(--on-border);background:var(--on-card);color:var(--on-muted);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.25rem;}
+.on-filter-pill:hover,.on-filter-pill.active{background:var(--on-accent);color:#fff;border-color:var(--on-accent);}
 .on-card{background:var(--on-card);border:1px solid var(--on-border);border-radius:14px;overflow:hidden;margin-bottom:1rem;}
-.on-head{padding:1rem 1.3rem;border-bottom:1px solid var(--on-border);display:flex;align-items:center;justify-content:space-between;}
-.on-head h2{margin:0;font-size:1.1rem;font-weight:800;color:var(--on-ink);}
+.on-head{padding:.8rem 1.3rem;border-bottom:1px solid var(--on-border);display:flex;align-items:center;justify-content:space-between;}
+.on-head h2{margin:0;font-size:1rem;font-weight:800;color:var(--on-ink);}
+.on-toggle-form{font-size:.78rem;color:var(--on-accent);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:.25rem;background:none;border:none;}
 .on-body{padding:1.2rem 1.3rem;}
 .on-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;}
 @media(max-width:640px){.on-form-grid{grid-template-columns:1fr;}}
 .on-full{grid-column:span 2;}
 @media(max-width:640px){.on-full{grid-column:span 1;}}
 .on-label{display:block;font-size:.72rem;font-weight:700;color:var(--on-muted);text-transform:uppercase;margin-bottom:.2rem;}
-.on-input,.on-textarea,.on-select{width:100%;padding:.45rem .65rem;border:1px solid var(--on-border);border-radius:8px;font-size:.84rem;background:var(--on-card);color:var(--on-ink);}
-.on-input:focus,.on-textarea:focus,.on-select:focus{border-color:var(--on-accent);outline:none;}
+.on-input,.on-textarea,.on-select{width:100%;padding:.45rem .65rem;border:1px solid var(--on-border);border-radius:8px;font-size:.84rem;background:var(--on-card);color:var(--on-ink);transition:border-color .15s;}
+.on-input:focus,.on-textarea:focus,.on-select:focus{border-color:var(--on-accent);outline:none;box-shadow:0 0 0 3px rgba(67,97,238,.12);}
 .on-textarea{min-height:80px;resize:vertical;}
-.on-btn{background:var(--on-accent);color:#fff;border:none;padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;cursor:pointer;margin-top:.3rem;}
-.on-list-item{border:1px solid var(--on-border);border-radius:12px;padding:.9rem 1.1rem;margin-bottom:.7rem;background:var(--on-card);transition:box-shadow .15s;}
-.on-list-item:hover{box-shadow:0 4px 16px rgba(0,0,0,.06);}
-.on-list-date{font-size:.75rem;font-weight:700;color:var(--on-accent);}
-.on-list-class{font-size:.78rem;color:var(--on-muted);margin-left:.5rem;}
+.on-btn{background:linear-gradient(135deg,var(--on-accent),var(--on-accent2));color:#fff;border:none;padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;cursor:pointer;margin-top:.3rem;display:inline-flex;align-items:center;gap:.35rem;transition:box-shadow .15s;}
+.on-btn:hover{box-shadow:0 4px 16px rgba(67,97,238,.35);}
+.on-list-item{border:1px solid var(--on-border);border-radius:12px;padding:.9rem 1.1rem;margin-bottom:.7rem;background:var(--on-card);transition:box-shadow .15s,border-color .15s;}
+.on-list-item:hover{box-shadow:0 4px 16px rgba(0,0,0,.06);border-color:rgba(67,97,238,.15);}
+.on-list-header{display:flex;align-items:center;justify-content:space-between;gap:.5rem;cursor:pointer;}
+.on-list-leading{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;}
+.on-list-date{font-size:.78rem;font-weight:700;color:var(--on-accent);}
+.on-list-class{font-size:.78rem;color:var(--on-muted);}
+.on-private-tag{font-size:.66rem;padding:.12rem .4rem;border-radius:5px;background:rgba(239,68,68,.1);color:#ef4444;font-weight:600;}
+.on-shared-tag{font-size:.66rem;padding:.12rem .4rem;border-radius:5px;background:rgba(16,185,129,.1);color:#10b981;font-weight:600;}
+.on-list-body{display:none;margin-top:.6rem;padding-top:.5rem;border-top:1px dashed var(--on-border);}
+.on-list-body.open{display:block;animation:onSlide .2s ease-out;}
+@keyframes onSlide{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:translateY(0);}}
 .on-section-label{font-size:.7rem;font-weight:700;color:var(--on-muted);text-transform:uppercase;margin-top:.4rem;margin-bottom:.15rem;}
-.on-section-text{font-size:.84rem;color:var(--on-ink);white-space:pre-line;}
-.on-private-tag{font-size:.68rem;padding:.12rem .4rem;border-radius:5px;background:rgba(239,68,68,.1);color:#ef4444;font-weight:600;}
-.on-shared-tag{font-size:.68rem;padding:.12rem .4rem;border-radius:5px;background:rgba(16,185,129,.1);color:#10b981;font-weight:600;}
-.on-del{background:none;border:none;color:var(--on-muted);cursor:pointer;font-size:.8rem;float:right;}
-.on-del:hover{color:#ef4444;}
-.on-empty{padding:2rem;text-align:center;color:var(--on-muted);font-size:.88rem;}
+.on-section-text{font-size:.84rem;color:var(--on-ink);white-space:pre-line;line-height:1.5;}
+.on-del{background:none;border:none;color:var(--on-muted);cursor:pointer;font-size:.8rem;padding:.15rem .3rem;border-radius:4px;}
+.on-del:hover{color:#ef4444;background:rgba(239,68,68,.06);}
+.on-empty{padding:2.5rem 1rem;text-align:center;color:var(--on-muted);font-size:.88rem;}
+.on-empty i{font-size:2rem;display:block;margin-bottom:.5rem;opacity:.25;}
+.on-chevron{transition:transform .2s;font-size:.7rem;color:var(--on-muted);}
+.on-chevron.open{transform:rotate(180deg);}
+.on-count{font-size:.78rem;color:var(--on-muted);margin-bottom:.5rem;}
 </style>
 
 <div class="on-wrap">
-    <!-- Form -->
-    <div class="on-card">
-        <div class="on-head">
-            <h2><i class="bi bi-binoculars me-2" style="color:var(--on-accent);"></i>Observation Notes</h2>
-            <span style="font-size:.78rem;color:var(--on-muted);">{{ notes|length }} note{{ notes|length|pluralize }}</span>
+    <!-- Hero -->
+    <div class="on-hero">
+        <div>
+            <h1><i class="bi bi-binoculars me-2"></i>Observation Notes</h1>
+            <div class="on-hero-sub">Record classroom strengths, growth areas & action plans</div>
         </div>
-        <div class="on-body">
+        <div class="on-hero-stats">
+            <div class="on-stat"><div class="on-stat-num">{{ notes|length }}</div><div class="on-stat-lbl">Notes</div></div>
+            <div class="on-stat"><div class="on-stat-num">{{ classes|length }}</div><div class="on-stat-lbl">Classes</div></div>
+        </div>
+    </div>
+
+    <!-- Toolbar: Search + Filters -->
+    <div class="on-toolbar" id="onToolbar">
+        <div class="on-search">
+            <i class="bi bi-search"></i>
+            <input type="text" id="onSearch" placeholder="Search notes…">
+        </div>
+        <span class="on-filter-pill active" data-filter="all" onclick="filterNotes('all',this)"><i class="bi bi-grid-3x3-gap"></i> All</span>
+        <span class="on-filter-pill" data-filter="private" onclick="filterNotes('private',this)"><i class="bi bi-lock"></i> Private</span>
+        <span class="on-filter-pill" data-filter="shared" onclick="filterNotes('shared',this)"><i class="bi bi-people"></i> Shared</span>
+    </div>
+
+    <!-- Form Card -->
+    <div class="on-card" id="formCard">
+        <div class="on-head">
+            <h2><i class="bi bi-pencil-square me-2" style="color:var(--on-accent);"></i>New Observation</h2>
+            <button class="on-toggle-form" onclick="toggleForm()"><i class="bi bi-chevron-up" id="formChevron"></i></button>
+        </div>
+        <div class="on-body" id="formBody">
             <form method="post">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="create">
@@ -77,31 +123,81 @@
                         </select>
                     </div>
                 </div>
-                <button type="submit" class="on-btn"><i class="bi bi-plus-lg me-1"></i>Save Note</button>
+                <button type="submit" class="on-btn"><i class="bi bi-plus-lg"></i> Save Note</button>
             </form>
         </div>
     </div>
 
-    <!-- List -->
+    <!-- Notes List -->
+    <div class="on-count" id="onCount"></div>
+    <div id="notesList">
     {% if notes %}
     {% for n in notes %}
-    <div class="on-list-item">
-        <form method="post" style="display:inline;">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="delete">
-            <input type="hidden" name="note_id" value="{{ n.id }}">
-            <button type="submit" class="on-del" onclick="return confirm('Delete?')"><i class="bi bi-trash3"></i></button>
-        </form>
-        <span class="on-list-date">{{ n.date|date:"M d, Y" }}</span>
-        {% if n.observed_class %}<span class="on-list-class">{{ n.observed_class.name }}</span>{% endif %}
-        {% if n.is_private %}<span class="on-private-tag ms-1">Private</span>{% else %}<span class="on-shared-tag ms-1">Shared</span>{% endif %}
-        {% if n.strengths %}<div class="on-section-label">Strengths</div><div class="on-section-text">{{ n.strengths }}</div>{% endif %}
-        {% if n.growth_areas %}<div class="on-section-label">Growth Areas</div><div class="on-section-text">{{ n.growth_areas }}</div>{% endif %}
-        {% if n.action_plan %}<div class="on-section-label">Action Plan</div><div class="on-section-text">{{ n.action_plan }}</div>{% endif %}
+    <div class="on-list-item" data-privacy="{% if n.is_private %}private{% else %}shared{% endif %}" data-search="{{ n.date|date:'M d, Y' }} {{ n.strengths|default:'' }} {{ n.growth_areas|default:'' }} {{ n.action_plan|default:'' }} {% if n.observed_class %}{{ n.observed_class.name }}{% endif %}">
+        <div class="on-list-header" onclick="toggleNote(this)">
+            <div class="on-list-leading">
+                <span class="on-list-date"><i class="bi bi-calendar3 me-1"></i>{{ n.date|date:"M d, Y" }}</span>
+                {% if n.observed_class %}<span class="on-list-class"><i class="bi bi-mortarboard me-1"></i>{{ n.observed_class.name }}</span>{% endif %}
+                {% if n.is_private %}<span class="on-private-tag"><i class="bi bi-lock-fill me-1"></i>Private</span>{% else %}<span class="on-shared-tag"><i class="bi bi-people-fill me-1"></i>Shared</span>{% endif %}
+            </div>
+            <div style="display:flex;align-items:center;gap:.4rem;">
+                <form method="post" style="display:inline;" onclick="event.stopPropagation();">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="note_id" value="{{ n.id }}">
+                    <button type="submit" class="on-del" onclick="return confirm('Delete this note?')"><i class="bi bi-trash3"></i></button>
+                </form>
+                <i class="bi bi-chevron-down on-chevron"></i>
+            </div>
+        </div>
+        <div class="on-list-body">
+            {% if n.strengths %}<div class="on-section-label"><i class="bi bi-star-fill me-1" style="color:#f59e0b;"></i>Strengths</div><div class="on-section-text">{{ n.strengths }}</div>{% endif %}
+            {% if n.growth_areas %}<div class="on-section-label"><i class="bi bi-graph-up-arrow me-1" style="color:#10b981;"></i>Growth Areas</div><div class="on-section-text">{{ n.growth_areas }}</div>{% endif %}
+            {% if n.action_plan %}<div class="on-section-label"><i class="bi bi-lightning-fill me-1" style="color:var(--on-accent);"></i>Action Plan</div><div class="on-section-text">{{ n.action_plan }}</div>{% endif %}
+        </div>
     </div>
     {% endfor %}
     {% else %}
-    <div class="on-card"><div class="on-empty"><i class="bi bi-binoculars" style="font-size:1.4rem;display:block;margin-bottom:.5rem;opacity:.3;"></i>No observation notes yet.</div></div>
+    <div class="on-card" id="emptyState"><div class="on-empty"><i class="bi bi-binoculars"></i>No observation notes yet.<br><span style="font-size:.78rem;opacity:.7;">Use the form above to record your first classroom observation.</span></div></div>
     {% endif %}
+    </div>
 </div>
+
+<script>
+function toggleNote(header){
+    const body=header.nextElementSibling;
+    const chev=header.querySelector('.on-chevron');
+    body.classList.toggle('open');
+    chev.classList.toggle('open');
+}
+function toggleForm(){
+    const body=document.getElementById('formBody');
+    const chev=document.getElementById('formChevron');
+    if(body.style.display==='none'){body.style.display='';chev.className='bi bi-chevron-up';}
+    else{body.style.display='none';chev.className='bi bi-chevron-down';}
+}
+let currentFilter='all';
+function filterNotes(type,el){
+    currentFilter=type;
+    document.querySelectorAll('.on-filter-pill').forEach(p=>p.classList.remove('active'));
+    el.classList.add('active');
+    applyFilters();
+}
+function applyFilters(){
+    const q=document.getElementById('onSearch').value.toLowerCase();
+    const items=document.querySelectorAll('.on-list-item');
+    let visible=0;
+    items.forEach(item=>{
+        const privacy=item.dataset.privacy;
+        const text=(item.dataset.search||'').toLowerCase();
+        const matchFilter=currentFilter==='all'||privacy===currentFilter;
+        const matchSearch=!q||text.includes(q);
+        item.style.display=(matchFilter&&matchSearch)?'':'none';
+        if(matchFilter&&matchSearch) visible++;
+    });
+    document.getElementById('onCount').textContent=visible+' of '+items.length+' notes shown';
+}
+document.getElementById('onSearch').addEventListener('input',applyFilters);
+applyFilters();
+</script>
 {% endblock %}
