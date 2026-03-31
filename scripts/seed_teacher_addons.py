@@ -366,7 +366,8 @@ ADDONS = [
 def seed():
     created = 0
     updated = 0
-    for data in ADDONS:
+    for orig in ADDONS:
+        data = dict(orig)  # copy so we don't mutate the original
         features = data.pop('features', [])
         is_free = data.pop('is_free', False)
         quota_boost = data.pop('quota_boost', 0)
