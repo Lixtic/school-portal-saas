@@ -265,6 +265,15 @@ def homepage(request):
     
     # 1. Public Tenant -> Show SaaS Landing (template chosen by landlord admin)
     if is_public:
+        # Authenticated user with an active school session → bounce to their dashboard
+        if request.user.is_authenticated:
+            bound_schema = request.session.get('auth_tenant_schema')
+            if bound_schema:
+                return redirect(f'/{bound_schema}/dashboard/')
+            # Staff/superuser without a tenant session → landlord panel
+            if request.user.is_staff:
+                return redirect('/tenants/landlord/')
+
         try:
             platform = PlatformSettings.get()
             template_name = platform.landing_template
