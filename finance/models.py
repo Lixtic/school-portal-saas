@@ -136,4 +136,9 @@ class Payment(models.Model):
         if not self.reference:
             self.reference = generate_payment_reference()
         super().save(*args, **kwargs)
-        self.student_fee.update_status()
+        # Re-fetch with row lock to prevent concurrent payments from
+        # computing status on stale aggregate data.
+        from django.db import transaction
+        with transaction.atomic():
+            locked_fee = StudentFee.objects.select_for_update().get(pk=self.student_fee_id)
+            locked_fee.update_status()

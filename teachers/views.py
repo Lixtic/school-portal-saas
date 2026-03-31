@@ -916,7 +916,11 @@ def teacher_classes(request):
         messages.error(request, 'Access denied')
         return redirect('dashboard')
     
-    teacher = Teacher.objects.get(user=request.user)
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+    except Teacher.DoesNotExist:
+        messages.error(request, 'Teacher profile not found.')
+        return redirect('dashboard')
     class_subjects = ClassSubject.objects.filter(teacher=teacher).select_related(
         'class_name', 'subject'
     )
@@ -936,7 +940,11 @@ def enter_grades(request):
         messages.error(request, 'Access denied')
         return redirect('dashboard')
     
-    teacher = Teacher.objects.get(user=request.user)
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+    except Teacher.DoesNotExist:
+        messages.error(request, 'Teacher profile not found.')
+        return redirect('dashboard')
     class_subjects = ClassSubject.objects.filter(teacher=teacher).select_related('class_name', 'subject')
     selected_cs_id = request.GET.get('class_subject_id')
     exam_types = ExamType.objects.filter(is_active=True).order_by('name')
@@ -1310,7 +1318,11 @@ def manage_exercises(request, class_subject_id):
         messages.error(request, 'Access denied')
         return redirect('dashboard')
     
-    teacher = Teacher.objects.get(user=request.user)
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+    except Teacher.DoesNotExist:
+        messages.error(request, 'Teacher profile not found.')
+        return redirect('dashboard')
     class_subject = get_object_or_404(ClassSubject, id=class_subject_id, teacher=teacher)
     
     term = request.GET.get('term', 'first')
@@ -1352,7 +1364,11 @@ def enter_exercise_scores(request, exercise_id):
         messages.error(request, 'Access denied')
         return redirect('dashboard')
     
-    teacher = Teacher.objects.get(user=request.user)
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+    except Teacher.DoesNotExist:
+        messages.error(request, 'Teacher profile not found.')
+        return redirect('dashboard')
     exercise = get_object_or_404(ClassExercise, id=exercise_id, class_subject__teacher=teacher)
     
     students = Student.objects.filter(current_class=exercise.class_subject.class_name).order_by('user__last_name')
@@ -1446,7 +1462,11 @@ def search_students(request):
     class_filter = request.GET.get('class_id', '').strip()
     gender_filter = request.GET.get('gender', '').strip()
 
-    teacher = Teacher.objects.get(user=request.user)
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+    except Teacher.DoesNotExist:
+        messages.error(request, 'Teacher profile not found.')
+        return redirect('dashboard')
 
     # Determine which fee structures this teacher is assigned to collect
     from finance.models import FeeStructure as _FeeStructure
@@ -1493,7 +1513,11 @@ def curriculum_library(request):
         messages.error(request, 'Access denied')
         return redirect('dashboard')
 
-    teacher = Teacher.objects.get(user=request.user)
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+    except Teacher.DoesNotExist:
+        messages.error(request, 'Teacher profile not found.')
+        return redirect('dashboard')
 
     resource_fields_available = False
     try:
@@ -1541,7 +1565,11 @@ def class_resources(request, class_subject_id):
         messages.error(request, 'Access denied')
         return redirect('dashboard')
     
-    teacher = Teacher.objects.get(user=request.user)
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+    except Teacher.DoesNotExist:
+        messages.error(request, 'Teacher profile not found.')
+        return redirect('dashboard')
     class_subject = get_object_or_404(ClassSubject, id=class_subject_id, teacher=teacher)
 
     # Detect availability of new fields on the DB

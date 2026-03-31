@@ -309,7 +309,11 @@ def student_fees(request, student_id):
     if request.user.user_type == 'admin':
         allowed = True
     elif request.user.user_type == 'teacher':
-        teacher = Teacher.objects.get(user=request.user)
+        try:
+            teacher = Teacher.objects.get(user=request.user)
+        except Teacher.DoesNotExist:
+            messages.error(request, 'Teacher profile not found.')
+            return redirect('dashboard')
         if (student.current_class and student.current_class.class_teacher and
                 student.current_class.class_teacher.user == request.user):
             allowed = True
