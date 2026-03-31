@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ quiz.title }}</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Manrope',system-ui,-apple-system,sans-serif;background:#0f172a;color:#f1f5f9;min-height:100vh;overflow-x:hidden;}
+.qp-wrap{max-width:520px;margin:0 auto;padding:1.5rem 1rem;min-height:100vh;display:flex;flex-direction:column;}
+.qp-header{text-align:center;margin-bottom:1.5rem;}
+.qp-title{font-size:1.1rem;font-weight:800;color:#f59e0b;}
+.qp-subtitle{font-size:.78rem;color:#94a3b8;margin-top:.2rem;}
+.qp-join{display:flex;flex-direction:column;align-items:center;gap:.8rem;flex:1;justify-content:center;}
+.qp-join input{width:100%;max-width:300px;padding:.7rem 1rem;border-radius:12px;border:2px solid #334155;background:#1e293b;color:#f1f5f9;font-size:1rem;text-align:center;font-weight:700;}
+.qp-join input:focus{border-color:#f59e0b;outline:none;}
+.qp-join input::placeholder{color:#64748b;}
+.qp-btn{padding:.65rem 2rem;border-radius:12px;font-size:1rem;font-weight:800;border:none;cursor:pointer;transition:transform .1s;}
+.qp-btn:active{transform:scale(.96);}
+.qp-btn-go{background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;font-size:1.1rem;}
+.qp-screen{display:none;flex:1;flex-direction:column;}
+.qp-screen.active{display:flex;}
+.qp-progress{height:4px;background:#334155;border-radius:2px;margin-bottom:1rem;overflow:hidden;}
+.qp-progress-fill{height:100%;background:#f59e0b;border-radius:2px;transition:width .3s;}
+.qp-q-card{background:#1e293b;border:2px solid #334155;border-radius:16px;padding:1.2rem;flex:1;display:flex;flex-direction:column;}
+.qp-q-num{font-size:.73rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem;}
+.qp-q-text{font-size:1.05rem;font-weight:700;line-height:1.4;margin-bottom:1rem;flex:0;}
+.qp-options{display:flex;flex-direction:column;gap:.5rem;flex:1;}
+.qp-opt{padding:.7rem 1rem;border-radius:12px;border:2px solid #334155;background:#0f172a;font-size:.92rem;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:.5rem;}
+.qp-opt:hover{border-color:#f59e0b;background:#1e293b;}
+.qp-opt-letter{width:28px;height:28px;border-radius:50%;background:#334155;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:800;flex-shrink:0;}
+.qp-opt.selected{border-color:#f59e0b;background:rgba(245,158,11,.1);}
+.qp-opt.correct{border-color:#10b981;background:rgba(16,185,129,.15);animation:qpflash .5s;}
+.qp-opt.wrong{border-color:#ef4444;background:rgba(239,68,68,.15);animation:qpshake .4s;}
+.qp-opt.disabled{pointer-events:none;opacity:.7;}
+@keyframes qpflash{0%{transform:scale(1);}50%{transform:scale(1.02);}100%{transform:scale(1);}}
+@keyframes qpshake{0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);}}
+.qp-timer{text-align:center;font-size:.82rem;color:#94a3b8;margin-top:.6rem;}
+.qp-timer-num{font-size:1.4rem;font-weight:900;color:#f59e0b;}
+.qp-result{display:none;flex-direction:column;align-items:center;justify-content:center;flex:1;text-align:center;}
+.qp-result.active{display:flex;}
+.qp-result-icon{font-size:3rem;margin-bottom:.5rem;}
+.qp-result-score{font-size:2rem;font-weight:900;color:#f59e0b;}
+.qp-result-label{font-size:.88rem;color:#94a3b8;margin-top:.2rem;}
+.qp-waiting{color:#94a3b8;font-size:.88rem;text-align:center;padding:2rem 0;animation:qppulse 2s infinite;}
+@keyframes qppulse{0%,100%{opacity:.5;}50%{opacity:1;}}
+</style>
+</head>
+<body>
+<div class="qp-wrap">
+    <div class="qp-header">
+        <div class="qp-title"><i class="bi bi-lightning-charge"></i> {{ quiz.title }}</div>
+        <div class="qp-subtitle">{{ quiz.questions.count }} questions</div>
+    </div>
+
+    <!-- Join Screen -->
+    <div class="qp-join" id="joinScreen">
+        <div>
+            <i class="bi bi-person-circle" style="font-size:3rem;color:#f59e0b;"></i>
+        </div>
+        <input type="text" id="playerName" placeholder="Enter your name" maxlength="100" autofocus>
+        <button class="qp-btn qp-btn-go" onclick="joinQuiz()"><i class="bi bi-play-fill me-1"></i>JOIN</button>
+    </div>
+
+    <!-- Quiz Screen -->
+    <div class="qp-screen" id="quizScreen">
+        <div class="qp-progress"><div class="qp-progress-fill" id="progressBar"></div></div>
+        <div class="qp-q-card">
+            <div class="qp-q-num" id="qNum"></div>
+            <div class="qp-q-text" id="qText"></div>
+            <div class="qp-options" id="qOptions"></div>
+            <div class="qp-timer">Time left: <span class="qp-timer-num" id="qTimer">30</span>s</div>
+        </div>
+    </div>
+
+    <!-- Result Screen -->
+    <div class="qp-result" id="resultScreen">
+        <div class="qp-result-icon">🏆</div>
+        <div class="qp-result-score" id="finalScore">0</div>
+        <div class="qp-result-label">correct answers</div>
+        <div style="margin-top:1rem;font-size:.82rem;color:#64748b;">Well done! Close this tab or wait for the teacher.</div>
+    </div>
+</div>
+
+<script>
+const API="{% url 'teachers:live_quiz_student_api' quiz.join_code %}";
+const CSRF='{{ csrf_token }}';
+const questions=[
+{% for q in questions %}
+{id:{{ q.id }},text:"{{ q.text|escapejs }}",a:"{{ q.option_a|escapejs }}",b:"{{ q.option_b|escapejs }}",c:"{{ q.option_c|escapejs }}",d:"{{ q.option_d|escapejs }}",time:{{ q.time_limit }}},
+{% endfor %}
+];
+
+let playerName='';
+let currentQ=0;
+let score=0;
+let timer=null;
+
+function joinQuiz(){
+    const n=document.getElementById('playerName').value.trim();
+    if(!n){document.getElementById('playerName').style.borderColor='#ef4444';return;}
+    playerName=n;
+    document.getElementById('joinScreen').style.display='none';
+    document.getElementById('quizScreen').classList.add('active');
+    showQuestion(0);
+}
+
+function showQuestion(idx){
+    if(idx>=questions.length){showResult();return;}
+    currentQ=idx;
+    const q=questions[idx];
+    const total=questions.length;
+    document.getElementById('progressBar').style.width=((idx/total)*100)+'%';
+    document.getElementById('qNum').textContent=`Question ${idx+1} of ${total}`;
+    document.getElementById('qText').textContent=q.text;
+
+    const optsEl=document.getElementById('qOptions');
+    optsEl.innerHTML='';
+    ['A','B','C','D'].forEach(letter=>{
+        const opt=document.createElement('div');
+        opt.className='qp-opt';
+        opt.dataset.letter=letter;
+        opt.innerHTML=`<span class="qp-opt-letter">${letter}</span><span>${esc(q[letter.toLowerCase()])}</span>`;
+        opt.onclick=()=>submitAnswer(letter,idx);
+        optsEl.appendChild(opt);
+    });
+
+    // Timer
+    let timeLeft=q.time||30;
+    document.getElementById('qTimer').textContent=timeLeft;
+    clearInterval(timer);
+    timer=setInterval(()=>{
+        timeLeft--;
+        document.getElementById('qTimer').textContent=timeLeft;
+        if(timeLeft<=0){clearInterval(timer);autoAdvance(idx);}
+    },1000);
+}
+
+async function submitAnswer(letter,idx){
+    clearInterval(timer);
+    const opts=document.querySelectorAll('.qp-opt');
+    opts.forEach(o=>o.classList.add('disabled'));
+
+    const chosen=document.querySelector(`.qp-opt[data-letter="${letter}"]`);
+    chosen.classList.add('selected');
+
+    try{
+        const res=await fetch(API,{
+            method:'POST',
+            headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},
+            body:JSON.stringify({question_id:questions[idx].id,choice:letter,player_name:playerName})
+        });
+        const data=await res.json();
+        if(data.is_correct){
+            chosen.classList.add('correct');
+            score++;
+        }else{
+            chosen.classList.add('wrong');
+            if(data.correct_answer){
+                const correctOpt=document.querySelector(`.qp-opt[data-letter="${data.correct_answer}"]`);
+                if(correctOpt)correctOpt.classList.add('correct');
+            }
+        }
+    }catch(e){chosen.classList.add('wrong');}
+
+    setTimeout(()=>showQuestion(idx+1),1500);
+}
+
+function autoAdvance(idx){
+    const opts=document.querySelectorAll('.qp-opt');
+    opts.forEach(o=>o.classList.add('disabled'));
+    setTimeout(()=>showQuestion(idx+1),800);
+}
+
+function showResult(){
+    document.getElementById('quizScreen').classList.remove('active');
+    document.getElementById('resultScreen').classList.add('active');
+    document.getElementById('finalScore').textContent=score+'/'+questions.length;
+}
+
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+document.getElementById('playerName').addEventListener('keydown',e=>{if(e.key==='Enter')joinQuiz();});
+</script>
+</body>
+</html>

@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% block title %}{{ quiz.title }} — Live Control{% endblock %}
+
+{% block content %}
+<style>
+:root{--lr-card:#fff;--lr-ink:#0b1120;--lr-muted:#8892a4;--lr-border:#e4e8f2;--lr-accent:#f59e0b;--lr-green:#10b981;--lr-red:#ef4444;}
+[data-bs-theme="dark"]{--lr-card:#1e293b;--lr-ink:#f1f5f9;--lr-muted:#94a3b8;--lr-border:#334155;}
+.lr-wrap{max-width:900px;margin:0 auto;padding:1rem 0;}
+.lr-card{background:var(--lr-card);border:1px solid var(--lr-border);border-radius:14px;overflow:hidden;margin-bottom:1rem;}
+.lr-head{padding:1rem 1.3rem;border-bottom:1px solid var(--lr-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+.lr-head h2{margin:0;font-size:1.1rem;font-weight:800;color:var(--lr-ink);}
+.lr-body{padding:1.2rem 1.3rem;}
+.lr-btn{padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;border:none;cursor:pointer;transition:transform .1s;}
+.lr-btn:active{transform:scale(.97);}
+.lr-btn-green{background:var(--lr-green);color:#fff;}
+.lr-btn-red{background:var(--lr-red);color:#fff;}
+.lr-btn-outline{background:transparent;border:1px solid var(--lr-border);color:var(--lr-ink);}
+.lr-code-display{font-family:monospace;font-size:2.4rem;font-weight:900;letter-spacing:.15em;color:var(--lr-accent);text-align:center;padding:1rem;}
+.lr-status-live{font-size:.85rem;font-weight:700;padding:.3rem .8rem;border-radius:20px;background:var(--lr-green);color:#fff;display:inline-flex;align-items:center;gap:.3rem;}
+.lr-status-closed{font-size:.85rem;font-weight:700;padding:.3rem .8rem;border-radius:20px;background:var(--lr-muted);color:#fff;}
+.lr-q-card{background:var(--lr-card);border:1px solid var(--lr-border);border-radius:10px;padding:.8rem;margin-bottom:.5rem;}
+.lr-q-text{font-weight:700;font-size:.88rem;color:var(--lr-ink);margin-bottom:.3rem;}
+.lr-q-bar{display:flex;gap:2px;align-items:flex-end;height:40px;margin-bottom:.2rem;}
+.lr-q-bar-seg{flex:1;border-radius:4px 4px 0 0;transition:height .3s;min-height:2px;}
+.lr-q-bar-a{background:#3b82f6;}
+.lr-q-bar-b{background:#f59e0b;}
+.lr-q-bar-c{background:#10b981;}
+.lr-q-bar-d{background:#ef4444;}
+.lr-q-labels{display:flex;justify-content:space-around;font-size:.72rem;font-weight:600;color:var(--lr-muted);}
+.lr-q-correct{font-size:.73rem;color:var(--lr-green);font-weight:600;}
+.lr-leaderboard{counter-reset:rank;}
+.lr-lb-item{display:flex;align-items:center;gap:.5rem;padding:.35rem .6rem;border-radius:8px;margin-bottom:.2rem;background:var(--lr-card);border:1px solid var(--lr-border);}
+.lr-lb-item::before{counter-increment:rank;content:counter(rank) ".";font-weight:800;font-size:.82rem;color:var(--lr-accent);min-width:22px;}
+.lr-lb-name{font-weight:700;font-size:.84rem;color:var(--lr-ink);flex:1;}
+.lr-lb-score{font-weight:800;font-size:.88rem;color:var(--lr-green);}
+.lr-pulse{width:8px;height:8px;border-radius:50%;background:var(--lr-green);animation:lrpulse 1.2s infinite;}
+@keyframes lrpulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+</style>
+
+<div class="lr-wrap">
+    <!-- Control Panel -->
+    <div class="lr-card">
+        <div class="lr-head">
+            <h2><i class="bi bi-lightning-charge me-2" style="color:var(--lr-accent);"></i>{{ quiz.title }}</h2>
+            {% if quiz.is_active %}
+            <span class="lr-status-live"><span class="lr-pulse"></span> LIVE</span>
+            {% else %}
+            <span class="lr-status-closed">Closed</span>
+            {% endif %}
+        </div>
+        <div class="lr-body" style="text-align:center;">
+            <p style="font-size:.82rem;color:var(--lr-muted);margin-bottom:.3rem;">Students join at:</p>
+            <div class="lr-code-display">{{ quiz.join_code }}</div>
+            <p style="font-size:.78rem;color:var(--lr-muted);">Share this code with your class</p>
+            <form method="post" style="margin-top:.5rem;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="toggle">
+                {% if quiz.is_active %}
+                <button class="lr-btn lr-btn-red"><i class="bi bi-stop-circle me-1"></i>End Quiz</button>
+                {% else %}
+                <button class="lr-btn lr-btn-green"><i class="bi bi-play-fill me-1"></i>Go Live</button>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="lr-card">
+        <div class="lr-head">
+            <h2 style="font-size:.95rem;"><i class="bi bi-trophy me-2" style="color:var(--lr-accent);"></i>Leaderboard</h2>
+            <span style="font-size:.72rem;color:var(--lr-muted);" id="lbCount">—</span>
+        </div>
+        <div class="lr-body lr-leaderboard" id="leaderboard">
+            <div style="text-align:center;color:var(--lr-muted);font-size:.84rem;">Loading…</div>
+        </div>
+    </div>
+
+    <!-- Questions & Results -->
+    <div class="lr-card">
+        <div class="lr-head">
+            <h2 style="font-size:.95rem;"><i class="bi bi-bar-chart me-2"></i>Question Results</h2>
+        </div>
+        <div class="lr-body" id="qResults">
+            <div style="text-align:center;color:var(--lr-muted);font-size:.84rem;">Loading…</div>
+        </div>
+    </div>
+
+    <a href="{% url 'teachers:addon_live_quiz' %}" class="lr-btn lr-btn-outline"><i class="bi bi-arrow-left me-1"></i>Back to Quizzes</a>
+</div>
+
+<script>
+const API_URL="{% url 'teachers:live_quiz_api' quiz.id %}";
+const CSRF='{{ csrf_token }}';
+
+async function poll(){
+    try{
+        const res=await fetch(API_URL);
+        const data=await res.json();
+        renderLeaderboard(data.leaderboard||[]);
+        renderQuestions(data.questions||[]);
+    }catch(e){console.error(e);}
+}
+
+function renderLeaderboard(lb){
+    const el=document.getElementById('leaderboard');
+    document.getElementById('lbCount').textContent=lb.length+' player'+(lb.length!==1?'s':'');
+    if(!lb.length){el.innerHTML='<div style="text-align:center;color:var(--lr-muted);font-size:.84rem;">No responses yet.</div>';return;}
+    el.innerHTML=lb.map(p=>`<div class="lr-lb-item"><span class="lr-lb-name">${esc(p.player_name)}</span><span class="lr-lb-score">${p.score}</span></div>`).join('');
+}
+
+function renderQuestions(qs){
+    const el=document.getElementById('qResults');
+    if(!qs.length){el.innerHTML='<div style="text-align:center;color:var(--lr-muted);font-size:.84rem;">No questions.</div>';return;}
+    el.innerHTML=qs.map((q,i)=>{
+        const maxR=Math.max(q.breakdown.A||0,q.breakdown.B||0,q.breakdown.C||0,q.breakdown.D||0,1);
+        const barH=(v)=>Math.max(5,Math.round((v/maxR)*40));
+        return `<div class="lr-q-card">
+            <div class="lr-q-text">Q${i+1}. ${esc(q.text)}</div>
+            <div class="lr-q-bar">
+                <div class="lr-q-bar-seg lr-q-bar-a" style="height:${barH(q.breakdown.A)}px;"></div>
+                <div class="lr-q-bar-seg lr-q-bar-b" style="height:${barH(q.breakdown.B)}px;"></div>
+                <div class="lr-q-bar-seg lr-q-bar-c" style="height:${barH(q.breakdown.C)}px;"></div>
+                <div class="lr-q-bar-seg lr-q-bar-d" style="height:${barH(q.breakdown.D)}px;"></div>
+            </div>
+            <div class="lr-q-labels">
+                <span>A: ${q.breakdown.A}</span><span>B: ${q.breakdown.B}</span><span>C: ${q.breakdown.C}</span><span>D: ${q.breakdown.D}</span>
+            </div>
+            <div class="lr-q-correct">✓ Correct: ${q.correct} · ${q.correct_count}/${q.total} correct</div>
+        </div>`;
+    }).join('');
+}
+
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+poll();
+setInterval(poll,4000);
+</script>
+{% endblock %}

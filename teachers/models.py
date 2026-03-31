@@ -412,3 +412,180 @@ class StudyGuide(models.Model):
 
     def __str__(self):
         return self.title
+
+
+# ---------------------------------------------------------------------------
+# New Add-on Feature Models (Wave 2)
+# ---------------------------------------------------------------------------
+
+class ReportCardComment(models.Model):
+    """AI-generated end-of-term report card comments for a batch of students."""
+    teacher = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='report_card_comments')
+    student = models.ForeignKey('students.Student', on_delete=models.CASCADE, related_name='report_comments')
+    academic_year = models.ForeignKey('academics.AcademicYear', on_delete=models.CASCADE)
+    term = models.CharField(max_length=10, choices=[('first', 'First Term'), ('second', 'Second Term'), ('third', 'Third Term')])
+    comment = models.TextField(help_text='AI-generated or teacher-edited report comment')
+    conduct = models.CharField(max_length=50, blank=True, default='')
+    attitude = models.CharField(max_length=50, blank=True, default='')
+    is_edited = models.BooleanField(default=False, help_text='True if teacher manually edited the AI output')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = ['student', 'academic_year', 'term']
+
+    def __str__(self):
+        return f"Report – {self.student} ({self.term} {self.academic_year})"
+
+
+class QuestionBank(models.Model):
+    """A categorised bank of exam questions."""
+    DIFFICULTY_CHOICES = [('easy', 'Easy'), ('medium', 'Medium'), ('hard', 'Hard')]
+    FORMAT_CHOICES = [
+        ('mcq', 'Multiple Choice'),
+        ('fill', 'Fill in the Blank'),
+        ('short', 'Short Answer'),
+        ('essay', 'Essay'),
+        ('truefalse', 'True / False'),
+    ]
+
+    teacher = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='question_bank')
+    subject = models.ForeignKey('academics.Subject', on_delete=models.SET_NULL, null=True, blank=True)
+    target_class = models.ForeignKey('academics.Class', on_delete=models.SET_NULL, null=True, blank=True)
+    topic = models.CharField(max_length=200, blank=True, default='')
+    question_text = models.TextField()
+    question_format = models.CharField(max_length=12, choices=FORMAT_CHOICES, default='mcq')
+    difficulty = models.CharField(max_length=8, choices=DIFFICULTY_CHOICES, default='medium')
+    options = models.JSONField(default=list, blank=True, help_text='["A) …","B) …","C) …","D) …"] for MCQs')
+    correct_answer = models.TextField(blank=True, default='')
+    explanation = models.TextField(blank=True, default='', help_text='Why the answer is correct')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.question_text[:80]
+
+
+class ExamPaper(models.Model):
+    """A generated exam paper composed from QuestionBank items."""
+    teacher = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='exam_papers')
+    title = models.CharField(max_length=200)
+    subject = models.ForeignKey('academics.Subject', on_delete=models.SET_NULL, null=True, blank=True)
+    target_class = models.ForeignKey('academics.Class', on_delete=models.SET_NULL, null=True, blank=True)
+    questions = models.ManyToManyField(QuestionBank, blank=True, related_name='papers')
+    duration_minutes = models.PositiveIntegerField(default=60)
+    instructions = models.TextField(blank=True, default='Answer ALL questions.')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
+
+
+class BehaviorLog(models.Model):
+    """Tracks student behavior events (positive and negative) and SEL check-ins."""
+    TYPE_CHOICES = [('positive', 'Positive'), ('negative', 'Negative'), ('sel', 'SEL Check-in')]
+    CATEGORY_CHOICES = [
+        ('participation', 'Participation'), ('respect', 'Respect'),
+        ('homework', 'Homework'), ('punctuality', 'Punctuality'),
+        ('disruption', 'Disruption'), ('bullying', 'Bullying'),
+        ('achievement', 'Achievement'), ('kindness', 'Kindness'),
+        ('anxiety', 'Anxiety'), ('withdrawal', 'Withdrawal'),
+        ('other', 'Other'),
+    ]
+
+    teacher = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='behavior_logs')
+    student = models.ForeignKey('students.Student', on_delete=models.CASCADE, related_name='behavior_logs')
+    log_type = models.CharField(max_length=10, choices=TYPE_CHOICES, default='positive')
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='other')
+    note = models.TextField(blank=True, default='')
+    date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date', '-created_at']
+
+    def __str__(self):
+        return f"{self.get_log_type_display()} – {self.student} ({self.date})"
+
+
+class DifferentiatedLesson(models.Model):
+    """AI-generated differentiated versions of a lesson plan."""
+    teacher = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='differentiated_lessons')
+    source_plan = models.ForeignKey(LessonPlan, on_delete=models.SET_NULL, null=True, blank=True, related_name='differentiated')
+    title = models.CharField(max_length=200)
+    subject = models.ForeignKey('academics.Subject', on_delete=models.SET_NULL, null=True, blank=True)
+    target_class = models.ForeignKey('academics.Class', on_delete=models.SET_NULL, null=True, blank=True)
+    foundational_html = models.TextField(blank=True, default='', help_text='For struggling learners')
+    grade_level_html = models.TextField(blank=True, default='', help_text='For on-track learners')
+    extension_html = models.TextField(blank=True, default='', help_text='For advanced learners')
+    source_content = models.TextField(blank=True, default='', help_text='Original lesson or topic text')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
+
+
+class LiveQuiz(models.Model):
+    """A live quiz session teachers can run in class."""
+    teacher = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='live_quizzes')
+    title = models.CharField(max_length=200)
+    subject = models.ForeignKey('academics.Subject', on_delete=models.SET_NULL, null=True, blank=True)
+    target_class = models.ForeignKey('academics.Class', on_delete=models.SET_NULL, null=True, blank=True)
+    join_code = models.CharField(max_length=8, unique=True, blank=True)
+    is_active = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.join_code:
+            import random, string
+            self.join_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        super().save(*args, **kwargs)
+
+
+class LiveQuizQuestion(models.Model):
+    """A question within a live quiz."""
+    quiz = models.ForeignKey(LiveQuiz, on_delete=models.CASCADE, related_name='questions')
+    order = models.PositiveIntegerField(default=0)
+    text = models.TextField()
+    option_a = models.CharField(max_length=300)
+    option_b = models.CharField(max_length=300)
+    option_c = models.CharField(max_length=300, blank=True, default='')
+    option_d = models.CharField(max_length=300, blank=True, default='')
+    correct = models.CharField(max_length=1, default='A')
+    time_limit = models.PositiveIntegerField(default=30, help_text='Seconds per question')
+
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        return self.text[:80]
+
+
+class LiveQuizResponse(models.Model):
+    """A participant's response to a quiz question."""
+    question = models.ForeignKey(LiveQuizQuestion, on_delete=models.CASCADE, related_name='responses')
+    player_name = models.CharField(max_length=100)
+    choice = models.CharField(max_length=1)
+    is_correct = models.BooleanField(default=False)
+    answered_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['question', 'player_name']
+
+    def __str__(self):
+        return f"{self.player_name}: {self.choice}"

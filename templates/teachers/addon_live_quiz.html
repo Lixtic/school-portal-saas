@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% block title %}Live Quiz Engine{% endblock %}
+
+{% block content %}
+<style>
+:root{--lq-card:#fff;--lq-ink:#0b1120;--lq-muted:#8892a4;--lq-border:#e4e8f2;--lq-accent:#f59e0b;--lq-accent2:#ef4444;--lq-green:#10b981;}
+[data-bs-theme="dark"]{--lq-card:#1e293b;--lq-ink:#f1f5f9;--lq-muted:#94a3b8;--lq-border:#334155;}
+.lq-wrap{max-width:860px;margin:0 auto;padding:1rem 0;}
+.lq-card{background:var(--lq-card);border:1px solid var(--lq-border);border-radius:14px;overflow:hidden;margin-bottom:1rem;}
+.lq-head{padding:1rem 1.3rem;border-bottom:1px solid var(--lq-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+.lq-head h2{margin:0;font-size:1.1rem;font-weight:800;color:var(--lq-ink);}
+.lq-body{padding:1.2rem 1.3rem;}
+.lq-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;}
+@media(max-width:640px){.lq-grid{grid-template-columns:1fr;}}
+.lq-full{grid-column:span 2;}@media(max-width:640px){.lq-full{grid-column:span 1;}}
+.lq-label{display:block;font-size:.72rem;font-weight:700;color:var(--lq-muted);text-transform:uppercase;margin-bottom:.2rem;}
+.lq-input,.lq-select{width:100%;padding:.45rem .65rem;border:1px solid var(--lq-border);border-radius:8px;font-size:.84rem;background:var(--lq-card);color:var(--lq-ink);}
+.lq-input:focus,.lq-select:focus{border-color:var(--lq-accent);outline:none;}
+.lq-btn{padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;border:none;cursor:pointer;transition:transform .1s;}
+.lq-btn:active{transform:scale(.97);}
+.lq-btn-accent{background:var(--lq-accent);color:#fff;}
+.lq-btn-green{background:var(--lq-green);color:#fff;}
+.lq-btn-red{background:var(--lq-accent2);color:#fff;}
+.lq-btn-outline{background:transparent;border:1px solid var(--lq-border);color:var(--lq-ink);}
+.lq-btn-sm{padding:.3rem .7rem;font-size:.78rem;}
+.lq-q-builder{background:var(--lq-card);border:1px solid var(--lq-border);border-radius:10px;padding:.8rem;margin-bottom:.4rem;}
+.lq-q-num{font-size:.72rem;font-weight:700;color:var(--lq-accent);margin-bottom:.3rem;}
+.lq-q-row{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-top:.3rem;}
+@media(max-width:480px){.lq-q-row{grid-template-columns:1fr;}}
+.lq-correct-sel{display:flex;gap:.3rem;margin-top:.3rem;flex-wrap:wrap;}
+.lq-correct-sel label{padding:.2rem .5rem;border-radius:6px;font-size:.75rem;font-weight:600;border:1px solid var(--lq-border);cursor:pointer;background:var(--lq-card);color:var(--lq-ink);transition:all .15s;}
+.lq-correct-sel label.active{background:var(--lq-green);color:#fff;border-color:var(--lq-green);}
+.lq-quiz-item{display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.6rem .8rem;border-radius:10px;margin-bottom:.4rem;background:var(--lq-card);border:1px solid var(--lq-border);}
+.lq-quiz-title{font-weight:700;font-size:.88rem;color:var(--lq-ink);}
+.lq-quiz-meta{font-size:.73rem;color:var(--lq-muted);}
+.lq-code{font-family:monospace;font-size:.85rem;font-weight:800;padding:.2rem .5rem;background:var(--lq-accent);color:#fff;border-radius:6px;letter-spacing:.08em;}
+.lq-empty{padding:2rem;text-align:center;color:var(--lq-muted);font-size:.88rem;}
+.lq-badge-active{font-size:.7rem;font-weight:700;padding:.15rem .45rem;border-radius:20px;background:var(--lq-green);color:#fff;}
+.lq-badge-closed{font-size:.7rem;font-weight:700;padding:.15rem .45rem;border-radius:20px;background:var(--lq-muted);color:#fff;}
+</style>
+
+<div class="lq-wrap">
+    <!-- Create Quiz -->
+    <div class="lq-card">
+        <div class="lq-head">
+            <h2><i class="bi bi-lightning-charge me-2" style="color:var(--lq-accent);"></i>Create Live Quiz</h2>
+        </div>
+        <div class="lq-body">
+            <form method="post" id="quizForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create">
+                <input type="hidden" name="questions_json" id="questionsJson" value="[]">
+
+                <div class="lq-grid">
+                    <div>
+                        <label class="lq-label">Quiz Title</label>
+                        <input type="text" name="title" class="lq-input" placeholder="e.g. Science Chapter 5 Review" required>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;">
+                        <div>
+                            <label class="lq-label">Subject</label>
+                            <select name="subject" class="lq-select">
+                                <option value="">—</option>
+                                {% for s in subjects %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="lq-label">Class</label>
+                            <select name="target_class" class="lq-select">
+                                <option value="">—</option>
+                                {% for c in classes %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Question Builder -->
+                <div style="margin-top:.8rem;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem;">
+                        <span class="lq-label" style="margin:0;">Questions</span>
+                        <button type="button" class="lq-btn lq-btn-outline lq-btn-sm" onclick="addQuestion()"><i class="bi bi-plus-lg me-1"></i>Add Question</button>
+                    </div>
+                    <div id="qList"></div>
+                </div>
+
+                <button type="submit" class="lq-btn lq-btn-accent" style="margin-top:.6rem;"><i class="bi bi-lightning-charge me-1"></i>Create Quiz</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- My Quizzes -->
+    <div class="lq-card">
+        <div class="lq-head">
+            <h2 style="font-size:.95rem;"><i class="bi bi-collection-play me-2"></i>My Quizzes</h2>
+            <span style="font-size:.73rem;color:var(--lq-muted);">{{ quizzes|length }} quiz{{ quizzes|length|pluralize:"zes" }}</span>
+        </div>
+        <div class="lq-body">
+            {% for q in quizzes %}
+            <div class="lq-quiz-item">
+                <div>
+                    <div class="lq-quiz-title">{{ q.title }}</div>
+                    <div class="lq-quiz-meta">
+                        {{ q.questions.count }} Q · <span class="lq-code">{{ q.join_code }}</span>
+                        {% if q.subject %} · {{ q.subject.name }}{% endif %}
+                        {% if q.is_active %}<span class="lq-badge-active ms-2">LIVE</span>{% else %}<span class="lq-badge-closed ms-2">Closed</span>{% endif %}
+                    </div>
+                </div>
+                <div style="display:flex;gap:.3rem;">
+                    <a href="{% url 'teachers:live_quiz_run' q.id %}" class="lq-btn lq-btn-green lq-btn-sm"><i class="bi bi-play-fill me-1"></i>Run</a>
+                    <form method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="quiz_id" value="{{ q.id }}">
+                        <button class="lq-btn lq-btn-outline lq-btn-sm" onclick="return confirm('Delete this quiz?')"><i class="bi bi-trash3"></i></button>
+                    </form>
+                </div>
+            </div>
+            {% empty %}
+            <div class="lq-empty"><i class="bi bi-lightning-charge" style="font-size:1.4rem;display:block;margin-bottom:.5rem;opacity:.3;"></i>No quizzes yet. Create one above!</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+let questions=[];
+function addQuestion(){
+    const i=questions.length;
+    questions.push({text:'',a:'',b:'',c:'',d:'',correct:'A',time:30});
+    renderQuestions();
+}
+function removeQuestion(idx){
+    questions.splice(idx,1);
+    renderQuestions();
+}
+function renderQuestions(){
+    const list=document.getElementById('qList');
+    list.innerHTML='';
+    questions.forEach((q,i)=>{
+        const div=document.createElement('div');
+        div.className='lq-q-builder';
+        div.innerHTML=`
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span class="lq-q-num">Question ${i+1}</span>
+            <button type="button" class="lq-btn lq-btn-outline lq-btn-sm" onclick="removeQuestion(${i})" style="padding:.15rem .4rem;"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <input class="lq-input" placeholder="Question text" value="${esc(q.text)}" oninput="questions[${i}].text=this.value" style="margin-top:.3rem;">
+        <div class="lq-q-row">
+            <input class="lq-input" placeholder="A" value="${esc(q.a)}" oninput="questions[${i}].a=this.value">
+            <input class="lq-input" placeholder="B" value="${esc(q.b)}" oninput="questions[${i}].b=this.value">
+            <input class="lq-input" placeholder="C" value="${esc(q.c)}" oninput="questions[${i}].c=this.value">
+            <input class="lq-input" placeholder="D" value="${esc(q.d)}" oninput="questions[${i}].d=this.value">
+        </div>
+        <div style="display:flex;align-items:center;gap:.6rem;margin-top:.3rem;">
+            <div class="lq-correct-sel" id="corr${i}">
+                <label class="${q.correct==='A'?'active':''}" onclick="setCorrect(${i},'A')">A</label>
+                <label class="${q.correct==='B'?'active':''}" onclick="setCorrect(${i},'B')">B</label>
+                <label class="${q.correct==='C'?'active':''}" onclick="setCorrect(${i},'C')">C</label>
+                <label class="${q.correct==='D'?'active':''}" onclick="setCorrect(${i},'D')">D</label>
+            </div>
+            <div style="display:flex;align-items:center;gap:.3rem;">
+                <span style="font-size:.72rem;color:var(--lq-muted);">Time:</span>
+                <input type="number" class="lq-input" style="width:60px;padding:.2rem .4rem;" value="${q.time}" min="5" max="120" oninput="questions[${i}].time=parseInt(this.value)||30">
+                <span style="font-size:.72rem;color:var(--lq-muted);">s</span>
+            </div>
+        </div>`;
+        list.appendChild(div);
+    });
+    document.getElementById('questionsJson').value=JSON.stringify(questions);
+}
+function setCorrect(idx,letter){
+    questions[idx].correct=letter;
+    renderQuestions();
+}
+function esc(s){return (s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+
+document.getElementById('quizForm').addEventListener('submit',function(){
+    document.getElementById('questionsJson').value=JSON.stringify(questions);
+});
+
+// Start with 1 question
+addQuestion();
+</script>
+{% endblock %}

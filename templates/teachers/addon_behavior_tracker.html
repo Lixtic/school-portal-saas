@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+{% block title %}Behavior & SEL Tracker{% endblock %}
+
+{% block content %}
+<style>
+:root{--bh-card:#fff;--bh-ink:#0b1120;--bh-muted:#8892a4;--bh-border:#e4e8f2;--bh-pos:#10b981;--bh-neg:#ef4444;--bh-sel:#8b5cf6;}
+[data-bs-theme="dark"]{--bh-card:#1e293b;--bh-ink:#f1f5f9;--bh-muted:#94a3b8;--bh-border:#334155;}
+.bh-wrap{max-width:860px;margin:0 auto;padding:1rem 0;}
+.bh-card{background:var(--bh-card);border:1px solid var(--bh-border);border-radius:14px;overflow:hidden;margin-bottom:1rem;}
+.bh-head{padding:1rem 1.3rem;border-bottom:1px solid var(--bh-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+.bh-head h2{margin:0;font-size:1.1rem;font-weight:800;color:var(--bh-ink);}
+.bh-body{padding:1.2rem 1.3rem;}
+.bh-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;}
+@media(max-width:640px){.bh-grid{grid-template-columns:1fr;}}
+.bh-full{grid-column:span 2;}@media(max-width:640px){.bh-full{grid-column:span 1;}}
+.bh-label{display:block;font-size:.72rem;font-weight:700;color:var(--bh-muted);text-transform:uppercase;margin-bottom:.2rem;}
+.bh-input,.bh-select,.bh-textarea{width:100%;padding:.45rem .65rem;border:1px solid var(--bh-border);border-radius:8px;font-size:.84rem;background:var(--bh-card);color:var(--bh-ink);}
+.bh-textarea{min-height:60px;resize:vertical;}
+.bh-input:focus,.bh-select:focus,.bh-textarea:focus{border-color:var(--bh-sel);outline:none;}
+.bh-btn{padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;border:none;cursor:pointer;transition:transform .1s;}
+.bh-btn:active{transform:scale(.97);}
+.bh-btn-pos{background:var(--bh-pos);color:#fff;}
+.bh-btn-neg{background:var(--bh-neg);color:#fff;}
+.bh-btn-sel{background:var(--bh-sel);color:#fff;}
+.bh-btn-outline{background:transparent;border:1px solid var(--bh-border);color:var(--bh-ink);}
+.bh-btn-sm{padding:.3rem .7rem;font-size:.78rem;}
+.bh-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:1rem;}
+@media(max-width:480px){.bh-stats{grid-template-columns:1fr;}}
+.bh-stat{border-radius:12px;padding:.8rem 1rem;text-align:center;background:var(--bh-card);border:1px solid var(--bh-border);}
+.bh-stat-num{font-size:1.6rem;font-weight:800;line-height:1;}
+.bh-stat-label{font-size:.72rem;font-weight:600;color:var(--bh-muted);text-transform:uppercase;margin-top:.2rem;}
+.bh-log-item{display:flex;align-items:flex-start;gap:.6rem;padding:.6rem .8rem;border-radius:10px;margin-bottom:.4rem;background:var(--bh-card);border:1px solid var(--bh-border);transition:box-shadow .15s;}
+.bh-log-item:hover{box-shadow:0 4px 12px rgba(0,0,0,.06);}
+.bh-type-dot{width:10px;height:10px;border-radius:50%;margin-top:.35rem;flex-shrink:0;}
+.bh-type-positive{background:var(--bh-pos);}
+.bh-type-negative{background:var(--bh-neg);}
+.bh-type-sel{background:var(--bh-sel);}
+.bh-log-name{font-weight:700;font-size:.85rem;color:var(--bh-ink);}
+.bh-log-meta{font-size:.73rem;color:var(--bh-muted);}
+.bh-log-note{font-size:.82rem;color:var(--bh-ink);margin-top:.15rem;}
+.bh-empty{padding:2rem;text-align:center;color:var(--bh-muted);font-size:.88rem;}
+.bh-flag{border-left:3px solid var(--bh-neg);background:var(--bh-neg)08;border-radius:10px;padding:.6rem .8rem;margin-bottom:.4rem;}
+.bh-flag-name{font-weight:700;font-size:.85rem;color:var(--bh-ink);}
+.bh-flag-meta{font-size:.73rem;color:var(--bh-neg);}
+.bh-quick-btns{display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.5rem;}
+.bh-quick-btn{padding:.3rem .6rem;border-radius:6px;font-size:.76rem;font-weight:600;border:1px solid var(--bh-border);background:var(--bh-card);color:var(--bh-ink);cursor:pointer;transition:all .15s;}
+.bh-quick-btn:hover{border-color:var(--bh-sel);background:var(--bh-sel)10;}
+.bh-quick-btn.active{background:var(--bh-sel);color:#fff;border-color:var(--bh-sel);}
+</style>
+
+<div class="bh-wrap">
+    <!-- Stats -->
+    <div class="bh-stats">
+        <div class="bh-stat"><div class="bh-stat-num" style="color:var(--bh-ink);">{{ total }}</div><div class="bh-stat-label">Total Logs</div></div>
+        <div class="bh-stat"><div class="bh-stat-num" style="color:var(--bh-pos);">{{ positive }}</div><div class="bh-stat-label">Positive</div></div>
+        <div class="bh-stat"><div class="bh-stat-num" style="color:var(--bh-neg);">{{ negative }}</div><div class="bh-stat-label">Negative</div></div>
+    </div>
+
+    <!-- Flagged Students -->
+    {% if flagged %}
+    <div class="bh-card">
+        <div class="bh-head">
+            <h2 style="font-size:.95rem;color:var(--bh-neg);"><i class="bi bi-exclamation-triangle me-2"></i>Attention Needed</h2>
+            <span style="font-size:.73rem;color:var(--bh-muted);">3+ negative events in last 14 days</span>
+        </div>
+        <div class="bh-body">
+            {% for f in flagged %}
+            <div class="bh-flag">
+                <div class="bh-flag-name">{{ f.student__user__first_name }} {{ f.student__user__last_name }}</div>
+                <div class="bh-flag-meta">{{ f.count }} negative event{{ f.count|pluralize }} in 14 days</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Class Selector -->
+    <div class="bh-card">
+        <div class="bh-head">
+            <h2><i class="bi bi-heart-pulse me-2" style="color:var(--bh-sel);"></i>Behavior & SEL Tracker</h2>
+        </div>
+        <div class="bh-body">
+            <form method="get" style="margin-bottom:.8rem;">
+                <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:200px;">
+                        <label class="bh-label">Class</label>
+                        <select name="class_id" class="bh-select" onchange="this.form.submit()">
+                            <option value="">— Select Class —</option>
+                            {% for c in classes %}
+                            <option value="{{ c.id }}" {% if sel_class == c.id %}selected{% endif %}>{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </form>
+
+            {% if sel_class and students %}
+            <!-- Quick Log Form -->
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add">
+                <div class="bh-grid">
+                    <div>
+                        <label class="bh-label">Student</label>
+                        <select name="student_id" class="bh-select" required>
+                            <option value="">— Select —</option>
+                            {% for s in students %}
+                            <option value="{{ s.id }}">{{ s.user.get_full_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="bh-label">Date</label>
+                        <input type="date" name="date" class="bh-input" value="{% now 'Y-m-d' %}">
+                    </div>
+                    <div>
+                        <label class="bh-label">Type</label>
+                        <div class="bh-quick-btns" id="typeBtns">
+                            <label class="bh-quick-btn active" style="background:var(--bh-pos);color:#fff;border-color:var(--bh-pos);">
+                                <input type="radio" name="log_type" value="positive" checked style="display:none;"> <i class="bi bi-hand-thumbs-up me-1"></i>Positive
+                            </label>
+                            <label class="bh-quick-btn">
+                                <input type="radio" name="log_type" value="negative" style="display:none;"> <i class="bi bi-hand-thumbs-down me-1"></i>Negative
+                            </label>
+                            <label class="bh-quick-btn">
+                                <input type="radio" name="log_type" value="sel" style="display:none;"> <i class="bi bi-heart me-1"></i>SEL
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="bh-label">Category</label>
+                        <select name="category" class="bh-select">
+                            <option value="participation">Participation</option>
+                            <option value="respect">Respect</option>
+                            <option value="homework">Homework</option>
+                            <option value="punctuality">Punctuality</option>
+                            <option value="achievement">Achievement</option>
+                            <option value="kindness">Kindness</option>
+                            <option value="disruption">Disruption</option>
+                            <option value="bullying">Bullying</option>
+                            <option value="anxiety">Anxiety</option>
+                            <option value="withdrawal">Withdrawal</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="bh-full">
+                        <label class="bh-label">Note (optional)</label>
+                        <textarea name="note" class="bh-textarea" placeholder="Describe the behavior or check-in…" style="min-height:50px;"></textarea>
+                    </div>
+                </div>
+                <button type="submit" class="bh-btn bh-btn-sel" style="margin-top:.6rem;"><i class="bi bi-plus-lg me-1"></i>Log Behavior</button>
+            </form>
+            {% elif sel_class %}
+            <div class="bh-empty">No students found in this class.</div>
+            {% else %}
+            <div class="bh-empty"><i class="bi bi-hand-index" style="font-size:1.4rem;display:block;margin-bottom:.5rem;opacity:.3;"></i>Select a class to start logging behavior.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recent Logs -->
+    {% if logs %}
+    <div class="bh-card">
+        <div class="bh-head">
+            <h2 style="font-size:.95rem;"><i class="bi bi-clock-history me-2"></i>Recent Logs</h2>
+            <span style="font-size:.73rem;color:var(--bh-muted);">{{ logs|length }} shown</span>
+        </div>
+        <div class="bh-body">
+            {% for log in logs %}
+            <div class="bh-log-item">
+                <div class="bh-type-dot bh-type-{{ log.log_type }}"></div>
+                <div style="flex:1;">
+                    <div class="bh-log-name">{{ log.student.user.get_full_name }}</div>
+                    <div class="bh-log-meta">
+                        {{ log.get_log_type_display }} · {{ log.get_category_display }} · {{ log.date|date:"M d" }}
+                    </div>
+                    {% if log.note %}<div class="bh-log-note">{{ log.note }}</div>{% endif %}
+                </div>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="log_id" value="{{ log.id }}">
+                    <button class="bh-btn bh-btn-outline bh-btn-sm" onclick="return confirm('Delete?')"><i class="bi bi-trash3"></i></button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.querySelectorAll('#typeBtns .bh-quick-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+        document.querySelectorAll('#typeBtns .bh-quick-btn').forEach(b=>{
+            b.classList.remove('active');
+            b.style.background='';b.style.color='';b.style.borderColor='';
+        });
+        btn.classList.add('active');
+        const val=btn.querySelector('input').value;
+        const colors={positive:'var(--bh-pos)',negative:'var(--bh-neg)',sel:'var(--bh-sel)'};
+        btn.style.background=colors[val]||'';
+        btn.style.color='#fff';
+        btn.style.borderColor=colors[val]||'';
+    });
+});
+</script>
+{% endblock %}

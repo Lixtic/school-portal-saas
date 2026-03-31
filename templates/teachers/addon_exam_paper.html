@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}Exam Paper — {{ paper.title }}{% endblock %}
+
+{% block content %}
+<style>
+:root{--ep-ink:#0b1120;--ep-muted:#8892a4;--ep-border:#e4e8f2;--ep-card:#fff;}
+[data-bs-theme="dark"]{--ep-ink:#f1f5f9;--ep-muted:#94a3b8;--ep-border:#334155;--ep-card:#1e293b;}
+.ep-wrap{max-width:760px;margin:0 auto;padding:1.5rem 0;}
+.ep-header{text-align:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:2px solid var(--ep-border);}
+.ep-header h1{font-size:1.3rem;font-weight:800;color:var(--ep-ink);margin:0 0 .2rem;}
+.ep-header .ep-meta{font-size:.82rem;color:var(--ep-muted);}
+.ep-instructions{background:var(--ep-border)20;border-radius:10px;padding:.8rem 1rem;margin-bottom:1.5rem;font-size:.85rem;color:var(--ep-ink);}
+.ep-q{margin-bottom:1.2rem;padding-bottom:1rem;border-bottom:1px solid var(--ep-border);}
+.ep-q-num{font-weight:800;color:var(--ep-ink);font-size:.9rem;}
+.ep-q-text{font-size:.88rem;color:var(--ep-ink);margin:.3rem 0;}
+.ep-opts{list-style:none;padding:0;margin:.4rem 0 0;}
+.ep-opts li{font-size:.84rem;color:var(--ep-ink);padding:.2rem 0;}
+.ep-print-only{display:none;}
+.ep-actions{display:flex;gap:.5rem;margin-bottom:1rem;}
+.ep-btn{padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;border:none;cursor:pointer;}
+.ep-btn-print{background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;}
+.ep-btn-back{background:var(--ep-border);color:var(--ep-ink);}
+@media print{
+  .ep-actions,.sidebar,.navbar,header,footer,[class*="sidebar"]{display:none!important;}
+  .ep-header{border-bottom:2px solid #000;}
+  body{background:#fff;color:#000;font-size:11pt;}
+  .ep-wrap{max-width:100%;padding:0;}
+}
+</style>
+
+<div class="ep-wrap">
+    <div class="ep-actions">
+        <a href="{% url 'teachers:addon_question_bank' %}" class="ep-btn ep-btn-back"><i class="bi bi-arrow-left me-1"></i>Back to Bank</a>
+        <button onclick="window.print()" class="ep-btn ep-btn-print"><i class="bi bi-printer me-1"></i>Print Paper</button>
+    </div>
+
+    <div class="ep-header">
+        <h1>{{ paper.title }}</h1>
+        <div class="ep-meta">
+            {% if paper.subject %}{{ paper.subject.name }} · {% endif %}
+            {% if paper.target_class %}{{ paper.target_class.name }} · {% endif %}
+            Duration: {{ paper.duration_minutes }} minutes · {{ questions|length }} question{{ questions|length|pluralize }}
+        </div>
+    </div>
+
+    {% if paper.instructions %}
+    <div class="ep-instructions"><strong>Instructions:</strong> {{ paper.instructions }}</div>
+    {% endif %}
+
+    {% for q in questions %}
+    <div class="ep-q">
+        <span class="ep-q-num">{{ forloop.counter }}.</span>
+        <span class="ep-q-text">{{ q.question_text }}</span>
+        {% if q.options %}
+        <ul class="ep-opts">
+            {% for opt in q.options %}
+            <li>{{ opt }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

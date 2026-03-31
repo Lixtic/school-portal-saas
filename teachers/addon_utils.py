@@ -74,6 +74,26 @@ ADDON_FEATURE_MAP = {
         'label': 'Creative Arts Kit',
         'gates': ['addon_creative_arts'],
     },
+    'report-card-writer': {
+        'label': 'Report Card AI Writer',
+        'gates': ['report_card_ai'],
+    },
+    'exam-question-bank': {
+        'label': 'Exam & Question Bank Pro',
+        'gates': ['question_bank_ai'],
+    },
+    'behavior-sel-tracker': {
+        'label': 'Behavior & SEL Tracker',
+        'gates': ['addon_behavior_tracker'],
+    },
+    'differentiated-lesson-ai': {
+        'label': 'Differentiated Lesson AI',
+        'gates': ['differentiated_ai'],
+    },
+    'live-quiz-engine': {
+        'label': 'Live Quiz Engine',
+        'gates': ['addon_live_quiz'],
+    },
 }
 
 # Reverse map: view_name → addon_slug

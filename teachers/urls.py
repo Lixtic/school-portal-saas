@@ -143,6 +143,21 @@ urlpatterns = [
     path('addons/noise-meter/', views.addon_noise_meter, name='addon_noise_meter'),
     path('addons/stem-pack/', views.addon_stem_pack, name='addon_stem_pack'),
     path('addons/creative-arts/', views.addon_creative_arts, name='addon_creative_arts'),
+
+    # Wave 2 Add-On Feature Views
+    path('addons/report-card/', views.addon_report_card, name='addon_report_card'),
+    path('addons/report-card/ai/', views.report_card_ai, name='report_card_ai'),
+    path('addons/question-bank/', views.addon_question_bank, name='addon_question_bank'),
+    path('addons/question-bank/ai/', views.question_bank_ai, name='question_bank_ai'),
+    path('addons/question-bank/paper/', views.addon_exam_paper, name='addon_exam_paper'),
+    path('addons/behavior/', views.addon_behavior_tracker, name='addon_behavior_tracker'),
+    path('addons/differentiated/', views.addon_differentiated, name='addon_differentiated'),
+    path('addons/differentiated/ai/', views.differentiated_ai, name='differentiated_ai'),
+    path('addons/live-quiz/', views.addon_live_quiz, name='addon_live_quiz'),
+    path('addons/live-quiz/<int:quiz_id>/run/', views.live_quiz_run, name='live_quiz_run'),
+    path('addons/live-quiz/<int:quiz_id>/api/', views.live_quiz_api, name='live_quiz_api'),
+    path('quiz/<str:code>/', views.live_quiz_play, name='live_quiz_play'),
+    path('quiz/<str:code>/api/', views.live_quiz_student_api, name='live_quiz_student_api'),
 ]
 
 

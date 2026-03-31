@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+{% block title %}Report Card AI Writer{% endblock %}
+
+{% block content %}
+<style>
+:root{--rc-card:#fff;--rc-ink:#0b1120;--rc-muted:#8892a4;--rc-border:#e4e8f2;--rc-accent:#e74c3c;--rc-accent2:#f39c12;}
+[data-bs-theme="dark"]{--rc-card:#1e293b;--rc-ink:#f1f5f9;--rc-muted:#94a3b8;--rc-border:#334155;}
+.rc-wrap{max-width:860px;margin:0 auto;padding:1rem 0;}
+.rc-card{background:var(--rc-card);border:1px solid var(--rc-border);border-radius:14px;overflow:hidden;margin-bottom:1rem;}
+.rc-head{padding:1rem 1.3rem;border-bottom:1px solid var(--rc-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+.rc-head h2{margin:0;font-size:1.1rem;font-weight:800;color:var(--rc-ink);}
+.rc-body{padding:1.2rem 1.3rem;}
+.rc-form-row{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:.8rem;}
+.rc-form-row>*{flex:1;min-width:160px;}
+.rc-label{display:block;font-size:.72rem;font-weight:700;color:var(--rc-muted);text-transform:uppercase;margin-bottom:.2rem;}
+.rc-select,.rc-input,.rc-textarea{width:100%;padding:.45rem .65rem;border:1px solid var(--rc-border);border-radius:8px;font-size:.84rem;background:var(--rc-card);color:var(--rc-ink);}
+.rc-textarea{min-height:80px;resize:vertical;}
+.rc-select:focus,.rc-input:focus,.rc-textarea:focus{border-color:var(--rc-accent);outline:none;}
+.rc-btn{padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;border:none;cursor:pointer;transition:transform .1s;}
+.rc-btn:active{transform:scale(.97);}
+.rc-btn-ai{background:linear-gradient(135deg,#e74c3c,#f39c12);color:#fff;}
+.rc-btn-save{background:#10b981;color:#fff;}
+.rc-btn-sm{padding:.3rem .7rem;font-size:.78rem;}
+.rc-btn-outline{background:transparent;border:1px solid var(--rc-border);color:var(--rc-ink);}
+.rc-comment-card{border:1px solid var(--rc-border);border-radius:12px;padding:.8rem 1rem;margin-bottom:.5rem;background:var(--rc-card);}
+.rc-comment-card h4{margin:0 0 .15rem;font-size:.9rem;font-weight:700;color:var(--rc-ink);}
+.rc-comment-meta{font-size:.73rem;color:var(--rc-muted);margin-bottom:.3rem;}
+.rc-comment-text{font-size:.85rem;color:var(--rc-ink);line-height:1.6;}
+.rc-empty{padding:2rem;text-align:center;color:var(--rc-muted);font-size:.88rem;}
+.rc-tag{display:inline-block;padding:.15rem .5rem;border-radius:6px;font-size:.72rem;font-weight:600;}
+.rc-tag-conduct{background:#3b82f620;color:#3b82f6;}
+.rc-tag-attitude{background:#8b5cf620;color:#8b5cf6;}
+.rc-spinner{display:none;margin-left:.4rem;}
+.rc-spinner.active{display:inline-block;animation:rcSpin 1s infinite linear;}
+@keyframes rcSpin{to{transform:rotate(360deg);}}
+.rc-student-row{display:flex;align-items:center;gap:.5rem;padding:.4rem .6rem;border-radius:8px;margin-bottom:.3rem;font-size:.84rem;color:var(--rc-ink);}
+.rc-student-row:nth-child(even){background:var(--rc-border)20;}
+.rc-student-cb{width:18px;height:18px;accent-color:var(--rc-accent);}
+.rc-select-all{font-size:.76rem;cursor:pointer;color:var(--rc-accent);font-weight:600;}
+</style>
+
+<div class="rc-wrap">
+
+    {% if not has_rc_addon %}
+    <div style="max-width:860px;margin:0 auto .6rem;padding:.5rem .8rem;background:linear-gradient(135deg,#e74c3c10,#f39c1210);border:1px solid #e74c3c30;border-radius:10px;font-size:.78rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <span style="font-weight:700;color:#e74c3c;"><i class="bi bi-stars"></i> Free AI</span>
+      <div style="flex:1;min-width:120px;height:6px;background:#e4e8f2;border-radius:3px;overflow:hidden;">
+        <div style="width:{% widthratio rc_gen_used rc_gen_limit 100 %}%;height:100%;background:linear-gradient(90deg,#e74c3c,#f39c12);border-radius:3px;"></div>
+      </div>
+      <span style="color:#64748b;">{{ rc_gen_used }}/{{ rc_gen_limit }} used</span>
+      {% if rc_gen_remaining == 0 %}
+      <a href="{% url 'teachers:teacher_store' %}" style="color:#e74c3c;font-weight:600;text-decoration:none;">Get Report Card Writer &rarr;</a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Class & Term Selector -->
+    <div class="rc-card">
+        <div class="rc-head">
+            <h2><i class="bi bi-card-text me-2" style="color:var(--rc-accent);"></i>Report Card AI Writer</h2>
+        </div>
+        <div class="rc-body">
+            <form method="get" class="rc-form-row">
+                <div>
+                    <label class="rc-label">Class</label>
+                    <select name="class_id" class="rc-select" onchange="this.form.submit()">
+                        <option value="">— Select Class —</option>
+                        {% for c in classes %}
+                        <option value="{{ c.id }}" {% if sel_class == c.id %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="rc-label">Term</label>
+                    <select name="term" class="rc-select" onchange="this.form.submit()">
+                        <option value="first" {% if sel_term == 'first' %}selected{% endif %}>First Term</option>
+                        <option value="second" {% if sel_term == 'second' %}selected{% endif %}>Second Term</option>
+                        <option value="third" {% if sel_term == 'third' %}selected{% endif %}>Third Term</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if sel_class and students_in_class %}
+    <!-- Student Selection & Generate -->
+    <div class="rc-card">
+        <div class="rc-head">
+            <h2 style="font-size:.95rem;"><i class="bi bi-people me-2"></i>Students ({{ students_in_class|length }})</h2>
+            <div>
+                <span class="rc-select-all" onclick="toggleAll(this)">Select All</span>
+                <button type="button" class="rc-btn rc-btn-ai ms-2" onclick="generateComments()">
+                    <i class="bi bi-stars me-1"></i>Generate Comments
+                    <i class="bi bi-arrow-repeat rc-spinner" id="aiSpinner"></i>
+                </button>
+            </div>
+        </div>
+        <div class="rc-body" style="max-height:300px;overflow-y:auto;">
+            {% for s in students_in_class %}
+            <div class="rc-student-row">
+                <input type="checkbox" class="rc-student-cb" value="{{ s.id }}" data-name="{{ s.user.get_full_name }}">
+                <span>{{ s.user.get_full_name }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Generated Comments -->
+    <div class="rc-card">
+        <div class="rc-head">
+            <h2 style="font-size:.95rem;"><i class="bi bi-chat-square-text me-2"></i>Report Comments</h2>
+            <span style="font-size:.78rem;color:var(--rc-muted);">{{ comments|length }} comment{{ comments|length|pluralize }}</span>
+        </div>
+        <div class="rc-body" id="commentsContainer">
+            {% for c in comments %}
+            <div class="rc-comment-card" id="comment-{{ c.id }}">
+                <h4>{{ c.student.user.get_full_name }}</h4>
+                <div class="rc-comment-meta">
+                    <span class="rc-tag rc-tag-conduct">{{ c.conduct }}</span>
+                    <span class="rc-tag rc-tag-attitude">{{ c.attitude }}</span>
+                    {% if c.is_edited %}<span style="margin-left:.3rem;font-size:.7rem;color:#10b981;"><i class="bi bi-pencil-fill"></i> Edited</span>{% endif %}
+                </div>
+                <div class="rc-comment-text" id="text-{{ c.id }}">{{ c.comment }}</div>
+                <div style="display:flex;gap:.3rem;margin-top:.5rem;">
+                    <button type="button" class="rc-btn rc-btn-outline rc-btn-sm" onclick="editComment({{ c.id }})"><i class="bi bi-pencil me-1"></i>Edit</button>
+                    <form method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="comment_id" value="{{ c.id }}">
+                        <button class="rc-btn rc-btn-outline rc-btn-sm" onclick="return confirm('Delete?')"><i class="bi bi-trash3"></i></button>
+                    </form>
+                </div>
+                <!-- Hidden edit form -->
+                <form method="post" id="edit-{{ c.id }}" style="display:none;margin-top:.5rem;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="save_edit">
+                    <input type="hidden" name="comment_id" value="{{ c.id }}">
+                    <textarea name="comment" class="rc-textarea" style="min-height:60px;">{{ c.comment }}</textarea>
+                    <div class="rc-form-row" style="margin-top:.4rem;">
+                        <div><label class="rc-label">Conduct</label><input name="conduct" class="rc-input" value="{{ c.conduct }}"></div>
+                        <div><label class="rc-label">Attitude</label><input name="attitude" class="rc-input" value="{{ c.attitude }}"></div>
+                    </div>
+                    <button type="submit" class="rc-btn rc-btn-save rc-btn-sm" style="margin-top:.3rem;"><i class="bi bi-check-lg me-1"></i>Save</button>
+                </form>
+            </div>
+            {% empty %}
+            <div class="rc-empty"><i class="bi bi-chat-square-text" style="font-size:1.4rem;display:block;margin-bottom:.5rem;opacity:.3;"></i>No comments yet. Select students and click "Generate Comments".</div>
+            {% endfor %}
+        </div>
+    </div>
+    {% elif sel_class %}
+    <div class="rc-card"><div class="rc-empty">No students found in this class.</div></div>
+    {% else %}
+    <div class="rc-card"><div class="rc-empty"><i class="bi bi-hand-index" style="font-size:1.4rem;display:block;margin-bottom:.5rem;opacity:.3;"></i>Select a class above to start generating report card comments.</div></div>
+    {% endif %}
+</div>
+
+<script>
+function toggleAll(el){
+    const cbs=document.querySelectorAll('.rc-student-cb');
+    const allChecked=[...cbs].every(c=>c.checked);
+    cbs.forEach(c=>c.checked=!allChecked);
+    el.textContent=allChecked?'Select All':'Deselect All';
+}
+
+function editComment(id){
+    const el=document.getElementById('edit-'+id);
+    el.style.display=el.style.display==='none'?'block':'none';
+}
+
+async function generateComments(){
+    const checked=[...document.querySelectorAll('.rc-student-cb:checked')].map(c=>parseInt(c.value));
+    if(!checked.length){alert('Select at least one student.');return;}
+    const spinner=document.getElementById('aiSpinner');
+    spinner.classList.add('active');
+    try{
+        const r=await fetch('{% url "teachers:report_card_ai" %}',{
+            method:'POST',
+            headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+            body:JSON.stringify({student_ids:checked,term:'{{ sel_term }}',class_id:{{ sel_class|default:"0" }}})
+        });
+        const data=await r.json();
+        if(r.status===403 && data.error_code==='freemium_limit'){
+            alert(data.message);
+        }else if(r.status===429 && data.error_code==='quota_exceeded'){
+            alert(data.error||'AI quota exceeded.');
+        }else if(data.results){
+            location.reload();
+        }else{
+            alert(data.error||'Generation failed.');
+        }
+    }catch(e){alert('Network error.');}
+    spinner.classList.remove('active');
+}
+</script>
+{% endblock %}

@@ -7186,3 +7186,645 @@ def addon_stem_pack(request):
 def addon_creative_arts(request):
     """Curated creative arts activity library — static content pack."""
     return render(request, 'teachers/addon_creative_arts.html')
+
+
+# ---------------------------------------------------------------------------
+# Wave 2 Add-Ons
+# ---------------------------------------------------------------------------
+
+# ── 1. Report Card AI Writer ──────────────────────────────────────────────
+
+@login_required
+def addon_report_card(request):
+    """Report Card AI Writer — generate end-of-term comments for students."""
+    from teachers.models import ReportCardComment
+
+    teacher = request.user
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    classes = Class.objects.filter(academic_year=current_year) if current_year else Class.objects.none()
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'save_edit':
+            rc = get_object_or_404(ReportCardComment, id=request.POST.get('comment_id'), teacher=teacher)
+            rc.comment = request.POST.get('comment', '').strip()
+            rc.conduct = request.POST.get('conduct', '').strip()
+            rc.attitude = request.POST.get('attitude', '').strip()
+            rc.is_edited = True
+            rc.save(update_fields=['comment', 'conduct', 'attitude', 'is_edited', 'updated_at'])
+            messages.success(request, 'Comment saved.')
+            return redirect('teachers:addon_report_card')
+        elif action == 'delete':
+            ReportCardComment.objects.filter(id=request.POST.get('comment_id'), teacher=teacher).delete()
+            return redirect('teachers:addon_report_card')
+
+    sel_class = request.GET.get('class_id')
+    sel_term = request.GET.get('term', 'first')
+    comments = ReportCardComment.objects.none()
+    students_in_class = []
+
+    if sel_class and current_year:
+        students_in_class = Student.objects.filter(
+            current_class_id=sel_class,
+        ).select_related('user').order_by('user__first_name')
+        comments = ReportCardComment.objects.filter(
+            teacher=teacher, academic_year=current_year, term=sel_term,
+            student__in=students_in_class,
+        ).select_related('student__user')
+
+    rc_used = get_free_generation_count(teacher, 'report_card')
+    return render(request, 'teachers/addon_report_card.html', {
+        'classes': classes,
+        'sel_class': int(sel_class) if sel_class else None,
+        'sel_term': sel_term,
+        'comments': comments,
+        'students_in_class': students_in_class,
+        'current_year': current_year,
+        'rc_gen_used': rc_used,
+        'rc_gen_limit': FREE_GENERATION_LIMIT,
+        'rc_gen_remaining': max(0, FREE_GENERATION_LIMIT - rc_used),
+        'has_rc_addon': has_addon(teacher, 'report-card-writer'),
+    })
+
+
+@login_required
+@requires_addon_freemium('report-card-writer', action_type='report_card')
+def report_card_ai(request):
+    """AJAX: AI-generate report card comments for selected students."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST only'}, status=405)
+
+    body = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    student_ids = body.get('student_ids', [])
+    term = body.get('term', 'first')
+    class_id = body.get('class_id')
+
+    if not student_ids or not class_id:
+        return JsonResponse({'error': 'Select students and class.'}, status=400)
+
+    from tenants.ai_quota import check_and_consume, QuotaExceeded
+    try:
+        check_and_consume(request.tenant, request.user.id, 'report_card')
+    except QuotaExceeded as e:
+        return JsonResponse({
+            'error': e.user_message, 'error_code': 'quota_exceeded',
+            'used': e.used, 'limit': e.limit, 'addon_boost': e.addon_boost,
+        }, status=429)
+
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    if not current_year:
+        return JsonResponse({'error': 'No active academic year.'}, status=400)
+
+    students = Student.objects.filter(
+        id__in=student_ids[:40], current_class_id=class_id,
+    ).select_related('user')
+
+    # Build per-student grade summaries
+    student_data = []
+    for s in students:
+        grades = Grade.objects.filter(
+            student=s, academic_year=current_year, term=term,
+        ).select_related('subject')
+        grade_summary = ', '.join(
+            f"{g.subject.name}: {g.total_score}/100" for g in grades
+        ) or 'No grades recorded'
+        avg = grades.aggregate(a=Avg('total_score'))['a'] or 0
+        student_data.append({
+            'id': s.id, 'name': s.user.get_full_name(),
+            'grades': grade_summary, 'avg': round(float(avg), 1),
+        })
+
+    # AI generation
+    try:
+        import google.generativeai as genai
+        api_key = os.environ.get('GEMINI_API_KEY', '')
+        if api_key:
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel('gemini-2.0-flash')
+            students_text = '\n'.join(
+                f"- {d['name']}: Average {d['avg']}%. Subjects: {d['grades']}"
+                for d in student_data
+            )
+            prompt = (
+                "You are an experienced Ghanaian JHS teacher writing end-of-term report card comments. "
+                "For EACH student below, write a personalised 2-3 sentence report comment that:\n"
+                "1. Mentions their strengths based on their grades\n"
+                "2. Offers constructive areas for improvement\n"
+                "3. Ends with encouragement\n"
+                "Also suggest a one-word Conduct (e.g. Excellent, Good, Satisfactory) and "
+                "Attitude (e.g. Excellent, Very Good, Good).\n\n"
+                "Return ONLY valid JSON: [{\"name\":\"…\",\"comment\":\"…\",\"conduct\":\"…\",\"attitude\":\"…\"}, …]\n\n"
+                f"STUDENTS:\n{students_text}"
+            )
+            resp = model.generate_content(prompt)
+            text = resp.text.strip()
+            # Extract JSON from response
+            if '```' in text:
+                text = text.split('```')[1]
+                if text.startswith('json'):
+                    text = text[4:]
+            import re
+            json_match = re.search(r'\[.*\]', text, re.DOTALL)
+            if json_match:
+                ai_results = json.loads(json_match.group())
+            else:
+                ai_results = json.loads(text)
+
+            # Save to database
+            from teachers.models import ReportCardComment
+            saved = []
+            for d in student_data:
+                ai_match = next(
+                    (r for r in ai_results if r.get('name', '').lower().strip() == d['name'].lower().strip()),
+                    None,
+                )
+                if not ai_match:
+                    ai_match = ai_results[student_data.index(d)] if len(ai_results) > student_data.index(d) else {}
+                comment_text = ai_match.get('comment', f"{d['name']} has shown effort this term.")
+                conduct = ai_match.get('conduct', 'Good')
+                attitude = ai_match.get('attitude', 'Good')
+                obj, _ = ReportCardComment.objects.update_or_create(
+                    student_id=d['id'], academic_year=current_year, term=term,
+                    defaults={
+                        'teacher': request.user,
+                        'comment': comment_text,
+                        'conduct': conduct,
+                        'attitude': attitude,
+                    },
+                )
+                saved.append({
+                    'id': obj.id, 'student_id': d['id'], 'name': d['name'],
+                    'comment': comment_text, 'conduct': conduct, 'attitude': attitude,
+                })
+            return JsonResponse({'results': saved})
+    except QuotaExceeded:
+        raise
+    except Exception as exc:
+        logger.exception('Report card AI error')
+        return _ai_json_error_response(exc)
+
+    # Fallback
+    from teachers.models import ReportCardComment
+    saved = []
+    for d in student_data:
+        cmt = f"{d['name']} achieved an average of {d['avg']}% this term. "
+        cmt += "Keep up the hard work." if d['avg'] >= 50 else "More effort is needed next term."
+        obj, _ = ReportCardComment.objects.update_or_create(
+            student_id=d['id'], academic_year=current_year, term=term,
+            defaults={'teacher': request.user, 'comment': cmt, 'conduct': 'Good', 'attitude': 'Good'},
+        )
+        saved.append({'id': obj.id, 'student_id': d['id'], 'name': d['name'], 'comment': cmt, 'conduct': 'Good', 'attitude': 'Good'})
+    return JsonResponse({'results': saved})
+
+
+# ── 2. Exam & Question Bank Pro ──────────────────────────────────────────
+
+@login_required
+def addon_question_bank(request):
+    """Question bank management + exam paper assembly."""
+    from teachers.models import QuestionBank, ExamPaper
+
+    teacher = request.user
+    subjects = Subject.objects.all()
+    classes = Class.objects.filter(academic_year__is_current=True)
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add':
+            opts_raw = request.POST.get('options', '')
+            opts = [o.strip() for o in opts_raw.split('\n') if o.strip()] if opts_raw.strip() else []
+            QuestionBank.objects.create(
+                teacher=teacher,
+                subject_id=request.POST.get('subject') or None,
+                target_class_id=request.POST.get('target_class') or None,
+                topic=request.POST.get('topic', '').strip()[:200],
+                question_text=request.POST.get('question_text', '').strip(),
+                question_format=request.POST.get('question_format', 'mcq'),
+                difficulty=request.POST.get('difficulty', 'medium'),
+                options=opts,
+                correct_answer=request.POST.get('correct_answer', '').strip(),
+                explanation=request.POST.get('explanation', '').strip(),
+            )
+            messages.success(request, 'Question added to bank.')
+            return redirect('teachers:addon_question_bank')
+
+        elif action == 'delete':
+            QuestionBank.objects.filter(id=request.POST.get('q_id'), teacher=teacher).delete()
+            return redirect('teachers:addon_question_bank')
+
+        elif action == 'create_paper':
+            q_ids = request.POST.getlist('selected_questions')
+            if q_ids:
+                paper = ExamPaper.objects.create(
+                    teacher=teacher,
+                    title=request.POST.get('paper_title', 'Exam Paper').strip()[:200],
+                    subject_id=request.POST.get('paper_subject') or None,
+                    target_class_id=request.POST.get('paper_class') or None,
+                    duration_minutes=int(request.POST.get('duration', 60) or 60),
+                    instructions=request.POST.get('instructions', 'Answer ALL questions.').strip(),
+                )
+                paper.questions.set(QuestionBank.objects.filter(id__in=q_ids, teacher=teacher))
+                messages.success(request, f'Exam paper "{paper.title}" created with {len(q_ids)} questions.')
+            return redirect('teachers:addon_question_bank')
+
+    # Filter
+    f_subject = request.GET.get('subject')
+    f_difficulty = request.GET.get('difficulty')
+    f_format = request.GET.get('format')
+    qs = QuestionBank.objects.filter(teacher=teacher).select_related('subject', 'target_class')
+    if f_subject:
+        qs = qs.filter(subject_id=f_subject)
+    if f_difficulty:
+        qs = qs.filter(difficulty=f_difficulty)
+    if f_format:
+        qs = qs.filter(question_format=f_format)
+
+    papers = ExamPaper.objects.filter(teacher=teacher).select_related('subject', 'target_class')
+    qb_used = get_free_generation_count(teacher, 'question_gen')
+
+    return render(request, 'teachers/addon_question_bank.html', {
+        'questions': qs, 'papers': papers, 'subjects': subjects, 'classes': classes,
+        'f_subject': f_subject, 'f_difficulty': f_difficulty, 'f_format': f_format,
+        'qb_gen_used': qb_used, 'qb_gen_limit': FREE_GENERATION_LIMIT,
+        'qb_gen_remaining': max(0, FREE_GENERATION_LIMIT - qb_used),
+        'has_qb_addon': has_addon(teacher, 'exam-question-bank'),
+    })
+
+
+@login_required
+@requires_addon_freemium('exam-question-bank', action_type='question_gen')
+def question_bank_ai(request):
+    """AJAX: AI-generate questions for the question bank."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST only'}, status=405)
+
+    body = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    topic = body.get('topic', '').strip()
+    subject_name = body.get('subject', '').strip()
+    num = min(int(body.get('count', 5) or 5), 10)
+    fmt = body.get('format', 'mcq')
+    difficulty = body.get('difficulty', 'medium')
+
+    if not topic:
+        return JsonResponse({'error': 'Provide a topic.'}, status=400)
+
+    from tenants.ai_quota import check_and_consume, QuotaExceeded
+    try:
+        check_and_consume(request.tenant, request.user.id, 'question_gen')
+    except QuotaExceeded as e:
+        return JsonResponse({
+            'error': e.user_message, 'error_code': 'quota_exceeded',
+            'used': e.used, 'limit': e.limit, 'addon_boost': e.addon_boost,
+        }, status=429)
+
+    try:
+        import google.generativeai as genai
+        api_key = os.environ.get('GEMINI_API_KEY', '')
+        if not api_key:
+            return JsonResponse({'error': 'AI not configured.'}, status=500)
+
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.0-flash')
+
+        fmt_desc = {'mcq': 'multiple choice (4 options A-D)', 'fill': 'fill in the blank',
+                    'short': 'short answer', 'truefalse': 'true or false', 'essay': 'essay'}.get(fmt, fmt)
+        prompt = (
+            f"Generate {num} {difficulty} difficulty {fmt_desc} questions on the topic \"{topic}\" "
+            f"for {subject_name or 'a'} Ghanaian JHS class.\n\n"
+            "Return ONLY valid JSON array:\n"
+            '[{"question":"…","options":["A) …","B) …","C) …","D) …"],"correct":"A","explanation":"…"}, …]\n'
+            "For non-MCQ, options can be empty array. For true/false, options should be [\"True\",\"False\"]."
+        )
+        resp = model.generate_content(prompt)
+        text = resp.text.strip()
+        if '```' in text:
+            text = text.split('```')[1]
+            if text.startswith('json'):
+                text = text[4:]
+        import re
+        json_match = re.search(r'\[.*\]', text, re.DOTALL)
+        questions = json.loads(json_match.group()) if json_match else json.loads(text)
+        return JsonResponse({'questions': questions})
+
+    except QuotaExceeded:
+        raise
+    except Exception as exc:
+        logger.exception('Question bank AI error')
+        return _ai_json_error_response(exc)
+
+
+@login_required
+@requires_addon('exam-question-bank')
+def addon_exam_paper(request, **kwargs):
+    """View/print a specific exam paper."""
+    from teachers.models import ExamPaper
+    paper_id = request.GET.get('id')
+    if not paper_id:
+        return redirect('teachers:addon_question_bank')
+    paper = get_object_or_404(ExamPaper, id=paper_id, teacher=request.user)
+    questions = paper.questions.all().order_by('?')  # shuffled
+    return render(request, 'teachers/addon_exam_paper.html', {'paper': paper, 'questions': questions})
+
+
+# ── 3. Behavior & SEL Tracker ────────────────────────────────────────────
+
+@login_required
+@requires_addon('behavior-sel-tracker')
+def addon_behavior_tracker(request):
+    """Behavior logging and SEL tracking."""
+    from teachers.models import BehaviorLog
+
+    teacher = request.user
+    classes = Class.objects.filter(academic_year__is_current=True)
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add':
+            student_id = request.POST.get('student_id')
+            if student_id:
+                BehaviorLog.objects.create(
+                    teacher=teacher,
+                    student_id=student_id,
+                    log_type=request.POST.get('log_type', 'positive'),
+                    category=request.POST.get('category', 'other'),
+                    note=request.POST.get('note', '').strip(),
+                    date=request.POST.get('date') or date.today(),
+                )
+                messages.success(request, 'Behavior logged.')
+            return redirect('teachers:addon_behavior_tracker')
+        elif action == 'delete':
+            BehaviorLog.objects.filter(id=request.POST.get('log_id'), teacher=teacher).delete()
+            return redirect('teachers:addon_behavior_tracker')
+
+    # Filter by class
+    sel_class = request.GET.get('class_id')
+    logs = BehaviorLog.objects.filter(teacher=teacher).select_related('student__user')
+    students = Student.objects.none()
+    if sel_class:
+        students = Student.objects.filter(current_class_id=sel_class).select_related('user').order_by('user__first_name')
+        logs = logs.filter(student__current_class_id=sel_class)
+
+    logs = logs[:100]
+
+    # Stats
+    total = BehaviorLog.objects.filter(teacher=teacher).count()
+    positive = BehaviorLog.objects.filter(teacher=teacher, log_type='positive').count()
+    negative = BehaviorLog.objects.filter(teacher=teacher, log_type='negative').count()
+
+    # Flagged students (3+ negative in last 14 days)
+    from django.utils.timezone import now
+    from datetime import timedelta
+    cutoff = now().date() - timedelta(days=14)
+    flagged = (
+        BehaviorLog.objects.filter(teacher=teacher, log_type='negative', date__gte=cutoff)
+        .values('student__id', 'student__user__first_name', 'student__user__last_name')
+        .annotate(count=Count('id'))
+        .filter(count__gte=3)
+        .order_by('-count')
+    )
+
+    return render(request, 'teachers/addon_behavior_tracker.html', {
+        'classes': classes, 'students': students, 'logs': logs,
+        'sel_class': int(sel_class) if sel_class else None,
+        'total': total, 'positive': positive, 'negative': negative,
+        'flagged': flagged,
+    })
+
+
+# ── 4. Differentiated Lesson AI ──────────────────────────────────────────
+
+@login_required
+def addon_differentiated(request):
+    """Build differentiated lesson versions with AI."""
+    from teachers.models import DifferentiatedLesson
+
+    teacher = request.user
+    subjects = Subject.objects.all()
+    classes = Class.objects.filter(academic_year__is_current=True)
+    lesson_plans = LessonPlan.objects.filter(teacher__user=teacher).select_related('subject', 'school_class')[:50]
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'save':
+            DifferentiatedLesson.objects.create(
+                teacher=teacher,
+                title=request.POST.get('title', '').strip()[:200] or 'Untitled',
+                subject_id=request.POST.get('subject') or None,
+                target_class_id=request.POST.get('target_class') or None,
+                source_content=request.POST.get('source_content', '').strip(),
+                foundational_html=request.POST.get('foundational_html', '').strip(),
+                grade_level_html=request.POST.get('grade_level_html', '').strip(),
+                extension_html=request.POST.get('extension_html', '').strip(),
+            )
+            messages.success(request, 'Differentiated lesson saved.')
+            return redirect('teachers:addon_differentiated')
+        elif action == 'delete':
+            DifferentiatedLesson.objects.filter(id=request.POST.get('lesson_id'), teacher=teacher).delete()
+            return redirect('teachers:addon_differentiated')
+
+    lessons = DifferentiatedLesson.objects.filter(teacher=teacher).select_related('subject', 'target_class')
+    dl_used = get_free_generation_count(teacher, 'differentiate')
+    return render(request, 'teachers/addon_differentiated.html', {
+        'subjects': subjects, 'classes': classes, 'lesson_plans': lesson_plans,
+        'lessons': lessons,
+        'dl_gen_used': dl_used, 'dl_gen_limit': FREE_GENERATION_LIMIT,
+        'dl_gen_remaining': max(0, FREE_GENERATION_LIMIT - dl_used),
+        'has_dl_addon': has_addon(teacher, 'differentiated-lesson-ai'),
+    })
+
+
+@login_required
+@requires_addon_freemium('differentiated-lesson-ai', action_type='differentiate')
+def differentiated_ai(request):
+    """AJAX: Generate three differentiated lesson tiers from source content."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST only'}, status=405)
+
+    body = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    content = body.get('content', '').strip()
+    if not content:
+        return JsonResponse({'error': 'Provide lesson content.'}, status=400)
+
+    from tenants.ai_quota import check_and_consume, QuotaExceeded
+    try:
+        check_and_consume(request.tenant, request.user.id, 'differentiate')
+    except QuotaExceeded as e:
+        return JsonResponse({
+            'error': e.user_message, 'error_code': 'quota_exceeded',
+            'used': e.used, 'limit': e.limit, 'addon_boost': e.addon_boost,
+        }, status=429)
+
+    try:
+        import google.generativeai as genai
+        api_key = os.environ.get('GEMINI_API_KEY', '')
+        if not api_key:
+            return JsonResponse({'error': 'AI not configured.'}, status=500)
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.0-flash')
+        prompt = (
+            "You are a Ghanaian JHS teacher assistant specialising in inclusive education.\n"
+            "Take the lesson content below and create THREE differentiated versions as HTML:\n\n"
+            "1. **Foundational** — for struggling learners. Simpler language, more scaffolding, "
+            "concrete examples, step-by-step guidance, visual aids.\n"
+            "2. **Grade Level** — for on-track learners. Standard lesson with clear objectives, "
+            "practice activities, and assessment.\n"
+            "3. **Extension** — for advanced learners. Deeper analysis, open-ended challenges, "
+            "research tasks, connections to real-world applications.\n\n"
+            "Use HTML tags: <h3>, <h4>, <ul>, <li>, <p>, <strong>, <em>.\n"
+            "Return ONLY valid JSON: {\"foundational\":\"<html>…\",\"grade_level\":\"<html>…\",\"extension\":\"<html>…\"}\n\n"
+            f"LESSON CONTENT:\n{content[:3000]}"
+        )
+        resp = model.generate_content(prompt)
+        text = resp.text.strip()
+        if '```' in text:
+            text = text.split('```')[1]
+            if text.startswith('json'):
+                text = text[4:]
+        import re
+        json_match = re.search(r'\{.*\}', text, re.DOTALL)
+        result = json.loads(json_match.group()) if json_match else json.loads(text)
+        return JsonResponse(result)
+    except QuotaExceeded:
+        raise
+    except Exception as exc:
+        logger.exception('Differentiated AI error')
+        return _ai_json_error_response(exc)
+
+
+# ── 5. Live Quiz Engine ──────────────────────────────────────────────────
+
+@login_required
+@requires_addon('live-quiz-engine')
+def addon_live_quiz(request):
+    """Live quiz management — create, list, delete quizzes."""
+    from teachers.models import LiveQuiz, LiveQuizQuestion
+
+    teacher = request.user
+    subjects = Subject.objects.all()
+    classes = Class.objects.filter(academic_year__is_current=True)
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'create':
+            quiz = LiveQuiz.objects.create(
+                teacher=teacher,
+                title=request.POST.get('title', 'Quick Quiz').strip()[:200],
+                subject_id=request.POST.get('subject') or None,
+                target_class_id=request.POST.get('target_class') or None,
+            )
+            # Parse questions from JSON
+            q_json = request.POST.get('questions_json', '[]')
+            try:
+                q_list = json.loads(q_json)
+            except (json.JSONDecodeError, TypeError):
+                q_list = []
+            for i, q in enumerate(q_list[:20]):
+                LiveQuizQuestion.objects.create(
+                    quiz=quiz, order=i,
+                    text=q.get('text', '')[:500],
+                    option_a=q.get('a', '')[:300],
+                    option_b=q.get('b', '')[:300],
+                    option_c=q.get('c', '')[:300],
+                    option_d=q.get('d', '')[:300],
+                    correct=q.get('correct', 'A')[:1].upper(),
+                    time_limit=min(int(q.get('time', 30) or 30), 120),
+                )
+            messages.success(request, f'Quiz "{quiz.title}" created with {len(q_list)} questions.')
+            return redirect('teachers:addon_live_quiz')
+
+        elif action == 'delete':
+            LiveQuiz.objects.filter(id=request.POST.get('quiz_id'), teacher=teacher).delete()
+            return redirect('teachers:addon_live_quiz')
+
+    quizzes = LiveQuiz.objects.filter(teacher=teacher).select_related('subject', 'target_class')
+    return render(request, 'teachers/addon_live_quiz.html', {
+        'quizzes': quizzes, 'subjects': subjects, 'classes': classes,
+    })
+
+
+@login_required
+@requires_addon('live-quiz-engine')
+def live_quiz_run(request, quiz_id):
+    """Teacher view: Run/control a live quiz session."""
+    from teachers.models import LiveQuiz
+    quiz = get_object_or_404(LiveQuiz, id=quiz_id, teacher=request.user)
+    questions = quiz.questions.all()
+    if request.method == 'POST' and request.POST.get('action') == 'toggle':
+        quiz.is_active = not quiz.is_active
+        quiz.save(update_fields=['is_active'])
+        return redirect('teachers:live_quiz_run', quiz_id=quiz.id)
+    return render(request, 'teachers/addon_live_quiz_run.html', {
+        'quiz': quiz, 'questions': questions,
+    })
+
+
+@login_required
+@requires_addon('live-quiz-engine')
+def live_quiz_api(request, quiz_id):
+    """AJAX API for teacher: get live results, advance questions."""
+    from teachers.models import LiveQuiz, LiveQuizResponse
+    quiz = get_object_or_404(LiveQuiz, id=quiz_id, teacher=request.user)
+    questions = list(quiz.questions.values('id', 'order', 'text', 'option_a', 'option_b', 'option_c', 'option_d', 'correct', 'time_limit'))
+    # Get response counts
+    for q in questions:
+        resps = LiveQuizResponse.objects.filter(question_id=q['id'])
+        q['total'] = resps.count()
+        q['correct_count'] = resps.filter(is_correct=True).count()
+        q['breakdown'] = {
+            'A': resps.filter(choice='A').count(),
+            'B': resps.filter(choice='B').count(),
+            'C': resps.filter(choice='C').count(),
+            'D': resps.filter(choice='D').count(),
+        }
+    # Leaderboard
+    leaderboard = (
+        LiveQuizResponse.objects.filter(question__quiz=quiz, is_correct=True)
+        .values('player_name')
+        .annotate(score=Count('id'))
+        .order_by('-score')[:20]
+    )
+    return JsonResponse({
+        'quiz': {'id': quiz.id, 'title': quiz.title, 'is_active': quiz.is_active, 'code': quiz.join_code},
+        'questions': questions,
+        'leaderboard': list(leaderboard),
+    })
+
+
+def live_quiz_play(request, code):
+    """Student view: join and play a live quiz (no login required)."""
+    from teachers.models import LiveQuiz
+    quiz = get_object_or_404(LiveQuiz, join_code=code.upper())
+    if not quiz.is_active:
+        return render(request, 'teachers/addon_live_quiz_closed.html', {'quiz': quiz})
+    questions = quiz.questions.all()
+    return render(request, 'teachers/addon_live_quiz_play.html', {'quiz': quiz, 'questions': questions})
+
+
+def live_quiz_student_api(request, code):
+    """AJAX: student submits an answer."""
+    from teachers.models import LiveQuiz, LiveQuizQuestion, LiveQuizResponse
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST only'}, status=405)
+    quiz = get_object_or_404(LiveQuiz, join_code=code.upper())
+    if not quiz.is_active:
+        return JsonResponse({'error': 'Quiz is closed.'}, status=403)
+
+    body = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    q_id = body.get('question_id')
+    choice = (body.get('choice', '') or '')[:1].upper()
+    player = (body.get('player_name', 'Anonymous') or 'Anonymous')[:100]
+
+    if not q_id or not choice:
+        return JsonResponse({'error': 'Missing fields.'}, status=400)
+
+    question = get_object_or_404(LiveQuizQuestion, id=q_id, quiz=quiz)
+    is_correct = choice == question.correct.upper()
+
+    obj, created = LiveQuizResponse.objects.get_or_create(
+        question=question, player_name=player,
+        defaults={'choice': choice, 'is_correct': is_correct},
+    )
+    if not created:
+        return JsonResponse({'error': 'Already answered.', 'is_correct': obj.is_correct}, status=200)
+
+    return JsonResponse({'is_correct': is_correct, 'correct_answer': question.correct})

@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+{% block title %}Differentiated Lesson AI{% endblock %}
+
+{% block content %}
+<style>
+:root{--dl-card:#fff;--dl-ink:#0b1120;--dl-muted:#8892a4;--dl-border:#e4e8f2;--dl-found:#10b981;--dl-grade:#3b82f6;--dl-ext:#f59e0b;--dl-accent:#8b5cf6;}
+[data-bs-theme="dark"]{--dl-card:#1e293b;--dl-ink:#f1f5f9;--dl-muted:#94a3b8;--dl-border:#334155;}
+.dl-wrap{max-width:900px;margin:0 auto;padding:1rem 0;}
+.dl-card{background:var(--dl-card);border:1px solid var(--dl-border);border-radius:14px;overflow:hidden;margin-bottom:1rem;}
+.dl-head{padding:1rem 1.3rem;border-bottom:1px solid var(--dl-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+.dl-head h2{margin:0;font-size:1.1rem;font-weight:800;color:var(--dl-ink);}
+.dl-body{padding:1.2rem 1.3rem;}
+.dl-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;}
+@media(max-width:640px){.dl-grid{grid-template-columns:1fr;}}
+.dl-full{grid-column:span 2;}@media(max-width:640px){.dl-full{grid-column:span 1;}}
+.dl-label{display:block;font-size:.72rem;font-weight:700;color:var(--dl-muted);text-transform:uppercase;margin-bottom:.2rem;}
+.dl-input,.dl-select,.dl-textarea{width:100%;padding:.45rem .65rem;border:1px solid var(--dl-border);border-radius:8px;font-size:.84rem;background:var(--dl-card);color:var(--dl-ink);}
+.dl-textarea{min-height:100px;resize:vertical;}
+.dl-input:focus,.dl-select:focus,.dl-textarea:focus{border-color:var(--dl-accent);outline:none;}
+.dl-btn{padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;border:none;cursor:pointer;transition:transform .1s;}
+.dl-btn:active{transform:scale(.97);}
+.dl-btn-accent{background:var(--dl-accent);color:#fff;}
+.dl-btn-outline{background:transparent;border:1px solid var(--dl-border);color:var(--dl-ink);}
+.dl-btn-sm{padding:.3rem .7rem;font-size:.78rem;}
+.dl-freemium{background:linear-gradient(135deg,var(--dl-accent),#6366f1);color:#fff;border-radius:12px;padding:.6rem 1rem;margin-bottom:1rem;font-size:.82rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;}
+.dl-meter{flex:1;min-width:120px;height:6px;background:rgba(255,255,255,.25);border-radius:3px;overflow:hidden;}
+.dl-meter-fill{height:100%;background:#fff;border-radius:3px;transition:width .3s;}
+.dl-tiers{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.6rem;margin-top:.8rem;}
+@media(max-width:768px){.dl-tiers{grid-template-columns:1fr;}}
+.dl-tier{border-radius:12px;overflow:hidden;border:2px solid transparent;}
+.dl-tier-head{padding:.5rem .8rem;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#fff;}
+.dl-tier-found .dl-tier-head{background:var(--dl-found);}
+.dl-tier-grade .dl-tier-head{background:var(--dl-grade);}
+.dl-tier-ext .dl-tier-head{background:var(--dl-ext);}
+.dl-tier-body{padding:.8rem;background:var(--dl-card);border:1px solid var(--dl-border);border-top:none;border-radius:0 0 10px 10px;font-size:.84rem;color:var(--dl-ink);min-height:120px;line-height:1.5;}
+.dl-tier-body h3,.dl-tier-body h4{font-size:.95rem;font-weight:700;margin:.5rem 0 .3rem;}
+.dl-tier-body ul{padding-left:1.2rem;margin:.3rem 0;}
+.dl-saved-item{display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.5rem .8rem;border-radius:10px;margin-bottom:.3rem;background:var(--dl-card);border:1px solid var(--dl-border);}
+.dl-saved-title{font-weight:700;font-size:.85rem;color:var(--dl-ink);}
+.dl-saved-meta{font-size:.73rem;color:var(--dl-muted);}
+.dl-empty{padding:2rem;text-align:center;color:var(--dl-muted);font-size:.88rem;}
+.dl-spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:dlspin .6s linear infinite;display:none;}
+@keyframes dlspin{to{transform:rotate(360deg);}}
+</style>
+
+<div class="dl-wrap">
+    <!-- Freemium Bar -->
+    <div class="dl-freemium">
+        <i class="bi bi-diagram-3" style="font-size:1.1rem;"></i>
+        <span>
+            {% if has_dl_addon %}Add-on active — school quota
+            {% else %}{{ dl_gen_remaining }}/{{ dl_gen_limit }} free generations left
+            {% endif %}
+        </span>
+        {% if not has_dl_addon %}
+        <div class="dl-meter"><div class="dl-meter-fill" style="width:{{ dl_gen_used|floatformat:0 }}%;max-width:100%;"></div></div>
+        {% endif %}
+    </div>
+
+    <!-- Generator Card -->
+    <div class="dl-card">
+        <div class="dl-head">
+            <h2><i class="bi bi-diagram-3 me-2" style="color:var(--dl-accent);"></i>Generate Differentiated Lesson</h2>
+        </div>
+        <div class="dl-body">
+            <div class="dl-grid" id="genForm">
+                <div>
+                    <label class="dl-label">Title</label>
+                    <input type="text" id="dlTitle" class="dl-input" placeholder="e.g. Photosynthesis — Class Adaptation">
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;">
+                    <div>
+                        <label class="dl-label">Subject</label>
+                        <select id="dlSubject" class="dl-select">
+                            <option value="">—</option>
+                            {% for s in subjects %}
+                            <option value="{{ s.id }}">{{ s.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="dl-label">Class</label>
+                        <select id="dlClass" class="dl-select">
+                            <option value="">—</option>
+                            {% for c in classes %}
+                            <option value="{{ c.id }}">{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                {% if lesson_plans %}
+                <div class="dl-full">
+                    <label class="dl-label">Or pick existing lesson plan</label>
+                    <select id="dlPlan" class="dl-select" onchange="if(this.value)document.getElementById('dlContent').value=this.options[this.selectedIndex].dataset.content||'';">
+                        <option value="">— Write custom content below —</option>
+                        {% for lp in lesson_plans %}
+                        <option value="{{ lp.id }}" data-content="{{ lp.content|truncatechars:2000|escape }}">{{ lp.title }} ({{ lp.subject.name }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                <div class="dl-full">
+                    <label class="dl-label">Lesson Content / Objectives</label>
+                    <textarea id="dlContent" class="dl-textarea" placeholder="Paste your lesson content, objectives, and activities here. The AI will create Foundational, Grade-Level, and Extension versions."></textarea>
+                </div>
+            </div>
+            <button class="dl-btn dl-btn-accent" style="margin-top:.6rem;" onclick="generateDL()" id="genBtn">
+                <i class="bi bi-stars me-1"></i>Generate 3 Tiers
+                <span class="dl-spinner" id="genSpinner"></span>
+            </button>
+            <div id="genError" style="display:none;margin-top:.4rem;padding:.5rem .8rem;background:#fef2f2;color:#dc2626;border-radius:8px;font-size:.82rem;"></div>
+
+            <!-- Result Tiers -->
+            <div id="tierResult" style="display:none;">
+                <div class="dl-tiers">
+                    <div class="dl-tier dl-tier-found"><div class="dl-tier-head"><i class="bi bi-shield me-1"></i>Foundational</div><div class="dl-tier-body" id="tierFoundational"></div></div>
+                    <div class="dl-tier dl-tier-grade"><div class="dl-tier-head"><i class="bi bi-bookmark me-1"></i>Grade Level</div><div class="dl-tier-body" id="tierGradeLevel"></div></div>
+                    <div class="dl-tier dl-tier-ext"><div class="dl-tier-head"><i class="bi bi-rocket me-1"></i>Extension</div><div class="dl-tier-body" id="tierExtension"></div></div>
+                </div>
+                <form method="post" id="saveForm" style="margin-top:.6rem;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="save">
+                    <input type="hidden" name="title" id="saveTitle">
+                    <input type="hidden" name="subject" id="saveSubject">
+                    <input type="hidden" name="target_class" id="saveClass">
+                    <input type="hidden" name="source_content" id="saveContent">
+                    <input type="hidden" name="foundational_html" id="saveFound">
+                    <input type="hidden" name="grade_level_html" id="saveGrade">
+                    <input type="hidden" name="extension_html" id="saveExt">
+                    <button type="submit" class="dl-btn dl-btn-accent"><i class="bi bi-floppy me-1"></i>Save Differentiated Lesson</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Saved Lessons -->
+    <div class="dl-card">
+        <div class="dl-head">
+            <h2 style="font-size:.95rem;"><i class="bi bi-collection me-2"></i>Saved Lessons</h2>
+            <span style="font-size:.73rem;color:var(--dl-muted);">{{ lessons|length }} lesson{{ lessons|length|pluralize }}</span>
+        </div>
+        <div class="dl-body">
+            {% for dl in lessons %}
+            <div class="dl-saved-item">
+                <div>
+                    <div class="dl-saved-title">{{ dl.title }}</div>
+                    <div class="dl-saved-meta">
+                        {% if dl.subject %}{{ dl.subject.name }}{% endif %}
+                        {% if dl.target_class %} · {{ dl.target_class.name }}{% endif %}
+                        · {{ dl.created_at|date:"M d, Y" }}
+                    </div>
+                </div>
+                <div style="display:flex;gap:.3rem;">
+                    <button class="dl-btn dl-btn-outline dl-btn-sm" onclick="viewSaved({{ dl.id }})"><i class="bi bi-eye"></i></button>
+                    <form method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="lesson_id" value="{{ dl.id }}">
+                        <button class="dl-btn dl-btn-outline dl-btn-sm" onclick="return confirm('Delete?')"><i class="bi bi-trash3"></i></button>
+                    </form>
+                </div>
+            </div>
+            <!-- Hidden tiers for viewing -->
+            <div id="savedTiers{{ dl.id }}" style="display:none;" class="dl-tiers" data-f="{{ dl.foundational_html|escape }}" data-g="{{ dl.grade_level_html|escape }}" data-e="{{ dl.extension_html|escape }}">
+            </div>
+            {% empty %}
+            <div class="dl-empty"><i class="bi bi-diagram-3" style="font-size:1.4rem;display:block;margin-bottom:.5rem;opacity:.3;"></i>No differentiated lessons yet.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+const csrf='{{ csrf_token }}';
+
+async function generateDL(){
+    const content=document.getElementById('dlContent').value.trim();
+    if(!content){alert('Enter lesson content first.');return;}
+
+    const btn=document.getElementById('genBtn');
+    const spinner=document.getElementById('genSpinner');
+    const errEl=document.getElementById('genError');
+    btn.disabled=true; spinner.style.display='inline-block'; errEl.style.display='none';
+
+    try{
+        const res=await fetch("{% url 'teachers:differentiated_ai' %}",{
+            method:'POST',
+            headers:{'Content-Type':'application/json','X-CSRFToken':csrf},
+            body:JSON.stringify({content})
+        });
+        const data=await res.json();
+        if(!res.ok){errEl.textContent=data.error||'Generation failed.';errEl.style.display='block';return;}
+
+        document.getElementById('tierFoundational').innerHTML=data.foundational||'';
+        document.getElementById('tierGradeLevel').innerHTML=data.grade_level||'';
+        document.getElementById('tierExtension').innerHTML=data.extension||'';
+        document.getElementById('tierResult').style.display='block';
+
+        // Fill save form
+        document.getElementById('saveTitle').value=document.getElementById('dlTitle').value||'Untitled';
+        document.getElementById('saveSubject').value=document.getElementById('dlSubject').value;
+        document.getElementById('saveClass').value=document.getElementById('dlClass').value;
+        document.getElementById('saveContent').value=content;
+        document.getElementById('saveFound').value=data.foundational||'';
+        document.getElementById('saveGrade').value=data.grade_level||'';
+        document.getElementById('saveExt').value=data.extension||'';
+    }catch(e){
+        errEl.textContent='Network error.';errEl.style.display='block';
+    }finally{
+        btn.disabled=false;spinner.style.display='none';
+    }
+}
+
+function viewSaved(id){
+    const el=document.getElementById('savedTiers'+id);
+    if(el.style.display==='none'){
+        el.style.display='grid';
+        const f=el.dataset.f||'',g=el.dataset.g||'',e=el.dataset.e||'';
+        el.innerHTML=`
+            <div class="dl-tier dl-tier-found"><div class="dl-tier-head"><i class="bi bi-shield me-1"></i>Foundational</div><div class="dl-tier-body">${f}</div></div>
+            <div class="dl-tier dl-tier-grade"><div class="dl-tier-head"><i class="bi bi-bookmark me-1"></i>Grade Level</div><div class="dl-tier-body">${g}</div></div>
+            <div class="dl-tier dl-tier-ext"><div class="dl-tier-head"><i class="bi bi-rocket me-1"></i>Extension</div><div class="dl-tier-body">${e}</div></div>
+        `;
+    }else{
+        el.style.display='none';
+    }
+}
+</script>
+{% endblock %}
