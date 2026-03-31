@@ -389,6 +389,8 @@
 }
 .tk-btn-get:hover { filter: brightness(1.08); box-shadow: 0 5px 16px rgba(67,97,238,.4); transform: translateY(-1px); }
 .tk-btn-owned { background: rgba(16,185,129,.1); color: #10b981; border: 1.5px solid rgba(16,185,129,.25); cursor: default; }
+.tk-btn-open { cursor: pointer; text-decoration: none; transition: background .15s, transform .1s; }
+.tk-btn-open:hover { background: rgba(16,185,129,.2); transform: scale(1.03); color: #10b981; }
 .tk-btn-remove {
     padding: .38rem .52rem; border-radius: 8px;
     background: transparent; border: 1.5px solid var(--tk-border);
@@ -518,7 +520,8 @@
             <div class="tk-card{% if addon.is_purchased %} is-owned{% endif %}"
                  data-name="{{ addon.name|lower }}"
                  data-cat="{{ addon.category }}"
-                 data-desc="{{ addon.description|lower }} {{ addon.tagline|lower }}">
+                 data-desc="{{ addon.description|lower }} {{ addon.tagline|lower }}"
+                 {% if addon.is_purchased and addon.launch_url %}data-launch="{{ addon.launch_url }}" role="link" tabindex="0" style="cursor:pointer;"{% endif %}>>
 
                 <!-- Badge: owned state takes priority, then promo badges -->
                 {% if addon.is_purchased %}
@@ -568,9 +571,15 @@
 
                     <div class="d-flex align-items-center gap-2">
                         {% if addon.is_purchased %}
+                            {% if addon.launch_url %}
+                            <a href="{{ addon.launch_url }}" class="tk-btn tk-btn-owned tk-btn-open">
+                                <i class="bi bi-box-arrow-up-right"></i>Open
+                            </a>
+                            {% else %}
                             <span class="tk-btn tk-btn-owned">
                                 <i class="bi bi-check-lg"></i>Owned
                             </span>
+                            {% endif %}
                             <form method="post" action="{% url 'teachers:teacher_store_cancel' addon.id %}" class="m-0">
                                 {% csrf_token %}
                                 <button type="submit" class="tk-btn-remove" title="Deactivate">
@@ -661,6 +670,17 @@
         });
     });
     search.addEventListener('input', filter);
+
+    /* ── Tap owned card to open add-on ─────────────────── */
+    document.querySelectorAll('.tk-card[data-launch]').forEach(card => {
+        card.addEventListener('click', function(e) {
+            if (e.target.closest('form, a, button')) return;
+            window.location.href = this.dataset.launch;
+        });
+        card.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') window.location.href = this.dataset.launch;
+        });
+    });
 
     /* ── Paystack paid purchase flow ───────────────────── */
     document.querySelectorAll('[data-pay-addon]').forEach(btn => {

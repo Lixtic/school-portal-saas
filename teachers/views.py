@@ -6568,6 +6568,32 @@ def fee_task_detail(request, structure_id):
 # Teacher Add-On Store
 # ---------------------------------------------------------------------------
 
+
+# Shared mapping of add-on slugs → Django URL names for launching
+ADDON_LAUNCH_URLS = {
+    'task-board': 'teachers:addon_task_board',
+    'cpd-tracker': 'teachers:addon_cpd_tracker',
+    'observation-notes': 'teachers:addon_observation_notes',
+    'rubric-designer': 'teachers:addon_rubric_designer',
+    'study-guide-builder': 'teachers:addon_study_guide',
+    'random-picker': 'teachers:addon_random_picker',
+    'countdown-timer': 'teachers:addon_countdown_timer',
+    'noise-meter': 'teachers:addon_noise_meter',
+    'stem-activity-pack': 'teachers:addon_stem_pack',
+    'creative-arts-kit': 'teachers:addon_creative_arts',
+    'aura-slide-generator': 'teachers:presentation_list',
+    'smart-planner-pro': 'teachers:aura_command_center',
+    'exercise-maker': 'teachers:my_classes',
+    'grade-insight-dashboard': 'teachers:analytics_dashboard',
+    'quick-report-writer': 'teachers:lesson_plan_list',
+    'report-card-writer': 'teachers:addon_report_card',
+    'exam-question-bank': 'teachers:addon_question_bank',
+    'behavior-sel-tracker': 'teachers:addon_behavior_tracker',
+    'differentiated-lesson-ai': 'teachers:addon_differentiated',
+    'live-quiz-engine': 'teachers:addon_live_quiz',
+}
+
+
 @login_required
 def teacher_store(request):
     """Browse & manage personal teacher add-ons."""
@@ -6584,10 +6610,19 @@ def teacher_store(request):
         ).values_list('addon_id', flat=True)
     )
 
-    # Group by category
+    # Group by category + set launch URL for owned add-ons
     categories = {}
     for addon in addons:
         addon.is_purchased = addon.id in purchased_ids
+        if addon.is_purchased:
+            url_name = ADDON_LAUNCH_URLS.get(addon.slug)
+            if url_name:
+                try:
+                    addon.launch_url = reverse(url_name)
+                except Exception:
+                    addon.launch_url = None
+            else:
+                addon.launch_url = None
         label = addon.get_category_display()
         categories.setdefault(label, []).append(addon)
 
@@ -6844,23 +6879,6 @@ def my_addons(request):
             inactive.append(p)
 
     # Map addon slug → URL name so "Launch" links work
-    ADDON_LAUNCH_URLS = {
-        'task-board': 'teachers:addon_task_board',
-        'cpd-tracker': 'teachers:addon_cpd_tracker',
-        'observation-notes': 'teachers:addon_observation_notes',
-        'rubric-designer': 'teachers:addon_rubric_designer',
-        'study-guide-builder': 'teachers:addon_study_guide',
-        'random-picker': 'teachers:addon_random_picker',
-        'countdown-timer': 'teachers:addon_countdown_timer',
-        'noise-meter': 'teachers:addon_noise_meter',
-        'stem-activity-pack': 'teachers:addon_stem_pack',
-        'creative-arts-kit': 'teachers:addon_creative_arts',
-        'aura-slide-generator': 'teachers:presentation_list',
-        'smart-planner-pro': 'teachers:aura_command_center',
-        'exercise-maker': 'teachers:my_classes',
-        'grade-insight-dashboard': 'teachers:analytics_dashboard',
-        'quick-report-writer': 'teachers:lesson_plan_list',
-    }
     from django.urls import reverse
     for p in active:
         url_name = ADDON_LAUNCH_URLS.get(p.addon.slug)
