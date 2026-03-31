@@ -3,92 +3,144 @@
 
 {% block content %}
 <style>
-:root{--qb-card:#fff;--qb-ink:#0b1120;--qb-muted:#8892a4;--qb-border:#e4e8f2;--qb-accent:#2563eb;--qb-accent2:#7c3aed;}
-[data-bs-theme="dark"]{--qb-card:#1e293b;--qb-ink:#f1f5f9;--qb-muted:#94a3b8;--qb-border:#334155;}
-.qb-wrap{max-width:900px;margin:0 auto;padding:1rem 0;}
+:root{--qb-card:#fff;--qb-ink:#0b1120;--qb-muted:#8892a4;--qb-border:#e4e8f2;--qb-accent:#4361ee;--qb-accent2:#7c3aed;--qb-bg:#f8fafc;}
+[data-bs-theme="dark"]{--qb-card:#1e293b;--qb-ink:#f1f5f9;--qb-muted:#94a3b8;--qb-border:#334155;--qb-bg:#0f172a;}
+.qb-wrap{max-width:960px;margin:0 auto;padding:1rem .5rem;}
+.qb-hero{background:linear-gradient(135deg,var(--qb-accent),var(--qb-accent2));border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1rem;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;}
+.qb-hero h1{margin:0;font-size:1.25rem;font-weight:800;letter-spacing:-.02em;}
+.qb-hero-sub{font-size:.78rem;opacity:.85;margin-top:.15rem;}
+.qb-hero-stats{display:flex;gap:1rem;}
+.qb-stat{text-align:center;}
+.qb-stat-num{font-size:1.5rem;font-weight:800;line-height:1;}
+.qb-stat-lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;opacity:.8;}
 .qb-card{background:var(--qb-card);border:1px solid var(--qb-border);border-radius:14px;overflow:hidden;margin-bottom:1rem;}
-.qb-head{padding:1rem 1.3rem;border-bottom:1px solid var(--qb-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
-.qb-head h2{margin:0;font-size:1.1rem;font-weight:800;color:var(--qb-ink);}
+.qb-head{padding:.8rem 1.3rem;border-bottom:1px solid var(--qb-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+.qb-head h2{margin:0;font-size:1rem;font-weight:800;color:var(--qb-ink);}
 .qb-body{padding:1.2rem 1.3rem;}
 .qb-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;}
 @media(max-width:640px){.qb-grid{grid-template-columns:1fr;}}
 .qb-full{grid-column:span 2;}@media(max-width:640px){.qb-full{grid-column:span 1;}}
 .qb-label{display:block;font-size:.72rem;font-weight:700;color:var(--qb-muted);text-transform:uppercase;margin-bottom:.2rem;}
-.qb-input,.qb-select,.qb-textarea{width:100%;padding:.45rem .65rem;border:1px solid var(--qb-border);border-radius:8px;font-size:.84rem;background:var(--qb-card);color:var(--qb-ink);}
+.qb-input,.qb-select,.qb-textarea{width:100%;padding:.45rem .65rem;border:1px solid var(--qb-border);border-radius:8px;font-size:.84rem;background:var(--qb-card);color:var(--qb-ink);transition:border-color .15s;}
 .qb-textarea{min-height:80px;resize:vertical;}
-.qb-input:focus,.qb-select:focus,.qb-textarea:focus{border-color:var(--qb-accent);outline:none;}
-.qb-btn{padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;border:none;cursor:pointer;transition:transform .1s;}
+.qb-input:focus,.qb-select:focus,.qb-textarea:focus{border-color:var(--qb-accent);outline:none;box-shadow:0 0 0 3px rgba(67,97,238,.12);}
+.qb-btn{padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;border:none;cursor:pointer;transition:transform .1s,box-shadow .15s;display:inline-flex;align-items:center;gap:.35rem;}
 .qb-btn:active{transform:scale(.97);}
-.qb-btn-ai{background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;}
+.qb-btn-ai{background:linear-gradient(135deg,var(--qb-accent),var(--qb-accent2));color:#fff;}
+.qb-btn-ai:hover{box-shadow:0 4px 16px rgba(67,97,238,.35);}
 .qb-btn-save{background:#10b981;color:#fff;}
+.qb-btn-save:hover{box-shadow:0 4px 12px rgba(16,185,129,.3);}
 .qb-btn-outline{background:transparent;border:1px solid var(--qb-border);color:var(--qb-ink);}
+.qb-btn-outline:hover{border-color:var(--qb-accent);color:var(--qb-accent);}
 .qb-btn-sm{padding:.3rem .7rem;font-size:.78rem;}
 .qb-btn-paper{background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;}
-.qb-q-item{border:1px solid var(--qb-border);border-radius:12px;padding:.8rem 1rem;margin-bottom:.5rem;background:var(--qb-card);transition:box-shadow .15s;}
-.qb-q-item:hover{box-shadow:0 4px 12px rgba(0,0,0,.06);}
-.qb-q-text{font-size:.88rem;font-weight:600;color:var(--qb-ink);margin-bottom:.3rem;}
+.qb-btn-paper:hover{box-shadow:0 4px 12px rgba(245,158,11,.35);}
+.qb-btn-danger{background:#ef4444;color:#fff;}
+.qb-q-item{border:1px solid var(--qb-border);border-radius:12px;padding:.8rem 1rem;margin-bottom:.5rem;background:var(--qb-card);transition:box-shadow .15s,border-color .15s;}
+.qb-q-item:hover{box-shadow:0 4px 16px rgba(0,0,0,.06);border-color:rgba(67,97,238,.2);}
+.qb-q-item.is-selected{border-color:var(--qb-accent);background:rgba(67,97,238,.04);}
+.qb-q-text{font-size:.88rem;font-weight:600;color:var(--qb-ink);margin-bottom:.3rem;cursor:pointer;}
 .qb-q-meta{font-size:.73rem;color:var(--qb-muted);display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;}
+.qb-q-expand{display:none;margin-top:.6rem;padding-top:.5rem;border-top:1px dashed var(--qb-border);font-size:.82rem;color:var(--qb-ink);}
+.qb-q-expand.open{display:block;animation:qbSlide .2s ease-out;}
+@keyframes qbSlide{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:translateY(0);}}
+.qb-q-expand-label{font-size:.7rem;font-weight:700;color:var(--qb-muted);text-transform:uppercase;margin-bottom:.15rem;}
 .qb-tag{display:inline-block;padding:.1rem .45rem;border-radius:5px;font-size:.7rem;font-weight:600;}
 .qb-tag-easy{background:#10b98120;color:#10b981;}
 .qb-tag-medium{background:#f59e0b20;color:#f59e0b;}
 .qb-tag-hard{background:#ef444420;color:#ef4444;}
-.qb-tag-fmt{background:#2563eb15;color:#2563eb;}
-.qb-empty{padding:2rem;text-align:center;color:var(--qb-muted);font-size:.88rem;}
+.qb-tag-fmt{background:rgba(67,97,238,.1);color:var(--qb-accent);}
+.qb-empty{padding:2.5rem 1rem;text-align:center;color:var(--qb-muted);font-size:.88rem;}
+.qb-empty i{font-size:2rem;display:block;margin-bottom:.5rem;opacity:.25;}
 .qb-spinner{display:none;margin-left:.4rem;}
 .qb-spinner.active{display:inline-block;animation:qbSpin 1s infinite linear;}
 @keyframes qbSpin{to{transform:rotate(360deg);}}
-.qb-tabs{display:flex;gap:0;border-bottom:2px solid var(--qb-border);margin-bottom:1rem;}
-.qb-tab{padding:.5rem 1.2rem;font-size:.85rem;font-weight:600;color:var(--qb-muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;}
+.qb-tabs{display:flex;gap:0;border-bottom:2px solid var(--qb-border);margin-bottom:1rem;overflow-x:auto;}
+.qb-tab{padding:.5rem 1rem;font-size:.82rem;font-weight:600;color:var(--qb-muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:.35rem;}
+.qb-tab:hover{color:var(--qb-ink);}
 .qb-tab.active{color:var(--qb-accent);border-bottom-color:var(--qb-accent);}
+.qb-tab-badge{background:var(--qb-accent);color:#fff;font-size:.6rem;font-weight:800;padding:.1rem .35rem;border-radius:10px;min-width:16px;text-align:center;line-height:1.3;}
 .qb-panel{display:none;}.qb-panel.active{display:block;}
-.qb-filter-row{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.8rem;}
-.qb-paper-item{border:1px solid var(--qb-border);border-radius:12px;padding:.8rem 1rem;margin-bottom:.5rem;background:var(--qb-card);}
-.qb-paper-item h4{margin:0 0 .2rem;font-size:.9rem;font-weight:700;color:var(--qb-ink);}
+.qb-filter-row{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.8rem;align-items:center;}
+.qb-search{position:relative;flex:1;min-width:160px;}
+.qb-search input{padding-left:2rem;}
+.qb-search i{position:absolute;left:.65rem;top:50%;transform:translateY(-50%);color:var(--qb-muted);font-size:.82rem;}
+.qb-select-bar{display:flex;align-items:center;gap:.6rem;margin-bottom:.6rem;padding:.45rem .7rem;background:rgba(67,97,238,.05);border:1px solid rgba(67,97,238,.15);border-radius:8px;font-size:.78rem;color:var(--qb-ink);}
+.qb-select-bar label{cursor:pointer;font-weight:600;display:flex;align-items:center;gap:.35rem;}
+.qb-select-count{color:var(--qb-accent);font-weight:700;}
+.qb-paper-item{border:1px solid var(--qb-border);border-radius:12px;padding:.8rem 1rem;margin-bottom:.5rem;background:var(--qb-card);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;transition:box-shadow .15s;}
+.qb-paper-item:hover{box-shadow:0 4px 12px rgba(0,0,0,.06);}
+.qb-paper-info h4{margin:0 0 .2rem;font-size:.9rem;font-weight:700;color:var(--qb-ink);}
+.qb-paper-actions{display:flex;gap:.3rem;}
+.qb-modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;backdrop-filter:blur(4px);justify-content:center;align-items:center;}
+.qb-modal-bg.open{display:flex;animation:qbFadeIn .15s ease-out;}
+@keyframes qbFadeIn{from{opacity:0;}to{opacity:1;}}
+.qb-modal{background:var(--qb-card);border-radius:16px;width:92%;max-width:560px;max-height:90vh;overflow-y:auto;padding:1.4rem;box-shadow:0 24px 48px rgba(0,0,0,.15);}
+.qb-modal h3{margin:0 0 .8rem;font-size:1rem;font-weight:800;color:var(--qb-ink);}
+.qb-ai-batch{display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem;padding:.5rem .8rem;background:linear-gradient(135deg,rgba(67,97,238,.08),rgba(124,58,237,.08));border:1px solid rgba(67,97,238,.2);border-radius:10px;}
+.qb-ai-batch-info{font-size:.82rem;font-weight:700;color:var(--qb-accent);}
 </style>
 
 <div class="qb-wrap">
 
+    <!-- Freemium bar -->
     {% if not has_qb_addon %}
-    <div style="max-width:900px;margin:0 auto .6rem;padding:.5rem .8rem;background:linear-gradient(135deg,#2563eb10,#7c3aed10);border:1px solid #2563eb30;border-radius:10px;font-size:.78rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
-      <span style="font-weight:700;color:#2563eb;"><i class="bi bi-stars"></i> Free AI</span>
-      <div style="flex:1;min-width:120px;height:6px;background:#e4e8f2;border-radius:3px;overflow:hidden;">
-        <div style="width:{% widthratio qb_gen_used qb_gen_limit 100 %}%;height:100%;background:linear-gradient(90deg,#2563eb,#7c3aed);border-radius:3px;"></div>
+    <div style="margin-bottom:.6rem;padding:.5rem .8rem;background:linear-gradient(135deg,rgba(67,97,238,.06),rgba(124,58,237,.06));border:1px solid rgba(67,97,238,.2);border-radius:10px;font-size:.78rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <span style="font-weight:700;color:var(--qb-accent);"><i class="bi bi-stars"></i> Free AI</span>
+      <div style="flex:1;min-width:120px;height:6px;background:var(--qb-border);border-radius:3px;overflow:hidden;">
+        <div style="width:{% widthratio qb_gen_used qb_gen_limit 100 %}%;height:100%;background:linear-gradient(90deg,var(--qb-accent),var(--qb-accent2));border-radius:3px;transition:width .3s;"></div>
       </div>
-      <span style="color:#64748b;">{{ qb_gen_used }}/{{ qb_gen_limit }} used</span>
+      <span style="color:var(--qb-muted);">{{ qb_gen_remaining }} of {{ qb_gen_limit }} remaining</span>
+      {% if qb_gen_remaining <= 3 and qb_gen_remaining > 0 %}
+      <span style="color:#f59e0b;font-weight:600;"><i class="bi bi-exclamation-triangle me-1"></i>Running low</span>
+      {% endif %}
       {% if qb_gen_remaining == 0 %}
-      <a href="{% url 'teachers:teacher_store' %}" style="color:#2563eb;font-weight:600;text-decoration:none;">Get Exam & Question Bank Pro &rarr;</a>
+      <a href="{% url 'teachers:teacher_store' %}" style="color:var(--qb-accent);font-weight:600;text-decoration:none;">Get Pro &rarr;</a>
       {% endif %}
     </div>
     {% endif %}
 
-    <div class="qb-card">
-        <div class="qb-head">
-            <h2><i class="bi bi-database-check me-2" style="color:var(--qb-accent);"></i>Exam & Question Bank Pro</h2>
-            <span style="font-size:.78rem;color:var(--qb-muted);">{{ questions|length }} question{{ questions|length|pluralize }}</span>
+    <!-- Hero header -->
+    <div class="qb-hero">
+        <div>
+            <h1><i class="bi bi-database-check me-2"></i>Exam & Question Bank Pro</h1>
+            <div class="qb-hero-sub">Build, organise and print exam papers effortlessly</div>
         </div>
-        <div class="qb-body">
+        <div class="qb-hero-stats">
+            <div class="qb-stat"><div class="qb-stat-num">{{ stats.total }}</div><div class="qb-stat-lbl">Questions</div></div>
+            <div class="qb-stat"><div class="qb-stat-num">{{ papers|length }}</div><div class="qb-stat-lbl">Papers</div></div>
+            <div class="qb-stat"><div class="qb-stat-num">{{ stats.subjects }}</div><div class="qb-stat-lbl">Subjects</div></div>
+        </div>
+    </div>
+
+    <div class="qb-card">
+        <div class="qb-body" style="padding-top:.8rem;">
             <!-- Tabs -->
             <div class="qb-tabs">
-                <div class="qb-tab active" onclick="switchTab('bank',this)"><i class="bi bi-collection me-1"></i>Question Bank</div>
-                <div class="qb-tab" onclick="switchTab('add',this)"><i class="bi bi-plus-lg me-1"></i>Add Question</div>
-                <div class="qb-tab" onclick="switchTab('ai',this)"><i class="bi bi-stars me-1"></i>AI Generate</div>
-                <div class="qb-tab" onclick="switchTab('papers',this)"><i class="bi bi-file-earmark-text me-1"></i>Exam Papers</div>
+                <div class="qb-tab active" onclick="switchTab('bank',this)"><i class="bi bi-collection"></i> Bank <span class="qb-tab-badge">{{ questions|length }}</span></div>
+                <div class="qb-tab" onclick="switchTab('add',this)"><i class="bi bi-plus-lg"></i> Add</div>
+                <div class="qb-tab" onclick="switchTab('ai',this)"><i class="bi bi-stars"></i> AI Generate</div>
+                <div class="qb-tab" onclick="switchTab('papers',this)"><i class="bi bi-file-earmark-text"></i> Papers <span class="qb-tab-badge">{{ papers|length }}</span></div>
             </div>
 
-            <!-- Bank Panel -->
+            <!-- ═══ BANK PANEL ═══ -->
             <div class="qb-panel active" id="panel-bank">
-                <form method="get" class="qb-filter-row">
-                    <select name="subject" class="qb-select" style="max-width:180px;" onchange="this.form.submit()">
+                <form method="get" class="qb-filter-row" id="filterForm">
+                    <div class="qb-search">
+                        <i class="bi bi-search"></i>
+                        <input name="q" class="qb-input" placeholder="Search questions…" value="{{ f_search|default:'' }}" style="padding-left:2rem;">
+                    </div>
+                    <select name="subject" class="qb-select" style="max-width:160px;" onchange="this.form.submit()">
                         <option value="">All Subjects</option>
                         {% for s in subjects %}<option value="{{ s.id }}" {% if f_subject == s.id|stringformat:"d" %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
                     </select>
-                    <select name="difficulty" class="qb-select" style="max-width:140px;" onchange="this.form.submit()">
-                        <option value="">All Difficulty</option>
+                    <select name="difficulty" class="qb-select" style="max-width:130px;" onchange="this.form.submit()">
+                        <option value="">All Levels</option>
                         <option value="easy" {% if f_difficulty == 'easy' %}selected{% endif %}>Easy</option>
                         <option value="medium" {% if f_difficulty == 'medium' %}selected{% endif %}>Medium</option>
                         <option value="hard" {% if f_difficulty == 'hard' %}selected{% endif %}>Hard</option>
                     </select>
-                    <select name="format" class="qb-select" style="max-width:160px;" onchange="this.form.submit()">
+                    <select name="format" class="qb-select" style="max-width:150px;" onchange="this.form.submit()">
                         <option value="">All Formats</option>
                         <option value="mcq" {% if f_format == 'mcq' %}selected{% endif %}>MCQ</option>
                         <option value="fill" {% if f_format == 'fill' %}selected{% endif %}>Fill in Blank</option>
@@ -96,52 +148,104 @@
                         <option value="essay" {% if f_format == 'essay' %}selected{% endif %}>Essay</option>
                         <option value="truefalse" {% if f_format == 'truefalse' %}selected{% endif %}>True/False</option>
                     </select>
+                    {% if f_search or f_subject or f_difficulty or f_format %}
+                    <a href="{% url 'teachers:addon_question_bank' %}" class="qb-btn qb-btn-outline qb-btn-sm"><i class="bi bi-x-lg"></i> Clear</a>
+                    {% endif %}
                 </form>
 
                 <form method="post" id="paperForm">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="create_paper">
+
+                    {% if questions %}
+                    <div class="qb-select-bar">
+                        <label><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" style="accent-color:var(--qb-accent);"> Select All</label>
+                        <span><span class="qb-select-count" id="selectedCount">0</span> selected</span>
+                    </div>
+                    {% endif %}
+
                     {% for q in questions %}
-                    <div class="qb-q-item">
+                    <div class="qb-q-item" id="q-{{ q.id }}" data-text="{{ q.question_text|lower }}">
                         <div style="display:flex;align-items:flex-start;gap:.5rem;">
-                            <input type="checkbox" name="selected_questions" value="{{ q.id }}" style="margin-top:.25rem;accent-color:var(--qb-accent);">
-                            <div style="flex:1;">
-                                <div class="qb-q-text">{{ q.question_text|truncatewords:30 }}</div>
+                            <input type="checkbox" name="selected_questions" value="{{ q.id }}" class="q-check" style="margin-top:.3rem;accent-color:var(--qb-accent);" onchange="updateSelectCount()">
+                            <div style="flex:1;min-width:0;">
+                                <div class="qb-q-text" onclick="toggleExpand({{ q.id }})">{{ q.question_text|truncatewords:30 }} <i class="bi bi-chevron-down" style="font-size:.65rem;opacity:.4;"></i></div>
                                 <div class="qb-q-meta">
                                     {% if q.subject %}<span>{{ q.subject.name }}</span>{% endif %}
-                                    {% if q.topic %}<span>{{ q.topic }}</span>{% endif %}
+                                    {% if q.topic %}<span><i class="bi bi-tag me-1"></i>{{ q.topic }}</span>{% endif %}
                                     <span class="qb-tag qb-tag-{{ q.difficulty }}">{{ q.get_difficulty_display }}</span>
                                     <span class="qb-tag qb-tag-fmt">{{ q.get_question_format_display }}</span>
                                 </div>
-                                {% if q.options %}<div style="font-size:.78rem;color:var(--qb-muted);margin-top:.2rem;">{% for o in q.options %}{{ o }}{% if not forloop.last %} · {% endif %}{% endfor %}</div>{% endif %}
-                                {% if q.correct_answer %}<div style="font-size:.78rem;color:#10b981;margin-top:.15rem;"><i class="bi bi-check-circle-fill me-1"></i>{{ q.correct_answer }}</div>{% endif %}
+
+                                <!-- Expandable detail -->
+                                <div class="qb-q-expand" id="expand-{{ q.id }}">
+                                    {% if q.question_text|length > 80 %}
+                                    <div style="margin-bottom:.4rem;">
+                                        <div class="qb-q-expand-label">Full Question</div>
+                                        {{ q.question_text }}
+                                    </div>
+                                    {% endif %}
+                                    {% if q.options %}
+                                    <div style="margin-bottom:.4rem;">
+                                        <div class="qb-q-expand-label">Options</div>
+                                        {% for o in q.options %}<div style="padding:.1rem 0;">{{ o }}</div>{% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    {% if q.correct_answer %}
+                                    <div style="margin-bottom:.4rem;">
+                                        <div class="qb-q-expand-label">Correct Answer</div>
+                                        <span style="color:#10b981;font-weight:600;"><i class="bi bi-check-circle-fill me-1"></i>{{ q.correct_answer }}</span>
+                                    </div>
+                                    {% endif %}
+                                    {% if q.explanation %}
+                                    <div style="margin-bottom:.4rem;">
+                                        <div class="qb-q-expand-label">Explanation</div>
+                                        <span style="font-style:italic;">{{ q.explanation }}</span>
+                                    </div>
+                                    {% endif %}
+                                    {% if q.target_class %}
+                                    <div style="margin-bottom:.2rem;">
+                                        <div class="qb-q-expand-label">Target Class</div>
+                                        {{ q.target_class.name }}
+                                    </div>
+                                    {% endif %}
+                                    <div style="margin-top:.4rem;display:flex;gap:.3rem;">
+                                        <button type="button" class="qb-btn qb-btn-outline qb-btn-sm" onclick="openEditModal({{ q.id }},'{{ q.question_text|escapejs }}','{{ q.correct_answer|escapejs }}','{{ q.explanation|escapejs }}','{{ q.topic|escapejs }}','{{ q.difficulty }}','{{ q.question_format }}',{{ q.options|safe }}{% if q.subject %},{{ q.subject.id }}{% else %},''{% endif %}{% if q.target_class %},{{ q.target_class.id }}{% else %},''{% endif %})"><i class="bi bi-pencil"></i> Edit</button>
+                                    </div>
+                                </div>
                             </div>
-                            <form method="post" style="display:inline;">{% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="q_id" value="{{ q.id }}"><button class="qb-btn qb-btn-outline qb-btn-sm" onclick="return confirm('Delete?')"><i class="bi bi-trash3"></i></button></form>
+                            <div style="display:flex;gap:.3rem;">
+                                <form method="post" style="display:inline;">{% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="q_id" value="{{ q.id }}"><button class="qb-btn qb-btn-outline qb-btn-sm" title="Delete" onclick="return confirm('Delete this question?')"><i class="bi bi-trash3"></i></button></form>
+                            </div>
                         </div>
                     </div>
                     {% empty %}
-                    <div class="qb-empty"><i class="bi bi-database" style="font-size:1.4rem;display:block;margin-bottom:.5rem;opacity:.3;"></i>No questions yet. Add manually or generate with AI.</div>
+                    <div class="qb-empty">
+                        <i class="bi bi-database"></i>
+                        No questions yet.<br>
+                        <span style="font-size:.82rem;">Add manually or <a href="#" onclick="switchTab('ai',document.querySelectorAll('.qb-tab')[2]);return false;" style="color:var(--qb-accent);font-weight:600;">generate with AI</a>.</span>
+                    </div>
                     {% endfor %}
 
                     {% if questions %}
-                    <div class="qb-card" style="margin-top:.8rem;">
+                    <div class="qb-card" style="margin-top:.8rem;border:1px dashed rgba(67,97,238,.3);">
                         <div class="qb-body">
-                            <h3 style="font-size:.9rem;font-weight:700;margin:0 0 .5rem;">Assemble Exam Paper</h3>
+                            <h3 style="font-size:.9rem;font-weight:800;margin:0 0 .6rem;color:var(--qb-accent);"><i class="bi bi-file-earmark-plus me-1"></i>Assemble Exam Paper</h3>
                             <div class="qb-grid">
                                 <div><label class="qb-label">Paper Title</label><input name="paper_title" class="qb-input" value="End of Term Exam" required></div>
-                                <div><label class="qb-label">Duration (min)</label><input name="duration" class="qb-input" type="number" value="60"></div>
+                                <div><label class="qb-label">Duration (min)</label><input name="duration" class="qb-input" type="number" value="60" min="5"></div>
                                 <div><label class="qb-label">Subject</label><select name="paper_subject" class="qb-select"><option value="">—</option>{% for s in subjects %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}</select></div>
                                 <div><label class="qb-label">Class</label><select name="paper_class" class="qb-select"><option value="">—</option>{% for c in classes %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></div>
                                 <div class="qb-full"><label class="qb-label">Instructions</label><input name="instructions" class="qb-input" value="Answer ALL questions."></div>
                             </div>
-                            <button type="submit" class="qb-btn qb-btn-paper" style="margin-top:.6rem;"><i class="bi bi-file-earmark-plus me-1"></i>Create Paper from Selected</button>
+                            <button type="submit" class="qb-btn qb-btn-paper" style="margin-top:.6rem;" id="createPaperBtn" onclick="return validatePaperSelection()"><i class="bi bi-file-earmark-plus"></i> Create Paper from Selected</button>
                         </div>
                     </div>
                     {% endif %}
                 </form>
             </div>
 
-            <!-- Add Question Panel -->
+            <!-- ═══ ADD QUESTION PANEL ═══ -->
             <div class="qb-panel" id="panel-add">
                 <form method="post">
                     {% csrf_token %}
@@ -150,53 +254,109 @@
                         <div><label class="qb-label">Subject</label><select name="subject" class="qb-select">{% for s in subjects %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}</select></div>
                         <div><label class="qb-label">Class</label><select name="target_class" class="qb-select"><option value="">—</option>{% for c in classes %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></div>
                         <div><label class="qb-label">Topic</label><input name="topic" class="qb-input" placeholder="e.g. Fractions"></div>
-                        <div><label class="qb-label">Format</label><select name="question_format" class="qb-select"><option value="mcq">Multiple Choice</option><option value="fill">Fill in Blank</option><option value="short">Short Answer</option><option value="essay">Essay</option><option value="truefalse">True / False</option></select></div>
+                        <div><label class="qb-label">Format</label>
+                            <select name="question_format" class="qb-select" id="addFormat" onchange="toggleOptionsField()">
+                                <option value="mcq">Multiple Choice</option>
+                                <option value="fill">Fill in Blank</option>
+                                <option value="short">Short Answer</option>
+                                <option value="essay">Essay</option>
+                                <option value="truefalse">True / False</option>
+                            </select>
+                        </div>
                         <div><label class="qb-label">Difficulty</label><select name="difficulty" class="qb-select"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select></div>
                         <div></div>
                         <div class="qb-full"><label class="qb-label">Question</label><textarea name="question_text" class="qb-textarea" required placeholder="Write the question here…"></textarea></div>
-                        <div class="qb-full"><label class="qb-label">Options (one per line, for MCQ)</label><textarea name="options" class="qb-textarea" style="min-height:60px;" placeholder="A) First option&#10;B) Second option&#10;C) Third option&#10;D) Fourth option"></textarea></div>
+                        <div class="qb-full" id="optionsField"><label class="qb-label">Options (one per line, for MCQ)</label><textarea name="options" class="qb-textarea" style="min-height:60px;" placeholder="A) First option&#10;B) Second option&#10;C) Third option&#10;D) Fourth option"></textarea></div>
                         <div><label class="qb-label">Correct Answer</label><input name="correct_answer" class="qb-input" placeholder="e.g. A"></div>
-                        <div><label class="qb-label">Explanation</label><input name="explanation" class="qb-input" placeholder="Why this is correct"></div>
+                        <div><label class="qb-label">Explanation (optional)</label><input name="explanation" class="qb-input" placeholder="Why this is correct"></div>
                     </div>
-                    <button type="submit" class="qb-btn qb-btn-save" style="margin-top:.6rem;"><i class="bi bi-plus-lg me-1"></i>Add to Bank</button>
+                    <button type="submit" class="qb-btn qb-btn-save" style="margin-top:.6rem;"><i class="bi bi-plus-lg"></i> Add to Bank</button>
                 </form>
             </div>
 
-            <!-- AI Generate Panel -->
+            <!-- ═══ AI GENERATE PANEL ═══ -->
             <div class="qb-panel" id="panel-ai">
                 <div class="qb-grid">
                     <div><label class="qb-label">Subject</label><select id="aiSubject" class="qb-select">{% for s in subjects %}<option value="{{ s.name }}">{{ s.name }}</option>{% endfor %}</select></div>
                     <div><label class="qb-label">Topic</label><input id="aiTopic" class="qb-input" placeholder="e.g. Photosynthesis"></div>
-                    <div><label class="qb-label">Format</label><select id="aiFormat" class="qb-select"><option value="mcq">MCQ</option><option value="fill">Fill in Blank</option><option value="short">Short Answer</option><option value="truefalse">True/False</option></select></div>
+                    <div><label class="qb-label">Class Level</label><select id="aiClass" class="qb-select"><option value="">Auto-detect</option>{% for c in classes %}<option value="{{ c.name }}">{{ c.name }}</option>{% endfor %}</select></div>
+                    <div><label class="qb-label">Format</label><select id="aiFormat" class="qb-select"><option value="mcq">MCQ</option><option value="fill">Fill in Blank</option><option value="short">Short Answer</option><option value="essay">Essay</option><option value="truefalse">True/False</option></select></div>
                     <div><label class="qb-label">Difficulty</label><select id="aiDiff" class="qb-select"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select></div>
-                    <div><label class="qb-label">Number of Questions</label><input id="aiCount" class="qb-input" type="number" value="5" min="1" max="10"></div>
+                    <div><label class="qb-label">Number of Questions</label><input id="aiCount" class="qb-input" type="number" value="5" min="1" max="20"></div>
                 </div>
-                <button type="button" class="qb-btn qb-btn-ai" style="margin-top:.6rem;" onclick="generateQuestions()">
-                    <i class="bi bi-stars me-1"></i>Generate Questions
-                    <i class="bi bi-arrow-repeat qb-spinner" id="qbSpinner"></i>
-                </button>
+                <div style="display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap;">
+                    <button type="button" class="qb-btn qb-btn-ai" id="aiGenBtn" onclick="generateQuestions()">
+                        <i class="bi bi-stars"></i> Generate Questions
+                        <i class="bi bi-arrow-repeat qb-spinner" id="qbSpinner"></i>
+                    </button>
+                </div>
                 <div id="aiResults" style="margin-top:.8rem;"></div>
             </div>
 
-            <!-- Exam Papers Panel -->
+            <!-- ═══ EXAM PAPERS PANEL ═══ -->
             <div class="qb-panel" id="panel-papers">
                 {% for p in papers %}
                 <div class="qb-paper-item">
-                    <h4>{{ p.title }}</h4>
-                    <div class="qb-q-meta">
-                        {% if p.subject %}{{ p.subject.name }} · {% endif %}{{ p.duration_minutes }} min · {{ p.questions.count }} questions · {{ p.created_at|date:"M d, Y" }}
+                    <div class="qb-paper-info">
+                        <h4><i class="bi bi-file-earmark-text me-1" style="color:var(--qb-accent);"></i>{{ p.title }}</h4>
+                        <div class="qb-q-meta">
+                            {% if p.subject %}{{ p.subject.name }} · {% endif %}
+                            {% if p.target_class %}{{ p.target_class.name }} · {% endif %}
+                            {{ p.duration_minutes }} min · {{ p.questions.count }} questions · {{ p.created_at|date:"M d, Y" }}
+                        </div>
                     </div>
-                    <a href="{% url 'teachers:addon_exam_paper' %}?id={{ p.id }}" class="qb-btn qb-btn-outline qb-btn-sm" style="margin-top:.4rem;"><i class="bi bi-eye me-1"></i>View / Print</a>
+                    <div class="qb-paper-actions">
+                        <a href="{% url 'teachers:addon_exam_paper' %}?id={{ p.id }}" class="qb-btn qb-btn-outline qb-btn-sm"><i class="bi bi-eye"></i> View</a>
+                        <a href="{% url 'teachers:addon_exam_paper' %}?id={{ p.id }}&key=1" class="qb-btn qb-btn-outline qb-btn-sm" title="View with answers"><i class="bi bi-key"></i></a>
+                        <form method="post" style="display:inline;">{% csrf_token %}<input type="hidden" name="action" value="delete_paper"><input type="hidden" name="paper_id" value="{{ p.id }}"><button class="qb-btn qb-btn-outline qb-btn-sm" title="Delete paper" onclick="return confirm('Delete this exam paper?')" style="color:#ef4444;"><i class="bi bi-trash3"></i></button></form>
+                    </div>
                 </div>
                 {% empty %}
-                <div class="qb-empty"><i class="bi bi-file-earmark-text" style="font-size:1.4rem;display:block;margin-bottom:.5rem;opacity:.3;"></i>No exam papers yet. Select questions from the bank and create one.</div>
+                <div class="qb-empty">
+                    <i class="bi bi-file-earmark-text"></i>
+                    No exam papers yet.<br>
+                    <span style="font-size:.82rem;">Select questions from the <a href="#" onclick="switchTab('bank',document.querySelectorAll('.qb-tab')[0]);return false;" style="color:var(--qb-accent);font-weight:600;">Question Bank</a> and create one.</span>
+                </div>
                 {% endfor %}
             </div>
         </div>
     </div>
 </div>
 
+<!-- Edit Modal -->
+<div class="qb-modal-bg" id="editModal">
+    <div class="qb-modal">
+        <h3><i class="bi bi-pencil me-2" style="color:var(--qb-accent);"></i>Edit Question</h3>
+        <form method="post" id="editForm">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="edit">
+            <input type="hidden" name="q_id" id="editQId">
+            <div class="qb-grid">
+                <div><label class="qb-label">Subject</label><select name="subject" id="editSubject" class="qb-select">{% for s in subjects %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}</select></div>
+                <div><label class="qb-label">Class</label><select name="target_class" id="editClass" class="qb-select"><option value="">—</option>{% for c in classes %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></div>
+                <div><label class="qb-label">Topic</label><input name="topic" id="editTopic" class="qb-input"></div>
+                <div><label class="qb-label">Format</label>
+                    <select name="question_format" id="editFormat" class="qb-select">
+                        <option value="mcq">Multiple Choice</option><option value="fill">Fill in Blank</option><option value="short">Short Answer</option><option value="essay">Essay</option><option value="truefalse">True / False</option>
+                    </select>
+                </div>
+                <div><label class="qb-label">Difficulty</label><select name="difficulty" id="editDifficulty" class="qb-select"><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select></div>
+                <div></div>
+                <div class="qb-full"><label class="qb-label">Question</label><textarea name="question_text" id="editText" class="qb-textarea" required></textarea></div>
+                <div class="qb-full"><label class="qb-label">Options (one per line)</label><textarea name="options" id="editOptions" class="qb-textarea" style="min-height:60px;"></textarea></div>
+                <div><label class="qb-label">Correct Answer</label><input name="correct_answer" id="editAnswer" class="qb-input"></div>
+                <div><label class="qb-label">Explanation</label><input name="explanation" id="editExplanation" class="qb-input"></div>
+            </div>
+            <div style="display:flex;gap:.5rem;margin-top:.8rem;justify-content:flex-end;">
+                <button type="button" class="qb-btn qb-btn-outline" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" class="qb-btn qb-btn-save"><i class="bi bi-check-lg"></i> Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
+/* ── Tab switching ── */
 function switchTab(name,el){
     document.querySelectorAll('.qb-tab').forEach(t=>t.classList.remove('active'));
     document.querySelectorAll('.qb-panel').forEach(p=>p.classList.remove('active'));
@@ -204,19 +364,76 @@ function switchTab(name,el){
     document.getElementById('panel-'+name).classList.add('active');
 }
 
+/* ── Expand / collapse question ── */
+function toggleExpand(id){
+    const el=document.getElementById('expand-'+id);
+    el.classList.toggle('open');
+}
+
+/* ── Select all / count ── */
+function toggleSelectAll(cb){
+    document.querySelectorAll('.q-check').forEach(c=>{c.checked=cb.checked;highlightItem(c);});
+    updateSelectCount();
+}
+function updateSelectCount(){
+    const checked=document.querySelectorAll('.q-check:checked').length;
+    const el=document.getElementById('selectedCount');
+    if(el)el.textContent=checked;
+}
+function highlightItem(cb){
+    const item=cb.closest('.qb-q-item');
+    if(item)item.classList.toggle('is-selected',cb.checked);
+}
+document.addEventListener('change',e=>{if(e.target.classList.contains('q-check'))highlightItem(e.target);});
+
+function validatePaperSelection(){
+    const checked=document.querySelectorAll('.q-check:checked').length;
+    if(checked===0){alert('Select at least one question to create a paper.');return false;}
+    return true;
+}
+
+/* ── Options field toggle for Add form ── */
+function toggleOptionsField(){
+    const fmt=document.getElementById('addFormat').value;
+    const field=document.getElementById('optionsField');
+    field.style.display=(fmt==='mcq'||fmt==='truefalse')?'block':'none';
+}
+
+/* ── Edit modal ── */
+function openEditModal(id,text,answer,explanation,topic,difficulty,format,options,subjectId,classId){
+    document.getElementById('editQId').value=id;
+    document.getElementById('editText').value=text;
+    document.getElementById('editAnswer').value=answer;
+    document.getElementById('editExplanation').value=explanation;
+    document.getElementById('editTopic').value=topic;
+    document.getElementById('editDifficulty').value=difficulty;
+    document.getElementById('editFormat').value=format;
+    document.getElementById('editOptions').value=(options||[]).join('\n');
+    if(subjectId)document.getElementById('editSubject').value=subjectId;
+    if(classId)document.getElementById('editClass').value=classId;
+    document.getElementById('editModal').classList.add('open');
+}
+function closeEditModal(){document.getElementById('editModal').classList.remove('open');}
+document.getElementById('editModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeEditModal();});
+
+/* ── AI generate ── */
+let aiQuestions=[];
 async function generateQuestions(){
     const topic=document.getElementById('aiTopic').value;
     if(!topic){alert('Enter a topic.');return;}
+    const btn=document.getElementById('aiGenBtn');
     const spinner=document.getElementById('qbSpinner');
-    spinner.classList.add('active');
+    btn.disabled=true;spinner.classList.add('active');
     const container=document.getElementById('aiResults');
-    container.innerHTML='<div style="color:var(--qb-muted);font-size:.84rem;">Generating questions…</div>';
+    container.innerHTML='<div style="color:var(--qb-muted);font-size:.84rem;padding:1rem;text-align:center;"><i class="bi bi-arrow-repeat qb-spinner active" style="display:inline-block;font-size:1.2rem;margin-bottom:.3rem;"></i><br>Generating questions with AI…</div>';
     try{
         const r=await fetch('{% url "teachers:question_bank_ai" %}',{
             method:'POST',
             headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
             body:JSON.stringify({
-                topic,subject:document.getElementById('aiSubject').value,
+                topic,
+                subject:document.getElementById('aiSubject').value,
+                target_class:document.getElementById('aiClass').value,
                 format:document.getElementById('aiFormat').value,
                 difficulty:document.getElementById('aiDiff').value,
                 count:document.getElementById('aiCount').value
@@ -226,26 +443,80 @@ async function generateQuestions(){
         if(r.status===403&&data.error_code==='freemium_limit'){alert(data.message);container.innerHTML='';return;}
         if(r.status===429){alert(data.error||'Quota exceeded.');container.innerHTML='';return;}
         if(data.questions&&data.questions.length){
-            let html='<div style="font-size:.82rem;font-weight:700;color:var(--qb-accent);margin-bottom:.5rem;">'+data.questions.length+' questions generated — add them to your bank:</div>';
-            data.questions.forEach((q,i)=>{
-                const opts=q.options||[];
-                html+=`<div class="qb-q-item"><div class="qb-q-text">${i+1}. ${q.question}</div>`;
-                if(opts.length)html+=`<div style="font-size:.78rem;color:var(--qb-muted);margin:.2rem 0;">${opts.join(' · ')}</div>`;
-                html+=`<div style="font-size:.78rem;color:#10b981;"><i class="bi bi-check-circle-fill me-1"></i>${q.correct||'—'}</div>`;
-                if(q.explanation)html+=`<div style="font-size:.75rem;color:var(--qb-muted);font-style:italic;">${q.explanation}</div>`;
-                html+=`<button type="button" class="qb-btn qb-btn-save qb-btn-sm" style="margin-top:.3rem;" onclick="saveAiQuestion(this,${JSON.stringify(q).replace(/"/g,'&quot;')})"><i class="bi bi-plus-lg me-1"></i>Add to Bank</button></div>`;
-            });
-            container.innerHTML=html;
-        }else{container.innerHTML='<div style="color:var(--qb-muted);">No questions returned.</div>';}
-    }catch(e){container.innerHTML='<div style="color:#ef4444;">Error: '+e.message+'</div>';}
-    spinner.classList.remove('active');
+            aiQuestions=data.questions;
+            renderAiResults();
+        }else{container.innerHTML='<div class="qb-empty"><i class="bi bi-exclamation-circle"></i>No questions returned. Try a different topic.</div>';}
+    }catch(e){container.innerHTML='<div style="color:#ef4444;padding:.5rem;">Error: '+e.message+'</div>';}
+    btn.disabled=false;spinner.classList.remove('active');
 }
 
-function saveAiQuestion(btn,q){
+function renderAiResults(){
+    const container=document.getElementById('aiResults');
+    if(!aiQuestions.length){container.innerHTML='';return;}
+    const safe=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    let html=`<div class="qb-ai-batch"><div class="qb-ai-batch-info"><i class="bi bi-stars me-1"></i>${aiQuestions.length} questions generated</div><button type="button" class="qb-btn qb-btn-save qb-btn-sm" onclick="addAllAiQuestions()"><i class="bi bi-plus-circle"></i> Add All to Bank</button></div>`;
+    aiQuestions.forEach((q,i)=>{
+        const opts=q.options||[];
+        html+=`<div class="qb-q-item" id="ai-q-${i}">
+            <div class="qb-q-text">${i+1}. ${safe(q.question)}</div>`;
+        if(opts.length)html+=`<div style="font-size:.78rem;color:var(--qb-muted);margin:.2rem 0;">${opts.map(safe).join(' &middot; ')}</div>`;
+        html+=`<div style="font-size:.78rem;color:#10b981;"><i class="bi bi-check-circle-fill me-1"></i>${safe(q.correct)||'—'}</div>`;
+        if(q.explanation)html+=`<div style="font-size:.75rem;color:var(--qb-muted);font-style:italic;">${safe(q.explanation)}</div>`;
+        html+=`<div style="margin-top:.35rem;display:flex;gap:.3rem;">
+            <button type="button" class="qb-btn qb-btn-save qb-btn-sm" onclick="saveAiQuestion(${i},this)"><i class="bi bi-plus-lg"></i> Add</button>
+            <button type="button" class="qb-btn qb-btn-outline qb-btn-sm" onclick="discardAiQuestion(${i})" title="Discard"><i class="bi bi-x-lg"></i></button>
+        </div></div>`;
+    });
+    container.innerHTML=html;
+}
+
+function saveAiQuestion(idx,btn){
+    const q=aiQuestions[idx];
+    if(!q)return;
     const form=document.createElement('form');
     form.method='POST';form.style.display='none';
-    form.innerHTML=`<input name="csrfmiddlewaretoken" value="{{ csrf_token }}"><input name="action" value="add"><input name="question_text" value="${(q.question||'').replace(/"/g,'&quot;')}"><input name="question_format" value="${document.getElementById('aiFormat').value}"><input name="difficulty" value="${document.getElementById('aiDiff').value}"><input name="topic" value="${document.getElementById('aiTopic').value}"><input name="options" value="${(q.options||[]).join('\n').replace(/"/g,'&quot;')}"><input name="correct_answer" value="${(q.correct||'').replace(/"/g,'&quot;')}"><input name="explanation" value="${(q.explanation||'').replace(/"/g,'&quot;')}">`;
+    const safe=v=>((v||'')+'').replace(/"/g,'&quot;');
+    form.innerHTML=`<input name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+        <input name="action" value="add">
+        <input name="question_text" value="${safe(q.question)}">
+        <input name="question_format" value="${document.getElementById('aiFormat').value}">
+        <input name="difficulty" value="${document.getElementById('aiDiff').value}">
+        <input name="topic" value="${safe(document.getElementById('aiTopic').value)}">
+        <input name="options" value="${safe((q.options||[]).join('\n'))}">
+        <input name="correct_answer" value="${safe(q.correct)}">
+        <input name="explanation" value="${safe(q.explanation)}">`;
     document.body.appendChild(form);form.submit();
 }
+
+function discardAiQuestion(idx){
+    aiQuestions.splice(idx,1);
+    renderAiResults();
+}
+
+function addAllAiQuestions(){
+    if(!aiQuestions.length)return;
+    const form=document.createElement('form');
+    form.method='POST';form.style.display='none';
+    const safe=v=>((v||'')+'').replace(/"/g,'&quot;');
+    form.innerHTML=`<input name="csrfmiddlewaretoken" value="{{ csrf_token }}"><input name="action" value="add_bulk"><input name="questions_json" value="${safe(JSON.stringify(aiQuestions))}"><input name="question_format" value="${document.getElementById('aiFormat').value}"><input name="difficulty" value="${document.getElementById('aiDiff').value}"><input name="topic" value="${safe(document.getElementById('aiTopic').value)}">`;
+    document.body.appendChild(form);form.submit();
+}
+
+/* ── Client-side instant search ── */
+(function(){
+    const searchInput=document.querySelector('.qb-search input');
+    if(!searchInput)return;
+    let timer;
+    searchInput.addEventListener('keyup',function(e){
+        if(e.key==='Enter'){document.getElementById('filterForm').submit();return;}
+        clearTimeout(timer);
+        const v=this.value.toLowerCase();
+        timer=setTimeout(()=>{
+            document.querySelectorAll('.qb-q-item[data-text]').forEach(item=>{
+                item.style.display=(!v||item.dataset.text.includes(v))?'':'none';
+            });
+        },200);
+    });
+})();
 </script>
 {% endblock %}

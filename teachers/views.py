@@ -7426,8 +7426,62 @@ def addon_question_bank(request):
             messages.success(request, 'Question added to bank.')
             return redirect('teachers:addon_question_bank')
 
+        elif action == 'add_bulk':
+            raw = request.POST.get('questions_json', '[]')
+            try:
+                items = json.loads(raw)
+            except (json.JSONDecodeError, TypeError):
+                items = []
+            fmt = request.POST.get('question_format', 'mcq')
+            diff = request.POST.get('difficulty', 'medium')
+            topic = request.POST.get('topic', '').strip()[:200]
+            added = 0
+            for q in items:
+                if not isinstance(q, dict) or not q.get('question'):
+                    continue
+                opts = q.get('options', [])
+                if not isinstance(opts, list):
+                    opts = []
+                QuestionBank.objects.create(
+                    teacher=teacher,
+                    topic=topic,
+                    question_text=q['question'].strip(),
+                    question_format=fmt,
+                    difficulty=diff,
+                    options=opts,
+                    correct_answer=(q.get('correct') or '').strip(),
+                    explanation=(q.get('explanation') or '').strip(),
+                )
+                added += 1
+            messages.success(request, f'{added} questions added to bank.')
+            return redirect('teachers:addon_question_bank')
+
+        elif action == 'edit':
+            q_id = request.POST.get('q_id')
+            q_obj = QuestionBank.objects.filter(id=q_id, teacher=teacher).first()
+            if q_obj:
+                opts_raw = request.POST.get('options', '')
+                opts = [o.strip() for o in opts_raw.split('\n') if o.strip()] if opts_raw.strip() else []
+                q_obj.subject_id = request.POST.get('subject') or None
+                q_obj.target_class_id = request.POST.get('target_class') or None
+                q_obj.topic = request.POST.get('topic', '').strip()[:200]
+                q_obj.question_text = request.POST.get('question_text', '').strip()
+                q_obj.question_format = request.POST.get('question_format', 'mcq')
+                q_obj.difficulty = request.POST.get('difficulty', 'medium')
+                q_obj.options = opts
+                q_obj.correct_answer = request.POST.get('correct_answer', '').strip()
+                q_obj.explanation = request.POST.get('explanation', '').strip()
+                q_obj.save()
+                messages.success(request, 'Question updated.')
+            return redirect('teachers:addon_question_bank')
+
         elif action == 'delete':
             QuestionBank.objects.filter(id=request.POST.get('q_id'), teacher=teacher).delete()
+            return redirect('teachers:addon_question_bank')
+
+        elif action == 'delete_paper':
+            ExamPaper.objects.filter(id=request.POST.get('paper_id'), teacher=teacher).delete()
+            messages.success(request, 'Exam paper deleted.')
             return redirect('teachers:addon_question_bank')
 
         elif action == 'create_paper':
@@ -7446,10 +7500,13 @@ def addon_question_bank(request):
             return redirect('teachers:addon_question_bank')
 
     # Filter
+    f_search = request.GET.get('q', '').strip()
     f_subject = request.GET.get('subject')
     f_difficulty = request.GET.get('difficulty')
     f_format = request.GET.get('format')
     qs = QuestionBank.objects.filter(teacher=teacher).select_related('subject', 'target_class')
+    if f_search:
+        qs = qs.filter(question_text__icontains=f_search)
     if f_subject:
         qs = qs.filter(subject_id=f_subject)
     if f_difficulty:
@@ -7457,12 +7514,19 @@ def addon_question_bank(request):
     if f_format:
         qs = qs.filter(question_format=f_format)
 
+    all_qs = QuestionBank.objects.filter(teacher=teacher)
+    stats = {
+        'total': all_qs.count(),
+        'subjects': all_qs.exclude(subject__isnull=True).values('subject').distinct().count(),
+    }
+
     papers = ExamPaper.objects.filter(teacher=teacher).select_related('subject', 'target_class')
     qb_used = get_free_generation_count(teacher, 'question_gen')
 
     return render(request, 'teachers/addon_question_bank.html', {
         'questions': qs, 'papers': papers, 'subjects': subjects, 'classes': classes,
-        'f_subject': f_subject, 'f_difficulty': f_difficulty, 'f_format': f_format,
+        'f_search': f_search, 'f_subject': f_subject, 'f_difficulty': f_difficulty, 'f_format': f_format,
+        'stats': stats,
         'qb_gen_used': qb_used, 'qb_gen_limit': FREE_GENERATION_LIMIT,
         'qb_gen_remaining': max(0, FREE_GENERATION_LIMIT - qb_used),
         'has_qb_addon': has_addon(teacher, 'exam-question-bank'),
@@ -7479,7 +7543,8 @@ def question_bank_ai(request):
     body = json.loads(request.body) if request.content_type == 'application/json' else request.POST
     topic = body.get('topic', '').strip()
     subject_name = body.get('subject', '').strip()
-    num = min(int(body.get('count', 5) or 5), 10)
+    target_class = body.get('target_class', '').strip()
+    num = min(int(body.get('count', 5) or 5), 20)
     fmt = body.get('format', 'mcq')
     difficulty = body.get('difficulty', 'medium')
 
@@ -7505,13 +7570,15 @@ def question_bank_ai(request):
         model = genai.GenerativeModel('gemini-2.0-flash')
 
         fmt_desc = {'mcq': 'multiple choice (4 options A-D)', 'fill': 'fill in the blank',
-                    'short': 'short answer', 'truefalse': 'true or false', 'essay': 'essay'}.get(fmt, fmt)
+                    'short': 'short answer', 'truefalse': 'true or false', 'essay': 'essay / open-ended'}.get(fmt, fmt)
+        class_hint = f" for {target_class}" if target_class else " for a Ghanaian JHS class"
         prompt = (
             f"Generate {num} {difficulty} difficulty {fmt_desc} questions on the topic \"{topic}\" "
-            f"for {subject_name or 'a'} Ghanaian JHS class.\n\n"
+            f"for {subject_name or 'a'}{class_hint}.\n\n"
             "Return ONLY valid JSON array:\n"
             '[{"question":"…","options":["A) …","B) …","C) …","D) …"],"correct":"A","explanation":"…"}, …]\n'
-            "For non-MCQ, options can be empty array. For true/false, options should be [\"True\",\"False\"]."
+            "For non-MCQ, options can be empty array. For true/false, options should be [\"True\",\"False\"]. "
+            "For essay questions, provide a model answer in the 'correct' field."
         )
         resp = model.generate_content(prompt)
         text = resp.text.strip()
@@ -7534,14 +7601,61 @@ def question_bank_ai(request):
 @login_required
 @requires_addon('exam-question-bank')
 def addon_exam_paper(request, **kwargs):
-    """View/print a specific exam paper."""
+    """View/print a specific exam paper with optional answer key and section grouping."""
     from teachers.models import ExamPaper
+    from collections import OrderedDict
     paper_id = request.GET.get('id')
     if not paper_id:
         return redirect('teachers:addon_question_bank')
     paper = get_object_or_404(ExamPaper, id=paper_id, teacher=request.user)
-    questions = paper.questions.all().order_by('?')  # shuffled
-    return render(request, 'teachers/addon_exam_paper.html', {'paper': paper, 'questions': questions})
+    show_key = request.GET.get('key') == '1'
+
+    questions_qs = list(paper.questions.all().order_by('question_format', 'id'))
+
+    # Group into sections by format
+    FORMAT_LABELS = {
+        'mcq': 'Multiple Choice', 'fill': 'Fill in the Blank',
+        'short': 'Short Answer', 'essay': 'Essay',
+        'truefalse': 'True or False',
+    }
+    sections = []
+    if questions_qs:
+        grouped = OrderedDict()
+        for q in questions_qs:
+            grouped.setdefault(q.question_format, []).append(q)
+        counter = 1
+        letter_idx = 0
+        for fmt, qs_list in grouped.items():
+            numbered = []
+            for q_obj in qs_list:
+                numbered.append({'number': counter, 'obj': q_obj})
+                counter += 1
+            sections.append({
+                'letter': chr(65 + letter_idx),
+                'label': FORMAT_LABELS.get(fmt, fmt),
+                'format': fmt,
+                'questions': numbered,
+            })
+            letter_idx += 1
+
+    # School info for header
+    school_name = getattr(request, 'tenant', None) and request.tenant.name or ''
+    school_motto = ''
+    try:
+        from academics.models import SchoolInfo
+        si = SchoolInfo.objects.first()
+        if si:
+            school_name = si.name or school_name
+            school_motto = si.motto or ''
+    except Exception:
+        pass
+
+    return render(request, 'teachers/addon_exam_paper.html', {
+        'paper': paper, 'questions': questions_qs,
+        'sections': sections if len(sections) > 1 else [],
+        'show_key': show_key,
+        'school_name': school_name, 'school_motto': school_motto,
+    })
 
 
 # ── 3. Behavior & SEL Tracker ────────────────────────────────────────────

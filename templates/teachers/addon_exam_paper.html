@@ -3,38 +3,69 @@
 
 {% block content %}
 <style>
-:root{--ep-ink:#0b1120;--ep-muted:#8892a4;--ep-border:#e4e8f2;--ep-card:#fff;}
+:root{--ep-ink:#0b1120;--ep-muted:#8892a4;--ep-border:#e4e8f2;--ep-card:#fff;--ep-accent:#4361ee;--ep-accent2:#7c3aed;}
 [data-bs-theme="dark"]{--ep-ink:#f1f5f9;--ep-muted:#94a3b8;--ep-border:#334155;--ep-card:#1e293b;}
 .ep-wrap{max-width:760px;margin:0 auto;padding:1.5rem 0;}
-.ep-header{text-align:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:2px solid var(--ep-border);}
-.ep-header h1{font-size:1.3rem;font-weight:800;color:var(--ep-ink);margin:0 0 .2rem;}
+.ep-header{text-align:center;margin-bottom:1.2rem;padding-bottom:1rem;border-bottom:3px double var(--ep-border);}
+.ep-school{font-size:1rem;font-weight:800;color:var(--ep-ink);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.1rem;}
+.ep-school-motto{font-size:.72rem;color:var(--ep-muted);font-style:italic;margin-bottom:.6rem;}
+.ep-header h1{font-size:1.3rem;font-weight:800;color:var(--ep-ink);margin:0 0 .3rem;text-decoration:underline;text-underline-offset:4px;}
 .ep-header .ep-meta{font-size:.82rem;color:var(--ep-muted);}
-.ep-instructions{background:var(--ep-border)20;border-radius:10px;padding:.8rem 1rem;margin-bottom:1.5rem;font-size:.85rem;color:var(--ep-ink);}
-.ep-q{margin-bottom:1.2rem;padding-bottom:1rem;border-bottom:1px solid var(--ep-border);}
+.ep-student-line{display:flex;gap:1.5rem;margin-bottom:1.2rem;padding:.6rem 0;border-bottom:1px solid var(--ep-border);font-size:.85rem;color:var(--ep-ink);}
+.ep-student-line span{flex:1;}
+.ep-student-line .ep-blank{border-bottom:1px dotted var(--ep-muted);display:inline-block;min-width:140px;}
+.ep-instructions{background:rgba(67,97,238,.04);border:1px solid rgba(67,97,238,.15);border-radius:10px;padding:.8rem 1rem;margin-bottom:1.5rem;font-size:.85rem;color:var(--ep-ink);}
+.ep-section{margin-bottom:1.5rem;}
+.ep-section-title{font-size:.88rem;font-weight:800;color:var(--ep-accent);text-transform:uppercase;letter-spacing:.04em;padding:.4rem 0;border-bottom:2px solid var(--ep-accent);margin-bottom:.8rem;}
+.ep-q{margin-bottom:1rem;padding-bottom:.8rem;border-bottom:1px solid var(--ep-border);}
+.ep-q:last-child{border-bottom:none;}
 .ep-q-num{font-weight:800;color:var(--ep-ink);font-size:.9rem;}
 .ep-q-text{font-size:.88rem;color:var(--ep-ink);margin:.3rem 0;}
-.ep-opts{list-style:none;padding:0;margin:.4rem 0 0;}
+.ep-q-marks{float:right;font-size:.75rem;color:var(--ep-muted);font-weight:600;background:var(--ep-border);padding:.1rem .4rem;border-radius:4px;}
+.ep-opts{list-style:none;padding:0;margin:.4rem 0 0 1.2rem;}
 .ep-opts li{font-size:.84rem;color:var(--ep-ink);padding:.2rem 0;}
-.ep-print-only{display:none;}
-.ep-actions{display:flex;gap:.5rem;margin-bottom:1rem;}
-.ep-btn{padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;border:none;cursor:pointer;}
-.ep-btn-print{background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;}
+.ep-answer{display:none;margin-top:.4rem;padding:.4rem .6rem;background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:8px;font-size:.8rem;}
+.ep-answer.visible{display:block;}
+.ep-answer-label{font-weight:700;color:#10b981;font-size:.72rem;text-transform:uppercase;}
+.ep-answer-text{color:var(--ep-ink);margin-top:.1rem;}
+.ep-explanation{color:var(--ep-muted);font-style:italic;margin-top:.2rem;font-size:.78rem;}
+.ep-actions{display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;}
+.ep-btn{padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;transition:box-shadow .15s;}
+.ep-btn-print{background:linear-gradient(135deg,var(--ep-accent),var(--ep-accent2));color:#fff;}
+.ep-btn-print:hover{box-shadow:0 4px 16px rgba(67,97,238,.35);}
 .ep-btn-back{background:var(--ep-border);color:var(--ep-ink);}
+.ep-btn-key{background:#10b981;color:#fff;}
+.ep-btn-key:hover{box-shadow:0 4px 12px rgba(16,185,129,.3);}
+.ep-btn-outline{background:transparent;border:1px solid var(--ep-border);color:var(--ep-ink);}
+.ep-footer{margin-top:2rem;padding-top:1rem;border-top:2px solid var(--ep-border);text-align:center;font-size:.75rem;color:var(--ep-muted);}
+.ep-write-lines{margin-top:.5rem;}
+.ep-write-lines .ep-line{border-bottom:1px solid var(--ep-border);height:1.8rem;}
 @media print{
-  .ep-actions,.sidebar,.navbar,header,footer,[class*="sidebar"]{display:none!important;}
-  .ep-header{border-bottom:2px solid #000;}
-  body{background:#fff;color:#000;font-size:11pt;}
-  .ep-wrap{max-width:100%;padding:0;}
+    .ep-actions,.sidebar,.navbar,header,footer,[class*="sidebar"],[class*="offcanvas"]{display:none!important;}
+    .ep-header{border-bottom:3px double #000;}
+    .ep-section-title{color:#000;border-bottom-color:#000;}
+    body{background:#fff;color:#000;font-size:11pt;}
+    .ep-wrap{max-width:100%;padding:0;}
+    .ep-instructions{background:#f5f5f5;border-color:#ccc;}
+    .ep-answer{break-inside:avoid;}
+    .ep-q{break-inside:avoid;}
 }
 </style>
 
 <div class="ep-wrap">
     <div class="ep-actions">
-        <a href="{% url 'teachers:addon_question_bank' %}" class="ep-btn ep-btn-back"><i class="bi bi-arrow-left me-1"></i>Back to Bank</a>
-        <button onclick="window.print()" class="ep-btn ep-btn-print"><i class="bi bi-printer me-1"></i>Print Paper</button>
+        <a href="{% url 'teachers:addon_question_bank' %}" class="ep-btn ep-btn-back"><i class="bi bi-arrow-left"></i> Back</a>
+        <button onclick="window.print()" class="ep-btn ep-btn-print"><i class="bi bi-printer"></i> Print</button>
+        <button onclick="toggleAnswerKey()" class="ep-btn {% if show_key %}ep-btn-outline{% else %}ep-btn-key{% endif %}" id="keyToggleBtn">
+            <i class="bi bi-key"></i> <span id="keyToggleText">{% if show_key %}Hide{% else %}Show{% endif %} Answer Key</span>
+        </button>
     </div>
 
     <div class="ep-header">
+        {% if school_name %}
+        <div class="ep-school">{{ school_name }}</div>
+        {% if school_motto %}<div class="ep-school-motto">{{ school_motto }}</div>{% endif %}
+        {% endif %}
         <h1>{{ paper.title }}</h1>
         <div class="ep-meta">
             {% if paper.subject %}{{ paper.subject.name }} · {% endif %}
@@ -43,22 +74,90 @@
         </div>
     </div>
 
+    <!-- Student info line -->
+    <div class="ep-student-line">
+        <span>Name: <span class="ep-blank"></span></span>
+        <span>Class: <span class="ep-blank"></span></span>
+        <span>Date: <span class="ep-blank"></span></span>
+    </div>
+
     {% if paper.instructions %}
     <div class="ep-instructions"><strong>Instructions:</strong> {{ paper.instructions }}</div>
     {% endif %}
 
-    {% for q in questions %}
-    <div class="ep-q">
-        <span class="ep-q-num">{{ forloop.counter }}.</span>
-        <span class="ep-q-text">{{ q.question_text }}</span>
-        {% if q.options %}
-        <ul class="ep-opts">
-            {% for opt in q.options %}
-            <li>{{ opt }}</li>
+    {% if sections %}
+        {% for section in sections %}
+        <div class="ep-section">
+            <div class="ep-section-title">Section {{ section.letter }}: {{ section.label }} ({{ section.questions|length }} question{{ section.questions|length|pluralize }})</div>
+            {% for q in section.questions %}
+            <div class="ep-q">
+                <span class="ep-q-num">{{ q.number }}.</span>
+                <span class="ep-q-text">{{ q.obj.question_text }}</span>
+                {% if q.obj.options %}
+                <ul class="ep-opts">
+                    {% for opt in q.obj.options %}
+                    <li>{{ opt }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+                {% if q.obj.question_format == 'essay' or q.obj.question_format == 'short' %}
+                <div class="ep-write-lines">
+                    {% for _ in "12345" %}<div class="ep-line"></div>{% endfor %}
+                </div>
+                {% endif %}
+                <div class="ep-answer {% if show_key %}visible{% endif %}" data-answer>
+                    {% if q.obj.correct_answer %}
+                    <div class="ep-answer-label">Answer</div>
+                    <div class="ep-answer-text">{{ q.obj.correct_answer }}</div>
+                    {% endif %}
+                    {% if q.obj.explanation %}
+                    <div class="ep-explanation"><strong>Explanation:</strong> {{ q.obj.explanation }}</div>
+                    {% endif %}
+                </div>
+            </div>
             {% endfor %}
-        </ul>
-        {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+        {% for q in questions %}
+        <div class="ep-q">
+            <span class="ep-q-num">{{ forloop.counter }}.</span>
+            <span class="ep-q-text">{{ q.question_text }}</span>
+            {% if q.options %}
+            <ul class="ep-opts">
+                {% for opt in q.options %}
+                <li>{{ opt }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            <div class="ep-answer {% if show_key %}visible{% endif %}" data-answer>
+                {% if q.correct_answer %}
+                <div class="ep-answer-label">Answer</div>
+                <div class="ep-answer-text">{{ q.correct_answer }}</div>
+                {% endif %}
+                {% if q.explanation %}
+                <div class="ep-explanation"><strong>Explanation:</strong> {{ q.explanation }}</div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="ep-footer">
+        End of Paper · {{ questions|length }} question{{ questions|length|pluralize }} · {{ paper.duration_minutes }} minutes
     </div>
-    {% endfor %}
 </div>
+
+<script>
+function toggleAnswerKey(){
+    const answers=document.querySelectorAll('[data-answer]');
+    const btn=document.getElementById('keyToggleBtn');
+    const txt=document.getElementById('keyToggleText');
+    const showing=answers[0]&&answers[0].classList.contains('visible');
+    answers.forEach(a=>a.classList.toggle('visible',!showing));
+    txt.textContent=showing?'Show Answer Key':'Hide Answer Key';
+    btn.classList.toggle('ep-btn-key',showing);
+    btn.classList.toggle('ep-btn-outline',!showing);
+}
+</script>
 {% endblock %}
