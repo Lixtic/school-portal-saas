@@ -71,7 +71,7 @@ VAPID_PUBLIC_KEY = os.environ.get(
 VAPID_PRIVATE_KEY_PEM = os.environ.get(
     'VAPID_PRIVATE_KEY_PEM',
     '-----BEGIN PRIVATE KEY-----\nMIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgPjsGsJ/jLvM00vUZ\nYvsTepEUiwFt+2UpV+q9RLg43mOhRANCAASrgxgnNJhIbluZA6/sZ62dgi0jB7+q\naNb4ba2xZzBAYSTSYYqrB2FpDbKxA5pV7CTUP+H241/IHsG8H6nKJ2Fa\n-----END PRIVATE KEY-----'
-)
+).replace('\\n', '\n')  # env vars store literal \n — convert to real newlines
 VAPID_CLAIMS = {'sub': os.environ.get('VAPID_ADMIN_EMAIL', 'mailto:admin@schoolportal.app')}
 
 # =====================

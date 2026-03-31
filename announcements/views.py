@@ -295,7 +295,12 @@ def send_push_notification(user, title, body, url='/'):
     Call from signal handlers or management commands.
     """
     from django.conf import settings
-    from pywebpush import webpush, WebPushException
+    try:
+        from pywebpush import webpush, WebPushException
+    except ImportError:
+        import logging
+        logging.getLogger(__name__).warning('pywebpush not installed — push notification skipped')
+        return
     import json as _json
 
     subscriptions = PushSubscription.objects.filter(user=user)
@@ -391,8 +396,8 @@ def push_campaign(request):
         target = request.POST.get('target', 'all')
         target_class = request.POST.get('target_class', '').strip()
 
-        # Sanitize URL — only allow relative paths
-        if not url.startswith('/'):
+        # Sanitize URL — only allow relative paths (block //evil.com)
+        if not url.startswith('/') or url.startswith('//'):
             url = '/dashboard/'
 
         if not title or not body:
