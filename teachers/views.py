@@ -7350,7 +7350,6 @@ def report_card_ai(request):
     # AI generation
     try:
         from academics.ai_tutor import _post_chat_completion, _get_openai_api_key, get_active_ai_model
-        import re
 
         students_text = '\n'.join(
             f"- {d['name']}: Average {d['avg']}%. Subjects: {d['grades']}"
@@ -7386,15 +7385,17 @@ def report_card_ai(request):
             text = text.split('```')[1]
             if text.startswith('json'):
                 text = text[4:]
-        obj_match = re.search(r'\{.*\}', text, re.DOTALL)
-        arr_match = re.search(r'\[.*\]', text, re.DOTALL)
-        if obj_match:
-            parsed = json.loads(obj_match.group())
+        obj_start = text.find('{')
+        obj_end = text.rfind('}')
+        arr_start = text.find('[')
+        arr_end = text.rfind(']')
+        if obj_start != -1 and obj_end > obj_start:
+            parsed = json.loads(text[obj_start:obj_end + 1])
             ai_results = parsed.get('results', [])
             if not isinstance(ai_results, list):
                 ai_results = []
-        elif arr_match:
-            ai_results = json.loads(arr_match.group())
+        elif arr_start != -1 and arr_end > arr_start:
+            ai_results = json.loads(text[arr_start:arr_end + 1])
         else:
             ai_results = json.loads(text)
             if isinstance(ai_results, dict):
@@ -7614,7 +7615,6 @@ def question_bank_ai(request):
 
     try:
         from academics.ai_tutor import _post_chat_completion, _get_openai_api_key, get_active_ai_model
-        import re
 
         fmt_desc = {'mcq': 'multiple choice (4 options A-D)', 'fill': 'fill in the blank',
                     'short': 'short answer', 'truefalse': 'true or false', 'essay': 'essay / open-ended'}.get(fmt, fmt)
@@ -7648,13 +7648,15 @@ def question_bank_ai(request):
             if text.startswith('json'):
                 text = text[4:]
         # Try object first ({"questions": [...]})
-        obj_match = re.search(r'\{.*\}', text, re.DOTALL)
-        arr_match = re.search(r'\[.*\]', text, re.DOTALL)
-        if obj_match:
-            parsed = json.loads(obj_match.group())
+        obj_start = text.find('{')
+        obj_end = text.rfind('}')
+        arr_start = text.find('[')
+        arr_end = text.rfind(']')
+        if obj_start != -1 and obj_end > obj_start:
+            parsed = json.loads(text[obj_start:obj_end + 1])
             questions = parsed.get('questions', [])
-        elif arr_match:
-            questions = json.loads(arr_match.group())
+        elif arr_start != -1 and arr_end > arr_start:
+            questions = json.loads(text[arr_start:arr_end + 1])
         else:
             questions = json.loads(text)
             if isinstance(questions, dict):
@@ -7859,7 +7861,6 @@ def differentiated_ai(request):
 
     try:
         from academics.ai_tutor import _post_chat_completion, _get_openai_api_key, get_active_ai_model
-        import re
 
         user_prompt = (
             "You are a Ghanaian JHS teacher assistant specialising in inclusive education.\n"
@@ -7893,8 +7894,12 @@ def differentiated_ai(request):
             text = text.split('```')[1]
             if text.startswith('json'):
                 text = text[4:]
-        json_match = re.search(r'\{.*\}', text, re.DOTALL)
-        result = json.loads(json_match.group()) if json_match else json.loads(text)
+        obj_start = text.find('{')
+        obj_end = text.rfind('}')
+        if obj_start != -1 and obj_end > obj_start:
+            result = json.loads(text[obj_start:obj_end + 1])
+        else:
+            result = json.loads(text)
         return JsonResponse(result)
     except QuotaExceeded:
         raise
