@@ -1081,6 +1081,11 @@ def addon_marketplace(request):
     if request.user.is_staff and (not hasattr(request, 'tenant') or request.tenant.schema_name == 'public'):
         messages.error(request, "Add-on marketplace is for school tenants only. Super admins cannot access this area.")
         return redirect('tenants:landlord_dashboard')
+
+    # Only school admins can access the marketplace
+    if request.user.user_type not in ('admin',):
+        messages.error(request, "Only school admins can access the add-on marketplace.")
+        return redirect('dashboard')
     
     # Ensure user is in a tenant schema
     if not hasattr(request, 'tenant') or request.tenant.schema_name == 'public':

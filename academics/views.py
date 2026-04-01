@@ -11,7 +11,7 @@ import os
 import io
 import base64
 from huggingface_hub import InferenceClient
-from django.db import connection, ProgrammingError
+from django.db import connection, ProgrammingError, transaction
 from django.db.models import Q, Count, Max
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.utils import timezone
@@ -546,9 +546,10 @@ def add_academic_year(request):
         form = AcademicYearForm(request.POST)
         if form.is_valid():
             year = form.save(commit=False)
-            if year.is_current:
-                AcademicYear.objects.filter(is_current=True).update(is_current=False)
-            year.save()
+            with transaction.atomic():
+                if year.is_current:
+                    AcademicYear.objects.select_for_update().filter(is_current=True).update(is_current=False)
+                year.save()
             messages.success(request, f'Academic year "{year.name}" created.')
             return redirect('academics:manage_academic_years')
     else:
@@ -568,9 +569,10 @@ def edit_academic_year(request, year_id):
         form = AcademicYearForm(request.POST, instance=year)
         if form.is_valid():
             updated = form.save(commit=False)
-            if updated.is_current:
-                AcademicYear.objects.filter(is_current=True).exclude(id=year.id).update(is_current=False)
-            updated.save()
+            with transaction.atomic():
+                if updated.is_current:
+                    AcademicYear.objects.select_for_update().filter(is_current=True).exclude(id=year.id).update(is_current=False)
+                updated.save()
             messages.success(request, f'Academic year "{year.name}" updated.')
             return redirect('academics:manage_academic_years')
     else:
@@ -2459,7 +2461,10 @@ def ai_tutor_chat(request):
         if subject_id:
             if str(subject_id) not in allowed_subject_ids:
                 return JsonResponse({'error': 'Invalid subject selected'}, status=400)
-            subject = Subject.objects.get(id=subject_id)
+            try:
+                subject = Subject.objects.get(id=subject_id)
+            except Subject.DoesNotExist:
+                return JsonResponse({'error': 'Subject not found'}, status=404)
 
         def _stream_and_persist():
             assistant_chunks = []
@@ -2737,8 +2742,11 @@ def generate_practice(request):
         if str(subject_id) not in allowed_subject_ids:
             return JsonResponse({'error': 'Invalid subject selected'}, status=400)
 
-        subject = Subject.objects.get(id=subject_id)
-        
+        try:
+            subject = Subject.objects.get(id=subject_id)
+        except Subject.DoesNotExist:
+            return JsonResponse({'error': 'Subject not found'}, status=404)
+
         # Generate questions
         result = generate_practice_questions(subject, topic, difficulty, count)
         
@@ -2823,8 +2831,12 @@ def explain_concept(request):
         allowed_subject_ids = {str(subject.id) for subject in subjects}
         if str(subject_id) not in allowed_subject_ids:
             return JsonResponse({'error': 'Invalid subject selected'}, status=400)
-        
-        subject = Subject.objects.get(id=subject_id)
+
+        try:
+            subject = Subject.objects.get(id=subject_id)
+        except Subject.DoesNotExist:
+            return JsonResponse({'error': 'Subject not found'}, status=404)
+
         explanation = get_explanation(subject, concept)
         
         return JsonResponse({'explanation': explanation})

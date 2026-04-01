@@ -808,7 +808,7 @@ def homework_class_results(request, pk):
         'top_score_pct': top_score_pct,
         'pass_count': pass_count,
         'question_stats': question_stats,
-        'late_count': sum(1 for s in Submission.objects.filter(homework=homework) if s.is_late),
+        'late_count': Submission.objects.filter(homework=homework, is_late=True).count(),
         'q_chart_json': json.dumps([{
             'label': f'Q{i+1}',
             'correct': qs_item['correct'],
