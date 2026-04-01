@@ -4063,6 +4063,7 @@
     <script>
         // Global loader functions
         let __globalLoaderFailsafeTimer = null;
+        let __navOverlayFailsafeTimer = null;
         let __pageLoaderDelayTimer = null;
         let __pageLoaderVisibleSince = 0;
         let __mobileTapLoaderClearTimer = null;
@@ -4145,9 +4146,16 @@
         function showNavOverlay() {
             const overlay = document.getElementById('navTransitionOverlay');
             if (overlay) overlay.classList.add('active');
+            // Failsafe: auto-hide after 8s in case navigation stalls
+            if (__navOverlayFailsafeTimer) clearTimeout(__navOverlayFailsafeTimer);
+            __navOverlayFailsafeTimer = setTimeout(hideNavOverlay, 8000);
         }
 
         function hideNavOverlay() {
+            if (__navOverlayFailsafeTimer) {
+                clearTimeout(__navOverlayFailsafeTimer);
+                __navOverlayFailsafeTimer = null;
+            }
             const overlay = document.getElementById('navTransitionOverlay');
             if (overlay) overlay.classList.remove('active');
         }
