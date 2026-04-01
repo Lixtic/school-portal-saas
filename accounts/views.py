@@ -35,6 +35,11 @@ def _tenant_cache_key(prefix):
 
 
 def build_academic_calendar_widget(limit=5):
+    cal_key = _tenant_cache_key(f'cal_widget_{limit}')
+    cached = _cache.get(cal_key)
+    if cached:
+        return cached
+
     today = timezone.now().date()
     
     try:
@@ -129,13 +134,15 @@ def build_academic_calendar_widget(limit=5):
 
     upcoming_events = [event for event in events if event['date'] >= today][:limit]
 
-    return {
+    result = {
         'academic_calendar_year': current_year.name if current_year else 'Not Set',
         'academic_calendar_events': upcoming_events,
         'academic_calendar_month_label': datetime.date(display_year, display_month, 1).strftime('%B %Y'),
         'academic_calendar_weekdays': ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
         'academic_calendar_weeks': calendar_weeks,
     }
+    _cache.set(cal_key, result, 600)  # 10 min
+    return result
 
 
 def _safe_count(model):
@@ -1158,65 +1165,106 @@ def dashboard(request):
                  parent_profile = Parent.objects.filter(user=user).first()
             
             if parent_profile:
-                children = parent_profile.children.select_related('user', 'current_class').all()
+                import datetime as _dt
+                from django.db.models import Sum as _Sum, Value as _V, DecimalField as _DF, Subquery, OuterRef
+                from django.db.models.functions import Coalesce as _Coal
+                from finance.models import Payment
+                from academics.gamification_models import StudentXP as _StudentXP
+
+                thirty_ago = timezone.now().date() - _dt.timedelta(days=30)
+                academic_year = AcademicYear.objects.filter(is_current=True).first()
+
+                # Subqueries for fee totals (avoids per-child fee loops)
+                fee_payable_sq = (
+                    StudentFee.objects.filter(student=OuterRef('pk'))
+                    .values('student')
+                    .annotate(total=_Sum('amount_payable'))
+                    .values('total')
+                )
+                fee_paid_sq = (
+                    Payment.objects.filter(student_fee__student=OuterRef('pk'))
+                    .values('student_fee__student')
+                    .annotate(total=_Sum('amount'))
+                    .values('total')
+                )
+
+                children = (
+                    parent_profile.children
+                    .select_related('user', 'current_class')
+                    .annotate(
+                        att_total=Count('attendance', filter=Q(attendance__date__gte=thirty_ago)),
+                        att_present=Count('attendance', filter=Q(attendance__date__gte=thirty_ago, attendance__status='present')),
+                        fee_payable=_Coal(Subquery(fee_payable_sq), _V(0), output_field=_DF()),
+                        fee_paid_amt=_Coal(Subquery(fee_paid_sq), _V(0), output_field=_DF()),
+                    )
+                )
+
                 total_outstanding = 0
                 total_paid = 0
-                
-                academic_year = AcademicYear.objects.filter(is_current=True).first()
                 children_data = []
 
+                # Prefetch recent grades and XP for all children in bulk
+                child_ids = [c.pk for c in children]
+                from collections import defaultdict
+                grade_map = defaultdict(list)
+                if academic_year:
+                    for g in Grade.objects.filter(student_id__in=child_ids, academic_year=academic_year).select_related('subject').order_by('-id'):
+                        if len(grade_map[g.student_id]) < 5:
+                            grade_map[g.student_id].append(g)
+                xp_map = {x.student_id: x for x in _StudentXP.objects.filter(student_id__in=child_ids)}
+
                 for child in children:
-                    # Fee summary
-                    fees = StudentFee.objects.filter(student=child)
-                    child_balance = sum(f.balance for f in fees)
-                    child_paid = sum(f.total_paid for f in fees)
+                    child_balance = float(child.fee_payable) - float(child.fee_paid_amt)
+                    child_paid_val = float(child.fee_paid_amt)
                     total_outstanding += child_balance
-                    total_paid += child_paid
+                    total_paid += child_paid_val
+                    att_pct = round((child.att_present / child.att_total * 100) if child.att_total > 0 else 0, 1)
 
-                    # Attendance percentage (last 30 days)
-                    import datetime as _dt
-                    thirty_ago = timezone.now().date() - _dt.timedelta(days=30)
-                    att_qs = Attendance.objects.filter(student=child, date__gte=thirty_ago)
-                    att_total = att_qs.count()
-                    att_present = att_qs.filter(status='present').count()
-                    att_pct = round((att_present / att_total * 100) if att_total > 0 else 0, 1)
-
-                    # Recent grades (latest 5)
-                    recent_grades = (
-                        Grade.objects
-                        .filter(student=child, academic_year=academic_year)
-                        .select_related('subject')
-                        .order_by('-id')[:5]
-                    )
-
-                    from academics.gamification_models import StudentXP as _StudentXP
                     children_data.append({
                         'student': child,
                         'balance': child_balance,
-                        'paid': child_paid,
+                        'paid': child_paid_val,
                         'att_pct': att_pct,
-                        'att_present': att_present,
-                        'att_total': att_total,
-                        'recent_grades': list(recent_grades),
-                        'xp': _StudentXP.objects.filter(student=child).first(),
+                        'att_present': child.att_present,
+                        'att_total': child.att_total,
+                        'recent_grades': grade_map.get(child.pk, []),
+                        'xp': xp_map.get(child.pk),
                     })
+
+                # Summary stats for hero section
+                avg_attendance = round(sum(cd['att_pct'] for cd in children_data) / len(children_data), 1) if children_data else 0
+                all_grades_flat = [g for glist in grade_map.values() for g in glist]
+                avg_grade = round(sum(g.total_score for g in all_grades_flat) / len(all_grades_flat), 1) if all_grades_flat else 0
+                total_xp = sum((xp_map[cid].total_xp if xp_map.get(cid) else 0) for cid in child_ids)
             else:
                 children = []
                 children_data = []
                 total_outstanding = 0
                 total_paid = 0
+                avg_attendance = 0
+                avg_grade = 0
+                total_xp = 0
 
         except Exception as e:
             children = []
             children_data = []
             total_outstanding = 0
             total_paid = 0
+            avg_attendance = 0
+            avg_grade = 0
+            total_xp = 0
 
         return render(request, 'dashboard/parent_dashboard.html', {
             'user': user, 
             'notices': parent_notices,
             'children': children,
             'children_data': children_data,
+            'summary_stats': {
+                'avg_attendance': avg_attendance,
+                'avg_grade': avg_grade,
+                'total_xp': total_xp,
+                'child_count': len(children_data),
+            },
             'finance_stats': {
                 'outstanding': total_outstanding,
                 'paid': total_paid

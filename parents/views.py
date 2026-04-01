@@ -79,17 +79,22 @@ def child_details(request, student_id):
     student = get_object_or_404(Student, id=student_id)
     
     # Verify this is the parent's child
-    if student not in parent.children.all():
+    if not parent.children.filter(pk=student.pk).exists():
         messages.error(request, 'Access denied - This is not your child')
         return redirect('parents:my_children')
     
     # Get attendance records
     attendances = Attendance.objects.filter(student=student).order_by('-date')[:30]
     
-    # Calculate attendance stats
-    total_attendance = Attendance.objects.filter(student=student).count()
-    present_count = Attendance.objects.filter(student=student, status='present').count()
-    absent_count = Attendance.objects.filter(student=student, status='absent').count()
+    # Calculate attendance stats in a single aggregate query
+    att_agg = Attendance.objects.filter(student=student).aggregate(
+        total=Count('id'),
+        present=Count('id', filter=Q(status='present')),
+        absent=Count('id', filter=Q(status='absent')),
+    )
+    total_attendance = att_agg['total']
+    present_count = att_agg['present']
+    absent_count = att_agg['absent']
     
     attendance_percentage = 0
     if total_attendance > 0:
@@ -183,15 +188,20 @@ def child_details(request, student_id):
     import datetime as _dt
     from collections import OrderedDict
     today = _dt.date.today()
+    # Fetch 8 weeks of attendance in ONE query, then bucket in Python
+    eight_weeks_ago = today - _dt.timedelta(weeks=8, days=today.weekday())
+    raw_att = list(
+        Attendance.objects.filter(student=student, date__gte=eight_weeks_ago)
+        .values_list('date', 'status')
+    )
     week_labels = []
     week_present = []
     week_total = []
     for i in range(7, -1, -1):
         start = today - _dt.timedelta(weeks=i, days=today.weekday())
         end = start + _dt.timedelta(days=4)
-        week_att = Attendance.objects.filter(student=student, date__gte=start, date__lte=end)
-        wt = week_att.count()
-        wp = week_att.filter(status='present').count()
+        wt = sum(1 for d, s in raw_att if start <= d <= end)
+        wp = sum(1 for d, s in raw_att if start <= d <= end and s == 'present')
         week_labels.append(start.strftime('%b %d'))
         week_total.append(wt)
         week_present.append(wp)

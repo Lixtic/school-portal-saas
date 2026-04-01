@@ -613,6 +613,81 @@
         </div>
         {% endif %}
 
+        <!-- ── Subject Analytics Cards ── -->
+        {% if subject_analytics %}
+        <div class="sd-section-heading">
+            📊 Subject Performance
+            <a href="{% url 'students:report_card' student.id %}" target="_blank">Full report</a>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.6rem;margin-bottom:1.25rem;">
+            {% for sa in subject_analytics %}
+            <div class="sd-stat" style="padding:.85rem .9rem;">
+                <div class="sd-stat-label" style="font-size:.65rem;margin-bottom:.15rem;">{{ sa.name }}</div>
+                <div class="d-flex align-items-end justify-content-between">
+                    <div class="sd-stat-value" style="font-size:1.35rem;color:{% if sa.avg >= 70 %}var(--sd-accent-green){% elif sa.avg >= 50 %}var(--sd-accent-amber){% else %}var(--sd-accent-red){% endif %};">{{ sa.avg }}</div>
+                    {% if sa.trend == 'up' %}
+                    <span style="font-size:.75rem;color:var(--sd-accent-green);"><i class="bi bi-arrow-up-right"></i></span>
+                    {% elif sa.trend == 'down' %}
+                    <span style="font-size:.75rem;color:var(--sd-accent-red);"><i class="bi bi-arrow-down-right"></i></span>
+                    {% else %}
+                    <span style="font-size:.75rem;color:var(--sd-muted);"><i class="bi bi-dash"></i></span>
+                    {% endif %}
+                </div>
+                <div style="font-size:.65rem;color:var(--sd-muted);margin-top:.2rem;">{{ sa.count }} grade{{ sa.count|pluralize }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- ── Grade Progress Chart ── -->
+        {% if progress_datasets_json != "[]" %}
+        <div class="sd-section-heading">📈 Grade Trend</div>
+        <div class="sd-card mb-4" style="padding:1rem;">
+            <canvas id="gradeProgressChart" height="220"></canvas>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+        <script>
+        (function(){
+            var labels = {{ progress_labels_json|safe }};
+            var datasets = {{ progress_datasets_json|safe }};
+            if(!labels.length) return;
+            var chartDS = datasets.map(function(ds){
+                return {
+                    label: ds.label,
+                    data: ds.data,
+                    borderColor: ds.borderColor,
+                    backgroundColor: ds.backgroundColor,
+                    tension: .35,
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    fill: false,
+                    spanGaps: true
+                };
+            });
+            var isDark = document.documentElement.getAttribute('data-bs-theme')==='dark';
+            var gridColor = isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)';
+            var textColor = isDark ? '#94a3b8' : '#6b7280';
+            new Chart(document.getElementById('gradeProgressChart'), {
+                type: 'line',
+                data: { labels: labels, datasets: chartDS },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12, font: { size: 11 }, color: textColor } }
+                    },
+                    scales: {
+                        y: { min: 0, max: 100, grid: { color: gridColor }, ticks: { color: textColor, font:{ size: 10 } } },
+                        x: { grid: { display: false }, ticks: { color: textColor, font: { size: 10 } } }
+                    }
+                }
+            });
+        })();
+        </script>
+        {% endif %}
+
         <!-- Homework + Resources -->
         <div class="sd-content-grid">
             <!-- Homework -->

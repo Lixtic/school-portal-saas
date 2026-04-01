@@ -40,6 +40,13 @@ def _tenant_has_basic9_class():
 
 
 def build_academic_calendar_widget(limit=5):
+    from django.db import connection as _conn
+    _schema = getattr(_conn, 'schema_name', 'public')
+    cache_key = f'academic_cal_widget_{_schema}_{limit}'
+    cached = cache.get(cache_key)
+    if cached:
+        return cached
+
     today = timezone.now().date()
     current_year = AcademicYear.objects.filter(is_current=True).first() or AcademicYear.objects.order_by('-start_date').first()
 
@@ -123,13 +130,15 @@ def build_academic_calendar_widget(limit=5):
 
     upcoming_events = [event for event in events if event['date'] >= today][:limit]
 
-    return {
+    result = {
         'academic_calendar_year': current_year.name if current_year else 'Not Set',
         'academic_calendar_events': upcoming_events,
         'academic_calendar_month_label': date(display_year, display_month, 1).strftime('%B %Y'),
         'academic_calendar_weekdays': ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
         'academic_calendar_weeks': calendar_weeks,
     }
+    cache.set(cache_key, result, 600)  # 10 min
+    return result
 
 @login_required
 def student_list(request):
@@ -326,10 +335,15 @@ def student_detail_page(request, student_id):
         date__year=selected_year
     ).order_by('date')
     
-    # Calculate attendance stats
-    total_present = attendance_records.filter(status='present').count()
-    total_late = attendance_records.filter(status='late').count()
-    total_absent = attendance_records.filter(status='absent').count()
+    # Calculate attendance stats in a single pass
+    att_stats = attendance_records.aggregate(
+        total_present=Count('id', filter=Q(status='present')),
+        total_late=Count('id', filter=Q(status='late')),
+        total_absent=Count('id', filter=Q(status='absent')),
+    )
+    total_present = att_stats['total_present']
+    total_late = att_stats['total_late']
+    total_absent = att_stats['total_absent']
     total_holiday = 0  # You could add holiday tracking if needed
     
     # Build attendance calendar data (all 12 months)
@@ -360,14 +374,11 @@ def student_detail_page(request, student_id):
         'subject', 'academic_year', 'student__current_class'
     ).order_by('-academic_year__start_date', '-created_at')[:10]
     
-    # Calculate average grade
-    grades = Grade.objects.filter(student=student)
-    average_grade = 0
-    if grades.exists():
-        total_score = sum([g.percentage() for g in grades if g.percentage() > 0])
-        count = len([g for g in grades if g.percentage() > 0])
-        if count > 0:
-            average_grade = round(total_score / count, 2)
+    # Calculate average grade via DB aggregate (avoids loading all rows)
+    avg_result = Grade.objects.filter(
+        student=student, total_score__gt=0
+    ).aggregate(avg=Avg('total_score'))
+    average_grade = round(avg_result['avg'], 2) if avg_result['avg'] else 0
     
     context = {
         'student': student,
@@ -631,10 +642,15 @@ def student_dashboard_view(request):
             student=student
         ).order_by('-date')[:10]
 
-        # Calculate attendance stats
-        total_attendance = Attendance.objects.filter(student=student).count()
-        present_count = Attendance.objects.filter(student=student, status='present').count()
-        absent_count = Attendance.objects.filter(student=student, status='absent').count()
+        # Calculate attendance stats in a single query
+        att_agg = Attendance.objects.filter(student=student).aggregate(
+            total=Count('id'),
+            present=Count('id', filter=Q(status='present')),
+            absent=Count('id', filter=Q(status='absent')),
+        )
+        total_attendance = att_agg['total']
+        present_count = att_agg['present']
+        absent_count = att_agg['absent']
     except Exception:
         recent_attendance = []
         total_attendance = present_count = absent_count = 0
@@ -655,6 +671,48 @@ def student_dashboard_view(request):
         grades = list(Grade.objects.filter(student=student).select_related('subject', 'academic_year').order_by('-created_at'))
     except Exception:
         grades = []
+
+    # ── Subject-wise analytics & progress chart data ──
+    import json as _json
+    from collections import defaultdict as _ddef
+    subject_analytics = []  # [{name, avg, count, trend_dir}]
+    progress_labels = []    # term labels for chart
+    progress_datasets = []  # [{label, data, color}]
+
+    if grades:
+        subj_scores = _ddef(list)
+        for g in grades:
+            sname = g.subject.name if g.subject else 'Unknown'
+            subj_scores[sname].append(g.total_score or 0)
+        for sname, scores in sorted(subj_scores.items()):
+            avg = round(sum(scores) / len(scores), 1)
+            trend = 'up' if len(scores) > 1 and scores[0] > scores[-1] else ('down' if len(scores) > 1 and scores[0] < scores[-1] else 'flat')
+            subject_analytics.append({'name': sname, 'avg': avg, 'count': len(scores), 'trend': trend})
+
+        # Progress chart: per-term scores by subject
+        PALETTE = ['#4361ee','#22c55e','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4899','#10b981']
+        term_subj = _ddef(lambda: _ddef(list))  # term_label -> subject -> [scores]
+        labels_seen = []
+        labels_set = set()
+        for g in sorted(grades, key=lambda x: (x.academic_year.start_date if x.academic_year else '', x.term)):
+            lbl = f"{g.get_term_display()} {g.academic_year.name}" if g.academic_year else g.get_term_display()
+            if lbl not in labels_set:
+                labels_seen.append(lbl)
+                labels_set.add(lbl)
+            sname = g.subject.name if g.subject else 'Unknown'
+            term_subj[lbl][sname].append(g.total_score or 0)
+        progress_labels = labels_seen
+        for idx, sname in enumerate(sorted(subj_scores.keys())):
+            data_pts = []
+            for lbl in progress_labels:
+                vals = term_subj[lbl].get(sname)
+                data_pts.append(round(sum(vals) / len(vals), 1) if vals else None)
+            progress_datasets.append({
+                'label': sname,
+                'data': data_pts,
+                'borderColor': PALETTE[idx % len(PALETTE)],
+                'backgroundColor': PALETTE[idx % len(PALETTE)] + '22',
+            })
 
     # Get homework and resources
     from homework.models import Homework
@@ -753,6 +811,9 @@ def student_dashboard_view(request):
         'recent_attendance': recent_attendance,
         'attendance_stats': attendance_stats,
         'grades': grades,
+        'subject_analytics': subject_analytics,
+        'progress_labels_json': _json.dumps(progress_labels),
+        'progress_datasets_json': _json.dumps(progress_datasets),
         'homework_list': homework_list,
         'notes_count': notes_count,
         'resources': resources,
