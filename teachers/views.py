@@ -7174,19 +7174,26 @@ def study_guide_ai(request):
         except QuotaExceeded as e:
             return JsonResponse({'error': e.user_message, 'error_code': 'quota_exceeded', 'used': e.used, 'limit': e.limit, 'addon_boost': e.addon_boost}, status=429)
 
-        import google.generativeai as genai
-        api_key = os.environ.get('GEMINI_API_KEY', '')
-        if api_key:
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-2.0-flash')
-            prompt = (
-                "You are a Ghanaian JHS teacher assistant. Turn the following lesson notes into a "
-                "well-structured HTML study guide for students. Use <h3>, <ul>, <li>, <strong>, <p> tags. "
-                "Include a summary, key points, and revision questions.\n\n"
-                f"NOTES:\n{notes[:3000]}"
-            )
-            resp = model.generate_content(prompt)
-            return JsonResponse({'html': resp.text})
+        from academics.ai_tutor import _post_chat_completion, _get_openai_api_key, get_active_ai_model
+        prompt = (
+            "You are a Ghanaian JHS teacher assistant. Turn the following lesson notes into a "
+            "well-structured HTML study guide for students. Use <h3>, <ul>, <li>, <strong>, <p> tags. "
+            "Include a summary, key points, and revision questions.\n\n"
+            f"NOTES:\n{notes[:3000]}"
+        )
+        api_key = _get_openai_api_key()
+        payload = {
+            'model': get_active_ai_model(),
+            'messages': [
+                {'role': 'system', 'content': 'You are a Ghanaian JHS teacher assistant. Generate well-structured HTML study guides.'},
+                {'role': 'user', 'content': prompt},
+            ],
+            'temperature': 0.7,
+            'max_tokens': 3000,
+        }
+        response = _post_chat_completion(payload, api_key)
+        html_content = response['choices'][0]['message']['content']
+        return JsonResponse({'html': html_content})
     except Exception:
         pass
 
@@ -7342,67 +7349,85 @@ def report_card_ai(request):
 
     # AI generation
     try:
-        import google.generativeai as genai
-        api_key = os.environ.get('GEMINI_API_KEY', '')
-        if api_key:
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-2.0-flash')
-            students_text = '\n'.join(
-                f"- {d['name']}: Average {d['avg']}%. Subjects: {d['grades']}"
-                for d in student_data
-            )
-            prompt = (
-                "You are an experienced Ghanaian JHS teacher writing end-of-term report card comments. "
-                "For EACH student below, write a personalised 2-3 sentence report comment that:\n"
-                "1. Mentions their strengths based on their grades\n"
-                "2. Offers constructive areas for improvement\n"
-                "3. Ends with encouragement\n"
-                "Also suggest a one-word Conduct (e.g. Excellent, Good, Satisfactory) and "
-                "Attitude (e.g. Excellent, Very Good, Good).\n\n"
-                "Return ONLY valid JSON: [{\"name\":\"…\",\"comment\":\"…\",\"conduct\":\"…\",\"attitude\":\"…\"}, …]\n\n"
-                f"STUDENTS:\n{students_text}"
-            )
-            resp = model.generate_content(prompt)
-            text = resp.text.strip()
-            # Extract JSON from response
-            if '```' in text:
-                text = text.split('```')[1]
-                if text.startswith('json'):
-                    text = text[4:]
-            import re
-            json_match = re.search(r'\[.*\]', text, re.DOTALL)
-            if json_match:
-                ai_results = json.loads(json_match.group())
-            else:
-                ai_results = json.loads(text)
+        from academics.ai_tutor import _post_chat_completion, _get_openai_api_key, get_active_ai_model
 
-            # Save to database
-            from teachers.models import ReportCardComment
-            saved = []
-            for d in student_data:
-                ai_match = next(
-                    (r for r in ai_results if r.get('name', '').lower().strip() == d['name'].lower().strip()),
-                    None,
-                )
-                if not ai_match:
-                    ai_match = ai_results[student_data.index(d)] if len(ai_results) > student_data.index(d) else {}
-                comment_text = ai_match.get('comment', f"{d['name']} has shown effort this term.")
-                conduct = ai_match.get('conduct', 'Good')
-                attitude = ai_match.get('attitude', 'Good')
-                obj, _ = ReportCardComment.objects.update_or_create(
-                    student_id=d['id'], academic_year=current_year, term=term,
-                    defaults={
-                        'teacher': request.user,
-                        'comment': comment_text,
-                        'conduct': conduct,
-                        'attitude': attitude,
-                    },
-                )
-                saved.append({
-                    'id': obj.id, 'student_id': d['id'], 'name': d['name'],
-                    'comment': comment_text, 'conduct': conduct, 'attitude': attitude,
-                })
-            return JsonResponse({'results': saved})
+        students_text = '\n'.join(
+            f"- {d['name']}: Average {d['avg']}%. Subjects: {d['grades']}"
+            for d in student_data
+        )
+        user_prompt = (
+            "You are an experienced Ghanaian JHS teacher writing end-of-term report card comments. "
+            "For EACH student below, write a personalised 2-3 sentence report comment that:\n"
+            "1. Mentions their strengths based on their grades\n"
+            "2. Offers constructive areas for improvement\n"
+            "3. Ends with encouragement\n"
+            "Also suggest a one-word Conduct (e.g. Excellent, Good, Satisfactory) and "
+            "Attitude (e.g. Excellent, Very Good, Good).\n\n"
+            "Return ONLY valid JSON — no markdown, no code fences.\n"
+            "Return a JSON object: {\"results\":[{\"name\":\"…\",\"comment\":\"…\",\"conduct\":\"…\",\"attitude\":\"…\"}]}\n\n"
+            f"STUDENTS:\n{students_text}"
+        )
+        api_key = _get_openai_api_key()
+        payload = {
+            'model': get_active_ai_model(),
+            'messages': [
+                {'role': 'system', 'content': 'You are an experienced Ghanaian JHS teacher. Return ONLY valid JSON — no markdown, no prose, no code fences.'},
+                {'role': 'user', 'content': user_prompt},
+            ],
+            'temperature': 0.7,
+            'max_tokens': 3000,
+        }
+        response = _post_chat_completion(payload, api_key)
+        raw = response['choices'][0]['message']['content']
+
+        text = (raw or '').strip()
+        if '```' in text:
+            text = text.split('```')[1]
+            if text.startswith('json'):
+                text = text[4:]
+        obj_start = text.find('{')
+        obj_end = text.rfind('}')
+        arr_start = text.find('[')
+        arr_end = text.rfind(']')
+        if obj_start != -1 and obj_end > obj_start:
+            parsed = json.loads(text[obj_start:obj_end + 1])
+            ai_results = parsed.get('results', [])
+            if not isinstance(ai_results, list):
+                ai_results = []
+        elif arr_start != -1 and arr_end > arr_start:
+            ai_results = json.loads(text[arr_start:arr_end + 1])
+        else:
+            ai_results = json.loads(text)
+            if isinstance(ai_results, dict):
+                ai_results = ai_results.get('results', [])
+
+        # Save to database
+        from teachers.models import ReportCardComment
+        saved = []
+        for d in student_data:
+            ai_match = next(
+                (r for r in ai_results if r.get('name', '').lower().strip() == d['name'].lower().strip()),
+                None,
+            )
+            if not ai_match:
+                ai_match = ai_results[student_data.index(d)] if len(ai_results) > student_data.index(d) else {}
+            comment_text = ai_match.get('comment', f"{d['name']} has shown effort this term.")
+            conduct = ai_match.get('conduct', 'Good')
+            attitude = ai_match.get('attitude', 'Good')
+            obj, _ = ReportCardComment.objects.update_or_create(
+                student_id=d['id'], academic_year=current_year, term=term,
+                defaults={
+                    'teacher': request.user,
+                    'comment': comment_text,
+                    'conduct': conduct,
+                    'attitude': attitude,
+                },
+            )
+            saved.append({
+                'id': obj.id, 'student_id': d['id'], 'name': d['name'],
+                'comment': comment_text, 'conduct': conduct, 'attitude': attitude,
+            })
+        return JsonResponse({'results': saved})
     except QuotaExceeded:
         raise
     except Exception as exc:
@@ -7589,34 +7614,63 @@ def question_bank_ai(request):
         }, status=429)
 
     try:
-        import google.generativeai as genai
-        api_key = os.environ.get('GEMINI_API_KEY', '')
-        if not api_key:
-            return JsonResponse({'error': 'AI not configured.'}, status=500)
-
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.0-flash')
+        from academics.ai_tutor import _post_chat_completion, _get_openai_api_key, get_active_ai_model
 
         fmt_desc = {'mcq': 'multiple choice (4 options A-D)', 'fill': 'fill in the blank',
                     'short': 'short answer', 'truefalse': 'true or false', 'essay': 'essay / open-ended'}.get(fmt, fmt)
         class_hint = f" for {target_class}" if target_class else " for a Ghanaian JHS class"
-        prompt = (
+        user_prompt = (
             f"Generate {num} {difficulty} difficulty {fmt_desc} questions on the topic \"{topic}\" "
             f"for {subject_name or 'a'}{class_hint}.\n\n"
-            "Return ONLY valid JSON array:\n"
-            '[{"question":"…","options":["A) …","B) …","C) …","D) …"],"correct":"A","explanation":"…"}, …]\n'
+            "Return ONLY valid JSON — no markdown, no code fences.\n"
+            "Return a JSON object with this exact schema:\n"
+            '{"questions":[{"question":"…","options":["A) …","B) …","C) …","D) …"],"correct":"A","explanation":"…"}]}\n'
             "For non-MCQ, options can be empty array. For true/false, options should be [\"True\",\"False\"]. "
             "For essay questions, provide a model answer in the 'correct' field."
         )
-        resp = model.generate_content(prompt)
-        text = resp.text.strip()
+        api_key = _get_openai_api_key()
+        payload = {
+            'model': get_active_ai_model(),
+            'messages': [
+                {'role': 'system', 'content': 'You are an expert question generator for Ghanaian school assessments. Return ONLY valid JSON — no markdown, no prose, no code fences.'},
+                {'role': 'user', 'content': user_prompt},
+            ],
+            'temperature': 0.8,
+            'max_tokens': 3000,
+            'response_format': {'type': 'json_object'},
+        }
+        response = _post_chat_completion(payload, api_key)
+        raw = (response.get('choices') or [{}])[0].get('message', {}).get('content', '')
+
+        # Parse JSON from AI response
+        text = (raw or '').strip()
+        if not text:
+            return JsonResponse({'error': 'AI returned an empty response. Please try again.'}, status=502)
+        # Strip markdown code fences if present
         if '```' in text:
-            text = text.split('```')[1]
-            if text.startswith('json'):
-                text = text[4:]
-        import re
-        json_match = re.search(r'\[.*\]', text, re.DOTALL)
-        questions = json.loads(json_match.group()) if json_match else json.loads(text)
+            parts = text.split('```')
+            for part in parts[1:]:
+                candidate = part.strip()
+                if candidate.startswith('json'):
+                    candidate = candidate[4:].strip()
+                if candidate and (candidate[0] in '{['):
+                    text = candidate
+                    break
+        # Try object first ({"questions": [...]})
+        obj_start = text.find('{')
+        obj_end = text.rfind('}')
+        arr_start = text.find('[')
+        arr_end = text.rfind(']')
+        if obj_start != -1 and obj_end > obj_start:
+            parsed = json.loads(text[obj_start:obj_end + 1])
+            questions = parsed.get('questions', [])
+        elif arr_start != -1 and arr_end > arr_start:
+            questions = json.loads(text[arr_start:arr_end + 1])
+        else:
+            questions = json.loads(text)
+            if isinstance(questions, dict):
+                questions = questions.get('questions', [])
+
         return JsonResponse({'questions': questions})
 
     except QuotaExceeded:
@@ -7815,13 +7869,9 @@ def differentiated_ai(request):
         }, status=429)
 
     try:
-        import google.generativeai as genai
-        api_key = os.environ.get('GEMINI_API_KEY', '')
-        if not api_key:
-            return JsonResponse({'error': 'AI not configured.'}, status=500)
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.0-flash')
-        prompt = (
+        from academics.ai_tutor import _post_chat_completion, _get_openai_api_key, get_active_ai_model
+
+        user_prompt = (
             "You are a Ghanaian JHS teacher assistant specialising in inclusive education.\n"
             "Take the lesson content below and create THREE differentiated versions as HTML:\n\n"
             "1. **Foundational** — for struggling learners. Simpler language, more scaffolding, "
@@ -7831,18 +7881,34 @@ def differentiated_ai(request):
             "3. **Extension** — for advanced learners. Deeper analysis, open-ended challenges, "
             "research tasks, connections to real-world applications.\n\n"
             "Use HTML tags: <h3>, <h4>, <ul>, <li>, <p>, <strong>, <em>.\n"
-            "Return ONLY valid JSON: {\"foundational\":\"<html>…\",\"grade_level\":\"<html>…\",\"extension\":\"<html>…\"}\n\n"
+            "Return ONLY valid JSON — no markdown, no code fences.\n"
+            "Return: {\"foundational\":\"<html>…\",\"grade_level\":\"<html>…\",\"extension\":\"<html>…\"}\n\n"
             f"LESSON CONTENT:\n{content[:3000]}"
         )
-        resp = model.generate_content(prompt)
-        text = resp.text.strip()
+        api_key = _get_openai_api_key()
+        payload = {
+            'model': get_active_ai_model(),
+            'messages': [
+                {'role': 'system', 'content': 'You are a Ghanaian JHS teacher assistant specialising in inclusive education. Return ONLY valid JSON — no markdown, no prose, no code fences.'},
+                {'role': 'user', 'content': user_prompt},
+            ],
+            'temperature': 0.7,
+            'max_tokens': 3000,
+        }
+        response = _post_chat_completion(payload, api_key)
+        raw = response['choices'][0]['message']['content']
+
+        text = (raw or '').strip()
         if '```' in text:
             text = text.split('```')[1]
             if text.startswith('json'):
                 text = text[4:]
-        import re
-        json_match = re.search(r'\{.*\}', text, re.DOTALL)
-        result = json.loads(json_match.group()) if json_match else json.loads(text)
+        obj_start = text.find('{')
+        obj_end = text.rfind('}')
+        if obj_start != -1 and obj_end > obj_start:
+            result = json.loads(text[obj_start:obj_end + 1])
+        else:
+            result = json.loads(text)
         return JsonResponse(result)
     except QuotaExceeded:
         raise

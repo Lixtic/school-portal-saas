@@ -524,6 +524,10 @@ def _call_gemini_chat(payload, model_override=None):
     temperature = payload.get("temperature")
     if temperature is not None:
         generation_config["temperature"] = float(temperature)
+    # Translate OpenAI response_format to Gemini responseMimeType
+    resp_fmt = payload.get("response_format")
+    if isinstance(resp_fmt, dict) and resp_fmt.get("type") == "json_object":
+        generation_config["responseMimeType"] = "application/json"
 
     body = {"contents": contents}
     if generation_config:

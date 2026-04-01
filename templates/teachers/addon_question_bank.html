@@ -442,6 +442,7 @@ async function generateQuestions(){
         const data=await r.json();
         if(r.status===403&&data.error_code==='freemium_limit'){alert(data.message);container.innerHTML='';return;}
         if(r.status===429){alert(data.error||'Quota exceeded.');container.innerHTML='';return;}
+        if(!r.ok){container.innerHTML='<div class="qb-empty" style="color:#ef4444;"><i class="bi bi-exclamation-triangle"></i>'+(data.message||data.error||'AI generation failed. Please try again.')+'</div>';return;}
         if(data.questions&&data.questions.length){
             aiQuestions=data.questions;
             renderAiResults();
