@@ -282,6 +282,29 @@ else:
 
 
 # =====================
+# CACHING
+# =====================
+_REDIS_URL = os.environ.get('REDIS_URL')
+if _REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': _REDIS_URL,
+            'TIMEOUT': 300,
+            'KEY_PREFIX': 'aura',
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'aura-cache',
+            'TIMEOUT': 300,
+        }
+    }
+
+
+# =====================
 # DJANGO-TENANTS PERFORMANCE
 # =====================
 # Limit SET search_path to once per request (not on every cursor call).

@@ -266,6 +266,15 @@ def homework_create(request):
             ]
             if hw_notifications:
                 HWNotification.objects.bulk_create(hw_notifications, ignore_conflicts=True)
+                # Push notifications to students in background thread
+                from announcements.views import send_push_to_users
+                student_user_ids = [s.user_id for s in students_in_class]
+                send_push_to_users(
+                    student_user_ids,
+                    '📚 New Homework',
+                    f'“{homework.title}” – due {homework.due_date.strftime("%b %d")}',
+                    '/homework/',
+                )
             messages.success(request, "Homework assigned successfully.")
             return redirect('homework:homework_list')
     else:

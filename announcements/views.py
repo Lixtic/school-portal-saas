@@ -50,6 +50,16 @@ def _create_announcement_notifications(announcement):
     ]
     Notification.objects.bulk_create(notifications, ignore_conflicts=True)
 
+    # Fire push notifications in background thread
+    recipient_ids = list(recipients.values_list('pk', flat=True))
+    if recipient_ids:
+        send_push_to_users(
+            recipient_ids,
+            f'📢 {announcement.title}',
+            (announcement.content or '')[:200],
+            '/announcements/',
+        )
+
 
 def _email_announcement(announcement, recipients_qs):
     """Send announcement email to all recipients in a background thread."""
@@ -322,6 +332,54 @@ def send_push_notification(user, title, body, url='/'):
             # Subscription expired — clean up
             if ex.response and ex.response.status_code in (404, 410):
                 sub.delete()
+
+
+def send_push_to_users(user_ids, title, body, url='/'):
+    """
+    Send push notifications to multiple users in a background thread.
+    Accepts a list/set of user PKs to avoid blocking the request.
+    """
+    if not user_ids:
+        return
+
+    def _push_worker(_user_ids, _title, _body, _url):
+        from django.conf import settings
+        try:
+            from pywebpush import webpush, WebPushException
+        except ImportError:
+            return
+        import json as _json
+
+        subs = PushSubscription.objects.filter(user_id__in=_user_ids).select_related('user')
+        private_key_pem = settings.VAPID_PRIVATE_KEY_PEM
+        claims = settings.VAPID_CLAIMS
+        payload = _json.dumps({'title': _title, 'body': _body, 'url': _url})
+
+        for sub in subs:
+            try:
+                webpush(
+                    subscription_info={
+                        'endpoint': sub.endpoint,
+                        'keys': {'p256dh': sub.p256dh, 'auth': sub.auth},
+                    },
+                    data=payload,
+                    vapid_private_key=private_key_pem,
+                    vapid_claims=claims,
+                )
+            except WebPushException as ex:
+                if ex.response and ex.response.status_code in (404, 410):
+                    sub.delete()
+            except Exception:
+                pass
+
+    # Snapshot IDs as a list to avoid queryset issues across threads
+    uid_list = list(user_ids)
+    thread = threading.Thread(
+        target=_push_worker,
+        args=(uid_list, title, body, url),
+        daemon=True,
+    )
+    thread.start()
 
 
 # ── Offline Data API ────────────────────────────────────────────────────────

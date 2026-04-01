@@ -380,6 +380,20 @@ def record_payment(request, fee_id):
                 payment.student_fee = fee
                 payment.recorded_by = request.user
                 payment.save()
+                # Push notification to student & parents about payment
+                try:
+                    from announcements.views import send_push_to_users
+                    from parents.models import Parent
+                    student = fee.student
+                    pay_msg = f'Payment of \u20b5{payment.amount:,.2f} recorded for {fee.fee_structure.name}'
+                    notify_ids = [student.user_id]
+                    parent_ids = list(
+                        Parent.objects.filter(children=student).values_list('user_id', flat=True)
+                    )
+                    notify_ids.extend(parent_ids)
+                    send_push_to_users(notify_ids, '\u2705 Payment Confirmed', pay_msg, '/fees/')
+                except Exception:
+                    pass
                 messages.success(request, 'Payment recorded successfully.')
                 # Teachers return to their fee task detail page; admins go to student fees.
                 if request.user.user_type == 'teacher':

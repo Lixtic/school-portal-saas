@@ -10,11 +10,13 @@ from django.dispatch import receiver
 
 
 def _notify_parents(student, message, link='', alert_type='general'):
-    """Create an announcements.Notification for every parent linked to student."""
+    """Create an announcements.Notification for every parent linked to student,
+    and fire a push notification to each parent in a background thread."""
     try:
         from announcements.models import Notification
         from parents.models import Parent
         parents = Parent.objects.filter(children=student).select_related('user')
+        parent_user_ids = []
         for parent in parents:
             Notification.objects.create(
                 recipient=parent.user,
@@ -22,6 +24,11 @@ def _notify_parents(student, message, link='', alert_type='general'):
                 link=link,
                 alert_type=alert_type,
             )
+            parent_user_ids.append(parent.user_id)
+        # Fire push notifications in background thread
+        if parent_user_ids:
+            from announcements.views import send_push_to_users
+            send_push_to_users(parent_user_ids, 'School Notification', message, link or '/')
     except Exception:
         pass  # Never crash a save due to notification failure
 
