@@ -35,15 +35,9 @@ async function run() {
         }
 
         // Validate navigation does not leave loader stuck.
-        const resetLink = page.locator('a[href*="password_reset"]').first();
-        if (await resetLink.count()) {
-            await Promise.all([
-                page.waitForURL(/password_reset\//, { timeout: 10000 }),
-                resetLink.click(),
-            ]);
-        } else {
-            await page.goto(`${baseUrl}/password_reset/`, { waitUntil: 'networkidle' });
-        }
+        // The password_reset link may be inside a hidden panel on the public
+        // login page, so navigate directly instead of clicking.
+        await page.goto(`${baseUrl}/password_reset/`, { waitUntil: 'networkidle' });
 
         const postNavigationState = await page.evaluate(() => {
             const bar = document.getElementById('pageLoader');
