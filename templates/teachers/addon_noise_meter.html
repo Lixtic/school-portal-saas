@@ -3,13 +3,16 @@
 
 {% block content %}
 <style>
-:root{--nm-bg:#f4f6fb;--nm-card:#fff;--nm-ink:#0b1120;--nm-muted:#8892a4;--nm-border:#e4e8f2;}
+:root{--nm-bg:#f4f6fb;--nm-card:#fff;--nm-ink:#0b1120;--nm-muted:#8892a4;--nm-border:#e4e8f2;--nm-accent:#4361ee;--nm-accent2:#7c3aed;}
 [data-bs-theme="dark"]{--nm-bg:#0f172a;--nm-card:#1e293b;--nm-ink:#f1f5f9;--nm-muted:#94a3b8;--nm-border:#334155;}
-.nm-wrap{max-width:560px;margin:0 auto;padding:1rem 0;}
+.nm-wrap{max-width:560px;margin:0 auto;padding:1rem .5rem;}
+.nm-hero{background:linear-gradient(135deg,var(--nm-accent),var(--nm-accent2));border-radius:16px;padding:1.2rem 1.6rem;margin-bottom:1rem;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+.nm-hero h1{margin:0;font-size:1.2rem;font-weight:800;letter-spacing:-.02em;}
+.nm-hero-sub{font-size:.78rem;opacity:.85;margin-top:.1rem;}
 .nm-card{background:var(--nm-card);border:1px solid var(--nm-border);border-radius:18px;overflow:hidden;}
-.nm-head{padding:1rem 1.5rem;border-bottom:1px solid var(--nm-border);display:flex;align-items:center;justify-content:space-between;}
-.nm-head h2{margin:0;font-size:1.1rem;font-weight:800;color:var(--nm-ink);}
-.nm-body{padding:2rem 1.5rem;text-align:center;}
+.nm-head{padding:.8rem 1.5rem;border-bottom:1px solid var(--nm-border);display:flex;align-items:center;justify-content:space-between;}
+.nm-head h2{margin:0;font-size:1rem;font-weight:800;color:var(--nm-ink);}
+.nm-body{padding:2rem 1.5rem;text-align:center;position:relative;}
 .nm-meter-wrap{position:relative;width:260px;height:260px;margin:0 auto 1.5rem;}
 .nm-ring{fill:none;stroke-linecap:round;transition:stroke-dashoffset .15s,stroke .15s;}
 .nm-ring-bg{fill:none;stroke:var(--nm-border);stroke-linecap:round;}
@@ -21,23 +24,33 @@
 .nm-status.loud{color:#ef4444;}
 .nm-hint{font-size:.78rem;color:var(--nm-muted);margin-bottom:1.2rem;}
 .nm-controls{display:flex;gap:.5rem;justify-content:center;}
-.nm-btn{padding:.5rem 1.5rem;border-radius:10px;border:none;font-size:.88rem;font-weight:700;cursor:pointer;transition:transform .15s;}
+.nm-btn{padding:.5rem 1.5rem;border-radius:10px;border:none;font-size:.88rem;font-weight:700;cursor:pointer;transition:transform .15s,box-shadow .15s;}
 .nm-btn:hover{transform:scale(1.04);}
-.nm-btn-go{background:linear-gradient(135deg,#4361ee,#4cc9f0);color:#fff;}
+.nm-btn-go{background:linear-gradient(135deg,var(--nm-accent),var(--nm-accent2));color:#fff;}
+.nm-btn-go:hover{box-shadow:0 4px 16px rgba(67,97,238,.35);}
 .nm-btn-stop{background:#ef4444;color:#fff;}
+.nm-btn-stop:hover{box-shadow:0 4px 12px rgba(239,68,68,.3);}
 .nm-threshold{margin-top:1.2rem;padding-top:1rem;border-top:1px solid var(--nm-border);}
 .nm-threshold label{font-size:.75rem;font-weight:700;color:var(--nm-muted);text-transform:uppercase;}
-.nm-threshold input[type=range]{width:200px;accent-color:#4361ee;}
-.nm-fs-btn{position:absolute;top:.8rem;right:.8rem;background:none;border:none;color:var(--nm-muted);font-size:1.1rem;cursor:pointer;}
+.nm-threshold input[type=range]{width:200px;accent-color:var(--nm-accent);}
+.nm-fs-btn{position:absolute;top:.8rem;right:.8rem;background:none;border:none;color:var(--nm-muted);font-size:1.1rem;cursor:pointer;transition:color .15s;}
+.nm-fs-btn:hover{color:var(--nm-accent);}
 .nm-fullscreen{position:fixed!important;inset:0;z-index:9999;background:var(--nm-card);border-radius:0!important;display:flex;flex-direction:column;align-items:center;justify-content:center;}
 .nm-fullscreen .nm-meter-wrap{width:400px;height:400px;}
 .nm-fullscreen .nm-level-text{font-size:5rem;}
 </style>
 
 <div class="nm-wrap">
+<!-- Hero -->
+<div class="nm-hero">
+    <div>
+        <h1><i class="bi bi-soundwave me-2"></i>Noise Meter</h1>
+        <div class="nm-hero-sub">Monitor classroom noise levels in real-time</div>
+    </div>
+</div>
 <div class="nm-card" id="nmCard">
     <div class="nm-head">
-        <h2><i class="bi bi-soundwave me-2" style="color:#6366f1;"></i>Noise Meter</h2>
+        <h2><i class="bi bi-mic me-2" style="color:var(--nm-accent);"></i>Live Monitor</h2>
         <button class="nm-fs-btn" onclick="document.getElementById('nmCard').classList.toggle('nm-fullscreen')" title="Fullscreen"><i class="bi bi-arrows-fullscreen"></i></button>
     </div>
     <div class="nm-body">

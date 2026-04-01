@@ -3,18 +3,21 @@
 
 {% block content %}
 <style>
-:root{--tb-bg:#f4f6fb;--tb-card:#fff;--tb-ink:#0b1120;--tb-muted:#8892a4;--tb-border:#e4e8f2;}
+:root{--tb-bg:#f4f6fb;--tb-card:#fff;--tb-ink:#0b1120;--tb-muted:#8892a4;--tb-border:#e4e8f2;--tb-accent:#4361ee;--tb-accent2:#7c3aed;}
 [data-bs-theme="dark"]{--tb-bg:#0f172a;--tb-card:#1e293b;--tb-ink:#f1f5f9;--tb-muted:#94a3b8;--tb-border:#334155;}
-.tb-wrap{max-width:980px;margin:0 auto;padding:1rem 0;}
-.tb-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem;}
-.tb-header h2{margin:0;font-size:1.15rem;font-weight:800;color:var(--tb-ink);}
+.tb-wrap{max-width:980px;margin:0 auto;padding:1rem .5rem;}
+.tb-hero{background:linear-gradient(135deg,var(--tb-accent),var(--tb-accent2));border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1rem;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;}
+.tb-hero h1{margin:0;font-size:1.25rem;font-weight:800;letter-spacing:-.02em;}
+.tb-hero-sub{font-size:.78rem;opacity:.85;margin-top:.15rem;}
+.tb-hero-stats{display:flex;gap:1.2rem;}
+.tb-h-stat{text-align:center;}.tb-h-num{font-size:1.5rem;font-weight:800;line-height:1;}.tb-h-lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;opacity:.8;}
 .tb-board{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;}
 @media(max-width:768px){.tb-board{grid-template-columns:1fr;}}
 .tb-col{background:var(--tb-bg);border:1px solid var(--tb-border);border-radius:14px;min-height:200px;padding:.6rem;}
 .tb-col-head{padding:.5rem .7rem;font-size:.78rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--tb-muted);display:flex;align-items:center;justify-content:space-between;}
 .tb-col-head .badge{font-size:.7rem;font-weight:700;padding:.15rem .45rem;border-radius:6px;}
 .tb-item{background:var(--tb-card);border:1px solid var(--tb-border);border-radius:10px;padding:.6rem .8rem;margin:.4rem 0;cursor:grab;transition:box-shadow .15s,transform .15s;position:relative;}
-.tb-item:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);transform:translateY(-1px);}
+.tb-item:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);transform:translateY(-2px);}
 .tb-item.dragging{opacity:.4;transform:rotate(2deg);}
 .tb-item-title{font-size:.88rem;font-weight:700;color:var(--tb-ink);margin-bottom:.2rem;}
 .tb-item-meta{font-size:.72rem;color:var(--tb-muted);display:flex;gap:.5rem;align-items:center;}
@@ -24,19 +27,27 @@
 .tb-item:hover .tb-item-actions{display:flex;gap:.2rem;}
 .tb-item-actions button{background:none;border:none;color:var(--tb-muted);font-size:.78rem;cursor:pointer;padding:.1rem .25rem;border-radius:4px;}
 .tb-item-actions button:hover{color:#ef4444;background:rgba(239,68,68,.08);}
-.tb-add-input{width:100%;padding:.4rem .6rem;border:1px dashed var(--tb-border);border-radius:8px;font-size:.82rem;background:transparent;color:var(--tb-ink);margin-top:.3rem;}
-.tb-add-input:focus{border-color:#4361ee;outline:none;}
+.tb-add-input{width:100%;padding:.4rem .6rem;border:1px dashed var(--tb-border);border-radius:8px;font-size:.82rem;background:transparent;color:var(--tb-ink);margin-top:.3rem;transition:border-color .15s;}
+.tb-add-input:focus{border-color:var(--tb-accent);outline:none;box-shadow:0 0 0 3px rgba(67,97,238,.12);}
 .tb-add-row{display:flex;gap:.3rem;margin-top:.3rem;}
 .tb-add-row select,.tb-add-row input{padding:.3rem .5rem;border:1px solid var(--tb-border);border-radius:6px;font-size:.78rem;background:var(--tb-card);color:var(--tb-ink);}
-.tb-add-btn{background:#4361ee;color:#fff;border:none;padding:.3rem .6rem;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;}
-.tb-drop-zone{border:2px dashed #4361ee;border-radius:10px;min-height:40px;margin:.3rem 0;opacity:0;transition:opacity .15s;}
+.tb-add-row select:focus,.tb-add-row input:focus{border-color:var(--tb-accent);outline:none;box-shadow:0 0 0 3px rgba(67,97,238,.12);}
+.tb-add-btn{background:linear-gradient(135deg,var(--tb-accent),var(--tb-accent2));color:#fff;border:none;padding:.3rem .6rem;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;transition:box-shadow .15s;}
+.tb-add-btn:hover{box-shadow:0 4px 12px rgba(67,97,238,.35);}
+.tb-drop-zone{border:2px dashed var(--tb-accent);border-radius:10px;min-height:40px;margin:.3rem 0;opacity:0;transition:opacity .15s;}
 .tb-drop-zone.active{opacity:1;}
 </style>
 
 <div class="tb-wrap">
-    <div class="tb-header">
-        <h2><i class="bi bi-kanban me-2" style="color:#4361ee;"></i>Task Board</h2>
-        <span style="font-size:.78rem;color:var(--tb-muted);">{{ cards|length }} task{{ cards|length|pluralize }}</span>
+    <!-- Hero -->
+    <div class="tb-hero">
+        <div>
+            <h1><i class="bi bi-kanban me-2"></i>Task Board</h1>
+            <div class="tb-hero-sub">Organize your teaching tasks with drag &amp; drop</div>
+        </div>
+        <div class="tb-hero-stats">
+            <div class="tb-h-stat"><div class="tb-h-num">{{ cards|length }}</div><div class="tb-h-lbl">Tasks</div></div>
+        </div>
     </div>
 
     <div class="tb-board">

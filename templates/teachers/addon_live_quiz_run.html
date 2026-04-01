@@ -3,33 +3,40 @@
 
 {% block content %}
 <style>
-:root{--lr-card:#fff;--lr-ink:#0b1120;--lr-muted:#8892a4;--lr-border:#e4e8f2;--lr-accent:#f59e0b;--lr-green:#10b981;--lr-red:#ef4444;}
+:root{--lr-card:#fff;--lr-ink:#0b1120;--lr-muted:#8892a4;--lr-border:#e4e8f2;--lr-accent:#4361ee;--lr-accent2:#f59e0b;--lr-green:#10b981;--lr-red:#ef4444;}
 [data-bs-theme="dark"]{--lr-card:#1e293b;--lr-ink:#f1f5f9;--lr-muted:#94a3b8;--lr-border:#334155;}
-.lr-wrap{max-width:900px;margin:0 auto;padding:1rem 0;}
+.lr-wrap{max-width:900px;margin:0 auto;padding:1rem .5rem;}
+.lr-hero{background:linear-gradient(135deg,var(--lr-accent),var(--lr-accent2));border-radius:16px;padding:1.2rem 1.6rem;margin-bottom:1rem;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+.lr-hero h1{margin:0;font-size:1.2rem;font-weight:800;letter-spacing:-.02em;}
+.lr-hero-sub{font-size:.78rem;opacity:.85;margin-top:.1rem;}
 .lr-card{background:var(--lr-card);border:1px solid var(--lr-border);border-radius:14px;overflow:hidden;margin-bottom:1rem;}
-.lr-head{padding:1rem 1.3rem;border-bottom:1px solid var(--lr-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
-.lr-head h2{margin:0;font-size:1.1rem;font-weight:800;color:var(--lr-ink);}
+.lr-head{padding:.8rem 1.3rem;border-bottom:1px solid var(--lr-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+.lr-head h2{margin:0;font-size:1rem;font-weight:800;color:var(--lr-ink);}
 .lr-body{padding:1.2rem 1.3rem;}
-.lr-btn{padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;border:none;cursor:pointer;transition:transform .1s;}
+.lr-btn{padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;border:none;cursor:pointer;transition:transform .1s,box-shadow .15s;}
 .lr-btn:active{transform:scale(.97);}
 .lr-btn-green{background:var(--lr-green);color:#fff;}
+.lr-btn-green:hover{box-shadow:0 4px 12px rgba(16,185,129,.3);}
 .lr-btn-red{background:var(--lr-red);color:#fff;}
+.lr-btn-red:hover{box-shadow:0 4px 12px rgba(239,68,68,.3);}
 .lr-btn-outline{background:transparent;border:1px solid var(--lr-border);color:var(--lr-ink);}
 .lr-code-display{font-family:monospace;font-size:2.4rem;font-weight:900;letter-spacing:.15em;color:var(--lr-accent);text-align:center;padding:1rem;}
 .lr-status-live{font-size:.85rem;font-weight:700;padding:.3rem .8rem;border-radius:20px;background:var(--lr-green);color:#fff;display:inline-flex;align-items:center;gap:.3rem;}
 .lr-status-closed{font-size:.85rem;font-weight:700;padding:.3rem .8rem;border-radius:20px;background:var(--lr-muted);color:#fff;}
-.lr-q-card{background:var(--lr-card);border:1px solid var(--lr-border);border-radius:10px;padding:.8rem;margin-bottom:.5rem;}
+.lr-q-card{background:var(--lr-card);border:1px solid var(--lr-border);border-radius:10px;padding:.8rem;margin-bottom:.5rem;transition:box-shadow .15s;}
+.lr-q-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.05);}
 .lr-q-text{font-weight:700;font-size:.88rem;color:var(--lr-ink);margin-bottom:.3rem;}
 .lr-q-bar{display:flex;gap:2px;align-items:flex-end;height:40px;margin-bottom:.2rem;}
 .lr-q-bar-seg{flex:1;border-radius:4px 4px 0 0;transition:height .3s;min-height:2px;}
-.lr-q-bar-a{background:#3b82f6;}
+.lr-q-bar-a{background:#4361ee;}
 .lr-q-bar-b{background:#f59e0b;}
 .lr-q-bar-c{background:#10b981;}
 .lr-q-bar-d{background:#ef4444;}
 .lr-q-labels{display:flex;justify-content:space-around;font-size:.72rem;font-weight:600;color:var(--lr-muted);}
 .lr-q-correct{font-size:.73rem;color:var(--lr-green);font-weight:600;}
 .lr-leaderboard{counter-reset:rank;}
-.lr-lb-item{display:flex;align-items:center;gap:.5rem;padding:.35rem .6rem;border-radius:8px;margin-bottom:.2rem;background:var(--lr-card);border:1px solid var(--lr-border);}
+.lr-lb-item{display:flex;align-items:center;gap:.5rem;padding:.35rem .6rem;border-radius:8px;margin-bottom:.2rem;background:var(--lr-card);border:1px solid var(--lr-border);transition:box-shadow .15s;}
+.lr-lb-item:hover{box-shadow:0 2px 8px rgba(0,0,0,.05);}
 .lr-lb-item::before{counter-increment:rank;content:counter(rank) ".";font-weight:800;font-size:.82rem;color:var(--lr-accent);min-width:22px;}
 .lr-lb-name{font-weight:700;font-size:.84rem;color:var(--lr-ink);flex:1;}
 .lr-lb-score{font-weight:800;font-size:.88rem;color:var(--lr-green);}
@@ -38,6 +45,15 @@
 </style>
 
 <div class="lr-wrap">
+    <!-- Hero -->
+    <div class="lr-hero">
+        <div>
+            <h1><i class="bi bi-broadcast me-2"></i>Live Quiz Control</h1>
+            <div class="lr-hero-sub">{{ quiz.title }} &mdash; {{ quiz.questions.count }} question{{ quiz.questions.count|pluralize }}</div>
+        </div>
+        <a href="{% url 'teacher_addon_live_quiz' %}" class="lr-btn lr-btn-outline" style="color:#fff;border-color:rgba(255,255,255,.35);"><i class="bi bi-arrow-left me-1"></i>Back</a>
+    </div>
+
     <!-- Control Panel -->
     <div class="lr-card">
         <div class="lr-head">

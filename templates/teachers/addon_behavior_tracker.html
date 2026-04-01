@@ -3,34 +3,39 @@
 
 {% block content %}
 <style>
-:root{--bh-card:#fff;--bh-ink:#0b1120;--bh-muted:#8892a4;--bh-border:#e4e8f2;--bh-pos:#10b981;--bh-neg:#ef4444;--bh-sel:#8b5cf6;}
+:root{--bh-card:#fff;--bh-ink:#0b1120;--bh-muted:#8892a4;--bh-border:#e4e8f2;--bh-pos:#10b981;--bh-neg:#ef4444;--bh-sel:#7c3aed;--bh-accent:#4361ee;}
 [data-bs-theme="dark"]{--bh-card:#1e293b;--bh-ink:#f1f5f9;--bh-muted:#94a3b8;--bh-border:#334155;}
-.bh-wrap{max-width:860px;margin:0 auto;padding:1rem 0;}
+.bh-wrap{max-width:860px;margin:0 auto;padding:1rem .5rem;}
+.bh-hero{background:linear-gradient(135deg,var(--bh-accent),var(--bh-sel));border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1rem;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;}
+.bh-hero h1{margin:0;font-size:1.25rem;font-weight:800;letter-spacing:-.02em;}
+.bh-hero-sub{font-size:.78rem;opacity:.85;margin-top:.15rem;}
+.bh-hero-stats{display:flex;gap:1.2rem;}
+.bh-h-stat{text-align:center;}.bh-h-num{font-size:1.5rem;font-weight:800;line-height:1;}.bh-h-lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;opacity:.8;}
 .bh-card{background:var(--bh-card);border:1px solid var(--bh-border);border-radius:14px;overflow:hidden;margin-bottom:1rem;}
-.bh-head{padding:1rem 1.3rem;border-bottom:1px solid var(--bh-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
-.bh-head h2{margin:0;font-size:1.1rem;font-weight:800;color:var(--bh-ink);}
+.bh-head{padding:.8rem 1.3rem;border-bottom:1px solid var(--bh-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+.bh-head h2{margin:0;font-size:1rem;font-weight:800;color:var(--bh-ink);}
 .bh-body{padding:1.2rem 1.3rem;}
 .bh-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;}
 @media(max-width:640px){.bh-grid{grid-template-columns:1fr;}}
 .bh-full{grid-column:span 2;}@media(max-width:640px){.bh-full{grid-column:span 1;}}
 .bh-label{display:block;font-size:.72rem;font-weight:700;color:var(--bh-muted);text-transform:uppercase;margin-bottom:.2rem;}
-.bh-input,.bh-select,.bh-textarea{width:100%;padding:.45rem .65rem;border:1px solid var(--bh-border);border-radius:8px;font-size:.84rem;background:var(--bh-card);color:var(--bh-ink);}
+.bh-input,.bh-select,.bh-textarea{width:100%;padding:.45rem .65rem;border:1px solid var(--bh-border);border-radius:8px;font-size:.84rem;background:var(--bh-card);color:var(--bh-ink);transition:border-color .15s;}
 .bh-textarea{min-height:60px;resize:vertical;}
-.bh-input:focus,.bh-select:focus,.bh-textarea:focus{border-color:var(--bh-sel);outline:none;}
-.bh-btn{padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;border:none;cursor:pointer;transition:transform .1s;}
+.bh-input:focus,.bh-select:focus,.bh-textarea:focus{border-color:var(--bh-accent);outline:none;box-shadow:0 0 0 3px rgba(67,97,238,.12);}
+.bh-btn{padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;border:none;cursor:pointer;transition:transform .1s,box-shadow .15s;}
 .bh-btn:active{transform:scale(.97);}
 .bh-btn-pos{background:var(--bh-pos);color:#fff;}
 .bh-btn-neg{background:var(--bh-neg);color:#fff;}
-.bh-btn-sel{background:var(--bh-sel);color:#fff;}
+.bh-btn-sel{background:linear-gradient(135deg,var(--bh-accent),var(--bh-sel));color:#fff;}
+.bh-btn-sel:hover{box-shadow:0 4px 16px rgba(67,97,238,.35);}
 .bh-btn-outline{background:transparent;border:1px solid var(--bh-border);color:var(--bh-ink);}
 .bh-btn-sm{padding:.3rem .7rem;font-size:.78rem;}
-.bh-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:1rem;}
-@media(max-width:480px){.bh-stats{grid-template-columns:1fr;}}
-.bh-stat{border-radius:12px;padding:.8rem 1rem;text-align:center;background:var(--bh-card);border:1px solid var(--bh-border);}
-.bh-stat-num{font-size:1.6rem;font-weight:800;line-height:1;}
-.bh-stat-label{font-size:.72rem;font-weight:600;color:var(--bh-muted);text-transform:uppercase;margin-top:.2rem;}
-.bh-log-item{display:flex;align-items:flex-start;gap:.6rem;padding:.6rem .8rem;border-radius:10px;margin-bottom:.4rem;background:var(--bh-card);border:1px solid var(--bh-border);transition:box-shadow .15s;}
-.bh-log-item:hover{box-shadow:0 4px 12px rgba(0,0,0,.06);}
+.bh-search{position:relative;margin-bottom:.8rem;}
+.bh-search i{position:absolute;left:.65rem;top:50%;transform:translateY(-50%);color:var(--bh-muted);font-size:.85rem;}
+.bh-search input{width:100%;padding:.45rem .65rem .45rem 2rem;border:1px solid var(--bh-border);border-radius:8px;font-size:.84rem;background:var(--bh-card);color:var(--bh-ink);}
+.bh-search input:focus{border-color:var(--bh-accent);outline:none;box-shadow:0 0 0 3px rgba(67,97,238,.12);}
+.bh-log-item{display:flex;align-items:flex-start;gap:.6rem;padding:.6rem .8rem;border-radius:10px;margin-bottom:.4rem;background:var(--bh-card);border:1px solid var(--bh-border);transition:box-shadow .15s,transform .15s;}
+.bh-log-item:hover{box-shadow:0 4px 12px rgba(0,0,0,.06);transform:translateY(-1px);}
 .bh-type-dot{width:10px;height:10px;border-radius:50%;margin-top:.35rem;flex-shrink:0;}
 .bh-type-positive{background:var(--bh-pos);}
 .bh-type-negative{background:var(--bh-neg);}
@@ -38,22 +43,33 @@
 .bh-log-name{font-weight:700;font-size:.85rem;color:var(--bh-ink);}
 .bh-log-meta{font-size:.73rem;color:var(--bh-muted);}
 .bh-log-note{font-size:.82rem;color:var(--bh-ink);margin-top:.15rem;}
-.bh-empty{padding:2rem;text-align:center;color:var(--bh-muted);font-size:.88rem;}
-.bh-flag{border-left:3px solid var(--bh-neg);background:var(--bh-neg)08;border-radius:10px;padding:.6rem .8rem;margin-bottom:.4rem;}
+.bh-empty{padding:2.5rem 1rem;text-align:center;color:var(--bh-muted);font-size:.88rem;}
+.bh-empty i{font-size:2rem;display:block;margin-bottom:.5rem;opacity:.25;}
+.bh-flag{border-left:3px solid var(--bh-neg);background:rgba(239,68,68,.04);border-radius:10px;padding:.6rem .8rem;margin-bottom:.4rem;transition:background .15s;}
+.bh-flag:hover{background:rgba(239,68,68,.08);}
 .bh-flag-name{font-weight:700;font-size:.85rem;color:var(--bh-ink);}
 .bh-flag-meta{font-size:.73rem;color:var(--bh-neg);}
 .bh-quick-btns{display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.5rem;}
 .bh-quick-btn{padding:.3rem .6rem;border-radius:6px;font-size:.76rem;font-weight:600;border:1px solid var(--bh-border);background:var(--bh-card);color:var(--bh-ink);cursor:pointer;transition:all .15s;}
-.bh-quick-btn:hover{border-color:var(--bh-sel);background:var(--bh-sel)10;}
+.bh-quick-btn:hover{border-color:var(--bh-sel);background:rgba(124,58,237,.06);}
 .bh-quick-btn.active{background:var(--bh-sel);color:#fff;border-color:var(--bh-sel);}
+.bh-filter-pills{display:flex;gap:.3rem;flex-wrap:wrap;}
+.bh-pill{padding:.25rem .6rem;border-radius:20px;font-size:.75rem;font-weight:600;border:1px solid var(--bh-border);background:var(--bh-card);color:var(--bh-muted);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.2rem;}
+.bh-pill:hover,.bh-pill.active{background:var(--bh-accent);color:#fff;border-color:var(--bh-accent);}
 </style>
 
 <div class="bh-wrap">
-    <!-- Stats -->
-    <div class="bh-stats">
-        <div class="bh-stat"><div class="bh-stat-num" style="color:var(--bh-ink);">{{ total }}</div><div class="bh-stat-label">Total Logs</div></div>
-        <div class="bh-stat"><div class="bh-stat-num" style="color:var(--bh-pos);">{{ positive }}</div><div class="bh-stat-label">Positive</div></div>
-        <div class="bh-stat"><div class="bh-stat-num" style="color:var(--bh-neg);">{{ negative }}</div><div class="bh-stat-label">Negative</div></div>
+    <!-- Hero -->
+    <div class="bh-hero">
+        <div>
+            <h1><i class="bi bi-heart-pulse me-2"></i>Behavior &amp; SEL Tracker</h1>
+            <div class="bh-hero-sub">Monitor student behavior, social-emotional learning &amp; flagged concerns</div>
+        </div>
+        <div class="bh-hero-stats">
+            <div class="bh-h-stat"><div class="bh-h-num">{{ total }}</div><div class="bh-h-lbl">Total</div></div>
+            <div class="bh-h-stat"><div class="bh-h-num">{{ positive }}</div><div class="bh-h-lbl">Positive</div></div>
+            <div class="bh-h-stat"><div class="bh-h-num">{{ negative }}</div><div class="bh-h-lbl">Negative</div></div>
+        </div>
     </div>
 
     <!-- Flagged Students -->
@@ -77,7 +93,7 @@
     <!-- Class Selector -->
     <div class="bh-card">
         <div class="bh-head">
-            <h2><i class="bi bi-heart-pulse me-2" style="color:var(--bh-sel);"></i>Behavior & SEL Tracker</h2>
+            <h2><i class="bi bi-people me-2" style="color:var(--bh-accent);"></i>Log Behavior</h2>
         </div>
         <div class="bh-body">
             <form method="get" style="margin-bottom:.8rem;">
@@ -151,9 +167,9 @@
                 <button type="submit" class="bh-btn bh-btn-sel" style="margin-top:.6rem;"><i class="bi bi-plus-lg me-1"></i>Log Behavior</button>
             </form>
             {% elif sel_class %}
-            <div class="bh-empty">No students found in this class.</div>
+            <div class="bh-empty"><i class="bi bi-people"></i>No students found in this class.</div>
             {% else %}
-            <div class="bh-empty"><i class="bi bi-hand-index" style="font-size:1.4rem;display:block;margin-bottom:.5rem;opacity:.3;"></i>Select a class to start logging behavior.</div>
+            <div class="bh-empty"><i class="bi bi-hand-index"></i>Select a class to start logging behavior.</div>
             {% endif %}
         </div>
     </div>
@@ -166,8 +182,19 @@
             <span style="font-size:.73rem;color:var(--bh-muted);">{{ logs|length }} shown</span>
         </div>
         <div class="bh-body">
+            <div class="bh-search">
+                <i class="bi bi-search"></i>
+                <input type="text" placeholder="Search by student name…" oninput="filterLogs(this.value)">
+            </div>
+            <div class="bh-filter-pills" style="margin-bottom:.8rem;">
+                <span class="bh-pill active" onclick="filterByType('all',this)">All</span>
+                <span class="bh-pill" onclick="filterByType('positive',this)"><i class="bi bi-hand-thumbs-up"></i> Positive</span>
+                <span class="bh-pill" onclick="filterByType('negative',this)"><i class="bi bi-hand-thumbs-down"></i> Negative</span>
+                <span class="bh-pill" onclick="filterByType('sel',this)"><i class="bi bi-heart"></i> SEL</span>
+            </div>
+            <div id="bhLogsList">
             {% for log in logs %}
-            <div class="bh-log-item">
+            <div class="bh-log-item" data-type="{{ log.log_type }}">
                 <div class="bh-type-dot bh-type-{{ log.log_type }}"></div>
                 <div style="flex:1;">
                     <div class="bh-log-name">{{ log.student.user.get_full_name }}</div>
@@ -184,6 +211,7 @@
                 </form>
             </div>
             {% endfor %}
+            </div>
         </div>
     </div>
     {% endif %}
@@ -204,5 +232,24 @@ document.querySelectorAll('#typeBtns .bh-quick-btn').forEach(btn=>{
         btn.style.borderColor=colors[val]||'';
     });
 });
+
+let currentFilter='all';
+function filterLogs(query){
+    const q=query.toLowerCase();
+    document.querySelectorAll('#bhLogsList .bh-log-item').forEach(el=>{
+        const name=el.querySelector('.bh-log-name')?.textContent.toLowerCase()||'';
+        const matchSearch=!q||name.includes(q);
+        const type=el.dataset.type||'';
+        const matchType=currentFilter==='all'||type===currentFilter;
+        el.style.display=(matchSearch&&matchType)?'':'none';
+    });
+}
+function filterByType(type,pill){
+    currentFilter=type;
+    document.querySelectorAll('.bh-filter-pills .bh-pill').forEach(p=>p.classList.remove('active'));
+    pill.classList.add('active');
+    const q=document.querySelector('.bh-search input')?.value||'';
+    filterLogs(q);
+}
 </script>
 {% endblock %}

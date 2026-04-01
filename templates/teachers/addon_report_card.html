@@ -3,38 +3,52 @@
 
 {% block content %}
 <style>
-:root{--rc-card:#fff;--rc-ink:#0b1120;--rc-muted:#8892a4;--rc-border:#e4e8f2;--rc-accent:#e74c3c;--rc-accent2:#f39c12;}
+:root{--rc-card:#fff;--rc-ink:#0b1120;--rc-muted:#8892a4;--rc-border:#e4e8f2;--rc-accent:#4361ee;--rc-accent2:#7c3aed;--rc-green:#10b981;}
 [data-bs-theme="dark"]{--rc-card:#1e293b;--rc-ink:#f1f5f9;--rc-muted:#94a3b8;--rc-border:#334155;}
-.rc-wrap{max-width:860px;margin:0 auto;padding:1rem 0;}
+.rc-wrap{max-width:860px;margin:0 auto;padding:1rem .5rem;}
+.rc-hero{background:linear-gradient(135deg,var(--rc-accent),var(--rc-accent2));border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1rem;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;}
+.rc-hero h1{margin:0;font-size:1.25rem;font-weight:800;letter-spacing:-.02em;}
+.rc-hero-sub{font-size:.78rem;opacity:.85;margin-top:.15rem;}
+.rc-hero-stats{display:flex;gap:1.2rem;}
+.rc-h-stat{text-align:center;}.rc-h-num{font-size:1.5rem;font-weight:800;line-height:1;}.rc-h-lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;opacity:.8;}
 .rc-card{background:var(--rc-card);border:1px solid var(--rc-border);border-radius:14px;overflow:hidden;margin-bottom:1rem;}
-.rc-head{padding:1rem 1.3rem;border-bottom:1px solid var(--rc-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
-.rc-head h2{margin:0;font-size:1.1rem;font-weight:800;color:var(--rc-ink);}
+.rc-head{padding:.8rem 1.3rem;border-bottom:1px solid var(--rc-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+.rc-head h2{margin:0;font-size:1rem;font-weight:800;color:var(--rc-ink);}
 .rc-body{padding:1.2rem 1.3rem;}
 .rc-form-row{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:.8rem;}
 .rc-form-row>*{flex:1;min-width:160px;}
 .rc-label{display:block;font-size:.72rem;font-weight:700;color:var(--rc-muted);text-transform:uppercase;margin-bottom:.2rem;}
-.rc-select,.rc-input,.rc-textarea{width:100%;padding:.45rem .65rem;border:1px solid var(--rc-border);border-radius:8px;font-size:.84rem;background:var(--rc-card);color:var(--rc-ink);}
+.rc-select,.rc-input,.rc-textarea{width:100%;padding:.45rem .65rem;border:1px solid var(--rc-border);border-radius:8px;font-size:.84rem;background:var(--rc-card);color:var(--rc-ink);transition:border-color .15s;}
 .rc-textarea{min-height:80px;resize:vertical;}
-.rc-select:focus,.rc-input:focus,.rc-textarea:focus{border-color:var(--rc-accent);outline:none;}
-.rc-btn{padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;border:none;cursor:pointer;transition:transform .1s;}
+.rc-select:focus,.rc-input:focus,.rc-textarea:focus{border-color:var(--rc-accent);outline:none;box-shadow:0 0 0 3px rgba(67,97,238,.12);}
+.rc-btn{padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;border:none;cursor:pointer;transition:transform .1s,box-shadow .15s;}
 .rc-btn:active{transform:scale(.97);}
-.rc-btn-ai{background:linear-gradient(135deg,#e74c3c,#f39c12);color:#fff;}
-.rc-btn-save{background:#10b981;color:#fff;}
+.rc-btn-ai{background:linear-gradient(135deg,var(--rc-accent),var(--rc-accent2));color:#fff;}
+.rc-btn-ai:hover{box-shadow:0 4px 16px rgba(67,97,238,.35);}
+.rc-btn-save{background:var(--rc-green);color:#fff;}
+.rc-btn-save:hover{box-shadow:0 4px 12px rgba(16,185,129,.3);}
 .rc-btn-sm{padding:.3rem .7rem;font-size:.78rem;}
 .rc-btn-outline{background:transparent;border:1px solid var(--rc-border);color:var(--rc-ink);}
-.rc-comment-card{border:1px solid var(--rc-border);border-radius:12px;padding:.8rem 1rem;margin-bottom:.5rem;background:var(--rc-card);}
+.rc-search{position:relative;margin-bottom:.8rem;}
+.rc-search i{position:absolute;left:.65rem;top:50%;transform:translateY(-50%);color:var(--rc-muted);font-size:.85rem;}
+.rc-search input{width:100%;padding:.45rem .65rem .45rem 2rem;border:1px solid var(--rc-border);border-radius:8px;font-size:.84rem;background:var(--rc-card);color:var(--rc-ink);}
+.rc-search input:focus{border-color:var(--rc-accent);outline:none;box-shadow:0 0 0 3px rgba(67,97,238,.12);}
+.rc-comment-card{border:1px solid var(--rc-border);border-radius:12px;padding:.8rem 1rem;margin-bottom:.5rem;background:var(--rc-card);transition:box-shadow .15s,transform .15s;}
+.rc-comment-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.06);transform:translateY(-1px);}
 .rc-comment-card h4{margin:0 0 .15rem;font-size:.9rem;font-weight:700;color:var(--rc-ink);}
 .rc-comment-meta{font-size:.73rem;color:var(--rc-muted);margin-bottom:.3rem;}
 .rc-comment-text{font-size:.85rem;color:var(--rc-ink);line-height:1.6;}
-.rc-empty{padding:2rem;text-align:center;color:var(--rc-muted);font-size:.88rem;}
+.rc-empty{padding:2.5rem 1rem;text-align:center;color:var(--rc-muted);font-size:.88rem;}
+.rc-empty i{font-size:2rem;display:block;margin-bottom:.5rem;opacity:.25;}
 .rc-tag{display:inline-block;padding:.15rem .5rem;border-radius:6px;font-size:.72rem;font-weight:600;}
-.rc-tag-conduct{background:#3b82f620;color:#3b82f6;}
-.rc-tag-attitude{background:#8b5cf620;color:#8b5cf6;}
+.rc-tag-conduct{background:rgba(67,97,238,.1);color:#4361ee;}
+.rc-tag-attitude{background:rgba(124,58,237,.1);color:#7c3aed;}
 .rc-spinner{display:none;margin-left:.4rem;}
 .rc-spinner.active{display:inline-block;animation:rcSpin 1s infinite linear;}
 @keyframes rcSpin{to{transform:rotate(360deg);}}
-.rc-student-row{display:flex;align-items:center;gap:.5rem;padding:.4rem .6rem;border-radius:8px;margin-bottom:.3rem;font-size:.84rem;color:var(--rc-ink);}
-.rc-student-row:nth-child(even){background:var(--rc-border)20;}
+.rc-student-row{display:flex;align-items:center;gap:.5rem;padding:.4rem .6rem;border-radius:8px;margin-bottom:.3rem;font-size:.84rem;color:var(--rc-ink);transition:background .1s;}
+.rc-student-row:nth-child(even){background:rgba(67,97,238,.03);}
+.rc-student-row:hover{background:rgba(67,97,238,.06);}
 .rc-student-cb{width:18px;height:18px;accent-color:var(--rc-accent);}
 .rc-select-all{font-size:.76rem;cursor:pointer;color:var(--rc-accent);font-weight:600;}
 </style>
@@ -42,22 +56,34 @@
 <div class="rc-wrap">
 
     {% if not has_rc_addon %}
-    <div style="max-width:860px;margin:0 auto .6rem;padding:.5rem .8rem;background:linear-gradient(135deg,#e74c3c10,#f39c1210);border:1px solid #e74c3c30;border-radius:10px;font-size:.78rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
-      <span style="font-weight:700;color:#e74c3c;"><i class="bi bi-stars"></i> Free AI</span>
+    <div style="max-width:860px;margin:0 auto .6rem;padding:.5rem .8rem;background:linear-gradient(135deg,#4361ee10,#7c3aed10);border:1px solid #4361ee30;border-radius:10px;font-size:.78rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <span style="font-weight:700;color:#4361ee;"><i class="bi bi-stars"></i> Free AI</span>
       <div style="flex:1;min-width:120px;height:6px;background:#e4e8f2;border-radius:3px;overflow:hidden;">
-        <div style="width:{% widthratio rc_gen_used rc_gen_limit 100 %}%;height:100%;background:linear-gradient(90deg,#e74c3c,#f39c12);border-radius:3px;"></div>
+        <div style="width:{% widthratio rc_gen_used rc_gen_limit 100 %}%;height:100%;background:linear-gradient(90deg,#4361ee,#7c3aed);border-radius:3px;"></div>
       </div>
       <span style="color:#64748b;">{{ rc_gen_used }}/{{ rc_gen_limit }} used</span>
       {% if rc_gen_remaining == 0 %}
-      <a href="{% url 'teachers:teacher_store' %}" style="color:#e74c3c;font-weight:600;text-decoration:none;">Get Report Card Writer &rarr;</a>
+      <a href="{% url 'teachers:teacher_store' %}" style="color:#4361ee;font-weight:600;text-decoration:none;">Get Report Card Writer &rarr;</a>
       {% endif %}
     </div>
     {% endif %}
 
+    <!-- Hero -->
+    <div class="rc-hero">
+        <div>
+            <h1><i class="bi bi-card-text me-2"></i>Report Card AI Writer</h1>
+            <div class="rc-hero-sub">Generate personalized report card comments with AI</div>
+        </div>
+        <div class="rc-hero-stats">
+            <div class="rc-h-stat"><div class="rc-h-num">{{ comments|length }}</div><div class="rc-h-lbl">Comments</div></div>
+            {% if not has_rc_addon %}<div class="rc-h-stat"><div class="rc-h-num">{{ rc_gen_remaining }}</div><div class="rc-h-lbl">AI Left</div></div>{% endif %}
+        </div>
+    </div>
+
     <!-- Class & Term Selector -->
     <div class="rc-card">
         <div class="rc-head">
-            <h2><i class="bi bi-card-text me-2" style="color:var(--rc-accent);"></i>Report Card AI Writer</h2>
+            <h2><i class="bi bi-funnel me-2" style="color:var(--rc-accent);"></i>Select Class &amp; Term</h2>
         </div>
         <div class="rc-body">
             <form method="get" class="rc-form-row">
@@ -112,8 +138,12 @@
             <span style="font-size:.78rem;color:var(--rc-muted);">{{ comments|length }} comment{{ comments|length|pluralize }}</span>
         </div>
         <div class="rc-body" id="commentsContainer">
+            <div class="rc-search">
+                <i class="bi bi-search"></i>
+                <input type="text" placeholder="Search comments by student name…" oninput="filterComments(this.value)">
+            </div>
             {% for c in comments %}
-            <div class="rc-comment-card" id="comment-{{ c.id }}">
+            <div class="rc-comment-card" id="comment-{{ c.id }}" data-name="{{ c.student.user.get_full_name|lower }}">
                 <h4>{{ c.student.user.get_full_name }}</h4>
                 <div class="rc-comment-meta">
                     <span class="rc-tag rc-tag-conduct">{{ c.conduct }}</span>
@@ -144,14 +174,14 @@
                 </form>
             </div>
             {% empty %}
-            <div class="rc-empty"><i class="bi bi-chat-square-text" style="font-size:1.4rem;display:block;margin-bottom:.5rem;opacity:.3;"></i>No comments yet. Select students and click "Generate Comments".</div>
+            <div class="rc-empty"><i class="bi bi-chat-square-text"></i>No comments yet. Select students and click "Generate Comments".</div>
             {% endfor %}
         </div>
     </div>
     {% elif sel_class %}
     <div class="rc-card"><div class="rc-empty">No students found in this class.</div></div>
     {% else %}
-    <div class="rc-card"><div class="rc-empty"><i class="bi bi-hand-index" style="font-size:1.4rem;display:block;margin-bottom:.5rem;opacity:.3;"></i>Select a class above to start generating report card comments.</div></div>
+    <div class="rc-card"><div class="rc-empty"><i class="bi bi-hand-index"></i>Select a class above to start generating report card comments.</div></div>
     {% endif %}
 </div>
 
@@ -191,6 +221,14 @@ async function generateComments(){
         }
     }catch(e){alert('Network error.');}
     spinner.classList.remove('active');
+}
+
+function filterComments(query){
+    const q=query.toLowerCase();
+    document.querySelectorAll('.rc-comment-card').forEach(el=>{
+        const name=el.dataset.name||'';
+        el.style.display=(!q||name.includes(q))?'':'none';
+    });
 }
 </script>
 {% endblock %}

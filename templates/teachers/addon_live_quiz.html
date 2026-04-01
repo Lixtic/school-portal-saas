@@ -3,26 +3,37 @@
 
 {% block content %}
 <style>
-:root{--lq-card:#fff;--lq-ink:#0b1120;--lq-muted:#8892a4;--lq-border:#e4e8f2;--lq-accent:#f59e0b;--lq-accent2:#ef4444;--lq-green:#10b981;}
+:root{--lq-card:#fff;--lq-ink:#0b1120;--lq-muted:#8892a4;--lq-border:#e4e8f2;--lq-accent:#4361ee;--lq-accent2:#f59e0b;--lq-green:#10b981;--lq-red:#ef4444;}
 [data-bs-theme="dark"]{--lq-card:#1e293b;--lq-ink:#f1f5f9;--lq-muted:#94a3b8;--lq-border:#334155;}
-.lq-wrap{max-width:860px;margin:0 auto;padding:1rem 0;}
+.lq-wrap{max-width:860px;margin:0 auto;padding:1rem .5rem;}
+.lq-hero{background:linear-gradient(135deg,var(--lq-accent),var(--lq-accent2));border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1rem;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;}
+.lq-hero h1{margin:0;font-size:1.25rem;font-weight:800;letter-spacing:-.02em;}
+.lq-hero-sub{font-size:.78rem;opacity:.85;margin-top:.15rem;}
+.lq-hero-stats{display:flex;gap:1.2rem;}
+.lq-h-stat{text-align:center;}.lq-h-num{font-size:1.5rem;font-weight:800;line-height:1;}.lq-h-lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;opacity:.8;}
 .lq-card{background:var(--lq-card);border:1px solid var(--lq-border);border-radius:14px;overflow:hidden;margin-bottom:1rem;}
-.lq-head{padding:1rem 1.3rem;border-bottom:1px solid var(--lq-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
-.lq-head h2{margin:0;font-size:1.1rem;font-weight:800;color:var(--lq-ink);}
+.lq-head{padding:.8rem 1.3rem;border-bottom:1px solid var(--lq-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+.lq-head h2{margin:0;font-size:1rem;font-weight:800;color:var(--lq-ink);}
 .lq-body{padding:1.2rem 1.3rem;}
 .lq-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;}
 @media(max-width:640px){.lq-grid{grid-template-columns:1fr;}}
 .lq-full{grid-column:span 2;}@media(max-width:640px){.lq-full{grid-column:span 1;}}
 .lq-label{display:block;font-size:.72rem;font-weight:700;color:var(--lq-muted);text-transform:uppercase;margin-bottom:.2rem;}
-.lq-input,.lq-select{width:100%;padding:.45rem .65rem;border:1px solid var(--lq-border);border-radius:8px;font-size:.84rem;background:var(--lq-card);color:var(--lq-ink);}
-.lq-input:focus,.lq-select:focus{border-color:var(--lq-accent);outline:none;}
-.lq-btn{padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;border:none;cursor:pointer;transition:transform .1s;}
+.lq-input,.lq-select{width:100%;padding:.45rem .65rem;border:1px solid var(--lq-border);border-radius:8px;font-size:.84rem;background:var(--lq-card);color:var(--lq-ink);transition:border-color .15s;}
+.lq-input:focus,.lq-select:focus{border-color:var(--lq-accent);outline:none;box-shadow:0 0 0 3px rgba(67,97,238,.12);}
+.lq-btn{padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;border:none;cursor:pointer;transition:transform .1s,box-shadow .15s;}
 .lq-btn:active{transform:scale(.97);}
-.lq-btn-accent{background:var(--lq-accent);color:#fff;}
+.lq-btn-accent{background:linear-gradient(135deg,var(--lq-accent),var(--lq-accent2));color:#fff;}
+.lq-btn-accent:hover{box-shadow:0 4px 16px rgba(67,97,238,.35);}
 .lq-btn-green{background:var(--lq-green);color:#fff;}
-.lq-btn-red{background:var(--lq-accent2);color:#fff;}
+.lq-btn-green:hover{box-shadow:0 4px 12px rgba(16,185,129,.3);}
+.lq-btn-red{background:var(--lq-red);color:#fff;}
 .lq-btn-outline{background:transparent;border:1px solid var(--lq-border);color:var(--lq-ink);}
 .lq-btn-sm{padding:.3rem .7rem;font-size:.78rem;}
+.lq-search{position:relative;margin-bottom:.8rem;}
+.lq-search i{position:absolute;left:.65rem;top:50%;transform:translateY(-50%);color:var(--lq-muted);font-size:.85rem;}
+.lq-search input{width:100%;padding:.45rem .65rem .45rem 2rem;border:1px solid var(--lq-border);border-radius:8px;font-size:.84rem;background:var(--lq-card);color:var(--lq-ink);}
+.lq-search input:focus{border-color:var(--lq-accent);outline:none;box-shadow:0 0 0 3px rgba(67,97,238,.12);}
 .lq-q-builder{background:var(--lq-card);border:1px solid var(--lq-border);border-radius:10px;padding:.8rem;margin-bottom:.4rem;}
 .lq-q-num{font-size:.72rem;font-weight:700;color:var(--lq-accent);margin-bottom:.3rem;}
 .lq-q-row{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-top:.3rem;}
@@ -30,20 +41,33 @@
 .lq-correct-sel{display:flex;gap:.3rem;margin-top:.3rem;flex-wrap:wrap;}
 .lq-correct-sel label{padding:.2rem .5rem;border-radius:6px;font-size:.75rem;font-weight:600;border:1px solid var(--lq-border);cursor:pointer;background:var(--lq-card);color:var(--lq-ink);transition:all .15s;}
 .lq-correct-sel label.active{background:var(--lq-green);color:#fff;border-color:var(--lq-green);}
-.lq-quiz-item{display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.6rem .8rem;border-radius:10px;margin-bottom:.4rem;background:var(--lq-card);border:1px solid var(--lq-border);}
+.lq-quiz-item{display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.6rem .8rem;border-radius:10px;margin-bottom:.4rem;background:var(--lq-card);border:1px solid var(--lq-border);transition:box-shadow .15s,transform .15s;}
+.lq-quiz-item:hover{box-shadow:0 4px 12px rgba(0,0,0,.06);transform:translateY(-1px);}
 .lq-quiz-title{font-weight:700;font-size:.88rem;color:var(--lq-ink);}
 .lq-quiz-meta{font-size:.73rem;color:var(--lq-muted);}
 .lq-code{font-family:monospace;font-size:.85rem;font-weight:800;padding:.2rem .5rem;background:var(--lq-accent);color:#fff;border-radius:6px;letter-spacing:.08em;}
-.lq-empty{padding:2rem;text-align:center;color:var(--lq-muted);font-size:.88rem;}
+.lq-empty{padding:2.5rem 1rem;text-align:center;color:var(--lq-muted);font-size:.88rem;}
+.lq-empty i{font-size:2rem;display:block;margin-bottom:.5rem;opacity:.25;}
 .lq-badge-active{font-size:.7rem;font-weight:700;padding:.15rem .45rem;border-radius:20px;background:var(--lq-green);color:#fff;}
 .lq-badge-closed{font-size:.7rem;font-weight:700;padding:.15rem .45rem;border-radius:20px;background:var(--lq-muted);color:#fff;}
 </style>
 
 <div class="lq-wrap">
+    <!-- Hero -->
+    <div class="lq-hero">
+        <div>
+            <h1><i class="bi bi-lightning-charge me-2"></i>Live Quiz Engine</h1>
+            <div class="lq-hero-sub">Create real-time quizzes students can join with a code</div>
+        </div>
+        <div class="lq-hero-stats">
+            <div class="lq-h-stat"><div class="lq-h-num">{{ quizzes|length }}</div><div class="lq-h-lbl">Quizzes</div></div>
+        </div>
+    </div>
+
     <!-- Create Quiz -->
     <div class="lq-card">
         <div class="lq-head">
-            <h2><i class="bi bi-lightning-charge me-2" style="color:var(--lq-accent);"></i>Create Live Quiz</h2>
+            <h2><i class="bi bi-plus-circle me-2" style="color:var(--lq-accent);"></i>Create Live Quiz</h2>
         </div>
         <div class="lq-body">
             <form method="post" id="quizForm">
@@ -95,8 +119,12 @@
             <span style="font-size:.73rem;color:var(--lq-muted);">{{ quizzes|length }} quiz{{ quizzes|length|pluralize:"zes" }}</span>
         </div>
         <div class="lq-body">
+            <div class="lq-search">
+                <i class="bi bi-search"></i>
+                <input type="text" placeholder="Search quizzes…" oninput="filterQuizzes(this.value)">
+            </div>
             {% for q in quizzes %}
-            <div class="lq-quiz-item">
+            <div class="lq-quiz-item" data-title="{{ q.title|lower }}">
                 <div>
                     <div class="lq-quiz-title">{{ q.title }}</div>
                     <div class="lq-quiz-meta">
@@ -116,7 +144,7 @@
                 </div>
             </div>
             {% empty %}
-            <div class="lq-empty"><i class="bi bi-lightning-charge" style="font-size:1.4rem;display:block;margin-bottom:.5rem;opacity:.3;"></i>No quizzes yet. Create one above!</div>
+            <div class="lq-empty"><i class="bi bi-lightning-charge"></i>No quizzes yet. Create one above!</div>
             {% endfor %}
         </div>
     </div>
@@ -180,5 +208,13 @@ document.getElementById('quizForm').addEventListener('submit',function(){
 
 // Start with 1 question
 addQuestion();
+
+function filterQuizzes(query){
+    const q=query.toLowerCase();
+    document.querySelectorAll('.lq-quiz-item').forEach(el=>{
+        const t=el.dataset.title||'';
+        el.style.display=(!q||t.includes(q))?'':'none';
+    });
+}
 </script>
 {% endblock %}

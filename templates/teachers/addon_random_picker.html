@@ -3,33 +3,44 @@
 
 {% block content %}
 <style>
-:root{--rp-bg:#f4f6fb;--rp-card:#fff;--rp-ink:#0b1120;--rp-muted:#8892a4;--rp-border:#e4e8f2;--rp-accent:#6366f1;--rp-accent2:#a78bfa;}
+:root{--rp-bg:#f4f6fb;--rp-card:#fff;--rp-ink:#0b1120;--rp-muted:#8892a4;--rp-border:#e4e8f2;--rp-accent:#4361ee;--rp-accent2:#7c3aed;}
 [data-bs-theme="dark"]{--rp-bg:#0f172a;--rp-card:#1e293b;--rp-ink:#f1f5f9;--rp-muted:#94a3b8;--rp-border:#334155;}
-.rp-wrap{max-width:680px;margin:0 auto;padding:1rem 0;}
+.rp-wrap{max-width:680px;margin:0 auto;padding:1rem .5rem;}
+.rp-hero{background:linear-gradient(135deg,var(--rp-accent),var(--rp-accent2));border-radius:16px;padding:1.2rem 1.6rem;margin-bottom:1rem;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+.rp-hero h1{margin:0;font-size:1.2rem;font-weight:800;letter-spacing:-.02em;}
+.rp-hero-sub{font-size:.78rem;opacity:.85;margin-top:.1rem;}
 .rp-card{background:var(--rp-card);border:1px solid var(--rp-border);border-radius:18px;overflow:hidden;}
-.rp-head{padding:1.2rem 1.5rem;border-bottom:1px solid var(--rp-border);display:flex;align-items:center;justify-content:space-between;}
-.rp-head h2{margin:0;font-size:1.15rem;font-weight:800;color:var(--rp-ink);}
+.rp-head{padding:.8rem 1.5rem;border-bottom:1px solid var(--rp-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem;}
+.rp-head h2{margin:0;font-size:1rem;font-weight:800;color:var(--rp-ink);}
 .rp-body{padding:1.5rem;text-align:center;}
 .rp-canvas-wrap{position:relative;width:320px;height:320px;margin:0 auto 1.5rem;}
 canvas#wheel{width:320px;height:320px;cursor:pointer;}
 .rp-result{font-size:1.6rem;font-weight:900;color:var(--rp-accent);min-height:2.2rem;margin-bottom:1rem;transition:all .3s;}
 .rp-result.pop{animation:rpPop .5s ease;}
 @keyframes rpPop{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
-.rp-spin-btn{background:linear-gradient(135deg,#4361ee,#4cc9f0);color:#fff;border:none;padding:.6rem 2rem;border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer;transition:transform .15s;}
-.rp-spin-btn:hover{transform:scale(1.04);}
+.rp-spin-btn{background:linear-gradient(135deg,var(--rp-accent),var(--rp-accent2));color:#fff;border:none;padding:.6rem 2rem;border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer;transition:transform .15s,box-shadow .15s;}
+.rp-spin-btn:hover{transform:scale(1.04);box-shadow:0 4px 16px rgba(67,97,238,.35);}
 .rp-spin-btn:disabled{opacity:.5;cursor:not-allowed;}
 .rp-history{margin-top:1.2rem;padding:1rem 1.5rem;border-top:1px solid var(--rp-border);text-align:left;}
 .rp-history h4{font-size:.78rem;font-weight:700;color:var(--rp-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.5rem;}
-.rp-tag{display:inline-block;padding:.2rem .55rem;border-radius:6px;font-size:.78rem;font-weight:600;background:rgba(99,102,241,.1);color:var(--rp-accent);margin:.15rem .1rem;}
-.rp-class-sel{padding:.35rem .7rem;border-radius:8px;border:1px solid var(--rp-border);font-size:.85rem;background:var(--rp-card);color:var(--rp-ink);}
-.rp-mode-btn{padding:.25rem .6rem;border-radius:8px;font-size:.78rem;font-weight:600;border:1px solid var(--rp-border);background:var(--rp-card);color:var(--rp-ink);cursor:pointer;margin-left:.3rem;}
+.rp-tag{display:inline-block;padding:.2rem .55rem;border-radius:6px;font-size:.78rem;font-weight:600;background:rgba(67,97,238,.1);color:var(--rp-accent);margin:.15rem .1rem;}
+.rp-class-sel{padding:.35rem .7rem;border-radius:8px;border:1px solid var(--rp-border);font-size:.85rem;background:var(--rp-card);color:var(--rp-ink);transition:border-color .15s;}
+.rp-class-sel:focus{border-color:var(--rp-accent);outline:none;box-shadow:0 0 0 3px rgba(67,97,238,.12);}
+.rp-mode-btn{padding:.25rem .6rem;border-radius:8px;font-size:.78rem;font-weight:600;border:1px solid var(--rp-border);background:var(--rp-card);color:var(--rp-ink);cursor:pointer;margin-left:.3rem;transition:all .15s;}
 .rp-mode-btn.active{background:var(--rp-accent);color:#fff;border-color:var(--rp-accent);}
 </style>
 
 <div class="rp-wrap">
+<!-- Hero -->
+<div class="rp-hero">
+    <div>
+        <h1><i class="bi bi-bullseye me-2"></i>Random Picker</h1>
+        <div class="rp-hero-sub">Spin the wheel to pick students or form groups</div>
+    </div>
+</div>
 <div class="rp-card">
     <div class="rp-head">
-        <h2><i class="bi bi-bullseye me-2" style="color:var(--rp-accent);"></i>Random Picker</h2>
+        <h2><i class="bi bi-arrow-clockwise me-2" style="color:var(--rp-accent);"></i>Pick a Student</h2>
         <div style="display:flex;align-items:center;gap:.4rem;">
             <select id="classSelect" class="rp-class-sel" onchange="loadStudents()">
                 <option value="">— Select Class —</option>

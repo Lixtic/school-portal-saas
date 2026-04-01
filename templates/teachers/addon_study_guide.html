@@ -3,31 +3,43 @@
 
 {% block content %}
 <style>
-:root{--sg-card:#fff;--sg-ink:#0b1120;--sg-muted:#8892a4;--sg-border:#e4e8f2;--sg-accent:#3b82f6;}
+:root{--sg-card:#fff;--sg-ink:#0b1120;--sg-muted:#8892a4;--sg-border:#e4e8f2;--sg-accent:#4361ee;--sg-accent2:#4cc9f0;}
 [data-bs-theme="dark"]{--sg-card:#1e293b;--sg-ink:#f1f5f9;--sg-muted:#94a3b8;--sg-border:#334155;}
-.sg-wrap{max-width:780px;margin:0 auto;padding:1rem 0;}
+.sg-wrap{max-width:780px;margin:0 auto;padding:1rem .5rem;}
+.sg-hero{background:linear-gradient(135deg,var(--sg-accent),var(--sg-accent2));border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1rem;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;}
+.sg-hero h1{margin:0;font-size:1.25rem;font-weight:800;letter-spacing:-.02em;}
+.sg-hero-sub{font-size:.78rem;opacity:.85;margin-top:.15rem;}
+.sg-hero-stats{display:flex;gap:1.2rem;}
+.sg-h-stat{text-align:center;}.sg-h-num{font-size:1.5rem;font-weight:800;line-height:1;}.sg-h-lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;opacity:.8;}
 .sg-card{background:var(--sg-card);border:1px solid var(--sg-border);border-radius:14px;overflow:hidden;margin-bottom:1rem;}
-.sg-head{padding:1rem 1.3rem;border-bottom:1px solid var(--sg-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
-.sg-head h2{margin:0;font-size:1.1rem;font-weight:800;color:var(--sg-ink);}
+.sg-head{padding:.8rem 1.3rem;border-bottom:1px solid var(--sg-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+.sg-head h2{margin:0;font-size:1rem;font-weight:800;color:var(--sg-ink);}
 .sg-body{padding:1.2rem 1.3rem;}
 .sg-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;}
 @media(max-width:640px){.sg-form-grid{grid-template-columns:1fr;}}
 .sg-full{grid-column:span 2;}
 @media(max-width:640px){.sg-full{grid-column:span 1;}}
 .sg-label{display:block;font-size:.72rem;font-weight:700;color:var(--sg-muted);text-transform:uppercase;margin-bottom:.2rem;}
-.sg-input,.sg-select,.sg-textarea{width:100%;padding:.45rem .65rem;border:1px solid var(--sg-border);border-radius:8px;font-size:.84rem;background:var(--sg-card);color:var(--sg-ink);}
+.sg-input,.sg-select,.sg-textarea{width:100%;padding:.45rem .65rem;border:1px solid var(--sg-border);border-radius:8px;font-size:.84rem;background:var(--sg-card);color:var(--sg-ink);transition:border-color .15s;}
 .sg-textarea{min-height:120px;resize:vertical;}
-.sg-input:focus,.sg-select:focus,.sg-textarea:focus{border-color:var(--sg-accent);outline:none;}
-.sg-btn{padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;border:none;cursor:pointer;}
-.sg-btn-ai{background:linear-gradient(135deg,#4361ee,#4cc9f0);color:#fff;}
-.sg-btn-save{background:var(--sg-accent);color:#fff;}
+.sg-input:focus,.sg-select:focus,.sg-textarea:focus{border-color:var(--sg-accent);outline:none;box-shadow:0 0 0 3px rgba(67,97,238,.12);}
+.sg-btn{padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;border:none;cursor:pointer;transition:box-shadow .15s;}
+.sg-btn-ai{background:linear-gradient(135deg,var(--sg-accent),var(--sg-accent2));color:#fff;}
+.sg-btn-ai:hover{box-shadow:0 4px 16px rgba(67,97,238,.35);}
+.sg-btn-save{background:#10b981;color:#fff;}
+.sg-btn-save:hover{box-shadow:0 4px 12px rgba(16,185,129,.3);}
 .sg-btn-secondary{background:var(--sg-border);color:var(--sg-ink);}
-.sg-guide-item{border:1px solid var(--sg-border);border-radius:12px;padding:.8rem 1rem;margin-bottom:.6rem;background:var(--sg-card);transition:box-shadow .15s;}
-.sg-guide-item:hover{box-shadow:0 4px 12px rgba(0,0,0,.06);}
+.sg-search{position:relative;margin-bottom:.8rem;}
+.sg-search i{position:absolute;left:.65rem;top:50%;transform:translateY(-50%);color:var(--sg-muted);font-size:.85rem;}
+.sg-search input{width:100%;padding:.45rem .65rem .45rem 2rem;border:1px solid var(--sg-border);border-radius:8px;font-size:.84rem;background:var(--sg-card);color:var(--sg-ink);}
+.sg-search input:focus{border-color:var(--sg-accent);outline:none;box-shadow:0 0 0 3px rgba(67,97,238,.12);}
+.sg-guide-item{border:1px solid var(--sg-border);border-radius:12px;padding:.8rem 1rem;margin-bottom:.6rem;background:var(--sg-card);transition:box-shadow .15s,transform .15s;}
+.sg-guide-item:hover{box-shadow:0 4px 12px rgba(0,0,0,.06);transform:translateY(-1px);}
 .sg-guide-item h4{margin:0 0 .2rem;font-size:.92rem;font-weight:700;color:var(--sg-ink);}
 .sg-guide-meta{font-size:.75rem;color:var(--sg-muted);}
 .sg-guide-actions{display:flex;gap:.3rem;margin-top:.5rem;}
-.sg-empty{padding:2rem;text-align:center;color:var(--sg-muted);font-size:.88rem;}
+.sg-empty{padding:2.5rem 1rem;text-align:center;color:var(--sg-muted);font-size:.88rem;}
+.sg-empty i{font-size:2rem;display:block;margin-bottom:.5rem;opacity:.25;}
 .sg-preview{padding:1rem;border:1px solid var(--sg-border);border-radius:10px;background:var(--sg-card);margin-top:.8rem;font-size:.88rem;color:var(--sg-ink);line-height:1.7;}
 .sg-preview h1,.sg-preview h2,.sg-preview h3{color:var(--sg-accent);}
 .sg-spinner{display:none;margin:.5rem 0;}
@@ -38,22 +50,33 @@
 <div class="sg-wrap">
 
     {% if not has_sg_addon %}
-    <div style="max-width:780px;margin:0 auto .6rem;padding:.5rem .8rem;background:linear-gradient(135deg,#3b82f610,#4cc9f010);border:1px solid #3b82f630;border-radius:10px;font-size:.78rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
-      <span style="font-weight:700;color:#3b82f6;"><i class="bi bi-stars"></i> Free AI</span>
+    <div style="max-width:780px;margin:0 auto .6rem;padding:.5rem .8rem;background:linear-gradient(135deg,#4361ee10,#4cc9f010);border:1px solid #4361ee30;border-radius:10px;font-size:.78rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <span style="font-weight:700;color:#4361ee;"><i class="bi bi-stars"></i> Free AI</span>
       <div style="flex:1;min-width:120px;height:6px;background:#e4e8f2;border-radius:3px;overflow:hidden;">
-        <div style="width:{% widthratio sg_gen_used sg_gen_limit 100 %}%;height:100%;background:linear-gradient(90deg,#3b82f6,#4cc9f0);border-radius:3px;transition:width .3s;"></div>
+        <div style="width:{% widthratio sg_gen_used sg_gen_limit 100 %}%;height:100%;background:linear-gradient(90deg,#4361ee,#4cc9f0);border-radius:3px;transition:width .3s;"></div>
       </div>
       <span style="color:#64748b;">{{ sg_gen_used }}/{{ sg_gen_limit }} used</span>
       {% if sg_gen_remaining == 0 %}
-      <a href="{% url 'teachers:teacher_store' %}" style="color:#3b82f6;font-weight:600;text-decoration:none;">Get Study Guide Builder &rarr;</a>
+      <a href="{% url 'teachers:teacher_store' %}" style="color:#4361ee;font-weight:600;text-decoration:none;">Get Study Guide Builder &rarr;</a>
       {% endif %}
     </div>
     {% endif %}
 
+    <!-- Hero -->
+    <div class="sg-hero">
+        <div>
+            <h1><i class="bi bi-book-half me-2"></i>Study Guide Builder</h1>
+            <div class="sg-hero-sub">Create AI-powered revision guides from your lesson notes</div>
+        </div>
+        <div class="sg-hero-stats">
+            <div class="sg-h-stat"><div class="sg-h-num">{{ guides|length }}</div><div class="sg-h-lbl">Guides</div></div>
+            {% if not has_sg_addon %}<div class="sg-h-stat"><div class="sg-h-num">{{ sg_gen_remaining }}</div><div class="sg-h-lbl">AI Left</div></div>{% endif %}
+        </div>
+    </div>
+
     <div class="sg-card">
         <div class="sg-head">
-            <h2><i class="bi bi-book-half me-2" style="color:var(--sg-accent);"></i>Study Guide Builder</h2>
-            <span style="font-size:.78rem;color:var(--sg-muted);">{{ guides|length }} guide{{ guides|length|pluralize }}</span>
+            <h2><i class="bi bi-plus-circle me-2" style="color:var(--sg-accent);"></i>Create Guide</h2>
         </div>
         <div class="sg-body">
             <form method="post" id="sgForm">
@@ -105,8 +128,18 @@
 
     <!-- Existing Guides -->
     {% if guides %}
+    <div class="sg-card">
+        <div class="sg-head">
+            <h2><i class="bi bi-collection me-2" style="color:var(--sg-accent);"></i>Your Guides</h2>
+            <span style="font-size:.78rem;color:var(--sg-muted);">{{ guides|length }} guide{{ guides|length|pluralize }}</span>
+        </div>
+        <div class="sg-body">
+            <div class="sg-search">
+                <i class="bi bi-search"></i>
+                <input type="text" placeholder="Search guides…" oninput="filterGuides(this.value)">
+            </div>
     {% for g in guides %}
-    <div class="sg-guide-item">
+    <div class="sg-guide-item" data-title="{{ g.title|lower }}">
         <h4>{{ g.title }}</h4>
         <div class="sg-guide-meta">
             {% if g.subject %}{{ g.subject.name }} · {% endif %}{% if g.target_class %}{{ g.target_class.name }} · {% endif %}{{ g.created_at|date:"M d, Y" }}
@@ -123,8 +156,10 @@
         </div>
     </div>
     {% endfor %}
+        </div>
+    </div>
     {% else %}
-    <div class="sg-card"><div class="sg-empty"><i class="bi bi-book-half" style="font-size:1.4rem;display:block;margin-bottom:.5rem;opacity:.3;"></i>No study guides yet.</div></div>
+    <div class="sg-card"><div class="sg-empty"><i class="bi bi-book-half"></i>No study guides yet. Create one above!</div></div>
     {% endif %}
 </div>
 
@@ -150,6 +185,14 @@ async function generateGuide(){
         else{alert(data.error||'AI generation failed.');}
     }catch(e){alert('Network error.');}
     spinner.classList.remove('active');
+}
+
+function filterGuides(query){
+    const q=query.toLowerCase();
+    document.querySelectorAll('.sg-guide-item').forEach(el=>{
+        const t=el.dataset.title||'';
+        el.style.display=(!q||t.includes(q))?'':'none';
+    });
 }
 </script>
 

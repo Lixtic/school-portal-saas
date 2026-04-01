@@ -3,12 +3,15 @@
 
 {% block content %}
 <style>
-:root{--ct-bg:#f4f6fb;--ct-card:#fff;--ct-ink:#0b1120;--ct-muted:#8892a4;--ct-border:#e4e8f2;}
+:root{--ct-bg:#f4f6fb;--ct-card:#fff;--ct-ink:#0b1120;--ct-muted:#8892a4;--ct-border:#e4e8f2;--ct-accent:#4361ee;--ct-accent2:#4cc9f0;}
 [data-bs-theme="dark"]{--ct-bg:#0f172a;--ct-card:#1e293b;--ct-ink:#f1f5f9;--ct-muted:#94a3b8;--ct-border:#334155;}
-.ct-wrap{max-width:600px;margin:0 auto;padding:1rem 0;}
+.ct-wrap{max-width:600px;margin:0 auto;padding:1rem .5rem;}
+.ct-hero{background:linear-gradient(135deg,var(--ct-accent),var(--ct-accent2));border-radius:16px;padding:1.2rem 1.6rem;margin-bottom:1rem;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+.ct-hero h1{margin:0;font-size:1.2rem;font-weight:800;letter-spacing:-.02em;}
+.ct-hero-sub{font-size:.78rem;opacity:.85;margin-top:.1rem;}
 .ct-card{background:var(--ct-card);border:1px solid var(--ct-border);border-radius:18px;overflow:hidden;}
-.ct-head{padding:1rem 1.5rem;border-bottom:1px solid var(--ct-border);display:flex;align-items:center;justify-content:space-between;}
-.ct-head h2{margin:0;font-size:1.1rem;font-weight:800;color:var(--ct-ink);}
+.ct-head{padding:.8rem 1.5rem;border-bottom:1px solid var(--ct-border);display:flex;align-items:center;justify-content:space-between;}
+.ct-head h2{margin:0;font-size:1rem;font-weight:800;color:var(--ct-ink);}
 .ct-body{padding:2rem 1.5rem;text-align:center;position:relative;}
 .ct-display{font-family:'Manrope',monospace;font-size:5.5rem;font-weight:900;letter-spacing:-.04em;transition:color .4s;color:var(--ct-ink);}
 .ct-display.warning{color:#f59e0b;}
@@ -17,29 +20,40 @@
 @keyframes ctPulse{0%,100%{opacity:1}50%{opacity:.5}}
 @keyframes ctPop{0%{transform:scale(.8)}60%{transform:scale(1.1)}100%{transform:scale(1)}}
 .ct-progress{height:6px;border-radius:3px;background:var(--ct-border);margin:1.5rem 0;overflow:hidden;}
-.ct-progress-bar{height:100%;border-radius:3px;background:linear-gradient(90deg,#4361ee,#4cc9f0);transition:width .3s;}
+.ct-progress-bar{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--ct-accent),var(--ct-accent2));transition:width .3s;}
 .ct-presets{display:flex;gap:.4rem;justify-content:center;flex-wrap:wrap;margin-bottom:1.2rem;}
 .ct-preset{padding:.35rem .75rem;border-radius:8px;border:1px solid var(--ct-border);background:var(--ct-card);color:var(--ct-ink);font-size:.82rem;font-weight:600;cursor:pointer;transition:all .15s;}
-.ct-preset:hover,.ct-preset.active{background:#4361ee;color:#fff;border-color:#4361ee;}
+.ct-preset:hover,.ct-preset.active{background:var(--ct-accent);color:#fff;border-color:var(--ct-accent);}
 .ct-controls{display:flex;gap:.5rem;justify-content:center;margin-top:1rem;}
-.ct-btn{padding:.5rem 1.5rem;border-radius:10px;border:none;font-size:.9rem;font-weight:700;cursor:pointer;transition:transform .15s;}
+.ct-btn{padding:.5rem 1.5rem;border-radius:10px;border:none;font-size:.9rem;font-weight:700;cursor:pointer;transition:transform .15s,box-shadow .15s;}
 .ct-btn:hover{transform:scale(1.04);}
-.ct-btn-primary{background:linear-gradient(135deg,#4361ee,#4cc9f0);color:#fff;}
+.ct-btn-primary{background:linear-gradient(135deg,var(--ct-accent),var(--ct-accent2));color:#fff;}
+.ct-btn-primary:hover{box-shadow:0 4px 16px rgba(67,97,238,.35);}
 .ct-btn-danger{background:#ef4444;color:#fff;}
+.ct-btn-danger:hover{box-shadow:0 4px 12px rgba(239,68,68,.3);}
 .ct-btn-secondary{background:var(--ct-border);color:var(--ct-ink);}
 .ct-custom{display:flex;gap:.4rem;justify-content:center;align-items:center;margin-bottom:1rem;}
-.ct-custom input{width:60px;padding:.3rem .4rem;border-radius:8px;border:1px solid var(--ct-border);text-align:center;font-size:.88rem;font-weight:600;background:var(--ct-card);color:var(--ct-ink);}
+.ct-custom input{width:60px;padding:.3rem .4rem;border-radius:8px;border:1px solid var(--ct-border);text-align:center;font-size:.88rem;font-weight:600;background:var(--ct-card);color:var(--ct-ink);transition:border-color .15s;}
+.ct-custom input:focus{border-color:var(--ct-accent);outline:none;box-shadow:0 0 0 3px rgba(67,97,238,.12);}
 .ct-custom label{font-size:.75rem;font-weight:700;color:var(--ct-muted);text-transform:uppercase;}
-.ct-fs-btn{position:absolute;top:.8rem;right:.8rem;background:none;border:none;color:var(--ct-muted);font-size:1.2rem;cursor:pointer;}
+.ct-fs-btn{position:absolute;top:.8rem;right:.8rem;background:none;border:none;color:var(--ct-muted);font-size:1.2rem;cursor:pointer;transition:color .15s;}
+.ct-fs-btn:hover{color:var(--ct-accent);}
 .ct-fullscreen{position:fixed!important;inset:0;z-index:9999;background:var(--ct-card);border-radius:0!important;display:flex;flex-direction:column;align-items:center;justify-content:center;}
 .ct-fullscreen .ct-display{font-size:12rem;}
 .ct-fullscreen .ct-progress{width:80%;max-width:600px;}
 </style>
 
 <div class="ct-wrap">
+<!-- Hero -->
+<div class="ct-hero">
+    <div>
+        <h1><i class="bi bi-stopwatch me-2"></i>Countdown Timer</h1>
+        <div class="ct-hero-sub">Timed activities, exams &amp; classroom transitions</div>
+    </div>
+</div>
 <div class="ct-card" id="timerCard">
     <div class="ct-head">
-        <h2><i class="bi bi-stopwatch me-2" style="color:#4361ee;"></i>Countdown Timer</h2>
+        <h2><i class="bi bi-clock me-2" style="color:var(--ct-accent);"></i>Timer</h2>
         <button class="ct-fs-btn" onclick="toggleFS()" title="Fullscreen"><i class="bi bi-arrows-fullscreen"></i></button>
     </div>
     <div class="ct-body">
