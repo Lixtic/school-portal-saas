@@ -256,6 +256,21 @@ def build_onboarding_checklist():
     }
 
 
+def pwa_launch(request):
+    """Lightweight redirect endpoint for PWA start_url.
+
+    Always returns a 302 (never cacheable HTML) so the service worker
+    cannot serve a stale landing page when the user relaunches the app.
+    """
+    if request.user.is_authenticated:
+        bound_schema = request.session.get('auth_tenant_schema')
+        if bound_schema:
+            return redirect(f'/{bound_schema}/dashboard/')
+        if request.user.is_staff:
+            return redirect('/tenants/landlord/')
+    return redirect('/')
+
+
 @ensure_csrf_cookie
 def homepage(request):
     # Route logic for different tenants

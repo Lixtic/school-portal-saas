@@ -1,4 +1,4 @@
-﻿const SW_VERSION = 'v9';
+﻿const SW_VERSION = 'v10';
 const STATIC_CACHE = `school-static-${SW_VERSION}`;
 const RUNTIME_CACHE = `school-runtime-${SW_VERSION}`;
 
@@ -171,6 +171,12 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (request.mode === 'navigate') {
+    // PWA launch endpoint must always hit the network (it's a pure redirect)
+    // — never serve a cached response for it.
+    if (url.pathname === '/pwa-launch/') {
+      event.respondWith(fetch(request).catch(() => Response.redirect('/', 302)));
+      return;
+    }
     // All navigation uses network-first so CSRF tokens, session cookies,
     // and server-side messages are always fresh.  Cached pages still serve
     // as offline fallback inside networkFirst().

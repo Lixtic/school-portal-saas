@@ -45,6 +45,7 @@ urlpatterns = [
     path('privacy/', TemplateView.as_view(template_name='home/privacy.html'), name='privacy'),
     path('terms/', TemplateView.as_view(template_name='home/terms.html'), name='terms'),
     path('admin/', admin.site.urls),
+    path('pwa-launch/', account_views.pwa_launch, name='pwa_launch'),
     path('', account_views.homepage, name='home'),
     path('find-school/', account_views.find_school, name='find_school'),
     path('landlord/', tenant_views.landlord_dashboard, name='landlord_dashboard'),
