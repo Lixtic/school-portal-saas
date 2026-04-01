@@ -215,7 +215,7 @@
                                 </div>
                             </div>
                             <div style="display:flex;gap:.3rem;">
-                                <form method="post" style="display:inline;">{% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="q_id" value="{{ q.id }}"><button class="qb-btn qb-btn-outline qb-btn-sm" title="Delete" onclick="return confirm('Delete this question?')"><i class="bi bi-trash3"></i></button></form>
+                                <button type="button" class="qb-btn qb-btn-outline qb-btn-sm" title="Delete" onclick="deleteQuestion({{ q.id }})"><i class="bi bi-trash3"></i></button>
                             </div>
                         </div>
                     </div>
@@ -390,6 +390,15 @@ function validatePaperSelection(){
     const checked=document.querySelectorAll('.q-check:checked').length;
     if(checked===0){alert('Select at least one question to create a paper.');return false;}
     return true;
+}
+
+/* ── Delete question (avoids nested form inside paperForm) ── */
+function deleteQuestion(qId){
+    if(!confirm('Delete this question?'))return;
+    const form=document.createElement('form');
+    form.method='POST';form.style.display='none';
+    form.innerHTML='<input name="csrfmiddlewaretoken" value="{{ csrf_token }}"><input name="action" value="delete"><input name="q_id" value="'+qId+'">';
+    document.body.appendChild(form);form.submit();
 }
 
 /* ── Options field toggle for Add form ── */
