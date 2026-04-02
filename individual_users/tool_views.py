@@ -617,12 +617,16 @@ def lesson_plan_create(request):
     profile = request.user.individual_profile
 
     if request.method == 'POST':
+        b7_meta_raw = request.POST.get('b7_meta', '').strip()
+        b7_meta = json.loads(b7_meta_raw) if b7_meta_raw else None
         plan = ToolLessonPlan.objects.create(
             profile=profile,
             title=request.POST.get('title', 'Untitled Lesson').strip(),
             subject=request.POST.get('subject', 'mathematics'),
             target_class=request.POST.get('target_class', ''),
             topic=request.POST.get('topic', '').strip(),
+            indicator=request.POST.get('indicator', '').strip(),
+            sub_strand=request.POST.get('sub_strand', '').strip(),
             duration_minutes=int(request.POST.get('duration_minutes', 40)),
             objectives=request.POST.get('objectives', '').strip(),
             materials=request.POST.get('materials', '').strip(),
@@ -631,6 +635,7 @@ def lesson_plan_create(request):
             assessment=request.POST.get('assessment', '').strip(),
             closure=request.POST.get('closure', '').strip(),
             notes=request.POST.get('notes', '').strip(),
+            b7_meta=b7_meta,
         )
         messages.success(request, f'Lesson plan "{plan.title}" created.')
         return redirect('individual:lesson_plan_detail', pk=plan.pk)
@@ -670,6 +675,8 @@ def lesson_plan_edit(request, pk):
         plan.subject = request.POST.get('subject', plan.subject)
         plan.target_class = request.POST.get('target_class', plan.target_class)
         plan.topic = request.POST.get('topic', plan.topic).strip()
+        plan.indicator = request.POST.get('indicator', plan.indicator).strip()
+        plan.sub_strand = request.POST.get('sub_strand', plan.sub_strand).strip()
         plan.duration_minutes = int(request.POST.get('duration_minutes', plan.duration_minutes))
         plan.objectives = request.POST.get('objectives', plan.objectives).strip()
         plan.materials = request.POST.get('materials', plan.materials).strip()
@@ -678,6 +685,9 @@ def lesson_plan_edit(request, pk):
         plan.assessment = request.POST.get('assessment', plan.assessment).strip()
         plan.closure = request.POST.get('closure', plan.closure).strip()
         plan.notes = request.POST.get('notes', plan.notes).strip()
+        b7_meta_raw = request.POST.get('b7_meta', '').strip()
+        if b7_meta_raw:
+            plan.b7_meta = json.loads(b7_meta_raw)
         plan.save()
         messages.success(request, 'Lesson plan updated.')
         return redirect('individual:lesson_plan_detail', pk=plan.pk)
@@ -816,6 +826,239 @@ def lesson_plan_ai_generate(request):
         development=data.get('development', ''),
         assessment=data.get('assessment', ''),
         closure=data.get('closure', ''),
+    )
+
+    return JsonResponse({
+        'ok': True,
+        'id': plan.id,
+        'title': plan.title,
+        'redirect': f'/u/tools/lesson-plans/{plan.pk}/',
+    })
+
+
+# ── GES B5 Weekly Notes Draft ────────────────────────────────────────────────
+
+import re as _re
+
+_GES_CODE_RE = _re.compile(r'^[A-Z]{1,3}\d{1,2}(?:\.\d+){2,5}\s*$')
+
+
+@_tool_required
+@_require_tool('lesson-planner')
+@require_POST
+def lesson_plan_ges_generate(request):
+    """Generate a GES Weekly Lesson Notes draft (B5-style table format).
+
+    Supports:
+    - Full plan: all sections
+    - Inline mode (inline=1): return JSON without saving
+    - Section mode (section=xxx): regenerate one section
+    """
+    profile = request.user.individual_profile
+    subject = request.POST.get('subject', 'mathematics')
+    topic = request.POST.get('topic', '').strip()
+    indicator = request.POST.get('indicator', '').strip()
+    sub_strand = request.POST.get('sub_strand', '').strip()
+    target_class = request.POST.get('target_class', 'Basic 5')
+    duration = int(request.POST.get('duration_minutes', 60))
+    week_number = int(request.POST.get('week_number', 1) or 1)
+    inline = request.POST.get('inline') == '1'
+    section = request.POST.get('section', '').strip()
+
+    if not topic:
+        return JsonResponse({'error': 'Topic is required'}, status=400)
+    if not indicator:
+        return JsonResponse({'error': 'Indicator is required for GES draft'}, status=400)
+
+    subject_label = dict(ToolQuestion.SUBJECT_CHOICES).get(subject, subject)
+    code_only = bool(_GES_CODE_RE.match(indicator))
+
+    indicator_instruction = (
+        f"Target Indicator Code: {indicator}\n"
+        "IMPORTANT: This is a Ghana GES curriculum code. "
+        "Resolve it to the full performance indicator statement. "
+        "Use ONLY the descriptive statement (not the numeric code) throughout."
+    ) if code_only else f"Target Indicator (must be achieved): {indicator}"
+
+    sub_strand_line = f'\n- Sub-strand: {sub_strand}' if sub_strand else ''
+
+    # ── Section-level regeneration ─────────────────────────────
+    if section:
+        valid_sections = {
+            'objectives', 'materials', 'introduction', 'development',
+            'assessment', 'closure', 'notes',
+        }
+        if section not in valid_sections:
+            return JsonResponse({'error': f'Invalid section: {section}'}, status=400)
+
+        # Map standalone field names to GES section hints
+        section_hints = {
+            'objectives': 'Write concise content standard and indicator-focused lesson objectives.',
+            'materials': 'List practical teaching and learning materials needed.',
+            'introduction': 'Write Phase 1 starter activities linked to the indicator.',
+            'development': 'Write Phase 2 main learning activities that teach the indicator.',
+            'assessment': 'Write Phase 3 assessment checks that measure the indicator.',
+            'closure': 'Write homework that directly reinforces the indicator.',
+            'notes': 'Write teacher reflection prompts tied to indicator mastery.',
+        }
+
+        sys_prompt = f"""You are a Ghana GES lesson planner.
+Regenerate ONLY one section of a weekly lesson notes plan.
+Context:
+- Subject: {subject_label}
+- Class: {target_class}
+- Strand/Topic: {topic}{sub_strand_line}
+- {indicator_instruction}
+- Week Number: {week_number}
+- Section to regenerate: {section}
+Return ONLY valid JSON: {{"content": "new section text"}}"""
+
+        current_text = request.POST.get('current_text', '').strip()
+        user_prompt = (
+            f"Regenerate section '{section}'. {section_hints.get(section, '')} "
+            f"Indicator: {indicator}. "
+            + (f"Current draft to improve: {current_text[:900]}" if current_text else '')
+        )
+
+        try:
+            import openai
+            client = openai.OpenAI(api_key=getattr(settings, 'OPENAI_API_KEY', ''))
+            resp = client.chat.completions.create(
+                model='gpt-4o-mini',
+                messages=[
+                    {'role': 'system', 'content': sys_prompt},
+                    {'role': 'user', 'content': user_prompt},
+                ],
+                temperature=0.5,
+                max_tokens=700,
+            )
+            raw = resp.choices[0].message.content.strip()
+            if raw.startswith('```'):
+                raw = raw.split('\n', 1)[1] if '\n' in raw else raw[3:]
+            if raw.endswith('```'):
+                raw = raw[:-3]
+            data = json.loads(raw.strip())
+            content = data.get('content', '')
+        except Exception as exc:
+            logger.warning('GES section regen failed (%s): %s', section, exc)
+            content = ''
+
+        return JsonResponse({'ok': True, 'plan': {section: content}})
+
+    # ── Full GES draft ────────────────────────────────────────
+    sys_prompt = f"""You are a Ghana GES lesson planner.
+Generate a weekly lesson notes draft for:
+- Subject: {subject_label}
+- Class: {target_class}
+- Strand/Topic: {topic}{sub_strand_line}
+- {indicator_instruction}
+- Week Number: {week_number}
+- Duration: {duration} minutes
+
+The output must match a traditional GES weekly lesson-notes table style.
+Every activity, assessment, and homework must directly align to the target indicator.
+Never reference indicator codes in lesson text — use full descriptive sentences.
+
+Return ONLY valid JSON with this schema:
+{{
+  "lesson_plan": {{
+    "title": "lesson title",
+    "objectives": "content standard + indicator in plain text",
+    "teaching_materials": "resources list",
+    "introduction": "Phase 1 starter activities (5-7 min)",
+    "presentation": "Phase 2 new learning activities (20-25 min)",
+    "evaluation": "Phase 3 assessment/check for understanding (5-10 min)",
+    "homework": "homework task",
+    "remarks": "teacher reflection note"
+  }},
+  "b7_meta": {{
+    "period": "e.g. 1",
+    "duration": "{duration} Minutes",
+    "strand": "main strand",
+    "sub_strand": "sub strand/topic",
+    "content_standard": "single concise statement",
+    "indicator": "single concise indicator statement",
+    "lesson_of": "e.g. 1 of 3",
+    "performance_indicator": "what learners can do",
+    "core_competencies": "comma-separated competencies",
+    "references": "curriculum references",
+    "keywords": "comma-separated keywords"
+  }}
+}}"""
+
+    if code_only:
+        user_prompt = (
+            f"Create a complete weekly lesson notes draft for Week {week_number}. "
+            f"The GES curriculum code is {indicator}. "
+            "Resolve this code to its full Ghana curriculum performance indicator, "
+            "then design the entire lesson to achieve that statement."
+        )
+    else:
+        user_prompt = (
+            f"Create a complete weekly lesson notes draft for Week {week_number}. "
+            f"The lesson must achieve this indicator exactly: {indicator}. "
+            'Use clear teacher actions, learner actions, and assessment steps.'
+        )
+
+    try:
+        import openai
+        client = openai.OpenAI(api_key=getattr(settings, 'OPENAI_API_KEY', ''))
+        resp = client.chat.completions.create(
+            model='gpt-4o-mini',
+            messages=[
+                {'role': 'system', 'content': sys_prompt},
+                {'role': 'user', 'content': user_prompt},
+            ],
+            temperature=0.5,
+            max_tokens=2000,
+        )
+        raw = resp.choices[0].message.content.strip()
+        if raw.startswith('```'):
+            raw = raw.split('\n', 1)[1] if '\n' in raw else raw[3:]
+        if raw.endswith('```'):
+            raw = raw[:-3]
+        parsed = json.loads(raw.strip())
+    except Exception as exc:
+        logger.warning('GES lesson generation failed: %s', exc)
+        return JsonResponse({'error': 'GES draft generation failed. Please try again.'}, status=500)
+
+    lp = parsed.get('lesson_plan', {})
+    b7_meta = parsed.get('b7_meta', {})
+
+    # Map GES field names → standalone model field names
+    plan_data = {
+        'title': lp.get('title', f'{subject_label}: {topic}'),
+        'objectives': lp.get('objectives', ''),
+        'materials': lp.get('teaching_materials', ''),
+        'introduction': lp.get('introduction', ''),
+        'development': lp.get('presentation', ''),
+        'assessment': lp.get('evaluation', ''),
+        'closure': lp.get('homework', ''),
+        'notes': lp.get('remarks', ''),
+    }
+
+    # Inline mode: return without saving
+    if inline:
+        return JsonResponse({'ok': True, 'plan': plan_data, 'b7_meta': b7_meta})
+
+    # Save to DB
+    plan = ToolLessonPlan.objects.create(
+        profile=profile,
+        title=plan_data['title'],
+        subject=subject,
+        target_class=target_class,
+        topic=topic,
+        indicator=indicator,
+        sub_strand=sub_strand,
+        duration_minutes=duration,
+        objectives=plan_data['objectives'],
+        materials=plan_data['materials'],
+        introduction=plan_data['introduction'],
+        development=plan_data['development'],
+        assessment=plan_data['assessment'],
+        closure=plan_data['closure'],
+        notes=plan_data['notes'],
+        b7_meta=b7_meta,
     )
 
     return JsonResponse({

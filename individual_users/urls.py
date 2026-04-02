@@ -53,6 +53,7 @@ urlpatterns = [
     path('tools/lesson-plans/<int:pk>/edit/', tool_views.lesson_plan_edit, name='lesson_plan_edit'),
     path('tools/lesson-plans/<int:pk>/delete/', tool_views.lesson_plan_delete, name='lesson_plan_delete'),
     path('tools/lesson-plans/ai-generate/', tool_views.lesson_plan_ai_generate, name='lesson_plan_ai_generate'),
+    path('tools/lesson-plans/ges-generate/', tool_views.lesson_plan_ges_generate, name='lesson_plan_ges_generate'),
 ]
 
 # Teacher shortcut URLs (included under /t/ prefix in main urls.py)

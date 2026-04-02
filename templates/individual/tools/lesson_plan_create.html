@@ -103,7 +103,30 @@
 .lpc-btn-green:hover { background: #047857; }
 .lpc-btn-ai { background: linear-gradient(135deg, #4361ee, #4cc9f0); color: #fff; }
 .lpc-btn-ai:hover { opacity: 0.9; }
+.lpc-btn-ges { background: linear-gradient(135deg, #059669, #10b981); color: #fff; }
+.lpc-btn-ges:hover { opacity: 0.9; }
 .lpc-btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); }
+
+/* ── GES Indicator Card ───────────────────────────────────── */
+.ges-card {
+    border: 1px solid rgba(16,185,129,0.2);
+    background: linear-gradient(135deg, rgba(16,185,129,0.03), rgba(5,150,105,0.06));
+}
+[data-bs-theme="dark"] .ges-card {
+    border-color: rgba(52,211,153,0.15);
+    background: linear-gradient(135deg, rgba(16,185,129,0.06), rgba(5,150,105,0.1));
+}
+.ges-badge {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.15rem 0.55rem; border-radius: 999px;
+    font-size: 0.65rem; font-weight: 700; letter-spacing: 0.04em;
+    background: rgba(16,185,129,0.1); color: #059669;
+    border: 1px solid rgba(16,185,129,0.2);
+}
+[data-bs-theme="dark"] .ges-badge { background: rgba(52,211,153,0.15); color: #6ee7b7; }
+.ges-help {
+    font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem;
+}
 
 /* ── AI Loading Overlay ───────────────────────────────────── */
 .ai-overlay {
@@ -179,6 +202,25 @@
             <label>Topic / Strand</label>
             <input type="text" name="topic" placeholder="e.g. Photosynthesis, Fractions, Tenses">
         </div>
+    </div>
+
+    <!-- GES Indicator (for GES Draft) -->
+    <div class="iu-card lpc-card ges-card">
+        <div class="sl">
+            <span class="sl-icon" style="background:#ecfdf5;color:#059669;"><i class="bi bi-table"></i></span>
+            GES Curriculum Alignment
+            <span class="ges-badge" style="margin-left:auto"><i class="bi bi-shield-check"></i> B5 Draft</span>
+        </div>
+        <div class="lpc-group">
+            <label>Target Indicator <span style="color:var(--text-muted);font-weight:400">(code or statement)</span></label>
+            <input type="text" name="indicator" id="indicatorInput" placeholder="e.g. B5.2.1.1.1 or 'Learners can identify factors of numbers up to 100'">
+            <div class="ges-help">Enter a GES indicator code (e.g. B5.2.1.1.1) or the full indicator statement. Required for GES Draft.</div>
+        </div>
+        <div class="lpc-group">
+            <label>Sub-strand</label>
+            <input type="text" name="sub_strand" placeholder="e.g. Number Operations, Comprehension">
+        </div>
+        <input type="hidden" name="b7_meta" id="b7MetaInput" value="">
     </div>
 
     <!-- Objectives & Resources -->
@@ -259,6 +301,7 @@
     <div class="lpc-actions">
         <button type="submit" class="lpc-btn lpc-btn-green"><i class="bi bi-save"></i> Save Lesson Plan</button>
         <button type="button" class="lpc-btn lpc-btn-ai" id="aiDraftBtn"><i class="bi bi-stars"></i> Aura-T Draft</button>
+        <button type="button" class="lpc-btn lpc-btn-ges" id="gesDraftBtn"><i class="bi bi-table"></i> GES B5 Draft</button>
         <a href="{% url 'individual:lesson_plans' %}" class="lpc-btn lpc-btn-outline">Cancel</a>
     </div>
 </form>
@@ -278,6 +321,7 @@
 (function() {
     const CSRF = document.querySelector('[name=csrfmiddlewaretoken]').value;
     const AI_URL = '{% url "individual:lesson_plan_ai_generate" %}';
+    const GES_URL = '{% url "individual:lesson_plan_ges_generate" %}';
 
     function fill(name, value) {
         if (!value) return;
@@ -382,11 +426,16 @@
             const topic = document.querySelector('[name="topic"]').value.trim();
             const subject = document.querySelector('[name="subject"]').value;
             const targetClass = document.querySelector('[name="target_class"]').value.trim();
+            const indicator = document.querySelector('[name="indicator"]').value.trim();
             if (!topic) { document.querySelector('[name="topic"]').focus(); return; }
 
             this.disabled = true;
             const oldText = this.textContent;
             this.textContent = 'Regenerating…';
+
+            // Use GES endpoint if indicator is set, otherwise Aura-T
+            const useGes = !!indicator;
+            const url = useGes ? GES_URL : AI_URL;
 
             const body = new FormData();
             body.append('csrfmiddlewaretoken', CSRF);
@@ -396,9 +445,15 @@
             body.append('duration_minutes', document.querySelector('[name="duration_minutes"]').value);
             body.append('section', section);
             body.append('inline', '1');
+            if (useGes) {
+                body.append('indicator', indicator);
+                body.append('sub_strand', document.querySelector('[name="sub_strand"]').value.trim());
+                body.append('week_number', document.querySelector('[name="week_number"]').value || '1');
+                body.append('current_text', (document.querySelector('[name="' + section + '"]') || {}).value || '');
+            }
 
             try {
-                const resp = await fetch(AI_URL, { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                const resp = await fetch(url, { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
                 const data = await resp.json();
                 if (data.ok && data.plan && data.plan[section]) {
                     fill(section, data.plan[section]);
@@ -407,6 +462,106 @@
             this.disabled = false;
             this.textContent = oldText;
         });
+    });
+
+    // ── GES B5 Draft Button ──────────────────────────────
+    const gesBtn = document.getElementById('gesDraftBtn');
+    gesBtn.addEventListener('click', async function() {
+        const topic = document.querySelector('[name="topic"]').value.trim();
+        const indicator = document.querySelector('[name="indicator"]').value.trim();
+
+        if (!topic) {
+            const topicEl = document.querySelector('[name="topic"]');
+            topicEl.focus();
+            topicEl.style.outline = '2px solid #ef4444';
+            setTimeout(() => topicEl.style.outline = '', 2000);
+            return;
+        }
+        if (!indicator) {
+            const indEl = document.getElementById('indicatorInput');
+            indEl.focus();
+            indEl.style.outline = '2px solid #ef4444';
+            indEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => indEl.style.outline = '', 2000);
+            return;
+        }
+
+        overlay.classList.add('open');
+        gesBtn.disabled = true;
+        statusEl.textContent = 'Building GES weekly notes structure…';
+
+        const gesMessages = [
+            'Aligning content standard and indicator…',
+            'Drafting phase activities and assessment…',
+            'Formatting for printable weekly table…',
+            'Verifying indicator alignment…'
+        ];
+        let gi = 0;
+        const gesTicker = setInterval(() => {
+            gi = (gi + 1) % gesMessages.length;
+            statusEl.textContent = gesMessages[gi];
+        }, 2500);
+
+        const body = new FormData();
+        body.append('csrfmiddlewaretoken', CSRF);
+        body.append('subject', document.querySelector('[name="subject"]').value);
+        body.append('topic', topic);
+        body.append('indicator', indicator);
+        body.append('sub_strand', document.querySelector('[name="sub_strand"]').value.trim());
+        body.append('target_class', document.querySelector('[name="target_class"]').value.trim() || 'Basic 5');
+        body.append('duration_minutes', document.querySelector('[name="duration_minutes"]').value);
+        body.append('week_number', document.querySelector('[name="week_number"]').value || '1');
+        body.append('inline', '1');
+
+        try {
+            const resp = await fetch(GES_URL, {
+                method: 'POST', body: body,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            clearInterval(gesTicker);
+            const data = await resp.json();
+
+            if (data.ok && data.plan) {
+                const p = data.plan;
+                fill('title', p.title || '');
+                fill('objectives', p.objectives || '');
+                fill('materials', p.materials || '');
+                fill('introduction', p.introduction || '');
+                fill('development', p.development || '');
+                fill('assessment', p.assessment || '');
+                fill('closure', p.closure || '');
+                fill('notes', p.notes || '');
+
+                // Store b7_meta for saving
+                if (data.b7_meta) {
+                    document.getElementById('b7MetaInput').value = JSON.stringify(data.b7_meta);
+                }
+
+                overlay.classList.remove('open');
+                gesBtn.disabled = false;
+
+                const toast = document.createElement('div');
+                toast.className = 'alert alert-success alert-dismissible fade show';
+                toast.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:9998;max-width:420px;font-size:.88rem;border-radius:12px;';
+                toast.innerHTML = '<i class="bi bi-table me-2"></i><strong>GES Draft</strong> — Weekly lesson notes generated with indicator alignment. Review and save.' +
+                    '<button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>';
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 6000);
+            } else {
+                throw new Error(data.error || 'No plan returned');
+            }
+        } catch(err) {
+            clearInterval(gesTicker);
+            overlay.classList.remove('open');
+            gesBtn.disabled = false;
+            const errToast = document.createElement('div');
+            errToast.className = 'alert alert-danger alert-dismissible fade show';
+            errToast.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:9998;max-width:380px;font-size:.88rem;border-radius:12px;';
+            errToast.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i><strong>GES Draft error:</strong> ' +
+                (err.message || 'Request failed') +
+                '<button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>';
+            document.body.appendChild(errToast);
+        }
     });
 })();
 </script>

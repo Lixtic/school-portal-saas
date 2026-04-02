@@ -202,6 +202,8 @@ class ToolLessonPlan(models.Model):
     subject = models.CharField(max_length=30, choices=ToolQuestion.SUBJECT_CHOICES, default='mathematics')
     target_class = models.CharField(max_length=60, blank=True, default='')
     topic = models.CharField(max_length=200, blank=True, default='')
+    indicator = models.CharField(max_length=300, blank=True, default='', help_text='GES target indicator code or statement')
+    sub_strand = models.CharField(max_length=200, blank=True, default='')
     duration_minutes = models.PositiveIntegerField(default=40)
     objectives = models.TextField(blank=True, default='')
     materials = models.TextField(blank=True, default='')
@@ -210,6 +212,7 @@ class ToolLessonPlan(models.Model):
     assessment = models.TextField(blank=True, default='')
     closure = models.TextField(blank=True, default='')
     notes = models.TextField(blank=True, default='')
+    b7_meta = models.JSONField(blank=True, null=True, default=None, help_text='GES lesson metadata')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

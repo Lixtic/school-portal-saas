@@ -107,6 +107,7 @@
             <span class="lpd-pill"><i class="bi bi-clock"></i> {{ plan.duration_minutes }} min</span>
             {% if plan.target_class %}<span class="lpd-pill"><i class="bi bi-people"></i> {{ plan.target_class }}</span>{% endif %}
             {% if plan.topic %}<span class="lpd-pill"><i class="bi bi-tag"></i> {{ plan.topic }}</span>{% endif %}
+            {% if plan.indicator %}<span class="lpd-pill" style="background:rgba(16,185,129,0.1);color:#059669;border-color:rgba(16,185,129,0.2)"><i class="bi bi-mortarboard"></i> {{ plan.indicator }}</span>{% endif %}
         </div>
     </div>
 
@@ -180,6 +181,46 @@
             <div class="lpd-body">{{ plan.notes }}</div>
         </div>
         {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- GES Curriculum Metadata -->
+    {% if plan.b7_meta %}
+    <div class="lpd-section" style="border:1px solid rgba(16,185,129,0.2);border-radius:0.75rem;background:linear-gradient(135deg,rgba(16,185,129,0.03),rgba(5,150,105,0.06));padding:1rem">
+        <div class="sl">
+            <span class="sl-icon" style="background:#ecfdf5;color:#059669;"><i class="bi bi-mortarboard"></i></span>
+            GES Curriculum Metadata
+            <span style="margin-left:0.5rem;display:inline-flex;align-items:center;gap:0.3rem;padding:0.15rem 0.55rem;border-radius:999px;font-size:0.65rem;font-weight:700;background:rgba(16,185,129,0.1);color:#059669;border:1px solid rgba(16,185,129,0.2)"><i class="bi bi-patch-check-fill"></i> GES Aligned</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem 1.5rem;margin-top:0.5rem;font-size:0.82rem">
+            {% if plan.b7_meta.strand %}
+            <div><span style="font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:0.68rem">Strand</span><br>{{ plan.b7_meta.strand }}</div>
+            {% endif %}
+            {% if plan.b7_meta.sub_strand %}
+            <div><span style="font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:0.68rem">Sub-Strand</span><br>{{ plan.b7_meta.sub_strand }}</div>
+            {% endif %}
+            {% if plan.b7_meta.content_standard %}
+            <div><span style="font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:0.68rem">Content Standard</span><br>{{ plan.b7_meta.content_standard }}</div>
+            {% endif %}
+            {% if plan.b7_meta.indicator %}
+            <div><span style="font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:0.68rem">Indicator</span><br>{{ plan.b7_meta.indicator }}</div>
+            {% endif %}
+            {% if plan.b7_meta.performance_indicator %}
+            <div><span style="font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:0.68rem">Performance Indicator</span><br>{{ plan.b7_meta.performance_indicator }}</div>
+            {% endif %}
+            {% if plan.b7_meta.core_competencies %}
+            <div><span style="font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:0.68rem">Core Competencies</span><br>{{ plan.b7_meta.core_competencies }}</div>
+            {% endif %}
+            {% if plan.b7_meta.keywords %}
+            <div><span style="font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:0.68rem">Keywords</span><br>{{ plan.b7_meta.keywords }}</div>
+            {% endif %}
+            {% if plan.b7_meta.references %}
+            <div><span style="font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:0.68rem">References</span><br>{{ plan.b7_meta.references }}</div>
+            {% endif %}
+            {% if plan.b7_meta.lesson_of %}
+            <div><span style="font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:0.68rem">Lesson</span><br>{{ plan.b7_meta.lesson_of }}</div>
+            {% endif %}
+        </div>
     </div>
     {% endif %}
 </div>

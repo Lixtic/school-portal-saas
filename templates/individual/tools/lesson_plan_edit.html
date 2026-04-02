@@ -88,7 +88,28 @@
 .lpc-btn-green:hover { background: #047857; }
 .lpc-btn-ai { background: linear-gradient(135deg, #4361ee, #4cc9f0); color: #fff; }
 .lpc-btn-ai:hover { opacity: 0.9; }
+.lpc-btn-ges { background: linear-gradient(135deg, #059669, #10b981); color: #fff; }
+.lpc-btn-ges:hover { opacity: 0.9; }
 .lpc-btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); }
+
+/* ── GES Indicator Card ───────────────────────────────────── */
+.ges-card {
+    border: 1px solid rgba(16,185,129,0.2);
+    background: linear-gradient(135deg, rgba(16,185,129,0.03), rgba(5,150,105,0.06));
+}
+[data-bs-theme="dark"] .ges-card {
+    border-color: rgba(52,211,153,0.15);
+    background: linear-gradient(135deg, rgba(16,185,129,0.06), rgba(5,150,105,0.1));
+}
+.ges-badge {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.15rem 0.55rem; border-radius: 999px;
+    font-size: 0.65rem; font-weight: 700; letter-spacing: 0.04em;
+    background: rgba(16,185,129,0.1); color: #059669;
+    border: 1px solid rgba(16,185,129,0.2);
+}
+[data-bs-theme="dark"] .ges-badge { background: rgba(52,211,153,0.15); color: #6ee7b7; }
+.ges-help { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem; }
 
 /* ── AI Overlay ───────────────────────────────────────────── */
 .ai-overlay {
@@ -164,6 +185,28 @@
             <label>Topic / Strand</label>
             <input type="text" name="topic" value="{{ plan.topic|default:'' }}">
         </div>
+    </div>
+
+    <!-- GES Curriculum Alignment -->
+    <div class="iu-card lpc-card ges-card">
+        <div class="sl">
+            <span class="sl-icon" style="background:#ecfdf5;color:#059669;"><i class="bi bi-mortarboard"></i></span>
+            GES Curriculum Alignment
+            <span class="ges-badge" style="margin-left:0.5rem"><i class="bi bi-patch-check-fill"></i> GES B5 Draft</span>
+        </div>
+        <div class="lpc-row-4" style="grid-template-columns:1fr 1fr">
+            <div class="lpc-group">
+                <label>Indicator / Content Standard</label>
+                <input type="text" name="indicator" placeholder="e.g. B5.2.1.1.1 or full statement" value="{{ plan.indicator|default:'' }}">
+                <div class="ges-help">Enter a GES indicator code or full description to align the draft</div>
+            </div>
+            <div class="lpc-group">
+                <label>Sub-Strand</label>
+                <input type="text" name="sub_strand" placeholder="e.g. Number and Numeration" value="{{ plan.sub_strand|default:'' }}">
+            </div>
+        </div>
+        <input type="hidden" name="b7_meta" id="b7MetaInput" value="">
+        {% if plan.b7_meta %}{{ plan.b7_meta|json_script:"b7MetaData" }}{% endif %}
     </div>
 
     <!-- Objectives & Resources -->
@@ -244,6 +287,7 @@
     <div class="lpc-actions">
         <button type="submit" class="lpc-btn lpc-btn-green"><i class="bi bi-check-lg"></i> Save Changes</button>
         <button type="button" class="lpc-btn lpc-btn-ai" id="aiDraftBtn"><i class="bi bi-stars"></i> Aura-T Redraft</button>
+        <button type="button" class="lpc-btn lpc-btn-ges" id="gesDraftBtn"><i class="bi bi-table"></i> GES B5 Draft</button>
         <a href="{% url 'individual:lesson_plan_detail' pk=plan.pk %}" class="lpc-btn lpc-btn-outline">Cancel</a>
     </div>
 </form>
@@ -263,6 +307,11 @@
 (function() {
     const CSRF = document.querySelector('[name=csrfmiddlewaretoken]').value;
     const AI_URL = '{% url "individual:lesson_plan_ai_generate" %}';
+    const GES_URL = '{% url "individual:lesson_plan_ges_generate" %}';
+
+    // Pre-populate b7_meta from existing data
+    const b7DataEl = document.getElementById('b7MetaData');
+    if (b7DataEl) { document.getElementById('b7MetaInput').value = b7DataEl.textContent; }
 
     function fill(name, value) {
         if (!value) return;
@@ -271,6 +320,7 @@
     }
 
     const aiBtn = document.getElementById('aiDraftBtn');
+    const gesBtn = document.getElementById('gesDraftBtn');
     const overlay = document.getElementById('aiOverlay');
     const statusEl = document.getElementById('aiStatus');
 
@@ -283,6 +333,7 @@
         'Polishing the full plan…'
     ];
 
+    /* ── Aura-T Redraft ───────────────────────────────── */
     aiBtn.addEventListener('click', async function() {
         const topic = document.querySelector('[name="topic"]').value.trim();
         const subject = document.querySelector('[name="subject"]').value;
@@ -336,13 +387,86 @@
         }
     });
 
-    // ── Section Regen ────────────────────────────────────
+    /* ── GES B5 Draft ─────────────────────────────────── */
+    const gesStatusMessages = [
+        'Aligning to GES indicator…',
+        'Building weekly lesson notes…',
+        'Structuring RPK & core competencies…',
+        'Designing presentation activities…',
+        'Adding evaluation & homework…',
+        'Verifying indicator alignment…',
+        'Polishing GES-format plan…'
+    ];
+
+    gesBtn.addEventListener('click', async function() {
+        const topic = document.querySelector('[name="topic"]').value.trim();
+        const indicator = document.querySelector('[name="indicator"]').value.trim();
+
+        if (!topic || !indicator) {
+            const missing = !topic ? document.querySelector('[name="topic"]') : document.querySelector('[name="indicator"]');
+            missing.focus();
+            missing.style.outline = '2px solid #ef4444';
+            setTimeout(() => missing.style.outline = '', 2000);
+            return;
+        }
+
+        if (!confirm('Generate a GES B5 Weekly Lesson Notes draft aligned to the indicator? This will overwrite all sections.')) return;
+
+        overlay.classList.add('open');
+        gesBtn.disabled = true;
+        let mi = 0;
+        statusEl.textContent = gesStatusMessages[0];
+        const ticker = setInterval(() => { mi = (mi + 1) % gesStatusMessages.length; statusEl.textContent = gesStatusMessages[mi]; }, 2200);
+
+        const body = new FormData();
+        body.append('csrfmiddlewaretoken', CSRF);
+        body.append('subject', document.querySelector('[name="subject"]').value);
+        body.append('topic', topic);
+        body.append('target_class', document.querySelector('[name="target_class"]').value.trim());
+        body.append('duration_minutes', document.querySelector('[name="duration_minutes"]').value);
+        body.append('indicator', indicator);
+        body.append('sub_strand', document.querySelector('[name="sub_strand"]').value.trim());
+        body.append('inline', '1');
+
+        try {
+            const resp = await fetch(GES_URL, { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            clearInterval(ticker);
+            const data = await resp.json();
+            if (data.ok && data.plan) {
+                const p = data.plan;
+                fill('title', p.title || '');
+                fill('objectives', p.objectives || '');
+                fill('materials', p.materials || '');
+                fill('introduction', p.introduction || '');
+                fill('development', p.development || '');
+                fill('assessment', p.assessment || '');
+                fill('closure', p.closure || '');
+                fill('notes', p.notes || '');
+                if (data.b7_meta) {
+                    document.getElementById('b7MetaInput').value = JSON.stringify(data.b7_meta);
+                }
+                overlay.classList.remove('open');
+                gesBtn.disabled = false;
+            } else { throw new Error(data.error || 'No plan returned'); }
+        } catch(err) {
+            clearInterval(ticker);
+            overlay.classList.remove('open');
+            gesBtn.disabled = false;
+            alert('GES Draft error: ' + (err.message || 'Request failed'));
+        }
+    });
+
+    /* ── Section Regen (smart routing) ────────────────── */
     document.querySelectorAll('.regen-btn[data-section]').forEach(btn => {
         btn.addEventListener('click', async function() {
             const section = this.dataset.section;
             const topic = document.querySelector('[name="topic"]').value.trim();
             const subject = document.querySelector('[name="subject"]').value;
+            const indicator = document.querySelector('[name="indicator"]').value.trim();
             if (!topic) { document.querySelector('[name="topic"]').focus(); return; }
+
+            const useGes = !!indicator;
+            const url = useGes ? GES_URL : AI_URL;
 
             this.disabled = true;
             const oldText = this.textContent;
@@ -356,9 +480,13 @@
             body.append('duration_minutes', document.querySelector('[name="duration_minutes"]').value);
             body.append('section', section);
             body.append('inline', '1');
+            if (useGes) {
+                body.append('indicator', indicator);
+                body.append('sub_strand', document.querySelector('[name="sub_strand"]').value.trim());
+            }
 
             try {
-                const resp = await fetch(AI_URL, { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                const resp = await fetch(url, { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
                 const data = await resp.json();
                 if (data.ok && data.plan && data.plan[section]) { fill(section, data.plan[section]); }
             } catch(e) { /* silent */ }
