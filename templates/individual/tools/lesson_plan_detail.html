@@ -90,7 +90,17 @@
 <div class="lpd-actions">
     <a href="{% url 'individual:lesson_plans' %}" class="lpd-btn lpd-btn-outline"><i class="bi bi-arrow-left"></i> Back</a>
     <a href="{% url 'individual:lesson_plan_edit' pk=plan.pk %}" class="lpd-btn lpd-btn-green"><i class="bi bi-pencil"></i> Edit</a>
-    <button onclick="window.print()" class="lpd-btn lpd-btn-blue"><i class="bi bi-printer"></i> Print</button>
+    <div class="dropdown">
+        <button class="lpd-btn lpd-btn-blue dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <i class="bi bi-printer"></i> Print
+        </button>
+        <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="{% url 'individual:lesson_plan_print' pk=plan.pk %}?template=ges"><i class="bi bi-table me-2"></i>GES Standard</a></li>
+            <li><a class="dropdown-item" href="{% url 'individual:lesson_plan_print' pk=plan.pk %}?template=b7"><i class="bi bi-calendar-week me-2"></i>B7 Weekly</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="#" onclick="window.print()"><i class="bi bi-printer me-2"></i>Print Current View</a></li>
+        </ul>
+    </div>
     <form method="post" action="{% url 'individual:lesson_plan_delete' pk=plan.pk %}" style="margin:0"
           onsubmit="return confirm('Delete this lesson plan?')">
         {% csrf_token %}

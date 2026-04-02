@@ -769,6 +769,45 @@ def lesson_plan_delete(request, pk):
 
 @_tool_required
 @_require_tool('lesson-planner')
+def lesson_plan_print(request, pk):
+    """GES Standard / B7 print view for a lesson plan."""
+    profile = request.user.individual_profile
+    plan = get_object_or_404(ToolLessonPlan, pk=pk, profile=profile)
+
+    template_format = (request.GET.get('template') or 'ges').strip().lower()
+    b7_meta = plan.b7_meta or {}
+
+    b7_context = {
+        'week_ending': b7_meta.get('week_ending', plan.created_at.strftime('%Y-%m-%d') if plan.created_at else ''),
+        'day': b7_meta.get('day', 'Monday – Friday'),
+        'class_size': b7_meta.get('class_size', ''),
+        'strand': b7_meta.get('strand', plan.topic),
+        'indicator': b7_meta.get('indicator', plan.indicator or 'See Content Standard'),
+        'lesson_of': b7_meta.get('lesson_of', '1 of 3'),
+        'perf_indicator': b7_meta.get('perf_indicator', b7_meta.get('performance_indicator', 'Learners can relate the lesson to real life situations.')),
+        'core_competencies': b7_meta.get('core_competencies', 'CP 5.1, CC 8.1'),
+        'references': b7_meta.get('references', f"National {plan.get_subject_display()} Curriculum"),
+        'keywords': b7_meta.get('keywords', plan.topic),
+    }
+
+    if template_format in {'b7', 'weekly'}:
+        template_name = 'individual/tools/lesson_plan_print_b7.html'
+    else:
+        template_name = 'individual/tools/lesson_plan_print_ges.html'
+
+    return render(request, template_name, {
+        'plan': plan,
+        'profile': profile,
+        'role': 'teacher',
+        'print_mode': True,
+        'current_template': template_format,
+        'b7_meta_json': json.dumps(b7_meta or {}),
+        'b7': b7_context,
+    })
+
+
+@_tool_required
+@_require_tool('lesson-planner')
 @require_POST
 def lesson_plan_ai_generate(request):
     """AI-generate a lesson plan from topic + subject.

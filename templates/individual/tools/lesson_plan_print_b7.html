@@ -1,0 +1,303 @@
+{% extends 'individual/base.html' %}
+{% block title %}B7 Weekly Lesson Plan — {{ plan.title }}{% endblock %}
+{% block page_title %}Weekly Lesson Plan{% endblock %}
+
+{% block extra_css %}
+/* ── B7 Weekly Lesson Plan ─────────────────────────────── */
+.b7-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 11pt;
+    color: #000;
+    background-color: #fff;
+}
+.b7-table th, .b7-table td {
+    border: 2px solid #000;
+    padding: 6px 8px;
+    vertical-align: top;
+}
+.b7-table th { font-weight: bold; text-align: left; }
+.bg-header { background-color: #faeadd; }
+
+/* ── Editable inline fields ───────────────────────────── */
+.b7-editable {
+    outline: none; cursor: text; display: inline;
+    min-width: 24px; border-radius: 2px; transition: background 0.15s;
+}
+.b7-editable:hover, .b7-editable:focus {
+    background-color: rgba(30, 136, 229, 0.07);
+    outline: 1px dashed rgba(30, 136, 229, 0.45);
+}
+
+/* ── Textareas ─────────────────────────────────────────── */
+.b7-table textarea {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 11pt; color: #000; background: transparent;
+    border: none; width: 100%; padding: 2px; resize: vertical; min-height: 40px;
+}
+.b7-table textarea:focus { background: rgba(30,136,229,0.04); outline: none; box-shadow: none; }
+
+/* ── Action Bar ────────────────────────────────────────── */
+.b7-actions { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+.b7-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.5rem 1rem;
+    border-radius: 10px; font-size: 0.82rem; font-weight: 600; text-decoration: none;
+    border: none; cursor: pointer; transition: all 0.15s ease;
+}
+.b7-btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); }
+.b7-btn-outline:hover { border-color: var(--text-main); color: var(--text-main); }
+.b7-btn-green { background: #059669; color: #fff; }
+.b7-btn-green:hover { background: #047857; color: #fff; }
+.b7-btn-dark { background: #1e293b; color: #fff; }
+.b7-btn-dark:hover { background: #0f172a; color: #fff; }
+[data-bs-theme="dark"] .b7-btn-dark { background: #334155; }
+[data-bs-theme="dark"] .b7-btn-dark:hover { background: #475569; }
+
+/* ── Dark mode ─────────────────────────────────────────── */
+[data-bs-theme="dark"] .b7-paper { background: var(--surface-card) !important; border-color: var(--border-color) !important; }
+[data-bs-theme="dark"] .b7-paper .card-body { background: var(--surface-card) !important; color: var(--text-main) !important; }
+[data-bs-theme="dark"] .b7-table { color: #e2e8f0; background-color: var(--surface-card); }
+[data-bs-theme="dark"] .b7-table th, [data-bs-theme="dark"] .b7-table td { border-color: #475569; }
+[data-bs-theme="dark"] .bg-header { background-color: #334155; }
+[data-bs-theme="dark"] .b7-table textarea { color: #e2e8f0; background: transparent; }
+
+/* ── Print ─────────────────────────────────────────────── */
+@media print {
+    @page { size: portrait; margin: 1cm; }
+    body { background: #fff !important; }
+    .iu-sidebar, .iu-topbar, .iu-overlay, .b7-actions { display: none !important; }
+    .iu-main { margin-left: 0 !important; }
+    .iu-content { padding: 0 !important; max-width: 100% !important; }
+    .b7-paper { border: none !important; box-shadow: none !important; border-radius: 0 !important; }
+    .b7-paper .card-body { background: #fff !important; color: #000 !important; }
+    .b7-table { border-color: #000 !important; background-color: transparent !important; color: #000 !important; }
+    .b7-table th, .b7-table td { border-color: #000 !important; }
+    .bg-header { background-color: #faeadd !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .b7-save-float { display: none !important; }
+    textarea { border: none !important; resize: none !important; overflow: hidden !important; white-space: pre-wrap; }
+    .print-hide { display: none !important; }
+    tr { page-break-inside: avoid; }
+}
+
+/* ── Mobile ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .b7-table td, .b7-table th { display: block; width: 100% !important; }
+    .b7-table tr { display: block; margin-bottom: .5rem; border: 1px solid var(--border-color); }
+    textarea { font-size: 16px; min-height: 80px; }
+}
+{% endblock %}
+
+{% block content %}
+<!-- Action Bar -->
+<div class="b7-actions print-hide">
+    <a href="{% url 'individual:lesson_plan_detail' pk=plan.pk %}" class="b7-btn b7-btn-outline"><i class="bi bi-arrow-left"></i> Back</a>
+    <div class="dropdown">
+        <button class="b7-btn b7-btn-outline dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <i class="bi bi-file-earmark-text"></i> Template
+        </button>
+        <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="?template=ges"><i class="bi bi-table me-2"></i>GES Standard</a></li>
+            <li><a class="dropdown-item active" href="?template=b7"><i class="bi bi-calendar-week me-2"></i>B7 Weekly</a></li>
+        </ul>
+    </div>
+    <button onclick="window.print()" class="b7-btn b7-btn-dark"><i class="bi bi-printer"></i> Print</button>
+    <a href="{% url 'individual:lesson_plan_edit' pk=plan.pk %}" class="b7-btn b7-btn-green"><i class="bi bi-pencil"></i> Edit</a>
+</div>
+
+<!-- Document Content -->
+<form method="post" action="{% url 'individual:lesson_plan_edit' pk=plan.pk %}" id="b7LessonForm">
+    {% csrf_token %}
+    <input type="hidden" name="title" value="{{ plan.title }}">
+    <input type="hidden" name="subject" value="{{ plan.subject }}">
+    <input type="hidden" name="target_class" value="{{ plan.target_class }}">
+    <input type="hidden" name="topic" value="{{ plan.topic }}">
+    <input type="hidden" name="indicator" value="{{ plan.indicator }}">
+    <input type="hidden" name="sub_strand" value="{{ plan.sub_strand }}">
+    <input type="hidden" name="duration_minutes" value="{{ plan.duration_minutes }}">
+    <input type="hidden" name="b7_meta" id="b7MetaInput" value="">
+
+    <div class="card border b7-paper" style="border-radius:12px;box-shadow:var(--shadow-card);">
+        <div class="card-body p-4 p-md-5" style="background:#fff;color:#000;">
+
+            <div class="text-center mb-4" style="font-family:'Times New Roman',serif;">
+                <h4 class="fw-bold text-uppercase">Weekly Lesson Plan – {{ plan.target_class|default:"Class" }}</h4>
+                <h5 class="fw-bold">{{ plan.title }}</h5>
+            </div>
+
+            <table class="b7-table">
+                <tr>
+                    <td class="bg-header" width="15%"><strong>Date:</strong></td>
+                    <td width="35%">{{ plan.created_at|date:"d/m/Y" }}</td>
+                    <td class="bg-header" width="15%"><strong>Period:</strong></td>
+                    <td width="35%"><span class="b7-editable" contenteditable="true" data-b7field="period">1</span></td>
+                </tr>
+                <tr>
+                    <td class="bg-header"><strong>Duration:</strong></td>
+                    <td>{{ plan.duration_minutes }} Mins</td>
+                    <td class="bg-header"><strong>Strand:</strong></td>
+                    <td><span class="b7-editable" contenteditable="true" data-b7field="strand">{{ b7.strand }}</span></td>
+                </tr>
+                <tr>
+                    <td class="bg-header"><strong>Class:</strong></td>
+                    <td>{{ plan.target_class|default:"—" }}</td>
+                    <td class="bg-header"><strong>Class Size:</strong></td>
+                    <td><span class="b7-editable" contenteditable="true" data-b7field="class_size">{{ b7.class_size }}</span></td>
+                </tr>
+                <tr>
+                    <td class="bg-header"><strong>Subject:</strong></td>
+                    <td>{{ plan.get_subject_display }}</td>
+                    <td class="bg-header"><strong>Sub Strand:</strong></td>
+                    <td>{{ plan.sub_strand|default:plan.topic }}</td>
+                </tr>
+            </table>
+
+            <table class="b7-table" style="margin-top:-2px;">
+                <tr>
+                    <td width="50%" valign="top">
+                        <div class="bg-header p-1 border-bottom border-dark"><strong>Content Standard:</strong></div>
+                        <div class="p-1">
+                            <textarea name="objectives" class="form-control border-0 shadow-none rounded-0 p-1" rows="3" style="font-size:11pt;">{{ plan.objectives }}</textarea>
+                        </div>
+                    </td>
+                    <td width="30%" valign="top">
+                        <div class="bg-header p-1 border-bottom border-dark"><strong>Indicator:</strong></div>
+                        <div class="p-1" style="font-size:11pt;">
+                            <span class="b7-editable" contenteditable="true" data-b7field="indicator">{{ b7.indicator }}</span>
+                        </div>
+                    </td>
+                    <td width="20%" valign="top">
+                        <div class="bg-header p-1 border-bottom border-dark"><strong>Lesson:</strong></div>
+                        <div class="p-1">
+                            <span class="b7-editable" contenteditable="true" data-b7field="lesson_of">{{ b7.lesson_of }}</span>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2" valign="top">
+                        <div class="bg-header p-1 border-bottom border-dark"><strong>Performance Indicator:</strong></div>
+                        <div class="p-1">
+                            <span class="b7-editable" contenteditable="true" data-b7field="perf_indicator">{{ b7.perf_indicator }}</span>
+                        </div>
+                    </td>
+                    <td valign="top">
+                        <div class="bg-header p-1 border-bottom border-dark"><strong>Core Competencies:</strong></div>
+                        <div class="p-1">
+                            <span class="b7-editable" contenteditable="true" data-b7field="core_competencies">{{ b7.core_competencies }}</span>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="3" class="bg-header p-1">
+                        <strong>References:</strong>
+                        <span class="b7-editable" contenteditable="true" data-b7field="references">{{ b7.references }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="3" class="bg-header p-1">
+                        <strong>Keywords:</strong>
+                        <span class="b7-editable" contenteditable="true" data-b7field="keywords">{{ b7.keywords }}</span>
+                    </td>
+                </tr>
+            </table>
+
+            <table class="b7-table" style="margin-top:5px;">
+                <thead>
+                    <tr>
+                        <th width="20%">Phase/Duration</th>
+                        <th width="50%">Learners Activities</th>
+                        <th width="30%">Resources</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>PHASE 1: STARTER</strong><br><small class="text-muted">(10 Mins)</small></td>
+                        <td>
+                            <textarea name="introduction" class="form-control border-0 shadow-none rounded-0" rows="6" placeholder="Recall previous knowledge...">{{ plan.introduction }}</textarea>
+                        </td>
+                        <td rowspan="3" valign="top">
+                            <textarea name="materials" class="form-control border-0 shadow-none rounded-0 h-100" rows="20" placeholder="TLMs...">{{ plan.materials }}</textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>PHASE 2: NEW LEARNING</strong><br><small class="text-muted">(40 Mins)</small></td>
+                        <td>
+                            <textarea name="development" class="form-control border-0 shadow-none rounded-0" rows="12" placeholder="Main activities...">{{ plan.development }}</textarea>
+                            <div class="border-top mt-2 pt-2">
+                                <strong>Assessment:</strong>
+                                <textarea name="assessment" class="form-control border-0 shadow-none rounded-0" rows="4" placeholder="Assessment tasks...">{{ plan.assessment }}</textarea>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>PHASE 3: REFLECTION</strong><br><small class="text-muted">(10 Mins)</small></td>
+                        <td>
+                            <textarea name="notes" class="form-control border-0 shadow-none rounded-0" rows="4" placeholder="Reflection notes...">{{ plan.notes }}</textarea>
+                            <div class="border-top mt-2 pt-2">
+                                <strong>Homework:</strong>
+                                <textarea name="closure" class="form-control border-0 shadow-none rounded-0" rows="3" placeholder="Homework tasks...">{{ plan.closure }}</textarea>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+
+    <!-- Floating Save Button -->
+    <div class="position-fixed bottom-0 end-0 p-4 print-hide b7-save-float" style="z-index:1050;display:none;" id="b7SaveFloat">
+        <button type="submit" class="btn btn-lg rounded-pill shadow-lg d-flex align-items-center gap-2" style="background:#4361ee;color:#fff;border:none;">
+            <i class="bi bi-check-circle"></i>
+            <span>Save Changes</span>
+        </button>
+    </div>
+</form>
+
+<script>
+const B7_META = {{ b7_meta_json|safe }};
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Populate editable fields
+    document.querySelectorAll('[data-b7field]').forEach(function(el) {
+        var field = el.dataset.b7field;
+        if (B7_META[field] !== undefined && B7_META[field] !== null && B7_META[field] !== '') {
+            el.textContent = B7_META[field];
+        }
+    });
+
+    // Auto-resize textareas
+    document.querySelectorAll('textarea').forEach(function(ta) {
+        ta.style.height = 'auto';
+        ta.style.height = ta.scrollHeight + 'px';
+        ta.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = this.scrollHeight + 'px';
+        });
+    });
+
+    // Show save button on any change
+    var saveFloat = document.getElementById('b7SaveFloat');
+    function showSave() { if (saveFloat) saveFloat.style.display = 'block'; }
+    document.querySelectorAll('textarea').forEach(function(ta) { ta.addEventListener('input', showSave); });
+    document.querySelectorAll('[contenteditable]').forEach(function(el) { el.addEventListener('input', showSave); });
+
+    // On submit: serialize editable values
+    document.getElementById('b7LessonForm').addEventListener('submit', function() {
+        var meta = {};
+        if (B7_META && typeof B7_META === 'object') {
+            Object.keys(B7_META).forEach(function(k) { meta[k] = B7_META[k]; });
+        }
+        document.querySelectorAll('[data-b7field]').forEach(function(el) {
+            meta[el.dataset.b7field] = el.textContent.trim();
+        });
+        document.getElementById('b7MetaInput').value = JSON.stringify(meta);
+        var btn = this.querySelector('button[type="submit"]');
+        if (btn) {
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+            btn.disabled = true;
+        }
+    });
+});
+</script>
+{% endblock %}
