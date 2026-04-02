@@ -403,6 +403,129 @@
     @media (max-width: 767.98px) {
         .schedule-duration-badge { display: none !important; }
     }
+
+    /* ── Pinned Add-ons ─────────────────────────────────────── */
+    .td-pinned-addon {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        padding: .45rem .85rem;
+        border-radius: 10px;
+        background: var(--admin-card-bg, #fff);
+        border: 1.5px solid rgba(124,58,237,.12);
+        text-decoration: none;
+        color: var(--text-main, #1e293b);
+        font-size: .78rem;
+        font-weight: 600;
+        transition: all .15s;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .td-pinned-addon:hover {
+        border-color: rgba(124,58,237,.35);
+        box-shadow: 0 3px 12px rgba(124,58,237,.1);
+        transform: translateY(-1px);
+        color: #7c3aed;
+    }
+    .td-pinned-icon {
+        width: 26px; height: 26px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 7px;
+        background: linear-gradient(135deg, rgba(124,58,237,.1), rgba(67,97,238,.08));
+        color: #7c3aed;
+        font-size: .8rem;
+        flex-shrink: 0;
+    }
+    .td-pinned-label { white-space: nowrap; }
+    [data-bs-theme="dark"] .td-pinned-addon {
+        background: rgba(30,41,59,.8);
+        border-color: rgba(124,58,237,.2);
+        color: #e2e8f0;
+    }
+    [data-bs-theme="dark"] .td-pinned-addon:hover {
+        border-color: rgba(167,139,250,.45);
+        color: #a78bfa;
+    }
+    [data-bs-theme="dark"] .td-pinned-icon {
+        background: linear-gradient(135deg, rgba(124,58,237,.2), rgba(67,97,238,.15));
+        color: #a78bfa;
+    }
+
+    /* ── Quick Action Customizer & Pin Manager Modals ─────── */
+    .qa-preset-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: .5rem;
+    }
+    .qa-preset-item {
+        display: flex; align-items: center; gap: .5rem;
+        padding: .5rem .65rem;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: .8rem;
+        font-weight: 600;
+        transition: all .12s;
+        user-select: none;
+    }
+    .qa-preset-item:hover { border-color: #4361ee; background: rgba(67,97,238,.04); }
+    .qa-preset-item.selected { border-color: #4361ee; background: rgba(67,97,238,.08); }
+    .qa-preset-item .qa-icon {
+        width: 28px; height: 28px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 6px;
+        font-size: .85rem;
+        flex-shrink: 0;
+    }
+    .qa-chosen-list { list-style: none; padding: 0; margin: 0; }
+    .qa-chosen-list li {
+        display: flex; align-items: center; gap: .5rem;
+        padding: .4rem .5rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        margin-bottom: .35rem;
+        font-size: .8rem;
+        font-weight: 600;
+        background: #fff;
+    }
+    .qa-chosen-list .qa-remove {
+        margin-left: auto;
+        cursor: pointer;
+        color: #94a3b8;
+        font-size: .9rem;
+        line-height: 1;
+    }
+    .qa-chosen-list .qa-remove:hover { color: #ef4444; }
+    [data-bs-theme="dark"] .qa-preset-item { border-color: #334155; color: #e2e8f0; }
+    [data-bs-theme="dark"] .qa-preset-item:hover { border-color: #4cc9f0; background: rgba(76,201,240,.06); }
+    [data-bs-theme="dark"] .qa-preset-item.selected { border-color: #4cc9f0; background: rgba(76,201,240,.1); }
+    [data-bs-theme="dark"] .qa-chosen-list li { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+
+    .pin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: .5rem; }
+    .pin-item {
+        display: flex; align-items: center; gap: .5rem;
+        padding: .55rem .7rem;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: .82rem;
+        font-weight: 600;
+        transition: all .12s;
+        user-select: none;
+    }
+    .pin-item:hover { border-color: #7c3aed; }
+    .pin-item.pinned { border-color: #7c3aed; background: rgba(124,58,237,.06); }
+    .pin-item .pin-icon {
+        width: 28px; height: 28px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 6px;
+        background: rgba(124,58,237,.1);
+        color: #7c3aed;
+        font-size: .85rem;
+        flex-shrink: 0;
+    }
+    .pin-item .pin-check { margin-left: auto; color: #7c3aed; font-size: 1rem; }
+    [data-bs-theme="dark"] .pin-item { border-color: #334155; color: #e2e8f0; }
+    [data-bs-theme="dark"] .pin-item.pinned { border-color: #a78bfa; background: rgba(124,58,237,.12); }
 </style>
 
 <div class="td-header mb-4">
@@ -499,24 +622,70 @@
 <!-- ── Quick Actions ─────────────────────────────────────── -->
 {% if teacher_has_classes %}
 <div id="widget-quick-actions" class="mb-4 slide-in delay-1">
-    <div class="d-flex gap-2 flex-wrap">
-        <a href="{% url 'teachers:enter_grades' %}" class="btn btn-sm rounded-pill px-3 py-2 fw-semibold shadow-sm"
-           style="background:linear-gradient(135deg,#4361ee,#3b82f6);color:#fff;border:none;font-size:.8rem;">
-            <i class="bi bi-pencil-square me-1"></i>Enter Grades
-        </a>
-        <a href="{% url 'students:mark_attendance' %}" class="btn btn-sm rounded-pill px-3 py-2 fw-semibold shadow-sm"
-           style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;font-size:.8rem;">
-            <i class="bi bi-check2-square me-1"></i>Mark Attendance
-        </a>
-        <a href="{% url 'homework:homework_create' %}" class="btn btn-sm rounded-pill px-3 py-2 fw-semibold shadow-sm"
-           style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;border:none;font-size:.8rem;">
-            <i class="bi bi-journal-plus me-1"></i>New Homework
-        </a>
-        <a href="{% url 'teachers:analytics_dashboard' %}" class="btn btn-sm rounded-pill px-3 py-2 fw-semibold shadow-sm"
-           style="background:rgba(15,23,42,.06);color:#475569;border:1px solid #e2e8f0;font-size:.8rem;">
-            <i class="bi bi-bar-chart-line me-1"></i>Insights
-        </a>
+    <div class="d-flex gap-2 flex-wrap align-items-center">
+        {% if custom_quick_actions %}
+            {% for qa in custom_quick_actions %}
+            <a href="{{ qa.url }}" class="btn btn-sm rounded-pill px-3 py-2 fw-semibold shadow-sm"
+               style="background:{{ qa.color }};color:#fff;border:none;font-size:.8rem;">
+                <i class="bi {{ qa.icon }} me-1"></i>{{ qa.label }}
+            </a>
+            {% endfor %}
+        {% else %}
+            <a href="{% url 'teachers:enter_grades' %}" class="btn btn-sm rounded-pill px-3 py-2 fw-semibold shadow-sm"
+               style="background:linear-gradient(135deg,#4361ee,#3b82f6);color:#fff;border:none;font-size:.8rem;">
+                <i class="bi bi-pencil-square me-1"></i>Enter Grades
+            </a>
+            <a href="{% url 'students:mark_attendance' %}" class="btn btn-sm rounded-pill px-3 py-2 fw-semibold shadow-sm"
+               style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;font-size:.8rem;">
+                <i class="bi bi-check2-square me-1"></i>Mark Attendance
+            </a>
+            <a href="{% url 'homework:homework_create' %}" class="btn btn-sm rounded-pill px-3 py-2 fw-semibold shadow-sm"
+               style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;border:none;font-size:.8rem;">
+                <i class="bi bi-journal-plus me-1"></i>New Homework
+            </a>
+            <a href="{% url 'teachers:analytics_dashboard' %}" class="btn btn-sm rounded-pill px-3 py-2 fw-semibold shadow-sm"
+               style="background:rgba(15,23,42,.06);color:#475569;border:1px solid #e2e8f0;font-size:.8rem;">
+                <i class="bi bi-bar-chart-line me-1"></i>Insights
+            </a>
+        {% endif %}
+        <button type="button" class="btn btn-sm rounded-pill px-2 py-2 shadow-sm" title="Customize Quick Actions"
+                data-bs-toggle="modal" data-bs-target="#quickActionsModal"
+                style="background:rgba(15,23,42,.04);color:#94a3b8;border:1px dashed #cbd5e1;font-size:.8rem;line-height:1;">
+            <i class="bi bi-gear"></i>
+        </button>
     </div>
+</div>
+{% endif %}
+
+<!-- ── Pinned Add-ons ───────────────────────────────────── -->
+{% if pinned_addons %}
+<div id="widget-pinned-addons" class="mb-4 slide-in delay-1">
+    <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="fw-bold" style="font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:#64748b;">
+            <i class="bi bi-pin-angle-fill me-1"></i>My Add-ons
+        </span>
+        <button type="button" class="btn btn-sm px-2 py-0 border-0" title="Manage Pinned Add-ons"
+                data-bs-toggle="modal" data-bs-target="#pinManagerModal"
+                style="font-size:.7rem;color:#94a3b8;">
+            <i class="bi bi-pencil"></i>
+        </button>
+    </div>
+    <div class="d-flex gap-2 flex-wrap" id="pinnedAddonStrip">
+        {% for pin in pinned_addons %}
+        <a href="{{ pin.launch_url|default:'#' }}" class="td-pinned-addon" data-pin-id="{{ pin.pin_id }}">
+            <div class="td-pinned-icon"><i class="bi {{ pin.icon }}"></i></div>
+            <span class="td-pinned-label">{{ pin.name }}</span>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% elif owned_addons %}
+<div id="widget-pinned-addons" class="mb-4 slide-in delay-1">
+    <button type="button" class="btn btn-sm rounded-pill px-3 py-2 shadow-sm"
+            data-bs-toggle="modal" data-bs-target="#pinManagerModal"
+            style="background:rgba(15,23,42,.03);color:#94a3b8;border:1px dashed #cbd5e1;font-size:.78rem;">
+        <i class="bi bi-pin-angle me-1"></i>Pin your add-ons to dashboard
+    </button>
 </div>
 {% endif %}
 
@@ -1301,5 +1470,193 @@
         });
     })();
     {% endif %}
+</script>
+
+<!-- ═══ Quick Actions Customizer Modal ═══════════════════ -->
+<div class="modal fade" id="quickActionsModal" tabindex="-1" aria-labelledby="qaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="qaModalLabel"><i class="bi bi-lightning-charge-fill me-2 text-primary"></i>Customize Quick Actions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-3">Choose up to 8 actions to show on your dashboard. Click to add, then save.</p>
+
+                <!-- Chosen list -->
+                <div class="mb-3">
+                    <label class="fw-bold small text-uppercase mb-2 d-block" style="letter-spacing:.04em;color:#64748b;">
+                        <i class="bi bi-star-fill me-1"></i>Selected Actions <span id="qaCount" class="badge bg-primary rounded-pill ms-1">0</span>
+                    </label>
+                    <ul class="qa-chosen-list" id="qaChosenList">
+                        <li class="text-muted text-center py-2 border-0" id="qaEmptyMsg" style="font-size:.78rem;">Click an action below to add it here</li>
+                    </ul>
+                </div>
+
+                <hr>
+
+                <!-- Presets -->
+                <label class="fw-bold small text-uppercase mb-2 d-block" style="letter-spacing:.04em;color:#64748b;">
+                    <i class="bi bi-grid-3x3-gap me-1"></i>Available Actions
+                </label>
+                <div class="qa-preset-grid" id="qaPresetGrid">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" id="qaResetBtn">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>Reset to Default
+                </button>
+                <button type="button" class="btn btn-primary rounded-pill px-4 fw-semibold" id="qaSaveBtn">
+                    <i class="bi bi-check-lg me-1"></i>Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Pin Manager Modal ════════════════════════════════ -->
+{% if owned_addons %}
+<div class="modal fade" id="pinManagerModal" tabindex="-1" aria-labelledby="pinModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="pinModalLabel"><i class="bi bi-pin-angle-fill me-2" style="color:#7c3aed;"></i>Pin Add-ons to Dashboard</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-3">Toggle add-ons to show them as shortcuts on your dashboard.</p>
+                <div class="pin-grid" id="pinGrid">
+                    {% for addon in owned_addons %}
+                    <div class="pin-item {% if addon.pinned %}pinned{% endif %}" data-addon-id="{{ addon.id }}">
+                        <div class="pin-icon"><i class="bi {{ addon.icon }}"></i></div>
+                        <span>{{ addon.name }}</span>
+                        <span class="pin-check">
+                            <i class="bi {% if addon.pinned %}bi-pin-angle-fill{% else %}bi-pin-angle{% endif %}"></i>
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+(function(){
+    /* ── Quick Actions Customizer ────────────────────────── */
+    const QA_PRESETS = [
+        {label:'Enter Grades',      icon:'bi-pencil-square',      url_name:'teachers:enter_grades',        color:'linear-gradient(135deg,#4361ee,#3b82f6)'},
+        {label:'Mark Attendance',    icon:'bi-check2-square',      url_name:'students:mark_attendance',     color:'linear-gradient(135deg,#10b981,#059669)'},
+        {label:'New Homework',       icon:'bi-journal-plus',       url_name:'homework:homework_create',     color:'linear-gradient(135deg,#8b5cf6,#7c3aed)'},
+        {label:'Insights',           icon:'bi-bar-chart-line',     url_name:'teachers:analytics_dashboard', color:'linear-gradient(135deg,#64748b,#475569)'},
+        {label:'My Classes',         icon:'bi-person-video3',      url_name:'teachers:my_classes',           color:'linear-gradient(135deg,#0ea5e9,#0284c7)'},
+        {label:'Lesson Plans',       icon:'bi-file-earmark-easel', url_name:'teachers:lesson_plan_list',    color:'linear-gradient(135deg,#f59e0b,#d97706)'},
+        {label:'Command Center',     icon:'bi-lightning-charge',   url_name:'teachers:aura_command_center', color:'linear-gradient(135deg,#6366f1,#4f46e5)'},
+        {label:'Homework List',      icon:'bi-journal-check',      url_name:'homework:homework_list',       color:'linear-gradient(135deg,#8b5cf6,#6d28d9)'},
+        {label:'Timetable',          icon:'bi-calendar-week',      url_name:'academics:timetable',          color:'linear-gradient(135deg,#06b6d4,#0891b2)'},
+        {label:'Schedule',           icon:'bi-clock-history',      url_name:'teachers:schedule',            color:'linear-gradient(135deg,#14b8a6,#0d9488)'},
+        {label:'Duty Roster',        icon:'bi-calendar-check',     url_name:'teachers:duty_roster',         color:'linear-gradient(135deg,#f97316,#ea580c)'},
+        {label:'Student List',       icon:'bi-people',             url_name:'students:student_list',        color:'linear-gradient(135deg,#ec4899,#db2777)'},
+        {label:'Resources',          icon:'bi-folder2-open',       url_name:'academics:manage_resources',   color:'linear-gradient(135deg,#84cc16,#65a30d)'},
+        {label:'Add-on Store',       icon:'bi-bag-heart',          url_name:'teachers:teacher_store',       color:'linear-gradient(135deg,#a855f7,#9333ea)'},
+        {label:'Pulse History',      icon:'bi-activity',           url_name:'teachers:pulse_history',       color:'linear-gradient(135deg,#e11d48,#be123c)'},
+        {label:'Fee Tasks',          icon:'bi-wallet2',            url_name:'teachers:my_fee_tasks',        color:'linear-gradient(135deg,#059669,#047857)'},
+        {label:'Curriculum Library', icon:'bi-collection',         url_name:'teachers:curriculum_library',  color:'linear-gradient(135deg,#0369a1,#075985)'},
+    ];
+
+    // Current custom actions from server
+    let currentActions = {{ custom_quick_actions|safe }};
+    let chosenActions = currentActions.length ? currentActions.map(a => ({
+        label: a.label, icon: a.icon, url_name: a.url_name, color: a.color
+    })) : [];
+
+    const grid = document.getElementById('qaPresetGrid');
+    const list = document.getElementById('qaChosenList');
+    const countEl = document.getElementById('qaCount');
+    const emptyMsg = document.getElementById('qaEmptyMsg');
+
+    function renderPresets() {
+        if (!grid) return;
+        grid.innerHTML = '';
+        QA_PRESETS.forEach(p => {
+            const isChosen = chosenActions.some(c => c.url_name === p.url_name);
+            const div = document.createElement('div');
+            div.className = 'qa-preset-item' + (isChosen ? ' selected' : '');
+            div.innerHTML = '<div class="qa-icon" style="background:' + p.color + ';color:#fff;"><i class="bi ' + p.icon + '"></i></div><span>' + p.label + '</span>';
+            div.onclick = () => {
+                if (isChosen) {
+                    chosenActions = chosenActions.filter(c => c.url_name !== p.url_name);
+                } else {
+                    if (chosenActions.length >= 8) return;
+                    chosenActions.push({label:p.label, icon:p.icon, url_name:p.url_name, color:p.color});
+                }
+                renderPresets();
+                renderChosen();
+            };
+            grid.appendChild(div);
+        });
+    }
+
+    function renderChosen() {
+        if (!list) return;
+        list.innerHTML = '';
+        if (chosenActions.length === 0) {
+            list.innerHTML = '<li class="text-muted text-center py-2 border-0" style="font-size:.78rem;">Click an action below to add it here</li>';
+        }
+        chosenActions.forEach((a, i) => {
+            const li = document.createElement('li');
+            li.innerHTML = '<i class="bi ' + a.icon + ' me-1" style="color:#4361ee;"></i><span>' + a.label + '</span><span class="qa-remove" title="Remove"><i class="bi bi-x-lg"></i></span>';
+            li.querySelector('.qa-remove').onclick = () => {
+                chosenActions.splice(i, 1);
+                renderChosen();
+                renderPresets();
+            };
+            list.appendChild(li);
+        });
+        if (countEl) countEl.textContent = chosenActions.length;
+    }
+
+    const qaModal = document.getElementById('quickActionsModal');
+    if (qaModal) {
+        qaModal.addEventListener('show.bs.modal', () => { renderPresets(); renderChosen(); });
+    }
+
+    document.getElementById('qaResetBtn')?.addEventListener('click', () => {
+        chosenActions = [];
+        renderPresets();
+        renderChosen();
+    });
+
+    document.getElementById('qaSaveBtn')?.addEventListener('click', () => {
+        fetch('{% url "teachers:save_quick_actions" %}', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+            body: JSON.stringify({actions: chosenActions})
+        }).then(r => r.json()).then(data => {
+            if (data.ok) location.reload();
+        });
+    });
+
+    /* ── Pin Manager ─────────────────────────────────────── */
+    document.querySelectorAll('.pin-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const addonId = item.dataset.addonId;
+            fetch('{% url "teachers:toggle_dashboard_pin" %}', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+                body: JSON.stringify({addon_id: addonId})
+            }).then(r => r.json()).then(data => {
+                if (!data.ok) return;
+                item.classList.toggle('pinned', data.pinned);
+                const icon = item.querySelector('.pin-check i');
+                if (icon) icon.className = 'bi ' + (data.pinned ? 'bi-pin-angle-fill' : 'bi-pin-angle');
+                // Reload after short delay to refresh pinned strip
+                setTimeout(() => location.reload(), 400);
+            });
+        });
+    });
+})();
 </script>
 {% endblock %}

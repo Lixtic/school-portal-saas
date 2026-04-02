@@ -131,6 +131,11 @@ urlpatterns = [
     path('store/webhook/', views.paystack_teacher_webhook, name='paystack_teacher_webhook'),
     path('my-addons/', views.my_addons, name='my_addons'),
 
+    # Dashboard Pinning & Quick Actions
+    path('dashboard/pin-addon/', views.toggle_dashboard_pin, name='toggle_dashboard_pin'),
+    path('dashboard/reorder-pins/', views.reorder_pins, name='reorder_pins'),
+    path('dashboard/quick-actions/', views.save_quick_actions, name='save_quick_actions'),
+
     # Add-On Feature Views
     path('addons/task-board/', views.addon_task_board, name='addon_task_board'),
     path('addons/cpd-tracker/', views.addon_cpd_tracker, name='addon_cpd_tracker'),

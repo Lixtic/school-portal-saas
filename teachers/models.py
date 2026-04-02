@@ -317,6 +317,37 @@ class TeacherAddOnPurchase(models.Model):
         return f"{self.teacher.get_full_name()} → {self.addon.name}"
 
 
+class DashboardPin(models.Model):
+    """Pins a purchased add-on to the teacher's dashboard."""
+    teacher = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='dashboard_pins')
+    addon = models.ForeignKey(TeacherAddOn, on_delete=models.CASCADE, related_name='pins')
+    position = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['teacher', 'addon']
+        ordering = ['position', 'created_at']
+
+    def __str__(self):
+        return f"Pin: {self.addon.name}"
+
+
+class QuickAction(models.Model):
+    """A customisable quick-action button on the teacher dashboard."""
+    teacher = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='quick_actions')
+    label = models.CharField(max_length=60)
+    icon = models.CharField(max_length=50, default='bi-lightning-charge')
+    url_name = models.CharField(max_length=120, help_text='Django URL name, e.g. teachers:enter_grades')
+    color = models.CharField(max_length=80, default='#4361ee', help_text='CSS color or gradient')
+    position = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['position']
+
+    def __str__(self):
+        return self.label
+
+
 # ---------------------------------------------------------------------------
 # Add-on feature models
 # ---------------------------------------------------------------------------

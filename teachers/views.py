@@ -6778,6 +6778,102 @@ def teacher_store_cancel(request, addon_id):
     return redirect('teachers:teacher_store')
 
 
+# ---------------------------------------------------------------------------
+# Dashboard Pinning & Quick Actions API
+# ---------------------------------------------------------------------------
+
+@login_required
+def toggle_dashboard_pin(request):
+    """POST JSON {addon_id} → pin/unpin an owned add-on on the dashboard."""
+    if request.user.user_type != 'teacher' or request.method != 'POST':
+        return JsonResponse({'ok': False}, status=403)
+
+    from teachers.models import TeacherAddOn, TeacherAddOnPurchase, DashboardPin
+
+    body = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    addon_id = body.get('addon_id')
+    if not addon_id:
+        return JsonResponse({'ok': False, 'error': 'Missing addon_id'}, status=400)
+
+    addon = get_object_or_404(TeacherAddOn, id=addon_id, is_active=True)
+
+    # Must own the addon
+    if not TeacherAddOnPurchase.objects.filter(teacher=request.user, addon=addon, is_active=True).exists():
+        return JsonResponse({'ok': False, 'error': 'Not purchased'}, status=403)
+
+    pin, created = DashboardPin.objects.get_or_create(teacher=request.user, addon=addon)
+    if not created:
+        pin.delete()
+        return JsonResponse({'ok': True, 'pinned': False})
+
+    # Set position to end
+    max_pos = DashboardPin.objects.filter(teacher=request.user).count()
+    pin.position = max_pos
+    pin.save(update_fields=['position'])
+    return JsonResponse({'ok': True, 'pinned': True})
+
+
+@login_required
+def save_quick_actions(request):
+    """POST JSON {actions: [{label, icon, url_name, color}, …]} → replace quick actions."""
+    if request.user.user_type != 'teacher' or request.method != 'POST':
+        return JsonResponse({'ok': False}, status=403)
+
+    from teachers.models import QuickAction
+
+    body = json.loads(request.body)
+    actions = body.get('actions', [])
+
+    if len(actions) > 8:
+        return JsonResponse({'ok': False, 'error': 'Maximum 8 quick actions'}, status=400)
+
+    # Validate each action
+    cleaned = []
+    for i, a in enumerate(actions):
+        label = str(a.get('label', ''))[:60].strip()
+        icon = str(a.get('icon', 'bi-lightning-charge'))[:50].strip()
+        url_name = str(a.get('url_name', ''))[:120].strip()
+        color = str(a.get('color', '#4361ee'))[:80].strip()
+        if not label or not url_name:
+            continue
+        # Verify the URL name resolves
+        try:
+            reverse(url_name)
+        except Exception:
+            continue
+        cleaned.append({'label': label, 'icon': icon, 'url_name': url_name, 'color': color, 'position': i})
+
+    # Atomic replace
+    QuickAction.objects.filter(teacher=request.user).delete()
+    QuickAction.objects.bulk_create([
+        QuickAction(teacher=request.user, **a) for a in cleaned
+    ])
+
+    return JsonResponse({'ok': True, 'count': len(cleaned)})
+
+
+@login_required
+def reorder_pins(request):
+    """POST JSON {order: [pin_id, pin_id, …]} → reorder pinned addons."""
+    if request.user.user_type != 'teacher' or request.method != 'POST':
+        return JsonResponse({'ok': False}, status=403)
+
+    from teachers.models import DashboardPin
+
+    body = json.loads(request.body)
+    order = body.get('order', [])
+
+    pins = DashboardPin.objects.filter(teacher=request.user)
+    pin_map = {p.id: p for p in pins}
+    for i, pid in enumerate(order):
+        pin = pin_map.get(int(pid))
+        if pin:
+            pin.position = i
+            pin.save(update_fields=['position'])
+
+    return JsonResponse({'ok': True})
+
+
 # ── Paystack Webhook (server-to-server) ────────────────────────────
 from django.views.decorators.csrf import csrf_exempt
 import hashlib
