@@ -864,6 +864,7 @@ body.editor-multiselect .gm-thumb .gm-thumb-cb { display: flex; }
       <button class="gm-tb-drop-btn ai-btn" onclick="toggleTbDrop(event,this,'aiMenu')"><i class="fas fa-robot"></i> AI <i class="fas fa-chevron-down" style="font-size:.6rem;"></i></button>
       <div class="gm-tb-drop-menu" id="aiMenu">
         <button class="gm-tb-drop-item" onclick="closeTbDrops();openAIModal()"><i class="fas fa-robot"></i> AI Generate</button>
+        <button class="gm-tb-drop-item" onclick="closeTbDrops();openGESModal()" style="color:#10b981"><i class="fas fa-graduation-cap"></i> GES Generate</button>
         <button class="gm-tb-drop-item" id="smartLayoutsBtn" onclick="closeTbDrops();smartLayouts()"><i class="fas fa-magic"></i> Smart Layouts</button>
         <button class="gm-tb-drop-item" id="harmonizeBtn" onclick="closeTbDrops();openHarmonizeModal()"><i class="fas fa-star"></i> Harmonize Deck</button>
       </div>
@@ -1185,6 +1186,35 @@ body.editor-multiselect .gm-thumb .gm-thumb-cb { display: flex; }
       <button class="gm-modal-cancel" onclick="document.getElementById('aiModal').classList.remove('open')">Cancel</button>
       <button class="gm-modal-go" id="aiGoBtn" onclick="runAIAction()">
         <i class="fas fa-robot"></i> Generate Deck
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- GES Generate Modal -->
+<div class="gm-modal-overlay" id="gesModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="gm-modal" onclick="event.stopPropagation()" style="max-width:500px;">
+    <h3><i class="fas fa-graduation-cap" style="color:#10b981;margin-right:.4rem;"></i> GES Curriculum Slides</h3>
+    <p>Generate an 8-slide deck aligned to a GES indicator &mdash; structured around Introduction, Development, Assessment &amp; Summary phases.</p>
+    <div style="display:grid;gap:.75rem;">
+      <div>
+        <label style="font-size:.75rem;font-weight:600;color:#94a3b8;margin-bottom:.25rem;display:block;">Indicator / Content Standard <span style="color:#ef4444;">*</span></label>
+        <input type="text" class="gm-modal-field" id="gesIndicator" placeholder="e.g. B5.2.1.1.1 or &#x2018;Multiply two-digit numbers by one-digit numbers&#x2019;" onkeydown="if(event.key==='Enter') runGESGenerate()">
+        <div style="font-size:.68rem;color:#475569;margin-top:.25rem;">Enter a GES indicator code or full performance statement</div>
+      </div>
+      <div>
+        <label style="font-size:.75rem;font-weight:600;color:#94a3b8;margin-bottom:.25rem;display:block;">Sub-Strand <span style="font-size:.68rem;font-weight:400;">(optional)</span></label>
+        <input type="text" class="gm-modal-field" id="gesSubStrand" placeholder="e.g. Number and Numeration">
+      </div>
+      <div>
+        <label style="font-size:.75rem;font-weight:600;color:#94a3b8;margin-bottom:.25rem;display:block;">Topic <span style="font-size:.68rem;font-weight:400;">(optional &mdash; defaults to indicator)</span></label>
+        <input type="text" class="gm-modal-field" id="gesTopic" placeholder="e.g. Multiplication of whole numbers">
+      </div>
+    </div>
+    <div class="gm-modal-actions" style="margin-top:1rem;">
+      <button class="gm-modal-cancel" onclick="document.getElementById('gesModal').classList.remove('open')">Cancel</button>
+      <button class="gm-modal-go" id="gesGoBtn" onclick="runGESGenerate()" style="background:#059669;border-color:#059669;">
+        <i class="fas fa-graduation-cap"></i> Generate GES Deck
       </button>
     </div>
   </div>
@@ -1882,6 +1912,51 @@ function runAIGenerate() {
     .finally(function() {
       btn.disabled = false;
       btn.innerHTML = '<i class="fas fa-robot"></i> Generate Deck';
+    });
+}
+
+// ── GES → Slides ────────────────────────────────────────────────
+function openGESModal() {
+  document.getElementById('gesModal').classList.add('open');
+  setTimeout(function() { document.getElementById('gesIndicator').focus(); }, 60);
+}
+function runGESGenerate() {
+  var indicator = document.getElementById('gesIndicator').value.trim();
+  if (!indicator) { document.getElementById('gesIndicator').focus(); return; }
+  snapshotSlides();
+  var btn = document.getElementById('gesGoBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="gm-spinner"></div> Generating GES deck\u2026';
+  api({ action: 'ges_generate',
+        indicator: indicator,
+        sub_strand: document.getElementById('gesSubStrand').value.trim(),
+        topic: document.getElementById('gesTopic').value.trim(),
+        update_title: true })
+    .then(function(d) {
+      if (checkAiErrors(d)) return;
+      if (d.error) { alert('GES error: ' + d.error); return; }
+      document.getElementById('gesModal').classList.remove('open');
+      if (d.deck_title) document.getElementById('deckTitleInput').value = d.deck_title;
+      slides = [];
+      document.getElementById('thumbList').innerHTML = '';
+      document.querySelectorAll('.gm-slide-inner').forEach(function(el) { el.remove(); });
+      currentSlideId = null;
+      d.slides.forEach(function(s, i) {
+        slides.push({ id: s.slide_id, order: s.order, layout: s.layout,
+                      title: s.title, content: s.content, emoji: s.emoji || '',
+                      speaker_notes: s.speaker_notes || '' });
+        appendThumb(s);
+        appendCanvas(s);
+      });
+      updateSlideCount();
+      ensurePanelVisible();
+      if (slides.length) selectSlide(slides[0].id);
+      setSaveStatus('saved', '\u2713 GES slides ready');
+    })
+    .catch(function(err) { alert('Request failed: ' + err); })
+    .finally(function() {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-graduation-cap"></i> Generate GES Deck';
     });
 }
 
