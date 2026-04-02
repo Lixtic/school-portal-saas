@@ -23,7 +23,10 @@ from individual_users.forms import (
     PhoneSigninForm,
     PhoneSignupForm,
 )
-from individual_users.models import AddonSubscription, APIKey, IndividualProfile
+from individual_users.models import (
+    AddonSubscription, APIKey, IndividualProfile,
+    ToolExamPaper, ToolLessonPlan, ToolQuestion,
+)
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -106,9 +109,79 @@ ADDON_CATALOG = [
 ]
 
 
-# ── Teacher-recommended addons ────────────────────────────────────────────────
+# ── Teacher Addon Catalog ─────────────────────────────────────────────────────
+# Teachers see these tool-oriented addons instead of raw API products.
 
-TEACHER_RECOMMENDED_SLUGS = {'lesson-planner', 'exam-generator', 'grade-analytics', 'ai-tutor', 'attendance-tracker', 'report-card'}
+TEACHER_ADDON_CATALOG = [
+    {
+        'slug': 'exam-generator',
+        'name': 'Question Bank & Exam Paper',
+        'icon': 'bi-file-earmark-text',
+        'description': 'Build a bank of questions by subject, topic and difficulty — then generate polished exam papers ready to print.',
+        'plans': ['free', 'pro'],
+        'category': 'assessment',
+        'prices': {'free': 0, 'pro': 59.99},
+    },
+    {
+        'slug': 'lesson-planner',
+        'name': 'Smart Lesson Planner',
+        'icon': 'bi-journal-bookmark',
+        'description': 'Create structured lesson plans with AI or from scratch — aligned to GES curriculum standards.',
+        'plans': ['free', 'pro'],
+        'category': 'productivity',
+        'prices': {'free': 0, 'pro': 59.99},
+    },
+    {
+        'slug': 'ai-tutor',
+        'name': 'AI Teaching Assistant',
+        'icon': 'bi-robot',
+        'description': 'AI-powered concept explainer, worksheet generator, marking helper and study notes creator.',
+        'plans': ['free', 'pro'],
+        'category': 'ai',
+        'prices': {'free': 0, 'pro': 49.99},
+    },
+    {
+        'slug': 'grade-analytics',
+        'name': 'Grade Analytics',
+        'icon': 'bi-graph-up-arrow',
+        'description': 'Visualise student performance trends, class distributions and generate grade reports.',
+        'plans': ['free', 'pro'],
+        'category': 'analytics',
+        'prices': {'free': 0, 'pro': 39.99},
+    },
+    {
+        'slug': 'report-card',
+        'name': 'Report Card Writer',
+        'icon': 'bi-file-earmark-bar-graph',
+        'description': 'Generate personalised report card comments with conduct and attitude ratings for each student.',
+        'plans': ['free', 'pro'],
+        'category': 'assessment',
+        'prices': {'free': 0, 'pro': 44.99},
+    },
+    {
+        'slug': 'attendance-tracker',
+        'name': 'Attendance Tracker',
+        'icon': 'bi-calendar-check',
+        'description': 'Log daily attendance, detect absence patterns, and generate weekly/monthly reports.',
+        'plans': ['free', 'pro'],
+        'category': 'management',
+        'prices': {'free': 0, 'pro': 29.99},
+    },
+]
+
+
+def _catalog_for_role(role):
+    """Return the addon catalog appropriate for the user's role."""
+    return TEACHER_ADDON_CATALOG if role == 'teacher' else ADDON_CATALOG
+
+
+def _find_addon(slug):
+    """Lookup an addon by slug across both catalogs."""
+    for cat in (TEACHER_ADDON_CATALOG, ADDON_CATALOG):
+        match = next((a for a in cat if a['slug'] == slug), None)
+        if match:
+            return match
+    return None
 
 
 def _get_role(request):
@@ -377,11 +450,17 @@ def dashboard_view(request):
     total_calls = sum(k.calls_total for k in api_keys)
     active_keys = api_keys.filter(is_active=True).count()
 
-    # Teacher-specific: recommend addons
+    # Teacher-specific: recommend addons + tool stats
     recommended = []
+    tool_stats = {}
     if profile.role == 'teacher':
         my_slugs = set(subscriptions.values_list('addon_slug', flat=True))
-        recommended = [a for a in ADDON_CATALOG if a['slug'] in TEACHER_RECOMMENDED_SLUGS and a['slug'] not in my_slugs][:4]
+        recommended = [a for a in TEACHER_ADDON_CATALOG if a['slug'] not in my_slugs][:4]
+        tool_stats = {
+            'questions': ToolQuestion.objects.filter(profile=profile).count(),
+            'exams': ToolExamPaper.objects.filter(profile=profile).count(),
+            'lessons': ToolLessonPlan.objects.filter(profile=profile).count(),
+        }
 
     ctx = {
         'profile': profile,
@@ -391,9 +470,10 @@ def dashboard_view(request):
         'api_keys': api_keys,
         'api_key_count': active_keys,
         'total_api_calls': total_calls,
-        'addon_catalog': ADDON_CATALOG,
-        'catalog_count': len(ADDON_CATALOG),
+        'addon_catalog': _catalog_for_role(profile.role),
+        'catalog_count': len(_catalog_for_role(profile.role)),
         'recommended_addons': recommended,
+        'tool_stats': tool_stats,
     }
     return render(request, 'individual/dashboard.html', ctx)
 
@@ -407,27 +487,23 @@ def addons_view(request):
         AddonSubscription.objects.filter(profile=profile, status='active')
         .values_list('addon_slug', flat=True)
     )
+    source_catalog = _catalog_for_role(profile.role)
     catalog = []
-    for addon in ADDON_CATALOG:
+    for addon in source_catalog:
         prices = addon.get('prices', {})
         first_plan = addon['plans'][0] if addon['plans'] else 'free'
         catalog.append({
             **addon,
             'subscribed': addon['slug'] in my_slugs,
-            'recommended': profile.role == 'teacher' and addon['slug'] in TEACHER_RECOMMENDED_SLUGS,
             'prices_json': json.dumps(prices),
             'first_price': prices.get(first_plan, 0),
         })
-
-    # Sort: recommended first for teachers
-    if profile.role == 'teacher':
-        catalog.sort(key=lambda a: (not a['recommended'], a['name']))
 
     ctx = {
         'catalog': catalog,
         'profile': profile,
         'role': profile.role,
-        'categories': sorted({a['category'] for a in ADDON_CATALOG}),
+        'categories': sorted({a['category'] for a in source_catalog}),
         'currency': getattr(settings, 'PAYSTACK_CURRENCY', 'GHS'),
     }
     return render(request, 'individual/addons.html', ctx)
@@ -440,7 +516,7 @@ def subscribe_addon(request):
     slug = request.POST.get('addon_slug', '')
     plan = request.POST.get('plan', 'free')
 
-    addon = next((a for a in ADDON_CATALOG if a['slug'] == slug), None)
+    addon = _find_addon(slug)
     if not addon:
         return JsonResponse({'error': 'Addon not found'}, status=404)
     if plan not in addon['plans']:
@@ -587,7 +663,7 @@ def verify_addon_payment(request):
     if not reference or not slug:
         return JsonResponse({'ok': False, 'error': 'Missing data'}, status=400)
 
-    addon = next((a for a in ADDON_CATALOG if a['slug'] == slug), None)
+    addon = _find_addon(slug)
     if not addon:
         return JsonResponse({'ok': False, 'error': 'Addon not found'}, status=404)
 
@@ -672,7 +748,7 @@ def _handle_individual_addon_payment(reference, data):
     except (User.DoesNotExist, IndividualProfile.DoesNotExist):
         return
 
-    addon = next((a for a in ADDON_CATALOG if a['slug'] == slug), None)
+    addon = _find_addon(slug)
     if not addon:
         return
 
