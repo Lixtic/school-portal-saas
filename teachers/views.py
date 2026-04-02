@@ -6629,6 +6629,7 @@ def teacher_store(request):
         messages.error(request, 'Access denied')
         return redirect('dashboard')
 
+    from django.urls import reverse
     from teachers.models import TeacherAddOn, TeacherAddOnPurchase
 
     addons = TeacherAddOn.objects.filter(is_active=True)
