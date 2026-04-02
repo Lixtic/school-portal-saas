@@ -264,6 +264,7 @@
     <div class="ed-toolbar-title" id="deckTitle">{{ deck.title }}</div>
     <div class="ed-tb-sep"></div>
     <button class="ed-tb-btn" onclick="openAiModal()"><i class="bi bi-stars"></i> AI Generate</button>
+    <button class="ed-tb-btn" onclick="openGesModal()" style="color:#10b981"><i class="bi bi-mortarboard"></i> GES</button>
     <button class="ed-tb-btn" id="addSlideBtn"><i class="bi bi-plus-lg"></i> Slide</button>
     <div class="ed-tb-sep"></div>
     <select id="themeSelect" class="ed-tb-btn" style="padding:0.3rem 0.5rem;border:1px solid var(--border-color);border-radius:6px;background:var(--surface-card);color:var(--text-main);font-size:0.78rem">
@@ -321,6 +322,40 @@
             <button class="ed-tb-btn ed-tb-btn-ai" id="aiGenBtn" onclick="doAiGenerate()">
                 <div class="ed-ai-spinner" id="aiSpinner"></div>
                 <span id="aiGenText"><i class="bi bi-stars"></i> Generate</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- GES Generate Modal -->
+<div class="ed-ai-overlay" id="gesOverlay">
+    <div class="ed-ai-modal" style="max-width:500px">
+        <h3><i class="bi bi-mortarboard me-1" style="color:#10b981"></i> GES Curriculum Slides</h3>
+        <p>Generate an 8-slide deck aligned to a GES indicator — structured around Introduction, Development, Assessment &amp; Summary phases</p>
+        <div style="display:grid;gap:0.75rem">
+            <div>
+                <label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);margin-bottom:0.25rem;display:block">Indicator / Content Standard <span style="color:#ef4444">*</span></label>
+                <input type="text" class="ed-ai-input" id="gesIndicator" placeholder="e.g. B5.2.1.1.1 or ‘Multiply two-digit numbers by one-digit numbers’">
+                <div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.25rem">Enter a GES indicator code or full performance statement</div>
+            </div>
+            <div>
+                <label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);margin-bottom:0.25rem;display:block">Sub-Strand <span style="font-size:0.68rem;font-weight:400">(optional)</span></label>
+                <input type="text" class="ed-ai-input" id="gesSubStrand" placeholder="e.g. Number and Numeration">
+            </div>
+            <div>
+                <label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);margin-bottom:0.25rem;display:block">Topic <span style="font-size:0.68rem;font-weight:400">(optional — defaults to indicator)</span></label>
+                <input type="text" class="ed-ai-input" id="gesTopic" placeholder="e.g. Multiplication of whole numbers">
+            </div>
+        </div>
+        <div class="form-check mt-3">
+            <input class="form-check-input" type="checkbox" id="gesUpdateTitle" checked>
+            <label class="form-check-label small" for="gesUpdateTitle">Update deck title to match topic</label>
+        </div>
+        <div class="ed-ai-footer">
+            <button class="ed-tb-btn" onclick="closeGesModal()">Cancel</button>
+            <button class="ed-tb-btn" id="gesGenBtn" onclick="doGesGenerate()" style="background:#059669;color:#fff;border-color:#059669">
+                <div class="ed-ai-spinner" id="gesSpinner"></div>
+                <span id="gesGenText"><i class="bi bi-mortarboard"></i> Generate GES Deck</span>
             </button>
         </div>
     </div>
@@ -632,6 +667,57 @@
     /* ── AI Generation ──────────────────────────────────── */
     window.openAiModal = function() { document.getElementById('aiOverlay').classList.add('open'); document.getElementById('aiTopic').focus(); };
     window.closeAiModal = function() { document.getElementById('aiOverlay').classList.remove('open'); };
+
+    /* ── GES Generation ─────────────────────────────────── */
+    window.openGesModal = function() { document.getElementById('gesOverlay').classList.add('open'); document.getElementById('gesIndicator').focus(); };
+    window.closeGesModal = function() { document.getElementById('gesOverlay').classList.remove('open'); };
+
+    window.doGesGenerate = async function() {
+        const indicator = document.getElementById('gesIndicator').value.trim();
+        if (!indicator) { document.getElementById('gesIndicator').focus(); return; }
+
+        const btn = document.getElementById('gesGenBtn');
+        const spinner = document.getElementById('gesSpinner');
+        const text = document.getElementById('gesGenText');
+        btn.disabled = true;
+        spinner.style.display = 'block';
+        text.textContent = 'Generating GES deck\u2026';
+
+        try {
+            const result = await api({
+                action: 'ges_generate',
+                indicator: indicator,
+                sub_strand: document.getElementById('gesSubStrand').value.trim(),
+                topic: document.getElementById('gesTopic').value.trim(),
+                update_title: document.getElementById('gesUpdateTitle').checked,
+            });
+            if (result.ok) {
+                slides = result.slides.map(s => ({
+                    id: s.slide_id, order: s.order, layout: s.layout,
+                    title: s.title, content: s.content,
+                    speaker_notes: s.speaker_notes, emoji: s.emoji, image_url: s.image_url || '',
+                }));
+                if (result.deck_title) {
+                    document.getElementById('deckTitle').textContent = result.deck_title;
+                }
+                currentIdx = 0;
+                renderSorter(); renderPreview(); renderInspector();
+                closeGesModal();
+            } else {
+                alert(result.error || 'GES generation failed.');
+            }
+        } catch (e) {
+            alert('GES generation failed. Please try again.');
+        }
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        text.innerHTML = '<i class="bi bi-mortarboard"></i> Generate GES Deck';
+    };
+
+    /* Enter key in GES indicator input */
+    document.getElementById('gesIndicator').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); doGesGenerate(); }
+    });
 
     window.doAiGenerate = async function() {
         const topic = document.getElementById('aiTopic').value.trim();

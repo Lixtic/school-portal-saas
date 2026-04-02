@@ -1475,6 +1475,155 @@ def deck_api(request):
             'activities': result.get('activities', []),
         })
 
+    # ── ges_generate ────────────────────────────────────────
+    elif action == 'ges_generate':
+        indicator = data.get('indicator', '').strip()
+        sub_strand = data.get('sub_strand', '').strip()
+        topic = data.get('topic', '').strip() or indicator
+        if not indicator:
+            return JsonResponse({'error': 'Indicator is required for GES generation'}, status=400)
+
+        subject_label = dict(ToolQuestion.SUBJECT_CHOICES).get(
+            deck.subject, deck.subject or 'General Studies',
+        )
+        class_name = deck.target_class or 'Basic 5'
+
+        code_only = bool(_GES_CODE_RE.match(indicator))
+        indicator_instruction = (
+            f"Target Indicator Code: {indicator}\n"
+            "IMPORTANT: This is a Ghana GES curriculum code. "
+            "Resolve it to the full performance indicator statement. "
+            "Use ONLY the descriptive statement (not the numeric code) throughout."
+        ) if code_only else f"Target Indicator: {indicator}"
+
+        sub_strand_line = f'\n- Sub-strand: {sub_strand}' if sub_strand else ''
+
+        system_prompt = (
+            "You are a Ghana Education Service (GES) curriculum expert who "
+            "creates rich, presentation-ready slide decks aligned to GES standards.\n\n"
+            f"Generate a complete GES-aligned teaching slide deck for {class_name} "
+            f"{subject_label}.\n"
+            f"- {indicator_instruction}{sub_strand_line}\n\n"
+            "Return a JSON object with EXACTLY this structure:\n"
+            "{\n"
+            '  "slides": [\n'
+            '    {"title": "...", "bullets": ["..."], '
+            '"notes": "...", "emoji": "..."}\n'
+            "  ],\n"
+            '  "ges_meta": {\n'
+            '    "strand": "...", "sub_strand": "...",\n'
+            '    "content_standard": "...", "indicator": "...",\n'
+            '    "performance_indicator": "...", "core_competencies": "...",\n'
+            '    "keywords": "..."\n'
+            "  }\n"
+            "}\n\n"
+            "Each slide MUST include an \"emoji\" field.\n\n"
+            "SLIDE STRUCTURE \u2014 8 SLIDES (MANDATORY):\n"
+            "1. TITLE & INDICATOR: title, indicator statement, strand/sub-strand context\n"
+            "2. CORE COMPETENCIES & OBJECTIVES: what learners will achieve (linked to indicator)\n"
+            "3. KEY VOCABULARY: 3-4 essential terms with clear definitions\n"
+            "4. INTRODUCTION / STARTER: Phase 1 starter activity (5-7 min)\n"
+            "5. DEVELOPMENT / NEW LEARNING: Phase 2 main teaching content aligned to indicator\n"
+            "6. WORKED EXAMPLE: step-by-step worked example with Ghanaian context\n"
+            "7. ASSESSMENT / EVALUATION: Phase 3 check for understanding (3-4 questions)\n"
+            "8. SUMMARY & HOMEWORK: key takeaways + homework task reinforcing indicator\n\n"
+            "RULES:\n"
+            "- Write FULL, MEANINGFUL content \u2014 not outlines or placeholders\n"
+            "- Every slide MUST directly connect to the target indicator\n"
+            "- Use Ghanaian context (local names, currency, places, practices)\n"
+            "- Bullets must be complete sentences students can read and learn from\n"
+            "- Speaker notes are for the TEACHER: include delivery tips, expected answers\n"
+            "- Never reference indicator codes in slide text \u2014 use descriptive language"
+        )
+        user_prompt = (
+            f"Create a complete GES-aligned presentation on '{topic}' for "
+            f"{class_name} {subject_label}. "
+            f"Indicator: {indicator}. "
+            "Every slide must directly support achieving this indicator."
+        )
+
+        try:
+            import openai
+            from django.conf import settings as django_settings
+            client = openai.OpenAI(
+                api_key=getattr(django_settings, 'OPENAI_API_KEY', ''),
+            )
+            resp = client.chat.completions.create(
+                model='gpt-4o-mini',
+                messages=[
+                    {'role': 'system', 'content': system_prompt},
+                    {'role': 'user', 'content': user_prompt},
+                ],
+                temperature=0.6,
+                max_tokens=3000,
+            )
+            raw_text = resp.choices[0].message.content.strip()
+            if raw_text.startswith('```'):
+                raw_text = raw_text.split('\n', 1)[1] if '\n' in raw_text else raw_text[3:]
+            if raw_text.endswith('```'):
+                raw_text = raw_text[:-3]
+            result = json.loads(raw_text.strip())
+        except Exception as exc:
+            logger.warning('GES slide generation failed: %s', exc)
+            return JsonResponse(
+                {'error': 'GES generation failed. Please try again.'},
+                status=500,
+            )
+
+        raw_slides = result.get('slides', [])
+        ges_meta = result.get('ges_meta', {})
+
+        # Map GES slide positions to appropriate layouts
+        ges_layout_map = {
+            0: 'title',       # Title & Indicator
+            1: 'bullets',     # Core Competencies & Objectives
+            2: 'bullets',     # Key Vocabulary
+            3: 'bullets',     # Introduction / Starter
+            4: 'bullets',     # Development / New Learning
+            5: 'bullets',     # Worked Example
+            6: 'bullets',     # Assessment / Evaluation
+            7: 'summary',     # Summary & Homework
+        }
+
+        with transaction.atomic():
+            deck.slides.all().delete()
+            created = []
+            for i, s in enumerate(raw_slides):
+                bullets = s.get('bullets', [])
+                content = '\n'.join(bullets)
+                layout = ges_layout_map.get(i, _detect_slide_layout(
+                    s.get('title', ''), i, len(raw_slides),
+                ))
+                slide = ToolSlide.objects.create(
+                    presentation=deck,
+                    order=i,
+                    layout=layout,
+                    title=s.get('title', ''),
+                    content=content,
+                    speaker_notes=s.get('notes', ''),
+                    emoji=s.get('emoji', ''),
+                )
+                created.append({
+                    'slide_id': slide.pk,
+                    'order': slide.order,
+                    'layout': slide.layout,
+                    'title': slide.title,
+                    'content': slide.content,
+                    'emoji': slide.emoji,
+                    'speaker_notes': slide.speaker_notes,
+                    'image_url': '',
+                })
+            if data.get('update_title') and topic:
+                deck.title = topic
+            deck.save()
+
+        return JsonResponse({
+            'ok': True,
+            'slides': created,
+            'deck_title': deck.title,
+            'ges_meta': ges_meta,
+        })
+
     # ── duplicate_slide ─────────────────────────────────────
     elif action == 'duplicate_slide':
         slide_id = data.get('slide_id')
