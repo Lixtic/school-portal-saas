@@ -167,6 +167,15 @@ TEACHER_ADDON_CATALOG = [
         'category': 'management',
         'prices': {'free': 0, 'pro': 29.99},
     },
+    {
+        'slug': 'slide-generator',
+        'name': 'Slide Deck Generator',
+        'icon': 'bi-easel',
+        'description': 'Build beautiful Gamma-style presentations with AI — 8 themes, 7 layouts, fullscreen present mode and shareable links.',
+        'plans': ['free', 'pro'],
+        'category': 'productivity',
+        'prices': {'free': 0, 'pro': 59.99},
+    },
 ]
 
 
