@@ -21,30 +21,51 @@
         content: '';
         position: absolute;
         top: -40px; right: -40px;
-        width: 180px; height: 180px;
+        width: 200px; height: 200px;
         border-radius: 50%;
         background: rgba(255,255,255,0.07);
         pointer-events: none;
+        animation: headerOrb 8s ease-in-out infinite alternate;
     }
     .dash-header::after {
         content: '';
         position: absolute;
         bottom: -50px; left: -20px;
-        width: 140px; height: 140px;
+        width: 160px; height: 160px;
         border-radius: 50%;
-        background: rgba(255,255,255,0.05);
+        background: rgba(76,201,240,0.12);
         pointer-events: none;
+        animation: headerOrb 10s ease-in-out infinite alternate-reverse;
+    }
+    @keyframes headerOrb {
+        0% { transform: translate(0, 0) scale(1); }
+        100% { transform: translate(15px, -10px) scale(1.08); }
     }
     .dash-greeting {
         font-size: 1.5rem;
-        font-weight: 700;
+        font-weight: 800;
         margin-bottom: 0.125rem;
         color: #fff;
+        letter-spacing: -0.02em;
     }
     .dash-subtitle {
-        color: rgba(255,255,255,0.85);
+        color: rgba(255,255,255,0.8);
         font-size: 0.875rem;
         margin: 0;
+    }
+    .dash-date-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255,255,255,0.15);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255,255,255,0.18);
+        padding: 0.3rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: rgba(255,255,255,0.9);
+        margin-top: 0.5rem;
     }
 
     /* ===== Stat Cards (CSS Grid) ===== */
@@ -59,14 +80,30 @@
         border-radius: 16px;
         border: 1px solid rgba(0,0,0,0.06);
         background: #fff;
-        transition: all 0.25s ease;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        position: relative;
+        overflow: hidden;
+    }
+    .stat-card::after {
+        content: '';
+        position: absolute;
+        top: 0; right: 0;
+        width: 100px; height: 100px;
+        border-radius: 50%;
+        opacity: 0;
+        transition: opacity 0.3s;
+        pointer-events: none;
     }
     .stat-card:hover {
-        border-color: rgba(0,0,0,0.12);
-        box-shadow: 0 6px 16px rgba(0,0,0,0.06);
-        transform: translateY(-2px);
+        border-color: rgba(0,0,0,0.1);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.07);
+        transform: translateY(-3px);
     }
+    .stat-card:hover::after { opacity: 1; }
+    .stat-card:nth-child(1)::after { background: radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%); }
+    .stat-card:nth-child(2)::after { background: radial-gradient(circle, rgba(34,197,94,0.08) 0%, transparent 70%); }
+    .stat-card:nth-child(3)::after { background: radial-gradient(circle, rgba(14,165,233,0.08) 0%, transparent 70%); }
     .stat-top {
         display: flex;
         justify-content: space-between;
@@ -81,21 +118,24 @@
         margin-bottom: 0.375rem;
     }
     .stat-value {
-        font-size: 2rem;
-        font-weight: 700;
+        font-size: 2.1rem;
+        font-weight: 800;
         color: #111827;
         line-height: 1.1;
+        letter-spacing: -0.02em;
     }
     .stat-icon {
-        width: 44px;
-        height: 44px;
-        border-radius: 12px;
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.25rem;
+        font-size: 1.3rem;
         flex-shrink: 0;
+        transition: transform 0.25s;
     }
+    .stat-card:hover .stat-icon { transform: scale(1.08); }
     .stat-badge {
         display: inline-flex;
         align-items: center;
@@ -106,9 +146,9 @@
         border-radius: 6px;
         margin-top: 0.5rem;
     }
-    .si-blue { background: #eff6ff; color: #3b82f6; }
-    .si-green { background: #f0fdf4; color: #22c55e; }
-    .si-sky { background: #f0f9ff; color: #0ea5e9; }
+    .si-blue { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); color: #3b82f6; }
+    .si-green { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); color: #16a34a; }
+    .si-sky { background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); color: #0ea5e9; }
     .sb-blue { background: #e0f2fe; color: #0369a1; }
     .sb-green { background: #dcfce7; color: #15803d; }
     .sb-indigo { background: #dbeafe; color: #1e40af; }
@@ -135,7 +175,11 @@
         border-radius: 16px;
         padding: 1.25rem;
         margin-bottom: 0;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        transition: box-shadow 0.25s;
+    }
+    .qa-minimal-wrap:hover {
+        box-shadow: 0 6px 20px rgba(0,0,0,0.06);
     }
     .qa-minimal-grid {
         display: grid;
@@ -444,12 +488,24 @@
         border-radius: 16px;
         padding: 1.25rem;
         border: 1px solid rgba(0,0,0,0.06);
-        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        transition: box-shadow 0.25s, transform 0.25s;
+    }
+    .chart-card:hover {
+        box-shadow: 0 6px 20px rgba(0,0,0,0.06);
     }
     .chart-heading {
         font-size: 0.875rem;
         font-weight: 700;
         margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .chart-heading .ch-dot {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        display: inline-block;
     }
     [data-bs-theme="dark"] .chart-card {
         box-shadow: 0 1px 3px rgba(0,0,0,0.3);
@@ -461,7 +517,11 @@
         border-radius: 16px;
         border: 1px solid rgba(0,0,0,0.06);
         overflow: hidden;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        transition: box-shadow 0.25s;
+    }
+    .announce-card:hover {
+        box-shadow: 0 6px 20px rgba(0,0,0,0.06);
     }
     .announce-item {
         display: flex;
@@ -521,7 +581,11 @@
         border-radius: 16px;
         border: 1px solid rgba(0,0,0,0.06);
         overflow: hidden;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        transition: box-shadow 0.25s;
+    }
+    .messages-card:hover {
+        box-shadow: 0 6px 20px rgba(0,0,0,0.06);
     }
     .messages-item {
         display: flex;
@@ -981,6 +1045,29 @@
         .sg-steps { grid-template-columns: 1fr; }
         .sg-step-desc { display: none; }
     }
+
+    /* ── Entrance Animations ── */
+    @keyframes dashFadeUp {
+        from { opacity: 0; transform: translateY(14px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .dash-reveal {
+        opacity: 0;
+        animation: dashFadeUp 0.45s ease forwards;
+    }
+    .dash-d0 { animation-delay: 0s; }
+    .dash-d1 { animation-delay: 0.06s; }
+    .dash-d2 { animation-delay: 0.12s; }
+    .dash-d3 { animation-delay: 0.18s; }
+    .dash-d4 { animation-delay: 0.24s; }
+    .dash-d5 { animation-delay: 0.30s; }
+    .dash-d6 { animation-delay: 0.36s; }
+    .dash-d7 { animation-delay: 0.42s; }
+    .dash-d8 { animation-delay: 0.48s; }
+
+    @media (prefers-reduced-motion: reduce) {
+        .dash-reveal { animation: none; opacity: 1; }
+    }
 </style>
 
 <!-- Subscription / Trial Banner -->
@@ -1024,11 +1111,15 @@
 {% endif %}
 
 <!-- Header -->
-<div class="dash-header">
+<div class="dash-header dash-reveal dash-d0">
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
         <div>
             <h1 class="dash-greeting"><i class="bi bi-speedometer2 me-2 opacity-75"></i>Dashboard</h1>
-            <p class="dash-subtitle">Welcome back, {{ user.first_name }}! Here's what's happening today.</p>
+            <p class="dash-subtitle" id="dashSubtitle">Welcome back, {{ user.first_name }}! Here's what's happening today.</p>
+            <div class="dash-date-pill" id="dashDatePill">
+                <i class="bi bi-calendar3"></i>
+                <span id="dashDate"></span>
+            </div>
         </div>
         <div class="d-flex gap-2 align-items-center">
             <div class="dropdown">
@@ -1196,7 +1287,7 @@
 {% endif %}
 
 <!-- Key Metrics -->
-<div class="stats-grid mb-4">
+<div class="stats-grid mb-4 dash-reveal dash-d1">
     <a href="{% url 'students:student_list' %}" class="stat-card text-decoration-none" id="widget-stat-students">
         <div class="stat-top">
             <div>
@@ -1241,7 +1332,7 @@
     </a>
 </div>
 
-<div class="admin-layout" id="dashboard-grid">
+<div class="admin-layout dash-reveal dash-d3" id="dashboard-grid">
     <!-- Announcements Widget -->
     <div class="widget-item" id="widget-announcements" data-widget="announcements">
         <div class="widget-drag-handle"><i class="bi bi-grip-vertical"></i></div>
@@ -1291,6 +1382,7 @@
         </div>
         <div class="section-heading">Attendance Trend</div>
         <div class="chart-card">
+            <div class="chart-heading"><span class="ch-dot" style="background:#3b82f6;"></span> Daily Attendance (7 days)</div>
             <canvas id="attendanceChart" height="200"></canvas>
         </div>
     </div>
@@ -1307,6 +1399,7 @@
         </div>
         <div class="section-heading">Class Distribution</div>
         <div class="chart-card">
+            <div class="chart-heading"><span class="ch-dot" style="background:#8b5cf6;"></span> Students by Class</div>
             <canvas id="classChart" height="200"></canvas>
         </div>
     </div>
@@ -1452,6 +1545,20 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    /* ===== Time-of-Day Greeting & Date ===== */
+    (function() {
+        var h = new Date().getHours();
+        var greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+        var sub = document.getElementById('dashSubtitle');
+        if (sub) sub.textContent = greet + ', {{ user.first_name }}! Here\u2019s what\u2019s happening today.';
+        var dp = document.getElementById('dashDate');
+        if (dp) {
+            var d = new Date();
+            var opts = {weekday:'long', year:'numeric', month:'long', day:'numeric'};
+            dp.textContent = d.toLocaleDateString('en-US', opts);
+        }
+    })();
+
     /* ===== Widget Visibility & Layout Management ===== */
     const STORAGE_KEY = 'dashboard_widgets_admin_{{ user.id }}';
     const LAYOUT_KEY = 'dashboard_layout_admin_{{ user.id }}';
