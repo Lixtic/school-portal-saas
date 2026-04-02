@@ -165,6 +165,60 @@
 }
 .gtle-attempt-action:hover { border-color: #0d9488; color: #0d9488; }
 
+/* ── Question Bank Browser ───────────────────────────── */
+.gtle-bank { margin-bottom: 2rem; }
+.gtle-bank > h3 {
+    font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.gtle-bank > h3 i { color: #0d9488; }
+.gtle-domain-section { margin-bottom: 1rem; }
+.gtle-domain-toggle {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.75rem 1rem; border-radius: 10px;
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    cursor: pointer; width: 100%; font-family: inherit;
+    transition: background 0.12s;
+}
+.gtle-domain-toggle:hover { background: var(--surface-bg); }
+.gtle-domain-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+}
+.gtle-domain-toggle-label { font-size: 0.88rem; font-weight: 700; flex: 1; text-align: left; color: var(--text-main); }
+.gtle-domain-toggle-count {
+    font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.55rem;
+    border-radius: 6px; background: rgba(13,148,136,0.1); color: #0d9488;
+}
+.gtle-domain-toggle .chevron {
+    font-size: 0.75rem; color: var(--text-muted);
+    transition: transform 0.2s ease;
+}
+.gtle-domain-toggle[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+.gtle-q-list {
+    border: 1px solid var(--border-color); border-top: none;
+    border-radius: 0 0 10px 10px; overflow: hidden;
+}
+.gtle-q-item {
+    display: flex; align-items: flex-start; gap: 0.75rem;
+    padding: 0.7rem 1rem; border-bottom: 1px solid var(--border-color);
+    font-size: 0.82rem; line-height: 1.45;
+}
+.gtle-q-item:last-child { border-bottom: none; }
+.gtle-q-num {
+    font-size: 0.68rem; font-weight: 800; color: var(--text-muted);
+    min-width: 22px; text-align: right; padding-top: 2px;
+}
+.gtle-q-text { flex: 1; min-width: 0; color: var(--text-main); }
+.gtle-q-badges { display: flex; gap: 0.35rem; flex-shrink: 0; }
+.gtle-q-badge {
+    font-size: 0.62rem; font-weight: 700; text-transform: uppercase;
+    padding: 0.15rem 0.45rem; border-radius: 4px;
+    letter-spacing: 0.03em; white-space: nowrap;
+}
+.gtle-q-badge-easy { background: rgba(16,185,129,0.1); color: #10b981; }
+.gtle-q-badge-medium { background: rgba(245,158,11,0.1); color: #f59e0b; }
+.gtle-q-badge-hard { background: rgba(239,68,68,0.1); color: #ef4444; }
+
 /* ── Responsive ───────────────────────────────────────── */
 @media (max-width: 768px) {
     .gtle-hero { padding: 1.5rem; border-radius: 14px; }
@@ -306,6 +360,44 @@
     </button>
     <div class="gtle-gen-result" id="genResult"></div>
 </div>
+
+<!-- Question Bank Browser -->
+{% if questions_by_domain %}
+<div class="gtle-bank">
+    <h3>
+        <span><i class="bi bi-collection"></i> Question Bank</span>
+        <form method="post" action="{% url 'individual:licensure_load_bank' %}" style="display:inline;margin-left:auto">
+            {% csrf_token %}
+            <button type="submit" style="font-size:0.75rem;font-weight:600;padding:0.35rem 0.8rem;border-radius:8px;border:1px solid #0d9488;background:transparent;color:#0d9488;cursor:pointer;transition:all 0.12s">
+                <i class="bi bi-download"></i> Load Practice Bank
+            </button>
+        </form>
+    </h3>
+    {% for code, data in questions_by_domain.items %}
+    <div class="gtle-domain-section">
+        <button class="gtle-domain-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#qbank-{{ code }}" aria-expanded="false">
+            <span class="gtle-domain-dot" style="background:{% if code == 'literacy' %}#3b82f6{% elif code == 'numeracy' %}#f59e0b{% elif code == 'pedagogy' %}#7c3aed{% else %}#ef4444{% endif %}"></span>
+            <span class="gtle-domain-toggle-label">{{ data.label }}</span>
+            <span class="gtle-domain-toggle-count">{{ data.count }}</span>
+            <i class="bi bi-chevron-down chevron"></i>
+        </button>
+        <div class="collapse" id="qbank-{{ code }}">
+            <div class="gtle-q-list">
+                {% for q in data.questions %}
+                <div class="gtle-q-item">
+                    <span class="gtle-q-num">{{ forloop.counter }}</span>
+                    <span class="gtle-q-text">{{ q.question_text|truncatewords:30 }}</span>
+                    <div class="gtle-q-badges">
+                        <span class="gtle-q-badge gtle-q-badge-{{ q.difficulty }}">{{ q.difficulty }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
 
 <!-- Recent Attempts -->
 {% if recent_attempts %}

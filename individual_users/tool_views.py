@@ -1823,6 +1823,19 @@ def licensure_dashboard(request):
         best_attempt = max(attempts, key=lambda a: a.score_percent)
         best = best_attempt.score_percent
 
+    # Group questions by domain for the question bank browser
+    questions_by_domain = {}
+    for code, label in LicensureQuestion.DOMAIN_CHOICES:
+        qs = LicensureQuestion.objects.filter(
+            profile=profile, domain=code,
+        ).order_by('-created_at')
+        if qs.exists():
+            questions_by_domain[code] = {
+                'label': label,
+                'questions': qs[:50],
+                'count': domain_counts.get(code, 0),
+            }
+
     ctx = {
         'total_questions': total_qs,
         'total_attempts': total_attempts,
@@ -1832,6 +1845,7 @@ def licensure_dashboard(request):
         'domains': LicensureQuestion.DOMAIN_CHOICES,
         'difficulties': LicensureQuestion.DIFFICULTY_CHOICES,
         'sources': LicensureQuestion.SOURCE_CHOICES,
+        'questions_by_domain': questions_by_domain,
     }
     return render(request, 'individual/tools/licensure/dashboard.html', ctx)
 
