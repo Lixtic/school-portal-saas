@@ -1136,56 +1136,59 @@ def dashboard(request):
         custom_quick_actions = []
         owned_addon_list = []
         try:
-            from teachers.models import DashboardPin, QuickAction as TeacherQuickAction, TeacherAddOnPurchase
-            from teachers.views import ADDON_LAUNCH_URLS
+            with transaction.atomic():
+                from teachers.models import DashboardPin, QuickAction as TeacherQuickAction, TeacherAddOnPurchase
+                from teachers.views import ADDON_LAUNCH_URLS
 
-            # Pinned addons with resolved URLs
-            pins = DashboardPin.objects.filter(teacher=user).select_related('addon')
-            for pin in pins:
-                url_name = ADDON_LAUNCH_URLS.get(pin.addon.slug)
-                launch_url = None
-                if url_name:
+                # Pinned addons with resolved URLs
+                pins = list(DashboardPin.objects.filter(teacher=user).select_related('addon'))
+                pinned_addon_ids = {p.addon_id for p in pins}
+                for pin in pins:
+                    url_name = ADDON_LAUNCH_URLS.get(pin.addon.slug)
+                    launch_url = None
+                    if url_name:
+                        try:
+                            launch_url = reverse(url_name)
+                        except Exception:
+                            pass
+                    pinned_addons.append({
+                        'pin_id': pin.id,
+                        'addon_id': pin.addon.id,
+                        'name': pin.addon.name,
+                        'icon': pin.addon.icon,
+                        'slug': pin.addon.slug,
+                        'launch_url': launch_url,
+                    })
+
+                # Custom quick actions with resolved URLs
+                qa_qs = TeacherQuickAction.objects.filter(teacher=user)
+                for qa in qa_qs:
                     try:
-                        launch_url = reverse(url_name)
+                        url = reverse(qa.url_name)
                     except Exception:
-                        pass
-                pinned_addons.append({
-                    'pin_id': pin.id,
-                    'addon_id': pin.addon.id,
-                    'name': pin.addon.name,
-                    'icon': pin.addon.icon,
-                    'slug': pin.addon.slug,
-                    'launch_url': launch_url,
-                })
+                        url = '#'
+                    custom_quick_actions.append({
+                        'label': qa.label, 'icon': qa.icon,
+                        'url': url, 'color': qa.color,
+                        'url_name': qa.url_name,
+                    })
 
-            # Custom quick actions with resolved URLs
-            qa_qs = TeacherQuickAction.objects.filter(teacher=user)
-            for qa in qa_qs:
-                try:
-                    url = reverse(qa.url_name)
-                except Exception:
-                    url = '#'
-                custom_quick_actions.append({
-                    'label': qa.label, 'icon': qa.icon,
-                    'url': url, 'color': qa.color,
-                    'url_name': qa.url_name,
-                })
-
-            # All owned addons (for pin picker)
-            owned_ids = TeacherAddOnPurchase.objects.filter(
-                teacher=user, is_active=True
-            ).select_related('addon').values_list('addon_id', flat=True)
-            from teachers.models import TeacherAddOn
-            pinned_ids = set(pins.values_list('addon_id', flat=True))
-            for addon in TeacherAddOn.objects.filter(id__in=owned_ids, is_active=True):
-                owned_addon_list.append({
-                    'id': addon.id,
-                    'name': addon.name,
-                    'icon': addon.icon,
-                    'pinned': addon.id in pinned_ids,
-                })
+                # All owned addons (for pin picker)
+                owned_ids = TeacherAddOnPurchase.objects.filter(
+                    teacher=user, is_active=True
+                ).values_list('addon_id', flat=True)
+                from teachers.models import TeacherAddOn
+                for addon in TeacherAddOn.objects.filter(id__in=owned_ids, is_active=True):
+                    owned_addon_list.append({
+                        'id': addon.id,
+                        'name': addon.name,
+                        'icon': addon.icon,
+                        'pinned': addon.id in pinned_addon_ids,
+                    })
         except Exception:
-            pass
+            pinned_addons = []
+            custom_quick_actions = []
+            owned_addon_list = []
 
         teacher_context = {
             'user': user,

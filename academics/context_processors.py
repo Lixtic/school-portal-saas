@@ -39,10 +39,11 @@ def school_info(request):
         basic9_key = _cache_key('has_basic9_class')
         has_basic9_class_cached = cache.get(basic9_key)
         if has_basic9_class_cached is None:
-            classes_qs = Class.objects.all()
-            if current_year:
-                classes_qs = classes_qs.filter(academic_year=current_year)
-            has_basic9_class_cached = any(_is_basic9_name(name) for name in classes_qs.values_list('name', flat=True))
+            with transaction.atomic():
+                classes_qs = Class.objects.all()
+                if current_year:
+                    classes_qs = classes_qs.filter(academic_year=current_year)
+                has_basic9_class_cached = any(_is_basic9_name(name) for name in classes_qs.values_list('name', flat=True))
             cache.set(basic9_key, has_basic9_class_cached, _CACHE_TTL)
         has_basic9_class = bool(has_basic9_class_cached)
     except Exception:

@@ -23,7 +23,11 @@ def teacher_context(request):
     if getattr(request.user, 'user_type', None) != 'teacher':
         return context
     
-    if not hasattr(request.user, 'teacher'):
+    try:
+        has_teacher = hasattr(request.user, 'teacher')
+    except Exception:
+        return context
+    if not has_teacher:
         return context
     
     try:
