@@ -1140,36 +1140,25 @@ def dashboard(request):
                 from teachers.models import DashboardPin, QuickAction as TeacherQuickAction, TeacherAddOnPurchase
                 from teachers.views import ADDON_LAUNCH_URLS
 
-                # Pinned addons with resolved URLs
+                # Pinned addons — pass url_name for template-side resolution
                 pins = list(DashboardPin.objects.filter(teacher=user).select_related('addon'))
                 pinned_addon_ids = {p.addon_id for p in pins}
                 for pin in pins:
-                    url_name = ADDON_LAUNCH_URLS.get(pin.addon.slug)
-                    launch_url = None
-                    if url_name:
-                        try:
-                            launch_url = reverse(url_name)
-                        except Exception:
-                            pass
                     pinned_addons.append({
                         'pin_id': pin.id,
                         'addon_id': pin.addon.id,
                         'name': pin.addon.name,
                         'icon': pin.addon.icon,
                         'slug': pin.addon.slug,
-                        'launch_url': launch_url,
+                        'url_name': ADDON_LAUNCH_URLS.get(pin.addon.slug, ''),
                     })
 
-                # Custom quick actions with resolved URLs
+                # Custom quick actions — pass url_name for template-side resolution
                 qa_qs = TeacherQuickAction.objects.filter(teacher=user)
                 for qa in qa_qs:
-                    try:
-                        url = reverse(qa.url_name)
-                    except Exception:
-                        url = '#'
                     custom_quick_actions.append({
                         'label': qa.label, 'icon': qa.icon,
-                        'url': url, 'color': qa.color,
+                        'color': qa.color,
                         'url_name': qa.url_name,
                     })
 

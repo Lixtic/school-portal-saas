@@ -653,7 +653,8 @@
     <div class="d-flex gap-2 flex-wrap align-items-center">
         {% if custom_quick_actions %}
             {% for qa in custom_quick_actions %}
-            <a href="{{ qa.url }}" class="btn btn-sm rounded-pill px-3 py-2 fw-semibold shadow-sm"
+            {% url qa.url_name as qa_url %}
+            <a href="{{ qa_url|default:'#' }}" class="btn btn-sm rounded-pill px-3 py-2 fw-semibold shadow-sm"
                style="background:{{ qa.color }};color:#fff;border:none;font-size:.8rem;">
                 <i class="bi {{ qa.icon }} me-1"></i>{{ qa.label }}
             </a>
@@ -700,7 +701,8 @@
     </div>
     <div class="d-flex gap-2 flex-wrap" id="pinnedAddonStrip">
         {% for pin in pinned_addons %}
-        <a href="{{ pin.launch_url|default:'#' }}" class="td-pinned-addon" data-pin-id="{{ pin.pin_id }}">
+        {% url pin.url_name as pin_url %}
+        <a href="{{ pin_url|default:'#' }}" class="td-pinned-addon" data-pin-id="{{ pin.pin_id }}">
             <span class="pin-drag" title="Drag to reorder"><i class="bi bi-grip-vertical"></i></span>
             <div class="td-pinned-icon"><i class="bi {{ pin.icon }}"></i></div>
             <span class="td-pinned-label">{{ pin.name }}</span>
