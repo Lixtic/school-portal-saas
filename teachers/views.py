@@ -7848,6 +7848,7 @@ def addon_exam_paper(request, **kwargs):
 def addon_exam_paper_docx(request, **kwargs):
     """Export exam paper as a WAEC-standard Word document (.docx)."""
     import io
+    import re
     from collections import OrderedDict
     from docx import Document
     from docx.shared import Pt, Inches, Cm, RGBColor
@@ -7856,11 +7857,13 @@ def addon_exam_paper_docx(request, **kwargs):
     from docx.oxml.ns import qn
     from teachers.models import ExamPaper
 
+    # Strip leading letter prefixes like "A) ", "A. ", "a) " from option text
+    _OPT_PREFIX_RE = re.compile(r'^[A-Da-d][.)\]:]\s*')
+
     paper_id = request.GET.get('id')
     if not paper_id:
         return redirect('teachers:addon_question_bank')
     paper = get_object_or_404(ExamPaper, id=paper_id, teacher=request.user)
-    show_key = request.GET.get('key') == '1'
 
     questions_qs = list(paper.questions.all().order_by('question_format', 'id'))
 
@@ -8026,6 +8029,7 @@ def addon_exam_paper_docx(request, **kwargs):
         if fmt == 'mcq' and q_obj.options:
             for idx, opt in enumerate(q_obj.options):
                 letter = chr(65 + idx)
+                opt_text = _OPT_PREFIX_RE.sub('', str(opt))
                 p = doc.add_paragraph()
                 p.paragraph_format.space_before = Pt(0)
                 p.paragraph_format.space_after = Pt(1)
@@ -8033,7 +8037,7 @@ def addon_exam_paper_docx(request, **kwargs):
                 run = p.add_run(f'{letter}. ')
                 run.bold = True
                 run.font.size = Pt(10)
-                run = p.add_run(str(opt))
+                run = p.add_run(opt_text)
                 run.font.size = Pt(10)
 
         elif fmt == 'truefalse':
@@ -8069,28 +8073,6 @@ def addon_exam_paper_docx(request, **kwargs):
                 run = p.add_run('_' * 70)
                 run.font.size = Pt(9)
                 run.font.color.rgb = RGBColor(170, 170, 170)
-
-        # Answer key
-        if show_key and (q_obj.correct_answer or q_obj.explanation):
-            p = doc.add_paragraph()
-            p.paragraph_format.left_indent = Cm(1.4)
-            p.paragraph_format.space_before = Pt(3)
-            p.paragraph_format.space_after = Pt(2)
-            if q_obj.correct_answer:
-                run = p.add_run('ANSWER: ')
-                run.bold = True
-                run.font.size = Pt(9)
-                run.font.color.rgb = RGBColor(13, 110, 63)
-                run = p.add_run(q_obj.correct_answer)
-                run.font.size = Pt(9)
-                run.font.color.rgb = RGBColor(13, 110, 63)
-            if q_obj.explanation:
-                if q_obj.correct_answer:
-                    p.add_run('\n')
-                run = p.add_run(q_obj.explanation)
-                run.italic = True
-                run.font.size = Pt(8)
-                run.font.color.rgb = RGBColor(100, 100, 100)
 
     # ── Render sections or flat list ──
     if sections:
@@ -8148,6 +8130,89 @@ def addon_exam_paper_docx(request, **kwargs):
     run = p.add_run(' · '.join(summary_parts))
     run.font.size = Pt(8)
     run.font.color.rgb = RGBColor(100, 100, 100)
+
+    # ── Marking Scheme (separate page) ──
+    doc.add_page_break()
+
+    add_centered('MARKING SCHEME', bold=True, size=14, caps=False, spacing=2)
+    if school_name:
+        p = add_centered(f'{school_name} — {paper.title}', size=9, spacing=6)
+        p.runs[0].font.color.rgb = RGBColor(85, 85, 85)
+    add_thin_line()
+
+    # Build answer list from sections or flat list
+    all_questions = []
+    if sections:
+        for sec in sections:
+            for q in sec['questions']:
+                all_questions.append((q['number'], q['obj']))
+    else:
+        for idx, q_obj in enumerate(questions_qs, 1):
+            all_questions.append((idx, q_obj))
+
+    # Marking scheme table
+    ms_table = doc.add_table(rows=1, cols=3)
+    ms_table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    # Header row
+    for ci, header in enumerate(['No.', 'Answer', 'Explanation']):
+        cell = ms_table.rows[0].cells[ci]
+        p = cell.paragraphs[0]
+        p.paragraph_format.space_before = Pt(2)
+        p.paragraph_format.space_after = Pt(2)
+        run = p.add_run(header)
+        run.bold = True
+        run.font.size = Pt(9)
+        # Shade header cells
+        shading = cell._tc.get_or_add_tcPr().makeelement(qn('w:shd'), {
+            qn('w:val'): 'clear', qn('w:color'): 'auto', qn('w:fill'): 'E8E8E8',
+        })
+        cell._tc.get_or_add_tcPr().append(shading)
+
+    for num, q_obj in all_questions:
+        row = ms_table.add_row()
+        # No.
+        p = row.cells[0].paragraphs[0]
+        p.paragraph_format.space_before = Pt(2)
+        p.paragraph_format.space_after = Pt(2)
+        run = p.add_run(str(num))
+        run.bold = True
+        run.font.size = Pt(9)
+        # Answer
+        p = row.cells[1].paragraphs[0]
+        p.paragraph_format.space_before = Pt(2)
+        p.paragraph_format.space_after = Pt(2)
+        answer_text = q_obj.correct_answer or '—'
+        run = p.add_run(answer_text)
+        run.font.size = Pt(9)
+        run.font.color.rgb = RGBColor(13, 110, 63)
+        # Explanation
+        p = row.cells[2].paragraphs[0]
+        p.paragraph_format.space_before = Pt(2)
+        p.paragraph_format.space_after = Pt(2)
+        expl_text = q_obj.explanation or ''
+        run = p.add_run(expl_text)
+        run.italic = True
+        run.font.size = Pt(8)
+        run.font.color.rgb = RGBColor(100, 100, 100)
+
+    # Table borders
+    ms_tbl = ms_table._tbl
+    ms_tblPr = ms_tbl.tblPr if ms_tbl.tblPr is not None else ms_tbl._add_tblPr()
+    ms_borders = ms_tblPr.find(qn('w:tblBorders'))
+    if ms_borders is None:
+        ms_borders = ms_tblPr.makeelement(qn('w:tblBorders'), {})
+        ms_tblPr.append(ms_borders)
+    for edge in ('top', 'left', 'bottom', 'right', 'insideH', 'insideV'):
+        el = ms_borders.makeelement(qn(f'w:{edge}'), {
+            qn('w:val'): 'single', qn('w:sz'): '4',
+            qn('w:space'): '0', qn('w:color'): '999999',
+        })
+        ms_borders.append(el)
+
+    # Set column widths (No: narrow, Answer: medium, Explanation: wide)
+    for row in ms_table.rows:
+        for ci, width in enumerate([Cm(1.2), Cm(5.5), Cm(10.0)]):
+            row.cells[ci].width = width
 
     # ── Stream response ──
     buf = io.BytesIO()

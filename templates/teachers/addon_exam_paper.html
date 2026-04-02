@@ -677,7 +677,7 @@
     <a href="{% url 'teachers:addon_question_bank' %}" class="ep-btn ep-btn-back"><i class="bi bi-arrow-left"></i> Back</a>
     <button onclick="window.print()" class="ep-btn ep-btn-print"><i class="bi bi-printer"></i> Print</button>
     <button onclick="window.print()" class="ep-btn ep-btn-outline"><i class="bi bi-file-earmark-pdf"></i> Save as PDF</button>
-    <a href="{% url 'teachers:addon_exam_paper_docx' %}?id={{ paper.id }}{% if show_key %}&key=1{% endif %}" class="ep-btn ep-btn-outline"><i class="bi bi-file-earmark-word"></i> Export Word</a>
+    <a href="{% url 'teachers:addon_exam_paper_docx' %}?id={{ paper.id }}" class="ep-btn ep-btn-outline"><i class="bi bi-file-earmark-word"></i> Export Word</a>
     <button onclick="toggleAnswerKey()" class="ep-btn {% if show_key %}ep-btn-outline{% else %}ep-btn-key{% endif %}" id="keyToggleBtn">
         <i class="bi bi-key"></i> <span id="keyToggleText">{% if show_key %}Hide{% else %}Show{% endif %} Answer Key</span>
     </button>
@@ -862,10 +862,21 @@
 </div>
 
 <script>
-/* MCQ option letters — map 0→A, 1→B etc. after DOM ready */
+/* MCQ option letters — map 0→A, 1→B etc. and strip duplicate prefix from option text */
 document.querySelectorAll('.ep-opt-letter').forEach(function(el){
     var idx = parseInt(el.textContent, 10);
-    if (!isNaN(idx)) el.textContent = String.fromCharCode(65 + idx) + '.';
+    if (!isNaN(idx)) {
+        el.textContent = String.fromCharCode(65 + idx) + '.';
+        /* Strip leading "A) ", "B. " etc. from the sibling text if already prefixed */
+        var li = el.parentElement;
+        if (li) {
+            var textNodes = [];
+            li.childNodes.forEach(function(n){ if (n.nodeType === 3) textNodes.push(n); });
+            textNodes.forEach(function(tn){
+                tn.textContent = tn.textContent.replace(/^\s*[A-Da-d][.)\]:]+\s*/, ' ');
+            });
+        }
+    }
 });
 
 function toggleAnswerKey(){
