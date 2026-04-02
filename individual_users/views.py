@@ -468,9 +468,10 @@ def dashboard_view(request):
     total_calls = sum(k.calls_total for k in api_keys)
     active_keys = api_keys.filter(is_active=True).count()
 
-    # Teacher-specific: recommend addons + tool stats
+    # Teacher-specific: recommend addons + tool stats + my addons with URLs
     recommended = []
     tool_stats = {}
+    my_addons = []
     if profile.role == 'teacher':
         my_slugs = set(subscriptions.values_list('addon_slug', flat=True))
         recommended = [a for a in TEACHER_ADDON_CATALOG if a['slug'] not in my_slugs][:4]
@@ -479,6 +480,34 @@ def dashboard_view(request):
             'exams': ToolExamPaper.objects.filter(profile=profile).count(),
             'lessons': ToolLessonPlan.objects.filter(profile=profile).count(),
         }
+        # Build subscribed addons with icons and URL names for the dashboard
+        _ADDON_URL_MAP = {
+            'exam-generator': 'individual:question_bank',
+            'lesson-planner': 'individual:lesson_plans',
+            'slide-generator': 'individual:deck_list',
+            'licensure-prep': 'individual:licensure_dashboard',
+        }
+        _ADDON_COLORS = {
+            'exam-generator': '#4361ee',
+            'lesson-planner': '#059669',
+            'slide-generator': '#7c3aed',
+            'licensure-prep': '#0d9488',
+            'ai-tutor': '#0891b2',
+            'grade-analytics': '#7c3aed',
+            'report-card': '#d97706',
+            'attendance-tracker': '#dc2626',
+        }
+        catalog_map = {a['slug']: a for a in TEACHER_ADDON_CATALOG}
+        for sub in subscriptions:
+            cat = catalog_map.get(sub.addon_slug)
+            if cat:
+                my_addons.append({
+                    'name': cat['name'],
+                    'icon': cat['icon'],
+                    'slug': sub.addon_slug,
+                    'color': _ADDON_COLORS.get(sub.addon_slug, '#4361ee'),
+                    'url_name': _ADDON_URL_MAP.get(sub.addon_slug, ''),
+                })
 
     ctx = {
         'profile': profile,
@@ -492,6 +521,7 @@ def dashboard_view(request):
         'catalog_count': len(_catalog_for_role(profile.role)),
         'recommended_addons': recommended,
         'tool_stats': tool_stats,
+        'my_addons': my_addons,
     }
     return render(request, 'individual/dashboard.html', ctx)
 

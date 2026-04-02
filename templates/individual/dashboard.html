@@ -190,9 +190,112 @@
 .iu-code-block .iu-code-string { color: #34d399; }
 .iu-code-block .iu-code-key { color: #38bdf8; }
 
+/* ── Quick Actions Row ────────────────────────────────── */
+.iu-qa-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+.iu-qa-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: #fff;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+.iu-qa-pill:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+    color: #fff;
+}
+.iu-qa-pill i { font-size: 0.85rem; }
+.iu-qa-pill-outline {
+    background: var(--surface-card) !important;
+    color: var(--text-muted) !important;
+    border: 1px solid var(--border-color, #e2e8f0);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.iu-qa-pill-outline:hover {
+    border-color: #4361ee;
+    color: #4361ee !important;
+}
+
+/* ── My Add-ons Strip ────────────────────────────────── */
+.iu-addons-strip {
+    margin-bottom: 1.75rem;
+}
+.iu-addons-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #64748b;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+.iu-addon-chips {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.iu-addon-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.85rem;
+    border-radius: 10px;
+    background: var(--surface-card);
+    border: 1.5px solid rgba(124,58,237,0.12);
+    text-decoration: none;
+    color: var(--text-main);
+    font-size: 0.78rem;
+    font-weight: 600;
+    transition: all 0.15s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.iu-addon-chip:hover {
+    border-color: rgba(124,58,237,0.35);
+    box-shadow: 0 3px 12px rgba(124,58,237,0.1);
+    transform: translateY(-1px);
+    color: #7c3aed;
+}
+.iu-chip-icon {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 7px;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+}
+[data-bs-theme="dark"] .iu-addon-chip {
+    background: rgba(30,41,59,0.8);
+    border-color: rgba(124,58,237,0.2);
+    color: #e2e8f0;
+}
+[data-bs-theme="dark"] .iu-addon-chip:hover {
+    border-color: rgba(167,139,250,0.45);
+    color: #a78bfa;
+}
+
 @media (max-width: 576px) {
     .iu-stats { grid-template-columns: 1fr 1fr; }
     .iu-steps { flex-direction: column; }
+    .iu-qa-row { gap: 0.35rem; }
+    .iu-qa-pill { font-size: 0.72rem; padding: 0.4rem 0.75rem; }
 }
 {% endblock %}
 
@@ -243,6 +346,49 @@
     </div>
     {% endif %}
 </div>
+
+<!-- Quick Actions -->
+{% if role == 'teacher' %}
+<div class="iu-qa-row">
+    <a href="{% url 'individual:lesson_plans' %}" class="iu-qa-pill" style="background:linear-gradient(135deg,#059669,#10b981)">
+        <i class="bi bi-journal-bookmark"></i> Lesson Plans
+    </a>
+    <a href="{% url 'individual:question_bank' %}" class="iu-qa-pill" style="background:linear-gradient(135deg,#4361ee,#3b82f6)">
+        <i class="bi bi-file-earmark-text"></i> Question Bank
+    </a>
+    <a href="{% url 'individual:deck_list' %}" class="iu-qa-pill" style="background:linear-gradient(135deg,#7c3aed,#8b5cf6)">
+        <i class="bi bi-easel2"></i> Slide Decks
+    </a>
+    <a href="{% url 'individual:licensure_dashboard' %}" class="iu-qa-pill" style="background:linear-gradient(135deg,#0f766e,#0d9488)">
+        <i class="bi bi-mortarboard"></i> GTLE Prep
+    </a>
+    <a href="{% url 'individual:addons' %}" class="iu-qa-pill" style="background:linear-gradient(135deg,#d97706,#f59e0b)">
+        <i class="bi bi-bag"></i> Add-on Store
+    </a>
+    <a href="{% url 'individual:tools_hub' %}" class="iu-qa-pill iu-qa-pill-outline">
+        <i class="bi bi-grid-3x3-gap"></i> All Tools
+    </a>
+</div>
+{% endif %}
+
+<!-- My Add-ons -->
+{% if my_addons %}
+<div class="iu-addons-strip">
+    <div class="iu-addons-label">
+        <i class="bi bi-pin-angle-fill"></i> My Add-ons
+    </div>
+    <div class="iu-addon-chips">
+        {% for addon in my_addons %}
+        <a href="{% if addon.url_name %}{% url addon.url_name %}{% else %}{% url 'individual:tools_hub' %}{% endif %}" class="iu-addon-chip">
+            <div class="iu-chip-icon" style="background:{{ addon.color }}15;color:{{ addon.color }}">
+                <i class="bi {{ addon.icon }}"></i>
+            </div>
+            <span>{{ addon.name }}</span>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 
 <!-- Quick Start -->
 <div class="iu-card iu-quick-start">
