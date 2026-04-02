@@ -515,6 +515,73 @@ body {
     z-index: 2;
 }
 
+/* ── Portal link cards ── */
+.portal-link-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1.5px solid var(--border-soft);
+    background: var(--surface-card);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+.portal-link-card:hover {
+    border-color: var(--portal-accent);
+    background: color-mix(in srgb, var(--portal-accent) 5%, var(--surface-card));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+.portal-link-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: var(--portal-accent);
+    background: color-mix(in srgb, var(--portal-accent) 10%, transparent);
+    flex-shrink: 0;
+}
+.portal-link-body {
+    flex: 1;
+    min-width: 0;
+}
+.portal-link-title {
+    display: block;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--text-main);
+    line-height: 1.2;
+}
+.portal-link-desc {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 1px;
+}
+.portal-link-arrow {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    transition: transform 0.2s, color 0.2s;
+    flex-shrink: 0;
+}
+.portal-link-card:hover .portal-link-arrow {
+    color: var(--portal-accent);
+    transform: translateX(3px);
+}
+[data-bs-theme="dark"] .portal-link-card {
+    border-color: rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03);
+}
+[data-bs-theme="dark"] .portal-link-card:hover {
+    border-color: var(--portal-accent);
+    background: color-mix(in srgb, var(--portal-accent) 8%, var(--surface-card));
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
 @media (max-width: 991px) {
     .login-side { padding: 28px; }
 }
@@ -616,14 +683,35 @@ body {
                         <div id="schoolSearchResults" class="school-search-results d-none"></div>
                     </form>
 
-                    <div class="text-center mt-4 pt-3" style="border-top: 1px solid var(--surface-light, #e2e8f0);">
-                        <span class="text-muted small">Platform administrator?</span>
-                        <a href="#" id="showAdminLogin" class="text-link small ms-1">Sign in here <i class="bi bi-arrow-right"></i></a>
-                    </div>
-                    <div class="text-center mt-3">
-                        <a href="/u/signup/" class="text-link small" style="color: #4361ee;"><i class="bi bi-code-slash me-1"></i>Developer Portal — Build with our APIs</a>
-                        <span class="text-muted mx-2">|</span>
-                        <a href="/t/" class="text-link small" style="color: #059669;"><i class="bi bi-mortarboard me-1"></i>Teacher Portal — AI teaching tools</a>
+                    <!-- ── Portal Links ─────────────────────────── -->
+                    <div class="mt-4 pt-3" style="border-top: 1px solid var(--border-soft);">
+                        <p class="text-muted small text-center mb-3 fw-600" style="font-size: 0.72rem; letter-spacing: 0.05em; text-transform: uppercase;">Other portals</p>
+                        <div class="d-flex flex-column gap-2">
+                            <a href="/t/" class="portal-link-card" style="--portal-accent: #059669;">
+                                <span class="portal-link-icon"><i class="bi bi-mortarboard"></i></span>
+                                <span class="portal-link-body">
+                                    <span class="portal-link-title">Teacher Portal</span>
+                                    <span class="portal-link-desc">AI-powered teaching tools</span>
+                                </span>
+                                <i class="bi bi-arrow-right portal-link-arrow"></i>
+                            </a>
+                            <a href="/u/signup/" class="portal-link-card" style="--portal-accent: #4361ee;">
+                                <span class="portal-link-icon"><i class="bi bi-code-slash"></i></span>
+                                <span class="portal-link-body">
+                                    <span class="portal-link-title">Developer Portal</span>
+                                    <span class="portal-link-desc">Build with our APIs</span>
+                                </span>
+                                <i class="bi bi-arrow-right portal-link-arrow"></i>
+                            </a>
+                            <a href="#" id="showAdminLogin" class="portal-link-card" style="--portal-accent: #7c3aed;">
+                                <span class="portal-link-icon"><i class="bi bi-shield-lock"></i></span>
+                                <span class="portal-link-body">
+                                    <span class="portal-link-title">Platform Admin</span>
+                                    <span class="portal-link-desc">Super Admin Console</span>
+                                </span>
+                                <i class="bi bi-arrow-right portal-link-arrow"></i>
+                            </a>
+                        </div>
                     </div>
                 </div>
 
