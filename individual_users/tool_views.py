@@ -707,30 +707,66 @@ def lesson_plan_delete(request, pk):
 @_require_tool('lesson-planner')
 @require_POST
 def lesson_plan_ai_generate(request):
-    """AI-generate a lesson plan from topic + subject."""
+    """AI-generate a lesson plan from topic + subject.
+
+    Supports two modes:
+    - Full plan: returns all sections (default)
+    - Inline mode (inline=1): returns plan dict without saving to DB
+    - Section mode (section=xxx): returns only the requested section
+    """
     profile = request.user.individual_profile
     subject = request.POST.get('subject', 'mathematics')
     topic = request.POST.get('topic', '')
     target_class = request.POST.get('target_class', '')
     duration = int(request.POST.get('duration_minutes', 40))
+    inline = request.POST.get('inline') == '1'
+    section = request.POST.get('section', '').strip()
 
     if not topic:
         return JsonResponse({'error': 'Topic is required'}, status=400)
 
     subject_label = dict(ToolQuestion.SUBJECT_CHOICES).get(subject, subject)
 
-    prompt = (
-        f"Create a detailed lesson plan for teaching '{topic}' in {subject_label}"
-    )
-    if target_class:
-        prompt += f" to {target_class} students"
-    prompt += (
-        f". Duration: {duration} minutes. "
-        "Return ONLY a JSON object with keys: title, objectives, materials, "
-        "introduction, development, assessment, closure. "
-        "Each value is a string with clear numbered or bulleted points. "
-        "No markdown fences, no extra text."
-    )
+    # ── Build prompt ──────────────────────────────────────────
+    if section:
+        section_map = {
+            'objectives': 'learning objectives (numbered, measurable, GES-aligned)',
+            'materials': 'teaching and learning materials/resources needed',
+            'introduction': 'Phase 1: Starter activity (5-7 min) to activate prior knowledge and engage learners',
+            'development': 'Phase 2: Main teaching activity (20-25 min) with demonstrations, group work, and formative assessment checkpoints',
+            'assessment': 'Phase 3: Reflection activity (5-10 min) with summary questions, exit tickets, and learner self-assessment',
+            'closure': 'closure/homework assignment connecting to next lesson',
+        }
+        section_desc = section_map.get(section, section)
+        prompt = (
+            f"For a lesson on '{topic}' in {subject_label}"
+        )
+        if target_class:
+            prompt += f" for {target_class} students"
+        prompt += (
+            f" ({duration} min duration), write ONLY the {section_desc}. "
+            "Return ONLY a JSON object with a single key '{}' containing the text. "
+            "Use clear numbered or bulleted points. No markdown fences."
+        ).format(section)
+    else:
+        prompt = (
+            f"Create a detailed GES-aligned lesson plan for teaching '{topic}' in {subject_label}"
+        )
+        if target_class:
+            prompt += f" to {target_class} students"
+        prompt += (
+            f". Duration: {duration} minutes. "
+            "Structure the plan using Ghana Education Service 3-phase pedagogy:\n"
+            "- Phase 1 (Starter/Introduction): 5-7 min activity to activate prior knowledge\n"
+            "- Phase 2 (Main/Development): 20-25 min with teaching activities, demonstrations, "
+            "group work, and formative assessment checkpoints\n"
+            "- Phase 3 (Reflection/Assessment): 5-10 min with summary questions, exit tickets, "
+            "and learner self-assessment\n\n"
+            "Return ONLY a JSON object with keys: title, objectives, materials, "
+            "introduction, development, assessment, closure. "
+            "Each value is a string with clear numbered or bulleted points. "
+            "No markdown fences, no extra text."
+        )
 
     try:
         import openai
@@ -738,7 +774,13 @@ def lesson_plan_ai_generate(request):
         resp = client.chat.completions.create(
             model='gpt-4o-mini',
             messages=[
-                {'role': 'system', 'content': 'You are a Ghanaian GES curriculum specialist creating lesson plans.'},
+                {'role': 'system', 'content': (
+                    'You are Aura-T, an expert Ghanaian GES curriculum specialist. '
+                    'You create lesson plans following the 3-phase pedagogy: '
+                    'Phase 1 (Starter), Phase 2 (Main/New Learning), Phase 3 (Reflection). '
+                    'Always include practical activities, formative assessment checkpoints, '
+                    'and differentiation tips.'
+                )},
                 {'role': 'user', 'content': prompt},
             ],
             temperature=0.7,
@@ -756,6 +798,11 @@ def lesson_plan_ai_generate(request):
         logger.warning('AI lesson plan generation failed: %s', exc)
         return JsonResponse({'error': 'AI generation failed. Please try again.'}, status=500)
 
+    # ── Inline mode: return without saving ────────────────────
+    if inline:
+        return JsonResponse({'ok': True, 'plan': data})
+
+    # ── Default: save to DB ───────────────────────────────────
     plan = ToolLessonPlan.objects.create(
         profile=profile,
         title=data.get('title', f'{subject_label}: {topic}'),

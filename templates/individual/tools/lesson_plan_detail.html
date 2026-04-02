@@ -3,12 +3,11 @@
 {% block page_title %}{{ plan.title }}{% endblock %}
 
 {% block extra_css %}
-.lpd-actions {
-    display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;
-}
+/* ── Action Bar ───────────────────────────────────────────── */
+.lpd-actions { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
 .lpd-btn {
     display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.5rem 1rem;
-    border-radius: 8px; font-size: 0.82rem; font-weight: 600; text-decoration: none;
+    border-radius: 10px; font-size: 0.82rem; font-weight: 600; text-decoration: none;
     border: none; cursor: pointer; transition: all 0.15s ease;
 }
 .lpd-btn-green { background: #059669; color: #fff; }
@@ -17,127 +16,170 @@
 .lpd-btn-blue:hover { background: #3451d1; color: #fff; }
 .lpd-btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); }
 .lpd-btn-outline:hover { border-color: var(--text-main); color: var(--text-main); }
+.lpd-btn-danger { background: transparent; border: 1px solid rgba(220,38,38,0.3); color: #dc2626; }
+.lpd-btn-danger:hover { background: rgba(220,38,38,0.08); }
 
+/* ── Paper Layout ──────────────────────────────────────────── */
 .lpd-paper {
-    background: var(--surface-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    padding: 2rem 2.5rem;
-    max-width: 800px;
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg); padding: 2rem 2.5rem; max-width: 800px;
     box-shadow: var(--shadow-card);
 }
 .lpd-header {
-    border-bottom: 2px solid rgba(5,150,105,0.2);
-    padding-bottom: 1rem;
-    margin-bottom: 1.5rem;
+    border-bottom: 2px solid rgba(5,150,105,0.15);
+    padding-bottom: 1rem; margin-bottom: 1.5rem;
 }
-.lpd-title {
-    font-size: 1.25rem;
-    font-weight: 800;
-    margin-bottom: 0.5rem;
-}
-.lpd-meta {
-    display: flex; gap: 1rem; flex-wrap: wrap;
-    font-size: 0.82rem; color: var(--text-muted);
-}
-.lpd-meta span {
+.lpd-title { font-size: 1.25rem; font-weight: 800; margin-bottom: 0.5rem; }
+.lpd-meta { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.lpd-pill {
     display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.25rem 0.65rem; border-radius: 999px;
+    font-size: 0.72rem; font-weight: 600;
+    background: rgba(5,150,105,0.08); color: #047857;
+    border: 1px solid rgba(5,150,105,0.12);
 }
+[data-bs-theme="dark"] .lpd-pill { background: rgba(52,211,153,0.1); color: #6ee7b7; border-color: rgba(52,211,153,0.15); }
 
+/* ── Section Labels ────────────────────────────────────────── */
+.sl {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-muted);
+    margin-bottom: 0.75rem; padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+[data-bs-theme="dark"] .sl { border-bottom-color: rgba(255,255,255,0.06); }
+.sl-icon {
+    width: 22px; height: 22px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center; font-size: 0.75rem;
+}
 .lpd-section { margin-bottom: 1.5rem; }
-.lpd-section-title {
-    font-size: 0.82rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.05em; color: #059669; margin-bottom: 0.5rem;
-    display: flex; align-items: center; gap: 0.4rem;
+.lpd-body {
+    font-size: 0.88rem; line-height: 1.7; white-space: pre-wrap; color: var(--text-main);
 }
-.lpd-section-content {
-    font-size: 0.88rem; line-height: 1.7; white-space: pre-wrap;
-    color: var(--text-main);
-}
-.lpd-section-content:empty::after {
-    content: '—';
-    color: var(--text-muted);
-}
+.lpd-body:empty::after { content: '—'; color: var(--text-muted); }
 
+/* ── Phase Blocks ──────────────────────────────────────────── */
+.phase-view { padding: 1rem 1.15rem; border-radius: 10px; margin-bottom: 0.75rem; }
+.phase-view.p1 { background: rgba(59,130,246,0.04); border: 1px solid rgba(59,130,246,0.1); }
+.phase-view.p2 { background: rgba(34,197,94,0.04); border: 1px solid rgba(34,197,94,0.1); }
+.phase-view.p3 { background: rgba(245,158,11,0.04); border: 1px solid rgba(245,158,11,0.1); }
+[data-bs-theme="dark"] .phase-view.p1 { background: rgba(59,130,246,0.08); border-color: rgba(59,130,246,0.15); }
+[data-bs-theme="dark"] .phase-view.p2 { background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.15); }
+[data-bs-theme="dark"] .phase-view.p3 { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.15); }
+.phase-label {
+    font-size: 0.78rem; font-weight: 700; margin-bottom: 0.5rem;
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.phase-label.p1 { color: #3b82f6; }
+.phase-label.p2 { color: #15803d; }
+.phase-label.p3 { color: #b45309; }
+
+/* ── Print ─────────────────────────────────────────────────── */
 @media print {
     body { background: #fff !important; }
     .iu-sidebar, .iu-topbar, .iu-overlay, .lpd-actions { display: none !important; }
     .iu-main { margin-left: 0 !important; }
     .iu-content { padding: 0 !important; max-width: 100% !important; }
     .lpd-paper { border: none; box-shadow: none; padding: 0; border-radius: 0; }
+    .phase-view { break-inside: avoid; }
 }
 {% endblock %}
 
 {% block content %}
 <div class="lpd-actions">
-    <a href="{% url 'individual:lesson_plans' %}" class="lpd-btn lpd-btn-outline">
-        <i class="bi bi-arrow-left"></i> Back
-    </a>
-    <a href="{% url 'individual:lesson_plan_edit' pk=plan.pk %}" class="lpd-btn lpd-btn-green">
-        <i class="bi bi-pencil"></i> Edit
-    </a>
-    <button onclick="window.print()" class="lpd-btn lpd-btn-blue">
-        <i class="bi bi-printer"></i> Print
-    </button>
+    <a href="{% url 'individual:lesson_plans' %}" class="lpd-btn lpd-btn-outline"><i class="bi bi-arrow-left"></i> Back</a>
+    <a href="{% url 'individual:lesson_plan_edit' pk=plan.pk %}" class="lpd-btn lpd-btn-green"><i class="bi bi-pencil"></i> Edit</a>
+    <button onclick="window.print()" class="lpd-btn lpd-btn-blue"><i class="bi bi-printer"></i> Print</button>
+    <form method="post" action="{% url 'individual:lesson_plan_delete' pk=plan.pk %}" style="margin:0"
+          onsubmit="return confirm('Delete this lesson plan?')">
+        {% csrf_token %}
+        <button type="submit" class="lpd-btn lpd-btn-danger"><i class="bi bi-trash3"></i> Delete</button>
+    </form>
 </div>
 
 <div class="lpd-paper">
+    <!-- Header -->
     <div class="lpd-header">
         <div class="lpd-title">{{ plan.title }}</div>
         <div class="lpd-meta">
-            <span><i class="bi bi-book"></i> {{ plan.get_subject_display }}</span>
-            <span><i class="bi bi-clock"></i> {{ plan.duration_minutes }} minutes</span>
-            {% if plan.target_class %}<span><i class="bi bi-people"></i> {{ plan.target_class }}</span>{% endif %}
-            {% if plan.topic %}<span><i class="bi bi-tag"></i> {{ plan.topic }}</span>{% endif %}
+            <span class="lpd-pill"><i class="bi bi-book"></i> {{ plan.get_subject_display }}</span>
+            <span class="lpd-pill"><i class="bi bi-clock"></i> {{ plan.duration_minutes }} min</span>
+            {% if plan.target_class %}<span class="lpd-pill"><i class="bi bi-people"></i> {{ plan.target_class }}</span>{% endif %}
+            {% if plan.topic %}<span class="lpd-pill"><i class="bi bi-tag"></i> {{ plan.topic }}</span>{% endif %}
         </div>
     </div>
 
-    {% if plan.objectives %}
+    <!-- Objectives & Resources -->
+    {% if plan.objectives or plan.materials %}
     <div class="lpd-section">
-        <div class="lpd-section-title"><i class="bi bi-bullseye"></i> Objectives</div>
-        <div class="lpd-section-content">{{ plan.objectives }}</div>
+        <div class="sl">
+            <span class="sl-icon" style="background:#eff6ff;color:#3b82f6;"><i class="bi bi-bullseye"></i></span>
+            Learning Objectives &amp; Resources
+        </div>
+        {% if plan.objectives %}
+        <div style="margin-bottom:0.75rem">
+            <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.3rem">Objectives</div>
+            <div class="lpd-body">{{ plan.objectives }}</div>
+        </div>
+        {% endif %}
+        {% if plan.materials %}
+        <div>
+            <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.3rem">Materials</div>
+            <div class="lpd-body">{{ plan.materials }}</div>
+        </div>
+        {% endif %}
     </div>
     {% endif %}
 
-    {% if plan.materials %}
+    <!-- 3-Phase Lesson Procedure -->
     <div class="lpd-section">
-        <div class="lpd-section-title"><i class="bi bi-box-seam"></i> Materials</div>
-        <div class="lpd-section-content">{{ plan.materials }}</div>
-    </div>
-    {% endif %}
+        <div class="sl">
+            <span class="sl-icon" style="background:#f0fdf4;color:#22c55e;"><i class="bi bi-diagram-3"></i></span>
+            Lesson Procedure — 3 Phases
+        </div>
 
-    {% if plan.introduction %}
-    <div class="lpd-section">
-        <div class="lpd-section-title"><i class="bi bi-play-circle"></i> Introduction</div>
-        <div class="lpd-section-content">{{ plan.introduction }}</div>
-    </div>
-    {% endif %}
+        {% if plan.introduction %}
+        <div class="phase-view p1">
+            <div class="phase-label p1"><i class="bi bi-1-circle"></i> Phase 1 — Starter (Preparing the brain)</div>
+            <div class="lpd-body">{{ plan.introduction }}</div>
+        </div>
+        {% endif %}
 
-    {% if plan.development %}
-    <div class="lpd-section">
-        <div class="lpd-section-title"><i class="bi bi-layers"></i> Development</div>
-        <div class="lpd-section-content">{{ plan.development }}</div>
-    </div>
-    {% endif %}
+        {% if plan.development %}
+        <div class="phase-view p2">
+            <div class="phase-label p2"><i class="bi bi-2-circle"></i> Phase 2 — Main (New learning &amp; assessment)</div>
+            <div class="lpd-body">{{ plan.development }}</div>
+        </div>
+        {% endif %}
 
-    {% if plan.assessment %}
-    <div class="lpd-section">
-        <div class="lpd-section-title"><i class="bi bi-clipboard-check"></i> Assessment</div>
-        <div class="lpd-section-content">{{ plan.assessment }}</div>
+        {% if plan.assessment %}
+        <div class="phase-view p3">
+            <div class="phase-label p3"><i class="bi bi-3-circle"></i> Phase 3 — Reflection (Learner &amp; teacher)</div>
+            <div class="lpd-body">{{ plan.assessment }}</div>
+        </div>
+        {% endif %}
     </div>
-    {% endif %}
 
-    {% if plan.closure %}
+    <!-- Closure & Notes -->
+    {% if plan.closure or plan.notes %}
     <div class="lpd-section">
-        <div class="lpd-section-title"><i class="bi bi-flag"></i> Closure</div>
-        <div class="lpd-section-content">{{ plan.closure }}</div>
-    </div>
-    {% endif %}
-
-    {% if plan.notes %}
-    <div class="lpd-section">
-        <div class="lpd-section-title"><i class="bi bi-sticky"></i> Notes</div>
-        <div class="lpd-section-content">{{ plan.notes }}</div>
+        <div class="sl">
+            <span class="sl-icon" style="background:#fffbeb;color:#f59e0b;"><i class="bi bi-pencil-square"></i></span>
+            Closure &amp; Notes
+        </div>
+        {% if plan.closure %}
+        <div style="margin-bottom:0.75rem">
+            <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.3rem">Closure / Homework</div>
+            <div class="lpd-body">{{ plan.closure }}</div>
+        </div>
+        {% endif %}
+        {% if plan.notes %}
+        <div>
+            <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.3rem">Teacher Notes</div>
+            <div class="lpd-body">{{ plan.notes }}</div>
+        </div>
+        {% endif %}
     </div>
     {% endif %}
 </div>

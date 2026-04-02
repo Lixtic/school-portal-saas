@@ -3,8 +3,35 @@
 {% block page_title %}Edit Lesson Plan{% endblock %}
 
 {% block extra_css %}
-.lpc-form { max-width: 720px; }
-.lpc-form .iu-card { padding: 1.75rem; margin-bottom: 1.25rem; }
+/* ── Header Banner ────────────────────────────────────────── */
+.lpe-header {
+    background: linear-gradient(135deg, #059669 0%, #047857 60%, #065f46 100%);
+    border-radius: var(--radius-lg); color: #fff;
+    padding: 1.1rem 1.5rem; margin-bottom: 1.5rem;
+    position: relative; overflow: hidden;
+}
+.lpe-header::after {
+    content: ''; position: absolute; top: -40px; right: -40px;
+    width: 140px; height: 140px; border-radius: 50%; background: rgba(255,255,255,0.05);
+}
+.lpe-header-title { font-size: 1.1rem; font-weight: 800; }
+.lpe-header-sub { font-size: 0.82rem; opacity: 0.85; }
+
+/* ── Form ─────────────────────────────────────────────────── */
+.lpc-form { max-width: 800px; }
+.lpc-card { padding: 1.75rem; margin-bottom: 1.25rem; }
+.sl {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-muted);
+    margin-bottom: 0.75rem; padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+[data-bs-theme="dark"] .sl { border-bottom-color: rgba(255,255,255,0.06); }
+.sl-icon {
+    width: 22px; height: 22px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center; font-size: 0.75rem;
+}
 .lpc-group { margin-bottom: 1rem; }
 .lpc-group label { font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 0.35rem; }
 .lpc-group input, .lpc-group select, .lpc-group textarea {
@@ -16,105 +43,329 @@
 .lpc-group input:focus, .lpc-group select:focus, .lpc-group textarea:focus {
     outline: none; border-color: #059669; box-shadow: 0 0 0 3px rgba(5,150,105,0.1);
 }
+[data-bs-theme="dark"] .lpc-group input, [data-bs-theme="dark"] .lpc-group select,
+[data-bs-theme="dark"] .lpc-group textarea {
+    background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1);
+}
 .lpc-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .lpc-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
-.lpc-section-title {
-    font-size: 0.82rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.75rem;
-    display: flex; align-items: center; gap: 0.4rem;
+.lpc-row-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 1rem; }
+
+/* ── Phase Blocks ─────────────────────────────────────────── */
+.phase-block { padding: 1rem 1.15rem; border-radius: 10px; margin-bottom: 0.75rem; }
+.phase-block.p1 { background: rgba(59,130,246,0.04); border: 1px solid rgba(59,130,246,0.1); }
+.phase-block.p2 { background: rgba(34,197,94,0.04); border: 1px solid rgba(34,197,94,0.1); }
+.phase-block.p3 { background: rgba(245,158,11,0.04); border: 1px solid rgba(245,158,11,0.1); }
+[data-bs-theme="dark"] .phase-block.p1 { background: rgba(59,130,246,0.08); border-color: rgba(59,130,246,0.15); }
+[data-bs-theme="dark"] .phase-block.p2 { background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.15); }
+[data-bs-theme="dark"] .phase-block.p3 { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.15); }
+.phase-label {
+    font-size: 0.78rem; font-weight: 700; margin-bottom: 0.5rem;
+    display: flex; align-items: center; gap: 0.5rem;
 }
-.lpc-section-title i { color: #059669; }
-.lpc-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+.phase-label.p1 { color: #3b82f6; }
+.phase-label.p2 { color: #15803d; }
+.phase-label.p3 { color: #b45309; }
+
+/* ── Regenerate Buttons ───────────────────────────────────── */
+.regen-btn {
+    border: 1px solid rgba(5,150,105,0.3); background: rgba(5,150,105,0.06);
+    color: #047857; border-radius: 999px; font-size: 0.68rem; font-weight: 700;
+    padding: 0.18rem 0.55rem; cursor: pointer; transition: background 0.15s ease;
+}
+.regen-btn:hover { background: rgba(5,150,105,0.15); }
+.regen-btn:disabled { opacity: 0.5; cursor: wait; }
+[data-bs-theme="dark"] .regen-btn { border-color: rgba(52,211,153,0.4); background: rgba(5,150,105,0.15); color: #6ee7b7; }
+
+/* ── Action Bar ───────────────────────────────────────────── */
+.lpc-actions { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
 .lpc-btn {
-    display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.6rem 1.25rem;
-    border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-decoration: none;
-    border: none; cursor: pointer; transition: all 0.15s ease;
+    display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.65rem 1.5rem;
+    border-radius: 10px; font-size: 0.88rem; font-weight: 700;
+    text-decoration: none; border: none; cursor: pointer; transition: all 0.15s ease;
 }
-.lpc-btn-green { background: #059669; color: #fff; }
-.lpc-btn-green:hover { background: #047857; color: #fff; }
+.lpc-btn-green { background: #059669; color: #fff; flex: 1; justify-content: center; }
+.lpc-btn-green:hover { background: #047857; }
+.lpc-btn-ai { background: linear-gradient(135deg, #4361ee, #4cc9f0); color: #fff; }
+.lpc-btn-ai:hover { opacity: 0.9; }
 .lpc-btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); }
-@media (max-width: 576px) { .lpc-row, .lpc-row-3 { grid-template-columns: 1fr; } }
+
+/* ── AI Overlay ───────────────────────────────────────────── */
+.ai-overlay {
+    display: none; position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+    align-items: center; justify-content: center; flex-direction: column;
+}
+.ai-overlay.open { display: flex; }
+.ai-overlay-card {
+    background: var(--surface-card); border-radius: 20px;
+    padding: 2.5rem 3rem; text-align: center; max-width: 360px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+}
+.ai-spinner {
+    display: inline-block; width: 48px; height: 48px;
+    border: 4px solid rgba(5,150,105,0.2); border-top-color: #059669;
+    border-radius: 50%; animation: aiSpin 0.8s linear infinite; margin-bottom: 1rem;
+}
+@keyframes aiSpin { to { transform: rotate(360deg); } }
+.ai-status { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.3rem; }
+
+@media (max-width: 576px) { .lpc-row, .lpc-row-3, .lpc-row-4 { grid-template-columns: 1fr; } }
 {% endblock %}
 
 {% block content %}
-<form method="post" class="lpc-form">
+<!-- Header -->
+<div class="lpe-header">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem">
+        <div>
+            <div class="lpe-header-title"><i class="bi bi-pencil-square me-2"></i>Edit Lesson Plan</div>
+            <div class="lpe-header-sub">{{ plan.title }}</div>
+        </div>
+        <a href="{% url 'individual:lesson_plan_detail' pk=plan.pk %}" class="lp-btn lp-btn-glass" style="padding:0.4rem 1rem;font-size:0.82rem;color:#fff;text-decoration:none;border:1px solid rgba(255,255,255,0.3);border-radius:8px">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
+    </div>
+</div>
+
+<form method="post" class="lpc-form" id="lpForm">
     {% csrf_token %}
 
-    <div class="iu-card">
-        <h6 style="font-weight:700;margin-bottom:1rem"><i class="bi bi-pencil-square me-1" style="color:#059669"></i> Edit Lesson Plan</h6>
-
+    <!-- Plan Identity -->
+    <div class="iu-card lpc-card">
+        <div class="sl">
+            <span class="sl-icon" style="background:#f0fdf4;color:#059669;"><i class="bi bi-info-circle"></i></span>
+            Plan Details
+        </div>
         <div class="lpc-group">
             <label>Title <span style="color:#dc2626">*</span></label>
             <input type="text" name="title" required value="{{ plan.title }}">
         </div>
-        <div class="lpc-row-3">
+        <div class="lpc-row-4">
             <div class="lpc-group">
                 <label>Subject</label>
                 <select name="subject">
-                    {% for val, label in subjects %}
-                    <option value="{{ val }}" {% if plan.subject == val %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
+                    {% for val, label in subjects %}<option value="{{ val }}" {% if plan.subject == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
                 </select>
             </div>
             <div class="lpc-group">
                 <label>Class Level</label>
-                <input type="text" name="target_class" value="{{ plan.target_class }}">
+                <input type="text" name="target_class" value="{{ plan.target_class|default:'' }}">
             </div>
             <div class="lpc-group">
                 <label>Duration (min)</label>
                 <input type="number" name="duration_minutes" value="{{ plan.duration_minutes }}" min="10" max="120">
             </div>
+            <div class="lpc-group">
+                <label>Week Number</label>
+                <input type="number" name="week_number" min="1" max="52" value="">
+            </div>
         </div>
         <div class="lpc-group">
-            <label>Topic</label>
-            <input type="text" name="topic" value="{{ plan.topic }}">
+            <label>Topic / Strand</label>
+            <input type="text" name="topic" value="{{ plan.topic|default:'' }}">
         </div>
     </div>
 
-    <div class="iu-card">
-        <div class="lpc-section-title"><i class="bi bi-bullseye"></i> Objectives</div>
+    <!-- Objectives & Resources -->
+    <div class="iu-card lpc-card">
+        <div class="sl">
+            <span class="sl-icon" style="background:#eff6ff;color:#3b82f6;"><i class="bi bi-bullseye"></i></span>
+            Learning Objectives &amp; Resources
+            <span style="margin-left:auto;display:inline-flex;gap:0.3rem">
+                <button type="button" class="regen-btn" data-section="objectives">Regen Objectives</button>
+                <button type="button" class="regen-btn" data-section="materials">Regen Resources</button>
+            </span>
+        </div>
         <div class="lpc-group">
+            <label>Objectives</label>
             <textarea name="objectives">{{ plan.objectives }}</textarea>
         </div>
-
-        <div class="lpc-section-title"><i class="bi bi-box-seam"></i> Materials Needed</div>
         <div class="lpc-group">
+            <label>Materials Needed</label>
             <textarea name="materials" style="min-height:60px">{{ plan.materials }}</textarea>
         </div>
     </div>
 
-    <div class="iu-card">
-        <div class="lpc-section-title"><i class="bi bi-play-circle"></i> Introduction</div>
-        <div class="lpc-group">
-            <textarea name="introduction">{{ plan.introduction }}</textarea>
+    <!-- 3-Phase Lesson Procedure -->
+    <div class="iu-card lpc-card">
+        <div class="sl">
+            <span class="sl-icon" style="background:#f0fdf4;color:#22c55e;"><i class="bi bi-diagram-3"></i></span>
+            Lesson Procedure — 3 Phases
         </div>
 
-        <div class="lpc-section-title"><i class="bi bi-layers"></i> Development</div>
-        <div class="lpc-group">
-            <textarea name="development" style="min-height:120px">{{ plan.development }}</textarea>
+        <div class="phase-block p1">
+            <div class="phase-label p1">
+                <i class="bi bi-1-circle"></i> Phase 1 — Starter (Preparing the brain)
+                <button type="button" class="regen-btn" data-section="introduction" style="margin-left:auto">Regenerate</button>
+            </div>
+            <div class="lpc-group" style="margin-bottom:0">
+                <textarea name="introduction">{{ plan.introduction }}</textarea>
+            </div>
         </div>
 
-        <div class="lpc-section-title"><i class="bi bi-clipboard-check"></i> Assessment</div>
-        <div class="lpc-group">
-            <textarea name="assessment">{{ plan.assessment }}</textarea>
+        <div class="phase-block p2">
+            <div class="phase-label p2">
+                <i class="bi bi-2-circle"></i> Phase 2 — Main (New learning &amp; assessment)
+                <button type="button" class="regen-btn" data-section="development" style="margin-left:auto">Regenerate</button>
+            </div>
+            <div class="lpc-group" style="margin-bottom:0">
+                <textarea name="development" style="min-height:140px">{{ plan.development }}</textarea>
+            </div>
         </div>
 
-        <div class="lpc-section-title"><i class="bi bi-flag"></i> Closure</div>
-        <div class="lpc-group">
-            <textarea name="closure" style="min-height:60px">{{ plan.closure }}</textarea>
+        <div class="phase-block p3">
+            <div class="phase-label p3">
+                <i class="bi bi-3-circle"></i> Phase 3 — Reflection (Learner &amp; teacher)
+                <button type="button" class="regen-btn" data-section="assessment" style="margin-left:auto">Regenerate</button>
+            </div>
+            <div class="lpc-group" style="margin-bottom:0">
+                <textarea name="assessment">{{ plan.assessment }}</textarea>
+            </div>
         </div>
+    </div>
 
-        <div class="lpc-section-title"><i class="bi bi-sticky"></i> Notes</div>
+    <!-- Closure & Notes -->
+    <div class="iu-card lpc-card">
+        <div class="sl">
+            <span class="sl-icon" style="background:#fffbeb;color:#f59e0b;"><i class="bi bi-pencil-square"></i></span>
+            Closure &amp; Notes
+        </div>
         <div class="lpc-group">
+            <label>Closure / Homework</label>
+            <textarea name="closure" style="min-height:70px">{{ plan.closure }}</textarea>
+        </div>
+        <div class="lpc-group">
+            <label>Teacher Notes</label>
             <textarea name="notes" style="min-height:50px">{{ plan.notes }}</textarea>
         </div>
     </div>
 
+    <!-- Actions -->
     <div class="lpc-actions">
-        <button type="submit" class="lpc-btn lpc-btn-green">
-            <i class="bi bi-check-lg"></i> Save Changes
-        </button>
+        <button type="submit" class="lpc-btn lpc-btn-green"><i class="bi bi-check-lg"></i> Save Changes</button>
+        <button type="button" class="lpc-btn lpc-btn-ai" id="aiDraftBtn"><i class="bi bi-stars"></i> Aura-T Redraft</button>
         <a href="{% url 'individual:lesson_plan_detail' pk=plan.pk %}" class="lpc-btn lpc-btn-outline">Cancel</a>
     </div>
 </form>
+
+<!-- AI Overlay -->
+<div class="ai-overlay" id="aiOverlay">
+    <div class="ai-overlay-card">
+        <div class="ai-spinner"></div>
+        <div style="font-weight:700;font-size:1.05rem;color:var(--text-main)">Aura-T is thinking…</div>
+        <div class="ai-status" id="aiStatus">Regenerating lesson content…</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const CSRF = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const AI_URL = '{% url "individual:lesson_plan_ai_generate" %}';
+
+    function fill(name, value) {
+        if (!value) return;
+        const el = document.querySelector('[name="' + name + '"]');
+        if (el) { el.value = value; el.dispatchEvent(new Event('input', {bubbles:true})); }
+    }
+
+    const aiBtn = document.getElementById('aiDraftBtn');
+    const overlay = document.getElementById('aiOverlay');
+    const statusEl = document.getElementById('aiStatus');
+
+    const statusMessages = [
+        'Analysing GES curriculum alignment…',
+        'Designing phase 1 starter activity…',
+        'Building main learning sequence…',
+        'Crafting formative assessment checkpoints…',
+        'Structuring reflection & closure…',
+        'Polishing the full plan…'
+    ];
+
+    aiBtn.addEventListener('click', async function() {
+        const topic = document.querySelector('[name="topic"]').value.trim();
+        const subject = document.querySelector('[name="subject"]').value;
+        const targetClass = document.querySelector('[name="target_class"]').value.trim();
+        const duration = document.querySelector('[name="duration_minutes"]').value;
+
+        if (!topic) {
+            const topicEl = document.querySelector('[name="topic"]');
+            topicEl.focus();
+            topicEl.style.outline = '2px solid #ef4444';
+            setTimeout(() => topicEl.style.outline = '', 2000);
+            return;
+        }
+
+        if (!confirm('Aura-T will redraft all lesson sections based on the current topic. Continue?')) return;
+
+        overlay.classList.add('open');
+        aiBtn.disabled = true;
+        let mi = 0;
+        const ticker = setInterval(() => { mi = (mi + 1) % statusMessages.length; statusEl.textContent = statusMessages[mi]; }, 2000);
+
+        const body = new FormData();
+        body.append('csrfmiddlewaretoken', CSRF);
+        body.append('subject', subject);
+        body.append('topic', topic);
+        body.append('target_class', targetClass);
+        body.append('duration_minutes', duration);
+        body.append('inline', '1');
+
+        try {
+            const resp = await fetch(AI_URL, { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            clearInterval(ticker);
+            const data = await resp.json();
+            if (data.ok && data.plan) {
+                const p = data.plan;
+                fill('title', p.title || '');
+                fill('objectives', p.objectives || '');
+                fill('materials', p.materials || '');
+                fill('introduction', p.introduction || '');
+                fill('development', p.development || '');
+                fill('assessment', p.assessment || '');
+                fill('closure', p.closure || '');
+                overlay.classList.remove('open');
+                aiBtn.disabled = false;
+            } else { throw new Error(data.error || 'No plan returned'); }
+        } catch(err) {
+            clearInterval(ticker);
+            overlay.classList.remove('open');
+            aiBtn.disabled = false;
+            alert('Aura-T error: ' + (err.message || 'Request failed'));
+        }
+    });
+
+    // ── Section Regen ────────────────────────────────────
+    document.querySelectorAll('.regen-btn[data-section]').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const section = this.dataset.section;
+            const topic = document.querySelector('[name="topic"]').value.trim();
+            const subject = document.querySelector('[name="subject"]').value;
+            if (!topic) { document.querySelector('[name="topic"]').focus(); return; }
+
+            this.disabled = true;
+            const oldText = this.textContent;
+            this.textContent = 'Regenerating…';
+
+            const body = new FormData();
+            body.append('csrfmiddlewaretoken', CSRF);
+            body.append('subject', subject);
+            body.append('topic', topic);
+            body.append('target_class', document.querySelector('[name="target_class"]').value.trim());
+            body.append('duration_minutes', document.querySelector('[name="duration_minutes"]').value);
+            body.append('section', section);
+            body.append('inline', '1');
+
+            try {
+                const resp = await fetch(AI_URL, { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                const data = await resp.json();
+                if (data.ok && data.plan && data.plan[section]) { fill(section, data.plan[section]); }
+            } catch(e) { /* silent */ }
+            this.disabled = false;
+            this.textContent = oldText;
+        });
+    });
+})();
+</script>
 {% endblock %}

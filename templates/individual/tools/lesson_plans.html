@@ -3,230 +3,217 @@
 {% block page_title %}Lesson Plans{% endblock %}
 
 {% block extra_css %}
-.lp-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 1.5rem;
-    flex-wrap: wrap;
-    gap: 0.75rem;
+.lp-hero {
+    background: linear-gradient(135deg, #059669 0%, #047857 60%, #065f46 100%);
+    border-radius: var(--radius-lg); color: #fff;
+    padding: 1.5rem 2rem; margin-bottom: 1.5rem;
+    position: relative; overflow: hidden;
 }
-.lp-header h2 {
-    font-size: 1.1rem;
-    font-weight: 700;
-    margin: 0;
+.lp-hero::after {
+    content: ''; position: absolute; top: -30px; right: -30px;
+    width: 140px; height: 140px; border-radius: 50%;
+    background: rgba(255,255,255,0.06);
 }
-.lp-header-actions { display: flex; gap: 0.5rem; }
+.lp-hero-title { font-size: 1.2rem; font-weight: 800; }
+.lp-hero-sub { font-size: 0.84rem; opacity: 0.85; margin-top: 0.2rem; }
+.lp-hero-stats { display: flex; gap: 1.5rem; margin-top: 1rem; }
+.lp-hero-stat-value { font-size: 1.5rem; font-weight: 800; }
+.lp-hero-stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.8; }
+.lp-hero-actions { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
 .lp-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.55rem 1rem;
-    border-radius: 8px;
-    font-size: 0.82rem;
-    font-weight: 600;
-    text-decoration: none;
-    border: none;
-    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.55rem 1rem; border-radius: 8px;
+    font-size: 0.82rem; font-weight: 600;
+    text-decoration: none; border: none; cursor: pointer;
     transition: all 0.15s ease;
 }
-.lp-btn-green { background: #059669; color: #fff; }
-.lp-btn-green:hover { background: #047857; color: #fff; }
-.lp-btn-blue { background: #4361ee; color: #fff; }
-.lp-btn-blue:hover { background: #3451d1; color: #fff; }
-.lp-btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); }
-.lp-btn-outline:hover { border-color: #059669; color: #059669; }
-
+.lp-btn-white { background: #fff; color: #059669; }
+.lp-btn-white:hover { background: #f0fdf4; color: #047857; }
+.lp-btn-glass { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
+.lp-btn-glass:hover { background: rgba(255,255,255,0.25); color: #fff; }
+.lp-toolbar {
+    display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap; align-items: center;
+}
+.lp-search-wrap { flex: 1; min-width: 200px; position: relative; }
+.lp-search-wrap i {
+    position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%);
+    color: var(--text-muted); font-size: 0.9rem; pointer-events: none;
+}
+.lp-search {
+    width: 100%; padding: 0.5rem 0.85rem 0.5rem 2.2rem;
+    border: 1px solid var(--border-color); border-radius: 8px;
+    background: var(--surface-card); color: var(--text-main);
+    font-family: inherit; font-size: 0.85rem;
+}
+.lp-search:focus { outline: none; border-color: #059669; box-shadow: 0 0 0 3px rgba(5,150,105,0.1); }
+.lp-filter-chip {
+    padding: 0.4rem 0.85rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600;
+    border: 1px solid var(--border-color); background: var(--surface-card);
+    color: var(--text-muted); cursor: pointer; transition: all 0.15s ease;
+}
+.lp-filter-chip.active, .lp-filter-chip:hover {
+    background: rgba(5,150,105,0.1); color: #059669; border-color: rgba(5,150,105,0.3);
+}
+[data-bs-theme="dark"] .lp-filter-chip.active { background: rgba(5,150,105,0.2); color: #34d399; }
 .lp-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 1rem;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1rem;
 }
-.lp-card {
-    padding: 1.25rem;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.lp-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-}
+.lp-card { padding: 1.25rem; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.lp-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.lp-card-head { display: flex; gap: 0.75rem; align-items: flex-start; margin-bottom: 0.65rem; }
 .lp-card-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    background: rgba(5,150,105,0.1);
-    color: #059669;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.1rem;
-    margin-bottom: 0.75rem;
+    width: 42px; height: 42px; border-radius: 10px;
+    background: rgba(5,150,105,0.1); color: #059669;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.15rem; flex-shrink: 0;
 }
-[data-bs-theme="dark"] .lp-card-icon { background: rgba(5,150,105,0.2); }
-.lp-card-title {
-    font-size: 0.95rem;
-    font-weight: 700;
-    margin-bottom: 0.35rem;
+[data-bs-theme="dark"] .lp-card-icon { background: rgba(5,150,105,0.18); color: #34d399; }
+.lp-card-title { font-size: 0.95rem; font-weight: 700; margin: 0; }
+.lp-card-topic { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+.lp-card-pills { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+.lp-pill {
+    display: inline-flex; align-items: center; gap: 0.25rem;
+    padding: 0.18rem 0.5rem; border-radius: 6px; font-size: 0.72rem; font-weight: 600;
+    background: rgba(5,150,105,0.06); color: #059669;
 }
-.lp-card-meta {
-    display: flex;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    margin-bottom: 0.75rem;
-}
-.lp-card-meta span {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-}
+[data-bs-theme="dark"] .lp-pill { background: rgba(5,150,105,0.15); color: #6ee7b7; }
 .lp-card-snippet {
-    font-size: 0.82rem;
-    color: var(--text-muted);
-    line-height: 1.5;
-    margin-bottom: 1rem;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    font-size: 0.82rem; color: var(--text-muted); line-height: 1.5;
+    display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 0.85rem;
 }
-.lp-card-actions { display: flex; gap: 0.5rem; }
-.lp-empty {
-    text-align: center;
-    padding: 3rem 1rem;
+.lp-card-actions { display: flex; gap: 0.4rem; }
+.lp-btn-sm {
+    display: inline-flex; align-items: center; gap: 0.25rem;
+    padding: 0.35rem 0.7rem; border-radius: 6px;
+    font-size: 0.78rem; font-weight: 600;
+    text-decoration: none; border: 1px solid var(--border-color); cursor: pointer;
+    background: transparent; color: var(--text-muted); transition: all 0.15s ease;
 }
-.lp-empty i {
-    font-size: 3rem;
-    color: var(--text-muted);
-    opacity: 0.3;
-    margin-bottom: 1rem;
+.lp-btn-sm:hover { border-color: #059669; color: #059669; }
+.lp-btn-sm.danger { color: #dc2626; border-color: rgba(220,38,38,0.25); }
+.lp-btn-sm.danger:hover { border-color: #dc2626; background: rgba(220,38,38,0.06); }
+.lp-empty { text-align: center; padding: 4rem 1.5rem; grid-column: 1 / -1; }
+.lp-empty-icon {
+    width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 1rem;
+    background: rgba(5,150,105,0.08);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.75rem; color: #059669;
 }
-.lp-empty p {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    margin-bottom: 1rem;
-}
-
-/* AI Modal */
+.lp-empty p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem; }
 .lp-modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: 2000;
-    align-items: center;
-    justify-content: center;
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+    z-index: 2000; align-items: center; justify-content: center;
 }
 .lp-modal-overlay.open { display: flex; }
 .lp-modal {
-    background: var(--surface-card);
-    border-radius: var(--radius-lg);
-    padding: 1.75rem;
-    width: 90%;
-    max-width: 480px;
-    box-shadow: var(--shadow-lg);
+    background: var(--surface-card); border-radius: var(--radius-lg);
+    padding: 2rem; width: 92%; max-width: 500px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.25);
 }
-.lp-modal h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem; }
-.lp-modal label { font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.3rem; margin-top: 0.75rem; }
+.lp-modal h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
+.lp-modal label { font-size: 0.78rem; font-weight: 600; display: block; margin-bottom: 0.3rem; margin-top: 0.85rem; }
 .lp-modal input, .lp-modal select {
-    width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border-color);
-    border-radius: 8px; background: var(--surface-bg); color: var(--text-main);
+    width: 100%; padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color); border-radius: 8px;
+    background: var(--surface-bg); color: var(--text-main);
     font-family: inherit; font-size: 0.85rem;
 }
-.lp-modal-footer { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.25rem; }
+.lp-modal input:focus, .lp-modal select:focus { outline: none; border-color: #059669; box-shadow: 0 0 0 3px rgba(5,150,105,0.1); }
+.lp-modal-footer { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.5rem; }
 .lp-spinner {
-    display: none; width: 18px; height: 18px;
+    display: none; width: 16px; height: 16px;
     border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
     border-radius: 50%; animation: lpSpin 0.6s linear infinite;
 }
 @keyframes lpSpin { to { transform: rotate(360deg); } }
-#lpResult {
-    display: none; margin-top: 1rem; padding: 0.75rem; border-radius: 8px;
-    font-size: 0.84rem;
-}
-
-@media (max-width: 576px) {
-    .lp-grid { grid-template-columns: 1fr; }
-}
+#lpResult { display: none; margin-top: 1rem; padding: 0.75rem; border-radius: 8px; font-size: 0.84rem; }
+@media (max-width: 576px) { .lp-grid { grid-template-columns: 1fr; } .lp-hero { padding: 1.25rem; } }
 {% endblock %}
 
 {% block content %}
-<div class="lp-header">
-    <h2><i class="bi bi-journal-bookmark me-1" style="color:#059669"></i> Your Lesson Plans</h2>
-    <div class="lp-header-actions">
-        <button type="button" class="lp-btn lp-btn-blue" onclick="document.getElementById('aiLpModal').classList.add('open')">
+<div class="lp-hero">
+    <div class="lp-hero-title"><i class="bi bi-journal-bookmark me-2"></i>Smart Lesson Planner</div>
+    <div class="lp-hero-sub">AI-generated GES-aligned lesson plans with structured 3-phase pedagogy</div>
+    <div class="lp-hero-stats">
+        <div class="lp-hero-stat">
+            <div class="lp-hero-stat-value">{{ plans|length }}</div>
+            <div class="lp-hero-stat-label">Total Plans</div>
+        </div>
+        <div class="lp-hero-stat">
+            <div class="lp-hero-stat-value" id="subjectCount">—</div>
+            <div class="lp-hero-stat-label">Subjects</div>
+        </div>
+    </div>
+    <div class="lp-hero-actions">
+        <a href="{% url 'individual:lesson_plan_create' %}" class="lp-btn lp-btn-white"><i class="bi bi-plus-lg"></i> New Plan</a>
+        <button type="button" class="lp-btn lp-btn-glass" onclick="document.getElementById('aiLpModal').classList.add('open')">
             <i class="bi bi-stars"></i> AI Generate
         </button>
-        <a href="{% url 'individual:lesson_plan_create' %}" class="lp-btn lp-btn-green">
-            <i class="bi bi-plus-lg"></i> Create Manually
-        </a>
     </div>
 </div>
 
-<div class="lp-grid">
+<div class="lp-toolbar">
+    <div class="lp-search-wrap">
+        <i class="bi bi-search"></i>
+        <input type="text" class="lp-search" id="lpSearch" placeholder="Search plans by title or topic…">
+    </div>
+    <button class="lp-filter-chip active" data-subject="all">All</button>
+    {% for val, label in subjects %}
+    <button class="lp-filter-chip" data-subject="{{ val }}" style="display:none">{{ label }}</button>
+    {% endfor %}
+</div>
+
+<div class="lp-grid" id="lpGrid">
 {% for plan in plans %}
-    <div class="iu-card lp-card">
-        <div class="lp-card-icon"><i class="bi bi-journal-bookmark"></i></div>
-        <div class="lp-card-title">{{ plan.title }}</div>
-        <div class="lp-card-meta">
-            <span><i class="bi bi-book"></i> {{ plan.get_subject_display }}</span>
-            <span><i class="bi bi-clock"></i> {{ plan.duration_minutes }} min</span>
-            {% if plan.target_class %}<span><i class="bi bi-people"></i> {{ plan.target_class }}</span>{% endif %}
-            {% if plan.topic %}<span><i class="bi bi-tag"></i> {{ plan.topic }}</span>{% endif %}
+    <div class="iu-card lp-card" data-title="{{ plan.title|lower }}" data-topic="{{ plan.topic|lower }}" data-subject="{{ plan.subject }}">
+        <div class="lp-card-head">
+            <div class="lp-card-icon"><i class="bi bi-journal-bookmark"></i></div>
+            <div>
+                <div class="lp-card-title">{{ plan.title }}</div>
+                {% if plan.topic %}<div class="lp-card-topic">{{ plan.topic }}</div>{% endif %}
+            </div>
         </div>
-        {% if plan.objectives %}
-        <div class="lp-card-snippet">{{ plan.objectives|truncatewords:25 }}</div>
-        {% endif %}
+        <div class="lp-card-pills">
+            <span class="lp-pill"><i class="bi bi-book"></i> {{ plan.get_subject_display }}</span>
+            <span class="lp-pill"><i class="bi bi-clock"></i> {{ plan.duration_minutes }}m</span>
+            {% if plan.target_class %}<span class="lp-pill"><i class="bi bi-people"></i> {{ plan.target_class }}</span>{% endif %}
+        </div>
+        {% if plan.objectives %}<div class="lp-card-snippet">{{ plan.objectives|truncatewords:25 }}</div>{% endif %}
         <div class="lp-card-actions">
-            <a href="{% url 'individual:lesson_plan_detail' pk=plan.pk %}" class="lp-btn lp-btn-outline">
-                <i class="bi bi-eye"></i> View
-            </a>
-            <a href="{% url 'individual:lesson_plan_edit' pk=plan.pk %}" class="lp-btn lp-btn-outline">
-                <i class="bi bi-pencil"></i> Edit
-            </a>
-            <form method="post" action="{% url 'individual:lesson_plan_delete' pk=plan.pk %}" onsubmit="return confirm('Delete this plan?')" style="display:inline">
+            <a href="{% url 'individual:lesson_plan_detail' pk=plan.pk %}" class="lp-btn-sm"><i class="bi bi-eye"></i> View</a>
+            <a href="{% url 'individual:lesson_plan_edit' pk=plan.pk %}" class="lp-btn-sm"><i class="bi bi-pencil"></i> Edit</a>
+            <form method="post" action="{% url 'individual:lesson_plan_delete' pk=plan.pk %}" onsubmit="return confirm('Delete this lesson plan?')" style="display:inline">
                 {% csrf_token %}
-                <button type="submit" class="lp-btn lp-btn-outline" style="color:#dc2626;border-color:rgba(220,38,38,0.3)"><i class="bi bi-trash"></i></button>
+                <button type="submit" class="lp-btn-sm danger"><i class="bi bi-trash"></i></button>
             </form>
         </div>
     </div>
 {% empty %}
-    <div class="iu-card lp-empty" style="grid-column:1/-1">
-        <i class="bi bi-journal-bookmark"></i>
-        <p>No lesson plans yet. Create one manually or use AI to generate one from a topic.</p>
-        <a href="{% url 'individual:lesson_plan_create' %}" class="lp-btn lp-btn-green">
-            <i class="bi bi-plus-lg"></i> Create First Plan
-        </a>
+    <div class="iu-card lp-empty">
+        <div class="lp-empty-icon"><i class="bi bi-journal-bookmark"></i></div>
+        <p>No lesson plans yet.<br>Create one manually or let AI draft a GES-aligned lesson.</p>
+        <a href="{% url 'individual:lesson_plan_create' %}" class="lp-btn" style="background:#059669;color:#fff"><i class="bi bi-plus-lg"></i> Create First Plan</a>
     </div>
 {% endfor %}
 </div>
 
-<!-- AI Generate Modal -->
 <div class="lp-modal-overlay" id="aiLpModal">
     <div class="lp-modal">
         <h3><i class="bi bi-stars me-1" style="color:#059669"></i> AI Lesson Plan Generator</h3>
-        <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.5rem">Generate a complete lesson plan from a topic using AI.</p>
-
+        <p style="font-size:0.82rem;color:var(--text-muted)">Generate a full 3-phase GES-aligned lesson plan from a topic.</p>
         <label>Subject</label>
-        <select id="lpSubject">
-            {% for val, label in subjects %}
-            <option value="{{ val }}">{{ label }}</option>
-            {% endfor %}
-        </select>
-
-        <label>Topic</label>
+        <select id="lpSubject">{% for val, label in subjects %}<option value="{{ val }}">{{ label }}</option>{% endfor %}</select>
+        <label>Topic / Strand</label>
         <input type="text" id="lpTopic" placeholder="e.g. Photosynthesis, Fractions, Tenses…">
-
         <label>Class Level</label>
-        <input type="text" id="lpClass" placeholder="e.g. JHS 2, SHS 1">
-
+        <input type="text" id="lpClass" placeholder="e.g. Basic 7, JHS 2, SHS 1">
         <label>Duration (minutes)</label>
         <input type="number" id="lpDuration" value="40" min="10" max="120">
-
         <div class="lp-modal-footer">
-            <button class="lp-btn lp-btn-outline" onclick="document.getElementById('aiLpModal').classList.remove('open')">Cancel</button>
-            <button class="lp-btn lp-btn-green" id="lpGenBtn" onclick="lpGenerate()">
+            <button class="lp-btn" style="background:transparent;border:1px solid var(--border-color);color:var(--text-muted)" onclick="document.getElementById('aiLpModal').classList.remove('open')">Cancel</button>
+            <button class="lp-btn" style="background:#059669;color:#fff" id="lpGenBtn" onclick="lpGenerate()">
                 <div class="lp-spinner" id="lpSpinner"></div>
                 <span id="lpGenText"><i class="bi bi-stars"></i> Generate</span>
             </button>
@@ -234,56 +221,65 @@
         <div id="lpResult"></div>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-function lpGenerate() {
-    const btn = document.getElementById('lpGenBtn');
-    const spinner = document.getElementById('lpSpinner');
-    const text = document.getElementById('lpGenText');
-    const result = document.getElementById('lpResult');
-    const topic = document.getElementById('lpTopic').value.trim();
-
-    if (!topic) { alert('Please enter a topic.'); return; }
-
-    btn.disabled = true;
-    spinner.style.display = 'block';
-    text.textContent = 'Generating…';
-    result.style.display = 'none';
-
-    const body = new FormData();
-    body.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-    body.append('subject', document.getElementById('lpSubject').value);
-    body.append('topic', topic);
-    body.append('target_class', document.getElementById('lpClass').value);
-    body.append('duration_minutes', document.getElementById('lpDuration').value);
-
-    fetch('{% url "individual:lesson_plan_ai_generate" %}', {
-        method: 'POST',
-        body: body,
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-    })
-    .then(r => r.json())
-    .then(data => {
-        btn.disabled = false;
-        spinner.style.display = 'none';
-        text.innerHTML = '<i class="bi bi-stars"></i> Generate';
-        if (data.ok) {
-            result.style.display = 'block';
-            result.style.background = 'rgba(5,150,105,0.08)';
-            result.style.color = '#059669';
-            result.innerHTML = `<i class="bi bi-check-circle me-1"></i> "${data.title}" generated! <a href="${data.redirect}" style="color:#059669;font-weight:600">View it →</a>`;
-        } else {
-            result.style.display = 'block';
-            result.style.background = 'rgba(220,38,38,0.08)';
-            result.style.color = '#dc2626';
-            result.textContent = data.error || 'Generation failed.';
-        }
-    })
-    .catch(() => {
-        btn.disabled = false;
-        spinner.style.display = 'none';
-        text.innerHTML = '<i class="bi bi-stars"></i> Generate';
+(function() {
+    const cards = document.querySelectorAll('.lp-card');
+    const subjectSet = new Set();
+    cards.forEach(c => subjectSet.add(c.dataset.subject));
+    document.getElementById('subjectCount').textContent = subjectSet.size || '0';
+    document.querySelectorAll('.lp-filter-chip[data-subject]').forEach(chip => {
+        if (chip.dataset.subject === 'all' || subjectSet.has(chip.dataset.subject)) chip.style.display = '';
     });
-}
+    const searchInput = document.getElementById('lpSearch');
+    let activeSubject = 'all';
+    function filterCards() {
+        const q = (searchInput.value || '').trim().toLowerCase();
+        cards.forEach(c => {
+            const matchText = !q || c.dataset.title.includes(q) || c.dataset.topic.includes(q);
+            const matchSubject = activeSubject === 'all' || c.dataset.subject === activeSubject;
+            c.style.display = (matchText && matchSubject) ? '' : 'none';
+        });
+    }
+    searchInput?.addEventListener('input', filterCards);
+    document.querySelectorAll('.lp-filter-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            document.querySelectorAll('.lp-filter-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            activeSubject = chip.dataset.subject;
+            filterCards();
+        });
+    });
+    window.lpGenerate = function() {
+        const btn = document.getElementById('lpGenBtn');
+        const spinner = document.getElementById('lpSpinner');
+        const text = document.getElementById('lpGenText');
+        const result = document.getElementById('lpResult');
+        const topic = document.getElementById('lpTopic').value.trim();
+        if (!topic) { document.getElementById('lpTopic').focus(); return; }
+        btn.disabled = true; spinner.style.display = 'block'; text.textContent = 'Generating…'; result.style.display = 'none';
+        const body = new FormData();
+        body.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        body.append('subject', document.getElementById('lpSubject').value);
+        body.append('topic', topic);
+        body.append('target_class', document.getElementById('lpClass').value);
+        body.append('duration_minutes', document.getElementById('lpDuration').value);
+        fetch('{% url "individual:lesson_plan_ai_generate" %}', { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(r => r.json())
+        .then(data => {
+            btn.disabled = false; spinner.style.display = 'none'; text.innerHTML = '<i class="bi bi-stars"></i> Generate';
+            if (data.ok) {
+                result.style.display = 'block'; result.style.background = 'rgba(5,150,105,0.08)'; result.style.color = '#059669';
+                result.innerHTML = '<i class="bi bi-check-circle me-1"></i> "' + data.title + '" generated! <a href="' + data.redirect + '" style="color:#059669;font-weight:600">View it →</a>';
+            } else {
+                result.style.display = 'block'; result.style.background = 'rgba(220,38,38,0.08)'; result.style.color = '#dc2626';
+                result.textContent = data.error || 'Generation failed.';
+            }
+        })
+        .catch(() => { btn.disabled = false; spinner.style.display = 'none'; text.innerHTML = '<i class="bi bi-stars"></i> Generate'; });
+    };
+})();
 </script>
 {% endblock %}

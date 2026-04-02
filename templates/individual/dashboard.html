@@ -199,6 +199,28 @@
 {% block content %}
 <!-- Stats -->
 <div class="iu-stats">
+    {% if role == 'teacher' %}
+    <div class="iu-card iu-stat">
+        <div class="iu-stat-icon green"><i class="bi bi-journal-bookmark"></i></div>
+        <div class="iu-stat-value">{{ tool_stats.lessons|default:"0" }}</div>
+        <div class="iu-stat-label">Lesson Plans</div>
+    </div>
+    <div class="iu-card iu-stat">
+        <div class="iu-stat-icon purple"><i class="bi bi-question-circle"></i></div>
+        <div class="iu-stat-value">{{ tool_stats.questions|default:"0" }}</div>
+        <div class="iu-stat-label">Questions</div>
+    </div>
+    <div class="iu-card iu-stat">
+        <div class="iu-stat-icon cyan"><i class="bi bi-file-earmark-text"></i></div>
+        <div class="iu-stat-value">{{ tool_stats.exams|default:"0" }}</div>
+        <div class="iu-stat-label">Exam Papers</div>
+    </div>
+    <div class="iu-card iu-stat">
+        <div class="iu-stat-icon amber"><i class="bi bi-box-seam"></i></div>
+        <div class="iu-stat-value">{{ subscription_count }}</div>
+        <div class="iu-stat-label">Active Addons</div>
+    </div>
+    {% else %}
     <div class="iu-card iu-stat">
         <div class="iu-stat-icon purple"><i class="bi bi-box-seam"></i></div>
         <div class="iu-stat-value">{{ subscription_count }}</div>
@@ -219,6 +241,7 @@
         <div class="iu-stat-value">{{ catalog_count }}</div>
         <div class="iu-stat-label">Available Addons</div>
     </div>
+    {% endif %}
 </div>
 
 <!-- Quick Start -->
@@ -229,22 +252,22 @@
         <div class="iu-step">
             <div class="iu-step-num">1</div>
             <div class="iu-step-text">
-                <strong>Pick your tools</strong>
-                <span>Browse <a href="{% url 'individual:addons' %}">teacher addons</a></span>
+                <strong>Subscribe to tools</strong>
+                <span>Get the <a href="{% url 'individual:addons' %}">Lesson Planner</a> or Exam Generator</span>
             </div>
         </div>
         <div class="iu-step">
             <div class="iu-step-num">2</div>
             <div class="iu-step-text">
-                <strong>Subscribe to a plan</strong>
-                <span>Free tier available for all tools</span>
+                <strong>Create with AI</strong>
+                <span>Open <a href="{% url 'individual:tools_hub' %}">My Tools</a> and use AI to draft</span>
             </div>
         </div>
         <div class="iu-step">
             <div class="iu-step-num">3</div>
             <div class="iu-step-text">
-                <strong>Generate an API key</strong>
-                <span>Go to <a href="{% url 'individual:api_keys' %}">API Keys</a></span>
+                <strong>Review &amp; print</strong>
+                <span>Edit AI output, then print or export</span>
             </div>
         </div>
     </div>
