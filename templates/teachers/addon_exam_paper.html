@@ -3,161 +3,647 @@
 
 {% block content %}
 <style>
-:root{--ep-ink:#0b1120;--ep-muted:#8892a4;--ep-border:#e4e8f2;--ep-card:#fff;--ep-accent:#4361ee;--ep-accent2:#7c3aed;}
-[data-bs-theme="dark"]{--ep-ink:#f1f5f9;--ep-muted:#94a3b8;--ep-border:#334155;--ep-card:#1e293b;}
-.ep-wrap{max-width:760px;margin:0 auto;padding:1.5rem 0;}
-.ep-header{text-align:center;margin-bottom:1.2rem;padding-bottom:1rem;border-bottom:3px double var(--ep-border);}
-.ep-school{font-size:1rem;font-weight:800;color:var(--ep-ink);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.1rem;}
-.ep-school-motto{font-size:.72rem;color:var(--ep-muted);font-style:italic;margin-bottom:.6rem;}
-.ep-header h1{font-size:1.3rem;font-weight:800;color:var(--ep-ink);margin:0 0 .3rem;text-decoration:underline;text-underline-offset:4px;}
-.ep-header .ep-meta{font-size:.82rem;color:var(--ep-muted);}
-.ep-student-line{display:flex;gap:1.5rem;margin-bottom:1.2rem;padding:.6rem 0;border-bottom:1px solid var(--ep-border);font-size:.85rem;color:var(--ep-ink);}
-.ep-student-line span{flex:1;}
-.ep-student-line .ep-blank{border-bottom:1px dotted var(--ep-muted);display:inline-block;min-width:140px;}
-.ep-instructions{background:rgba(67,97,238,.04);border:1px solid rgba(67,97,238,.15);border-radius:10px;padding:.8rem 1rem;margin-bottom:1.5rem;font-size:.85rem;color:var(--ep-ink);}
-.ep-section{margin-bottom:1.5rem;}
-.ep-section-title{font-size:.88rem;font-weight:800;color:var(--ep-accent);text-transform:uppercase;letter-spacing:.04em;padding:.4rem 0;border-bottom:2px solid var(--ep-accent);margin-bottom:.8rem;}
-.ep-q{margin-bottom:1rem;padding-bottom:.8rem;border-bottom:1px solid var(--ep-border);}
-.ep-q:last-child{border-bottom:none;}
-.ep-q-num{font-weight:800;color:var(--ep-ink);font-size:.9rem;}
-.ep-q-text{font-size:.88rem;color:var(--ep-ink);margin:.3rem 0;}
-.ep-q-marks{float:right;font-size:.75rem;color:var(--ep-muted);font-weight:600;background:var(--ep-border);padding:.1rem .4rem;border-radius:4px;}
-.ep-opts{list-style:none;padding:0;margin:.4rem 0 0 1.2rem;}
-.ep-opts li{font-size:.84rem;color:var(--ep-ink);padding:.2rem 0;}
-.ep-answer{display:none;margin-top:.4rem;padding:.4rem .6rem;background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:8px;font-size:.8rem;}
-.ep-answer.visible{display:block;}
-.ep-answer-label{font-weight:700;color:#10b981;font-size:.72rem;text-transform:uppercase;}
-.ep-answer-text{color:var(--ep-ink);margin-top:.1rem;}
-.ep-explanation{color:var(--ep-muted);font-style:italic;margin-top:.2rem;font-size:.78rem;}
-.ep-actions{display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;}
-.ep-btn{padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;transition:box-shadow .15s;}
-.ep-btn-print{background:linear-gradient(135deg,var(--ep-accent),var(--ep-accent2));color:#fff;}
-.ep-btn-print:hover{box-shadow:0 4px 16px rgba(67,97,238,.35);}
-.ep-btn-back{background:var(--ep-border);color:var(--ep-ink);}
-.ep-btn-key{background:#10b981;color:#fff;}
-.ep-btn-key:hover{box-shadow:0 4px 12px rgba(16,185,129,.3);}
-.ep-btn-outline{background:transparent;border:1px solid var(--ep-border);color:var(--ep-ink);}
-.ep-footer{margin-top:2rem;padding-top:1rem;border-top:2px solid var(--ep-border);text-align:center;font-size:.75rem;color:var(--ep-muted);}
-.ep-write-lines{margin-top:.5rem;}
-.ep-write-lines .ep-line{border-bottom:1px solid var(--ep-border);height:1.8rem;}
-@media print{
-    .ep-actions,.sidebar,.navbar,header,footer,[class*="sidebar"],[class*="offcanvas"]{display:none!important;}
-    .ep-header{border-bottom:3px double #000;}
-    .ep-section-title{color:#000;border-bottom-color:#000;}
-    body{background:#fff;color:#000;font-size:11pt;}
-    .ep-wrap{max-width:100%;padding:0;}
-    .ep-instructions{background:#f5f5f5;border-color:#ccc;}
-    .ep-answer{break-inside:avoid;}
-    .ep-q{break-inside:avoid;}
+/* ═══════════════════════════════════════════════════════════
+   WAEC-STANDARD EXAM PAPER — Screen + Print
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Fonts ── */
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;0,800;1,400&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+/* ── Variables ── */
+:root {
+    --ep-serif: 'Crimson Pro', Georgia, 'Times New Roman', serif;
+    --ep-sans: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif;
+    --ep-ink: #111111;
+    --ep-muted: #555555;
+    --ep-rule: #222222;
+    --ep-rule-light: #cccccc;
+    --ep-surface: #ffffff;
+    --ep-accent: #1a1a1a;
+    --ep-bg: #f0ede8;
+    --ep-green: #0d6e3f;
+}
+[data-bs-theme="dark"] {
+    --ep-ink: #e8e4df;
+    --ep-muted: #a09a92;
+    --ep-rule: #9a9590;
+    --ep-rule-light: #3d3a36;
+    --ep-surface: #1c1b19;
+    --ep-accent: #e8e4df;
+    --ep-bg: #141312;
+    --ep-green: #34d399;
+}
+
+/* ── Action bar (screen only) ── */
+.ep-actions {
+    max-width: 820px;
+    margin: 0 auto 1rem;
+    padding: 0 1rem;
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap;
+}
+.ep-btn {
+    padding: .55rem 1.3rem;
+    border-radius: 6px;
+    font-family: var(--ep-sans);
+    font-size: .85rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    transition: all .15s;
+    text-decoration: none;
+}
+.ep-btn-back { background: var(--ep-rule-light); color: var(--ep-ink); }
+.ep-btn-back:hover { background: var(--ep-rule); color: #fff; }
+.ep-btn-print { background: var(--ep-ink); color: #fff; }
+.ep-btn-print:hover { opacity: .85; }
+.ep-btn-key { background: var(--ep-green); color: #fff; }
+.ep-btn-key:hover { opacity: .85; }
+.ep-btn-outline { background: transparent; border: 1.5px solid var(--ep-rule-light); color: var(--ep-ink); }
+.ep-btn-outline:hover { background: var(--ep-rule-light); }
+
+/* ── Paper sheet ── */
+.ep-paper {
+    max-width: 820px;
+    margin: 0 auto;
+    background: var(--ep-surface);
+    border: 2px solid var(--ep-rule);
+    padding: 2.5rem 2.8rem;
+    font-family: var(--ep-serif);
+    color: var(--ep-ink);
+    line-height: 1.55;
+    position: relative;
+}
+
+/* ── Header / Masthead ── */
+.ep-masthead {
+    text-align: center;
+    padding-bottom: 1rem;
+    border-bottom: 3px double var(--ep-rule);
+    margin-bottom: 1.2rem;
+}
+.ep-logo {
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+    margin-bottom: .4rem;
+    border-radius: 50%;
+}
+.ep-school-name {
+    font-family: var(--ep-sans);
+    font-size: 1.35rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--ep-ink);
+    margin: 0 0 .05rem;
+}
+.ep-motto {
+    font-size: .78rem;
+    font-style: italic;
+    color: var(--ep-muted);
+    margin: 0 0 .7rem;
+    letter-spacing: .03em;
+}
+.ep-title-rule {
+    width: 60%;
+    margin: 0 auto .5rem;
+    border: none;
+    border-top: 1.5px solid var(--ep-rule);
+}
+.ep-paper-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin: 0 0 .3rem;
+}
+.ep-meta-row {
+    font-family: var(--ep-sans);
+    font-size: .82rem;
+    color: var(--ep-muted);
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: .3rem .8rem;
+}
+.ep-meta-row span { white-space: nowrap; }
+
+/* ── Candidate information box ── */
+.ep-candidate-box {
+    border: 1.5px solid var(--ep-rule);
+    padding: .7rem 1rem;
+    margin-bottom: 1.2rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .55rem 2rem;
+    font-family: var(--ep-sans);
+    font-size: .85rem;
+}
+.ep-field {
+    display: flex;
+    align-items: baseline;
+    gap: .3rem;
+}
+.ep-field-label {
+    font-weight: 700;
+    white-space: nowrap;
+    text-transform: uppercase;
+    font-size: .72rem;
+    letter-spacing: .06em;
+}
+.ep-field-line {
+    flex: 1;
+    border-bottom: 1px solid var(--ep-rule);
+    min-width: 80px;
+    height: 1em;
+}
+
+/* ── Instructions box ── */
+.ep-instructions {
+    border: 1.5px solid var(--ep-rule);
+    padding: .6rem 1rem;
+    margin-bottom: 1.5rem;
+    font-size: .88rem;
+    background: transparent;
+    page-break-inside: avoid;
+}
+.ep-instructions-heading {
+    font-family: var(--ep-sans);
+    font-weight: 800;
+    font-size: .76rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-bottom: .25rem;
+}
+.ep-instructions p {
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* ── Sections ── */
+.ep-section {
+    margin-bottom: 1.5rem;
+}
+.ep-section-head {
+    font-family: var(--ep-sans);
+    font-size: .92rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    padding: .4rem 0;
+    border-top: 2px solid var(--ep-rule);
+    border-bottom: 1px solid var(--ep-rule);
+    margin-bottom: .9rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+.ep-section-count {
+    font-weight: 400;
+    font-size: .78rem;
+    color: var(--ep-muted);
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+/* ── Questions ── */
+.ep-q {
+    margin-bottom: 1rem;
+    padding-bottom: .8rem;
+    page-break-inside: avoid;
+}
+.ep-q:last-child { padding-bottom: 0; }
+.ep-q-head {
+    display: flex;
+    align-items: flex-start;
+    gap: .5rem;
+}
+.ep-q-num {
+    font-weight: 800;
+    font-size: .95rem;
+    min-width: 1.6rem;
+    flex-shrink: 0;
+}
+.ep-q-text {
+    font-size: .92rem;
+    flex: 1;
+}
+
+/* ── MCQ Options: WAEC lettered grid ── */
+.ep-opts {
+    list-style: none;
+    padding: 0;
+    margin: .45rem 0 0 2.1rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: .15rem .8rem;
+}
+.ep-opts li {
+    font-size: .88rem;
+    padding: .15rem 0;
+    display: flex;
+    align-items: baseline;
+    gap: .35rem;
+}
+.ep-opt-letter {
+    font-weight: 700;
+    min-width: 1.2rem;
+}
+
+/* True/False simple inline */
+.ep-tf-opts {
+    margin: .4rem 0 0 2.1rem;
+    font-size: .88rem;
+    display: flex;
+    gap: 2rem;
+}
+.ep-tf-opts span {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+}
+.ep-tf-box {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid var(--ep-rule);
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+/* Fill blanks underline */
+.ep-fill-blank {
+    display: inline-block;
+    border-bottom: 1.5px solid var(--ep-rule);
+    min-width: 160px;
+    height: 1.1em;
+    margin-left: .3rem;
+}
+
+/* Writing lines for essay / short answer */
+.ep-write-area {
+    margin: .5rem 0 0 2.1rem;
+}
+.ep-write-line {
+    border-bottom: 1px solid var(--ep-rule-light);
+    height: 2rem;
+}
+
+/* ── Answer key overlay ── */
+.ep-answer {
+    display: none;
+    margin: .5rem 0 0 2.1rem;
+    padding: .45rem .7rem;
+    border-left: 3px solid var(--ep-green);
+    background: rgba(13, 110, 63, .04);
+    font-size: .84rem;
+    page-break-inside: avoid;
+}
+.ep-answer.visible { display: block; }
+.ep-answer-label {
+    font-family: var(--ep-sans);
+    font-weight: 800;
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--ep-green);
+    margin-bottom: .1rem;
+}
+.ep-answer-text { color: var(--ep-ink); }
+.ep-explanation {
+    color: var(--ep-muted);
+    font-style: italic;
+    margin-top: .15rem;
+    font-size: .8rem;
+}
+
+/* ── Footer ── */
+.ep-footer {
+    margin-top: 2rem;
+    text-align: center;
+    font-family: var(--ep-sans);
+    font-size: .78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--ep-muted);
+    border-top: 2px solid var(--ep-rule);
+    padding-top: .6rem;
+}
+.ep-page-turn {
+    text-align: right;
+    font-family: var(--ep-sans);
+    font-style: italic;
+    font-size: .72rem;
+    color: var(--ep-muted);
+    margin-top: .5rem;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+    .ep-paper {
+        border-left: none;
+        border-right: none;
+        padding: 1.4rem 1rem;
+    }
+    .ep-school-name { font-size: 1.05rem; letter-spacing: .06em; }
+    .ep-paper-title { font-size: 1rem; }
+    .ep-meta-row { font-size: .76rem; }
+    .ep-candidate-box {
+        grid-template-columns: 1fr;
+        gap: .5rem;
+    }
+    .ep-opts {
+        grid-template-columns: 1fr;
+        margin-left: 1.6rem;
+    }
+    .ep-q-head { gap: .35rem; }
+    .ep-q-num { min-width: 1.3rem; font-size: .9rem; }
+    .ep-q-text { font-size: .88rem; }
+    .ep-section-head { font-size: .84rem; flex-direction: column; gap: .15rem; }
+    .ep-write-area { margin-left: 1.6rem; }
+    .ep-answer { margin-left: 1.6rem; }
+    .ep-logo { width: 56px; height: 56px; }
+}
+@media (max-width: 420px) {
+    .ep-paper { padding: 1rem .7rem; }
+    .ep-school-name { font-size: .92rem; }
+    .ep-actions { padding: 0 .5rem; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PRINT — A4 exam paper output
+   ═══════════════════════════════════════════════════════════ */
+@media print {
+    /* Hide app chrome */
+    .ep-actions, .sidebar, .navbar, header, footer,
+    [class*="sidebar"], [class*="offcanvas"], .breadcrumb,
+    .mobile-bottom-nav, .toast-container, #themeToggle,
+    .ep-btn { display: none !important; }
+
+    /* Reset page */
+    @page {
+        size: A4;
+        margin: 18mm 15mm 18mm 15mm;
+    }
+    html, body {
+        background: #fff !important;
+        color: #000 !important;
+        font-size: 11pt;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Paper sheet */
+    .ep-paper {
+        max-width: 100%;
+        border: 2px solid #000;
+        padding: 1.5cm 1.2cm;
+        margin: 0;
+        box-shadow: none;
+        background: #fff;
+    }
+
+    /* Typography overrides for ink */
+    .ep-school-name, .ep-paper-title, .ep-q-num,
+    .ep-section-head, .ep-field-label, .ep-instructions-heading {
+        color: #000 !important;
+    }
+    .ep-motto, .ep-meta-row span, .ep-muted,
+    .ep-section-count, .ep-explanation, .ep-page-turn {
+        color: #555 !important;
+    }
+    .ep-masthead { border-bottom-color: #000; }
+    .ep-candidate-box { border-color: #000; }
+    .ep-field-line { border-bottom-color: #000; }
+    .ep-instructions { border-color: #000; }
+    .ep-section-head { border-top-color: #000; border-bottom-color: #000; }
+    .ep-footer { border-top-color: #000; color: #000 !important; }
+    .ep-title-rule { border-top-color: #000; }
+    .ep-rule-light, .ep-write-line { border-bottom-color: #aaa; }
+    .ep-tf-box { border-color: #000; }
+
+    /* Answer key in print */
+    .ep-answer {
+        border-left-color: #000;
+        background: #f7f7f7 !important;
+    }
+    .ep-answer-label { color: #000 !important; }
+
+    /* Orphan / widow control */
+    .ep-q { page-break-inside: avoid; }
+    .ep-section { page-break-inside: auto; }
+    .ep-section-head { page-break-after: avoid; }
+    .ep-answer { page-break-inside: avoid; }
+    .ep-instructions { page-break-inside: avoid; }
+
+    /* Logo greyscale for ink-friendly output */
+    .ep-logo { filter: grayscale(1); }
 }
 </style>
 
-<div class="ep-wrap">
-    <div class="ep-actions">
-        <a href="{% url 'teachers:addon_question_bank' %}" class="ep-btn ep-btn-back"><i class="bi bi-arrow-left"></i> Back</a>
-        <button onclick="window.print()" class="ep-btn ep-btn-print"><i class="bi bi-printer"></i> Print</button>
-        <button onclick="toggleAnswerKey()" class="ep-btn {% if show_key %}ep-btn-outline{% else %}ep-btn-key{% endif %}" id="keyToggleBtn">
-            <i class="bi bi-key"></i> <span id="keyToggleText">{% if show_key %}Hide{% else %}Show{% endif %} Answer Key</span>
-        </button>
-    </div>
+<div class="ep-actions">
+    <a href="{% url 'teachers:addon_question_bank' %}" class="ep-btn ep-btn-back"><i class="bi bi-arrow-left"></i> Back</a>
+    <button onclick="window.print()" class="ep-btn ep-btn-print"><i class="bi bi-printer"></i> Print Paper</button>
+    <button onclick="toggleAnswerKey()" class="ep-btn {% if show_key %}ep-btn-outline{% else %}ep-btn-key{% endif %}" id="keyToggleBtn">
+        <i class="bi bi-key"></i> <span id="keyToggleText">{% if show_key %}Hide{% else %}Show{% endif %} Answer Key</span>
+    </button>
+</div>
 
-    <div class="ep-header">
-        {% if school_name %}
-        <div class="ep-school">{{ school_name }}</div>
-        {% if school_motto %}<div class="ep-school-motto">{{ school_motto }}</div>{% endif %}
+<!-- ═══ THE PAPER ═══ -->
+<div class="ep-paper" id="examPaper">
+
+    <!-- ── Masthead ── -->
+    <div class="ep-masthead">
+        {% if school_logo %}
+        <img src="{{ school_logo }}" alt="" class="ep-logo">
         {% endif %}
-        <h1>{{ paper.title }}</h1>
-        <div class="ep-meta">
-            {% if paper.subject %}{{ paper.subject.name }} · {% endif %}
-            {% if paper.target_class %}{{ paper.target_class.name }} · {% endif %}
-            Duration: {{ paper.duration_minutes }} minutes · {{ questions|length }} question{{ questions|length|pluralize }}
+        {% if school_name %}
+        <p class="ep-school-name">{{ school_name }}</p>
+        {% if school_motto %}<p class="ep-motto">"{{ school_motto }}"</p>{% endif %}
+        {% endif %}
+        <hr class="ep-title-rule">
+        <h1 class="ep-paper-title">{{ paper.title }}</h1>
+        <div class="ep-meta-row">
+            {% if paper.subject %}<span>{{ paper.subject.name }}</span>{% endif %}
+            {% if paper.target_class %}<span>{{ paper.target_class.name }}</span>{% endif %}
+            <span>Duration: {{ paper.duration_minutes }} minutes</span>
+            <span>{{ questions|length }} Question{{ questions|length|pluralize }}</span>
         </div>
     </div>
 
-    <!-- Student info line -->
-    <div class="ep-student-line">
-        <span>Name: <span class="ep-blank"></span></span>
-        <span>Class: <span class="ep-blank"></span></span>
-        <span>Date: <span class="ep-blank"></span></span>
+    <!-- ── Candidate information ── -->
+    <div class="ep-candidate-box">
+        <div class="ep-field">
+            <span class="ep-field-label">Name:</span>
+            <span class="ep-field-line"></span>
+        </div>
+        <div class="ep-field">
+            <span class="ep-field-label">Index No:</span>
+            <span class="ep-field-line"></span>
+        </div>
+        <div class="ep-field">
+            <span class="ep-field-label">Class:</span>
+            <span class="ep-field-line"></span>
+        </div>
+        <div class="ep-field">
+            <span class="ep-field-label">Date:</span>
+            <span class="ep-field-line"></span>
+        </div>
     </div>
 
+    <!-- ── Instructions ── -->
     {% if paper.instructions %}
-    <div class="ep-instructions"><strong>Instructions:</strong> {{ paper.instructions }}</div>
+    <div class="ep-instructions">
+        <div class="ep-instructions-heading">Instructions to Candidates</div>
+        <p>{{ paper.instructions }}</p>
+    </div>
     {% endif %}
 
+    <!-- ═══ Sectioned layout ═══ -->
     {% if sections %}
         {% for section in sections %}
         <div class="ep-section">
-            <div class="ep-section-title">Section {{ section.letter }}: {{ section.label }} ({{ section.questions|length }} question{{ section.questions|length|pluralize }})</div>
+            <div class="ep-section-head">
+                <span>Section {{ section.letter }}: {{ section.label }}</span>
+                <span class="ep-section-count">[{{ section.questions|length }} question{{ section.questions|length|pluralize }}]</span>
+            </div>
             {% for q in section.questions %}
             <div class="ep-q">
-                <span class="ep-q-num">{{ q.number }}.</span>
-                <span class="ep-q-text">{{ q.obj.question_text }}</span>
-                {% if q.obj.options %}
+                <div class="ep-q-head">
+                    <span class="ep-q-num">{{ q.number }}.</span>
+                    <span class="ep-q-text">{{ q.obj.question_text }}</span>
+                </div>
+
+                {% if q.obj.question_format == 'mcq' and q.obj.options %}
                 <ul class="ep-opts">
                     {% for opt in q.obj.options %}
-                    <li>{{ opt }}</li>
+                    <li><span class="ep-opt-letter">{{ forloop.counter0 }}</span> {{ opt }}</li>
                     {% endfor %}
                 </ul>
                 {% endif %}
-                {% if q.obj.question_format == 'essay' or q.obj.question_format == 'short' %}
-                <div class="ep-write-lines">
-                    {% for _ in "12345" %}<div class="ep-line"></div>{% endfor %}
+
+                {% if q.obj.question_format == 'truefalse' %}
+                <div class="ep-tf-opts">
+                    <span><span class="ep-tf-box"></span> True</span>
+                    <span><span class="ep-tf-box"></span> False</span>
                 </div>
                 {% endif %}
+
+                {% if q.obj.question_format == 'fill' %}
+                <div style="margin:.4rem 0 0 2.1rem;">
+                    Answer: <span class="ep-fill-blank"></span>
+                </div>
+                {% endif %}
+
+                {% if q.obj.question_format == 'short' %}
+                <div class="ep-write-area">
+                    {% for _ in "12345" %}<div class="ep-write-line"></div>{% endfor %}
+                </div>
+                {% endif %}
+
+                {% if q.obj.question_format == 'essay' %}
+                <div class="ep-write-area">
+                    {% for _ in "1234567890" %}<div class="ep-write-line"></div>{% endfor %}
+                </div>
+                {% endif %}
+
                 <div class="ep-answer {% if show_key %}visible{% endif %}" data-answer>
                     {% if q.obj.correct_answer %}
                     <div class="ep-answer-label">Answer</div>
                     <div class="ep-answer-text">{{ q.obj.correct_answer }}</div>
                     {% endif %}
                     {% if q.obj.explanation %}
-                    <div class="ep-explanation"><strong>Explanation:</strong> {{ q.obj.explanation }}</div>
+                    <div class="ep-explanation">{{ q.obj.explanation }}</div>
                     {% endif %}
                 </div>
             </div>
             {% endfor %}
         </div>
         {% endfor %}
+
+    <!-- ═══ Flat layout (single format) ═══ -->
     {% else %}
         {% for q in questions %}
         <div class="ep-q">
-            <span class="ep-q-num">{{ forloop.counter }}.</span>
-            <span class="ep-q-text">{{ q.question_text }}</span>
-            {% if q.options %}
+            <div class="ep-q-head">
+                <span class="ep-q-num">{{ forloop.counter }}.</span>
+                <span class="ep-q-text">{{ q.question_text }}</span>
+            </div>
+
+            {% if q.question_format == 'mcq' and q.options %}
             <ul class="ep-opts">
                 {% for opt in q.options %}
-                <li>{{ opt }}</li>
+                <li><span class="ep-opt-letter">{{ forloop.counter0 }}</span> {{ opt }}</li>
                 {% endfor %}
             </ul>
             {% endif %}
+
+            {% if q.question_format == 'truefalse' %}
+            <div class="ep-tf-opts">
+                <span><span class="ep-tf-box"></span> True</span>
+                <span><span class="ep-tf-box"></span> False</span>
+            </div>
+            {% endif %}
+
+            {% if q.question_format == 'fill' %}
+            <div style="margin:.4rem 0 0 2.1rem;">
+                Answer: <span class="ep-fill-blank"></span>
+            </div>
+            {% endif %}
+
+            {% if q.question_format == 'short' %}
+            <div class="ep-write-area">
+                {% for _ in "12345" %}<div class="ep-write-line"></div>{% endfor %}
+            </div>
+            {% endif %}
+
+            {% if q.question_format == 'essay' %}
+            <div class="ep-write-area">
+                {% for _ in "1234567890" %}<div class="ep-write-line"></div>{% endfor %}
+            </div>
+            {% endif %}
+
             <div class="ep-answer {% if show_key %}visible{% endif %}" data-answer>
                 {% if q.correct_answer %}
                 <div class="ep-answer-label">Answer</div>
                 <div class="ep-answer-text">{{ q.correct_answer }}</div>
                 {% endif %}
                 {% if q.explanation %}
-                <div class="ep-explanation"><strong>Explanation:</strong> {{ q.explanation }}</div>
+                <div class="ep-explanation">{{ q.explanation }}</div>
                 {% endif %}
             </div>
         </div>
         {% endfor %}
     {% endif %}
 
-    <div class="ep-footer">
-        End of Paper · {{ questions|length }} question{{ questions|length|pluralize }} · {{ paper.duration_minutes }} minutes
-    </div>
+    <!-- ── End of Paper ── -->
+    <div class="ep-footer">— End of Paper —</div>
 </div>
 
 <script>
+/* MCQ option letters — map 0→A, 1→B etc. after DOM ready */
+document.querySelectorAll('.ep-opt-letter').forEach(function(el){
+    var idx = parseInt(el.textContent, 10);
+    if (!isNaN(idx)) el.textContent = String.fromCharCode(65 + idx) + '.';
+});
+
 function toggleAnswerKey(){
-    const answers=document.querySelectorAll('[data-answer]');
-    const btn=document.getElementById('keyToggleBtn');
-    const txt=document.getElementById('keyToggleText');
-    const showing=answers[0]&&answers[0].classList.contains('visible');
-    answers.forEach(a=>a.classList.toggle('visible',!showing));
-    txt.textContent=showing?'Show Answer Key':'Hide Answer Key';
-    btn.classList.toggle('ep-btn-key',showing);
-    btn.classList.toggle('ep-btn-outline',!showing);
+    var answers = document.querySelectorAll('[data-answer]');
+    var btn = document.getElementById('keyToggleBtn');
+    var txt = document.getElementById('keyToggleText');
+    var showing = answers[0] && answers[0].classList.contains('visible');
+    answers.forEach(function(a){ a.classList.toggle('visible', !showing); });
+    txt.textContent = showing ? 'Show Answer Key' : 'Hide Answer Key';
+    btn.classList.toggle('ep-btn-key', showing);
+    btn.classList.toggle('ep-btn-outline', !showing);
 }
 </script>
 {% endblock %}

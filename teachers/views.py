@@ -7723,12 +7723,15 @@ def addon_exam_paper(request, **kwargs):
     # School info for header
     school_name = getattr(request, 'tenant', None) and request.tenant.name or ''
     school_motto = ''
+    school_logo = ''
     try:
         from academics.models import SchoolInfo
         si = SchoolInfo.objects.first()
         if si:
             school_name = si.name or school_name
             school_motto = si.motto or ''
+            if si.logo:
+                school_logo = si.logo.url
     except Exception:
         pass
 
@@ -7737,6 +7740,7 @@ def addon_exam_paper(request, **kwargs):
         'sections': sections if len(sections) > 1 else [],
         'show_key': show_key,
         'school_name': school_name, 'school_motto': school_motto,
+        'school_logo': school_logo,
     })
 
 
