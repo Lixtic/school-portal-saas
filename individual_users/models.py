@@ -305,3 +305,126 @@ class ToolSlide(models.Model):
     @property
     def bullets(self):
         return [b.strip() for b in self.content.split('\n') if b.strip()]
+
+
+# ── GTLE Licensure Prep ─────────────────────────────────────────────────────
+
+class LicensureQuestion(models.Model):
+    """GTLE licensure exam practice / past question."""
+
+    DOMAIN_CHOICES = [
+        ('literacy', 'Literacy'),
+        ('numeracy', 'Numeracy'),
+        ('pedagogy', 'Pedagogical Knowledge'),
+        ('management', 'Classroom Management'),
+    ]
+    DIFFICULTY_CHOICES = [
+        ('easy', 'Easy'),
+        ('medium', 'Medium'),
+        ('hard', 'Hard'),
+    ]
+    SOURCE_CHOICES = [
+        ('gtle_2024', 'GTLE 2024'),
+        ('gtle_2023', 'GTLE 2023'),
+        ('gtle_2022', 'GTLE 2022'),
+        ('gtle_2021', 'GTLE 2021'),
+        ('gtle_2020', 'GTLE 2020'),
+        ('practice', 'Practice'),
+        ('ai_generated', 'AI Generated'),
+    ]
+
+    profile = models.ForeignKey(
+        IndividualProfile, on_delete=models.CASCADE,
+        related_name='licensure_questions',
+    )
+    domain = models.CharField(max_length=20, choices=DOMAIN_CHOICES)
+    topic = models.CharField(max_length=200, blank=True, default='')
+    difficulty = models.CharField(
+        max_length=8, choices=DIFFICULTY_CHOICES, default='medium',
+    )
+    source = models.CharField(
+        max_length=20, choices=SOURCE_CHOICES, default='practice',
+    )
+    question_text = models.TextField()
+    option_a = models.CharField(max_length=500)
+    option_b = models.CharField(max_length=500)
+    option_c = models.CharField(max_length=500)
+    option_d = models.CharField(max_length=500)
+    correct_option = models.CharField(max_length=1)  # A / B / C / D
+    explanation = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Licensure Question'
+
+    @property
+    def option_list(self):
+        return [
+            ('A', self.option_a),
+            ('B', self.option_b),
+            ('C', self.option_c),
+            ('D', self.option_d),
+        ]
+
+    def __str__(self):
+        return self.question_text[:80]
+
+
+class LicensureQuizAttempt(models.Model):
+    """A quiz/mock exam attempt by a teacher."""
+
+    MODE_CHOICES = [
+        ('practice', 'Practice'),
+        ('timed', 'Timed Exam'),
+        ('domain', 'Domain Focus'),
+    ]
+
+    profile = models.ForeignKey(
+        IndividualProfile, on_delete=models.CASCADE,
+        related_name='licensure_attempts',
+    )
+    mode = models.CharField(max_length=12, choices=MODE_CHOICES, default='practice')
+    domain_filter = models.CharField(max_length=20, blank=True, default='')
+    total_questions = models.PositiveIntegerField(default=0)
+    correct_count = models.PositiveIntegerField(default=0)
+    time_limit_minutes = models.PositiveIntegerField(default=0)
+    time_spent_seconds = models.PositiveIntegerField(default=0)
+    completed = models.BooleanField(default=False)
+    started_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-started_at']
+        verbose_name = 'Licensure Quiz Attempt'
+
+    def __str__(self):
+        return f"Quiz {self.pk} — {self.get_mode_display()} ({self.score_percent}%)"
+
+    @property
+    def score_percent(self):
+        if self.total_questions == 0:
+            return 0
+        return round((self.correct_count / self.total_questions) * 100)
+
+    @property
+    def passed(self):
+        return self.score_percent >= 50
+
+
+class LicensureAnswer(models.Model):
+    """Single answer within a quiz attempt."""
+
+    attempt = models.ForeignKey(
+        LicensureQuizAttempt, on_delete=models.CASCADE, related_name='answers',
+    )
+    question = models.ForeignKey(
+        LicensureQuestion, on_delete=models.CASCADE,
+    )
+    selected_option = models.CharField(max_length=1, blank=True, default='')
+    is_correct = models.BooleanField(default=False)
+    time_spent_seconds = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['pk']
+        unique_together = ('attempt', 'question')

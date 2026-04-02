@@ -1,0 +1,104 @@
+{% extends 'individual/base.html' %}
+{% load static %}
+{% block title %}Quiz History — GTLE Prep{% endblock %}
+{% block page_title %}Quiz History{% endblock %}
+
+{% block extra_css %}
+.history-shell { max-width: 800px; margin: 0 auto; }
+.history-header {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+.history-header h2 { font-size: 1.15rem; font-weight: 800; margin: 0; }
+.history-back {
+    display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.82rem; font-weight: 700;
+    color: #0d9488; text-decoration: none;
+}
+.history-back:hover { text-decoration: underline; color: #0f766e; }
+
+/* Attempt Cards */
+.history-card {
+    display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem;
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    border-radius: 14px; margin-bottom: 0.6rem;
+    transition: border-color 0.15s ease; text-decoration: none; color: inherit;
+}
+.history-card:hover { border-color: rgba(13,148,136,0.4); color: inherit; }
+
+.history-score-ring {
+    width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.92rem; font-weight: 900; color: #fff;
+}
+.history-score-ring.pass { background: linear-gradient(135deg, #059669, #0d9488); }
+.history-score-ring.fail { background: linear-gradient(135deg, #ef4444, #f59e0b); }
+
+.history-details { flex: 1; min-width: 0; }
+.history-mode { font-size: 0.82rem; font-weight: 700; }
+.history-meta { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem; }
+.history-meta span { margin-right: 0.75rem; }
+
+.history-domain-tag {
+    font-size: 0.62rem; font-weight: 700; padding: 0.12rem 0.4rem;
+    border-radius: 4px; text-transform: uppercase;
+}
+.history-domain-tag.literacy   { background: rgba(59,130,246,0.1); color: #3b82f6; }
+.history-domain-tag.numeracy   { background: rgba(245,158,11,0.1); color: #f59e0b; }
+.history-domain-tag.pedagogy   { background: rgba(124,58,237,0.1); color: #7c3aed; }
+.history-domain-tag.management { background: rgba(239,68,68,0.1); color: #ef4444; }
+
+.history-arrow { color: var(--text-muted); font-size: 0.9rem; flex-shrink: 0; }
+
+.history-empty {
+    text-align: center; padding: 3rem 1.5rem;
+    background: var(--surface-card); border-radius: 18px; border: 1px solid var(--border-color);
+}
+.history-empty i { font-size: 2.5rem; color: var(--text-muted); display: block; margin-bottom: 0.75rem; }
+.history-empty h3 { font-size: 1rem; font-weight: 700; }
+.history-empty p { font-size: 0.82rem; color: var(--text-muted); }
+{% endblock %}
+
+{% block content %}
+<div class="history-shell">
+    <div class="history-header">
+        <h2><i class="bi bi-clock-history" style="color:#0d9488"></i> Quiz History</h2>
+        <a href="{% url 'individual:licensure_dashboard' %}" class="history-back">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    {% if attempts %}
+        {% for a in attempts %}
+        <a href="{% url 'individual:licensure_quiz_review' pk=a.pk %}" class="history-card">
+            <div class="history-score-ring {% if a.passed %}pass{% else %}fail{% endif %}">
+                {{ a.score_percent }}%
+            </div>
+            <div class="history-details">
+                <div class="history-mode">
+                    {{ a.get_mode_display }}
+                    {% if a.domain_filter %}
+                        <span class="history-domain-tag {{ a.domain_filter }}">{{ a.domain_filter }}</span>
+                    {% endif %}
+                </div>
+                <div class="history-meta">
+                    <span><i class="bi bi-check-circle"></i> {{ a.correct_count }}/{{ a.total_questions }}</span>
+                    <span><i class="bi bi-clock"></i> {{ a.time_spent_seconds }}s</span>
+                    <span><i class="bi bi-calendar3"></i> {{ a.started_at|date:"M j, Y · g:i A" }}</span>
+                </div>
+            </div>
+            <div class="history-arrow"><i class="bi bi-chevron-right"></i></div>
+        </a>
+        {% endfor %}
+    {% else %}
+        <div class="history-empty">
+            <i class="bi bi-clock-history"></i>
+            <h3>No Quizzes Yet</h3>
+            <p>Take your first practice quiz to see results here.</p>
+            <a href="{% url 'individual:licensure_dashboard' %}" class="review-action-btn review-action-primary"
+               style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.6rem 1.2rem;border-radius:10px;font-size:0.85rem;font-weight:700;background:#0d9488;color:#fff;text-decoration:none;margin-top:1rem;">
+                <i class="bi bi-play-fill"></i> Start a Quiz
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

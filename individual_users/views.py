@@ -176,6 +176,15 @@ TEACHER_ADDON_CATALOG = [
         'category': 'productivity',
         'prices': {'free': 0, 'pro': 59.99},
     },
+    {
+        'slug': 'licensure-prep',
+        'name': 'GTLE Licensure Prep',
+        'icon': 'bi-mortarboard',
+        'description': 'Prepare for the Ghana Teacher Licensure Examination with past questions, timed mock exams and AI-generated practice assessments.',
+        'plans': ['free', 'pro'],
+        'category': 'professional',
+        'prices': {'free': 0, 'pro': 49.99},
+    },
 ]
 
 

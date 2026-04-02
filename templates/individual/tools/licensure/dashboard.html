@@ -1,0 +1,389 @@
+{% extends 'individual/base.html' %}
+{% load static %}
+{% block title %}GTLE Licensure Prep — Aura{% endblock %}
+{% block page_title %}GTLE Licensure Prep{% endblock %}
+
+{% block extra_css %}
+/* ═══════════════════════════════════════════════════════════
+   GTLE Licensure Prep — Dashboard
+   Teal-anchored (#0d9488) with exam-paper + certification feel
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Hero ───────────────────────────────────────────────── */
+.gtle-hero {
+    background: linear-gradient(135deg, #0f766e 0%, #0d9488 40%, #14b8a6 100%);
+    border-radius: 20px; padding: 2.5rem 2.5rem 2rem; color: #fff;
+    position: relative; overflow: hidden; margin-bottom: 2rem;
+}
+.gtle-hero::before {
+    content: ''; position: absolute; top: -60px; right: -40px;
+    width: 260px; height: 260px; border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+}
+.gtle-hero::after {
+    content: '🎓'; position: absolute; top: 20px; right: 30px;
+    font-size: 4.5rem; opacity: 0.12;
+}
+.gtle-hero h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 0.25rem; }
+.gtle-hero p { font-size: 0.88rem; opacity: 0.85; max-width: 520px; line-height: 1.5; }
+
+.gtle-stat-row {
+    display: flex; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap;
+}
+.gtle-stat-pill {
+    background: rgba(255,255,255,0.15); backdrop-filter: blur(6px);
+    border-radius: 10px; padding: 0.6rem 1rem;
+    display: flex; flex-direction: column; min-width: 100px;
+}
+.gtle-stat-num { font-size: 1.5rem; font-weight: 800; line-height: 1; }
+.gtle-stat-lbl { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.8; }
+
+/* ── Quick-Start Card ───────────────────────────────────── */
+.gtle-quick {
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    border-radius: 16px; padding: 1.75rem; margin-bottom: 2rem;
+}
+.gtle-quick h3 {
+    font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.gtle-quick h3 i { color: #0d9488; }
+.gtle-form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; }
+.gtle-form-group label {
+    display: block; font-size: 0.72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.03em;
+    color: var(--text-muted); margin-bottom: 0.3rem;
+}
+.gtle-select, .gtle-input {
+    width: 100%; padding: 0.55rem 0.8rem;
+    border: 1px solid var(--border-color); border-radius: 8px;
+    background: var(--surface-bg); color: var(--text-main);
+    font-size: 0.85rem; font-family: inherit;
+}
+.gtle-select:focus, .gtle-input:focus { outline: none; border-color: #0d9488; box-shadow: 0 0 0 3px rgba(13,148,136,0.1); }
+.gtle-btn-start {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.65rem 1.5rem; border-radius: 10px; border: none;
+    background: #0d9488; color: #fff; font-weight: 700; font-size: 0.88rem;
+    cursor: pointer; transition: all 0.15s ease; margin-top: 0.75rem;
+}
+.gtle-btn-start:hover { background: #0f766e; transform: translateY(-1px); }
+
+/* ── Domain Cards ───────────────────────────────────────── */
+.gtle-domains-title {
+    font-size: 0.95rem; font-weight: 700; margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.gtle-domain-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+.gtle-domain-card {
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    border-radius: 14px; padding: 1.25rem; position: relative; overflow: hidden;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.gtle-domain-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+.gtle-domain-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; margin-bottom: 0.75rem;
+}
+.gtle-domain-card h4 { font-size: 0.92rem; font-weight: 700; margin-bottom: 0.2rem; }
+.gtle-domain-meta {
+    font-size: 0.75rem; color: var(--text-muted);
+    display: flex; gap: 0.75rem; margin-bottom: 0.75rem;
+}
+.gtle-bar-track {
+    height: 6px; border-radius: 3px; background: var(--surface-bg); overflow: hidden;
+}
+.gtle-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+.gtle-bar-label {
+    display: flex; justify-content: space-between; margin-top: 0.3rem;
+    font-size: 0.68rem; font-weight: 600; color: var(--text-muted);
+}
+
+/* domain accent colors */
+.domain-literacy   .gtle-domain-icon { background: rgba(59,130,246,0.1); color: #3b82f6; }
+.domain-literacy   .gtle-bar-fill { background: #3b82f6; }
+.domain-numeracy   .gtle-domain-icon { background: rgba(245,158,11,0.1); color: #f59e0b; }
+.domain-numeracy   .gtle-bar-fill { background: #f59e0b; }
+.domain-pedagogy   .gtle-domain-icon { background: rgba(124,58,237,0.1); color: #7c3aed; }
+.domain-pedagogy   .gtle-bar-fill { background: #7c3aed; }
+.domain-management .gtle-domain-icon { background: rgba(239,68,68,0.1); color: #ef4444; }
+.domain-management .gtle-bar-fill { background: #ef4444; }
+
+/* ── AI Generator ───────────────────────────────────────── */
+.gtle-ai-card {
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    border-radius: 16px; padding: 1.75rem; margin-bottom: 2rem;
+}
+.gtle-ai-card h3 {
+    font-size: 1.05rem; font-weight: 700; margin-bottom: 0.25rem;
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.gtle-ai-card h3 i { color: #7c3aed; }
+.gtle-ai-card p { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1rem; }
+.gtle-btn-ai {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.6rem 1.3rem; border-radius: 10px; border: none;
+    background: linear-gradient(135deg, #7c3aed, #2563eb); color: #fff;
+    font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: opacity 0.15s;
+}
+.gtle-btn-ai:hover { opacity: 0.9; }
+.gtle-btn-ai:disabled { opacity: 0.5; cursor: not-allowed; }
+.gtle-gen-result {
+    margin-top: 1rem; padding: 0.75rem; border-radius: 8px;
+    background: rgba(13,148,136,0.08); font-size: 0.82rem; display: none;
+}
+
+/* ── Recent Attempts ─────────────────────────────────────── */
+.gtle-recent { margin-bottom: 2rem; }
+.gtle-recent h3 {
+    font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem;
+    display: flex; align-items: center; justify-content: space-between;
+}
+.gtle-attempt-row {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 0.85rem 1rem; border-radius: 10px;
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    margin-bottom: 0.5rem; transition: background 0.12s;
+}
+.gtle-attempt-row:hover { background: var(--surface-bg); }
+.gtle-attempt-score {
+    width: 52px; height: 52px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.95rem; font-weight: 800; flex-shrink: 0;
+}
+.gtle-score-pass { background: rgba(16,185,129,0.1); color: #10b981; border: 2px solid rgba(16,185,129,0.2); }
+.gtle-score-fail { background: rgba(239,68,68,0.1); color: #ef4444; border: 2px solid rgba(239,68,68,0.2); }
+.gtle-attempt-info { flex: 1; min-width: 0; }
+.gtle-attempt-mode { font-size: 0.82rem; font-weight: 700; }
+.gtle-attempt-meta { font-size: 0.72rem; color: var(--text-muted); }
+.gtle-attempt-action {
+    padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.75rem;
+    font-weight: 600; border: 1px solid var(--border-color);
+    background: transparent; color: var(--text-main); cursor: pointer;
+    text-decoration: none; transition: all 0.12s;
+}
+.gtle-attempt-action:hover { border-color: #0d9488; color: #0d9488; }
+
+/* ── Responsive ───────────────────────────────────────── */
+@media (max-width: 768px) {
+    .gtle-hero { padding: 1.5rem; border-radius: 14px; }
+    .gtle-hero::after { display: none; }
+    .gtle-stat-row { gap: 0.5rem; }
+    .gtle-domain-grid { grid-template-columns: 1fr; }
+    .gtle-form-row { grid-template-columns: 1fr; }
+}
+{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<div class="gtle-hero">
+    <h2><i class="bi bi-mortarboard me-2"></i>GTLE Licensure Prep</h2>
+    <p>Prepare for the Ghana Teacher Licensure Examination. Build your question bank, take timed mock exams, and track your mastery across all four GTLE domains.</p>
+    <div class="gtle-stat-row">
+        <div class="gtle-stat-pill">
+            <span class="gtle-stat-num">{{ total_questions }}</span>
+            <span class="gtle-stat-lbl">Questions</span>
+        </div>
+        <div class="gtle-stat-pill">
+            <span class="gtle-stat-num">{{ total_attempts }}</span>
+            <span class="gtle-stat-lbl">Quizzes Taken</span>
+        </div>
+        <div class="gtle-stat-pill">
+            <span class="gtle-stat-num">{{ best_score|default:"—" }}{% if best_score != None %}%{% endif %}</span>
+            <span class="gtle-stat-lbl">Best Score</span>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Start -->
+<div class="gtle-quick">
+    <h3><i class="bi bi-play-circle"></i> Start a Quiz</h3>
+    <form method="post" action="{% url 'individual:licensure_quiz_start' %}">
+        {% csrf_token %}
+        <div class="gtle-form-row">
+            <div class="gtle-form-group">
+                <label>Mode</label>
+                <select name="mode" class="gtle-select">
+                    <option value="practice">Practice (no timer)</option>
+                    <option value="timed">Timed Exam (GTLE simulation)</option>
+                    <option value="domain">Domain Focus</option>
+                </select>
+            </div>
+            <div class="gtle-form-group">
+                <label>Domain</label>
+                <select name="domain" class="gtle-select">
+                    <option value="">All Domains</option>
+                    {% for code, label in domains %}
+                    <option value="{{ code }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="gtle-form-group">
+                <label>Questions</label>
+                <select name="num_questions" class="gtle-select">
+                    <option value="10">10 questions</option>
+                    <option value="20" selected>20 questions</option>
+                    <option value="30">30 questions</option>
+                    <option value="50">50 questions</option>
+                </select>
+            </div>
+            <div class="gtle-form-group">
+                <label>Time Limit</label>
+                <select name="time_limit" class="gtle-select">
+                    <option value="0">No limit</option>
+                    <option value="15">15 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="45">45 minutes</option>
+                    <option value="60">60 minutes</option>
+                </select>
+            </div>
+        </div>
+        <button type="submit" class="gtle-btn-start"><i class="bi bi-play-fill"></i> Begin Quiz</button>
+    </form>
+</div>
+
+<!-- Domain Performance Cards -->
+<div class="gtle-domains-title"><i class="bi bi-grid-3x3-gap" style="color:#0d9488"></i> Domain Performance</div>
+<div class="gtle-domain-grid">
+    {% for code, data in domain_perf.items %}
+    <div class="gtle-domain-card domain-{{ code }}">
+        <div class="gtle-domain-icon">
+            {% if code == 'literacy' %}<i class="bi bi-book"></i>
+            {% elif code == 'numeracy' %}<i class="bi bi-calculator"></i>
+            {% elif code == 'pedagogy' %}<i class="bi bi-mortarboard"></i>
+            {% else %}<i class="bi bi-people"></i>{% endif %}
+        </div>
+        <h4>{{ data.label }}</h4>
+        <div class="gtle-domain-meta">
+            <span><i class="bi bi-collection"></i> {{ data.questions }} questions</span>
+            <span><i class="bi bi-check2-circle"></i> {{ data.correct }}/{{ data.total }} answered</span>
+        </div>
+        <div class="gtle-bar-track">
+            <div class="gtle-bar-fill" style="width:{{ data.percent }}%"></div>
+        </div>
+        <div class="gtle-bar-label">
+            <span>Accuracy</span>
+            <span>{{ data.percent }}%</span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- AI Question Generator -->
+<div class="gtle-ai-card">
+    <h3><i class="bi bi-stars"></i> AI Question Generator</h3>
+    <p>Generate GTLE-aligned practice questions instantly. Choose a domain and difficulty, then add them to your question bank.</p>
+    <div class="gtle-form-row">
+        <div class="gtle-form-group">
+            <label>Domain</label>
+            <select id="aiDomain" class="gtle-select">
+                {% for code, label in domains %}
+                <option value="{{ code }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="gtle-form-group">
+            <label>Difficulty</label>
+            <select id="aiDifficulty" class="gtle-select">
+                {% for code, label in difficulties %}
+                <option value="{{ code }}" {% if code == 'medium' %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="gtle-form-group">
+            <label>Count</label>
+            <select id="aiCount" class="gtle-select">
+                <option value="5">5 questions</option>
+                <option value="10" selected>10 questions</option>
+                <option value="15">15 questions</option>
+                <option value="20">20 questions</option>
+            </select>
+        </div>
+    </div>
+    <button class="gtle-btn-ai" id="aiGenBtn" onclick="generateQuestions()">
+        <i class="bi bi-stars"></i> <span id="aiGenText">Generate Questions</span>
+    </button>
+    <div class="gtle-gen-result" id="genResult"></div>
+</div>
+
+<!-- Recent Attempts -->
+{% if recent_attempts %}
+<div class="gtle-recent">
+    <h3>
+        <span><i class="bi bi-clock-history me-2" style="color:#0d9488"></i>Recent Quizzes</span>
+        <a href="{% url 'individual:licensure_history' %}" class="gtle-attempt-action">View All <i class="bi bi-arrow-right"></i></a>
+    </h3>
+    {% for attempt in recent_attempts %}
+    <div class="gtle-attempt-row">
+        <div class="gtle-attempt-score {% if attempt.passed %}gtle-score-pass{% else %}gtle-score-fail{% endif %}">
+            {{ attempt.score_percent }}%
+        </div>
+        <div class="gtle-attempt-info">
+            <div class="gtle-attempt-mode">
+                {{ attempt.get_mode_display }}
+                {% if attempt.domain_filter %} · {{ attempt.domain_filter|title }}{% endif %}
+            </div>
+            <div class="gtle-attempt-meta">
+                {{ attempt.correct_count }}/{{ attempt.total_questions }} correct · {{ attempt.completed_at|date:"M j, Y g:i A" }}
+            </div>
+        </div>
+        <a href="{% url 'individual:licensure_quiz_review' pk=attempt.pk %}" class="gtle-attempt-action">
+            <i class="bi bi-eye"></i> Review
+        </a>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if total_questions == 0 %}
+<!-- Empty state -->
+<div style="text-align:center;padding:3rem 1rem;color:var(--text-muted)">
+    <i class="bi bi-mortarboard" style="font-size:3rem;opacity:0.15;display:block;margin-bottom:1rem"></i>
+    <div style="font-size:1rem;font-weight:700;margin-bottom:0.4rem">No questions yet</div>
+    <div style="font-size:0.85rem;max-width:360px;margin:0 auto;line-height:1.5">
+        Use the AI Generator above to create your first batch of GTLE practice questions, then start a quiz to test yourself.
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function generateQuestions() {
+    const btn = document.getElementById('aiGenBtn');
+    const text = document.getElementById('aiGenText');
+    const result = document.getElementById('genResult');
+
+    btn.disabled = true;
+    text.textContent = 'Generating…';
+
+    try {
+        const resp = await fetch('{% url "individual:licensure_api" %}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({
+                action: 'ai_generate',
+                domain: document.getElementById('aiDomain').value,
+                difficulty: document.getElementById('aiDifficulty').value,
+                count: parseInt(document.getElementById('aiCount').value),
+            }),
+        });
+        const data = await resp.json();
+        if (data.ok) {
+            result.style.display = 'block';
+            result.innerHTML = '<i class="bi bi-check-circle-fill" style="color:#10b981"></i> <strong>' + data.count + ' questions</strong> generated and added to your bank. Refresh the page to see updated counts.';
+        } else {
+            result.style.display = 'block';
+            result.innerHTML = '<i class="bi bi-exclamation-circle" style="color:#ef4444"></i> ' + (data.error || 'Generation failed.');
+        }
+    } catch (e) {
+        result.style.display = 'block';
+        result.innerHTML = '<i class="bi bi-exclamation-circle" style="color:#ef4444"></i> Network error. Please try again.';
+    }
+
+    btn.disabled = false;
+    text.textContent = 'Generate Questions';
+}
+</script>
+{% endblock %}

@@ -17,6 +17,9 @@ from django.views.decorators.http import require_POST
 from individual_users.models import (
     AddonSubscription,
     IndividualProfile,
+    LicensureAnswer,
+    LicensureQuestion,
+    LicensureQuizAttempt,
     ToolExamPaper,
     ToolLessonPlan,
     ToolPresentation,
@@ -176,6 +179,29 @@ TOOLS_CATALOG = [
         'tools': [],
         'coming_soon': True,
     },
+    {
+        'slug': 'licensure-prep',
+        'name': 'GTLE Licensure Prep',
+        'icon': 'bi-mortarboard',
+        'color': '#0d9488',
+        'tagline': 'Pass the GTLE with confidence — practice, track, succeed',
+        'description': (
+            'Prepare for the Ghana Teacher Licensure Examination with an '
+            'extensive question bank covering all four GTLE domains. '
+            'Take timed mock exams, track your progress by domain, and '
+            'use AI to generate unlimited practice questions.'
+        ),
+        'features': [
+            'All 4 GTLE domains: Literacy, Numeracy, Pedagogy, Management',
+            'Timed mock exams simulating real conditions',
+            'AI-powered question generation by domain',
+            'Performance analytics & score history',
+            'Detailed explanations for every answer',
+            'Past GTLE questions bank',
+        ],
+        'category': 'professional',
+        'tools': ['licensure_prep'],
+    },
 ]
 
 
@@ -267,6 +293,7 @@ def tools_hub(request):
     e_count = ToolExamPaper.objects.filter(profile=profile).count()
     l_count = ToolLessonPlan.objects.filter(profile=profile).count()
     d_count = ToolPresentation.objects.filter(profile=profile).count()
+    lic_count = LicensureQuizAttempt.objects.filter(profile=profile, completed=True).count()
 
     ctx = {
         'tools': tools,
@@ -276,6 +303,7 @@ def tools_hub(request):
         'exam_count': e_count,
         'lesson_count': l_count,
         'deck_count': d_count,
+        'licensure_attempt_count': lic_count,
     }
     return render(request, 'individual/tools/hub.html', ctx)
 
@@ -1747,3 +1775,332 @@ def deck_share(request, token):
         'is_shared_view': True,
     }
     return render(request, 'individual/tools/presentations/present.html', ctx)
+
+
+# ── GTLE Licensure Preparation ───────────────────────────────────────────────
+
+@_tool_required
+@_require_tool('licensure-prep')
+def licensure_dashboard(request):
+    """Main dashboard for GTLE prep – stats, domain breakdown, recent quizzes."""
+    profile = request.user.individual_profile
+
+    # Question bank stats
+    total_qs = LicensureQuestion.objects.filter(profile=profile).count()
+    domain_counts = dict(
+        LicensureQuestion.objects.filter(profile=profile)
+        .values_list('domain')
+        .annotate(c=Count('id'))
+        .values_list('domain', 'c')
+    )
+
+    # Attempt stats
+    attempts = LicensureQuizAttempt.objects.filter(profile=profile, completed=True)
+    total_attempts = attempts.count()
+    recent = attempts[:5]
+
+    # Per-domain performance (from completed answers)
+    domain_perf = {}
+    for code, label in LicensureQuestion.DOMAIN_CHOICES:
+        qs = LicensureAnswer.objects.filter(
+            attempt__profile=profile,
+            attempt__completed=True,
+            question__domain=code,
+        )
+        total = qs.count()
+        correct = qs.filter(is_correct=True).count()
+        domain_perf[code] = {
+            'label': label,
+            'total': total,
+            'correct': correct,
+            'percent': round(correct / total * 100) if total else 0,
+            'questions': domain_counts.get(code, 0),
+        }
+
+    # Best score
+    best = None
+    if total_attempts:
+        best_attempt = max(attempts, key=lambda a: a.score_percent)
+        best = best_attempt.score_percent
+
+    ctx = {
+        'total_questions': total_qs,
+        'total_attempts': total_attempts,
+        'best_score': best,
+        'recent_attempts': recent,
+        'domain_perf': domain_perf,
+        'domains': LicensureQuestion.DOMAIN_CHOICES,
+        'difficulties': LicensureQuestion.DIFFICULTY_CHOICES,
+        'sources': LicensureQuestion.SOURCE_CHOICES,
+    }
+    return render(request, 'individual/tools/licensure/dashboard.html', ctx)
+
+
+@_tool_required
+@_require_tool('licensure-prep')
+@require_POST
+def licensure_quiz_start(request):
+    """Create a quiz attempt and redirect to the quiz-taking page."""
+    profile = request.user.individual_profile
+
+    mode = request.POST.get('mode', 'practice')
+    domain = request.POST.get('domain', '')
+    num_q = min(int(request.POST.get('num_questions', 20)), 100)
+    time_limit = int(request.POST.get('time_limit', 0))
+
+    qs = LicensureQuestion.objects.filter(profile=profile)
+    if domain:
+        qs = qs.filter(domain=domain)
+
+    # Random selection
+    question_ids = list(qs.order_by('?').values_list('id', flat=True)[:num_q])
+
+    if not question_ids:
+        messages.warning(
+            request,
+            'No questions available. Generate some questions first using the AI Generator.',
+        )
+        return redirect('individual:licensure_dashboard')
+
+    attempt = LicensureQuizAttempt.objects.create(
+        profile=profile,
+        mode=mode,
+        domain_filter=domain,
+        total_questions=len(question_ids),
+        time_limit_minutes=time_limit,
+    )
+
+    # Create answer stubs
+    answers = [
+        LicensureAnswer(attempt=attempt, question_id=qid)
+        for qid in question_ids
+    ]
+    LicensureAnswer.objects.bulk_create(answers)
+
+    return redirect('individual:licensure_quiz_take', pk=attempt.pk)
+
+
+@_tool_required
+@_require_tool('licensure-prep')
+def licensure_quiz_take(request, pk):
+    """Render the quiz-taking interface. All questions loaded as JSON."""
+    profile = request.user.individual_profile
+    attempt = get_object_or_404(
+        LicensureQuizAttempt, pk=pk, profile=profile, completed=False,
+    )
+
+    answer_objs = attempt.answers.select_related('question').order_by('pk')
+    questions_json = []
+    for ans in answer_objs:
+        q = ans.question
+        questions_json.append({
+            'answer_id': ans.pk,
+            'question_id': q.pk,
+            'domain': q.get_domain_display(),
+            'domain_code': q.domain,
+            'difficulty': q.difficulty,
+            'question_text': q.question_text,
+            'option_a': q.option_a,
+            'option_b': q.option_b,
+            'option_c': q.option_c,
+            'option_d': q.option_d,
+            'selected': ans.selected_option,
+        })
+
+    ctx = {
+        'attempt': attempt,
+        'questions_json': json.dumps(questions_json),
+        'total': attempt.total_questions,
+        'time_limit': attempt.time_limit_minutes,
+    }
+    return render(request, 'individual/tools/licensure/quiz_take.html', ctx)
+
+
+@_tool_required
+@_require_tool('licensure-prep')
+def licensure_api(request):
+    """AJAX API for licensure quiz actions."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    profile = request.user.individual_profile
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    action = data.get('action', '')
+
+    # ── Submit quiz answers ──────────────────────────────────────────────
+    if action == 'submit_quiz':
+        attempt_id = data.get('attempt_id')
+        answers = data.get('answers', [])  # [{answer_id, selected}]
+        time_spent = data.get('time_spent_seconds', 0)
+
+        attempt = get_object_or_404(
+            LicensureQuizAttempt, pk=attempt_id, profile=profile, completed=False,
+        )
+
+        correct = 0
+        for ans_data in answers:
+            try:
+                ans = LicensureAnswer.objects.select_related('question').get(
+                    pk=ans_data.get('answer_id'), attempt=attempt,
+                )
+            except LicensureAnswer.DoesNotExist:
+                continue
+            selected = str(ans_data.get('selected', '')).upper()
+            ans.selected_option = selected
+            ans.is_correct = (selected == ans.question.correct_option.upper())
+            ans.time_spent_seconds = int(ans_data.get('time_spent', 0))
+            ans.save()
+            if ans.is_correct:
+                correct += 1
+
+        from django.utils import timezone
+        attempt.correct_count = correct
+        attempt.time_spent_seconds = int(time_spent)
+        attempt.completed = True
+        attempt.completed_at = timezone.now()
+        attempt.save()
+
+        return JsonResponse({
+            'ok': True,
+            'attempt_id': attempt.pk,
+            'score_percent': attempt.score_percent,
+            'correct': correct,
+            'total': attempt.total_questions,
+            'passed': attempt.passed,
+        })
+
+    # ── AI Generate Questions ────────────────────────────────────────────
+    if action == 'ai_generate':
+        domain = data.get('domain', 'pedagogy')
+        difficulty = data.get('difficulty', 'medium')
+        count = min(int(data.get('count', 10)), 20)
+
+        domain_labels = dict(LicensureQuestion.DOMAIN_CHOICES)
+        domain_label = domain_labels.get(domain, domain)
+
+        import openai
+        client = openai.OpenAI()
+
+        system_prompt = f"""You are a Ghana Teacher Licensure Examination (GTLE) question writer.
+Generate {count} multiple-choice questions for the "{domain_label}" domain at {difficulty} difficulty.
+
+Each question must have exactly 4 options (A, B, C, D) with one correct answer.
+
+Return a JSON array of objects with these fields:
+- "question_text": the question
+- "option_a", "option_b", "option_c", "option_d": the four options
+- "correct_option": "A", "B", "C", or "D"
+- "explanation": why the correct answer is right (1-2 sentences)
+- "topic": a short topic label (e.g. "Reading Comprehension", "Fractions", "Bloom's Taxonomy")
+
+Domain details:
+- Literacy: English language proficiency — grammar, vocabulary, reading comprehension, sentence structure, essay writing skills
+- Numeracy: Mathematical competence — arithmetic, fractions, percentages, geometry, data interpretation, algebra basics
+- Pedagogical Knowledge: Teaching methodology — lesson planning, Bloom's taxonomy, curriculum design, assessment methods, differentiation, constructivism, learning theories
+- Classroom Management: Managing learning environments — behaviour strategies, classroom organisation, inclusive education, time management, student motivation
+
+Make questions realistic and aligned with Ghana's NTC licensure standards. Vary the difficulty.
+Return ONLY the JSON array, no explanation or markdown."""
+
+        try:
+            response = client.chat.completions.create(
+                model='gpt-4o-mini',
+                messages=[
+                    {'role': 'system', 'content': system_prompt},
+                    {'role': 'user', 'content': f'Generate {count} {difficulty} {domain_label} questions for the GTLE exam.'},
+                ],
+                temperature=0.8,
+            )
+            raw = response.choices[0].message.content.strip()
+            # Strip markdown fences if present
+            if raw.startswith('```'):
+                raw = raw.split('\n', 1)[1]
+                if raw.endswith('```'):
+                    raw = raw[:-3]
+            items = json.loads(raw)
+        except Exception as e:
+            logger.error('GTLE AI generation failed: %s', e)
+            return JsonResponse({'error': 'AI generation failed. Please try again.'}, status=500)
+
+        created = []
+        for item in items:
+            q = LicensureQuestion.objects.create(
+                profile=profile,
+                domain=domain,
+                topic=item.get('topic', ''),
+                difficulty=difficulty,
+                source='ai_generated',
+                question_text=item.get('question_text', ''),
+                option_a=item.get('option_a', ''),
+                option_b=item.get('option_b', ''),
+                option_c=item.get('option_c', ''),
+                option_d=item.get('option_d', ''),
+                correct_option=item.get('correct_option', 'A'),
+                explanation=item.get('explanation', ''),
+            )
+            created.append({
+                'id': q.pk,
+                'domain': domain,
+                'topic': q.topic,
+                'difficulty': q.difficulty,
+                'question_text': q.question_text[:80],
+            })
+
+        return JsonResponse({
+            'ok': True,
+            'count': len(created),
+            'questions': created,
+        })
+
+    return JsonResponse({'error': f'Unknown action: {action}'}, status=400)
+
+
+@_tool_required
+@_require_tool('licensure-prep')
+def licensure_quiz_review(request, pk):
+    """Review a completed quiz attempt with answers and explanations."""
+    profile = request.user.individual_profile
+    attempt = get_object_or_404(
+        LicensureQuizAttempt, pk=pk, profile=profile, completed=True,
+    )
+
+    answer_objs = attempt.answers.select_related('question').order_by('pk')
+
+    # Domain breakdown
+    domain_stats = {}
+    for ans in answer_objs:
+        d = ans.question.domain
+        if d not in domain_stats:
+            domain_stats[d] = {'label': ans.question.get_domain_display(), 'total': 0, 'correct': 0}
+        domain_stats[d]['total'] += 1
+        if ans.is_correct:
+            domain_stats[d]['correct'] += 1
+    for v in domain_stats.values():
+        v['percent'] = round(v['correct'] / v['total'] * 100) if v['total'] else 0
+
+    ctx = {
+        'attempt': attempt,
+        'answers': answer_objs,
+        'domain_stats': domain_stats,
+    }
+    return render(request, 'individual/tools/licensure/quiz_review.html', ctx)
+
+
+@_tool_required
+@_require_tool('licensure-prep')
+def licensure_history(request):
+    """Full history of quiz attempts."""
+    profile = request.user.individual_profile
+    attempts = LicensureQuizAttempt.objects.filter(
+        profile=profile, completed=True,
+    ).order_by('-completed_at')
+
+    ctx = {
+        'attempts': attempts[:50],
+        'domains': LicensureQuestion.DOMAIN_CHOICES,
+    }
+    return render(request, 'individual/tools/licensure/history.html', ctx)

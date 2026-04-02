@@ -65,6 +65,14 @@ urlpatterns = [
     path('tools/presentations/<int:pk>/duplicate/', tool_views.deck_duplicate, name='deck_duplicate'),
     path('tools/presentations/api/', tool_views.deck_api, name='deck_api'),
     path('tools/presentations/share/<uuid:token>/', tool_views.deck_share, name='deck_share'),
+
+    # GTLE Licensure Prep
+    path('tools/licensure/', tool_views.licensure_dashboard, name='licensure_dashboard'),
+    path('tools/licensure/start/', tool_views.licensure_quiz_start, name='licensure_quiz_start'),
+    path('tools/licensure/quiz/<int:pk>/', tool_views.licensure_quiz_take, name='licensure_quiz_take'),
+    path('tools/licensure/quiz/<int:pk>/review/', tool_views.licensure_quiz_review, name='licensure_quiz_review'),
+    path('tools/licensure/history/', tool_views.licensure_history, name='licensure_history'),
+    path('tools/licensure/api/', tool_views.licensure_api, name='licensure_api'),
 ]
 
 # Teacher shortcut URLs (included under /t/ prefix in main urls.py)
