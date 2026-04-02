@@ -1,7 +1,7 @@
 # teachers/admin.py
 from django.contrib import admin, messages
 import secrets
-from .models import Teacher, DutyWeek, DutyAssignment, Presentation, Slide, TeacherAddOn, TeacherAddOnPurchase
+from .models import Teacher, DutyWeek, DutyAssignment, Presentation, Slide, TeacherAddOn, TeacherAddOnPurchase, DashboardPin, QuickAction
 from .forms import TeacherQuickAddForm
 
 @admin.register(Teacher)
@@ -105,3 +105,19 @@ class TeacherAddOnPurchaseAdmin(admin.ModelAdmin):
     list_display = ('teacher', 'addon', 'purchased_at', 'is_active', 'expires_at')
     list_filter = ('is_active', 'addon__category')
     search_fields = ('teacher__first_name', 'teacher__last_name', 'addon__name')
+
+
+@admin.register(DashboardPin)
+class DashboardPinAdmin(admin.ModelAdmin):
+    list_display = ('teacher', 'addon', 'position', 'created_at')
+    list_filter = ('addon',)
+    search_fields = ('teacher__first_name', 'teacher__last_name', 'addon__name')
+    ordering = ('teacher', 'position')
+
+
+@admin.register(QuickAction)
+class QuickActionAdmin(admin.ModelAdmin):
+    list_display = ('teacher', 'label', 'icon', 'url_name', 'position')
+    list_filter = ('url_name',)
+    search_fields = ('teacher__first_name', 'teacher__last_name', 'label')
+    ordering = ('teacher', 'position')

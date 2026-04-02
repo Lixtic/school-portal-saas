@@ -487,6 +487,11 @@
         font-weight: 600;
         background: #fff;
     }
+    .qa-chosen-list li .qa-drag {
+        cursor: grab; color: #cbd5e1; font-size: .75rem;
+        padding: 0 2px; flex-shrink: 0;
+    }
+    .qa-chosen-list li .qa-drag:active { cursor: grabbing; }
     .qa-chosen-list .qa-remove {
         margin-left: auto;
         cursor: pointer;
@@ -495,6 +500,8 @@
         line-height: 1;
     }
     .qa-chosen-list .qa-remove:hover { color: #ef4444; }
+    .qa-chosen-list .sortable-ghost { opacity: .35; }
+    .qa-chosen-list .sortable-chosen { box-shadow: 0 4px 16px rgba(67,97,238,.15); }
     [data-bs-theme="dark"] .qa-preset-item { border-color: #334155; color: #e2e8f0; }
     [data-bs-theme="dark"] .qa-preset-item:hover { border-color: #4cc9f0; background: rgba(76,201,240,.06); }
     [data-bs-theme="dark"] .qa-preset-item.selected { border-color: #4cc9f0; background: rgba(76,201,240,.1); }
@@ -524,6 +531,27 @@
         flex-shrink: 0;
     }
     .pin-item .pin-check { margin-left: auto; color: #7c3aed; font-size: 1rem; }
+    .td-pinned-addon .pin-drag {
+        cursor: grab; color: #cbd5e1; font-size: .65rem;
+        padding: 0 2px; flex-shrink: 0;
+        opacity: 0; transition: opacity .15s;
+    }
+    .td-pinned-addon:hover .pin-drag { opacity: 1; }
+    .td-pinned-addon .pin-drag:active { cursor: grabbing; }
+    #pinnedAddonStrip .sortable-ghost { opacity: .3; }
+    #pinnedAddonStrip .sortable-chosen { box-shadow: 0 4px 16px rgba(124,58,237,.15); }
+    .td-toast {
+        position: fixed; bottom: 1.5rem; right: 1.5rem;
+        padding: .6rem 1.2rem; border-radius: 10px;
+        font-size: .82rem; font-weight: 600;
+        color: #fff; z-index: 9999;
+        opacity: 0; transform: translateY(12px);
+        transition: all .25s ease;
+        pointer-events: none;
+    }
+    .td-toast.show { opacity: 1; transform: translateY(0); }
+    .td-toast.success { background: linear-gradient(135deg, #10b981, #059669); }
+    .td-toast.error { background: linear-gradient(135deg, #ef4444, #dc2626); }
     [data-bs-theme="dark"] .pin-item { border-color: #334155; color: #e2e8f0; }
     [data-bs-theme="dark"] .pin-item.pinned { border-color: #a78bfa; background: rgba(124,58,237,.12); }
 </style>
@@ -673,6 +701,7 @@
     <div class="d-flex gap-2 flex-wrap" id="pinnedAddonStrip">
         {% for pin in pinned_addons %}
         <a href="{{ pin.launch_url|default:'#' }}" class="td-pinned-addon" data-pin-id="{{ pin.pin_id }}">
+            <span class="pin-drag" title="Drag to reorder"><i class="bi bi-grip-vertical"></i></span>
             <div class="td-pinned-icon"><i class="bi {{ pin.icon }}"></i></div>
             <span class="td-pinned-label">{{ pin.name }}</span>
         </a>
@@ -1607,7 +1636,8 @@
         }
         chosenActions.forEach((a, i) => {
             const li = document.createElement('li');
-            li.innerHTML = '<i class="bi ' + a.icon + ' me-1" style="color:#4361ee;"></i><span>' + a.label + '</span><span class="qa-remove" title="Remove"><i class="bi bi-x-lg"></i></span>';
+            li.dataset.idx = i;
+            li.innerHTML = '<span class="qa-drag" title="Drag to reorder"><i class="bi bi-grip-vertical"></i></span><i class="bi ' + a.icon + ' me-1" style="color:#4361ee;"></i><span>' + a.label + '</span><span class="qa-remove" title="Remove"><i class="bi bi-x-lg"></i></span>';
             li.querySelector('.qa-remove').onclick = () => {
                 chosenActions.splice(i, 1);
                 renderChosen();
@@ -1616,6 +1646,21 @@
             list.appendChild(li);
         });
         if (countEl) countEl.textContent = chosenActions.length;
+        // Initialize drag-drop reorder on chosen list
+        if (chosenActions.length > 1 && typeof Sortable !== 'undefined') {
+            Sortable.create(list, {
+                animation: 150, handle: '.qa-drag',
+                onEnd: function() {
+                    const reordered = [];
+                    list.querySelectorAll('li[data-idx]').forEach(li => {
+                        reordered.push(chosenActions[parseInt(li.dataset.idx)]);
+                    });
+                    chosenActions = reordered;
+                    renderChosen();
+                    renderPresets();
+                }
+            });
+        }
     }
 
     const qaModal = document.getElementById('quickActionsModal');
@@ -1630,33 +1675,71 @@
     });
 
     document.getElementById('qaSaveBtn')?.addEventListener('click', () => {
+        const btn = document.getElementById('qaSaveBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving…';
         fetch('{% url "teachers:save_quick_actions" %}', {
             method: 'POST',
             headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
             body: JSON.stringify({actions: chosenActions})
         }).then(r => r.json()).then(data => {
-            if (data.ok) location.reload();
-        });
+            if (data.ok) { tdToast('Quick actions saved!', 'success'); setTimeout(() => location.reload(), 600); }
+            else { tdToast(data.error || 'Save failed', 'error'); btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Save'; }
+        }).catch(() => { tdToast('Network error', 'error'); btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Save'; });
     });
 
     /* ── Pin Manager ─────────────────────────────────────── */
     document.querySelectorAll('.pin-item').forEach(item => {
         item.addEventListener('click', () => {
             const addonId = item.dataset.addonId;
+            item.style.opacity = '.5';
             fetch('{% url "teachers:toggle_dashboard_pin" %}', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
                 body: JSON.stringify({addon_id: addonId})
             }).then(r => r.json()).then(data => {
-                if (!data.ok) return;
+                item.style.opacity = '1';
+                if (!data.ok) { tdToast(data.error || 'Action failed', 'error'); return; }
                 item.classList.toggle('pinned', data.pinned);
                 const icon = item.querySelector('.pin-check i');
                 if (icon) icon.className = 'bi ' + (data.pinned ? 'bi-pin-angle-fill' : 'bi-pin-angle');
-                // Reload after short delay to refresh pinned strip
-                setTimeout(() => location.reload(), 400);
-            });
+                tdToast(data.pinned ? 'Add-on pinned!' : 'Add-on unpinned', 'success');
+                setTimeout(() => location.reload(), 600);
+            }).catch(() => { item.style.opacity = '1'; tdToast('Network error', 'error'); });
         });
     });
+
+    /* ── Pinned Addons Strip — Drag-Drop Reorder ─────────── */
+    const pinnedStrip = document.getElementById('pinnedAddonStrip');
+    if (pinnedStrip && pinnedStrip.children.length > 1 && typeof Sortable !== 'undefined') {
+        Sortable.create(pinnedStrip, {
+            animation: 150,
+            handle: '.pin-drag',
+            onEnd: function() {
+                const order = Array.from(pinnedStrip.children)
+                    .map(el => el.dataset.pinId)
+                    .filter(Boolean);
+                fetch('{% url "teachers:reorder_pins" %}', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+                    body: JSON.stringify({order: order})
+                }).then(r => r.json()).then(data => {
+                    if (data.ok) tdToast('Pin order saved', 'success');
+                }).catch(() => {});
+            }
+        });
+    }
+
+    /* ── Toast Helper ────────────────────────────────────── */
+    function tdToast(msg, type) {
+        let el = document.getElementById('tdToast');
+        if (!el) { el = document.createElement('div'); el.id = 'tdToast'; el.className = 'td-toast'; document.body.appendChild(el); }
+        el.textContent = msg;
+        el.className = 'td-toast ' + (type || 'success');
+        requestAnimationFrame(() => { el.classList.add('show'); });
+        clearTimeout(el._t);
+        el._t = setTimeout(() => el.classList.remove('show'), 2500);
+    }
 })();
 </script>
 {% endblock %}
