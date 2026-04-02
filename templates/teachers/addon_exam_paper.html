@@ -400,7 +400,7 @@
    PRINT — A4 exam paper output (WAEC standard)
    ═══════════════════════════════════════════════════════════ */
 @media print {
-    /* ── 1. Nuke ALL app chrome ── */
+    /* ── 1. Nuke ALL app chrome, overlays & loaders ── */
     .ep-actions, .sidebar, .navbar, nav, header, footer,
     [class*="sidebar"], [class*="offcanvas"], .breadcrumb,
     .mobile-bottom-nav, .toast-container, #themeToggle,
@@ -408,7 +408,10 @@
     [class*="trial"], .alert, .messages,
     .ep-btn, .btn, .back-to-top,
     .header-brand, .app-header,
-    link[rel="preconnect"], link[href*="fonts.googleapis"] {
+    #auraSplash, #navTransitionOverlay, #pageLoader,
+    .loading-overlay, .mobile-bubble-menu, .mobile-bubble-overlay,
+    .copilot-launcher, .copilot-panel, .copilot-recall,
+    #help-widget-btn, #help-panel {
         display: none !important;
         visibility: hidden !important;
         height: 0 !important;
@@ -431,17 +434,31 @@
         margin: 0 !important;
         padding: 0 !important;
         width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        overflow: visible !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
 
     /* ── 3. Undo base.html layout ── */
+    .main-container,
     .main-content {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: static !important;
         margin: 0 !important;
         padding: 0 !important;
-        min-height: auto !important;
+        min-height: 0 !important;
+        height: auto !important;
         width: 100% !important;
         max-width: 100% !important;
+        overflow: visible !important;
+        float: none !important;
+        transform: none !important;
     }
     .content-wrapper, .page-wrapper, .container, .container-fluid,
     .row, .col, main, [role="main"] {
@@ -449,10 +466,15 @@
         padding: 0 !important;
         width: 100% !important;
         max-width: 100% !important;
+        overflow: visible !important;
     }
 
     /* ── 4. Paper sheet — full bleed ── */
     .ep-paper {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: static !important;
         max-width: 100% !important;
         width: 100% !important;
         border: none !important;
@@ -460,7 +482,11 @@
         margin: 0 !important;
         box-shadow: none !important;
         background: #fff !important;
+        overflow: visible !important;
         font-family: 'Crimson Pro', Georgia, 'Times New Roman', serif !important;
+    }
+    .ep-paper * {
+        visibility: visible !important;
     }
 
     /* ── 5. Masthead / Header ── */
