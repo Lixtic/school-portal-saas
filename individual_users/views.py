@@ -94,6 +94,24 @@ ADDON_CATALOG = [
 ]
 
 
+# ── Teacher-recommended addons ────────────────────────────────────────────────
+
+TEACHER_RECOMMENDED_SLUGS = {'lesson-planner', 'exam-generator', 'grade-analytics', 'ai-tutor', 'attendance-tracker', 'report-card'}
+
+
+def _get_role(request):
+    """Get the role from query param, POST data, or profile."""
+    role = request.POST.get('role') or request.GET.get('role', '')
+    if role in ('teacher', 'developer'):
+        return role
+    if request.user.is_authenticated:
+        try:
+            return request.user.individual_profile.role
+        except IndividualProfile.DoesNotExist:
+            pass
+    return 'developer'
+
+
 def _ensure_public_schema():
     """Ensure we're operating on the public schema for individual user queries."""
     connection.set_schema_to_public()
@@ -124,12 +142,17 @@ def signup_view(request):
         return redirect('individual:dashboard')
 
     _ensure_public_schema()
+    role = _get_role(request)
     email_form = EmailSignupForm()
     phone_form = PhoneSignupForm()
     active_tab = 'email'
     method = request.POST.get('signup_method', '')
 
     if request.method == 'POST':
+        role = request.POST.get('role', 'developer')
+        if role not in ('developer', 'teacher'):
+            role = 'developer'
+
         if method == 'email':
             active_tab = 'email'
             email_form = EmailSignupForm(request.POST)
@@ -150,7 +173,7 @@ def signup_view(request):
                     last_name=last,
                     user_type='individual',
                 )
-                IndividualProfile.objects.create(user=user)
+                IndividualProfile.objects.create(user=user, role=role)
                 login(request, user, backend='django.contrib.auth.backends.ModelBackend')
                 request.session.pop('auth_tenant_schema', None)
                 messages.success(request, f'Welcome, {first}! Your account is ready.')
@@ -174,7 +197,7 @@ def signup_view(request):
                     user_type='individual',
                     phone=phone,
                 )
-                IndividualProfile.objects.create(user=user, phone_number=phone)
+                IndividualProfile.objects.create(user=user, phone_number=phone, role=role)
                 login(request, user, backend='django.contrib.auth.backends.ModelBackend')
                 request.session.pop('auth_tenant_schema', None)
                 messages.success(request, f'Welcome, {first}! Your account is ready.')
@@ -185,6 +208,7 @@ def signup_view(request):
         'phone_form': phone_form,
         'active_tab': active_tab,
         'google_client_id': getattr(settings, 'GOOGLE_OAUTH_CLIENT_ID', ''),
+        'role': role,
     }
     return render(request, 'individual/auth.html', ctx)
 
@@ -195,6 +219,7 @@ def signin_view(request):
         return redirect('individual:dashboard')
 
     _ensure_public_schema()
+    role = _get_role(request)
     email_form = EmailSigninForm()
     phone_form = PhoneSigninForm()
     active_tab = 'email'
@@ -239,6 +264,7 @@ def signin_view(request):
         'active_tab': active_tab,
         'google_client_id': getattr(settings, 'GOOGLE_OAUTH_CLIENT_ID', ''),
         'is_signin': True,
+        'role': role,
     }
     return render(request, 'individual/auth.html', ctx)
 
@@ -317,6 +343,18 @@ def signout_view(request):
     return redirect('individual:signin')
 
 
+# ── Teacher Shortcut Redirects ───────────────────────────────────────────────
+
+def teacher_redirect(request):
+    """Redirect /t/ and /t/signup/ to /u/signup/?role=teacher."""
+    return redirect('/u/signup/?role=teacher')
+
+
+def teacher_signin_redirect(request):
+    """Redirect /t/signin/ to /u/signin/?role=teacher."""
+    return redirect('/u/signin/?role=teacher')
+
+
 # ── Dashboard ────────────────────────────────────────────────────────────────
 
 @_individual_required
@@ -327,8 +365,15 @@ def dashboard_view(request):
     total_calls = sum(k.calls_total for k in api_keys)
     active_keys = api_keys.filter(is_active=True).count()
 
+    # Teacher-specific: recommend addons
+    recommended = []
+    if profile.role == 'teacher':
+        my_slugs = set(subscriptions.values_list('addon_slug', flat=True))
+        recommended = [a for a in ADDON_CATALOG if a['slug'] in TEACHER_RECOMMENDED_SLUGS and a['slug'] not in my_slugs][:4]
+
     ctx = {
         'profile': profile,
+        'role': profile.role,
         'subscriptions': subscriptions,
         'subscription_count': subscriptions.count(),
         'api_keys': api_keys,
@@ -336,6 +381,7 @@ def dashboard_view(request):
         'total_api_calls': total_calls,
         'addon_catalog': ADDON_CATALOG,
         'catalog_count': len(ADDON_CATALOG),
+        'recommended_addons': recommended,
     }
     return render(request, 'individual/dashboard.html', ctx)
 
@@ -351,11 +397,20 @@ def addons_view(request):
     )
     catalog = []
     for addon in ADDON_CATALOG:
-        catalog.append({**addon, 'subscribed': addon['slug'] in my_slugs})
+        catalog.append({
+            **addon,
+            'subscribed': addon['slug'] in my_slugs,
+            'recommended': profile.role == 'teacher' and addon['slug'] in TEACHER_RECOMMENDED_SLUGS,
+        })
+
+    # Sort: recommended first for teachers
+    if profile.role == 'teacher':
+        catalog.sort(key=lambda a: (not a['recommended'], a['name']))
 
     ctx = {
         'catalog': catalog,
         'profile': profile,
+        'role': profile.role,
         'categories': sorted({a['category'] for a in ADDON_CATALOG}),
     }
     return render(request, 'individual/addons.html', ctx)
@@ -426,6 +481,7 @@ def api_keys_view(request):
         'keys': keys,
         'new_key_raw': new_key_raw,
         'profile': profile,
+        'role': profile.role,
     }
     return render(request, 'individual/api_keys.html', ctx)
 

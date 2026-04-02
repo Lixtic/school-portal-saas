@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% if is_signin %}Sign In{% else %}Create Account{% endif %} — Aura Developer Portal</title>
+    <title>{% if is_signin %}Sign In{% else %}Create Account{% endif %} — Aura {% if role == 'teacher' %}Teacher{% else %}Developer{% endif %} Portal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Instrument+Serif&display=swap" rel="stylesheet">
@@ -388,9 +388,19 @@
     </button>
 
     <!-- Left: Brand panel -->
-    <div class="auth-brand">
+    <div class="auth-brand"{% if role == 'teacher' %} style="background:linear-gradient(160deg, #0c0f1a 0%, #1a2f47 40%, #059669 100%)"{% endif %}>
         <div class="auth-brand-inner">
             <div class="auth-brand-logo">A</div>
+            {% if role == 'teacher' %}
+            <h1>Empower your<br><em>Teaching</em></h1>
+            <p>Access AI-powered tools to plan lessons, generate exams, track attendance, and analyse grades — all from one platform.</p>
+            <div class="auth-features">
+                <div class="auth-feature"><span class="auth-feature-dot" style="background:#34d399"></span> AI Lesson Planner & Exam Generator</div>
+                <div class="auth-feature"><span class="auth-feature-dot" style="background:#34d399"></span> Grade Analytics & Report Cards</div>
+                <div class="auth-feature"><span class="auth-feature-dot" style="background:#34d399"></span> Attendance Tracking & Alerts</div>
+                <div class="auth-feature"><span class="auth-feature-dot" style="background:#34d399"></span> Pay only for what you use</div>
+            </div>
+            {% else %}
             <h1>Build with the<br><em>Aura Platform</em></h1>
             <p>Access powerful education APIs — AI tutoring, grade analytics, exam generation, and more. Ship faster with our developer tools.</p>
             <div class="auth-features">
@@ -399,6 +409,7 @@
                 <div class="auth-feature"><span class="auth-feature-dot"></span> Scalable per-addon subscriptions</div>
                 <div class="auth-feature"><span class="auth-feature-dot"></span> Simple REST endpoints with API keys</div>
             </div>
+            {% endif %}
         </div>
     </div>
 
@@ -408,10 +419,15 @@
             <div class="auth-form-header">
                 {% if is_signin %}
                 <h2>Welcome back</h2>
-                <p>Don't have an account? <a href="{% url 'individual:signup' %}">Create one</a></p>
+                <p>Don't have an account? <a href="{% url 'individual:signup' %}{% if role == 'teacher' %}?role=teacher{% endif %}">Create one</a></p>
                 {% else %}
                 <h2>Create your account</h2>
-                <p>Already have one? <a href="{% url 'individual:signin' %}">Sign in</a></p>
+                <p>Already have one? <a href="{% url 'individual:signin' %}{% if role == 'teacher' %}?role=teacher{% endif %}">Sign in</a></p>
+                {% endif %}
+                {% if role == 'teacher' %}
+                <p style="margin-top:.5rem"><small>Looking for the developer portal? <a href="{% if is_signin %}{% url 'individual:signin' %}{% else %}{% url 'individual:signup' %}{% endif %}">Switch to Developer</a></small></p>
+                {% else %}
+                <p style="margin-top:.5rem"><small>Are you a teacher? <a href="{% if is_signin %}{% url 'individual:signin' %}{% else %}{% url 'individual:signup' %}{% endif %}?role=teacher">Teacher Portal</a></small></p>
                 {% endif %}
             </div>
 
@@ -450,6 +466,7 @@
                 <form method="post">
                     {% csrf_token %}
                     <input type="hidden" name="{% if is_signin %}signin_method{% else %}signup_method{% endif %}" value="email">
+                    <input type="hidden" name="role" value="{{ role }}">
 
                     {% if not is_signin %}
                     <div class="auth-field">
@@ -483,6 +500,7 @@
                 <form method="post">
                     {% csrf_token %}
                     <input type="hidden" name="{% if is_signin %}signin_method{% else %}signup_method{% endif %}" value="phone">
+                    <input type="hidden" name="role" value="{{ role }}">
 
                     {% if not is_signin %}
                     <div class="auth-field">

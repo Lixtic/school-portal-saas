@@ -6,11 +6,16 @@ from django.utils import timezone
 
 class IndividualProfile(models.Model):
     """Extended profile for individual (non-school) platform users."""
+    ROLE_CHOICES = [
+        ('developer', 'Developer'),
+        ('teacher', 'Teacher'),
+    ]
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='individual_profile',
     )
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='developer', db_index=True)
     phone_number = models.CharField(max_length=20, blank=True, db_index=True)
     google_id = models.CharField(max_length=255, blank=True, db_index=True)
     avatar_url = models.URLField(blank=True)

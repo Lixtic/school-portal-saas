@@ -1,5 +1,5 @@
 {% extends 'individual/base.html' %}
-{% block title %}Addon Store — Aura Developer Portal{% endblock %}
+{% block title %}Addon Store — Aura {% if role == 'teacher' %}Teacher{% else %}Developer{% endif %} Portal{% endblock %}
 {% block page_title %}Addon Store{% endblock %}
 
 {% block extra_css %}
@@ -182,6 +182,23 @@
 @media (max-width: 576px) {
     .iu-addon-grid { grid-template-columns: 1fr; }
 }
+.iu-recommended-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 5px;
+    background: rgba(16,185,129,0.12);
+    color: #059669;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+[data-bs-theme="dark"] .iu-recommended-tag {
+    background: rgba(16,185,129,0.2);
+    color: #34d399;
+}
 {% endblock %}
 
 {% block content %}
@@ -203,7 +220,7 @@
         <div class="iu-addon-top">
             <div class="iu-addon-icon {{ addon.category }}"><i class="bi {{ addon.icon }}"></i></div>
             <div class="iu-addon-meta">
-                <div class="iu-addon-name">{{ addon.name }}</div>
+                <div class="iu-addon-name">{{ addon.name }}{% if addon.recommended %} <span class="iu-recommended-tag"><i class="bi bi-star-fill"></i> For You</span>{% endif %}</div>
                 <div class="iu-addon-cat">{{ addon.category }}</div>
             </div>
         </div>

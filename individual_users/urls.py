@@ -25,3 +25,10 @@ urlpatterns = [
     # API status endpoint
     path('api/status/', views.api_status, name='api_status'),
 ]
+
+# Teacher shortcut URLs (included under /t/ prefix in main urls.py)
+teacher_urlpatterns = [
+    path('', views.teacher_redirect, name='teacher_home'),
+    path('signup/', views.teacher_redirect, name='teacher_signup'),
+    path('signin/', views.teacher_signin_redirect, name='teacher_signin'),
+]

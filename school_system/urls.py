@@ -9,6 +9,7 @@ from accounts.views import TenantPasswordResetView
 from tenants import views as tenant_views
 import os
 from django.http import FileResponse, Http404
+from individual_users.urls import teacher_urlpatterns
 
 
 def sw_view(request):
@@ -77,6 +78,7 @@ urlpatterns = [
     ), name='password_reset_complete'),
 
     path('u/', include('individual_users.urls')),
+    path('t/', include((teacher_urlpatterns, 'teacher'))),
     path('accounts/', include('accounts.urls')),
     path('teachers/', include('teachers.urls')),
     path('students/', include('students.urls')),

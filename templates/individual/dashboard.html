@@ -1,5 +1,5 @@
 {% extends 'individual/base.html' %}
-{% block title %}Dashboard — Aura Developer Portal{% endblock %}
+{% block title %}Dashboard — Aura {% if role == 'teacher' %}Teacher{% else %}Developer{% endif %} Portal{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
 
 {% block extra_css %}
@@ -223,6 +223,32 @@
 
 <!-- Quick Start -->
 <div class="iu-card iu-quick-start">
+    {% if role == 'teacher' %}
+    <h3><i class="bi bi-mortarboard me-1"></i> Getting Started</h3>
+    <div class="iu-steps">
+        <div class="iu-step">
+            <div class="iu-step-num">1</div>
+            <div class="iu-step-text">
+                <strong>Pick your tools</strong>
+                <span>Browse <a href="{% url 'individual:addons' %}">teacher addons</a></span>
+            </div>
+        </div>
+        <div class="iu-step">
+            <div class="iu-step-num">2</div>
+            <div class="iu-step-text">
+                <strong>Subscribe to a plan</strong>
+                <span>Free tier available for all tools</span>
+            </div>
+        </div>
+        <div class="iu-step">
+            <div class="iu-step-num">3</div>
+            <div class="iu-step-text">
+                <strong>Generate an API key</strong>
+                <span>Go to <a href="{% url 'individual:api_keys' %}">API Keys</a></span>
+            </div>
+        </div>
+    </div>
+    {% else %}
     <h3><i class="bi bi-lightning-charge me-1"></i> Quick Start</h3>
     <div class="iu-steps">
         <div class="iu-step">
@@ -253,7 +279,27 @@
         <span class="iu-code-key">curl</span> -H <span class="iu-code-string">"Authorization: Bearer YOUR_API_KEY"</span> \<br>
         &nbsp;&nbsp;&nbsp;&nbsp; {{ request.scheme }}://{{ request.get_host }}/u/api/status/
     </div>
+    {% endif %}
 </div>
+
+{% if role == 'teacher' and recommended_addons %}
+<!-- Recommended for Teachers -->
+<div class="iu-section-title">
+    <span><i class="bi bi-stars" style="color:var(--brand-primary)"></i> Recommended for Teachers</span>
+    <a href="{% url 'individual:addons' %}">View all <i class="bi bi-arrow-right"></i></a>
+</div>
+<div class="iu-sub-grid" style="margin-bottom:2rem">
+    {% for addon in recommended_addons %}
+    <div class="iu-card iu-sub-card" style="border-left:3px solid var(--brand-primary)">
+        <div class="iu-sub-icon"><i class="bi {{ addon.icon }}"></i></div>
+        <div class="iu-sub-info">
+            <div class="iu-sub-name">{{ addon.name }}</div>
+            <div class="iu-sub-plan" style="color:var(--text-muted);text-transform:none;font-weight:400;letter-spacing:normal">{{ addon.description|truncatewords:8 }}</div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
 
 <!-- Active Subscriptions -->
 <div class="iu-section-title">
