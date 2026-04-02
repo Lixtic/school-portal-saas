@@ -135,6 +135,11 @@
     gap: .3rem .8rem;
 }
 .ep-meta-row span { white-space: nowrap; }
+.ep-meta-sep {
+    color: var(--ep-rule-light);
+    font-weight: 300;
+    margin: 0 .1rem;
+}
 
 /* ── Candidate information box ── */
 .ep-candidate-box {
@@ -330,13 +335,23 @@
     margin-top: 2rem;
     text-align: center;
     font-family: var(--ep-sans);
-    font-size: .78rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .1em;
-    color: var(--ep-muted);
+}
+.ep-footer-rule {
     border-top: 2px solid var(--ep-rule);
-    padding-top: .6rem;
+    margin-bottom: .6rem;
+}
+.ep-footer-text {
+    font-size: .88rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--ep-ink);
+}
+.ep-footer-summary {
+    font-size: .72rem;
+    color: var(--ep-muted);
+    margin-top: .15rem;
+    letter-spacing: .03em;
 }
 .ep-page-turn {
     text-align: right;
@@ -382,79 +397,260 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   PRINT — A4 exam paper output
+   PRINT — A4 exam paper output (WAEC standard)
    ═══════════════════════════════════════════════════════════ */
 @media print {
-    /* Hide app chrome */
-    .ep-actions, .sidebar, .navbar, header, footer,
+    /* ── 1. Nuke ALL app chrome ── */
+    .ep-actions, .sidebar, .navbar, nav, header, footer,
     [class*="sidebar"], [class*="offcanvas"], .breadcrumb,
     .mobile-bottom-nav, .toast-container, #themeToggle,
-    .ep-btn { display: none !important; }
+    #sidebarOverlay, #toastContainer, .trial-banner,
+    [class*="trial"], .alert, .messages,
+    .ep-btn, .btn, .back-to-top,
+    .header-brand, .app-header,
+    link[rel="preconnect"], link[href*="fonts.googleapis"] {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        overflow: hidden !important;
+    }
 
-    /* Reset page */
+    /* ── 2. Reset page geometry ── */
     @page {
-        size: A4;
-        margin: 18mm 15mm 18mm 15mm;
+        size: A4 portrait;
+        margin: 15mm 12mm 18mm 12mm;
+    }
+    @page :first {
+        margin-top: 10mm;
     }
     html, body {
         background: #fff !important;
         color: #000 !important;
-        font-size: 11pt;
+        font-size: 11pt !important;
+        line-height: 1.45 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
 
-    /* Paper sheet */
-    .ep-paper {
-        max-width: 100%;
-        border: 2px solid #000;
-        padding: 1.5cm 1.2cm;
-        margin: 0;
-        box-shadow: none;
-        background: #fff;
+    /* ── 3. Undo base.html layout ── */
+    .main-content {
+        margin: 0 !important;
+        padding: 0 !important;
+        min-height: auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    .content-wrapper, .page-wrapper, .container, .container-fluid,
+    .row, .col, main, [role="main"] {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
     }
 
-    /* Typography overrides for ink */
-    .ep-school-name, .ep-paper-title, .ep-q-num,
-    .ep-section-head, .ep-field-label, .ep-instructions-heading {
+    /* ── 4. Paper sheet — full bleed ── */
+    .ep-paper {
+        max-width: 100% !important;
+        width: 100% !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        background: #fff !important;
+        font-family: 'Crimson Pro', Georgia, 'Times New Roman', serif !important;
+    }
+
+    /* ── 5. Masthead / Header ── */
+    .ep-masthead {
+        border-bottom: 3px double #000 !important;
+        padding-bottom: 8pt !important;
+        margin-bottom: 10pt !important;
+    }
+    .ep-logo {
+        width: 60px !important;
+        height: 60px !important;
+        filter: grayscale(1) contrast(1.2);
+    }
+    .ep-school-name {
+        font-size: 14pt !important;
+        color: #000 !important;
+        letter-spacing: .15em !important;
+    }
+    .ep-motto {
+        font-size: 8.5pt !important;
+        color: #333 !important;
+    }
+    .ep-title-rule {
+        border-top: 1.5px solid #000 !important;
+        width: 50% !important;
+        margin: 2pt auto 6pt !important;
+    }
+    .ep-paper-title {
+        font-size: 13pt !important;
+        color: #000 !important;
+        letter-spacing: .08em !important;
+    }
+    .ep-meta-row {
+        font-size: 9pt !important;
+        color: #333 !important;
+        gap: 4pt 12pt !important;
+    }
+    .ep-meta-row span { color: #333 !important; }
+    .ep-meta-sep { color: #999 !important; }
+
+    /* ── 6. Candidate box ── */
+    .ep-candidate-box {
+        border: 1.5px solid #000 !important;
+        padding: 6pt 8pt !important;
+        margin-bottom: 10pt !important;
+        gap: 5pt 20pt !important;
+    }
+    .ep-field-label {
+        font-size: 7.5pt !important;
         color: #000 !important;
     }
-    .ep-motto, .ep-meta-row span, .ep-muted,
-    .ep-section-count, .ep-explanation, .ep-page-turn {
-        color: #555 !important;
+    .ep-field-line {
+        border-bottom: 1px solid #000 !important;
     }
-    .ep-masthead { border-bottom-color: #000; }
-    .ep-candidate-box { border-color: #000; }
-    .ep-field-line { border-bottom-color: #000; }
-    .ep-instructions { border-color: #000; }
-    .ep-section-head { border-top-color: #000; border-bottom-color: #000; }
-    .ep-footer { border-top-color: #000; color: #000 !important; }
-    .ep-title-rule { border-top-color: #000; }
-    .ep-rule-light, .ep-write-line { border-bottom-color: #aaa; }
-    .ep-tf-box { border-color: #000; }
 
-    /* Answer key in print */
+    /* ── 7. Instructions ── */
+    .ep-instructions {
+        border: 1.5px solid #000 !important;
+        padding: 6pt 8pt !important;
+        margin-bottom: 12pt !important;
+        font-size: 10pt !important;
+        background: transparent !important;
+    }
+    .ep-instructions-heading {
+        font-size: 8pt !important;
+        color: #000 !important;
+    }
+
+    /* ── 8. Sections ── */
+    .ep-section {
+        margin-bottom: 12pt !important;
+    }
+    .ep-section-head {
+        border-top: 2px solid #000 !important;
+        border-bottom: 1px solid #000 !important;
+        font-size: 10pt !important;
+        color: #000 !important;
+        padding: 3pt 0 !important;
+        margin-bottom: 8pt !important;
+    }
+    .ep-section-count {
+        color: #444 !important;
+        font-size: 8.5pt !important;
+    }
+
+    /* ── 9. Questions ── */
+    .ep-q {
+        margin-bottom: 8pt !important;
+        padding-bottom: 6pt !important;
+        page-break-inside: avoid;
+    }
+    .ep-q-num {
+        font-size: 10.5pt !important;
+        color: #000 !important;
+    }
+    .ep-q-text {
+        font-size: 10.5pt !important;
+        color: #000 !important;
+    }
+
+    /* ── 10. MCQ options ── */
+    .ep-opts {
+        margin-left: 18pt !important;
+        gap: 1pt 10pt !important;
+    }
+    .ep-opts li {
+        font-size: 10pt !important;
+        color: #000 !important;
+    }
+    .ep-opt-letter {
+        color: #000 !important;
+        font-weight: 800 !important;
+    }
+
+    /* ── 11. True/False boxes ── */
+    .ep-tf-box {
+        width: 12px !important;
+        height: 12px !important;
+        border: 1.5px solid #000 !important;
+    }
+    .ep-tf-opts {
+        font-size: 10pt !important;
+        color: #000 !important;
+    }
+
+    /* ── 12. Fill-in-blank ── */
+    .ep-fill-blank {
+        border-bottom: 1.5px solid #000 !important;
+        min-width: 180px !important;
+    }
+
+    /* ── 13. Writing lines ── */
+    .ep-write-line {
+        border-bottom: 1px solid #aaa !important;
+        height: 22pt !important;
+    }
+
+    /* ── 14. Answer key in marking scheme printout ── */
     .ep-answer {
-        border-left-color: #000;
-        background: #f7f7f7 !important;
+        border-left: 3px solid #000 !important;
+        background: #f5f5f5 !important;
+        page-break-inside: avoid;
+        margin-top: 4pt !important;
     }
-    .ep-answer-label { color: #000 !important; }
+    .ep-answer-label {
+        color: #000 !important;
+        font-size: 7.5pt !important;
+    }
+    .ep-answer-text {
+        color: #000 !important;
+        font-size: 9.5pt !important;
+    }
+    .ep-explanation {
+        color: #444 !important;
+        font-size: 8.5pt !important;
+    }
 
-    /* Orphan / widow control */
-    .ep-q { page-break-inside: avoid; }
+    /* ── 15. Footer ── */
+    .ep-footer {
+        margin-top: 14pt !important;
+    }
+    .ep-footer-rule {
+        border-top: 2px solid #000 !important;
+        margin-bottom: 5pt !important;
+    }
+    .ep-footer-text {
+        font-size: 10pt !important;
+        color: #000 !important;
+    }
+    .ep-footer-summary {
+        font-size: 8pt !important;
+        color: #444 !important;
+    }
+
+    /* ── 16. Page-break discipline ── */
+    .ep-masthead { page-break-after: avoid; }
+    .ep-candidate-box { page-break-inside: avoid; page-break-after: avoid; }
+    .ep-instructions { page-break-inside: avoid; }
     .ep-section { page-break-inside: auto; }
     .ep-section-head { page-break-after: avoid; }
+    .ep-q { page-break-inside: avoid; }
     .ep-answer { page-break-inside: avoid; }
-    .ep-instructions { page-break-inside: avoid; }
-
-    /* Logo greyscale for ink-friendly output */
-    .ep-logo { filter: grayscale(1); }
+    .ep-footer { page-break-inside: avoid; }
 }
 </style>
 
 <div class="ep-actions">
     <a href="{% url 'teachers:addon_question_bank' %}" class="ep-btn ep-btn-back"><i class="bi bi-arrow-left"></i> Back</a>
-    <button onclick="window.print()" class="ep-btn ep-btn-print"><i class="bi bi-printer"></i> Print Paper</button>
+    <button onclick="window.print()" class="ep-btn ep-btn-print"><i class="bi bi-printer"></i> Print</button>
+    <button onclick="window.print()" class="ep-btn ep-btn-outline"><i class="bi bi-file-earmark-pdf"></i> Save as PDF</button>
     <button onclick="toggleAnswerKey()" class="ep-btn {% if show_key %}ep-btn-outline{% else %}ep-btn-key{% endif %}" id="keyToggleBtn">
         <i class="bi bi-key"></i> <span id="keyToggleText">{% if show_key %}Hide{% else %}Show{% endif %} Answer Key</span>
     </button>
@@ -475,9 +671,9 @@
         <hr class="ep-title-rule">
         <h1 class="ep-paper-title">{{ paper.title }}</h1>
         <div class="ep-meta-row">
-            {% if paper.subject %}<span>{{ paper.subject.name }}</span>{% endif %}
-            {% if paper.target_class %}<span>{{ paper.target_class.name }}</span>{% endif %}
-            <span>Duration: {{ paper.duration_minutes }} minutes</span>
+            {% if paper.subject %}<span>{{ paper.subject.name }}</span><span class="ep-meta-sep">|</span>{% endif %}
+            {% if paper.target_class %}<span>{{ paper.target_class.name }}</span><span class="ep-meta-sep">|</span>{% endif %}
+            <span>Duration: {{ paper.duration_minutes }} mins</span><span class="ep-meta-sep">|</span>
             <span>{{ questions|length }} Question{{ questions|length|pluralize }}</span>
         </div>
     </div>
@@ -628,7 +824,14 @@
     {% endif %}
 
     <!-- ── End of Paper ── -->
-    <div class="ep-footer">— End of Paper —</div>
+    <div class="ep-footer">
+        <div class="ep-footer-rule"></div>
+        <div class="ep-footer-text">— End of Paper —</div>
+        <div class="ep-footer-summary">
+            {{ questions|length }} question{{ questions|length|pluralize }} · {{ paper.duration_minutes }} minutes
+            {% if paper.subject %} · {{ paper.subject.name }}{% endif %}
+        </div>
+    </div>
 </div>
 
 <script>
