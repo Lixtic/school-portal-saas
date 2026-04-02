@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ deck.title }} — Presentation</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        body { background: #000; color: #fff; }
+
+        /* ── Theme backgrounds ──────────────────────────── */
+        .theme-aurora   { background: linear-gradient(135deg, #4c1d95, #2563eb); color: #fff; }
+        .theme-midnight { background: linear-gradient(135deg, #0f172a, #1e1b4b); color: #e2e8f0; }
+        .theme-forest   { background: linear-gradient(135deg, #065f46, #0d9488); color: #fff; }
+        .theme-coral    { background: linear-gradient(135deg, #be123c, #f97316); color: #fff; }
+        .theme-slate    { background: linear-gradient(135deg, #1e293b, #64748b); color: #f1f5f9; }
+        .theme-ocean    { background: linear-gradient(135deg, #0c2d4e, #0e6088); color: #e0f2fe; }
+        .theme-amber    { background: linear-gradient(135deg, #431407, #92400e); color: #fef3c7; }
+        .theme-rose     { background: linear-gradient(135deg, #4c0519, #9d174d); color: #ffe4e6; }
+
+        /* ── Slide viewport ─────────────────────────────── */
+        .p-viewport {
+            position: fixed; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .p-slide {
+            position: absolute; inset: 0;
+            display: none; flex-direction: column; justify-content: center;
+            padding: 6vh 8vw;
+        }
+        .p-slide.active { display: flex; }
+
+        /* ── Transitions ────────────────────────────────── */
+        .trans-slide .p-slide { transition: transform 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.5s; }
+        .trans-slide .p-slide.enter-next { display: flex; transform: translateX(100%); opacity: 0; }
+        .trans-slide .p-slide.enter-prev { display: flex; transform: translateX(-100%); opacity: 0; }
+        .trans-slide .p-slide.exit-next { display: flex; transform: translateX(-100%); opacity: 0; }
+        .trans-slide .p-slide.exit-prev { display: flex; transform: translateX(100%); opacity: 0; }
+        .trans-slide .p-slide.active { transform: translateX(0); opacity: 1; }
+
+        .trans-fade .p-slide { transition: opacity 0.5s ease; }
+        .trans-fade .p-slide.enter-next,
+        .trans-fade .p-slide.enter-prev { display: flex; opacity: 0; }
+        .trans-fade .p-slide.exit-next,
+        .trans-fade .p-slide.exit-prev { display: flex; opacity: 0; }
+        .trans-fade .p-slide.active { opacity: 1; }
+
+        .trans-zoom .p-slide { transition: transform 0.5s ease, opacity 0.5s ease; }
+        .trans-zoom .p-slide.enter-next { display: flex; transform: scale(0.5); opacity: 0; }
+        .trans-zoom .p-slide.enter-prev { display: flex; transform: scale(1.5); opacity: 0; }
+        .trans-zoom .p-slide.exit-next { display: flex; transform: scale(1.5); opacity: 0; }
+        .trans-zoom .p-slide.exit-prev { display: flex; transform: scale(0.5); opacity: 0; }
+        .trans-zoom .p-slide.active { transform: scale(1); opacity: 1; }
+
+        .trans-flip .p-slide { transition: transform 0.6s ease, opacity 0.3s ease; backface-visibility: hidden; }
+        .trans-flip .p-slide.enter-next { display: flex; transform: rotateY(-90deg); opacity: 0; }
+        .trans-flip .p-slide.enter-prev { display: flex; transform: rotateY(90deg); opacity: 0; }
+        .trans-flip .p-slide.exit-next { display: flex; transform: rotateY(90deg); opacity: 0; }
+        .trans-flip .p-slide.exit-prev { display: flex; transform: rotateY(-90deg); opacity: 0; }
+        .trans-flip .p-slide.active { transform: rotateY(0); opacity: 1; }
+
+        /* ── Slide layout styles ────────────────────────── */
+        .sl-emoji { font-size: 4rem; margin-bottom: 0.75rem; }
+        .sl-title { font-size: 2.8rem; font-weight: 800; line-height: 1.15; margin-bottom: 0.5rem; }
+        .sl-sub { font-size: 1.4rem; opacity: 0.75; margin-top: 0.25rem; }
+        .sl-bullets { list-style: none; padding: 0; margin-top: 0.75rem; }
+        .sl-bullets li { padding: 0.5rem 0 0.5rem 2rem; font-size: 1.5rem; line-height: 1.5; position: relative; }
+        .sl-bullets li::before { content: '•'; position: absolute; left: 0; color: rgba(255,255,255,0.35); font-weight: 700; font-size: 1.5rem; }
+        .sl-emoji-bg { position: absolute; bottom: 3vh; right: 5vw; font-size: 12rem; opacity: 0.05; pointer-events: none; }
+
+        /* title */
+        .layout-title { text-align: center; align-items: center; }
+        .layout-title .sl-title { font-size: 3.6rem; }
+        .layout-title .sl-sub { font-size: 1.6rem; }
+
+        /* big_stat */
+        .layout-big_stat { text-align: center; align-items: center; }
+        .sl-stat { font-size: 7rem; font-weight: 900; line-height: 1; margin: 0.5rem 0; }
+
+        /* quote */
+        .layout-quote { text-align: center; align-items: center; padding: 8vh 12vw; }
+        .sl-quote { font-size: 2.2rem; font-style: italic; font-weight: 500; line-height: 1.5; }
+        .sl-author { margin-top: 1.5rem; font-size: 1.2rem; opacity: 0.65; }
+
+        /* two_col */
+        .sl-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; margin-top: 1rem; width: 100%; }
+        .sl-col-item { font-size: 1.3rem; padding: 0.4rem 0; line-height: 1.5; }
+
+        /* image */
+        .sl-image-wrap { max-height: 50vh; overflow: hidden; border-radius: 12px; margin: 1rem 0; }
+        .sl-image { width: 100%; display: block; }
+        .sl-caption { font-size: 1.1rem; opacity: 0.65; text-align: center; margin-top: 0.5rem; }
+
+        /* ── HUD Overlay ────────────────────────────────── */
+        .p-hud {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            display: flex; align-items: center; justify-content: center; gap: 1rem;
+            padding: 0.75rem 1.5rem; z-index: 100;
+            background: linear-gradient(transparent, rgba(0,0,0,0.6));
+            opacity: 0; transition: opacity 0.3s ease;
+        }
+        body:hover .p-hud, .p-hud:hover { opacity: 1; }
+        .p-hud-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 40px; height: 40px; border-radius: 8px; border: none;
+            background: rgba(255,255,255,0.12); color: #fff;
+            font-size: 1.1rem; cursor: pointer; transition: background 0.15s;
+            backdrop-filter: blur(8px);
+        }
+        .p-hud-btn:hover { background: rgba(255,255,255,0.25); }
+        .p-counter {
+            font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.8);
+            font-variant-numeric: tabular-nums; min-width: 60px; text-align: center;
+        }
+        .p-progress {
+            position: fixed; top: 0; left: 0; height: 3px; z-index: 101;
+            background: #7c3aed; transition: width 0.3s ease;
+        }
+
+        /* ── Touch zones ────────────────────────────────── */
+        .touch-prev, .touch-next {
+            position: fixed; top: 0; bottom: 0; width: 20%; z-index: 50; cursor: pointer;
+        }
+        .touch-prev { left: 0; }
+        .touch-next { right: 0; }
+    </style>
+</head>
+<body>
+    <div class="p-progress" id="progress"></div>
+    <div class="p-viewport trans-{{ deck.transition }}" id="viewport">
+        {% for slide in slides %}
+        <div class="p-slide theme-{{ deck.theme }} {% if forloop.first %}active{% endif %}" data-idx="{{ forloop.counter0 }}">
+            {% if slide.layout == 'title' %}
+            <div class="layout-title" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%">
+                {% if slide.emoji %}<div class="sl-emoji">{{ slide.emoji }}</div>{% endif %}
+                <div class="sl-title">{{ slide.title }}</div>
+                {% with lines=slide.bullets %}{% if lines %}<div class="sl-sub">{{ lines.0 }}</div>{% endif %}{% endwith %}
+            </div>
+            {% elif slide.layout == 'big_stat' %}
+            <div class="layout-big_stat" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%">
+                <div class="sl-title" style="font-size:2rem">{{ slide.title }}</div>
+                {% with lines=slide.bullets %}{% if lines %}<div class="sl-stat">{{ lines.0 }}</div>{% endif %}
+                {% if lines|length > 1 %}<div class="sl-sub">{{ lines.1 }}</div>{% endif %}{% endwith %}
+            </div>
+            {% elif slide.layout == 'quote' %}
+            <div class="layout-quote" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%">
+                <div class="sl-quote">"{{ slide.title }}"</div>
+                {% with lines=slide.bullets %}{% if lines %}<div class="sl-author">— {{ lines.0 }}</div>{% endif %}{% endwith %}
+            </div>
+            {% elif slide.layout == 'two_col' %}
+            <div>
+                {% if slide.emoji %}<span class="sl-emoji-bg">{{ slide.emoji }}</span>{% endif %}
+                <div class="sl-title" style="font-size:2.2rem">{{ slide.title }}</div>
+                <div style="column-count:2;column-gap:3rem;margin-top:1rem">{% for b in slide.bullets %}<div class="sl-col-item">{{ b }}</div>{% endfor %}</div>
+            </div>
+            {% elif slide.layout == 'image' %}
+            <div>
+                <div class="sl-title" style="font-size:2.2rem">{{ slide.title }}</div>
+                {% if slide.image_url %}<div class="sl-image-wrap"><img class="sl-image" src="{{ slide.image_url }}" alt="{{ slide.title }}"></div>{% endif %}
+                {% with lines=slide.bullets %}{% if lines %}<div class="sl-caption">{{ lines.0 }}</div>{% endif %}{% endwith %}
+            </div>
+            {% elif slide.layout == 'summary' %}
+            <div>
+                <div class="sl-title" style="font-size:2.2rem">{{ slide.title }}</div>
+                <ul class="sl-bullets">{% for b in slide.bullets %}<li>{{ b }}</li>{% endfor %}</ul>
+            </div>
+            {% else %}
+            <!-- bullets (default) -->
+            <div>
+                {% if slide.emoji %}<span class="sl-emoji-bg">{{ slide.emoji }}</span>{% endif %}
+                <div class="sl-title" style="font-size:2.2rem">{% if slide.emoji %}<span style="font-size:1.8rem;margin-right:0.3rem">{{ slide.emoji }}</span>{% endif %}{{ slide.title }}</div>
+                <ul class="sl-bullets">{% for b in slide.bullets %}<li>{{ b }}</li>{% endfor %}</ul>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Touch zones -->
+    <div class="touch-prev" onclick="go(-1)"></div>
+    <div class="touch-next" onclick="go(1)"></div>
+
+    <!-- HUD -->
+    <div class="p-hud">
+        {% if not is_shared_view %}
+        <a href="{% url 'individual:deck_editor' pk=deck.pk %}" class="p-hud-btn" title="Back to editor"><i class="bi bi-pencil"></i></a>
+        {% endif %}
+        <button class="p-hud-btn" onclick="go(-1)" title="Previous"><i class="bi bi-chevron-left"></i></button>
+        <span class="p-counter" id="counter">1 / {{ slides|length }}</span>
+        <button class="p-hud-btn" onclick="go(1)" title="Next"><i class="bi bi-chevron-right"></i></button>
+        <button class="p-hud-btn" onclick="toggleFS()" title="Fullscreen"><i class="bi bi-arrows-fullscreen"></i></button>
+    </div>
+
+    <script>
+    (function() {
+        const total = {{ slides|length }};
+        let cur = 0;
+        const slides = document.querySelectorAll('.p-slide');
+        const counter = document.getElementById('counter');
+        const progress = document.getElementById('progress');
+
+        function updateUI() {
+            counter.textContent = (cur + 1) + ' / ' + total;
+            progress.style.width = ((cur + 1) / total * 100) + '%';
+        }
+
+        window.go = function(dir) {
+            const next = cur + dir;
+            if (next < 0 || next >= total) return;
+
+            const prev = slides[cur];
+            const nxt = slides[next];
+
+            // Remove all transition classes
+            slides.forEach(s => s.classList.remove('active', 'enter-next', 'enter-prev', 'exit-next', 'exit-prev'));
+
+            if (dir > 0) {
+                nxt.classList.add('enter-next');
+                requestAnimationFrame(() => requestAnimationFrame(() => {
+                    prev.classList.add('exit-next');
+                    nxt.classList.remove('enter-next');
+                    nxt.classList.add('active');
+                }));
+            } else {
+                nxt.classList.add('enter-prev');
+                requestAnimationFrame(() => requestAnimationFrame(() => {
+                    prev.classList.add('exit-prev');
+                    nxt.classList.remove('enter-prev');
+                    nxt.classList.add('active');
+                }));
+            }
+
+            cur = next;
+            updateUI();
+        };
+
+        window.toggleFS = function() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                document.exitFullscreen();
+            }
+        };
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault(); go(1);
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'Backspace') {
+                e.preventDefault(); go(-1);
+            } else if (e.key === 'Escape') {
+                if (document.fullscreenElement) document.exitFullscreen();
+                {% if not is_shared_view %}
+                else window.location.href = '{% url "individual:deck_editor" pk=deck.pk %}';
+                {% endif %}
+            } else if (e.key === 'f' || e.key === 'F') {
+                toggleFS();
+            }
+        });
+
+        updateUI();
+
+        // Auto-enter fullscreen on load
+        setTimeout(() => {
+            document.documentElement.requestFullscreen().catch(() => {});
+        }, 300);
+    })();
+    </script>
+</body>
+</html>

@@ -19,7 +19,9 @@ from individual_users.models import (
     IndividualProfile,
     ToolExamPaper,
     ToolLessonPlan,
+    ToolPresentation,
     ToolQuestion,
+    ToolSlide,
 )
 
 logger = logging.getLogger(__name__)
@@ -71,6 +73,28 @@ TOOLS_CATALOG = [
         ],
         'category': 'productivity',
         'tools': ['lesson_plan'],
+    },
+    {
+        'slug': 'slide-generator',
+        'name': 'Slide Deck Creator',
+        'icon': 'bi-easel2',
+        'color': '#7c3aed',
+        'tagline': 'AI-powered Gamma-style presentations for the classroom',
+        'description': (
+            'Create beautiful teaching presentations with AI-generated slides. '
+            'Eight premium themes, multiple layouts and a Gamma-style editor '
+            'with drag-and-drop reordering.'
+        ),
+        'features': [
+            'AI-generated 8-slide teaching decks',
+            '8 premium dark/light themes',
+            'Gamma-style 3-pane visual editor',
+            'Fullscreen presentation mode',
+            'Share via public link',
+            'Print / PDF handouts',
+        ],
+        'category': 'presentations',
+        'tools': ['slide_deck'],
     },
     {
         'slug': 'grade-analytics',
@@ -242,6 +266,7 @@ def tools_hub(request):
     q_count = ToolQuestion.objects.filter(profile=profile).count()
     e_count = ToolExamPaper.objects.filter(profile=profile).count()
     l_count = ToolLessonPlan.objects.filter(profile=profile).count()
+    d_count = ToolPresentation.objects.filter(profile=profile).count()
 
     ctx = {
         'tools': tools,
@@ -250,6 +275,7 @@ def tools_hub(request):
         'question_count': q_count,
         'exam_count': e_count,
         'lesson_count': l_count,
+        'deck_count': d_count,
     }
     return render(request, 'individual/tools/hub.html', ctx)
 
@@ -1067,3 +1093,508 @@ Return ONLY valid JSON with this schema:
         'title': plan.title,
         'redirect': f'/u/tools/lesson-plans/{plan.pk}/',
     })
+
+
+# ── Slide Deck / Presentations ───────────────────────────────────────────────
+
+def _detect_slide_layout(title, index, total):
+    """Pick layout based on slide title keywords and position."""
+    if index == 0:
+        return 'title'
+    if index == total - 1:
+        return 'summary'
+    t = title.lower()
+    if any(w in t for w in ('vocabulary', 'definition', 'key term', 'key vocab')):
+        return 'two_col'
+    if any(w in t for w in ('comparison', 'compare', 'vs', 'versus', 'did you know')):
+        return 'two_col'
+    if any(w in t for w in ('quote', 'saying', 'proverb')):
+        return 'quote'
+    if any(w in t for w in ('stat', 'figure', 'number', 'big stat')):
+        return 'big_stat'
+    return 'bullets'
+
+
+@_tool_required
+@_require_tool('slide-generator')
+def deck_list(request):
+    """List all presentations for this teacher."""
+    from django.db.models import Subquery, OuterRef
+
+    profile = request.user.individual_profile
+    decks = (
+        ToolPresentation.objects.filter(profile=profile)
+        .annotate(
+            annotated_slide_count=Count('slides'),
+            cover_emoji=Subquery(
+                ToolSlide.objects.filter(
+                    presentation=OuterRef('pk'), order=0,
+                ).values('emoji')[:1]
+            ),
+        )
+    )
+    total_slides = ToolSlide.objects.filter(presentation__profile=profile).count()
+
+    ctx = {
+        'decks': decks,
+        'total_decks': decks.count(),
+        'total_slides': total_slides,
+        'SUBJECT_CHOICES': ToolQuestion.SUBJECT_CHOICES,
+    }
+    return render(request, 'individual/tools/presentations/list.html', ctx)
+
+
+@_tool_required
+@_require_tool('slide-generator')
+def deck_create(request):
+    """Create a new presentation."""
+    profile = request.user.individual_profile
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        if not title:
+            messages.error(request, 'Title is required.')
+            return redirect('individual:deck_create')
+
+        subject = request.POST.get('subject', '')
+        target_class = request.POST.get('target_class', '')
+        theme = request.POST.get('theme', 'aurora')
+
+        if theme not in dict(ToolPresentation.THEME_CHOICES):
+            theme = 'aurora'
+
+        deck = ToolPresentation.objects.create(
+            profile=profile,
+            title=title,
+            subject=subject,
+            target_class=target_class,
+            theme=theme,
+        )
+
+        # Smart seed: create starter slides from latest lesson plan
+        if request.POST.get('smart_seed'):
+            last_plan = (
+                ToolLessonPlan.objects.filter(profile=profile)
+                .order_by('-created_at')
+                .first()
+            )
+            if last_plan:
+                ToolSlide.objects.create(
+                    presentation=deck, order=0, layout='title',
+                    title=last_plan.title,
+                    content=f'{last_plan.topic}\n{last_plan.target_class}',
+                    emoji='\U0001F3AF',
+                )
+                ToolSlide.objects.create(
+                    presentation=deck, order=1, layout='bullets',
+                    title='Learning Objectives',
+                    content=last_plan.objectives or '',
+                    emoji='\U0001F4CB',
+                )
+                ToolSlide.objects.create(
+                    presentation=deck, order=2, layout='bullets',
+                    title='Lesson Flow',
+                    content=last_plan.development or '',
+                    emoji='\U0001F4D6',
+                )
+            else:
+                ToolSlide.objects.create(
+                    presentation=deck, order=0, layout='title',
+                    title=title, content='', emoji='\u2728',
+                )
+        else:
+            ToolSlide.objects.create(
+                presentation=deck, order=0, layout='title',
+                title=title, content='', emoji='\u2728',
+            )
+
+        return redirect('individual:deck_editor', pk=deck.pk)
+
+    # GET
+    ctx = {
+        'THEME_CHOICES': ToolPresentation.THEME_CHOICES,
+        'SUBJECT_CHOICES': ToolQuestion.SUBJECT_CHOICES,
+        'prefill_title': request.GET.get('title', ''),
+        'prefill_subject': request.GET.get('subject', ''),
+        'prefill_theme': request.GET.get('theme', 'aurora'),
+    }
+    return render(request, 'individual/tools/presentations/create.html', ctx)
+
+
+@_tool_required
+@_require_tool('slide-generator')
+def deck_editor(request, pk):
+    """Gamma-style slide editor."""
+    profile = request.user.individual_profile
+    deck = get_object_or_404(ToolPresentation, pk=pk, profile=profile)
+    slides = list(deck.slides.order_by('order'))
+
+    slides_json = json.dumps([
+        {
+            'id': s.pk,
+            'order': s.order,
+            'layout': s.layout,
+            'title': s.title,
+            'content': s.content,
+            'speaker_notes': s.speaker_notes,
+            'emoji': s.emoji,
+            'image_url': s.image_url,
+        }
+        for s in slides
+    ])
+
+    share_url = request.build_absolute_uri(
+        f'/u/tools/presentations/share/{deck.share_token}/',
+    )
+
+    EMOJI_LIST = [
+        '\U0001F3AF', '\U0001F4D6', '\U0001F52C', '\U0001F9EE', '\u2753',
+        '\u2705', '\U0001F4A1', '\U0001F4CB', '\U0001F30D', '\u26A1',
+        '\U0001F3A8', '\U0001F4CA', '\U0001F9EA', '\U0001F4DD', '\U0001F393',
+        '\U0001F3C6', '\U0001F4BB', '\U0001F511', '\U0001F31F', '\U0001F4CC',
+    ]
+
+    ctx = {
+        'deck': deck,
+        'slides': slides,
+        'slides_json': slides_json,
+        'share_url': share_url,
+        'THEME_CHOICES': ToolPresentation.THEME_CHOICES,
+        'TRANSITION_CHOICES': ToolPresentation.TRANSITION_CHOICES,
+        'LAYOUT_CHOICES': ToolSlide.LAYOUT_CHOICES,
+        'EMOJI_LIST': EMOJI_LIST,
+    }
+    return render(request, 'individual/tools/presentations/editor.html', ctx)
+
+
+@_tool_required
+@_require_tool('slide-generator')
+@require_POST
+def deck_api(request):
+    """AJAX API for the slide editor: save, add, delete, reorder, ai_generate."""
+    from django.db import transaction
+    from django.db.models import Max
+
+    profile = request.user.individual_profile
+
+    try:
+        data = json.loads(request.body)
+        action = data.get('action')
+        deck_id = data.get('deck_id')
+        deck = get_object_or_404(ToolPresentation, pk=deck_id, profile=profile)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+    # ── save_slide ──────────────────────────────────────────
+    if action == 'save_slide':
+        slide_id = data.get('slide_id')
+        slide = get_object_or_404(ToolSlide, pk=slide_id, presentation=deck)
+        slide.title = data.get('title', slide.title)
+        slide.content = data.get('content', slide.content)
+        slide.speaker_notes = data.get('speaker_notes', slide.speaker_notes)
+        slide.layout = data.get('layout', slide.layout)
+        slide.emoji = data.get('emoji', slide.emoji)
+        slide.image_url = data.get('image_url', slide.image_url)
+        slide.save()
+        deck.save()  # bump updated_at
+        return JsonResponse({'ok': True})
+
+    # ── add_slide ───────────────────────────────────────────
+    elif action == 'add_slide':
+        max_order = deck.slides.aggregate(m=Max('order'))['m'] or -1
+        slide = ToolSlide.objects.create(
+            presentation=deck,
+            order=max_order + 1,
+            layout=data.get('layout', 'bullets'),
+            title=data.get('title', 'New Slide'),
+            content=data.get('content', ''),
+            emoji=data.get('emoji', ''),
+        )
+        deck.save()
+        return JsonResponse({
+            'ok': True,
+            'slide_id': slide.pk,
+            'order': slide.order,
+            'layout': slide.layout,
+            'title': slide.title,
+            'content': slide.content,
+            'emoji': slide.emoji,
+            'speaker_notes': slide.speaker_notes,
+            'image_url': slide.image_url,
+        })
+
+    # ── delete_slide ────────────────────────────────────────
+    elif action == 'delete_slide':
+        slide_id = data.get('slide_id')
+        slide = get_object_or_404(ToolSlide, pk=slide_id, presentation=deck)
+        slide.delete()
+        with transaction.atomic():
+            for i, s in enumerate(deck.slides.order_by('order')):
+                s.order = i
+                s.save(update_fields=['order'])
+        deck.save()
+        return JsonResponse({'ok': True})
+
+    # ── reorder ─────────────────────────────────────────────
+    elif action == 'reorder':
+        order_list = data.get('order', [])
+        with transaction.atomic():
+            for i, sid in enumerate(order_list):
+                ToolSlide.objects.filter(pk=sid, presentation=deck).update(order=i)
+        deck.save()
+        return JsonResponse({'ok': True})
+
+    # ── update_deck ─────────────────────────────────────────
+    elif action == 'update_deck':
+        if 'title' in data:
+            deck.title = data['title'] or deck.title
+        if 'theme' in data and data['theme'] in dict(ToolPresentation.THEME_CHOICES):
+            deck.theme = data['theme']
+        if 'transition' in data and data['transition'] in dict(ToolPresentation.TRANSITION_CHOICES):
+            deck.transition = data['transition']
+        deck.save()
+        return JsonResponse({
+            'ok': True,
+            'title': deck.title,
+            'theme': deck.theme,
+            'transition': deck.transition,
+        })
+
+    # ── ai_generate ─────────────────────────────────────────
+    elif action == 'ai_generate':
+        topic = data.get('topic', '').strip()
+        if not topic:
+            return JsonResponse({'error': 'Topic is required'}, status=400)
+
+        subject_label = dict(ToolQuestion.SUBJECT_CHOICES).get(
+            deck.subject, deck.subject or 'General Studies',
+        )
+        class_name = deck.target_class or 'General'
+
+        system_prompt = (
+            "You are an expert teaching assistant who creates rich, "
+            "presentation-ready slide decks.\n\n"
+            f"Generate a complete teaching slide deck for {class_name} "
+            f"{subject_label} on the topic: \"{topic}\".\n\n"
+            "Return a JSON object with EXACTLY this structure:\n"
+            "{\n"
+            "  \"slides\": [\n"
+            "    {\"title\": \"...\", \"bullets\": [\"...\"], "
+            "\"notes\": \"...\", \"emoji\": \"...\"}\n"
+            "  ],\n"
+            "  \"activities\": [\"...\", \"...\"]\n"
+            "}\n\n"
+            "Each slide MUST include an \"emoji\" field.\n\n"
+            "SLIDE STRUCTURE \u2014 8 SLIDES (MANDATORY):\n"
+            "1. TITLE & HOOK: engaging title, objective, question\n"
+            "2. KEY VOCABULARY: 3-4 terms with definitions\n"
+            "3. CORE CONCEPT: 3-4 digestible points\n"
+            "4. WORKED EXAMPLE: step-by-step (3-4 steps)\n"
+            "5. REAL-WORLD APPLICATION: scenario\n"
+            "6. COMPARISON / DID YOU KNOW: facts\n"
+            "7. PRACTICE QUESTIONS: 3-4 of increasing difficulty\n"
+            "8. SUMMARY & TAKEAWAYS: 3-4 concise statements\n\n"
+            "RULES:\n"
+            "- Write FULL, MEANINGFUL content \u2014 not outlines\n"
+            "- Bullets must be complete thoughts\n"
+            "- Every slide must have 3-4 bullets\n"
+            "- Speaker notes are for the TEACHER"
+        )
+        user_prompt = (
+            f"Create a complete presentation on '{topic}' for "
+            f"{class_name} {subject_label}. "
+            "Fill every slide with real content ready to present."
+        )
+
+        try:
+            import openai
+            from django.conf import settings as django_settings
+            client = openai.OpenAI(
+                api_key=getattr(django_settings, 'OPENAI_API_KEY', ''),
+            )
+            resp = client.chat.completions.create(
+                model='gpt-4o-mini',
+                messages=[
+                    {'role': 'system', 'content': system_prompt},
+                    {'role': 'user', 'content': user_prompt},
+                ],
+                temperature=0.7,
+                max_tokens=3000,
+            )
+            raw_text = resp.choices[0].message.content.strip()
+            if raw_text.startswith('```'):
+                raw_text = raw_text.split('\n', 1)[1] if '\n' in raw_text else raw_text[3:]
+            if raw_text.endswith('```'):
+                raw_text = raw_text[:-3]
+            result = json.loads(raw_text.strip())
+        except Exception as exc:
+            logger.warning('AI slide generation failed: %s', exc)
+            return JsonResponse(
+                {'error': 'AI generation failed. Please try again.'},
+                status=500,
+            )
+
+        raw_slides = result.get('slides', [])
+
+        with transaction.atomic():
+            deck.slides.all().delete()
+            created = []
+            for i, s in enumerate(raw_slides):
+                bullets = s.get('bullets', [])
+                content = '\n'.join(bullets)
+                layout = _detect_slide_layout(
+                    s.get('title', ''), i, len(raw_slides),
+                )
+                slide = ToolSlide.objects.create(
+                    presentation=deck,
+                    order=i,
+                    layout=layout,
+                    title=s.get('title', ''),
+                    content=content,
+                    speaker_notes=s.get('notes', ''),
+                    emoji=s.get('emoji', ''),
+                )
+                created.append({
+                    'slide_id': slide.pk,
+                    'order': slide.order,
+                    'layout': slide.layout,
+                    'title': slide.title,
+                    'content': slide.content,
+                    'emoji': slide.emoji,
+                    'speaker_notes': slide.speaker_notes,
+                    'image_url': '',
+                })
+            if data.get('update_title') and topic:
+                deck.title = topic
+            deck.save()
+
+        return JsonResponse({
+            'ok': True,
+            'slides': created,
+            'deck_title': deck.title,
+            'activities': result.get('activities', []),
+        })
+
+    # ── duplicate_slide ─────────────────────────────────────
+    elif action == 'duplicate_slide':
+        slide_id = data.get('slide_id')
+        source = get_object_or_404(ToolSlide, pk=slide_id, presentation=deck)
+        max_order = deck.slides.aggregate(m=Max('order'))['m'] or -1
+        new_slide = ToolSlide.objects.create(
+            presentation=deck,
+            order=max_order + 1,
+            layout=source.layout,
+            title=source.title + ' (copy)',
+            content=source.content,
+            speaker_notes=source.speaker_notes,
+            emoji=source.emoji,
+            image_url=source.image_url,
+        )
+        deck.save()
+        return JsonResponse({
+            'ok': True,
+            'slide_id': new_slide.pk,
+            'order': new_slide.order,
+            'layout': new_slide.layout,
+            'title': new_slide.title,
+            'content': new_slide.content,
+            'emoji': new_slide.emoji,
+            'speaker_notes': new_slide.speaker_notes,
+            'image_url': new_slide.image_url,
+        })
+
+    return JsonResponse({'error': f'Unknown action: {action}'}, status=400)
+
+
+@_tool_required
+@_require_tool('slide-generator')
+def deck_present(request, pk):
+    """Fullscreen presentation mode."""
+    from django.utils import timezone
+
+    profile = request.user.individual_profile
+    deck = get_object_or_404(ToolPresentation, pk=pk, profile=profile)
+    slides = list(deck.slides.order_by('order'))
+
+    deck.times_presented += 1
+    deck.last_presented_at = timezone.now()
+    deck.save(update_fields=['times_presented', 'last_presented_at'])
+
+    share_url = request.build_absolute_uri(
+        f'/u/tools/presentations/share/{deck.share_token}/',
+    )
+    ctx = {
+        'deck': deck,
+        'slides': slides,
+        'share_url': share_url,
+    }
+    return render(request, 'individual/tools/presentations/present.html', ctx)
+
+
+@_tool_required
+@_require_tool('slide-generator')
+@require_POST
+def deck_delete(request, pk):
+    """Delete a presentation."""
+    profile = request.user.individual_profile
+    deck = get_object_or_404(ToolPresentation, pk=pk, profile=profile)
+    deck.delete()
+    messages.success(request, 'Presentation deleted.')
+    return redirect('individual:deck_list')
+
+
+@_tool_required
+@_require_tool('slide-generator')
+@require_POST
+def deck_duplicate(request, pk):
+    """Duplicate a presentation with all its slides."""
+    profile = request.user.individual_profile
+    deck = get_object_or_404(ToolPresentation, pk=pk, profile=profile)
+
+    new_deck = ToolPresentation.objects.create(
+        profile=profile,
+        title=f'{deck.title} (copy)',
+        subject=deck.subject,
+        target_class=deck.target_class,
+        theme=deck.theme,
+        transition=deck.transition,
+    )
+    for slide in deck.slides.order_by('order'):
+        ToolSlide.objects.create(
+            presentation=new_deck,
+            order=slide.order,
+            layout=slide.layout,
+            title=slide.title,
+            content=slide.content,
+            speaker_notes=slide.speaker_notes,
+            emoji=slide.emoji,
+            image_url=slide.image_url,
+        )
+
+    messages.success(request, f'Duplicated \u201c{deck.title}\u201d.')
+    return redirect('individual:deck_editor', pk=new_deck.pk)
+
+
+@_tool_required
+@_require_tool('slide-generator')
+def deck_print(request, pk):
+    """Print-friendly handout view."""
+    profile = request.user.individual_profile
+    deck = get_object_or_404(ToolPresentation, pk=pk, profile=profile)
+    slides = list(deck.slides.order_by('order'))
+    ctx = {'deck': deck, 'slides': slides}
+    return render(request, 'individual/tools/presentations/print.html', ctx)
+
+
+def deck_share(request, token):
+    """Public read-only view of a shared presentation (no login required)."""
+    _ensure_public_schema()
+    deck = get_object_or_404(ToolPresentation, share_token=token)
+    slides = list(deck.slides.order_by('order'))
+    ctx = {
+        'deck': deck,
+        'slides': slides,
+        'share_url': request.build_absolute_uri(),
+        'is_shared_view': True,
+    }
+    return render(request, 'individual/tools/presentations/present.html', ctx)

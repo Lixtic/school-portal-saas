@@ -1,0 +1,134 @@
+{% extends 'individual/base.html' %}
+{% block title %}New Presentation — Aura Teacher Portal{% endblock %}
+{% block page_title %}New Presentation{% endblock %}
+
+{% block extra_css %}
+<style>
+.create-shell {
+  min-height: 80vh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 2rem 1rem;
+}
+.create-card {
+  background: var(--card-bg, #1e293b);
+  border: 1px solid var(--border, rgba(255,255,255,.08));
+  border-radius: 20px;
+  padding: 2.5rem;
+  width: 100%; max-width: 520px;
+  box-shadow: 0 24px 64px rgba(0,0,0,.25);
+}
+.create-card h2 { font-weight: 800; font-size: 1.5rem; margin-bottom: .3rem; }
+.create-card .sub { color: var(--text-muted); font-size: .85rem; margin-bottom: 2rem; }
+.gm-label { font-size: .8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 5px; display: block; }
+.gm-input {
+  width: 100%; background: var(--input-bg, #0f172a); border: 1px solid var(--border, rgba(255,255,255,.1));
+  border-radius: 10px; padding: .7rem 1rem; color: var(--text-primary, #f1f5f9); font-size: .9rem;
+  outline: none; transition: border-color .2s;
+}
+.gm-input:focus { border-color: #7c3aed; }
+.theme-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 6px;
+}
+.theme-btn {
+  height: 44px; border-radius: 10px; border: 2px solid transparent;
+  cursor: pointer; transition: transform .15s, border-color .15s;
+  position: relative;
+}
+.theme-btn:hover { transform: scale(1.08); }
+.theme-btn.selected { border-color: #fff; }
+.theme-btn span {
+  position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%);
+  font-size: .6rem; color: var(--text-muted); white-space: nowrap;
+}
+.t-aurora   { background: linear-gradient(135deg,#4c1d95,#2563eb); }
+.t-midnight { background: linear-gradient(135deg,#0f172a,#1e1b4b); border: 2px solid rgba(255,255,255,.15)!important; }
+.t-forest   { background: linear-gradient(135deg,#065f46,#0d9488); }
+.t-coral    { background: linear-gradient(135deg,#be123c,#f97316); }
+.t-slate    { background: linear-gradient(135deg,#1e293b,#64748b); }
+.t-ocean    { background: linear-gradient(135deg,#0c2d4e,#0e6088); }
+.t-amber    { background: linear-gradient(135deg,#431407,#92400e); }
+.t-rose     { background: linear-gradient(135deg,#4c0519,#9d174d); }
+#themeInput { display: none; }
+.gm-submit {
+  width: 100%; padding: .8rem; border: none; border-radius: 12px;
+  background: linear-gradient(135deg,#7c3aed,#2563eb);
+  color: #fff; font-weight: 700; font-size: 1rem;
+  cursor: pointer; margin-top: .5rem; transition: opacity .15s;
+}
+.gm-submit:hover { opacity: .9; }
+.gm-back { color: var(--text-muted); font-size: .8rem; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 1.5rem; }
+.gm-back:hover { color: var(--text-primary); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="create-shell">
+  <div>
+    <a href="{% url 'individual:deck_list' %}" class="gm-back"><i class="bi bi-arrow-left"></i> My Decks</a>
+    <div class="create-card">
+      <h2>✨ New Presentation</h2>
+      <p class="sub">Set up your deck — AI will fill the slides in the editor.</p>
+
+      <form method="post" id="createForm">
+        {% csrf_token %}
+        <div class="mb-4">
+          <label class="gm-label" for="id_title">Presentation Title</label>
+          <input type="text" id="id_title" name="title" class="gm-input"
+                 placeholder="e.g. Photosynthesis - Basic 8"
+                 value="{{ prefill_title }}" required autofocus>
+        </div>
+
+        <div class="mb-4">
+          <label class="gm-label">Subject</label>
+          <select name="subject" class="gm-input">
+            <option value="">— Select Subject —</option>
+            {% for val, label in SUBJECT_CHOICES %}
+            <option value="{{ val }}" {% if prefill_subject == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-4">
+          <label class="gm-label">Target Class</label>
+          <input type="text" name="target_class" class="gm-input"
+                 placeholder="e.g. Basic 7, JHS 2, SHS 1">
+        </div>
+
+        <div class="mb-4" style="padding-bottom:1.4rem;">
+          <label class="gm-label">Theme</label>
+          <div class="theme-grid">
+            {% for val, label in THEME_CHOICES %}
+            <div class="theme-btn t-{{ val }}{% if prefill_theme == val %} selected{% endif %}"
+                 onclick="pickTheme('{{ val }}',this)" title="{{ label }}">
+              <span>{{ label }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          <input type="hidden" name="theme" id="themeInput" value="{{ prefill_theme|default:'aurora' }}">
+        </div>
+
+        <div class="mb-4">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="id_smart_seed" name="smart_seed" value="1">
+            <label class="form-check-label small" for="id_smart_seed">
+              Generate starter slides from latest lesson plan
+            </label>
+          </div>
+        </div>
+
+        <button type="submit" class="gm-submit">
+          <i class="bi bi-layers me-2"></i>Create Deck
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function pickTheme(val, el) {
+  document.querySelectorAll('.theme-btn').forEach(function(b){ b.classList.remove('selected'); });
+  el.classList.add('selected');
+  document.getElementById('themeInput').value = val;
+}
+</script>
+{% endblock %}

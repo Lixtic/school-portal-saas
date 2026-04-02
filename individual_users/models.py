@@ -1,4 +1,5 @@
 import secrets
+import uuid
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -222,3 +223,85 @@ class ToolLessonPlan(models.Model):
 
     def __str__(self):
         return self.title
+
+
+# ── Slide Deck / Presentation ────────────────────────────────────────────────
+
+class ToolPresentation(models.Model):
+    """Standalone slide deck for the teacher portal."""
+    THEME_CHOICES = [
+        ('aurora',   'Aurora'),
+        ('midnight', 'Midnight'),
+        ('forest',   'Forest'),
+        ('coral',    'Coral'),
+        ('slate',    'Slate'),
+        ('ocean',    'Ocean'),
+        ('amber',    'Amber'),
+        ('rose',     'Rose'),
+    ]
+    TRANSITION_CHOICES = [
+        ('slide', 'Slide'),
+        ('fade',  'Fade'),
+        ('zoom',  'Zoom'),
+        ('flip',  'Flip'),
+    ]
+
+    profile = models.ForeignKey(
+        IndividualProfile, on_delete=models.CASCADE, related_name='tool_presentations',
+    )
+    title = models.CharField(max_length=200)
+    subject = models.CharField(max_length=30, choices=ToolQuestion.SUBJECT_CHOICES, default='mathematics')
+    target_class = models.CharField(max_length=60, blank=True, default='')
+    theme = models.CharField(max_length=20, choices=THEME_CHOICES, default='aurora')
+    transition = models.CharField(max_length=20, choices=TRANSITION_CHOICES, default='slide')
+    share_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    times_presented = models.PositiveIntegerField(default=0)
+    last_presented_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        verbose_name = 'Tool Presentation'
+        verbose_name_plural = 'Tool Presentations'
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def slide_count(self):
+        return self.slides.count()
+
+
+class ToolSlide(models.Model):
+    """Single slide within a presentation."""
+    LAYOUT_CHOICES = [
+        ('title',    'Title Slide'),
+        ('bullets',  'Bullet List'),
+        ('two_col',  'Two Column'),
+        ('big_stat', 'Big Stat'),
+        ('quote',    'Quote'),
+        ('summary',  'Summary'),
+        ('image',    'Image + Caption'),
+    ]
+
+    presentation = models.ForeignKey(
+        ToolPresentation, on_delete=models.CASCADE, related_name='slides',
+    )
+    order = models.PositiveIntegerField(default=0)
+    layout = models.CharField(max_length=20, choices=LAYOUT_CHOICES, default='bullets')
+    title = models.CharField(max_length=300, blank=True)
+    content = models.TextField(blank=True)
+    speaker_notes = models.TextField(blank=True)
+    emoji = models.CharField(max_length=10, blank=True)
+    image_url = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        return f"Slide {self.order + 1}: {self.title[:60]}"
+
+    @property
+    def bullets(self):
+        return [b.strip() for b in self.content.split('\n') if b.strip()]
