@@ -6829,6 +6829,7 @@ def save_quick_actions(request):
 
     # Validate each action
     cleaned = []
+    skipped = []
     for i, a in enumerate(actions):
         label = str(a.get('label', ''))[:60].strip()
         icon = str(a.get('icon', 'bi-lightning-charge'))[:50].strip()
@@ -6836,10 +6837,9 @@ def save_quick_actions(request):
         color = str(a.get('color', '#4361ee'))[:80].strip()
         if not label or not url_name:
             continue
-        # Verify the URL name resolves
-        try:
-            reverse(url_name)
-        except Exception:
+        # Basic format check — must look like 'app:view_name'
+        if ':' not in url_name or not url_name.replace(':', '').replace('_', '').isalnum():
+            skipped.append(label)
             continue
         cleaned.append({'label': label, 'icon': icon, 'url_name': url_name, 'color': color, 'position': i})
 
@@ -6849,7 +6849,10 @@ def save_quick_actions(request):
         QuickAction(teacher=request.user, **a) for a in cleaned
     ])
 
-    return JsonResponse({'ok': True, 'count': len(cleaned)})
+    resp = {'ok': True, 'count': len(cleaned)}
+    if skipped:
+        resp['skipped'] = skipped
+    return JsonResponse(resp)
 
 
 @login_required
