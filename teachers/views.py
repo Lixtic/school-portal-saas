@@ -7843,6 +7843,328 @@ def addon_exam_paper(request, **kwargs):
     })
 
 
+@login_required
+@requires_addon('exam-question-bank')
+def addon_exam_paper_docx(request, **kwargs):
+    """Export exam paper as a WAEC-standard Word document (.docx)."""
+    import io
+    from collections import OrderedDict
+    from docx import Document
+    from docx.shared import Pt, Inches, Cm, RGBColor
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.enum.table import WD_TABLE_ALIGNMENT
+    from docx.oxml.ns import qn
+    from teachers.models import ExamPaper
+
+    paper_id = request.GET.get('id')
+    if not paper_id:
+        return redirect('teachers:addon_question_bank')
+    paper = get_object_or_404(ExamPaper, id=paper_id, teacher=request.user)
+    show_key = request.GET.get('key') == '1'
+
+    questions_qs = list(paper.questions.all().order_by('question_format', 'id'))
+
+    # Group into sections by format (same logic as addon_exam_paper)
+    FORMAT_LABELS = {
+        'mcq': 'Multiple Choice', 'fill': 'Fill in the Blank',
+        'short': 'Short Answer', 'essay': 'Essay',
+        'truefalse': 'True or False',
+    }
+    sections = []
+    if questions_qs:
+        grouped = OrderedDict()
+        for q in questions_qs:
+            grouped.setdefault(q.question_format, []).append(q)
+        counter = 1
+        letter_idx = 0
+        for fmt, qs_list in grouped.items():
+            numbered = []
+            for q_obj in qs_list:
+                numbered.append({'number': counter, 'obj': q_obj})
+                counter += 1
+            sections.append({
+                'letter': chr(65 + letter_idx),
+                'label': FORMAT_LABELS.get(fmt, fmt),
+                'format': fmt,
+                'questions': numbered,
+            })
+            letter_idx += 1
+    if len(sections) <= 1:
+        sections = []
+
+    # School info
+    school_name = getattr(request, 'tenant', None) and request.tenant.name or ''
+    school_motto = ''
+    try:
+        from academics.models import SchoolInfo
+        si = SchoolInfo.objects.first()
+        if si:
+            school_name = si.name or school_name
+            school_motto = si.motto or ''
+    except Exception:
+        pass
+
+    # ── Build the Word document ──
+    doc = Document()
+
+    # Page margins (A4-friendly, matches print CSS)
+    for section in doc.sections:
+        section.top_margin = Cm(1.5)
+        section.bottom_margin = Cm(1.8)
+        section.left_margin = Cm(2.0)
+        section.right_margin = Cm(2.0)
+
+    style = doc.styles['Normal']
+    style.font.name = 'Times New Roman'
+    style.font.size = Pt(11)
+    style.paragraph_format.space_after = Pt(2)
+
+    # ── Helper functions ──
+    def add_centered(text, bold=False, size=None, caps=False, spacing=None, color=None):
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(spacing if spacing else 2)
+        run = p.add_run(text.upper() if caps else text)
+        run.bold = bold
+        if size:
+            run.font.size = Pt(size)
+        if color:
+            run.font.color.rgb = RGBColor(*color)
+        return p
+
+    def add_thin_line():
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(4)
+        run = p.add_run('─' * 50)
+        run.font.size = Pt(8)
+        run.font.color.rgb = RGBColor(0, 0, 0)
+
+    # ── Masthead ──
+    if school_name:
+        add_centered(school_name, bold=True, size=14, caps=True, spacing=1)
+    if school_motto:
+        p = add_centered(f'"{school_motto}"', size=9, spacing=4)
+        p.runs[0].italic = True
+        p.runs[0].font.color.rgb = RGBColor(85, 85, 85)
+
+    add_thin_line()
+    add_centered(paper.title, bold=True, size=13, caps=True, spacing=2)
+
+    # Meta row
+    meta_parts = []
+    if paper.subject:
+        meta_parts.append(paper.subject.name)
+    if paper.target_class:
+        meta_parts.append(paper.target_class.name)
+    meta_parts.append(f'Duration: {paper.duration_minutes} mins')
+    meta_parts.append(f'{len(questions_qs)} Question{"s" if len(questions_qs) != 1 else ""}')
+    p = add_centered('  |  '.join(meta_parts), size=9, spacing=6)
+    p.runs[0].font.color.rgb = RGBColor(85, 85, 85)
+
+    # ── Candidate box (2×2 table) ──
+    table = doc.add_table(rows=2, cols=2)
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    # Set table borders
+    tbl = table._tbl
+    tblPr = tbl.tblPr if tbl.tblPr is not None else tbl._add_tblPr()
+    borders = tblPr.find(qn('w:tblBorders'))
+    if borders is None:
+        borders = tblPr.makeelement(qn('w:tblBorders'), {})
+        tblPr.append(borders)
+    for edge in ('top', 'left', 'bottom', 'right', 'insideH', 'insideV'):
+        el = borders.makeelement(qn(f'w:{edge}'), {
+            qn('w:val'): 'single', qn('w:sz'): '6',
+            qn('w:space'): '0', qn('w:color'): '000000',
+        })
+        borders.append(el)
+
+    fields = [('NAME:', ''), ('INDEX NO:', ''), ('CLASS:', ''), ('DATE:', '')]
+    for i, (label, _) in enumerate(fields):
+        cell = table.cell(i // 2, i % 2)
+        p = cell.paragraphs[0]
+        p.paragraph_format.space_before = Pt(3)
+        p.paragraph_format.space_after = Pt(3)
+        run = p.add_run(label)
+        run.bold = True
+        run.font.size = Pt(8)
+        p.add_run('  _______________________________').font.size = Pt(9)
+
+    doc.add_paragraph()  # spacing
+
+    # ── Instructions ──
+    if paper.instructions:
+        p = doc.add_paragraph()
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(2)
+        run = p.add_run('INSTRUCTIONS TO CANDIDATES')
+        run.bold = True
+        run.font.size = Pt(8)
+        p = doc.add_paragraph()
+        p.paragraph_format.space_after = Pt(8)
+        run = p.add_run(paper.instructions)
+        run.font.size = Pt(10)
+
+    # ── Helper: render a single question ──
+    def render_question(q_obj, number):
+        # Question text
+        p = doc.add_paragraph()
+        p.paragraph_format.space_before = Pt(4)
+        p.paragraph_format.space_after = Pt(2)
+        p.paragraph_format.left_indent = Cm(0.6)
+        p.paragraph_format.first_line_indent = Cm(-0.6)
+        run = p.add_run(f'{number}. ')
+        run.bold = True
+        run.font.size = Pt(11)
+        run = p.add_run(q_obj.question_text)
+        run.font.size = Pt(11)
+
+        fmt = q_obj.question_format
+
+        if fmt == 'mcq' and q_obj.options:
+            for idx, opt in enumerate(q_obj.options):
+                letter = chr(65 + idx)
+                p = doc.add_paragraph()
+                p.paragraph_format.space_before = Pt(0)
+                p.paragraph_format.space_after = Pt(1)
+                p.paragraph_format.left_indent = Cm(1.4)
+                run = p.add_run(f'{letter}. ')
+                run.bold = True
+                run.font.size = Pt(10)
+                run = p.add_run(str(opt))
+                run.font.size = Pt(10)
+
+        elif fmt == 'truefalse':
+            p = doc.add_paragraph()
+            p.paragraph_format.left_indent = Cm(1.4)
+            p.paragraph_format.space_after = Pt(2)
+            run = p.add_run('☐ True          ☐ False')
+            run.font.size = Pt(10)
+
+        elif fmt == 'fill':
+            p = doc.add_paragraph()
+            p.paragraph_format.left_indent = Cm(1.4)
+            p.paragraph_format.space_after = Pt(2)
+            run = p.add_run('Answer: ___________________________________')
+            run.font.size = Pt(10)
+
+        elif fmt == 'short':
+            for _ in range(5):
+                p = doc.add_paragraph()
+                p.paragraph_format.left_indent = Cm(1.4)
+                p.paragraph_format.space_before = Pt(0)
+                p.paragraph_format.space_after = Pt(0)
+                run = p.add_run('_' * 70)
+                run.font.size = Pt(9)
+                run.font.color.rgb = RGBColor(170, 170, 170)
+
+        elif fmt == 'essay':
+            for _ in range(10):
+                p = doc.add_paragraph()
+                p.paragraph_format.left_indent = Cm(1.4)
+                p.paragraph_format.space_before = Pt(0)
+                p.paragraph_format.space_after = Pt(0)
+                run = p.add_run('_' * 70)
+                run.font.size = Pt(9)
+                run.font.color.rgb = RGBColor(170, 170, 170)
+
+        # Answer key
+        if show_key and (q_obj.correct_answer or q_obj.explanation):
+            p = doc.add_paragraph()
+            p.paragraph_format.left_indent = Cm(1.4)
+            p.paragraph_format.space_before = Pt(3)
+            p.paragraph_format.space_after = Pt(2)
+            if q_obj.correct_answer:
+                run = p.add_run('ANSWER: ')
+                run.bold = True
+                run.font.size = Pt(9)
+                run.font.color.rgb = RGBColor(13, 110, 63)
+                run = p.add_run(q_obj.correct_answer)
+                run.font.size = Pt(9)
+                run.font.color.rgb = RGBColor(13, 110, 63)
+            if q_obj.explanation:
+                if q_obj.correct_answer:
+                    p.add_run('\n')
+                run = p.add_run(q_obj.explanation)
+                run.italic = True
+                run.font.size = Pt(8)
+                run.font.color.rgb = RGBColor(100, 100, 100)
+
+    # ── Render sections or flat list ──
+    if sections:
+        for sec in sections:
+            p = doc.add_paragraph()
+            p.paragraph_format.space_before = Pt(10)
+            p.paragraph_format.space_after = Pt(4)
+            # Top border via bottom border of a thin paragraph
+            pPr = p._p.get_or_add_pPr()
+            pBdr = pPr.makeelement(qn('w:pBdr'), {})
+            pPr.append(pBdr)
+            for edge_name in ('top', 'bottom'):
+                sz = '12' if edge_name == 'top' else '4'
+                bdr = pBdr.makeelement(qn(f'w:{edge_name}'), {
+                    qn('w:val'): 'single', qn('w:sz'): sz,
+                    qn('w:space'): '1', qn('w:color'): '000000',
+                })
+                pBdr.append(bdr)
+            run = p.add_run(f"SECTION {sec['letter']}: {sec['label']}")
+            run.bold = True
+            run.font.size = Pt(10)
+            count = len(sec['questions'])
+            run = p.add_run(f'    [{count} question{"s" if count != 1 else ""}]')
+            run.font.size = Pt(9)
+            run.font.color.rgb = RGBColor(100, 100, 100)
+
+            for q in sec['questions']:
+                render_question(q['obj'], q['number'])
+    else:
+        for idx, q_obj in enumerate(questions_qs, 1):
+            render_question(q_obj, idx)
+
+    # ── Footer ──
+    p = doc.add_paragraph()
+    p.paragraph_format.space_before = Pt(14)
+    pPr = p._p.get_or_add_pPr()
+    pBdr = pPr.makeelement(qn('w:pBdr'), {})
+    pPr.append(pBdr)
+    bdr = pBdr.makeelement(qn('w:top'), {
+        qn('w:val'): 'single', qn('w:sz'): '12',
+        qn('w:space'): '1', qn('w:color'): '000000',
+    })
+    pBdr.append(bdr)
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = p.add_run('— End of Paper —')
+    run.bold = True
+    run.font.size = Pt(10)
+
+    summary_parts = [f'{len(questions_qs)} question{"s" if len(questions_qs) != 1 else ""}']
+    summary_parts.append(f'{paper.duration_minutes} minutes')
+    if paper.subject:
+        summary_parts.append(paper.subject.name)
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = p.add_run(' · '.join(summary_parts))
+    run.font.size = Pt(8)
+    run.font.color.rgb = RGBColor(100, 100, 100)
+
+    # ── Stream response ──
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+
+    safe_title = ''.join(c for c in paper.title if c.isalnum() or c in ' _-').strip()[:80]
+    filename = f'{safe_title or "Exam_Paper"}.docx'
+
+    response = HttpResponse(
+        buf.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
 # ── 3. Behavior & SEL Tracker ────────────────────────────────────────────
 
 @login_required
