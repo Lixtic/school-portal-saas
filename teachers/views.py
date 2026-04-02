@@ -7651,12 +7651,108 @@ def addon_question_bank(request):
                 messages.success(request, f'Exam paper "{paper.title}" created with {len(q_ids)} questions.')
             return redirect('teachers:addon_question_bank')
 
+        # Smart Build — auto-select questions by criteria
+        elif action == 'smart_build':
+            import random as _rand
+            sb_subject = request.POST.get('sb_subject') or None
+            sb_class = request.POST.get('sb_class') or None
+            sb_title = request.POST.get('sb_title', 'Smart Build Paper').strip()[:200]
+            sb_duration = int(request.POST.get('sb_duration', 60) or 60)
+            sb_instructions = request.POST.get('sb_instructions', 'Answer ALL questions.').strip()
+
+            # Difficulty percentages
+            sb_easy = max(0, int(request.POST.get('sb_easy_pct', 30) or 30))
+            sb_medium = max(0, int(request.POST.get('sb_medium_pct', 40) or 40))
+            sb_hard = max(0, int(request.POST.get('sb_hard_pct', 30) or 30))
+            total_pct = sb_easy + sb_medium + sb_hard or 100
+
+            base = QuestionBank.objects.filter(teacher=teacher)
+            if sb_subject:
+                base = base.filter(subject_id=sb_subject)
+            if sb_class:
+                base = base.filter(target_class_id=sb_class)
+
+            selected_ids = []
+            for fmt in ('mcq', 'fill', 'short', 'essay', 'truefalse'):
+                count = max(0, int(request.POST.get(f'sb_{fmt}', 0) or 0))
+                if count <= 0:
+                    continue
+                fmt_qs = list(base.filter(question_format=fmt))
+                if not fmt_qs:
+                    continue
+                easy_pool = [q for q in fmt_qs if q.difficulty == 'easy']
+                med_pool = [q for q in fmt_qs if q.difficulty == 'medium']
+                hard_pool = [q for q in fmt_qs if q.difficulty == 'hard']
+                n_easy = round(count * sb_easy / total_pct)
+                n_hard = round(count * sb_hard / total_pct)
+                n_med = count - n_easy - n_hard
+                _rand.shuffle(easy_pool)
+                _rand.shuffle(med_pool)
+                _rand.shuffle(hard_pool)
+                picked = easy_pool[:n_easy] + med_pool[:n_med] + hard_pool[:n_hard]
+                # Fill shortfall from remaining questions
+                if len(picked) < count:
+                    used = set(q.id for q in picked)
+                    remaining = [q for q in fmt_qs if q.id not in used]
+                    _rand.shuffle(remaining)
+                    picked.extend(remaining[:count - len(picked)])
+                selected_ids.extend(q.id for q in picked[:count])
+
+            if selected_ids:
+                paper = ExamPaper.objects.create(
+                    teacher=teacher, title=sb_title, subject_id=sb_subject,
+                    target_class_id=sb_class, duration_minutes=sb_duration,
+                    instructions=sb_instructions,
+                )
+                paper.questions.set(selected_ids)
+                messages.success(request, f'Paper "{paper.title}" built with {len(selected_ids)} questions.')
+            else:
+                messages.warning(request, 'No matching questions found. Add more to your bank first.')
+            return redirect('teachers:addon_question_bank')
+
+        # Duplicate an existing paper
+        elif action == 'duplicate_paper':
+            source = ExamPaper.objects.filter(id=request.POST.get('paper_id'), teacher=teacher).first()
+            if source:
+                copy = ExamPaper.objects.create(
+                    teacher=teacher, title=f'{source.title} (Copy)',
+                    subject=source.subject, target_class=source.target_class,
+                    duration_minutes=source.duration_minutes, instructions=source.instructions,
+                )
+                copy.questions.set(source.questions.all())
+                messages.success(request, f'Paper duplicated as "{copy.title}".')
+            return redirect('teachers:addon_question_bank')
+
+        # Shuffle — create a new paper with randomised question order
+        elif action == 'shuffle_paper':
+            import random as _rand
+            source = ExamPaper.objects.filter(id=request.POST.get('paper_id'), teacher=teacher).first()
+            if source:
+                # Count existing shuffled versions for naming
+                version_count = ExamPaper.objects.filter(
+                    teacher=teacher, title__startswith=source.title,
+                ).exclude(id=source.id).count()
+                version_label = chr(66 + version_count)  # B, C, D…
+                shuffled = ExamPaper.objects.create(
+                    teacher=teacher,
+                    title=f'{source.title} (Version {version_label})',
+                    subject=source.subject, target_class=source.target_class,
+                    duration_minutes=source.duration_minutes,
+                    instructions=source.instructions,
+                )
+                q_ids = list(source.questions.values_list('id', flat=True))
+                _rand.shuffle(q_ids)
+                shuffled.questions.set(q_ids)
+                messages.success(request, f'Shuffled version created: "{shuffled.title}".')
+            return redirect('teachers:addon_question_bank')
+
     # Filter
     f_search = request.GET.get('q', '').strip()
     f_subject = request.GET.get('subject')
     f_difficulty = request.GET.get('difficulty')
     f_format = request.GET.get('format')
     qs = QuestionBank.objects.filter(teacher=teacher).select_related('subject', 'target_class')
+    qs = qs.annotate(papers_count=Count('papers'))
     if f_search:
         qs = qs.filter(question_text__icontains=f_search)
     if f_subject:
@@ -7667,18 +7763,65 @@ def addon_question_bank(request):
         qs = qs.filter(question_format=f_format)
 
     all_qs = QuestionBank.objects.filter(teacher=teacher)
+
+    # Enhanced stats — format & difficulty breakdowns
+    format_diff_raw = all_qs.values('question_format', 'difficulty').annotate(c=Count('id'))
+    FORMAT_LABELS = dict(QuestionBank.FORMAT_CHOICES)
+    by_format = {}
+    by_difficulty = {'easy': 0, 'medium': 0, 'hard': 0}
+    for row in format_diff_raw:
+        fmt = row['question_format']
+        diff = row['difficulty']
+        c = row['c']
+        if fmt not in by_format:
+            by_format[fmt] = {'label': FORMAT_LABELS.get(fmt, fmt), 'total': 0, 'easy': 0, 'medium': 0, 'hard': 0}
+        by_format[fmt][diff] = c
+        by_format[fmt]['total'] += c
+        by_difficulty[diff] = by_difficulty.get(diff, 0) + c
+
+    total_questions = sum(d['total'] for d in by_format.values())
     stats = {
-        'total': all_qs.count(),
+        'total': total_questions,
         'subjects': all_qs.exclude(subject__isnull=True).values('subject').distinct().count(),
+        'by_format': by_format,
+        'by_difficulty': by_difficulty,
     }
 
-    papers = ExamPaper.objects.filter(teacher=teacher).select_related('subject', 'target_class')
+    # Papers with format breakdown
+    papers = list(
+        ExamPaper.objects.filter(teacher=teacher)
+        .select_related('subject', 'target_class')
+        .prefetch_related('questions')
+    )
+    paper_data = []
+    for p in papers:
+        p_questions = list(p.questions.all())
+        fmt_counts = {}
+        for q in p_questions:
+            fmt_counts[q.question_format] = fmt_counts.get(q.question_format, 0) + 1
+        paper_data.append({
+            'paper': p,
+            'q_count': len(p_questions),
+            'formats': fmt_counts,
+            'format_summary': ', '.join(
+                f'{c} {FORMAT_LABELS.get(f, f)}' for f, c in sorted(fmt_counts.items())
+            ) if fmt_counts else 'No questions',
+        })
+
     qb_used = get_free_generation_count(teacher, 'question_gen')
 
+    # Smart build availability as JSON for client-side
+    sb_availability_json = json.dumps({
+        fmt: {'label': data['label'], 'total': data['total'],
+              'easy': data['easy'], 'medium': data['medium'], 'hard': data['hard']}
+        for fmt, data in by_format.items()
+    })
+
     return render(request, 'teachers/addon_question_bank.html', {
-        'questions': qs, 'papers': papers, 'subjects': subjects, 'classes': classes,
+        'questions': qs, 'papers': papers, 'paper_data': paper_data,
+        'subjects': subjects, 'classes': classes,
         'f_search': f_search, 'f_subject': f_subject, 'f_difficulty': f_difficulty, 'f_format': f_format,
-        'stats': stats,
+        'stats': stats, 'sb_availability_json': sb_availability_json,
         'qb_gen_used': qb_used, 'qb_gen_limit': FREE_GENERATION_LIMIT,
         'qb_gen_remaining': max(0, FREE_GENERATION_LIMIT - qb_used),
         'has_qb_addon': has_addon(teacher, 'exam-question-bank'),
