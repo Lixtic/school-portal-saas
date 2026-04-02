@@ -360,6 +360,7 @@
     font-size: .72rem;
     color: var(--ep-muted);
     margin-top: .5rem;
+    display: none;  /* show only in print */
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -421,10 +422,10 @@
     /* ── 2. Reset page geometry ── */
     @page {
         size: A4 portrait;
-        margin: 15mm 12mm 18mm 12mm;
+        margin: 18mm 15mm 20mm 15mm;
     }
     @page :first {
-        margin-top: 10mm;
+        margin-top: 12mm;
     }
     html, body {
         background: #fff !important;
@@ -574,9 +575,11 @@
 
     /* ── 9. Questions ── */
     .ep-q {
-        margin-bottom: 8pt !important;
-        padding-bottom: 6pt !important;
+        margin-bottom: 10pt !important;
+        padding-bottom: 8pt !important;
         page-break-inside: avoid;
+        orphans: 3;
+        widows: 3;
     }
     .ep-q-num {
         font-size: 10.5pt !important;
@@ -621,7 +624,14 @@
     /* ── 13. Writing lines ── */
     .ep-write-line {
         border-bottom: 1px solid #aaa !important;
-        height: 22pt !important;
+        height: 24pt !important;
+    }
+    .ep-write-area {
+        page-break-inside: auto;
+    }
+    /* Keep at least 3 writing lines together */
+    .ep-write-line:nth-child(-n+3) {
+        page-break-before: avoid;
     }
 
     /* ── 14. Answer key in marking scheme printout ── */
@@ -657,19 +667,35 @@
         color: #000 !important;
     }
     .ep-footer-summary {
-        font-size: 8pt !important;
-        color: #444 !important;
-    }
-
-    /* ── 16. Page-break discipline ── */
-    .ep-masthead { page-break-after: avoid; }
-    .ep-candidate-box { page-break-inside: avoid; page-break-after: avoid; }
-    .ep-instructions { page-break-inside: avoid; }
+        font-size: 8pt !important;page-break-after: avoid; }
     .ep-section { page-break-inside: auto; }
-    .ep-section-head { page-break-after: avoid; }
+    .ep-section-head { page-break-after: avoid; page-break-inside: avoid; }
     .ep-q { page-break-inside: avoid; }
     .ep-answer { page-break-inside: avoid; }
-    .ep-footer { page-break-inside: avoid; }
+    .ep-footer { page-break-inside: avoid; page-break-before: auto; }
+
+    /* ── 17. Ensure masthead + candidate box stay on first page together ── */
+    .ep-masthead + .ep-candidate-box {
+        page-break-before: avoid;
+    }
+
+    /* ── 18. Prevent blank half-pages before footer ── */
+    .ep-section:last-of-type {
+        margin-bottom: 0 !important;
+    }
+
+    /* ── 19. Link / anchor cleanup ── */
+    a[href]::after { content: none !important; }
+    abbr[title]::after { content: none !important; }
+
+    /* ── 20. Page-turn hints visible in print ── */
+    .ep-page-turn {
+        display: block !important;
+        text-align: right;
+        font-size: 8pt !important;
+        color: #666 !important;
+        margin-top: 4pt !important;
+    }
 }
 </style>
 
@@ -792,6 +818,7 @@
                 </div>
             </div>
             {% endfor %}
+            {% if not forloop.last %}<div class="ep-page-turn">Question paper continues &rarr;</div>{% endif %}
         </div>
         {% endfor %}
 

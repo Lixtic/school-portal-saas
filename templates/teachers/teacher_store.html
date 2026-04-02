@@ -355,6 +355,23 @@
 
 .tk-desc { font-size: .78rem; color: var(--tk-body); line-height: 1.55; flex: 1; margin-bottom: .85rem; }
 
+.tk-details-link {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    font-size: .7rem;
+    font-weight: 700;
+    color: var(--tk-muted);
+    text-decoration: none;
+    margin-bottom: .6rem;
+    transition: color .15s;
+}
+.tk-details-link:hover { color: var(--cat-ai); }
+.tk-details-link .bi { font-size: .6rem; transition: transform .15s; }
+.tk-details-link:hover .bi { transform: translateX(2px); }
+
+.td-name-link:hover { text-decoration: underline !important; text-underline-offset: 2px; }
+
 .tk-foot {
     display: flex; align-items: center;
     justify-content: space-between;
@@ -542,7 +559,7 @@
                     <i class="{{ addon.icon }}"></i>
                 </div>
 
-                <h3>{{ addon.name }}</h3>
+                <h3><a href="{% url 'teachers:teacher_store_detail' addon.slug %}" style="color:inherit;text-decoration:none;" class="td-name-link">{{ addon.name }}</a></h3>
                 {% if addon.tagline %}<p class="tk-tagline">{{ addon.tagline }}</p>{% endif %}
 
                 {% if addon.features %}
@@ -550,10 +567,14 @@
                     {% for feat in addon.features|slice:":4" %}
                     <li><i class="bi bi-check2-circle"></i>{{ feat }}</li>
                     {% endfor %}
+                    {% if addon.features|length > 4 %}
+                    <li style="color:var(--tk-muted);font-size:.7rem;">+{{ addon.features|length|add:"-4" }} more…</li>
+                    {% endif %}
                 </ul>
                 {% else %}
                 <p class="tk-desc">{{ addon.description|truncatewords:22 }}</p>
                 {% endif %}
+                <a href="{% url 'teachers:teacher_store_detail' addon.slug %}" class="tk-details-link">View details <i class="bi bi-arrow-right"></i></a>
 
                 {% if addon.quota_boost %}
                 <div class="tk-boost">

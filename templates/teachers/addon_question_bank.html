@@ -135,6 +135,15 @@
 @keyframes qbFadeIn{from{opacity:0;}to{opacity:1;}}
 .qb-modal{background:var(--qb-card);border-radius:16px;width:92%;max-width:560px;max-height:90vh;overflow-y:auto;padding:1.4rem;box-shadow:0 24px 48px rgba(0,0,0,.15);}
 .qb-modal h3{margin:0 0 .8rem;font-size:1rem;font-weight:800;color:var(--qb-ink);}
+
+/* ── Pagination ── */
+.qb-pagination{display:flex;align-items:center;justify-content:center;gap:.25rem;margin:1rem 0 .4rem;flex-wrap:wrap;}
+.qb-pagination a,.qb-pagination span{padding:.35rem .7rem;border-radius:8px;font-size:.78rem;font-weight:600;text-decoration:none;transition:all .15s;}
+.qb-pagination a{color:var(--qb-ink);border:1px solid var(--qb-border);background:var(--qb-card);}
+.qb-pagination a:hover{background:var(--qb-accent);color:#fff;border-color:var(--qb-accent);}
+.qb-pagination .qb-page-current{background:var(--qb-accent);color:#fff;border:1px solid var(--qb-accent);}
+.qb-pagination .qb-page-ellipsis{border:none;color:var(--qb-muted);padding:.35rem .3rem;}
+.qb-page-info{font-size:.72rem;color:var(--qb-muted);text-align:center;margin-bottom:.4rem;}
 </style>
 
 <div class="qb-wrap">
@@ -192,7 +201,7 @@
         <div class="qb-body" style="padding-top:.8rem;">
             <!-- ═══ Tabs ═══ -->
             <div class="qb-tabs">
-                <div class="qb-tab active" onclick="switchTab('bank',this)"><i class="bi bi-collection"></i> Bank <span class="qb-tab-badge">{{ questions|length }}</span></div>
+                <div class="qb-tab active" onclick="switchTab('bank',this)"><i class="bi bi-collection"></i> Bank <span class="qb-tab-badge">{{ total_questions_filtered }}</span></div>
                 <div class="qb-tab" onclick="switchTab('add',this)"><i class="bi bi-plus-lg"></i> Add</div>
                 <div class="qb-tab" onclick="switchTab('ai',this)"><i class="bi bi-stars"></i> AI Generate</div>
                 <div class="qb-tab" onclick="switchTab('build',this)"><i class="bi bi-magic"></i> Smart Build</div>
@@ -303,6 +312,32 @@
                         <span style="font-size:.82rem;">Add manually or <a href="#" onclick="switchTab('ai',document.querySelectorAll('.qb-tab')[2]);return false;" style="color:var(--qb-accent);font-weight:600;">generate with AI</a>.</span>
                     </div>
                     {% endfor %}
+
+                    <!-- Pagination -->
+                    {% if page_obj.paginator.num_pages > 1 %}
+                    <div class="qb-page-info">Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} questions</div>
+                    <nav class="qb-pagination">
+                        {% if page_obj.has_previous %}
+                        <a href="?page=1{% if f_search %}&q={{ f_search }}{% endif %}{% if f_subject %}&subject={{ f_subject }}{% endif %}{% if f_difficulty %}&difficulty={{ f_difficulty }}{% endif %}{% if f_format %}&format={{ f_format }}{% endif %}" title="First">&laquo;</a>
+                        <a href="?page={{ page_obj.previous_page_number }}{% if f_search %}&q={{ f_search }}{% endif %}{% if f_subject %}&subject={{ f_subject }}{% endif %}{% if f_difficulty %}&difficulty={{ f_difficulty }}{% endif %}{% if f_format %}&format={{ f_format }}{% endif %}">&lsaquo; Prev</a>
+                        {% endif %}
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                            <span class="qb-page-current">{{ num }}</span>
+                            {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+                            <a href="?page={{ num }}{% if f_search %}&q={{ f_search }}{% endif %}{% if f_subject %}&subject={{ f_subject }}{% endif %}{% if f_difficulty %}&difficulty={{ f_difficulty }}{% endif %}{% if f_format %}&format={{ f_format }}{% endif %}">{{ num }}</a>
+                            {% elif num == 1 or num == page_obj.paginator.num_pages %}
+                            <a href="?page={{ num }}{% if f_search %}&q={{ f_search }}{% endif %}{% if f_subject %}&subject={{ f_subject }}{% endif %}{% if f_difficulty %}&difficulty={{ f_difficulty }}{% endif %}{% if f_format %}&format={{ f_format }}{% endif %}">{{ num }}</a>
+                            {% elif num == 2 or num == page_obj.paginator.num_pages|add:"-1" %}
+                            <span class="qb-page-ellipsis">&hellip;</span>
+                            {% endif %}
+                        {% endfor %}
+                        {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if f_search %}&q={{ f_search }}{% endif %}{% if f_subject %}&subject={{ f_subject }}{% endif %}{% if f_difficulty %}&difficulty={{ f_difficulty }}{% endif %}{% if f_format %}&format={{ f_format }}{% endif %}">Next &rsaquo;</a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}{% if f_search %}&q={{ f_search }}{% endif %}{% if f_subject %}&subject={{ f_subject }}{% endif %}{% if f_difficulty %}&difficulty={{ f_difficulty }}{% endif %}{% if f_format %}&format={{ f_format }}{% endif %}" title="Last">&raquo;</a>
+                        {% endif %}
+                    </nav>
+                    {% endif %}
 
                     {% if questions %}
                     <div class="qb-card" style="margin-top:.8rem;border:1px dashed rgba(67,97,238,.3);">

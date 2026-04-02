@@ -124,6 +124,7 @@ urlpatterns = [
 
     # Teacher Add-On Store
     path('store/', views.teacher_store, name='teacher_store'),
+    path('store/<slug:slug>/', views.teacher_store_detail, name='teacher_store_detail'),
     path('store/purchase/<int:addon_id>/', views.teacher_store_purchase, name='teacher_store_purchase'),
     path('store/verify/', views.teacher_store_verify, name='teacher_store_verify'),
     path('store/cancel/<int:addon_id>/', views.teacher_store_cancel, name='teacher_store_cancel'),

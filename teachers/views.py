@@ -1,5 +1,6 @@
 from django import forms
 from django.shortcuts import render, redirect, get_object_or_404
+from django.core.paginator import Paginator
 from django.db import models
 from django.db.models import Q, Count, Sum, Avg
 from django.db.utils import OperationalError, ProgrammingError
@@ -6663,6 +6664,43 @@ def teacher_store(request):
 
 
 @login_required
+def teacher_store_detail(request, slug):
+    """Detail page for a single teacher add-on."""
+    if request.user.user_type != 'teacher':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    from django.urls import reverse
+    from teachers.models import TeacherAddOn, TeacherAddOnPurchase
+
+    addon = get_object_or_404(TeacherAddOn, slug=slug, is_active=True)
+    is_purchased = TeacherAddOnPurchase.objects.filter(
+        teacher=request.user, addon=addon, is_active=True
+    ).exists()
+
+    launch_url = None
+    if is_purchased:
+        url_name = ADDON_LAUNCH_URLS.get(addon.slug)
+        if url_name:
+            try:
+                launch_url = reverse(url_name)
+            except Exception:
+                pass
+
+    # Related add-ons in the same category (excluding current)
+    related = TeacherAddOn.objects.filter(
+        is_active=True, category=addon.category
+    ).exclude(id=addon.id)[:3]
+
+    return render(request, 'teachers/teacher_store_detail.html', {
+        'addon': addon,
+        'is_purchased': is_purchased,
+        'launch_url': launch_url,
+        'related': related,
+    })
+
+
+@login_required
 def teacher_store_purchase(request, addon_id):
     """Purchase (activate) a teacher add-on — free add-ons activate instantly,
     paid ones require Paystack verification via teacher_store_verify."""
@@ -7818,9 +7856,14 @@ def addon_question_bank(request):
         for fmt, data in by_format.items()
     })
 
+    # Paginate question list (25 per page)
+    paginator = Paginator(qs, 25)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     return render(request, 'teachers/addon_question_bank.html', {
-        'questions': qs, 'papers': papers, 'paper_data': paper_data,
-        'subjects': subjects, 'classes': classes,
+        'questions': page_obj, 'page_obj': page_obj, 'papers': papers, 'paper_data': paper_data,
+        'subjects': subjects, 'classes': classes, 'total_questions_filtered': paginator.count,
         'f_search': f_search, 'f_subject': f_subject, 'f_difficulty': f_difficulty, 'f_format': f_format,
         'stats': stats, 'sb_availability_json': sb_availability_json,
         'qb_gen_used': qb_used, 'qb_gen_limit': FREE_GENERATION_LIMIT,
