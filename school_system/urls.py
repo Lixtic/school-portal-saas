@@ -76,6 +76,7 @@ urlpatterns = [
         template_name='accounts/password_reset_complete.html'
     ), name='password_reset_complete'),
 
+    path('u/', include('individual_users.urls')),
     path('accounts/', include('accounts.urls')),
     path('teachers/', include('teachers.urls')),
     path('students/', include('students.urls')),

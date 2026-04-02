@@ -10,6 +10,7 @@ class User(AbstractUser):
         ('teacher', 'Teacher'),
         ('student', 'Student'),
         ('parent', 'Parent'),
+        ('individual', 'Individual'),
     )
     user_type = models.CharField(max_length=10, choices=USER_TYPES)
     phone = models.CharField(max_length=15, blank=True)

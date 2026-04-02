@@ -1,0 +1,352 @@
+{% extends 'individual/base.html' %}
+{% block title %}API Keys — Aura Developer Portal{% endblock %}
+{% block page_title %}API Keys{% endblock %}
+
+{% block extra_css %}
+.iu-keys-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+.iu-keys-header div h2 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    margin-bottom: 0.2rem;
+}
+.iu-keys-header div p {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin: 0;
+}
+.iu-new-key-btn {
+    padding: 0.55rem 1.1rem;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    font-family: inherit;
+    background: var(--brand-primary);
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+.iu-new-key-btn:hover { box-shadow: 0 4px 14px rgba(67,97,238,0.3); }
+
+/* New key reveal */
+.iu-new-key-reveal {
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    border: 2px solid rgba(16,185,129,0.4);
+    border-radius: 14px;
+    background: rgba(16,185,129,0.05);
+}
+[data-bs-theme="dark"] .iu-new-key-reveal {
+    background: rgba(16,185,129,0.08);
+}
+.iu-new-key-reveal h4 {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #059669;
+    margin-bottom: 0.35rem;
+}
+[data-bs-theme="dark"] .iu-new-key-reveal h4 { color: #34d399; }
+.iu-new-key-reveal p {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+}
+.iu-key-raw-box {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--surface-bg);
+    border-radius: 8px;
+    padding: 0.65rem 0.85rem;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.82rem;
+    word-break: break-all;
+}
+.iu-key-raw-box code { flex: 1; }
+.iu-copy-btn {
+    background: none;
+    border: none;
+    color: var(--brand-primary);
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 0;
+    flex-shrink: 0;
+}
+.iu-copy-btn:hover { opacity: 0.7; }
+
+/* Create form */
+.iu-create-form {
+    margin-bottom: 1.5rem;
+    display: none;
+}
+.iu-create-form.open { display: block; }
+.iu-create-card {
+    padding: 1.25rem;
+}
+.iu-create-card label {
+    font-weight: 600;
+    font-size: 0.82rem;
+    margin-bottom: 0.35rem;
+    display: block;
+}
+.iu-create-card input[type="text"] {
+    width: 100%;
+    padding: 0.6rem 0.85rem;
+    border-radius: 8px;
+    border: 1.5px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-family: inherit;
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color 0.15s;
+}
+.iu-create-card input[type="text"]:focus {
+    border-color: var(--brand-primary);
+}
+.iu-create-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+.iu-create-submit {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: inherit;
+    background: var(--brand-primary);
+    color: #fff;
+    cursor: pointer;
+}
+.iu-create-cancel {
+    padding: 0.5rem 1rem;
+    border: 1.5px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: inherit;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+/* Key list */
+.iu-key-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.iu-key-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+}
+.iu-key-left {
+    flex: 1;
+    min-width: 0;
+}
+.iu-key-name {
+    font-weight: 700;
+    font-size: 0.92rem;
+    margin-bottom: 0.15rem;
+}
+.iu-key-detail {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+.iu-key-prefix {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    background: var(--surface-bg);
+    padding: 0.15rem 0.5rem;
+    border-radius: 5px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+.iu-key-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.15rem 0.55rem;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.iu-key-badge.active {
+    background: rgba(16,185,129,0.1);
+    color: #059669;
+}
+.iu-key-badge.revoked {
+    background: rgba(239,68,68,0.1);
+    color: #dc2626;
+}
+[data-bs-theme="dark"] .iu-key-badge.active { background: rgba(16,185,129,0.2); color: #34d399; }
+[data-bs-theme="dark"] .iu-key-badge.revoked { background: rgba(239,68,68,0.2); color: #f87171; }
+.iu-revoke-btn {
+    padding: 0.4rem 0.9rem;
+    border: 1.5px solid rgba(239,68,68,0.3);
+    border-radius: 8px;
+    background: transparent;
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: inherit;
+    color: #dc2626;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.iu-revoke-btn:hover {
+    background: rgba(239,68,68,0.08);
+}
+[data-bs-theme="dark"] .iu-revoke-btn { color: #f87171; }
+
+/* Stats row */
+.iu-key-stats {
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+.iu-key-stats strong {
+    color: var(--text-color);
+    font-weight: 700;
+}
+
+/* Empty */
+.iu-keys-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+}
+.iu-keys-empty i {
+    font-size: 2.5rem;
+    color: var(--text-muted);
+    opacity: 0.35;
+    margin-bottom: 0.75rem;
+    display: block;
+}
+.iu-keys-empty h4 {
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 0.3rem;
+}
+.iu-keys-empty p {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+@media (max-width: 576px) {
+    .iu-keys-header { flex-direction: column; }
+    .iu-key-item { flex-direction: column; align-items: flex-start; }
+}
+{% endblock %}
+
+{% block content %}
+<div class="iu-keys-header">
+    <div>
+        <h2>API Keys</h2>
+        <p>Generate keys to authenticate your API requests &middot; {{ api_keys|length }} / 5 keys</p>
+    </div>
+    {% if api_keys|length < 5 %}
+    <button class="iu-new-key-btn" onclick="toggleCreate()"><i class="bi bi-plus-lg me-1"></i>New Key</button>
+    {% endif %}
+</div>
+
+{% if new_key_raw %}
+<div class="iu-new-key-reveal">
+    <h4><i class="bi bi-shield-check me-1"></i>Key Created Successfully</h4>
+    <p>Copy this key now — it will never be shown again.</p>
+    <div class="iu-key-raw-box">
+        <code id="rawKey">{{ new_key_raw }}</code>
+        <button class="iu-copy-btn" onclick="copyKey()" title="Copy"><i class="bi bi-clipboard"></i></button>
+    </div>
+</div>
+{% endif %}
+
+<div class="iu-create-form" id="createForm">
+    <div class="iu-card iu-create-card">
+        <form method="post">
+            {% csrf_token %}
+            <label for="keyName">Key Name</label>
+            <input type="text" id="keyName" name="name" placeholder="e.g. Production Server" required maxlength="100" autocomplete="off">
+            <div class="iu-create-actions">
+                <button type="submit" class="iu-create-submit">Generate Key</button>
+                <button type="button" class="iu-create-cancel" onclick="toggleCreate()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if api_keys %}
+<div class="iu-key-list">
+    {% for key in api_keys %}
+    <div class="iu-card iu-key-item">
+        <div class="iu-key-left">
+            <div class="iu-key-name">{{ key.name }}</div>
+            <div class="iu-key-detail">
+                <span class="iu-key-prefix">{{ key.prefix }}…</span>
+                {% if key.is_active %}
+                <span class="iu-key-badge active">Active</span>
+                {% else %}
+                <span class="iu-key-badge revoked">Revoked</span>
+                {% endif %}
+                <span>Created {{ key.created_at|timesince }} ago</span>
+            </div>
+            <div class="iu-key-stats" style="margin-top:0.45rem;">
+                <span>Today: <strong>{{ key.calls_today }}</strong></span>
+                <span>Total: <strong>{{ key.calls_total }}</strong></span>
+                {% if key.last_used_at %}
+                <span>Last used {{ key.last_used_at|timesince }} ago</span>
+                {% else %}
+                <span>Never used</span>
+                {% endif %}
+            </div>
+        </div>
+        {% if key.is_active %}
+        <form method="post" action="{% url 'individual:revoke_api_key' %}" style="margin:0">
+            {% csrf_token %}
+            <input type="hidden" name="key_id" value="{{ key.id }}">
+            <button type="submit" class="iu-revoke-btn" onclick="return confirm('Revoke this key? API calls using it will stop working.')">Revoke</button>
+        </form>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+{% if not new_key_raw %}
+<div class="iu-card iu-keys-empty">
+    <i class="bi bi-key"></i>
+    <h4>No API keys yet</h4>
+    <p>Create your first key to start making API requests</p>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleCreate() {
+    document.getElementById('createForm').classList.toggle('open');
+}
+function copyKey() {
+    const raw = document.getElementById('rawKey').textContent;
+    navigator.clipboard.writeText(raw).then(() => {
+        const btn = document.querySelector('.iu-copy-btn');
+        btn.innerHTML = '<i class="bi bi-check-lg"></i>';
+        setTimeout(() => btn.innerHTML = '<i class="bi bi-clipboard"></i>', 1500);
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,286 @@
+{% extends 'individual/base.html' %}
+{% block title %}Dashboard — Aura Developer Portal{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+.iu-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+}
+.iu-stat {
+    padding: 1.25rem;
+}
+.iu-stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    margin-bottom: 0.75rem;
+}
+.iu-stat-icon.purple { background: rgba(67,97,238,0.1); color: #4361ee; }
+.iu-stat-icon.cyan { background: rgba(76,201,240,0.1); color: #0891b2; }
+.iu-stat-icon.green { background: rgba(16,185,129,0.1); color: #059669; }
+.iu-stat-icon.amber { background: rgba(245,158,11,0.1); color: #d97706; }
+[data-bs-theme="dark"] .iu-stat-icon.purple { background: rgba(67,97,238,0.2); color: #818cf8; }
+[data-bs-theme="dark"] .iu-stat-icon.cyan { background: rgba(76,201,240,0.2); color: #67e8f9; }
+[data-bs-theme="dark"] .iu-stat-icon.green { background: rgba(16,185,129,0.2); color: #34d399; }
+[data-bs-theme="dark"] .iu-stat-icon.amber { background: rgba(245,158,11,0.2); color: #fbbf24; }
+.iu-stat-value {
+    font-size: 1.75rem;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 0.2rem;
+}
+.iu-stat-label {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* Quick start guide */
+.iu-quick-start {
+    padding: 1.5rem;
+    margin-bottom: 1.75rem;
+    background: linear-gradient(135deg, rgba(67,97,238,0.06) 0%, rgba(76,201,240,0.04) 100%);
+    border: 1px solid rgba(67,97,238,0.15);
+}
+[data-bs-theme="dark"] .iu-quick-start {
+    background: linear-gradient(135deg, rgba(67,97,238,0.12) 0%, rgba(76,201,240,0.08) 100%);
+    border-color: rgba(67,97,238,0.25);
+}
+.iu-quick-start h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+.iu-steps {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+.iu-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    flex: 1;
+    min-width: 180px;
+}
+.iu-step-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: var(--brand-primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.iu-step-text {
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+.iu-step-text strong {
+    display: block;
+    font-size: 0.82rem;
+    margin-bottom: 2px;
+}
+.iu-step-text span {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+}
+
+/* Active subs & addon grid */
+.iu-section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.iu-section-title a {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--brand-primary);
+    text-decoration: none;
+}
+.iu-sub-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+.iu-sub-card {
+    padding: 1rem 1.15rem;
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+.iu-sub-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: rgba(67,97,238,0.1);
+    color: var(--brand-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+[data-bs-theme="dark"] .iu-sub-icon { background: rgba(67,97,238,0.2); }
+.iu-sub-info { flex: 1; min-width: 0; }
+.iu-sub-name {
+    font-weight: 600;
+    font-size: 0.88rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.iu-sub-plan {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+}
+
+/* Empty state */
+.iu-empty {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: var(--text-muted);
+}
+.iu-empty i {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+    opacity: 0.4;
+}
+.iu-empty p {
+    font-size: 0.88rem;
+    margin-bottom: 1rem;
+}
+.iu-empty a {
+    color: var(--brand-primary);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+/* API key snippet */
+.iu-code-block {
+    background: #1e293b;
+    color: #e2e8f0;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    font-family: 'SF Mono', 'Consolas', monospace;
+    font-size: 0.8rem;
+    overflow-x: auto;
+    line-height: 1.6;
+    margin-top: 1rem;
+}
+.iu-code-block .iu-code-comment { color: #64748b; }
+.iu-code-block .iu-code-string { color: #34d399; }
+.iu-code-block .iu-code-key { color: #38bdf8; }
+
+@media (max-width: 576px) {
+    .iu-stats { grid-template-columns: 1fr 1fr; }
+    .iu-steps { flex-direction: column; }
+}
+{% endblock %}
+
+{% block content %}
+<!-- Stats -->
+<div class="iu-stats">
+    <div class="iu-card iu-stat">
+        <div class="iu-stat-icon purple"><i class="bi bi-box-seam"></i></div>
+        <div class="iu-stat-value">{{ subscription_count }}</div>
+        <div class="iu-stat-label">Active Addons</div>
+    </div>
+    <div class="iu-card iu-stat">
+        <div class="iu-stat-icon cyan"><i class="bi bi-key"></i></div>
+        <div class="iu-stat-value">{{ api_key_count }}</div>
+        <div class="iu-stat-label">API Keys</div>
+    </div>
+    <div class="iu-card iu-stat">
+        <div class="iu-stat-icon green"><i class="bi bi-arrow-repeat"></i></div>
+        <div class="iu-stat-value">{{ total_api_calls|default:"0" }}</div>
+        <div class="iu-stat-label">Total API Calls</div>
+    </div>
+    <div class="iu-card iu-stat">
+        <div class="iu-stat-icon amber"><i class="bi bi-grid-3x3-gap"></i></div>
+        <div class="iu-stat-value">{{ catalog_count }}</div>
+        <div class="iu-stat-label">Available Addons</div>
+    </div>
+</div>
+
+<!-- Quick Start -->
+<div class="iu-card iu-quick-start">
+    <h3><i class="bi bi-lightning-charge me-1"></i> Quick Start</h3>
+    <div class="iu-steps">
+        <div class="iu-step">
+            <div class="iu-step-num">1</div>
+            <div class="iu-step-text">
+                <strong>Subscribe to an addon</strong>
+                <span>Browse the <a href="{% url 'individual:addons' %}">Addon Store</a></span>
+            </div>
+        </div>
+        <div class="iu-step">
+            <div class="iu-step-num">2</div>
+            <div class="iu-step-text">
+                <strong>Generate an API key</strong>
+                <span>Go to <a href="{% url 'individual:api_keys' %}">API Keys</a></span>
+            </div>
+        </div>
+        <div class="iu-step">
+            <div class="iu-step-num">3</div>
+            <div class="iu-step-text">
+                <strong>Make your first call</strong>
+                <span>Use the code sample below</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="iu-code-block">
+        <span class="iu-code-comment"># Verify your API key</span><br>
+        <span class="iu-code-key">curl</span> -H <span class="iu-code-string">"Authorization: Bearer YOUR_API_KEY"</span> \<br>
+        &nbsp;&nbsp;&nbsp;&nbsp; {{ request.scheme }}://{{ request.get_host }}/u/api/status/
+    </div>
+</div>
+
+<!-- Active Subscriptions -->
+<div class="iu-section-title">
+    Active Subscriptions
+    <a href="{% url 'individual:addons' %}">Browse addons <i class="bi bi-arrow-right"></i></a>
+</div>
+
+{% if subscriptions %}
+<div class="iu-sub-grid">
+    {% for sub in subscriptions %}
+    <div class="iu-card iu-sub-card">
+        <div class="iu-sub-icon"><i class="bi bi-box-seam"></i></div>
+        <div class="iu-sub-info">
+            <div class="iu-sub-name">{{ sub.addon_name }}</div>
+            <div class="iu-sub-plan">{{ sub.get_plan_display }} plan</div>
+        </div>
+        <span class="iu-badge iu-badge-active">Active</span>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="iu-card">
+    <div class="iu-empty">
+        <i class="bi bi-box-seam d-block"></i>
+        <p>No active subscriptions yet</p>
+        <a href="{% url 'individual:addons' %}">Explore the Addon Store</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

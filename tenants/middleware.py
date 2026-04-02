@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 def get_reserved_paths():
     """Reserved non-tenant URL segments — cached once per process."""
     return frozenset({
-        'static', 'media', 'admin', 'accounts', 'signup', 'login', 'logout',
+        'static', 'media', 'admin', 'accounts', 'signup', 'login', 'logout', 'u',
         'debug', 'favicon.ico', 'favicon.png', 'apple-touch-icon.png',
         'apple-touch-icon-precomposed.png', 'favicon.svg', 'robots.txt',
         'sitemap.xml', 'dashboard', 'tenants', 'find-school', 'sw.js',

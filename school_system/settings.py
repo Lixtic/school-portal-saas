@@ -130,7 +130,8 @@ SHARED_APPS = [
     'crispy_bootstrap5',
     
     # Local apps that need to exist in public schema (e.g. for superuser)
-    'accounts', 
+    'accounts',
+    'individual_users',
 ]
 
 # Conditionally add rest_framework if installed
@@ -399,6 +400,13 @@ AUTH_USER_MODEL = 'accounts.User'
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'individual_users.backends.EmailOrPhoneBackend',
+]
+
+GOOGLE_OAUTH_CLIENT_ID = os.environ.get('GOOGLE_OAUTH_CLIENT_ID', '')
 
 # =====================
 # SCHOOL DOMAIN CONFIGURATION

@@ -1,0 +1,281 @@
+{% extends 'individual/base.html' %}
+{% block title %}Addon Store — Aura Developer Portal{% endblock %}
+{% block page_title %}Addon Store{% endblock %}
+
+{% block extra_css %}
+.iu-addon-header {
+    margin-bottom: 1.75rem;
+}
+.iu-addon-header h2 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    margin-bottom: 0.25rem;
+}
+.iu-addon-header p {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    margin: 0;
+}
+
+/* Filters */
+.iu-filter-bar {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+.iu-filter-chip {
+    padding: 0.35rem 0.85rem;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border: 1.5px solid var(--border-color);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+    text-transform: capitalize;
+}
+.iu-filter-chip:hover,
+.iu-filter-chip.active {
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
+    background: rgba(67,97,238,0.06);
+}
+[data-bs-theme="dark"] .iu-filter-chip.active {
+    background: rgba(67,97,238,0.15);
+}
+
+/* Grid */
+.iu-addon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+.iu-addon-card {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow 0.15s, transform 0.15s;
+}
+.iu-addon-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+}
+.iu-addon-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    margin-bottom: 0.85rem;
+}
+.iu-addon-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(67,97,238,0.1);
+    color: var(--brand-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+.iu-addon-icon.ai { background: rgba(124,58,237,0.1); color: #7c3aed; }
+.iu-addon-icon.analytics { background: rgba(16,185,129,0.1); color: #059669; }
+.iu-addon-icon.finance { background: rgba(245,158,11,0.1); color: #d97706; }
+.iu-addon-icon.communication { background: rgba(236,72,153,0.1); color: #db2777; }
+.iu-addon-icon.documents { background: rgba(59,130,246,0.1); color: #2563eb; }
+.iu-addon-icon.management { background: rgba(20,184,166,0.1); color: #0d9488; }
+[data-bs-theme="dark"] .iu-addon-icon { opacity: 0.9; }
+[data-bs-theme="dark"] .iu-addon-icon.ai { background: rgba(124,58,237,0.2); }
+[data-bs-theme="dark"] .iu-addon-icon.analytics { background: rgba(16,185,129,0.2); }
+[data-bs-theme="dark"] .iu-addon-icon.finance { background: rgba(245,158,11,0.2); }
+[data-bs-theme="dark"] .iu-addon-icon.communication { background: rgba(236,72,153,0.2); }
+[data-bs-theme="dark"] .iu-addon-icon.documents { background: rgba(59,130,246,0.2); }
+[data-bs-theme="dark"] .iu-addon-icon.management { background: rgba(20,184,166,0.2); }
+.iu-addon-meta { flex: 1; }
+.iu-addon-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 0.15rem;
+}
+.iu-addon-cat {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+}
+.iu-addon-desc {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    flex: 1;
+    margin-bottom: 1rem;
+}
+.iu-addon-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.iu-addon-plans {
+    display: flex;
+    gap: 4px;
+}
+.iu-plan-tag {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 0.15rem 0.45rem;
+    border-radius: 5px;
+    background: var(--surface-bg);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.iu-subscribe-btn {
+    padding: 0.4rem 1rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.iu-subscribe-btn.available {
+    background: var(--brand-primary);
+    color: #fff;
+}
+.iu-subscribe-btn.available:hover {
+    box-shadow: 0 4px 12px rgba(67,97,238,0.3);
+}
+.iu-subscribe-btn.subscribed {
+    background: rgba(16,185,129,0.1);
+    color: #059669;
+    cursor: default;
+}
+[data-bs-theme="dark"] .iu-subscribe-btn.subscribed {
+    background: rgba(16,185,129,0.2);
+    color: #34d399;
+}
+
+/* Toast */
+.iu-toast {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: #1e293b;
+    color: #f1f5f9;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    z-index: 9999;
+    transform: translateY(20px);
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+.iu-toast.show { transform: translateY(0); opacity: 1; }
+
+@media (max-width: 576px) {
+    .iu-addon-grid { grid-template-columns: 1fr; }
+}
+{% endblock %}
+
+{% block content %}
+<div class="iu-addon-header">
+    <h2>Addon Store</h2>
+    <p>Subscribe to APIs and build powerful education tools</p>
+</div>
+
+<div class="iu-filter-bar">
+    <button class="iu-filter-chip active" data-cat="all">All</button>
+    {% for cat in categories %}
+    <button class="iu-filter-chip" data-cat="{{ cat }}">{{ cat }}</button>
+    {% endfor %}
+</div>
+
+<div class="iu-addon-grid" id="addonGrid">
+    {% for addon in catalog %}
+    <div class="iu-card iu-addon-card" data-cat="{{ addon.category }}" data-slug="{{ addon.slug }}">
+        <div class="iu-addon-top">
+            <div class="iu-addon-icon {{ addon.category }}"><i class="bi {{ addon.icon }}"></i></div>
+            <div class="iu-addon-meta">
+                <div class="iu-addon-name">{{ addon.name }}</div>
+                <div class="iu-addon-cat">{{ addon.category }}</div>
+            </div>
+        </div>
+        <div class="iu-addon-desc">{{ addon.description }}</div>
+        <div class="iu-addon-footer">
+            <div class="iu-addon-plans">
+                {% for plan in addon.plans %}
+                <span class="iu-plan-tag">{{ plan }}</span>
+                {% endfor %}
+            </div>
+            {% if addon.subscribed %}
+            <button class="iu-subscribe-btn subscribed" disabled>
+                <i class="bi bi-check-circle me-1"></i>Subscribed
+            </button>
+            {% else %}
+            <button class="iu-subscribe-btn available" onclick="subscribeAddon('{{ addon.slug }}', '{{ addon.plans.0 }}', this)">
+                Subscribe
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="iu-toast" id="iuToast"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function getCookie(n){const v=document.cookie.match('(^|;)\\s*'+n+'=([^;]*)');return v?decodeURIComponent(v[2]):null;}
+
+// Filter
+document.querySelectorAll('.iu-filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+        document.querySelectorAll('.iu-filter-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        const cat = chip.dataset.cat;
+        document.querySelectorAll('.iu-addon-card').forEach(card => {
+            card.style.display = (cat === 'all' || card.dataset.cat === cat) ? '' : 'none';
+        });
+    });
+});
+
+// Subscribe
+function subscribeAddon(slug, plan, btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>…';
+    const fd = new FormData();
+    fd.append('addon_slug', slug);
+    fd.append('plan', plan);
+    fd.append('csrfmiddlewaretoken', getCookie('csrftoken') || '{{ csrf_token }}');
+    fetch('{% url "individual:subscribe_addon" %}', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) {
+            btn.className = 'iu-subscribe-btn subscribed';
+            btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Subscribed';
+            showToast('Subscribed to ' + data.addon);
+        } else {
+            btn.disabled = false;
+            btn.textContent = 'Subscribe';
+            showToast(data.error || 'Failed');
+        }
+    })
+    .catch(() => { btn.disabled = false; btn.textContent = 'Subscribe'; });
+}
+
+function showToast(msg) {
+    const t = document.getElementById('iuToast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+{% endblock %}

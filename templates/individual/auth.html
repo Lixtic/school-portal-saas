@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% if is_signin %}Sign In{% else %}Create Account{% endif %} — Aura Developer Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Instrument+Serif&display=swap" rel="stylesheet">
+    {% if google_client_id %}
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    {% endif %}
+    <style>
+        :root {
+            --brand-primary: #4361ee;
+            --brand-secondary: #4cc9f0;
+            --surface-bg: #f0f2f5;
+            --surface-card: #ffffff;
+            --text-main: #111827;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+        }
+        [data-bs-theme="dark"] {
+            --surface-bg: #0c0f1a;
+            --surface-card: #161b2e;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border-color: #1e293b;
+        }
+        * { font-family: 'Manrope', system-ui, sans-serif; box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            background: var(--surface-bg);
+            color: var(--text-main);
+        }
+
+        /* ── Left panel: brand showcase ───────────── */
+        .auth-brand {
+            flex: 0 0 44%;
+            background: linear-gradient(160deg, #0c0f1a 0%, #1a1147 40%, #4361ee 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 3rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .auth-brand::before {
+            content: '';
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(76,201,240,0.15) 0%, transparent 70%);
+            top: -100px;
+            right: -150px;
+        }
+        .auth-brand::after {
+            content: '';
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(67,97,238,0.2) 0%, transparent 70%);
+            bottom: -80px;
+            left: -100px;
+        }
+        .auth-brand-inner {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            max-width: 380px;
+        }
+        .auth-brand-logo {
+            width: 56px;
+            height: 56px;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+        }
+        .auth-brand h1 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 2.8rem;
+            font-weight: 400;
+            color: #fff;
+            line-height: 1.15;
+            margin-bottom: 1rem;
+        }
+        .auth-brand h1 em {
+            font-style: italic;
+            background: linear-gradient(90deg, #4cc9f0, #a5f3fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .auth-brand p {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        .auth-features {
+            margin-top: 2.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .auth-feature {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            color: rgba(255,255,255,0.75);
+            font-size: 0.85rem;
+        }
+        .auth-feature-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #4cc9f0;
+            flex-shrink: 0;
+        }
+
+        /* ── Right panel: form area ───────────────── */
+        .auth-form-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+        .auth-form-wrap {
+            width: 100%;
+            max-width: 420px;
+        }
+        .auth-form-header {
+            margin-bottom: 2rem;
+        }
+        .auth-form-header h2 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 0.35rem;
+        }
+        .auth-form-header p {
+            color: var(--text-muted);
+            font-size: 0.88rem;
+            margin: 0;
+        }
+        .auth-form-header p a {
+            color: var(--brand-primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .auth-form-header p a:hover { text-decoration: underline; }
+
+        /* ── Tabs ─────────────────────────────────── */
+        .auth-tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--surface-bg);
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 1.5rem;
+        }
+        [data-bs-theme="dark"] .auth-tabs { background: rgba(255,255,255,0.05); }
+        .auth-tab {
+            flex: 1;
+            text-align: center;
+            padding: 0.55rem 0;
+            font-size: 0.82rem;
+            font-weight: 600;
+            border-radius: 9px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            transition: all 0.15s ease;
+        }
+        .auth-tab.active {
+            background: var(--surface-card);
+            color: var(--text-main);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .auth-tab i { margin-right: 4px; }
+
+        /* ── Form ─────────────────────────────────── */
+        .auth-pane { display: none; }
+        .auth-pane.active { display: block; }
+        .auth-field {
+            margin-bottom: 1rem;
+        }
+        .auth-field label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 0.35rem;
+        }
+        .auth-field input {
+            width: 100%;
+            padding: 0.65rem 0.85rem;
+            border: 1.5px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--surface-card);
+            color: var(--text-main);
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: border-color 0.15s;
+            outline: none;
+        }
+        .auth-field input:focus {
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 3px rgba(67,97,238,0.12);
+        }
+        .auth-field .error-text {
+            font-size: 0.75rem;
+            color: #ef4444;
+            margin-top: 0.25rem;
+        }
+        .auth-submit {
+            width: 100%;
+            padding: 0.7rem;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #4361ee 0%, #4cc9f0 100%);
+            color: #fff;
+            font-size: 0.9rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.15s;
+            margin-top: 0.5rem;
+        }
+        .auth-submit:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(67,97,238,0.3);
+        }
+        .auth-submit:active { transform: translateY(0); }
+
+        /* ── Google button ────────────────────────── */
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 1.25rem 0;
+            color: var(--text-muted);
+            font-size: 0.78rem;
+        }
+        .auth-divider::before,
+        .auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-color);
+        }
+        .google-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            padding: 0.65rem;
+            border: 1.5px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--surface-card);
+            color: var(--text-main);
+            font-size: 0.88rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .google-btn:hover {
+            border-color: var(--brand-primary);
+            box-shadow: 0 2px 8px rgba(67,97,238,0.1);
+        }
+        .google-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* ── Alerts ───────────────────────────────── */
+        .auth-alert {
+            padding: 0.65rem 1rem;
+            border-radius: 10px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            background: rgba(239,68,68,0.08);
+            color: #dc2626;
+            border: 1px solid rgba(239,68,68,0.15);
+        }
+        [data-bs-theme="dark"] .auth-alert {
+            background: rgba(239,68,68,0.15);
+            color: #fca5a5;
+        }
+
+        /* ── Theme toggle ─────────────────────────── */
+        .auth-theme-toggle {
+            position: fixed;
+            top: 1.25rem;
+            right: 1.25rem;
+            z-index: 10;
+            background: var(--surface-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: all 0.15s;
+        }
+        .auth-theme-toggle:hover { color: var(--brand-primary); }
+
+        /* ── Home link ────────────────────────────── */
+        .auth-home-link {
+            position: fixed;
+            top: 1.25rem;
+            left: 1.25rem;
+            z-index: 10;
+            color: rgba(255,255,255,0.6);
+            font-size: 0.82rem;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: color 0.15s;
+        }
+        .auth-home-link:hover { color: #fff; }
+
+        /* ── Mobile ───────────────────────────────── */
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .auth-brand {
+                flex: none;
+                padding: 2.5rem 1.5rem 2rem;
+            }
+            .auth-brand h1 { font-size: 2rem; }
+            .auth-features { display: none; }
+            .auth-form-panel { padding: 1.5rem; }
+            .auth-home-link {
+                position: static;
+                color: rgba(255,255,255,0.5);
+                margin-bottom: 1rem;
+            }
+        }
+
+        /* ── Password toggle ──────────────────────── */
+        .pw-wrap {
+            position: relative;
+        }
+        .pw-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Home link -->
+    <a href="{% url 'home' %}" class="auth-home-link">
+        <i class="bi bi-arrow-left"></i> Back to home
+    </a>
+
+    <!-- Theme toggle -->
+    <button class="auth-theme-toggle" id="themeToggle" title="Toggle theme">
+        <i class="bi bi-moon"></i>
+    </button>
+
+    <!-- Left: Brand panel -->
+    <div class="auth-brand">
+        <div class="auth-brand-inner">
+            <div class="auth-brand-logo">A</div>
+            <h1>Build with the<br><em>Aura Platform</em></h1>
+            <p>Access powerful education APIs — AI tutoring, grade analytics, exam generation, and more. Ship faster with our developer tools.</p>
+            <div class="auth-features">
+                <div class="auth-feature"><span class="auth-feature-dot"></span> AI-powered education APIs</div>
+                <div class="auth-feature"><span class="auth-feature-dot"></span> Real-time analytics & insights</div>
+                <div class="auth-feature"><span class="auth-feature-dot"></span> Scalable per-addon subscriptions</div>
+                <div class="auth-feature"><span class="auth-feature-dot"></span> Simple REST endpoints with API keys</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Auth form -->
+    <div class="auth-form-panel">
+        <div class="auth-form-wrap">
+            <div class="auth-form-header">
+                {% if is_signin %}
+                <h2>Welcome back</h2>
+                <p>Don't have an account? <a href="{% url 'individual:signup' %}">Create one</a></p>
+                {% else %}
+                <h2>Create your account</h2>
+                <p>Already have one? <a href="{% url 'individual:signin' %}">Sign in</a></p>
+                {% endif %}
+            </div>
+
+            {% if messages %}
+            {% for msg in messages %}
+            <div class="auth-alert">{{ msg }}</div>
+            {% endfor %}
+            {% endif %}
+
+            <!-- Google Sign-In -->
+            {% if google_client_id %}
+            <button type="button" class="google-btn" id="googleBtn">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                Continue with Google
+            </button>
+            <div class="auth-divider">or</div>
+            {% endif %}
+
+            <!-- Tabs -->
+            <div class="auth-tabs">
+                <button class="auth-tab {% if active_tab == 'email' %}active{% endif %}" data-tab="email">
+                    <i class="bi bi-envelope"></i> Email
+                </button>
+                <button class="auth-tab {% if active_tab == 'phone' %}active{% endif %}" data-tab="phone">
+                    <i class="bi bi-phone"></i> Phone
+                </button>
+            </div>
+
+            <!-- Email pane -->
+            <div class="auth-pane {% if active_tab == 'email' %}active{% endif %}" id="pane-email">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="{% if is_signin %}signin_method{% else %}signup_method{% endif %}" value="email">
+
+                    {% if not is_signin %}
+                    <div class="auth-field">
+                        <label for="email_name">Full name</label>
+                        <input type="text" id="email_name" name="full_name" value="{{ email_form.full_name.value|default:'' }}" placeholder="Full name" required autocomplete="name">
+                        {% if email_form.full_name.errors %}<div class="error-text">{{ email_form.full_name.errors.0 }}</div>{% endif %}
+                    </div>
+                    {% endif %}
+
+                    <div class="auth-field">
+                        <label for="email_input">Email address</label>
+                        <input type="email" id="email_input" name="email" value="{{ email_form.email.value|default:'' }}" placeholder="you@example.com" required autocomplete="email">
+                        {% if email_form.email.errors %}<div class="error-text">{{ email_form.email.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="auth-field">
+                        <label for="email_pw">Password</label>
+                        <div class="pw-wrap">
+                            <input type="password" id="email_pw" name="password" placeholder="{% if is_signin %}Enter password{% else %}Min. 8 characters{% endif %}" required autocomplete="{% if is_signin %}current-password{% else %}new-password{% endif %}">
+                            <button type="button" class="pw-toggle" tabindex="-1"><i class="bi bi-eye"></i></button>
+                        </div>
+                        {% if email_form.password.errors %}<div class="error-text">{{ email_form.password.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <button type="submit" class="auth-submit">{% if is_signin %}Sign In{% else %}Create Account{% endif %}</button>
+                </form>
+            </div>
+
+            <!-- Phone pane -->
+            <div class="auth-pane {% if active_tab == 'phone' %}active{% endif %}" id="pane-phone">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="{% if is_signin %}signin_method{% else %}signup_method{% endif %}" value="phone">
+
+                    {% if not is_signin %}
+                    <div class="auth-field">
+                        <label for="phone_name">Full name</label>
+                        <input type="text" id="phone_name" name="full_name" value="{{ phone_form.full_name.value|default:'' }}" placeholder="Full name" required autocomplete="name">
+                        {% if phone_form.full_name.errors %}<div class="error-text">{{ phone_form.full_name.errors.0 }}</div>{% endif %}
+                    </div>
+                    {% endif %}
+
+                    <div class="auth-field">
+                        <label for="phone_input">Phone number</label>
+                        <input type="tel" id="phone_input" name="phone" value="{{ phone_form.phone.value|default:'' }}" placeholder="+233 XX XXX XXXX" required autocomplete="tel">
+                        {% if phone_form.phone.errors %}<div class="error-text">{{ phone_form.phone.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="auth-field">
+                        <label for="phone_pw">Password</label>
+                        <div class="pw-wrap">
+                            <input type="password" id="phone_pw" name="password" placeholder="{% if is_signin %}Enter password{% else %}Min. 8 characters{% endif %}" required autocomplete="{% if is_signin %}current-password{% else %}new-password{% endif %}">
+                            <button type="button" class="pw-toggle" tabindex="-1"><i class="bi bi-eye"></i></button>
+                        </div>
+                        {% if phone_form.password.errors %}<div class="error-text">{{ phone_form.password.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <button type="submit" class="auth-submit">{% if is_signin %}Sign In{% else %}Create Account{% endif %}</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Tab switching
+    document.querySelectorAll('.auth-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.auth-pane').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('pane-' + btn.dataset.tab).classList.add('active');
+        });
+    });
+
+    // Password toggle
+    document.querySelectorAll('.pw-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const inp = btn.previousElementSibling;
+            const show = inp.type === 'password';
+            inp.type = show ? 'text' : 'password';
+            btn.querySelector('i').className = show ? 'bi bi-eye-slash' : 'bi bi-eye';
+        });
+    });
+
+    // Theme
+    const html = document.documentElement;
+    const themeBtn = document.getElementById('themeToggle');
+    const stored = localStorage.getItem('iu_theme');
+    if (stored) html.setAttribute('data-bs-theme', stored);
+    themeBtn.addEventListener('click', () => {
+        const next = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-bs-theme', next);
+        localStorage.setItem('iu_theme', next);
+        themeBtn.querySelector('i').className = next === 'dark' ? 'bi bi-sun' : 'bi bi-moon';
+    });
+    if (html.getAttribute('data-bs-theme') === 'dark') {
+        themeBtn.querySelector('i').className = 'bi bi-sun';
+    }
+
+    // Google Sign-In
+    {% if google_client_id %}
+    const GOOGLE_CLIENT_ID = '{{ google_client_id }}';
+    function handleGoogleCredential(response) {
+        const form = new FormData();
+        form.append('credential', response.credential);
+        form.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        fetch('{% url "individual:google_auth" %}', { method: 'POST', body: form })
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) window.location.href = data.redirect;
+            else alert(data.error || 'Google sign-in failed');
+        })
+        .catch(() => alert('Network error during Google sign-in'));
+    }
+    document.getElementById('googleBtn')?.addEventListener('click', () => {
+        google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: handleGoogleCredential,
+        });
+        google.accounts.id.prompt();
+    });
+    {% endif %}
+    </script>
+</body>
+</html>
