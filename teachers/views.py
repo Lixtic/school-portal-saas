@@ -8374,6 +8374,286 @@ def addon_exam_paper_docx(request, **kwargs):
     return response
 
 
+@login_required
+@requires_addon('exam-question-bank')
+def addon_exam_paper_pdf(request, **kwargs):
+    """Export exam paper as a clean PDF using ReportLab."""
+    import io
+    import re
+    from collections import OrderedDict
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import cm, mm
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.colors import HexColor, black, white
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    from reportlab.platypus import (
+        SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
+        HRFlowable, PageBreak,
+    )
+    from teachers.models import ExamPaper
+
+    _OPT_PREFIX_RE = re.compile(r'^[A-Da-d][.)\]:]\s*')
+
+    paper_id = request.GET.get('id')
+    if not paper_id:
+        return redirect('teachers:addon_question_bank')
+    paper = get_object_or_404(ExamPaper, id=paper_id, teacher=request.user)
+
+    questions_qs = list(paper.questions.all().order_by('question_format', 'id'))
+
+    FORMAT_LABELS = {
+        'mcq': 'Multiple Choice', 'fill': 'Fill in the Blank',
+        'short': 'Short Answer', 'essay': 'Essay',
+        'truefalse': 'True or False',
+    }
+    sections = []
+    if questions_qs:
+        grouped = OrderedDict()
+        for q in questions_qs:
+            grouped.setdefault(q.question_format, []).append(q)
+        counter = 1
+        letter_idx = 0
+        for fmt, qs_list in grouped.items():
+            numbered = []
+            for q_obj in qs_list:
+                numbered.append({'number': counter, 'obj': q_obj})
+                counter += 1
+            sections.append({
+                'letter': chr(65 + letter_idx),
+                'label': FORMAT_LABELS.get(fmt, fmt),
+                'format': fmt,
+                'questions': numbered,
+            })
+            letter_idx += 1
+    if len(sections) <= 1:
+        sections = []
+
+    school_name = getattr(request, 'tenant', None) and request.tenant.name or ''
+    school_motto = ''
+    try:
+        from academics.models import SchoolInfo
+        si = SchoolInfo.objects.first()
+        if si:
+            school_name = si.name or school_name
+            school_motto = si.motto or ''
+    except Exception:
+        pass
+
+    # ── Build PDF ──
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        topMargin=1.5 * cm, bottomMargin=1.8 * cm,
+        leftMargin=2 * cm, rightMargin=2 * cm,
+    )
+
+    styles = getSampleStyleSheet()
+    accent = HexColor('#4361ee')
+    muted = HexColor('#555555')
+
+    s_school = ParagraphStyle('School', parent=styles['Title'], fontSize=14,
+        fontName='Times-Bold', alignment=TA_CENTER, spaceAfter=2,
+        textColor=black)
+    s_motto = ParagraphStyle('Motto', parent=styles['Normal'], fontSize=9,
+        fontName='Times-Italic', alignment=TA_CENTER, spaceAfter=6,
+        textColor=muted)
+    s_paper_title = ParagraphStyle('PaperTitle', parent=styles['Title'],
+        fontSize=13, fontName='Times-Bold', alignment=TA_CENTER, spaceAfter=4,
+        textColor=black)
+    s_meta = ParagraphStyle('Meta', parent=styles['Normal'], fontSize=9,
+        fontName='Times-Roman', alignment=TA_CENTER, spaceAfter=8,
+        textColor=muted)
+    s_section = ParagraphStyle('Section', parent=styles['Heading2'],
+        fontSize=10, fontName='Times-Bold', spaceBefore=12, spaceAfter=4,
+        textColor=black, borderWidth=1, borderColor=black, borderPadding=4)
+    s_q = ParagraphStyle('Question', parent=styles['Normal'], fontSize=11,
+        fontName='Times-Roman', spaceBefore=6, spaceAfter=2,
+        leftIndent=0.6 * cm, firstLineIndent=-0.6 * cm)
+    s_opt = ParagraphStyle('Option', parent=styles['Normal'], fontSize=10,
+        fontName='Times-Roman', spaceBefore=0, spaceAfter=1,
+        leftIndent=1.4 * cm)
+    s_line = ParagraphStyle('AnswerLine', parent=styles['Normal'], fontSize=9,
+        fontName='Times-Roman', leftIndent=1.4 * cm, spaceAfter=1,
+        textColor=HexColor('#aaaaaa'))
+    s_footer = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=10,
+        fontName='Times-Bold', alignment=TA_CENTER, spaceBefore=14)
+    s_footer_meta = ParagraphStyle('FooterMeta', parent=styles['Normal'],
+        fontSize=8, fontName='Times-Roman', alignment=TA_CENTER,
+        textColor=muted)
+    # Marking scheme styles
+    s_ms_title = ParagraphStyle('MSTitle', parent=styles['Title'], fontSize=14,
+        fontName='Times-Bold', alignment=TA_CENTER, spaceAfter=4)
+    s_ms_sub = ParagraphStyle('MSSub', parent=styles['Normal'], fontSize=9,
+        fontName='Times-Roman', alignment=TA_CENTER, spaceAfter=8,
+        textColor=muted)
+    s_ms_cell = ParagraphStyle('MSCell', parent=styles['Normal'], fontSize=9,
+        fontName='Times-Roman', spaceAfter=0, spaceBefore=0)
+    s_ms_answer = ParagraphStyle('MSAnswer', parent=s_ms_cell,
+        textColor=HexColor('#0d6e3f'))
+    s_ms_expl = ParagraphStyle('MSExpl', parent=s_ms_cell, fontSize=8,
+        fontName='Times-Italic', textColor=muted)
+
+    story = []
+
+    # Masthead
+    if school_name:
+        story.append(Paragraph(school_name.upper(), s_school))
+    if school_motto:
+        story.append(Paragraph(f'"{school_motto}"', s_motto))
+
+    story.append(HRFlowable(width="80%", thickness=0.5, color=black,
+        spaceBefore=2, spaceAfter=6, hAlign='CENTER'))
+    story.append(Paragraph(paper.title.upper(), s_paper_title))
+
+    meta_parts = []
+    if paper.subject:
+        meta_parts.append(paper.subject.name)
+    if paper.target_class:
+        meta_parts.append(paper.target_class.name)
+    meta_parts.append(f'Duration: {paper.duration_minutes} mins')
+    meta_parts.append(f'{len(questions_qs)} Question{"s" if len(questions_qs) != 1 else ""}')
+    story.append(Paragraph('  |  '.join(meta_parts), s_meta))
+
+    # Candidate box
+    cand_data = [
+        ['NAME: ____________________________', 'INDEX NO: ____________________________'],
+        ['CLASS: ____________________________', 'DATE: ________________________________'],
+    ]
+    cand_style = TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'Times-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('BOX', (0, 0), (-1, -1), 0.5, black),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, black),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+    ])
+    avail_width = A4[0] - 4 * cm
+    cand_table = Table(cand_data, colWidths=[avail_width / 2] * 2)
+    cand_table.setStyle(cand_style)
+    story.append(cand_table)
+    story.append(Spacer(1, 8))
+
+    # Instructions
+    if paper.instructions:
+        s_instr_head = ParagraphStyle('InstrHead', parent=styles['Normal'],
+            fontSize=8, fontName='Times-Bold', spaceAfter=2)
+        s_instr = ParagraphStyle('Instr', parent=styles['Normal'],
+            fontSize=10, fontName='Times-Roman', spaceAfter=8)
+        story.append(Paragraph('INSTRUCTIONS TO CANDIDATES', s_instr_head))
+        story.append(Paragraph(paper.instructions, s_instr))
+
+    # Helper to escape XML for Paragraph
+    def esc(text):
+        return (str(text).replace('&', '&amp;').replace('<', '&lt;')
+                .replace('>', '&gt;'))
+
+    def render_q_pdf(q_obj, number):
+        story.append(Paragraph(
+            f'<b>{number}.</b> {esc(q_obj.question_text)}', s_q))
+        fmt = q_obj.question_format
+        if fmt == 'mcq' and q_obj.options:
+            for idx, opt in enumerate(q_obj.options):
+                letter = chr(65 + idx)
+                opt_text = _OPT_PREFIX_RE.sub('', str(opt))
+                story.append(Paragraph(
+                    f'<b>{letter}.</b> {esc(opt_text)}', s_opt))
+        elif fmt == 'truefalse':
+            story.append(Paragraph(
+                '\u2610 True          \u2610 False', s_opt))
+        elif fmt == 'fill':
+            story.append(Paragraph(
+                'Answer: ___________________________________', s_line))
+        elif fmt == 'short':
+            for _ in range(4):
+                story.append(Paragraph('_' * 70, s_line))
+        elif fmt == 'essay':
+            for _ in range(8):
+                story.append(Paragraph('_' * 70, s_line))
+
+    # Render sections or flat
+    if sections:
+        for sec in sections:
+            count = len(sec['questions'])
+            story.append(Paragraph(
+                f"SECTION {sec['letter']}: {sec['label']}"
+                f"    <font color='#646464' size='9'>"
+                f"[{count} question{'s' if count != 1 else ''}]</font>",
+                s_section))
+            for q in sec['questions']:
+                render_q_pdf(q['obj'], q['number'])
+    else:
+        for idx, q_obj in enumerate(questions_qs, 1):
+            render_q_pdf(q_obj, idx)
+
+    # Footer
+    story.append(HRFlowable(width="100%", thickness=1, color=black,
+        spaceBefore=14, spaceAfter=4, hAlign='CENTER'))
+    story.append(Paragraph('\u2014 End of Paper \u2014', s_footer))
+    summary_parts = [
+        f'{len(questions_qs)} question{"s" if len(questions_qs) != 1 else ""}',
+        f'{paper.duration_minutes} minutes',
+    ]
+    if paper.subject:
+        summary_parts.append(paper.subject.name)
+    story.append(Paragraph(' \u00b7 '.join(summary_parts), s_footer_meta))
+
+    # ── Marking Scheme (page 2) ──
+    story.append(PageBreak())
+    story.append(Paragraph('MARKING SCHEME', s_ms_title))
+    if school_name:
+        story.append(Paragraph(
+            f'{esc(school_name)} \u2014 {esc(paper.title)}', s_ms_sub))
+    story.append(HRFlowable(width="80%", thickness=0.5, color=black,
+        spaceBefore=2, spaceAfter=8, hAlign='CENTER'))
+
+    all_questions = []
+    if sections:
+        for sec in sections:
+            for q in sec['questions']:
+                all_questions.append((q['number'], q['obj']))
+    else:
+        for idx, q_obj in enumerate(questions_qs, 1):
+            all_questions.append((idx, q_obj))
+
+    ms_data = [[
+        Paragraph('<b>No.</b>', s_ms_cell),
+        Paragraph('<b>Answer</b>', s_ms_cell),
+        Paragraph('<b>Explanation</b>', s_ms_cell),
+    ]]
+    for num, q_obj in all_questions:
+        ms_data.append([
+            Paragraph(f'<b>{num}</b>', s_ms_cell),
+            Paragraph(esc(q_obj.correct_answer or '\u2014'), s_ms_answer),
+            Paragraph(esc(q_obj.explanation or ''), s_ms_expl),
+        ])
+
+    col_widths = [1.2 * cm, 5.5 * cm, avail_width - 6.7 * cm]
+    ms_table = Table(ms_data, colWidths=col_widths, repeatRows=1)
+    ms_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'Times-Roman'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BACKGROUND', (0, 0), (-1, 0), HexColor('#E8E8E8')),
+        ('FONTNAME', (0, 0), (-1, 0), 'Times-Bold'),
+        ('BOX', (0, 0), (-1, -1), 0.5, HexColor('#999999')),
+        ('INNERGRID', (0, 0), (-1, -1), 0.25, HexColor('#999999')),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    story.append(ms_table)
+
+    doc.build(story)
+    buf.seek(0)
+
+    safe_title = ''.join(c for c in paper.title if c.isalnum() or c in ' _-').strip()[:80]
+    filename = f'{safe_title or "Exam_Paper"}.pdf'
+
+    response = HttpResponse(buf.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
 # ── 3. Behavior & SEL Tracker ────────────────────────────────────────────
 
 @login_required

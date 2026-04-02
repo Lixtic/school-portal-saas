@@ -97,9 +97,30 @@
 /* ── Misc ── */
 .qb-empty{padding:2.5rem 1rem;text-align:center;color:var(--qb-muted);font-size:.88rem;}
 .qb-empty i{font-size:2rem;display:block;margin-bottom:.5rem;opacity:.25;}
+.qb-empty svg{display:block;margin:0 auto .8rem;opacity:.6;}
 .qb-spinner{display:none;margin-left:.4rem;}
 .qb-spinner.active{display:inline-block;animation:qbSpin 1s infinite linear;}
 @keyframes qbSpin{to{transform:rotate(360deg);}}
+
+/* ── Toast notifications ── */
+.qb-toast-container{position:fixed;top:1rem;right:1rem;z-index:10000;display:flex;flex-direction:column;gap:.4rem;pointer-events:none;}
+.qb-toast{pointer-events:auto;display:flex;align-items:center;gap:.6rem;padding:.6rem 1rem;border-radius:10px;font-size:.84rem;font-weight:600;color:#fff;min-width:240px;max-width:380px;box-shadow:0 8px 24px rgba(0,0,0,.15);backdrop-filter:blur(8px);animation:qbToastIn .3s ease-out forwards;transition:opacity .25s,transform .25s;}
+.qb-toast.removing{animation:qbToastOut .25s ease-in forwards;}
+.qb-toast-success{background:linear-gradient(135deg,#10b981,#059669);}
+.qb-toast-error{background:linear-gradient(135deg,#ef4444,#dc2626);}
+.qb-toast-info{background:linear-gradient(135deg,var(--qb-accent),var(--qb-accent2));}
+.qb-toast-warn{background:linear-gradient(135deg,#f59e0b,#d97706);}
+.qb-toast i{font-size:1.1rem;flex-shrink:0;}
+.qb-toast-close{margin-left:auto;cursor:pointer;opacity:.7;font-size:.9rem;padding:.2rem;}
+.qb-toast-close:hover{opacity:1;}
+@keyframes qbToastIn{from{opacity:0;transform:translateX(40px);}to{opacity:1;transform:translateX(0);}}
+@keyframes qbToastOut{to{opacity:0;transform:translateX(40px);}}
+
+/* ── Shimmer loading bar (Aura signature) ── */
+.qb-loading-bar{position:fixed;top:0;left:0;width:100%;height:3px;z-index:10001;pointer-events:none;opacity:0;transition:opacity .2s;}
+.qb-loading-bar.active{opacity:1;}
+.qb-loading-bar::after{content:'';position:absolute;top:0;left:0;width:40%;height:100%;background:linear-gradient(90deg,transparent 0%,rgba(67,97,238,.55) 25%,#4361ee 50%,rgba(76,201,240,.9) 72%,transparent 100%);animation:auraShimmer 1.6s cubic-bezier(.37,0,.63,1) infinite;}
+@keyframes auraShimmer{0%{left:-40%;}100%{left:100%;}}
 .qb-filter-row{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.8rem;align-items:center;}
 .qb-search{position:relative;flex:1;min-width:160px;}
 .qb-search input{padding-left:2rem;}
@@ -117,6 +138,11 @@
 </style>
 
 <div class="qb-wrap">
+
+    <!-- Loading bar (Aura shimmer) -->
+    <div class="qb-loading-bar" id="qbLoadingBar"></div>
+    <!-- Toast container -->
+    <div class="qb-toast-container" id="qbToasts"></div>
 
     <!-- Freemium bar -->
     {% if not has_qb_addon %}
@@ -272,7 +298,7 @@
                     </div>
                     {% empty %}
                     <div class="qb-empty">
-                        <i class="bi bi-database"></i>
+                        <svg width="80" height="80" viewBox="0 0 80 80" fill="none"><rect x="16" y="12" width="48" height="56" rx="6" stroke="currentColor" stroke-width="2" opacity=".25"/><path d="M28 28h24M28 36h18M28 44h22M28 52h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".2"/><circle cx="58" cy="58" r="14" fill="var(--qb-accent)" opacity=".12"/><path d="M54 58h8M58 54v8" stroke="var(--qb-accent)" stroke-width="2" stroke-linecap="round"/></svg>
                         No questions yet.<br>
                         <span style="font-size:.82rem;">Add manually or <a href="#" onclick="switchTab('ai',document.querySelectorAll('.qb-tab')[2]);return false;" style="color:var(--qb-accent);font-weight:600;">generate with AI</a>.</span>
                     </div>
@@ -486,6 +512,7 @@
                         <a href="{% url 'teachers:addon_exam_paper' %}?id={{ pd.paper.id }}" class="qb-btn qb-btn-outline qb-btn-xs"><i class="bi bi-eye"></i> View</a>
                         <a href="{% url 'teachers:addon_exam_paper' %}?id={{ pd.paper.id }}&key=1" class="qb-btn qb-btn-outline qb-btn-xs" title="View with answer key"><i class="bi bi-key"></i> Answers</a>
                         <a href="{% url 'teachers:addon_exam_paper_docx' %}?id={{ pd.paper.id }}" class="qb-btn qb-btn-outline qb-btn-xs" title="Download Word document"><i class="bi bi-file-earmark-word"></i> Word</a>
+                        <a href="{% url 'teachers:addon_exam_paper_pdf' %}?id={{ pd.paper.id }}" class="qb-btn qb-btn-outline qb-btn-xs" title="Download PDF"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
                         <form method="post" style="display:inline;">{% csrf_token %}<input type="hidden" name="action" value="duplicate_paper"><input type="hidden" name="paper_id" value="{{ pd.paper.id }}"><button class="qb-btn qb-btn-outline qb-btn-xs" title="Duplicate this paper"><i class="bi bi-copy"></i> Copy</button></form>
                         <form method="post" style="display:inline;">{% csrf_token %}<input type="hidden" name="action" value="shuffle_paper"><input type="hidden" name="paper_id" value="{{ pd.paper.id }}"><button class="qb-btn qb-btn-outline qb-btn-xs" title="Create shuffled version"><i class="bi bi-shuffle"></i> Shuffle</button></form>
                         <form method="post" style="display:inline;">{% csrf_token %}<input type="hidden" name="action" value="delete_paper"><input type="hidden" name="paper_id" value="{{ pd.paper.id }}"><button class="qb-btn qb-btn-outline qb-btn-xs" title="Delete paper" onclick="return confirm('Delete this exam paper?')" style="color:var(--qb-danger);"><i class="bi bi-trash3"></i></button></form>
@@ -493,7 +520,7 @@
                 </div>
                 {% empty %}
                 <div class="qb-empty">
-                    <i class="bi bi-file-earmark-text"></i>
+                    <svg width="80" height="80" viewBox="0 0 80 80" fill="none"><rect x="10" y="14" width="36" height="46" rx="4" stroke="currentColor" stroke-width="2" opacity=".2" transform="rotate(-6 28 37)"/><rect x="22" y="10" width="36" height="46" rx="4" stroke="currentColor" stroke-width="2" opacity=".3"/><rect x="34" y="18" width="36" height="46" rx="4" fill="var(--qb-card)" stroke="var(--qb-accent)" stroke-width="2" opacity=".5"/><path d="M42 30h20M42 36h16M42 42h18" stroke="var(--qb-accent)" stroke-width="1.5" stroke-linecap="round" opacity=".3"/></svg>
                     No exam papers yet.<br>
                     <span style="font-size:.82rem;">Select questions from the <a href="#" onclick="switchTab('bank',document.querySelectorAll('.qb-tab')[0]);return false;" style="color:var(--qb-accent);font-weight:600;">Question Bank</a> or use <a href="#" onclick="switchTab('build',document.querySelectorAll('.qb-tab')[3]);return false;" style="color:var(--qb-accent);font-weight:600;">Smart Build</a>.</span>
                 </div>
@@ -536,6 +563,30 @@
 </div>
 
 <script>
+/* ── Toast notification system ── */
+function qbToast(message, type='info', duration=4000){
+    const container = document.getElementById('qbToasts');
+    const icons = {success:'bi-check-circle-fill',error:'bi-exclamation-triangle-fill',info:'bi-info-circle-fill',warn:'bi-exclamation-circle-fill'};
+    const toast = document.createElement('div');
+    toast.className = 'qb-toast qb-toast-'+type;
+    toast.innerHTML = '<i class="bi '+icons[type]+'"></i><span>'+message+'</span><span class="qb-toast-close" onclick="this.parentElement.classList.add(\'removing\');setTimeout(()=>this.parentElement.remove(),250)">&times;</span>';
+    container.appendChild(toast);
+    setTimeout(()=>{toast.classList.add('removing');setTimeout(()=>toast.remove(),250);},duration);
+}
+
+/* ── Loading bar ── */
+function qbShowLoading(){document.getElementById('qbLoadingBar').classList.add('active');}
+function qbHideLoading(){document.getElementById('qbLoadingBar').classList.remove('active');}
+
+/* ── Auto-toast for Django messages ── */
+(function(){
+    {% if messages %}
+    {% for msg in messages %}
+    qbToast('{{ msg.message|escapejs }}','{% if msg.tags == "success" %}success{% elif msg.tags == "error" %}error{% elif msg.tags == "warning" %}warn{% else %}info{% endif %}');
+    {% endfor %}
+    {% endif %}
+})();
+
 /* ── Tab switching ── */
 function switchTab(name,el){
     document.querySelectorAll('.qb-tab').forEach(t=>t.classList.remove('active'));
@@ -568,13 +619,15 @@ document.addEventListener('change',e=>{if(e.target.classList.contains('q-check')
 
 function validatePaperSelection(){
     const checked=document.querySelectorAll('.q-check:checked').length;
-    if(checked===0){alert('Select at least one question to create a paper.');return false;}
+    if(checked===0){qbToast('Select at least one question to create a paper.','warn');return false;}
+    qbShowLoading();
     return true;
 }
 
 /* ── Delete question (avoids nested form inside paperForm) ── */
 function deleteQuestion(qId){
     if(!confirm('Delete this question?'))return;
+    qbShowLoading();
     const form=document.createElement('form');
     form.method='POST';form.style.display='none';
     form.innerHTML='<input name="csrfmiddlewaretoken" value="{{ csrf_token }}"><input name="action" value="delete"><input name="q_id" value="'+qId+'">';
@@ -654,7 +707,8 @@ function updateCustomDiff(){
 function validateSmartBuild(){
     let total = 0;
     document.querySelectorAll('[data-sb-count]').forEach(i=>{total+=parseInt(i.value)||0;});
-    if(total === 0){alert('Set at least one question format count.');return false;}
+    if(total === 0){qbToast('Set at least one question format count.','warn');return false;}
+    qbShowLoading();
     return true;
 }
 
@@ -662,12 +716,13 @@ function validateSmartBuild(){
 let aiQuestions=[];
 async function generateQuestions(){
     const topic=document.getElementById('aiTopic').value;
-    if(!topic){alert('Enter a topic.');return;}
+    if(!topic){qbToast('Enter a topic first.','warn');return;}
     const btn=document.getElementById('aiGenBtn');
     const spinner=document.getElementById('qbSpinner');
     btn.disabled=true;spinner.classList.add('active');
+    qbShowLoading();
     const container=document.getElementById('aiResults');
-    container.innerHTML='<div style="color:var(--qb-muted);font-size:.84rem;padding:1rem;text-align:center;"><i class="bi bi-arrow-repeat qb-spinner active" style="display:inline-block;font-size:1.2rem;margin-bottom:.3rem;"></i><br>Generating questions with AI…</div>';
+    container.innerHTML='<div style="color:var(--qb-muted);font-size:.84rem;padding:1.5rem;text-align:center;"><div style="display:inline-block;width:32px;height:32px;border:3px solid var(--qb-border);border-top-color:var(--qb-accent);border-radius:50%;animation:qbSpin .8s linear infinite;margin-bottom:.5rem;"></div><br>Generating questions with AI\u2026</div>';
     try{
         const r=await fetch('{% url "teachers:question_bank_ai" %}',{
             method:'POST',
@@ -682,15 +737,16 @@ async function generateQuestions(){
             })
         });
         const data=await r.json();
-        if(r.status===403&&data.error_code==='freemium_limit'){alert(data.message);container.innerHTML='';return;}
-        if(r.status===429){alert(data.error||'Quota exceeded.');container.innerHTML='';return;}
-        if(!r.ok){container.innerHTML='<div class="qb-empty" style="color:var(--qb-danger);"><i class="bi bi-exclamation-triangle"></i>'+(data.message||data.error||'AI generation failed. Please try again.')+'</div>';return;}
+        if(r.status===403&&data.error_code==='freemium_limit'){qbToast(data.message,'warn',6000);container.innerHTML='';return;}
+        if(r.status===429){qbToast(data.error||'Quota exceeded.','error');container.innerHTML='';return;}
+        if(!r.ok){container.innerHTML='<div class="qb-empty" style="color:var(--qb-danger);"><svg width="64" height="64" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="28" stroke="var(--qb-danger)" stroke-width="2" opacity=".3"/><path d="M32 20v16M32 42v2" stroke="var(--qb-danger)" stroke-width="2.5" stroke-linecap="round"/></svg>'+(data.message||data.error||'AI generation failed. Please try again.')+'</div>';qbToast('AI generation failed','error');return;}
         if(data.questions&&data.questions.length){
             aiQuestions=data.questions;
             renderAiResults();
-        }else{container.innerHTML='<div class="qb-empty"><i class="bi bi-exclamation-circle"></i>No questions returned. Try a different topic.</div>';}
-    }catch(e){container.innerHTML='<div style="color:var(--qb-danger);padding:.5rem;">Error: '+e.message+'</div>';}
-    btn.disabled=false;spinner.classList.remove('active');
+            qbToast(data.questions.length+' questions generated!','success');
+        }else{container.innerHTML='<div class="qb-empty"><svg width="64" height="64" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="2" opacity=".2"/><path d="M24 36c0-4.4 3.6-8 8-8s8 3.6 8 8M28 26h.01M36 26h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".3"/></svg>No questions returned. Try a different topic.</div>';}
+    }catch(e){container.innerHTML='<div style="color:var(--qb-danger);padding:.5rem;">Error: '+e.message+'</div>';qbToast('Network error','error');}
+    finally{btn.disabled=false;spinner.classList.remove('active');qbHideLoading();}
 }
 
 function renderAiResults(){
@@ -761,5 +817,14 @@ function addAllAiQuestions(){
         },200);
     });
 })();
+
+/* ── Show loading bar on any inline form submit (copy/shuffle/delete paper) ── */
+document.querySelectorAll('.qb-paper-actions form').forEach(f=>{
+    f.addEventListener('submit',()=>qbShowLoading());
+});
+/* ── Show loading on Add question form submit ── */
+document.querySelectorAll('#panel-add form, #smartBuildForm').forEach(f=>{
+    f.addEventListener('submit',()=>qbShowLoading());
+});
 </script>
 {% endblock %}

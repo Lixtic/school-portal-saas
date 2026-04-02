@@ -156,6 +156,7 @@ urlpatterns = [
     path('addons/question-bank/ai/', views.question_bank_ai, name='question_bank_ai'),
     path('addons/question-bank/paper/', views.addon_exam_paper, name='addon_exam_paper'),
     path('addons/question-bank/paper/export-docx/', views.addon_exam_paper_docx, name='addon_exam_paper_docx'),
+    path('addons/question-bank/paper/export-pdf/', views.addon_exam_paper_pdf, name='addon_exam_paper_pdf'),
     path('addons/behavior/', views.addon_behavior_tracker, name='addon_behavior_tracker'),
     path('addons/differentiated/', views.addon_differentiated, name='addon_differentiated'),
     path('addons/differentiated/ai/', views.differentiated_ai, name='differentiated_ai'),
