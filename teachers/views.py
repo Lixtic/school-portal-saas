@@ -2018,13 +2018,15 @@ def lesson_plan_print(request, pk):
         'core_competencies': b7_meta.get('core_competencies', 'CP 5.1, CC 8.1'),
         'references': b7_meta.get('references', f"National {lesson_plan.subject.name} Curriculum"),
         'keywords': b7_meta.get('keywords', lesson_plan.topic),
+        'day': b7_meta.get('day', 'Monday – Friday'),
     }
     
     if template_format in {'b7', 'weekly'}:
         template_name = 'teachers/lesson_plan_print_b7.html'
+    elif template_format in {'ges', 'standard'}:
+        template_name = 'teachers/lesson_plan_print_ges.html'
     else:
-        # Default to standard GES detail view with print mode
-        template_name = 'teachers/lesson_plan_detail.html'
+        template_name = 'teachers/lesson_plan_print_ges.html'
     
     import json as _json
     return render(request, template_name, {

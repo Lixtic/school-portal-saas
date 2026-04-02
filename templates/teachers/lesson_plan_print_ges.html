@@ -1,0 +1,560 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}GES Weekly Lesson Notes{% endblock %}
+
+{% block content %}
+<style>
+    /* ── GES Standard Weekly Lesson Notes ──────────────────── */
+    .ges-print-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 11pt;
+        color: #000;
+        background-color: #fff;
+    }
+    .ges-print-table th,
+    .ges-print-table td {
+        border: 2px solid #000;
+        padding: 6px 8px;
+        vertical-align: top;
+    }
+    .ges-print-table th {
+        font-weight: bold;
+        text-align: left;
+    }
+    .ges-label-cell {
+        background-color: #e8f5e9;
+        font-weight: 700;
+        width: 22%;
+        white-space: nowrap;
+    }
+    .ges-phase-header {
+        background-color: #e8f5e9;
+        font-weight: 700;
+        text-align: center;
+        font-size: 10pt;
+    }
+    .ges-day-cell {
+        background-color: #f3f4f6;
+        font-weight: 700;
+        text-align: center;
+        vertical-align: middle;
+        width: 10%;
+    }
+
+    /* ── Editable inline fields ───────────────────────────── */
+    .ges-editable {
+        outline: none;
+        cursor: text;
+        display: inline;
+        min-width: 24px;
+        border-radius: 2px;
+        transition: background 0.15s;
+    }
+    .ges-editable:hover,
+    .ges-editable:focus {
+        background-color: rgba(5, 150, 105, 0.07);
+        outline: 1px dashed rgba(5, 150, 105, 0.45);
+    }
+
+    /* ── School Header ─────────────────────────────────────── */
+    .ges-school-header {
+        text-align: center;
+        margin-bottom: 1rem;
+        font-family: 'Times New Roman', Times, serif;
+        color: #000;
+    }
+    .ges-school-header h3 {
+        text-transform: uppercase;
+        font-weight: 800;
+        margin-bottom: .15rem;
+    }
+    .ges-school-header h5 {
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        margin-bottom: .1rem;
+        color: #059669;
+    }
+    .ges-school-logo {
+        width: 60px;
+        height: 60px;
+        object-fit: contain;
+        margin-bottom: .3rem;
+    }
+
+    /* ── Textareas inside table ────────────────────────────── */
+    .ges-print-table textarea {
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 11pt;
+        color: #000;
+        background: transparent;
+        border: none;
+        width: 100%;
+        padding: 2px;
+        resize: vertical;
+        min-height: 40px;
+    }
+    .ges-print-table textarea:focus {
+        background: rgba(5, 150, 105, 0.04);
+        outline: none;
+        box-shadow: none;
+    }
+
+    /* ── Day-plan grid ─────────────────────────────────────── */
+    .ges-day-phases {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0;
+        font-size: 10.5pt;
+    }
+    .ges-day-phase {
+        padding: 4px 6px;
+    }
+    .ges-day-phase + .ges-day-phase {
+        border-top: 1px dashed #9ca3af;
+    }
+    .ges-day-label {
+        font-size: 8pt;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #059669;
+        letter-spacing: .04em;
+        margin-bottom: 2px;
+    }
+
+    /* ── Dark mode ─────────────────────────────────────────── */
+    [data-bs-theme="dark"] .ges-container { color: var(--text-main); }
+    [data-bs-theme="dark"] .ges-print-table {
+        color: #e2e8f0;
+        background-color: #1e293b;
+    }
+    [data-bs-theme="dark"] .ges-print-table th,
+    [data-bs-theme="dark"] .ges-print-table td { border-color: #475569; }
+    [data-bs-theme="dark"] .ges-label-cell { background-color: #1a3a2a; }
+    [data-bs-theme="dark"] .ges-phase-header { background-color: #1a3a2a; }
+    [data-bs-theme="dark"] .ges-day-cell { background-color: #334155; }
+    [data-bs-theme="dark"] .ges-print-table textarea {
+        color: #e2e8f0;
+        background: transparent;
+    }
+    [data-bs-theme="dark"] .ges-print-table textarea:focus {
+        background: rgba(5, 150, 105, 0.08);
+    }
+    [data-bs-theme="dark"] .ges-school-header { color: #e2e8f0; }
+    [data-bs-theme="dark"] .ges-school-header h5 { color: #34d399; }
+    [data-bs-theme="dark"] .ges-editable:hover,
+    [data-bs-theme="dark"] .ges-editable:focus {
+        background-color: rgba(52, 211, 153, 0.1);
+        outline-color: rgba(52, 211, 153, 0.5);
+    }
+    [data-bs-theme="dark"] .ges-day-label { color: #34d399; }
+
+    /* ── Print ─────────────────────────────────────────────── */
+    @media print {
+        @page { size: landscape; margin: 0.8cm; }
+        body * { visibility: hidden; }
+        #printableArea, #printableArea * { visibility: visible; }
+        #printableArea {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+            background: white !important;
+            color: black !important;
+        }
+        .ges-print-table {
+            border-color: #000 !important;
+            background-color: transparent !important;
+            color: #000 !important;
+        }
+        .ges-print-table th,
+        .ges-print-table td { border-color: #000 !important; }
+        .ges-label-cell {
+            background-color: #e8f5e9 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .ges-phase-header {
+            background-color: #e8f5e9 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .ges-day-cell {
+            background-color: #f3f4f6 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .ges-school-header h5 { color: #000 !important; }
+        textarea {
+            border: none !important;
+            resize: none !important;
+            overflow: hidden !important;
+            white-space: pre-wrap;
+        }
+        .print-hide { display: none !important; }
+        tr { page-break-inside: avoid; }
+    }
+
+    /* ── Mobile ────────────────────────────────────────────── */
+    @media (max-width: 768px) {
+        .ges-print-table td,
+        .ges-print-table th {
+            display: block;
+            width: 100% !important;
+        }
+        .ges-print-table tr {
+            display: block;
+            margin-bottom: .5rem;
+            border: 1px solid var(--bs-border-color);
+        }
+        textarea { font-size: 16px; min-height: 80px; }
+    }
+</style>
+
+<div class="container py-4 ges-container">
+    <div class="row justify-content-center">
+        <div class="col-lg-12 col-xl-11">
+            <!-- Action Bar -->
+            <div class="d-flex justify-content-between align-items-center mb-4 print-hide">
+                <a href="{% url 'teachers:lesson_plan_list' %}" class="btn btn-outline-secondary rounded-pill">
+                    <i class="fas fa-arrow-left me-2"></i>Back to List
+                </a>
+                <div class="d-flex gap-2">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-primary rounded-pill dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            Change Template
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item active" href="?template=ges">GES Standard</a></li>
+                            <li><a class="dropdown-item" href="?template=weekly">Weekly B7 Format</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'teachers:lesson_plan_pdf' lesson_plan.pk %}">Read-Only PDF Layout</a></li>
+                        </ul>
+                    </div>
+                    <button onclick="window.print()" class="btn btn-dark rounded-pill">
+                        <i class="fas fa-print me-2"></i>Print Preview
+                    </button>
+                    {% if can_edit %}
+                    <a href="{% url 'teachers:lesson_plan_edit' lesson_plan.pk %}" class="btn btn-primary rounded-pill">
+                        <i class="fas fa-pencil-alt me-2"></i>Edit
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Document Content -->
+            <form method="post" action="{% url 'teachers:lesson_plan_edit' lesson_plan.pk %}" id="gesLessonForm">
+                {% csrf_token %}
+                <input type="hidden" name="week_number" value="{{ lesson_plan.week_number }}">
+                <input type="hidden" name="subject" value="{{ lesson_plan.subject.id }}">
+                <input type="hidden" name="school_class" value="{{ lesson_plan.school_class.id }}">
+                <input type="hidden" name="topic" value="{{ lesson_plan.topic }}">
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <input type="hidden" name="b7_meta" id="gesMetaInput" value="">
+
+                <div class="card border rounded-0 shadow-sm" id="printableArea">
+                    <div class="card-body p-4 p-md-5" style="background:#fff;color:#000;">
+
+                        <!-- School Header -->
+                        <div class="ges-school-header">
+                            {% if school_logo %}
+                            <img src="{{ school_logo.url }}" alt="School Logo" class="ges-school-logo">
+                            {% endif %}
+                            <h3>{{ school_name|default:"School Name" }}</h3>
+                            <h5>Weekly Lesson Notes</h5>
+                            <p style="font-size:10pt;margin-bottom:0;">
+                                {{ school_address|default:"" }}
+                                {% if school_phone %} | Tel: {{ school_phone }}{% endif %}
+                            </p>
+                        </div>
+
+                        <!-- ═══ Curriculum Information Table ═══ -->
+                        <table class="ges-print-table">
+                            <tr>
+                                <td class="ges-label-cell">Week Ending</td>
+                                <td>
+                                    <span class="ges-editable" contenteditable="true" data-gesfield="week_ending">{{ b7.week_ending }}</span>
+                                </td>
+                                <td class="ges-label-cell">Day</td>
+                                <td>
+                                    <span class="ges-editable" contenteditable="true" data-gesfield="day">{{ b7.day|default:"Monday – Friday" }}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="ges-label-cell">Class</td>
+                                <td>{{ lesson_plan.school_class.name }}</td>
+                                <td class="ges-label-cell">No. of Learners</td>
+                                <td>
+                                    <span class="ges-editable" contenteditable="true" data-gesfield="class_size">{{ b7.class_size }}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="ges-label-cell">Subject</td>
+                                <td>{{ lesson_plan.subject.name }}</td>
+                                <td class="ges-label-cell">Week No.</td>
+                                <td>Week {{ lesson_plan.week_number }}</td>
+                            </tr>
+                            <tr>
+                                <td class="ges-label-cell">Strand</td>
+                                <td colspan="3">
+                                    <span class="ges-editable" contenteditable="true" data-gesfield="strand">{{ b7.strand|default:lesson_plan.topic }}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="ges-label-cell">Sub Strand</td>
+                                <td colspan="3">{{ lesson_plan.sub_strand|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td class="ges-label-cell">Content Standard</td>
+                                <td colspan="3">
+                                    <textarea name="objectives" class="form-control border-0 shadow-none rounded-0 p-1" rows="2" style="font-size:11pt;">{{ lesson_plan.objectives }}</textarea>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="ges-label-cell">Indicator</td>
+                                <td>
+                                    <span class="ges-editable" contenteditable="true" data-gesfield="indicator">{{ b7.indicator }}</span>
+                                </td>
+                                <td class="ges-label-cell">Lesson</td>
+                                <td>
+                                    <span class="ges-editable" contenteditable="true" data-gesfield="lesson_of">{{ b7.lesson_of }}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="ges-label-cell">Performance Indicator</td>
+                                <td colspan="3">
+                                    <span class="ges-editable" contenteditable="true" data-gesfield="perf_indicator">{{ b7.perf_indicator }}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="ges-label-cell">Core Competencies</td>
+                                <td colspan="3">
+                                    <span class="ges-editable" contenteditable="true" data-gesfield="core_competencies">{{ b7.core_competencies }}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="ges-label-cell">References</td>
+                                <td colspan="3">
+                                    <span class="ges-editable" contenteditable="true" data-gesfield="references">{{ b7.references }}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="ges-label-cell">Keywords</td>
+                                <td colspan="3">
+                                    <span class="ges-editable" contenteditable="true" data-gesfield="keywords">{{ b7.keywords }}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="ges-label-cell">Teaching / Learning Resources</td>
+                                <td colspan="3">
+                                    <textarea name="teaching_materials" class="form-control border-0 shadow-none rounded-0 p-1" rows="2" style="font-size:11pt;">{{ lesson_plan.teaching_materials }}</textarea>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- spacing -->
+                        <div style="height:6px;"></div>
+
+                        <!-- ═══ Instructional Phases Table ═══ -->
+                        <table class="ges-print-table">
+                            <thead>
+                                <tr>
+                                    <th class="ges-phase-header" width="10%">Day / Duration</th>
+                                    <th class="ges-phase-header" width="30%">
+                                        Phase 1: Starter<br>
+                                        <small style="font-weight:400;">(Preparing the Brain for Learning)</small>
+                                    </th>
+                                    <th class="ges-phase-header" width="35%">
+                                        Phase 2: New Learning<br>
+                                        <small style="font-weight:400;">(Including Assessment)</small>
+                                    </th>
+                                    <th class="ges-phase-header" width="25%">
+                                        Phase 3: Reflection<br>
+                                        <small style="font-weight:400;">(Learner and Teacher)</small>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Monday -->
+                                <tr>
+                                    <td class="ges-day-cell">
+                                        <strong>Mon</strong><br>
+                                        <small class="text-muted">
+                                            <span class="ges-editable" contenteditable="true" data-gesfield="dur_mon" style="font-size:9pt;">60 min</span>
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <textarea name="introduction" class="form-control border-0 shadow-none rounded-0 p-1" rows="8" style="font-size:10.5pt;" placeholder="Recall previous knowledge, engage learners...">{{ lesson_plan.introduction }}</textarea>
+                                    </td>
+                                    <td>
+                                        <textarea name="presentation" class="form-control border-0 shadow-none rounded-0 p-1" rows="8" style="font-size:10.5pt;" placeholder="Main teaching activities, guided practice...">{{ lesson_plan.presentation }}</textarea>
+                                        <div style="border-top:1px dashed #9ca3af;margin-top:4px;padding-top:4px;">
+                                            <strong style="font-size:9pt;color:#059669;">Assessment:</strong>
+                                            <textarea name="evaluation" class="form-control border-0 shadow-none rounded-0 p-1" rows="3" style="font-size:10.5pt;" placeholder="Assessment tasks...">{{ lesson_plan.evaluation }}</textarea>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <textarea name="remarks" class="form-control border-0 shadow-none rounded-0 p-1" rows="6" style="font-size:10.5pt;" placeholder="Reflection, peer discussion, summary...">{{ lesson_plan.remarks }}</textarea>
+                                        <div style="border-top:1px dashed #9ca3af;margin-top:4px;padding-top:4px;">
+                                            <strong style="font-size:9pt;color:#059669;">Homework:</strong>
+                                            <textarea name="homework" class="form-control border-0 shadow-none rounded-0 p-1" rows="2" style="font-size:10.5pt;" placeholder="Homework tasks...">{{ lesson_plan.homework }}</textarea>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <!-- Tuesday -->
+                                <tr>
+                                    <td class="ges-day-cell">
+                                        <strong>Tue</strong><br>
+                                        <small class="text-muted">
+                                            <span class="ges-editable" contenteditable="true" data-gesfield="dur_tue" style="font-size:9pt;">60 min</span>
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="ges-editable" contenteditable="true" data-gesfield="tue_ph1" style="font-size:10.5pt;display:block;min-height:60px;">{{ b7.tue_ph1|default:"" }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="ges-editable" contenteditable="true" data-gesfield="tue_ph2" style="font-size:10.5pt;display:block;min-height:60px;">{{ b7.tue_ph2|default:"" }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="ges-editable" contenteditable="true" data-gesfield="tue_ph3" style="font-size:10.5pt;display:block;min-height:60px;">{{ b7.tue_ph3|default:"" }}</span>
+                                    </td>
+                                </tr>
+                                <!-- Wednesday -->
+                                <tr>
+                                    <td class="ges-day-cell">
+                                        <strong>Wed</strong><br>
+                                        <small class="text-muted">
+                                            <span class="ges-editable" contenteditable="true" data-gesfield="dur_wed" style="font-size:9pt;">60 min</span>
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="ges-editable" contenteditable="true" data-gesfield="wed_ph1" style="font-size:10.5pt;display:block;min-height:60px;">{{ b7.wed_ph1|default:"" }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="ges-editable" contenteditable="true" data-gesfield="wed_ph2" style="font-size:10.5pt;display:block;min-height:60px;">{{ b7.wed_ph2|default:"" }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="ges-editable" contenteditable="true" data-gesfield="wed_ph3" style="font-size:10.5pt;display:block;min-height:60px;">{{ b7.wed_ph3|default:"" }}</span>
+                                    </td>
+                                </tr>
+                                <!-- Thursday -->
+                                <tr>
+                                    <td class="ges-day-cell">
+                                        <strong>Thu</strong><br>
+                                        <small class="text-muted">
+                                            <span class="ges-editable" contenteditable="true" data-gesfield="dur_thu" style="font-size:9pt;">60 min</span>
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="ges-editable" contenteditable="true" data-gesfield="thu_ph1" style="font-size:10.5pt;display:block;min-height:60px;">{{ b7.thu_ph1|default:"" }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="ges-editable" contenteditable="true" data-gesfield="thu_ph2" style="font-size:10.5pt;display:block;min-height:60px;">{{ b7.thu_ph2|default:"" }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="ges-editable" contenteditable="true" data-gesfield="thu_ph3" style="font-size:10.5pt;display:block;min-height:60px;">{{ b7.thu_ph3|default:"" }}</span>
+                                    </td>
+                                </tr>
+                                <!-- Friday -->
+                                <tr>
+                                    <td class="ges-day-cell">
+                                        <strong>Fri</strong><br>
+                                        <small class="text-muted">
+                                            <span class="ges-editable" contenteditable="true" data-gesfield="dur_fri" style="font-size:9pt;">60 min</span>
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="ges-editable" contenteditable="true" data-gesfield="fri_ph1" style="font-size:10.5pt;display:block;min-height:60px;">{{ b7.fri_ph1|default:"" }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="ges-editable" contenteditable="true" data-gesfield="fri_ph2" style="font-size:10.5pt;display:block;min-height:60px;">{{ b7.fri_ph2|default:"" }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="ges-editable" contenteditable="true" data-gesfield="fri_ph3" style="font-size:10.5pt;display:block;min-height:60px;">{{ b7.fri_ph3|default:"" }}</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <!-- ═══ Signatures ═══ -->
+                        <div class="mt-4 pt-3 d-flex justify-content-between flex-wrap gap-4" style="font-family:'Times New Roman',serif;font-size:11pt;">
+                            <div>
+                                <p class="mb-0">Teacher's Signature: ______________________</p>
+                                <p class="mt-1 mb-0 text-muted" style="font-size:9pt;">
+                                    {{ lesson_plan.teacher.user.get_full_name|default:lesson_plan.teacher.user.username }}
+                                </p>
+                            </div>
+                            <div>
+                                <p class="mb-0">Head Teacher's Signature: ______________________</p>
+                            </div>
+                            <div>
+                                <p class="mb-0">Date: ______________________</p>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Floating Save Button -->
+                {% if can_edit %}
+                <div class="position-fixed bottom-0 end-0 p-4 print-hide" style="z-index: 1050">
+                    <button type="submit" class="btn btn-success btn-lg rounded-pill shadow-lg d-flex align-items-center gap-2">
+                        <i class="fas fa-save"></i>
+                        <span>Save Changes</span>
+                    </button>
+                </div>
+                {% endif %}
+            </form>
+
+        </div>
+    </div>
+</div>
+
+<script>
+// GES meta loaded from server
+const GES_META = {{ b7_meta_json|safe }};
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Populate editable fields from saved metadata
+    document.querySelectorAll('[data-gesfield]').forEach(function(el) {
+        var field = el.dataset.gesfield;
+        if (GES_META[field] !== undefined && GES_META[field] !== null && GES_META[field] !== '') {
+            el.textContent = GES_META[field];
+        }
+    });
+
+    // Auto-resize textareas
+    document.querySelectorAll('textarea').forEach(function(ta) {
+        ta.style.height = 'auto';
+        ta.style.height = ta.scrollHeight + 'px';
+        ta.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = this.scrollHeight + 'px';
+        });
+    });
+
+    // On submit: serialise all editable values into b7_meta
+    document.getElementById('gesLessonForm').addEventListener('submit', function() {
+        var meta = {};
+        // Preserve any existing meta keys not managed by this template
+        Object.keys(GES_META).forEach(function(k) { meta[k] = GES_META[k]; });
+        // Overwrite with current editable values
+        document.querySelectorAll('[data-gesfield]').forEach(function(el) {
+            meta[el.dataset.gesfield] = el.textContent.trim();
+        });
+        document.getElementById('gesMetaInput').value = JSON.stringify(meta);
+        // Show saving state
+        var btn = this.querySelector('button[type="submit"]');
+        if (btn) {
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+            btn.disabled = true;
+        }
+    });
+});
+</script>
+{% endblock %}
