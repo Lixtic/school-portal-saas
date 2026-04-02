@@ -420,6 +420,9 @@ def homepage(request):
         context['highlights'] = highlights
         return render(request, 'home.html', context)
 
+from accounts.ratelimit import rate_limit_login
+
+@rate_limit_login
 def login_view(request):
     # If login is hit on the public path with a tenant-scoped next URL,
     # bounce to the tenant-prefixed login so auth/session checks run in

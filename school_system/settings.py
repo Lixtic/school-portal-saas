@@ -428,6 +428,14 @@ try:
         'DEFAULT_PERMISSION_CLASSES': [
             'rest_framework.permissions.IsAuthenticated',
         ],
+        'DEFAULT_THROTTLE_CLASSES': [
+            'rest_framework.throttling.AnonRateThrottle',
+            'rest_framework.throttling.UserRateThrottle',
+        ],
+        'DEFAULT_THROTTLE_RATES': {
+            'anon': '30/minute',
+            'user': '120/minute',
+        },
         'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
         'PAGE_SIZE': 50,
     }
@@ -530,3 +538,53 @@ HANDLER400 = 'school_system.views.bad_request_400'
 HANDLER403 = 'school_system.views.forbidden_403'
 HANDLER404 = 'school_system.views.page_not_found_404'
 HANDLER500 = 'school_system.views.server_error_500'
+
+# =====================
+# SENTRY ERROR TRACKING
+# =====================
+_SENTRY_DSN = os.environ.get('SENTRY_DSN', '')
+if _SENTRY_DSN:
+    import sentry_sdk
+    sentry_sdk.init(
+        dsn=_SENTRY_DSN,
+        traces_sample_rate=float(os.environ.get('SENTRY_TRACES_RATE', '0.1')),
+        profiles_sample_rate=float(os.environ.get('SENTRY_PROFILES_RATE', '0.1')),
+        send_default_pii=False,
+        environment=os.environ.get('SENTRY_ENVIRONMENT', 'production'),
+    )
+
+# =====================
+# LOGGING
+# =====================
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
+}
