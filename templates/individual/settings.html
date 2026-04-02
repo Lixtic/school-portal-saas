@@ -1,0 +1,302 @@
+{% extends 'individual/base.html' %}
+{% block title %}Settings — Aura{% endblock %}
+{% block page_title %}Account Settings{% endblock %}
+
+{% block extra_css %}
+/* ═══════════════════════════════════════════════════════════
+   Settings Page — Clean, sectioned, form-focused
+   ═══════════════════════════════════════════════════════════ */
+.st-page { max-width: 680px; }
+.st-section {
+    background: var(--surface-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 1.75rem;
+    margin-bottom: 1.5rem;
+}
+.st-section-head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.st-section-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; flex-shrink: 0;
+}
+.st-section-head h3 {
+    font-size: 1rem; font-weight: 700; margin: 0;
+}
+.st-section-head p {
+    font-size: 0.76rem; color: var(--text-muted); margin: 0;
+}
+
+/* ── Avatar Row ──────────────────────────────────────── */
+.st-avatar-row {
+    display: flex; align-items: center; gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+.st-avatar {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4361ee, #4cc9f0);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 800; font-size: 1.5rem;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+.st-avatar img {
+    width: 100%; height: 100%;
+    object-fit: cover; border-radius: 50%;
+}
+.st-avatar-info {
+    flex: 1; min-width: 0;
+}
+.st-avatar-name {
+    font-weight: 700; font-size: 1.05rem;
+}
+.st-avatar-role {
+    font-size: 0.76rem; color: var(--text-muted);
+    display: flex; align-items: center; gap: 0.35rem;
+}
+.st-role-badge {
+    display: inline-flex; align-items: center; gap: 0.25rem;
+    padding: 0.15rem 0.5rem; border-radius: 6px;
+    font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.st-role-teacher {
+    background: rgba(16,185,129,0.1); color: #059669;
+}
+.st-role-developer {
+    background: rgba(67,97,238,0.1); color: #4361ee;
+}
+
+/* ── Form Elements ───────────────────────────────────── */
+.st-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+.st-form-group {
+    display: flex;
+    flex-direction: column;
+}
+.st-form-group.full-width {
+    grid-column: 1 / -1;
+}
+.st-label {
+    font-size: 0.72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--text-muted);
+    margin-bottom: 0.3rem;
+}
+.st-input, .st-textarea {
+    width: 100%;
+    padding: 0.6rem 0.85rem;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--surface-bg);
+    color: var(--text-main);
+    font-size: 0.85rem;
+    font-family: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.st-input:focus, .st-textarea:focus {
+    outline: none;
+    border-color: #4361ee;
+    box-shadow: 0 0 0 3px rgba(67,97,238,0.1);
+}
+.st-textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+.st-input[readonly] {
+    opacity: 0.6; cursor: not-allowed;
+}
+
+/* ── Buttons ─────────────────────────────────────────── */
+.st-btn {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.6rem 1.4rem;
+    border-radius: 10px; border: none;
+    font-weight: 700; font-size: 0.85rem;
+    cursor: pointer; transition: all 0.15s ease;
+}
+.st-btn-primary {
+    background: linear-gradient(135deg, #4361ee, #4cc9f0);
+    color: #fff;
+}
+.st-btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(67,97,238,0.3);
+}
+.st-btn-danger-outline {
+    background: transparent;
+    color: #ef4444;
+    border: 1px solid rgba(239,68,68,0.3);
+}
+.st-btn-danger-outline:hover {
+    background: rgba(239,68,68,0.06);
+    border-color: #ef4444;
+}
+
+/* ── Info Row ────────────────────────────────────────── */
+.st-info-row {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.6rem 0.85rem;
+    border-radius: 8px;
+    background: rgba(67,97,238,0.05);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+}
+.st-info-row i { color: #4361ee; }
+
+/* ── Responsive ──────────────────────────────────────── */
+@media (max-width: 576px) {
+    .st-form-grid { grid-template-columns: 1fr; }
+    .st-section { padding: 1.25rem; }
+    .st-avatar-row { flex-direction: column; text-align: center; }
+}
+{% endblock %}
+
+{% block content %}
+<div class="st-page">
+
+    <!-- Profile Section -->
+    <form method="post" action="{% url 'individual:settings' %}">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="profile">
+        <div class="st-section">
+            <div class="st-section-head">
+                <div class="st-section-icon" style="background:rgba(67,97,238,0.1);color:#4361ee">
+                    <i class="bi bi-person"></i>
+                </div>
+                <div>
+                    <h3>Profile</h3>
+                    <p>Your personal details visible across Aura</p>
+                </div>
+            </div>
+
+            <div class="st-avatar-row">
+                <div class="st-avatar">
+                    {% if profile.avatar_url %}
+                        <img src="{{ profile.avatar_url }}" alt="">
+                    {% else %}
+                        {{ request.user.first_name|default:request.user.username|slice:":1"|upper }}
+                    {% endif %}
+                </div>
+                <div class="st-avatar-info">
+                    <div class="st-avatar-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+                    <div class="st-avatar-role">
+                        <span class="st-role-badge st-role-{{ role }}">
+                            <i class="bi {% if role == 'teacher' %}bi-mortarboard{% else %}bi-code-square{% endif %}"></i>
+                            {{ role|title }}
+                        </span>
+                        <span>· Joined {{ profile.created_at|date:"M Y" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="st-form-grid">
+                <div class="st-form-group">
+                    <label class="st-label">First Name</label>
+                    <input type="text" name="first_name" class="st-input" value="{{ request.user.first_name }}" placeholder="First name">
+                </div>
+                <div class="st-form-group">
+                    <label class="st-label">Last Name</label>
+                    <input type="text" name="last_name" class="st-input" value="{{ request.user.last_name }}" placeholder="Last name">
+                </div>
+                <div class="st-form-group">
+                    <label class="st-label">Email</label>
+                    <input type="email" class="st-input" value="{{ request.user.email }}" readonly title="Email cannot be changed">
+                </div>
+                <div class="st-form-group">
+                    <label class="st-label">Phone</label>
+                    <input type="tel" name="phone_number" class="st-input" value="{{ profile.phone_number }}" placeholder="+233 XX XXX XXXX">
+                </div>
+                <div class="st-form-group">
+                    <label class="st-label">Organization / School</label>
+                    <input type="text" name="company" class="st-input" value="{{ profile.company }}" placeholder="e.g. Accra Academy">
+                </div>
+                <div class="st-form-group full-width">
+                    <label class="st-label">Bio</label>
+                    <textarea name="bio" class="st-textarea" placeholder="A short bio about yourself…">{{ profile.bio }}</textarea>
+                </div>
+            </div>
+
+            <div style="margin-top:1.25rem;display:flex;justify-content:flex-end">
+                <button type="submit" class="st-btn st-btn-primary">
+                    <i class="bi bi-check2"></i> Save Changes
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Password Section -->
+    <form method="post" action="{% url 'individual:settings' %}">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="password">
+        <div class="st-section">
+            <div class="st-section-head">
+                <div class="st-section-icon" style="background:rgba(245,158,11,0.1);color:#d97706">
+                    <i class="bi bi-shield-lock"></i>
+                </div>
+                <div>
+                    <h3>Password</h3>
+                    <p>Update your account password</p>
+                </div>
+            </div>
+
+            <div class="st-info-row">
+                <i class="bi bi-info-circle"></i>
+                Password must be at least 8 characters long.
+            </div>
+
+            <div class="st-form-grid">
+                <div class="st-form-group full-width">
+                    <label class="st-label">Current Password</label>
+                    <input type="password" name="current_password" class="st-input" required autocomplete="current-password">
+                </div>
+                <div class="st-form-group">
+                    <label class="st-label">New Password</label>
+                    <input type="password" name="new_password" class="st-input" required minlength="8" autocomplete="new-password">
+                </div>
+                <div class="st-form-group">
+                    <label class="st-label">Confirm New Password</label>
+                    <input type="password" name="confirm_password" class="st-input" required minlength="8" autocomplete="new-password">
+                </div>
+            </div>
+
+            <div style="margin-top:1.25rem;display:flex;justify-content:flex-end">
+                <button type="submit" class="st-btn st-btn-danger-outline">
+                    <i class="bi bi-key"></i> Change Password
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Account Info Section -->
+    <div class="st-section" style="border-color:rgba(239,68,68,0.15)">
+        <div class="st-section-head" style="border-bottom-color:rgba(239,68,68,0.1)">
+            <div class="st-section-icon" style="background:rgba(239,68,68,0.08);color:#ef4444">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
+            <div>
+                <h3 style="color:#ef4444">Danger Zone</h3>
+                <p>Irreversible account actions</p>
+            </div>
+        </div>
+        <div style="font-size:0.82rem;color:var(--text-muted);line-height:1.5">
+            To delete your account and all associated data, please contact support at
+            <strong>support@auraportal.com</strong>.
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -526,6 +526,62 @@ def dashboard_view(request):
     return render(request, 'individual/dashboard.html', ctx)
 
 
+# ── Settings ─────────────────────────────────────────────────────────────────
+
+@_individual_required
+def settings_view(request):
+    """Account & profile settings for individual users."""
+    profile, _ = IndividualProfile.objects.get_or_create(user=request.user)
+    user = request.user
+
+    if request.method == 'POST':
+        section = request.POST.get('section', 'profile')
+
+        if section == 'profile':
+            first_name = request.POST.get('first_name', '').strip()
+            last_name = request.POST.get('last_name', '').strip()
+            phone = request.POST.get('phone_number', '').strip()
+            company = request.POST.get('company', '').strip()
+            bio = request.POST.get('bio', '').strip()
+
+            if first_name:
+                user.first_name = first_name
+            if last_name:
+                user.last_name = last_name
+            user.save(update_fields=['first_name', 'last_name'])
+
+            profile.phone_number = phone
+            profile.company = company
+            profile.bio = bio
+            profile.save(update_fields=['phone_number', 'company', 'bio'])
+            messages.success(request, 'Profile updated.')
+
+        elif section == 'password':
+            current = request.POST.get('current_password', '')
+            new1 = request.POST.get('new_password', '')
+            new2 = request.POST.get('confirm_password', '')
+            if not user.check_password(current):
+                messages.error(request, 'Current password is incorrect.')
+            elif len(new1) < 8:
+                messages.error(request, 'New password must be at least 8 characters.')
+            elif new1 != new2:
+                messages.error(request, 'New passwords do not match.')
+            else:
+                user.set_password(new1)
+                user.save()
+                from django.contrib.auth import update_session_auth_hash
+                update_session_auth_hash(request, user)
+                messages.success(request, 'Password changed.')
+
+        return redirect('individual:settings')
+
+    ctx = {
+        'profile': profile,
+        'role': profile.role,
+    }
+    return render(request, 'individual/settings.html', ctx)
+
+
 # ── Addon Marketplace ────────────────────────────────────────────────────────
 
 @_individual_required

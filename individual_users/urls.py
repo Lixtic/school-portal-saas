@@ -14,6 +14,9 @@ urlpatterns = [
     # Dashboard
     path('dashboard/', views.dashboard_view, name='dashboard'),
 
+    # Settings
+    path('settings/', views.settings_view, name='settings'),
+
     # Addon marketplace
     path('addons/', views.addons_view, name='addons'),
     path('addons/subscribe/', views.subscribe_addon, name='subscribe_addon'),
