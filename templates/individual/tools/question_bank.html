@@ -1,0 +1,483 @@
+{% extends 'individual/base.html' %}
+{% block title %}Question Bank — Aura Teacher Portal{% endblock %}
+{% block page_title %}Question Bank{% endblock %}
+
+{% block extra_css %}
+/* ── Question Bank ─────────────────────────── */
+.qb-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+.qb-toolbar .qb-search {
+    flex: 1;
+    min-width: 200px;
+    position: relative;
+}
+.qb-toolbar .qb-search input {
+    width: 100%;
+    padding: 0.55rem 0.85rem 0.55rem 2.2rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--surface-card);
+    color: var(--text-main);
+    font-size: 0.85rem;
+    font-family: inherit;
+}
+.qb-toolbar .qb-search input:focus {
+    outline: none;
+    border-color: #059669;
+    box-shadow: 0 0 0 3px rgba(5,150,105,0.1);
+}
+.qb-toolbar .qb-search i {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+.qb-filter-select {
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--surface-card);
+    color: var(--text-main);
+    font-size: 0.82rem;
+    font-family: inherit;
+    min-width: 120px;
+}
+.qb-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.55rem 1rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.qb-btn-green {
+    background: #059669;
+    color: #fff;
+}
+.qb-btn-green:hover { background: #047857; color: #fff; }
+.qb-btn-blue {
+    background: #4361ee;
+    color: #fff;
+}
+.qb-btn-blue:hover { background: #3451d1; color: #fff; }
+.qb-btn-outline {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+}
+.qb-btn-outline:hover { border-color: #059669; color: #059669; }
+
+/* Stats row */
+.qb-stats {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+.qb-stat {
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex: 1;
+}
+.qb-stat-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+.qb-stat-val {
+    font-size: 1.25rem;
+    font-weight: 800;
+    line-height: 1;
+}
+.qb-stat-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* Question cards */
+.qb-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.qb-item {
+    padding: 1rem 1.25rem;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    transition: border-color 0.15s;
+}
+.qb-item:hover {
+    border-color: rgba(5,150,105,0.3);
+}
+.qb-item-format {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    letter-spacing: 0.03em;
+}
+.qb-item-format.mcq { background: rgba(67,97,238,0.1); color: #4361ee; }
+.qb-item-format.fill { background: rgba(245,158,11,0.1); color: #d97706; }
+.qb-item-format.short { background: rgba(5,150,105,0.1); color: #059669; }
+.qb-item-format.essay { background: rgba(124,58,237,0.1); color: #7c3aed; }
+.qb-item-format.truefalse { background: rgba(220,38,38,0.1); color: #dc2626; }
+[data-bs-theme="dark"] .qb-item-format.mcq { background: rgba(67,97,238,0.2); }
+[data-bs-theme="dark"] .qb-item-format.fill { background: rgba(245,158,11,0.2); }
+[data-bs-theme="dark"] .qb-item-format.short { background: rgba(5,150,105,0.2); }
+[data-bs-theme="dark"] .qb-item-format.essay { background: rgba(124,58,237,0.2); }
+[data-bs-theme="dark"] .qb-item-format.truefalse { background: rgba(220,38,38,0.2); }
+.qb-item-body { flex: 1; min-width: 0; }
+.qb-item-text {
+    font-size: 0.88rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    line-height: 1.5;
+}
+.qb-item-meta {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+.qb-item-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+.qb-item-actions {
+    display: flex;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+.qb-item-actions a,
+.qb-item-actions button {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.15s;
+}
+.qb-item-actions a:hover { border-color: #4361ee; color: #4361ee; }
+.qb-item-actions button:hover { border-color: #dc2626; color: #dc2626; }
+
+/* Difficulty badge */
+.qb-diff {
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+    font-size: 0.68rem;
+    font-weight: 600;
+}
+.qb-diff.easy { background: rgba(5,150,105,0.1); color: #059669; }
+.qb-diff.medium { background: rgba(245,158,11,0.1); color: #d97706; }
+.qb-diff.hard { background: rgba(220,38,38,0.1); color: #dc2626; }
+
+/* AI Generate Modal */
+.qb-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+}
+.qb-modal-overlay.open { display: flex; }
+.qb-modal {
+    background: var(--surface-card);
+    border-radius: var(--radius-lg);
+    padding: 1.75rem;
+    width: 90%;
+    max-width: 480px;
+    box-shadow: var(--shadow-lg);
+}
+.qb-modal h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+.qb-modal label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 0.3rem;
+    margin-top: 0.75rem;
+}
+.qb-modal input,
+.qb-modal select {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--surface-bg);
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: 0.85rem;
+}
+.qb-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+}
+.qb-spinner {
+    display: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: qbSpin 0.6s linear infinite;
+}
+@keyframes qbSpin { to { transform: rotate(360deg); } }
+
+/* Empty state */
+.qb-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+}
+.qb-empty i {
+    font-size: 3rem;
+    color: var(--text-muted);
+    opacity: 0.3;
+    margin-bottom: 1rem;
+}
+.qb-empty p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 576px) {
+    .qb-stats { flex-direction: column; }
+    .qb-toolbar { flex-direction: column; align-items: stretch; }
+}
+{% endblock %}
+
+{% block content %}
+<!-- Stats -->
+<div class="qb-stats">
+    <div class="iu-card qb-stat">
+        <div class="qb-stat-icon" style="background:rgba(67,97,238,0.1);color:#4361ee"><i class="bi bi-collection"></i></div>
+        <div>
+            <div class="qb-stat-val">{{ stats.total|default:"0" }}</div>
+            <div class="qb-stat-label">Total Questions</div>
+        </div>
+    </div>
+    <div class="iu-card qb-stat">
+        <div class="qb-stat-icon" style="background:rgba(5,150,105,0.1);color:#059669"><i class="bi bi-check2-square"></i></div>
+        <div>
+            <div class="qb-stat-val">{{ stats.mcq|default:"0" }}</div>
+            <div class="qb-stat-label">MCQ</div>
+        </div>
+    </div>
+    <div class="iu-card qb-stat">
+        <div class="qb-stat-icon" style="background:rgba(124,58,237,0.1);color:#7c3aed"><i class="bi bi-pencil-square"></i></div>
+        <div>
+            <div class="qb-stat-val">{{ stats.essay|default:"0" }}</div>
+            <div class="qb-stat-label">Essay</div>
+        </div>
+    </div>
+</div>
+
+<!-- Toolbar -->
+<form class="qb-toolbar" method="get" action="">
+    <div class="qb-search">
+        <i class="bi bi-search"></i>
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Search questions…">
+    </div>
+    <select name="subject" class="qb-filter-select" onchange="this.form.submit()">
+        <option value="">All Subjects</option>
+        {% for val, label in subjects %}
+        <option value="{{ val }}" {% if filter_subject == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    <select name="format" class="qb-filter-select" onchange="this.form.submit()">
+        <option value="">All Formats</option>
+        {% for val, label in formats %}
+        <option value="{{ val }}" {% if filter_format == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    <select name="difficulty" class="qb-filter-select" onchange="this.form.submit()">
+        <option value="">All Levels</option>
+        {% for val, label in difficulties %}
+        <option value="{{ val }}" {% if filter_difficulty == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    <a href="{% url 'individual:question_create' %}" class="qb-btn qb-btn-green">
+        <i class="bi bi-plus-lg"></i> Add Question
+    </a>
+    <button type="button" class="qb-btn qb-btn-blue" onclick="document.getElementById('aiModal').classList.add('open')">
+        <i class="bi bi-stars"></i> AI Generate
+    </button>
+</form>
+
+<!-- Question List -->
+<div class="qb-list">
+{% for q in questions %}
+    <div class="iu-card qb-item">
+        <div class="qb-item-format {{ q.question_format }}">{{ q.question_format }}</div>
+        <div class="qb-item-body">
+            <div class="qb-item-text">{{ q.question_text|truncatewords:30 }}</div>
+            <div class="qb-item-meta">
+                <span><i class="bi bi-book"></i> {{ q.get_subject_display }}</span>
+                {% if q.topic %}<span><i class="bi bi-tag"></i> {{ q.topic }}</span>{% endif %}
+                <span class="qb-diff {{ q.difficulty }}">{{ q.get_difficulty_display }}</span>
+                {% if q.correct_answer %}<span><i class="bi bi-check-circle"></i> Has answer</span>{% endif %}
+            </div>
+        </div>
+        <div class="qb-item-actions">
+            <a href="{% url 'individual:question_edit' pk=q.pk %}" title="Edit"><i class="bi bi-pencil"></i></a>
+            <form method="post" action="{% url 'individual:question_delete' pk=q.pk %}" onsubmit="return confirm('Delete this question?')">{% csrf_token %}
+                <button type="submit" title="Delete"><i class="bi bi-trash"></i></button>
+            </form>
+        </div>
+    </div>
+{% empty %}
+    <div class="iu-card qb-empty">
+        <i class="bi bi-collection"></i>
+        <p>Your question bank is empty. Add questions manually or use AI to generate them.</p>
+        <a href="{% url 'individual:question_create' %}" class="qb-btn qb-btn-green">
+            <i class="bi bi-plus-lg"></i> Add First Question
+        </a>
+    </div>
+{% endfor %}
+</div>
+
+<!-- AI Generate Modal -->
+<div class="qb-modal-overlay" id="aiModal">
+    <div class="qb-modal">
+        <h3><i class="bi bi-stars me-1" style="color:#4361ee"></i> AI Question Generator</h3>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.5rem">Generate questions from a topic using AI. They'll be added to your bank automatically.</p>
+
+        <label>Subject</label>
+        <select id="aiSubject">
+            {% for val, label in subjects %}
+            <option value="{{ val }}">{{ label }}</option>
+            {% endfor %}
+        </select>
+
+        <label>Topic</label>
+        <input type="text" id="aiTopic" placeholder="e.g. Photosynthesis, Fractions, Tenses…">
+
+        <label>Class Level (optional)</label>
+        <input type="text" id="aiClass" placeholder="e.g. JHS 2, SHS 1">
+
+        <label>Format</label>
+        <select id="aiFormat">
+            {% for val, label in formats %}
+            <option value="{{ val }}">{{ label }}</option>
+            {% endfor %}
+        </select>
+
+        <div style="display:flex;gap:0.75rem;margin-top:0.75rem">
+            <div style="flex:1">
+                <label>Difficulty</label>
+                <select id="aiDiff">
+                    {% for val, label in difficulties %}
+                    <option value="{{ val }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="flex:1">
+                <label>Count</label>
+                <input type="number" id="aiCount" value="5" min="1" max="20">
+            </div>
+        </div>
+
+        <div class="qb-modal-footer">
+            <button class="qb-btn qb-btn-outline" onclick="document.getElementById('aiModal').classList.remove('open')">Cancel</button>
+            <button class="qb-btn qb-btn-blue" id="aiGenBtn" onclick="aiGenerate()">
+                <div class="qb-spinner" id="aiSpinner"></div>
+                <span id="aiGenText"><i class="bi bi-stars"></i> Generate</span>
+            </button>
+        </div>
+        <div id="aiResult" style="display:none;margin-top:1rem;padding:0.75rem;border-radius:8px;background:rgba(5,150,105,0.08);font-size:0.84rem;color:#059669"></div>
+    </div>
+</div>
+
+<script>
+function aiGenerate() {
+    const btn = document.getElementById('aiGenBtn');
+    const spinner = document.getElementById('aiSpinner');
+    const text = document.getElementById('aiGenText');
+    const result = document.getElementById('aiResult');
+    const topic = document.getElementById('aiTopic').value.trim();
+
+    if (!topic) { alert('Please enter a topic.'); return; }
+
+    btn.disabled = true;
+    spinner.style.display = 'block';
+    text.textContent = 'Generating…';
+    result.style.display = 'none';
+
+    const body = new FormData();
+    body.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    body.append('subject', document.getElementById('aiSubject').value);
+    body.append('topic', topic);
+    body.append('target_class', document.getElementById('aiClass').value);
+    body.append('question_format', document.getElementById('aiFormat').value);
+    body.append('difficulty', document.getElementById('aiDiff').value);
+    body.append('count', document.getElementById('aiCount').value);
+
+    fetch('{% url "individual:question_ai_generate" %}', {
+        method: 'POST',
+        body: body,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        text.innerHTML = '<i class="bi bi-stars"></i> Generate';
+        if (data.ok) {
+            result.style.display = 'block';
+            result.innerHTML = `<i class="bi bi-check-circle me-1"></i> ${data.count} questions generated! <a href="" style="color:#059669;font-weight:600">Refresh</a> to see them.`;
+        } else {
+            result.style.display = 'block';
+            result.style.background = 'rgba(220,38,38,0.08)';
+            result.style.color = '#dc2626';
+            result.textContent = data.error || 'Generation failed.';
+        }
+    })
+    .catch(() => {
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        text.innerHTML = '<i class="bi bi-stars"></i> Generate';
+    });
+}
+</script>
+{% endblock %}

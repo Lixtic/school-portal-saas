@@ -53,6 +53,8 @@ class AddonSubscription(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     started_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(null=True, blank=True)
+    payment_reference = models.CharField(max_length=100, blank=True, default='')
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     class Meta:
         unique_together = ('profile', 'addon_slug')
@@ -105,3 +107,115 @@ class APIKey(models.Model):
     def hash_key(raw_key):
         import hashlib
         return hashlib.sha256(raw_key.encode()).hexdigest()
+
+
+# ── Tool Models (Public Schema) ──────────────────────────────────────────────
+# Standalone equivalents of tenant-side teacher tools, gated by AddonSubscription
+
+
+class ToolQuestion(models.Model):
+    """Question bank item for standalone teacher portal."""
+    DIFFICULTY_CHOICES = [('easy', 'Easy'), ('medium', 'Medium'), ('hard', 'Hard')]
+    FORMAT_CHOICES = [
+        ('mcq', 'Multiple Choice'),
+        ('fill', 'Fill in the Blank'),
+        ('short', 'Short Answer'),
+        ('essay', 'Essay'),
+        ('truefalse', 'True / False'),
+    ]
+    SUBJECT_CHOICES = [
+        ('mathematics', 'Mathematics'),
+        ('english', 'English Language'),
+        ('science', 'Integrated Science'),
+        ('social_studies', 'Social Studies'),
+        ('computing', 'Computing / ICT'),
+        ('french', 'French'),
+        ('ghanaian_language', 'Ghanaian Language'),
+        ('rme', 'Religious & Moral Education'),
+        ('creative_arts', 'Creative Arts & Design'),
+        ('career_tech', 'Career Technology'),
+        ('history', 'History'),
+        ('geography', 'Geography'),
+        ('physics', 'Physics'),
+        ('chemistry', 'Chemistry'),
+        ('biology', 'Biology'),
+        ('literature', 'Literature'),
+        ('economics', 'Economics'),
+        ('government', 'Government'),
+        ('other', 'Other'),
+    ]
+
+    profile = models.ForeignKey(
+        IndividualProfile, on_delete=models.CASCADE, related_name='tool_questions',
+    )
+    subject = models.CharField(max_length=30, choices=SUBJECT_CHOICES, default='mathematics')
+    target_class = models.CharField(max_length=60, blank=True, default='')
+    topic = models.CharField(max_length=200, blank=True, default='')
+    question_text = models.TextField()
+    question_format = models.CharField(max_length=12, choices=FORMAT_CHOICES, default='mcq')
+    difficulty = models.CharField(max_length=8, choices=DIFFICULTY_CHOICES, default='medium')
+    options = models.JSONField(default=list, blank=True, help_text='["A) …","B) …","C) …","D) …"] for MCQs')
+    correct_answer = models.TextField(blank=True, default='')
+    explanation = models.TextField(blank=True, default='', help_text='Why the answer is correct')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Tool Question'
+        verbose_name_plural = 'Tool Questions'
+
+    def __str__(self):
+        return self.question_text[:80]
+
+
+class ToolExamPaper(models.Model):
+    """Exam paper composed from ToolQuestion items."""
+    profile = models.ForeignKey(
+        IndividualProfile, on_delete=models.CASCADE, related_name='tool_exam_papers',
+    )
+    title = models.CharField(max_length=200)
+    subject = models.CharField(max_length=30, choices=ToolQuestion.SUBJECT_CHOICES, default='mathematics')
+    target_class = models.CharField(max_length=60, blank=True, default='')
+    questions = models.ManyToManyField(ToolQuestion, blank=True, related_name='papers')
+    duration_minutes = models.PositiveIntegerField(default=60)
+    instructions = models.TextField(blank=True, default='Answer ALL questions.')
+    school_name = models.CharField(max_length=200, blank=True, default='', help_text='For paper header')
+    term = models.CharField(max_length=30, blank=True, default='')
+    academic_year = models.CharField(max_length=20, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Tool Exam Paper'
+        verbose_name_plural = 'Tool Exam Papers'
+
+    def __str__(self):
+        return self.title
+
+
+class ToolLessonPlan(models.Model):
+    """AI-generated or manual lesson plan."""
+    profile = models.ForeignKey(
+        IndividualProfile, on_delete=models.CASCADE, related_name='tool_lesson_plans',
+    )
+    title = models.CharField(max_length=200)
+    subject = models.CharField(max_length=30, choices=ToolQuestion.SUBJECT_CHOICES, default='mathematics')
+    target_class = models.CharField(max_length=60, blank=True, default='')
+    topic = models.CharField(max_length=200, blank=True, default='')
+    duration_minutes = models.PositiveIntegerField(default=40)
+    objectives = models.TextField(blank=True, default='')
+    materials = models.TextField(blank=True, default='')
+    introduction = models.TextField(blank=True, default='')
+    development = models.TextField(blank=True, default='')
+    assessment = models.TextField(blank=True, default='')
+    closure = models.TextField(blank=True, default='')
+    notes = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Tool Lesson Plan'
+        verbose_name_plural = 'Tool Lesson Plans'
+
+    def __str__(self):
+        return self.title

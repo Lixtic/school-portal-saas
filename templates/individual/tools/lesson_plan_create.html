@@ -1,0 +1,120 @@
+{% extends 'individual/base.html' %}
+{% block title %}Create Lesson Plan — Aura Teacher Portal{% endblock %}
+{% block page_title %}Create Lesson Plan{% endblock %}
+
+{% block extra_css %}
+.lpc-form { max-width: 720px; }
+.lpc-form .iu-card { padding: 1.75rem; margin-bottom: 1.25rem; }
+.lpc-group { margin-bottom: 1rem; }
+.lpc-group label { font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 0.35rem; }
+.lpc-group input, .lpc-group select, .lpc-group textarea {
+    width: 100%; padding: 0.55rem 0.85rem; border: 1px solid var(--border-color);
+    border-radius: 8px; background: var(--surface-bg); color: var(--text-main);
+    font-family: inherit; font-size: 0.85rem;
+}
+.lpc-group textarea { min-height: 90px; resize: vertical; }
+.lpc-group input:focus, .lpc-group select:focus, .lpc-group textarea:focus {
+    outline: none; border-color: #059669; box-shadow: 0 0 0 3px rgba(5,150,105,0.1);
+}
+.lpc-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.lpc-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+.lpc-section-title {
+    font-size: 0.82rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.75rem;
+    display: flex; align-items: center; gap: 0.4rem;
+}
+.lpc-section-title i { color: #059669; }
+.lpc-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+.lpc-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.6rem 1.25rem;
+    border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-decoration: none;
+    border: none; cursor: pointer; transition: all 0.15s ease;
+}
+.lpc-btn-green { background: #059669; color: #fff; }
+.lpc-btn-green:hover { background: #047857; color: #fff; }
+.lpc-btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); }
+@media (max-width: 576px) { .lpc-row, .lpc-row-3 { grid-template-columns: 1fr; } }
+{% endblock %}
+
+{% block content %}
+<form method="post" class="lpc-form">
+    {% csrf_token %}
+
+    <div class="iu-card">
+        <h6 style="font-weight:700;margin-bottom:1rem"><i class="bi bi-journal-bookmark me-1" style="color:#059669"></i> Lesson Details</h6>
+
+        <div class="lpc-group">
+            <label>Title <span style="color:#dc2626">*</span></label>
+            <input type="text" name="title" required placeholder="e.g. Introduction to Photosynthesis">
+        </div>
+        <div class="lpc-row-3">
+            <div class="lpc-group">
+                <label>Subject</label>
+                <select name="subject">
+                    {% for val, label in subjects %}
+                    <option value="{{ val }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="lpc-group">
+                <label>Class Level</label>
+                <input type="text" name="target_class" placeholder="e.g. JHS 2">
+            </div>
+            <div class="lpc-group">
+                <label>Duration (min)</label>
+                <input type="number" name="duration_minutes" value="40" min="10" max="120">
+            </div>
+        </div>
+        <div class="lpc-group">
+            <label>Topic</label>
+            <input type="text" name="topic" placeholder="e.g. Photosynthesis">
+        </div>
+    </div>
+
+    <div class="iu-card">
+        <div class="lpc-section-title"><i class="bi bi-bullseye"></i> Objectives</div>
+        <div class="lpc-group">
+            <textarea name="objectives" placeholder="By the end of this lesson, students will be able to:&#10;1. Define photosynthesis&#10;2. Identify the main components…"></textarea>
+        </div>
+
+        <div class="lpc-section-title"><i class="bi bi-box-seam"></i> Materials Needed</div>
+        <div class="lpc-group">
+            <textarea name="materials" placeholder="Textbook, chart paper, markers, plant specimen…" style="min-height:60px"></textarea>
+        </div>
+    </div>
+
+    <div class="iu-card">
+        <div class="lpc-section-title"><i class="bi bi-play-circle"></i> Introduction</div>
+        <div class="lpc-group">
+            <textarea name="introduction" placeholder="Hook / warm-up activity to engage students…"></textarea>
+        </div>
+
+        <div class="lpc-section-title"><i class="bi bi-layers"></i> Development</div>
+        <div class="lpc-group">
+            <textarea name="development" placeholder="Main teaching activities, explanations, demonstrations…" style="min-height:120px"></textarea>
+        </div>
+
+        <div class="lpc-section-title"><i class="bi bi-clipboard-check"></i> Assessment</div>
+        <div class="lpc-group">
+            <textarea name="assessment" placeholder="How will you assess student understanding?"></textarea>
+        </div>
+
+        <div class="lpc-section-title"><i class="bi bi-flag"></i> Closure</div>
+        <div class="lpc-group">
+            <textarea name="closure" placeholder="Summary, reflection, homework assignment…" style="min-height:60px"></textarea>
+        </div>
+
+        <div class="lpc-section-title"><i class="bi bi-sticky"></i> Notes</div>
+        <div class="lpc-group">
+            <textarea name="notes" placeholder="Any additional notes or reminders…" style="min-height:50px"></textarea>
+        </div>
+    </div>
+
+    <div class="lpc-actions">
+        <button type="submit" class="lpc-btn lpc-btn-green">
+            <i class="bi bi-plus-circle"></i> Create Plan
+        </button>
+        <a href="{% url 'individual:lesson_plans' %}" class="lpc-btn lpc-btn-outline">Cancel</a>
+    </div>
+</form>
+{% endblock %}

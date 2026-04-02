@@ -1,0 +1,131 @@
+{% extends 'individual/base.html' %}
+{% block title %}Exam Papers — Aura Teacher Portal{% endblock %}
+{% block page_title %}Exam Papers{% endblock %}
+
+{% block extra_css %}
+.ep-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+.ep-header h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0;
+}
+.ep-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.55rem 1rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.ep-btn-green { background: #059669; color: #fff; }
+.ep-btn-green:hover { background: #047857; color: #fff; }
+.ep-btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); }
+.ep-btn-outline:hover { border-color: #059669; color: #059669; }
+
+.ep-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+.ep-card {
+    padding: 1.25rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.ep-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+.ep-card-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+.ep-card-meta {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+}
+.ep-card-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+.ep-card-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+.ep-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+}
+.ep-empty i {
+    font-size: 3rem;
+    color: var(--text-muted);
+    opacity: 0.3;
+    margin-bottom: 1rem;
+}
+.ep-empty p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+@media (max-width: 576px) {
+    .ep-grid { grid-template-columns: 1fr; }
+    .ep-header { flex-direction: column; gap: 0.75rem; align-items: stretch; }
+}
+{% endblock %}
+
+{% block content %}
+<div class="ep-header">
+    <h2><i class="bi bi-file-earmark-text me-1" style="color:#4361ee"></i> Your Exam Papers</h2>
+    <a href="{% url 'individual:exam_paper_create' %}" class="ep-btn ep-btn-green">
+        <i class="bi bi-plus-lg"></i> Create Exam Paper
+    </a>
+</div>
+
+<div class="ep-grid">
+{% for paper in papers %}
+    <div class="iu-card ep-card">
+        <div class="ep-card-title">{{ paper.title }}</div>
+        <div class="ep-card-meta">
+            <span><i class="bi bi-book"></i> {{ paper.get_subject_display }}</span>
+            <span><i class="bi bi-collection"></i> {{ paper.q_count }} question{{ paper.q_count|pluralize }}</span>
+            <span><i class="bi bi-clock"></i> {{ paper.duration_minutes }} min</span>
+            {% if paper.target_class %}<span><i class="bi bi-people"></i> {{ paper.target_class }}</span>{% endif %}
+        </div>
+        <div class="ep-card-actions">
+            <a href="{% url 'individual:exam_paper_detail' pk=paper.pk %}" class="ep-btn ep-btn-outline">
+                <i class="bi bi-eye"></i> View
+            </a>
+            <form method="post" action="{% url 'individual:exam_paper_delete' pk=paper.pk %}" onsubmit="return confirm('Delete this paper?')" style="display:inline">
+                {% csrf_token %}
+                <button type="submit" class="ep-btn ep-btn-outline" style="color:#dc2626;border-color:rgba(220,38,38,0.3)">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+{% empty %}
+    <div class="iu-card ep-empty" style="grid-column:1/-1">
+        <i class="bi bi-file-earmark-text"></i>
+        <p>No exam papers yet. Create one from your question bank.</p>
+        <a href="{% url 'individual:exam_paper_create' %}" class="ep-btn ep-btn-green">
+            <i class="bi bi-plus-lg"></i> Create First Paper
+        </a>
+    </div>
+{% endfor %}
+</div>
+{% endblock %}

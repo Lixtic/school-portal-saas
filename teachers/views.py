@@ -7141,6 +7141,14 @@ def addon_task_board(request):
             if new_col in dict(COLUMNS):
                 card.column = new_col
                 card.save(update_fields=['column'])
+        elif action == 'edit':
+            card = get_object_or_404(TaskCard, id=request.POST.get('card_id'), teacher=teacher)
+            card.title = request.POST.get('title', card.title).strip()[:200] or card.title
+            new_prio = request.POST.get('priority', card.priority)
+            if new_prio in ('high', 'medium', 'low'):
+                card.priority = new_prio
+            card.due_date = request.POST.get('due_date') or None
+            card.save(update_fields=['title', 'priority', 'due_date'])
         elif action == 'delete':
             TaskCard.objects.filter(id=request.POST.get('card_id'), teacher=teacher).delete()
         return redirect('teachers:addon_task_board')

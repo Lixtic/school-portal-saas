@@ -1,5 +1,6 @@
 from django.urls import path
 from individual_users import views
+from individual_users import tool_views
 
 app_name = 'individual'
 
@@ -17,6 +18,10 @@ urlpatterns = [
     path('addons/', views.addons_view, name='addons'),
     path('addons/subscribe/', views.subscribe_addon, name='subscribe_addon'),
     path('addons/unsubscribe/', views.unsubscribe_addon, name='unsubscribe_addon'),
+    path('addons/verify/', views.verify_addon_payment, name='verify_addon_payment'),
+
+    # Paystack webhook (no auth required, HMAC-verified)
+    path('webhook/paystack/', views.paystack_individual_webhook, name='paystack_individual_webhook'),
 
     # API keys
     path('api-keys/', views.api_keys_view, name='api_keys'),
@@ -24,6 +29,30 @@ urlpatterns = [
 
     # API status endpoint
     path('api/status/', views.api_status, name='api_status'),
+
+    # ── Tools (teacher portal bridge) ────────────────────────────────────────
+    path('tools/', tool_views.tools_hub, name='tools_hub'),
+
+    # Question Bank
+    path('tools/questions/', tool_views.question_bank_list, name='question_bank'),
+    path('tools/questions/new/', tool_views.question_create, name='question_create'),
+    path('tools/questions/<int:pk>/edit/', tool_views.question_edit, name='question_edit'),
+    path('tools/questions/<int:pk>/delete/', tool_views.question_delete, name='question_delete'),
+    path('tools/questions/ai-generate/', tool_views.question_ai_generate, name='question_ai_generate'),
+
+    # Exam Papers
+    path('tools/exam-papers/', tool_views.exam_paper_list, name='exam_papers'),
+    path('tools/exam-papers/new/', tool_views.exam_paper_create, name='exam_paper_create'),
+    path('tools/exam-papers/<int:pk>/', tool_views.exam_paper_detail, name='exam_paper_detail'),
+    path('tools/exam-papers/<int:pk>/delete/', tool_views.exam_paper_delete, name='exam_paper_delete'),
+
+    # Lesson Plans
+    path('tools/lesson-plans/', tool_views.lesson_plan_list, name='lesson_plans'),
+    path('tools/lesson-plans/new/', tool_views.lesson_plan_create, name='lesson_plan_create'),
+    path('tools/lesson-plans/<int:pk>/', tool_views.lesson_plan_detail, name='lesson_plan_detail'),
+    path('tools/lesson-plans/<int:pk>/edit/', tool_views.lesson_plan_edit, name='lesson_plan_edit'),
+    path('tools/lesson-plans/<int:pk>/delete/', tool_views.lesson_plan_delete, name='lesson_plan_delete'),
+    path('tools/lesson-plans/ai-generate/', tool_views.lesson_plan_ai_generate, name='lesson_plan_ai_generate'),
 ]
 
 # Teacher shortcut URLs (included under /t/ prefix in main urls.py)

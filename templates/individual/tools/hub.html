@@ -1,0 +1,306 @@
+{% extends 'individual/base.html' %}
+{% block title %}My Tools — Aura Teacher Portal{% endblock %}
+{% block page_title %}My Tools{% endblock %}
+
+{% block extra_css %}
+/* ── Tools Hub ─────────────────────────────── */
+.th-hero {
+    padding: 2rem;
+    background: linear-gradient(135deg, rgba(5,150,105,0.08) 0%, rgba(67,97,238,0.06) 100%);
+    border: 1px solid rgba(5,150,105,0.15);
+    border-radius: var(--radius-lg);
+    margin-bottom: 2rem;
+}
+[data-bs-theme="dark"] .th-hero {
+    background: linear-gradient(135deg, rgba(5,150,105,0.15) 0%, rgba(67,97,238,0.1) 100%);
+    border-color: rgba(5,150,105,0.25);
+}
+.th-hero h2 {
+    font-size: 1.35rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+}
+.th-hero p {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 0;
+    max-width: 600px;
+}
+.th-stats {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 1.25rem;
+    flex-wrap: wrap;
+}
+.th-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.th-stat-num {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #059669;
+}
+.th-stat-label {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* ── Tool Cards ────────────────────────────── */
+.th-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1.25rem;
+}
+.th-card {
+    padding: 1.5rem;
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.th-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+.th-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.th-card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+.th-card-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 0.15rem;
+}
+.th-card-tagline {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+.th-card-desc {
+    font-size: 0.84rem;
+    color: var(--text-muted);
+    line-height: 1.55;
+    margin-bottom: 1rem;
+}
+.th-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.25rem;
+}
+.th-features li {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    padding: 0.2rem 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4rem;
+}
+.th-features li i {
+    color: #059669;
+    font-size: 0.7rem;
+    margin-top: 3px;
+    flex-shrink: 0;
+}
+.th-card-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+.th-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.th-btn-primary {
+    background: #059669;
+    color: #fff;
+}
+.th-btn-primary:hover {
+    background: #047857;
+    color: #fff;
+}
+.th-btn-outline {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+}
+.th-btn-outline:hover {
+    border-color: #059669;
+    color: #059669;
+}
+.th-badge-active {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: rgba(5,150,105,0.1);
+    color: #059669;
+    padding: 0.2rem 0.65rem;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+[data-bs-theme="dark"] .th-badge-active {
+    background: rgba(5,150,105,0.2);
+    color: #34d399;
+}
+.th-badge-soon {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: rgba(245,158,11,0.1);
+    color: #d97706;
+    padding: 0.2rem 0.65rem;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+[data-bs-theme="dark"] .th-badge-soon {
+    background: rgba(245,158,11,0.2);
+    color: #fbbf24;
+}
+
+/* ── Section Heading ───────────────────────── */
+.th-section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.th-section-title i {
+    color: #059669;
+}
+
+@media (max-width: 576px) {
+    .th-grid { grid-template-columns: 1fr; }
+    .th-stats { flex-direction: column; gap: 0.75rem; }
+}
+{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<div class="th-hero">
+    <h2><i class="bi bi-tools me-2" style="color:#059669"></i>Teacher Tools</h2>
+    <p>Powerful tools connected to your teaching workflow. Create questions, build exam papers, plan lessons — all from one place.</p>
+    <div class="th-stats">
+        <div class="th-stat">
+            <div class="th-stat-num">{{ question_count }}</div>
+            <div class="th-stat-label">Questions</div>
+        </div>
+        <div class="th-stat">
+            <div class="th-stat-num">{{ exam_count }}</div>
+            <div class="th-stat-label">Exam Papers</div>
+        </div>
+        <div class="th-stat">
+            <div class="th-stat-num">{{ lesson_count }}</div>
+            <div class="th-stat-label">Lesson Plans</div>
+        </div>
+    </div>
+</div>
+
+<!-- Active Tools -->
+{% with active_tools=tools|dictsort:"name" %}
+{% for tool in active_tools %}
+{% if tool.subscribed and not tool.coming_soon %}
+{% if forloop.first %}
+<div class="th-section-title"><i class="bi bi-check-circle-fill"></i> Your Active Tools</div>
+<div class="th-grid" style="margin-bottom:2rem">
+{% endif %}
+    <div class="iu-card th-card">
+        <div class="th-card-header">
+            <div class="th-card-icon" style="background:{{ tool.color }}15;color:{{ tool.color }}">
+                <i class="bi {{ tool.icon }}"></i>
+            </div>
+            <div>
+                <div class="th-card-title">{{ tool.name }}</div>
+                <div class="th-card-tagline">{{ tool.tagline }}</div>
+            </div>
+        </div>
+        <div class="th-card-actions">
+            {% if 'question_bank' in tool.tools %}
+            <a href="{% url 'individual:question_bank' %}" class="th-btn th-btn-primary">
+                <i class="bi bi-collection"></i> Question Bank
+            </a>
+            <a href="{% url 'individual:exam_papers' %}" class="th-btn th-btn-outline">
+                <i class="bi bi-file-text"></i> Exam Papers
+            </a>
+            {% elif 'lesson_plan' in tool.tools %}
+            <a href="{% url 'individual:lesson_plans' %}" class="th-btn th-btn-primary">
+                <i class="bi bi-journal-bookmark"></i> Lesson Plans
+            </a>
+            {% endif %}
+            <span class="th-badge-active ms-auto"><i class="bi bi-check-circle"></i> Active</span>
+        </div>
+    </div>
+{% if forloop.last %}
+</div>
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endwith %}
+
+<!-- All Tools -->
+<div class="th-section-title"><i class="bi bi-grid-3x3-gap"></i> All Teaching Tools</div>
+<div class="th-grid">
+{% for tool in tools %}
+    <div class="iu-card th-card">
+        <div class="th-card-header">
+            <div class="th-card-icon" style="background:{{ tool.color }}15;color:{{ tool.color }}">
+                <i class="bi {{ tool.icon }}"></i>
+            </div>
+            <div>
+                <div class="th-card-title">{{ tool.name }}</div>
+                <div class="th-card-tagline">{{ tool.tagline }}</div>
+            </div>
+        </div>
+        <p class="th-card-desc">{{ tool.description }}</p>
+        <ul class="th-features">
+        {% for feat in tool.features %}
+            <li><i class="bi bi-check-circle-fill"></i> {{ feat }}</li>
+        {% endfor %}
+        </ul>
+        <div class="th-card-actions">
+            {% if tool.coming_soon %}
+                <span class="th-badge-soon"><i class="bi bi-clock"></i> Coming Soon</span>
+            {% elif tool.subscribed %}
+                {% if 'question_bank' in tool.tools %}
+                <a href="{% url 'individual:question_bank' %}" class="th-btn th-btn-primary">
+                    <i class="bi bi-arrow-right"></i> Open Tool
+                </a>
+                {% elif 'lesson_plan' in tool.tools %}
+                <a href="{% url 'individual:lesson_plans' %}" class="th-btn th-btn-primary">
+                    <i class="bi bi-arrow-right"></i> Open Tool
+                </a>
+                {% endif %}
+                <span class="th-badge-active"><i class="bi bi-check-circle"></i> Subscribed</span>
+            {% else %}
+                <a href="{% url 'individual:addons' %}" class="th-btn th-btn-primary">
+                    <i class="bi bi-plus-circle"></i> Get This Tool
+                </a>
+            {% endif %}
+        </div>
+    </div>
+{% endfor %}
+</div>
+{% endblock %}

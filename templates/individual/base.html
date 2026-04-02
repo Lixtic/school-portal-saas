@@ -316,7 +316,13 @@
             <a href="{% url 'individual:addons' %}" class="{% if request.resolver_match.url_name == 'addons' %}active{% endif %}">
                 <i class="bi bi-box-seam"></i> Addon Store
             </a>
-            <div class="iu-nav-label">{% if role == 'teacher' %}Tools{% else %}Developer{% endif %}</div>
+            {% if role == 'teacher' %}
+            <div class="iu-nav-label">Tools</div>
+            <a href="{% url 'individual:tools_hub' %}" class="{% if 'tools' in request.resolver_match.url_name %}active{% endif %}">
+                <i class="bi bi-tools"></i> My Tools
+            </a>
+            {% endif %}
+            <div class="iu-nav-label">{% if role == 'teacher' %}Settings{% else %}Developer{% endif %}</div>
             <a href="{% url 'individual:api_keys' %}" class="{% if request.resolver_match.url_name == 'api_keys' %}active{% endif %}">
                 <i class="bi bi-key"></i> API Keys
             </a>

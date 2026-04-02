@@ -1,0 +1,141 @@
+{% extends 'individual/base.html' %}
+{% block title %}Edit Question — Aura Teacher Portal{% endblock %}
+{% block page_title %}Edit Question{% endblock %}
+
+{% block extra_css %}
+.qc-form { max-width: 680px; }
+.qc-form .iu-card { padding: 1.75rem; margin-bottom: 1.25rem; }
+.qc-group { margin-bottom: 1rem; }
+.qc-group label { font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 0.35rem; }
+.qc-group input, .qc-group select, .qc-group textarea {
+    width: 100%; padding: 0.55rem 0.85rem; border: 1px solid var(--border-color);
+    border-radius: 8px; background: var(--surface-bg); color: var(--text-main);
+    font-family: inherit; font-size: 0.85rem;
+}
+.qc-group textarea { min-height: 100px; resize: vertical; }
+.qc-group input:focus, .qc-group select:focus, .qc-group textarea:focus {
+    outline: none; border-color: #059669; box-shadow: 0 0 0 3px rgba(5,150,105,0.1);
+}
+.qc-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.qc-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+.qc-options-section { display: none; }
+.qc-options-section.active { display: block; }
+.qc-option-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+.qc-option-row .qc-opt-label {
+    width: 24px; height: 24px; border-radius: 6px; background: rgba(67,97,238,0.1);
+    color: #4361ee; display: flex; align-items: center; justify-content: center;
+    font-size: 0.72rem; font-weight: 700; flex-shrink: 0;
+}
+.qc-option-row input { flex: 1; }
+.qc-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+.qc-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.6rem 1.25rem;
+    border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-decoration: none;
+    border: none; cursor: pointer; transition: all 0.15s ease;
+}
+.qc-btn-green { background: #059669; color: #fff; }
+.qc-btn-green:hover { background: #047857; color: #fff; }
+.qc-btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); }
+.qc-btn-outline:hover { border-color: var(--text-main); color: var(--text-main); }
+@media (max-width: 576px) { .qc-row, .qc-row-3 { grid-template-columns: 1fr; } }
+{% endblock %}
+
+{% block content %}
+<form method="post" class="qc-form">
+    {% csrf_token %}
+
+    <div class="iu-card">
+        <h6 style="font-weight:700;margin-bottom:1rem"><i class="bi bi-pencil-square me-1" style="color:#059669"></i> Edit Question</h6>
+
+        <div class="qc-group">
+            <label>Question Text <span style="color:#dc2626">*</span></label>
+            <textarea name="question_text" required>{{ question.question_text }}</textarea>
+        </div>
+
+        <div class="qc-row-3">
+            <div class="qc-group">
+                <label>Subject</label>
+                <select name="subject">
+                    {% for val, label in subjects %}
+                    <option value="{{ val }}" {% if question.subject == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="qc-group">
+                <label>Format</label>
+                <select name="question_format" id="qFormat" onchange="toggleOptions()">
+                    {% for val, label in formats %}
+                    <option value="{{ val }}" {% if question.question_format == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="qc-group">
+                <label>Difficulty</label>
+                <select name="difficulty">
+                    {% for val, label in difficulties %}
+                    <option value="{{ val }}" {% if question.difficulty == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="qc-row">
+            <div class="qc-group">
+                <label>Topic</label>
+                <input type="text" name="topic" value="{{ question.topic }}">
+            </div>
+            <div class="qc-group">
+                <label>Class Level</label>
+                <input type="text" name="target_class" value="{{ question.target_class }}">
+            </div>
+        </div>
+    </div>
+
+    <!-- MCQ Options -->
+    <div class="iu-card qc-options-section {% if question.question_format == 'mcq' %}active{% endif %}" id="optionsSection">
+        <h6 style="font-weight:700;margin-bottom:1rem"><i class="bi bi-list-check me-1" style="color:#4361ee"></i> Answer Options</h6>
+        {% for opt in question.options %}
+        <div class="qc-option-row">
+            <div class="qc-opt-label">{{ forloop.counter|add:64|chr }}</div>
+            <input type="text" name="option_{{ forloop.counter }}" value="{{ opt }}">
+        </div>
+        {% endfor %}
+        {% if question.options|length < 4 %}
+        {% for i in "1234"|make_list %}
+        {% if forloop.counter > question.options|length %}
+        <div class="qc-option-row">
+            <div class="qc-opt-label">{{ forloop.counter|add:64|chr }}</div>
+            <input type="text" name="option_{{ forloop.counter }}" placeholder="Option {{ forloop.counter|add:64|chr }}">
+        </div>
+        {% endif %}
+        {% endfor %}
+        {% endif %}
+    </div>
+
+    <div class="iu-card">
+        <h6 style="font-weight:700;margin-bottom:1rem"><i class="bi bi-check-circle me-1" style="color:#059669"></i> Answer & Explanation</h6>
+        <div class="qc-group">
+            <label>Correct Answer</label>
+            <input type="text" name="correct_answer" value="{{ question.correct_answer }}">
+        </div>
+        <div class="qc-group">
+            <label>Explanation (optional)</label>
+            <textarea name="explanation" style="min-height:70px">{{ question.explanation }}</textarea>
+        </div>
+    </div>
+
+    <div class="qc-actions">
+        <button type="submit" class="qc-btn qc-btn-green">
+            <i class="bi bi-check-lg"></i> Save Changes
+        </button>
+        <a href="{% url 'individual:question_bank' %}" class="qc-btn qc-btn-outline">Cancel</a>
+    </div>
+</form>
+
+<script>
+function toggleOptions() {
+    const fmt = document.getElementById('qFormat').value;
+    document.getElementById('optionsSection').classList.toggle('active', fmt === 'mcq');
+}
+</script>
+{% endblock %}

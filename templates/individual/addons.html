@@ -199,6 +199,51 @@
     background: rgba(16,185,129,0.2);
     color: #34d399;
 }
+/* Plan selector */
+.iu-plan-selector {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+.iu-plan-option {
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border: 1.5px solid var(--border-color, #e4e8f2);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: capitalize;
+    font-family: inherit;
+}
+.iu-plan-option:hover {
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
+}
+.iu-plan-option.selected {
+    border-color: var(--brand-primary);
+    background: rgba(67,97,238,0.1);
+    color: var(--brand-primary);
+}
+[data-bs-theme="dark"] .iu-plan-option.selected {
+    background: rgba(67,97,238,0.2);
+}
+.iu-price-tag {
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: var(--brand-primary);
+    margin-top: 0.3rem;
+}
+.iu-price-tag .currency {
+    font-size: 0.65rem;
+    font-weight: 600;
+    opacity: 0.7;
+}
+.iu-price-tag.free-tag {
+    color: #10b981;
+}
 {% endblock %}
 
 {% block content %}
@@ -216,7 +261,7 @@
 
 <div class="iu-addon-grid" id="addonGrid">
     {% for addon in catalog %}
-    <div class="iu-card iu-addon-card" data-cat="{{ addon.category }}" data-slug="{{ addon.slug }}">
+    <div class="iu-card iu-addon-card" data-cat="{{ addon.category }}" data-slug="{{ addon.slug }}" data-prices='{{ addon.prices_json }}'>
         <div class="iu-addon-top">
             <div class="iu-addon-icon {{ addon.category }}"><i class="bi {{ addon.icon }}"></i></div>
             <div class="iu-addon-meta">
@@ -226,8 +271,22 @@
         </div>
         <div class="iu-addon-desc">{{ addon.description }}</div>
         <div class="iu-addon-footer">
-            <div class="iu-addon-plans">
-                {% for plan in addon.plans %}
+            <div>
+                <div class="iu-plan-selector">
+                    {% for plan in addon.plans %}
+                    <button class="iu-plan-option{% if forloop.first %} selected{% endif %}" data-plan="{{ plan }}" data-price="{{ addon.prices|default_if_none:'{}' }}" onclick="selectPlan(this)">{{ plan }}</button>
+                    {% endfor %}
+                </div>
+                <div class="iu-price-tag" id="price-{{ addon.slug }}">
+                    {% with first_plan=addon.plans.0 %}
+                    {% if addon.first_price == 0 %}
+                    <span class="free-tag">Free</span>
+                    {% else %}
+                    <span class="currency">{{ currency }}</span> {{ addon.first_price }}
+                    {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
                 <span class="iu-plan-tag">{{ plan }}</span>
                 {% endfor %}
             </div>
@@ -236,7 +295,7 @@
                 <i class="bi bi-check-circle me-1"></i>Subscribed
             </button>
             {% else %}
-            <button class="iu-subscribe-btn available" onclick="subscribeAddon('{{ addon.slug }}', '{{ addon.plans.0 }}', this)">
+            <button class="iu-subscribe-btn available" data-slug="{{ addon.slug }}" onclick="subscribeAddon(this)">
                 Subscribe
             </button>
             {% endif %}
@@ -249,7 +308,13 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://js.paystack.co/v2/inline.js"></script>
 <script>
+const CSRF = '{{ csrf_token }}';
+const SUBSCRIBE_URL = '{% url "individual:subscribe_addon" %}';
+const VERIFY_URL = '{% url "individual:verify_addon_payment" %}';
+const CURRENCY = '{{ currency }}';
+
 function getCookie(n){const v=document.cookie.match('(^|;)\\s*'+n+'=([^;]*)');return v?decodeURIComponent(v[2]):null;}
 
 // Filter
@@ -264,21 +329,51 @@ document.querySelectorAll('.iu-filter-chip').forEach(chip => {
     });
 });
 
-// Subscribe
-function subscribeAddon(slug, plan, btn) {
+// Plan selection
+function selectPlan(btn) {
+    const card = btn.closest('.iu-addon-card');
+    card.querySelectorAll('.iu-plan-option').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    const slug = card.dataset.slug;
+    const prices = JSON.parse(card.dataset.prices || '{}');
+    const plan = btn.dataset.plan;
+    const price = prices[plan] || 0;
+    const priceEl = document.getElementById('price-' + slug);
+    if (priceEl) {
+        if (price <= 0) {
+            priceEl.innerHTML = '<span class="free-tag">Free</span>';
+        } else {
+            priceEl.innerHTML = '<span class="currency">' + CURRENCY + '</span> ' + price.toFixed(2);
+        }
+    }
+}
+
+// Subscribe (free) or purchase (paid via Paystack)
+function subscribeAddon(btn) {
+    const card = btn.closest('.iu-addon-card');
+    const slug = card.dataset.slug;
+    const selectedPlan = card.querySelector('.iu-plan-option.selected');
+    const plan = selectedPlan ? selectedPlan.dataset.plan : 'free';
+
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>…';
+
     const fd = new FormData();
     fd.append('addon_slug', slug);
     fd.append('plan', plan);
-    fd.append('csrfmiddlewaretoken', getCookie('csrftoken') || '{{ csrf_token }}');
-    fetch('{% url "individual:subscribe_addon" %}', { method: 'POST', body: fd })
+    fd.append('csrfmiddlewaretoken', getCookie('csrftoken') || CSRF);
+
+    fetch(SUBSCRIBE_URL, { method: 'POST', body: fd })
     .then(r => r.json())
     .then(data => {
         if (data.ok) {
+            // Free plan activated
             btn.className = 'iu-subscribe-btn subscribed';
             btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Subscribed';
             showToast('Subscribed to ' + data.addon);
+        } else if (data.paystack) {
+            // Paid plan: open Paystack popup
+            openPaystack(data, slug, plan, btn);
         } else {
             btn.disabled = false;
             btn.textContent = 'Subscribe';
@@ -286,6 +381,54 @@ function subscribeAddon(slug, plan, btn) {
         }
     })
     .catch(() => { btn.disabled = false; btn.textContent = 'Subscribe'; });
+}
+
+function openPaystack(data, slug, plan, btn) {
+    try {
+        const popup = new PaystackPop();
+        popup.newTransaction({
+            key: data.public_key,
+            email: data.email,
+            amount: data.amount,
+            currency: data.currency,
+            ref: data.reference,
+            metadata: { addon_slug: slug, addon_name: data.addon_name, plan: plan },
+            onSuccess: function(txn) {
+                // Verify on server
+                fetch(VERIFY_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken') || CSRF,
+                    },
+                    body: JSON.stringify({ reference: txn.reference, addon_slug: slug, plan: plan }),
+                })
+                .then(r => r.json())
+                .then(vData => {
+                    if (vData.ok) {
+                        btn.className = 'iu-subscribe-btn subscribed';
+                        btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Subscribed';
+                        showToast('Payment successful! ' + vData.addon + ' activated.');
+                    } else {
+                        showToast(vData.error || 'Verification failed. Contact support.');
+                        btn.disabled = false;
+                        btn.textContent = 'Subscribe';
+                    }
+                })
+                .catch(() => { btn.disabled = false; btn.textContent = 'Subscribe'; });
+            },
+            onCancel: function() {
+                btn.disabled = false;
+                btn.textContent = 'Subscribe';
+                showToast('Payment cancelled.');
+            },
+        });
+    } catch (err) {
+        console.error('Paystack error:', err);
+        btn.disabled = false;
+        btn.textContent = 'Subscribe';
+        showToast('Payment error. Please try again.');
+    }
 }
 
 function showToast(msg) {

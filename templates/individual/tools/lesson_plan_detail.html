@@ -1,0 +1,144 @@
+{% extends 'individual/base.html' %}
+{% block title %}{{ plan.title }} — Aura Teacher Portal{% endblock %}
+{% block page_title %}{{ plan.title }}{% endblock %}
+
+{% block extra_css %}
+.lpd-actions {
+    display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;
+}
+.lpd-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.5rem 1rem;
+    border-radius: 8px; font-size: 0.82rem; font-weight: 600; text-decoration: none;
+    border: none; cursor: pointer; transition: all 0.15s ease;
+}
+.lpd-btn-green { background: #059669; color: #fff; }
+.lpd-btn-green:hover { background: #047857; color: #fff; }
+.lpd-btn-blue { background: #4361ee; color: #fff; }
+.lpd-btn-blue:hover { background: #3451d1; color: #fff; }
+.lpd-btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); }
+.lpd-btn-outline:hover { border-color: var(--text-main); color: var(--text-main); }
+
+.lpd-paper {
+    background: var(--surface-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 2rem 2.5rem;
+    max-width: 800px;
+    box-shadow: var(--shadow-card);
+}
+.lpd-header {
+    border-bottom: 2px solid rgba(5,150,105,0.2);
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+}
+.lpd-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+}
+.lpd-meta {
+    display: flex; gap: 1rem; flex-wrap: wrap;
+    font-size: 0.82rem; color: var(--text-muted);
+}
+.lpd-meta span {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+}
+
+.lpd-section { margin-bottom: 1.5rem; }
+.lpd-section-title {
+    font-size: 0.82rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.05em; color: #059669; margin-bottom: 0.5rem;
+    display: flex; align-items: center; gap: 0.4rem;
+}
+.lpd-section-content {
+    font-size: 0.88rem; line-height: 1.7; white-space: pre-wrap;
+    color: var(--text-main);
+}
+.lpd-section-content:empty::after {
+    content: '—';
+    color: var(--text-muted);
+}
+
+@media print {
+    body { background: #fff !important; }
+    .iu-sidebar, .iu-topbar, .iu-overlay, .lpd-actions { display: none !important; }
+    .iu-main { margin-left: 0 !important; }
+    .iu-content { padding: 0 !important; max-width: 100% !important; }
+    .lpd-paper { border: none; box-shadow: none; padding: 0; border-radius: 0; }
+}
+{% endblock %}
+
+{% block content %}
+<div class="lpd-actions">
+    <a href="{% url 'individual:lesson_plans' %}" class="lpd-btn lpd-btn-outline">
+        <i class="bi bi-arrow-left"></i> Back
+    </a>
+    <a href="{% url 'individual:lesson_plan_edit' pk=plan.pk %}" class="lpd-btn lpd-btn-green">
+        <i class="bi bi-pencil"></i> Edit
+    </a>
+    <button onclick="window.print()" class="lpd-btn lpd-btn-blue">
+        <i class="bi bi-printer"></i> Print
+    </button>
+</div>
+
+<div class="lpd-paper">
+    <div class="lpd-header">
+        <div class="lpd-title">{{ plan.title }}</div>
+        <div class="lpd-meta">
+            <span><i class="bi bi-book"></i> {{ plan.get_subject_display }}</span>
+            <span><i class="bi bi-clock"></i> {{ plan.duration_minutes }} minutes</span>
+            {% if plan.target_class %}<span><i class="bi bi-people"></i> {{ plan.target_class }}</span>{% endif %}
+            {% if plan.topic %}<span><i class="bi bi-tag"></i> {{ plan.topic }}</span>{% endif %}
+        </div>
+    </div>
+
+    {% if plan.objectives %}
+    <div class="lpd-section">
+        <div class="lpd-section-title"><i class="bi bi-bullseye"></i> Objectives</div>
+        <div class="lpd-section-content">{{ plan.objectives }}</div>
+    </div>
+    {% endif %}
+
+    {% if plan.materials %}
+    <div class="lpd-section">
+        <div class="lpd-section-title"><i class="bi bi-box-seam"></i> Materials</div>
+        <div class="lpd-section-content">{{ plan.materials }}</div>
+    </div>
+    {% endif %}
+
+    {% if plan.introduction %}
+    <div class="lpd-section">
+        <div class="lpd-section-title"><i class="bi bi-play-circle"></i> Introduction</div>
+        <div class="lpd-section-content">{{ plan.introduction }}</div>
+    </div>
+    {% endif %}
+
+    {% if plan.development %}
+    <div class="lpd-section">
+        <div class="lpd-section-title"><i class="bi bi-layers"></i> Development</div>
+        <div class="lpd-section-content">{{ plan.development }}</div>
+    </div>
+    {% endif %}
+
+    {% if plan.assessment %}
+    <div class="lpd-section">
+        <div class="lpd-section-title"><i class="bi bi-clipboard-check"></i> Assessment</div>
+        <div class="lpd-section-content">{{ plan.assessment }}</div>
+    </div>
+    {% endif %}
+
+    {% if plan.closure %}
+    <div class="lpd-section">
+        <div class="lpd-section-title"><i class="bi bi-flag"></i> Closure</div>
+        <div class="lpd-section-content">{{ plan.closure }}</div>
+    </div>
+    {% endif %}
+
+    {% if plan.notes %}
+    <div class="lpd-section">
+        <div class="lpd-section-title"><i class="bi bi-sticky"></i> Notes</div>
+        <div class="lpd-section-content">{{ plan.notes }}</div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

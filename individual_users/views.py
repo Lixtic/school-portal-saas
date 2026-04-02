@@ -1,6 +1,9 @@
+import hashlib
+import hmac
 import json
 import logging
 import uuid
+from decimal import Decimal
 
 from django.conf import settings
 from django.contrib import messages
@@ -10,6 +13,7 @@ from django.db import connection
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from individual_users.forms import (
@@ -34,6 +38,7 @@ ADDON_CATALOG = [
         'description': 'Intelligent tutoring with adaptive learning paths, powered by GPT.',
         'plans': ['free', 'pro'],
         'category': 'ai',
+        'prices': {'free': 0, 'pro': 49.99},
     },
     {
         'slug': 'grade-analytics',
@@ -42,6 +47,7 @@ ADDON_CATALOG = [
         'description': 'Student performance analytics, trend detection, and grade prediction.',
         'plans': ['free', 'pro', 'enterprise'],
         'category': 'analytics',
+        'prices': {'free': 0, 'pro': 39.99, 'enterprise': 99.99},
     },
     {
         'slug': 'attendance-tracker',
@@ -50,6 +56,7 @@ ADDON_CATALOG = [
         'description': 'Real-time attendance tracking, absence alerts, and reporting.',
         'plans': ['free', 'pro'],
         'category': 'management',
+        'prices': {'free': 0, 'pro': 29.99},
     },
     {
         'slug': 'lesson-planner',
@@ -58,6 +65,7 @@ ADDON_CATALOG = [
         'description': 'AI-generated lesson plans aligned to GES curriculum standards.',
         'plans': ['pro', 'enterprise'],
         'category': 'ai',
+        'prices': {'pro': 59.99, 'enterprise': 149.99},
     },
     {
         'slug': 'exam-generator',
@@ -66,6 +74,7 @@ ADDON_CATALOG = [
         'description': 'Auto-generate quizzes and exam papers from topics or syllabi.',
         'plans': ['pro', 'enterprise'],
         'category': 'ai',
+        'prices': {'pro': 59.99, 'enterprise': 149.99},
     },
     {
         'slug': 'fee-manager',
@@ -74,6 +83,7 @@ ADDON_CATALOG = [
         'description': 'Fee structure creation, payment tracking, and receipt generation.',
         'plans': ['starter', 'pro'],
         'category': 'finance',
+        'prices': {'starter': 19.99, 'pro': 49.99},
     },
     {
         'slug': 'sms-gateway',
@@ -82,6 +92,7 @@ ADDON_CATALOG = [
         'description': 'Send SMS alerts, push notifications, and email digests.',
         'plans': ['starter', 'pro', 'enterprise'],
         'category': 'communication',
+        'prices': {'starter': 14.99, 'pro': 39.99, 'enterprise': 89.99},
     },
     {
         'slug': 'report-card',
@@ -90,6 +101,7 @@ ADDON_CATALOG = [
         'description': 'Generate formatted PDF report cards with grade summaries.',
         'plans': ['pro', 'enterprise'],
         'category': 'documents',
+        'prices': {'pro': 44.99, 'enterprise': 119.99},
     },
 ]
 
@@ -397,10 +409,14 @@ def addons_view(request):
     )
     catalog = []
     for addon in ADDON_CATALOG:
+        prices = addon.get('prices', {})
+        first_plan = addon['plans'][0] if addon['plans'] else 'free'
         catalog.append({
             **addon,
             'subscribed': addon['slug'] in my_slugs,
             'recommended': profile.role == 'teacher' and addon['slug'] in TEACHER_RECOMMENDED_SLUGS,
+            'prices_json': json.dumps(prices),
+            'first_price': prices.get(first_plan, 0),
         })
 
     # Sort: recommended first for teachers
@@ -412,6 +428,7 @@ def addons_view(request):
         'profile': profile,
         'role': profile.role,
         'categories': sorted({a['category'] for a in ADDON_CATALOG}),
+        'currency': getattr(settings, 'PAYSTACK_CURRENCY', 'GHS'),
     }
     return render(request, 'individual/addons.html', ctx)
 
@@ -429,16 +446,34 @@ def subscribe_addon(request):
     if plan not in addon['plans']:
         return JsonResponse({'error': 'Plan not available for this addon'}, status=400)
 
-    sub, created = AddonSubscription.objects.update_or_create(
-        profile=profile, addon_slug=slug,
-        defaults={
-            'addon_name': addon['name'],
-            'plan': plan,
-            'status': 'active',
-            'expires_at': None,
-        },
-    )
-    return JsonResponse({'ok': True, 'created': created, 'addon': addon['name']})
+    price = addon.get('prices', {}).get(plan, 0)
+
+    if price <= 0:
+        # Free plan: activate immediately
+        sub, created = AddonSubscription.objects.update_or_create(
+            profile=profile, addon_slug=slug,
+            defaults={
+                'addon_name': addon['name'],
+                'plan': plan,
+                'status': 'active',
+                'expires_at': None,
+            },
+        )
+        return JsonResponse({'ok': True, 'created': created, 'addon': addon['name']})
+
+    # Paid plan: return Paystack params for inline popup
+    ref = f"IU-{request.user.id}-{slug}-{plan}-{uuid.uuid4().hex[:8]}"
+    return JsonResponse({
+        'paystack': True,
+        'public_key': settings.PAYSTACK_PUBLIC_KEY,
+        'email': request.user.email or f'{request.user.username}@aura.local',
+        'amount': int(Decimal(str(price)) * 100),  # pesewas/kobo
+        'currency': getattr(settings, 'PAYSTACK_CURRENCY', 'GHS'),
+        'reference': ref,
+        'addon_name': addon['name'],
+        'addon_slug': slug,
+        'plan': plan,
+    })
 
 
 @_individual_required
@@ -531,3 +566,130 @@ def api_status(request):
         'key_name': key.name,
         'active_addons': subs,
     })
+
+
+# ── Paystack Payment Verification ───────────────────────────────────────────
+
+@_individual_required
+@require_POST
+def verify_addon_payment(request):
+    """Verify a Paystack payment and activate a paid addon subscription."""
+    import requests as http_requests
+
+    _ensure_public_schema()
+    profile = request.user.individual_profile
+
+    body = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    reference = body.get('reference', '')
+    slug = body.get('addon_slug', '')
+    plan = body.get('plan', '')
+
+    if not reference or not slug:
+        return JsonResponse({'ok': False, 'error': 'Missing data'}, status=400)
+
+    addon = next((a for a in ADDON_CATALOG if a['slug'] == slug), None)
+    if not addon:
+        return JsonResponse({'ok': False, 'error': 'Addon not found'}, status=404)
+
+    # Verify with Paystack API
+    secret = settings.PAYSTACK_SECRET_KEY
+    if secret:
+        resp = http_requests.get(
+            f'https://api.paystack.co/transaction/verify/{reference}',
+            headers={'Authorization': f'Bearer {secret}'},
+            timeout=15,
+        )
+        data = resp.json()
+        if not data.get('status') or data.get('data', {}).get('status') != 'success':
+            return JsonResponse({'ok': False, 'error': 'Payment verification failed'}, status=402)
+        amount_paid = Decimal(str(data['data']['amount'])) / 100
+    else:
+        # Dev mode: no Paystack key — accept at face value
+        amount_paid = Decimal(str(addon.get('prices', {}).get(plan, 0)))
+
+    sub, created = AddonSubscription.objects.update_or_create(
+        profile=profile, addon_slug=slug,
+        defaults={
+            'addon_name': addon['name'],
+            'plan': plan or addon['plans'][0],
+            'status': 'active',
+            'expires_at': None,
+            'payment_reference': reference,
+            'amount_paid': amount_paid,
+        },
+    )
+    return JsonResponse({'ok': True, 'addon': addon['name']})
+
+
+@csrf_exempt
+def paystack_individual_webhook(request):
+    """Paystack webhook for individual user addon payments. HMAC-verified."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST only'}, status=405)
+
+    secret = getattr(settings, 'PAYSTACK_SECRET_KEY', '')
+    sig = request.headers.get('X-Paystack-Signature', '')
+    expected = hmac.new(secret.encode(), request.body, hashlib.sha512).hexdigest()
+    if not hmac.compare_digest(sig, expected):
+        return JsonResponse({'error': 'Bad signature'}, status=403)
+
+    try:
+        payload = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Bad JSON'}, status=400)
+
+    event = payload.get('event')
+    data = payload.get('data', {})
+
+    if event == 'charge.success':
+        reference = data.get('reference', '')
+        if reference.startswith('IU-'):
+            _handle_individual_addon_payment(reference, data)
+
+    return JsonResponse({'ok': True})
+
+
+def _handle_individual_addon_payment(reference, data):
+    """Activate an individual addon subscription from a confirmed Paystack charge."""
+    _ensure_public_schema()
+
+    # Parse reference: IU-{user_id}-{slug}-{plan}-{uuid}
+    parts = reference.split('-', 4)
+    if len(parts) < 4:
+        return
+
+    try:
+        user_id = int(parts[1])
+    except (ValueError, IndexError):
+        return
+
+    slug = parts[2]
+    plan = parts[3] if len(parts) > 3 else 'pro'
+
+    try:
+        user = User.objects.get(id=user_id, user_type='individual')
+        profile = user.individual_profile
+    except (User.DoesNotExist, IndividualProfile.DoesNotExist):
+        return
+
+    addon = next((a for a in ADDON_CATALOG if a['slug'] == slug), None)
+    if not addon:
+        return
+
+    # Deduplicate by payment_reference
+    if AddonSubscription.objects.filter(payment_reference=reference).exists():
+        return
+
+    amount_paid = Decimal(str(data.get('amount', 0))) / 100
+
+    AddonSubscription.objects.update_or_create(
+        profile=profile, addon_slug=slug,
+        defaults={
+            'addon_name': addon['name'],
+            'plan': plan,
+            'status': 'active',
+            'expires_at': None,
+            'payment_reference': reference,
+            'amount_paid': amount_paid,
+        },
+    )

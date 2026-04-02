@@ -1,0 +1,225 @@
+{% extends 'individual/base.html' %}
+{% block title %}{{ paper.title }} — Aura Teacher Portal{% endblock %}
+{% block page_title %}{{ paper.title }}{% endblock %}
+
+{% block extra_css %}
+/* ── Exam Paper Preview ──────────────────── */
+.epd-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+.epd-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.epd-btn-green { background: #059669; color: #fff; }
+.epd-btn-green:hover { background: #047857; color: #fff; }
+.epd-btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); }
+.epd-btn-outline:hover { border-color: var(--text-main); color: var(--text-main); }
+.epd-btn-blue { background: #4361ee; color: #fff; }
+.epd-btn-blue:hover { background: #3451d1; color: #fff; }
+
+/* Paper shell */
+.epd-paper {
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 2.5rem 3rem;
+    max-width: 800px;
+    box-shadow: var(--shadow-card);
+    color: #111827;
+}
+[data-bs-theme="dark"] .epd-paper {
+    background: var(--surface-card);
+    color: var(--text-main);
+}
+
+/* Paper header */
+.epd-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid #111827;
+    padding-bottom: 1.25rem;
+}
+[data-bs-theme="dark"] .epd-header {
+    border-color: var(--border-color);
+}
+.epd-school {
+    font-size: 1.25rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.epd-exam-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-top: 0.5rem;
+}
+.epd-meta-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.82rem;
+    margin-top: 0.75rem;
+    color: #374151;
+}
+[data-bs-theme="dark"] .epd-meta-row { color: var(--text-muted); }
+
+.epd-instructions {
+    background: rgba(67,97,238,0.04);
+    border: 1px solid rgba(67,97,238,0.1);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    margin-bottom: 2rem;
+    font-style: italic;
+}
+
+/* Sections */
+.epd-section {
+    margin-bottom: 2rem;
+}
+.epd-section-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid #d1d5db;
+    padding-bottom: 0.4rem;
+    margin-bottom: 1rem;
+}
+[data-bs-theme="dark"] .epd-section-title { border-color: var(--border-color); }
+
+.epd-question {
+    margin-bottom: 1.25rem;
+    padding-left: 0.5rem;
+}
+.epd-q-num {
+    font-weight: 700;
+    margin-right: 0.35rem;
+    color: #4361ee;
+}
+.epd-q-text {
+    font-size: 0.88rem;
+    line-height: 1.6;
+}
+.epd-options {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0 0 1.5rem;
+}
+.epd-options li {
+    font-size: 0.85rem;
+    padding: 0.15rem 0;
+    line-height: 1.5;
+}
+.epd-answer-line {
+    border-bottom: 1px dotted #9ca3af;
+    display: block;
+    height: 1.5rem;
+    margin: 0.5rem 0 0 1.5rem;
+    width: 60%;
+}
+.epd-diff-badge {
+    display: inline-block;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+}
+.epd-diff-badge.easy { background: rgba(5,150,105,0.1); color: #059669; }
+.epd-diff-badge.medium { background: rgba(245,158,11,0.1); color: #d97706; }
+.epd-diff-badge.hard { background: rgba(220,38,38,0.1); color: #dc2626; }
+
+/* Print styles */
+@media print {
+    body { background: #fff !important; }
+    .iu-sidebar, .iu-topbar, .iu-overlay, .epd-actions, .epd-diff-badge { display: none !important; }
+    .iu-main { margin-left: 0 !important; }
+    .iu-content { padding: 0 !important; max-width: 100% !important; }
+    .epd-paper { border: none; box-shadow: none; padding: 0; border-radius: 0; }
+}
+{% endblock %}
+
+{% block content %}
+<div class="epd-actions">
+    <a href="{% url 'individual:exam_papers' %}" class="epd-btn epd-btn-outline">
+        <i class="bi bi-arrow-left"></i> Back
+    </a>
+    <button onclick="window.print()" class="epd-btn epd-btn-blue">
+        <i class="bi bi-printer"></i> Print / PDF
+    </button>
+    <span style="margin-left:auto;font-size:0.78rem;color:var(--text-muted);align-self:center">
+        {{ question_count }} question{{ question_count|pluralize }} &bull; {{ paper.duration_minutes }} min
+    </span>
+</div>
+
+<div class="epd-paper">
+    <!-- Header -->
+    <div class="epd-header">
+        {% if paper.school_name %}
+        <div class="epd-school">{{ paper.school_name }}</div>
+        {% endif %}
+        <div class="epd-exam-title">{{ paper.title }}</div>
+        <div class="epd-meta-row">
+            <span>Subject: {{ paper.get_subject_display }}</span>
+            {% if paper.target_class %}<span>Class: {{ paper.target_class }}</span>{% endif %}
+            <span>Duration: {{ paper.duration_minutes }} minutes</span>
+        </div>
+        {% if paper.term or paper.academic_year %}
+        <div class="epd-meta-row" style="margin-top:0.25rem">
+            {% if paper.term %}<span>{{ paper.term }}</span>{% endif %}
+            {% if paper.academic_year %}<span>{{ paper.academic_year }}</span>{% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Instructions -->
+    {% if paper.instructions %}
+    <div class="epd-instructions">{{ paper.instructions }}</div>
+    {% endif %}
+
+    <!-- Question Sections -->
+    {% for section_label, qs in sections.items %}
+    <div class="epd-section">
+        <div class="epd-section-title">Section: {{ section_label }}</div>
+        {% for q in qs %}
+        <div class="epd-question">
+            <span class="epd-q-num">{{ forloop.counter }}.</span>
+            <span class="epd-q-text">{{ q.question_text }}</span>
+            <span class="epd-diff-badge {{ q.difficulty }}">{{ q.get_difficulty_display }}</span>
+
+            {% if q.question_format == 'mcq' and q.options %}
+            <ul class="epd-options">
+                {% for opt in q.options %}
+                <li>{{ opt }}</li>
+                {% endfor %}
+            </ul>
+            {% elif q.question_format == 'fill' or q.question_format == 'short' %}
+            <span class="epd-answer-line"></span>
+            {% elif q.question_format == 'truefalse' %}
+            <ul class="epd-options">
+                <li>( ) True</li>
+                <li>( ) False</li>
+            </ul>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% empty %}
+    <p style="text-align:center;color:var(--text-muted);padding:2rem 0">No questions added to this paper yet.</p>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -3,39 +3,325 @@
 
 {% block content %}
 <style>
-:root{--tb-bg:#f4f6fb;--tb-card:#fff;--tb-ink:#0b1120;--tb-muted:#8892a4;--tb-border:#e4e8f2;--tb-accent:#4361ee;--tb-accent2:#7c3aed;}
-[data-bs-theme="dark"]{--tb-bg:#0f172a;--tb-card:#1e293b;--tb-ink:#f1f5f9;--tb-muted:#94a3b8;--tb-border:#334155;}
-.tb-wrap{max-width:980px;margin:0 auto;padding:1rem .5rem;}
-.tb-hero{background:linear-gradient(135deg,var(--tb-accent),var(--tb-accent2));border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1rem;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;}
-.tb-hero h1{margin:0;font-size:1.25rem;font-weight:800;letter-spacing:-.02em;}
-.tb-hero-sub{font-size:.78rem;opacity:.85;margin-top:.15rem;}
-.tb-hero-stats{display:flex;gap:1.2rem;}
-.tb-h-stat{text-align:center;}.tb-h-num{font-size:1.5rem;font-weight:800;line-height:1;}.tb-h-lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;opacity:.8;}
-.tb-board{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;}
-@media(max-width:768px){.tb-board{grid-template-columns:1fr;}}
-.tb-col{background:var(--tb-bg);border:1px solid var(--tb-border);border-radius:14px;min-height:200px;padding:.6rem;}
-.tb-col-head{padding:.5rem .7rem;font-size:.78rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--tb-muted);display:flex;align-items:center;justify-content:space-between;}
-.tb-col-head .badge{font-size:.7rem;font-weight:700;padding:.15rem .45rem;border-radius:6px;}
-.tb-item{background:var(--tb-card);border:1px solid var(--tb-border);border-radius:10px;padding:.6rem .8rem;margin:.4rem 0;cursor:grab;transition:box-shadow .15s,transform .15s;position:relative;}
-.tb-item:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);transform:translateY(-2px);}
-.tb-item.dragging{opacity:.4;transform:rotate(2deg);}
-.tb-item-title{font-size:.88rem;font-weight:700;color:var(--tb-ink);margin-bottom:.2rem;}
-.tb-item-meta{font-size:.72rem;color:var(--tb-muted);display:flex;gap:.5rem;align-items:center;}
-.tb-prio{display:inline-block;width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.tb-prio-high{background:#ef4444;}.tb-prio-medium{background:#f59e0b;}.tb-prio-low{background:#10b981;}
-.tb-item-actions{position:absolute;top:.4rem;right:.4rem;display:none;}
-.tb-item:hover .tb-item-actions{display:flex;gap:.2rem;}
-.tb-item-actions button{background:none;border:none;color:var(--tb-muted);font-size:.78rem;cursor:pointer;padding:.1rem .25rem;border-radius:4px;}
-.tb-item-actions button:hover{color:#ef4444;background:rgba(239,68,68,.08);}
-.tb-add-input{width:100%;padding:.4rem .6rem;border:1px dashed var(--tb-border);border-radius:8px;font-size:.82rem;background:transparent;color:var(--tb-ink);margin-top:.3rem;transition:border-color .15s;}
-.tb-add-input:focus{border-color:var(--tb-accent);outline:none;box-shadow:0 0 0 3px rgba(67,97,238,.12);}
-.tb-add-row{display:flex;gap:.3rem;margin-top:.3rem;}
-.tb-add-row select,.tb-add-row input{padding:.3rem .5rem;border:1px solid var(--tb-border);border-radius:6px;font-size:.78rem;background:var(--tb-card);color:var(--tb-ink);}
-.tb-add-row select:focus,.tb-add-row input:focus{border-color:var(--tb-accent);outline:none;box-shadow:0 0 0 3px rgba(67,97,238,.12);}
-.tb-add-btn{background:linear-gradient(135deg,var(--tb-accent),var(--tb-accent2));color:#fff;border:none;padding:.3rem .6rem;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;transition:box-shadow .15s;}
-.tb-add-btn:hover{box-shadow:0 4px 12px rgba(67,97,238,.35);}
-.tb-drop-zone{border:2px dashed var(--tb-accent);border-radius:10px;min-height:40px;margin:.3rem 0;opacity:0;transition:opacity .15s;}
-.tb-drop-zone.active{opacity:1;}
+:root {
+    --tb-bg: #f0f2f8;
+    --tb-card: #ffffff;
+    --tb-ink: #0b1120;
+    --tb-muted: #6b7a90;
+    --tb-border: #e2e6ef;
+    --tb-accent: #4361ee;
+    --tb-accent2: #7c3aed;
+    --tb-green: #10b981;
+    --tb-amber: #f59e0b;
+    --tb-red: #ef4444;
+    --tb-blue: #3b82f6;
+    --tb-radius: 14px;
+    --tb-shadow-sm: 0 1px 3px rgba(0,0,0,.04);
+    --tb-shadow-md: 0 4px 16px rgba(0,0,0,.07);
+    --tb-shadow-hover: 0 8px 24px rgba(67,97,238,.12);
+}
+[data-bs-theme="dark"] {
+    --tb-bg: #0c1425;
+    --tb-card: #1a2236;
+    --tb-ink: #f1f5f9;
+    --tb-muted: #94a3b8;
+    --tb-border: #2a3550;
+    --tb-shadow-sm: 0 1px 3px rgba(0,0,0,.15);
+    --tb-shadow-md: 0 4px 16px rgba(0,0,0,.25);
+    --tb-shadow-hover: 0 8px 24px rgba(67,97,238,.2);
+}
+
+/* Layout */
+.tb-wrap { max-width: 1020px; margin: 0 auto; padding: 1rem .5rem; font-family: 'Manrope', system-ui, sans-serif; }
+
+/* Hero */
+.tb-hero {
+    background: linear-gradient(135deg, var(--tb-accent) 0%, var(--tb-accent2) 60%, #a78bfa 100%);
+    border-radius: var(--tb-radius);
+    padding: 1.3rem 1.5rem;
+    margin-bottom: 1rem;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .8rem;
+    position: relative;
+    overflow: hidden;
+}
+.tb-hero::before {
+    content: '';
+    position: absolute;
+    width: 200px; height: 200px;
+    background: rgba(255,255,255,.06);
+    border-radius: 50%;
+    top: -60px; right: -40px;
+}
+.tb-hero h1 { margin: 0; font-size: 1.2rem; font-weight: 800; letter-spacing: -.02em; position: relative; }
+.tb-hero-sub { font-size: .76rem; opacity: .85; margin-top: .15rem; }
+.tb-hero-stats { display: flex; gap: 1rem; position: relative; }
+.tb-h-stat { text-align: center; }
+.tb-h-num { font-size: 1.4rem; font-weight: 800; line-height: 1; }
+.tb-h-lbl { font-size: .62rem; text-transform: uppercase; letter-spacing: .06em; opacity: .75; }
+
+/* Progress bar */
+.tb-progress {
+    display: flex;
+    gap: 0;
+    height: 6px;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+    background: var(--tb-border);
+}
+.tb-progress-seg { height: 100%; transition: width .3s ease; }
+.tb-progress-todo { background: var(--tb-blue); }
+.tb-progress-doing { background: var(--tb-amber); }
+.tb-progress-done { background: var(--tb-green); }
+
+/* Toolbar */
+.tb-toolbar {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin-bottom: .8rem;
+    flex-wrap: wrap;
+}
+.tb-search {
+    flex: 1;
+    min-width: 160px;
+    position: relative;
+}
+.tb-search i {
+    position: absolute;
+    left: .6rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--tb-muted);
+    font-size: .82rem;
+}
+.tb-search input {
+    width: 100%;
+    padding: .42rem .6rem .42rem 2rem;
+    border: 1px solid var(--tb-border);
+    border-radius: 8px;
+    font-size: .82rem;
+    background: var(--tb-card);
+    color: var(--tb-ink);
+    font-family: inherit;
+}
+.tb-search input:focus { border-color: var(--tb-accent); outline: none; box-shadow: 0 0 0 3px rgba(67,97,238,.1); }
+.tb-filter-chip {
+    padding: .3rem .7rem;
+    border-radius: 20px;
+    font-size: .72rem;
+    font-weight: 600;
+    border: 1.5px solid var(--tb-border);
+    background: transparent;
+    color: var(--tb-muted);
+    cursor: pointer;
+    transition: all .15s;
+    font-family: inherit;
+}
+.tb-filter-chip:hover, .tb-filter-chip.active { border-color: var(--tb-accent); color: var(--tb-accent); background: rgba(67,97,238,.06); }
+
+/* Board */
+.tb-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: .8rem; }
+@media (max-width: 768px) { .tb-board { grid-template-columns: 1fr; } }
+
+/* Column */
+.tb-col {
+    background: var(--tb-bg);
+    border: 1px solid var(--tb-border);
+    border-radius: var(--tb-radius);
+    min-height: 220px;
+    padding: .5rem;
+    transition: border-color .2s;
+}
+.tb-col.drag-over { border-color: var(--tb-accent); background: rgba(67,97,238,.03); }
+.tb-col-head {
+    padding: .45rem .6rem;
+    font-size: .74rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--tb-muted);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: .3rem;
+}
+.tb-col-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: .4rem; }
+.tb-col-dot-todo { background: var(--tb-blue); }
+.tb-col-dot-doing { background: var(--tb-amber); }
+.tb-col-dot-done { background: var(--tb-green); }
+.tb-col-count {
+    font-size: .68rem;
+    font-weight: 700;
+    padding: .1rem .4rem;
+    border-radius: 6px;
+    background: var(--tb-card);
+    color: var(--tb-muted);
+    border: 1px solid var(--tb-border);
+}
+
+/* Card */
+.tb-item {
+    background: var(--tb-card);
+    border: 1px solid var(--tb-border);
+    border-radius: 10px;
+    padding: .55rem .7rem;
+    margin: .35rem 0;
+    cursor: grab;
+    transition: box-shadow .15s, transform .15s, opacity .15s;
+    position: relative;
+    box-shadow: var(--tb-shadow-sm);
+}
+.tb-item:hover { box-shadow: var(--tb-shadow-hover); transform: translateY(-2px); }
+.tb-item.dragging { opacity: .35; transform: rotate(1.5deg) scale(.97); }
+.tb-item.ghost { border: 2px dashed var(--tb-accent); background: rgba(67,97,238,.04); opacity: .6; }
+.tb-item-title { font-size: .85rem; font-weight: 700; color: var(--tb-ink); margin-bottom: .2rem; line-height: 1.3; }
+.tb-item-meta { font-size: .7rem; color: var(--tb-muted); display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+.tb-prio { display: inline-block; width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.tb-prio-high { background: var(--tb-red); }
+.tb-prio-medium { background: var(--tb-amber); }
+.tb-prio-low { background: var(--tb-green); }
+.tb-item-date { display: inline-flex; align-items: center; gap: .2rem; }
+.tb-item-date.overdue { color: var(--tb-red); font-weight: 600; }
+.tb-item-date.today { color: var(--tb-amber); font-weight: 600; }
+.tb-item-actions {
+    position: absolute;
+    top: .3rem; right: .3rem;
+    display: flex;
+    gap: .15rem;
+    opacity: 0;
+    transition: opacity .15s;
+}
+.tb-item:hover .tb-item-actions { opacity: 1; }
+.tb-item-actions button {
+    background: none;
+    border: none;
+    color: var(--tb-muted);
+    font-size: .75rem;
+    cursor: pointer;
+    padding: .15rem .25rem;
+    border-radius: 4px;
+    transition: all .12s;
+}
+.tb-item-actions button:hover { background: rgba(239,68,68,.08); color: var(--tb-red); }
+.tb-item-actions .tb-edit-btn:hover { background: rgba(67,97,238,.08); color: var(--tb-accent); }
+
+/* Done items */
+.tb-col[data-col="done"] .tb-item-title { text-decoration: line-through; opacity: .6; }
+
+/* Add form */
+.tb-add-form { margin-top: .3rem; }
+.tb-add-input {
+    width: 100%;
+    padding: .4rem .6rem;
+    border: 1.5px dashed var(--tb-border);
+    border-radius: 8px;
+    font-size: .82rem;
+    background: transparent;
+    color: var(--tb-ink);
+    font-family: inherit;
+    transition: border-color .15s;
+}
+.tb-add-input:focus { border-color: var(--tb-accent); outline: none; box-shadow: 0 0 0 3px rgba(67,97,238,.1); border-style: solid; }
+.tb-add-row { display: flex; gap: .3rem; margin-top: .3rem; flex-wrap: wrap; }
+.tb-add-row select,
+.tb-add-row input[type="date"] {
+    padding: .3rem .5rem;
+    border: 1px solid var(--tb-border);
+    border-radius: 6px;
+    font-size: .76rem;
+    background: var(--tb-card);
+    color: var(--tb-ink);
+    font-family: inherit;
+}
+.tb-add-row select:focus,
+.tb-add-row input[type="date"]:focus { border-color: var(--tb-accent); outline: none; }
+.tb-add-btn {
+    background: linear-gradient(135deg, var(--tb-accent), var(--tb-accent2));
+    color: #fff;
+    border: none;
+    padding: .3rem .65rem;
+    border-radius: 6px;
+    font-size: .78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: box-shadow .15s, transform .1s;
+}
+.tb-add-btn:hover { box-shadow: 0 4px 12px rgba(67,97,238,.3); }
+.tb-add-btn:active { transform: scale(.96); }
+
+/* Empty state */
+.tb-empty {
+    padding: 1.8rem 1rem;
+    text-align: center;
+    color: var(--tb-muted);
+    font-size: .82rem;
+}
+.tb-empty i { font-size: 1.8rem; display: block; margin-bottom: .4rem; opacity: .2; }
+
+/* Edit modal */
+.tb-modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.4);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+.tb-modal-overlay.open { display: flex; }
+.tb-modal {
+    background: var(--tb-card);
+    border-radius: var(--tb-radius);
+    padding: 1.3rem;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 20px 50px rgba(0,0,0,.2);
+}
+.tb-modal h3 { font-size: 1rem; font-weight: 800; margin: 0 0 .8rem; color: var(--tb-ink); }
+.tb-modal-field { margin-bottom: .6rem; }
+.tb-modal-field label { display: block; font-size: .72rem; font-weight: 700; color: var(--tb-muted); text-transform: uppercase; margin-bottom: .15rem; }
+.tb-modal-field input,
+.tb-modal-field select {
+    width: 100%;
+    padding: .42rem .6rem;
+    border: 1px solid var(--tb-border);
+    border-radius: 8px;
+    font-size: .84rem;
+    background: var(--tb-card);
+    color: var(--tb-ink);
+    font-family: inherit;
+}
+.tb-modal-field input:focus,
+.tb-modal-field select:focus { border-color: var(--tb-accent); outline: none; box-shadow: 0 0 0 3px rgba(67,97,238,.1); }
+.tb-modal-actions { display: flex; gap: .4rem; justify-content: flex-end; margin-top: .8rem; }
+.tb-modal-btn {
+    padding: .4rem .9rem;
+    border-radius: 8px;
+    font-size: .82rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .15s;
+}
+.tb-modal-btn-cancel { background: transparent; color: var(--tb-muted); border: 1px solid var(--tb-border); }
+.tb-modal-btn-cancel:hover { background: var(--tb-bg); }
+.tb-modal-btn-save { background: var(--tb-accent); color: #fff; }
+.tb-modal-btn-save:hover { box-shadow: 0 4px 12px rgba(67,97,238,.3); }
+
+/* Animations */
+@keyframes fadeSlideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.tb-item { animation: fadeSlideIn .25s ease both; }
+.tb-item:nth-child(2) { animation-delay: .04s; }
+.tb-item:nth-child(3) { animation-delay: .08s; }
+.tb-item:nth-child(4) { animation-delay: .12s; }
+.tb-item:nth-child(5) { animation-delay: .16s; }
 </style>
 
 <div class="tb-wrap">
@@ -43,38 +329,66 @@
     <div class="tb-hero">
         <div>
             <h1><i class="bi bi-kanban me-2"></i>Task Board</h1>
-            <div class="tb-hero-sub">Organize your teaching tasks with drag &amp; drop</div>
+            <div class="tb-hero-sub">Organize your teaching tasks — drag cards between columns</div>
         </div>
         <div class="tb-hero-stats">
-            <div class="tb-h-stat"><div class="tb-h-num">{{ cards|length }}</div><div class="tb-h-lbl">Tasks</div></div>
+            <div class="tb-h-stat"><div class="tb-h-num" id="statTodo">0</div><div class="tb-h-lbl">To Do</div></div>
+            <div class="tb-h-stat"><div class="tb-h-num" id="statDoing">0</div><div class="tb-h-lbl">In Progress</div></div>
+            <div class="tb-h-stat"><div class="tb-h-num" id="statDone">0</div><div class="tb-h-lbl">Done</div></div>
         </div>
     </div>
 
+    <!-- Progress -->
+    <div class="tb-progress" id="tbProgress">
+        <div class="tb-progress-seg tb-progress-todo" id="progTodo"></div>
+        <div class="tb-progress-seg tb-progress-doing" id="progDoing"></div>
+        <div class="tb-progress-seg tb-progress-done" id="progDone"></div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="tb-toolbar">
+        <div class="tb-search">
+            <i class="bi bi-search"></i>
+            <input type="text" id="tbSearch" placeholder="Search tasks…" autocomplete="off">
+        </div>
+        <button class="tb-filter-chip active" data-prio="all">All</button>
+        <button class="tb-filter-chip" data-prio="high"><span class="tb-prio tb-prio-high" style="margin-right:3px;"></span>High</button>
+        <button class="tb-filter-chip" data-prio="medium"><span class="tb-prio tb-prio-medium" style="margin-right:3px;"></span>Med</button>
+        <button class="tb-filter-chip" data-prio="low"><span class="tb-prio tb-prio-low" style="margin-right:3px;"></span>Low</button>
+    </div>
+
+    <!-- Kanban Board -->
     <div class="tb-board">
         {% for col_id, col_label, col_cards in columns %}
-        <div class="tb-col" data-col="{{ col_id }}" ondragover="dragOver(event)" ondrop="dropCard(event)">
+        <div class="tb-col" data-col="{{ col_id }}">
             <div class="tb-col-head">
-                {{ col_label }}
-                <span class="badge bg-{% if col_id == 'todo' %}primary{% elif col_id == 'doing' %}warning{% else %}success{% endif %}" id="count-{{ col_id }}">0</span>
+                <span><span class="tb-col-dot tb-col-dot-{{ col_id }}"></span>{{ col_label }}</span>
+                <span class="tb-col-count" id="count-{{ col_id }}">0</span>
             </div>
-            <div id="col-{{ col_id }}">
+            <div class="tb-col-body" id="col-{{ col_id }}">
                 {% for card in col_cards %}
-                <div class="tb-item" draggable="true" data-id="{{ card.id }}" ondragstart="dragStart(event)" ondragend="dragEnd(event)">
+                <div class="tb-item" draggable="true" data-id="{{ card.id }}" data-prio="{{ card.priority }}"
+                     data-title="{{ card.title }}" data-due="{{ card.due_date|date:'Y-m-d'|default:'' }}">
                     <div class="tb-item-actions">
+                        <button class="tb-edit-btn" onclick="openEdit({{ card.id }})" title="Edit"><i class="bi bi-pencil"></i></button>
                         <button onclick="deleteCard({{ card.id }})" title="Delete"><i class="bi bi-x-lg"></i></button>
                     </div>
                     <div class="tb-item-title">{{ card.title }}</div>
                     <div class="tb-item-meta">
                         <span class="tb-prio tb-prio-{{ card.priority }}"></span>
                         {{ card.get_priority_display }}
-                        {% if card.due_date %}<span><i class="bi bi-calendar3 me-1"></i>{{ card.due_date|date:"M d" }}</span>{% endif %}
+                        {% if card.due_date %}
+                        <span class="tb-item-date" data-date="{{ card.due_date|date:'Y-m-d' }}">
+                            <i class="bi bi-calendar3"></i>{{ card.due_date|date:"M d" }}
+                        </span>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}
             </div>
-            <!-- Add new task inline -->
+
             {% if col_id == 'todo' %}
-            <form method="post" style="margin-top:.4rem;">
+            <form method="post" class="tb-add-form">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="add">
                 <input type="text" name="title" class="tb-add-input" placeholder="+ Add a task…" required>
@@ -85,7 +399,7 @@
                         <option value="low">Low</option>
                     </select>
                     <input type="date" name="due_date">
-                    <button type="submit" class="tb-add-btn"><i class="bi bi-plus-lg"></i></button>
+                    <button type="submit" class="tb-add-btn"><i class="bi bi-plus-lg me-1"></i>Add</button>
                 </div>
             </form>
             {% endif %}
@@ -94,38 +408,193 @@
     </div>
 </div>
 
-<script>
-// Update column counts
-document.querySelectorAll('.tb-col').forEach(col=>{
-    const id=col.dataset.col;
-    const n=col.querySelectorAll('.tb-item').length;
-    const badge=document.getElementById('count-'+id);
-    if(badge)badge.textContent=n;
-});
+<!-- Edit Modal -->
+<div class="tb-modal-overlay" id="editOverlay">
+    <div class="tb-modal">
+        <h3><i class="bi bi-pencil-square me-2" style="color:var(--tb-accent);"></i>Edit Task</h3>
+        <form method="post" id="editForm">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="edit">
+            <input type="hidden" name="card_id" id="editCardId">
+            <div class="tb-modal-field">
+                <label>Title</label>
+                <input type="text" name="title" id="editTitle" required>
+            </div>
+            <div class="tb-modal-field">
+                <label>Priority</label>
+                <select name="priority" id="editPriority">
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                </select>
+            </div>
+            <div class="tb-modal-field">
+                <label>Due Date</label>
+                <input type="date" name="due_date" id="editDue">
+            </div>
+            <div class="tb-modal-actions">
+                <button type="button" class="tb-modal-btn tb-modal-btn-cancel" onclick="closeEdit()">Cancel</button>
+                <button type="submit" class="tb-modal-btn tb-modal-btn-save">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
 
-let dragId=null;
-function dragStart(e){dragId=e.target.dataset.id;e.target.classList.add('dragging');}
-function dragEnd(e){e.target.classList.remove('dragging');}
-function dragOver(e){e.preventDefault();}
-function dropCard(e){
-    e.preventDefault();
-    const col=e.currentTarget.dataset.col;
-    if(!dragId||!col)return;
-    // POST move
-    const form=new FormData();
-    form.append('action','move');
-    form.append('card_id',dragId);
-    form.append('column',col);
-    form.append('csrfmiddlewaretoken','{{ csrf_token }}');
-    fetch('',{method:'POST',body:form}).then(()=>location.reload());
-}
-function deleteCard(id){
-    if(!confirm('Delete this task?'))return;
-    const form=new FormData();
-    form.append('action','delete');
-    form.append('card_id',id);
-    form.append('csrfmiddlewaretoken','{{ csrf_token }}');
-    fetch('',{method:'POST',body:form}).then(()=>location.reload());
-}
+<script>
+(function() {
+    const CSRF = '{{ csrf_token }}';
+    const cols = ['todo', 'doing', 'done'];
+
+    // -- Stats & Progress --
+    function updateStats() {
+        let total = 0;
+        const counts = {};
+        cols.forEach(c => {
+            const n = document.querySelectorAll('#col-' + c + ' .tb-item:not([style*="display: none"])').length;
+            counts[c] = n;
+            total += n;
+            const el = document.getElementById('count-' + c);
+            if (el) el.textContent = n;
+        });
+        document.getElementById('statTodo').textContent = counts.todo;
+        document.getElementById('statDoing').textContent = counts.doing;
+        document.getElementById('statDone').textContent = counts.done;
+
+        // Progress bar
+        if (total > 0) {
+            document.getElementById('progTodo').style.width = ((counts.todo / total) * 100) + '%';
+            document.getElementById('progDoing').style.width = ((counts.doing / total) * 100) + '%';
+            document.getElementById('progDone').style.width = ((counts.done / total) * 100) + '%';
+        } else {
+            document.getElementById('progTodo').style.width = '0%';
+            document.getElementById('progDoing').style.width = '0%';
+            document.getElementById('progDone').style.width = '100%';
+        }
+    }
+
+    // -- Due date coloring --
+    function colorDates() {
+        const today = new Date().toISOString().slice(0, 10);
+        document.querySelectorAll('.tb-item-date[data-date]').forEach(el => {
+            const d = el.dataset.date;
+            if (!d) return;
+            el.classList.remove('overdue', 'today');
+            if (d < today) el.classList.add('overdue');
+            else if (d === today) el.classList.add('today');
+        });
+    }
+
+    // -- Drag & Drop --
+    let dragEl = null;
+
+    document.addEventListener('dragstart', function(e) {
+        if (!e.target.classList.contains('tb-item')) return;
+        dragEl = e.target;
+        e.target.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+    });
+
+    document.addEventListener('dragend', function(e) {
+        if (dragEl) dragEl.classList.remove('dragging');
+        document.querySelectorAll('.tb-col').forEach(c => c.classList.remove('drag-over'));
+        dragEl = null;
+    });
+
+    document.querySelectorAll('.tb-col').forEach(col => {
+        col.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            this.classList.add('drag-over');
+        });
+        col.addEventListener('dragleave', function(e) {
+            this.classList.remove('drag-over');
+        });
+        col.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+            if (!dragEl) return;
+            const newCol = this.dataset.col;
+            const cardId = dragEl.dataset.id;
+            const body = this.querySelector('.tb-col-body');
+            if (body && dragEl.parentNode !== body) {
+                body.appendChild(dragEl);
+                updateStats();
+                // POST move to server
+                const fd = new FormData();
+                fd.append('action', 'move');
+                fd.append('card_id', cardId);
+                fd.append('column', newCol);
+                fd.append('csrfmiddlewaretoken', CSRF);
+                fetch('', { method: 'POST', body: fd });
+            }
+        });
+    });
+
+    // -- Delete --
+    window.deleteCard = function(id) {
+        if (!confirm('Delete this task?')) return;
+        const fd = new FormData();
+        fd.append('action', 'delete');
+        fd.append('card_id', id);
+        fd.append('csrfmiddlewaretoken', CSRF);
+        fetch('', { method: 'POST', body: fd }).then(() => {
+            const el = document.querySelector('[data-id="' + id + '"]');
+            if (el) { el.style.opacity = '0'; el.style.transform = 'scale(.9)'; setTimeout(() => { el.remove(); updateStats(); }, 200); }
+        });
+    };
+
+    // -- Edit Modal --
+    window.openEdit = function(id) {
+        const el = document.querySelector('[data-id="' + id + '"]');
+        if (!el) return;
+        document.getElementById('editCardId').value = id;
+        document.getElementById('editTitle').value = el.dataset.title || '';
+        document.getElementById('editPriority').value = el.dataset.prio || 'medium';
+        document.getElementById('editDue').value = el.dataset.due || '';
+        document.getElementById('editOverlay').classList.add('open');
+    };
+    window.closeEdit = function() {
+        document.getElementById('editOverlay').classList.remove('open');
+    };
+    document.getElementById('editOverlay').addEventListener('click', function(e) {
+        if (e.target === this) closeEdit();
+    });
+
+    // -- Search --
+    document.getElementById('tbSearch').addEventListener('input', function() {
+        const q = this.value.toLowerCase();
+        document.querySelectorAll('.tb-item').forEach(item => {
+            const t = (item.dataset.title || '').toLowerCase();
+            item.style.display = (!q || t.includes(q)) ? '' : 'none';
+        });
+        applyFilter();
+        updateStats();
+    });
+
+    // -- Filter chips --
+    let activePrio = 'all';
+    document.querySelectorAll('.tb-filter-chip').forEach(chip => {
+        chip.addEventListener('click', function() {
+            document.querySelectorAll('.tb-filter-chip').forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+            activePrio = this.dataset.prio;
+            applyFilter();
+            updateStats();
+        });
+    });
+
+    function applyFilter() {
+        const q = document.getElementById('tbSearch').value.toLowerCase();
+        document.querySelectorAll('.tb-item').forEach(item => {
+            const matchSearch = !q || (item.dataset.title || '').toLowerCase().includes(q);
+            const matchPrio = activePrio === 'all' || item.dataset.prio === activePrio;
+            item.style.display = (matchSearch && matchPrio) ? '' : 'none';
+        });
+    }
+
+    // Init
+    updateStats();
+    colorDates();
+})();
 </script>
 {% endblock %}
