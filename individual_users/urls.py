@@ -73,6 +73,7 @@ urlpatterns = [
     path('tools/licensure/quiz/<int:pk>/review/', tool_views.licensure_quiz_review, name='licensure_quiz_review'),
     path('tools/licensure/history/', tool_views.licensure_history, name='licensure_history'),
     path('tools/licensure/api/', tool_views.licensure_api, name='licensure_api'),
+    path('tools/licensure/load-bank/', tool_views.licensure_load_bank, name='licensure_load_bank'),
 ]
 
 # Teacher shortcut URLs (included under /t/ prefix in main urls.py)

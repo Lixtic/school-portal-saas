@@ -2104,3 +2104,42 @@ def licensure_history(request):
         'domains': LicensureQuestion.DOMAIN_CHOICES,
     }
     return render(request, 'individual/tools/licensure/history.html', ctx)
+
+
+@_tool_required
+@_require_tool('licensure-prep')
+@require_POST
+def licensure_load_bank(request):
+    """Load the built-in GTLE practice question bank into user's profile."""
+    from .gtle_question_bank import GTLE_QUESTION_BANK
+
+    profile = request.user.individual_profile
+    existing = LicensureQuestion.objects.filter(
+        profile=profile, source='practice',
+    ).count()
+
+    if existing >= len(GTLE_QUESTION_BANK):
+        messages.info(request, 'Practice question bank is already loaded.')
+        return redirect('individual:licensure_dashboard')
+
+    # Avoid duplicates — check by question_text
+    existing_texts = set(
+        LicensureQuestion.objects.filter(profile=profile)
+        .values_list('question_text', flat=True)
+    )
+
+    new_qs = []
+    for q in GTLE_QUESTION_BANK:
+        if q['question_text'] not in existing_texts:
+            new_qs.append(LicensureQuestion(profile=profile, **q))
+
+    if new_qs:
+        LicensureQuestion.objects.bulk_create(new_qs)
+        messages.success(
+            request,
+            f'{len(new_qs)} GTLE practice questions loaded into your question bank!',
+        )
+    else:
+        messages.info(request, 'All practice questions are already in your bank.')
+
+    return redirect('individual:licensure_dashboard')
