@@ -137,6 +137,75 @@
 /* Loader */
 .pm-loader { display: none; }
 .pm-loader.show { display: inline-block; }
+
+/* ── Scan Tab ───────────────── */
+.pm-scan-zone {
+    background: var(--surface-card); border: 1px solid var(--stroke-subtle);
+    border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1.25rem;
+}
+.pm-scan-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 0.4rem; color: var(--text-primary); }
+.pm-scan-sub { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem; }
+.pm-scan-dropzone {
+    border: 2px dashed var(--stroke-subtle); border-radius: 12px;
+    padding: 2rem; text-align: center; cursor: pointer;
+    transition: all 0.2s ease; position: relative;
+    background: var(--surface-base);
+}
+.pm-scan-dropzone:hover, .pm-scan-dropzone.drag-over {
+    border-color: #e11d48; background: rgba(225,29,72,0.03);
+}
+.pm-scan-dropzone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.pm-scan-dropzone i { font-size: 2.5rem; color: #e11d48; opacity: 0.5; display: block; margin-bottom: 0.5rem; }
+.pm-scan-dropzone .pm-scan-label { font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); }
+.pm-scan-dropzone .pm-scan-hint { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem; }
+
+.pm-scan-preview {
+    display: none; margin-top: 1rem; border-radius: 10px; overflow: hidden;
+    border: 1px solid var(--stroke-subtle); position: relative;
+}
+.pm-scan-preview img {
+    width: 100%; max-height: 400px; object-fit: contain; display: block;
+    background: #f8f8f8;
+}
+.pm-scan-preview .pm-scan-remove {
+    position: absolute; top: 8px; right: 8px;
+    background: rgba(0,0,0,0.6); color: #fff; border: none;
+    border-radius: 50%; width: 28px; height: 28px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem; transition: background 0.15s;
+}
+.pm-scan-preview .pm-scan-remove:hover { background: #dc2626; }
+
+.pm-scan-actions { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+
+/* Scan result card */
+.pm-scan-result {
+    display: none; margin-top: 1.25rem;
+    background: var(--surface-card); border: 1px solid var(--stroke-subtle);
+    border-radius: var(--radius-lg); padding: 1.25rem;
+}
+.pm-scan-result.show { display: block; }
+.pm-scan-result-title { font-weight: 700; font-size: 0.88rem; color: #059669; margin-bottom: 0.6rem; }
+.pm-scan-result-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem; }
+.pm-scan-result-field label { font-size: 0.72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+.pm-scan-result-field input {
+    width: 100%; padding: 0.45rem 0.65rem; border-radius: 7px;
+    border: 1px solid var(--stroke-subtle); background: var(--surface-base);
+    font-size: 0.84rem; color: var(--text-primary); margin-top: 0.2rem;
+}
+.pm-scan-bubbles { margin-top: 0.5rem; }
+.pm-scan-ans-grid { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.4rem; }
+.pm-scan-ans-pill {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 36px; height: 26px; border-radius: 6px;
+    font-size: 0.72rem; font-weight: 700;
+}
+.pm-scan-ans-correct { background: #05966918; color: #059669; }
+.pm-scan-ans-wrong { background: #dc262618; color: #dc2626; }
+.pm-scan-ans-blank { background: var(--surface-raised); color: var(--text-muted); }
+.pm-scan-ans-pill .pm-scan-ans-num { opacity: 0.5; margin-right: 0.15rem; font-weight: 500; }
 {% endblock %}
 
 {% block content %}
@@ -178,6 +247,9 @@
 <div class="pm-tabs">
     <button class="pm-tab active" data-tab="add">
         <i class="bi bi-person-plus"></i> Add Student
+    </button>
+    <button class="pm-tab" data-tab="scan">
+        <i class="bi bi-camera"></i> Scan Sheet
     </button>
     <button class="pm-tab" data-tab="results">
         <i class="bi bi-table"></i> Results ({{ marks|length }})
@@ -222,6 +294,77 @@
     <div style="text-align:center;padding:2rem;color:var(--text-muted)">
         <i class="bi bi-key" style="font-size:2.5rem;opacity:0.3;display:block;margin-bottom:0.5rem"></i>
         <p style="font-weight:600">Set an answer key first before adding student marks.</p>
+        <a href="{% url 'individual:marker_edit' pk=session.pk %}" class="pm-btn pm-btn-white" style="background:#e11d48;color:#fff;margin-top:0.5rem">
+            <i class="bi bi-pencil"></i> Set Answer Key
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Tab: Scan Sheet -->
+<div class="pm-tab-panel" id="tab-scan">
+    {% if session.answer_key %}
+    <div class="pm-scan-zone">
+        <div class="pm-scan-title"><i class="bi bi-camera"></i> Scan Answer Sheet</div>
+        <div class="pm-scan-sub">
+            Take a photo or upload an image of a filled MCQ answer sheet.
+            AI will detect the shaded bubbles and extract the student's answers automatically.
+        </div>
+
+        <div class="pm-scan-dropzone" id="scanDropzone">
+            <input type="file" accept="image/*" capture="environment" id="scanFileInput">
+            <i class="bi bi-camera-fill"></i>
+            <div class="pm-scan-label">Tap to take a photo or choose an image</div>
+            <div class="pm-scan-hint">Supports JPG, PNG — ensure all bubbles are clearly visible</div>
+        </div>
+
+        <div class="pm-scan-preview" id="scanPreview">
+            <img id="scanPreviewImg" alt="Answer sheet preview">
+            <button class="pm-scan-remove" id="scanRemove" title="Remove image">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        <div class="pm-scan-actions">
+            <button class="pm-btn pm-btn-white" style="background:#e11d48;color:#fff" id="scanBtn" disabled>
+                <i class="bi bi-cpu"></i> Extract Answers
+                <span class="pm-loader" id="scanLoader"><i class="bi bi-arrow-repeat spin"></i></span>
+            </button>
+            <button class="pm-btn pm-btn-glass" style="background:var(--surface-raised);color:var(--text-secondary);border:1px solid var(--stroke-subtle)" id="scanNewPhoto" style="display:none">
+                <i class="bi bi-camera"></i> New Photo
+            </button>
+        </div>
+    </div>
+
+    <!-- Scan extraction result -->
+    <div class="pm-scan-result" id="scanResult">
+        <div class="pm-scan-result-title"><i class="bi bi-check-circle-fill"></i> Answers Extracted</div>
+        <div class="pm-scan-result-row">
+            <div class="pm-scan-result-field">
+                <label>Student Name</label>
+                <input type="text" id="scanStudentName" placeholder="Detected name">
+            </div>
+            <div class="pm-scan-result-field">
+                <label>Index / ID</label>
+                <input type="text" id="scanStudentIndex" placeholder="Detected index">
+            </div>
+        </div>
+        <div class="pm-scan-bubbles">
+            <label style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.03em">Detected Answers</label>
+            <div class="pm-scan-ans-grid" id="scanAnswerGrid"></div>
+        </div>
+        <div style="display:flex;gap:0.5rem;margin-top:1rem;align-items:center">
+            <button class="pm-btn pm-btn-white" style="background:#059669;color:#fff" id="scanSaveBtn">
+                <i class="bi bi-check-circle"></i> Save Mark
+                <span class="pm-loader" id="scanSaveLoader"><i class="bi bi-arrow-repeat spin"></i></span>
+            </button>
+            <span id="scanScoreBadge" style="font-weight:700;font-size:0.88rem"></span>
+        </div>
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:2rem;color:var(--text-muted)">
+        <i class="bi bi-key" style="font-size:2.5rem;opacity:0.3;display:block;margin-bottom:0.5rem"></i>
+        <p style="font-weight:600">Set an answer key first before scanning.</p>
         <a href="{% url 'individual:marker_edit' pk=session.pk %}" class="pm-btn pm-btn-white" style="background:#e11d48;color:#fff;margin-top:0.5rem">
             <i class="bi bi-pencil"></i> Set Answer Key
         </a>
@@ -449,6 +592,185 @@
             alert('Network error.');
         }
     };
+
+    // ══════════════════════════════════════════════════
+    // ██  Camera / Scan Sheet                         ██
+    // ══════════════════════════════════════════════════
+    let scanImageData = null;   // data:image/...;base64,...
+    let scanExtracted = null;   // {student_name, student_index, answers[]}
+
+    const fileInput   = document.getElementById('scanFileInput');
+    const dropzone    = document.getElementById('scanDropzone');
+    const preview     = document.getElementById('scanPreview');
+    const previewImg  = document.getElementById('scanPreviewImg');
+    const removeBtn   = document.getElementById('scanRemove');
+    const scanBtn     = document.getElementById('scanBtn');
+    const scanLoader  = document.getElementById('scanLoader');
+    const newPhotoBtn = document.getElementById('scanNewPhoto');
+    const resultDiv   = document.getElementById('scanResult');
+    const answerGrid  = document.getElementById('scanAnswerGrid');
+    const scanSaveBtn = document.getElementById('scanSaveBtn');
+    const scanSaveLoader = document.getElementById('scanSaveLoader');
+    const scoreBadge  = document.getElementById('scanScoreBadge');
+
+    function handleScanFile(file) {
+        if (!file || !file.type.startsWith('image/')) return;
+        // Limit to 10 MB
+        if (file.size > 10 * 1024 * 1024) { alert('Image too large (max 10 MB).'); return; }
+        const reader = new FileReader();
+        reader.onload = e => {
+            scanImageData = e.target.result;
+            if (previewImg) previewImg.src = scanImageData;
+            if (preview) preview.style.display = 'block';
+            if (dropzone) dropzone.style.display = 'none';
+            if (scanBtn) scanBtn.disabled = false;
+            if (resultDiv) { resultDiv.classList.remove('show'); }
+        };
+        reader.readAsDataURL(file);
+    }
+
+    if (fileInput) {
+        fileInput.addEventListener('change', e => {
+            if (e.target.files[0]) handleScanFile(e.target.files[0]);
+        });
+    }
+
+    // Drag & drop
+    if (dropzone) {
+        dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+        dropzone.addEventListener('drop', e => {
+            e.preventDefault(); dropzone.classList.remove('drag-over');
+            if (e.dataTransfer.files[0]) handleScanFile(e.dataTransfer.files[0]);
+        });
+    }
+
+    // Remove image
+    if (removeBtn) {
+        removeBtn.addEventListener('click', () => {
+            scanImageData = null;
+            if (preview) preview.style.display = 'none';
+            if (dropzone) dropzone.style.display = '';
+            if (fileInput) fileInput.value = '';
+            if (scanBtn) scanBtn.disabled = true;
+            if (resultDiv) resultDiv.classList.remove('show');
+        });
+    }
+
+    // New photo shortcut
+    if (newPhotoBtn) {
+        newPhotoBtn.addEventListener('click', () => {
+            if (removeBtn) removeBtn.click();
+            setTimeout(() => { if (fileInput) fileInput.click(); }, 100);
+        });
+    }
+
+    // ── Extract via AI ───────────────────────────────
+    if (scanBtn) {
+        scanBtn.addEventListener('click', async () => {
+            if (!scanImageData) return;
+            scanLoader.classList.add('show');
+            scanBtn.disabled = true;
+            if (resultDiv) resultDiv.classList.remove('show');
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+                    body: JSON.stringify({
+                        action: 'scan_sheet',
+                        session_id: SESSION_ID,
+                        image: scanImageData,
+                    })
+                });
+                const data = await res.json();
+                if (data.ok && data.extracted) {
+                    scanExtracted = data.extracted;
+                    showScanResult(data.extracted);
+                } else {
+                    alert(data.error || 'Failed to extract answers.');
+                }
+            } catch(err) {
+                alert('Network error. Please try again.');
+            } finally {
+                scanLoader.classList.remove('show');
+                scanBtn.disabled = false;
+            }
+        });
+    }
+
+    function showScanResult(ext) {
+        const nameInput = document.getElementById('scanStudentName');
+        const idxInput  = document.getElementById('scanStudentIndex');
+        if (nameInput) nameInput.value = ext.student_name || '';
+        if (idxInput)  idxInput.value  = ext.student_index || '';
+
+        // Build answer pills with correct/wrong colouring
+        if (answerGrid) {
+            answerGrid.innerHTML = '';
+            const answers = ext.answers || [];
+            for (let i = 0; i < answers.length; i++) {
+                const ans = answers[i];
+                const correct = ANSWER_KEY[i] ? ans.toUpperCase() === ANSWER_KEY[i].toUpperCase() : false;
+                const cls = !ans ? 'pm-scan-ans-blank' : correct ? 'pm-scan-ans-correct' : 'pm-scan-ans-wrong';
+                const pill = document.createElement('span');
+                pill.className = 'pm-scan-ans-pill ' + cls;
+                pill.innerHTML = `<span class="pm-scan-ans-num">${i+1}.</span>${ans || '—'}`;
+                answerGrid.appendChild(pill);
+            }
+        }
+
+        // Show pre-grade score
+        let correct = 0;
+        const answers = ext.answers || [];
+        for (let i = 0; i < answers.length; i++) {
+            if (ANSWER_KEY[i] && answers[i] && answers[i].toUpperCase() === ANSWER_KEY[i].toUpperCase()) correct++;
+        }
+        const pct = ANSWER_KEY.length ? Math.round((correct / ANSWER_KEY.length) * 1000) / 10 : 0;
+        if (scoreBadge) {
+            scoreBadge.textContent = `${correct}/${ANSWER_KEY.length} (${pct}%)`;
+            scoreBadge.style.color = pct >= 50 ? '#059669' : '#dc2626';
+        }
+
+        if (resultDiv) resultDiv.classList.add('show');
+    }
+
+    // ── Save scanned mark ────────────────────────────
+    if (scanSaveBtn) {
+        scanSaveBtn.addEventListener('click', async () => {
+            const name = document.getElementById('scanStudentName').value.trim();
+            if (!name) { alert('Please enter or confirm the student name.'); return; }
+
+            const answers = scanExtracted ? scanExtracted.answers : [];
+            scanSaveLoader.classList.add('show');
+            scanSaveBtn.disabled = true;
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+                    body: JSON.stringify({
+                        action: 'add_mark',
+                        session_id: SESSION_ID,
+                        student_name: name,
+                        student_index: document.getElementById('scanStudentIndex').value.trim(),
+                        responses: answers,
+                    })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    window.location.reload();
+                } else {
+                    alert(data.error || 'Failed to save mark.');
+                }
+            } catch(err) {
+                alert('Network error.');
+            } finally {
+                scanSaveLoader.classList.remove('show');
+                scanSaveBtn.disabled = false;
+            }
+        });
+    }
 })();
 </script>
 <style>

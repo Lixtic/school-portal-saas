@@ -3238,4 +3238,89 @@ def marker_api(request):
 
         return JsonResponse({'ok': True, 'count': len(created), 'marks': created})
 
+    # ── Scan Answer Sheet (AI Vision) ─────────────────────────────────
+    if action == 'scan_sheet':
+        session_id = data.get('session_id')
+        image_data = data.get('image', '')  # data:image/...;base64,... URI
+
+        if not session_id or not image_data:
+            return JsonResponse({'error': 'Session ID and image are required.'}, status=400)
+
+        session = get_object_or_404(MarkingSession, pk=session_id, profile=profile)
+        if not session.answer_key:
+            return JsonResponse({'error': 'Set an answer key before scanning.'}, status=400)
+
+        num_q = len(session.answer_key)
+        opt_count = session.options_per_question
+        opt_letters = ', '.join(chr(65 + i) for i in range(opt_count))
+
+        prompt = (
+            f'You are analysing a photograph of a shaded MCQ answer sheet. '
+            f'The paper has {num_q} questions, each with options {opt_letters}.\n\n'
+            'Extract:\n'
+            '1. The student name or register number (look for handwritten text near '
+            '   "Name", "Register Number", "Candidate" fields at the top).\n'
+            '2. The shaded/selected answer for each question (1 through '
+            f'{num_q}). A shaded bubble is filled in or darkened with pencil.\n\n'
+            'Return ONLY valid JSON — no markdown fences, no explanation:\n'
+            '{\n'
+            '  "student_name": "<name or register number>",\n'
+            '  "student_index": "<index/ID if visible, else empty string>",\n'
+            f'  "answers": ["A", "B", ...]  // exactly {num_q} entries, '
+            'use "" for unanswered\n'
+            '}'
+        )
+
+        try:
+            from academics.ai_tutor import _post_chat_completion, _get_openai_api_key
+
+            payload = {
+                'model': 'gpt-4o-mini',
+                'messages': [{
+                    'role': 'user',
+                    'content': [
+                        {'type': 'text', 'text': prompt},
+                        {'type': 'image_url', 'image_url': {'url': image_data}},
+                    ],
+                }],
+                'temperature': 0.1,
+                'max_tokens': 2000,
+            }
+
+            resp = _post_chat_completion(payload, _get_openai_api_key())
+
+            if 'error' in resp:
+                return JsonResponse({'error': f"AI error: {resp['error']}"}, status=500)
+
+            choices = resp.get('choices', [])
+            if not choices:
+                return JsonResponse({'error': 'AI returned no response.'}, status=500)
+
+            raw = choices[0].get('message', {}).get('content', '').strip()
+            # Strip markdown fences
+            if raw.startswith('```'):
+                raw = raw.split('\n', 1)[1] if '\n' in raw else raw[3:]
+            if raw.endswith('```'):
+                raw = raw[:-3]
+            raw = raw.strip()
+
+            extracted = json.loads(raw)
+            answers = [str(a).strip().upper() for a in extracted.get('answers', [])]
+            student_name = str(extracted.get('student_name', '')).strip()
+            student_index = str(extracted.get('student_index', '')).strip()
+
+            return JsonResponse({
+                'ok': True,
+                'extracted': {
+                    'student_name': student_name,
+                    'student_index': student_index,
+                    'answers': answers,
+                },
+            })
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'AI returned invalid data. Try a clearer photo.'}, status=500)
+        except Exception as exc:
+            logger.warning('Scan sheet AI error: %s', exc)
+            return JsonResponse({'error': 'Failed to process image. Please try again.'}, status=500)
+
     return JsonResponse({'error': f'Unknown action: {action}'}, status=400)
