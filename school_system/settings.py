@@ -58,8 +58,8 @@ PAYSTACK_PUBLIC_KEY = os.environ.get('PAYSTACK_PUBLIC_KEY', '')
 PAYSTACK_CURRENCY  = os.environ.get('PAYSTACK_CURRENCY', 'GHS')
 
 # Africa's Talking SMS & WhatsApp
-AFRICASTALKING_USERNAME = os.environ.get('AT_USERNAME', 'sandbox')
-AFRICASTALKING_API_KEY  = os.environ.get('AT_API_KEY', '')
+AFRICASTALKING_USERNAME = os.environ.get('AFRICASTALKING_USERNAME') or os.environ.get('AT_USERNAME', 'sandbox')
+AFRICASTALKING_API_KEY  = os.environ.get('AFRICASTALKING_API_KEY') or os.environ.get('AT_API_KEY', '')
 AT_WHATSAPP_PRODUCT_ID  = os.environ.get('AT_WHATSAPP_PRODUCT_ID', '')
 
 # Web Push / VAPID Configuration
