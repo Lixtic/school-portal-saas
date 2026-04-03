@@ -43,6 +43,7 @@ urlpatterns = [
     path('offline/', TemplateView.as_view(template_name='offline.html'), name='offline'),
     path('about/', TemplateView.as_view(template_name='home/about.html'), name='about'),
     path('contact/', TemplateView.as_view(template_name='home/contact.html'), name='contact'),
+    path('contact/submit/', account_views.contact_submit, name='contact_submit'),
     path('privacy/', TemplateView.as_view(template_name='home/privacy.html'), name='privacy'),
     path('terms/', TemplateView.as_view(template_name='home/terms.html'), name='terms'),
     path('admin/', admin.site.urls),

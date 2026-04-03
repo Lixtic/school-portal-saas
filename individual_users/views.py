@@ -269,6 +269,15 @@ TEACHER_ADDON_CATALOG = [
         'category': 'productivity',
         'prices': {'free': 0, 'pro': 39.99},
     },
+    {
+        'slug': 'paper-marker',
+        'name': 'Paper Marker',
+        'icon': 'bi-clipboard-check',
+        'description': 'Mark objective question papers instantly — set an answer key, enter student responses, get auto-marked results with class analytics.',
+        'plans': ['free', 'pro'],
+        'category': 'assessment',
+        'prices': {'free': 0, 'pro': 29.99},
+    },
 ]
 
 
@@ -353,51 +362,59 @@ def signup_view(request):
             active_tab = 'email'
             email_form = EmailSignupForm(request.POST)
             if email_form.is_valid():
-                name_parts = email_form.cleaned_data['full_name'].split(None, 1)
-                first = name_parts[0]
-                last = name_parts[1] if len(name_parts) > 1 else ''
-                email = email_form.cleaned_data['email']
-                # Username from email prefix + short random suffix
-                base = email.split('@')[0][:20]
-                username = f"{base}_{uuid.uuid4().hex[:6]}"
+                pw2 = request.POST.get('password2', '')
+                if pw2 != email_form.cleaned_data['password']:
+                    email_form.add_error('password', 'Passwords do not match.')
+                else:
+                    name_parts = email_form.cleaned_data['full_name'].split(None, 1)
+                    first = name_parts[0]
+                    last = name_parts[1] if len(name_parts) > 1 else ''
+                    email = email_form.cleaned_data['email']
+                    # Username from email prefix + short random suffix
+                    base = email.split('@')[0][:20]
+                    username = f"{base}_{uuid.uuid4().hex[:6]}"
 
-                user = User.objects.create_user(
-                    username=username,
-                    email=email,
-                    password=email_form.cleaned_data['password'],
-                    first_name=first,
-                    last_name=last,
-                    user_type='individual',
-                )
-                IndividualProfile.objects.create(user=user, role=role)
-                _send_verification_code(user, 'email')
-                request.session['pending_verification_user_id'] = user.pk
-                request.session['pending_verification_method'] = 'email'
-                return redirect('individual:verify')
+                    user = User.objects.create_user(
+                        username=username,
+                        email=email,
+                        password=email_form.cleaned_data['password'],
+                        first_name=first,
+                        last_name=last,
+                        user_type='individual',
+                    )
+                    IndividualProfile.objects.create(user=user, role=role)
+                    _send_verification_code(user, 'email')
+                    request.session['pending_verification_user_id'] = user.pk
+                    request.session['pending_verification_method'] = 'email'
+                    return redirect('individual:verify')
 
         elif method == 'phone':
             active_tab = 'phone'
             phone_form = PhoneSignupForm(request.POST)
             if phone_form.is_valid():
-                name_parts = phone_form.cleaned_data['full_name'].split(None, 1)
-                first = name_parts[0]
-                last = name_parts[1] if len(name_parts) > 1 else ''
-                phone = phone_form.cleaned_data['phone']
-                username = f"phone_{uuid.uuid4().hex[:8]}"
+                pw2 = request.POST.get('password2', '')
+                if pw2 != phone_form.cleaned_data['password']:
+                    phone_form.add_error('password', 'Passwords do not match.')
+                else:
+                    name_parts = phone_form.cleaned_data['full_name'].split(None, 1)
+                    first = name_parts[0]
+                    last = name_parts[1] if len(name_parts) > 1 else ''
+                    phone = phone_form.cleaned_data['phone']
+                    username = f"phone_{uuid.uuid4().hex[:8]}"
 
-                user = User.objects.create_user(
-                    username=username,
-                    password=phone_form.cleaned_data['password'],
-                    first_name=first,
-                    last_name=last,
-                    user_type='individual',
-                    phone=phone,
-                )
-                IndividualProfile.objects.create(user=user, phone_number=phone, role=role)
-                _send_verification_code(user, 'phone')
-                request.session['pending_verification_user_id'] = user.pk
-                request.session['pending_verification_method'] = 'phone'
-                return redirect('individual:verify')
+                    user = User.objects.create_user(
+                        username=username,
+                        password=phone_form.cleaned_data['password'],
+                        first_name=first,
+                        last_name=last,
+                        user_type='individual',
+                        phone=phone,
+                    )
+                    IndividualProfile.objects.create(user=user, phone_number=phone, role=role)
+                    _send_verification_code(user, 'phone')
+                    request.session['pending_verification_user_id'] = user.pk
+                    request.session['pending_verification_method'] = 'phone'
+                    return redirect('individual:verify')
 
     ctx = {
         'email_form': email_form,
@@ -696,6 +713,7 @@ def dashboard_view(request):
             'licensure-prep': 'individual:licensure_dashboard',
             'ai-tutor': 'individual:ai_tutor_dashboard',
             'letter-writer': 'individual:letter_dashboard',
+            'paper-marker': 'individual:marker_dashboard',
         }
         _ADDON_COLORS = {
             'exam-generator': '#4361ee',
@@ -707,6 +725,7 @@ def dashboard_view(request):
             'report-card': '#d97706',
             'attendance-tracker': '#dc2626',
             'letter-writer': '#2563eb',
+            'paper-marker': '#e11d48',
         }
         catalog_map = {a['slug']: a for a in TEACHER_ADDON_CATALOG}
         for sub in subscriptions:

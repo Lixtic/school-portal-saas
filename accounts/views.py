@@ -2010,3 +2010,43 @@ def user_settings(request):
         'active_tab': request.GET.get('tab', 'profile'),
     })
 
+
+# ── Contact Form Submission ─────────────────────────────────────────────────
+
+from django.views.decorators.http import require_POST
+from django.core.mail import mail_admins
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+@require_POST
+def contact_submit(request):
+    """Handle landing-page contact form submissions."""
+    first_name = request.POST.get('first_name', '').strip()[:100]
+    last_name = request.POST.get('last_name', '').strip()[:100]
+    school_name = request.POST.get('school_name', '').strip()[:200]
+    email = request.POST.get('email', '').strip()[:254]
+    message_body = request.POST.get('message', '').strip()[:2000]
+
+    if not email or not message_body:
+        messages.error(request, 'Please fill in your email and message.')
+        return redirect('/#contact')
+
+    subject = f"Contact form: {first_name} {last_name} — {school_name or 'N/A'}"
+    body = (
+        f"Name: {first_name} {last_name}\n"
+        f"School: {school_name}\n"
+        f"Email: {email}\n\n"
+        f"{message_body}"
+    )
+    logger.info("Contact form submission from %s <%s>: %s", school_name, email, subject)
+
+    try:
+        mail_admins(subject, body, fail_silently=True)
+    except Exception:
+        pass
+
+    messages.success(request, 'Message sent! We\'ll be in touch soon.')
+    return redirect('/#contact')
+
