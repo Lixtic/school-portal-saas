@@ -595,43 +595,123 @@ def signin_view(request):
     return render(request, 'individual/auth.html', ctx)
 
 
-@require_POST
 def google_auth_view(request):
-    """Handle Google Sign-In credential verification."""
-    _ensure_public_schema()
-    try:
-        from google.auth.transport import requests as google_requests
-        from google.oauth2 import id_token
-    except ImportError:
-        return JsonResponse({'error': 'Google auth not configured'}, status=500)
+    """Initiate Google OAuth 2.0 — redirect to Google's consent screen.
 
-    credential = request.POST.get('credential', '')
-    if not credential:
-        return JsonResponse({'error': 'Missing credential'}, status=400)
+    This replaces the old GIS client-library approach (prompt / renderButton)
+    which fails with a blank page and postMessage errors in many browsers.
+    The standard server-side code flow works everywhere.
+    """
+    _ensure_public_schema()
+    import secrets
+    from urllib.parse import urlencode
 
     client_id = getattr(settings, 'GOOGLE_OAUTH_CLIENT_ID', '')
     if not client_id:
-        return JsonResponse({'error': 'Google OAuth not configured'}, status=500)
+        messages.error(request, 'Google sign-in is not configured.')
+        return redirect('individual:signin')
+
+    # Preserve role for the callback
+    role = request.GET.get('role', 'developer')
+    request.session['_google_role'] = role
+
+    # CSRF state token
+    state = secrets.token_urlsafe(32)
+    request.session['_google_state'] = state
+
+    callback_url = request.build_absolute_uri('/u/auth/google/callback/')
+
+    params = urlencode({
+        'client_id': client_id,
+        'redirect_uri': callback_url,
+        'response_type': 'code',
+        'scope': 'openid email profile',
+        'access_type': 'online',
+        'state': state,
+        'prompt': 'select_account',
+    })
+    return redirect(f'https://accounts.google.com/o/oauth2/v2/auth?{params}')
+
+
+def google_callback_view(request):
+    """Handle the OAuth 2.0 callback from Google — exchange code for tokens."""
+    _ensure_public_schema()
+    import urllib.request
+    import urllib.parse
+
+    # ── Verify state ──────────────────────────────────────────────
+    state = request.GET.get('state', '')
+    expected = request.session.pop('_google_state', '')
+    if not state or state != expected:
+        messages.error(request, 'Invalid state — please try again.')
+        return redirect('individual:signin')
+
+    error = request.GET.get('error')
+    code = request.GET.get('code')
+    if error or not code:
+        messages.error(request, 'Google sign-in was cancelled.')
+        return redirect('individual:signin')
+
+    client_id = getattr(settings, 'GOOGLE_OAUTH_CLIENT_ID', '')
+    client_secret = getattr(settings, 'GOOGLE_OAUTH_CLIENT_SECRET', '')
+    if not client_secret:
+        logger.error('GOOGLE_OAUTH_CLIENT_SECRET is not set.')
+        messages.error(request, 'Google sign-in is misconfigured.')
+        return redirect('individual:signin')
+
+    callback_url = request.build_absolute_uri('/u/auth/google/callback/')
+
+    # ── Exchange code → tokens ────────────────────────────────────
+    token_data_bytes = urllib.parse.urlencode({
+        'code': code,
+        'client_id': client_id,
+        'client_secret': client_secret,
+        'redirect_uri': callback_url,
+        'grant_type': 'authorization_code',
+    }).encode()
 
     try:
-        idinfo = id_token.verify_oauth2_token(
-            credential, google_requests.Request(), client_id,
+        token_req = urllib.request.Request(
+            'https://oauth2.googleapis.com/token',
+            data=token_data_bytes,
+            headers={'Content-Type': 'application/x-www-form-urlencoded'},
         )
-    except ValueError:
-        return JsonResponse({'error': 'Invalid Google token'}, status=400)
+        with urllib.request.urlopen(token_req, timeout=10) as resp:
+            token_data = json.loads(resp.read())
+    except Exception:
+        logger.exception('Google token exchange failed')
+        messages.error(request, 'Could not verify Google credentials.')
+        return redirect('individual:signin')
+
+    id_token_jwt = token_data.get('id_token')
+    if not id_token_jwt:
+        messages.error(request, 'Google sign-in failed — no ID token.')
+        return redirect('individual:signin')
+
+    # ── Verify ID token ───────────────────────────────────────────
+    try:
+        from google.auth.transport import requests as google_requests
+        from google.oauth2 import id_token
+        idinfo = id_token.verify_oauth2_token(
+            id_token_jwt, google_requests.Request(), client_id,
+        )
+    except (ImportError, ValueError):
+        messages.error(request, 'Invalid Google token.')
+        return redirect('individual:signin')
 
     google_id = idinfo['sub']
     email = idinfo.get('email', '')
     name = idinfo.get('name', '')
     picture = idinfo.get('picture', '')
 
-    # Try to find existing user by google_id
-    profile = IndividualProfile.objects.filter(google_id=google_id).select_related('user').first()
+    # ── Find or create user ───────────────────────────────────────
+    profile = IndividualProfile.objects.filter(
+        google_id=google_id,
+    ).select_related('user').first()
 
     if profile:
         user = profile.user
     else:
-        # Check if a user with this email already exists
         existing = User.objects.filter(email=email, user_type='individual').first()
         if existing:
             profile, _ = IndividualProfile.objects.get_or_create(user=existing)
@@ -641,7 +721,6 @@ def google_auth_view(request):
             profile.save()
             user = existing
         else:
-            # New user
             name_parts = name.split(None, 1)
             first = name_parts[0] if name_parts else email.split('@')[0]
             last = name_parts[1] if len(name_parts) > 1 else ''
@@ -656,14 +735,17 @@ def google_auth_view(request):
             )
             user.set_unusable_password()
             user.save()
+
+            role = request.session.pop('_google_role', 'developer')
             IndividualProfile.objects.create(
                 user=user, google_id=google_id, avatar_url=picture,
                 email_verified=True,
+                user_role=role if role in ('teacher', 'developer') else 'developer',
             )
 
     login(request, user, backend='django.contrib.auth.backends.ModelBackend')
     request.session.pop('auth_tenant_schema', None)
-    return JsonResponse({'ok': True, 'redirect': '/u/dashboard/'})
+    return redirect('individual:dashboard')
 
 
 def signout_view(request):

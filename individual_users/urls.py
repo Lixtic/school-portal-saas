@@ -11,6 +11,7 @@ urlpatterns = [
     path('verify/', views.verify_view, name='verify'),
     path('verify/resend/', views.resend_code_view, name='verify_resend'),
     path('auth/google/', views.google_auth_view, name='google_auth'),
+    path('auth/google/callback/', views.google_callback_view, name='google_callback'),
     path('signout/', views.signout_view, name='signout'),
 
     # Dashboard
