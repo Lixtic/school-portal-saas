@@ -23,6 +23,8 @@ from individual_users.models import (
     LicensureAnswer,
     LicensureQuestion,
     LicensureQuizAttempt,
+    MarkingSession,
+    StudentMark,
     ToolExamPaper,
     ToolLessonPlan,
     ToolPresentation,
@@ -203,6 +205,27 @@ TOOLS_CATALOG = [
         'tools': ['ges_letter'],
     },
     {
+        'slug': 'paper-marker',
+        'name': 'Paper Marker',
+        'icon': 'bi-clipboard-check',
+        'color': '#e11d48',
+        'tagline': 'Mark objective question papers in seconds',
+        'description': (
+            'Set an answer key, enter student responses and get instant '
+            'auto-marking with score breakdowns, class statistics and '
+            'per-question analysis — perfect for MCQ exams.'
+        ),
+        'features': [
+            'Flexible answer key setup (A-D or A-E)',
+            'Instant auto-marking with colour-coded results',
+            'Per-question analysis — hardest & easiest questions',
+            'Class statistics: average, highest, lowest, pass rate',
+            'Print-ready results sheet per student or class',
+        ],
+        'category': 'assessment',
+        'tools': ['paper_marker'],
+    },
+    {
         'slug': 'licensure-prep',
         'name': 'GTLE Licensure Prep',
         'icon': 'bi-mortarboard',
@@ -328,6 +351,7 @@ def tools_hub(request):
     lic_count = LicensureQuizAttempt.objects.filter(profile=profile, completed=True).count()
     tutor_count = AITutorConversation.objects.filter(profile=profile).count()
     letter_count = GESLetter.objects.filter(profile=profile).count()
+    marker_count = MarkingSession.objects.filter(profile=profile).count()
 
     ctx = {
         'tools': tools,
@@ -340,6 +364,7 @@ def tools_hub(request):
         'licensure_attempt_count': lic_count,
         'tutor_count': tutor_count,
         'letter_count': letter_count,
+        'marker_count': marker_count,
     }
     return render(request, 'individual/tools/hub.html', ctx)
 
@@ -2923,3 +2948,294 @@ def _get_sample_letters():
             ),
         },
     ]
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ██  Paper Marker                                                           ██
+# ══════════════════════════════════════════════════════════════════════════════
+
+@_tool_required
+@_require_tool('paper-marker')
+def marker_dashboard(request):
+    """List all marking sessions for the current user."""
+    _ensure_public_schema()
+    profile = request.user.individual_profile
+    sessions = MarkingSession.objects.filter(profile=profile)
+
+    ctx = {
+        'sessions': sessions,
+        'session_count': sessions.count(),
+        'profile': profile,
+        'role': 'teacher',
+    }
+    return render(request, 'individual/tools/paper-marker/dashboard.html', ctx)
+
+
+@_tool_required
+@_require_tool('paper-marker')
+def marker_create(request):
+    """Create a new marking session (answer key setup)."""
+    _ensure_public_schema()
+    profile = request.user.individual_profile
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        subject = request.POST.get('subject', '').strip()
+        class_name = request.POST.get('class_name', '').strip()
+        total_q = int(request.POST.get('total_questions', 40))
+        options = int(request.POST.get('options_per_question', 4))
+        answer_key_raw = request.POST.get('answer_key', '').strip()
+
+        if not title:
+            messages.error(request, 'Please provide a title.')
+            return redirect('individual:marker_create')
+        if total_q < 1 or total_q > 200:
+            messages.error(request, 'Total questions must be between 1 and 200.')
+            return redirect('individual:marker_create')
+
+        # Parse answer key — comma-separated or space-separated
+        if answer_key_raw:
+            if ',' in answer_key_raw:
+                key_list = [a.strip().upper() for a in answer_key_raw.split(',') if a.strip()]
+            else:
+                key_list = [a.strip().upper() for a in answer_key_raw.split() if a.strip()]
+        else:
+            key_list = []
+
+        session = MarkingSession.objects.create(
+            profile=profile,
+            title=title,
+            subject=subject,
+            class_name=class_name,
+            total_questions=total_q,
+            options_per_question=options,
+            answer_key=key_list,
+        )
+        messages.success(request, f'Session "{title}" created.')
+        return redirect('individual:marker_session', pk=session.pk)
+
+    return render(request, 'individual/tools/paper-marker/create.html', {
+        'profile': profile,
+        'role': 'teacher',
+    })
+
+
+@_tool_required
+@_require_tool('paper-marker')
+def marker_session(request, pk):
+    """View / manage a marking session — enter student responses."""
+    _ensure_public_schema()
+    profile = request.user.individual_profile
+    session = get_object_or_404(MarkingSession, pk=pk, profile=profile)
+    marks = session.marks.all()
+
+    # Per-question stats
+    question_stats = []
+    if marks.exists() and session.answer_key:
+        num_q = len(session.answer_key)
+        for i in range(num_q):
+            correct_count = 0
+            for m in marks:
+                if i < len(m.responses) and str(m.responses[i]).strip().upper() == str(session.answer_key[i]).strip().upper():
+                    correct_count += 1
+            pct = round((correct_count / marks.count()) * 100, 1) if marks.count() else 0
+            question_stats.append({
+                'number': i + 1,
+                'correct_answer': session.answer_key[i],
+                'correct_count': correct_count,
+                'total': marks.count(),
+                'percentage': pct,
+            })
+
+    # Class stats
+    if marks.exists():
+        scores = [m.percentage for m in marks]
+        class_stats = {
+            'average': round(sum(scores) / len(scores), 1),
+            'highest': round(max(scores), 1),
+            'lowest': round(min(scores), 1),
+            'pass_count': sum(1 for s in scores if s >= 50),
+            'fail_count': sum(1 for s in scores if s < 50),
+            'total_students': len(scores),
+        }
+    else:
+        class_stats = None
+
+    # Option letters for templates
+    option_letters = [chr(65 + i) for i in range(session.options_per_question)]
+
+    ctx = {
+        'session': session,
+        'marks': marks,
+        'question_stats': question_stats,
+        'class_stats': class_stats,
+        'option_letters': option_letters,
+        'answer_key_json': json.dumps(session.answer_key),
+        'profile': profile,
+        'role': 'teacher',
+    }
+    return render(request, 'individual/tools/paper-marker/session.html', ctx)
+
+
+@_tool_required
+@_require_tool('paper-marker')
+def marker_edit(request, pk):
+    """Edit marking session details (answer key, title, etc.)."""
+    _ensure_public_schema()
+    profile = request.user.individual_profile
+    session = get_object_or_404(MarkingSession, pk=pk, profile=profile)
+
+    if request.method == 'POST':
+        session.title = request.POST.get('title', session.title).strip()
+        session.subject = request.POST.get('subject', '').strip()
+        session.class_name = request.POST.get('class_name', '').strip()
+        session.total_questions = int(request.POST.get('total_questions', session.total_questions))
+        session.options_per_question = int(request.POST.get('options_per_question', session.options_per_question))
+
+        answer_key_raw = request.POST.get('answer_key', '').strip()
+        if answer_key_raw:
+            if ',' in answer_key_raw:
+                session.answer_key = [a.strip().upper() for a in answer_key_raw.split(',') if a.strip()]
+            else:
+                session.answer_key = [a.strip().upper() for a in answer_key_raw.split() if a.strip()]
+        session.save()
+        messages.success(request, 'Session updated.')
+        return redirect('individual:marker_session', pk=session.pk)
+
+    return render(request, 'individual/tools/paper-marker/edit.html', {
+        'session': session,
+        'profile': profile,
+        'role': 'teacher',
+    })
+
+
+@_tool_required
+@_require_tool('paper-marker')
+@require_POST
+def marker_delete(request, pk):
+    """Delete a marking session."""
+    _ensure_public_schema()
+    profile = request.user.individual_profile
+    session = get_object_or_404(MarkingSession, pk=pk, profile=profile)
+    session.delete()
+    messages.success(request, 'Session deleted.')
+    return redirect('individual:marker_dashboard')
+
+
+@_tool_required
+@_require_tool('paper-marker')
+def marker_api(request):
+    """AJAX API for Paper Marker operations."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    _ensure_public_schema()
+    profile = request.user.individual_profile
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    action = data.get('action', '')
+
+    # ── Add Student Mark ─────────────────────────────────────────────────
+    if action == 'add_mark':
+        session_id = data.get('session_id')
+        student_name = data.get('student_name', '').strip()
+        student_index = data.get('student_index', '').strip()
+        responses = data.get('responses', [])
+
+        if not session_id or not student_name:
+            return JsonResponse({'error': 'Session ID and student name required.'}, status=400)
+
+        session = get_object_or_404(MarkingSession, pk=session_id, profile=profile)
+
+        # Clean responses
+        clean_responses = [str(r).strip().upper() if r else '' for r in responses]
+
+        mark = StudentMark(
+            session=session,
+            student_name=student_name,
+            student_index=student_index,
+            responses=clean_responses,
+        )
+        mark.grade_responses()
+        mark.save()
+
+        return JsonResponse({
+            'ok': True,
+            'mark': {
+                'id': mark.pk,
+                'student_name': mark.student_name,
+                'student_index': mark.student_index,
+                'score': mark.score,
+                'total': mark.total,
+                'percentage': mark.percentage,
+            }
+        })
+
+    # ── Delete Student Mark ──────────────────────────────────────────────
+    if action == 'delete_mark':
+        mark_id = data.get('mark_id')
+        if not mark_id:
+            return JsonResponse({'error': 'Mark ID required.'}, status=400)
+
+        mark = get_object_or_404(StudentMark, pk=mark_id, session__profile=profile)
+        mark.delete()
+        return JsonResponse({'ok': True})
+
+    # ── Update Answer Key ────────────────────────────────────────────────
+    if action == 'update_key':
+        session_id = data.get('session_id')
+        answer_key = data.get('answer_key', [])
+
+        if not session_id:
+            return JsonResponse({'error': 'Session ID required.'}, status=400)
+
+        session = get_object_or_404(MarkingSession, pk=session_id, profile=profile)
+        session.answer_key = [str(a).strip().upper() for a in answer_key]
+        session.save()
+
+        # Re-grade all students
+        for mark in session.marks.all():
+            mark.grade_responses()
+            mark.save()
+
+        return JsonResponse({'ok': True, 'regraded': session.marks.count()})
+
+    # ── Bulk Add Marks ───────────────────────────────────────────────────
+    if action == 'bulk_add':
+        session_id = data.get('session_id')
+        students = data.get('students', [])
+
+        if not session_id:
+            return JsonResponse({'error': 'Session ID required.'}, status=400)
+
+        session = get_object_or_404(MarkingSession, pk=session_id, profile=profile)
+        created = []
+        for s in students:
+            name = s.get('student_name', '').strip()
+            if not name:
+                continue
+            index = s.get('student_index', '').strip()
+            responses = [str(r).strip().upper() if r else '' for r in s.get('responses', [])]
+            mark = StudentMark(
+                session=session,
+                student_name=name,
+                student_index=index,
+                responses=responses,
+            )
+            mark.grade_responses()
+            mark.save()
+            created.append({
+                'id': mark.pk,
+                'student_name': mark.student_name,
+                'score': mark.score,
+                'total': mark.total,
+                'percentage': mark.percentage,
+            })
+
+        return JsonResponse({'ok': True, 'count': len(created), 'marks': created})
+
+    return JsonResponse({'error': f'Unknown action: {action}'}, status=400)

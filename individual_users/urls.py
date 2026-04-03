@@ -93,6 +93,14 @@ urlpatterns = [
     path('tools/letters/<int:pk>/duplicate/', tool_views.letter_duplicate, name='letter_duplicate'),
     path('tools/letters/<int:pk>/print/', tool_views.letter_print, name='letter_print'),
     path('tools/letters/api/', tool_views.letter_api, name='letter_api'),
+
+    # Paper Marker
+    path('tools/marker/', tool_views.marker_dashboard, name='marker_dashboard'),
+    path('tools/marker/new/', tool_views.marker_create, name='marker_create'),
+    path('tools/marker/<int:pk>/', tool_views.marker_session, name='marker_session'),
+    path('tools/marker/<int:pk>/edit/', tool_views.marker_edit, name='marker_edit'),
+    path('tools/marker/<int:pk>/delete/', tool_views.marker_delete, name='marker_delete'),
+    path('tools/marker/api/', tool_views.marker_api, name='marker_api'),
 ]
 
 # Teacher shortcut URLs (included under /t/ prefix in main urls.py)

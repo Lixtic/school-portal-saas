@@ -1,0 +1,87 @@
+{% extends 'individual/base.html' %}
+{% block title %}Edit Session — Paper Marker{% endblock %}
+{% block page_title %}Edit Session{% endblock %}
+
+{% block extra_css %}
+.pm-form-wrap {
+    max-width: 640px; margin: 0 auto;
+    background: var(--surface-card); border: 1px solid var(--stroke-subtle);
+    border-radius: var(--radius-lg); padding: 2rem;
+}
+.pm-form-title { font-size: 1.15rem; font-weight: 800; margin-bottom: 0.3rem; color: var(--text-primary); }
+.pm-form-sub { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+.pm-field { margin-bottom: 1rem; }
+.pm-field label { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.3rem; display: block; }
+.pm-field input, .pm-field select, .pm-field textarea {
+    width: 100%; padding: 0.6rem 0.8rem; border-radius: 8px;
+    border: 1px solid var(--stroke-subtle); background: var(--surface-base);
+    font-size: 0.88rem; color: var(--text-primary);
+    transition: border-color 0.15s ease;
+}
+.pm-field input:focus, .pm-field select:focus, .pm-field textarea:focus {
+    outline: none; border-color: #e11d48; box-shadow: 0 0 0 3px rgba(225,29,72,0.1);
+}
+.pm-field .pm-hint { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem; }
+.pm-actions { display: flex; gap: 0.5rem; margin-top: 1.5rem; }
+.pm-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.6rem 1.2rem; border-radius: 8px;
+    font-size: 0.84rem; font-weight: 600;
+    text-decoration: none; border: none; cursor: pointer;
+    transition: all 0.15s ease;
+}
+.pm-btn-primary { background: #e11d48; color: #fff; }
+.pm-btn-primary:hover { background: #be123c; color: #fff; }
+.pm-btn-secondary { background: var(--surface-raised); color: var(--text-secondary); border: 1px solid var(--stroke-subtle); }
+.pm-btn-secondary:hover { background: var(--surface-hover); color: var(--text-primary); }
+{% endblock %}
+
+{% block content %}
+<div class="pm-form-wrap">
+    <div class="pm-form-title"><i class="bi bi-pencil"></i> Edit Session</div>
+    <div class="pm-form-sub">Update session details and answer key. Changing the answer key will re-grade all students.</div>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="pm-field">
+            <label for="title">Session Title *</label>
+            <input type="text" id="title" name="title" value="{{ session.title }}" required>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+            <div class="pm-field">
+                <label for="subject">Subject</label>
+                <input type="text" id="subject" name="subject" value="{{ session.subject }}">
+            </div>
+            <div class="pm-field">
+                <label for="class_name">Class</label>
+                <input type="text" id="class_name" name="class_name" value="{{ session.class_name }}">
+            </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+            <div class="pm-field">
+                <label for="total_questions">Total Questions *</label>
+                <input type="number" id="total_questions" name="total_questions" value="{{ session.total_questions }}" min="1" max="200" required>
+            </div>
+            <div class="pm-field">
+                <label for="options_per_question">Options per Question</label>
+                <select id="options_per_question" name="options_per_question">
+                    <option value="3" {% if session.options_per_question == 3 %}selected{% endif %}>3 (A – C)</option>
+                    <option value="4" {% if session.options_per_question == 4 %}selected{% endif %}>4 (A – D)</option>
+                    <option value="5" {% if session.options_per_question == 5 %}selected{% endif %}>5 (A – E)</option>
+                </select>
+            </div>
+        </div>
+        <div class="pm-field">
+            <label for="answer_key">Answer Key</label>
+            <textarea id="answer_key" name="answer_key" rows="3">{{ session.answer_key|join:", " }}</textarea>
+            <div class="pm-hint">Comma or space separated answers. Changing the key will re-grade all student marks.</div>
+        </div>
+        <div class="pm-actions">
+            <button type="submit" class="pm-btn pm-btn-primary">
+                <i class="bi bi-check-circle"></i> Save Changes
+            </button>
+            <a href="{% url 'individual:marker_session' pk=session.pk %}" class="pm-btn pm-btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

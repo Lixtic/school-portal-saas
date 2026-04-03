@@ -560,3 +560,73 @@ class GESLetter(models.Model):
 
     def __str__(self):
         return self.title
+
+
+# ── Paper Marker ─────────────────────────────────────────────────────────────
+
+class MarkingSession(models.Model):
+    """A marking session for an objective (MCQ) question paper."""
+    profile = models.ForeignKey(
+        IndividualProfile, on_delete=models.CASCADE, related_name='marking_sessions',
+    )
+    title = models.CharField(max_length=250)
+    subject = models.CharField(max_length=150, blank=True, default='')
+    class_name = models.CharField(max_length=100, blank=True, default='',
+                                  help_text='e.g. Basic 7, JHS 2')
+    total_questions = models.PositiveIntegerField(default=40)
+    options_per_question = models.PositiveIntegerField(default=4,
+                                                       help_text='Number of options per question (e.g. 4 for A-D)')
+    answer_key = models.JSONField(default=list, blank=True,
+                                  help_text='List of correct answers e.g. ["A","B","C",...]')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def student_count(self):
+        return self.marks.count()
+
+    @property
+    def class_average(self):
+        marks = self.marks.all()
+        if not marks:
+            return 0
+        return round(sum(m.percentage for m in marks) / marks.count(), 1)
+
+
+class StudentMark(models.Model):
+    """Individual student result within a marking session."""
+    session = models.ForeignKey(
+        MarkingSession, on_delete=models.CASCADE, related_name='marks',
+    )
+    student_name = models.CharField(max_length=200)
+    student_index = models.CharField(max_length=50, blank=True, default='',
+                                     help_text='Student ID or index number')
+    responses = models.JSONField(default=list, blank=True,
+                                 help_text='List of student answers e.g. ["A","C","B",...]')
+    score = models.PositiveIntegerField(default=0)
+    total = models.PositiveIntegerField(default=0)
+    percentage = models.FloatField(default=0.0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['student_name']
+
+    def __str__(self):
+        return f'{self.student_name} — {self.score}/{self.total}'
+
+    def grade_responses(self):
+        """Compare responses against session answer key and set score."""
+        key = self.session.answer_key or []
+        correct = 0
+        for i, ans in enumerate(self.responses):
+            if i < len(key) and str(ans).strip().upper() == str(key[i]).strip().upper():
+                correct += 1
+        self.score = correct
+        self.total = len(key)
+        self.percentage = round((correct / len(key)) * 100, 1) if key else 0
