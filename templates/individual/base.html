@@ -294,6 +294,24 @@
             color: #dc2626;
         }
 
+        /* ── Button Loader ───────────────────────── */
+        .btn-loading {
+            position: relative;
+            color: transparent !important;
+            pointer-events: none;
+        }
+        .btn-loading::after {
+            content: '';
+            position: absolute;
+            width: 14px; height: 14px;
+            top: 50%; left: 50%; margin: -7px 0 0 -7px;
+            border: 2px solid rgba(255,255,255,.35);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: auraBtnSpin 0.55s linear infinite;
+        }
+        @keyframes auraBtnSpin { to { transform: rotate(360deg); } }
+
         {% block extra_css %}{% endblock %}
     </style>
 </head>
@@ -413,6 +431,18 @@
     overlay?.addEventListener('click', () => {
         sidebar.classList.remove('open');
         overlay.classList.remove('open');
+    });
+    // Global form-submit button loader
+    document.body.addEventListener('submit', function(e) {
+        var form = e.target;
+        if (e.defaultPrevented) return;
+        if (form.hasAttribute('data-ajax') || form.dataset.ajax === 'true') return;
+        if (form.hasAttribute('data-no-loader')) return;
+        var btn = form.querySelector('button[type="submit"], input[type="submit"]');
+        if (btn && !btn.classList.contains('no-loader')) {
+            btn.classList.add('btn-loading');
+            btn.disabled = true;
+        }
     });
     </script>
     {% block extra_js %}{% endblock %}
