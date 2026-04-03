@@ -300,6 +300,27 @@
 {% endblock %}
 
 {% block content %}
+<!-- Profile completion nudge -->
+{% if not profile.phone_number or not profile.user.email %}
+<div class="iu-card" style="padding:1rem 1.25rem;margin-bottom:1.5rem;border-left:3px solid #f59e0b;display:flex;align-items:center;gap:.85rem;flex-wrap:wrap">
+    <div style="width:36px;height:36px;border-radius:10px;background:rgba(245,158,11,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <i class="bi bi-person-exclamation" style="color:#d97706;font-size:1.1rem"></i>
+    </div>
+    <div style="flex:1;min-width:200px">
+        <div style="font-weight:700;font-size:.88rem;margin-bottom:2px">Finish setting up your account</div>
+        <div style="font-size:.8rem;color:var(--text-muted)">
+            {% if not profile.phone_number and not profile.user.email %}Add an email address and phone number to secure your account.
+            {% elif not profile.phone_number %}Add a phone number so you have a backup way to sign in.
+            {% else %}Add an email address so you can receive important notifications.
+            {% endif %}
+        </div>
+    </div>
+    <a href="{% url 'individual:settings' %}" style="font-size:.82rem;font-weight:600;color:var(--brand-primary);text-decoration:none;white-space:nowrap">
+        Complete profile <i class="bi bi-arrow-right" style="font-size:.75rem"></i>
+    </a>
+</div>
+{% endif %}
+
 <!-- Stats -->
 <div class="iu-stats">
     {% if role == 'teacher' %}
