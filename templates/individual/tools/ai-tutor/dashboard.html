@@ -1,0 +1,605 @@
+{% extends 'individual/base.html' %}
+{% load static %}
+{% block title %}AI Teaching Assistant — Aura{% endblock %}
+{% block page_title %}AI Teaching Assistant{% endblock %}
+
+{% block extra_css %}
+/* ═══════════════════════════════════════════════════════════
+   AI Teaching Assistant — Chat Interface
+   Cyan-anchored (#0891b2) with modern chat UX
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Hero ───────────────────────────────────────────────── */
+.ait-hero {
+    background: linear-gradient(135deg, #0e7490 0%, #0891b2 40%, #06b6d4 100%);
+    border-radius: 20px; padding: 2rem 2.5rem 1.75rem; color: #fff;
+    position: relative; overflow: hidden; margin-bottom: 1.5rem;
+}
+.ait-hero::before {
+    content: ''; position: absolute; top: -50px; right: -30px;
+    width: 220px; height: 220px; border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+}
+.ait-hero::after {
+    content: '🤖'; position: absolute; top: 18px; right: 28px;
+    font-size: 4rem; opacity: 0.12;
+}
+.ait-hero h2 { font-size: 1.5rem; font-weight: 800; margin-bottom: 0.2rem; }
+.ait-hero p { font-size: 0.85rem; opacity: 0.85; max-width: 500px; line-height: 1.5; }
+.ait-stat-row { display: flex; gap: 1rem; margin-top: 1.25rem; flex-wrap: wrap; }
+.ait-stat-pill {
+    background: rgba(255,255,255,0.15); backdrop-filter: blur(6px);
+    border-radius: 10px; padding: 0.5rem 0.9rem;
+    display: flex; flex-direction: column; min-width: 90px;
+}
+.ait-stat-num { font-size: 1.35rem; font-weight: 800; line-height: 1; }
+.ait-stat-lbl { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.8; }
+
+/* ── Mode Selector ──────────────────────────────────────── */
+.ait-mode-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 0.75rem; margin-bottom: 1.5rem;
+}
+.ait-mode-card {
+    background: var(--surface-card); border: 1.5px solid var(--border-color);
+    border-radius: 12px; padding: 1rem; cursor: pointer;
+    transition: all 0.2s ease; text-align: center; position: relative;
+}
+.ait-mode-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.ait-mode-card.active { border-color: #0891b2; background: rgba(8,145,178,0.06); }
+[data-bs-theme="dark"] .ait-mode-card.active { background: rgba(8,145,178,0.12); }
+.ait-mode-card .mode-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; margin-bottom: 0.5rem;
+}
+.ait-mode-card .mode-label {
+    font-size: 0.78rem; font-weight: 700; color: var(--text-main);
+}
+
+/* ── Chat Layout ────────────────────────────────────────── */
+.ait-chat-wrapper {
+    display: grid; grid-template-columns: 260px 1fr; gap: 1.25rem;
+    min-height: 520px;
+}
+@media (max-width: 768px) {
+    .ait-chat-wrapper { grid-template-columns: 1fr; }
+    .ait-sidebar { display: none; }
+    .ait-sidebar.show { display: block; position: fixed; top: 0; left: 0; width: 280px; height: 100vh; z-index: 1050; background: var(--surface-card); padding: 1rem; overflow-y: auto; border-right: 1px solid var(--border-color); }
+}
+
+/* Sidebar */
+.ait-sidebar {
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    border-radius: 14px; padding: 1rem; overflow-y: auto; max-height: 600px;
+}
+.ait-sidebar-title {
+    font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--text-muted);
+    margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;
+}
+.ait-conv-item {
+    display: flex; align-items: center; gap: 0.5rem; padding: 0.55rem 0.7rem;
+    border-radius: 8px; cursor: pointer; transition: background 0.15s;
+    text-decoration: none; color: var(--text-main); font-size: 0.82rem;
+    margin-bottom: 0.25rem; position: relative;
+}
+.ait-conv-item:hover { background: rgba(8,145,178,0.06); color: var(--text-main); }
+.ait-conv-item.active { background: rgba(8,145,178,0.1); font-weight: 600; }
+.ait-conv-item .conv-mode-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.ait-conv-item .conv-title {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
+}
+.ait-conv-item .conv-delete {
+    opacity: 0; font-size: 0.75rem; color: var(--text-muted);
+    transition: opacity 0.15s; padding: 2px;
+}
+.ait-conv-item:hover .conv-delete { opacity: 0.6; }
+.ait-conv-item .conv-delete:hover { opacity: 1; color: #ef4444; }
+.ait-new-btn {
+    display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+    width: 100%; padding: 0.55rem; border-radius: 8px; border: 1.5px dashed var(--border-color);
+    background: transparent; color: #0891b2; font-size: 0.82rem; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; margin-bottom: 0.75rem;
+}
+.ait-new-btn:hover { border-color: #0891b2; background: rgba(8,145,178,0.04); }
+
+/* Chat Panel */
+.ait-chat-panel {
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    border-radius: 14px; display: flex; flex-direction: column; overflow: hidden;
+}
+.ait-chat-header {
+    padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border-color);
+    display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0;
+}
+.ait-chat-header .mode-badge {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.72rem; font-weight: 600;
+}
+.ait-messages {
+    flex: 1; overflow-y: auto; padding: 1.25rem; display: flex;
+    flex-direction: column; gap: 1rem;
+}
+.ait-msg { display: flex; gap: 0.75rem; max-width: 85%; }
+.ait-msg.user { align-self: flex-end; flex-direction: row-reverse; }
+.ait-msg-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem; flex-shrink: 0;
+}
+.ait-msg.user .ait-msg-avatar { background: #0891b2; color: #fff; }
+.ait-msg.assistant .ait-msg-avatar { background: rgba(8,145,178,0.12); color: #0891b2; }
+[data-bs-theme="dark"] .ait-msg.assistant .ait-msg-avatar { background: rgba(8,145,178,0.2); }
+.ait-msg-bubble {
+    padding: 0.85rem 1.1rem; border-radius: 14px; font-size: 0.88rem;
+    line-height: 1.6; position: relative;
+}
+.ait-msg.user .ait-msg-bubble {
+    background: #0891b2; color: #fff; border-bottom-right-radius: 4px;
+}
+.ait-msg.assistant .ait-msg-bubble {
+    background: var(--surface-bg); border: 1px solid var(--border-color);
+    color: var(--text-main); border-bottom-left-radius: 4px;
+}
+.ait-msg-bubble h1,.ait-msg-bubble h2,.ait-msg-bubble h3,.ait-msg-bubble h4 {
+    font-size: 0.95rem; font-weight: 700; margin: 0.75rem 0 0.35rem;
+}
+.ait-msg-bubble h1:first-child,.ait-msg-bubble h2:first-child,.ait-msg-bubble h3:first-child { margin-top: 0; }
+.ait-msg-bubble ul,.ait-msg-bubble ol { padding-left: 1.25rem; margin: 0.5rem 0; }
+.ait-msg-bubble li { margin-bottom: 0.2rem; }
+.ait-msg-bubble pre {
+    background: rgba(0,0,0,0.06); border-radius: 8px; padding: 0.75rem;
+    overflow-x: auto; font-size: 0.82rem; margin: 0.5rem 0;
+}
+[data-bs-theme="dark"] .ait-msg-bubble pre { background: rgba(255,255,255,0.06); }
+.ait-msg-bubble code { font-size: 0.84rem; }
+.ait-msg-bubble table { width: 100%; border-collapse: collapse; margin: 0.5rem 0; font-size: 0.82rem; }
+.ait-msg-bubble th,.ait-msg-bubble td { border: 1px solid var(--border-color); padding: 0.4rem 0.6rem; text-align: left; }
+.ait-msg-bubble th { background: rgba(8,145,178,0.06); font-weight: 700; }
+.ait-msg-bubble strong { font-weight: 700; }
+
+/* Welcome state */
+.ait-welcome {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; text-align: center; padding: 2rem;
+}
+.ait-welcome-icon {
+    width: 72px; height: 72px; border-radius: 18px;
+    background: rgba(8,145,178,0.1); color: #0891b2;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem; margin-bottom: 1rem;
+}
+[data-bs-theme="dark"] .ait-welcome-icon { background: rgba(8,145,178,0.18); }
+.ait-welcome h3 { font-size: 1.1rem; font-weight: 800; margin-bottom: 0.3rem; }
+.ait-welcome p { font-size: 0.85rem; color: var(--text-muted); max-width: 380px; }
+.ait-suggestions {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;
+    margin-top: 1.25rem; max-width: 440px; width: 100%;
+}
+.ait-suggestion {
+    background: var(--surface-bg); border: 1px solid var(--border-color);
+    border-radius: 10px; padding: 0.7rem; font-size: 0.78rem;
+    color: var(--text-muted); cursor: pointer; text-align: left;
+    transition: all 0.15s;
+}
+.ait-suggestion:hover {
+    border-color: #0891b2; color: #0891b2; background: rgba(8,145,178,0.04);
+}
+
+/* Input area */
+.ait-input-area {
+    padding: 1rem 1.25rem; border-top: 1px solid var(--border-color);
+    display: flex; gap: 0.5rem; align-items: flex-end;
+}
+.ait-input-field {
+    flex: 1; resize: none; border: 1.5px solid var(--border-color);
+    border-radius: 12px; padding: 0.65rem 1rem; font-size: 0.88rem;
+    font-family: inherit; background: var(--surface-bg); color: var(--text-main);
+    max-height: 120px; min-height: 44px; line-height: 1.4;
+}
+.ait-input-field:focus { outline: none; border-color: #0891b2; box-shadow: 0 0 0 3px rgba(8,145,178,0.1); }
+.ait-send-btn {
+    width: 44px; height: 44px; border-radius: 12px; border: none;
+    background: #0891b2; color: #fff; font-size: 1.1rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+}
+.ait-send-btn:hover { background: #0e7490; transform: translateY(-1px); }
+.ait-send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* Typing indicator */
+.ait-typing { display: flex; gap: 4px; padding: 0.5rem 0; align-items: center; }
+.ait-typing span {
+    width: 6px; height: 6px; border-radius: 50%; background: #0891b2;
+    animation: aitBounce 1.4s infinite both;
+}
+.ait-typing span:nth-child(2) { animation-delay: 0.16s; }
+.ait-typing span:nth-child(3) { animation-delay: 0.32s; }
+@keyframes aitBounce {
+    0%,80%,100% { transform: scale(0.6); opacity: 0.4; }
+    40% { transform: scale(1); opacity: 1; }
+}
+
+/* Subject selector */
+.ait-subject-row {
+    display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;
+    padding: 0 1.25rem 0.5rem;
+}
+.ait-subject-select {
+    padding: 0.3rem 0.6rem; border: 1px solid var(--border-color);
+    border-radius: 6px; background: var(--surface-bg); color: var(--text-main);
+    font-size: 0.78rem; font-family: inherit;
+}
+.ait-subject-select:focus { outline: none; border-color: #0891b2; }
+
+/* Mobile toggle */
+.ait-mobile-sidebar-btn {
+    display: none; padding: 0.35rem 0.75rem; border-radius: 8px;
+    border: 1px solid var(--border-color); background: var(--surface-card);
+    color: var(--text-main); font-size: 0.82rem; cursor: pointer;
+    margin-bottom: 0.75rem;
+}
+@media (max-width: 768px) {
+    .ait-mobile-sidebar-btn { display: inline-flex; align-items: center; gap: 0.35rem; }
+    .ait-chat-wrapper { min-height: 450px; }
+    .ait-suggestions { grid-template-columns: 1fr; }
+    .ait-msg { max-width: 95%; }
+}
+{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<div class="ait-hero">
+    <h2><i class="bi bi-robot me-2"></i>AI Teaching Assistant</h2>
+    <p>Your AI-powered co-teacher — explain concepts, create worksheets, write marking feedback, or generate study notes.</p>
+    <div class="ait-stat-row">
+        <div class="ait-stat-pill">
+            <div class="ait-stat-num">{{ total_conversations }}</div>
+            <div class="ait-stat-lbl">Conversations</div>
+        </div>
+        <div class="ait-stat-pill">
+            <div class="ait-stat-num">{{ total_messages }}</div>
+            <div class="ait-stat-lbl">Messages Sent</div>
+        </div>
+    </div>
+</div>
+
+<!-- Mode Selector -->
+<div class="ait-mode-grid">
+{% for code, label in modes %}
+    {% with meta=mode_meta|dictsort:"label" %}
+    <div class="ait-mode-card{% if code == active_mode %} active{% endif %}" data-mode="{{ code }}" onclick="selectMode('{{ code }}')">
+        <div class="mode-icon" style="background: {% if code == 'explain' %}#f59e0b15;color:#f59e0b{% elif code == 'worksheet' %}#8b5cf615;color:#8b5cf6{% elif code == 'feedback' %}#ef444415;color:#ef4444{% elif code == 'notes' %}#05966915;color:#059669{% else %}#0891b215;color:#0891b2{% endif %}">
+            <i class="bi {% if code == 'explain' %}bi-lightbulb{% elif code == 'worksheet' %}bi-file-earmark-ruled{% elif code == 'feedback' %}bi-chat-square-text{% elif code == 'notes' %}bi-journal-text{% else %}bi-robot{% endif %}"></i>
+        </div>
+        <div class="mode-label">{{ label }}</div>
+    </div>
+    {% endwith %}
+{% endfor %}
+</div>
+
+<!-- Mobile sidebar toggle -->
+<button class="ait-mobile-sidebar-btn" onclick="document.querySelector('.ait-sidebar').classList.toggle('show')">
+    <i class="bi bi-list"></i> History
+</button>
+
+<!-- Chat Layout -->
+<div class="ait-chat-wrapper">
+    <!-- Sidebar: Conversation History -->
+    <div class="ait-sidebar" id="aitSidebar">
+        <button class="ait-new-btn" onclick="newConversation()">
+            <i class="bi bi-plus-lg"></i> New Chat
+        </button>
+        <div class="ait-sidebar-title"><i class="bi bi-clock-history"></i> Recent</div>
+        <div id="aitConvList">
+        {% for conv in conversations %}
+            <a href="?c={{ conv.pk }}"
+               class="ait-conv-item{% if active_conv and active_conv.pk == conv.pk %} active{% endif %}"
+               data-id="{{ conv.pk }}">
+                <span class="conv-mode-dot" style="background:{% if conv.mode == 'explain' %}#f59e0b{% elif conv.mode == 'worksheet' %}#8b5cf6{% elif conv.mode == 'feedback' %}#ef4444{% elif conv.mode == 'notes' %}#059669{% else %}#0891b2{% endif %}"></span>
+                <span class="conv-title">{{ conv.title|default:"New conversation" }}</span>
+                <span class="conv-delete" onclick="event.preventDefault();event.stopPropagation();deleteConversation({{ conv.pk }})" title="Delete"><i class="bi bi-x-lg"></i></span>
+            </a>
+        {% empty %}
+            <div style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:1rem 0;">
+                No conversations yet.<br>Start one by selecting a mode above!
+            </div>
+        {% endfor %}
+        </div>
+    </div>
+
+    <!-- Chat Panel -->
+    <div class="ait-chat-panel">
+        <div class="ait-chat-header">
+            <i class="bi bi-robot" style="color:#0891b2;font-size:1.1rem"></i>
+            <span style="font-weight:700;font-size:0.9rem" id="aitHeaderTitle">
+                {% if active_conv %}{{ active_conv.title|truncatechars:50 }}{% else %}New Conversation{% endif %}
+            </span>
+            <div class="ms-auto">
+                <span class="mode-badge" id="aitModeBadge" style="background:rgba(8,145,178,0.1);color:#0891b2">
+                    <i class="bi bi-robot"></i>
+                    <span id="aitModeLabel">{% if active_conv %}{{ active_conv.get_mode_display }}{% else %}General{% endif %}</span>
+                </span>
+            </div>
+        </div>
+
+        <!-- Subject selector -->
+        <div class="ait-subject-row">
+            <label style="font-size:0.72rem;font-weight:600;color:var(--text-muted)">Subject:</label>
+            <select class="ait-subject-select" id="aitSubject">
+                <option value="">Any Subject</option>
+                {% for code, label in subjects %}
+                <option value="{{ code }}" {% if active_conv and active_conv.subject == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="ait-messages" id="aitMessages">
+        {% if active_messages %}
+            {% for msg in active_messages %}
+            <div class="ait-msg {{ msg.role }}">
+                <div class="ait-msg-avatar">
+                    {% if msg.role == 'user' %}<i class="bi bi-person"></i>{% else %}<i class="bi bi-robot"></i>{% endif %}
+                </div>
+                <div class="ait-msg-bubble">{{ msg.content|linebreaksbr }}</div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <!-- Welcome state -->
+            <div class="ait-welcome" id="aitWelcome">
+                <div class="ait-welcome-icon"><i class="bi bi-robot"></i></div>
+                <h3>Hello, Teacher!</h3>
+                <p>I'm your AI teaching assistant. Choose a mode above and ask me anything — I'll help you create content, explain concepts, or provide feedback.</p>
+                <div class="ait-suggestions">
+                    <div class="ait-suggestion" onclick="useSuggestion('Explain photosynthesis for Basic 8 students with a simple diagram')">
+                        <i class="bi bi-lightbulb" style="color:#f59e0b"></i> Explain photosynthesis for Basic 8
+                    </div>
+                    <div class="ait-suggestion" onclick="useSuggestion('Create a 10-question worksheet on fractions for Basic 7')">
+                        <i class="bi bi-file-earmark-ruled" style="color:#8b5cf6"></i> Fractions worksheet for Basic 7
+                    </div>
+                    <div class="ait-suggestion" onclick="useSuggestion('Write marking feedback for a student who scored 14/20 on their essay about climate change')">
+                        <i class="bi bi-chat-square-text" style="color:#ef4444"></i> Marking feedback for essay
+                    </div>
+                    <div class="ait-suggestion" onclick="useSuggestion('Generate revision notes on the Water Cycle for JHS 2 students')">
+                        <i class="bi bi-journal-text" style="color:#059669"></i> Water Cycle revision notes
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        </div>
+
+        <!-- Input -->
+        <div class="ait-input-area">
+            <textarea class="ait-input-field" id="aitInput" rows="1"
+                placeholder="Ask me anything about teaching..."
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
+                oninput="autoResize(this)"></textarea>
+            <button class="ait-send-btn" id="aitSendBtn" onclick="sendMessage()" title="Send">
+                <i class="bi bi-send-fill"></i>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+    const CSRF = '{{ csrf_token }}';
+    const API_URL = '{% url "individual:ai_tutor_api" %}';
+    const DASH_URL = '{% url "individual:ai_tutor_dashboard" %}';
+
+    let currentConvId = {{ active_conv.pk|default:"null" }};
+    let currentMode = '{{ active_mode }}';
+    let sending = false;
+
+    const MODE_META = {
+        explain:   {icon:'bi-lightbulb',         color:'#f59e0b', label:'Concept Explainer',    placeholder:'e.g. Explain photosynthesis for Basic 8 students...'},
+        worksheet: {icon:'bi-file-earmark-ruled', color:'#8b5cf6', label:'Worksheet Generator',  placeholder:'e.g. Create a worksheet on fractions for Basic 7...'},
+        feedback:  {icon:'bi-chat-square-text',   color:'#ef4444', label:'Marking Feedback',     placeholder:'e.g. Write feedback for a student who scored 12/20...'},
+        notes:     {icon:'bi-journal-text',       color:'#059669', label:'Study Notes Creator',  placeholder:'e.g. Create revision notes on the Water Cycle...'},
+        general:   {icon:'bi-robot',              color:'#0891b2', label:'General Assistant',    placeholder:'Ask me anything about teaching...'},
+    };
+
+    window.selectMode = function(mode) {
+        currentMode = mode;
+        document.querySelectorAll('.ait-mode-card').forEach(c => c.classList.remove('active'));
+        document.querySelector(`.ait-mode-card[data-mode="${mode}"]`)?.classList.add('active');
+        const meta = MODE_META[mode] || MODE_META.general;
+        document.getElementById('aitInput').placeholder = meta.placeholder;
+        const badge = document.getElementById('aitModeBadge');
+        badge.style.background = meta.color + '18';
+        badge.style.color = meta.color;
+        badge.querySelector('i').className = 'bi ' + meta.icon;
+        document.getElementById('aitModeLabel').textContent = meta.label;
+    };
+
+    window.newConversation = function() {
+        window.location.href = DASH_URL + '?mode=' + currentMode;
+    };
+
+    window.deleteConversation = function(id) {
+        if (!confirm('Delete this conversation?')) return;
+        fetch(API_URL, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json','X-CSRFToken': CSRF},
+            body: JSON.stringify({action:'delete_conversation', conversation_id: id}),
+        }).then(r => r.json()).then(d => {
+            if (d.ok) {
+                const el = document.querySelector(`.ait-conv-item[data-id="${id}"]`);
+                if (el) el.remove();
+                if (currentConvId === id) window.location.href = DASH_URL;
+            }
+        });
+    };
+
+    window.useSuggestion = function(text) {
+        document.getElementById('aitInput').value = text;
+        autoResize(document.getElementById('aitInput'));
+        sendMessage();
+    };
+
+    window.autoResize = function(el) {
+        el.style.height = 'auto';
+        el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+    };
+
+    function appendMessage(role, content) {
+        const welcome = document.getElementById('aitWelcome');
+        if (welcome) welcome.remove();
+
+        const wrap = document.getElementById('aitMessages');
+        const div = document.createElement('div');
+        div.className = 'ait-msg ' + role;
+        const icon = role === 'user' ? 'bi-person' : 'bi-robot';
+        div.innerHTML = `
+            <div class="ait-msg-avatar"><i class="bi ${icon}"></i></div>
+            <div class="ait-msg-bubble">${role === 'assistant' ? renderMarkdown(content) : escapeHtml(content)}</div>
+        `;
+        wrap.appendChild(div);
+        wrap.scrollTop = wrap.scrollHeight;
+        return div;
+    }
+
+    function showTyping() {
+        const wrap = document.getElementById('aitMessages');
+        const div = document.createElement('div');
+        div.className = 'ait-msg assistant';
+        div.id = 'aitTyping';
+        div.innerHTML = `
+            <div class="ait-msg-avatar"><i class="bi bi-robot"></i></div>
+            <div class="ait-msg-bubble"><div class="ait-typing"><span></span><span></span><span></span></div></div>
+        `;
+        wrap.appendChild(div);
+        wrap.scrollTop = wrap.scrollHeight;
+    }
+
+    function hideTyping() {
+        const el = document.getElementById('aitTyping');
+        if (el) el.remove();
+    }
+
+    function escapeHtml(text) {
+        const d = document.createElement('div');
+        d.textContent = text;
+        return d.innerHTML.replace(/\n/g, '<br>');
+    }
+
+    function renderMarkdown(text) {
+        // Basic markdown rendering
+        let html = escapeHtml(text);
+        // Code blocks
+        html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+        // Inline code
+        html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+        // Bold
+        html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        // Italic
+        html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+        // Headers
+        html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+        html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+        html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+        html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+        // Unordered list
+        html = html.replace(/^[\-\*] (.+)$/gm, '<li>$1</li>');
+        html = html.replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>');
+        html = html.replace(/<\/ul>\s*<ul>/g, '');
+        // Numbered list
+        html = html.replace(/^\d+\.\s(.+)$/gm, '<li>$1</li>');
+        // Tables (basic)
+        html = html.replace(/\|(.+)\|/g, function(match) {
+            const cells = match.split('|').filter(c => c.trim());
+            if (cells.every(c => /^[\s\-:]+$/.test(c))) return '';
+            const tag = 'td';
+            return '<tr>' + cells.map(c => `<${tag}>${c.trim()}</${tag}>`).join('') + '</tr>';
+        });
+        html = html.replace(/(<tr>[\s\S]*?<\/tr>)/g, '<table>$1</table>');
+        html = html.replace(/<\/table>\s*<table>/g, '');
+        return html;
+    }
+
+    window.sendMessage = function() {
+        if (sending) return;
+        const input = document.getElementById('aitInput');
+        const msg = input.value.trim();
+        if (!msg) return;
+
+        sending = true;
+        const btn = document.getElementById('aitSendBtn');
+        btn.disabled = true;
+        input.value = '';
+        input.style.height = 'auto';
+
+        appendMessage('user', msg);
+        showTyping();
+
+        const subject = document.getElementById('aitSubject').value;
+
+        fetch(API_URL, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json','X-CSRFToken': CSRF},
+            body: JSON.stringify({
+                action: 'chat',
+                message: msg,
+                conversation_id: currentConvId,
+                mode: currentMode,
+                subject: subject,
+            }),
+        })
+        .then(r => r.json())
+        .then(data => {
+            hideTyping();
+            if (data.ok) {
+                appendMessage('assistant', data.message);
+                if (!currentConvId && data.conversation_id) {
+                    currentConvId = data.conversation_id;
+                    // Update URL without reload
+                    history.replaceState(null, '', DASH_URL + '?c=' + currentConvId);
+                    // Update header
+                    document.getElementById('aitHeaderTitle').textContent = data.title || 'New Conversation';
+                    // Add to sidebar
+                    addConvToSidebar(data.conversation_id, data.title, currentMode);
+                }
+            } else {
+                appendMessage('assistant', '⚠️ ' + (data.error || 'Something went wrong. Please try again.'));
+            }
+        })
+        .catch(() => {
+            hideTyping();
+            appendMessage('assistant', '⚠️ Network error. Please check your connection and try again.');
+        })
+        .finally(() => {
+            sending = false;
+            btn.disabled = false;
+            input.focus();
+        });
+    };
+
+    function addConvToSidebar(id, title, mode) {
+        const list = document.getElementById('aitConvList');
+        const colors = {explain:'#f59e0b', worksheet:'#8b5cf6', feedback:'#ef4444', notes:'#059669', general:'#0891b2'};
+        const a = document.createElement('a');
+        a.href = DASH_URL + '?c=' + id;
+        a.className = 'ait-conv-item active';
+        a.setAttribute('data-id', id);
+        a.innerHTML = `
+            <span class="conv-mode-dot" style="background:${colors[mode]||'#0891b2'}"></span>
+            <span class="conv-title">${title || 'New conversation'}</span>
+            <span class="conv-delete" onclick="event.preventDefault();event.stopPropagation();deleteConversation(${id})" title="Delete"><i class="bi bi-x-lg"></i></span>
+        `;
+        list.prepend(a);
+    }
+
+    // Scroll to bottom on load if there are messages
+    const wrap = document.getElementById('aitMessages');
+    if (wrap) wrap.scrollTop = wrap.scrollHeight;
+
+    // Initialize mode on page load
+    selectMode(currentMode);
+})();
+</script>
+{% endblock %}

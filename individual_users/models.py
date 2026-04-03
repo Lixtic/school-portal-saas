@@ -309,6 +309,54 @@ class ToolSlide(models.Model):
 
 # ── GTLE Licensure Prep ─────────────────────────────────────────────────────
 
+# ── AI Teaching Assistant ─────────────────────────────────────────────────────
+
+class AITutorConversation(models.Model):
+    """A single conversation thread with the AI Teaching Assistant."""
+    MODE_CHOICES = [
+        ('explain', 'Concept Explainer'),
+        ('worksheet', 'Worksheet Generator'),
+        ('feedback', 'Marking Feedback'),
+        ('notes', 'Study Notes Creator'),
+        ('general', 'General Assistant'),
+    ]
+    profile = models.ForeignKey(
+        IndividualProfile, on_delete=models.CASCADE,
+        related_name='ai_tutor_conversations',
+    )
+    mode = models.CharField(max_length=20, choices=MODE_CHOICES, default='general')
+    title = models.CharField(max_length=200, blank=True, default='')
+    subject = models.CharField(
+        max_length=30, choices=ToolQuestion.SUBJECT_CHOICES, blank=True, default='',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        verbose_name = 'AI Tutor Conversation'
+
+    def __str__(self):
+        return self.title or f'{self.get_mode_display()} — {self.created_at:%d %b %Y}'
+
+
+class AITutorMessage(models.Model):
+    """Single message within an AI Tutor conversation."""
+    ROLE_CHOICES = [('user', 'User'), ('assistant', 'Assistant')]
+    conversation = models.ForeignKey(
+        AITutorConversation, on_delete=models.CASCADE, related_name='messages',
+    )
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'{self.role}: {self.content[:60]}'
+
+
 class LicensureQuestion(models.Model):
     """GTLE licensure exam practice / past question."""
 

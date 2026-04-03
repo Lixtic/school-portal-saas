@@ -16,6 +16,8 @@ from django.views.decorators.http import require_POST
 
 from individual_users.models import (
     AddonSubscription,
+    AITutorConversation,
+    AITutorMessage,
     IndividualProfile,
     LicensureAnswer,
     LicensureQuestion,
@@ -136,8 +138,7 @@ TOOLS_CATALOG = [
             'Study notes creator',
         ],
         'category': 'ai_tools',
-        'tools': [],
-        'coming_soon': True,
+        'tools': ['ai_tutor'],
     },
     {
         'slug': 'report-card',
@@ -294,6 +295,7 @@ def tools_hub(request):
     l_count = ToolLessonPlan.objects.filter(profile=profile).count()
     d_count = ToolPresentation.objects.filter(profile=profile).count()
     lic_count = LicensureQuizAttempt.objects.filter(profile=profile, completed=True).count()
+    tutor_count = AITutorConversation.objects.filter(profile=profile).count()
 
     ctx = {
         'tools': tools,
@@ -304,6 +306,7 @@ def tools_hub(request):
         'lesson_count': l_count,
         'deck_count': d_count,
         'licensure_attempt_count': lic_count,
+        'tutor_count': tutor_count,
     }
     return render(request, 'individual/tools/hub.html', ctx)
 
@@ -2196,3 +2199,184 @@ def licensure_load_bank(request):
         messages.info(request, 'All practice questions are already in your bank.')
 
     return redirect('individual:licensure_dashboard')
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# AI Teaching Assistant
+# ══════════════════════════════════════════════════════════════════════════════
+
+_AI_TUTOR_SYSTEM_PROMPTS = {
+    'explain': (
+        'You are an expert teacher educator. Explain concepts clearly with examples, '
+        'analogies and step-by-step breakdowns suitable for a Ghanaian classroom. '
+        'Use simple language and relate to the GES curriculum where relevant.'
+    ),
+    'worksheet': (
+        'You are a worksheet and activity designer for teachers. Create engaging, '
+        'print-ready worksheets with clear instructions, varied question types, '
+        'and answer keys. Format using markdown headings, numbered lists and tables.'
+    ),
+    'feedback': (
+        'You are a marking and assessment feedback specialist. Help teachers write '
+        'constructive, specific and encouraging feedback for student work. Provide '
+        'strengths, areas for improvement and next steps.'
+    ),
+    'notes': (
+        'You are a study notes creator for teachers and students. Generate well-structured, '
+        'concise revision notes with key points, definitions, mnemonics and summary tables. '
+        'Use markdown formatting for readability.'
+    ),
+    'general': (
+        'You are an AI Teaching Assistant for Ghanaian educators. Help with lesson planning, '
+        'content creation, pedagogy questions and classroom strategies. Be practical, '
+        'culturally relevant and aligned with GES standards.'
+    ),
+}
+
+_AI_TUTOR_MODE_META = {
+    'explain': {'icon': 'bi-lightbulb', 'color': '#f59e0b', 'label': 'Concept Explainer',
+                'placeholder': 'e.g. Explain photosynthesis for Basic 8 students...'},
+    'worksheet': {'icon': 'bi-file-earmark-ruled', 'color': '#8b5cf6', 'label': 'Worksheet Generator',
+                  'placeholder': 'e.g. Create a worksheet on fractions for Basic 7...'},
+    'feedback': {'icon': 'bi-chat-square-text', 'color': '#ef4444', 'label': 'Marking Feedback',
+                 'placeholder': 'e.g. Write feedback for a student who scored 12/20 on their essay about...'},
+    'notes': {'icon': 'bi-journal-text', 'color': '#059669', 'label': 'Study Notes Creator',
+              'placeholder': 'e.g. Create revision notes on the Water Cycle for JHS 2...'},
+    'general': {'icon': 'bi-robot', 'color': '#0891b2', 'label': 'General Assistant',
+                'placeholder': 'Ask me anything about teaching...'},
+}
+
+
+@_tool_required
+@_require_tool('ai-tutor')
+def ai_tutor_dashboard(request):
+    """Main AI Teaching Assistant chat interface."""
+    profile = request.user.individual_profile
+    conversations = AITutorConversation.objects.filter(profile=profile)[:20]
+    total_conversations = AITutorConversation.objects.filter(profile=profile).count()
+    total_messages = AITutorMessage.objects.filter(
+        conversation__profile=profile, role='user',
+    ).count()
+
+    # If a conversation ID is provided, load it
+    conv_id = request.GET.get('c')
+    active_conv = None
+    active_messages = []
+    active_mode = request.GET.get('mode', 'general')
+    if conv_id:
+        try:
+            active_conv = AITutorConversation.objects.get(pk=conv_id, profile=profile)
+            active_messages = list(active_conv.messages.all())
+            active_mode = active_conv.mode
+        except AITutorConversation.DoesNotExist:
+            pass
+
+    ctx = {
+        'conversations': conversations,
+        'total_conversations': total_conversations,
+        'total_messages': total_messages,
+        'active_conv': active_conv,
+        'active_messages': active_messages,
+        'active_mode': active_mode,
+        'modes': AITutorConversation.MODE_CHOICES,
+        'mode_meta': _AI_TUTOR_MODE_META,
+        'subjects': ToolQuestion.SUBJECT_CHOICES,
+    }
+    return render(request, 'individual/tools/ai-tutor/dashboard.html', ctx)
+
+
+@_tool_required
+@_require_tool('ai-tutor')
+def ai_tutor_api(request):
+    """AJAX endpoint for AI Tutor chat."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    profile = request.user.individual_profile
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    action = data.get('action', 'chat')
+
+    # ── Send message ─────────────────────────────────────────────────────
+    if action == 'chat':
+        message = data.get('message', '').strip()
+        if not message:
+            return JsonResponse({'error': 'Message is required'}, status=400)
+        # Limit message length
+        if len(message) > 4000:
+            return JsonResponse({'error': 'Message too long (max 4000 chars)'}, status=400)
+
+        conv_id = data.get('conversation_id')
+        mode = data.get('mode', 'general')
+        subject = data.get('subject', '')
+
+        if mode not in _AI_TUTOR_SYSTEM_PROMPTS:
+            mode = 'general'
+
+        # Get or create conversation
+        if conv_id:
+            try:
+                conv = AITutorConversation.objects.get(pk=conv_id, profile=profile)
+            except AITutorConversation.DoesNotExist:
+                return JsonResponse({'error': 'Conversation not found'}, status=404)
+        else:
+            title = message[:80] + ('…' if len(message) > 80 else '')
+            conv = AITutorConversation.objects.create(
+                profile=profile, mode=mode, title=title, subject=subject,
+            )
+
+        # Save user message
+        AITutorMessage.objects.create(conversation=conv, role='user', content=message)
+
+        # Build message history for OpenAI (last 20 messages for context window)
+        history = list(conv.messages.order_by('created_at')[:20].values('role', 'content'))
+        system_prompt = _AI_TUTOR_SYSTEM_PROMPTS[conv.mode]
+        if conv.subject:
+            subject_label = dict(ToolQuestion.SUBJECT_CHOICES).get(conv.subject, conv.subject)
+            system_prompt += f'\n\nThe teacher is currently working on: {subject_label}.'
+
+        oai_messages = [{'role': 'system', 'content': system_prompt}]
+        for msg in history:
+            oai_messages.append({'role': msg['role'], 'content': msg['content']})
+
+        # Call OpenAI
+        import openai
+        try:
+            client = openai.OpenAI()
+            response = client.chat.completions.create(
+                model='gpt-4o-mini',
+                messages=oai_messages,
+                temperature=0.7,
+                max_tokens=2000,
+            )
+            assistant_content = response.choices[0].message.content.strip()
+        except Exception as e:
+            logger.error('AI Tutor API error: %s', e)
+            return JsonResponse({'error': 'AI service temporarily unavailable. Please try again.'}, status=500)
+
+        # Save assistant response
+        AITutorMessage.objects.create(
+            conversation=conv, role='assistant', content=assistant_content,
+        )
+
+        return JsonResponse({
+            'ok': True,
+            'conversation_id': conv.pk,
+            'title': conv.title,
+            'message': assistant_content,
+        })
+
+    # ── Delete conversation ──────────────────────────────────────────────
+    if action == 'delete_conversation':
+        conv_id = data.get('conversation_id')
+        try:
+            conv = AITutorConversation.objects.get(pk=conv_id, profile=profile)
+            conv.delete()
+            return JsonResponse({'ok': True})
+        except AITutorConversation.DoesNotExist:
+            return JsonResponse({'error': 'Not found'}, status=404)
+
+    return JsonResponse({'error': f'Unknown action: {action}'}, status=400)

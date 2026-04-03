@@ -486,6 +486,7 @@ def dashboard_view(request):
             'lesson-planner': 'individual:lesson_plans',
             'slide-generator': 'individual:deck_list',
             'licensure-prep': 'individual:licensure_dashboard',
+            'ai-tutor': 'individual:ai_tutor_dashboard',
         }
         _ADDON_COLORS = {
             'exam-generator': '#4361ee',
