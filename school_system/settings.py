@@ -457,6 +457,10 @@ except ImportError:
 # =====================
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Allow larger request bodies for image-based AI scanning (base64 payloads).
+# Django default is 2.5 MB; camera photos encoded as base64 can reach ~8-12 MB.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 15 * 1024 * 1024  # 15 MB
+
 # =====================
 # EMAIL CONFIGURATION (Brevo/SMTP)
 # =====================
