@@ -290,6 +290,12 @@
                 <a href="{% url 'individual:letter_edit' pk=letter.pk %}" class="lw-btn-sm">
                     <i class="bi bi-eye"></i> View
                 </a>
+                <form method="post" action="{% url 'individual:letter_duplicate' pk=letter.pk %}" style="margin:0">
+                    {% csrf_token %}
+                    <button type="submit" class="lw-btn-sm" style="border-color:rgba(37,99,235,0.3);color:#2563eb;">
+                        <i class="bi bi-copy"></i> Use as Template
+                    </button>
+                </form>
                 <a href="{% url 'individual:letter_print' pk=letter.pk %}" class="lw-btn-sm" target="_blank">
                     <i class="bi bi-printer"></i> Print
                 </a>

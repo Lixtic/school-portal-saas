@@ -90,6 +90,7 @@ urlpatterns = [
     path('tools/letters/new/', tool_views.letter_create, name='letter_create'),
     path('tools/letters/<int:pk>/edit/', tool_views.letter_edit, name='letter_edit'),
     path('tools/letters/<int:pk>/delete/', tool_views.letter_delete, name='letter_delete'),
+    path('tools/letters/<int:pk>/duplicate/', tool_views.letter_duplicate, name='letter_duplicate'),
     path('tools/letters/<int:pk>/print/', tool_views.letter_print, name='letter_print'),
     path('tools/letters/api/', tool_views.letter_api, name='letter_api'),
 ]

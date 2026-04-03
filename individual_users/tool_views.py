@@ -2536,6 +2536,36 @@ def letter_delete(request, pk):
 
 @_tool_required
 @_require_tool('letter-writer')
+@require_POST
+def letter_duplicate(request, pk):
+    """Duplicate a letter (typically a sample) as a new personal draft."""
+    _ensure_public_schema()
+    profile = request.user.individual_profile
+    original = get_object_or_404(GESLetter, pk=pk, profile=profile)
+    copy = GESLetter.objects.create(
+        profile=profile,
+        title=original.title if original.is_sample else f'{original.title} (Copy)',
+        category=original.category,
+        status='draft',
+        recipient_name=original.recipient_name,
+        recipient_title=original.recipient_title,
+        sender_name=original.sender_name,
+        sender_title=original.sender_title,
+        school_name=original.school_name,
+        district=original.district,
+        region=original.region,
+        reference_number=original.reference_number,
+        date_written=original.date_written,
+        body=original.body,
+        is_sample=False,
+        ai_generated=original.ai_generated,
+    )
+    messages.success(request, f'Letter copied to your drafts — you can now edit it.')
+    return redirect('individual:letter_edit', pk=copy.pk)
+
+
+@_tool_required
+@_require_tool('letter-writer')
 def letter_print(request, pk):
     """Print-ready standalone view of a letter."""
     _ensure_public_schema()
