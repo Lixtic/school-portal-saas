@@ -58,8 +58,26 @@ def _send_verification_code(user, method):
             fail_silently=True,
         )
     else:
-        # Phone: log until SMS provider is integrated
-        logger.info('Phone verification code for user %s: %s', user.pk, code)
+        # Phone: send via WhatsApp (Africa's Talking), fall back to logging
+        phone = getattr(user, 'phone', '') or ''
+        if not phone:
+            profile = IndividualProfile.objects.filter(user=user).first()
+            phone = profile.phone_number if profile else ''
+        if phone:
+            try:
+                from announcements.sms_service import send_whatsapp
+                msg = (
+                    f"Your Aura verification code is: *{code}*\n\n"
+                    f"This code expires in 10 minutes. "
+                    f"If you didn't create an Aura account, ignore this message."
+                )
+                result = send_whatsapp([phone], msg)
+                if result.get('error'):
+                    logger.warning('WhatsApp send failed for user %s: %s', user.pk, result['error'])
+            except Exception:
+                logger.exception('WhatsApp verification failed for user %s', user.pk)
+        else:
+            logger.warning('No phone number for user %s — cannot send verification', user.pk)
 
 
 def _verification_email_html(code, first_name):
