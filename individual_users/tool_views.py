@@ -2829,4 +2829,52 @@ def _get_sample_letters():
                 'Okaikoi North Municipal'
             ),
         },
+        {
+            'title': 'Application for Promotion',
+            'category': 'promotion',
+            'recipient_name': 'The Director-General',
+            'recipient_title': 'Ghana Education Service, Headquarters, Accra',
+            'sender_name': 'Samuel Kwarteng',
+            'sender_title': 'Senior Superintendent II',
+            'school_name': 'Tamale Senior High School',
+            'district': 'Tamale Metropolitan',
+            'region': 'Northern',
+            'reference_number': 'GES/TAM/2025/042',
+            'date_written': today,
+            'body': (
+                'Dear Sir/Madam,\n\n'
+                'APPLICATION FOR PROMOTION FROM SENIOR SUPERINTENDENT II '
+                'TO PRINCIPAL SUPERINTENDENT\n\n'
+                'I humbly write to apply for promotion from my current rank of '
+                'Senior Superintendent II to the rank of Principal Superintendent.\n\n'
+                'I was posted to the Ghana Education Service on 1st September 2016 with '
+                'Staff ID GES/TC/2016/45678 and have since served at Tamale Senior High '
+                'School in the Tamale Metropolitan Directorate. I was promoted to the rank '
+                'of Senior Superintendent II on 1st January 2022.\n\n'
+                'During my service, I have:\n'
+                '1. Consistently achieved excellent results in Mathematics at the WASSCE '
+                'level, with pass rates exceeding 85% for the past four (4) years.\n'
+                '2. Served as Head of the Mathematics Department since 2020.\n'
+                '3. Organised inter-school Mathematics quiz competitions in the '
+                'Tamale Metropolitan area.\n'
+                '4. Participated in the GES-sponsored STEM capacity-building workshop '
+                'for Senior High School teachers in 2023.\n'
+                '5. Maintained an unblemished disciplinary record throughout my service.\n\n'
+                'I have satisfied the minimum number of years at my current rank as '
+                'stipulated in the GES Conditions of Service and believe I am eligible '
+                'for consideration.\n\n'
+                'Attached herewith for your perusal are:\n'
+                '- Copies of my appointment and last promotion letters\n'
+                '- Copies of academic and professional certificates\n'
+                '- Recent SSNIT contribution statement\n'
+                '- Performance appraisal reports for the last three (3) years\n\n'
+                'I humbly appeal for your favourable consideration of this application.\n\n'
+                'Yours faithfully,\n\n\n'
+                'Samuel Kwarteng\n'
+                'Staff ID: GES/TC/2016/45678\n'
+                'Senior Superintendent II\n'
+                'Tamale Senior High School\n'
+                'Tamale, Northern Region'
+            ),
+        },
     ]
