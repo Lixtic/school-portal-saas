@@ -796,6 +796,7 @@ def dashboard_view(request):
             'ai-tutor': 'individual:ai_tutor_dashboard',
             'letter-writer': 'individual:letter_dashboard',
             'paper-marker': 'individual:marker_dashboard',
+            'report-card': 'individual:report_card_dashboard',
         }
         _ADDON_COLORS = {
             'exam-generator': '#4361ee',

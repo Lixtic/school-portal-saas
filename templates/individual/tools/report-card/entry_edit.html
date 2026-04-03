@@ -1,0 +1,380 @@
+{% extends 'individual/base.html' %}
+{% block title %}{{ entry.student_name }} — Report Card{% endblock %}
+{% block page_title %}{{ entry.student_name }}{% endblock %}
+
+{% block extra_css %}
+/* ── Entry Editor ──────────────────────────── */
+.ee-hero {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 60%, #92400e 100%);
+    border-radius: var(--radius-lg); color: #fff;
+    padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 0.75rem;
+}
+.ee-hero-title { font-size: 1.15rem; font-weight: 800; }
+.ee-hero-sub { font-size: 0.82rem; opacity: 0.85; margin-top: 0.15rem; }
+.ee-hero-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.ee-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.5rem 0.85rem; border-radius: 8px;
+    font-size: 0.8rem; font-weight: 600;
+    text-decoration: none; border: none; cursor: pointer; transition: all 0.15s ease;
+}
+.ee-btn-white { background: #fff; color: #d97706; }
+.ee-btn-white:hover { background: #fffbeb; }
+.ee-btn-glass { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
+.ee-btn-glass:hover { background: rgba(255,255,255,0.25); color: #fff; }
+
+/* ── Panels ────────────────────────────────── */
+.ee-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+@media (max-width: 768px) { .ee-grid { grid-template-columns: 1fr; } }
+.ee-panel {
+    padding: 1.25rem; border-radius: var(--radius-lg);
+    background: var(--surface-card); border: 1px solid var(--border-color);
+}
+.ee-panel-title {
+    font-size: 0.85rem; font-weight: 700; margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 0.4rem;
+}
+.ee-form-group { margin-bottom: 0.75rem; }
+.ee-label { display: block; font-size: 0.78rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--text-muted); }
+.ee-input, .ee-select, .ee-textarea {
+    width: 100%; padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color); border-radius: 8px;
+    background: var(--surface-bg); color: var(--text-main);
+    font-family: inherit; font-size: 0.85rem;
+}
+.ee-input:focus, .ee-select:focus, .ee-textarea:focus {
+    outline: none; border-color: #d97706; box-shadow: 0 0 0 3px rgba(217,119,6,0.1);
+}
+.ee-textarea { min-height: 80px; resize: vertical; }
+.ee-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.ee-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; }
+
+/* ── Subjects Table ────────────────────────── */
+.ee-subj-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-bottom: 0.75rem; }
+.ee-subj-table th {
+    text-align: left; font-size: 0.7rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.03em;
+    color: var(--text-muted); padding: 0.4rem 0.5rem;
+    border-bottom: 2px solid var(--border-color);
+}
+.ee-subj-table td { padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--border-color); }
+.ee-subj-table input {
+    width: 100%; padding: 0.3rem 0.4rem; border: 1px solid var(--border-color);
+    border-radius: 6px; background: var(--surface-bg); color: var(--text-main);
+    font-family: inherit; font-size: 0.82rem;
+}
+.ee-subj-table input:focus { outline: none; border-color: #d97706; }
+.ee-subj-table .num-col { width: 60px; text-align: center; }
+.ee-add-subj-btn {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.35rem 0.65rem; border-radius: 6px;
+    font-size: 0.78rem; font-weight: 600;
+    border: 1px dashed var(--border-color); background: transparent;
+    color: var(--text-muted); cursor: pointer; transition: all 0.15s ease;
+}
+.ee-add-subj-btn:hover { border-color: #d97706; color: #d97706; }
+.ee-rm-subj {
+    width: 24px; height: 24px; border-radius: 4px;
+    border: none; background: transparent; color: var(--text-muted);
+    cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; justify-content: center;
+}
+.ee-rm-subj:hover { color: #ef4444; }
+
+/* ── AI Box ────────────────────────────────── */
+.ee-ai-box {
+    background: rgba(124,58,237,0.05); border: 1px solid rgba(124,58,237,0.15);
+    border-radius: 10px; padding: 1rem; margin-bottom: 1rem;
+}
+[data-bs-theme="dark"] .ee-ai-box { background: rgba(124,58,237,0.08); border-color: rgba(124,58,237,0.2); }
+.ee-ai-title { font-size: 0.82rem; font-weight: 700; color: #7c3aed; margin-bottom: 0.35rem; }
+.ee-ai-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.45rem 0.85rem; border-radius: 8px;
+    font-size: 0.78rem; font-weight: 600;
+    background: #7c3aed; color: #fff; border: none; cursor: pointer;
+    transition: all 0.15s ease; margin-top: 0.5rem;
+}
+.ee-ai-btn:hover { background: #6d28d9; }
+.ee-ai-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Save Bar ──────────────────────────────── */
+.ee-save-bar { display: flex; gap: 0.75rem; margin-top: 1.25rem; flex-wrap: wrap; }
+.ee-save-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.6rem 1.25rem; border-radius: 8px;
+    font-size: 0.85rem; font-weight: 700;
+    background: #d97706; color: #fff; border: none; cursor: pointer;
+}
+.ee-save-btn:hover { background: #b45309; }
+.ee-outline-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.6rem 1.25rem; border-radius: 8px;
+    font-size: 0.85rem; font-weight: 600;
+    background: var(--surface-bg); border: 1px solid var(--border-color);
+    color: var(--text-main); text-decoration: none; cursor: pointer;
+}
+.ee-outline-btn:hover { border-color: #d97706; color: #d97706; }
+{% endblock %}
+
+{% block content %}
+<form method="post" id="entryForm">
+{% csrf_token %}
+<input type="hidden" name="subjects_json" id="subjectsJson">
+
+<!-- Hero -->
+<div class="ee-hero">
+    <div>
+        <div class="ee-hero-title"><i class="bi bi-person-badge me-1"></i>{{ entry.student_name }}</div>
+        <div class="ee-hero-sub">{{ card_set.class_name }} · {{ card_set.get_term_display }} · {{ card_set.academic_year }}</div>
+    </div>
+    <div class="ee-hero-actions">
+        <a href="{% url 'individual:report_card_print' pk=card_set.pk entry_pk=entry.pk %}" class="ee-btn ee-btn-white" target="_blank">
+            <i class="bi bi-printer"></i> Print
+        </a>
+        <a href="{% url 'individual:report_card_edit' pk=card_set.pk %}" class="ee-btn ee-btn-glass">
+            <i class="bi bi-arrow-left"></i> Back to Set
+        </a>
+    </div>
+</div>
+
+<div class="ee-grid">
+    <!-- Left Column: Student Info + Subjects -->
+    <div>
+        <!-- Student Info -->
+        <div class="ee-panel" style="margin-bottom:1.25rem;">
+            <div class="ee-panel-title"><i class="bi bi-person"></i> Student Information</div>
+            <div class="ee-form-group">
+                <label class="ee-label">Full Name</label>
+                <input type="text" name="student_name" class="ee-input" value="{{ entry.student_name }}" required>
+            </div>
+            <div class="ee-row">
+                <div class="ee-form-group">
+                    <label class="ee-label">Position in Class</label>
+                    <input type="number" name="position" class="ee-input" value="{{ entry.position|default:'' }}" min="1" placeholder="e.g. 3">
+                </div>
+                <div class="ee-form-group">
+                    <label class="ee-label">Total Students</label>
+                    <input type="number" name="total_students" class="ee-input" value="{{ entry.total_students|default:'' }}" min="1" placeholder="e.g. 42">
+                </div>
+            </div>
+            <div class="ee-row">
+                <div class="ee-form-group">
+                    <label class="ee-label">Overall Score (%)</label>
+                    <input type="number" name="overall_score" class="ee-input" value="{{ entry.overall_score|default:'' }}" step="0.01" min="0" max="100">
+                </div>
+                <div class="ee-form-group">
+                    <label class="ee-label">Overall Grade</label>
+                    <input type="text" name="overall_grade" class="ee-input" value="{{ entry.overall_grade }}" placeholder="e.g. A, B+">
+                </div>
+            </div>
+            <div class="ee-form-group">
+                <label class="ee-label">Attendance (e.g. 45/50 days)</label>
+                <input type="text" name="attendance" class="ee-input" value="{{ entry.attendance }}" placeholder="e.g. 45/50">
+            </div>
+        </div>
+
+        <!-- Subjects -->
+        <div class="ee-panel">
+            <div class="ee-panel-title"><i class="bi bi-book"></i> Subject Scores</div>
+            <table class="ee-subj-table" id="subjTable">
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th class="num-col">Class</th>
+                        <th class="num-col">Exam</th>
+                        <th class="num-col">Total</th>
+                        <th class="num-col">Grade</th>
+                        <th style="width:30px"></th>
+                    </tr>
+                </thead>
+                <tbody id="subjBody">
+                    {% for s in entry.subjects %}
+                    <tr>
+                        <td><input type="text" value="{{ s.subject }}" data-field="subject" placeholder="Subject name"></td>
+                        <td><input type="number" value="{{ s.class_score }}" data-field="class_score" class="num-col" min="0" max="100"></td>
+                        <td><input type="number" value="{{ s.exam_score }}" data-field="exam_score" class="num-col" min="0" max="100"></td>
+                        <td><input type="number" value="{{ s.total }}" data-field="total" class="num-col" min="0" max="100"></td>
+                        <td><input type="text" value="{{ s.grade }}" data-field="grade" class="num-col"></td>
+                        <td><button type="button" class="ee-rm-subj" onclick="this.closest('tr').remove()"><i class="bi bi-x"></i></button></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <button type="button" class="ee-add-subj-btn" onclick="addSubjectRow()">
+                <i class="bi bi-plus"></i> Add Subject
+            </button>
+        </div>
+    </div>
+
+    <!-- Right Column: Ratings + Comments -->
+    <div>
+        <!-- Conduct & Attitude -->
+        <div class="ee-panel" style="margin-bottom:1.25rem;">
+            <div class="ee-panel-title"><i class="bi bi-award"></i> Conduct & Attitude</div>
+            <div class="ee-row-3">
+                <div class="ee-form-group">
+                    <label class="ee-label">Conduct</label>
+                    <select name="conduct" class="ee-select">
+                        {% for val, label in rating_choices %}
+                        <option value="{{ val }}" {% if entry.conduct == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="ee-form-group">
+                    <label class="ee-label">Attitude</label>
+                    <select name="attitude" class="ee-select">
+                        {% for val, label in rating_choices %}
+                        <option value="{{ val }}" {% if entry.attitude == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="ee-form-group">
+                    <label class="ee-label">Interest</label>
+                    <select name="interest" class="ee-select">
+                        {% for val, label in rating_choices %}
+                        <option value="{{ val }}" {% if entry.interest == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="ee-row">
+                <div class="ee-form-group">
+                    <label class="ee-label">Promoted?</label>
+                    <select name="promoted" class="ee-select">
+                        <option value="" {% if entry.promoted is None %}selected{% endif %}>—</option>
+                        <option value="yes" {% if entry.promoted == True %}selected{% endif %}>Yes</option>
+                        <option value="no" {% if entry.promoted == False %}selected{% endif %}>No</option>
+                    </select>
+                </div>
+                <div class="ee-form-group">
+                    <label class="ee-label">Promoted To</label>
+                    <input type="text" name="next_class" class="ee-input" value="{{ entry.next_class }}" placeholder="e.g. Basic 9">
+                </div>
+            </div>
+        </div>
+
+        <!-- Comments -->
+        <div class="ee-panel">
+            <div class="ee-panel-title"><i class="bi bi-chat-quote"></i> Comments</div>
+
+            <!-- AI Box -->
+            <div class="ee-ai-box">
+                <div class="ee-ai-title"><i class="bi bi-stars me-1"></i>AI Comment Generator</div>
+                <p style="font-size:0.78rem; color:var(--text-muted); margin:0;">
+                    Generates a personalised class teacher comment based on the student's data above.
+                </p>
+                <button type="button" class="ee-ai-btn" id="aiGenBtn" onclick="generateComment()">
+                    <i class="bi bi-stars"></i> Generate Comment
+                </button>
+            </div>
+
+            <div class="ee-form-group">
+                <label class="ee-label">Class Teacher's Comment</label>
+                <textarea name="class_teacher_comment" class="ee-textarea" id="teacherComment"
+                          style="min-height:100px;" placeholder="Write or generate a personalised comment...">{{ entry.class_teacher_comment }}</textarea>
+            </div>
+            <div class="ee-form-group">
+                <label class="ee-label">Head Teacher's Comment</label>
+                <textarea name="head_teacher_comment" class="ee-textarea"
+                          placeholder="Optional head teacher comment...">{{ entry.head_teacher_comment }}</textarea>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Save Bar -->
+<div class="ee-save-bar">
+    <button type="submit" class="ee-save-btn">
+        <i class="bi bi-check-circle"></i> Save Changes
+    </button>
+    <a href="{% url 'individual:report_card_print' pk=card_set.pk entry_pk=entry.pk %}" class="ee-outline-btn" target="_blank">
+        <i class="bi bi-printer"></i> Print Preview
+    </a>
+    <a href="{% url 'individual:report_card_edit' pk=card_set.pk %}" class="ee-outline-btn" style="margin-left:auto;">Cancel</a>
+</div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const API = "{% url 'individual:report_card_api' %}";
+const ENTRY_ID = {{ entry.pk }};
+const CSRF = '{{ csrf_token }}';
+
+/* ── Subjects JSON sync ──────────────────────── */
+function collectSubjects() {
+    const rows = document.querySelectorAll('#subjBody tr');
+    const subjects = [];
+    rows.forEach(tr => {
+        const get = f => (tr.querySelector(`[data-field="${f}"]`)?.value || '').trim();
+        const subj = get('subject');
+        if (!subj) return;
+        subjects.push({
+            subject: subj,
+            class_score: parseInt(get('class_score')) || 0,
+            exam_score: parseInt(get('exam_score')) || 0,
+            total: parseInt(get('total')) || 0,
+            grade: get('grade'),
+        });
+    });
+    return subjects;
+}
+
+document.getElementById('entryForm').addEventListener('submit', function() {
+    document.getElementById('subjectsJson').value = JSON.stringify(collectSubjects());
+});
+
+/* ── Auto-calculate total ────────────────────── */
+document.getElementById('subjBody').addEventListener('input', function(e) {
+    if (e.target.dataset.field === 'class_score' || e.target.dataset.field === 'exam_score') {
+        const tr = e.target.closest('tr');
+        const cs = parseInt(tr.querySelector('[data-field="class_score"]').value) || 0;
+        const es = parseInt(tr.querySelector('[data-field="exam_score"]').value) || 0;
+        tr.querySelector('[data-field="total"]').value = cs + es;
+    }
+});
+
+function addSubjectRow() {
+    const tbody = document.getElementById('subjBody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td><input type="text" data-field="subject" placeholder="Subject name"></td>
+        <td><input type="number" data-field="class_score" class="num-col" min="0" max="100"></td>
+        <td><input type="number" data-field="exam_score" class="num-col" min="0" max="100"></td>
+        <td><input type="number" data-field="total" class="num-col" min="0" max="100"></td>
+        <td><input type="text" data-field="grade" class="num-col"></td>
+        <td><button type="button" class="ee-rm-subj" onclick="this.closest('tr').remove()"><i class="bi bi-x"></i></button></td>
+    `;
+    tbody.appendChild(tr);
+    tr.querySelector('[data-field="subject"]').focus();
+}
+
+/* ── AI Comment ──────────────────────────────── */
+function generateComment() {
+    const btn = document.getElementById('aiGenBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Generating…';
+
+    fetch(API, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+        body: JSON.stringify({action: 'generate_comment', entry_id: ENTRY_ID}),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) {
+            document.getElementById('teacherComment').value = data.comment;
+        } else {
+            alert(data.error || 'AI generation failed');
+        }
+    })
+    .catch(() => alert('Network error'))
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-stars"></i> Generate Comment';
+    });
+}
+</script>
+{% endblock %}

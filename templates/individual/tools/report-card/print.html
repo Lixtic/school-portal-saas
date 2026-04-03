@@ -1,0 +1,222 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% if print_all %}{{ card_set.title }} — Print All{% else %}{{ entry.student_name }} — Report Card{% endif %}</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+@page {
+    size: A4;
+    margin: 1.5cm;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 11pt;
+    color: #1a1a1a;
+    line-height: 1.5;
+    background: #f5f5f5;
+}
+.report-card {
+    width: 210mm;
+    min-height: 280mm;
+    margin: 1cm auto;
+    padding: 1.5cm;
+    background: #fff;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    page-break-after: always;
+}
+.report-card:last-child { page-break-after: auto; }
+
+/* ── Header ────────────────────────────────── */
+.rc-header {
+    text-align: center;
+    border-bottom: 3px double #1a1a1a;
+    padding-bottom: 0.6cm;
+    margin-bottom: 0.5cm;
+}
+.rc-school-name {
+    font-size: 16pt;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.rc-school-sub {
+    font-size: 9pt;
+    color: #444;
+    margin-top: 2pt;
+}
+.rc-title-bar {
+    margin-top: 0.3cm;
+    font-size: 13pt;
+    font-weight: 700;
+    background: #1a1a1a;
+    color: #fff;
+    padding: 0.15cm 0;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+/* ── Student Info ──────────────────────────── */
+.rc-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3pt 1cm;
+    padding: 0.35cm 0;
+    border-bottom: 1px solid #ccc;
+    margin-bottom: 0.4cm;
+    font-size: 10pt;
+}
+.rc-info-item { display: flex; gap: 0.3cm; }
+.rc-info-label { font-weight: 700; white-space: nowrap; min-width: 4cm; }
+.rc-info-value { flex: 1; border-bottom: 1px dotted #999; }
+
+/* ── Subjects Table ────────────────────────── */
+.rc-subj-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9.5pt;
+    margin-bottom: 0.4cm;
+}
+.rc-subj-table th {
+    background: #f0f0f0;
+    font-weight: 700;
+    padding: 4pt 6pt;
+    border: 1pt solid #999;
+    text-transform: uppercase;
+    font-size: 8pt;
+    letter-spacing: 0.03em;
+}
+.rc-subj-table td {
+    padding: 3pt 6pt;
+    border: 1pt solid #bbb;
+    text-align: center;
+}
+.rc-subj-table td:first-child { text-align: left; font-weight: 600; }
+.rc-subj-table .total-row td {
+    font-weight: 700;
+    background: #f9f9f9;
+    border-top: 2pt solid #666;
+}
+
+/* ── Ratings ───────────────────────────────── */
+.rc-ratings {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.3cm;
+    padding: 0.3cm 0;
+    border-bottom: 1px solid #ccc;
+    margin-bottom: 0.4cm;
+    font-size: 10pt;
+}
+.rc-rating-item { }
+.rc-rating-label { font-size: 8pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: #555; }
+.rc-rating-value { font-weight: 600; margin-top: 1pt; }
+
+/* ── Comments ──────────────────────────────── */
+.rc-comment-section { margin-bottom: 0.4cm; }
+.rc-comment-label {
+    font-size: 9pt; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.03em;
+    color: #555; margin-bottom: 3pt;
+}
+.rc-comment-text {
+    padding: 0.25cm;
+    border: 1px solid #ccc;
+    border-radius: 3pt;
+    min-height: 1.2cm;
+    font-size: 10pt;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+/* ── Promotion ─────────────────────────────── */
+.rc-promotion {
+    display: flex;
+    gap: 1cm;
+    align-items: center;
+    padding: 0.25cm 0;
+    font-size: 10pt;
+    font-weight: 600;
+    border-bottom: 1px solid #ccc;
+    margin-bottom: 0.35cm;
+}
+
+/* ── Signature ─────────────────────────────── */
+.rc-signatures {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1.5cm;
+    margin-top: 0.8cm;
+    font-size: 9pt;
+}
+.rc-sig-line {
+    border-top: 1px solid #999;
+    padding-top: 3pt;
+    text-align: center;
+    font-weight: 600;
+}
+
+/* ── Bottom Note ───────────────────────────── */
+.rc-footer {
+    text-align: center;
+    font-size: 8pt;
+    color: #888;
+    margin-top: 0.5cm;
+    padding-top: 0.25cm;
+    border-top: 1px solid #ddd;
+}
+
+/* ── Print Controls ────────────────────────── */
+.no-print {
+    position: fixed; top: 0; left: 0; right: 0;
+    background: #1a1a1a; color: #fff;
+    padding: 0.75rem 1.5rem;
+    display: flex; align-items: center; gap: 0.75rem;
+    z-index: 100; font-family: 'Manrope', sans-serif;
+}
+.no-print button {
+    padding: 0.4rem 1rem; border-radius: 6px;
+    font-size: 0.82rem; font-weight: 600;
+    border: none; cursor: pointer; display: inline-flex;
+    align-items: center; gap: 0.3rem;
+}
+.no-print .print-btn { background: #d97706; color: #fff; }
+.no-print .print-btn:hover { background: #b45309; }
+.no-print .back-btn { background: rgba(255,255,255,0.15); color: #fff; }
+.no-print .back-btn:hover { background: rgba(255,255,255,0.25); }
+.no-print .title { font-weight: 700; font-size: 0.9rem; flex: 1; }
+
+@media print {
+    .no-print { display: none !important; }
+    body { background: #fff; }
+    .report-card { box-shadow: none; margin: 0; width: 100%; padding: 0; }
+}
+</style>
+</head>
+<body>
+
+<!-- Print Toolbar -->
+<div class="no-print" style="margin-bottom: 3.5rem;">
+    <span class="title">
+        <i class="bi bi-file-earmark-bar-graph"></i>
+        {% if print_all %}{{ card_set.title }}{% else %}{{ entry.student_name }} — Report Card{% endif %}
+    </span>
+    <button class="print-btn" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
+    <button class="back-btn" onclick="history.back()"><i class="bi bi-arrow-left"></i> Back</button>
+</div>
+
+{% if print_all %}
+    {% for entry in entries %}
+    {% include "individual/tools/report-card/_card_page.html" %}
+    {% empty %}
+    <div style="text-align:center; padding:3rem; color:#888;">No student entries in this set.</div>
+    {% endfor %}
+{% else %}
+    {% include "individual/tools/report-card/_card_page.html" %}
+{% endif %}
+
+</body>
+</html>

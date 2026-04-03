@@ -24,6 +24,8 @@ from individual_users.models import (
     LicensureQuestion,
     LicensureQuizAttempt,
     MarkingSession,
+    ReportCardEntry,
+    ReportCardSet,
     StudentMark,
     ToolExamPaper,
     ToolLessonPlan,
@@ -160,8 +162,7 @@ TOOLS_CATALOG = [
             'Editable before export',
         ],
         'category': 'assessment',
-        'tools': [],
-        'coming_soon': True,
+        'tools': ['report_card'],
     },
     {
         'slug': 'attendance-tracker',
@@ -352,6 +353,7 @@ def tools_hub(request):
     tutor_count = AITutorConversation.objects.filter(profile=profile).count()
     letter_count = GESLetter.objects.filter(profile=profile).count()
     marker_count = MarkingSession.objects.filter(profile=profile).count()
+    rc_count = ReportCardSet.objects.filter(profile=profile).count()
 
     ctx = {
         'tools': tools,
@@ -365,6 +367,7 @@ def tools_hub(request):
         'tutor_count': tutor_count,
         'letter_count': letter_count,
         'marker_count': marker_count,
+        'rc_count': rc_count,
     }
     return render(request, 'individual/tools/hub.html', ctx)
 
@@ -3324,3 +3327,351 @@ def marker_api(request):
             return JsonResponse({'error': 'Failed to process image. Please try again.'}, status=500)
 
     return JsonResponse({'error': f'Unknown action: {action}'}, status=400)
+
+
+# ── Report Card Writer ───────────────────────────────────────────────────────
+
+@_tool_required
+@_require_tool('report-card')
+def report_card_dashboard(request):
+    """List all report card sets with stats."""
+    _ensure_public_schema()
+    profile = request.user.individual_profile
+    sets = ReportCardSet.objects.filter(profile=profile).annotate(
+        entry_count=Count('entries'),
+        comment_count=Count('entries', filter=Q(entries__class_teacher_comment__gt='')),
+    )
+
+    total = sets.count()
+    total_entries = ReportCardEntry.objects.filter(card_set__profile=profile).count()
+    ai_count = ReportCardEntry.objects.filter(card_set__profile=profile, ai_generated=True).count()
+
+    return render(request, 'individual/tools/report-card/dashboard.html', {
+        'sets': sets,
+        'total_sets': total,
+        'total_entries': total_entries,
+        'ai_count': ai_count,
+    })
+
+
+@_tool_required
+@_require_tool('report-card')
+def report_card_create(request):
+    """Create a new report card set."""
+    _ensure_public_schema()
+    profile = request.user.individual_profile
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip() or 'Untitled Report Cards'
+        card_set = ReportCardSet.objects.create(
+            profile=profile,
+            title=title,
+            class_name=request.POST.get('class_name', '').strip(),
+            term=request.POST.get('term', 'first'),
+            academic_year=request.POST.get('academic_year', '2025/2026').strip(),
+            school_name=request.POST.get('school_name', '').strip(),
+            next_term_begins=request.POST.get('next_term_begins') or None,
+        )
+        messages.success(request, f'Report card set "{card_set.title}" created.')
+        return redirect('individual:report_card_edit', pk=card_set.pk)
+
+    return render(request, 'individual/tools/report-card/editor.html', {
+        'card_set': None,
+        'mode': 'create',
+        'terms': ReportCardSet.TERM_CHOICES,
+    })
+
+
+@_tool_required
+@_require_tool('report-card')
+def report_card_edit(request, pk):
+    """Edit a report card set and manage entries."""
+    _ensure_public_schema()
+    profile = request.user.individual_profile
+    card_set = get_object_or_404(ReportCardSet, pk=pk, profile=profile)
+
+    if request.method == 'POST':
+        card_set.title = request.POST.get('title', card_set.title).strip() or card_set.title
+        card_set.class_name = request.POST.get('class_name', card_set.class_name).strip()
+        card_set.term = request.POST.get('term', card_set.term)
+        card_set.academic_year = request.POST.get('academic_year', card_set.academic_year).strip()
+        card_set.school_name = request.POST.get('school_name', card_set.school_name).strip()
+        card_set.next_term_begins = request.POST.get('next_term_begins') or None
+        card_set.save()
+        messages.success(request, 'Report card set updated.')
+        return redirect('individual:report_card_edit', pk=card_set.pk)
+
+    entries = card_set.entries.all()
+    return render(request, 'individual/tools/report-card/editor.html', {
+        'card_set': card_set,
+        'entries': entries,
+        'mode': 'edit',
+        'terms': ReportCardSet.TERM_CHOICES,
+        'rating_choices': ReportCardEntry.RATING_CHOICES,
+    })
+
+
+@_tool_required
+@_require_tool('report-card')
+@require_POST
+def report_card_delete(request, pk):
+    """Delete a report card set and all its entries."""
+    _ensure_public_schema()
+    profile = request.user.individual_profile
+    card_set = get_object_or_404(ReportCardSet, pk=pk, profile=profile)
+    title = card_set.title
+    card_set.delete()
+    messages.success(request, f'Report card set "{title}" deleted.')
+    return redirect('individual:report_card_dashboard')
+
+
+@_tool_required
+@_require_tool('report-card')
+def report_card_entry_edit(request, pk, entry_pk):
+    """Edit an individual student report card entry."""
+    _ensure_public_schema()
+    profile = request.user.individual_profile
+    card_set = get_object_or_404(ReportCardSet, pk=pk, profile=profile)
+    entry = get_object_or_404(ReportCardEntry, pk=entry_pk, card_set=card_set)
+
+    if request.method == 'POST':
+        entry.student_name = request.POST.get('student_name', entry.student_name).strip()
+        entry.conduct = request.POST.get('conduct', entry.conduct)
+        entry.attitude = request.POST.get('attitude', entry.attitude)
+        entry.interest = request.POST.get('interest', entry.interest)
+        entry.attendance = request.POST.get('attendance', entry.attendance).strip()
+        entry.class_teacher_comment = request.POST.get('class_teacher_comment', entry.class_teacher_comment).strip()
+        entry.head_teacher_comment = request.POST.get('head_teacher_comment', entry.head_teacher_comment).strip()
+        entry.position = request.POST.get('position') or None
+        entry.total_students = request.POST.get('total_students') or None
+        entry.overall_score = request.POST.get('overall_score') or None
+        entry.overall_grade = request.POST.get('overall_grade', entry.overall_grade).strip()
+
+        promoted = request.POST.get('promoted', '')
+        if promoted == 'yes':
+            entry.promoted = True
+        elif promoted == 'no':
+            entry.promoted = False
+        else:
+            entry.promoted = None
+        entry.next_class = request.POST.get('next_class', entry.next_class).strip()
+
+        # Parse subjects JSON from hidden field
+        subjects_json = request.POST.get('subjects_json', '')
+        if subjects_json:
+            try:
+                entry.subjects = json.loads(subjects_json)
+            except (json.JSONDecodeError, ValueError):
+                pass
+
+        entry.save()
+        messages.success(request, f'Report card for {entry.student_name} updated.')
+        return redirect('individual:report_card_edit', pk=card_set.pk)
+
+    return render(request, 'individual/tools/report-card/entry_edit.html', {
+        'card_set': card_set,
+        'entry': entry,
+        'rating_choices': ReportCardEntry.RATING_CHOICES,
+    })
+
+
+@_tool_required
+@_require_tool('report-card')
+def report_card_print(request, pk, entry_pk):
+    """Print-ready view for a single student report card."""
+    _ensure_public_schema()
+    profile = request.user.individual_profile
+    card_set = get_object_or_404(ReportCardSet, pk=pk, profile=profile)
+    entry = get_object_or_404(ReportCardEntry, pk=entry_pk, card_set=card_set)
+    return render(request, 'individual/tools/report-card/print.html', {
+        'card_set': card_set,
+        'entry': entry,
+    })
+
+
+@_tool_required
+@_require_tool('report-card')
+def report_card_print_all(request, pk):
+    """Print-ready view for all students in a set (page-break between each)."""
+    _ensure_public_schema()
+    profile = request.user.individual_profile
+    card_set = get_object_or_404(ReportCardSet, pk=pk, profile=profile)
+    entries = card_set.entries.all()
+    return render(request, 'individual/tools/report-card/print.html', {
+        'card_set': card_set,
+        'entries': entries,
+        'print_all': True,
+    })
+
+
+@_tool_required
+@_require_tool('report-card')
+def report_card_api(request):
+    """AJAX API for report card operations: add/delete entries, AI comments."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    _ensure_public_schema()
+    profile = request.user.individual_profile
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    action = data.get('action', '')
+
+    # ── Add Entry ────────────────────────────────────────────────────────
+    if action == 'add_entry':
+        set_id = data.get('set_id')
+        student_name = data.get('student_name', '').strip()
+        if not set_id or not student_name:
+            return JsonResponse({'error': 'Set ID and student name required.'}, status=400)
+
+        card_set = get_object_or_404(ReportCardSet, pk=set_id, profile=profile)
+        entry = ReportCardEntry.objects.create(
+            card_set=card_set,
+            student_name=student_name,
+        )
+        return JsonResponse({
+            'ok': True,
+            'entry': {
+                'id': entry.pk,
+                'student_name': entry.student_name,
+            },
+        })
+
+    # ── Bulk Add Entries ─────────────────────────────────────────────────
+    if action == 'bulk_add':
+        set_id = data.get('set_id')
+        names = data.get('names', [])
+        if not set_id:
+            return JsonResponse({'error': 'Set ID required.'}, status=400)
+
+        card_set = get_object_or_404(ReportCardSet, pk=set_id, profile=profile)
+        created = []
+        for name in names:
+            name = str(name).strip()
+            if not name:
+                continue
+            entry = ReportCardEntry.objects.create(
+                card_set=card_set,
+                student_name=name,
+            )
+            created.append({'id': entry.pk, 'student_name': entry.student_name})
+
+        return JsonResponse({'ok': True, 'count': len(created), 'entries': created})
+
+    # ── Delete Entry ─────────────────────────────────────────────────────
+    if action == 'delete_entry':
+        entry_id = data.get('entry_id')
+        if not entry_id:
+            return JsonResponse({'error': 'Entry ID required.'}, status=400)
+
+        entry = get_object_or_404(ReportCardEntry, pk=entry_id, card_set__profile=profile)
+        entry.delete()
+        return JsonResponse({'ok': True})
+
+    # ── AI Generate Comment (single student) ─────────────────────────────
+    if action == 'generate_comment':
+        entry_id = data.get('entry_id')
+        if not entry_id:
+            return JsonResponse({'error': 'Entry ID required.'}, status=400)
+
+        entry = get_object_or_404(ReportCardEntry, pk=entry_id, card_set__profile=profile)
+        card_set = entry.card_set
+
+        comment = _generate_report_comment(entry, card_set)
+        if comment is None:
+            return JsonResponse({'error': 'AI generation failed. Please try again.'}, status=500)
+
+        entry.class_teacher_comment = comment
+        entry.ai_generated = True
+        entry.save()
+        return JsonResponse({'ok': True, 'comment': comment})
+
+    # ── AI Bulk Generate Comments ────────────────────────────────────────
+    if action == 'bulk_generate':
+        set_id = data.get('set_id')
+        overwrite = data.get('overwrite', False)
+        if not set_id:
+            return JsonResponse({'error': 'Set ID required.'}, status=400)
+
+        card_set = get_object_or_404(ReportCardSet, pk=set_id, profile=profile)
+        entries = card_set.entries.all()
+        if not overwrite:
+            entries = entries.filter(class_teacher_comment='')
+
+        generated = 0
+        for entry in entries:
+            comment = _generate_report_comment(entry, card_set)
+            if comment:
+                entry.class_teacher_comment = comment
+                entry.ai_generated = True
+                entry.save()
+                generated += 1
+
+        return JsonResponse({
+            'ok': True,
+            'generated': generated,
+            'message': f'Generated comments for {generated} student(s).',
+        })
+
+    return JsonResponse({'error': f'Unknown action: {action}'}, status=400)
+
+
+def _generate_report_comment(entry, card_set):
+    """Generate a personalised report card comment using AI."""
+    subjects_text = ''
+    if entry.subjects:
+        lines = []
+        for s in entry.subjects:
+            lines.append(f"  {s.get('subject', '?')}: {s.get('total', '?')}/100 ({s.get('grade', '?')})")
+        subjects_text = '\n'.join(lines)
+
+    conduct_label = dict(ReportCardEntry.RATING_CHOICES).get(entry.conduct, entry.conduct)
+    attitude_label = dict(ReportCardEntry.RATING_CHOICES).get(entry.attitude, entry.attitude)
+    interest_label = dict(ReportCardEntry.RATING_CHOICES).get(entry.interest, entry.interest)
+
+    prompt = f"""You are a class teacher writing end-of-term report card comments for a school in Ghana.
+Write a brief, personalised comment (2-3 sentences) for this student.
+
+Student: {entry.student_name}
+Class: {card_set.class_name}
+Term: {dict(ReportCardSet.TERM_CHOICES).get(card_set.term, card_set.term)}
+Academic Year: {card_set.academic_year}
+{f'Overall Position: {entry.position} out of {entry.total_students}' if entry.position else ''}
+{f'Overall Grade: {entry.overall_grade}' if entry.overall_grade else ''}
+Conduct: {conduct_label}
+Attitude to Work: {attitude_label}
+Interest: {interest_label}
+{f'Attendance: {entry.attendance}' if entry.attendance else ''}
+{f'Subjects:\\n{subjects_text}' if subjects_text else ''}
+
+Guidelines:
+- Write in formal British English (Ghana standard)
+- Be encouraging but honest about areas for improvement
+- Reference specific subjects if data is provided
+- Mention conduct/attitude where relevant
+- Keep it warm and professional — 2-3 sentences max
+- Do NOT include the student name at the start
+- Do NOT add quotes or formatting
+
+Return ONLY the comment text."""
+
+    try:
+        import openai
+        client = openai.OpenAI()
+        response = client.chat.completions.create(
+            model='gpt-4o-mini',
+            messages=[
+                {'role': 'system', 'content': 'You are a Ghanaian class teacher writing report card comments.'},
+                {'role': 'user', 'content': prompt},
+            ],
+            temperature=0.8,
+            max_tokens=200,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        logger.error('Report card AI comment failed: %s', e)
+        return None

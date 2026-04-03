@@ -1,0 +1,445 @@
+{% extends 'individual/base.html' %}
+{% load humanize %}
+{% block title %}{% if card_set %}{{ card_set.title }}{% else %}New Report Card Set{% endif %} — Aura{% endblock %}
+{% block page_title %}{% if card_set %}{{ card_set.title }}{% else %}New Report Card Set{% endif %}{% endblock %}
+
+{% block extra_css %}
+/* ── Editor Hero ───────────────────────────── */
+.re-hero {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 60%, #92400e 100%);
+    border-radius: var(--radius-lg); color: #fff;
+    padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 0.75rem;
+    position: relative; overflow: hidden;
+}
+.re-hero::after {
+    content: ''; position: absolute; top: -30px; right: -30px;
+    width: 120px; height: 120px; border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+}
+.re-hero-title { font-size: 1.15rem; font-weight: 800; }
+.re-hero-sub { font-size: 0.82rem; opacity: 0.85; margin-top: 0.15rem; }
+.re-hero-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; position: relative; z-index: 1; }
+.re-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.5rem 0.85rem; border-radius: 8px;
+    font-size: 0.8rem; font-weight: 600;
+    text-decoration: none; border: none; cursor: pointer;
+    transition: all 0.15s ease;
+}
+.re-btn-white { background: #fff; color: #d97706; }
+.re-btn-white:hover { background: #fffbeb; color: #b45309; }
+.re-btn-glass { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
+.re-btn-glass:hover { background: rgba(255,255,255,0.25); color: #fff; }
+
+/* ── Layout ────────────────────────────────── */
+.re-layout { display: grid; grid-template-columns: 320px 1fr; gap: 1.25rem; }
+@media (max-width: 900px) { .re-layout { grid-template-columns: 1fr; } }
+.re-panel {
+    padding: 1.25rem; border-radius: var(--radius-lg);
+    background: var(--surface-card); border: 1px solid var(--border-color);
+}
+.re-panel-title {
+    font-size: 0.85rem; font-weight: 700; margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 0.4rem;
+    color: var(--text-main);
+}
+.re-form-group { margin-bottom: 0.85rem; }
+.re-label { display: block; font-size: 0.78rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--text-muted); }
+.re-input, .re-select {
+    width: 100%; padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color); border-radius: 8px;
+    background: var(--surface-bg); color: var(--text-main);
+    font-family: inherit; font-size: 0.85rem;
+}
+.re-input:focus, .re-select:focus { outline: none; border-color: #d97706; box-shadow: 0 0 0 3px rgba(217,119,6,0.1); }
+.re-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+/* ── Save Button ───────────────────────────── */
+.re-save-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.6rem 1.25rem; border-radius: 8px;
+    font-size: 0.85rem; font-weight: 700;
+    background: #d97706; color: #fff; border: none; cursor: pointer;
+    transition: all 0.15s ease;
+}
+.re-save-btn:hover { background: #b45309; }
+
+/* ── Students Panel ────────────────────────── */
+.re-student-table {
+    width: 100%; border-collapse: collapse; font-size: 0.84rem;
+}
+.re-student-table th {
+    text-align: left; font-size: 0.72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--text-muted); padding: 0.5rem 0.65rem;
+    border-bottom: 2px solid var(--border-color);
+}
+.re-student-table td {
+    padding: 0.55rem 0.65rem;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+}
+.re-student-table tr:hover { background: rgba(217,119,6,0.04); }
+.re-name-cell { font-weight: 600; }
+.re-comment-preview {
+    font-size: 0.78rem; color: var(--text-muted);
+    max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.re-action-btns { display: flex; gap: 0.25rem; }
+.re-icon-btn {
+    width: 30px; height: 30px; border-radius: 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 0.82rem; cursor: pointer;
+    border: 1px solid var(--border-color); background: var(--surface-bg);
+    color: var(--text-muted); transition: all 0.15s ease;
+    text-decoration: none;
+}
+.re-icon-btn:hover { border-color: #d97706; color: #d97706; background: rgba(217,119,6,0.05); }
+.re-icon-btn.danger:hover { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,0.05); }
+.re-icon-btn.ai-btn { border-color: rgba(124,58,237,0.3); color: #7c3aed; }
+.re-icon-btn.ai-btn:hover { background: rgba(124,58,237,0.08); }
+.re-icon-btn.ai-btn.generating { opacity: 0.5; pointer-events: none; }
+
+/* ── Add Student Row ───────────────────────── */
+.re-add-row { display: flex; gap: 0.5rem; margin-top: 1rem; }
+.re-add-input {
+    flex: 1; padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color); border-radius: 8px;
+    background: var(--surface-bg); color: var(--text-main);
+    font-family: inherit; font-size: 0.85rem;
+}
+.re-add-input:focus { outline: none; border-color: #d97706; box-shadow: 0 0 0 3px rgba(217,119,6,0.1); }
+.re-add-btn {
+    padding: 0.5rem 1rem; border-radius: 8px;
+    font-size: 0.82rem; font-weight: 600;
+    background: #d97706; color: #fff; border: none; cursor: pointer;
+    transition: all 0.15s ease;
+}
+.re-add-btn:hover { background: #b45309; }
+
+/* ── Bulk Actions ──────────────────────────── */
+.re-bulk-bar {
+    display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;
+    margin-top: 1rem; padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+.re-bulk-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.45rem 0.85rem; border-radius: 8px;
+    font-size: 0.78rem; font-weight: 600;
+    border: 1px solid var(--border-color); background: var(--surface-bg);
+    color: var(--text-main); cursor: pointer; transition: all 0.15s ease;
+}
+.re-bulk-btn:hover { border-color: #d97706; color: #d97706; }
+.re-bulk-btn.ai { border-color: rgba(124,58,237,0.3); color: #7c3aed; }
+.re-bulk-btn.ai:hover { background: rgba(124,58,237,0.08); }
+.re-bulk-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Bulk Add Modal ────────────────────────── */
+.re-modal-backdrop {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    z-index: 1050; align-items: center; justify-content: center;
+}
+.re-modal-backdrop.active { display: flex; }
+.re-modal {
+    background: var(--surface-card); border-radius: var(--radius-lg);
+    padding: 1.5rem; width: 90%; max-width: 480px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+.re-modal-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem; }
+.re-modal-textarea {
+    width: 100%; min-height: 160px; padding: 0.75rem;
+    border: 1px solid var(--border-color); border-radius: 8px;
+    background: var(--surface-bg); color: var(--text-main);
+    font-family: inherit; font-size: 0.85rem; resize: vertical;
+}
+.re-modal-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem; }
+.re-modal-actions { display: flex; gap: 0.5rem; margin-top: 1rem; justify-content: flex-end; }
+
+/* ── Status Dot ────────────────────────────── */
+.re-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.re-dot.done { background: #10b981; }
+.re-dot.empty { background: var(--border-color); }
+{% endblock %}
+
+{% block content %}
+<form method="post" id="setForm">
+{% csrf_token %}
+
+<!-- Hero -->
+<div class="re-hero">
+    <div>
+        <div class="re-hero-title">
+            <i class="bi bi-file-earmark-bar-graph me-1"></i>
+            {% if mode == 'edit' %}{{ card_set.title }}{% else %}New Report Card Set{% endif %}
+        </div>
+        {% if mode == 'edit' %}
+        <div class="re-hero-sub">{{ card_set.class_name }} · {{ card_set.get_term_display }} · {{ card_set.academic_year }}</div>
+        {% endif %}
+    </div>
+    <div class="re-hero-actions">
+        {% if mode == 'edit' and entries %}
+        <a href="{% url 'individual:report_card_print_all' pk=card_set.pk %}" class="re-btn re-btn-white" target="_blank">
+            <i class="bi bi-printer"></i> Print All
+        </a>
+        {% endif %}
+        <a href="{% url 'individual:report_card_dashboard' %}" class="re-btn re-btn-glass">
+            <i class="bi bi-arrow-left"></i> All Sets
+        </a>
+    </div>
+</div>
+
+<!-- Layout -->
+<div class="re-layout">
+    <!-- Left: Set Details -->
+    <div class="re-panel">
+        <div class="re-panel-title"><i class="bi bi-info-circle"></i> Set Details</div>
+        <div class="re-form-group">
+            <label class="re-label">Title</label>
+            <input type="text" name="title" class="re-input" value="{{ card_set.title|default:'' }}" required
+                   placeholder="e.g. Basic 8 — Term 1 Report Cards">
+        </div>
+        <div class="re-form-group">
+            <label class="re-label">Class</label>
+            <input type="text" name="class_name" class="re-input" value="{{ card_set.class_name|default:'' }}"
+                   placeholder="e.g. Basic 8A">
+        </div>
+        <div class="re-row">
+            <div class="re-form-group">
+                <label class="re-label">Term</label>
+                <select name="term" class="re-select">
+                    {% for val, label in terms %}
+                    <option value="{{ val }}" {% if card_set and card_set.term == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="re-form-group">
+                <label class="re-label">Academic Year</label>
+                <input type="text" name="academic_year" class="re-input"
+                       value="{{ card_set.academic_year|default:'2025/2026' }}" placeholder="2025/2026">
+            </div>
+        </div>
+        <div class="re-form-group">
+            <label class="re-label">School Name</label>
+            <input type="text" name="school_name" class="re-input" value="{{ card_set.school_name|default:'' }}"
+                   placeholder="e.g. Ashaiman M/A Basic School">
+        </div>
+        <div class="re-form-group">
+            <label class="re-label">Next Term Begins</label>
+            <input type="date" name="next_term_begins" class="re-input"
+                   value="{% if card_set.next_term_begins %}{{ card_set.next_term_begins|date:'Y-m-d' }}{% endif %}">
+        </div>
+        <button type="submit" class="re-save-btn" style="width:100%; justify-content:center; margin-top:0.5rem;">
+            <i class="bi bi-check-circle"></i> {% if mode == 'edit' %}Save Set Details{% else %}Create Set{% endif %}
+        </button>
+    </div>
+
+    <!-- Right: Students -->
+    <div class="re-panel">
+        {% if mode == 'create' %}
+        <div class="re-panel-title"><i class="bi bi-people"></i> Students</div>
+        <p style="font-size:0.85rem; color:var(--text-muted);">Create the set first, then add students.</p>
+        {% else %}
+        <div class="re-panel-title">
+            <i class="bi bi-people"></i> Students ({{ entries|length }})
+        </div>
+
+        {% if entries %}
+        <table class="re-student-table">
+            <thead>
+                <tr>
+                    <th style="width:28px"></th>
+                    <th>Student Name</th>
+                    <th>Comment Preview</th>
+                    <th style="width:120px">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="entriesBody">
+                {% for e in entries %}
+                <tr id="row-{{ e.pk }}">
+                    <td>
+                        <span class="re-dot {% if e.class_teacher_comment %}done{% else %}empty{% endif %}"
+                              title="{% if e.class_teacher_comment %}Comment written{% else %}No comment{% endif %}"></span>
+                    </td>
+                    <td class="re-name-cell">{{ e.student_name }}</td>
+                    <td class="re-comment-preview">
+                        {{ e.class_teacher_comment|default:"—"|truncatewords:15 }}
+                    </td>
+                    <td>
+                        <div class="re-action-btns">
+                            <a href="{% url 'individual:report_card_entry_edit' pk=card_set.pk entry_pk=e.pk %}"
+                               class="re-icon-btn" title="Edit"><i class="bi bi-pencil"></i></a>
+                            <button type="button" class="re-icon-btn ai-btn" title="AI Generate Comment"
+                                    onclick="generateComment({{ e.pk }}, this)"><i class="bi bi-stars"></i></button>
+                            <a href="{% url 'individual:report_card_print' pk=card_set.pk entry_pk=e.pk %}"
+                               class="re-icon-btn" title="Print" target="_blank"><i class="bi bi-printer"></i></a>
+                            <button type="button" class="re-icon-btn danger" title="Delete"
+                                    onclick="deleteEntry({{ e.pk }}, this)"><i class="bi bi-trash3"></i></button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="font-size:0.85rem; color:var(--text-muted); text-align:center; padding:1.5rem 0;">
+            No students yet. Add students below.
+        </p>
+        {% endif %}
+
+        <!-- Add Student -->
+        <div class="re-add-row">
+            <input type="text" class="re-add-input" id="newStudentName" placeholder="Student name...">
+            <button type="button" class="re-add-btn" onclick="addEntry()">
+                <i class="bi bi-plus"></i> Add
+            </button>
+        </div>
+
+        <!-- Bulk Actions -->
+        <div class="re-bulk-bar">
+            <button type="button" class="re-bulk-btn" onclick="openBulkModal()">
+                <i class="bi bi-people"></i> Bulk Add Students
+            </button>
+            {% if entries %}
+            <button type="button" class="re-bulk-btn ai" id="bulkGenBtn" onclick="bulkGenerate()">
+                <i class="bi bi-stars"></i> AI Generate All Comments
+            </button>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+</form>
+
+<!-- Bulk Add Modal -->
+<div class="re-modal-backdrop" id="bulkModal">
+    <div class="re-modal">
+        <div class="re-modal-title"><i class="bi bi-people me-1"></i> Bulk Add Students</div>
+        <textarea class="re-modal-textarea" id="bulkNames"
+                  placeholder="Enter student names, one per line:&#10;&#10;Kwame Mensah&#10;Ama Serwaa&#10;Kofi Asante"></textarea>
+        <div class="re-modal-hint">One student name per line. Empty lines will be ignored.</div>
+        <div class="re-modal-actions">
+            <button type="button" class="re-bulk-btn" onclick="closeBulkModal()">Cancel</button>
+            <button type="button" class="re-add-btn" onclick="bulkAdd()">
+                <i class="bi bi-plus-circle"></i> Add All
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if mode == 'edit' %}
+<script>
+const API = "{% url 'individual:report_card_api' %}";
+const SET_ID = {{ card_set.pk }};
+const CSRF = '{{ csrf_token }}';
+
+function apiCall(body) {
+    return fetch(API, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+        body: JSON.stringify(body),
+    }).then(r => r.json());
+}
+
+function addEntry() {
+    const input = document.getElementById('newStudentName');
+    const name = input.value.trim();
+    if (!name) return;
+    input.disabled = true;
+    apiCall({action: 'add_entry', set_id: SET_ID, student_name: name})
+    .then(data => {
+        if (data.ok) location.reload();
+        else alert(data.error || 'Failed to add student');
+    })
+    .catch(() => alert('Network error'))
+    .finally(() => { input.disabled = false; });
+}
+
+document.getElementById('newStudentName')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); addEntry(); }
+});
+
+function deleteEntry(entryId, btn) {
+    if (!confirm('Remove this student?')) return;
+    btn.disabled = true;
+    apiCall({action: 'delete_entry', entry_id: entryId})
+    .then(data => {
+        if (data.ok) {
+            const row = document.getElementById('row-' + entryId);
+            if (row) row.remove();
+        } else {
+            alert(data.error || 'Failed to delete');
+            btn.disabled = false;
+        }
+    })
+    .catch(() => { alert('Network error'); btn.disabled = false; });
+}
+
+function generateComment(entryId, btn) {
+    btn.classList.add('generating');
+    apiCall({action: 'generate_comment', entry_id: entryId})
+    .then(data => {
+        if (data.ok) {
+            const row = document.getElementById('row-' + entryId);
+            if (row) {
+                const preview = row.querySelector('.re-comment-preview');
+                if (preview) preview.textContent = data.comment.substring(0, 80) + (data.comment.length > 80 ? '…' : '');
+                const dot = row.querySelector('.re-dot');
+                if (dot) { dot.classList.remove('empty'); dot.classList.add('done'); }
+            }
+        } else {
+            alert(data.error || 'AI generation failed');
+        }
+    })
+    .catch(() => alert('Network error'))
+    .finally(() => btn.classList.remove('generating'));
+}
+
+function bulkGenerate() {
+    const btn = document.getElementById('bulkGenBtn');
+    if (!confirm('Generate AI comments for all students without a comment?')) return;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Generating…';
+    apiCall({action: 'bulk_generate', set_id: SET_ID})
+    .then(data => {
+        if (data.ok) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert(data.error || 'Bulk generation failed');
+        }
+    })
+    .catch(() => alert('Network error'))
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-stars"></i> AI Generate All Comments';
+    });
+}
+
+/* ── Bulk Add Modal ──────────────────────────── */
+function openBulkModal() { document.getElementById('bulkModal').classList.add('active'); }
+function closeBulkModal() { document.getElementById('bulkModal').classList.remove('active'); }
+
+function bulkAdd() {
+    const text = document.getElementById('bulkNames').value.trim();
+    if (!text) return;
+    const names = text.split('\n').map(n => n.trim()).filter(Boolean);
+    if (!names.length) return;
+    apiCall({action: 'bulk_add', set_id: SET_ID, names: names})
+    .then(data => {
+        if (data.ok) location.reload();
+        else alert(data.error || 'Bulk add failed');
+    })
+    .catch(() => alert('Network error'));
+}
+
+document.getElementById('bulkModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeBulkModal();
+});
+</script>
+{% endif %}
+{% endblock %}

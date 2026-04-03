@@ -1,0 +1,142 @@
+<div class="report-card">
+    <!-- School Header -->
+    <div class="rc-header">
+        {% if card_set.school_name %}
+        <div class="rc-school-name">{{ card_set.school_name }}</div>
+        {% else %}
+        <div class="rc-school-name">School Name</div>
+        {% endif %}
+        <div class="rc-school-sub">
+            {{ card_set.get_term_display }} · Academic Year {{ card_set.academic_year }}
+        </div>
+        <div class="rc-title-bar">Terminal Report Card</div>
+    </div>
+
+    <!-- Student Info -->
+    <div class="rc-info">
+        <div class="rc-info-item">
+            <span class="rc-info-label">Student Name:</span>
+            <span class="rc-info-value">{{ entry.student_name }}</span>
+        </div>
+        <div class="rc-info-item">
+            <span class="rc-info-label">Class:</span>
+            <span class="rc-info-value">{{ card_set.class_name }}</span>
+        </div>
+        {% if entry.position %}
+        <div class="rc-info-item">
+            <span class="rc-info-label">Position:</span>
+            <span class="rc-info-value">{{ entry.position }}{% if entry.total_students %} out of {{ entry.total_students }}{% endif %}</span>
+        </div>
+        {% endif %}
+        {% if entry.attendance %}
+        <div class="rc-info-item">
+            <span class="rc-info-label">Attendance:</span>
+            <span class="rc-info-value">{{ entry.attendance }}</span>
+        </div>
+        {% endif %}
+        {% if entry.overall_grade %}
+        <div class="rc-info-item">
+            <span class="rc-info-label">Overall Grade:</span>
+            <span class="rc-info-value">{{ entry.overall_grade }}</span>
+        </div>
+        {% endif %}
+        {% if entry.overall_score %}
+        <div class="rc-info-item">
+            <span class="rc-info-label">Overall Score:</span>
+            <span class="rc-info-value">{{ entry.overall_score }}%</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Subject Scores -->
+    {% if entry.subjects %}
+    <table class="rc-subj-table">
+        <thead>
+            <tr>
+                <th style="text-align:left">Subject</th>
+                <th>Class Score</th>
+                <th>Exam Score</th>
+                <th>Total</th>
+                <th>Grade</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in entry.subjects %}
+            <tr>
+                <td>{{ s.subject }}</td>
+                <td>{{ s.class_score|default:"—" }}</td>
+                <td>{{ s.exam_score|default:"—" }}</td>
+                <td>{{ s.total|default:"—" }}</td>
+                <td>{{ s.grade|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <!-- Conduct / Attitude / Interest -->
+    <div class="rc-ratings">
+        <div class="rc-rating-item">
+            <div class="rc-rating-label">Conduct</div>
+            <div class="rc-rating-value">{{ entry.get_conduct_display }}</div>
+        </div>
+        <div class="rc-rating-item">
+            <div class="rc-rating-label">Attitude to Work</div>
+            <div class="rc-rating-value">{{ entry.get_attitude_display }}</div>
+        </div>
+        <div class="rc-rating-item">
+            <div class="rc-rating-label">Interest</div>
+            <div class="rc-rating-value">{{ entry.get_interest_display }}</div>
+        </div>
+    </div>
+
+    <!-- Class Teacher Comment -->
+    {% if entry.class_teacher_comment %}
+    <div class="rc-comment-section">
+        <div class="rc-comment-label">Class Teacher's Comment</div>
+        <div class="rc-comment-text">{{ entry.class_teacher_comment }}</div>
+    </div>
+    {% endif %}
+
+    <!-- Head Teacher Comment -->
+    {% if entry.head_teacher_comment %}
+    <div class="rc-comment-section">
+        <div class="rc-comment-label">Head Teacher's Comment</div>
+        <div class="rc-comment-text">{{ entry.head_teacher_comment }}</div>
+    </div>
+    {% endif %}
+
+    <!-- Promotion -->
+    {% if entry.promoted is not None %}
+    <div class="rc-promotion">
+        <span>Promoted: <strong>{% if entry.promoted %}Yes{% else %}No{% endif %}</strong></span>
+        {% if entry.next_class %}
+        <span>Next Class: <strong>{{ entry.next_class }}</strong></span>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Next Term Date -->
+    {% if card_set.next_term_begins %}
+    <div style="font-size:10pt; margin-bottom:0.35cm;">
+        <strong>Next Term Begins:</strong> {{ card_set.next_term_begins|date:"jS F, Y" }}
+    </div>
+    {% endif %}
+
+    <!-- Signatures -->
+    <div class="rc-signatures">
+        <div>
+            <div class="rc-sig-line">Class Teacher</div>
+        </div>
+        <div>
+            <div class="rc-sig-line">Head Teacher</div>
+        </div>
+        <div>
+            <div class="rc-sig-line">Parent / Guardian</div>
+        </div>
+    </div>
+
+    <div class="rc-footer">
+        Generated with Aura Teacher Portal · {{ card_set.academic_year }}
+    </div>
+</div>

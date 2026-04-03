@@ -1,0 +1,198 @@
+{% extends 'individual/base.html' %}
+{% block title %}Report Card Writer — Aura Teacher Portal{% endblock %}
+{% block page_title %}Report Card Writer{% endblock %}
+
+{% block extra_css %}
+/* ── Report Card Dashboard ─────────────────── */
+.rc-hero {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 60%, #92400e 100%);
+    border-radius: var(--radius-lg); color: #fff;
+    padding: 1.5rem 2rem; margin-bottom: 1.5rem;
+    position: relative; overflow: hidden;
+}
+.rc-hero::after {
+    content: ''; position: absolute; top: -30px; right: -30px;
+    width: 140px; height: 140px; border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+}
+.rc-hero-title { font-size: 1.2rem; font-weight: 800; }
+.rc-hero-sub { font-size: 0.84rem; opacity: 0.85; margin-top: 0.2rem; }
+.rc-hero-stats { display: flex; gap: 1.5rem; margin-top: 1rem; flex-wrap: wrap; }
+.rc-hero-stat-value { font-size: 1.5rem; font-weight: 800; }
+.rc-hero-stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.8; }
+.rc-hero-actions { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+.rc-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.55rem 1rem; border-radius: 8px;
+    font-size: 0.82rem; font-weight: 600;
+    text-decoration: none; border: none; cursor: pointer;
+    transition: all 0.15s ease;
+}
+.rc-btn-white { background: #fff; color: #d97706; }
+.rc-btn-white:hover { background: #fffbeb; color: #b45309; }
+.rc-btn-glass { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
+.rc-btn-glass:hover { background: rgba(255,255,255,0.25); color: #fff; }
+
+/* ── Search ────────────────────────────────── */
+.rc-toolbar {
+    display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap; align-items: center;
+}
+.rc-search-wrap { flex: 1; min-width: 200px; position: relative; }
+.rc-search-wrap i {
+    position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%);
+    color: var(--text-muted); font-size: 0.9rem; pointer-events: none;
+}
+.rc-search {
+    width: 100%; padding: 0.5rem 0.85rem 0.5rem 2.2rem;
+    border: 1px solid var(--border-color); border-radius: 8px;
+    background: var(--surface-card); color: var(--text-main);
+    font-family: inherit; font-size: 0.85rem;
+}
+.rc-search:focus { outline: none; border-color: #d97706; box-shadow: 0 0 0 3px rgba(217,119,6,0.1); }
+
+/* ── Cards ─────────────────────────────────── */
+.rc-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1rem;
+}
+.rc-card { padding: 1.25rem; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.rc-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.rc-card-head { display: flex; gap: 0.75rem; align-items: flex-start; margin-bottom: 0.65rem; }
+.rc-card-icon {
+    width: 42px; height: 42px; border-radius: 10px;
+    background: rgba(217,119,6,0.1); color: #d97706;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.15rem; flex-shrink: 0;
+}
+[data-bs-theme="dark"] .rc-card-icon { background: rgba(217,119,6,0.15); color: #fbbf24; }
+.rc-card-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.1rem; }
+.rc-card-meta { font-size: 0.78rem; color: var(--text-muted); }
+.rc-card-pills { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.65rem; }
+.rc-pill {
+    padding: 0.2rem 0.55rem; border-radius: 999px; font-size: 0.7rem; font-weight: 600;
+    background: rgba(217,119,6,0.1); color: #d97706;
+}
+[data-bs-theme="dark"] .rc-pill { background: rgba(217,119,6,0.15); color: #fbbf24; }
+.rc-pill-count { background: rgba(16,185,129,0.1); color: #059669; }
+[data-bs-theme="dark"] .rc-pill-count { background: rgba(16,185,129,0.15); color: #34d399; }
+.rc-card-snippet { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 0.85rem; }
+.rc-card-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.rc-btn-sm {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.35rem 0.65rem; border-radius: 6px;
+    font-size: 0.75rem; font-weight: 600;
+    background: var(--surface-bg); border: 1px solid var(--border-color);
+    color: var(--text-main); text-decoration: none; cursor: pointer;
+    transition: all 0.15s ease;
+}
+.rc-btn-sm:hover { background: rgba(217,119,6,0.08); border-color: rgba(217,119,6,0.3); color: #d97706; }
+.rc-btn-sm.danger:hover { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.3); color: #ef4444; }
+
+/* ── Empty State ───────────────────────────── */
+.rc-empty {
+    grid-column: 1 / -1; text-align: center; padding: 3rem 1rem;
+    color: var(--text-muted);
+}
+.rc-empty-icon { font-size: 2.5rem; opacity: 0.35; margin-bottom: 0.75rem; }
+.rc-empty p { font-size: 0.9rem; margin: 0; }
+
+/* ── Progress bar ──────────────────────────── */
+.rc-progress { height: 4px; background: var(--border-color); border-radius: 2px; overflow: hidden; margin-top: 0.5rem; }
+.rc-progress-bar { height: 100%; background: #d97706; border-radius: 2px; transition: width 0.3s ease; }
+{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<div class="rc-hero">
+    <div class="rc-hero-title"><i class="bi bi-file-earmark-bar-graph me-2"></i>Report Card Writer</div>
+    <div class="rc-hero-sub">Generate AI-powered report card comments for your students</div>
+    <div class="rc-hero-stats">
+        <div>
+            <div class="rc-hero-stat-value">{{ total_sets }}</div>
+            <div class="rc-hero-stat-label">Sets</div>
+        </div>
+        <div>
+            <div class="rc-hero-stat-value">{{ total_entries }}</div>
+            <div class="rc-hero-stat-label">Students</div>
+        </div>
+        <div>
+            <div class="rc-hero-stat-value">{{ ai_count }}</div>
+            <div class="rc-hero-stat-label">AI Comments</div>
+        </div>
+    </div>
+    <div class="rc-hero-actions">
+        <a href="{% url 'individual:report_card_create' %}" class="rc-btn rc-btn-white">
+            <i class="bi bi-plus-circle"></i> New Report Card Set
+        </a>
+    </div>
+</div>
+
+<!-- Search -->
+<div class="rc-toolbar">
+    <div class="rc-search-wrap">
+        <i class="bi bi-search"></i>
+        <input type="text" class="rc-search" id="rcSearch" placeholder="Search report card sets...">
+    </div>
+</div>
+
+<!-- Grid -->
+<div class="rc-grid" id="rcGrid">
+    {% for s in sets %}
+    <div class="iu-card rc-card" data-title="{{ s.title|lower }}">
+        <div class="rc-card-head">
+            <div class="rc-card-icon"><i class="bi bi-file-earmark-bar-graph"></i></div>
+            <div style="flex:1">
+                <div class="rc-card-title">{{ s.title }}</div>
+                <div class="rc-card-meta">{{ s.class_name }} · {{ s.get_term_display }} · {{ s.academic_year }}</div>
+            </div>
+        </div>
+        <div class="rc-card-pills">
+            <span class="rc-pill rc-pill-count">{{ s.entry_count }} student{{ s.entry_count|pluralize }}</span>
+            <span class="rc-pill">{{ s.comment_count }} comment{{ s.comment_count|pluralize }}</span>
+        </div>
+        {% if s.entry_count > 0 %}
+        <div class="rc-progress">
+            <div class="rc-progress-bar" style="width: {% widthratio s.comment_count s.entry_count 100 %}%"></div>
+        </div>
+        <div class="rc-card-snippet">
+            {{ s.comment_count }} of {{ s.entry_count }} comments written
+        </div>
+        {% else %}
+        <div class="rc-card-snippet">No students added yet. Click edit to add students.</div>
+        {% endif %}
+        <div class="rc-card-actions">
+            <a href="{% url 'individual:report_card_edit' pk=s.pk %}" class="rc-btn-sm">
+                <i class="bi bi-pencil-square"></i> Edit
+            </a>
+            {% if s.entry_count > 0 %}
+            <a href="{% url 'individual:report_card_print_all' pk=s.pk %}" class="rc-btn-sm" target="_blank">
+                <i class="bi bi-printer"></i> Print All
+            </a>
+            {% endif %}
+            <form method="post" action="{% url 'individual:report_card_delete' pk=s.pk %}"
+                  onsubmit="return confirm('Delete this report card set and all entries?')" style="margin:0">
+                {% csrf_token %}
+                <button type="submit" class="rc-btn-sm danger">
+                    <i class="bi bi-trash3"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+    {% empty %}
+    <div class="rc-empty">
+        <div class="rc-empty-icon"><i class="bi bi-file-earmark-bar-graph"></i></div>
+        <p>No report card sets yet. Create your first set to get started.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('rcSearch')?.addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('#rcGrid .rc-card').forEach(c => {
+        c.style.display = c.dataset.title.includes(q) ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

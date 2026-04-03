@@ -630,3 +630,71 @@ class StudentMark(models.Model):
         self.score = correct
         self.total = len(key)
         self.percentage = round((correct / len(key)) * 100, 1) if key else 0
+
+
+# ── Report Card Writer ────────────────────────────────────────────────────────
+
+class ReportCardSet(models.Model):
+    """A batch of report cards for one class / term."""
+    TERM_CHOICES = [
+        ('first', 'First Term'),
+        ('second', 'Second Term'),
+        ('third', 'Third Term'),
+    ]
+    profile = models.ForeignKey(
+        IndividualProfile, on_delete=models.CASCADE, related_name='report_card_sets',
+    )
+    title = models.CharField(max_length=200)
+    class_name = models.CharField(max_length=100)
+    term = models.CharField(max_length=10, choices=TERM_CHOICES, default='first')
+    academic_year = models.CharField(max_length=20, default='2025/2026')
+    school_name = models.CharField(max_length=200, blank=True, default='')
+    next_term_begins = models.DateField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return self.title
+
+
+class ReportCardEntry(models.Model):
+    """Individual student report card within a set."""
+    RATING_CHOICES = [
+        ('excellent', 'Excellent'),
+        ('very_good', 'Very Good'),
+        ('good', 'Good'),
+        ('satisfactory', 'Satisfactory'),
+        ('needs_improvement', 'Needs Improvement'),
+    ]
+    card_set = models.ForeignKey(
+        ReportCardSet, on_delete=models.CASCADE, related_name='entries',
+    )
+    student_name = models.CharField(max_length=200)
+    subjects = models.JSONField(
+        default=list, blank=True,
+        help_text='[{subject, class_score, exam_score, total, grade, remark}]',
+    )
+    overall_score = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    overall_grade = models.CharField(max_length=5, blank=True, default='')
+    position = models.PositiveIntegerField(null=True, blank=True)
+    total_students = models.PositiveIntegerField(null=True, blank=True)
+    conduct = models.CharField(max_length=20, choices=RATING_CHOICES, default='good')
+    attitude = models.CharField(max_length=20, choices=RATING_CHOICES, default='good')
+    interest = models.CharField(max_length=20, choices=RATING_CHOICES, default='good')
+    attendance = models.CharField(max_length=30, blank=True, default='')
+    class_teacher_comment = models.TextField(blank=True, default='')
+    head_teacher_comment = models.TextField(blank=True, default='')
+    promoted = models.BooleanField(null=True, blank=True)
+    next_class = models.CharField(max_length=100, blank=True, default='')
+    ai_generated = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['student_name']
+
+    def __str__(self):
+        return f'{self.student_name} — {self.card_set.title}'

@@ -102,6 +102,16 @@ urlpatterns = [
     path('tools/marker/<int:pk>/edit/', tool_views.marker_edit, name='marker_edit'),
     path('tools/marker/<int:pk>/delete/', tool_views.marker_delete, name='marker_delete'),
     path('tools/marker/api/', tool_views.marker_api, name='marker_api'),
+
+    # Report Card Writer
+    path('tools/report-cards/', tool_views.report_card_dashboard, name='report_card_dashboard'),
+    path('tools/report-cards/new/', tool_views.report_card_create, name='report_card_create'),
+    path('tools/report-cards/<int:pk>/', tool_views.report_card_edit, name='report_card_edit'),
+    path('tools/report-cards/<int:pk>/delete/', tool_views.report_card_delete, name='report_card_delete'),
+    path('tools/report-cards/<int:pk>/entries/<int:entry_pk>/edit/', tool_views.report_card_entry_edit, name='report_card_entry_edit'),
+    path('tools/report-cards/<int:pk>/entries/<int:entry_pk>/print/', tool_views.report_card_print, name='report_card_print'),
+    path('tools/report-cards/<int:pk>/print-all/', tool_views.report_card_print_all, name='report_card_print_all'),
+    path('tools/report-cards/api/', tool_views.report_card_api, name='report_card_api'),
 ]
 
 # Teacher shortcut URLs (included under /t/ prefix in main urls.py)
