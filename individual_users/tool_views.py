@@ -240,8 +240,9 @@ def _ensure_public_schema():
 
 
 def _tool_required(view_func):
-    """Decorator: require login + individual user_type + teacher role."""
+    """Decorator: require login + individual user_type + teacher role + verified."""
     from functools import wraps
+    from django.contrib.auth import logout
 
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
@@ -255,6 +256,14 @@ def _tool_required(view_func):
             profile = request.user.individual_profile
         except IndividualProfile.DoesNotExist:
             return redirect('individual:dashboard')
+        # Block unverified users
+        if not profile.is_verified:
+            method = 'phone' if (profile.phone_number and not request.user.email) else 'email'
+            request.session['pending_verification_user_id'] = request.user.pk
+            request.session['pending_verification_method'] = method
+            logout(request)
+            messages.info(request, 'Please verify your account to continue.')
+            return redirect('individual:verify')
         if profile.role != 'teacher':
             messages.info(request, 'Tools are available for teacher accounts.')
             return redirect('individual:dashboard')

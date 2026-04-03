@@ -287,7 +287,7 @@ def _ensure_public_schema():
 
 
 def _individual_required(view_func):
-    """Decorator: require login + user_type='individual'."""
+    """Decorator: require login + user_type='individual' + verified."""
     from functools import wraps
 
     @wraps(view_func)
@@ -298,6 +298,15 @@ def _individual_required(view_func):
             messages.error(request, 'Access restricted to individual accounts.')
             return redirect('home')
         _ensure_public_schema()
+        # Block unverified users
+        profile = IndividualProfile.objects.filter(user=request.user).first()
+        if profile and not profile.is_verified:
+            method = 'phone' if (profile.phone_number and not request.user.email) else 'email'
+            request.session['pending_verification_user_id'] = request.user.pk
+            request.session['pending_verification_method'] = method
+            logout(request)
+            messages.info(request, 'Please verify your account to continue.')
+            return redirect('individual:verify')
         return view_func(request, *args, **kwargs)
 
     return wrapper

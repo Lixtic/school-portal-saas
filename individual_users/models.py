@@ -30,6 +30,11 @@ class IndividualProfile(models.Model):
         verbose_name = 'Individual Profile'
         verbose_name_plural = 'Individual Profiles'
 
+    @property
+    def is_verified(self):
+        """True if the user verified via email, phone, or Google OAuth."""
+        return self.email_verified or self.phone_verified or bool(self.google_id)
+
     def __str__(self):
         return f"{self.user.get_full_name() or self.user.username}"
 
