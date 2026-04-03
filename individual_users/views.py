@@ -185,6 +185,15 @@ TEACHER_ADDON_CATALOG = [
         'category': 'professional',
         'prices': {'free': 0, 'pro': 49.99},
     },
+    {
+        'slug': 'letter-writer',
+        'name': 'GES Letter Writer',
+        'icon': 'bi-envelope-paper',
+        'description': 'Browse sample GES letters and generate official letters for transfers, leave, promotions, complaints and more.',
+        'plans': ['free', 'pro'],
+        'category': 'productivity',
+        'prices': {'free': 0, 'pro': 39.99},
+    },
 ]
 
 
@@ -487,6 +496,7 @@ def dashboard_view(request):
             'slide-generator': 'individual:deck_list',
             'licensure-prep': 'individual:licensure_dashboard',
             'ai-tutor': 'individual:ai_tutor_dashboard',
+            'letter-writer': 'individual:letter_dashboard',
         }
         _ADDON_COLORS = {
             'exam-generator': '#4361ee',
@@ -497,6 +507,7 @@ def dashboard_view(request):
             'grade-analytics': '#7c3aed',
             'report-card': '#d97706',
             'attendance-tracker': '#dc2626',
+            'letter-writer': '#2563eb',
         }
         catalog_map = {a['slug']: a for a in TEACHER_ADDON_CATALOG}
         for sub in subscriptions:

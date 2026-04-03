@@ -82,6 +82,14 @@ urlpatterns = [
     # AI Teaching Assistant
     path('tools/ai-tutor/', tool_views.ai_tutor_dashboard, name='ai_tutor_dashboard'),
     path('tools/ai-tutor/api/', tool_views.ai_tutor_api, name='ai_tutor_api'),
+
+    # GES Letter Writer
+    path('tools/letters/', tool_views.letter_dashboard, name='letter_dashboard'),
+    path('tools/letters/new/', tool_views.letter_create, name='letter_create'),
+    path('tools/letters/<int:pk>/edit/', tool_views.letter_edit, name='letter_edit'),
+    path('tools/letters/<int:pk>/delete/', tool_views.letter_delete, name='letter_delete'),
+    path('tools/letters/<int:pk>/print/', tool_views.letter_print, name='letter_print'),
+    path('tools/letters/api/', tool_views.letter_api, name='letter_api'),
 ]
 
 # Teacher shortcut URLs (included under /t/ prefix in main urls.py)

@@ -18,6 +18,7 @@ from individual_users.models import (
     AddonSubscription,
     AITutorConversation,
     AITutorMessage,
+    GESLetter,
     IndividualProfile,
     LicensureAnswer,
     LicensureQuestion,
@@ -181,6 +182,27 @@ TOOLS_CATALOG = [
         'coming_soon': True,
     },
     {
+        'slug': 'letter-writer',
+        'name': 'GES Letter Writer',
+        'icon': 'bi-envelope-paper',
+        'color': '#2563eb',
+        'tagline': 'Official GES letter templates and AI-powered drafting',
+        'description': (
+            'Browse sample GES letters for transfers, leave, promotions, '
+            'complaints and more. Use AI to generate custom letters '
+            'following official GES format and conventions.'
+        ),
+        'features': [
+            '12+ GES letter categories with samples',
+            'AI-powered letter generation',
+            'Official GES formatting & conventions',
+            'Edit, save and print-ready output',
+            'Custom letters from scratch',
+        ],
+        'category': 'productivity',
+        'tools': ['ges_letter'],
+    },
+    {
         'slug': 'licensure-prep',
         'name': 'GTLE Licensure Prep',
         'icon': 'bi-mortarboard',
@@ -296,6 +318,7 @@ def tools_hub(request):
     d_count = ToolPresentation.objects.filter(profile=profile).count()
     lic_count = LicensureQuizAttempt.objects.filter(profile=profile, completed=True).count()
     tutor_count = AITutorConversation.objects.filter(profile=profile).count()
+    letter_count = GESLetter.objects.filter(profile=profile).count()
 
     ctx = {
         'tools': tools,
@@ -307,6 +330,7 @@ def tools_hub(request):
         'deck_count': d_count,
         'licensure_attempt_count': lic_count,
         'tutor_count': tutor_count,
+        'letter_count': letter_count,
     }
     return render(request, 'individual/tools/hub.html', ctx)
 
@@ -2380,3 +2404,429 @@ def ai_tutor_api(request):
             return JsonResponse({'error': 'Not found'}, status=404)
 
     return JsonResponse({'error': f'Unknown action: {action}'}, status=400)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GES LETTER WRITER
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@_tool_required
+@_require_tool('letter-writer')
+def letter_dashboard(request):
+    """List all letters with category filtering and sample browser."""
+    _ensure_public_schema()
+    profile = request.user.individual_profile
+
+    letters = GESLetter.objects.filter(profile=profile, is_sample=False)
+    samples = GESLetter.objects.filter(profile=profile, is_sample=True)
+
+    category = request.GET.get('category', '')
+    if category:
+        letters = letters.filter(category=category)
+
+    status_filter = request.GET.get('status', '')
+    if status_filter:
+        letters = letters.filter(status=status_filter)
+
+    return render(request, 'individual/tools/letter-writer/dashboard.html', {
+        'letters': letters,
+        'samples': samples,
+        'categories': GESLetter.CATEGORY_CHOICES,
+        'current_category': category,
+        'current_status': status_filter,
+        'total_count': GESLetter.objects.filter(profile=profile, is_sample=False).count(),
+        'draft_count': GESLetter.objects.filter(profile=profile, is_sample=False, status='draft').count(),
+        'final_count': GESLetter.objects.filter(profile=profile, is_sample=False, status='final').count(),
+    })
+
+
+@_tool_required
+@_require_tool('letter-writer')
+def letter_create(request):
+    """Create a new letter (blank or from category)."""
+    _ensure_public_schema()
+    profile = request.user.individual_profile
+
+    if request.method == 'POST':
+        from django.utils import timezone
+        letter = GESLetter.objects.create(
+            profile=profile,
+            title=request.POST.get('title', 'Untitled Letter').strip() or 'Untitled Letter',
+            category=request.POST.get('category', 'request'),
+            status='draft',
+            recipient_name=request.POST.get('recipient_name', '').strip(),
+            recipient_title=request.POST.get('recipient_title', '').strip(),
+            sender_name=request.POST.get('sender_name', '').strip(),
+            sender_title=request.POST.get('sender_title', '').strip(),
+            school_name=request.POST.get('school_name', '').strip(),
+            district=request.POST.get('district', '').strip(),
+            region=request.POST.get('region', '').strip(),
+            reference_number=request.POST.get('reference_number', '').strip(),
+            date_written=request.POST.get('date_written') or timezone.now().date(),
+            body=request.POST.get('body', '').strip(),
+        )
+        messages.success(request, 'Letter created.')
+        return redirect('individual:letter_edit', pk=letter.pk)
+
+    # GET → show editor with blank form
+    category = request.GET.get('category', 'request')
+    return render(request, 'individual/tools/letter-writer/editor.html', {
+        'letter': None,
+        'categories': GESLetter.CATEGORY_CHOICES,
+        'initial_category': category,
+        'mode': 'create',
+    })
+
+
+@_tool_required
+@_require_tool('letter-writer')
+def letter_edit(request, pk):
+    """Edit an existing letter."""
+    _ensure_public_schema()
+    profile = request.user.individual_profile
+    letter = get_object_or_404(GESLetter, pk=pk, profile=profile)
+
+    if request.method == 'POST':
+        from django.utils import timezone
+        letter.title = request.POST.get('title', letter.title).strip() or letter.title
+        letter.category = request.POST.get('category', letter.category)
+        letter.status = request.POST.get('status', letter.status)
+        letter.recipient_name = request.POST.get('recipient_name', '').strip()
+        letter.recipient_title = request.POST.get('recipient_title', '').strip()
+        letter.sender_name = request.POST.get('sender_name', '').strip()
+        letter.sender_title = request.POST.get('sender_title', '').strip()
+        letter.school_name = request.POST.get('school_name', '').strip()
+        letter.district = request.POST.get('district', '').strip()
+        letter.region = request.POST.get('region', '').strip()
+        letter.reference_number = request.POST.get('reference_number', '').strip()
+        letter.date_written = request.POST.get('date_written') or timezone.now().date()
+        letter.body = request.POST.get('body', '').strip()
+        letter.save()
+        messages.success(request, 'Letter saved.')
+        return redirect('individual:letter_edit', pk=letter.pk)
+
+    return render(request, 'individual/tools/letter-writer/editor.html', {
+        'letter': letter,
+        'categories': GESLetter.CATEGORY_CHOICES,
+        'mode': 'edit',
+    })
+
+
+@_tool_required
+@_require_tool('letter-writer')
+@require_POST
+def letter_delete(request, pk):
+    """Delete a letter."""
+    _ensure_public_schema()
+    profile = request.user.individual_profile
+    letter = get_object_or_404(GESLetter, pk=pk, profile=profile)
+    letter.delete()
+    messages.success(request, 'Letter deleted.')
+    return redirect('individual:letter_dashboard')
+
+
+@_tool_required
+@_require_tool('letter-writer')
+def letter_print(request, pk):
+    """Print-ready standalone view of a letter."""
+    _ensure_public_schema()
+    profile = request.user.individual_profile
+    letter = get_object_or_404(GESLetter, pk=pk, profile=profile)
+    return render(request, 'individual/tools/letter-writer/print.html', {
+        'letter': letter,
+    })
+
+
+@_tool_required
+@_require_tool('letter-writer')
+def letter_api(request):
+    """AJAX endpoint for AI letter generation and sample seeding."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    _ensure_public_schema()
+    profile = request.user.individual_profile
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    action = data.get('action', '')
+
+    # ── AI Generate Letter ───────────────────────────────────────────────
+    if action == 'generate':
+        category = data.get('category', 'request')
+        details = data.get('details', '').strip()
+        sender_name = data.get('sender_name', '').strip()
+        sender_title = data.get('sender_title', '').strip()
+        recipient_name = data.get('recipient_name', '').strip()
+        recipient_title = data.get('recipient_title', '').strip()
+        school_name = data.get('school_name', '').strip()
+        district = data.get('district', '').strip()
+        region = data.get('region', '').strip()
+
+        category_label = dict(GESLetter.CATEGORY_CHOICES).get(category, category)
+
+        if not details:
+            return JsonResponse({'error': 'Please provide details about the letter you need.'}, status=400)
+
+        import openai
+        client = openai.OpenAI()
+
+        system_prompt = f"""You are an expert at writing official Ghana Education Service (GES) letters.
+Write a professional {category_label} letter following GES conventions.
+
+GES letter conventions:
+- Use formal British English (Ghana standard)
+- Include proper salutation: "Dear Sir/Madam," or "Dear [Title],"
+- Reference numbers typically follow format: GES/[District]/[Year]/[Number]
+- Use respectful closing: "Yours faithfully," (if addressed to unknown) or "Yours sincerely,"
+- Include sender's full name, title, and school
+- Be concise, professional, and respectful
+- Follow hierarchical addressing (e.g., through Circuit Supervisor to District Director)
+- Use proper GES terminology (e.g., "posting", "release", "secondment")
+
+Context provided:
+- Category: {category_label}
+- Sender: {sender_name or '[Teacher Name]'}, {sender_title or '[Title]'}
+- School: {school_name or '[School Name]'}
+- District: {district or '[District]'}
+- Region: {region or '[Region]'}
+- Recipient: {recipient_name or '[Recipient Name]'}, {recipient_title or '[Recipient Title]'}
+
+Return ONLY the letter body text (no JSON, no markdown fences). Start from the salutation.
+Do not include the letterhead, date, or reference number — they are handled separately.
+End with the closing (e.g., "Yours faithfully,") and leave space for signature."""
+
+        try:
+            response = client.chat.completions.create(
+                model='gpt-4o-mini',
+                messages=[
+                    {'role': 'system', 'content': system_prompt},
+                    {'role': 'user', 'content': f'Write a {category_label} letter. Details: {details}'},
+                ],
+                temperature=0.7,
+                max_tokens=1500,
+            )
+            body = response.choices[0].message.content.strip()
+        except Exception as e:
+            logger.error('Letter AI generation failed: %s', e)
+            return JsonResponse({'error': 'AI generation failed. Please try again.'}, status=500)
+
+        return JsonResponse({'ok': True, 'body': body})
+
+    # ── Load Sample Letters ──────────────────────────────────────────────
+    if action == 'load_samples':
+        existing = GESLetter.objects.filter(profile=profile, is_sample=True).count()
+        if existing > 0:
+            return JsonResponse({'ok': True, 'message': 'Samples already loaded.', 'count': existing})
+
+        samples = _get_sample_letters()
+        created = 0
+        for s in samples:
+            GESLetter.objects.create(profile=profile, is_sample=True, status='final', **s)
+            created += 1
+
+        return JsonResponse({'ok': True, 'message': f'{created} sample letters loaded.', 'count': created})
+
+    return JsonResponse({'error': f'Unknown action: {action}'}, status=400)
+
+
+def _get_sample_letters():
+    """Return a list of sample GES letter dicts for seeding."""
+    from django.utils import timezone
+    today = timezone.now().date()
+    return [
+        {
+            'title': 'Request for Transfer / Posting',
+            'category': 'posting',
+            'recipient_name': 'The District Director of Education',
+            'recipient_title': 'Ghana Education Service',
+            'sender_name': 'John Mensah',
+            'sender_title': 'Classroom Teacher',
+            'school_name': 'Ashaiman M/A Basic School',
+            'district': 'Ashaiman Municipal',
+            'region': 'Greater Accra',
+            'reference_number': 'GES/ASH/2025/001',
+            'date_written': today,
+            'body': (
+                'Dear Sir/Madam,\n\n'
+                'REQUEST FOR TRANSFER\n\n'
+                'I humbly write to request a transfer from my current station at '
+                'Ashaiman M/A Basic School to any school within the Tema Metropolitan '
+                'area.\n\n'
+                'I have served at my current post for the past four (4) years and have '
+                'recently relocated to Tema due to family circumstances. The daily commute '
+                'has become a significant challenge, affecting my punctuality and overall '
+                'effectiveness in the classroom.\n\n'
+                'I believe a transfer to a school closer to my new residence will enable me '
+                'to give my best to the students and the Service. I am willing to serve at '
+                'any school where my services are needed within the said area.\n\n'
+                'I hope my request will receive your favourable consideration.\n\n'
+                'Yours faithfully,\n\n\n'
+                'John Mensah\n'
+                'Staff ID: GES/TC/2020/12345\n'
+                'Classroom Teacher\n'
+                'Ashaiman M/A Basic School'
+            ),
+        },
+        {
+            'title': 'Application for Leave of Absence',
+            'category': 'leave',
+            'recipient_name': 'The Headteacher',
+            'recipient_title': 'Korle-Bu M/A JHS',
+            'sender_name': 'Grace Adjei',
+            'sender_title': 'Assistant Teacher',
+            'school_name': 'Korle-Bu M/A JHS',
+            'district': 'Ablekuma South Municipal',
+            'region': 'Greater Accra',
+            'reference_number': '',
+            'date_written': today,
+            'body': (
+                'Dear Sir/Madam,\n\n'
+                'APPLICATION FOR LEAVE OF ABSENCE\n\n'
+                'I respectfully apply for a leave of absence from Monday, 15th September '
+                '2025 to Friday, 26th September 2025 (two weeks).\n\n'
+                'The purpose of this leave is to attend to a pressing family matter that '
+                'requires my presence in the Ashanti Region. I have made arrangements with '
+                'my colleague, Mr. Kwame Asante, who has kindly agreed to cover my lessons '
+                'during my absence.\n\n'
+                'All lesson notes and materials for the period have been prepared and handed '
+                'over to ensure minimal disruption to the learning schedule.\n\n'
+                'I shall be most grateful if my application is approved.\n\n'
+                'Yours faithfully,\n\n\n'
+                'Grace Adjei\n'
+                'Staff ID: GES/TC/2021/23456\n'
+                'Assistant Teacher\n'
+                'Korle-Bu M/A JHS'
+            ),
+        },
+        {
+            'title': 'Complaint About Unpaid Salary Arrears',
+            'category': 'complaint',
+            'recipient_name': 'The District Director of Education',
+            'recipient_title': 'Ghana Education Service',
+            'sender_name': 'Emmanuel Ofori',
+            'sender_title': 'Senior Superintendent I',
+            'school_name': 'Adenta Community 2 Basic School',
+            'district': 'Adentan Municipal',
+            'region': 'Greater Accra',
+            'reference_number': 'GES/ADN/2025/015',
+            'date_written': today,
+            'body': (
+                'Dear Sir/Madam,\n\n'
+                'COMPLAINT: UNPAID SALARY ARREARS FOR SIX (6) MONTHS\n\n'
+                'I write with great concern to bring to your attention the non-payment '
+                'of my salary arrears for the period January to June 2025.\n\n'
+                'Despite several visits to the District Education Office and verbal '
+                'assurances from the Finance Unit, the situation remains unresolved. '
+                'This has caused significant financial hardship to me and my family.\n\n'
+                'I respectfully urge your office to look into this matter urgently and '
+                'ensure the payment of the said arrears.\n\n'
+                'Attached herewith are copies of my appointment letter and recent pay '
+                'slips for your reference.\n\n'
+                'I trust that this matter will receive your immediate and favourable '
+                'attention.\n\n'
+                'Yours faithfully,\n\n\n'
+                'Emmanuel Ofori\n'
+                'Staff ID: GES/TC/2018/34567\n'
+                'Senior Superintendent I\n'
+                'Adenta Community 2 Basic School'
+            ),
+        },
+        {
+            'title': 'Letter of Recommendation for Colleague',
+            'category': 'recommendation',
+            'recipient_name': 'To Whom It May Concern',
+            'recipient_title': '',
+            'sender_name': 'Dr. Abena Mensah',
+            'sender_title': 'Headmistress',
+            'school_name': 'Wesley Girls High School',
+            'district': 'Cape Coast Metropolitan',
+            'region': 'Central',
+            'reference_number': '',
+            'date_written': today,
+            'body': (
+                'Dear Sir/Madam,\n\n'
+                'LETTER OF RECOMMENDATION — MR. ISAAC DARKO\n\n'
+                'I am pleased to recommend Mr. Isaac Darko, who has served as a Mathematics '
+                'teacher at Wesley Girls High School for the past five (5) years.\n\n'
+                'During his tenure, Mr. Darko has demonstrated exceptional commitment to '
+                'teaching and learning. His innovative teaching methods have contributed '
+                'significantly to improved student performance in Mathematics at both the '
+                'BECE and WASSCE levels.\n\n'
+                'Mr. Darko is diligent, punctual, and highly collaborative. He has also '
+                'served as the school\'s Mathematics Club patron and STEM coordinator with '
+                'remarkable dedication.\n\n'
+                'I have no hesitation in recommending Mr. Darko for any position or '
+                'opportunity he may seek. He will be a valuable asset to any institution.\n\n'
+                'Yours faithfully,\n\n\n'
+                'Dr. Abena Mensah\n'
+                'Headmistress\n'
+                'Wesley Girls High School\n'
+                'Cape Coast'
+            ),
+        },
+        {
+            'title': 'Permission to Attend Workshop',
+            'category': 'permission',
+            'recipient_name': 'The Headteacher',
+            'recipient_title': '',
+            'sender_name': 'Patience Akoto',
+            'sender_title': 'Science Teacher',
+            'school_name': 'Osu Salem JHS',
+            'district': 'Osu Klottey Sub-Metro',
+            'region': 'Greater Accra',
+            'reference_number': '',
+            'date_written': today,
+            'body': (
+                'Dear Sir/Madam,\n\n'
+                'REQUEST FOR PERMISSION TO ATTEND STEM WORKSHOP\n\n'
+                'I write to seek your permission to attend a three-day STEM Workshop '
+                'organised by the National Science and Maths Quiz Foundation, scheduled '
+                'to take place from 10th to 12th October 2025 at the University of Ghana, '
+                'Legon.\n\n'
+                'The workshop will cover practical approaches to teaching Integrated Science '
+                'at the JHS level, which aligns directly with my responsibilities. The '
+                'knowledge and skills gained will greatly benefit our students.\n\n'
+                'I have coordinated with my fellow Science teachers who will ensure '
+                'continuity of lessons during my brief absence.\n\n'
+                'I would be grateful for your approval.\n\n'
+                'Yours faithfully,\n\n\n'
+                'Patience Akoto\n'
+                'Science Teacher\n'
+                'Osu Salem JHS'
+            ),
+        },
+        {
+            'title': 'Letter of Appreciation to District Director',
+            'category': 'appreciation',
+            'recipient_name': 'The District Director of Education',
+            'recipient_title': 'Ghana Education Service',
+            'sender_name': 'The Teaching Staff',
+            'sender_title': 'Achimota Basic School',
+            'school_name': 'Achimota Basic School',
+            'district': 'Okaikoi North Municipal',
+            'region': 'Greater Accra',
+            'reference_number': '',
+            'date_written': today,
+            'body': (
+                'Dear Sir/Madam,\n\n'
+                'LETTER OF APPRECIATION\n\n'
+                'On behalf of the entire teaching staff of Achimota Basic School, I write '
+                'to express our sincere gratitude for the recent provision of teaching and '
+                'learning materials to our school.\n\n'
+                'The textbooks, mathematical sets, and science equipment have significantly '
+                'enhanced our ability to deliver quality education. Our pupils are more '
+                'engaged and enthusiastic about learning.\n\n'
+                'We appreciate the continuous support of the Directorate and assure you of '
+                'our commitment to producing excellent academic results.\n\n'
+                'May God bless the Service.\n\n'
+                'Yours faithfully,\n\n\n'
+                'The Teaching Staff\n'
+                'Achimota Basic School\n'
+                'Okaikoi North Municipal'
+            ),
+        },
+    ]

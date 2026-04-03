@@ -1,0 +1,370 @@
+{% extends 'individual/base.html' %}
+{% block title %}GES Letter Writer — Aura Teacher Portal{% endblock %}
+{% block page_title %}GES Letter Writer{% endblock %}
+
+{% block extra_css %}
+/* ── Letter Writer Dashboard ───────────────── */
+.lw-hero {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 60%, #1e40af 100%);
+    border-radius: var(--radius-lg); color: #fff;
+    padding: 1.5rem 2rem; margin-bottom: 1.5rem;
+    position: relative; overflow: hidden;
+}
+.lw-hero::after {
+    content: ''; position: absolute; top: -30px; right: -30px;
+    width: 140px; height: 140px; border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+}
+.lw-hero-title { font-size: 1.2rem; font-weight: 800; }
+.lw-hero-sub { font-size: 0.84rem; opacity: 0.85; margin-top: 0.2rem; }
+.lw-hero-stats { display: flex; gap: 1.5rem; margin-top: 1rem; }
+.lw-hero-stat-value { font-size: 1.5rem; font-weight: 800; }
+.lw-hero-stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.8; }
+.lw-hero-actions { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+.lw-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.55rem 1rem; border-radius: 8px;
+    font-size: 0.82rem; font-weight: 600;
+    text-decoration: none; border: none; cursor: pointer;
+    transition: all 0.15s ease;
+}
+.lw-btn-white { background: #fff; color: #2563eb; }
+.lw-btn-white:hover { background: #eff6ff; color: #1d4ed8; }
+.lw-btn-glass { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
+.lw-btn-glass:hover { background: rgba(255,255,255,0.25); color: #fff; }
+
+/* ── Toolbar ───────────────────────────────── */
+.lw-toolbar {
+    display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap; align-items: center;
+}
+.lw-search-wrap { flex: 1; min-width: 200px; position: relative; }
+.lw-search-wrap i {
+    position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%);
+    color: var(--text-muted); font-size: 0.9rem; pointer-events: none;
+}
+.lw-search {
+    width: 100%; padding: 0.5rem 0.85rem 0.5rem 2.2rem;
+    border: 1px solid var(--border-color); border-radius: 8px;
+    background: var(--surface-card); color: var(--text-main);
+    font-family: inherit; font-size: 0.85rem;
+}
+.lw-search:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+.lw-filter-chip {
+    padding: 0.4rem 0.85rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600;
+    border: 1px solid var(--border-color); background: var(--surface-card);
+    color: var(--text-muted); cursor: pointer; transition: all 0.15s ease;
+    text-decoration: none;
+}
+.lw-filter-chip.active, .lw-filter-chip:hover {
+    background: rgba(37,99,235,0.1); color: #2563eb; border-color: rgba(37,99,235,0.3);
+}
+[data-bs-theme="dark"] .lw-filter-chip.active { background: rgba(37,99,235,0.2); color: #60a5fa; }
+
+/* ── Cards ─────────────────────────────────── */
+.lw-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1rem;
+}
+.lw-card { padding: 1.25rem; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.lw-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.lw-card-head { display: flex; gap: 0.75rem; align-items: flex-start; margin-bottom: 0.65rem; }
+.lw-card-icon {
+    width: 42px; height: 42px; border-radius: 10px;
+    background: rgba(37,99,235,0.1); color: #2563eb;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.15rem; flex-shrink: 0;
+}
+[data-bs-theme="dark"] .lw-card-icon { background: rgba(37,99,235,0.18); color: #60a5fa; }
+.lw-card-title { font-size: 0.95rem; font-weight: 700; margin: 0; }
+.lw-card-meta { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+.lw-card-pills { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+.lw-pill {
+    display: inline-flex; align-items: center; gap: 0.25rem;
+    padding: 0.18rem 0.5rem; border-radius: 6px; font-size: 0.72rem; font-weight: 600;
+    background: rgba(37,99,235,0.06); color: #2563eb;
+}
+[data-bs-theme="dark"] .lw-pill { background: rgba(37,99,235,0.15); color: #93bbfd; }
+.lw-pill-draft { background: rgba(245,158,11,0.1); color: #d97706; }
+[data-bs-theme="dark"] .lw-pill-draft { background: rgba(245,158,11,0.18); color: #fbbf24; }
+.lw-pill-final { background: rgba(5,150,105,0.1); color: #059669; }
+[data-bs-theme="dark"] .lw-pill-final { background: rgba(5,150,105,0.15); color: #34d399; }
+.lw-pill-sample { background: rgba(139,92,246,0.1); color: #7c3aed; }
+[data-bs-theme="dark"] .lw-pill-sample { background: rgba(139,92,246,0.18); color: #a78bfa; }
+.lw-card-snippet {
+    font-size: 0.82rem; color: var(--text-muted); line-height: 1.5;
+    display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 0.85rem;
+}
+.lw-card-actions { display: flex; gap: 0.4rem; }
+.lw-btn-sm {
+    display: inline-flex; align-items: center; gap: 0.25rem;
+    padding: 0.35rem 0.7rem; border-radius: 6px;
+    font-size: 0.78rem; font-weight: 600;
+    text-decoration: none; border: 1px solid var(--border-color); cursor: pointer;
+    background: transparent; color: var(--text-muted); transition: all 0.15s ease;
+}
+.lw-btn-sm:hover { border-color: #2563eb; color: #2563eb; }
+.lw-btn-sm.danger { color: #dc2626; border-color: rgba(220,38,38,0.25); }
+.lw-btn-sm.danger:hover { border-color: #dc2626; background: rgba(220,38,38,0.06); }
+.lw-empty { text-align: center; padding: 4rem 1.5rem; grid-column: 1 / -1; }
+.lw-empty-icon {
+    width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 1rem;
+    background: rgba(37,99,235,0.08);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; color: #2563eb;
+}
+.lw-empty p { color: var(--text-muted); font-size: 0.9rem; }
+
+/* ── Section ───────────────────────────────── */
+.lw-section-title {
+    font-size: 1rem; font-weight: 700; margin-bottom: 1.25rem;
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.lw-section-title i { color: #2563eb; }
+
+/* ── Tab Nav ───────────────────────────────── */
+.lw-tabs { display: flex; gap: 0.25rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); }
+.lw-tab {
+    padding: 0.65rem 1.25rem; font-size: 0.85rem; font-weight: 600;
+    color: var(--text-muted); border-bottom: 2px solid transparent;
+    cursor: pointer; transition: all 0.15s ease; background: none; border-top: 0; border-left: 0; border-right: 0;
+}
+.lw-tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+.lw-tab:hover { color: #2563eb; }
+.lw-tab-panel { display: none; }
+.lw-tab-panel.active { display: block; }
+
+@media (max-width: 576px) {
+    .lw-grid { grid-template-columns: 1fr; }
+    .lw-hero-stats { flex-direction: column; gap: 0.75rem; }
+}
+{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<div class="lw-hero">
+    <div class="lw-hero-title"><i class="bi bi-envelope-paper me-2"></i>GES Letter Writer</div>
+    <div class="lw-hero-sub">Browse sample GES letters, generate with AI, or write from scratch</div>
+    <div class="lw-hero-stats">
+        <div>
+            <div class="lw-hero-stat-value">{{ total_count }}</div>
+            <div class="lw-hero-stat-label">Total Letters</div>
+        </div>
+        <div>
+            <div class="lw-hero-stat-value">{{ draft_count }}</div>
+            <div class="lw-hero-stat-label">Drafts</div>
+        </div>
+        <div>
+            <div class="lw-hero-stat-value">{{ final_count }}</div>
+            <div class="lw-hero-stat-label">Finalised</div>
+        </div>
+    </div>
+    <div class="lw-hero-actions">
+        <a href="{% url 'individual:letter_create' %}" class="lw-btn lw-btn-white">
+            <i class="bi bi-plus-circle"></i> New Letter
+        </a>
+        <button type="button" class="lw-btn lw-btn-glass" id="btnLoadSamples">
+            <i class="bi bi-collection"></i> Load Sample Letters
+        </button>
+        <a href="{% url 'individual:tools_hub' %}" class="lw-btn lw-btn-glass">
+            <i class="bi bi-arrow-left"></i> Back to Tools
+        </a>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="lw-tabs">
+    <button class="lw-tab active" data-tab="my-letters">
+        <i class="bi bi-file-earmark-text me-1"></i>My Letters ({{ total_count }})
+    </button>
+    <button class="lw-tab" data-tab="samples">
+        <i class="bi bi-bookmark me-1"></i>Sample Letters ({{ samples|length }})
+    </button>
+</div>
+
+<!-- My Letters Panel -->
+<div class="lw-tab-panel active" id="tab-my-letters">
+    <!-- Toolbar -->
+    <div class="lw-toolbar">
+        <div class="lw-search-wrap">
+            <i class="bi bi-search"></i>
+            <input type="text" class="lw-search" id="letterSearch" placeholder="Search letters...">
+        </div>
+        <a href="{% url 'individual:letter_dashboard' %}" class="lw-filter-chip {% if not current_category and not current_status %}active{% endif %}">All</a>
+        <a href="{% url 'individual:letter_dashboard' %}?status=draft" class="lw-filter-chip {% if current_status == 'draft' %}active{% endif %}">Drafts</a>
+        <a href="{% url 'individual:letter_dashboard' %}?status=final" class="lw-filter-chip {% if current_status == 'final' %}active{% endif %}">Final</a>
+    </div>
+
+    <!-- Category filter chips -->
+    {% if not current_status %}
+    <div style="display:flex;gap:0.35rem;flex-wrap:wrap;margin-bottom:1.25rem;">
+        {% for val, label in categories %}
+        <a href="{% url 'individual:letter_dashboard' %}?category={{ val }}"
+           class="lw-filter-chip {% if current_category == val %}active{% endif %}" style="font-size:0.72rem;padding:0.3rem 0.65rem;">
+            {{ label }}
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Letters Grid -->
+    <div class="lw-grid" id="lettersGrid">
+        {% for letter in letters %}
+        <div class="iu-card lw-card" data-title="{{ letter.title|lower }}">
+            <div class="lw-card-head">
+                <div class="lw-card-icon"><i class="bi bi-envelope-paper"></i></div>
+                <div style="flex:1;min-width:0">
+                    <div class="lw-card-title">{{ letter.title }}</div>
+                    <div class="lw-card-meta">
+                        {{ letter.get_category_display }} &middot;
+                        {{ letter.updated_at|date:"j M Y" }}
+                    </div>
+                </div>
+            </div>
+            <div class="lw-card-pills">
+                <span class="lw-pill">{{ letter.get_category_display }}</span>
+                {% if letter.status == 'draft' %}
+                <span class="lw-pill lw-pill-draft"><i class="bi bi-pencil"></i> Draft</span>
+                {% else %}
+                <span class="lw-pill lw-pill-final"><i class="bi bi-check-circle"></i> Final</span>
+                {% endif %}
+                {% if letter.ai_generated %}
+                <span class="lw-pill" style="background:rgba(139,92,246,0.1);color:#7c3aed;">
+                    <i class="bi bi-stars"></i> AI
+                </span>
+                {% endif %}
+            </div>
+            {% if letter.body %}
+            <div class="lw-card-snippet">{{ letter.body|truncatewords:30 }}</div>
+            {% endif %}
+            <div class="lw-card-actions">
+                <a href="{% url 'individual:letter_edit' pk=letter.pk %}" class="lw-btn-sm">
+                    <i class="bi bi-pencil-square"></i> Edit
+                </a>
+                <a href="{% url 'individual:letter_print' pk=letter.pk %}" class="lw-btn-sm" target="_blank">
+                    <i class="bi bi-printer"></i> Print
+                </a>
+                <form method="post" action="{% url 'individual:letter_delete' pk=letter.pk %}"
+                      style="margin:0" onsubmit="return confirm('Delete this letter?')">
+                    {% csrf_token %}
+                    <button type="submit" class="lw-btn-sm danger">
+                        <i class="bi bi-trash3"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% empty %}
+        <div class="lw-empty">
+            <div class="lw-empty-icon"><i class="bi bi-envelope-paper"></i></div>
+            <p>No letters yet. Create your first letter or load sample letters to get started.</p>
+            <a href="{% url 'individual:letter_create' %}" class="lw-btn lw-btn-white" style="background:#2563eb;color:#fff;">
+                <i class="bi bi-plus-circle"></i> Write a Letter
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Samples Panel -->
+<div class="lw-tab-panel" id="tab-samples">
+    {% if samples %}
+    <div class="lw-grid">
+        {% for letter in samples %}
+        <div class="iu-card lw-card">
+            <div class="lw-card-head">
+                <div class="lw-card-icon" style="background:rgba(139,92,246,0.1);color:#7c3aed;">
+                    <i class="bi bi-bookmark-star"></i>
+                </div>
+                <div style="flex:1;min-width:0">
+                    <div class="lw-card-title">{{ letter.title }}</div>
+                    <div class="lw-card-meta">{{ letter.get_category_display }} &middot; Sample</div>
+                </div>
+            </div>
+            <div class="lw-card-pills">
+                <span class="lw-pill lw-pill-sample"><i class="bi bi-bookmark-star"></i> Sample</span>
+                <span class="lw-pill">{{ letter.get_category_display }}</span>
+            </div>
+            {% if letter.body %}
+            <div class="lw-card-snippet">{{ letter.body|truncatewords:30 }}</div>
+            {% endif %}
+            <div class="lw-card-actions">
+                <a href="{% url 'individual:letter_edit' pk=letter.pk %}" class="lw-btn-sm">
+                    <i class="bi bi-eye"></i> View
+                </a>
+                <a href="{% url 'individual:letter_print' pk=letter.pk %}" class="lw-btn-sm" target="_blank">
+                    <i class="bi bi-printer"></i> Print
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="lw-empty">
+        <div class="lw-empty-icon" style="background:rgba(139,92,246,0.08);">
+            <i class="bi bi-bookmark-star" style="color:#7c3aed;"></i>
+        </div>
+        <p>No sample letters loaded yet. Click "Load Sample Letters" above to see real GES letter examples.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ── Tab switching ────────────────────────────
+    document.querySelectorAll('.lw-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            document.querySelectorAll('.lw-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.lw-tab-panel').forEach(p => p.classList.remove('active'));
+            this.classList.add('active');
+            document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+        });
+    });
+
+    // ── Client-side search ───────────────────────
+    const searchInput = document.getElementById('letterSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const q = this.value.toLowerCase();
+            document.querySelectorAll('#lettersGrid .lw-card').forEach(card => {
+                const title = card.dataset.title || '';
+                card.style.display = title.includes(q) ? '' : 'none';
+            });
+        });
+    }
+
+    // ── Load samples ─────────────────────────────
+    const btnLoad = document.getElementById('btnLoadSamples');
+    if (btnLoad) {
+        btnLoad.addEventListener('click', function() {
+            btnLoad.disabled = true;
+            btnLoad.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Loading...';
+            fetch("{% url 'individual:letter_api' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: JSON.stringify({ action: 'load_samples' }),
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) {
+                    location.reload();
+                } else {
+                    alert(data.error || 'Failed to load samples');
+                    btnLoad.disabled = false;
+                    btnLoad.innerHTML = '<i class="bi bi-collection"></i> Load Sample Letters';
+                }
+            })
+            .catch(() => {
+                alert('Network error');
+                btnLoad.disabled = false;
+                btnLoad.innerHTML = '<i class="bi bi-collection"></i> Load Sample Letters';
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

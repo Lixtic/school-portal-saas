@@ -1,0 +1,323 @@
+{% extends 'individual/base.html' %}
+{% block title %}{% if mode == 'edit' %}Edit: {{ letter.title }}{% else %}New Letter{% endif %} — GES Letter Writer{% endblock %}
+{% block page_title %}{% if mode == 'edit' %}Edit Letter{% else %}New Letter{% endif %}{% endblock %}
+
+{% block extra_css %}
+/* ── Letter Editor ─────────────────────────── */
+.le-hero {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 60%, #1e40af 100%);
+    border-radius: var(--radius-lg); color: #fff;
+    padding: 1.25rem 1.75rem; margin-bottom: 1.5rem;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 0.75rem;
+}
+.le-hero-title { font-size: 1.1rem; font-weight: 800; }
+.le-hero-sub { font-size: 0.82rem; opacity: 0.85; }
+.le-hero-actions { display: flex; gap: 0.5rem; }
+.le-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.5rem 1rem; border-radius: 8px;
+    font-size: 0.82rem; font-weight: 600;
+    text-decoration: none; border: none; cursor: pointer;
+    transition: all 0.15s ease;
+}
+.le-btn-white { background: #fff; color: #2563eb; }
+.le-btn-white:hover { background: #eff6ff; color: #1d4ed8; }
+.le-btn-glass { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
+.le-btn-glass:hover { background: rgba(255,255,255,0.25); color: #fff; }
+
+/* ── Layout ────────────────────────────────── */
+.le-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.le-panel { }
+.le-panel-title {
+    font-size: 0.92rem; font-weight: 700; margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.le-panel-title i { color: #2563eb; }
+.le-form-group { margin-bottom: 1rem; }
+.le-label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.3rem; }
+.le-input, .le-select, .le-textarea {
+    width: 100%; padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color); border-radius: 8px;
+    background: var(--surface-card); color: var(--text-main);
+    font-family: inherit; font-size: 0.85rem;
+}
+.le-input:focus, .le-select:focus, .le-textarea:focus {
+    outline: none; border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+}
+.le-textarea { min-height: 320px; resize: vertical; line-height: 1.7; }
+.le-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+/* ── AI Panel ──────────────────────────────── */
+.le-ai-box {
+    background: linear-gradient(135deg, rgba(37,99,235,0.04) 0%, rgba(139,92,246,0.04) 100%);
+    border: 1px solid rgba(37,99,235,0.15);
+    border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1rem;
+}
+[data-bs-theme="dark"] .le-ai-box {
+    background: linear-gradient(135deg, rgba(37,99,235,0.08) 0%, rgba(139,92,246,0.06) 100%);
+    border-color: rgba(37,99,235,0.25);
+}
+.le-ai-title { font-size: 0.88rem; font-weight: 700; margin-bottom: 0.75rem; }
+.le-ai-desc { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem; }
+.le-ai-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.5rem 1rem; border-radius: 8px;
+    font-size: 0.82rem; font-weight: 600;
+    background: #2563eb; color: #fff; border: none; cursor: pointer;
+    transition: all 0.15s ease;
+}
+.le-ai-btn:hover { background: #1d4ed8; }
+.le-ai-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── Form Actions ──────────────────────────── */
+.le-actions {
+    display: flex; gap: 0.5rem; margin-top: 1.5rem; align-items: center; flex-wrap: wrap;
+}
+.le-save-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.6rem 1.5rem; border-radius: 8px;
+    font-size: 0.85rem; font-weight: 700;
+    background: #2563eb; color: #fff; border: none; cursor: pointer;
+}
+.le-save-btn:hover { background: #1d4ed8; }
+.le-outline-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.6rem 1.25rem; border-radius: 8px;
+    font-size: 0.85rem; font-weight: 600;
+    background: transparent; color: var(--text-muted);
+    border: 1px solid var(--border-color); cursor: pointer;
+    text-decoration: none;
+}
+.le-outline-btn:hover { border-color: #2563eb; color: #2563eb; }
+
+@media (max-width: 768px) {
+    .le-layout { grid-template-columns: 1fr; }
+    .le-row { grid-template-columns: 1fr; }
+}
+{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<div class="le-hero">
+    <div>
+        <div class="le-hero-title">
+            <i class="bi bi-envelope-paper me-1"></i>
+            {% if mode == 'edit' %}{{ letter.title }}{% else %}New Letter{% endif %}
+        </div>
+        <div class="le-hero-sub">
+            {% if mode == 'edit' %}Edit and manage your letter{% else %}Create a new GES letter from scratch or with AI{% endif %}
+        </div>
+    </div>
+    <div class="le-hero-actions">
+        {% if mode == 'edit' %}
+        <a href="{% url 'individual:letter_print' pk=letter.pk %}" class="le-btn le-btn-white" target="_blank">
+            <i class="bi bi-printer"></i> Print
+        </a>
+        {% endif %}
+        <a href="{% url 'individual:letter_dashboard' %}" class="le-btn le-btn-glass">
+            <i class="bi bi-arrow-left"></i> All Letters
+        </a>
+    </div>
+</div>
+
+<form method="post" action="{% if mode == 'edit' %}{% url 'individual:letter_edit' pk=letter.pk %}{% else %}{% url 'individual:letter_create' %}{% endif %}" id="letterForm">
+{% csrf_token %}
+
+<div class="le-layout">
+    <!-- Left: Metadata -->
+    <div class="le-panel">
+        <div class="le-panel-title"><i class="bi bi-info-circle"></i> Letter Details</div>
+
+        <div class="le-form-group">
+            <label class="le-label">Title / Subject</label>
+            <input type="text" name="title" class="le-input" value="{{ letter.title|default:'' }}"
+                   placeholder="e.g. Request for Transfer to Tema Metropolitan" required>
+        </div>
+
+        <div class="le-row">
+            <div class="le-form-group">
+                <label class="le-label">Category</label>
+                <select name="category" class="le-select" id="categorySelect">
+                    {% for val, label in categories %}
+                    <option value="{{ val }}" {% if mode == 'edit' and letter.category == val %}selected{% elif mode == 'create' and initial_category == val %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="le-form-group">
+                <label class="le-label">Status</label>
+                <select name="status" class="le-select">
+                    <option value="draft" {% if mode == 'edit' and letter.status == 'draft' %}selected{% elif mode == 'create' %}selected{% endif %}>Draft</option>
+                    <option value="final" {% if mode == 'edit' and letter.status == 'final' %}selected{% endif %}>Final</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="le-row">
+            <div class="le-form-group">
+                <label class="le-label">Reference Number</label>
+                <input type="text" name="reference_number" class="le-input"
+                       value="{{ letter.reference_number|default:'' }}" placeholder="e.g. GES/ACC/2025/001">
+            </div>
+            <div class="le-form-group">
+                <label class="le-label">Date</label>
+                <input type="date" name="date_written" class="le-input"
+                       value="{% if letter.date_written %}{{ letter.date_written|date:'Y-m-d' }}{% endif %}">
+            </div>
+        </div>
+
+        <div class="le-row">
+            <div class="le-form-group">
+                <label class="le-label">Recipient Name</label>
+                <input type="text" name="recipient_name" class="le-input"
+                       value="{{ letter.recipient_name|default:'' }}" placeholder="e.g. The District Director of Education">
+            </div>
+            <div class="le-form-group">
+                <label class="le-label">Recipient Title/Office</label>
+                <input type="text" name="recipient_title" class="le-input"
+                       value="{{ letter.recipient_title|default:'' }}" placeholder="e.g. Ghana Education Service">
+            </div>
+        </div>
+
+        <div class="le-row">
+            <div class="le-form-group">
+                <label class="le-label">Sender Name</label>
+                <input type="text" name="sender_name" class="le-input" id="senderName"
+                       value="{{ letter.sender_name|default:'' }}" placeholder="Your full name">
+            </div>
+            <div class="le-form-group">
+                <label class="le-label">Sender Title</label>
+                <input type="text" name="sender_title" class="le-input" id="senderTitle"
+                       value="{{ letter.sender_title|default:'' }}" placeholder="e.g. Classroom Teacher">
+            </div>
+        </div>
+
+        <div class="le-form-group">
+            <label class="le-label">School Name</label>
+            <input type="text" name="school_name" class="le-input" id="schoolName"
+                   value="{{ letter.school_name|default:'' }}" placeholder="e.g. Achimota Primary School">
+        </div>
+
+        <div class="le-row">
+            <div class="le-form-group">
+                <label class="le-label">District</label>
+                <input type="text" name="district" class="le-input" id="districtInput"
+                       value="{{ letter.district|default:'' }}" placeholder="e.g. Accra Metropolitan">
+            </div>
+            <div class="le-form-group">
+                <label class="le-label">Region</label>
+                <input type="text" name="region" class="le-input" id="regionInput"
+                       value="{{ letter.region|default:'' }}" placeholder="e.g. Greater Accra">
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Body + AI -->
+    <div class="le-panel">
+        <!-- AI Generation -->
+        <div class="le-ai-box">
+            <div class="le-ai-title"><i class="bi bi-stars me-1" style="color:#7c3aed"></i>AI Letter Generator</div>
+            <div class="le-ai-desc">
+                Describe what you need and AI will draft the letter body following GES conventions.
+                Fill in the details on the left first for better results.
+            </div>
+            <div class="le-form-group" style="margin-bottom:0.75rem">
+                <textarea id="aiDetails" class="le-textarea" style="min-height:80px;" 
+                          placeholder="Describe your letter. e.g. I want to request a transfer from Takoradi to Kumasi because my spouse was transferred there. I've been at my current school for 3 years."></textarea>
+            </div>
+            <button type="button" class="le-ai-btn" id="btnGenerate">
+                <i class="bi bi-stars"></i> Generate Letter Body
+            </button>
+        </div>
+
+        <div class="le-panel-title"><i class="bi bi-body-text"></i> Letter Body</div>
+        <div class="le-form-group">
+            <textarea name="body" class="le-textarea" id="letterBody"
+                      placeholder="Write your letter body here, starting from 'Dear Sir/Madam,'...">{{ letter.body|default:'' }}</textarea>
+        </div>
+    </div>
+</div>
+
+<!-- Actions -->
+<div class="le-actions">
+    <button type="submit" class="le-save-btn">
+        <i class="bi bi-check-circle"></i> {% if mode == 'edit' %}Save Changes{% else %}Create Letter{% endif %}
+    </button>
+    {% if mode == 'edit' %}
+    <a href="{% url 'individual:letter_print' pk=letter.pk %}" class="le-outline-btn" target="_blank">
+        <i class="bi bi-printer"></i> Print Preview
+    </a>
+    <form method="post" action="{% url 'individual:letter_delete' pk=letter.pk %}" style="margin:0"
+          onsubmit="return confirm('Delete this letter permanently?')">
+        {% csrf_token %}
+        <button type="submit" class="le-outline-btn" style="color:#dc2626;border-color:rgba(220,38,38,0.3);">
+            <i class="bi bi-trash3"></i> Delete
+        </button>
+    </form>
+    {% endif %}
+    <a href="{% url 'individual:letter_dashboard' %}" class="le-outline-btn ms-auto">Cancel</a>
+</div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btnGen = document.getElementById('btnGenerate');
+    const aiDetails = document.getElementById('aiDetails');
+    const letterBody = document.getElementById('letterBody');
+
+    btnGen.addEventListener('click', function() {
+        const details = aiDetails.value.trim();
+        if (!details) {
+            alert('Please describe what you need the letter for.');
+            aiDetails.focus();
+            return;
+        }
+
+        btnGen.disabled = true;
+        btnGen.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generating...';
+
+        const payload = {
+            action: 'generate',
+            category: document.getElementById('categorySelect').value,
+            details: details,
+            sender_name: document.getElementById('senderName').value,
+            sender_title: document.getElementById('senderTitle').value,
+            recipient_name: document.querySelector('[name="recipient_name"]').value,
+            recipient_title: document.querySelector('[name="recipient_title"]').value,
+            school_name: document.getElementById('schoolName').value,
+            district: document.getElementById('districtInput').value,
+            region: document.getElementById('regionInput').value,
+        };
+
+        fetch("{% url 'individual:letter_api' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: JSON.stringify(payload),
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                letterBody.value = data.body;
+                letterBody.style.minHeight = '400px';
+                letterBody.focus();
+            } else {
+                alert(data.error || 'Generation failed.');
+            }
+        })
+        .catch(() => alert('Network error. Please try again.'))
+        .finally(() => {
+            btnGen.disabled = false;
+            btnGen.innerHTML = '<i class="bi bi-stars"></i> Generate Letter Body';
+        });
+    });
+});
+</script>
+{% endblock %}
