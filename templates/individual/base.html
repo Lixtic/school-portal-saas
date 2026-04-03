@@ -294,7 +294,7 @@
             color: #dc2626;
         }
 
-        /* ── Button Loader ───────────────────────── */
+        /* ── Button Loader — Aura dot-pulse ──────── */
         .btn-loading {
             position: relative;
             color: transparent !important;
@@ -303,14 +303,37 @@
         .btn-loading::after {
             content: '';
             position: absolute;
-            width: 14px; height: 14px;
-            top: 50%; left: 50%; margin: -7px 0 0 -7px;
-            border: 2px solid rgba(255,255,255,.35);
-            border-top-color: #fff;
+            width: 6px; height: 6px;
+            top: 50%; left: 50%; margin: -3px 0 0 -11px;
+            background: #fff;
             border-radius: 50%;
-            animation: auraBtnSpin 0.55s linear infinite;
+            box-shadow: 8px 0 0 -1px rgba(255,255,255,.45), 16px 0 0 -1px rgba(255,255,255,.25);
+            animation: auraDotPulse 1s ease-in-out infinite;
         }
-        @keyframes auraBtnSpin { to { transform: rotate(360deg); } }
+        @keyframes auraDotPulse {
+            0%   { box-shadow: 8px 0 0 -1px rgba(255,255,255,.45), 16px 0 0 -1px rgba(255,255,255,.25); }
+            33%  { box-shadow: 8px 0 0 0px  #fff,                  16px 0 0 -1px rgba(255,255,255,.45); background: rgba(255,255,255,.45); }
+            66%  { box-shadow: 8px 0 0 -1px rgba(255,255,255,.25), 16px 0 0 0px  #fff;                 background: rgba(255,255,255,.25); }
+            100% { box-shadow: 8px 0 0 -1px rgba(255,255,255,.45), 16px 0 0 -1px rgba(255,255,255,.25); }
+        }
+        .btn .spinner-border,
+        .btn .spinner-border-sm {
+            display: inline-block;
+            width: 6px; height: 6px;
+            border: none;
+            background: currentColor;
+            border-radius: 50%;
+            vertical-align: middle;
+            animation: auraBtnDots 1s ease-in-out infinite;
+            box-shadow: 8px 0 0 -1px currentColor, 16px 0 0 -1px currentColor;
+            margin-right: 10px;
+        }
+        @keyframes auraBtnDots {
+            0%   { opacity: 1; box-shadow: 8px 0 0 -1px currentColor, 16px 0 0 -2px currentColor; }
+            33%  { opacity: .4; box-shadow: 8px 0 0 0px  currentColor, 16px 0 0 -1px currentColor; }
+            66%  { opacity: .4; box-shadow: 8px 0 0 -2px currentColor, 16px 0 0 0px  currentColor; }
+            100% { opacity: 1; box-shadow: 8px 0 0 -1px currentColor, 16px 0 0 -2px currentColor; }
+        }
 
         {% block extra_css %}{% endblock %}
     </style>
