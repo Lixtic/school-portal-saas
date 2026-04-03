@@ -275,6 +275,8 @@ def pwa_launch(request):
             return redirect(f'/{bound_schema}/dashboard/')
         if request.user.is_staff:
             return redirect('/tenants/landlord/')
+        if getattr(request.user, 'user_type', '') == 'individual':
+            return redirect('/u/dashboard/')
     return redirect('/')
 
 
@@ -295,6 +297,13 @@ def homepage(request):
             # Staff/superuser without a tenant session → landlord panel
             if request.user.is_staff:
                 return redirect('/tenants/landlord/')
+            # Individual portal users (developers / standalone teachers)
+            if getattr(request.user, 'user_type', '') == 'individual':
+                return redirect('/u/dashboard/')
+            # Authenticated school user with no tenant binding — clear the
+            # stale session so they can find their school and sign in again.
+            logout(request)
+            messages.info(request, 'Please find your school and sign in.')
 
         try:
             platform = PlatformSettings.get()
@@ -608,10 +617,16 @@ def dashboard(request):
         if user.is_staff:
             return redirect('/tenants/landlord/')
             
-        # Avoid querying tenant-specific models (Student, Teacher, etc.) which don't exist in public schema
+        # Individual portal users land on their own dashboard
+        if getattr(user, 'user_type', '') == 'individual':
+            return redirect('/u/dashboard/')
+
+        # Authenticated non-staff user with no school binding — log out to
+        # avoid an infinite redirect loop (dashboard → home → dashboard).
         if not user.is_superuser and not user.is_staff:
-             # Basic public user? Maybe redirect to home or signup
-             return redirect('home')
+            logout(request)
+            messages.info(request, 'Please find your school and sign in.')
+            return redirect('login')
              
         from tenants.models import School, Domain
         context = {
