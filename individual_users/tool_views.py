@@ -3257,20 +3257,43 @@ def marker_api(request):
         opt_count = session.options_per_question
         opt_letters = ', '.join(chr(65 + i) for i in range(opt_count))
 
+        system_msg = (
+            'You are a specialist at reading scanned/photographed multiple-choice '
+            'answer sheets (also called OMR or bubble sheets). You have perfect '
+            'accuracy at distinguishing filled/shaded bubbles from empty ones.'
+        )
+
         prompt = (
-            f'You are analysing a photograph of a shaded MCQ answer sheet. '
-            f'The paper has {num_q} questions, each with options {opt_letters}.\n\n'
-            'Extract:\n'
-            '1. The student name or register number (look for handwritten text near '
-            '   "Name", "Register Number", "Candidate" fields at the top).\n'
-            '2. The shaded/selected answer for each question (1 through '
-            f'{num_q}). A shaded bubble is filled in or darkened with pencil.\n\n'
+            f'Carefully analyse this photograph of an MCQ answer sheet.\n\n'
+            f'**Sheet layout:** {num_q} questions, each with options {opt_letters}.\n'
+            'The sheet may have questions in a SINGLE column (1-to-N top-to-bottom) '
+            'or split into TWO columns (e.g. 1-15 on the left, 16-30 on the right). '
+            'Read in numerical question order regardless of column layout.\n\n'
+            '**How to identify a selected answer:**\n'
+            '- A SHADED bubble is filled, darkened, or coloured in with pencil/pen. '
+            'It looks noticeably darker than the empty bubbles around it.\n'
+            '- An EMPTY bubble is a hollow circle/oval outline with a light or '
+            'white interior.\n'
+            '- If a question has NO bubble shaded, return "" for that question.\n'
+            '- If a question has multiple bubbles shaded, return the darkest one.\n\n'
+            '**Also extract:**\n'
+            '- Student name or candidate name (handwritten text near "Name", '
+            '"Candidate", "Student" label at the top of the sheet).\n'
+            '- Register number / index number / student ID if visible.\n\n'
+            '**CRITICAL RULES:**\n'
+            '- Go through EVERY question from 1 to '
+            f'{num_q} in order. Do not skip any.\n'
+            f'- Your "answers" array MUST contain exactly {num_q} entries.\n'
+            '- Each entry must be one of: '
+            + ', '.join(f'"{chr(65 + i)}"' for i in range(opt_count))
+            + ', or "" if unanswered.\n'
+            '- Double-check your work: re-examine any answer you are uncertain '
+            'about by looking at which bubble in that row is darkest.\n\n'
             'Return ONLY valid JSON — no markdown fences, no explanation:\n'
             '{\n'
             '  "student_name": "<name or register number>",\n'
             '  "student_index": "<index/ID if visible, else empty string>",\n'
-            f'  "answers": ["A", "B", ...]  // exactly {num_q} entries, '
-            'use "" for unanswered\n'
+            f'  "answers": [/* exactly {num_q} entries */]\n'
             '}'
         )
 
@@ -3278,16 +3301,25 @@ def marker_api(request):
             from academics.ai_tutor import _post_chat_completion, _get_openai_api_key
 
             payload = {
-                'model': 'gpt-4o-mini',
-                'messages': [{
-                    'role': 'user',
-                    'content': [
-                        {'type': 'text', 'text': prompt},
-                        {'type': 'image_url', 'image_url': {'url': image_data}},
-                    ],
-                }],
-                'temperature': 0.1,
-                'max_tokens': 2000,
+                'model': 'gpt-4o',
+                'messages': [
+                    {'role': 'system', 'content': system_msg},
+                    {
+                        'role': 'user',
+                        'content': [
+                            {'type': 'text', 'text': prompt},
+                            {
+                                'type': 'image_url',
+                                'image_url': {
+                                    'url': image_data,
+                                    'detail': 'high',
+                                },
+                            },
+                        ],
+                    },
+                ],
+                'temperature': 0.0,
+                'max_tokens': 3000,
             }
 
             resp = _post_chat_completion(payload, _get_openai_api_key())
