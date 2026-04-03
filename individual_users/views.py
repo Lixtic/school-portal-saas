@@ -24,12 +24,69 @@ from individual_users.forms import (
     PhoneSignupForm,
 )
 from individual_users.models import (
-    AddonSubscription, APIKey, IndividualProfile,
+    AddonSubscription, APIKey, IndividualProfile, VerificationCode,
     ToolExamPaper, ToolLessonPlan, ToolQuestion,
 )
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
+
+
+# ── Verification Helper ──────────────────────────────────────────────────────
+
+def _send_verification_code(user, method):
+    """Generate a 6-digit code, persist it, and deliver it."""
+    import secrets as _secrets
+    from django.core.mail import send_mail
+
+    code = f"{_secrets.randbelow(1000000):06d}"
+    VerificationCode.objects.filter(user=user, method=method).delete()
+    VerificationCode.objects.create(
+        user=user,
+        code=code,
+        method=method,
+        expires_at=timezone.now() + timezone.timedelta(minutes=10),
+    )
+
+    if method == 'email' and user.email:
+        send_mail(
+            subject='Your Aura verification code',
+            message=f'Your verification code is: {code}\n\nThis code expires in 10 minutes.',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            html_message=_verification_email_html(code, user.first_name),
+            fail_silently=True,
+        )
+    else:
+        # Phone: log until SMS provider is integrated
+        logger.info('Phone verification code for user %s: %s', user.pk, code)
+
+
+def _verification_email_html(code, first_name):
+    """Minimal branded HTML email for the 6-digit verification code."""
+    return (
+        '<!DOCTYPE html><html><body style="margin:0;padding:0;font-family:Manrope,Arial,sans-serif;background:#f0f2f5">'
+        '<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 20px">'
+        '<table width="480" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden">'
+        '<tr><td style="background:linear-gradient(135deg,#0c0f1a,#4361ee);padding:32px;text-align:center">'
+        '<span style="display:inline-block;width:44px;height:44px;background:rgba(255,255,255,.12);border-radius:12px;'
+        'line-height:44px;color:#fff;font-weight:800;font-size:1.1rem">A</span>'
+        '<h1 style="color:#fff;font-size:1.3rem;margin:12px 0 0">Verify your email</h1></td></tr>'
+        f'<tr><td style="padding:32px">'
+        f'<p style="color:#111827;font-size:.95rem;margin:0 0 8px">Hi {first_name},</p>'
+        '<p style="color:#6b7280;font-size:.88rem;line-height:1.6;margin:0 0 24px">'
+        'Enter this code to complete your Aura account setup:</p>'
+        '<div style="text-align:center;margin:0 0 24px">'
+        f'<span style="display:inline-block;letter-spacing:8px;font-size:2rem;font-weight:800;color:#4361ee;'
+        f'background:#f0f2f5;padding:14px 28px;border-radius:12px">{code}</span></div>'
+        '<p style="color:#6b7280;font-size:.82rem;margin:0">This code expires in <strong>10 minutes</strong>. '
+        'If you didn\'t create an Aura account, you can safely ignore this email.</p>'
+        '</td></tr>'
+        '<tr><td style="padding:20px 32px;border-top:1px solid #e5e7eb;text-align:center">'
+        '<p style="color:#9ca3af;font-size:.75rem;margin:0">Aura &mdash; School Management Platform</p>'
+        '</td></tr></table></td></tr></table></body></html>'
+    )
+
 
 # ── Available Addons Catalog ─────────────────────────────────────────────────
 
@@ -286,10 +343,10 @@ def signup_view(request):
                     user_type='individual',
                 )
                 IndividualProfile.objects.create(user=user, role=role)
-                login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-                request.session.pop('auth_tenant_schema', None)
-                messages.success(request, f'Welcome, {first}! Your account is ready.')
-                return redirect('individual:dashboard')
+                _send_verification_code(user, 'email')
+                request.session['pending_verification_user_id'] = user.pk
+                request.session['pending_verification_method'] = 'email'
+                return redirect('individual:verify')
 
         elif method == 'phone':
             active_tab = 'phone'
@@ -310,10 +367,10 @@ def signup_view(request):
                     phone=phone,
                 )
                 IndividualProfile.objects.create(user=user, phone_number=phone, role=role)
-                login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-                request.session.pop('auth_tenant_schema', None)
-                messages.success(request, f'Welcome, {first}! Your account is ready.')
-                return redirect('individual:dashboard')
+                _send_verification_code(user, 'phone')
+                request.session['pending_verification_user_id'] = user.pk
+                request.session['pending_verification_method'] = 'phone'
+                return redirect('individual:verify')
 
     ctx = {
         'email_form': email_form,
@@ -323,6 +380,107 @@ def signup_view(request):
         'role': role,
     }
     return render(request, 'individual/auth.html', ctx)
+
+
+# ── Verification Views ───────────────────────────────────────────────────────
+
+def verify_view(request):
+    """Show the 6-digit code form and validate on POST."""
+    _ensure_public_schema()
+    user_id = request.session.get('pending_verification_user_id')
+    method = request.session.get('pending_verification_method', 'email')
+
+    if not user_id:
+        return redirect('individual:signup')
+
+    try:
+        user = User.objects.get(pk=user_id, user_type='individual')
+    except User.DoesNotExist:
+        request.session.pop('pending_verification_user_id', None)
+        return redirect('individual:signup')
+
+    profile = IndividualProfile.objects.filter(user=user).first()
+
+    # Build a masked contact string
+    if method == 'email':
+        email = user.email
+        local, domain = email.split('@') if '@' in email else (email, '')
+        masked = local[:2] + '***@' + domain if domain else email
+    else:
+        phone = profile.phone_number if profile else ''
+        masked = phone[:4] + '****' + phone[-2:] if len(phone) > 6 else phone
+
+    error = ''
+    if request.method == 'POST':
+        entered_code = request.POST.get('code', '').strip()
+        vc = VerificationCode.objects.filter(
+            user=user, method=method,
+        ).order_by('-created_at').first()
+
+        if not vc:
+            error = 'No verification code found. Please request a new one.'
+        elif vc.is_expired():
+            error = 'Code expired. Please request a new one.'
+        elif vc.attempts >= 5:
+            error = 'Too many attempts. Please request a new code.'
+        elif vc.code != entered_code:
+            vc.attempts += 1
+            vc.save(update_fields=['attempts'])
+            remaining = 5 - vc.attempts
+            error = f'Invalid code. {remaining} attempt{"s" if remaining != 1 else ""} remaining.'
+        else:
+            # Correct code — mark verified, log in
+            if profile:
+                if method == 'email':
+                    profile.email_verified = True
+                else:
+                    profile.phone_verified = True
+                profile.save(update_fields=['email_verified', 'phone_verified'])
+            vc.delete()
+
+            request.session.pop('pending_verification_user_id', None)
+            request.session.pop('pending_verification_method', None)
+
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            request.session.pop('auth_tenant_schema', None)
+            messages.success(request, f'Welcome, {user.first_name}! Your account is verified.')
+            return redirect('individual:dashboard')
+
+    ctx = {
+        'method': method,
+        'masked_contact': masked,
+        'error': error,
+        'role': profile.role if profile else 'developer',
+    }
+    return render(request, 'individual/verify.html', ctx)
+
+
+@require_POST
+def resend_code_view(request):
+    """Regenerate and resend a verification code (rate-limited to 60 s)."""
+    _ensure_public_schema()
+    user_id = request.session.get('pending_verification_user_id')
+    method = request.session.get('pending_verification_method', 'email')
+
+    if not user_id:
+        return redirect('individual:signup')
+
+    try:
+        user = User.objects.get(pk=user_id, user_type='individual')
+    except User.DoesNotExist:
+        return redirect('individual:signup')
+
+    last = VerificationCode.objects.filter(
+        user=user, method=method,
+    ).order_by('-created_at').first()
+
+    if last and (timezone.now() - last.created_at).total_seconds() < 60:
+        messages.error(request, 'Please wait a moment before requesting a new code.')
+        return redirect('individual:verify')
+
+    _send_verification_code(user, method)
+    messages.success(request, 'A new verification code has been sent.')
+    return redirect('individual:verify')
 
 
 def signin_view(request):
@@ -348,6 +506,12 @@ def signin_view(request):
                     password=email_form.cleaned_data['password'],
                 )
                 if user:
+                    profile = IndividualProfile.objects.filter(user=user).first()
+                    if profile and not profile.email_verified and not profile.google_id:
+                        _send_verification_code(user, 'email')
+                        request.session['pending_verification_user_id'] = user.pk
+                        request.session['pending_verification_method'] = 'email'
+                        return redirect('individual:verify')
                     login(request, user, backend='individual_users.backends.EmailOrPhoneBackend')
                     request.session.pop('auth_tenant_schema', None)
                     return redirect('individual:dashboard')
@@ -364,6 +528,12 @@ def signin_view(request):
                     password=phone_form.cleaned_data['password'],
                 )
                 if user:
+                    profile = IndividualProfile.objects.filter(user=user).first()
+                    if profile and not profile.phone_verified and profile.phone_number and not profile.google_id:
+                        _send_verification_code(user, 'phone')
+                        request.session['pending_verification_user_id'] = user.pk
+                        request.session['pending_verification_method'] = 'phone'
+                        return redirect('individual:verify')
                     login(request, user, backend='individual_users.backends.EmailOrPhoneBackend')
                     request.session.pop('auth_tenant_schema', None)
                     return redirect('individual:dashboard')
@@ -423,6 +593,7 @@ def google_auth_view(request):
             profile, _ = IndividualProfile.objects.get_or_create(user=existing)
             profile.google_id = google_id
             profile.avatar_url = picture
+            profile.email_verified = True
             profile.save()
             user = existing
         else:
@@ -443,6 +614,7 @@ def google_auth_view(request):
             user.save()
             IndividualProfile.objects.create(
                 user=user, google_id=google_id, avatar_url=picture,
+                email_verified=True,
             )
 
     login(request, user, backend='django.contrib.auth.backends.ModelBackend')

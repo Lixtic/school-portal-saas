@@ -22,6 +22,8 @@ class IndividualProfile(models.Model):
     avatar_url = models.URLField(blank=True)
     company = models.CharField(max_length=200, blank=True)
     bio = models.TextField(blank=True)
+    email_verified = models.BooleanField(default=False)
+    phone_verified = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -30,6 +32,27 @@ class IndividualProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.get_full_name() or self.user.username}"
+
+
+class VerificationCode(models.Model):
+    """Time-limited OTP code for email/phone signup verification."""
+    METHOD_CHOICES = [('email', 'Email'), ('phone', 'Phone')]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='verification_codes',
+    )
+    code = models.CharField(max_length=6)
+    method = models.CharField(max_length=10, choices=METHOD_CHOICES)
+    attempts = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def is_expired(self):
+        return timezone.now() > self.expires_at
 
 
 class AddonSubscription(models.Model):

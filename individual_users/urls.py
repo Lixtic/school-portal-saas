@@ -8,6 +8,8 @@ urlpatterns = [
     # Auth
     path('signup/', views.signup_view, name='signup'),
     path('signin/', views.signin_view, name='signin'),
+    path('verify/', views.verify_view, name='verify'),
+    path('verify/resend/', views.resend_code_view, name='verify_resend'),
     path('auth/google/', views.google_auth_view, name='google_auth'),
     path('signout/', views.signout_view, name='signout'),
 
