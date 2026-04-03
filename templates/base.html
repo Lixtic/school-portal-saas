@@ -12,9 +12,14 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <!-- Favicon -->
+    <meta name="apple-mobile-web-app-title" content="Aura">
+    <!-- Favicon & Apple Touch Icons -->
     <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
     <link rel="apple-touch-icon" href="{% static 'img/logo.png' %}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'img/logo.png' %}">
+    <link rel="apple-touch-icon" sizes="152x152" href="{% static 'img/logo.png' %}">
+    <link rel="apple-touch-icon" sizes="167x167" href="{% static 'img/logo.png' %}">
+    <!-- iOS Splash Screens (generated dynamically below for all device sizes) -->
 
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -1853,6 +1858,128 @@
         }
     </style>
     {% block extra_css %}{% endblock %}
+
+    <!-- iOS Splash Screen Generator ──────────────────────────────────
+         Dynamically generates apple-touch-startup-image tags via Canvas
+         so iOS shows the branded Aura splash during PWA cold launch
+         instead of a blank white/black screen.                          -->
+    <script>
+    (function(){
+        // Only run on iOS devices in standalone/PWA-capable context
+        var ua = navigator.userAgent;
+        if (!/iPhone|iPad|iPod/.test(ua)) return;
+
+        var dpr = window.devicePixelRatio || 1;
+        // All iPhone viewport sizes (logical px) → physical px via dpr
+        // Covers iPhone SE through iPhone 16 Pro Max
+        var screens = [
+            // width, height, dpr, media query
+            [320, 568, 2],   // iPhone SE 1st gen, 5s
+            [375, 667, 2],   // iPhone 6/7/8/SE2/SE3
+            [375, 812, 3],   // iPhone X/XS/11 Pro/12 Mini/13 Mini
+            [390, 844, 3],   // iPhone 12/13/14/15
+            [393, 852, 3],   // iPhone 14 Pro/15 Pro/16
+            [414, 736, 3],   // iPhone 6+/7+/8+
+            [414, 896, 2],   // iPhone XR/11
+            [414, 896, 3],   // iPhone XS Max/11 Pro Max
+            [428, 926, 3],   // iPhone 12 Pro Max/13 Pro Max/14 Plus
+            [430, 932, 3],   // iPhone 14 Pro Max/15 Pro Max/15 Plus/16 Plus
+            [440, 956, 3],   // iPhone 16 Pro Max
+        ];
+
+        var BG = '#0b1120';
+        var logoSrc = document.querySelector('link[rel="apple-touch-icon"]')
+                    ? document.querySelector('link[rel="apple-touch-icon"]').href
+                    : '';
+        if (!logoSrc) return;
+
+        var logo = new Image();
+        logo.crossOrigin = 'anonymous';
+        logo.onload = function(){
+            screens.forEach(function(s){
+                var w = s[0], h = s[1], r = s[2];
+                var cW = w * r, cH = h * r;
+                // Portrait
+                inject(cW, cH, w, h, r, 'portrait');
+                // Landscape
+                inject(cH, cW, w, h, r, 'landscape');
+            });
+        };
+        logo.src = logoSrc;
+
+        function inject(cW, cH, logW, logH, r, orient){
+            var c = document.createElement('canvas');
+            c.width = cW; c.height = cH;
+            var ctx = c.getContext('2d');
+
+            // Background
+            ctx.fillStyle = BG;
+            ctx.fillRect(0, 0, cW, cH);
+
+            // Subtle radial glow
+            var grd = ctx.createRadialGradient(cW/2, cH*0.42, 0, cW/2, cH*0.42, cW*0.45);
+            grd.addColorStop(0, 'rgba(67,97,238,0.18)');
+            grd.addColorStop(0.5, 'rgba(76,201,240,0.06)');
+            grd.addColorStop(1, 'transparent');
+            ctx.fillStyle = grd;
+            ctx.fillRect(0, 0, cW, cH);
+
+            // Logo (centered, ~72px logical)
+            var logoSize = 72 * r;
+            var lx = (cW - logoSize) / 2;
+            var ly = (cH - logoSize) / 2 - 40 * r;
+            // Rounded rect clip for logo
+            var rad = 14 * r;
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(lx + rad, ly);
+            ctx.lineTo(lx + logoSize - rad, ly);
+            ctx.quadraticCurveTo(lx + logoSize, ly, lx + logoSize, ly + rad);
+            ctx.lineTo(lx + logoSize, ly + logoSize - rad);
+            ctx.quadraticCurveTo(lx + logoSize, ly + logoSize, lx + logoSize - rad, ly + logoSize);
+            ctx.lineTo(lx + rad, ly + logoSize);
+            ctx.quadraticCurveTo(lx, ly + logoSize, lx, ly + logoSize - rad);
+            ctx.lineTo(lx, ly + rad);
+            ctx.quadraticCurveTo(lx, ly, lx + rad, ly);
+            ctx.closePath();
+            ctx.clip();
+            ctx.drawImage(logo, lx, ly, logoSize, logoSize);
+            ctx.restore();
+
+            // "Aura" text
+            var titleSize = Math.round(26 * r);
+            ctx.font = '800 ' + titleSize + 'px Manrope, -apple-system, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText('Aura', cW / 2, ly + logoSize + 44 * r);
+
+            // "School Management" subtitle
+            var subSize = Math.round(10 * r);
+            ctx.font = '500 ' + subSize + 'px Manrope, -apple-system, sans-serif';
+            ctx.fillStyle = 'rgba(148,163,184,0.7)';
+            ctx.letterSpacing = '0.12em';
+            ctx.fillText('SCHOOL MANAGEMENT', cW / 2, ly + logoSize + 66 * r);
+
+            // Create link tag
+            var dataUrl;
+            try { dataUrl = c.toDataURL('image/png'); } catch(e) { return; }
+
+            var link = document.createElement('link');
+            link.rel = 'apple-touch-startup-image';
+            link.href = dataUrl;
+
+            // Build media query
+            var mq;
+            if (orient === 'portrait') {
+                mq = '(device-width: ' + logW + 'px) and (device-height: ' + logH + 'px) and (-webkit-device-pixel-ratio: ' + r + ') and (orientation: portrait)';
+            } else {
+                mq = '(device-width: ' + logW + 'px) and (device-height: ' + logH + 'px) and (-webkit-device-pixel-ratio: ' + r + ') and (orientation: landscape)';
+            }
+            link.media = mq;
+            document.head.appendChild(link);
+        }
+    })();
+    </script>
 </head>
 <body class="{% block body_class %}{% endblock %}">
     <!-- ── PWA Splash Screen ─────────────────────────────────────────
