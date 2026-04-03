@@ -2618,17 +2618,23 @@ End with the closing (e.g., "Yours faithfully,") and leave space for signature."
 
     # ── Load Sample Letters ──────────────────────────────────────────────
     if action == 'load_samples':
-        existing = GESLetter.objects.filter(profile=profile, is_sample=True).count()
-        if existing > 0:
-            return JsonResponse({'ok': True, 'message': 'Samples already loaded.', 'count': existing})
-
         samples = _get_sample_letters()
+        existing_titles = set(
+            GESLetter.objects.filter(profile=profile, is_sample=True)
+            .values_list('title', flat=True)
+        )
         created = 0
         for s in samples:
-            GESLetter.objects.create(profile=profile, is_sample=True, status='final', **s)
-            created += 1
+            if s['title'] not in existing_titles:
+                GESLetter.objects.create(profile=profile, is_sample=True, status='final', **s)
+                created += 1
 
-        return JsonResponse({'ok': True, 'message': f'{created} sample letters loaded.', 'count': created})
+        total = GESLetter.objects.filter(profile=profile, is_sample=True).count()
+        if created:
+            msg = f'{created} new sample letter(s) added.'
+        else:
+            msg = 'All sample letters already loaded.'
+        return JsonResponse({'ok': True, 'message': msg, 'count': total})
 
     return JsonResponse({'error': f'Unknown action: {action}'}, status=400)
 
