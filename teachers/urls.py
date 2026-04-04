@@ -166,6 +166,9 @@ urlpatterns = [
     path('addons/live-quiz/<int:quiz_id>/api/', views.live_quiz_api, name='live_quiz_api'),
     path('quiz/<str:code>/', views.live_quiz_play, name='live_quiz_play'),
     path('quiz/<str:code>/api/', views.live_quiz_student_api, name='live_quiz_student_api'),
+
+    # Wave 3 Add-On Feature Views
+    path('addons/attendance/', views.addon_attendance_tracker, name='addon_attendance_tracker'),
 ]
 
 

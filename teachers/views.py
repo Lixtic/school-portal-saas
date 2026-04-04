@@ -6776,6 +6776,7 @@ ADDON_LAUNCH_URLS = {
     'behavior-sel-tracker': 'teachers:addon_behavior_tracker',
     'differentiated-lesson-ai': 'teachers:addon_differentiated',
     'live-quiz-engine': 'teachers:addon_live_quiz',
+    'attendance-tracker': 'teachers:addon_attendance_tracker',
 }
 
 
@@ -9175,3 +9176,149 @@ def live_quiz_student_api(request, code):
         return JsonResponse({'error': 'Already answered.', 'is_correct': obj.is_correct}, status=200)
 
     return JsonResponse({'is_correct': is_correct, 'correct_answer': question.correct})
+
+
+# ── Attendance Tracker Add-On ─────────────────────────────────────────────
+
+@login_required
+@requires_addon('attendance-tracker')
+def addon_attendance_tracker(request):
+    """Full attendance management for a teacher's classes."""
+    from students.models import Attendance
+    from collections import defaultdict
+    import datetime as _dt
+
+    teacher = get_object_or_404(Teacher, user=request.user)
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    classes = Class.objects.filter(
+        classsubject__teacher=teacher, academic_year=current_year
+    ).distinct() if current_year else Class.objects.none()
+
+    sel_class_id = request.GET.get('class_id')
+    sel_class = None
+    if sel_class_id:
+        sel_class = classes.filter(id=sel_class_id).first()
+    if not sel_class and classes.exists():
+        sel_class = classes.first()
+
+    today = timezone.now().date()
+
+    # ── POST: mark / update attendance ──
+    if request.method == 'POST' and sel_class:
+        action = request.POST.get('action')
+        if action == 'mark':
+            att_date_str = request.POST.get('date') or str(today)
+            try:
+                att_date = _dt.date.fromisoformat(att_date_str)
+            except ValueError:
+                att_date = today
+            students = Student.objects.filter(current_class=sel_class)
+            for student in students:
+                status = request.POST.get(f'status_{student.id}', 'present')
+                remark = request.POST.get(f'remark_{student.id}', '').strip()
+                Attendance.objects.update_or_create(
+                    student=student, date=att_date,
+                    defaults={'status': status, 'remarks': remark, 'marked_by': request.user},
+                )
+            messages.success(request, f'Attendance saved for {att_date.strftime("%d %b %Y")}.')
+            return redirect(f"{request.path}?class_id={sel_class.id}&date={att_date_str}")
+
+    # ── Date navigation ──
+    view_date_str = request.GET.get('date')
+    try:
+        view_date = _dt.date.fromisoformat(view_date_str) if view_date_str else today
+    except ValueError:
+        view_date = today
+
+    students_list = []
+    summary = {'present': 0, 'absent': 0, 'late': 0, 'excused': 0, 'unmarked': 0}
+    calendar_data = []
+    student_rates = []
+
+    if sel_class:
+        students = Student.objects.filter(current_class=sel_class).select_related('user').order_by('user__first_name')
+
+        # Today's attendance records
+        att_today = {a.student_id: a for a in Attendance.objects.filter(
+            student__current_class=sel_class, date=view_date
+        )}
+        for s in students:
+            a = att_today.get(s.id)
+            status = a.status if a else 'unmarked'
+            summary[status] = summary.get(status, 0) + 1
+            students_list.append({
+                'id': s.id,
+                'name': s.user.get_full_name(),
+                'status': status,
+                'remark': a.remarks if a else '',
+            })
+
+        # ── Calendar heatmap (last 30 days) ──
+        thirty_ago = today - _dt.timedelta(days=29)
+        att_range = Attendance.objects.filter(
+            student__current_class=sel_class,
+            date__gte=thirty_ago, date__lte=today,
+        ).values('date', 'status')
+
+        day_counts = defaultdict(lambda: {'present': 0, 'total': 0})
+        for row in att_range:
+            d = row['date']
+            day_counts[d]['total'] += 1
+            if row['status'] == 'present':
+                day_counts[d]['present'] += 1
+
+        for i in range(30):
+            d = thirty_ago + _dt.timedelta(days=i)
+            c = day_counts.get(d)
+            if c and c['total'] > 0:
+                rate = round(c['present'] / c['total'] * 100)
+            else:
+                rate = -1  # no data
+            calendar_data.append({'date': d.isoformat(), 'day': d.strftime('%a')[0], 'dom': d.day, 'rate': rate})
+
+        # ── Per-student attendance rates (current term window) ──
+        term_start = current_year.start_date if current_year else thirty_ago
+        att_per_student = (
+            Attendance.objects.filter(
+                student__current_class=sel_class,
+                date__gte=term_start,
+            )
+            .values('student_id', 'status')
+            .annotate(cnt=Count('id'))
+        )
+        stu_map = defaultdict(lambda: {'present': 0, 'total': 0})
+        for row in att_per_student:
+            stu_map[row['student_id']]['total'] += row['cnt']
+            if row['status'] == 'present':
+                stu_map[row['student_id']]['present'] += row['cnt']
+
+        for s in students:
+            d = stu_map.get(s.id, {'present': 0, 'total': 0})
+            rate = round(d['present'] / d['total'] * 100) if d['total'] > 0 else None
+            days_absent = d['total'] - d['present']
+            student_rates.append({
+                'id': s.id,
+                'name': s.user.get_full_name(),
+                'rate': rate,
+                'total_days': d['total'],
+                'days_absent': days_absent,
+            })
+        student_rates.sort(key=lambda x: x['rate'] if x['rate'] is not None else 999)
+
+    # Overall class rate
+    total_marked = summary['present'] + summary['absent'] + summary['late'] + summary['excused']
+    class_rate = round(summary['present'] / total_marked * 100) if total_marked > 0 else None
+
+    ctx = {
+        'classes': classes,
+        'sel_class': sel_class,
+        'view_date': view_date,
+        'today': today,
+        'students_list': students_list,
+        'summary': summary,
+        'class_rate': class_rate,
+        'calendar_data': calendar_data,
+        'student_rates': student_rates,
+        'total_students': len(students_list),
+    }
+    return render(request, 'teachers/addon_attendance_tracker.html', ctx)

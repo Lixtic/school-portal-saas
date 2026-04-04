@@ -94,6 +94,10 @@ ADDON_FEATURE_MAP = {
         'label': 'Live Quiz Engine',
         'gates': ['addon_live_quiz'],
     },
+    'attendance-tracker': {
+        'label': 'Attendance Tracker',
+        'gates': ['addon_attendance_tracker'],
+    },
 }
 
 # Reverse map: view_name → addon_slug

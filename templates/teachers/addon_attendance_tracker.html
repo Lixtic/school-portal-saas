@@ -1,0 +1,287 @@
+{% extends 'base.html' %}
+{% block title %}Attendance Tracker{% endblock %}
+
+{% block content %}
+<style>
+:root{--at-card:#fff;--at-ink:#0b1120;--at-muted:#8892a4;--at-border:#e4e8f2;--at-accent:#4361ee;--at-accent2:#4cc9f0;--at-green:#10b981;--at-red:#ef4444;--at-amber:#f59e0b;--at-violet:#7c3aed;}
+[data-bs-theme="dark"]{--at-card:#1e293b;--at-ink:#f1f5f9;--at-muted:#94a3b8;--at-border:#334155;}
+.at-wrap{max-width:920px;margin:0 auto;padding:1rem .5rem;}
+.at-hero{background:linear-gradient(135deg,var(--at-accent),var(--at-accent2));border-radius:16px;padding:1.4rem 1.6rem;margin-bottom:1rem;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;}
+.at-hero h1{margin:0;font-size:1.25rem;font-weight:800;letter-spacing:-.02em;}
+.at-hero-sub{font-size:.78rem;opacity:.85;margin-top:.15rem;}
+.at-hero-stats{display:flex;gap:1.2rem;}
+.at-h-stat{text-align:center;}.at-h-num{font-size:1.5rem;font-weight:800;line-height:1;}.at-h-lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;opacity:.8;}
+.at-card{background:var(--at-card);border:1px solid var(--at-border);border-radius:14px;overflow:hidden;margin-bottom:1rem;}
+.at-head{padding:.8rem 1.3rem;border-bottom:1px solid var(--at-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+.at-head h2{margin:0;font-size:1rem;font-weight:800;color:var(--at-ink);}
+.at-body{padding:1.2rem 1.3rem;}
+.at-btn{padding:.5rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:700;border:none;cursor:pointer;transition:transform .1s,box-shadow .15s;display:inline-flex;align-items:center;gap:.35rem;}
+.at-btn:active{transform:scale(.97);}
+.at-btn-primary{background:linear-gradient(135deg,var(--at-accent),var(--at-accent2));color:#fff;}
+.at-btn-primary:hover{box-shadow:0 4px 16px rgba(67,97,238,.35);}
+.at-btn-outline{background:transparent;border:1px solid var(--at-border);color:var(--at-ink);}
+.at-btn-sm{padding:.3rem .7rem;font-size:.78rem;}
+/* Class selector */
+.at-class-row{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;align-items:center;}
+.at-class-pill{padding:.35rem .8rem;border-radius:20px;font-size:.8rem;font-weight:600;border:1px solid var(--at-border);background:var(--at-card);color:var(--at-muted);cursor:pointer;transition:all .15s;text-decoration:none;}
+.at-class-pill:hover,.at-class-pill.active{background:var(--at-accent);color:#fff;border-color:var(--at-accent);text-decoration:none;}
+/* Date nav */
+.at-date-nav{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;}
+.at-date-nav input[type="date"]{padding:.35rem .6rem;border:1px solid var(--at-border);border-radius:8px;font-size:.84rem;background:var(--at-card);color:var(--at-ink);}
+.at-date-nav input[type="date"]:focus{border-color:var(--at-accent);outline:none;box-shadow:0 0 0 3px rgba(67,97,238,.12);}
+/* Summary pills */
+.at-summary{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;}
+.at-s-pill{display:flex;align-items:center;gap:.3rem;padding:.35rem .7rem;border-radius:8px;font-size:.78rem;font-weight:700;}
+.at-s-present{background:rgba(16,185,129,.12);color:var(--at-green);}
+.at-s-absent{background:rgba(239,68,68,.1);color:var(--at-red);}
+.at-s-late{background:rgba(245,158,11,.1);color:var(--at-amber);}
+.at-s-excused{background:rgba(124,58,237,.1);color:var(--at-violet);}
+.at-s-unmarked{background:rgba(136,146,164,.1);color:var(--at-muted);}
+/* Student row */
+.at-stu{display:flex;align-items:center;gap:.6rem;padding:.55rem .8rem;border-radius:10px;margin-bottom:.35rem;border:1px solid var(--at-border);transition:box-shadow .15s,transform .15s;background:var(--at-card);}
+.at-stu:hover{box-shadow:0 4px 12px rgba(0,0,0,.06);transform:translateY(-1px);}
+.at-stu-name{flex:1;font-weight:700;font-size:.85rem;color:var(--at-ink);min-width:120px;}
+.at-stu-btns{display:flex;gap:.25rem;flex-wrap:wrap;}
+.at-stu-btn{padding:.25rem .5rem;border-radius:6px;font-size:.72rem;font-weight:700;border:1.5px solid var(--at-border);background:var(--at-card);color:var(--at-muted);cursor:pointer;transition:all .12s;text-transform:uppercase;letter-spacing:.03em;}
+.at-stu-btn:hover{border-color:var(--at-accent);color:var(--at-accent);}
+.at-stu-btn.sel-present{background:var(--at-green);color:#fff;border-color:var(--at-green);}
+.at-stu-btn.sel-absent{background:var(--at-red);color:#fff;border-color:var(--at-red);}
+.at-stu-btn.sel-late{background:var(--at-amber);color:#fff;border-color:var(--at-amber);}
+.at-stu-btn.sel-excused{background:var(--at-violet);color:#fff;border-color:var(--at-violet);}
+.at-stu-remark{width:120px;padding:.25rem .5rem;border:1px solid var(--at-border);border-radius:6px;font-size:.76rem;background:var(--at-card);color:var(--at-ink);}
+.at-stu-remark:focus{border-color:var(--at-accent);outline:none;}
+@media(max-width:640px){.at-stu{flex-wrap:wrap;}.at-stu-remark{width:100%;}}
+/* Calendar heatmap */
+.at-cal{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;}
+@media(min-width:640px){.at-cal{grid-template-columns:repeat(15,1fr);}}
+.at-cal-cell{aspect-ratio:1;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:var(--at-ink);position:relative;cursor:default;transition:transform .1s;}
+.at-cal-cell:hover{transform:scale(1.2);z-index:2;}
+.at-cal-cell[data-rate="-1"]{background:var(--at-border);opacity:.3;}
+.cal-green{background:rgba(16,185,129,.7);color:#fff;}
+.cal-yellow{background:rgba(245,158,11,.55);color:#fff;}
+.cal-red{background:rgba(239,68,68,.65);color:#fff;}
+.cal-full{background:var(--at-green);color:#fff;}
+/* Student rate list */
+.at-rate-row{display:flex;align-items:center;gap:.6rem;padding:.4rem .6rem;border-radius:8px;margin-bottom:.3rem;transition:background .12s;}
+.at-rate-row:hover{background:rgba(67,97,238,.04);}
+.at-rate-name{flex:1;font-size:.82rem;font-weight:600;color:var(--at-ink);}
+.at-rate-bar{width:100px;height:6px;border-radius:3px;background:var(--at-border);overflow:hidden;}
+.at-rate-fill{height:100%;border-radius:3px;transition:width .3s ease;}
+.at-rate-pct{font-size:.78rem;font-weight:800;min-width:38px;text-align:right;}
+.at-rate-absent{font-size:.7rem;color:var(--at-muted);}
+.at-empty{padding:2.5rem 1rem;text-align:center;color:var(--at-muted);font-size:.88rem;}
+.at-empty i{font-size:2rem;display:block;margin-bottom:.5rem;opacity:.25;}
+/* Mark all row */
+.at-mark-all{display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.6rem;padding-bottom:.6rem;border-bottom:1px solid var(--at-border);}
+.at-mark-all-btn{padding:.3rem .7rem;border-radius:6px;font-size:.74rem;font-weight:700;border:1px solid var(--at-border);background:var(--at-card);color:var(--at-muted);cursor:pointer;transition:all .12s;}
+.at-mark-all-btn:hover{border-color:var(--at-accent);color:var(--at-accent);}
+</style>
+
+<div class="at-wrap">
+    <!-- Hero -->
+    <div class="at-hero">
+        <div>
+            <h1><i class="bi bi-calendar-check me-2"></i>Attendance Tracker</h1>
+            <div class="at-hero-sub">Mark, track &amp; visualize student attendance across your classes</div>
+        </div>
+        <div class="at-hero-stats">
+            <div class="at-h-stat"><div class="at-h-num">{{ total_students }}</div><div class="at-h-lbl">Students</div></div>
+            <div class="at-h-stat"><div class="at-h-num">{% if class_rate is not None %}{{ class_rate }}%{% else %}—{% endif %}</div><div class="at-h-lbl">Today</div></div>
+        </div>
+    </div>
+
+    <!-- Class Selector -->
+    <div class="at-class-row">
+        <span style="font-size:.78rem;font-weight:700;color:var(--at-muted);text-transform:uppercase;letter-spacing:.05em;">Class:</span>
+        {% for c in classes %}
+        <a href="?class_id={{ c.id }}" class="at-class-pill {% if sel_class.id == c.id %}active{% endif %}">{{ c.name }}</a>
+        {% endfor %}
+    </div>
+
+    {% if sel_class %}
+    <!-- Date Nav + Summary -->
+    <div class="at-card">
+        <div class="at-head">
+            <div class="at-date-nav">
+                <a href="?class_id={{ sel_class.id }}&date={{ view_date|date:'Y-m-d' }}" class="at-btn at-btn-outline at-btn-sm" id="prevDay"><i class="bi bi-chevron-left"></i></a>
+                <input type="date" id="datePicker" value="{{ view_date|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}">
+                <a href="?class_id={{ sel_class.id }}" class="at-btn at-btn-outline at-btn-sm">Today</a>
+                <a href="#" class="at-btn at-btn-outline at-btn-sm" id="nextDay"><i class="bi bi-chevron-right"></i></a>
+            </div>
+            <h2 style="font-size:.9rem;">{{ view_date|date:"l, d M Y" }}</h2>
+        </div>
+        <div class="at-body">
+            <div class="at-summary">
+                <span class="at-s-pill at-s-present"><i class="bi bi-check-circle"></i> {{ summary.present }} Present</span>
+                <span class="at-s-pill at-s-absent"><i class="bi bi-x-circle"></i> {{ summary.absent }} Absent</span>
+                <span class="at-s-pill at-s-late"><i class="bi bi-clock"></i> {{ summary.late }} Late</span>
+                <span class="at-s-pill at-s-excused"><i class="bi bi-shield-check"></i> {{ summary.excused }} Excused</span>
+                {% if summary.unmarked > 0 %}
+                <span class="at-s-pill at-s-unmarked"><i class="bi bi-dash-circle"></i> {{ summary.unmarked }} Unmarked</span>
+                {% endif %}
+            </div>
+
+            <!-- Mark Attendance Form -->
+            <form method="post" id="attendanceForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="mark">
+                <input type="hidden" name="date" value="{{ view_date|date:'Y-m-d' }}">
+
+                <!-- Mark All row -->
+                <div class="at-mark-all">
+                    <span style="font-size:.74rem;font-weight:700;color:var(--at-muted);align-self:center;margin-right:.3rem;">Mark All:</span>
+                    <button type="button" class="at-mark-all-btn" data-status="present">Present</button>
+                    <button type="button" class="at-mark-all-btn" data-status="absent">Absent</button>
+                    <button type="button" class="at-mark-all-btn" data-status="late">Late</button>
+                    <button type="button" class="at-mark-all-btn" data-status="excused">Excused</button>
+                </div>
+
+                {% for s in students_list %}
+                <div class="at-stu">
+                    <div class="at-stu-name">{{ s.name }}</div>
+                    <input type="hidden" name="status_{{ s.id }}" id="status_{{ s.id }}" value="{{ s.status|default:'present' }}">
+                    <div class="at-stu-btns" data-sid="{{ s.id }}">
+                        <button type="button" class="at-stu-btn {% if s.status == 'present' %}sel-present{% endif %}" data-val="present">P</button>
+                        <button type="button" class="at-stu-btn {% if s.status == 'absent' %}sel-absent{% endif %}" data-val="absent">A</button>
+                        <button type="button" class="at-stu-btn {% if s.status == 'late' %}sel-late{% endif %}" data-val="late">L</button>
+                        <button type="button" class="at-stu-btn {% if s.status == 'excused' %}sel-excused{% endif %}" data-val="excused">E</button>
+                    </div>
+                    <input type="text" name="remark_{{ s.id }}" class="at-stu-remark" placeholder="Remark…" value="{{ s.remark }}">
+                </div>
+                {% empty %}
+                <div class="at-empty"><i class="bi bi-people"></i>No students in this class.</div>
+                {% endfor %}
+
+                {% if students_list %}
+                <div style="margin-top:.8rem;text-align:right;">
+                    <button type="submit" class="at-btn at-btn-primary"><i class="bi bi-check2-all"></i> Save Attendance</button>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- 30-Day Calendar Heatmap -->
+    {% if calendar_data %}
+    <div class="at-card">
+        <div class="at-head">
+            <h2><i class="bi bi-grid-3x3-gap me-2" style="color:var(--at-accent);"></i>30-Day Overview</h2>
+            <span style="font-size:.72rem;color:var(--at-muted);">Attendance rate per day</span>
+        </div>
+        <div class="at-body">
+            <div class="at-cal">
+                {% for c in calendar_data %}
+                <div class="at-cal-cell {% if c.rate == 100 %}cal-full{% elif c.rate >= 85 %}cal-green{% elif c.rate >= 70 %}cal-yellow{% elif c.rate >= 0 %}cal-red{% endif %}"
+                     data-rate="{{ c.rate }}" title="{{ c.date }}{% if c.rate >= 0 %}: {{ c.rate }}%{% endif %}">
+                    {{ c.dom }}
+                </div>
+                {% endfor %}
+            </div>
+            <div style="display:flex;gap:.6rem;margin-top:.5rem;font-size:.65rem;color:var(--at-muted);flex-wrap:wrap;">
+                <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--at-green);vertical-align:middle;"></span> 100%</span>
+                <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:rgba(16,185,129,.7);vertical-align:middle;"></span> 85%+</span>
+                <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:rgba(245,158,11,.55);vertical-align:middle;"></span> 70%+</span>
+                <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:rgba(239,68,68,.65);vertical-align:middle;"></span> &lt;70%</span>
+                <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--at-border);opacity:.3;vertical-align:middle;"></span> No data</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Student Attendance Rates -->
+    {% if student_rates %}
+    <div class="at-card">
+        <div class="at-head">
+            <h2><i class="bi bi-bar-chart-line me-2" style="color:var(--at-accent2);"></i>Student Rates</h2>
+            <span style="font-size:.72rem;color:var(--at-muted);">Term-to-date attendance</span>
+        </div>
+        <div class="at-body">
+            {% for sr in student_rates %}
+            <div class="at-rate-row">
+                <div class="at-rate-name">{{ sr.name }}</div>
+                <div class="at-rate-bar">
+                    <div class="at-rate-fill" style="width:{% if sr.rate is not None %}{{ sr.rate }}%{% else %}0{% endif %};background:{% if sr.rate is not None %}{% if sr.rate >= 90 %}var(--at-green){% elif sr.rate >= 75 %}var(--at-amber){% else %}var(--at-red){% endif %}{% else %}var(--at-border){% endif %};"></div>
+                </div>
+                <div class="at-rate-pct" style="color:{% if sr.rate is not None %}{% if sr.rate >= 90 %}var(--at-green){% elif sr.rate >= 75 %}var(--at-amber){% else %}var(--at-red){% endif %}{% else %}var(--at-muted){% endif %};">
+                    {% if sr.rate is not None %}{{ sr.rate }}%{% else %}—{% endif %}
+                </div>
+                <div class="at-rate-absent">{{ sr.days_absent }}d absent</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- No class selected / no classes -->
+    <div class="at-card">
+        <div class="at-body">
+            <div class="at-empty">
+                <i class="bi bi-calendar-x"></i>
+                {% if classes %}Select a class above to manage attendance.{% else %}No classes assigned to you for the current academic year.{% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+(function(){
+    // Status button clicks
+    document.querySelectorAll('.at-stu-btns').forEach(group=>{
+        const sid=group.dataset.sid;
+        group.querySelectorAll('.at-stu-btn').forEach(btn=>{
+            btn.addEventListener('click',()=>{
+                const val=btn.dataset.val;
+                document.getElementById('status_'+sid).value=val;
+                group.querySelectorAll('.at-stu-btn').forEach(b=>b.className='at-stu-btn');
+                btn.classList.add('sel-'+val);
+            });
+        });
+    });
+
+    // Mark all buttons
+    document.querySelectorAll('.at-mark-all-btn').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+            const status=btn.dataset.status;
+            document.querySelectorAll('.at-stu-btns').forEach(group=>{
+                const sid=group.dataset.sid;
+                document.getElementById('status_'+sid).value=status;
+                group.querySelectorAll('.at-stu-btn').forEach(b=>{
+                    b.className='at-stu-btn';
+                    if(b.dataset.val===status) b.classList.add('sel-'+status);
+                });
+            });
+        });
+    });
+
+    // Date picker navigation
+    const dp=document.getElementById('datePicker');
+    const classId='{{ sel_class.id|default:"" }}';
+    if(dp && classId){
+        dp.addEventListener('change',()=>{
+            window.location.href='?class_id='+classId+'&date='+dp.value;
+        });
+
+        // Prev/Next day buttons
+        const prev=document.getElementById('prevDay');
+        const next=document.getElementById('nextDay');
+        const d=new Date(dp.value);
+
+        if(prev){
+            const pd=new Date(d);pd.setDate(pd.getDate()-1);
+            prev.href='?class_id='+classId+'&date='+pd.toISOString().split('T')[0];
+        }
+        if(next){
+            const nd=new Date(d);nd.setDate(nd.getDate()+1);
+            const today=new Date('{{ today|date:"Y-m-d" }}');
+            if(nd<=today){
+                next.href='?class_id='+classId+'&date='+nd.toISOString().split('T')[0];
+            } else {
+                next.style.opacity='.3';next.style.pointerEvents='none';
+            }
+        }
+    }
+})();
+</script>
+{% endblock %}
