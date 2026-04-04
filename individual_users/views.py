@@ -767,7 +767,7 @@ def google_callback_view(request):
             IndividualProfile.objects.create(
                 user=user, google_id=google_id, avatar_url=picture,
                 email_verified=True,
-                user_role=role if role in ('teacher', 'developer') else 'developer',
+                role=role if role in ('teacher', 'developer') else 'developer',
             )
 
     login(request, user, backend='django.contrib.auth.backends.ModelBackend')
