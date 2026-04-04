@@ -606,6 +606,14 @@ def google_auth_view(request):
     The standard server-side code flow works everywhere.
     """
     _ensure_public_schema()
+    
+    # Check if google-auth is available
+    try:
+        import google.auth
+    except ImportError:
+        messages.error(request, 'Google sign-in is not available on this server.')
+        return redirect('individual:signin')
+    
     import secrets
     from urllib.parse import urlencode
 
@@ -639,38 +647,21 @@ def google_auth_view(request):
 def google_callback_view(request):
     """Handle the OAuth 2.0 callback from Google — exchange code for tokens."""
     _ensure_public_schema()
+    
+    # Check if google-auth is available
+    try:
+        import google.auth
+    except ImportError:
+        messages.error(request, 'Google sign-in is not available on this server.')
+        return redirect('individual:signin')
+    
     import urllib.request
     import urllib.parse
 
-    # ── Verify state ──────────────────────────────────────────────
-    state = request.GET.get('state', '')
-    expected = request.session.pop('_google_state', '')
-    
-    if not state:
-        logger.warning('Google OAuth callback missing state parameter')
-        messages.error(request, 'Authentication failed — please try again.')
-        return redirect('individual:signin')
-    
-    if not expected:
-        logger.warning('Google OAuth state not found in session (expired?)')
-        messages.error(request, 'Session expired — please try again.')
-        return redirect('individual:signin')
-    
-    if state != expected:
-        logger.warning(f'Google OAuth state mismatch: got {state[:10]}..., expected {expected[:10]}...')
-        messages.error(request, 'Authentication failed — please try again.')
-        return redirect('individual:signin')
-
-    error = request.GET.get('error')
-    code = request.GET.get('code')
-    if error or not code:
-        messages.error(request, 'Google sign-in was cancelled.')
-        return redirect('individual:signin')
-
     client_id = getattr(settings, 'GOOGLE_OAUTH_CLIENT_ID', '')
     client_secret = getattr(settings, 'GOOGLE_OAUTH_CLIENT_SECRET', '')
-    if not client_secret:
-        logger.error('GOOGLE_OAUTH_CLIENT_SECRET is not set.')
+    if not client_id or not client_secret:
+        logger.error('Google OAuth credentials not configured')
         messages.error(request, 'Google sign-in is misconfigured.')
         return redirect('individual:signin')
 
