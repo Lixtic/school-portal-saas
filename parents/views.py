@@ -411,13 +411,16 @@ def send_message_to_school(request):
 
         from announcements.models import Notification
         admin_users = User.objects.filter(user_type='admin')
-        for admin in admin_users:
-            Notification.objects.create(
+        notifications = [
+            Notification(
                 recipient=admin,
                 message=f"📬 Parent Query — {subject} | From: {parent_name}: {body[:180]}",
                 alert_type='message',
                 link='/dashboard/',
             )
+            for admin in admin_users
+        ]
+        Notification.objects.bulk_create(notifications)
 
         messages.success(request, 'Your message has been sent to the school administration.')
         return redirect('parents:my_children')

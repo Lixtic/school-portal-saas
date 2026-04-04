@@ -233,16 +233,22 @@ def create_fee_structure(request):
             assign_now = request.POST.get('assign_now') == 'on'
             if assign_now:
                 students = Student.objects.filter(current_class=structure.class_level)
-                count = 0
-                for student in students:
-                    # Check if already exists
-                    if not StudentFee.objects.filter(student=student, fee_structure=structure).exists():
-                        StudentFee.objects.create(
-                            student=student,
-                            fee_structure=structure,
-                            amount_payable=structure.amount
-                        )
-                        count += 1
+                existing_student_ids = set(
+                    StudentFee.objects.filter(
+                        student__in=students, fee_structure=structure
+                    ).values_list('student_id', flat=True)
+                )
+                new_fees = [
+                    StudentFee(
+                        student=student,
+                        fee_structure=structure,
+                        amount_payable=structure.amount,
+                    )
+                    for student in students
+                    if student.pk not in existing_student_ids
+                ]
+                StudentFee.objects.bulk_create(new_fees)
+                count = len(new_fees)
                 messages.success(request, f'Fee Structure created and assigned to {count} students.')
             else:
                 messages.success(request, 'Fee Structure created.')
@@ -537,21 +543,31 @@ def bulk_assign_fees(request):
             target_class = get_object_or_404(Class, id=class_id)
             students_in_class = Student.objects.filter(current_class=target_class).select_related('user')
 
-            for structure_id in structure_ids:
-                try:
-                    structure = FeeStructure.objects.get(id=structure_id)
-                except FeeStructure.DoesNotExist:
-                    continue
+            structures_qs = FeeStructure.objects.filter(id__in=structure_ids)
+            structures_map = {s.id: s for s in structures_qs}
+
+            # Fetch all existing (student_id, fee_structure_id) pairs in one query
+            existing_pairs = set(
+                StudentFee.objects.filter(
+                    student__in=students_in_class,
+                    fee_structure__in=structures_qs,
+                ).values_list('student_id', 'fee_structure_id')
+            )
+
+            new_fees = []
+            for structure in structures_map.values():
                 for student in students_in_class:
-                    _, created = StudentFee.objects.get_or_create(
-                        student=student,
-                        fee_structure=structure,
-                        defaults={'amount_payable': structure.amount, 'status': 'unpaid'},
-                    )
-                    if created:
-                        assigned += 1
-                    else:
-                        skipped += 1
+                    if (student.pk, structure.pk) not in existing_pairs:
+                        new_fees.append(StudentFee(
+                            student=student,
+                            fee_structure=structure,
+                            amount_payable=structure.amount,
+                            status='unpaid',
+                        ))
+
+            StudentFee.objects.bulk_create(new_fees)
+            assigned = len(new_fees)
+            skipped = (len(structures_map) * students_in_class.count()) - assigned
 
             messages.success(
                 request,
@@ -904,29 +920,34 @@ def fee_collection_report(request):
     if selected_term:
         base_fees = base_fees.filter(fee_structure__term=selected_term)
 
-    # --- Class-wise breakdown ---
+    # --- Class-wise breakdown (single annotated query) ---
     classes = Class.objects.filter(academic_year=report_year).order_by('name')
-    class_data = []
-    for cls in classes:
-        cls_fees = base_fees.filter(fee_structure__class_level=cls)
-        agg = cls_fees.aggregate(
+    class_agg = (
+        base_fees
+        .filter(fee_structure__class_level__in=classes)
+        .values('fee_structure__class_level__id', 'fee_structure__class_level__name')
+        .annotate(
             expected=Coalesce(Sum('amount_payable'), Decimal('0')),
             collected=Coalesce(Sum('payments__amount'), Decimal('0')),
             total_students=Count('student', distinct=True),
             paid_count=Count('student', filter=Q(status='paid'), distinct=True),
         )
-        expected = agg['expected']
-        collected = agg['collected']
+        .order_by('fee_structure__class_level__name')
+    )
+    class_data = []
+    for row in class_agg:
+        expected = row['expected']
+        collected = row['collected']
         outstanding = expected - collected
         rate = round((collected / expected * 100), 1) if expected > 0 else 0
         class_data.append({
-            'name': str(cls),
+            'name': row['fee_structure__class_level__name'],
             'expected': expected,
             'collected': collected,
             'outstanding': outstanding,
             'rate': rate,
-            'total_students': agg['total_students'],
-            'paid_count': agg['paid_count'],
+            'total_students': row['total_students'],
+            'paid_count': row['paid_count'],
         })
 
     # --- Term-wise breakdown ---
@@ -952,22 +973,24 @@ def fee_collection_report(request):
             'rate': rate,
         })
 
-    # --- Fee-type breakdown ---
-    heads = FeeHead.objects.all()
-    head_data = []
-    for head in heads:
-        head_fees = base_fees.filter(fee_structure__head=head)
-        agg = head_fees.aggregate(
+    # --- Fee-type breakdown (single annotated query) ---
+    head_agg = (
+        base_fees
+        .values('fee_structure__head__id', 'fee_structure__head__name')
+        .annotate(
             expected=Coalesce(Sum('amount_payable'), Decimal('0')),
             collected=Coalesce(Sum('payments__amount'), Decimal('0')),
         )
-        if agg['expected'] > 0:
+    )
+    head_data = []
+    for row in head_agg:
+        if row['expected'] > 0:
             head_data.append({
-                'name': head.name,
-                'expected': agg['expected'],
-                'collected': agg['collected'],
-                'outstanding': agg['expected'] - agg['collected'],
-                'rate': round((agg['collected'] / agg['expected'] * 100), 1),
+                'name': row['fee_structure__head__name'],
+                'expected': row['expected'],
+                'collected': row['collected'],
+                'outstanding': row['expected'] - row['collected'],
+                'rate': round((row['collected'] / row['expected'] * 100), 1),
             })
 
     # Grand totals

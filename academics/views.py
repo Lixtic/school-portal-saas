@@ -1251,37 +1251,40 @@ def copilot_assistant(request):
                         my_classes = Class.objects.filter(class_teacher=teacher)
                         
                         if my_classes.exists():
+                            # Batch: all students across teacher's classes
+                            all_students = Student.objects.filter(
+                                current_class__in=my_classes
+                            ).select_related('current_class')
+                            students_by_class = {}
+                            for s in all_students:
+                                students_by_class.setdefault(s.current_class_id, []).append(s)
+
+                            # Batch: all attendance for today
+                            all_attendance = Attendance.objects.filter(
+                                student__in=all_students,
+                                date=today,
+                            ).select_related('student__user')
+                            att_by_class = {}
+                            for a in all_attendance:
+                                att_by_class.setdefault(a.student.current_class_id, []).append(a)
+
                             for c in my_classes:
-                                students_in_class = Student.objects.filter(current_class=c)
-                                total_students = students_in_class.count()
+                                class_students = students_by_class.get(c.pk, [])
+                                total_students = len(class_students)
                                 if total_students > 0:
-                                    present = Attendance.objects.filter(
-                                        student__in=students_in_class, 
-                                        date=today, 
-                                        status='present'
-                                    ).count()
-                                    absent = Attendance.objects.filter(
-                                        student__in=students_in_class, 
-                                        date=today, 
-                                        status__in=['absent', 'late', 'excused']
-                                    ).count()
-                                    
+                                    records = att_by_class.get(c.pk, [])
+                                    present = sum(1 for a in records if a.status == 'present')
+                                    absent = sum(1 for a in records if a.status in ('absent', 'late', 'excused'))
                                     unmarked = total_students - (present + absent)
                                     att_summary = f"{c.name} Attendance (Today {today.strftime('%b %d')}): {present} Present, {absent} Absent"
                                     if unmarked > 0:
                                         att_summary += f", {unmarked} Not Marked Yet"
-                                        
-                                    # Allow Aura to name absentees if asked
-                                    absentees = list(Attendance.objects.filter(
-                                        student__in=students_in_class, 
-                                        date=today, 
-                                        status='absent'
-                                    ).select_related('student__user'))
-                                    
+
+                                    absentees = [a for a in records if a.status == 'absent']
                                     if absentees:
                                         names = ", ".join([a.student.user.get_full_name() for a in absentees])
                                         att_summary += f". (Absent: {names})"
-                                        
+
                                     snapshot_lines.append(att_summary)
                 except Exception as e:
                     pass

@@ -849,7 +849,8 @@ def aura_arena_api(request):
         # created within the last 5 minutes — prevents stale DB rows from
         # permanently blocking new games.
         from django.utils import timezone as _tz
-        _battle_window = _tz.now() - __import__('datetime').timedelta(minutes=5)
+        from datetime import timedelta
+        _battle_window = _tz.now() - timedelta(minutes=5)
         active_battle = (
             StudyGroupMessage.objects
             .filter(room=room, is_battle_question=True, battle_answered=False,
