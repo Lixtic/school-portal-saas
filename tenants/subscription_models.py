@@ -55,7 +55,7 @@ class SubscriptionPlan(models.Model):
         ordering = ['monthly_price']
     
     def __str__(self):
-        return f"{self.name} (${self.monthly_price}/mo)"
+        return f"{self.name} (₵{self.monthly_price}/mo)"
     
     def get_price_for_cycle(self, cycle):
         """Get price for specific billing cycle"""
@@ -102,7 +102,7 @@ class AddOn(models.Model):
         ordering = ['category', 'monthly_price']
     
     def __str__(self):
-        return f"{self.name} (${self.monthly_price}/mo)"
+        return f"{self.name} (₵{self.monthly_price}/mo)"
 
 
 class SchoolSubscription(models.Model):

@@ -1766,15 +1766,15 @@ def initiate_plan_upgrade(request):
 
     plan = get_object_or_404(SubscriptionPlan, id=plan_id, is_active=True)
 
-    # Determine amount based on billing cycle
+    # Determine amount based on billing cycle (GHS)
     if billing_cycle == 'annual':
-        amount_usd = plan.annual_price
+        amount_ghs = plan.annual_price
     elif billing_cycle == 'quarterly':
-        amount_usd = plan.quarterly_price
+        amount_ghs = plan.quarterly_price
     else:
-        amount_usd = plan.monthly_price
+        amount_ghs = plan.monthly_price
 
-    if amount_usd <= 0:
+    if amount_ghs <= 0:
         messages.error(request, "Invalid plan amount. Please contact support.")
         return redirect('tenants:school_subscription')
 
@@ -1812,8 +1812,8 @@ def initiate_plan_upgrade(request):
         return redirect('tenants:school_subscription')
 
     reference = f"PLN-{request.tenant.id}-{plan.id}-{uuid.uuid4().hex[:8].upper()}"
-    # Paystack uses smallest currency unit (kobo for NGN, pesewas for GHS)
-    amount_minor = int(amount_usd * 100)
+    # Paystack uses smallest currency unit (pesewas for GHS)
+    amount_minor = int(amount_ghs * 100)
 
     from django.urls import reverse as _rev
     callback_url = request.build_absolute_uri(_rev('tenants:upgrade_plan_callback'))
