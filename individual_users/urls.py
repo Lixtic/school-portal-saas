@@ -29,6 +29,11 @@ urlpatterns = [
     path('addons/unsubscribe/', views.unsubscribe_addon, name='unsubscribe_addon'),
     path('addons/verify/', views.verify_addon_payment, name='verify_addon_payment'),
 
+    # AI Credits
+    path('credits/purchase/<int:pack_id>/', views.purchase_credits, name='purchase_credits'),
+    path('credits/verify/', views.verify_credit_purchase, name='verify_credit_purchase'),
+    path('credits/history/', views.credit_history, name='credit_history'),
+
     # Paystack webhook (no auth required, HMAC-verified)
     path('webhook/paystack/', views.paystack_individual_webhook, name='paystack_individual_webhook'),
 

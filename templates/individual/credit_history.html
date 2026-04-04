@@ -1,0 +1,99 @@
+{% extends 'individual/base.html' %}
+{% block title %}Credit History — Aura Portal{% endblock %}
+{% block page_title %}Credit History{% endblock %}
+
+{% block extra_css %}
+<style>
+.ch-header {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;
+}
+.ch-balance {
+    display: flex; align-items: center; gap: .6rem;
+    background: linear-gradient(90deg, rgba(245,158,11,.08), rgba(139,92,246,.08));
+    border: 1px solid rgba(245,158,11,.22);
+    border-radius: 12px; padding: .65rem 1.25rem;
+    font-size: .88rem; font-weight: 700; color: #f59e0b;
+}
+.ch-balance i { font-size: 1.15rem; }
+.ch-balance strong { font-size: 1.35rem; font-weight: 800; }
+.ch-table {
+    width: 100%; border-collapse: collapse;
+    background: var(--as-surface, #fff);
+    border: 1px solid var(--as-border, #e4e8f2);
+    border-radius: 12px; overflow: hidden;
+}
+.ch-table th, .ch-table td { padding: .65rem .85rem; text-align: left; font-size: .82rem; }
+.ch-table th {
+    background: var(--surface-bg, #f0f2f5); font-weight: 700;
+    font-size: .7rem; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--as-muted, #8892a4);
+}
+.ch-table tr + tr td { border-top: 1px solid var(--as-border, #e4e8f2); }
+.ch-amount-pos { color: #10b981; font-weight: 700; }
+.ch-amount-neg { color: #ef4444; font-weight: 700; }
+.ch-type {
+    display: inline-flex; align-items: center; gap: .3rem;
+    font-size: .7rem; font-weight: 700; padding: .18rem .5rem;
+    border-radius: 6px; text-transform: capitalize;
+}
+.ch-type-purchase { background: rgba(67,97,238,.1); color: #4361ee; }
+.ch-type-usage { background: rgba(239,68,68,.1); color: #ef4444; }
+.ch-type-bonus { background: rgba(16,185,129,.1); color: #10b981; }
+.ch-type-refund { background: rgba(245,158,11,.1); color: #f59e0b; }
+.ch-empty { text-align: center; padding: 3rem; color: var(--as-muted, #8892a4); font-size: .88rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ch-header">
+    <div>
+        <h5 style="font-weight:800;margin:0 0 .2rem;">AI Credit History</h5>
+        <p style="font-size:.82rem;color:var(--as-muted,#8892a4);margin:0;">Your credit purchase and usage log.</p>
+    </div>
+    <div class="ch-balance">
+        <i class="bi bi-lightning-charge-fill"></i>
+        <span>Balance: <strong>{{ credit_balance }}</strong></span>
+    </div>
+</div>
+
+<a href="{% url 'individual:addons' %}" style="font-size:.78rem;font-weight:700;color:#4361ee;text-decoration:none;display:inline-flex;align-items:center;gap:.25rem;margin-bottom:1rem;">
+    <i class="bi bi-arrow-left"></i> Back to Add-on Store
+</a>
+
+{% if transactions %}
+<table class="ch-table">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Amount</th>
+            <th>Balance</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for txn in transactions %}
+        <tr>
+            <td>{{ txn.created_at|date:"M d, Y H:i" }}</td>
+            <td><span class="ch-type ch-type-{{ txn.transaction_type }}">{{ txn.get_transaction_type_display }}</span></td>
+            <td>{{ txn.description }}</td>
+            <td>
+                {% if txn.amount > 0 %}
+                    <span class="ch-amount-pos">+{{ txn.amount }}</span>
+                {% else %}
+                    <span class="ch-amount-neg">{{ txn.amount }}</span>
+                {% endif %}
+            </td>
+            <td>{{ txn.balance_after }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="ch-empty">
+    <i class="bi bi-clock-history" style="font-size:2rem;opacity:.3;display:block;margin-bottom:.5rem;"></i>
+    No credit transactions yet. Purchase credits to get started!
+</div>
+{% endif %}
+{% endblock %}

@@ -291,6 +291,63 @@
 .as-empty p  { font-size: .82rem; max-width: 280px; margin: 0 auto; }
 .as-no-results { display: none; text-align: center; padding: 3rem 1rem; color: var(--as-muted); font-size: .85rem; }
 
+/* Credit bar */
+.as-credit-bar {
+    background: linear-gradient(90deg, rgba(245,158,11,.08) 0%, rgba(139,92,246,.08) 100%);
+    border: 1px solid rgba(245,158,11,.22);
+    border-radius: var(--as-radius-sm);
+    padding: .75rem 1.1rem;
+    margin-bottom: 1.25rem;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: .5rem;
+}
+.as-credit-info {
+    display: flex; align-items: center; gap: .5rem;
+    font-size: .82rem; font-weight: 700; color: #f59e0b;
+}
+.as-credit-info i { font-size: 1.1rem; }
+.as-credit-info .balance-num { font-size: 1.2rem; font-weight: 800; }
+.as-credit-actions { display: flex; gap: .5rem; align-items: center; }
+.as-credit-actions a {
+    font-size: .72rem; font-weight: 700; color: var(--as-muted);
+    text-decoration: none; transition: color .15s;
+}
+.as-credit-actions a:hover { color: var(--cat-ai); }
+
+/* Credit pack cards */
+.as-packs-section { margin-bottom: 1.75rem; }
+.as-packs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: .85rem;
+}
+.as-pack-card {
+    background: var(--as-surface);
+    border: 1.5px solid var(--as-border);
+    border-radius: var(--as-radius-sm);
+    padding: 1rem; text-align: center;
+    transition: box-shadow .22s, transform .22s, border-color .22s;
+    position: relative;
+}
+.as-pack-card:hover { box-shadow: var(--as-shadow-lg); transform: translateY(-3px); }
+.as-pack-card .pack-badge {
+    position: absolute; top: .6rem; right: .6rem;
+    font-size: .55rem; font-weight: 800; text-transform: uppercase;
+    padding: .15rem .45rem; border-radius: 5px;
+    background: #f97316; color: #fff;
+}
+.as-pack-card .pack-icon {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto .6rem; font-size: 1.2rem; color: #fff;
+}
+.as-pack-card .pack-credits { font-size: 1.6rem; font-weight: 800; color: var(--as-ink); line-height: 1; }
+.as-pack-card .pack-label { font-size: .7rem; color: var(--as-muted); margin: .15rem 0 .5rem; }
+.as-pack-card .pack-price { font-size: .95rem; font-weight: 800; color: var(--as-ink); }
+.as-pack-card .pack-rate { font-size: .62rem; color: var(--as-muted); margin-top: .1rem; }
+.as-pack-card .as-btn { margin-top: .65rem; width: 100%; justify-content: center; }
+
 /* Plan selector inside card */
 .as-plan-selector { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: .15rem; }
 .as-plan-option {
@@ -354,6 +411,10 @@
             <strong>{{ total_count }}</strong>
             <span>Available</span>
         </div>
+        <div class="as-stat-pill" style="border-color:rgba(245,158,11,.4);">
+            <strong style="color:#f59e0b;">{{ credit_balance }}</strong>
+            <span>AI Credits</span>
+        </div>
     </div>
 </div>
 
@@ -372,6 +433,50 @@
 <div class="as-owned-bar">
     <i class="bi bi-patch-check-fill"></i>
     You have <b>{{ subscribed_count }} addon{{ subscribed_count|pluralize }}</b> active &mdash; look for the green stripe on cards below.
+</div>
+{% endif %}
+
+<!-- Credit Balance Bar -->
+<div class="as-credit-bar">
+    <div class="as-credit-info">
+        <i class="bi bi-lightning-charge-fill"></i>
+        <span>AI Credits: <span class="balance-num" id="creditBalance">{{ credit_balance }}</span></span>
+    </div>
+    <div class="as-credit-actions">
+        <a href="{% url 'individual:credit_history' %}"><i class="bi bi-clock-history me-1"></i>History</a>
+        <a href="#creditPacks" style="color:#f59e0b;"><i class="bi bi-plus-circle me-1"></i>Buy Credits</a>
+    </div>
+</div>
+
+<!-- Credit Packs Section -->
+{% if credit_packs %}
+<div class="as-packs-section" id="creditPacks">
+    <div class="as-cat-row">
+        <div class="as-cat-icon" style="background:rgba(245,158,11,.1);color:#f59e0b;">
+            <i class="bi bi-lightning-charge-fill"></i>
+        </div>
+        <span class="as-cat-label">AI Credit Packs</span>
+        <div class="as-cat-line"></div>
+        <span class="as-cat-num">{{ credit_packs|length }}</span>
+    </div>
+    <div class="as-packs-grid">
+        {% for pack in credit_packs %}
+        <div class="as-pack-card">
+            {% if pack.badge_label %}<span class="pack-badge">{{ pack.badge_label }}</span>{% endif %}
+            <div class="pack-icon"><i class="{{ pack.icon }}"></i></div>
+            <div class="pack-credits">{{ pack.credits }}</div>
+            <div class="pack-label">credits</div>
+            <div class="pack-price">GHS {{ pack.price }}</div>
+            <div class="pack-rate">GHS {{ pack.price_per_credit|floatformat:2 }}/credit</div>
+            <button type="button" class="as-btn as-btn-get"
+                    data-pay-credit="{{ pack.id }}"
+                    data-pay-url="{% url 'individual:purchase_credits' pack.id %}"
+                    data-pack-credits="{{ pack.credits }}">
+                Buy {{ pack.credits }} Credits <i class="bi bi-lightning-charge"></i>
+            </button>
+        </div>
+        {% endfor %}
+    </div>
 </div>
 {% endif %}
 
@@ -671,6 +776,60 @@
         t.classList.add('show');
         setTimeout(() => t.classList.remove('show'), 3000);
     }
+
+    /* Credit pack purchase */
+    const VERIFY_CREDIT_URL = '{% url "individual:verify_credit_purchase" %}';
+
+    document.querySelectorAll('[data-pay-credit]').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const packId = this.dataset.payCredit;
+            const url = this.dataset.payUrl;
+            const origHTML = this.innerHTML;
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>';
+            try {
+                const fd = new FormData();
+                fd.append('csrfmiddlewaretoken', getCookie('csrftoken') || CSRF);
+                const res = await fetch(url, { method: 'POST', body: fd });
+                const data = await res.json();
+                if (!data.paystack) { location.reload(); return; }
+                const popup = new PaystackPop();
+                popup.newTransaction({
+                    key: data.public_key,
+                    email: data.email,
+                    amount: data.amount,
+                    currency: data.currency,
+                    ref: data.reference,
+                    metadata: { pack_id: packId, pack_name: data.pack_name, credits: data.credits },
+                    onSuccess: async (txn) => {
+                        const vRes = await fetch(VERIFY_CREDIT_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') || CSRF },
+                            body: JSON.stringify({ reference: txn.reference, pack_id: packId }),
+                        });
+                        const vData = await vRes.json();
+                        if (vData.ok) {
+                            const balEl = document.getElementById('creditBalance');
+                            if (balEl) balEl.textContent = vData.new_balance;
+                            showToast('\u26a1 ' + vData.credits_added + ' credits added! Balance: ' + vData.new_balance);
+                            btn.disabled = false;
+                            btn.innerHTML = origHTML;
+                        } else {
+                            showToast(vData.error || 'Verification failed.');
+                            btn.disabled = false;
+                            btn.innerHTML = origHTML;
+                        }
+                    },
+                    onCancel: () => { btn.disabled = false; btn.innerHTML = origHTML; },
+                });
+            } catch (err) {
+                console.error('Credit purchase error:', err);
+                showToast('An error occurred. Please try again.');
+                btn.disabled = false;
+                btn.innerHTML = origHTML;
+            }
+        });
+    });
 })();
 </script>
 {% endblock %}

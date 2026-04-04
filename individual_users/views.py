@@ -1128,6 +1128,11 @@ def addons_view(request):
     subscribed_count = len(my_subs)
     total_count = len(all_addons)
 
+    from individual_users.credit_utils import get_credit_balance
+    from individual_users.models import IndividualCreditPack
+    credit_balance = get_credit_balance(request.user)
+    credit_packs = IndividualCreditPack.objects.filter(is_active=True)
+
     ctx = {
         'catalog': all_addons,
         'groups': list(grouped.values()),
@@ -1136,6 +1141,8 @@ def addons_view(request):
         'subscribed_count': subscribed_count,
         'total_count': total_count,
         'currency': getattr(settings, 'PAYSTACK_CURRENCY', 'GHS'),
+        'credit_balance': credit_balance,
+        'credit_packs': credit_packs,
     }
     return render(request, 'individual/addons.html', ctx)
 
@@ -1475,3 +1482,93 @@ def _handle_individual_addon_payment(reference, data):
             'amount_paid': amount_paid,
         },
     )
+
+
+# ── Credit System Views ─────────────────────────────────────────────────────
+
+@_individual_required
+@require_POST
+def purchase_credits(request, pack_id):
+    """Purchase a credit pack — returns Paystack params for inline popup."""
+    from individual_users.models import IndividualCreditPack
+    from django.shortcuts import get_object_or_404 as _get
+
+    pack = _get(IndividualCreditPack, id=pack_id, is_active=True)
+    ref = f"IC-{request.user.id}-{pack.id}-{uuid.uuid4().hex[:8]}"
+    return JsonResponse({
+        'paystack': True,
+        'public_key': settings.PAYSTACK_PUBLIC_KEY,
+        'email': request.user.email or f'{request.user.username}@aura.local',
+        'amount': int(pack.price * 100),  # pesewas
+        'currency': getattr(settings, 'PAYSTACK_CURRENCY', 'GHS'),
+        'reference': ref,
+        'pack_name': pack.name,
+        'credits': pack.credits,
+    })
+
+
+@_individual_required
+@require_POST
+def verify_credit_purchase(request):
+    """Verify a Paystack credit pack payment and add credits."""
+    import requests as http_requests
+    from individual_users.models import IndividualCreditPack, IndividualCreditTransaction
+    from individual_users.credit_utils import add_credits
+    from django.shortcuts import get_object_or_404 as _get
+
+    body = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    reference = body.get('reference', '')
+    pack_id = body.get('pack_id')
+
+    if not reference or not pack_id:
+        return JsonResponse({'ok': False, 'error': 'Missing data'}, status=400)
+
+    pack = _get(IndividualCreditPack, id=pack_id, is_active=True)
+
+    # Prevent duplicate credit grants
+    if IndividualCreditTransaction.objects.filter(payment_reference=reference).exists():
+        return JsonResponse({'ok': False, 'error': 'Already processed'}, status=409)
+
+    # Verify with Paystack API
+    secret = getattr(settings, 'PAYSTACK_SECRET_KEY', '')
+    if secret:
+        resp = http_requests.get(
+            f'https://api.paystack.co/transaction/verify/{reference}',
+            headers={'Authorization': f'Bearer {secret}'},
+            timeout=15,
+        )
+        data = resp.json()
+        if not data.get('status') or data.get('data', {}).get('status') != 'success':
+            return JsonResponse({'ok': False, 'error': 'Payment verification failed'}, status=402)
+
+    bal = add_credits(
+        request.user,
+        amount=pack.credits,
+        transaction_type='purchase',
+        description=f'Purchased {pack.name} ({pack.credits} credits)',
+        payment_reference=reference,
+    )
+
+    return JsonResponse({
+        'ok': True,
+        'credits_added': pack.credits,
+        'new_balance': bal.balance,
+        'pack_name': pack.name,
+    })
+
+
+@_individual_required
+def credit_history(request):
+    """View credit transaction history."""
+    from individual_users.models import IndividualCreditTransaction
+    from individual_users.credit_utils import get_credit_balance
+
+    transactions = IndividualCreditTransaction.objects.filter(
+        user=request.user
+    ).order_by('-created_at')[:100]
+
+    return render(request, 'individual/credit_history.html', {
+        'transactions': transactions,
+        'credit_balance': get_credit_balance(request.user),
+        'profile': request.user.individual_profile,
+    })
