@@ -1,0 +1,189 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Get Started — Aura</title>
+  <meta name="description" content="Set up your school or create a personal educator account on Aura. AI-powered tools for education.">
+  <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --brand:#4361ee;--brand-lt:#4cc9f0;--brand-dk:#3730a3;
+      --void:#0a0b14;--void-2:#111827;
+      --surface:#f3f4f6;--card:#ffffff;--text:#111827;--text-2:#64748b;--border:#e2e8f0;
+      --emerald:#059669;--emerald-lt:#10b981;--amber:#f59e0b;
+      --radius:16px;
+      --shadow:0 1px 3px rgba(0,0,0,.04),0 8px 32px rgba(0,0,0,.06);
+      --serif:'Instrument Serif',Georgia,serif;
+      --sans:'Manrope',system-ui,sans-serif;
+    }
+    [data-bs-theme="dark"]{
+      --surface:#0f172a;--card:#1e293b;--text:#f1f5f9;--text-2:#94a3b8;--border:#334155;
+      --shadow:0 1px 3px rgba(0,0,0,.2),0 8px 32px rgba(0,0,0,.25);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0}
+    body{font-family:var(--sans);min-height:100vh;background:var(--surface);color:var(--text);overflow-x:hidden}
+
+    /* ─ Nav ─ */
+    .gs-nav{position:fixed;top:0;left:0;right:0;z-index:50;padding:20px 32px;display:flex;align-items:center;justify-content:space-between;background:transparent;transition:background .3s,box-shadow .3s}
+    .gs-nav.scrolled{background:var(--card);box-shadow:0 1px 8px rgba(0,0,0,.06)}
+    [data-bs-theme="dark"] .gs-nav.scrolled{box-shadow:0 1px 8px rgba(0,0,0,.3)}
+    .gs-logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text);font-weight:700;font-size:1.15rem}
+    .gs-logo-mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--brand),var(--brand-lt));display:grid;place-items:center;color:#fff;font-size:.9rem}
+    .gs-nav-right{display:flex;align-items:center;gap:16px}
+    .gs-signin{font-size:.82rem;font-weight:600;color:var(--text-2);text-decoration:none;padding:8px 18px;border-radius:10px;transition:all .2s}
+    .gs-signin:hover{color:var(--brand);background:rgba(67,97,238,.06)}
+    .gs-theme{background:none;border:none;cursor:pointer;color:var(--text-2);font-size:1.1rem;padding:6px;border-radius:8px;transition:color .2s}
+    .gs-theme:hover{color:var(--text)}
+
+    /* ─ Hero ─ */
+    .gs-hero{padding:160px 32px 80px;text-align:center}
+    .gs-badge{display:inline-flex;align-items:center;gap:6px;font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--brand);background:rgba(67,97,238,.08);padding:8px 16px;border-radius:100px;margin-bottom:24px}
+    [data-bs-theme="dark"] .gs-badge{background:rgba(76,201,240,.1);color:var(--brand-lt)}
+    .gs-title{font-family:var(--serif);font-size:clamp(2.4rem,5vw,3.8rem);font-weight:400;line-height:1.15;margin-bottom:16px;color:var(--text)}
+    .gs-title em{font-style:italic;background:linear-gradient(135deg,var(--brand),var(--brand-lt));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .gs-sub{font-size:1.05rem;font-weight:400;color:var(--text-2);max-width:540px;margin:0 auto;line-height:1.7}
+
+    /* ─ Cards ─ */
+    .gs-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;max-width:880px;margin:0 auto;padding:0 32px 120px}
+    @media(max-width:700px){.gs-grid{grid-template-columns:1fr}}
+
+    .gs-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:44px 36px;text-decoration:none;color:var(--text);position:relative;overflow:hidden;box-shadow:var(--shadow);transition:transform .25s,box-shadow .25s,border-color .25s}
+    .gs-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.1);border-color:transparent}
+    [data-bs-theme="dark"] .gs-card:hover{box-shadow:0 12px 40px rgba(0,0,0,.35)}
+
+    .gs-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;border-radius:var(--radius) var(--radius) 0 0;opacity:0;transition:opacity .25s}
+    .gs-card:hover::before{opacity:1}
+
+    .gs-card--school::before{background:linear-gradient(90deg,var(--brand),var(--brand-lt))}
+    .gs-card--individual::before{background:linear-gradient(90deg,var(--emerald),var(--emerald-lt))}
+
+    .gs-card-icon{width:56px;height:56px;border-radius:14px;display:grid;place-items:center;font-size:1.4rem;margin-bottom:24px}
+    .gs-card--school .gs-card-icon{background:rgba(67,97,238,.08);color:var(--brand)}
+    [data-bs-theme="dark"] .gs-card--school .gs-card-icon{background:rgba(76,201,240,.1);color:var(--brand-lt)}
+    .gs-card--individual .gs-card-icon{background:rgba(5,150,105,.08);color:var(--emerald)}
+    [data-bs-theme="dark"] .gs-card--individual .gs-card-icon{background:rgba(16,185,129,.1);color:var(--emerald-lt)}
+
+    .gs-card-title{font-family:var(--serif);font-size:1.65rem;font-weight:400;margin-bottom:8px;line-height:1.3}
+    .gs-card-desc{font-size:.88rem;color:var(--text-2);line-height:1.7;margin-bottom:28px}
+
+    .gs-card-feats{list-style:none;padding:0;margin:0 0 32px}
+    .gs-card-feats li{display:flex;align-items:flex-start;gap:10px;font-size:.82rem;color:var(--text-2);padding:6px 0;line-height:1.5}
+    .gs-card-feats li i{flex-shrink:0;margin-top:2px;font-size:.7rem}
+    .gs-card--school .gs-card-feats li i{color:var(--brand)}
+    .gs-card--individual .gs-card-feats li i{color:var(--emerald)}
+
+    .gs-card-cta{display:inline-flex;align-items:center;gap:8px;font-size:.82rem;font-weight:700;letter-spacing:.03em;padding:13px 28px;border-radius:12px;text-decoration:none;transition:all .2s}
+    .gs-card--school .gs-card-cta{background:var(--brand);color:#fff}
+    .gs-card--school .gs-card-cta:hover{background:var(--brand-dk);transform:translateY(-1px)}
+    .gs-card--individual .gs-card-cta{background:var(--emerald);color:#fff}
+    .gs-card--individual .gs-card-cta:hover{background:#047857;transform:translateY(-1px)}
+
+    .gs-card-note{font-size:.72rem;color:var(--text-2);margin-top:12px;opacity:.7}
+
+    /* ─ Footer ─ */
+    .gs-footer{text-align:center;padding:32px;font-size:.75rem;color:var(--text-2);border-top:1px solid var(--border)}
+    .gs-footer a{color:var(--text-2);text-decoration:none}
+    .gs-footer a:hover{color:var(--brand)}
+
+    /* ─ Animations ─ */
+    .reveal{opacity:0;transform:translateY(20px);transition:opacity .6s,transform .6s}
+    .reveal.in{opacity:1;transform:translateY(0)}
+    .d2{transition-delay:.1s}.d3{transition-delay:.2s}.d4{transition-delay:.3s}
+  </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="gs-nav" id="gsNav">
+  <a href="{% url 'home' %}" class="gs-logo">
+    <div class="gs-logo-mark"><i class="bi bi-grid-3x3-gap-fill"></i></div>
+    Portals
+  </a>
+  <div class="gs-nav-right">
+    <a href="{% url 'login' %}" class="gs-signin">Sign In</a>
+    <button class="gs-theme" id="gsTheme" title="Toggle theme"><i class="bi bi-moon-fill"></i></button>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="gs-hero">
+  <div class="gs-badge reveal">Get Started</div>
+  <h1 class="gs-title reveal d2">Choose how you want<br>to use <em>Aura.</em></h1>
+  <p class="gs-sub reveal d3">Set up an entire school on the platform, or create a personal account for AI-powered teacher tools.</p>
+</section>
+
+<!-- Cards -->
+<div class="gs-grid">
+
+  <a href="{% url 'signup' %}" class="gs-card gs-card--school reveal d3">
+    <div class="gs-card-icon"><i class="bi bi-building"></i></div>
+    <div class="gs-card-title">School Account</div>
+    <p class="gs-card-desc">Register your school and get a full management system — grades, fees, attendance, teacher tools, and parent portal. All under one roof.</p>
+    <ul class="gs-card-feats">
+      <li><i class="bi bi-check-circle-fill"></i>Dedicated school portal with custom URL</li>
+      <li><i class="bi bi-check-circle-fill"></i>Manage students, teachers, parents &amp; staff</li>
+      <li><i class="bi bi-check-circle-fill"></i>Grade book, fee collection, attendance, timetable</li>
+      <li><i class="bi bi-check-circle-fill"></i>Teacher Add-On Store with 20+ AI tools</li>
+      <li><i class="bi bi-check-circle-fill"></i>AI-powered report cards &amp; analytics</li>
+    </ul>
+    <div class="gs-card-cta">
+      Register a School <i class="bi bi-arrow-right"></i>
+    </div>
+    <div class="gs-card-note">Requires approval · Free to start · Setup in under 5 min</div>
+  </a>
+
+  <a href="{% url 'individual:signup' %}" class="gs-card gs-card--individual reveal d4">
+    <div class="gs-card-icon"><i class="bi bi-person-circle"></i></div>
+    <div class="gs-card-title">Individual Account</div>
+    <p class="gs-card-desc">Sign up as an educator or developer. Access AI lesson plans, slide generators, study guides, question banks, and free classroom tools — on your own.</p>
+    <ul class="gs-card-feats">
+      <li><i class="bi bi-check-circle-fill"></i>AI Lesson Planner, Slide Generator &amp; more</li>
+      <li><i class="bi bi-check-circle-fill"></i>Report Card AI &amp; Question Bank</li>
+      <li><i class="bi bi-check-circle-fill"></i>Free tools — Timer, Random Picker, Task Board</li>
+      <li><i class="bi bi-check-circle-fill"></i>Buy credit tokens from GH₵2</li>
+      <li><i class="bi bi-check-circle-fill"></i>Sign up with email, phone, or Google</li>
+    </ul>
+    <div class="gs-card-cta">
+      Create Personal Account <i class="bi bi-arrow-right"></i>
+    </div>
+    <div class="gs-card-note">No school required · Instant access · Pay per use</div>
+  </a>
+
+</div>
+
+<!-- Footer -->
+<footer class="gs-footer">
+  <p>© 2026 Portals · <a href="{% url 'privacy' %}">Privacy</a> · <a href="{% url 'terms' %}">Terms</a> · <a href="{% url 'home' %}">Back to Home</a></p>
+</footer>
+
+<script>
+// Reveal
+const io=new IntersectionObserver(e=>{e.forEach(el=>{if(el.isIntersecting){el.target.classList.add('in');io.unobserve(el.target)}})},{threshold:.1});
+document.querySelectorAll('.reveal').forEach(r=>io.observe(r));
+
+// Nav scroll
+const nav=document.getElementById('gsNav');
+window.addEventListener('scroll',()=>{nav.classList.toggle('scrolled',window.scrollY>20)});
+
+// Theme
+const themeBtn=document.getElementById('gsTheme');
+const html=document.documentElement;
+const saved=localStorage.getItem('theme');
+if(saved){html.setAttribute('data-bs-theme',saved);themeBtn.innerHTML=saved==='dark'?'<i class="bi bi-sun-fill"></i>':'<i class="bi bi-moon-fill"></i>'}
+else if(window.matchMedia('(prefers-color-scheme:dark)').matches){html.setAttribute('data-bs-theme','dark');themeBtn.innerHTML='<i class="bi bi-sun-fill"></i>'}
+themeBtn.addEventListener('click',()=>{
+  const next=html.getAttribute('data-bs-theme')==='dark'?'light':'dark';
+  html.setAttribute('data-bs-theme',next);
+  localStorage.setItem('theme',next);
+  themeBtn.innerHTML=next==='dark'?'<i class="bi bi-sun-fill"></i>':'<i class="bi bi-moon-fill"></i>';
+});
+</script>
+</body>
+</html>
