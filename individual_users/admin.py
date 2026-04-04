@@ -1,5 +1,15 @@
 from django.contrib import admin
-from individual_users.models import AddonSubscription, APIKey, IndividualProfile
+from individual_users.models import AddonSubscription, APIKey, IndividualAddon, IndividualProfile
+
+
+@admin.register(IndividualAddon)
+class IndividualAddonAdmin(admin.ModelAdmin):
+    list_display = ('name', 'slug', 'category', 'audience', 'is_active', 'position', 'updated_at')
+    list_filter = ('category', 'audience', 'is_active')
+    list_editable = ('is_active', 'position')
+    search_fields = ('name', 'slug', 'tagline')
+    prepopulated_fields = {'slug': ('name',)}
+    ordering = ('position', 'category', 'name')
 
 
 @admin.register(IndividualProfile)

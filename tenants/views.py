@@ -2306,3 +2306,102 @@ def paystack_subscription_webhook(request):
         f"for school '{school.name}' (ref={reference})"
     )
     return HttpResponse(status=200)
+
+
+# ── Individual Addon Pricing Management ──────────────────────────────────────
+
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+def addon_pricing_management(request):
+    """Landlord view to manage individual addon catalog and prices."""
+    from individual_users.models import IndividualAddon
+    import json as _json
+
+    addons = IndividualAddon.objects.all()
+
+    if request.method == 'POST':
+        action = request.POST.get('action', '')
+
+        if action == 'update_prices':
+            updated = 0
+            for addon in addons:
+                prefix = f'addon_{addon.pk}_'
+                new_prices = {}
+                for plan in addon.plans:
+                    key = f'{prefix}price_{plan}'
+                    val = request.POST.get(key, '')
+                    if val != '':
+                        try:
+                            new_prices[plan] = round(float(val), 2)
+                        except (ValueError, TypeError):
+                            continue
+                if new_prices and new_prices != addon.prices:
+                    addon.prices = new_prices
+                    addon.save(update_fields=['prices', 'updated_at'])
+                    updated += 1
+
+                # Update is_active toggle
+                active_key = f'{prefix}active'
+                new_active = active_key in request.POST
+                if new_active != addon.is_active:
+                    addon.is_active = new_active
+                    addon.save(update_fields=['is_active', 'updated_at'])
+                    updated += 1
+
+            if updated:
+                messages.success(request, f'Updated {updated} addon(s).')
+            else:
+                messages.info(request, 'No changes detected.')
+            return redirect('tenants:addon_pricing')
+
+        elif action == 'create_addon':
+            name = request.POST.get('name', '').strip()
+            slug = request.POST.get('slug', '').strip()
+            category = request.POST.get('category', 'productivity')
+            description = request.POST.get('description', '').strip()
+            icon = request.POST.get('icon', 'bi-box-seam').strip()
+            tagline = request.POST.get('tagline', '').strip()
+            badge_label = request.POST.get('badge_label', '').strip()
+            audience = request.POST.get('audience', 'all')
+            plans_raw = request.POST.get('plans', 'free').strip()
+            prices_raw = request.POST.get('prices', '{}').strip()
+            features_raw = request.POST.get('features', '').strip()
+            trial_days = int(request.POST.get('trial_days', '0') or '0')
+
+            if not name or not slug:
+                messages.error(request, 'Name and slug are required.')
+            elif IndividualAddon.objects.filter(slug=slug).exists():
+                messages.error(request, f'Addon with slug "{slug}" already exists.')
+            else:
+                plans_list = [p.strip() for p in plans_raw.split(',') if p.strip()]
+                try:
+                    prices_dict = _json.loads(prices_raw) if prices_raw.startswith('{') else {}
+                except (ValueError, TypeError):
+                    prices_dict = {}
+                features_list = [f.strip() for f in features_raw.split('\n') if f.strip()]
+
+                IndividualAddon.objects.create(
+                    name=name, slug=slug, tagline=tagline,
+                    description=description, category=category,
+                    audience=audience, icon=icon, badge_label=badge_label,
+                    plans=plans_list, prices=prices_dict,
+                    trial_days=trial_days, features=features_list,
+                )
+                messages.success(request, f'Addon "{name}" created.')
+            return redirect('tenants:addon_pricing')
+
+    # Compute stats
+    total = addons.count()
+    active = addons.filter(is_active=True).count()
+    cats = addons.values('category').annotate(c=Count('id')).order_by('category')
+
+    context = {
+        'addons': addons,
+        'total_addons': total,
+        'active_addons': active,
+        'inactive_addons': total - active,
+        'categories': list(cats),
+        'category_choices': IndividualAddon.CATEGORY_CHOICES,
+        'audience_choices': IndividualAddon.AUDIENCE_CHOICES,
+    }
+    return render(request, 'tenants/addon_pricing.html', context)

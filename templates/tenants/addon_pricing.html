@@ -1,0 +1,495 @@
+{% extends "admin/admin_base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Addon Pricing — Platform Admin{% endblock %}
+
+{% block admin_content %}
+<style>
+    /* ═══ ADDON PRICING MANAGEMENT — ap- prefix ═══ */
+    .ap {
+      --bg:           #0F0F17;
+      --surface:      #16161F;
+      --surface-2:    #1E1E2A;
+      --surface-3:    #252535;
+      --border:       rgba(255,255,255,0.07);
+      --border-2:     rgba(255,255,255,0.13);
+      --violet:       #7C3AED;
+      --violet-light: #A78BFA;
+      --violet-pale:  rgba(124,58,237,0.12);
+      --emerald:      #10B981;
+      --emerald-pale: rgba(16,185,129,0.1);
+      --amber:        #F59E0B;
+      --amber-pale:   rgba(245,158,11,0.1);
+      --rose:         #F43F5E;
+      --rose-pale:    rgba(244,63,94,0.1);
+      --sky:          #38BDF8;
+      --sky-pale:     rgba(56,189,248,0.1);
+      --text-1:       #F1F0EE;
+      --text-2:       rgba(241,240,238,0.60);
+      --text-3:       rgba(241,240,238,0.35);
+      --mono: 'JetBrains Mono', 'Consolas', monospace;
+      --sans: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text-1);
+      padding: 1.5rem 2rem 4rem;
+      min-height: 100%;
+      max-width: 1680px;
+      margin: 0 auto;
+      font-family: var(--sans);
+    }
+    [data-bs-theme="light"] .ap {
+      --bg:           #f3f4f6;
+      --surface:      #ffffff;
+      --surface-2:    #f8f9fa;
+      --surface-3:    #e9ecef;
+      --border:       rgba(0,0,0,0.08);
+      --border-2:     rgba(0,0,0,0.15);
+      --text-1:       #111827;
+      --text-2:       #4b5563;
+      --text-3:       #9ca3af;
+    }
+
+    .ap-back {
+        display: inline-flex; align-items: center; gap: .4rem;
+        font-size: .82rem; font-weight: 600; color: var(--text-3);
+        text-decoration: none; margin-bottom: 1.25rem; transition: color .15s;
+    }
+    .ap-back:hover { color: var(--text-1); }
+
+    /* Header */
+    .ap-header { margin-bottom: 1.5rem; }
+    .ap-header h1 {
+        font-size: 1.5rem; font-weight: 800;
+        letter-spacing: -.02em; margin: 0 0 .25rem;
+    }
+    .ap-header p { font-size: .85rem; color: var(--text-2); margin: 0; }
+
+    /* Stats row */
+    .ap-stats {
+        display: flex; gap: .75rem; flex-wrap: wrap;
+        margin-bottom: 1.75rem;
+    }
+    .ap-stat {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px; padding: .9rem 1.25rem;
+        min-width: 140px; flex: 1;
+    }
+    .ap-stat-val {
+        font-size: 1.75rem; font-weight: 800; line-height: 1;
+        font-family: var(--mono);
+    }
+    .ap-stat-label {
+        font-size: .68rem; font-weight: 600;
+        text-transform: uppercase; letter-spacing: .06em;
+        color: var(--text-3); margin-top: .3rem;
+    }
+
+    /* Table card */
+    .ap-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+    }
+    .ap-card-head {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border);
+    }
+    .ap-card-head h2 {
+        font-size: .85rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .06em;
+        color: var(--text-2); margin: 0;
+        display: flex; align-items: center; gap: .4rem;
+    }
+
+    /* Table */
+    .ap-table {
+        width: 100%; border-collapse: collapse;
+        font-size: .82rem;
+    }
+    .ap-table thead th {
+        padding: .6rem 1rem;
+        font-size: .68rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .06em;
+        color: var(--text-3);
+        border-bottom: 1px solid var(--border);
+        text-align: left; white-space: nowrap;
+    }
+    .ap-table tbody tr {
+        border-bottom: 1px solid var(--border);
+        transition: background .15s;
+    }
+    .ap-table tbody tr:hover { background: var(--surface-2); }
+    .ap-table tbody td {
+        padding: .65rem 1rem;
+        vertical-align: middle;
+    }
+    .ap-addon-name {
+        font-weight: 700; color: var(--text-1);
+        display: flex; align-items: center; gap: .6rem;
+    }
+    .ap-addon-icon {
+        width: 34px; height: 34px; border-radius: 9px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .9rem; flex-shrink: 0;
+        background: var(--violet-pale); color: var(--violet);
+    }
+    .ap-slug {
+        font-family: var(--mono); font-size: .72rem;
+        color: var(--text-3); margin-top: .1rem;
+    }
+    .ap-cat-badge {
+        display: inline-block;
+        font-size: .62rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .05em;
+        padding: .18rem .5rem; border-radius: 5px;
+        background: var(--sky-pale); color: var(--sky);
+    }
+    .ap-active-dot {
+        width: 8px; height: 8px; border-radius: 50%;
+        display: inline-block;
+    }
+    .ap-active-dot.on  { background: var(--emerald); }
+    .ap-active-dot.off { background: var(--rose); }
+
+    /* Price inputs */
+    .ap-price-input {
+        width: 90px; padding: .3rem .5rem;
+        border: 1px solid var(--border-2);
+        border-radius: 7px;
+        font-size: .82rem; font-weight: 600;
+        font-family: var(--mono);
+        background: var(--surface-2);
+        color: var(--text-1);
+        transition: border-color .15s;
+    }
+    .ap-price-input:focus {
+        outline: none;
+        border-color: var(--violet);
+        box-shadow: 0 0 0 2px var(--violet-pale);
+    }
+    .ap-plan-label {
+        font-size: .62rem; font-weight: 600;
+        text-transform: uppercase; letter-spacing: .04em;
+        color: var(--text-3); margin-bottom: .15rem;
+    }
+    .ap-price-group { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+    .ap-toggle {
+        position: relative; width: 38px; height: 20px; cursor: pointer;
+    }
+    .ap-toggle input { opacity: 0; width: 0; height: 0; }
+    .ap-toggle-track {
+        position: absolute; inset: 0;
+        background: var(--surface-3);
+        border-radius: 10px; transition: background .2s;
+    }
+    .ap-toggle input:checked + .ap-toggle-track { background: var(--emerald); }
+    .ap-toggle-thumb {
+        position: absolute; top: 2px; left: 2px;
+        width: 16px; height: 16px; border-radius: 50%;
+        background: #fff; transition: transform .2s;
+        box-shadow: 0 1px 3px rgba(0,0,0,.2);
+    }
+    .ap-toggle input:checked ~ .ap-toggle-thumb { transform: translateX(18px); }
+
+    /* Buttons */
+    .ap-btn {
+        border: none; padding: .5rem 1.1rem;
+        border-radius: 10px; font-size: .8rem; font-weight: 700;
+        cursor: pointer; transition: all .18s;
+        display: inline-flex; align-items: center; gap: .3rem;
+        font-family: var(--sans);
+    }
+    .ap-btn-primary {
+        background: var(--violet); color: #fff;
+        box-shadow: 0 3px 10px rgba(124,58,237,.3);
+    }
+    .ap-btn-primary:hover { filter: brightness(1.1); }
+    .ap-btn-secondary {
+        background: var(--surface-2);
+        border: 1px solid var(--border-2);
+        color: var(--text-2);
+    }
+    .ap-btn-secondary:hover { background: var(--surface-3); color: var(--text-1); }
+
+    /* Empty state */
+    .ap-empty {
+        text-align: center; padding: 3rem 1rem;
+        color: var(--text-3);
+    }
+    .ap-empty-icon {
+        font-size: 2.5rem; margin-bottom: .75rem; opacity: .3;
+    }
+    .ap-empty h4 { font-size: .95rem; color: var(--text-2); margin-bottom: .25rem; }
+    .ap-empty p { font-size: .82rem; }
+
+    /* Create form drawer */
+    .ap-drawer {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+        display: none;
+    }
+    .ap-drawer.open { display: block; }
+    .ap-drawer h3 {
+        font-size: .95rem; font-weight: 700;
+        margin: 0 0 1rem;
+        display: flex; align-items: center; gap: .4rem;
+    }
+    .ap-form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 1rem;
+    }
+    .ap-field label {
+        display: block;
+        font-size: .7rem; font-weight: 600;
+        text-transform: uppercase; letter-spacing: .05em;
+        color: var(--text-3); margin-bottom: .3rem;
+    }
+    .ap-field input,
+    .ap-field select,
+    .ap-field textarea {
+        width: 100%; padding: .45rem .7rem;
+        border: 1px solid var(--border-2);
+        border-radius: 8px; font-size: .82rem;
+        background: var(--surface-2);
+        color: var(--text-1);
+        font-family: var(--sans);
+    }
+    .ap-field textarea { min-height: 60px; resize: vertical; }
+    .ap-field input:focus,
+    .ap-field select:focus,
+    .ap-field textarea:focus {
+        outline: none;
+        border-color: var(--violet);
+        box-shadow: 0 0 0 2px var(--violet-pale);
+    }
+    .ap-field-full { grid-column: 1 / -1; }
+
+    @media (max-width: 768px) {
+        .ap { padding: 1rem .75rem 3rem; }
+        .ap-stats { flex-direction: column; }
+        .ap-form-grid { grid-template-columns: 1fr; }
+        .ap-table { font-size: .75rem; }
+        .ap-price-input { width: 70px; }
+    }
+</style>
+
+<div class="ap">
+    <a href="{% url 'tenants:landlord_dashboard' %}" class="ap-back">
+        <i class="bi bi-arrow-left"></i> Back to Command Center
+    </a>
+
+    <div class="ap-header">
+        <h1><i class="bi bi-tags-fill me-2" style="color:var(--violet);"></i>Addon Pricing</h1>
+        <p>Manage catalog items and pricing for the individual teacher/developer addon store.</p>
+    </div>
+
+    {% if messages %}
+    <div class="mb-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert" style="font-size:.85rem;">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Stats -->
+    <div class="ap-stats">
+        <div class="ap-stat">
+            <div class="ap-stat-val" style="color:var(--violet);">{{ total_addons }}</div>
+            <div class="ap-stat-label">Total Addons</div>
+        </div>
+        <div class="ap-stat">
+            <div class="ap-stat-val" style="color:var(--emerald);">{{ active_addons }}</div>
+            <div class="ap-stat-label">Active</div>
+        </div>
+        <div class="ap-stat">
+            <div class="ap-stat-val" style="color:var(--rose);">{{ inactive_addons }}</div>
+            <div class="ap-stat-label">Inactive</div>
+        </div>
+        <div class="ap-stat">
+            <div class="ap-stat-val" style="color:var(--sky);">{{ categories|length }}</div>
+            <div class="ap-stat-label">Categories</div>
+        </div>
+    </div>
+
+    <!-- Pricing table -->
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update_prices">
+
+        <div class="ap-card">
+            <div class="ap-card-head">
+                <h2><i class="bi bi-list-ul"></i> Addon Catalog</h2>
+                <div class="d-flex gap-2">
+                    <button type="button" class="ap-btn ap-btn-secondary" onclick="toggleDrawer()">
+                        <i class="bi bi-plus-lg"></i> Add New
+                    </button>
+                    <button type="submit" class="ap-btn ap-btn-primary">
+                        <i class="bi bi-check2"></i> Save Prices
+                    </button>
+                </div>
+            </div>
+
+            {% if addons %}
+            <table class="ap-table">
+                <thead>
+                    <tr>
+                        <th>Addon</th>
+                        <th>Category</th>
+                        <th>Audience</th>
+                        <th>Plan Prices</th>
+                        <th style="text-align:center;">Active</th>
+                        <th>Updated</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for addon in addons %}
+                    <tr>
+                        <td>
+                            <div class="ap-addon-name">
+                                <div class="ap-addon-icon">
+                                    <i class="bi {{ addon.icon }}"></i>
+                                </div>
+                                <div>
+                                    {{ addon.name }}
+                                    {% if addon.badge_label %}
+                                    <span style="font-size:.58rem;font-weight:700;color:var(--amber);margin-left:.3rem;">{{ addon.badge_label }}</span>
+                                    {% endif %}
+                                    <div class="ap-slug">{{ addon.slug }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="ap-cat-badge">{{ addon.get_category_display }}</span></td>
+                        <td style="font-size:.75rem;color:var(--text-2);">{{ addon.get_audience_display }}</td>
+                        <td>
+                            <div class="ap-price-group">
+                                {% for plan in addon.plans %}
+                                <div>
+                                    <div class="ap-plan-label">{{ plan }}</div>
+                                    <input type="number" step="0.01" min="0"
+                                           name="addon_{{ addon.pk }}_price_{{ plan }}"
+                                           value="{% for k, v in addon.prices.items %}{% if k == plan %}{{ v }}{% endif %}{% endfor %}"
+                                           class="ap-price-input"
+                                           placeholder="0.00">
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </td>
+                        <td style="text-align:center;">
+                            <label class="ap-toggle">
+                                <input type="checkbox" name="addon_{{ addon.pk }}_active"
+                                       {% if addon.is_active %}checked{% endif %}>
+                                <span class="ap-toggle-track"></span>
+                                <span class="ap-toggle-thumb"></span>
+                            </label>
+                        </td>
+                        <td style="font-size:.72rem;color:var(--text-3);white-space:nowrap;">
+                            {{ addon.updated_at|timesince }} ago
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="ap-empty">
+                <div class="ap-empty-icon"><i class="bi bi-box-seam"></i></div>
+                <h4>No addons in the database yet</h4>
+                <p>Click "Add New" to create one, or run the seed script to populate from the catalog.</p>
+            </div>
+            {% endif %}
+        </div>
+    </form>
+
+    <!-- Create addon drawer -->
+    <div class="ap-drawer" id="createDrawer">
+        <h3><i class="bi bi-plus-circle"></i> Create New Addon</h3>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_addon">
+            <div class="ap-form-grid">
+                <div class="ap-field">
+                    <label>Name</label>
+                    <input type="text" name="name" required placeholder="e.g. AI Lesson Planner">
+                </div>
+                <div class="ap-field">
+                    <label>Slug</label>
+                    <input type="text" name="slug" required placeholder="e.g. ai-lesson-planner" pattern="[a-z0-9\-]+">
+                </div>
+                <div class="ap-field">
+                    <label>Tagline</label>
+                    <input type="text" name="tagline" placeholder="Short subtitle">
+                </div>
+                <div class="ap-field">
+                    <label>Category</label>
+                    <select name="category">
+                        {% for val, label in category_choices %}
+                        <option value="{{ val }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="ap-field">
+                    <label>Audience</label>
+                    <select name="audience">
+                        {% for val, label in audience_choices %}
+                        <option value="{{ val }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="ap-field">
+                    <label>Icon (Bootstrap)</label>
+                    <input type="text" name="icon" value="bi-box-seam" placeholder="bi-icon-name">
+                </div>
+                <div class="ap-field">
+                    <label>Badge Label</label>
+                    <input type="text" name="badge_label" placeholder="NEW, POPULAR, etc.">
+                </div>
+                <div class="ap-field">
+                    <label>Trial Days</label>
+                    <input type="number" name="trial_days" value="0" min="0">
+                </div>
+                <div class="ap-field">
+                    <label>Plans (comma-separated)</label>
+                    <input type="text" name="plans" value="free,pro" placeholder="free,pro,premium">
+                </div>
+                <div class="ap-field">
+                    <label>Prices (JSON)</label>
+                    <input type="text" name="prices" value='{"free": 0, "pro": 59.99}' placeholder='{"free":0,"pro":59.99}'>
+                </div>
+                <div class="ap-field ap-field-full">
+                    <label>Description</label>
+                    <textarea name="description" rows="2" placeholder="Describe the addon…"></textarea>
+                </div>
+                <div class="ap-field ap-field-full">
+                    <label>Features (one per line)</label>
+                    <textarea name="features" rows="3" placeholder="Feature 1&#10;Feature 2&#10;Feature 3"></textarea>
+                </div>
+            </div>
+            <div class="mt-3 d-flex gap-2">
+                <button type="submit" class="ap-btn ap-btn-primary">
+                    <i class="bi bi-plus-lg"></i> Create Addon
+                </button>
+                <button type="button" class="ap-btn ap-btn-secondary" onclick="toggleDrawer()">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleDrawer() {
+    document.getElementById('createDrawer').classList.toggle('open');
+}
+</script>
+{% endblock %}
