@@ -14,6 +14,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+from individual_users.credit_utils import deduct_credits
 from individual_users.models import (
     AddonSubscription,
     AITutorConversation,
@@ -732,6 +733,11 @@ def question_ai_generate(request):
     if not topic:
         return JsonResponse({'error': 'Topic is required'}, status=400)
 
+    # Deduct credits before AI generation
+    ok, err = deduct_credits(request.user, 'question_gen')
+    if not ok:
+        return JsonResponse(err, status=403)
+
     # Build AI prompt
     format_label = dict(ToolQuestion.FORMAT_CHOICES).get(question_format, question_format)
     subject_label = dict(ToolQuestion.SUBJECT_CHOICES).get(subject, subject)
@@ -1082,6 +1088,11 @@ def lesson_plan_ai_generate(request):
     if not topic:
         return JsonResponse({'error': 'Topic is required'}, status=400)
 
+    # Deduct credits before AI generation
+    ok, err = deduct_credits(request.user, 'lesson_gen')
+    if not ok:
+        return JsonResponse(err, status=403)
+
     subject_label = dict(ToolQuestion.SUBJECT_CHOICES).get(subject, subject)
 
     # ── Build prompt ──────────────────────────────────────────
@@ -1216,6 +1227,11 @@ def lesson_plan_ges_generate(request):
         return JsonResponse({'error': 'Topic is required'}, status=400)
     if not indicator:
         return JsonResponse({'error': 'Indicator is required for GES draft'}, status=400)
+
+    # Deduct credits before AI generation
+    ok, err = deduct_credits(request.user, 'lesson_gen')
+    if not ok:
+        return JsonResponse(err, status=403)
 
     subject_label = dict(ToolQuestion.SUBJECT_CHOICES).get(subject, subject)
     code_only = bool(_GES_CODE_RE.match(indicator))
@@ -1687,6 +1703,11 @@ def deck_api(request):
         if not topic:
             return JsonResponse({'error': 'Topic is required'}, status=400)
 
+        # Deduct credits before AI generation
+        ok, err = deduct_credits(request.user, 'slide_gen')
+        if not ok:
+            return JsonResponse(err, status=403)
+
         subject_label = dict(ToolQuestion.SUBJECT_CHOICES).get(
             deck.subject, deck.subject or 'General Studies',
         )
@@ -1803,6 +1824,11 @@ def deck_api(request):
         topic = data.get('topic', '').strip() or indicator
         if not indicator:
             return JsonResponse({'error': 'Indicator is required for GES generation'}, status=400)
+
+        # Deduct credits before AI generation
+        ok, err = deduct_credits(request.user, 'slide_gen')
+        if not ok:
+            return JsonResponse(err, status=403)
 
         subject_label = dict(ToolQuestion.SUBJECT_CHOICES).get(
             deck.subject, deck.subject or 'General Studies',
@@ -2286,6 +2312,11 @@ def licensure_api(request):
         difficulty = data.get('difficulty', 'medium')
         count = min(int(data.get('count', 10)), 20)
 
+        # Deduct credits before AI generation
+        ok, err = deduct_credits(request.user, 'question_gen')
+        if not ok:
+            return JsonResponse(err, status=403)
+
         domain_labels = dict(LicensureQuestion.DOMAIN_CHOICES)
         domain_label = domain_labels.get(domain, domain)
 
@@ -2560,6 +2591,11 @@ def ai_tutor_api(request):
         if len(message) > 4000:
             return JsonResponse({'error': 'Message too long (max 4000 chars)'}, status=400)
 
+        # Deduct credits before AI generation
+        ok, err = deduct_credits(request.user, 'other')
+        if not ok:
+            return JsonResponse(err, status=403)
+
         conv_id = data.get('conversation_id')
         mode = data.get('mode', 'general')
         subject = data.get('subject', '')
@@ -2822,6 +2858,11 @@ def letter_api(request):
         school_name = data.get('school_name', '').strip()
         district = data.get('district', '').strip()
         region = data.get('region', '').strip()
+
+        # Deduct credits before AI generation
+        ok, err = deduct_credits(request.user, 'other')
+        if not ok:
+            return JsonResponse(err, status=403)
 
         category_label = dict(GESLetter.CATEGORY_CHOICES).get(category, category)
 
@@ -3800,6 +3841,11 @@ def report_card_api(request):
         if not entry_id:
             return JsonResponse({'error': 'Entry ID required.'}, status=400)
 
+        # Deduct credits before AI generation
+        ok, err = deduct_credits(request.user, 'report_card')
+        if not ok:
+            return JsonResponse(err, status=403)
+
         entry = get_object_or_404(ReportCardEntry, pk=entry_id, card_set__profile=profile)
         card_set = entry.card_set
 
@@ -3818,6 +3864,11 @@ def report_card_api(request):
         overwrite = data.get('overwrite', False)
         if not set_id:
             return JsonResponse({'error': 'Set ID required.'}, status=400)
+
+        # Deduct credits before AI generation (bulk rate)
+        ok, err = deduct_credits(request.user, 'bulk_gen')
+        if not ok:
+            return JsonResponse(err, status=403)
 
         card_set = get_object_or_404(ReportCardSet, pk=set_id, profile=profile)
         entries = card_set.entries.all()
@@ -3954,6 +4005,11 @@ def computhink_api(request):
     if action != 'generate':
         return JsonResponse({'error': 'Invalid action'}, status=400)
 
+    # Deduct credits before AI generation
+    ok, err = deduct_credits(request.user, 'exercise_gen')
+    if not ok:
+        return JsonResponse(err, status=403)
+
     activity_type = data.get('activity_type', 'algorithm')
     level = data.get('level', 'b7')
     topic = data.get('topic', '')
@@ -4075,6 +4131,11 @@ def literacy_api(request):
 
     if action != 'generate':
         return JsonResponse({'error': 'Invalid action'}, status=400)
+
+    # Deduct credits before AI generation
+    ok, err = deduct_credits(request.user, 'exercise_gen')
+    if not ok:
+        return JsonResponse(err, status=403)
 
     exercise_type = data.get('exercise_type', 'comprehension')
     level = data.get('level', 'b7')
@@ -4214,6 +4275,11 @@ def citizen_ed_api(request):
     if action != 'generate':
         return JsonResponse({'error': 'Invalid action'}, status=400)
 
+    # Deduct credits before AI generation
+    ok, err = deduct_credits(request.user, 'exercise_gen')
+    if not ok:
+        return JsonResponse(err, status=403)
+
     activity_type = data.get('activity_type', 'case_study')
     strand = data.get('strand', 'citizenship')
     level = data.get('level', 'b7')
@@ -4341,6 +4407,11 @@ def tvet_api(request):
 
     if action != 'generate':
         return JsonResponse({'error': 'Invalid action'}, status=400)
+
+    # Deduct credits before AI generation
+    ok, err = deduct_credits(request.user, 'exercise_gen')
+    if not ok:
+        return JsonResponse(err, status=403)
 
     project_type = data.get('project_type', 'project_plan')
     strand = data.get('strand', 'tools')
