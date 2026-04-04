@@ -240,27 +240,15 @@
 
 {% include 'teachers/_quota_exceeded_ui.html' %}
 
-{% if not has_planner_pro and lesson_gen_used is not None %}
-<div id="freemiumBanner" style="max-width:760px;margin:0 auto 1rem;padding:.7rem 1rem;border-radius:12px;
-  background:linear-gradient(135deg,rgba(67,97,238,.08),rgba(76,201,240,.08));
-  border:1px solid rgba(67,97,238,.18);display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;">
-  <div style="display:flex;align-items:center;gap:.4rem;flex:1;min-width:200px;">
-    <span style="font-size:1.1rem;">✨</span>
-    <span style="font-size:.82rem;color:#334155;font-weight:600;">
-      {% if lesson_gen_used >= lesson_gen_limit %}
-        All {{ lesson_gen_limit }} free AI generations used
-      {% else %}
-        <strong>{{ lesson_gen_used }}/{{ lesson_gen_limit }}</strong> free AI generations used
-      {% endif %}
-    </span>
-  </div>
-  {% if lesson_gen_used < lesson_gen_limit %}
-  <div style="flex:0 0 120px;height:6px;border-radius:3px;background:rgba(100,116,139,.12);overflow:hidden;">
-    <div style="height:100%;border-radius:3px;background:linear-gradient(135deg,#4361ee,#4cc9f0);width:{% widthratio lesson_gen_used lesson_gen_limit 100 %}%;transition:width .3s;"></div>
-  </div>
-  {% else %}
-  <a href="{% url 'teachers:teacher_store' %}" style="font-size:.78rem;font-weight:700;color:#fff;background:linear-gradient(135deg,#4361ee,#4cc9f0);padding:.3rem .7rem;border-radius:8px;text-decoration:none;">
-    Get Smart Planner Pro
+{% if credit_balance is not None %}
+<div id="freemiumBanner" style="max-width:760px;margin:0 auto 1rem;padding:.6rem 1rem;border-radius:12px;
+  background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(251,191,36,.06));
+  border:1px solid rgba(245,158,11,.2);display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;">
+  <span style="font-weight:700;color:#d97706;font-size:.82rem;"><i class="bi bi-coin me-1"></i>{{ credit_balance }} credits</span>
+  <span style="font-size:.78rem;color:#64748b;">Costs {{ credit_cost }} credit{{ credit_cost|pluralize }} per AI generation</span>
+  {% if credit_balance < credit_cost %}
+  <a href="{% url 'teachers:teacher_store' %}#creditPacks" style="margin-left:auto;font-size:.78rem;font-weight:700;color:#fff;background:linear-gradient(135deg,#d97706,#f59e0b);padding:.3rem .7rem;border-radius:8px;text-decoration:none;">
+    Buy Credits
   </a>
   {% endif %}
 </div>

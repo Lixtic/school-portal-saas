@@ -153,22 +153,14 @@
     <!-- Toast container -->
     <div class="qb-toast-container" id="qbToasts"></div>
 
-    <!-- Freemium bar -->
-    {% if not has_qb_addon %}
-    <div style="margin-bottom:.6rem;padding:.5rem .8rem;background:linear-gradient(135deg,rgba(67,97,238,.06),rgba(124,58,237,.06));border:1px solid rgba(67,97,238,.2);border-radius:10px;font-size:.78rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
-      <span style="font-weight:700;color:var(--qb-accent);"><i class="bi bi-stars"></i> Free AI</span>
-      <div style="flex:1;min-width:120px;height:6px;background:var(--qb-border);border-radius:3px;overflow:hidden;">
-        <div style="width:{% widthratio qb_gen_used qb_gen_limit 100 %}%;height:100%;background:linear-gradient(90deg,var(--qb-accent),var(--qb-accent2));border-radius:3px;transition:width .3s;"></div>
-      </div>
-      <span style="color:var(--qb-muted);">{{ qb_gen_remaining }} of {{ qb_gen_limit }} remaining</span>
-      {% if qb_gen_remaining <= 3 and qb_gen_remaining > 0 %}
-      <span style="color:#f59e0b;font-weight:600;"><i class="bi bi-exclamation-triangle me-1"></i>Running low</span>
-      {% endif %}
-      {% if qb_gen_remaining == 0 %}
-      <a href="{% url 'teachers:teacher_store' %}" style="color:var(--qb-accent);font-weight:600;text-decoration:none;">Get Pro &rarr;</a>
+    <!-- Credit bar -->
+    <div style="margin-bottom:.6rem;padding:.5rem .8rem;background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(251,191,36,.06));border:1px solid rgba(245,158,11,.2);border-radius:10px;font-size:.78rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <span style="font-weight:700;color:#d97706;"><i class="bi bi-coin"></i> {{ credit_balance }} credits</span>
+      <span style="color:var(--qb-muted);">Costs {{ credit_cost }} per generation</span>
+      {% if credit_balance < credit_cost %}
+      <a href="{% url 'teachers:teacher_store' %}#creditPacks" style="color:#d97706;font-weight:600;text-decoration:none;">Buy Credits &rarr;</a>
       {% endif %}
     </div>
-    {% endif %}
 
     <!-- ═══ Enhanced Hero ═══ -->
     <div class="qb-hero">

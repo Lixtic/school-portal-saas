@@ -49,18 +49,13 @@
 
 <div class="sg-wrap">
 
-    {% if not has_sg_addon %}
-    <div style="max-width:780px;margin:0 auto .6rem;padding:.5rem .8rem;background:linear-gradient(135deg,#4361ee10,#4cc9f010);border:1px solid #4361ee30;border-radius:10px;font-size:.78rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
-      <span style="font-weight:700;color:#4361ee;"><i class="bi bi-stars"></i> Free AI</span>
-      <div style="flex:1;min-width:120px;height:6px;background:#e4e8f2;border-radius:3px;overflow:hidden;">
-        <div style="width:{% widthratio sg_gen_used sg_gen_limit 100 %}%;height:100%;background:linear-gradient(90deg,#4361ee,#4cc9f0);border-radius:3px;transition:width .3s;"></div>
-      </div>
-      <span style="color:#64748b;">{{ sg_gen_used }}/{{ sg_gen_limit }} used</span>
-      {% if sg_gen_remaining == 0 %}
-      <a href="{% url 'teachers:teacher_store' %}" style="color:#4361ee;font-weight:600;text-decoration:none;">Get Study Guide Builder &rarr;</a>
+    <div style="max-width:780px;margin:0 auto .6rem;padding:.5rem .8rem;background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(251,191,36,.06));border:1px solid rgba(245,158,11,.2);border-radius:10px;font-size:.78rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <span style="font-weight:700;color:#d97706;"><i class="bi bi-coin"></i> {{ credit_balance }} credits</span>
+      <span style="color:#64748b;">Costs {{ credit_cost }} per generation</span>
+      {% if credit_balance < credit_cost %}
+      <a href="{% url 'teachers:teacher_store' %}#creditPacks" style="color:#d97706;font-weight:600;text-decoration:none;">Buy Credits &rarr;</a>
       {% endif %}
     </div>
-    {% endif %}
 
     <!-- Hero -->
     <div class="sg-hero">
@@ -70,7 +65,7 @@
         </div>
         <div class="sg-hero-stats">
             <div class="sg-h-stat"><div class="sg-h-num">{{ guides|length }}</div><div class="sg-h-lbl">Guides</div></div>
-            {% if not has_sg_addon %}<div class="sg-h-stat"><div class="sg-h-num">{{ sg_gen_remaining }}</div><div class="sg-h-lbl">AI Left</div></div>{% endif %}
+            <div class="sg-h-stat"><div class="sg-h-num">{{ credit_balance }}</div><div class="sg-h-lbl">Credits</div></div>
         </div>
     </div>
 

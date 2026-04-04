@@ -8,7 +8,7 @@ import django
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from tenants.decorators import require_addon, require_plan
-from teachers.addon_utils import requires_addon, requires_addon_freemium, check_freemium_limit, has_addon, get_free_generation_count, FREE_GENERATION_LIMIT, get_credit_balance, CREDIT_COSTS, ADDON_FEATURE_MAP
+from teachers.addon_utils import requires_addon, requires_addon_freemium, check_freemium_limit, has_addon, get_credit_balance, CREDIT_COSTS, ADDON_FEATURE_MAP
 from django.http import JsonResponse, HttpResponse
 from decimal import Decimal, InvalidOperation
 from django.utils import timezone
@@ -1861,20 +1861,17 @@ def lesson_plan_create(request):
     else:
         form = LessonPlanForm(teacher=teacher, initial=initial_data)
         
-    # Freemium usage info for lesson generation
-    from teachers.addon_utils import get_free_generation_count, FREE_GENERATION_LIMIT, has_addon
-    lesson_gen_used = get_free_generation_count(request.user, 'lesson_gen') if request.user.user_type == 'teacher' else 0
+    # Credit-based usage info for lesson generation
+    from teachers.addon_utils import has_addon
     has_planner_pro = has_addon(request.user, 'smart-planner-pro') if request.user.user_type == 'teacher' else True
-    lesson_gen_remaining = max(0, FREE_GENERATION_LIMIT - lesson_gen_used)
 
     return render(request, 'teachers/lesson_plan_form.html', {
         'form': form,
         'title': 'Create Lesson Plan',
         'prefill_indicator': indicator,
         'auto_ges': request.GET.get('auto_ges') == '1',
-        'lesson_gen_used': lesson_gen_used,
-        'lesson_gen_limit': FREE_GENERATION_LIMIT,
-        'lesson_gen_remaining': lesson_gen_remaining,
+        'credit_balance': get_credit_balance(request.user) if request.user.user_type == 'teacher' else 0,
+        'credit_cost': CREDIT_COSTS.get('lesson_gen', 1),
         'has_planner_pro': has_planner_pro,
     })
 
@@ -1913,17 +1910,14 @@ def lesson_plan_edit(request, pk):
     else:
         form = LessonPlanForm(instance=lesson_plan, teacher=teacher)
 
-    from teachers.addon_utils import get_free_generation_count, FREE_GENERATION_LIMIT, has_addon
-    lesson_gen_used = get_free_generation_count(request.user, 'lesson_gen')
+    from teachers.addon_utils import has_addon
     has_planner_pro = has_addon(request.user, 'smart-planner-pro')
-    lesson_gen_remaining = max(0, FREE_GENERATION_LIMIT - lesson_gen_used)
 
     return render(request, 'teachers/lesson_plan_form.html', {
         'form': form,
         'title': 'Edit Lesson Plan',
-        'lesson_gen_used': lesson_gen_used,
-        'lesson_gen_limit': FREE_GENERATION_LIMIT,
-        'lesson_gen_remaining': lesson_gen_remaining,
+        'credit_balance': get_credit_balance(request.user),
+        'credit_cost': CREDIT_COSTS.get('lesson_gen', 1),
         'has_planner_pro': has_planner_pro,
     })
 
@@ -4721,7 +4715,6 @@ def presentation_editor(request, pk):
     _share_path = _reverse('teachers:presentation_share', kwargs={'token': deck.share_token})
     _share_url  = request.build_absolute_uri(_share_path)
 
-    slide_gen_used = get_free_generation_count(request.user, 'slide_gen')
     has_slide_addon = has_addon(request.user, 'aura-slide-generator')
 
     return render(request, 'teachers/presentations/editor.html', {
@@ -4731,9 +4724,8 @@ def presentation_editor(request, pk):
         'classes':  classes,
         'slides_json':    slides_json,
         'share_url':      _share_url,
-        'slide_gen_used':  slide_gen_used,
-        'slide_gen_limit': FREE_GENERATION_LIMIT,
-        'slide_gen_remaining': max(0, FREE_GENERATION_LIMIT - slide_gen_used),
+        'credit_balance':  get_credit_balance(request.user),
+        'credit_cost': CREDIT_COSTS.get('slide_gen', 3),
         'has_slide_addon': has_slide_addon,
         'LAYOUT_CHOICES':     Slide.LAYOUT_CHOICES,
         'THEME_CHOICES':      Presentation.THEME_CHOICES,
@@ -7606,12 +7598,10 @@ def addon_study_guide(request):
     subjects = Subject.objects.all()
     classes = Class.objects.all()
     guides = StudyGuide.objects.filter(teacher=teacher).select_related('subject', 'target_class')
-    sg_used = get_free_generation_count(teacher, 'study_guide')
     return render(request, 'teachers/addon_study_guide.html', {
         'subjects': subjects, 'classes': classes, 'guides': guides,
-        'sg_gen_used': sg_used,
-        'sg_gen_limit': FREE_GENERATION_LIMIT,
-        'sg_gen_remaining': max(0, FREE_GENERATION_LIMIT - sg_used),
+        'credit_balance': get_credit_balance(teacher),
+        'credit_cost': CREDIT_COSTS.get('study_guide', 2),
         'has_sg_addon': has_addon(teacher, 'study-guide-builder'),
     })
 
@@ -7747,7 +7737,6 @@ def addon_report_card(request):
             student__in=students_in_class,
         ).select_related('student__user')
 
-    rc_used = get_free_generation_count(teacher, 'report_card')
     return render(request, 'teachers/addon_report_card.html', {
         'classes': classes,
         'sel_class': int(sel_class) if sel_class else None,
@@ -7755,9 +7744,8 @@ def addon_report_card(request):
         'comments': comments,
         'students_in_class': students_in_class,
         'current_year': current_year,
-        'rc_gen_used': rc_used,
-        'rc_gen_limit': FREE_GENERATION_LIMIT,
-        'rc_gen_remaining': max(0, FREE_GENERATION_LIMIT - rc_used),
+        'credit_balance': get_credit_balance(teacher),
+        'credit_cost': CREDIT_COSTS.get('report_card', 2),
         'has_rc_addon': has_addon(teacher, 'report-card-writer'),
     })
 
@@ -8171,8 +8159,6 @@ def addon_question_bank(request):
             ) if fmt_counts else 'No questions',
         })
 
-    qb_used = get_free_generation_count(teacher, 'question_gen')
-
     # Smart build availability as JSON for client-side
     sb_availability_json = json.dumps({
         fmt: {'label': data['label'], 'total': data['total'],
@@ -8190,8 +8176,8 @@ def addon_question_bank(request):
         'subjects': subjects, 'classes': classes, 'total_questions_filtered': paginator.count,
         'f_search': f_search, 'f_subject': f_subject, 'f_difficulty': f_difficulty, 'f_format': f_format,
         'stats': stats, 'sb_availability_json': sb_availability_json,
-        'qb_gen_used': qb_used, 'qb_gen_limit': FREE_GENERATION_LIMIT,
-        'qb_gen_remaining': max(0, FREE_GENERATION_LIMIT - qb_used),
+        'credit_balance': get_credit_balance(teacher),
+        'credit_cost': CREDIT_COSTS.get('question_gen', 2),
         'has_qb_addon': has_addon(teacher, 'exam-question-bank'),
     })
 
@@ -9118,12 +9104,11 @@ def addon_differentiated(request):
             return redirect('teachers:addon_differentiated')
 
     lessons = DifferentiatedLesson.objects.filter(teacher=teacher).select_related('subject', 'target_class')
-    dl_used = get_free_generation_count(teacher, 'differentiate')
     return render(request, 'teachers/addon_differentiated.html', {
         'subjects': subjects, 'classes': classes, 'lesson_plans': lesson_plans,
         'lessons': lessons,
-        'dl_gen_used': dl_used, 'dl_gen_limit': FREE_GENERATION_LIMIT,
-        'dl_gen_remaining': max(0, FREE_GENERATION_LIMIT - dl_used),
+        'credit_balance': get_credit_balance(teacher),
+        'credit_cost': CREDIT_COSTS.get('differentiate', 2),
         'has_dl_addon': has_addon(teacher, 'differentiated-lesson-ai'),
     })
 
