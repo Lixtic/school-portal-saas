@@ -691,6 +691,12 @@
                 topic: document.getElementById('gesTopic').value.trim(),
                 update_title: document.getElementById('gesUpdateTitle').checked,
             });
+            if (_checkCredits(result)) {
+                btn.disabled = false;
+                spinner.style.display = 'none';
+                text.innerHTML = '<i class="bi bi-stars"></i> Generate GES Deck';
+                return;
+            }
             if (result.ok) {
                 slides = result.slides.map(s => ({
                     id: s.slide_id, order: s.order, layout: s.layout,
@@ -736,6 +742,12 @@
                 topic: topic,
                 update_title: document.getElementById('aiUpdateTitle').checked,
             });
+            if (_checkCredits(result)) {
+                btn.disabled = false;
+                spinner.style.display = 'none';
+                text.innerHTML = '<i class="bi bi-stars"></i> Generate';
+                return;
+            }
             if (result.ok) {
                 slides = result.slides.map(s => ({
                     id: s.slide_id, order: s.order, layout: s.layout,

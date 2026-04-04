@@ -367,6 +367,7 @@
             const resp = await fetch(AI_URL, { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
             clearInterval(ticker);
             const data = await resp.json();
+            if (_checkCredits(data, resp.status)) { overlay.classList.remove('open'); aiBtn.disabled = false; return; }
             if (data.ok && data.plan) {
                 const p = data.plan;
                 fill('title', p.title || '');
@@ -432,6 +433,7 @@
             const resp = await fetch(GES_URL, { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
             clearInterval(ticker);
             const data = await resp.json();
+            if (_checkCredits(data, resp.status)) { overlay.classList.remove('open'); gesBtn.disabled = false; return; }
             if (data.ok && data.plan) {
                 const p = data.plan;
                 fill('title', p.title || '');
@@ -488,6 +490,7 @@
             try {
                 const resp = await fetch(url, { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
                 const data = await resp.json();
+                if (_checkCredits(data, resp.status)) { this.disabled = false; this.textContent = oldText; return; }
                 if (data.ok && data.plan && data.plan[section]) { fill(section, data.plan[section]); }
             } catch(e) { /* silent */ }
             this.disabled = false;

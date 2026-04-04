@@ -270,6 +270,7 @@
         .then(r => r.json())
         .then(data => {
             btn.disabled = false; spinner.style.display = 'none'; text.innerHTML = '<i class="bi bi-stars"></i> Generate';
+            if (_checkCredits(data)) return;
             if (data.ok) {
                 result.style.display = 'block'; result.style.background = 'rgba(5,150,105,0.08)'; result.style.color = '#059669';
                 result.innerHTML = '<i class="bi bi-check-circle me-1"></i> "' + data.title + '" generated! <a href="' + data.redirect + '" style="color:#059669;font-weight:600">View it →</a>';

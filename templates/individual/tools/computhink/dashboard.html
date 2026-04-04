@@ -248,6 +248,7 @@ function doGenerate() {
     })
     .then(r => r.json())
     .then(data => {
+        if (_checkCredits(data)) { btn.disabled = false; span.textContent = 'Generate'; return; }
         if (data.ok) { location.reload(); }
         else { alert(data.error || 'Generation failed'); btn.disabled = false; span.textContent = 'Generate'; }
     })

@@ -383,6 +383,7 @@ function generateComment(entryId, btn) {
     btn.classList.add('generating');
     apiCall({action: 'generate_comment', entry_id: entryId})
     .then(data => {
+        if (_checkCredits(data)) { btn.classList.remove('generating'); return; }
         if (data.ok) {
             const row = document.getElementById('row-' + entryId);
             if (row) {
@@ -406,6 +407,11 @@ function bulkGenerate() {
     btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Generating…';
     apiCall({action: 'bulk_generate', set_id: SET_ID})
     .then(data => {
+        if (_checkCredits(data)) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-stars"></i> AI Generate All Comments';
+            return;
+        }
         if (data.ok) {
             alert(data.message);
             location.reload();

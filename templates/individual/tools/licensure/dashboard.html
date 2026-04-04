@@ -468,6 +468,11 @@ async function generateQuestions() {
             }),
         });
         const data = await resp.json();
+        if (_checkCredits(data, resp.status)) {
+            btn.disabled = false;
+            text.textContent = 'Generate Questions';
+            return;
+        }
         if (data.ok) {
             result.style.display = 'block';
             result.innerHTML = '<i class="bi bi-check-circle-fill" style="color:#10b981"></i> <strong>' + data.count + ' questions</strong> generated and added to your bank. Refresh the page to see updated counts.';

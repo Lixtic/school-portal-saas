@@ -1,0 +1,129 @@
+<!-- Insufficient Credits Toast — included globally in individual/base.html -->
+<div id="icToast" style="
+    display:none; position:fixed; top:1.25rem; right:1.25rem; z-index:10500;
+    max-width:400px; width:calc(100% - 2rem);
+    border-radius:14px; overflow:hidden;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+    animation: icSlideIn .35s cubic-bezier(.22,.68,0,1.1);
+    font-family: 'Manrope', system-ui, sans-serif;
+">
+    <!-- Gradient accent bar -->
+    <div style="height:4px; background:linear-gradient(90deg, #f59e0b 0%, #ef4444 100%);"></div>
+
+    <div id="icToastInner" style="
+        padding:1.1rem 1.25rem;
+        background: var(--surface-card, #fff);
+        border: 1px solid rgba(245,158,11,0.25);
+        border-top: none;
+        border-radius: 0 0 14px 14px;
+    ">
+        <!-- Close -->
+        <button onclick="document.getElementById('icToast').style.display='none'"
+                style="position:absolute;top:10px;right:12px;background:none;border:none;
+                       font-size:1.15rem;color:var(--text-muted,#6b7280);cursor:pointer;
+                       line-height:1;padding:4px;" aria-label="Close">&times;</button>
+
+        <!-- Icon + Title -->
+        <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.65rem;">
+            <div style="width:36px;height:36px;border-radius:10px;
+                        background:linear-gradient(135deg, rgba(245,158,11,0.12), rgba(239,68,68,0.08));
+                        display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="bi bi-coin" style="font-size:1.15rem;color:#f59e0b;"></i>
+            </div>
+            <div>
+                <div style="font-weight:700;font-size:.92rem;color:var(--text-main,#111827);line-height:1.2;">
+                    Insufficient Credits
+                </div>
+                <div id="icCostLine" style="font-size:.78rem;color:var(--text-muted,#6b7280);margin-top:1px;"></div>
+            </div>
+        </div>
+
+        <!-- Balance bar -->
+        <div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);
+                    border-radius:10px;padding:.6rem .8rem;margin-bottom:.7rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:.82rem;color:var(--text-muted,#6b7280);">Your balance</span>
+                <span id="icBalance" style="font-weight:700;font-size:1rem;color:#f59e0b;">0</span>
+            </div>
+            <div style="height:4px;background:rgba(245,158,11,0.12);border-radius:4px;margin-top:.45rem;overflow:hidden;">
+                <div id="icBar" style="height:100%;background:#f59e0b;border-radius:4px;transition:width .4s;width:0%;"></div>
+            </div>
+        </div>
+
+        <!-- Message -->
+        <p id="icMessage" style="font-size:.82rem;color:var(--text-muted,#6b7280);margin:0 0 .7rem;line-height:1.5;"></p>
+
+        <!-- CTA -->
+        <a href="{% url 'individual:addons' %}" style="
+            display:flex;align-items:center;justify-content:center;gap:.4rem;
+            width:100%;padding:.55rem 1rem;border-radius:10px;font-size:.85rem;font-weight:700;
+            text-decoration:none;color:#fff;
+            background:linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+            box-shadow:0 2px 8px rgba(245,158,11,0.25);
+            transition:transform .15s, box-shadow .15s;
+        " onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 14px rgba(245,158,11,0.35)'"
+           onmouseout="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(245,158,11,0.25)'">
+            <i class="bi bi-bag-plus"></i> Get More Credits
+        </a>
+    </div>
+</div>
+
+<style>
+@keyframes icSlideIn {
+    from { opacity:0; transform:translateX(30px) scale(.96); }
+    to   { opacity:1; transform:translateX(0) scale(1); }
+}
+@keyframes icSlideOut {
+    from { opacity:1; transform:translateX(0); }
+    to   { opacity:0; transform:translateX(30px); }
+}
+</style>
+
+<script>
+/**
+ * Show the insufficient-credits toast.
+ * Call from any tool page when the API returns 403 with error_code='insufficient_credits'.
+ *
+ * @param {number} balance  - user's current credit balance
+ * @param {number} cost     - credits required for the action
+ */
+function _showInsufficientCredits(balance, cost) {
+    var toast = document.getElementById('icToast');
+    if (!toast) return;
+    document.getElementById('icBalance').textContent = balance + ' credit' + (balance === 1 ? '' : 's');
+    document.getElementById('icCostLine').textContent = 'This action costs ' + cost + ' credit' + (cost === 1 ? '' : 's');
+    document.getElementById('icMessage').textContent =
+        'You need ' + (cost - balance) + ' more credit' + ((cost - balance) === 1 ? '' : 's') +
+        ' to use this feature. Top up your balance to continue generating.';
+    /* progress bar: show balance as % of cost */
+    var pct = cost > 0 ? Math.min(100, Math.round((balance / cost) * 100)) : 0;
+    document.getElementById('icBar').style.width = pct + '%';
+    toast.style.display = 'block';
+    /* auto-dismiss after 12s */
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(function() {
+        toast.style.animation = 'icSlideOut .3s ease forwards';
+        setTimeout(function() {
+            toast.style.display = 'none';
+            toast.style.animation = 'icSlideIn .35s cubic-bezier(.22,.68,0,1.1)';
+        }, 300);
+    }, 12000);
+}
+
+/**
+ * Check a fetch response/data for insufficient credits.
+ * Works for both .then(r => r.json()) patterns and async/await.
+ * Returns true if it was an insufficient-credits error (caller should stop processing).
+ *
+ * @param {object} data     - parsed JSON response
+ * @param {number} [status] - HTTP status code (optional, for async/await patterns)
+ * @returns {boolean}
+ */
+function _checkCredits(data, status) {
+    if ((status === 403 || data.error_code === 'insufficient_credits') && data.balance !== undefined) {
+        _showInsufficientCredits(data.balance, data.cost);
+        return true;
+    }
+    return false;
+}
+</script>

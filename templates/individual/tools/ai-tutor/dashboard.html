@@ -554,6 +554,7 @@
         .then(r => r.json())
         .then(data => {
             hideTyping();
+            if (_checkCredits(data)) return;
             if (data.ok) {
                 appendMessage('assistant', data.message);
                 if (!currentConvId && data.conversation_id) {
