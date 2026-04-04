@@ -1,31 +1,42 @@
 {% extends 'individual/base.html' %}
-{% block title %}Addon Store — Aura {% if role == 'teacher' %}Teacher{% else %}Developer{% endif %} Portal{% endblock %}
-{% block page_title %}Addon Store{% endblock %}
+{% block title %}Add-on Store — Aura {% if role == 'teacher' %}Teacher{% else %}Developer{% endif %} Portal{% endblock %}
+{% block page_title %}Add-on Store{% endblock %}
 
 {% block extra_css %}
-.iu-addon-header {
+/* ── Hero ──────────────────────────────────── */
+.as-hero {
+    padding: 1.5rem 1.75rem;
+    background: linear-gradient(135deg, rgba(67,97,238,0.06) 0%, rgba(76,201,240,0.04) 100%);
+    border: 1px solid rgba(67,97,238,0.12);
+    border-radius: var(--radius-lg);
     margin-bottom: 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    flex-wrap: wrap;
 }
-.iu-addon-header h2 {
-    font-size: 1.25rem;
-    font-weight: 800;
-    margin-bottom: 0.25rem;
+[data-bs-theme="dark"] .as-hero {
+    background: linear-gradient(135deg, rgba(67,97,238,0.12) 0%, rgba(76,201,240,0.08) 100%);
+    border-color: rgba(67,97,238,0.22);
 }
-.iu-addon-header p {
-    color: var(--text-muted);
-    font-size: 0.88rem;
-    margin: 0;
-}
+.as-hero-text h2 { font-size: 1.25rem; font-weight: 800; margin: 0 0 0.2rem; }
+.as-hero-text p { font-size: 0.85rem; color: var(--text-muted); margin: 0; max-width: 440px; }
+.as-hero-metrics { display: flex; gap: 2rem; flex-shrink: 0; }
+.as-metric { text-align: center; }
+.as-metric-num { font-size: 1.6rem; font-weight: 800; line-height: 1.1; color: var(--brand-primary); }
+.as-metric-num.green { color: #059669; }
+.as-metric-lbl { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-top: 2px; }
 
-/* Filters */
-.iu-filter-bar {
+/* ── Filter bar ────────────────────────────── */
+.as-filters {
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.75rem;
 }
-.iu-filter-chip {
-    padding: 0.35rem 0.85rem;
+.as-chip {
+    padding: 0.35rem 0.9rem;
     border-radius: 20px;
     font-size: 0.78rem;
     font-weight: 600;
@@ -35,105 +46,152 @@
     cursor: pointer;
     transition: all 0.15s;
     font-family: inherit;
-    text-transform: capitalize;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
 }
-.iu-filter-chip:hover,
-.iu-filter-chip.active {
+.as-chip:hover, .as-chip.active {
     border-color: var(--brand-primary);
     color: var(--brand-primary);
     background: rgba(67,97,238,0.06);
 }
-[data-bs-theme="dark"] .iu-filter-chip.active {
-    background: rgba(67,97,238,0.15);
-}
+[data-bs-theme="dark"] .as-chip.active { background: rgba(67,97,238,0.15); }
 
-/* Grid */
-.iu-addon-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1rem;
-}
-.iu-addon-card {
-    padding: 1.25rem;
-    display: flex;
-    flex-direction: column;
-    transition: box-shadow 0.15s, transform 0.15s;
-}
-.iu-addon-card:hover {
-    box-shadow: var(--shadow-lg);
-    transform: translateY(-2px);
-}
-.iu-addon-top {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.85rem;
-    margin-bottom: 0.85rem;
-}
-.iu-addon-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    background: rgba(67,97,238,0.1);
-    color: var(--brand-primary);
+/* ── Category Section ──────────────────────── */
+.as-group { margin-bottom: 2rem; }
+.as-group-hdr {
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    flex-shrink: 0;
+    gap: 0.6rem;
+    margin-bottom: 0.85rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid var(--border-color);
 }
-.iu-addon-icon.ai { background: rgba(124,58,237,0.1); color: #7c3aed; }
-.iu-addon-icon.analytics { background: rgba(16,185,129,0.1); color: #059669; }
-.iu-addon-icon.finance { background: rgba(245,158,11,0.1); color: #d97706; }
-.iu-addon-icon.communication { background: rgba(236,72,153,0.1); color: #db2777; }
-.iu-addon-icon.documents { background: rgba(59,130,246,0.1); color: #2563eb; }
-.iu-addon-icon.management { background: rgba(20,184,166,0.1); color: #0d9488; }
-[data-bs-theme="dark"] .iu-addon-icon { opacity: 0.9; }
-[data-bs-theme="dark"] .iu-addon-icon.ai { background: rgba(124,58,237,0.2); }
-[data-bs-theme="dark"] .iu-addon-icon.analytics { background: rgba(16,185,129,0.2); }
-[data-bs-theme="dark"] .iu-addon-icon.finance { background: rgba(245,158,11,0.2); }
-[data-bs-theme="dark"] .iu-addon-icon.communication { background: rgba(236,72,153,0.2); }
-[data-bs-theme="dark"] .iu-addon-icon.documents { background: rgba(59,130,246,0.2); }
-[data-bs-theme="dark"] .iu-addon-icon.management { background: rgba(20,184,166,0.2); }
-.iu-addon-meta { flex: 1; }
-.iu-addon-name {
+.as-group-icon {
+    width: 30px; height: 30px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem; flex-shrink: 0;
+}
+.as-group-title { font-size: 0.92rem; font-weight: 700; margin: 0; }
+
+/* ── Grid ──────────────────────────────────── */
+.as-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 0.85rem;
+}
+
+/* ── Card ──────────────────────────────────── */
+.as-card {
+    padding: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow 0.18s, transform 0.18s;
+}
+.as-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+.as-card-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.8rem;
+    margin-bottom: 0.65rem;
+}
+.as-card-icon {
+    width: 42px; height: 42px; border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.15rem; flex-shrink: 0;
+}
+.as-card-meta { flex: 1; min-width: 0; }
+.as-card-name {
     font-weight: 700;
-    font-size: 0.95rem;
-    margin-bottom: 0.15rem;
+    font-size: 0.92rem;
+    margin-bottom: 1px;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
 }
-.iu-addon-cat {
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+.as-card-tagline {
+    font-size: 0.74rem;
     color: var(--text-muted);
 }
-.iu-addon-desc {
-    font-size: 0.82rem;
+.as-card-desc {
+    font-size: 0.8rem;
     color: var(--text-muted);
     line-height: 1.5;
-    flex: 1;
-    margin-bottom: 1rem;
+    margin-bottom: 0.65rem;
 }
-.iu-addon-footer {
+
+/* Features list */
+.as-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 0.85rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.2rem 0.75rem;
+}
+.as-features li {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.3rem;
+    line-height: 1.35;
+}
+.as-features li i {
+    color: #059669;
+    font-size: 0.6rem;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+/* ── Footer ────────────────────────────────── */
+.as-card-foot {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    margin-top: auto;
+    padding-top: 0.65rem;
+    border-top: 1px solid var(--border-color);
 }
-.iu-addon-plans {
+.as-plan-row {
     display: flex;
     gap: 4px;
+    flex-wrap: wrap;
 }
-.iu-plan-tag {
-    font-size: 0.65rem;
+.as-plan-btn {
+    padding: 0.22rem 0.55rem;
+    border-radius: 6px;
+    font-size: 0.68rem;
     font-weight: 600;
-    padding: 0.15rem 0.45rem;
-    border-radius: 5px;
-    background: var(--surface-bg);
+    border: 1.5px solid var(--border-color);
+    background: transparent;
     color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: capitalize;
+    font-family: inherit;
 }
-.iu-subscribe-btn {
+.as-plan-btn:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
+.as-plan-btn.sel {
+    border-color: var(--brand-primary);
+    background: rgba(67,97,238,0.08);
+    color: var(--brand-primary);
+}
+[data-bs-theme="dark"] .as-plan-btn.sel { background: rgba(67,97,238,0.2); }
+.as-price {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--brand-primary);
+    margin-top: 0.15rem;
+}
+.as-price .cur { font-size: 0.62rem; font-weight: 600; opacity: 0.7; }
+.as-price.free { color: #10b981; }
+
+.as-sub-btn {
     padding: 0.4rem 1rem;
     border: none;
     border-radius: 8px;
@@ -142,26 +200,43 @@
     font-family: inherit;
     cursor: pointer;
     transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
 }
-.iu-subscribe-btn.available {
+.as-sub-btn.avail {
     background: var(--brand-primary);
     color: #fff;
 }
-.iu-subscribe-btn.available:hover {
-    box-shadow: 0 4px 12px rgba(67,97,238,0.3);
-}
-.iu-subscribe-btn.subscribed {
+.as-sub-btn.avail:hover { box-shadow: 0 4px 14px rgba(67,97,238,0.3); }
+.as-sub-btn.done {
     background: rgba(16,185,129,0.1);
     color: #059669;
     cursor: default;
 }
-[data-bs-theme="dark"] .iu-subscribe-btn.subscribed {
-    background: rgba(16,185,129,0.2);
-    color: #34d399;
-}
+[data-bs-theme="dark"] .as-sub-btn.done { background: rgba(16,185,129,0.2); color: #34d399; }
 
-/* Toast */
-.iu-toast {
+/* ── Badges ────────────────────────────────── */
+.as-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 0.12rem 0.45rem;
+    border-radius: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.as-badge-pop { background: rgba(67,97,238,0.1); color: #4361ee; }
+.as-badge-new { background: rgba(236,72,153,0.1); color: #db2777; }
+.as-badge-rec { background: rgba(16,185,129,0.1); color: #059669; }
+[data-bs-theme="dark"] .as-badge-pop { background: rgba(67,97,238,0.2); color: #93b4ff; }
+[data-bs-theme="dark"] .as-badge-new { background: rgba(236,72,153,0.2); color: #f472b6; }
+[data-bs-theme="dark"] .as-badge-rec { background: rgba(16,185,129,0.2); color: #34d399; }
+
+/* ── Toast ─────────────────────────────────── */
+.as-toast {
     position: fixed;
     bottom: 1.5rem;
     right: 1.5rem;
@@ -177,131 +252,106 @@
     opacity: 0;
     transition: all 0.3s ease;
 }
-.iu-toast.show { transform: translateY(0); opacity: 1; }
+.as-toast.show { transform: translateY(0); opacity: 1; }
 
+/* ── Responsive ────────────────────────────── */
+@media (max-width: 768px) {
+    .as-hero { flex-direction: column; align-items: flex-start; gap: 1rem; padding: 1.15rem; }
+    .as-hero-metrics { gap: 1.5rem; }
+    .as-features { grid-template-columns: 1fr; }
+}
 @media (max-width: 576px) {
-    .iu-addon-grid { grid-template-columns: 1fr; }
-}
-.iu-recommended-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    font-size: 0.65rem;
-    font-weight: 700;
-    padding: 0.15rem 0.5rem;
-    border-radius: 5px;
-    background: rgba(16,185,129,0.12);
-    color: #059669;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-}
-[data-bs-theme="dark"] .iu-recommended-tag {
-    background: rgba(16,185,129,0.2);
-    color: #34d399;
-}
-/* Plan selector */
-.iu-plan-selector {
-    display: flex;
-    gap: 4px;
-    flex-wrap: wrap;
-}
-.iu-plan-option {
-    padding: 0.25rem 0.6rem;
-    border-radius: 6px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    border: 1.5px solid var(--border-color, #e4e8f2);
-    background: transparent;
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: all 0.15s;
-    text-transform: capitalize;
-    font-family: inherit;
-}
-.iu-plan-option:hover {
-    border-color: var(--brand-primary);
-    color: var(--brand-primary);
-}
-.iu-plan-option.selected {
-    border-color: var(--brand-primary);
-    background: rgba(67,97,238,0.1);
-    color: var(--brand-primary);
-}
-[data-bs-theme="dark"] .iu-plan-option.selected {
-    background: rgba(67,97,238,0.2);
-}
-.iu-price-tag {
-    font-size: 0.82rem;
-    font-weight: 800;
-    color: var(--brand-primary);
-    margin-top: 0.3rem;
-}
-.iu-price-tag .currency {
-    font-size: 0.65rem;
-    font-weight: 600;
-    opacity: 0.7;
-}
-.iu-price-tag.free-tag {
-    color: #10b981;
+    .as-grid { grid-template-columns: 1fr; }
+    .as-hero-metrics { gap: 1rem; }
+    .as-metric-num { font-size: 1.3rem; }
 }
 {% endblock %}
 
 {% block content %}
-<div class="iu-addon-header">
-    <h2>Addon Store</h2>
-    <p>Subscribe to APIs and build powerful education tools</p>
-</div>
-
-<div class="iu-filter-bar">
-    <button class="iu-filter-chip active" data-cat="all">All</button>
-    {% for cat in categories %}
-    <button class="iu-filter-chip" data-cat="{{ cat }}">{{ cat }}</button>
-    {% endfor %}
-</div>
-
-<div class="iu-addon-grid" id="addonGrid">
-    {% for addon in catalog %}
-    <div class="iu-card iu-addon-card" data-cat="{{ addon.category }}" data-slug="{{ addon.slug }}" data-prices='{{ addon.prices_json }}'>
-        <div class="iu-addon-top">
-            <div class="iu-addon-icon {{ addon.category }}"><i class="bi {{ addon.icon }}"></i></div>
-            <div class="iu-addon-meta">
-                <div class="iu-addon-name">{{ addon.name }}{% if addon.recommended %} <span class="iu-recommended-tag"><i class="bi bi-star-fill"></i> For You</span>{% endif %}</div>
-                <div class="iu-addon-cat">{{ addon.category }}</div>
-            </div>
+<!-- Hero -->
+<div class="as-hero">
+    <div class="as-hero-text">
+        <h2><i class="bi bi-bag me-2" style="color:var(--brand-primary)"></i>{% if role == 'teacher' %}Teacher Tools{% else %}API Add-ons{% endif %}</h2>
+        <p>{% if role == 'teacher' %}Subscribe to free and premium tools to level up your teaching workflow.{% else %}Subscribe to APIs and build powerful education tools.{% endif %}</p>
+    </div>
+    <div class="as-hero-metrics">
+        <div class="as-metric">
+            <div class="as-metric-num green">{{ subscribed_count }}</div>
+            <div class="as-metric-lbl">Subscribed</div>
         </div>
-        <div class="iu-addon-desc">{{ addon.description }}</div>
-        <div class="iu-addon-footer">
-            <div>
-                <div class="iu-plan-selector">
-                    {% for plan in addon.plans %}
-                    <button class="iu-plan-option{% if forloop.first %} selected{% endif %}" data-plan="{{ plan }}" data-price="{{ addon.prices|default_if_none:'{}' }}" onclick="selectPlan(this)">{{ plan }}</button>
-                    {% endfor %}
-                </div>
-                <div class="iu-price-tag" id="price-{{ addon.slug }}">
-                    {% with first_plan=addon.plans.0 %}
-                    {% if addon.first_price == 0 %}
-                    <span class="free-tag">Free</span>
-                    {% else %}
-                    <span class="currency">{{ currency }}</span> {{ addon.first_price }}
-                    {% endif %}
-                    {% endwith %}
-                </div>
-            </div>
-            {% if addon.subscribed %}
-            <button class="iu-subscribe-btn subscribed" disabled>
-                <i class="bi bi-check-circle me-1"></i>Subscribed
-            </button>
-            {% else %}
-            <button class="iu-subscribe-btn available" data-slug="{{ addon.slug }}" onclick="subscribeAddon(this)">
-                Subscribe
-            </button>
-            {% endif %}
+        <div class="as-metric">
+            <div class="as-metric-num">{{ total_count }}</div>
+            <div class="as-metric-lbl">Available</div>
         </div>
     </div>
+</div>
+
+<!-- Filters -->
+<div class="as-filters">
+    <button class="as-chip active" data-cat="all"><i class="bi bi-grid-3x3-gap"></i> All</button>
+    {% for group in groups %}
+    <button class="as-chip" data-cat="{{ group.key }}"><i class="bi {{ group.icon }}"></i> {{ group.label }}</button>
     {% endfor %}
 </div>
 
-<div class="iu-toast" id="iuToast"></div>
+<!-- Grouped Add-ons -->
+{% for group in groups %}
+<div class="as-group" data-group="{{ group.key }}">
+    <div class="as-group-hdr">
+        <div class="as-group-icon" style="background:{{ group.color }}15;color:{{ group.color }}"><i class="bi {{ group.icon }}"></i></div>
+        <div class="as-group-title">{{ group.label }}</div>
+    </div>
+    <div class="as-grid">
+        {% for addon in group.addons %}
+        <div class="iu-card as-card" data-cat="{{ addon.category }}" data-slug="{{ addon.slug }}" data-prices='{{ addon.prices_json }}'>
+            <div class="as-card-top">
+                <div class="as-card-icon" style="background:{{ group.color }}15;color:{{ group.color }}"><i class="bi {{ addon.icon }}"></i></div>
+                <div class="as-card-meta">
+                    <div class="as-card-name">
+                        {{ addon.name }}
+                        {% if addon.badge == 'POPULAR' %}<span class="as-badge as-badge-pop"><i class="bi bi-fire"></i> Popular</span>{% endif %}
+                        {% if addon.badge == 'NEW' %}<span class="as-badge as-badge-new"><i class="bi bi-lightning-fill"></i> New</span>{% endif %}
+                        {% if addon.recommended %}<span class="as-badge as-badge-rec"><i class="bi bi-star-fill"></i> For You</span>{% endif %}
+                    </div>
+                    {% if addon.tagline %}<div class="as-card-tagline">{{ addon.tagline }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="as-card-desc">{{ addon.description }}</div>
+            {% if addon.features %}
+            <ul class="as-features">
+                {% for feat in addon.features %}
+                <li><i class="bi bi-check-circle-fill"></i> {{ feat }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            <div class="as-card-foot">
+                <div>
+                    <div class="as-plan-row">
+                        {% for plan in addon.plans %}
+                        <button class="as-plan-btn{% if forloop.first %} sel{% endif %}" data-plan="{{ plan }}" onclick="selectPlan(this)">{{ plan }}</button>
+                        {% endfor %}
+                    </div>
+                    <div class="as-price" id="price-{{ addon.slug }}">
+                        {% if addon.first_price == 0 %}
+                        <span class="free">Free</span>
+                        {% else %}
+                        <span class="cur">{{ currency }}</span> {{ addon.first_price }}
+                        {% endif %}
+                    </div>
+                </div>
+                {% if addon.subscribed %}
+                <button class="as-sub-btn done" disabled><i class="bi bi-check-circle"></i> Active</button>
+                {% else %}
+                <button class="as-sub-btn avail" data-slug="{{ addon.slug }}" onclick="subscribeAddon(this)">Subscribe</button>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endfor %}
+
+<div class="as-toast" id="asToast"></div>
 {% endblock %}
 
 {% block extra_js %}
@@ -314,46 +364,44 @@ const CURRENCY = '{{ currency }}';
 
 function getCookie(n){const v=document.cookie.match('(^|;)\\s*'+n+'=([^;]*)');return v?decodeURIComponent(v[2]):null;}
 
-// Filter
-document.querySelectorAll('.iu-filter-chip').forEach(chip => {
+/* ── Filter ──────────────────────────────── */
+document.querySelectorAll('.as-chip').forEach(chip => {
     chip.addEventListener('click', () => {
-        document.querySelectorAll('.iu-filter-chip').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.as-chip').forEach(c => c.classList.remove('active'));
         chip.classList.add('active');
         const cat = chip.dataset.cat;
-        document.querySelectorAll('.iu-addon-card').forEach(card => {
-            card.style.display = (cat === 'all' || card.dataset.cat === cat) ? '' : 'none';
+        document.querySelectorAll('.as-group').forEach(g => {
+            g.style.display = (cat === 'all' || g.dataset.group === cat) ? '' : 'none';
         });
     });
 });
 
-// Plan selection
+/* ── Plan select ─────────────────────────── */
 function selectPlan(btn) {
-    const card = btn.closest('.iu-addon-card');
-    card.querySelectorAll('.iu-plan-option').forEach(b => b.classList.remove('selected'));
-    btn.classList.add('selected');
+    const card = btn.closest('.as-card');
+    card.querySelectorAll('.as-plan-btn').forEach(b => b.classList.remove('sel'));
+    btn.classList.add('sel');
     const slug = card.dataset.slug;
     const prices = JSON.parse(card.dataset.prices || '{}');
     const plan = btn.dataset.plan;
     const price = prices[plan] || 0;
-    const priceEl = document.getElementById('price-' + slug);
-    if (priceEl) {
-        if (price <= 0) {
-            priceEl.innerHTML = '<span class="free-tag">Free</span>';
-        } else {
-            priceEl.innerHTML = '<span class="currency">' + CURRENCY + '</span> ' + price.toFixed(2);
-        }
+    const el = document.getElementById('price-' + slug);
+    if (el) {
+        el.innerHTML = price <= 0
+            ? '<span class="free">Free</span>'
+            : '<span class="cur">' + CURRENCY + '</span> ' + price.toFixed(2);
     }
 }
 
-// Subscribe (free) or purchase (paid via Paystack)
+/* ── Subscribe ───────────────────────────── */
 function subscribeAddon(btn) {
-    const card = btn.closest('.iu-addon-card');
+    const card = btn.closest('.as-card');
     const slug = card.dataset.slug;
-    const selectedPlan = card.querySelector('.iu-plan-option.selected');
-    const plan = selectedPlan ? selectedPlan.dataset.plan : 'free';
+    const sel = card.querySelector('.as-plan-btn.sel');
+    const plan = sel ? sel.dataset.plan : 'free';
 
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>…';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
 
     const fd = new FormData();
     fd.append('addon_slug', slug);
@@ -364,17 +412,15 @@ function subscribeAddon(btn) {
     .then(r => r.json())
     .then(data => {
         if (data.ok) {
-            // Free plan activated
-            btn.className = 'iu-subscribe-btn subscribed';
-            btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Subscribed';
-            showToast('Subscribed to ' + data.addon);
+            btn.className = 'as-sub-btn done';
+            btn.innerHTML = '<i class="bi bi-check-circle"></i> Active';
+            toast('Subscribed to ' + data.addon);
         } else if (data.paystack) {
-            // Paid plan: open Paystack popup
             openPaystack(data, slug, plan, btn);
         } else {
             btn.disabled = false;
             btn.textContent = 'Subscribe';
-            showToast(data.error || 'Failed');
+            toast(data.error || 'Failed');
         }
     })
     .catch(() => { btn.disabled = false; btn.textContent = 'Subscribe'; });
@@ -390,49 +436,39 @@ function openPaystack(data, slug, plan, btn) {
             currency: data.currency,
             ref: data.reference,
             metadata: { addon_slug: slug, addon_name: data.addon_name, plan: plan },
-            onSuccess: function(txn) {
-                // Verify on server
+            onSuccess(txn) {
                 fetch(VERIFY_URL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken') || CSRF,
-                    },
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') || CSRF },
                     body: JSON.stringify({ reference: txn.reference, addon_slug: slug, plan: plan }),
                 })
                 .then(r => r.json())
-                .then(vData => {
-                    if (vData.ok) {
-                        btn.className = 'iu-subscribe-btn subscribed';
-                        btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Subscribed';
-                        showToast('Payment successful! ' + vData.addon + ' activated.');
+                .then(v => {
+                    if (v.ok) {
+                        btn.className = 'as-sub-btn done';
+                        btn.innerHTML = '<i class="bi bi-check-circle"></i> Active';
+                        toast('Payment successful! ' + v.addon + ' activated.');
                     } else {
-                        showToast(vData.error || 'Verification failed. Contact support.');
-                        btn.disabled = false;
-                        btn.textContent = 'Subscribe';
+                        toast(v.error || 'Verification failed.');
+                        btn.disabled = false; btn.textContent = 'Subscribe';
                     }
                 })
                 .catch(() => { btn.disabled = false; btn.textContent = 'Subscribe'; });
             },
-            onCancel: function() {
-                btn.disabled = false;
-                btn.textContent = 'Subscribe';
-                showToast('Payment cancelled.');
-            },
+            onCancel() { btn.disabled = false; btn.textContent = 'Subscribe'; toast('Payment cancelled.'); },
         });
     } catch (err) {
-        console.error('Paystack error:', err);
-        btn.disabled = false;
-        btn.textContent = 'Subscribe';
-        showToast('Payment error. Please try again.');
+        console.error('Paystack:', err);
+        btn.disabled = false; btn.textContent = 'Subscribe';
+        toast('Payment error. Please try again.');
     }
 }
 
-function showToast(msg) {
-    const t = document.getElementById('iuToast');
+function toast(msg) {
+    const t = document.getElementById('asToast');
     t.textContent = msg;
     t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2500);
+    setTimeout(() => t.classList.remove('show'), 2800);
 }
 </script>
 {% endblock %}

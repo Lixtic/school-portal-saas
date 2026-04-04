@@ -24,7 +24,7 @@ from individual_users.forms import (
     PhoneSignupForm,
 )
 from individual_users.models import (
-    AddonSubscription, APIKey, IndividualProfile, VerificationCode,
+    AddonSubscription, APIKey, IndividualAddon, IndividualProfile, VerificationCode,
     ToolExamPaper, ToolLessonPlan, ToolQuestion,
     CompuThinkActivity, LiteracyExercise, CitizenEdActivity, TVETProject,
 )
@@ -193,138 +193,192 @@ TEACHER_ADDON_CATALOG = [
         'slug': 'exam-generator',
         'name': 'Question Bank & Exam Paper',
         'icon': 'bi-file-earmark-text',
+        'tagline': 'Build, organise and print exam-ready papers',
         'description': 'Build a bank of questions by subject, topic and difficulty — then generate polished exam papers ready to print.',
         'plans': ['free', 'pro'],
         'category': 'assessment',
         'prices': {'free': 0, 'pro': 59.99},
+        'features': ['MCQ, essay, true/false, fill-in-the-blank', 'Filter by subject, topic & difficulty', 'AI question generation', 'Print-ready exam paper export'],
     },
     {
         'slug': 'lesson-planner',
         'name': 'Smart Lesson Planner',
         'icon': 'bi-journal-bookmark',
+        'tagline': 'GES-aligned lesson plans in minutes',
         'description': 'Create structured lesson plans with AI or from scratch — aligned to GES curriculum standards.',
         'plans': ['free', 'pro'],
         'category': 'productivity',
         'prices': {'free': 0, 'pro': 59.99},
+        'features': ['AI-powered plan generation', 'GES curriculum alignment', 'Print & share as PDF', 'Activity & resource suggestions'],
     },
     {
         'slug': 'ai-tutor',
         'name': 'AI Teaching Assistant',
         'icon': 'bi-robot',
+        'tagline': 'Your AI co-teacher for every subject',
         'description': 'AI-powered concept explainer, worksheet generator, marking helper and study notes creator.',
         'plans': ['free', 'pro'],
         'category': 'ai',
         'prices': {'free': 0, 'pro': 49.99},
+        'features': ['Concept explanations for any topic', 'Worksheet & exercise generation', 'Marking assistance', 'Study notes creator'],
     },
     {
         'slug': 'grade-analytics',
         'name': 'Grade Analytics',
         'icon': 'bi-graph-up-arrow',
+        'tagline': 'Spot trends in student performance',
         'description': 'Visualise student performance trends, class distributions and generate grade reports.',
         'plans': ['free', 'pro'],
         'category': 'analytics',
         'prices': {'free': 0, 'pro': 39.99},
+        'features': ['Class performance charts', 'Subject trend tracking', 'Grade distribution analysis', 'Exportable reports'],
     },
     {
         'slug': 'report-card',
         'name': 'Report Card Writer',
         'icon': 'bi-file-earmark-bar-graph',
+        'tagline': 'Personalised comments in seconds',
         'description': 'Generate personalised report card comments with conduct and attitude ratings for each student.',
         'plans': ['free', 'pro'],
         'category': 'assessment',
         'prices': {'free': 0, 'pro': 44.99},
+        'features': ['AI-written personalised comments', 'Conduct & attitude ratings', 'Bulk generation for whole class', 'Copy-paste or export'],
     },
     {
         'slug': 'attendance-tracker',
         'name': 'Attendance Tracker',
         'icon': 'bi-calendar-check',
+        'tagline': 'Daily roll call & absence alerts',
         'description': 'Log daily attendance, detect absence patterns, and generate weekly/monthly reports.',
         'plans': ['free', 'pro'],
         'category': 'management',
         'prices': {'free': 0, 'pro': 29.99},
+        'features': ['Quick daily roll-call', 'Absence pattern detection', 'Weekly & monthly reports', 'Export attendance records'],
     },
     {
         'slug': 'slide-generator',
         'name': 'Slide Deck Generator',
         'icon': 'bi-easel',
+        'tagline': 'Beautiful AI presentations, ready to teach',
         'description': 'Build beautiful Gamma-style presentations with AI — 8 themes, 7 layouts, fullscreen present mode and shareable links.',
         'plans': ['free', 'pro'],
         'category': 'productivity',
         'prices': {'free': 0, 'pro': 59.99},
+        'badge': 'POPULAR',
+        'features': ['AI slide generation from any topic', '8 themes & 7 layout styles', 'Fullscreen present mode', 'Shareable links & print'],
     },
     {
         'slug': 'licensure-prep',
         'name': 'GTLE Licensure Prep',
         'icon': 'bi-mortarboard',
+        'tagline': 'Ace the Ghana Teacher Licensure Exam',
         'description': 'Prepare for the Ghana Teacher Licensure Examination with past questions, timed mock exams and AI-generated practice assessments.',
         'plans': ['free', 'pro'],
         'category': 'professional',
         'prices': {'free': 0, 'pro': 49.99},
+        'features': ['Past GTLE questions bank', 'Timed mock exams', 'AI practice assessments', 'Detailed score analytics'],
     },
     {
         'slug': 'letter-writer',
         'name': 'GES Letter Writer',
         'icon': 'bi-envelope-paper',
+        'tagline': 'Official GES letters made easy',
         'description': 'Browse sample GES letters and generate official letters for transfers, leave, promotions, complaints and more.',
         'plans': ['free', 'pro'],
         'category': 'productivity',
         'prices': {'free': 0, 'pro': 39.99},
+        'features': ['50+ GES letter templates', 'AI-powered letter drafting', 'Transfer, leave & promotion letters', 'Download as Word/PDF'],
     },
     {
         'slug': 'paper-marker',
         'name': 'Paper Marker',
         'icon': 'bi-clipboard-check',
+        'tagline': 'Mark papers in seconds, not hours',
         'description': 'Mark objective question papers instantly — set an answer key, enter student responses, get auto-marked results with class analytics.',
         'plans': ['free', 'pro'],
         'category': 'assessment',
         'prices': {'free': 0, 'pro': 29.99},
+        'badge': 'NEW',
+        'features': ['Set answer key & auto-mark', 'Camera scan for answer sheets', 'Per-student & class analytics', 'Export results to CSV'],
     },
     {
         'slug': 'computhink-lab',
         'name': 'CompuThink Lab',
         'icon': 'bi-cpu',
+        'tagline': 'Computational thinking for every learner',
         'description': 'Computational thinking exercises — algorithm design, pseudocode, pattern recognition, decomposition, AI literacy and coding challenges aligned to GES Computing.',
         'plans': ['free', 'pro'],
         'category': 'subject_tools',
         'prices': {'free': 0, 'pro': 39.99},
+        'features': ['Algorithm & pseudocode exercises', 'Pattern recognition activities', 'AI literacy modules', 'Coding challenges by level'],
     },
     {
         'slug': 'literacy-toolkit',
         'name': 'Literacy Toolkit',
         'icon': 'bi-book',
+        'tagline': 'Comprehensive English & Language exercises',
         'description': 'Reading comprehension, grammar drills, vocabulary builders, phonics exercises, essay prompts and oral language activities for English & Language.',
         'plans': ['free', 'pro'],
         'category': 'subject_tools',
         'prices': {'free': 0, 'pro': 39.99},
+        'features': ['Reading comprehension passages', 'Grammar & vocabulary drills', 'Essay prompts & rubrics', 'Phonics & oral activities'],
     },
     {
         'slug': 'citizen-ed',
         'name': 'CitizenEd',
         'icon': 'bi-globe-americas',
+        'tagline': 'Social Studies brought to life',
         'description': 'Case studies, debates, citizenship scenarios, map activities, timelines and research projects for Social Studies — focused on responsible citizenship.',
         'plans': ['free', 'pro'],
         'category': 'subject_tools',
         'prices': {'free': 0, 'pro': 39.99},
+        'features': ['Case studies & debates', 'Citizenship scenario cards', 'Map & timeline activities', 'Research project guides'],
     },
     {
         'slug': 'tvet-workshop',
         'name': 'TVET Workshop',
         'icon': 'bi-tools',
+        'tagline': 'Hands-on Career Tech projects',
         'description': 'Project plans, safety quizzes, tool identification, innovation challenges and rubrics for Career Technology and vocational skills.',
         'plans': ['free', 'pro'],
         'category': 'subject_tools',
         'prices': {'free': 0, 'pro': 39.99},
+        'features': ['Structured project plans', 'Safety quiz generator', 'Tool & material identification', 'Skill assessment rubrics'],
     },
 ]
 
 
 def _catalog_for_role(role):
-    """Return the addon catalog appropriate for the user's role."""
+    """Return the addon catalog — prefer DB records, fall back to hardcoded."""
+    db_addons = list(IndividualAddon.objects.filter(is_active=True))
+    if db_addons:
+        # Filter by audience
+        filtered = [a for a in db_addons if a.audience in ('all', role)]
+        return [{
+            'slug': a.slug, 'name': a.name, 'icon': a.icon,
+            'tagline': a.tagline, 'description': a.description,
+            'plans': a.plans, 'category': a.category,
+            'prices': a.prices, 'features': a.features,
+            'badge': a.badge_label, 'trial_days': a.trial_days,
+            'db_id': a.id,
+        } for a in filtered]
     return TEACHER_ADDON_CATALOG if role == 'teacher' else ADDON_CATALOG
 
 
 def _find_addon(slug):
-    """Lookup an addon by slug across both catalogs."""
+    """Lookup an addon by slug — prefer DB, fall back to hardcoded catalogs."""
+    try:
+        a = IndividualAddon.objects.get(slug=slug, is_active=True)
+        return {
+            'slug': a.slug, 'name': a.name, 'icon': a.icon,
+            'tagline': a.tagline, 'description': a.description,
+            'plans': a.plans, 'category': a.category,
+            'prices': a.prices, 'features': a.features,
+            'badge': a.badge_label, 'trial_days': a.trial_days,
+            'db_id': a.id,
+        }
+    except IndividualAddon.DoesNotExist:
+        pass
     for cat in (TEACHER_ADDON_CATALOG, ADDON_CATALOG):
         match = next((a for a in cat if a['slug'] == slug), None)
         if match:
@@ -1026,30 +1080,95 @@ def delete_account_view(request):
 @_individual_required
 def addons_view(request):
     profile = request.user.individual_profile
-    my_slugs = set(
-        AddonSubscription.objects.filter(profile=profile, status='active')
-        .values_list('addon_slug', flat=True)
-    )
+    my_subs = {
+        s.addon_slug: s
+        for s in AddonSubscription.objects.filter(profile=profile, status='active')
+    }
     source_catalog = _catalog_for_role(profile.role)
-    catalog = []
+
+    CATEGORY_META = {
+        'assessment':    {'label': 'Assessment',        'icon': 'bi-pencil-square', 'color': '#4361ee'},
+        'productivity':  {'label': 'Create & Plan',     'icon': 'bi-palette2',      'color': '#7c3aed'},
+        'ai':            {'label': 'AI Tools',          'icon': 'bi-stars',         'color': '#0891b2'},
+        'subject_tools': {'label': 'Subject Labs',      'icon': 'bi-lightbulb',     'color': '#059669'},
+        'professional':  {'label': 'Professional Dev',  'icon': 'bi-mortarboard',   'color': '#0d9488'},
+        'analytics':     {'label': 'Analytics',         'icon': 'bi-graph-up-arrow','color': '#d97706'},
+        'management':    {'label': 'Management',        'icon': 'bi-kanban',        'color': '#0d9488'},
+        'finance':       {'label': 'Finance',           'icon': 'bi-cash-stack',    'color': '#d97706'},
+        'communication': {'label': 'Communication',     'icon': 'bi-chat-dots',     'color': '#db2777'},
+        'documents':     {'label': 'Documents',         'icon': 'bi-file-earmark',  'color': '#2563eb'},
+    }
+
+    # Build enriched addons and group by category
+    from collections import OrderedDict
+    grouped = OrderedDict()
+    all_addons = []
     for addon in source_catalog:
         prices = addon.get('prices', {})
         first_plan = addon['plans'][0] if addon['plans'] else 'free'
-        catalog.append({
+        enriched = {
             **addon,
-            'subscribed': addon['slug'] in my_slugs,
+            'subscribed': addon['slug'] in my_subs,
+            'active_plan': my_subs[addon['slug']].plan if addon['slug'] in my_subs else None,
             'prices_json': json.dumps(prices),
             'first_price': prices.get(first_plan, 0),
-        })
+            'is_free': all(v <= 0 for v in prices.values()),
+        }
+        all_addons.append(enriched)
+        cat = addon.get('category', 'other')
+        if cat not in grouped:
+            meta = CATEGORY_META.get(cat, {'label': cat.title(), 'icon': 'bi-box', 'color': '#64748b'})
+            grouped[cat] = {**meta, 'key': cat, 'addons': []}
+        grouped[cat]['addons'].append(enriched)
+
+    subscribed_count = len(my_subs)
+    total_count = len(all_addons)
 
     ctx = {
-        'catalog': catalog,
+        'catalog': all_addons,
+        'groups': list(grouped.values()),
         'profile': profile,
         'role': profile.role,
-        'categories': sorted({a['category'] for a in source_catalog}),
+        'subscribed_count': subscribed_count,
+        'total_count': total_count,
         'currency': getattr(settings, 'PAYSTACK_CURRENCY', 'GHS'),
     }
     return render(request, 'individual/addons.html', ctx)
+
+
+@_individual_required
+def addon_detail_view(request, slug):
+    """Detail page for a single addon."""
+    profile = request.user.individual_profile
+    addon = _find_addon(slug)
+    if not addon:
+        messages.error(request, 'Addon not found.')
+        return redirect('individual:addons')
+
+    sub = AddonSubscription.objects.filter(
+        profile=profile, addon_slug=slug, status='active'
+    ).first()
+    is_subscribed = sub is not None
+
+    # Related addons in same category
+    source = _catalog_for_role(profile.role)
+    related = [a for a in source if a['category'] == addon.get('category') and a['slug'] != slug][:3]
+
+    prices = addon.get('prices', {})
+    first_plan = addon['plans'][0] if addon.get('plans') else 'free'
+
+    ctx = {
+        'addon': addon,
+        'is_subscribed': is_subscribed,
+        'active_plan': sub.plan if sub else None,
+        'related': related,
+        'profile': profile,
+        'role': profile.role,
+        'first_price': prices.get(first_plan, 0),
+        'prices_json': json.dumps(prices),
+        'currency': getattr(settings, 'PAYSTACK_CURRENCY', 'GHS'),
+    }
+    return render(request, 'individual/addon_detail.html', ctx)
 
 
 @_individual_required
