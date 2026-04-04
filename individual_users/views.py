@@ -922,6 +922,32 @@ def settings_view(request):
     return render(request, 'individual/settings.html', ctx)
 
 
+@login_required(login_url='/u/signin/')
+def delete_account_view(request):
+    """Permanently delete the current individual user account."""
+    if request.method != 'POST':
+        return redirect('individual:settings')
+
+    _ensure_public_schema()
+    user = request.user
+
+    # Require password confirmation (skip for Google-only accounts)
+    if user.has_usable_password():
+        password = request.POST.get('password', '')
+        if not user.check_password(password):
+            messages.error(request, 'Incorrect password. Account was not deleted.')
+            return redirect('individual:settings')
+
+    # Delete profile, then user
+    IndividualProfile.objects.filter(user=user).delete()
+    user_email = user.email
+    logout(request)
+    user.delete()
+    logger.info(f'Individual account deleted: {user_email}')
+    messages.success(request, 'Your account has been permanently deleted.')
+    return redirect('individual:signin')
+
+
 # ── Addon Marketplace ────────────────────────────────────────────────────────
 
 @_individual_required

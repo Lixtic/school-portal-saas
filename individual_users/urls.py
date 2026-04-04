@@ -19,6 +19,7 @@ urlpatterns = [
 
     # Settings
     path('settings/', views.settings_view, name='settings'),
+    path('settings/delete-account/', views.delete_account_view, name='delete_account'),
 
     # Addon marketplace
     path('addons/', views.addons_view, name='addons'),
