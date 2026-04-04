@@ -678,13 +678,15 @@ def google_callback_view(request):
         )
         with urllib.request.urlopen(token_req, timeout=10) as resp:
             token_data = json.loads(resp.read())
-    except Exception:
-        logger.exception('Google token exchange failed')
+    except Exception as e:
+        logger.exception(f'Google token exchange failed: {e}')
         messages.error(request, 'Could not verify Google credentials.')
         return redirect('individual:signin')
 
+    logger.info(f'Google token exchange response: {token_data.keys()}')
     id_token_jwt = token_data.get('id_token')
     if not id_token_jwt:
+        logger.error(f'No id_token in response: {token_data}')
         messages.error(request, 'Google sign-in failed — no ID token.')
         return redirect('individual:signin')
 
@@ -695,8 +697,17 @@ def google_callback_view(request):
         idinfo = id_token.verify_oauth2_token(
             id_token_jwt, google_requests.Request(), client_id,
         )
-    except (ImportError, ValueError):
-        messages.error(request, 'Invalid Google token.')
+    except ImportError as e:
+        logger.error(f'Google auth library import failed: {e}')
+        messages.error(request, 'Google sign-in is misconfigured.')
+        return redirect('individual:signin')
+    except ValueError as e:
+        logger.error(f'Google token verification failed: {e}')
+        messages.error(request, 'Google sign-in failed. Please try again.')
+        return redirect('individual:signin')
+    except Exception as e:
+        logger.exception(f'Unexpected error during Google token verification: {e}')
+        messages.error(request, 'Google sign-in failed. Please try again.')
         return redirect('individual:signin')
 
     google_id = idinfo['sub']
