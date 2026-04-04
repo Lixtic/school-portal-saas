@@ -278,6 +278,42 @@ TEACHER_ADDON_CATALOG = [
         'category': 'assessment',
         'prices': {'free': 0, 'pro': 29.99},
     },
+    {
+        'slug': 'computhink-lab',
+        'name': 'CompuThink Lab',
+        'icon': 'bi-cpu',
+        'description': 'Computational thinking exercises — algorithm design, pseudocode, pattern recognition, decomposition, AI literacy and coding challenges aligned to GES Computing.',
+        'plans': ['free', 'pro'],
+        'category': 'subject_tools',
+        'prices': {'free': 0, 'pro': 39.99},
+    },
+    {
+        'slug': 'literacy-toolkit',
+        'name': 'Literacy Toolkit',
+        'icon': 'bi-book',
+        'description': 'Reading comprehension, grammar drills, vocabulary builders, phonics exercises, essay prompts and oral language activities for English & Language.',
+        'plans': ['free', 'pro'],
+        'category': 'subject_tools',
+        'prices': {'free': 0, 'pro': 39.99},
+    },
+    {
+        'slug': 'citizen-ed',
+        'name': 'CitizenEd',
+        'icon': 'bi-globe-americas',
+        'description': 'Case studies, debates, citizenship scenarios, map activities, timelines and research projects for Social Studies — focused on responsible citizenship.',
+        'plans': ['free', 'pro'],
+        'category': 'subject_tools',
+        'prices': {'free': 0, 'pro': 39.99},
+    },
+    {
+        'slug': 'tvet-workshop',
+        'name': 'TVET Workshop',
+        'icon': 'bi-tools',
+        'description': 'Project plans, safety quizzes, tool identification, innovation challenges and rubrics for Career Technology and vocational skills.',
+        'plans': ['free', 'pro'],
+        'category': 'subject_tools',
+        'prices': {'free': 0, 'pro': 39.99},
+    },
 ]
 
 
