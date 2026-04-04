@@ -1,0 +1,265 @@
+{% extends 'individual/base.html' %}
+{% block title %}CompuThink Lab — Aura Teacher Portal{% endblock %}
+{% block page_title %}CompuThink Lab{% endblock %}
+
+{% block extra_css %}
+.ct-hero {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 60%, #0369a1 100%);
+    border-radius: var(--radius-lg); color: #fff;
+    padding: 1.5rem 2rem; margin-bottom: 1.5rem;
+    position: relative; overflow: hidden;
+}
+.ct-hero::after {
+    content: ''; position: absolute; top: -30px; right: -30px;
+    width: 140px; height: 140px; border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+}
+.ct-hero-title { font-size: 1.2rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; }
+.ct-hero-sub { font-size: 0.84rem; opacity: 0.85; margin-top: 0.2rem; max-width: 500px; }
+.ct-hero-stats { display: flex; gap: 1.5rem; margin-top: 1rem; }
+.ct-hero-stat-value { font-size: 1.5rem; font-weight: 800; }
+.ct-hero-stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.8; }
+.ct-hero-actions { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+.ct-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.55rem 1rem; border-radius: 8px;
+    font-size: 0.82rem; font-weight: 600;
+    text-decoration: none; border: none; cursor: pointer;
+    transition: all 0.15s ease;
+}
+.ct-btn-white { background: #fff; color: #0ea5e9; }
+.ct-btn-white:hover { background: #f0f9ff; color: #0284c7; }
+.ct-btn-glass { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
+.ct-btn-glass:hover { background: rgba(255,255,255,0.25); color: #fff; }
+
+.ct-toolbar {
+    display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap; align-items: center;
+}
+.ct-search-wrap { flex:1; min-width:200px; position:relative; }
+.ct-search-wrap i { position:absolute; left:0.75rem; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:0.9rem; pointer-events:none; }
+.ct-search {
+    width:100%; padding:0.5rem 0.85rem 0.5rem 2.2rem;
+    border:1px solid var(--border-color); border-radius:8px;
+    background:var(--surface-card); color:var(--text-main);
+    font-family:inherit; font-size:0.85rem;
+}
+.ct-search:focus { outline:none; border-color:#0ea5e9; box-shadow:0 0 0 3px rgba(14,165,233,0.1); }
+.ct-chip {
+    padding:0.4rem 0.85rem; border-radius:999px; font-size:0.78rem; font-weight:600;
+    border:1px solid var(--border-color); background:var(--surface-card);
+    color:var(--text-muted); text-decoration:none; transition:all 0.15s ease;
+}
+.ct-chip.active, .ct-chip:hover {
+    background:rgba(14,165,233,0.1); color:#0ea5e9; border-color:rgba(14,165,233,0.3);
+}
+
+.ct-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1.25rem;
+}
+.ct-card { padding: 1.25rem; transition: transform 0.15s ease; }
+.ct-card:hover { transform: translateY(-2px); }
+.ct-card-head { display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.75rem; }
+.ct-card-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; flex-shrink: 0;
+    background: rgba(14,165,233,0.1); color: #0ea5e9;
+}
+.ct-card-title { font-size: 0.95rem; font-weight: 700; }
+.ct-card-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem; }
+.ct-card-snippet { font-size: 0.83rem; color: var(--text-muted); line-height: 1.55; margin-bottom: 0.75rem; }
+.ct-pill {
+    display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px;
+    font-size: 0.7rem; font-weight: 600; margin-right: 0.3rem; margin-bottom: 0.5rem;
+    background: rgba(14,165,233,0.08); color: #0ea5e9;
+}
+.ct-card-actions { display: flex; gap: 0.4rem; margin-top: 0.5rem; }
+.ct-btn-sm {
+    padding: 0.35rem 0.7rem; border-radius: 6px; font-size: 0.78rem; font-weight: 600;
+    border: 1px solid var(--border-color); background: var(--surface-card); color: var(--text-muted);
+    text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem;
+    transition: all 0.15s ease;
+}
+.ct-btn-sm:hover { border-color: #0ea5e9; color: #0ea5e9; }
+.ct-empty { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
+.ct-empty i { font-size: 2.5rem; opacity: 0.3; display: block; margin-bottom: 0.75rem; }
+
+/* Generate modal */
+.ct-modal-body label { font-size: 0.82rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem; }
+.ct-modal-body select, .ct-modal-body input {
+    width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border-color);
+    border-radius: 8px; background: var(--surface-card); color: var(--text-main);
+    font-family: inherit; font-size: 0.85rem; margin-bottom: 0.75rem;
+}
+.ct-modal-body select:focus, .ct-modal-body input:focus { outline: none; border-color: #0ea5e9; }
+
+@media (max-width: 576px) {
+    .ct-grid { grid-template-columns: 1fr; }
+    .ct-hero { padding: 1.25rem; }
+    .ct-hero-stats { flex-direction: column; gap: 0.5rem; }
+}
+{% endblock %}
+
+{% block content %}
+<div class="ct-hero">
+    <div class="ct-hero-title"><i class="bi bi-cpu"></i> CompuThink Lab</div>
+    <div class="ct-hero-sub">Computational thinking exercises — algorithm design, pseudocode, pattern recognition, AI literacy & coding challenges.</div>
+    <div class="ct-hero-stats">
+        <div><div class="ct-hero-stat-value">{{ total }}</div><div class="ct-hero-stat-label">Activities</div></div>
+    </div>
+    <div class="ct-hero-actions">
+        <button class="ct-btn ct-btn-white" data-bs-toggle="modal" data-bs-target="#generateModal"><i class="bi bi-stars"></i> AI Generate</button>
+        <a href="{% url 'individual:tools_hub' %}" class="ct-btn ct-btn-glass"><i class="bi bi-arrow-left"></i> Tools</a>
+    </div>
+</div>
+
+<!-- Toolbar -->
+<div class="ct-toolbar">
+    <div class="ct-search-wrap">
+        <i class="bi bi-search"></i>
+        <input type="text" class="ct-search" id="searchInput" placeholder="Search activities..." value="{{ search }}">
+    </div>
+    <a href="{% url 'individual:computhink_dashboard' %}" class="ct-chip {% if not current_type %}active{% endif %}">All</a>
+    {% for val, label in type_choices %}
+    <a href="?type={{ val }}{% if current_level %}&level={{ current_level }}{% endif %}" class="ct-chip {% if current_type == val %}active{% endif %}">{{ label }}</a>
+    {% endfor %}
+</div>
+
+<!-- Activity Grid -->
+<div class="ct-grid" id="itemsGrid">
+{% for item in activities %}
+    <div class="iu-card ct-card" data-search="{{ item.title|lower }} {{ item.topic|lower }}">
+        <div class="ct-card-head">
+            <div class="ct-card-icon"><i class="bi bi-cpu"></i></div>
+            <div style="flex:1;min-width:0">
+                <div class="ct-card-title">{{ item.title }}</div>
+                <div class="ct-card-meta">{{ item.get_activity_type_display }} · {{ item.get_level_display }} · {{ item.created_at|date:"d M Y" }}</div>
+            </div>
+        </div>
+        <div>
+            <span class="ct-pill">{{ item.get_activity_type_display }}</span>
+            {% if item.strand %}<span class="ct-pill">{{ item.strand }}</span>{% endif %}
+            {% if item.ai_generated %}<span class="ct-pill" style="background:rgba(139,92,246,0.08);color:#8b5cf6"><i class="bi bi-stars"></i> AI</span>{% endif %}
+        </div>
+        <div class="ct-card-snippet">{{ item.instructions|truncatewords:30 }}</div>
+        <div class="ct-card-actions">
+            <button class="ct-btn-sm" onclick="viewActivity({{ item.id }})"><i class="bi bi-eye"></i> View</button>
+            <form method="post" action="{% url 'individual:computhink_delete' item.pk %}" style="margin:0" onsubmit="return confirm('Delete this activity?')">
+                {% csrf_token %}
+                <button class="ct-btn-sm" style="color:#ef4444"><i class="bi bi-trash3"></i></button>
+            </form>
+        </div>
+        <!-- Hidden detail for view modal -->
+        <div id="detail-{{ item.id }}" data-title="{{ item.title }}" style="display:none">
+            {% if item.instructions %}<p><strong>Instructions:</strong><br>{{ item.instructions|linebreaksbr }}</p>{% endif %}
+            {% if item.content.problem %}<p><strong>Problem:</strong><br>{{ item.content.problem }}</p>{% endif %}
+            {% if item.content.steps %}<p><strong>Steps:</strong></p><ol>{% for s in item.content.steps %}<li>{{ s }}</li>{% endfor %}</ol>{% endif %}
+            {% if item.content.hints %}<p><strong>Hints:</strong></p><ul>{% for h in item.content.hints %}<li>{{ h }}</li>{% endfor %}</ul>{% endif %}
+            {% if item.content.expected_output %}<p><strong>Expected Output:</strong><br>{{ item.content.expected_output }}</p>{% endif %}
+            {% if item.content.extension %}<p><strong>Extension:</strong><br>{{ item.content.extension }}</p>{% endif %}
+            {% if item.answer_key %}<p><strong>Answer Key:</strong><br>{{ item.answer_key|linebreaksbr }}</p>{% endif %}
+        </div>
+    </div>
+{% empty %}
+    <div class="ct-empty" style="grid-column:1/-1">
+        <i class="bi bi-cpu"></i>
+        <div style="font-weight:600;margin-bottom:0.25rem">No activities yet</div>
+        <div style="font-size:0.85rem">Click "AI Generate" to create your first computational thinking activity.</div>
+    </div>
+{% endfor %}
+</div>
+
+<!-- Generate Modal -->
+<div class="modal fade" id="generateModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content" style="border-radius:var(--radius-lg);border:1px solid var(--border-color);background:var(--surface-card)">
+      <div class="modal-header" style="border:0;padding:1.25rem 1.5rem 0.5rem">
+        <h5 class="modal-title" style="font-weight:800;font-size:1.05rem"><i class="bi bi-stars me-2" style="color:#0ea5e9"></i>Generate Activity</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body ct-modal-body" style="padding:0.75rem 1.5rem 1.5rem">
+        <label>Activity Type</label>
+        <select id="genType">
+          {% for val, label in type_choices %}
+          <option value="{{ val }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+        <label>Class Level</label>
+        <select id="genLevel">
+          {% for val, label in level_choices %}
+          <option value="{{ val }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+        <label>Topic <span style="color:var(--text-muted);font-weight:400">(required)</span></label>
+        <input type="text" id="genTopic" placeholder="e.g. Sorting algorithms, Binary numbers, AI chatbots">
+        <label>Strand <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
+        <input type="text" id="genStrand" placeholder="e.g. Computational Thinking, AI Literacy">
+        <button class="ct-btn ct-btn-white" id="generateBtn" onclick="doGenerate()" style="width:100%;justify-content:center;margin-top:0.5rem;background:#0ea5e9;color:#fff">
+            <i class="bi bi-stars"></i> <span>Generate</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- View Modal -->
+<div class="modal fade" id="viewModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content" style="border-radius:var(--radius-lg);border:1px solid var(--border-color);background:var(--surface-card)">
+      <div class="modal-header" style="border-bottom:1px solid var(--border-color)">
+        <h5 class="modal-title" id="viewTitle" style="font-weight:700"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="viewBody" style="white-space:pre-wrap;font-size:0.88rem;line-height:1.7"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function viewActivity(id) {
+    const src = document.getElementById('detail-' + id);
+    if (!src) return;
+    document.getElementById('viewTitle').textContent = src.dataset.title;
+    document.getElementById('viewBody').innerHTML = src.innerHTML;
+    new bootstrap.Modal(document.getElementById('viewModal')).show();
+}
+
+function doGenerate() {
+    const btn = document.getElementById('generateBtn');
+    const span = btn.querySelector('span');
+    const topic = document.getElementById('genTopic').value.trim();
+    if (!topic) { document.getElementById('genTopic').focus(); return; }
+    btn.disabled = true; span.textContent = 'Generating...';
+
+    fetch("{% url 'individual:computhink_api' %}", {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+        body: JSON.stringify({
+            action: 'generate',
+            activity_type: document.getElementById('genType').value,
+            level: document.getElementById('genLevel').value,
+            topic: topic,
+            strand: document.getElementById('genStrand').value.trim()
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) { location.reload(); }
+        else { alert(data.error || 'Generation failed'); btn.disabled = false; span.textContent = 'Generate'; }
+    })
+    .catch(() => { alert('Network error'); btn.disabled = false; span.textContent = 'Generate'; });
+}
+
+// Live search
+document.getElementById('searchInput').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('#itemsGrid .ct-card').forEach(card => {
+        card.style.display = card.dataset.search.includes(q) ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

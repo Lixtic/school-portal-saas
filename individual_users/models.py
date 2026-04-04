@@ -698,3 +698,196 @@ class ReportCardEntry(models.Model):
 
     def __str__(self):
         return f'{self.student_name} — {self.card_set.title}'
+
+
+# ── Subject-Area Tools ───────────────────────────────────────────────────────
+
+class CompuThinkActivity(models.Model):
+    """Computational-thinking exercise generated for the Computing curriculum."""
+    TYPE_CHOICES = [
+        ('algorithm', 'Algorithm Design'),
+        ('pseudocode', 'Pseudocode Writing'),
+        ('pattern', 'Pattern Recognition'),
+        ('decomposition', 'Decomposition'),
+        ('abstraction', 'Abstraction'),
+        ('coding', 'Coding Challenge'),
+        ('ai_literacy', 'AI Literacy'),
+        ('productivity', 'Digital Productivity'),
+    ]
+    LEVEL_CHOICES = [
+        ('b7', 'Basic 7'),
+        ('b8', 'Basic 8'),
+        ('b9', 'Basic 9'),
+        ('b10', 'Basic 10'),
+        ('shs1', 'SHS 1'),
+        ('shs2', 'SHS 2'),
+        ('shs3', 'SHS 3'),
+    ]
+
+    profile = models.ForeignKey(
+        IndividualProfile, on_delete=models.CASCADE,
+        related_name='computhink_activities',
+    )
+    title = models.CharField(max_length=250)
+    activity_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='algorithm')
+    level = models.CharField(max_length=10, choices=LEVEL_CHOICES, default='b7')
+    strand = models.CharField(max_length=100, blank=True, default='',
+                              help_text='e.g. Computational Thinking, AI Literacy')
+    topic = models.CharField(max_length=200, blank=True, default='')
+    instructions = models.TextField(blank=True, default='')
+    content = models.JSONField(
+        default=dict, blank=True,
+        help_text='Structured activity: {problem, steps, hints, expected_output, extension}',
+    )
+    answer_key = models.TextField(blank=True, default='')
+    ai_generated = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        verbose_name = 'CompuThink Activity'
+        verbose_name_plural = 'CompuThink Activities'
+
+    def __str__(self):
+        return self.title
+
+
+class LiteracyExercise(models.Model):
+    """English & Language Arts exercise — reading, grammar, vocabulary, writing."""
+    TYPE_CHOICES = [
+        ('comprehension', 'Reading Comprehension'),
+        ('grammar', 'Grammar Drill'),
+        ('vocabulary', 'Vocabulary Builder'),
+        ('phonics', 'Phonics / Remedial'),
+        ('essay', 'Essay / Creative Writing'),
+        ('oral', 'Oral Language Activity'),
+        ('literature', 'Literature Study'),
+    ]
+    LEVEL_CHOICES = CompuThinkActivity.LEVEL_CHOICES
+
+    profile = models.ForeignKey(
+        IndividualProfile, on_delete=models.CASCADE,
+        related_name='literacy_exercises',
+    )
+    title = models.CharField(max_length=250)
+    exercise_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='comprehension')
+    level = models.CharField(max_length=10, choices=LEVEL_CHOICES, default='b7')
+    strand = models.CharField(max_length=100, blank=True, default='',
+                              help_text='e.g. Reading, Grammar, Writing')
+    topic = models.CharField(max_length=200, blank=True, default='')
+    passage = models.TextField(blank=True, default='',
+                               help_text='Reading passage or source text')
+    content = models.JSONField(
+        default=dict, blank=True,
+        help_text='Structured exercise: {questions, options, word_list, rubric, prompts}',
+    )
+    answer_key = models.TextField(blank=True, default='')
+    ai_generated = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        verbose_name = 'Literacy Exercise'
+        verbose_name_plural = 'Literacy Exercises'
+
+    def __str__(self):
+        return self.title
+
+
+class CitizenEdActivity(models.Model):
+    """Social Studies activity — governance, culture, citizenship, environment."""
+    TYPE_CHOICES = [
+        ('case_study', 'Case Study'),
+        ('debate', 'Debate / Discussion Prompt'),
+        ('scenario', 'Citizenship Scenario'),
+        ('map_activity', 'Map / Geography Activity'),
+        ('timeline', 'Historical Timeline'),
+        ('research', 'Research Project'),
+        ('values', 'National Values Education'),
+    ]
+    LEVEL_CHOICES = CompuThinkActivity.LEVEL_CHOICES
+    STRAND_CHOICES = [
+        ('environment', 'Our Environment'),
+        ('governance', 'Governance & Politics'),
+        ('culture', 'Culture & Identity'),
+        ('globalism', 'Globalism & International Relations'),
+        ('citizenship', 'Responsible Citizenship'),
+        ('economics', 'Economics & Development'),
+    ]
+
+    profile = models.ForeignKey(
+        IndividualProfile, on_delete=models.CASCADE,
+        related_name='citizen_ed_activities',
+    )
+    title = models.CharField(max_length=250)
+    activity_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='case_study')
+    level = models.CharField(max_length=10, choices=LEVEL_CHOICES, default='b7')
+    strand = models.CharField(max_length=20, choices=STRAND_CHOICES, default='citizenship')
+    topic = models.CharField(max_length=200, blank=True, default='')
+    scenario_text = models.TextField(blank=True, default='',
+                                     help_text='The case study, scenario or discussion prompt')
+    content = models.JSONField(
+        default=dict, blank=True,
+        help_text='Structured activity: {questions, key_points, tasks, resources, rubric}',
+    )
+    answer_guide = models.TextField(blank=True, default='')
+    ai_generated = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        verbose_name = 'CitizenEd Activity'
+        verbose_name_plural = 'CitizenEd Activities'
+
+    def __str__(self):
+        return self.title
+
+
+class TVETProject(models.Model):
+    """Career Technology project — TVET-linked practical activities."""
+    TYPE_CHOICES = [
+        ('project_plan', 'Project Plan'),
+        ('safety_quiz', 'Health & Safety Quiz'),
+        ('tool_id', 'Tools & Materials ID'),
+        ('innovation', 'Innovation Challenge'),
+        ('rubric', 'Skill Assessment Rubric'),
+        ('workshop', 'Workshop Activity'),
+    ]
+    LEVEL_CHOICES = CompuThinkActivity.LEVEL_CHOICES
+    STRAND_CHOICES = [
+        ('health_safety', 'Health & Safety'),
+        ('materials', 'Materials & Processes'),
+        ('tools', 'Tools & Equipment'),
+        ('innovation', 'Innovation & Entrepreneurship'),
+        ('design', 'Design & Technology'),
+    ]
+
+    profile = models.ForeignKey(
+        IndividualProfile, on_delete=models.CASCADE,
+        related_name='tvet_projects',
+    )
+    title = models.CharField(max_length=250)
+    project_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='project_plan')
+    level = models.CharField(max_length=10, choices=LEVEL_CHOICES, default='b7')
+    strand = models.CharField(max_length=20, choices=STRAND_CHOICES, default='tools')
+    topic = models.CharField(max_length=200, blank=True, default='')
+    description = models.TextField(blank=True, default='')
+    content = models.JSONField(
+        default=dict, blank=True,
+        help_text='Structured project: {objectives, materials, steps, safety_notes, assessment, extension}',
+    )
+    answer_key = models.TextField(blank=True, default='')
+    ai_generated = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        verbose_name = 'TVET Project'
+        verbose_name_plural = 'TVET Projects'
+
+    def __str__(self):
+        return self.title

@@ -1,0 +1,263 @@
+{% extends 'individual/base.html' %}
+{% block title %}Literacy Toolkit — Aura Teacher Portal{% endblock %}
+{% block page_title %}Literacy Toolkit{% endblock %}
+
+{% block extra_css %}
+.lt-hero {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 60%, #b45309 100%);
+    border-radius: var(--radius-lg); color: #fff;
+    padding: 1.5rem 2rem; margin-bottom: 1.5rem;
+    position: relative; overflow: hidden;
+}
+.lt-hero::after {
+    content: ''; position: absolute; top: -30px; right: -30px;
+    width: 140px; height: 140px; border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+}
+.lt-hero-title { font-size: 1.2rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; }
+.lt-hero-sub { font-size: 0.84rem; opacity: 0.85; margin-top: 0.2rem; max-width: 500px; }
+.lt-hero-stats { display: flex; gap: 1.5rem; margin-top: 1rem; }
+.lt-hero-stat-value { font-size: 1.5rem; font-weight: 800; }
+.lt-hero-stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.8; }
+.lt-hero-actions { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+.lt-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.55rem 1rem; border-radius: 8px;
+    font-size: 0.82rem; font-weight: 600;
+    text-decoration: none; border: none; cursor: pointer;
+    transition: all 0.15s ease;
+}
+.lt-btn-white { background: #fff; color: #d97706; }
+.lt-btn-white:hover { background: #fffbeb; color: #b45309; }
+.lt-btn-glass { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
+.lt-btn-glass:hover { background: rgba(255,255,255,0.25); color: #fff; }
+
+.lt-toolbar {
+    display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap; align-items: center;
+}
+.lt-search-wrap { flex:1; min-width:200px; position:relative; }
+.lt-search-wrap i { position:absolute; left:0.75rem; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:0.9rem; pointer-events:none; }
+.lt-search {
+    width:100%; padding:0.5rem 0.85rem 0.5rem 2.2rem;
+    border:1px solid var(--border-color); border-radius:8px;
+    background:var(--surface-card); color:var(--text-main);
+    font-family:inherit; font-size:0.85rem;
+}
+.lt-search:focus { outline:none; border-color:#f59e0b; box-shadow:0 0 0 3px rgba(245,158,11,0.1); }
+.lt-chip {
+    padding:0.4rem 0.85rem; border-radius:999px; font-size:0.78rem; font-weight:600;
+    border:1px solid var(--border-color); background:var(--surface-card);
+    color:var(--text-muted); text-decoration:none; transition:all 0.15s ease;
+}
+.lt-chip.active, .lt-chip:hover {
+    background:rgba(245,158,11,0.1); color:#d97706; border-color:rgba(245,158,11,0.3);
+}
+
+.lt-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1.25rem;
+}
+.lt-card { padding: 1.25rem; transition: transform 0.15s ease; }
+.lt-card:hover { transform: translateY(-2px); }
+.lt-card-head { display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.75rem; }
+.lt-card-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; flex-shrink: 0;
+    background: rgba(245,158,11,0.1); color: #d97706;
+}
+.lt-card-title { font-size: 0.95rem; font-weight: 700; }
+.lt-card-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem; }
+.lt-card-snippet { font-size: 0.83rem; color: var(--text-muted); line-height: 1.55; margin-bottom: 0.75rem; }
+.lt-pill {
+    display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px;
+    font-size: 0.7rem; font-weight: 600; margin-right: 0.3rem; margin-bottom: 0.5rem;
+    background: rgba(245,158,11,0.08); color: #d97706;
+}
+.lt-card-actions { display: flex; gap: 0.4rem; margin-top: 0.5rem; }
+.lt-btn-sm {
+    padding: 0.35rem 0.7rem; border-radius: 6px; font-size: 0.78rem; font-weight: 600;
+    border: 1px solid var(--border-color); background: var(--surface-card); color: var(--text-muted);
+    text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem;
+    transition: all 0.15s ease;
+}
+.lt-btn-sm:hover { border-color: #f59e0b; color: #d97706; }
+.lt-empty { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
+.lt-empty i { font-size: 2.5rem; opacity: 0.3; display: block; margin-bottom: 0.75rem; }
+
+.lt-modal-body label { font-size: 0.82rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem; }
+.lt-modal-body select, .lt-modal-body input {
+    width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border-color);
+    border-radius: 8px; background: var(--surface-card); color: var(--text-main);
+    font-family: inherit; font-size: 0.85rem; margin-bottom: 0.75rem;
+}
+.lt-modal-body select:focus, .lt-modal-body input:focus { outline: none; border-color: #f59e0b; }
+
+@media (max-width: 576px) {
+    .lt-grid { grid-template-columns: 1fr; }
+    .lt-hero { padding: 1.25rem; }
+    .lt-hero-stats { flex-direction: column; gap: 0.5rem; }
+}
+{% endblock %}
+
+{% block content %}
+<div class="lt-hero">
+    <div class="lt-hero-title"><i class="bi bi-book"></i> Literacy Toolkit</div>
+    <div class="lt-hero-sub">Reading comprehension, grammar, vocabulary, phonics, essay writing &amp; oral language exercises.</div>
+    <div class="lt-hero-stats">
+        <div><div class="lt-hero-stat-value">{{ total }}</div><div class="lt-hero-stat-label">Exercises</div></div>
+    </div>
+    <div class="lt-hero-actions">
+        <button class="lt-btn lt-btn-white" data-bs-toggle="modal" data-bs-target="#generateModal"><i class="bi bi-stars"></i> AI Generate</button>
+        <a href="{% url 'individual:tools_hub' %}" class="lt-btn lt-btn-glass"><i class="bi bi-arrow-left"></i> Tools</a>
+    </div>
+</div>
+
+<!-- Toolbar -->
+<div class="lt-toolbar">
+    <div class="lt-search-wrap">
+        <i class="bi bi-search"></i>
+        <input type="text" class="lt-search" id="searchInput" placeholder="Search exercises..." value="{{ search }}">
+    </div>
+    <a href="{% url 'individual:literacy_dashboard' %}" class="lt-chip {% if not current_type %}active{% endif %}">All</a>
+    {% for val, label in type_choices %}
+    <a href="?type={{ val }}{% if current_level %}&level={{ current_level }}{% endif %}" class="lt-chip {% if current_type == val %}active{% endif %}">{{ label }}</a>
+    {% endfor %}
+</div>
+
+<!-- Exercise Grid -->
+<div class="lt-grid" id="itemsGrid">
+{% for item in exercises %}
+    <div class="iu-card lt-card" data-search="{{ item.title|lower }} {{ item.topic|lower }}">
+        <div class="lt-card-head">
+            <div class="lt-card-icon"><i class="bi bi-book"></i></div>
+            <div style="flex:1;min-width:0">
+                <div class="lt-card-title">{{ item.title }}</div>
+                <div class="lt-card-meta">{{ item.get_exercise_type_display }} · {{ item.get_level_display }} · {{ item.created_at|date:"d M Y" }}</div>
+            </div>
+        </div>
+        <div>
+            <span class="lt-pill">{{ item.get_exercise_type_display }}</span>
+            {% if item.strand %}<span class="lt-pill">{{ item.strand }}</span>{% endif %}
+            {% if item.ai_generated %}<span class="lt-pill" style="background:rgba(139,92,246,0.08);color:#8b5cf6"><i class="bi bi-stars"></i> AI</span>{% endif %}
+        </div>
+        {% if item.passage %}<div class="lt-card-snippet">{{ item.passage|truncatewords:25 }}</div>{% endif %}
+        <div class="lt-card-actions">
+            <button class="lt-btn-sm" onclick="viewItem({{ item.id }})"><i class="bi bi-eye"></i> View</button>
+            <form method="post" action="{% url 'individual:literacy_delete' item.pk %}" style="margin:0" onsubmit="return confirm('Delete this exercise?')">
+                {% csrf_token %}
+                <button class="lt-btn-sm" style="color:#ef4444"><i class="bi bi-trash3"></i></button>
+            </form>
+        </div>
+        <!-- Hidden detail -->
+        <div id="detail-{{ item.id }}" data-title="{{ item.title }}" style="display:none">
+            {% if item.passage %}<p><strong>Passage:</strong><br>{{ item.passage|linebreaksbr }}</p>{% endif %}
+            {% if item.content.exercises %}<p><strong>Exercises:</strong></p><ol>{% for e in item.content.exercises %}<li>{{ e.instruction|default:e }}</li>{% endfor %}</ol>{% endif %}
+            {% if item.content.questions %}<p><strong>Questions:</strong></p><ol>{% for q in item.content.questions %}<li>{{ q.question|default:q }}</li>{% endfor %}</ol>{% endif %}
+            {% if item.content.word_list %}<p><strong>Vocabulary:</strong></p><ul>{% for w in item.content.word_list %}<li><strong>{{ w.word }}</strong> — {{ w.definition }}</li>{% endfor %}</ul>{% endif %}
+            {% if item.content.prompts %}<p><strong>Prompts:</strong></p><ol>{% for p in item.content.prompts %}<li>{{ p }}</li>{% endfor %}</ol>{% endif %}
+            {% if item.content.rules_summary %}<p><strong>Rules:</strong><br>{{ item.content.rules_summary }}</p>{% endif %}
+            {% if item.answer_key %}<p><strong>Answer Key:</strong><br>{{ item.answer_key|linebreaksbr }}</p>{% endif %}
+        </div>
+    </div>
+{% empty %}
+    <div class="lt-empty" style="grid-column:1/-1">
+        <i class="bi bi-book"></i>
+        <div style="font-weight:600;margin-bottom:0.25rem">No exercises yet</div>
+        <div style="font-size:0.85rem">Click "AI Generate" to create your first literacy exercise.</div>
+    </div>
+{% endfor %}
+</div>
+
+<!-- Generate Modal -->
+<div class="modal fade" id="generateModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content" style="border-radius:var(--radius-lg);border:1px solid var(--border-color);background:var(--surface-card)">
+      <div class="modal-header" style="border:0;padding:1.25rem 1.5rem 0.5rem">
+        <h5 class="modal-title" style="font-weight:800;font-size:1.05rem"><i class="bi bi-stars me-2" style="color:#f59e0b"></i>Generate Exercise</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body lt-modal-body" style="padding:0.75rem 1.5rem 1.5rem">
+        <label>Exercise Type</label>
+        <select id="genType">
+          {% for val, label in type_choices %}
+          <option value="{{ val }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+        <label>Class Level</label>
+        <select id="genLevel">
+          {% for val, label in level_choices %}
+          <option value="{{ val }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+        <label>Topic <span style="color:var(--text-muted);font-weight:400">(required)</span></label>
+        <input type="text" id="genTopic" placeholder="e.g. Reading for meaning, Noun phrases, Past tense">
+        <label>Strand <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
+        <input type="text" id="genStrand" placeholder="e.g. Oral Language, Written Composition">
+        <button class="lt-btn lt-btn-white" id="generateBtn" onclick="doGenerate()" style="width:100%;justify-content:center;margin-top:0.5rem;background:#f59e0b;color:#fff">
+            <i class="bi bi-stars"></i> <span>Generate</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- View Modal -->
+<div class="modal fade" id="viewModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content" style="border-radius:var(--radius-lg);border:1px solid var(--border-color);background:var(--surface-card)">
+      <div class="modal-header" style="border-bottom:1px solid var(--border-color)">
+        <h5 class="modal-title" id="viewTitle" style="font-weight:700"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="viewBody" style="font-size:0.88rem;line-height:1.7"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function viewItem(id) {
+    const src = document.getElementById('detail-' + id);
+    if (!src) return;
+    document.getElementById('viewTitle').textContent = src.dataset.title;
+    document.getElementById('viewBody').innerHTML = src.innerHTML;
+    new bootstrap.Modal(document.getElementById('viewModal')).show();
+}
+
+function doGenerate() {
+    const btn = document.getElementById('generateBtn');
+    const span = btn.querySelector('span');
+    const topic = document.getElementById('genTopic').value.trim();
+    if (!topic) { document.getElementById('genTopic').focus(); return; }
+    btn.disabled = true; span.textContent = 'Generating...';
+
+    fetch("{% url 'individual:literacy_api' %}", {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+        body: JSON.stringify({
+            action: 'generate',
+            exercise_type: document.getElementById('genType').value,
+            level: document.getElementById('genLevel').value,
+            topic: topic,
+            strand: document.getElementById('genStrand').value.trim()
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) { location.reload(); }
+        else { alert(data.error || 'Generation failed'); btn.disabled = false; span.textContent = 'Generate'; }
+    })
+    .catch(() => { alert('Network error'); btn.disabled = false; span.textContent = 'Generate'; });
+}
+
+document.getElementById('searchInput').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('#itemsGrid .lt-card').forEach(card => {
+        card.style.display = card.dataset.search.includes(q) ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

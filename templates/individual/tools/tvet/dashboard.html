@@ -1,0 +1,270 @@
+{% extends 'individual/base.html' %}
+{% block title %}TVET Workshop — Aura Teacher Portal{% endblock %}
+{% block page_title %}TVET Workshop{% endblock %}
+
+{% block extra_css %}
+.tv-hero {
+    background: linear-gradient(135deg, #ec4899 0%, #db2777 60%, #be185d 100%);
+    border-radius: var(--radius-lg); color: #fff;
+    padding: 1.5rem 2rem; margin-bottom: 1.5rem;
+    position: relative; overflow: hidden;
+}
+.tv-hero::after {
+    content: ''; position: absolute; top: -30px; right: -30px;
+    width: 140px; height: 140px; border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+}
+.tv-hero-title { font-size: 1.2rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; }
+.tv-hero-sub { font-size: 0.84rem; opacity: 0.85; margin-top: 0.2rem; max-width: 500px; }
+.tv-hero-stats { display: flex; gap: 1.5rem; margin-top: 1rem; }
+.tv-hero-stat-value { font-size: 1.5rem; font-weight: 800; }
+.tv-hero-stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.8; }
+.tv-hero-actions { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+.tv-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.55rem 1rem; border-radius: 8px;
+    font-size: 0.82rem; font-weight: 600;
+    text-decoration: none; border: none; cursor: pointer;
+    transition: all 0.15s ease;
+}
+.tv-btn-white { background: #fff; color: #db2777; }
+.tv-btn-white:hover { background: #fdf2f8; color: #be185d; }
+.tv-btn-glass { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
+.tv-btn-glass:hover { background: rgba(255,255,255,0.25); color: #fff; }
+
+.tv-toolbar {
+    display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap; align-items: center;
+}
+.tv-search-wrap { flex:1; min-width:200px; position:relative; }
+.tv-search-wrap i { position:absolute; left:0.75rem; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:0.9rem; pointer-events:none; }
+.tv-search {
+    width:100%; padding:0.5rem 0.85rem 0.5rem 2.2rem;
+    border:1px solid var(--border-color); border-radius:8px;
+    background:var(--surface-card); color:var(--text-main);
+    font-family:inherit; font-size:0.85rem;
+}
+.tv-search:focus { outline:none; border-color:#ec4899; box-shadow:0 0 0 3px rgba(236,72,153,0.1); }
+.tv-chip {
+    padding:0.4rem 0.85rem; border-radius:999px; font-size:0.78rem; font-weight:600;
+    border:1px solid var(--border-color); background:var(--surface-card);
+    color:var(--text-muted); text-decoration:none; transition:all 0.15s ease;
+}
+.tv-chip.active, .tv-chip:hover {
+    background:rgba(236,72,153,0.1); color:#db2777; border-color:rgba(236,72,153,0.3);
+}
+
+.tv-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1.25rem;
+}
+.tv-card { padding: 1.25rem; transition: transform 0.15s ease; }
+.tv-card:hover { transform: translateY(-2px); }
+.tv-card-head { display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.75rem; }
+.tv-card-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; flex-shrink: 0;
+    background: rgba(236,72,153,0.1); color: #db2777;
+}
+.tv-card-title { font-size: 0.95rem; font-weight: 700; }
+.tv-card-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem; }
+.tv-card-snippet { font-size: 0.83rem; color: var(--text-muted); line-height: 1.55; margin-bottom: 0.75rem; }
+.tv-pill {
+    display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px;
+    font-size: 0.7rem; font-weight: 600; margin-right: 0.3rem; margin-bottom: 0.5rem;
+    background: rgba(236,72,153,0.08); color: #db2777;
+}
+.tv-card-actions { display: flex; gap: 0.4rem; margin-top: 0.5rem; }
+.tv-btn-sm {
+    padding: 0.35rem 0.7rem; border-radius: 6px; font-size: 0.78rem; font-weight: 600;
+    border: 1px solid var(--border-color); background: var(--surface-card); color: var(--text-muted);
+    text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem;
+    transition: all 0.15s ease;
+}
+.tv-btn-sm:hover { border-color: #ec4899; color: #db2777; }
+.tv-empty { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
+.tv-empty i { font-size: 2.5rem; opacity: 0.3; display: block; margin-bottom: 0.75rem; }
+
+.tv-modal-body label { font-size: 0.82rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem; }
+.tv-modal-body select, .tv-modal-body input {
+    width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border-color);
+    border-radius: 8px; background: var(--surface-card); color: var(--text-main);
+    font-family: inherit; font-size: 0.85rem; margin-bottom: 0.75rem;
+}
+.tv-modal-body select:focus, .tv-modal-body input:focus { outline: none; border-color: #ec4899; }
+
+@media (max-width: 576px) {
+    .tv-grid { grid-template-columns: 1fr; }
+    .tv-hero { padding: 1.25rem; }
+    .tv-hero-stats { flex-direction: column; gap: 0.5rem; }
+}
+{% endblock %}
+
+{% block content %}
+<div class="tv-hero">
+    <div class="tv-hero-title"><i class="bi bi-tools"></i> TVET Workshop</div>
+    <div class="tv-hero-sub">Project plans, safety quizzes, tool identification, innovation challenges &amp; rubrics for Career Technology.</div>
+    <div class="tv-hero-stats">
+        <div><div class="tv-hero-stat-value">{{ total }}</div><div class="tv-hero-stat-label">Projects</div></div>
+    </div>
+    <div class="tv-hero-actions">
+        <button class="tv-btn tv-btn-white" data-bs-toggle="modal" data-bs-target="#generateModal"><i class="bi bi-stars"></i> AI Generate</button>
+        <a href="{% url 'individual:tools_hub' %}" class="tv-btn tv-btn-glass"><i class="bi bi-arrow-left"></i> Tools</a>
+    </div>
+</div>
+
+<!-- Toolbar -->
+<div class="tv-toolbar">
+    <div class="tv-search-wrap">
+        <i class="bi bi-search"></i>
+        <input type="text" class="tv-search" id="searchInput" placeholder="Search projects..." value="{{ search }}">
+    </div>
+    <a href="{% url 'individual:tvet_dashboard' %}" class="tv-chip {% if not current_type and not current_strand %}active{% endif %}">All</a>
+    {% for val, label in type_choices %}
+    <a href="?type={{ val }}{% if current_strand %}&strand={{ current_strand }}{% endif %}{% if current_level %}&level={{ current_level }}{% endif %}" class="tv-chip {% if current_type == val %}active{% endif %}">{{ label }}</a>
+    {% endfor %}
+</div>
+
+<!-- Project Grid -->
+<div class="tv-grid" id="itemsGrid">
+{% for item in projects %}
+    <div class="iu-card tv-card" data-search="{{ item.title|lower }} {{ item.topic|lower }}">
+        <div class="tv-card-head">
+            <div class="tv-card-icon"><i class="bi bi-tools"></i></div>
+            <div style="flex:1;min-width:0">
+                <div class="tv-card-title">{{ item.title }}</div>
+                <div class="tv-card-meta">{{ item.get_project_type_display }} · {{ item.get_strand_display }} · {{ item.get_level_display }} · {{ item.created_at|date:"d M Y" }}</div>
+            </div>
+        </div>
+        <div>
+            <span class="tv-pill">{{ item.get_project_type_display }}</span>
+            <span class="tv-pill">{{ item.get_strand_display }}</span>
+            {% if item.ai_generated %}<span class="tv-pill" style="background:rgba(14,165,233,0.08);color:#0ea5e9"><i class="bi bi-stars"></i> AI</span>{% endif %}
+        </div>
+        {% if item.description %}<div class="tv-card-snippet">{{ item.description|truncatewords:25 }}</div>{% endif %}
+        <div class="tv-card-actions">
+            <button class="tv-btn-sm" onclick="viewItem({{ item.id }})"><i class="bi bi-eye"></i> View</button>
+            <form method="post" action="{% url 'individual:tvet_delete' item.pk %}" style="margin:0" onsubmit="return confirm('Delete this project?')">
+                {% csrf_token %}
+                <button class="tv-btn-sm" style="color:#ef4444"><i class="bi bi-trash3"></i></button>
+            </form>
+        </div>
+        <!-- Hidden detail -->
+        <div id="detail-{{ item.id }}" data-title="{{ item.title }}" style="display:none">
+            {% if item.description %}<p><strong>Description:</strong><br>{{ item.description|linebreaksbr }}</p>{% endif %}
+            {% if item.content.objectives %}<p><strong>Objectives:</strong></p><ul>{% for o in item.content.objectives %}<li>{{ o }}</li>{% endfor %}</ul>{% endif %}
+            {% if item.content.materials %}<p><strong>Materials:</strong></p><ul>{% for m in item.content.materials %}<li>{{ m }}</li>{% endfor %}</ul>{% endif %}
+            {% if item.content.steps %}<p><strong>Steps:</strong></p><ol>{% for s in item.content.steps %}<li>{{ s }}</li>{% endfor %}</ol>{% endif %}
+            {% if item.content.safety_notes %}<p><strong>Safety Notes:</strong></p><ul>{% for n in item.content.safety_notes %}<li>{{ n }}</li>{% endfor %}</ul>{% endif %}
+            {% if item.content.questions %}<p><strong>Questions:</strong></p><ol>{% for q in item.content.questions %}<li>{{ q.question|default:q }}</li>{% endfor %}</ol>{% endif %}
+            {% if item.content.safety_rules %}<p><strong>Safety Rules:</strong></p><ul>{% for r in item.content.safety_rules %}<li>{{ r }}</li>{% endfor %}</ul>{% endif %}
+            {% if item.content.items %}<p><strong>Tool Identification:</strong></p><ul>{% for i in item.content.items %}<li><strong>{{ i.name }}</strong> — {{ i.purpose }}</li>{% endfor %}</ul>{% endif %}
+            {% if item.content.criteria %}<p><strong>Rubric Criteria:</strong></p><ul>{% for c in item.content.criteria %}<li><strong>{{ c.skill }}</strong></li>{% endfor %}</ul>{% endif %}
+            {% if item.answer_key %}<p><strong>Answer Key / Teacher Notes:</strong><br>{{ item.answer_key|linebreaksbr }}</p>{% endif %}
+        </div>
+    </div>
+{% empty %}
+    <div class="tv-empty" style="grid-column:1/-1">
+        <i class="bi bi-tools"></i>
+        <div style="font-weight:600;margin-bottom:0.25rem">No projects yet</div>
+        <div style="font-size:0.85rem">Click "AI Generate" to create your first TVET project or activity.</div>
+    </div>
+{% endfor %}
+</div>
+
+<!-- Generate Modal -->
+<div class="modal fade" id="generateModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content" style="border-radius:var(--radius-lg);border:1px solid var(--border-color);background:var(--surface-card)">
+      <div class="modal-header" style="border:0;padding:1.25rem 1.5rem 0.5rem">
+        <h5 class="modal-title" style="font-weight:800;font-size:1.05rem"><i class="bi bi-stars me-2" style="color:#ec4899"></i>Generate Project</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body tv-modal-body" style="padding:0.75rem 1.5rem 1.5rem">
+        <label>Project Type</label>
+        <select id="genType">
+          {% for val, label in type_choices %}
+          <option value="{{ val }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+        <label>Strand</label>
+        <select id="genStrand">
+          {% for val, label in strand_choices %}
+          <option value="{{ val }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+        <label>Class Level</label>
+        <select id="genLevel">
+          {% for val, label in level_choices %}
+          <option value="{{ val }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+        <label>Topic <span style="color:var(--text-muted);font-weight:400">(required)</span></label>
+        <input type="text" id="genTopic" placeholder="e.g. Woodwork joints, Electrical safety, Sewing a tote bag">
+        <button class="tv-btn tv-btn-white" id="generateBtn" onclick="doGenerate()" style="width:100%;justify-content:center;margin-top:0.5rem;background:#ec4899;color:#fff">
+            <i class="bi bi-stars"></i> <span>Generate</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- View Modal -->
+<div class="modal fade" id="viewModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content" style="border-radius:var(--radius-lg);border:1px solid var(--border-color);background:var(--surface-card)">
+      <div class="modal-header" style="border-bottom:1px solid var(--border-color)">
+        <h5 class="modal-title" id="viewTitle" style="font-weight:700"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="viewBody" style="font-size:0.88rem;line-height:1.7"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function viewItem(id) {
+    const src = document.getElementById('detail-' + id);
+    if (!src) return;
+    document.getElementById('viewTitle').textContent = src.dataset.title;
+    document.getElementById('viewBody').innerHTML = src.innerHTML;
+    new bootstrap.Modal(document.getElementById('viewModal')).show();
+}
+
+function doGenerate() {
+    const btn = document.getElementById('generateBtn');
+    const span = btn.querySelector('span');
+    const topic = document.getElementById('genTopic').value.trim();
+    if (!topic) { document.getElementById('genTopic').focus(); return; }
+    btn.disabled = true; span.textContent = 'Generating...';
+
+    fetch("{% url 'individual:tvet_api' %}", {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+        body: JSON.stringify({
+            action: 'generate',
+            project_type: document.getElementById('genType').value,
+            strand: document.getElementById('genStrand').value,
+            level: document.getElementById('genLevel').value,
+            topic: topic
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) { location.reload(); }
+        else { alert(data.error || 'Generation failed'); btn.disabled = false; span.textContent = 'Generate'; }
+    })
+    .catch(() => { alert('Network error'); btn.disabled = false; span.textContent = 'Generate'; });
+}
+
+document.getElementById('searchInput').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('#itemsGrid .tv-card').forEach(card => {
+        card.style.display = card.dataset.search.includes(q) ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

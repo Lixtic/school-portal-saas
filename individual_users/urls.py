@@ -113,6 +113,26 @@ urlpatterns = [
     path('tools/report-cards/<int:pk>/entries/<int:entry_pk>/print/', tool_views.report_card_print, name='report_card_print'),
     path('tools/report-cards/<int:pk>/print-all/', tool_views.report_card_print_all, name='report_card_print_all'),
     path('tools/report-cards/api/', tool_views.report_card_api, name='report_card_api'),
+
+    # CompuThink Lab (Computing)
+    path('tools/computhink/', tool_views.computhink_dashboard, name='computhink_dashboard'),
+    path('tools/computhink/<int:pk>/delete/', tool_views.computhink_delete, name='computhink_delete'),
+    path('tools/computhink/api/', tool_views.computhink_api, name='computhink_api'),
+
+    # Literacy Toolkit (English & Language)
+    path('tools/literacy/', tool_views.literacy_dashboard, name='literacy_dashboard'),
+    path('tools/literacy/<int:pk>/delete/', tool_views.literacy_delete, name='literacy_delete'),
+    path('tools/literacy/api/', tool_views.literacy_api, name='literacy_api'),
+
+    # CitizenEd (Social Studies)
+    path('tools/citizen-ed/', tool_views.citizen_ed_dashboard, name='citizen_ed_dashboard'),
+    path('tools/citizen-ed/<int:pk>/delete/', tool_views.citizen_ed_delete, name='citizen_ed_delete'),
+    path('tools/citizen-ed/api/', tool_views.citizen_ed_api, name='citizen_ed_api'),
+
+    # TVET Workshop (Career Technology)
+    path('tools/tvet/', tool_views.tvet_dashboard, name='tvet_dashboard'),
+    path('tools/tvet/<int:pk>/delete/', tool_views.tvet_delete, name='tvet_delete'),
+    path('tools/tvet/api/', tool_views.tvet_api, name='tvet_api'),
 ]
 
 # Teacher shortcut URLs (included under /t/ prefix in main urls.py)

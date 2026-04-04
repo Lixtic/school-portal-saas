@@ -1,0 +1,266 @@
+{% extends 'individual/base.html' %}
+{% block title %}CitizenEd — Aura Teacher Portal{% endblock %}
+{% block page_title %}CitizenEd{% endblock %}
+
+{% block extra_css %}
+.ce-hero {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 60%, #6d28d9 100%);
+    border-radius: var(--radius-lg); color: #fff;
+    padding: 1.5rem 2rem; margin-bottom: 1.5rem;
+    position: relative; overflow: hidden;
+}
+.ce-hero::after {
+    content: ''; position: absolute; top: -30px; right: -30px;
+    width: 140px; height: 140px; border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+}
+.ce-hero-title { font-size: 1.2rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; }
+.ce-hero-sub { font-size: 0.84rem; opacity: 0.85; margin-top: 0.2rem; max-width: 500px; }
+.ce-hero-stats { display: flex; gap: 1.5rem; margin-top: 1rem; }
+.ce-hero-stat-value { font-size: 1.5rem; font-weight: 800; }
+.ce-hero-stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.8; }
+.ce-hero-actions { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+.ce-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.55rem 1rem; border-radius: 8px;
+    font-size: 0.82rem; font-weight: 600;
+    text-decoration: none; border: none; cursor: pointer;
+    transition: all 0.15s ease;
+}
+.ce-btn-white { background: #fff; color: #7c3aed; }
+.ce-btn-white:hover { background: #f5f3ff; color: #6d28d9; }
+.ce-btn-glass { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
+.ce-btn-glass:hover { background: rgba(255,255,255,0.25); color: #fff; }
+
+.ce-toolbar {
+    display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap; align-items: center;
+}
+.ce-search-wrap { flex:1; min-width:200px; position:relative; }
+.ce-search-wrap i { position:absolute; left:0.75rem; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:0.9rem; pointer-events:none; }
+.ce-search {
+    width:100%; padding:0.5rem 0.85rem 0.5rem 2.2rem;
+    border:1px solid var(--border-color); border-radius:8px;
+    background:var(--surface-card); color:var(--text-main);
+    font-family:inherit; font-size:0.85rem;
+}
+.ce-search:focus { outline:none; border-color:#8b5cf6; box-shadow:0 0 0 3px rgba(139,92,246,0.1); }
+.ce-chip {
+    padding:0.4rem 0.85rem; border-radius:999px; font-size:0.78rem; font-weight:600;
+    border:1px solid var(--border-color); background:var(--surface-card);
+    color:var(--text-muted); text-decoration:none; transition:all 0.15s ease;
+}
+.ce-chip.active, .ce-chip:hover {
+    background:rgba(139,92,246,0.1); color:#7c3aed; border-color:rgba(139,92,246,0.3);
+}
+
+.ce-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1.25rem;
+}
+.ce-card { padding: 1.25rem; transition: transform 0.15s ease; }
+.ce-card:hover { transform: translateY(-2px); }
+.ce-card-head { display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.75rem; }
+.ce-card-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; flex-shrink: 0;
+    background: rgba(139,92,246,0.1); color: #7c3aed;
+}
+.ce-card-title { font-size: 0.95rem; font-weight: 700; }
+.ce-card-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem; }
+.ce-card-snippet { font-size: 0.83rem; color: var(--text-muted); line-height: 1.55; margin-bottom: 0.75rem; }
+.ce-pill {
+    display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px;
+    font-size: 0.7rem; font-weight: 600; margin-right: 0.3rem; margin-bottom: 0.5rem;
+    background: rgba(139,92,246,0.08); color: #7c3aed;
+}
+.ce-card-actions { display: flex; gap: 0.4rem; margin-top: 0.5rem; }
+.ce-btn-sm {
+    padding: 0.35rem 0.7rem; border-radius: 6px; font-size: 0.78rem; font-weight: 600;
+    border: 1px solid var(--border-color); background: var(--surface-card); color: var(--text-muted);
+    text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem;
+    transition: all 0.15s ease;
+}
+.ce-btn-sm:hover { border-color: #8b5cf6; color: #7c3aed; }
+.ce-empty { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
+.ce-empty i { font-size: 2.5rem; opacity: 0.3; display: block; margin-bottom: 0.75rem; }
+
+.ce-modal-body label { font-size: 0.82rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem; }
+.ce-modal-body select, .ce-modal-body input {
+    width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border-color);
+    border-radius: 8px; background: var(--surface-card); color: var(--text-main);
+    font-family: inherit; font-size: 0.85rem; margin-bottom: 0.75rem;
+}
+.ce-modal-body select:focus, .ce-modal-body input:focus { outline: none; border-color: #8b5cf6; }
+
+@media (max-width: 576px) {
+    .ce-grid { grid-template-columns: 1fr; }
+    .ce-hero { padding: 1.25rem; }
+    .ce-hero-stats { flex-direction: column; gap: 0.5rem; }
+}
+{% endblock %}
+
+{% block content %}
+<div class="ce-hero">
+    <div class="ce-hero-title"><i class="bi bi-globe-americas"></i> CitizenEd</div>
+    <div class="ce-hero-sub">Case studies, debates, scenarios, map activities &amp; research projects for responsible citizenship.</div>
+    <div class="ce-hero-stats">
+        <div><div class="ce-hero-stat-value">{{ total }}</div><div class="ce-hero-stat-label">Activities</div></div>
+    </div>
+    <div class="ce-hero-actions">
+        <button class="ce-btn ce-btn-white" data-bs-toggle="modal" data-bs-target="#generateModal"><i class="bi bi-stars"></i> AI Generate</button>
+        <a href="{% url 'individual:tools_hub' %}" class="ce-btn ce-btn-glass"><i class="bi bi-arrow-left"></i> Tools</a>
+    </div>
+</div>
+
+<!-- Toolbar -->
+<div class="ce-toolbar">
+    <div class="ce-search-wrap">
+        <i class="bi bi-search"></i>
+        <input type="text" class="ce-search" id="searchInput" placeholder="Search activities..." value="{{ search }}">
+    </div>
+    <a href="{% url 'individual:citizen_ed_dashboard' %}" class="ce-chip {% if not current_type and not current_strand %}active{% endif %}">All</a>
+    {% for val, label in type_choices %}
+    <a href="?type={{ val }}{% if current_strand %}&strand={{ current_strand }}{% endif %}{% if current_level %}&level={{ current_level }}{% endif %}" class="ce-chip {% if current_type == val %}active{% endif %}">{{ label }}</a>
+    {% endfor %}
+</div>
+
+<!-- Activity Grid -->
+<div class="ce-grid" id="itemsGrid">
+{% for item in activities %}
+    <div class="iu-card ce-card" data-search="{{ item.title|lower }} {{ item.topic|lower }}">
+        <div class="ce-card-head">
+            <div class="ce-card-icon"><i class="bi bi-globe-americas"></i></div>
+            <div style="flex:1;min-width:0">
+                <div class="ce-card-title">{{ item.title }}</div>
+                <div class="ce-card-meta">{{ item.get_activity_type_display }} · {{ item.get_strand_display }} · {{ item.get_level_display }} · {{ item.created_at|date:"d M Y" }}</div>
+            </div>
+        </div>
+        <div>
+            <span class="ce-pill">{{ item.get_activity_type_display }}</span>
+            <span class="ce-pill">{{ item.get_strand_display }}</span>
+            {% if item.ai_generated %}<span class="ce-pill" style="background:rgba(236,72,153,0.08);color:#ec4899"><i class="bi bi-stars"></i> AI</span>{% endif %}
+        </div>
+        {% if item.scenario_text %}<div class="ce-card-snippet">{{ item.scenario_text|truncatewords:25 }}</div>{% endif %}
+        <div class="ce-card-actions">
+            <button class="ce-btn-sm" onclick="viewItem({{ item.id }})"><i class="bi bi-eye"></i> View</button>
+            <form method="post" action="{% url 'individual:citizen_ed_delete' item.pk %}" style="margin:0" onsubmit="return confirm('Delete this activity?')">
+                {% csrf_token %}
+                <button class="ce-btn-sm" style="color:#ef4444"><i class="bi bi-trash3"></i></button>
+            </form>
+        </div>
+        <!-- Hidden detail -->
+        <div id="detail-{{ item.id }}" data-title="{{ item.title }}" style="display:none">
+            {% if item.scenario_text %}<p><strong>Scenario / Case Study:</strong><br>{{ item.scenario_text|linebreaksbr }}</p>{% endif %}
+            {% if item.content.questions %}<p><strong>Questions:</strong></p><ol>{% for q in item.content.questions %}<li>{{ q }}</li>{% endfor %}</ol>{% endif %}
+            {% if item.content.key_points %}<p><strong>Key Points:</strong></p><ul>{% for p in item.content.key_points %}<li>{{ p }}</li>{% endfor %}</ul>{% endif %}
+            {% if item.content.tasks %}<p><strong>Tasks:</strong></p><ol>{% for t in item.content.tasks %}<li>{{ t }}</li>{% endfor %}</ol>{% endif %}
+            {% if item.content.resources %}<p><strong>Resources:</strong></p><ul>{% for r in item.content.resources %}<li>{{ r }}</li>{% endfor %}</ul>{% endif %}
+            {% if item.answer_guide %}<p><strong>Teacher's Guide:</strong><br>{{ item.answer_guide|linebreaksbr }}</p>{% endif %}
+        </div>
+    </div>
+{% empty %}
+    <div class="ce-empty" style="grid-column:1/-1">
+        <i class="bi bi-globe-americas"></i>
+        <div style="font-weight:600;margin-bottom:0.25rem">No activities yet</div>
+        <div style="font-size:0.85rem">Click "AI Generate" to create your first social studies activity.</div>
+    </div>
+{% endfor %}
+</div>
+
+<!-- Generate Modal -->
+<div class="modal fade" id="generateModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content" style="border-radius:var(--radius-lg);border:1px solid var(--border-color);background:var(--surface-card)">
+      <div class="modal-header" style="border:0;padding:1.25rem 1.5rem 0.5rem">
+        <h5 class="modal-title" style="font-weight:800;font-size:1.05rem"><i class="bi bi-stars me-2" style="color:#8b5cf6"></i>Generate Activity</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body ce-modal-body" style="padding:0.75rem 1.5rem 1.5rem">
+        <label>Activity Type</label>
+        <select id="genType">
+          {% for val, label in type_choices %}
+          <option value="{{ val }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+        <label>Strand</label>
+        <select id="genStrand">
+          {% for val, label in strand_choices %}
+          <option value="{{ val }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+        <label>Class Level</label>
+        <select id="genLevel">
+          {% for val, label in level_choices %}
+          <option value="{{ val }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+        <label>Topic <span style="color:var(--text-muted);font-weight:400">(required)</span></label>
+        <input type="text" id="genTopic" placeholder="e.g. Chieftaincy in Ghana, Environmental sustainability, Civic duties">
+        <button class="ce-btn ce-btn-white" id="generateBtn" onclick="doGenerate()" style="width:100%;justify-content:center;margin-top:0.5rem;background:#8b5cf6;color:#fff">
+            <i class="bi bi-stars"></i> <span>Generate</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- View Modal -->
+<div class="modal fade" id="viewModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content" style="border-radius:var(--radius-lg);border:1px solid var(--border-color);background:var(--surface-card)">
+      <div class="modal-header" style="border-bottom:1px solid var(--border-color)">
+        <h5 class="modal-title" id="viewTitle" style="font-weight:700"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="viewBody" style="font-size:0.88rem;line-height:1.7"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function viewItem(id) {
+    const src = document.getElementById('detail-' + id);
+    if (!src) return;
+    document.getElementById('viewTitle').textContent = src.dataset.title;
+    document.getElementById('viewBody').innerHTML = src.innerHTML;
+    new bootstrap.Modal(document.getElementById('viewModal')).show();
+}
+
+function doGenerate() {
+    const btn = document.getElementById('generateBtn');
+    const span = btn.querySelector('span');
+    const topic = document.getElementById('genTopic').value.trim();
+    if (!topic) { document.getElementById('genTopic').focus(); return; }
+    btn.disabled = true; span.textContent = 'Generating...';
+
+    fetch("{% url 'individual:citizen_ed_api' %}", {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+        body: JSON.stringify({
+            action: 'generate',
+            activity_type: document.getElementById('genType').value,
+            strand: document.getElementById('genStrand').value,
+            level: document.getElementById('genLevel').value,
+            topic: topic
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) { location.reload(); }
+        else { alert(data.error || 'Generation failed'); btn.disabled = false; span.textContent = 'Generate'; }
+    })
+    .catch(() => { alert('Network error'); btn.disabled = false; span.textContent = 'Generate'; });
+}
+
+document.getElementById('searchInput').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('#itemsGrid .ce-card').forEach(card => {
+        card.style.display = card.dataset.search.includes(q) ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

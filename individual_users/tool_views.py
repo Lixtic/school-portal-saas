@@ -18,11 +18,14 @@ from individual_users.models import (
     AddonSubscription,
     AITutorConversation,
     AITutorMessage,
+    CitizenEdActivity,
+    CompuThinkActivity,
     GESLetter,
     IndividualProfile,
     LicensureAnswer,
     LicensureQuestion,
     LicensureQuizAttempt,
+    LiteracyExercise,
     MarkingSession,
     ReportCardEntry,
     ReportCardSet,
@@ -32,6 +35,7 @@ from individual_users.models import (
     ToolPresentation,
     ToolQuestion,
     ToolSlide,
+    TVETProject,
 )
 
 logger = logging.getLogger(__name__)
@@ -105,6 +109,92 @@ TOOLS_CATALOG = [
         ],
         'category': 'presentations',
         'tools': ['slide_deck'],
+    },
+    {
+        'slug': 'computhink-lab',
+        'name': 'CompuThink Lab',
+        'icon': 'bi-cpu',
+        'color': '#0ea5e9',
+        'tagline': 'Computational thinking exercises for the digital age',
+        'description': (
+            'Generate algorithm challenges, pseudocode exercises, pattern '
+            'recognition tasks and AI literacy activities aligned to the '
+            'GES Computing curriculum. Move from "learning to use a PC" '
+            'to genuine computational thinking.'
+        ),
+        'features': [
+            'Algorithm design & pseudocode writing',
+            'Pattern recognition & decomposition tasks',
+            'AI literacy & digital productivity activities',
+            'Coding challenges (Scratch / Python)',
+            'GES Computing strand alignment',
+        ],
+        'category': 'subject_tools',
+        'tools': ['computhink'],
+    },
+    {
+        'slug': 'literacy-toolkit',
+        'name': 'Literacy Toolkit',
+        'icon': 'bi-book',
+        'color': '#f59e0b',
+        'tagline': 'Foundational literacy & language exercises',
+        'description': (
+            'Build reading comprehension passages with auto-generated '
+            'questions, grammar drills, vocabulary builders, phonics '
+            'worksheets and essay prompts — perfect for remedial and '
+            'mainstream English & Language classes.'
+        ),
+        'features': [
+            'AI-generated reading comprehension passages + questions',
+            'Grammar drills with answer keys',
+            'Vocabulary builder & word lists',
+            'Phonics / remedial worksheets',
+            'Essay prompts with marking rubrics',
+        ],
+        'category': 'subject_tools',
+        'tools': ['literacy'],
+    },
+    {
+        'slug': 'citizen-ed',
+        'name': 'CitizenEd',
+        'icon': 'bi-globe-americas',
+        'color': '#8b5cf6',
+        'tagline': 'Responsible citizenship & social studies resources',
+        'description': (
+            'Generate case studies, debate prompts, citizenship scenarios '
+            'and discussion guides covering governance, culture, environment '
+            'and national values — aligned to the GES Social Studies syllabus.'
+        ),
+        'features': [
+            'Case studies on governance & culture',
+            'Debate prompts & discussion guides',
+            'Responsible citizenship scenarios',
+            'Map & geography activities',
+            'National values education resources',
+        ],
+        'category': 'subject_tools',
+        'tools': ['citizen_ed'],
+    },
+    {
+        'slug': 'tvet-workshop',
+        'name': 'TVET Workshop',
+        'icon': 'bi-tools',
+        'color': '#ec4899',
+        'tagline': 'Link classroom projects to technical & vocational skills',
+        'description': (
+            'Create project-based learning plans, health & safety quizzes, '
+            'tools & materials identification exercises, innovation challenges '
+            'and skill assessment rubrics for Career Technology.'
+        ),
+        'features': [
+            'Project-based learning plans with materials lists',
+            'Health & safety quizzes and checklists',
+            'Tools & materials identification exercises',
+            'Innovation & entrepreneurship challenges',
+            'Skill assessment rubrics (TVET-aligned)',
+        ],
+        'category': 'subject_tools',
+        'tools': ['tvet'],
     },
     {
         'slug': 'grade-analytics',
@@ -354,6 +444,10 @@ def tools_hub(request):
     letter_count = GESLetter.objects.filter(profile=profile).count()
     marker_count = MarkingSession.objects.filter(profile=profile).count()
     rc_count = ReportCardSet.objects.filter(profile=profile).count()
+    ct_count = CompuThinkActivity.objects.filter(profile=profile).count()
+    lit_count = LiteracyExercise.objects.filter(profile=profile).count()
+    ce_count = CitizenEdActivity.objects.filter(profile=profile).count()
+    tvet_count = TVETProject.objects.filter(profile=profile).count()
 
     ctx = {
         'tools': tools,
@@ -368,6 +462,10 @@ def tools_hub(request):
         'letter_count': letter_count,
         'marker_count': marker_count,
         'rc_count': rc_count,
+        'computhink_count': ct_count,
+        'literacy_count': lit_count,
+        'citizen_ed_count': ce_count,
+        'tvet_count': tvet_count,
     }
     return render(request, 'individual/tools/hub.html', ctx)
 
@@ -3707,3 +3805,523 @@ Return ONLY the comment text."""
     except Exception as e:
         logger.error('Report card AI comment failed: %s', e)
         return None
+
+
+# ── CompuThink Lab ───────────────────────────────────────────────────────────
+
+@_tool_required
+@_require_tool('computhink-lab')
+def computhink_dashboard(request):
+    """Dashboard listing all computing activities."""
+    profile = request.user.individual_profile
+    qs = CompuThinkActivity.objects.filter(profile=profile)
+
+    activity_type = request.GET.get('type', '')
+    level = request.GET.get('level', '')
+    search = request.GET.get('q', '')
+
+    if activity_type:
+        qs = qs.filter(activity_type=activity_type)
+    if level:
+        qs = qs.filter(level=level)
+    if search:
+        qs = qs.filter(Q(title__icontains=search) | Q(topic__icontains=search))
+
+    ctx = {
+        'activities': qs[:60],
+        'total': qs.count(),
+        'type_choices': CompuThinkActivity.TYPE_CHOICES,
+        'level_choices': CompuThinkActivity.LEVEL_CHOICES,
+        'current_type': activity_type,
+        'current_level': level,
+        'search': search,
+        'role': 'teacher',
+    }
+    return render(request, 'individual/tools/computhink/dashboard.html', ctx)
+
+
+@_tool_required
+@_require_tool('computhink-lab')
+@require_POST
+def computhink_delete(request, pk):
+    obj = get_object_or_404(CompuThinkActivity, pk=pk, profile=request.user.individual_profile)
+    obj.delete()
+    messages.success(request, 'Activity deleted.')
+    return redirect('individual:computhink_dashboard')
+
+
+@_tool_required
+@_require_tool('computhink-lab')
+@require_POST
+def computhink_api(request):
+    """AI-generate a computing activity."""
+    profile = request.user.individual_profile
+    data = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    action = data.get('action', '')
+
+    if action != 'generate':
+        return JsonResponse({'error': 'Invalid action'}, status=400)
+
+    activity_type = data.get('activity_type', 'algorithm')
+    level = data.get('level', 'b7')
+    topic = data.get('topic', '')
+    strand = data.get('strand', '')
+
+    if not topic:
+        return JsonResponse({'error': 'Topic is required'}, status=400)
+
+    type_label = dict(CompuThinkActivity.TYPE_CHOICES).get(activity_type, activity_type)
+    level_label = dict(CompuThinkActivity.LEVEL_CHOICES).get(level, level)
+
+    prompt = (
+        f"Create a {type_label} activity for {level_label} Computing students on the topic: '{topic}'."
+        f"{(' Strand: ' + strand + '.') if strand else ''}\n\n"
+        "Return ONLY valid JSON with these keys:\n"
+        "- title: short descriptive title\n"
+        "- instructions: clear student-facing instructions (2-4 sentences)\n"
+        "- content: object with {problem, steps (array), hints (array), expected_output, extension}\n"
+        "- answer_key: model answer text\n\n"
+        "Align with Ghana Education Service (GES) Computing curriculum standards. "
+        "Focus on computational thinking, not just computer usage."
+    )
+
+    try:
+        import openai
+        client = openai.OpenAI(api_key=getattr(settings, 'OPENAI_API_KEY', ''))
+        resp = client.chat.completions.create(
+            model='gpt-4o-mini',
+            messages=[
+                {'role': 'system', 'content': 'You are a Ghanaian Computing teacher creating computational thinking activities.'},
+                {'role': 'user', 'content': prompt},
+            ],
+            temperature=0.7,
+            max_tokens=2000,
+        )
+        raw = resp.choices[0].message.content.strip()
+        if raw.startswith('```'):
+            raw = raw.split('\n', 1)[1] if '\n' in raw else raw[3:]
+        if raw.endswith('```'):
+            raw = raw[:-3]
+        result = json.loads(raw.strip())
+    except Exception as exc:
+        logger.warning('CompuThink AI generation failed: %s', exc)
+        return JsonResponse({'error': 'AI generation failed. Please try again.'}, status=500)
+
+    obj = CompuThinkActivity.objects.create(
+        profile=profile,
+        title=result.get('title', topic),
+        activity_type=activity_type,
+        level=level,
+        strand=strand,
+        topic=topic,
+        instructions=result.get('instructions', ''),
+        content=result.get('content', {}),
+        answer_key=result.get('answer_key', ''),
+        ai_generated=True,
+    )
+    return JsonResponse({
+        'ok': True,
+        'id': obj.id,
+        'title': obj.title,
+        'instructions': obj.instructions,
+        'content': obj.content,
+        'answer_key': obj.answer_key,
+    })
+
+
+# ── Literacy Toolkit ─────────────────────────────────────────────────────────
+
+@_tool_required
+@_require_tool('literacy-toolkit')
+def literacy_dashboard(request):
+    """Dashboard listing all literacy exercises."""
+    profile = request.user.individual_profile
+    qs = LiteracyExercise.objects.filter(profile=profile)
+
+    exercise_type = request.GET.get('type', '')
+    level = request.GET.get('level', '')
+    search = request.GET.get('q', '')
+
+    if exercise_type:
+        qs = qs.filter(exercise_type=exercise_type)
+    if level:
+        qs = qs.filter(level=level)
+    if search:
+        qs = qs.filter(Q(title__icontains=search) | Q(topic__icontains=search))
+
+    ctx = {
+        'exercises': qs[:60],
+        'total': qs.count(),
+        'type_choices': LiteracyExercise.TYPE_CHOICES,
+        'level_choices': LiteracyExercise.LEVEL_CHOICES,
+        'current_type': exercise_type,
+        'current_level': level,
+        'search': search,
+        'role': 'teacher',
+    }
+    return render(request, 'individual/tools/literacy/dashboard.html', ctx)
+
+
+@_tool_required
+@_require_tool('literacy-toolkit')
+@require_POST
+def literacy_delete(request, pk):
+    obj = get_object_or_404(LiteracyExercise, pk=pk, profile=request.user.individual_profile)
+    obj.delete()
+    messages.success(request, 'Exercise deleted.')
+    return redirect('individual:literacy_dashboard')
+
+
+@_tool_required
+@_require_tool('literacy-toolkit')
+@require_POST
+def literacy_api(request):
+    """AI-generate a literacy exercise."""
+    profile = request.user.individual_profile
+    data = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    action = data.get('action', '')
+
+    if action != 'generate':
+        return JsonResponse({'error': 'Invalid action'}, status=400)
+
+    exercise_type = data.get('exercise_type', 'comprehension')
+    level = data.get('level', 'b7')
+    topic = data.get('topic', '')
+    strand = data.get('strand', '')
+
+    if not topic:
+        return JsonResponse({'error': 'Topic is required'}, status=400)
+
+    type_label = dict(LiteracyExercise.TYPE_CHOICES).get(exercise_type, exercise_type)
+    level_label = dict(LiteracyExercise.LEVEL_CHOICES).get(level, level)
+
+    if exercise_type == 'comprehension':
+        content_keys = '{passage, questions (array of {question, options, answer}), vocabulary_words}'
+    elif exercise_type == 'grammar':
+        content_keys = '{exercises (array of {instruction, sentences, answers}), rules_summary}'
+    elif exercise_type == 'vocabulary':
+        content_keys = '{word_list (array of {word, definition, example_sentence, synonym}), activities}'
+    elif exercise_type == 'essay':
+        content_keys = '{prompts (array), rubric (object with criteria), sample_outline}'
+    else:
+        content_keys = '{exercises (array of {instruction, content, answer}), tips}'
+
+    prompt = (
+        f"Create a {type_label} exercise for {level_label} English & Language students on: '{topic}'."
+        f"{(' Strand: ' + strand + '.') if strand else ''}\n\n"
+        "Return ONLY valid JSON with these keys:\n"
+        f"- title: short descriptive title\n"
+        f"- passage: reading passage or source text (empty string if not applicable)\n"
+        f"- instructions: clear student-facing instructions\n"
+        f"- content: {content_keys}\n"
+        f"- answer_key: model answers text\n\n"
+        "Focus on foundational literacy. Suitable for Ghanaian schools."
+    )
+
+    try:
+        import openai
+        client = openai.OpenAI(api_key=getattr(settings, 'OPENAI_API_KEY', ''))
+        resp = client.chat.completions.create(
+            model='gpt-4o-mini',
+            messages=[
+                {'role': 'system', 'content': 'You are a Ghanaian English teacher creating literacy exercises for foundational skill building.'},
+                {'role': 'user', 'content': prompt},
+            ],
+            temperature=0.7,
+            max_tokens=3000,
+        )
+        raw = resp.choices[0].message.content.strip()
+        if raw.startswith('```'):
+            raw = raw.split('\n', 1)[1] if '\n' in raw else raw[3:]
+        if raw.endswith('```'):
+            raw = raw[:-3]
+        result = json.loads(raw.strip())
+    except Exception as exc:
+        logger.warning('Literacy AI generation failed: %s', exc)
+        return JsonResponse({'error': 'AI generation failed. Please try again.'}, status=500)
+
+    obj = LiteracyExercise.objects.create(
+        profile=profile,
+        title=result.get('title', topic),
+        exercise_type=exercise_type,
+        level=level,
+        strand=strand,
+        topic=topic,
+        passage=result.get('passage', ''),
+        content=result.get('content', {}),
+        answer_key=result.get('answer_key', ''),
+        ai_generated=True,
+    )
+    return JsonResponse({
+        'ok': True,
+        'id': obj.id,
+        'title': obj.title,
+        'passage': obj.passage[:200],
+        'content': obj.content,
+        'answer_key': obj.answer_key,
+    })
+
+
+# ── CitizenEd ────────────────────────────────────────────────────────────────
+
+@_tool_required
+@_require_tool('citizen-ed')
+def citizen_ed_dashboard(request):
+    """Dashboard listing all social studies activities."""
+    profile = request.user.individual_profile
+    qs = CitizenEdActivity.objects.filter(profile=profile)
+
+    activity_type = request.GET.get('type', '')
+    strand = request.GET.get('strand', '')
+    level = request.GET.get('level', '')
+    search = request.GET.get('q', '')
+
+    if activity_type:
+        qs = qs.filter(activity_type=activity_type)
+    if strand:
+        qs = qs.filter(strand=strand)
+    if level:
+        qs = qs.filter(level=level)
+    if search:
+        qs = qs.filter(Q(title__icontains=search) | Q(topic__icontains=search))
+
+    ctx = {
+        'activities': qs[:60],
+        'total': qs.count(),
+        'type_choices': CitizenEdActivity.TYPE_CHOICES,
+        'strand_choices': CitizenEdActivity.STRAND_CHOICES,
+        'level_choices': CitizenEdActivity.LEVEL_CHOICES,
+        'current_type': activity_type,
+        'current_strand': strand,
+        'current_level': level,
+        'search': search,
+        'role': 'teacher',
+    }
+    return render(request, 'individual/tools/citizen-ed/dashboard.html', ctx)
+
+
+@_tool_required
+@_require_tool('citizen-ed')
+@require_POST
+def citizen_ed_delete(request, pk):
+    obj = get_object_or_404(CitizenEdActivity, pk=pk, profile=request.user.individual_profile)
+    obj.delete()
+    messages.success(request, 'Activity deleted.')
+    return redirect('individual:citizen_ed_dashboard')
+
+
+@_tool_required
+@_require_tool('citizen-ed')
+@require_POST
+def citizen_ed_api(request):
+    """AI-generate a social studies activity."""
+    profile = request.user.individual_profile
+    data = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    action = data.get('action', '')
+
+    if action != 'generate':
+        return JsonResponse({'error': 'Invalid action'}, status=400)
+
+    activity_type = data.get('activity_type', 'case_study')
+    strand = data.get('strand', 'citizenship')
+    level = data.get('level', 'b7')
+    topic = data.get('topic', '')
+
+    if not topic:
+        return JsonResponse({'error': 'Topic is required'}, status=400)
+
+    type_label = dict(CitizenEdActivity.TYPE_CHOICES).get(activity_type, activity_type)
+    strand_label = dict(CitizenEdActivity.STRAND_CHOICES).get(strand, strand)
+    level_label = dict(CitizenEdActivity.LEVEL_CHOICES).get(level, level)
+
+    prompt = (
+        f"Create a {type_label} for {level_label} Social Studies students.\n"
+        f"Topic: '{topic}'. Strand: {strand_label}.\n\n"
+        "Return ONLY valid JSON with these keys:\n"
+        "- title: descriptive title\n"
+        "- scenario_text: the main case study, scenario or discussion text (3-5 paragraphs)\n"
+        "- content: object with {questions (array), key_points (array), tasks (array), resources (array)}\n"
+        "- answer_guide: teacher's guide with expected answers / discussion points\n\n"
+        "Focus on responsible citizenship, national values and critical thinking. "
+        "Use Ghana-relevant examples and context."
+    )
+
+    try:
+        import openai
+        client = openai.OpenAI(api_key=getattr(settings, 'OPENAI_API_KEY', ''))
+        resp = client.chat.completions.create(
+            model='gpt-4o-mini',
+            messages=[
+                {'role': 'system', 'content': 'You are a Ghanaian Social Studies teacher creating citizenship education activities.'},
+                {'role': 'user', 'content': prompt},
+            ],
+            temperature=0.7,
+            max_tokens=2500,
+        )
+        raw = resp.choices[0].message.content.strip()
+        if raw.startswith('```'):
+            raw = raw.split('\n', 1)[1] if '\n' in raw else raw[3:]
+        if raw.endswith('```'):
+            raw = raw[:-3]
+        result = json.loads(raw.strip())
+    except Exception as exc:
+        logger.warning('CitizenEd AI generation failed: %s', exc)
+        return JsonResponse({'error': 'AI generation failed. Please try again.'}, status=500)
+
+    obj = CitizenEdActivity.objects.create(
+        profile=profile,
+        title=result.get('title', topic),
+        activity_type=activity_type,
+        level=level,
+        strand=strand,
+        topic=topic,
+        scenario_text=result.get('scenario_text', ''),
+        content=result.get('content', {}),
+        answer_guide=result.get('answer_guide', ''),
+        ai_generated=True,
+    )
+    return JsonResponse({
+        'ok': True,
+        'id': obj.id,
+        'title': obj.title,
+        'scenario_text': obj.scenario_text[:200],
+        'content': obj.content,
+        'answer_guide': obj.answer_guide,
+    })
+
+
+# ── TVET Workshop ────────────────────────────────────────────────────────────
+
+@_tool_required
+@_require_tool('tvet-workshop')
+def tvet_dashboard(request):
+    """Dashboard listing all TVET projects."""
+    profile = request.user.individual_profile
+    qs = TVETProject.objects.filter(profile=profile)
+
+    project_type = request.GET.get('type', '')
+    strand = request.GET.get('strand', '')
+    level = request.GET.get('level', '')
+    search = request.GET.get('q', '')
+
+    if project_type:
+        qs = qs.filter(project_type=project_type)
+    if strand:
+        qs = qs.filter(strand=strand)
+    if level:
+        qs = qs.filter(level=level)
+    if search:
+        qs = qs.filter(Q(title__icontains=search) | Q(topic__icontains=search))
+
+    ctx = {
+        'projects': qs[:60],
+        'total': qs.count(),
+        'type_choices': TVETProject.TYPE_CHOICES,
+        'strand_choices': TVETProject.STRAND_CHOICES,
+        'level_choices': TVETProject.LEVEL_CHOICES,
+        'current_type': project_type,
+        'current_strand': strand,
+        'current_level': level,
+        'search': search,
+        'role': 'teacher',
+    }
+    return render(request, 'individual/tools/tvet/dashboard.html', ctx)
+
+
+@_tool_required
+@_require_tool('tvet-workshop')
+@require_POST
+def tvet_delete(request, pk):
+    obj = get_object_or_404(TVETProject, pk=pk, profile=request.user.individual_profile)
+    obj.delete()
+    messages.success(request, 'Project deleted.')
+    return redirect('individual:tvet_dashboard')
+
+
+@_tool_required
+@_require_tool('tvet-workshop')
+@require_POST
+def tvet_api(request):
+    """AI-generate a TVET project/activity."""
+    profile = request.user.individual_profile
+    data = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    action = data.get('action', '')
+
+    if action != 'generate':
+        return JsonResponse({'error': 'Invalid action'}, status=400)
+
+    project_type = data.get('project_type', 'project_plan')
+    strand = data.get('strand', 'tools')
+    level = data.get('level', 'b7')
+    topic = data.get('topic', '')
+
+    if not topic:
+        return JsonResponse({'error': 'Topic is required'}, status=400)
+
+    type_label = dict(TVETProject.TYPE_CHOICES).get(project_type, project_type)
+    strand_label = dict(TVETProject.STRAND_CHOICES).get(strand, strand)
+    level_label = dict(TVETProject.LEVEL_CHOICES).get(level, level)
+
+    if project_type == 'safety_quiz':
+        content_keys = '{questions (array of {question, options, answer, explanation}), safety_rules (array)}'
+    elif project_type == 'tool_id':
+        content_keys = '{items (array of {name, image_hint, purpose, safety_tips}), matching_exercise}'
+    elif project_type == 'rubric':
+        content_keys = '{criteria (array of {skill, levels: {excellent, good, satisfactory, needs_improvement}}), total_marks}'
+    else:
+        content_keys = '{objectives (array), materials (array), steps (array), safety_notes (array), assessment, extension}'
+
+    prompt = (
+        f"Create a {type_label} for {level_label} Career Technology students.\n"
+        f"Topic: '{topic}'. Strand: {strand_label}.\n\n"
+        "Return ONLY valid JSON with these keys:\n"
+        f"- title: short descriptive title\n"
+        f"- description: overview of the project/activity (2-3 sentences)\n"
+        f"- content: {content_keys}\n"
+        f"- answer_key: model answers or teacher notes\n\n"
+        "Link to TVET (Technical and Vocational) skills. "
+        "Include practical, hands-on elements suitable for Ghanaian schools."
+    )
+
+    try:
+        import openai
+        client = openai.OpenAI(api_key=getattr(settings, 'OPENAI_API_KEY', ''))
+        resp = client.chat.completions.create(
+            model='gpt-4o-mini',
+            messages=[
+                {'role': 'system', 'content': 'You are a Ghanaian Career Technology teacher creating TVET-linked practical activities.'},
+                {'role': 'user', 'content': prompt},
+            ],
+            temperature=0.7,
+            max_tokens=2500,
+        )
+        raw = resp.choices[0].message.content.strip()
+        if raw.startswith('```'):
+            raw = raw.split('\n', 1)[1] if '\n' in raw else raw[3:]
+        if raw.endswith('```'):
+            raw = raw[:-3]
+        result = json.loads(raw.strip())
+    except Exception as exc:
+        logger.warning('TVET AI generation failed: %s', exc)
+        return JsonResponse({'error': 'AI generation failed. Please try again.'}, status=500)
+
+    obj = TVETProject.objects.create(
+        profile=profile,
+        title=result.get('title', topic),
+        project_type=project_type,
+        level=level,
+        strand=strand,
+        topic=topic,
+        description=result.get('description', ''),
+        content=result.get('content', {}),
+        answer_key=result.get('answer_key', ''),
+        ai_generated=True,
+    )
+    return JsonResponse({
+        'ok': True,
+        'id': obj.id,
+        'title': obj.title,
+        'description': obj.description,
+        'content': obj.content,
+        'answer_key': obj.answer_key,
+    })
