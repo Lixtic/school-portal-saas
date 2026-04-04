@@ -360,6 +360,7 @@ def _catalog_for_role(role):
             'plans': a.plans, 'category': a.category,
             'prices': a.prices, 'features': a.features,
             'badge': a.badge_label, 'trial_days': a.trial_days,
+            'audience': a.audience,
             'db_id': a.id,
         } for a in filtered]
     return TEACHER_ADDON_CATALOG if role == 'teacher' else ADDON_CATALOG
@@ -375,6 +376,7 @@ def _find_addon(slug):
             'plans': a.plans, 'category': a.category,
             'prices': a.prices, 'features': a.features,
             'badge': a.badge_label, 'trial_days': a.trial_days,
+            'audience': a.audience,
             'db_id': a.id,
         }
     except IndividualAddon.DoesNotExist:
@@ -1208,6 +1210,9 @@ def subscribe_addon(request):
     addon = _find_addon(slug)
     if not addon:
         return JsonResponse({'error': 'Addon not found'}, status=404)
+    audience = addon.get('audience', 'all')
+    if audience not in ('all', profile.role):
+        return JsonResponse({'error': 'This addon is not available for your role'}, status=403)
     if plan not in addon['plans']:
         return JsonResponse({'error': 'Plan not available for this addon'}, status=400)
 
@@ -1250,17 +1255,19 @@ def trial_addon(request):
     addon = _find_addon(slug)
     if not addon:
         return JsonResponse({'error': 'Addon not found'}, status=404)
+    audience = addon.get('audience', 'all')
+    if audience not in ('all', profile.role):
+        return JsonResponse({'error': 'This addon is not available for your role'}, status=403)
 
     trial_days = addon.get('trial_days', 0)
     if trial_days <= 0:
         return JsonResponse({'error': 'This addon does not offer a free trial.'}, status=400)
 
-    existing = AddonSubscription.objects.filter(profile=profile, addon_slug=slug).first()
-    if existing:
-        if existing.status == 'active':
-            return JsonResponse({'error': 'You already have this addon active.'}, status=400)
-        if existing.payment_reference.startswith('TRIAL-'):
-            return JsonResponse({'error': 'You have already used a trial for this addon.'}, status=400)
+    # Check for active sub or any previous trial (even cancelled ones)
+    if AddonSubscription.objects.filter(profile=profile, addon_slug=slug, status='active').exists():
+        return JsonResponse({'error': 'You already have this addon active.'}, status=400)
+    if AddonSubscription.objects.filter(profile=profile, addon_slug=slug, payment_reference__startswith='TRIAL-').exists():
+        return JsonResponse({'error': 'You have already used a trial for this addon.'}, status=400)
 
     from datetime import timedelta
     AddonSubscription.objects.update_or_create(
@@ -1282,7 +1289,13 @@ def trial_addon(request):
 def unsubscribe_addon(request):
     profile = request.user.individual_profile
     slug = request.POST.get('addon_slug', '')
-    AddonSubscription.objects.filter(profile=profile, addon_slug=slug).update(status='cancelled')
+    if not slug:
+        return JsonResponse({'ok': False, 'error': 'Missing addon_slug'}, status=400)
+    updated = AddonSubscription.objects.filter(
+        profile=profile, addon_slug=slug, status='active'
+    ).update(status='cancelled')
+    if not updated:
+        return JsonResponse({'ok': False, 'error': 'No active subscription found'}, status=404)
     return JsonResponse({'ok': True})
 
 
@@ -1391,16 +1404,29 @@ def verify_addon_payment(request):
     addon = _find_addon(slug)
     if not addon:
         return JsonResponse({'ok': False, 'error': 'Addon not found'}, status=404)
+    audience = addon.get('audience', 'all')
+    if audience not in ('all', profile.role):
+        return JsonResponse({'ok': False, 'error': 'This addon is not available for your role'}, status=403)
+
+    # Validate plan
+    valid_plans = addon.get('plans', [])
+    if plan and plan not in valid_plans:
+        return JsonResponse({'ok': False, 'error': 'Invalid plan'}, status=400)
+    plan = plan if (plan and plan in valid_plans) else (valid_plans[0] if valid_plans else 'free')
 
     # Verify with Paystack API
     secret = settings.PAYSTACK_SECRET_KEY
     if secret:
-        resp = http_requests.get(
-            f'https://api.paystack.co/transaction/verify/{reference}',
-            headers={'Authorization': f'Bearer {secret}'},
-            timeout=15,
-        )
-        data = resp.json()
+        try:
+            resp = http_requests.get(
+                f'https://api.paystack.co/transaction/verify/{reference}',
+                headers={'Authorization': f'Bearer {secret}'},
+                timeout=15,
+            )
+            data = resp.json()
+        except (http_requests.RequestException, ValueError) as e:
+            logger.exception(f'Paystack verification error: {e}')
+            return JsonResponse({'ok': False, 'error': 'Payment verification unavailable'}, status=503)
         if not data.get('status') or data.get('data', {}).get('status') != 'success':
             return JsonResponse({'ok': False, 'error': 'Payment verification failed'}, status=402)
         amount_paid = Decimal(str(data['data']['amount'])) / 100
@@ -1412,7 +1438,7 @@ def verify_addon_payment(request):
         profile=profile, addon_slug=slug,
         defaults={
             'addon_name': addon['name'],
-            'plan': plan or addon['plans'][0],
+            'plan': plan,
             'status': 'active',
             'expires_at': None,
             'payment_reference': reference,

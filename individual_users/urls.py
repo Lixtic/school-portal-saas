@@ -21,13 +21,13 @@ urlpatterns = [
     path('settings/', views.settings_view, name='settings'),
     path('settings/delete-account/', views.delete_account_view, name='delete_account'),
 
-    # Addon marketplace
+    # Addon marketplace (fixed paths BEFORE dynamic slug)
     path('addons/', views.addons_view, name='addons'),
-    path('addons/<slug:slug>/', views.addon_detail_view, name='addon_detail'),
     path('addons/subscribe/', views.subscribe_addon, name='subscribe_addon'),
     path('addons/trial/', views.trial_addon, name='trial_addon'),
     path('addons/unsubscribe/', views.unsubscribe_addon, name='unsubscribe_addon'),
     path('addons/verify/', views.verify_addon_payment, name='verify_addon_payment'),
+    path('addons/<slug:slug>/', views.addon_detail_view, name='addon_detail'),
 
     # AI Credits
     path('credits/purchase/<int:pack_id>/', views.purchase_credits, name='purchase_credits'),
