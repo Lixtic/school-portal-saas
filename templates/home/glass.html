@@ -422,6 +422,74 @@ ul    { list-style: none; }
 }
 
 /* ═══════════════════════════════════════════════════════
+   TEACHER ADD-ON STORE
+═══════════════════════════════════════════════════════ */
+.tas-section {
+  background:linear-gradient(180deg,transparent 0%,rgba(139,92,246,.035) 50%,transparent 100%);
+}
+.tas-cats {
+  display:flex; gap:1px; border-radius:16px; overflow:hidden;
+  background:var(--glass-border); margin-bottom:48px;
+}
+.tas-cat {
+  flex:1; padding:18px 12px; text-align:center;
+  background:rgba(2,8,23,.72); backdrop-filter:blur(20px);
+  display:flex; flex-direction:column; align-items:center; gap:7px;
+  transition:background .2s;
+}
+.tas-cat:hover { background:rgba(2,8,23,.5); }
+.tas-cat-icon { font-size:1.25rem; }
+.tas-cat-name { font-size:.72rem; font-weight:700; letter-spacing:.06em; }
+.tas-cat-count { font-size:.6rem; color:var(--text-low); letter-spacing:.08em; text-transform:uppercase; font-family:var(--mono); }
+@media(max-width:1000px){ .tas-cats{flex-wrap:wrap;} .tas-cat{min-width:calc(33.33% - 1px);} }
+@media(max-width:600px) { .tas-cat{min-width:calc(50% - 1px);} }
+
+.tas-grid {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:1px;
+  background:var(--glass-border); border-radius:20px; overflow:hidden;
+}
+@media(max-width:1000px){ .tas-grid{grid-template-columns:repeat(2,1fr);} }
+@media(max-width:600px) { .tas-grid{grid-template-columns:1fr;} }
+
+.tas-card {
+  padding:26px 22px; position:relative; overflow:hidden;
+  background:rgba(2,8,23,.65); backdrop-filter:blur(24px);
+  -webkit-backdrop-filter:blur(24px);
+  display:flex; flex-direction:column; gap:10px; transition:background .3s;
+}
+.tas-card:hover { background:rgba(2,8,23,.42); }
+.tas-card-accent {
+  position:absolute; top:0; left:0; right:0; height:2px;
+  opacity:0; transition:opacity .35s;
+}
+.tas-card:hover .tas-card-accent { opacity:1; }
+.tas-badge {
+  position:absolute; top:12px; right:12px;
+  font-size:.56rem; font-weight:800; letter-spacing:.1em;
+  padding:2px 8px; border-radius:4px; border:1px solid;
+}
+.tas-icon {
+  width:42px; height:42px; border-radius:12px;
+  display:flex; align-items:center; justify-content:center; font-size:1.1rem;
+}
+.tas-name { font-size:.92rem; font-weight:700; letter-spacing:-.01em; }
+.tas-tagline { font-size:.78rem; color:var(--text-mid); line-height:1.5; }
+.tas-price {
+  margin-top:auto; font-family:var(--mono); font-size:.68rem;
+  color:var(--text-low); letter-spacing:.05em;
+}
+
+.tas-cta {
+  margin-top:48px; padding:34px 40px;
+  background:linear-gradient(135deg,rgba(6,182,212,.08),rgba(139,92,246,.06));
+  border:1px solid rgba(6,182,212,.22);
+  border-radius:20px;
+  display:flex; align-items:center; justify-content:space-between; gap:28px;
+  backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
+}
+@media(max-width:768px){ .tas-cta{flex-direction:column;text-align:center;padding:28px 24px;} }
+
+/* ═══════════════════════════════════════════════════════
    AI SECTION — LAYERED INTELLIGENCE
 ═══════════════════════════════════════════════════════ */
 .ai-section {
@@ -763,6 +831,7 @@ textarea.fc{ resize:vertical; min-height:100px; }
   </div>
   <div class="nav-links">
     <a href="#modules">System</a>
+    <a href="#addons">Tools</a>
     <a href="#ai">Intelligence</a>
     <a href="#pricing">Pricing</a>
     <a href="#contact">Contact</a>
@@ -838,7 +907,7 @@ textarea.fc{ resize:vertical; min-height:100px; }
     <div class="ds-sub">Across all schools</div>
   </div>
   <div class="ds-cell reveal d3">
-    <div class="ds-val" style="color:var(--emerald);text-shadow:0 0 20px var(--ge)">20+</div>
+    <div class="ds-val" style="color:var(--emerald);text-shadow:0 0 20px var(--ge)">15+</div>
     <div class="ds-lbl">Teacher Add-On Tools</div>
     <div class="ds-sub">AI &amp; free utilities</div>
   </div>
@@ -866,7 +935,7 @@ textarea.fc{ resize:vertical; min-height:100px; }
         <h2 class="sec-title reveal d2">Modular by design.<br><em class="gradient-text">Total operational coverage.</em></h2>
       </div>
       <div style="text-align:right" class="reveal d1">
-        <div style="font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-low)">20+ teacher tools</div>
+        <div style="font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-low)">15+ teacher tools</div>
         <div style="font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-low)">One platform</div>
       </div>
     </div>
@@ -1059,19 +1128,199 @@ textarea.fc{ resize:vertical; min-height:100px; }
 </section>
 
 <!-- ═══════════════════════════════════════════════════════
+  TEACHER ADD-ON STORE — TOOL LIBRARY
+═══════════════════════════════════════════════════════ -->
+<section class="section tas-section" id="addons">
+  <div class="sw-container">
+    <div class="sec-head">
+      <div class="sec-num">04</div>
+      <div style="flex:1">
+        <div class="g-pill gp-v reveal" style="margin-bottom:14px">Teacher Tool Library</div>
+        <h2 class="sec-title reveal d2">15 precision tools.<br><em class="gradient-text">One integrated store.</em></h2>
+      </div>
+      <div style="text-align:right" class="reveal d1">
+        <div style="font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-low)">Credits from GH₵2</div>
+        <div style="font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-low)">Free tools included</div>
+      </div>
+    </div>
+
+    <!-- Category summary strip -->
+    <div class="tas-cats reveal d1">
+      <div class="tas-cat">
+        <span class="tas-cat-icon" style="color:var(--rose)"><i class="bi bi-clipboard-check"></i></span>
+        <span class="tas-cat-name">Assessment</span>
+        <span class="tas-cat-count">3 tools</span>
+      </div>
+      <div class="tas-cat">
+        <span class="tas-cat-icon" style="color:var(--cyan)"><i class="bi bi-journal-bookmark"></i></span>
+        <span class="tas-cat-name">Create &amp; Plan</span>
+        <span class="tas-cat-count">3 tools</span>
+      </div>
+      <div class="tas-cat">
+        <span class="tas-cat-icon" style="color:var(--violet)"><i class="bi bi-robot"></i></span>
+        <span class="tas-cat-name">AI Assist</span>
+        <span class="tas-cat-count">1 tool</span>
+      </div>
+      <div class="tas-cat">
+        <span class="tas-cat-icon" style="color:var(--emerald)"><i class="bi bi-cpu"></i></span>
+        <span class="tas-cat-name">Subject Labs</span>
+        <span class="tas-cat-count">4 tools</span>
+      </div>
+      <div class="tas-cat">
+        <span class="tas-cat-icon" style="color:var(--amber)"><i class="bi bi-mortarboard"></i></span>
+        <span class="tas-cat-name">Pro Dev</span>
+        <span class="tas-cat-count">1 tool</span>
+      </div>
+      <div class="tas-cat">
+        <span class="tas-cat-icon" style="color:var(--cyan)"><i class="bi bi-graph-up-arrow"></i></span>
+        <span class="tas-cat-name">Analytics</span>
+        <span class="tas-cat-count">2 tools</span>
+      </div>
+    </div>
+
+    <!-- All 15 tools -->
+    <div class="tas-grid">
+      <!-- ── Assessment ── -->
+      <div class="tas-card reveal d1">
+        <div class="tas-card-accent" style="background:linear-gradient(90deg,var(--rose),var(--amber))"></div>
+        <div class="tas-icon" style="background:rgba(244,63,94,.12);color:var(--rose)"><i class="bi bi-file-earmark-text"></i></div>
+        <div class="tas-name">Question Bank &amp; Exam Paper</div>
+        <div class="tas-tagline">Build, organise and print exam-ready papers with AI-generated items at multiple difficulty levels.</div>
+        <div class="tas-price">Free — GH₵59.99/term</div>
+      </div>
+      <div class="tas-card reveal d2">
+        <div class="tas-card-accent" style="background:linear-gradient(90deg,var(--rose),var(--amber))"></div>
+        <div class="tas-icon" style="background:rgba(244,63,94,.12);color:var(--rose)"><i class="bi bi-file-earmark-bar-graph"></i></div>
+        <div class="tas-name">Report Card Writer</div>
+        <div class="tas-tagline">AI-personalised end-of-term comments. Conduct ratings, bulk generation, and export.</div>
+        <div class="tas-price">Free — GH₵44.99/term</div>
+      </div>
+      <div class="tas-card reveal d3">
+        <div class="tas-card-accent" style="background:linear-gradient(90deg,var(--rose),var(--amber))"></div>
+        <span class="tas-badge" style="background:rgba(6,182,212,.15);color:var(--cyan);border-color:rgba(6,182,212,.3)">NEW</span>
+        <div class="tas-icon" style="background:rgba(244,63,94,.12);color:var(--rose)"><i class="bi bi-clipboard-check"></i></div>
+        <div class="tas-name">Paper Marker</div>
+        <div class="tas-tagline">Set answer keys, scan or tap responses, auto-grade. Per-student analytics and CSV export.</div>
+        <div class="tas-price">Free — GH₵29.99/term</div>
+      </div>
+
+      <!-- ── Create & Plan ── -->
+      <div class="tas-card reveal d1">
+        <div class="tas-card-accent" style="background:linear-gradient(90deg,var(--cyan),var(--emerald))"></div>
+        <div class="tas-icon" style="background:rgba(6,182,212,.12);color:var(--cyan)"><i class="bi bi-journal-bookmark"></i></div>
+        <div class="tas-name">Smart Lesson Planner</div>
+        <div class="tas-tagline">GES-aligned, AI-generated lesson plans — intro, activities, assessment items, teacher notes.</div>
+        <div class="tas-price">Free — GH₵59.99/term</div>
+      </div>
+      <div class="tas-card reveal d2">
+        <div class="tas-card-accent" style="background:linear-gradient(90deg,var(--cyan),var(--emerald))"></div>
+        <span class="tas-badge" style="background:rgba(139,92,246,.15);color:var(--violet);border-color:rgba(139,92,246,.3)">POPULAR</span>
+        <div class="tas-icon" style="background:rgba(6,182,212,.12);color:var(--cyan)"><i class="bi bi-easel"></i></div>
+        <div class="tas-name">Slide Deck Generator</div>
+        <div class="tas-tagline">Topic → polished presentation with 8 themes, 7 layouts, fullscreen present mode.</div>
+        <div class="tas-price">Free — GH₵59.99/term</div>
+      </div>
+      <div class="tas-card reveal d3">
+        <div class="tas-card-accent" style="background:linear-gradient(90deg,var(--cyan),var(--emerald))"></div>
+        <div class="tas-icon" style="background:rgba(6,182,212,.12);color:var(--cyan)"><i class="bi bi-envelope-paper"></i></div>
+        <div class="tas-name">GES Letter Writer</div>
+        <div class="tas-tagline">50+ official GES templates — transfer, leave, promotion letters. Download as Word or PDF.</div>
+        <div class="tas-price">Free — GH₵39.99/term</div>
+      </div>
+
+      <!-- ── Subject Labs ── -->
+      <div class="tas-card reveal d1">
+        <div class="tas-card-accent" style="background:linear-gradient(90deg,var(--emerald),var(--cyan))"></div>
+        <span class="tas-badge" style="background:rgba(16,185,129,.15);color:var(--emerald);border-color:rgba(16,185,129,.3)">NEW</span>
+        <div class="tas-icon" style="background:rgba(16,185,129,.12);color:var(--emerald)"><i class="bi bi-cpu"></i></div>
+        <div class="tas-name">CompuThink Lab</div>
+        <div class="tas-tagline">Algorithms, pseudocode, pattern recognition, AI literacy — computational thinking for every learner.</div>
+        <div class="tas-price">Free — GH₵39.99/term</div>
+      </div>
+      <div class="tas-card reveal d2">
+        <div class="tas-card-accent" style="background:linear-gradient(90deg,var(--emerald),var(--cyan))"></div>
+        <span class="tas-badge" style="background:rgba(16,185,129,.15);color:var(--emerald);border-color:rgba(16,185,129,.3)">NEW</span>
+        <div class="tas-icon" style="background:rgba(16,185,129,.12);color:var(--emerald)"><i class="bi bi-book"></i></div>
+        <div class="tas-name">Literacy Toolkit</div>
+        <div class="tas-tagline">Reading comprehension, grammar drills, vocabulary, essay prompts, phonics and oral activities.</div>
+        <div class="tas-price">Free — GH₵39.99/term</div>
+      </div>
+      <div class="tas-card reveal d3">
+        <div class="tas-card-accent" style="background:linear-gradient(90deg,var(--emerald),var(--cyan))"></div>
+        <span class="tas-badge" style="background:rgba(16,185,129,.15);color:var(--emerald);border-color:rgba(16,185,129,.3)">NEW</span>
+        <div class="tas-icon" style="background:rgba(16,185,129,.12);color:var(--emerald)"><i class="bi bi-globe-americas"></i></div>
+        <div class="tas-name">CitizenEd</div>
+        <div class="tas-tagline">Case studies, debates, citizenship scenarios, map activities — Social Studies brought to life.</div>
+        <div class="tas-price">Free — GH₵39.99/term</div>
+      </div>
+      <div class="tas-card reveal d1">
+        <div class="tas-card-accent" style="background:linear-gradient(90deg,var(--emerald),var(--cyan))"></div>
+        <span class="tas-badge" style="background:rgba(16,185,129,.15);color:var(--emerald);border-color:rgba(16,185,129,.3)">NEW</span>
+        <div class="tas-icon" style="background:rgba(16,185,129,.12);color:var(--emerald)"><i class="bi bi-tools"></i></div>
+        <div class="tas-name">TVET Workshop</div>
+        <div class="tas-tagline">Project plans, safety quizzes, tool identification — hands-on Career Tech for every classroom.</div>
+        <div class="tas-price">Free — GH₵39.99/term</div>
+      </div>
+
+      <!-- ── AI, Pro Dev, Analytics ── -->
+      <div class="tas-card reveal d2">
+        <div class="tas-card-accent" style="background:linear-gradient(90deg,var(--violet),var(--cyan))"></div>
+        <div class="tas-icon" style="background:rgba(139,92,246,.12);color:var(--violet)"><i class="bi bi-robot"></i></div>
+        <div class="tas-name">AI Teaching Assistant</div>
+        <div class="tas-tagline">Concept explanations, worksheet generation, marking assistance, study note creator.</div>
+        <div class="tas-price">Free — GH₵49.99/term</div>
+      </div>
+      <div class="tas-card reveal d3">
+        <div class="tas-card-accent" style="background:linear-gradient(90deg,var(--amber),var(--rose))"></div>
+        <div class="tas-icon" style="background:rgba(245,158,11,.12);color:var(--amber)"><i class="bi bi-mortarboard"></i></div>
+        <div class="tas-name">GTLE Licensure Prep</div>
+        <div class="tas-tagline">Past GTLE question bank, timed mock exams, AI practice assessments, score analytics.</div>
+        <div class="tas-price">Free — GH₵49.99/term</div>
+      </div>
+      <div class="tas-card reveal d1">
+        <div class="tas-card-accent" style="background:linear-gradient(90deg,var(--violet),var(--cyan))"></div>
+        <div class="tas-icon" style="background:rgba(139,92,246,.12);color:var(--violet)"><i class="bi bi-graph-up-arrow"></i></div>
+        <div class="tas-name">Grade Analytics</div>
+        <div class="tas-tagline">Class performance charts, subject trends, grade distribution, and exportable reports.</div>
+        <div class="tas-price">Free — GH₵39.99/term</div>
+      </div>
+      <div class="tas-card reveal d2">
+        <div class="tas-card-accent" style="background:linear-gradient(90deg,var(--violet),var(--cyan))"></div>
+        <div class="tas-icon" style="background:rgba(139,92,246,.12);color:var(--violet)"><i class="bi bi-calendar-check"></i></div>
+        <div class="tas-name">Attendance Tracker</div>
+        <div class="tas-tagline">Quick daily roll-call, absence pattern detection, weekly/monthly reports, CSV export.</div>
+        <div class="tas-price">Free — GH₵29.99/term</div>
+      </div>
+    </div>
+
+    <!-- Individual teacher portal CTA -->
+    <div class="tas-cta reveal d2">
+      <div>
+        <div class="g-pill gp-c" style="margin-bottom:10px">Individual Teacher Portal</div>
+        <h3 style="font-size:1.25rem;font-weight:800;margin-bottom:8px;letter-spacing:-.02em">Not part of a school? <span class="gradient-text">Use the tools solo.</span></h3>
+        <p style="font-size:.87rem;color:var(--text-mid);line-height:1.65;max-width:580px">Sign up individually to access the full Add-On Store, buy AI credit tokens, and use all 15 tools — no school subscription required.</p>
+      </div>
+      <a href="{% url 'get_started' %}" class="btn-glow" style="white-space:nowrap">
+        <i class="bi bi-person-plus"></i> Sign Up as Teacher
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
   AI SECTION — LAYERED INTELLIGENCE
 ═══════════════════════════════════════════════════════ -->
 <section class="ai-section section" id="ai">
   <div class="ai-inner">
     <div class="ai-copy">
       <div class="g-pill gp-v reveal" style="margin-bottom:16px">05 — Aura AI Engine</div>
-      <h2 class="reveal d2">20+ teacher tools.<br><em class="gradient-text">One store.</em></h2>
-      <p class="reveal d3">The Teacher Add-On Store gives every educator access to AI-powered content generators and free classroom utilities. Buy credit tokens from GH₵2 and use them across any tool — lesson plans, slides, study guides, report cards, and question banks. Free tools are always free.</p>
+      <h2 class="reveal d2">AI that powers<br><em class="gradient-text">every tool.</em></h2>
+      <p class="reveal d3">Aura is the intelligence layer behind all 15 teacher tools. It generates lesson plans, marks papers, writes report comments, builds slides, and answers school enquiries 24/7. Buy credit tokens from GH₵2 — free classroom utilities require zero credits.</p>
       <ul class="feat-list reveal d4">
-        <li class="feat-item"><div class="fi-dot v"><i class="bi bi-check-lg"></i></div>Smart Planner Pro — full GES-aligned lesson plans from a single topic (1 credit)</li>
-        <li class="feat-item"><div class="fi-dot v"><i class="bi bi-check-lg"></i></div>Slide Generator — topic to polished presentation deck (3 credits)</li>
-        <li class="feat-item"><div class="fi-dot c"><i class="bi bi-check-lg"></i></div>Report Card AI — bulk personalised end-of-term comments (2 credits)</li>
-        <li class="feat-item"><div class="fi-dot c"><i class="bi bi-check-lg"></i></div>Question Bank &amp; Study Guide Builder — searchable exam sets and revision packs (2 credits each)</li>
+        <li class="feat-item"><div class="fi-dot v"><i class="bi bi-check-lg"></i></div>15 specialised tools — assessment, subject labs, lesson planning, professional development</li>
+        <li class="feat-item"><div class="fi-dot v"><i class="bi bi-check-lg"></i></div>4 new subject labs — CompuThink, Literacy, CitizenEd, TVET Workshop</li>
+        <li class="feat-item"><div class="fi-dot c"><i class="bi bi-check-lg"></i></div>Paper Marker — set answer keys, auto-grade entire classes in seconds</li>
+        <li class="feat-item"><div class="fi-dot c"><i class="bi bi-check-lg"></i></div>GTLE Licensure Prep — past papers, timed mocks, AI practice exams</li>
         <li class="feat-item"><div class="fi-dot v"><i class="bi bi-check-lg"></i></div>Free tools — Task Board, Timer, Random Picker, Noise Meter — no credits needed</li>
         <li class="feat-item"><div class="fi-dot c"><i class="bi bi-check-lg"></i></div>AI Homework Engine — auto-generated assignments, auto-marked, scores push to gradebook</li>
       </ul>
@@ -1255,7 +1504,7 @@ textarea.fc{ resize:vertical; min-height:100px; }
     <span class="g-pill gp-v">08 — Form Follows Faculty</span>
   </div>
   <h2 class="reveal d2">Form Follows <span class="gradient-text-3">Faculty.</span></h2>
-  <p class="reveal d3">Transition your institution into a state of permanent clarity. 20+ teacher tools, AI credit tokens from GH₵2, and all core modules — ready from day one. Prices in GH₵.</p>
+  <p class="reveal d3">Transition your institution into a state of permanent clarity. 15 teacher tools, 4 subject labs, AI credit tokens from GH₵2, and all core modules — ready from day one. Prices in GH₵.</p>
   <div class="cta-actions reveal d4">
     <a href="{% url 'get_started' %}" class="btn-glow" style="font-size:1rem;padding:15px 36px">
       <i class="bi bi-arrow-right"></i> Initialize Integration
@@ -1346,7 +1595,7 @@ textarea.fc{ resize:vertical; min-height:100px; }
           <li><a href="#">Academics</a></li>
           <li><a href="#">Finance</a></li>
           <li><a href="#">Attendance</a></li>
-          <li><a href="#">Teacher Add-On Store</a></li>
+          <li><a href="#addons">Teacher Add-On Store</a></li>
           <li><a href="#">Parent Portal</a></li>
         </ul>
       </div>
