@@ -65,7 +65,10 @@ TOOLS_CATALOG = [
             'PDF & DOCX export with answer key',
         ],
         'category': 'assessment',
+        'group': 'assess',
         'tools': ['question_bank', 'exam_paper'],
+        'url_name': 'individual:question_bank',
+        'secondary_url_name': 'individual:exam_papers',
     },
     {
         'slug': 'lesson-planner',
@@ -86,7 +89,9 @@ TOOLS_CATALOG = [
             'Save and reuse templates',
         ],
         'category': 'productivity',
+        'group': 'create',
         'tools': ['lesson_plan'],
+        'url_name': 'individual:lesson_plans',
     },
     {
         'slug': 'slide-generator',
@@ -108,7 +113,9 @@ TOOLS_CATALOG = [
             'Print / PDF handouts',
         ],
         'category': 'presentations',
+        'group': 'create',
         'tools': ['slide_deck'],
+        'url_name': 'individual:deck_list',
     },
     {
         'slug': 'computhink-lab',
@@ -130,7 +137,9 @@ TOOLS_CATALOG = [
             'GES Computing strand alignment',
         ],
         'category': 'subject_tools',
+        'group': 'subjects',
         'tools': ['computhink'],
+        'url_name': 'individual:computhink_dashboard',
     },
     {
         'slug': 'literacy-toolkit',
@@ -152,7 +161,9 @@ TOOLS_CATALOG = [
             'Essay prompts with marking rubrics',
         ],
         'category': 'subject_tools',
+        'group': 'subjects',
         'tools': ['literacy'],
+        'url_name': 'individual:literacy_dashboard',
     },
     {
         'slug': 'citizen-ed',
@@ -173,7 +184,9 @@ TOOLS_CATALOG = [
             'National values education resources',
         ],
         'category': 'subject_tools',
+        'group': 'subjects',
         'tools': ['citizen_ed'],
+        'url_name': 'individual:citizen_ed_dashboard',
     },
     {
         'slug': 'tvet-workshop',
@@ -194,7 +207,9 @@ TOOLS_CATALOG = [
             'Skill assessment rubrics (TVET-aligned)',
         ],
         'category': 'subject_tools',
+        'group': 'subjects',
         'tools': ['tvet'],
+        'url_name': 'individual:tvet_dashboard',
     },
     {
         'slug': 'grade-analytics',
@@ -213,6 +228,7 @@ TOOLS_CATALOG = [
             'Export to CSV / PDF',
         ],
         'category': 'analytics',
+        'group': 'soon',
         'tools': [],
         'coming_soon': True,
     },
@@ -233,7 +249,9 @@ TOOLS_CATALOG = [
             'Study notes creator',
         ],
         'category': 'ai_tools',
+        'group': 'ai_pro',
         'tools': ['ai_tutor'],
+        'url_name': 'individual:ai_tutor_dashboard',
     },
     {
         'slug': 'report-card',
@@ -252,7 +270,9 @@ TOOLS_CATALOG = [
             'Editable before export',
         ],
         'category': 'assessment',
+        'group': 'assess',
         'tools': ['report_card'],
+        'url_name': 'individual:report_card_dashboard',
     },
     {
         'slug': 'attendance-tracker',
@@ -271,6 +291,7 @@ TOOLS_CATALOG = [
             'SMS/email absence alerts',
         ],
         'category': 'management',
+        'group': 'soon',
         'tools': [],
         'coming_soon': True,
     },
@@ -293,7 +314,9 @@ TOOLS_CATALOG = [
             'Custom letters from scratch',
         ],
         'category': 'productivity',
+        'group': 'create',
         'tools': ['ges_letter'],
+        'url_name': 'individual:letter_dashboard',
     },
     {
         'slug': 'paper-marker',
@@ -314,7 +337,9 @@ TOOLS_CATALOG = [
             'Print-ready results sheet per student or class',
         ],
         'category': 'assessment',
+        'group': 'assess',
         'tools': ['paper_marker'],
+        'url_name': 'individual:marker_dashboard',
     },
     {
         'slug': 'licensure-prep',
@@ -337,7 +362,9 @@ TOOLS_CATALOG = [
             'Past GTLE questions bank',
         ],
         'category': 'professional',
+        'group': 'ai_pro',
         'tools': ['licensure_prep'],
+        'url_name': 'individual:licensure_dashboard',
     },
 ]
 
@@ -415,57 +442,122 @@ def _require_tool(tool_slug):
     return decorator
 
 
+# ── Group metadata for categories ─────────────────────────────────────────────
+
+TOOL_GROUPS = [
+    {
+        'key': 'assess',
+        'title': 'Assess & Grade',
+        'icon': 'bi-pencil-square',
+        'desc': 'Create questions, mark papers, and write report cards.',
+    },
+    {
+        'key': 'create',
+        'title': 'Create & Plan',
+        'icon': 'bi-palette2',
+        'desc': 'Plan lessons, build slides, and draft official letters.',
+    },
+    {
+        'key': 'subjects',
+        'title': 'Subject Labs',
+        'icon': 'bi-lightbulb',
+        'desc': 'Specialised generators for Computing, Literacy, Social Studies & TVET.',
+    },
+    {
+        'key': 'ai_pro',
+        'title': 'AI & Professional',
+        'icon': 'bi-stars',
+        'desc': 'AI assistant and licensure exam preparation.',
+    },
+    {
+        'key': 'soon',
+        'title': 'Coming Soon',
+        'icon': 'bi-hourglass-split',
+        'desc': 'New tools on the way.',
+    },
+]
+
+
 # ── Tools Hub (main tools page) ──────────────────────────────────────────────
 
 @_tool_required
 def tools_hub(request):
     """Main tools page showing all available teacher tools."""
+    from django.urls import reverse
+
     profile = request.user.individual_profile
     my_slugs = set(
         AddonSubscription.objects.filter(profile=profile, status='active')
         .values_list('addon_slug', flat=True)
     )
 
+    # Build tool list with resolved URLs
     tools = []
     for tool in TOOLS_CATALOG:
-        tools.append({
+        entry = {
             **tool,
             'subscribed': tool['slug'] in my_slugs,
             'coming_soon': tool.get('coming_soon', False),
-        })
+            'url': reverse(tool['url_name']) if tool.get('url_name') else '',
+            'secondary_url': (
+                reverse(tool['secondary_url_name'])
+                if tool.get('secondary_url_name') else ''
+            ),
+        }
+        tools.append(entry)
 
-    # Count user's data
-    q_count = ToolQuestion.objects.filter(profile=profile).count()
-    e_count = ToolExamPaper.objects.filter(profile=profile).count()
-    l_count = ToolLessonPlan.objects.filter(profile=profile).count()
-    d_count = ToolPresentation.objects.filter(profile=profile).count()
-    lic_count = LicensureQuizAttempt.objects.filter(profile=profile, completed=True).count()
-    tutor_count = AITutorConversation.objects.filter(profile=profile).count()
-    letter_count = GESLetter.objects.filter(profile=profile).count()
-    marker_count = MarkingSession.objects.filter(profile=profile).count()
-    rc_count = ReportCardSet.objects.filter(profile=profile).count()
-    ct_count = CompuThinkActivity.objects.filter(profile=profile).count()
-    lit_count = LiteracyExercise.objects.filter(profile=profile).count()
-    ce_count = CitizenEdActivity.objects.filter(profile=profile).count()
-    tvet_count = TVETProject.objects.filter(profile=profile).count()
+    # Group tools by group key
+    from collections import OrderedDict
+    grouped = OrderedDict()
+    for g in TOOL_GROUPS:
+        grouped[g['key']] = {**g, 'tools': []}
+    for tool in tools:
+        gkey = tool.get('group', 'assess')
+        if gkey in grouped:
+            grouped[gkey]['tools'].append(tool)
+
+    # Aggregate counts
+    counts = {
+        'questions': ToolQuestion.objects.filter(profile=profile).count(),
+        'exams': ToolExamPaper.objects.filter(profile=profile).count(),
+        'lessons': ToolLessonPlan.objects.filter(profile=profile).count(),
+        'slides': ToolPresentation.objects.filter(profile=profile).count(),
+        'gtle': LicensureQuizAttempt.objects.filter(profile=profile, completed=True).count(),
+        'chats': AITutorConversation.objects.filter(profile=profile).count(),
+        'letters': GESLetter.objects.filter(profile=profile).count(),
+        'marked': MarkingSession.objects.filter(profile=profile).count(),
+        'reports': ReportCardSet.objects.filter(profile=profile).count(),
+        'computing': CompuThinkActivity.objects.filter(profile=profile).count(),
+        'literacy': LiteracyExercise.objects.filter(profile=profile).count(),
+        'social': CitizenEdActivity.objects.filter(profile=profile).count(),
+        'tvet': TVETProject.objects.filter(profile=profile).count(),
+    }
+    total_items = sum(counts.values())
+    active_tools = sum(1 for t in tools if t['subscribed'] and not t['coming_soon'])
 
     ctx = {
+        'groups': list(grouped.values()),
         'tools': tools,
+        'counts': counts,
+        'total_items': total_items,
+        'active_tools': active_tools,
+        'total_available': sum(1 for t in TOOLS_CATALOG if not t.get('coming_soon')),
         'profile': profile,
         'role': 'teacher',
-        'question_count': q_count,
-        'exam_count': e_count,
-        'lesson_count': l_count,
-        'deck_count': d_count,
-        'licensure_attempt_count': lic_count,
-        'tutor_count': tutor_count,
-        'letter_count': letter_count,
-        'marker_count': marker_count,
-        'rc_count': rc_count,
-        'computhink_count': ct_count,
-        'literacy_count': lit_count,
-        'citizen_ed_count': ce_count,
-        'tvet_count': tvet_count,
+        # Keep individual counts for backward compat
+        'question_count': counts['questions'],
+        'exam_count': counts['exams'],
+        'lesson_count': counts['lessons'],
+        'deck_count': counts['slides'],
+        'licensure_attempt_count': counts['gtle'],
+        'tutor_count': counts['chats'],
+        'letter_count': counts['letters'],
+        'marker_count': counts['marked'],
+        'rc_count': counts['reports'],
+        'computhink_count': counts['computing'],
+        'literacy_count': counts['literacy'],
+        'citizen_ed_count': counts['social'],
+        'tvet_count': counts['tvet'],
     }
     return render(request, 'individual/tools/hub.html', ctx)
 

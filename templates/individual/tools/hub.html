@@ -3,416 +3,337 @@
 {% block page_title %}My Tools{% endblock %}
 
 {% block extra_css %}
-/* ── Tools Hub ─────────────────────────────── */
+/* ── Tools Hub v2 ──────────────────────────── */
 .th-hero {
-    padding: 2rem;
-    background: linear-gradient(135deg, rgba(5,150,105,0.08) 0%, rgba(67,97,238,0.06) 100%);
-    border: 1px solid rgba(5,150,105,0.15);
+    padding: 1.75rem 2rem;
+    background: linear-gradient(135deg, rgba(5,150,105,0.07) 0%, rgba(67,97,238,0.05) 100%);
+    border: 1px solid rgba(5,150,105,0.12);
     border-radius: var(--radius-lg);
     margin-bottom: 2rem;
-}
-[data-bs-theme="dark"] .th-hero {
-    background: linear-gradient(135deg, rgba(5,150,105,0.15) 0%, rgba(67,97,238,0.1) 100%);
-    border-color: rgba(5,150,105,0.25);
-}
-.th-hero h2 {
-    font-size: 1.35rem;
-    font-weight: 800;
-    margin-bottom: 0.5rem;
-}
-.th-hero p {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-    margin-bottom: 0;
-    max-width: 600px;
-}
-.th-stats {
-    display: flex;
-    gap: 1.5rem;
-    margin-top: 1.25rem;
-    flex-wrap: wrap;
-}
-.th-stat {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    justify-content: space-between;
+    gap: 2rem;
+    flex-wrap: wrap;
 }
-.th-stat-num {
-    font-size: 1.4rem;
+[data-bs-theme="dark"] .th-hero {
+    background: linear-gradient(135deg, rgba(5,150,105,0.14) 0%, rgba(67,97,238,0.08) 100%);
+    border-color: rgba(5,150,105,0.22);
+}
+.th-hero-text h2 {
+    font-size: 1.3rem;
     font-weight: 800;
+    margin: 0 0 0.35rem;
+}
+.th-hero-text p {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    margin: 0;
+    max-width: 480px;
+}
+.th-hero-metrics {
+    display: flex;
+    gap: 2rem;
+    flex-shrink: 0;
+}
+.th-metric {
+    text-align: center;
+}
+.th-metric-num {
+    font-size: 1.7rem;
+    font-weight: 800;
+    line-height: 1.1;
     color: #059669;
 }
-.th-stat-label {
+.th-metric-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    margin-top: 0.15rem;
+}
+.th-metric-num.blue { color: #4361ee; }
+
+/* ── Stat pills row ────────────────────────── */
+.th-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+}
+.th-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: var(--surface-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    transition: border-color 0.15s;
+}
+.th-pill:hover { border-color: #059669; }
+.th-pill strong {
+    color: var(--text-main);
+    font-weight: 800;
+}
+
+/* ── Group sections ────────────────────────── */
+.th-group {
+    margin-bottom: 2.25rem;
+}
+.th-group-header {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.th-group-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    background: rgba(5,150,105,0.1);
+    color: #059669;
+    flex-shrink: 0;
+}
+[data-bs-theme="dark"] .th-group-icon {
+    background: rgba(5,150,105,0.18);
+    color: #34d399;
+}
+.th-group-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin: 0;
+}
+.th-group-desc {
     font-size: 0.78rem;
     color: var(--text-muted);
-    font-weight: 500;
+    margin: 0;
 }
 
 /* ── Tool Cards ────────────────────────────── */
 .th-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: 1.25rem;
+    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    gap: 1rem;
 }
 .th-card {
-    padding: 1.5rem;
+    padding: 1.35rem;
     position: relative;
+    display: flex;
+    flex-direction: column;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .th-card:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
 }
-.th-card-header {
+.th-card-top {
     display: flex;
     align-items: flex-start;
-    gap: 1rem;
-    margin-bottom: 1rem;
+    gap: 0.85rem;
+    margin-bottom: 0.75rem;
 }
 .th-card-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.25rem;
+    font-size: 1.15rem;
     flex-shrink: 0;
 }
 .th-card-title {
-    font-size: 1.05rem;
+    font-size: 1rem;
     font-weight: 700;
-    margin-bottom: 0.15rem;
+    margin-bottom: 0.1rem;
 }
 .th-card-tagline {
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     color: var(--text-muted);
 }
 .th-card-desc {
-    font-size: 0.84rem;
+    font-size: 0.82rem;
     color: var(--text-muted);
     line-height: 1.55;
-    margin-bottom: 1rem;
+    margin-bottom: 0.85rem;
+    flex: 1;
 }
-.th-features {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 1.25rem;
-}
-.th-features li {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    padding: 0.2rem 0;
+.th-card-foot {
     display: flex;
-    align-items: flex-start;
-    gap: 0.4rem;
-}
-.th-features li i {
-    color: #059669;
-    font-size: 0.7rem;
-    margin-top: 3px;
-    flex-shrink: 0;
-}
-.th-card-actions {
-    display: flex;
-    gap: 0.5rem;
+    gap: 0.45rem;
     align-items: center;
+    flex-wrap: wrap;
 }
 .th-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.5rem 1rem;
+    gap: 0.35rem;
+    padding: 0.45rem 0.9rem;
     border-radius: 8px;
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     font-weight: 600;
     text-decoration: none;
     border: none;
     cursor: pointer;
     transition: all 0.15s ease;
 }
-.th-btn-primary {
+.th-btn-open {
     background: #059669;
     color: #fff;
 }
-.th-btn-primary:hover {
+.th-btn-open:hover {
     background: #047857;
     color: #fff;
 }
-.th-btn-outline {
+.th-btn-second {
     background: transparent;
     color: var(--text-muted);
     border: 1px solid var(--border-color);
 }
-.th-btn-outline:hover {
+.th-btn-second:hover {
     border-color: #059669;
     color: #059669;
 }
-.th-badge-active {
+.th-btn-get {
+    background: rgba(67,97,238,0.1);
+    color: #4361ee;
+}
+.th-btn-get:hover {
+    background: rgba(67,97,238,0.18);
+    color: #3a56d4;
+}
+[data-bs-theme="dark"] .th-btn-get {
+    background: rgba(67,97,238,0.2);
+    color: #93b4ff;
+}
+.th-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
+    gap: 0.25rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-left: auto;
+}
+.th-badge-active {
     background: rgba(5,150,105,0.1);
     color: #059669;
-    padding: 0.2rem 0.65rem;
-    border-radius: 6px;
-    font-size: 0.72rem;
-    font-weight: 600;
 }
 [data-bs-theme="dark"] .th-badge-active {
     background: rgba(5,150,105,0.2);
     color: #34d399;
 }
 .th-badge-soon {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
     background: rgba(245,158,11,0.1);
     color: #d97706;
-    padding: 0.2rem 0.65rem;
-    border-radius: 6px;
-    font-size: 0.72rem;
-    font-weight: 600;
 }
 [data-bs-theme="dark"] .th-badge-soon {
     background: rgba(245,158,11,0.2);
     color: #fbbf24;
 }
 
-/* ── Section Heading ───────────────────────── */
-.th-section-title {
-    font-size: 1rem;
-    font-weight: 700;
-    margin-bottom: 1.25rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+@media (max-width: 768px) {
+    .th-hero { flex-direction: column; align-items: flex-start; gap: 1.25rem; padding: 1.25rem; }
+    .th-hero-metrics { gap: 1.5rem; }
 }
-.th-section-title i {
-    color: #059669;
-}
-
 @media (max-width: 576px) {
     .th-grid { grid-template-columns: 1fr; }
-    .th-stats { flex-direction: column; gap: 0.75rem; }
+    .th-hero-metrics { gap: 1rem; }
+    .th-metric-num { font-size: 1.35rem; }
 }
 {% endblock %}
 
 {% block content %}
 <!-- Hero -->
 <div class="th-hero">
-    <h2><i class="bi bi-tools me-2" style="color:#059669"></i>Teacher Tools</h2>
-    <p>Powerful tools connected to your teaching workflow. Create questions, build exam papers, plan lessons — all from one place.</p>
-    <div class="th-stats">
-        <div class="th-stat">
-            <div class="th-stat-num">{{ question_count }}</div>
-            <div class="th-stat-label">Questions</div>
+    <div class="th-hero-text">
+        <h2><i class="bi bi-tools me-2" style="color:#059669"></i>Teacher Tools</h2>
+        <p>Everything you need to create, assess, and plan — organised and ready to go.</p>
+    </div>
+    <div class="th-hero-metrics">
+        <div class="th-metric">
+            <div class="th-metric-num">{{ total_items }}</div>
+            <div class="th-metric-label">Items Created</div>
         </div>
-        <div class="th-stat">
-            <div class="th-stat-num">{{ exam_count }}</div>
-            <div class="th-stat-label">Exam Papers</div>
-        </div>
-        <div class="th-stat">
-            <div class="th-stat-num">{{ lesson_count }}</div>
-            <div class="th-stat-label">Lesson Plans</div>
-        </div>
-        <div class="th-stat">
-            <div class="th-stat-num">{{ deck_count }}</div>
-            <div class="th-stat-label">Slide Decks</div>
-        </div>
-        <div class="th-stat">
-            <div class="th-stat-num">{{ licensure_attempt_count }}</div>
-            <div class="th-stat-label">GTLE Quizzes</div>
-        </div>
-        <div class="th-stat">
-            <div class="th-stat-num">{{ tutor_count }}</div>
-            <div class="th-stat-label">AI Chats</div>
-        </div>
-        <div class="th-stat">
-            <div class="th-stat-num">{{ letter_count }}</div>
-            <div class="th-stat-label">Letters</div>
-        </div>
-        <div class="th-stat">
-            <div class="th-stat-num">{{ marker_count }}</div>
-            <div class="th-stat-label">Marked Papers</div>
-        </div>
-        <div class="th-stat">
-            <div class="th-stat-num">{{ rc_count }}</div>
-            <div class="th-stat-label">Report Cards</div>
-        </div>
-        <div class="th-stat">
-            <div class="th-stat-num">{{ computhink_count }}</div>
-            <div class="th-stat-label">Computing</div>
-        </div>
-        <div class="th-stat">
-            <div class="th-stat-num">{{ literacy_count }}</div>
-            <div class="th-stat-label">Literacy</div>
-        </div>
-        <div class="th-stat">
-            <div class="th-stat-num">{{ citizen_ed_count }}</div>
-            <div class="th-stat-label">Social Studies</div>
-        </div>
-        <div class="th-stat">
-            <div class="th-stat-num">{{ tvet_count }}</div>
-            <div class="th-stat-label">TVET</div>
+        <div class="th-metric">
+            <div class="th-metric-num blue">{{ active_tools }}/{{ total_available }}</div>
+            <div class="th-metric-label">Tools Active</div>
         </div>
     </div>
 </div>
 
-<!-- Active Tools -->
-{% with active_tools=tools|dictsort:"name" %}
-{% for tool in active_tools %}
-{% if tool.subscribed and not tool.coming_soon %}
-{% if forloop.first %}
-<div class="th-section-title"><i class="bi bi-check-circle-fill"></i> Your Active Tools</div>
-<div class="th-grid" style="margin-bottom:2rem">
-{% endif %}
-    <div class="iu-card th-card">
-        <div class="th-card-header">
-            <div class="th-card-icon" style="background:{{ tool.color }}15;color:{{ tool.color }}">
-                <i class="bi {{ tool.icon }}"></i>
-            </div>
-            <div>
-                <div class="th-card-title">{{ tool.name }}</div>
-                <div class="th-card-tagline">{{ tool.tagline }}</div>
-            </div>
-        </div>
-        <div class="th-card-actions">
-            {% if 'question_bank' in tool.tools %}
-            <a href="{% url 'individual:question_bank' %}" class="th-btn th-btn-primary">
-                <i class="bi bi-collection"></i> Question Bank
-            </a>
-            <a href="{% url 'individual:exam_papers' %}" class="th-btn th-btn-outline">
-                <i class="bi bi-file-text"></i> Exam Papers
-            </a>
-            {% elif 'lesson_plan' in tool.tools %}
-            <a href="{% url 'individual:lesson_plans' %}" class="th-btn th-btn-primary">
-                <i class="bi bi-journal-bookmark"></i> Lesson Plans
-            </a>
-            {% elif 'slide_deck' in tool.tools %}
-            <a href="{% url 'individual:deck_list' %}" class="th-btn th-btn-primary">
-                <i class="bi bi-easel2"></i> Slide Decks
-            </a>
-            {% elif 'licensure_prep' in tool.tools %}
-            <a href="{% url 'individual:licensure_dashboard' %}" class="th-btn th-btn-primary">
-                <i class="bi bi-mortarboard"></i> GTLE Prep
-            </a>
-            {% elif 'ai_tutor' in tool.tools %}
-            <a href="{% url 'individual:ai_tutor_dashboard' %}" class="th-btn th-btn-primary">
-                <i class="bi bi-robot"></i> AI Assistant
-            </a>
-            {% elif 'ges_letter' in tool.tools %}
-            <a href="{% url 'individual:letter_dashboard' %}" class="th-btn th-btn-primary">
-                <i class="bi bi-envelope-paper"></i> Letters
-            </a>
-            {% elif 'paper_marker' in tool.tools %}
-            <a href="{% url 'individual:marker_dashboard' %}" class="th-btn th-btn-primary">
-                <i class="bi bi-clipboard-check"></i> Mark Papers
-            </a>
-            {% elif 'computhink' in tool.tools %}
-            <a href="{% url 'individual:computhink_dashboard' %}" class="th-btn th-btn-primary">
-                <i class="bi bi-cpu"></i> CompuThink
-            </a>
-            {% elif 'literacy' in tool.tools %}
-            <a href="{% url 'individual:literacy_dashboard' %}" class="th-btn th-btn-primary">
-                <i class="bi bi-book"></i> Literacy
-            </a>
-            {% elif 'citizen_ed' in tool.tools %}
-            <a href="{% url 'individual:citizen_ed_dashboard' %}" class="th-btn th-btn-primary">
-                <i class="bi bi-globe-americas"></i> CitizenEd
-            </a>
-            {% elif 'tvet' in tool.tools %}
-            <a href="{% url 'individual:tvet_dashboard' %}" class="th-btn th-btn-primary">
-                <i class="bi bi-tools"></i> TVET
-            </a>
-            {% endif %}
-            <span class="th-badge-active ms-auto"><i class="bi bi-check-circle"></i> Active</span>
-        </div>
-    </div>
-{% if forloop.last %}
+<!-- Stat Pills -->
+{% if total_items > 0 %}
+<div class="th-pills">
+    {% if counts.questions %}<span class="th-pill"><i class="bi bi-file-earmark-text" style="color:#4361ee"></i> <strong>{{ counts.questions }}</strong> Questions</span>{% endif %}
+    {% if counts.exams %}<span class="th-pill"><i class="bi bi-file-text" style="color:#4361ee"></i> <strong>{{ counts.exams }}</strong> Exams</span>{% endif %}
+    {% if counts.lessons %}<span class="th-pill"><i class="bi bi-journal-bookmark" style="color:#059669"></i> <strong>{{ counts.lessons }}</strong> Lessons</span>{% endif %}
+    {% if counts.slides %}<span class="th-pill"><i class="bi bi-easel2" style="color:#7c3aed"></i> <strong>{{ counts.slides }}</strong> Slides</span>{% endif %}
+    {% if counts.reports %}<span class="th-pill"><i class="bi bi-file-earmark-bar-graph" style="color:#d97706"></i> <strong>{{ counts.reports }}</strong> Reports</span>{% endif %}
+    {% if counts.letters %}<span class="th-pill"><i class="bi bi-envelope-paper" style="color:#2563eb"></i> <strong>{{ counts.letters }}</strong> Letters</span>{% endif %}
+    {% if counts.marked %}<span class="th-pill"><i class="bi bi-clipboard-check" style="color:#e11d48"></i> <strong>{{ counts.marked }}</strong> Marked</span>{% endif %}
+    {% if counts.gtle %}<span class="th-pill"><i class="bi bi-mortarboard" style="color:#0d9488"></i> <strong>{{ counts.gtle }}</strong> GTLE</span>{% endif %}
+    {% if counts.chats %}<span class="th-pill"><i class="bi bi-robot" style="color:#0891b2"></i> <strong>{{ counts.chats }}</strong> Chats</span>{% endif %}
+    {% if counts.computing %}<span class="th-pill"><i class="bi bi-cpu" style="color:#0ea5e9"></i> <strong>{{ counts.computing }}</strong> Computing</span>{% endif %}
+    {% if counts.literacy %}<span class="th-pill"><i class="bi bi-book" style="color:#f59e0b"></i> <strong>{{ counts.literacy }}</strong> Literacy</span>{% endif %}
+    {% if counts.social %}<span class="th-pill"><i class="bi bi-globe-americas" style="color:#8b5cf6"></i> <strong>{{ counts.social }}</strong> Social Studies</span>{% endif %}
+    {% if counts.tvet %}<span class="th-pill"><i class="bi bi-tools" style="color:#ec4899"></i> <strong>{{ counts.tvet }}</strong> TVET</span>{% endif %}
 </div>
 {% endif %}
-{% endif %}
-{% endfor %}
-{% endwith %}
 
-<!-- All Tools -->
-<div class="th-section-title"><i class="bi bi-grid-3x3-gap"></i> All Teaching Tools</div>
-<div class="th-grid">
-{% for tool in tools %}
-    <div class="iu-card th-card">
-        <div class="th-card-header">
-            <div class="th-card-icon" style="background:{{ tool.color }}15;color:{{ tool.color }}">
-                <i class="bi {{ tool.icon }}"></i>
-            </div>
-            <div>
-                <div class="th-card-title">{{ tool.name }}</div>
-                <div class="th-card-tagline">{{ tool.tagline }}</div>
-            </div>
+<!-- Grouped tools -->
+{% for group in groups %}
+{% if group.tools %}
+<div class="th-group">
+    <div class="th-group-header">
+        <div class="th-group-icon"><i class="bi {{ group.icon }}"></i></div>
+        <div>
+            <div class="th-group-title">{{ group.title }}</div>
+            <div class="th-group-desc">{{ group.desc }}</div>
         </div>
-        <p class="th-card-desc">{{ tool.description }}</p>
-        <ul class="th-features">
-        {% for feat in tool.features %}
-            <li><i class="bi bi-check-circle-fill"></i> {{ feat }}</li>
-        {% endfor %}
-        </ul>
-        <div class="th-card-actions">
-            {% if tool.coming_soon %}
-                <span class="th-badge-soon"><i class="bi bi-clock"></i> Coming Soon</span>
-            {% elif tool.subscribed %}
-                {% if 'question_bank' in tool.tools %}
-                <a href="{% url 'individual:question_bank' %}" class="th-btn th-btn-primary">
-                    <i class="bi bi-arrow-right"></i> Open Tool
-                </a>
-                {% elif 'lesson_plan' in tool.tools %}
-                <a href="{% url 'individual:lesson_plans' %}" class="th-btn th-btn-primary">
-                    <i class="bi bi-arrow-right"></i> Open Tool
-                </a>
-                {% elif 'slide_deck' in tool.tools %}
-                <a href="{% url 'individual:deck_list' %}" class="th-btn th-btn-primary">
-                    <i class="bi bi-arrow-right"></i> Open Tool
-                </a>
-                {% elif 'licensure_prep' in tool.tools %}
-                <a href="{% url 'individual:licensure_dashboard' %}" class="th-btn th-btn-primary">
-                    <i class="bi bi-arrow-right"></i> Open Tool
-                </a>
-                {% elif 'ai_tutor' in tool.tools %}
-                <a href="{% url 'individual:ai_tutor_dashboard' %}" class="th-btn th-btn-primary">
-                    <i class="bi bi-arrow-right"></i> Open Tool
-                </a>
-                {% elif 'ges_letter' in tool.tools %}
-                <a href="{% url 'individual:letter_dashboard' %}" class="th-btn th-btn-primary">
-                    <i class="bi bi-arrow-right"></i> Open Tool
-                </a>
-                {% elif 'paper_marker' in tool.tools %}
-                <a href="{% url 'individual:marker_dashboard' %}" class="th-btn th-btn-primary">
-                    <i class="bi bi-arrow-right"></i> Open Tool
-                </a>
-                {% elif 'computhink' in tool.tools %}
-                <a href="{% url 'individual:computhink_dashboard' %}" class="th-btn th-btn-primary">
-                    <i class="bi bi-arrow-right"></i> Open Tool
-                </a>
-                {% elif 'literacy' in tool.tools %}
-                <a href="{% url 'individual:literacy_dashboard' %}" class="th-btn th-btn-primary">
-                    <i class="bi bi-arrow-right"></i> Open Tool
-                </a>
-                {% elif 'citizen_ed' in tool.tools %}
-                <a href="{% url 'individual:citizen_ed_dashboard' %}" class="th-btn th-btn-primary">
-                    <i class="bi bi-arrow-right"></i> Open Tool
-                </a>
-                {% elif 'tvet' in tool.tools %}
-                <a href="{% url 'individual:tvet_dashboard' %}" class="th-btn th-btn-primary">
-                    <i class="bi bi-arrow-right"></i> Open Tool
-                </a>
+    </div>
+    <div class="th-grid">
+    {% for tool in group.tools %}
+        <div class="iu-card th-card">
+            <div class="th-card-top">
+                <div class="th-card-icon" style="background:{{ tool.color }}15;color:{{ tool.color }}">
+                    <i class="bi {{ tool.icon }}"></i>
+                </div>
+                <div>
+                    <div class="th-card-title">{{ tool.name }}</div>
+                    <div class="th-card-tagline">{{ tool.tagline }}</div>
+                </div>
+            </div>
+            <p class="th-card-desc">{{ tool.description }}</p>
+            <div class="th-card-foot">
+                {% if tool.coming_soon %}
+                    <span class="th-badge th-badge-soon"><i class="bi bi-clock"></i> Coming Soon</span>
+                {% elif tool.subscribed %}
+                    <a href="{{ tool.url }}" class="th-btn th-btn-open"><i class="bi bi-arrow-right"></i> Open</a>
+                    {% if tool.secondary_url %}
+                    <a href="{{ tool.secondary_url }}" class="th-btn th-btn-second"><i class="bi bi-file-text"></i> Exams</a>
+                    {% endif %}
+                    <span class="th-badge th-badge-active"><i class="bi bi-check-circle"></i> Active</span>
+                {% else %}
+                    <a href="{% url 'individual:addons' %}" class="th-btn th-btn-get"><i class="bi bi-plus-circle"></i> Get This Tool</a>
                 {% endif %}
-                <span class="th-badge-active"><i class="bi bi-check-circle"></i> Subscribed</span>
-            {% else %}
-                <a href="{% url 'individual:addons' %}" class="th-btn th-btn-primary">
-                    <i class="bi bi-plus-circle"></i> Get This Tool
-                </a>
-            {% endif %}
+            </div>
         </div>
+    {% endfor %}
     </div>
-{% endfor %}
 </div>
+{% endif %}
+{% endfor %}
 {% endblock %}

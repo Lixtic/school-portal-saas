@@ -26,6 +26,7 @@ from individual_users.forms import (
 from individual_users.models import (
     AddonSubscription, APIKey, IndividualProfile, VerificationCode,
     ToolExamPaper, ToolLessonPlan, ToolQuestion,
+    CompuThinkActivity, LiteracyExercise, CitizenEdActivity, TVETProject,
 )
 
 logger = logging.getLogger(__name__)
@@ -849,6 +850,10 @@ def dashboard_view(request):
             'questions': ToolQuestion.objects.filter(profile=profile).count(),
             'exams': ToolExamPaper.objects.filter(profile=profile).count(),
             'lessons': ToolLessonPlan.objects.filter(profile=profile).count(),
+            'computhink': CompuThinkActivity.objects.filter(profile=profile).count(),
+            'literacy': LiteracyExercise.objects.filter(profile=profile).count(),
+            'citizen_ed': CitizenEdActivity.objects.filter(profile=profile).count(),
+            'tvet': TVETProject.objects.filter(profile=profile).count(),
         }
         # Build subscribed addons with icons and URL names for the dashboard
         _ADDON_URL_MAP = {
@@ -860,6 +865,10 @@ def dashboard_view(request):
             'letter-writer': 'individual:letter_dashboard',
             'paper-marker': 'individual:marker_dashboard',
             'report-card': 'individual:report_card_dashboard',
+            'computhink-lab': 'individual:computhink_dashboard',
+            'literacy-toolkit': 'individual:literacy_dashboard',
+            'citizen-ed': 'individual:citizen_ed_dashboard',
+            'tvet-workshop': 'individual:tvet_dashboard',
         }
         _ADDON_COLORS = {
             'exam-generator': '#4361ee',
@@ -872,6 +881,10 @@ def dashboard_view(request):
             'attendance-tracker': '#dc2626',
             'letter-writer': '#2563eb',
             'paper-marker': '#e11d48',
+            'computhink-lab': '#6366f1',
+            'literacy-toolkit': '#0ea5e9',
+            'citizen-ed': '#059669',
+            'tvet-workshop': '#d97706',
         }
         catalog_map = {a['slug']: a for a in TEACHER_ADDON_CATALOG}
         for sub in subscriptions:
@@ -885,14 +898,28 @@ def dashboard_view(request):
                     'url_name': _ADDON_URL_MAP.get(sub.addon_slug, ''),
                 })
 
+    # Time-of-day greeting
+    from django.utils import timezone
+    hour = timezone.localtime().hour
+    if hour < 12:
+        greeting = 'Good morning'
+    elif hour < 17:
+        greeting = 'Good afternoon'
+    else:
+        greeting = 'Good evening'
+
+    total_content = sum(tool_stats.values()) if tool_stats else 0
+
     ctx = {
         'profile': profile,
         'role': profile.role,
+        'greeting': greeting,
         'subscriptions': subscriptions,
         'subscription_count': subscriptions.count(),
         'api_keys': api_keys,
         'api_key_count': active_keys,
         'total_api_calls': total_calls,
+        'total_content': total_content,
         'addon_catalog': _catalog_for_role(profile.role),
         'catalog_count': len(_catalog_for_role(profile.role)),
         'recommended_addons': recommended,

@@ -3,511 +3,639 @@
 {% block page_title %}Dashboard{% endblock %}
 
 {% block extra_css %}
-.iu-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1.75rem;
-}
-.iu-stat {
-    padding: 1.25rem;
-}
-.iu-stat-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.1rem;
-    margin-bottom: 0.75rem;
-}
-.iu-stat-icon.purple { background: rgba(67,97,238,0.1); color: #4361ee; }
-.iu-stat-icon.cyan { background: rgba(76,201,240,0.1); color: #0891b2; }
-.iu-stat-icon.green { background: rgba(16,185,129,0.1); color: #059669; }
-.iu-stat-icon.amber { background: rgba(245,158,11,0.1); color: #d97706; }
-[data-bs-theme="dark"] .iu-stat-icon.purple { background: rgba(67,97,238,0.2); color: #818cf8; }
-[data-bs-theme="dark"] .iu-stat-icon.cyan { background: rgba(76,201,240,0.2); color: #67e8f9; }
-[data-bs-theme="dark"] .iu-stat-icon.green { background: rgba(16,185,129,0.2); color: #34d399; }
-[data-bs-theme="dark"] .iu-stat-icon.amber { background: rgba(245,158,11,0.2); color: #fbbf24; }
-.iu-stat-value {
-    font-size: 1.75rem;
-    font-weight: 800;
-    line-height: 1;
-    margin-bottom: 0.2rem;
-}
-.iu-stat-label {
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    font-weight: 500;
-}
-
-/* Quick start guide */
-.iu-quick-start {
-    padding: 1.5rem;
-    margin-bottom: 1.75rem;
-    background: linear-gradient(135deg, rgba(67,97,238,0.06) 0%, rgba(76,201,240,0.04) 100%);
-    border: 1px solid rgba(67,97,238,0.15);
-}
-[data-bs-theme="dark"] .iu-quick-start {
-    background: linear-gradient(135deg, rgba(67,97,238,0.12) 0%, rgba(76,201,240,0.08) 100%);
-    border-color: rgba(67,97,238,0.25);
-}
-.iu-quick-start h3 {
-    font-size: 1.05rem;
-    font-weight: 700;
-    margin-bottom: 1rem;
-}
-.iu-steps {
-    display: flex;
-    gap: 1.5rem;
-    flex-wrap: wrap;
-}
-.iu-step {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.65rem;
-    flex: 1;
-    min-width: 180px;
-}
-.iu-step-num {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    background: var(--brand-primary);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.78rem;
-    font-weight: 700;
-    flex-shrink: 0;
-}
-.iu-step-text {
-    font-size: 0.85rem;
-    line-height: 1.4;
-}
-.iu-step-text strong {
-    display: block;
-    font-size: 0.82rem;
-    margin-bottom: 2px;
-}
-.iu-step-text span {
-    color: var(--text-muted);
-    font-size: 0.78rem;
-}
-
-/* Active subs & addon grid */
-.iu-section-title {
-    font-size: 1rem;
-    font-weight: 700;
-    margin-bottom: 1rem;
+/* ── Welcome ──────────────────────────────────────────── */
+.db-welcome {
     display: flex;
     align-items: center;
     justify-content: space-between;
-}
-.iu-section-title a {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--brand-primary);
-    text-decoration: none;
-}
-.iu-sub-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 1rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1.75rem;
+    flex-wrap: wrap;
 }
-.iu-sub-card {
-    padding: 1rem 1.15rem;
+.db-welcome-left { flex: 1; min-width: 200px; }
+.db-welcome h2 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin: 0 0 0.15rem;
+    letter-spacing: -0.02em;
+}
+.db-welcome p {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+.db-welcome-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.db-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1.15rem;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+.db-btn-primary {
+    background: var(--brand-gradient);
+    color: #fff;
+    box-shadow: 0 2px 10px rgba(67,97,238,0.25);
+}
+.db-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(67,97,238,0.35); color: #fff; }
+.db-btn-ghost {
+    background: var(--surface-card);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+}
+.db-btn-ghost:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
+
+/* ── Profile Nudge ────────────────────────────────────── */
+.db-nudge {
+    padding: 0.85rem 1.15rem;
+    margin-bottom: 1.5rem;
+    border-left: 3px solid #f59e0b;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+.db-nudge-icon {
+    width: 34px; height: 34px; border-radius: 9px;
+    background: rgba(245,158,11,0.1); display: flex;
+    align-items: center; justify-content: center; flex-shrink: 0;
+}
+.db-nudge-icon i { color: #d97706; font-size: 1rem; }
+.db-nudge-body { flex: 1; min-width: 180px; }
+.db-nudge-body strong { font-size: 0.85rem; display: block; margin-bottom: 1px; }
+.db-nudge-body span { font-size: 0.78rem; color: var(--text-muted); }
+.db-nudge a { font-size: 0.8rem; font-weight: 600; color: var(--brand-primary); text-decoration: none; white-space: nowrap; }
+
+/* ── Stats Grid ───────────────────────────────────────── */
+.db-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.85rem;
+    margin-bottom: 1.75rem;
+}
+.db-stat {
+    padding: 1.15rem;
     display: flex;
     align-items: center;
     gap: 0.85rem;
 }
-.iu-sub-icon {
-    width: 42px;
-    height: 42px;
-    border-radius: 10px;
-    background: rgba(67,97,238,0.1);
-    color: var(--brand-primary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.15rem;
-    flex-shrink: 0;
+.db-stat-icon {
+    width: 42px; height: 42px; border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; flex-shrink: 0;
 }
-[data-bs-theme="dark"] .iu-sub-icon { background: rgba(67,97,238,0.2); }
-.iu-sub-info { flex: 1; min-width: 0; }
-.iu-sub-name {
-    font-weight: 600;
-    font-size: 0.88rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.iu-sub-plan {
-    font-size: 0.72rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    font-weight: 600;
-    letter-spacing: 0.03em;
+.db-stat-body { min-width: 0; }
+.db-stat-val { font-size: 1.55rem; font-weight: 800; line-height: 1; }
+.db-stat-lbl { font-size: 0.72rem; color: var(--text-muted); font-weight: 500; margin-top: 2px; }
+
+/* stat color atoms */
+.db-c-blue  { background: rgba(67,97,238,0.1);  color: #4361ee; }
+.db-c-cyan  { background: rgba(14,165,233,0.1); color: #0891b2; }
+.db-c-green { background: rgba(16,185,129,0.1); color: #059669; }
+.db-c-amber { background: rgba(245,158,11,0.1); color: #d97706; }
+[data-bs-theme="dark"] .db-c-blue  { background: rgba(67,97,238,0.18);  color: #818cf8; }
+[data-bs-theme="dark"] .db-c-cyan  { background: rgba(14,165,233,0.18); color: #67e8f9; }
+[data-bs-theme="dark"] .db-c-green { background: rgba(16,185,129,0.18); color: #34d399; }
+[data-bs-theme="dark"] .db-c-amber { background: rgba(245,158,11,0.18); color: #fbbf24; }
+
+/* ── Two-column layout ────────────────────────────────── */
+.db-columns {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 1.25rem;
+    align-items: start;
 }
 
-/* Empty state */
-.iu-empty {
-    text-align: center;
-    padding: 2.5rem 1rem;
-    color: var(--text-muted);
+/* ── Section Header ───────────────────────────────────── */
+.db-section-hdr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.85rem;
 }
-.iu-empty i {
-    font-size: 2.5rem;
-    margin-bottom: 0.75rem;
-    opacity: 0.4;
+.db-section-hdr h3 {
+    font-size: 0.92rem;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
 }
-.iu-empty p {
-    font-size: 0.88rem;
-    margin-bottom: 1rem;
-}
-.iu-empty a {
-    color: var(--brand-primary);
+.db-section-hdr a {
+    font-size: 0.78rem;
     font-weight: 600;
+    color: var(--brand-primary);
     text-decoration: none;
 }
 
-/* API key snippet */
-.iu-code-block {
+/* ── Workspace Grid (tool cards) ──────────────────────── */
+.db-workspace {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+    gap: 0.65rem;
+    margin-bottom: 1.75rem;
+}
+.db-tool {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1.1rem 0.75rem;
+    text-decoration: none;
+    color: var(--text-main);
+    transition: all 0.18s ease;
+    text-align: center;
+}
+.db-tool:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+    border-color: rgba(67,97,238,0.25);
+    color: var(--text-main);
+}
+.db-tool-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; flex-shrink: 0;
+}
+.db-tool-name {
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.25;
+}
+.db-tool-count {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* ── Addon Chip ───────────────────────────────────────── */
+.db-addon-chips {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1.75rem;
+}
+.db-addon-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    text-decoration: none;
+    color: var(--text-main);
+    transition: all 0.15s;
+}
+.db-addon-row:hover {
+    border-color: rgba(67,97,238,0.25);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+    color: var(--text-main);
+}
+.db-addon-dot {
+    width: 36px; height: 36px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; flex-shrink: 0;
+}
+.db-addon-meta { flex: 1; min-width: 0; }
+.db-addon-name { font-weight: 600; font-size: 0.84rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.db-addon-desc { font-size: 0.7rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Onboarding ───────────────────────────────────────── */
+.db-onboard {
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(135deg, rgba(67,97,238,0.06), rgba(76,201,240,0.04));
+    border: 1px solid rgba(67,97,238,0.15);
+}
+[data-bs-theme="dark"] .db-onboard {
+    background: linear-gradient(135deg, rgba(67,97,238,0.12), rgba(76,201,240,0.08));
+    border-color: rgba(67,97,238,0.25);
+}
+.db-onboard h4 {
+    font-size: 0.95rem; font-weight: 700; margin-bottom: 0.85rem;
+    display: flex; align-items: center; gap: 0.4rem;
+}
+.db-o-steps {
+    display: flex;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+}
+.db-o-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    flex: 1;
+    min-width: 160px;
+}
+.db-o-num {
+    width: 26px; height: 26px; border-radius: 7px;
+    background: var(--brand-primary); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.72rem; font-weight: 700; flex-shrink: 0;
+}
+.db-o-text { font-size: 0.82rem; line-height: 1.35; }
+.db-o-text strong { display: block; font-size: 0.8rem; margin-bottom: 1px; }
+.db-o-text span { color: var(--text-muted); font-size: 0.75rem; }
+.db-o-text a { color: var(--brand-primary); text-decoration: none; font-weight: 600; }
+
+/* ── Recommended ──────────────────────────────────────── */
+.db-rec-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+    margin-bottom: 1.5rem;
+}
+.db-rec {
+    padding: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    border-left: 3px solid var(--brand-primary);
+}
+.db-rec-icon {
+    width: 38px; height: 38px; border-radius: 9px;
+    background: rgba(67,97,238,0.1); color: var(--brand-primary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.05rem; flex-shrink: 0;
+}
+[data-bs-theme="dark"] .db-rec-icon { background: rgba(67,97,238,0.18); }
+.db-rec-info { flex: 1; min-width: 0; }
+.db-rec-name { font-weight: 600; font-size: 0.84rem; }
+.db-rec-desc { font-size: 0.72rem; color: var(--text-muted); }
+
+/* ── Subscriptions ────────────────────────────────────── */
+.db-sub-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.db-sub-row {
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.db-sub-icon {
+    width: 36px; height: 36px; border-radius: 9px;
+    background: rgba(67,97,238,0.1); color: var(--brand-primary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; flex-shrink: 0;
+}
+[data-bs-theme="dark"] .db-sub-icon { background: rgba(67,97,238,0.18); }
+.db-sub-meta { flex: 1; min-width: 0; }
+.db-sub-name { font-weight: 600; font-size: 0.84rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.db-sub-plan { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.03em; }
+
+/* ── Empty State ──────────────────────────────────────── */
+.db-empty {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text-muted);
+}
+.db-empty i { font-size: 2rem; margin-bottom: 0.6rem; opacity: 0.35; display: block; }
+.db-empty p { font-size: 0.85rem; margin-bottom: 0.75rem; }
+.db-empty a { color: var(--brand-primary); font-weight: 600; text-decoration: none; }
+
+/* ── Code Block ───────────────────────────────────────── */
+.db-code {
     background: #1e293b;
     color: #e2e8f0;
     border-radius: 10px;
-    padding: 1rem 1.25rem;
+    padding: 0.85rem 1.1rem;
     font-family: 'SF Mono', 'Consolas', monospace;
-    font-size: 0.8rem;
-    overflow-x: auto;
-    line-height: 1.6;
-    margin-top: 1rem;
-}
-.iu-code-block .iu-code-comment { color: #64748b; }
-.iu-code-block .iu-code-string { color: #34d399; }
-.iu-code-block .iu-code-key { color: #38bdf8; }
-
-/* ── Quick Actions Row ────────────────────────────────── */
-.iu-qa-row {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    align-items: center;
-    margin-bottom: 1.5rem;
-}
-.iu-qa-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.5rem 1rem;
-    border-radius: 50px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-decoration: none;
-    color: #fff;
-    border: none;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    transition: all 0.15s ease;
-    white-space: nowrap;
-}
-.iu-qa-pill:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
-    color: #fff;
-}
-.iu-qa-pill i { font-size: 0.85rem; }
-.iu-qa-pill-outline {
-    background: var(--surface-card) !important;
-    color: var(--text-muted) !important;
-    border: 1px solid var(--border-color, #e2e8f0);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-}
-.iu-qa-pill-outline:hover {
-    border-color: #4361ee;
-    color: #4361ee !important;
-}
-
-/* ── My Add-ons Strip ────────────────────────────────── */
-.iu-addons-strip {
-    margin-bottom: 1.75rem;
-}
-.iu-addons-label {
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: #64748b;
-    margin-bottom: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-}
-.iu-addon-chips {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-.iu-addon-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    padding: 0.45rem 0.85rem;
-    border-radius: 10px;
-    background: var(--surface-card);
-    border: 1.5px solid rgba(124,58,237,0.12);
-    text-decoration: none;
-    color: var(--text-main);
     font-size: 0.78rem;
-    font-weight: 600;
-    transition: all 0.15s;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    overflow-x: auto;
+    line-height: 1.55;
+    margin-top: 0.75rem;
 }
-.iu-addon-chip:hover {
-    border-color: rgba(124,58,237,0.35);
-    box-shadow: 0 3px 12px rgba(124,58,237,0.1);
-    transform: translateY(-1px);
-    color: #7c3aed;
-}
-.iu-chip-icon {
-    width: 26px;
-    height: 26px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 7px;
-    font-size: 0.8rem;
-    flex-shrink: 0;
-}
-[data-bs-theme="dark"] .iu-addon-chip {
-    background: rgba(30,41,59,0.8);
-    border-color: rgba(124,58,237,0.2);
-    color: #e2e8f0;
-}
-[data-bs-theme="dark"] .iu-addon-chip:hover {
-    border-color: rgba(167,139,250,0.45);
-    color: #a78bfa;
-}
+.db-code .cm { color: #64748b; }
+.db-code .str { color: #34d399; }
+.db-code .kw { color: #38bdf8; }
 
+/* ── Responsive ───────────────────────────────────────── */
+@media (max-width: 991px) {
+    .db-columns { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+    .db-stats { grid-template-columns: repeat(2, 1fr); }
+    .db-rec-grid { grid-template-columns: 1fr; }
+    .db-workspace { grid-template-columns: repeat(3, 1fr); }
+}
 @media (max-width: 576px) {
-    .iu-stats { grid-template-columns: 1fr 1fr; }
-    .iu-steps { flex-direction: column; }
-    .iu-qa-row { gap: 0.35rem; }
-    .iu-qa-pill { font-size: 0.72rem; padding: 0.4rem 0.75rem; }
+    .db-stats { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    .db-stat { padding: 0.85rem; }
+    .db-stat-val { font-size: 1.25rem; }
+    .db-welcome h2 { font-size: 1.2rem; }
+    .db-o-steps { flex-direction: column; }
+    .db-workspace { grid-template-columns: repeat(2, 1fr); }
 }
 {% endblock %}
 
 {% block content %}
-<!-- Profile completion nudge -->
+<!-- ═══ Welcome ═══ -->
+<div class="db-welcome">
+    <div class="db-welcome-left">
+        <h2>{{ greeting }}, {{ request.user.first_name|default:request.user.username }}!</h2>
+        <p>{% if role == 'teacher' %}Your teaching workspace — everything in one place.{% else %}Manage your API integrations and developer tools.{% endif %}</p>
+    </div>
+    <div class="db-welcome-actions">
+        {% if role == 'teacher' %}
+        <a href="{% url 'individual:tools_hub' %}" class="db-btn db-btn-primary"><i class="bi bi-grid-3x3-gap"></i> My Tools</a>
+        <a href="{% url 'individual:addons' %}" class="db-btn db-btn-ghost"><i class="bi bi-bag"></i> Add-ons</a>
+        {% else %}
+        <a href="{% url 'individual:api_keys' %}" class="db-btn db-btn-primary"><i class="bi bi-key"></i> API Keys</a>
+        <a href="{% url 'individual:addons' %}" class="db-btn db-btn-ghost"><i class="bi bi-box-seam"></i> Add-ons</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ═══ Profile Nudge ═══ -->
 {% if not profile.phone_number or not profile.user.email %}
-<div class="iu-card" style="padding:1rem 1.25rem;margin-bottom:1.5rem;border-left:3px solid #f59e0b;display:flex;align-items:center;gap:.85rem;flex-wrap:wrap">
-    <div style="width:36px;height:36px;border-radius:10px;background:rgba(245,158,11,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <i class="bi bi-person-exclamation" style="color:#d97706;font-size:1.1rem"></i>
+<div class="iu-card db-nudge">
+    <div class="db-nudge-icon"><i class="bi bi-person-exclamation"></i></div>
+    <div class="db-nudge-body">
+        <strong>Finish setting up your account</strong>
+        <span>{% if not profile.phone_number and not profile.user.email %}Add an email and phone number to secure your account.{% elif not profile.phone_number %}Add a phone number for backup sign-in.{% else %}Add an email for important notifications.{% endif %}</span>
     </div>
-    <div style="flex:1;min-width:200px">
-        <div style="font-weight:700;font-size:.88rem;margin-bottom:2px">Finish setting up your account</div>
-        <div style="font-size:.8rem;color:var(--text-muted)">
-            {% if not profile.phone_number and not profile.user.email %}Add an email address and phone number to secure your account.
-            {% elif not profile.phone_number %}Add a phone number so you have a backup way to sign in.
-            {% else %}Add an email address so you can receive important notifications.
-            {% endif %}
-        </div>
-    </div>
-    <a href="{% url 'individual:settings' %}" style="font-size:.82rem;font-weight:600;color:var(--brand-primary);text-decoration:none;white-space:nowrap">
-        Complete profile <i class="bi bi-arrow-right" style="font-size:.75rem"></i>
-    </a>
+    <a href="{% url 'individual:settings' %}">Complete profile <i class="bi bi-arrow-right"></i></a>
 </div>
 {% endif %}
 
-<!-- Stats -->
-<div class="iu-stats">
+<!-- ═══ Stats ═══ -->
+<div class="db-stats">
     {% if role == 'teacher' %}
-    <div class="iu-card iu-stat">
-        <div class="iu-stat-icon green"><i class="bi bi-journal-bookmark"></i></div>
-        <div class="iu-stat-value">{{ tool_stats.lessons|default:"0" }}</div>
-        <div class="iu-stat-label">Lesson Plans</div>
+    <div class="iu-card db-stat">
+        <div class="db-stat-icon db-c-green"><i class="bi bi-journal-bookmark"></i></div>
+        <div class="db-stat-body">
+            <div class="db-stat-val">{{ tool_stats.lessons|default:"0" }}</div>
+            <div class="db-stat-lbl">Lesson Plans</div>
+        </div>
     </div>
-    <div class="iu-card iu-stat">
-        <div class="iu-stat-icon purple"><i class="bi bi-question-circle"></i></div>
-        <div class="iu-stat-value">{{ tool_stats.questions|default:"0" }}</div>
-        <div class="iu-stat-label">Questions</div>
+    <div class="iu-card db-stat">
+        <div class="db-stat-icon db-c-blue"><i class="bi bi-patch-question"></i></div>
+        <div class="db-stat-body">
+            <div class="db-stat-val">{{ tool_stats.questions|default:"0" }}</div>
+            <div class="db-stat-lbl">Questions</div>
+        </div>
     </div>
-    <div class="iu-card iu-stat">
-        <div class="iu-stat-icon cyan"><i class="bi bi-file-earmark-text"></i></div>
-        <div class="iu-stat-value">{{ tool_stats.exams|default:"0" }}</div>
-        <div class="iu-stat-label">Exam Papers</div>
+    <div class="iu-card db-stat">
+        <div class="db-stat-icon db-c-cyan"><i class="bi bi-file-earmark-text"></i></div>
+        <div class="db-stat-body">
+            <div class="db-stat-val">{{ tool_stats.exams|default:"0" }}</div>
+            <div class="db-stat-lbl">Exam Papers</div>
+        </div>
     </div>
-    <div class="iu-card iu-stat">
-        <div class="iu-stat-icon amber"><i class="bi bi-box-seam"></i></div>
-        <div class="iu-stat-value">{{ subscription_count }}</div>
-        <div class="iu-stat-label">Active Addons</div>
+    <div class="iu-card db-stat">
+        <div class="db-stat-icon db-c-amber"><i class="bi bi-box-seam"></i></div>
+        <div class="db-stat-body">
+            <div class="db-stat-val">{{ subscription_count }}</div>
+            <div class="db-stat-lbl">Active Add-ons</div>
+        </div>
     </div>
     {% else %}
-    <div class="iu-card iu-stat">
-        <div class="iu-stat-icon purple"><i class="bi bi-box-seam"></i></div>
-        <div class="iu-stat-value">{{ subscription_count }}</div>
-        <div class="iu-stat-label">Active Addons</div>
+    <div class="iu-card db-stat">
+        <div class="db-stat-icon db-c-blue"><i class="bi bi-box-seam"></i></div>
+        <div class="db-stat-body">
+            <div class="db-stat-val">{{ subscription_count }}</div>
+            <div class="db-stat-lbl">Active Add-ons</div>
+        </div>
     </div>
-    <div class="iu-card iu-stat">
-        <div class="iu-stat-icon cyan"><i class="bi bi-key"></i></div>
-        <div class="iu-stat-value">{{ api_key_count }}</div>
-        <div class="iu-stat-label">API Keys</div>
+    <div class="iu-card db-stat">
+        <div class="db-stat-icon db-c-cyan"><i class="bi bi-key"></i></div>
+        <div class="db-stat-body">
+            <div class="db-stat-val">{{ api_key_count }}</div>
+            <div class="db-stat-lbl">API Keys</div>
+        </div>
     </div>
-    <div class="iu-card iu-stat">
-        <div class="iu-stat-icon green"><i class="bi bi-arrow-repeat"></i></div>
-        <div class="iu-stat-value">{{ total_api_calls|default:"0" }}</div>
-        <div class="iu-stat-label">Total API Calls</div>
+    <div class="iu-card db-stat">
+        <div class="db-stat-icon db-c-green"><i class="bi bi-arrow-repeat"></i></div>
+        <div class="db-stat-body">
+            <div class="db-stat-val">{{ total_api_calls|default:"0" }}</div>
+            <div class="db-stat-lbl">Total API Calls</div>
+        </div>
     </div>
-    <div class="iu-card iu-stat">
-        <div class="iu-stat-icon amber"><i class="bi bi-grid-3x3-gap"></i></div>
-        <div class="iu-stat-value">{{ catalog_count }}</div>
-        <div class="iu-stat-label">Available Addons</div>
+    <div class="iu-card db-stat">
+        <div class="db-stat-icon db-c-amber"><i class="bi bi-grid-3x3-gap"></i></div>
+        <div class="db-stat-body">
+            <div class="db-stat-val">{{ catalog_count }}</div>
+            <div class="db-stat-lbl">Available Add-ons</div>
+        </div>
     </div>
     {% endif %}
 </div>
 
-<!-- Quick Actions -->
 {% if role == 'teacher' %}
-<div class="iu-qa-row">
-    <a href="{% url 'individual:lesson_plans' %}" class="iu-qa-pill" style="background:linear-gradient(135deg,#059669,#10b981)">
-        <i class="bi bi-journal-bookmark"></i> Lesson Plans
-    </a>
-    <a href="{% url 'individual:question_bank' %}" class="iu-qa-pill" style="background:linear-gradient(135deg,#4361ee,#3b82f6)">
-        <i class="bi bi-file-earmark-text"></i> Question Bank
-    </a>
-    <a href="{% url 'individual:deck_list' %}" class="iu-qa-pill" style="background:linear-gradient(135deg,#7c3aed,#8b5cf6)">
-        <i class="bi bi-easel2"></i> Slide Decks
-    </a>
-    <a href="{% url 'individual:licensure_dashboard' %}" class="iu-qa-pill" style="background:linear-gradient(135deg,#0f766e,#0d9488)">
-        <i class="bi bi-mortarboard"></i> GTLE Prep
-    </a>
-    <a href="{% url 'individual:addons' %}" class="iu-qa-pill" style="background:linear-gradient(135deg,#d97706,#f59e0b)">
-        <i class="bi bi-bag"></i> Add-on Store
-    </a>
-    <a href="{% url 'individual:tools_hub' %}" class="iu-qa-pill iu-qa-pill-outline">
-        <i class="bi bi-grid-3x3-gap"></i> All Tools
-    </a>
-    <a href="{% url 'individual:settings' %}" class="iu-qa-pill iu-qa-pill-outline" title="Settings">
-        <i class="bi bi-gear"></i>
-    </a>
-</div>
-{% endif %}
+<!-- ═══ Two-Column: Workspace + Sidebar ═══ -->
+<div class="db-columns">
+    <!-- LEFT COLUMN -->
+    <div>
+        <!-- Your Workspace -->
+        <div class="db-section-hdr">
+            <h3><i class="bi bi-grid-3x3-gap" style="color:var(--brand-primary)"></i> Your Workspace</h3>
+            <a href="{% url 'individual:tools_hub' %}">All tools <i class="bi bi-arrow-right"></i></a>
+        </div>
+        <div class="db-workspace">
+            <a href="{% url 'individual:lesson_plans' %}" class="iu-card db-tool">
+                <div class="db-tool-icon" style="background:rgba(5,150,105,0.1);color:#059669"><i class="bi bi-journal-bookmark"></i></div>
+                <div class="db-tool-name">Lesson Planner</div>
+                <div class="db-tool-count">{{ tool_stats.lessons|default:"0" }} plans</div>
+            </a>
+            <a href="{% url 'individual:question_bank' %}" class="iu-card db-tool">
+                <div class="db-tool-icon" style="background:rgba(67,97,238,0.1);color:#4361ee"><i class="bi bi-file-earmark-text"></i></div>
+                <div class="db-tool-name">Exam Generator</div>
+                <div class="db-tool-count">{{ tool_stats.exams|default:"0" }} papers</div>
+            </a>
+            <a href="{% url 'individual:deck_list' %}" class="iu-card db-tool">
+                <div class="db-tool-icon" style="background:rgba(124,58,237,0.1);color:#7c3aed"><i class="bi bi-easel2"></i></div>
+                <div class="db-tool-name">Slide Decks</div>
+                <div class="db-tool-count">&nbsp;</div>
+            </a>
+            <a href="{% url 'individual:licensure_dashboard' %}" class="iu-card db-tool">
+                <div class="db-tool-icon" style="background:rgba(13,148,136,0.1);color:#0d9488"><i class="bi bi-mortarboard"></i></div>
+                <div class="db-tool-name">GTLE Prep</div>
+                <div class="db-tool-count">&nbsp;</div>
+            </a>
+            <a href="{% url 'individual:computhink_dashboard' %}" class="iu-card db-tool">
+                <div class="db-tool-icon" style="background:rgba(99,102,241,0.1);color:#6366f1"><i class="bi bi-cpu"></i></div>
+                <div class="db-tool-name">CompuThink</div>
+                <div class="db-tool-count">{{ tool_stats.computhink|default:"0" }} activities</div>
+            </a>
+            <a href="{% url 'individual:literacy_dashboard' %}" class="iu-card db-tool">
+                <div class="db-tool-icon" style="background:rgba(14,165,233,0.1);color:#0ea5e9"><i class="bi bi-book"></i></div>
+                <div class="db-tool-name">Literacy Toolkit</div>
+                <div class="db-tool-count">{{ tool_stats.literacy|default:"0" }} exercises</div>
+            </a>
+            <a href="{% url 'individual:citizen_ed_dashboard' %}" class="iu-card db-tool">
+                <div class="db-tool-icon" style="background:rgba(5,150,105,0.1);color:#059669"><i class="bi bi-globe-americas"></i></div>
+                <div class="db-tool-name">CitizenEd</div>
+                <div class="db-tool-count">{{ tool_stats.citizen_ed|default:"0" }} activities</div>
+            </a>
+            <a href="{% url 'individual:tvet_dashboard' %}" class="iu-card db-tool">
+                <div class="db-tool-icon" style="background:rgba(217,119,6,0.1);color:#d97706"><i class="bi bi-tools"></i></div>
+                <div class="db-tool-name">TVET Workshop</div>
+                <div class="db-tool-count">{{ tool_stats.tvet|default:"0" }} projects</div>
+            </a>
+        </div>
 
-<!-- My Add-ons -->
-{% if my_addons %}
-<div class="iu-addons-strip">
-    <div class="iu-addons-label">
-        <i class="bi bi-pin-angle-fill"></i> My Add-ons
-    </div>
-    <div class="iu-addon-chips">
-        {% for addon in my_addons %}
-        <a href="{% if addon.url_name %}{% url addon.url_name %}{% else %}{% url 'individual:tools_hub' %}{% endif %}" class="iu-addon-chip">
-            <div class="iu-chip-icon" style="background:{{ addon.color }}15;color:{{ addon.color }}">
-                <i class="bi {{ addon.icon }}"></i>
+        {% if recommended_addons %}
+        <!-- Recommended -->
+        <div class="db-section-hdr">
+            <h3><i class="bi bi-stars" style="color:var(--brand-primary)"></i> Recommended</h3>
+            <a href="{% url 'individual:addons' %}">View all <i class="bi bi-arrow-right"></i></a>
+        </div>
+        <div class="db-rec-grid">
+            {% for addon in recommended_addons %}
+            <div class="iu-card db-rec">
+                <div class="db-rec-icon"><i class="bi {{ addon.icon }}"></i></div>
+                <div class="db-rec-info">
+                    <div class="db-rec-name">{{ addon.name }}</div>
+                    <div class="db-rec-desc">{{ addon.description|truncatewords:8 }}</div>
+                </div>
             </div>
-            <span>{{ addon.name }}</span>
-        </a>
-        {% endfor %}
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div>
+        <!-- My Add-ons -->
+        {% if my_addons %}
+        <div class="db-section-hdr">
+            <h3><i class="bi bi-pin-angle-fill" style="color:var(--brand-primary)"></i> My Add-ons</h3>
+            <a href="{% url 'individual:addons' %}">Manage</a>
+        </div>
+        <div class="db-addon-chips">
+            {% for addon in my_addons %}
+            <a href="{% if addon.url_name %}{% url addon.url_name %}{% else %}{% url 'individual:tools_hub' %}{% endif %}" class="iu-card db-addon-row">
+                <div class="db-addon-dot" style="background:{{ addon.color }}15;color:{{ addon.color }}">
+                    <i class="bi {{ addon.icon }}"></i>
+                </div>
+                <div class="db-addon-meta">
+                    <div class="db-addon-name">{{ addon.name }}</div>
+                </div>
+                <i class="bi bi-chevron-right" style="color:var(--text-muted);font-size:0.75rem"></i>
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Active Subscriptions -->
+        <div class="db-section-hdr">
+            <h3>Subscriptions</h3>
+            <a href="{% url 'individual:addons' %}">Browse</a>
+        </div>
+        {% if subscriptions %}
+        <div class="db-sub-list">
+            {% for sub in subscriptions %}
+            <div class="iu-card db-sub-row">
+                <div class="db-sub-icon"><i class="bi bi-box-seam"></i></div>
+                <div class="db-sub-meta">
+                    <div class="db-sub-name">{{ sub.addon_name }}</div>
+                    <div class="db-sub-plan">{{ sub.get_plan_display }} plan</div>
+                </div>
+                <span class="iu-badge iu-badge-active">Active</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="iu-card">
+            <div class="db-empty">
+                <i class="bi bi-box-seam"></i>
+                <p>No active subscriptions</p>
+                <a href="{% url 'individual:addons' %}">Explore Add-ons</a>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
-{% endif %}
 
-<!-- Quick Start -->
-<div class="iu-card iu-quick-start">
-    {% if role == 'teacher' %}
-    <h3><i class="bi bi-mortarboard me-1"></i> Getting Started</h3>
-    <div class="iu-steps">
-        <div class="iu-step">
-            <div class="iu-step-num">1</div>
-            <div class="iu-step-text">
+<!-- Onboarding (only for new users) -->
+{% if total_content == 0 %}
+<div class="iu-card db-onboard">
+    <h4><i class="bi bi-mortarboard"></i> Getting Started</h4>
+    <div class="db-o-steps">
+        <div class="db-o-step">
+            <div class="db-o-num">1</div>
+            <div class="db-o-text">
                 <strong>Subscribe to tools</strong>
                 <span>Get the <a href="{% url 'individual:addons' %}">Lesson Planner</a> or Exam Generator</span>
             </div>
         </div>
-        <div class="iu-step">
-            <div class="iu-step-num">2</div>
-            <div class="iu-step-text">
+        <div class="db-o-step">
+            <div class="db-o-num">2</div>
+            <div class="db-o-text">
                 <strong>Create with AI</strong>
                 <span>Open <a href="{% url 'individual:tools_hub' %}">My Tools</a> and use AI to draft</span>
             </div>
         </div>
-        <div class="iu-step">
-            <div class="iu-step-num">3</div>
-            <div class="iu-step-text">
+        <div class="db-o-step">
+            <div class="db-o-num">3</div>
+            <div class="db-o-text">
                 <strong>Review &amp; print</strong>
                 <span>Edit AI output, then print or export</span>
             </div>
         </div>
     </div>
-    {% else %}
-    <h3><i class="bi bi-lightning-charge me-1"></i> Quick Start</h3>
-    <div class="iu-steps">
-        <div class="iu-step">
-            <div class="iu-step-num">1</div>
-            <div class="iu-step-text">
+</div>
+{% endif %}
+
+{% else %}
+<!-- ═══ Developer Dashboard ═══ -->
+
+<!-- Onboarding for devs -->
+{% if subscription_count == 0 %}
+<div class="iu-card db-onboard">
+    <h4><i class="bi bi-lightning-charge"></i> Quick Start</h4>
+    <div class="db-o-steps">
+        <div class="db-o-step">
+            <div class="db-o-num">1</div>
+            <div class="db-o-text">
                 <strong>Subscribe to an addon</strong>
                 <span>Browse the <a href="{% url 'individual:addons' %}">Addon Store</a></span>
             </div>
         </div>
-        <div class="iu-step">
-            <div class="iu-step-num">2</div>
-            <div class="iu-step-text">
+        <div class="db-o-step">
+            <div class="db-o-num">2</div>
+            <div class="db-o-text">
                 <strong>Generate an API key</strong>
                 <span>Go to <a href="{% url 'individual:api_keys' %}">API Keys</a></span>
             </div>
         </div>
-        <div class="iu-step">
-            <div class="iu-step-num">3</div>
-            <div class="iu-step-text">
+        <div class="db-o-step">
+            <div class="db-o-num">3</div>
+            <div class="db-o-text">
                 <strong>Make your first call</strong>
                 <span>Use the code sample below</span>
             </div>
         </div>
     </div>
-
-    <div class="iu-code-block">
-        <span class="iu-code-comment"># Verify your API key</span><br>
-        <span class="iu-code-key">curl</span> -H <span class="iu-code-string">"Authorization: Bearer YOUR_API_KEY"</span> \<br>
+    <div class="db-code">
+        <span class="cm"># Verify your API key</span><br>
+        <span class="kw">curl</span> -H <span class="str">"Authorization: Bearer YOUR_API_KEY"</span> \<br>
         &nbsp;&nbsp;&nbsp;&nbsp; {{ request.scheme }}://{{ request.get_host }}/u/api/status/
     </div>
-    {% endif %}
-</div>
-
-{% if role == 'teacher' and recommended_addons %}
-<!-- Recommended for Teachers -->
-<div class="iu-section-title">
-    <span><i class="bi bi-stars" style="color:var(--brand-primary)"></i> Recommended for Teachers</span>
-    <a href="{% url 'individual:addons' %}">View all <i class="bi bi-arrow-right"></i></a>
-</div>
-<div class="iu-sub-grid" style="margin-bottom:2rem">
-    {% for addon in recommended_addons %}
-    <div class="iu-card iu-sub-card" style="border-left:3px solid var(--brand-primary)">
-        <div class="iu-sub-icon"><i class="bi {{ addon.icon }}"></i></div>
-        <div class="iu-sub-info">
-            <div class="iu-sub-name">{{ addon.name }}</div>
-            <div class="iu-sub-plan" style="color:var(--text-muted);text-transform:none;font-weight:400;letter-spacing:normal">{{ addon.description|truncatewords:8 }}</div>
-        </div>
-    </div>
-    {% endfor %}
 </div>
 {% endif %}
 
 <!-- Active Subscriptions -->
-<div class="iu-section-title">
-    Active Subscriptions
+<div class="db-section-hdr">
+    <h3>Active Subscriptions</h3>
     <a href="{% url 'individual:addons' %}">Browse addons <i class="bi bi-arrow-right"></i></a>
 </div>
-
 {% if subscriptions %}
-<div class="iu-sub-grid">
+<div class="db-sub-list">
     {% for sub in subscriptions %}
-    <div class="iu-card iu-sub-card">
-        <div class="iu-sub-icon"><i class="bi bi-box-seam"></i></div>
-        <div class="iu-sub-info">
-            <div class="iu-sub-name">{{ sub.addon_name }}</div>
-            <div class="iu-sub-plan">{{ sub.get_plan_display }} plan</div>
+    <div class="iu-card db-sub-row">
+        <div class="db-sub-icon"><i class="bi bi-box-seam"></i></div>
+        <div class="db-sub-meta">
+            <div class="db-sub-name">{{ sub.addon_name }}</div>
+            <div class="db-sub-plan">{{ sub.get_plan_display }} plan</div>
         </div>
         <span class="iu-badge iu-badge-active">Active</span>
     </div>
@@ -515,11 +643,12 @@
 </div>
 {% else %}
 <div class="iu-card">
-    <div class="iu-empty">
-        <i class="bi bi-box-seam d-block"></i>
+    <div class="db-empty">
+        <i class="bi bi-box-seam"></i>
         <p>No active subscriptions yet</p>
         <a href="{% url 'individual:addons' %}">Explore the Addon Store</a>
     </div>
 </div>
+{% endif %}
 {% endif %}
 {% endblock %}
