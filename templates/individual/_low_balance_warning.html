@@ -1,0 +1,113 @@
+<!-- Low-balance warning banner — included in individual/base.html -->
+{% if iu_credits_low %}
+<div class="iu-low-balance" id="iuLowBalance">
+    <div class="iu-low-balance-inner">
+        <div class="iu-low-balance-icon">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+        <div class="iu-low-balance-body">
+            <strong>Low credit balance</strong>
+            <span class="iu-low-balance-detail">
+                You have <b>{{ iu_credit_balance }}</b> credit{{ iu_credit_balance|pluralize }} remaining.
+                Some AI features may not work.
+            </span>
+        </div>
+        <a href="{% url 'individual:addons' %}" class="iu-low-balance-cta">
+            <i class="bi bi-plus-circle"></i> Top Up
+        </a>
+        <button class="iu-low-balance-close" onclick="this.closest('.iu-low-balance').remove()" aria-label="Dismiss">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+</div>
+{% endif %}
+
+<style>
+.iu-low-balance {
+    margin-bottom: .75rem;
+    border-radius: var(--radius-md, 12px);
+    overflow: hidden;
+    background: linear-gradient(135deg, rgba(245,158,11,0.07) 0%, rgba(239,68,68,0.05) 100%);
+    border: 1px solid rgba(245,158,11,0.2);
+    animation: iuLbFadeIn .35s ease;
+}
+.iu-low-balance-inner {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .7rem 1rem;
+}
+.iu-low-balance-icon {
+    flex-shrink: 0;
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: rgba(245,158,11,0.12);
+    display: flex; align-items: center; justify-content: center;
+    color: #f59e0b;
+    font-size: .95rem;
+}
+.iu-low-balance-body {
+    flex: 1; min-width: 0;
+    font-size: .82rem;
+    line-height: 1.45;
+}
+.iu-low-balance-body strong {
+    display: block;
+    font-size: .84rem;
+    color: var(--text-main, #111827);
+}
+.iu-low-balance-detail {
+    color: var(--text-muted, #6b7280);
+}
+.iu-low-balance-detail b {
+    color: #ef4444;
+    font-weight: 700;
+}
+.iu-low-balance-cta {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .35rem .75rem;
+    border-radius: 8px;
+    font-size: .78rem;
+    font-weight: 700;
+    text-decoration: none;
+    color: #fff;
+    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+    box-shadow: 0 2px 6px rgba(245,158,11,0.2);
+    transition: transform .15s, box-shadow .15s;
+    white-space: nowrap;
+}
+.iu-low-balance-cta:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(245,158,11,0.3);
+    color: #fff;
+}
+.iu-low-balance-close {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: var(--text-muted, #6b7280);
+    font-size: .85rem;
+    cursor: pointer;
+    padding: .25rem;
+    border-radius: 6px;
+    transition: background .15s;
+    line-height: 1;
+}
+.iu-low-balance-close:hover {
+    background: rgba(0,0,0,0.06);
+}
+[data-bs-theme="dark"] .iu-low-balance-close:hover {
+    background: rgba(255,255,255,0.06);
+}
+@keyframes iuLbFadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@media (max-width: 576px) {
+    .iu-low-balance-inner { flex-wrap: wrap; gap: .5rem; }
+    .iu-low-balance-cta { width: 100%; justify-content: center; }
+}
+</style>
