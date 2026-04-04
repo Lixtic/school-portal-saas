@@ -1,4 +1,4 @@
-﻿const SW_VERSION = 'v10';
+﻿const SW_VERSION = 'v11';
 const STATIC_CACHE = `school-static-${SW_VERSION}`;
 const RUNTIME_CACHE = `school-runtime-${SW_VERSION}`;
 
@@ -170,6 +170,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  const url = new URL(request.url);
+
   if (request.mode === 'navigate') {
     // PWA launch endpoint must always hit the network (it's a pure redirect)
     // — never serve a cached response for it.
@@ -183,8 +185,6 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(networkFirst(request));
     return;
   }
-
-  const url = new URL(request.url);
   const isSameOrigin = url.origin === self.location.origin;
   const isStatic = url.pathname.startsWith('/static/');
   const isCdn = url.hostname.includes('cdn.jsdelivr.net') || url.hostname.includes('cdnjs.cloudflare.com');
