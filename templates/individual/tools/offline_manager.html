@@ -1,0 +1,308 @@
+{% extends 'individual/base.html' %}
+{% load static %}
+
+{% block title %}Offline Content — Aura{% endblock %}
+{% block page_title %}Offline Content{% endblock %}
+
+{% block extra_css %}
+/* ── Offline Manager ──────────────────────────────────────── */
+.om-hero {
+    display: flex; align-items: center; gap: 1.25rem;
+    padding: 1.5rem; border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, rgba(67,97,238,0.06) 0%, rgba(76,201,240,0.04) 100%);
+    border: 1px solid rgba(67,97,238,0.12);
+    margin-bottom: 1.5rem;
+}
+.om-hero-icon {
+    width: 56px; height: 56px; border-radius: 14px; flex-shrink: 0;
+    background: linear-gradient(135deg, #4361ee, #4cc9f0);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 1.5rem;
+}
+.om-hero-body h2 { font-size: 1.1rem; font-weight: 700; margin: 0 0 .25rem; }
+.om-hero-body p  { font-size: .82rem; color: var(--text-muted); margin: 0; }
+.om-stats {
+    display: flex; gap: .75rem; margin-top: .6rem; flex-wrap: wrap;
+}
+.om-stat {
+    display: inline-flex; align-items: center; gap: .35rem;
+    padding: .3rem .6rem; border-radius: 8px; font-size: .75rem; font-weight: 600;
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    color: var(--text-muted);
+}
+.om-stat b { color: var(--text-main); font-variant-numeric: tabular-nums; }
+
+/* Toolbar */
+.om-toolbar {
+    display: flex; align-items: center; gap: .5rem;
+    margin-bottom: 1rem; flex-wrap: wrap;
+}
+.om-filter {
+    display: inline-flex; align-items: center; gap: .3rem;
+    padding: .4rem .75rem; border-radius: 8px; font-size: .78rem; font-weight: 600;
+    cursor: pointer; border: 1px solid var(--border-color);
+    background: transparent; color: var(--text-muted); transition: all .15s;
+}
+.om-filter.active, .om-filter:hover {
+    border-color: #4361ee; color: #4361ee; background: rgba(67,97,238,0.06);
+}
+.om-spacer { flex: 1; }
+.om-btn-clear {
+    display: inline-flex; align-items: center; gap: .3rem;
+    padding: .4rem .75rem; border-radius: 8px; font-size: .78rem; font-weight: 600;
+    border: 1px solid rgba(220,38,38,0.25); background: transparent;
+    color: #dc2626; cursor: pointer; transition: all .15s;
+}
+.om-btn-clear:hover { background: rgba(220,38,38,0.06); border-color: #dc2626; }
+
+/* Content grid */
+.om-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+.om-card {
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    border-radius: var(--radius-md); padding: 1rem; position: relative;
+    transition: border-color .15s, box-shadow .15s;
+}
+.om-card:hover { border-color: rgba(67,97,238,0.25); box-shadow: var(--shadow-card); }
+.om-card-header {
+    display: flex; align-items: flex-start; gap: .6rem; margin-bottom: .6rem;
+}
+.om-card-icon {
+    width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+}
+.om-card-icon.lesson { background: rgba(16,185,129,0.1); color: #10b981; }
+.om-card-icon.deck   { background: rgba(124,58,237,0.1); color: #7c3aed; }
+.om-card-icon.paper  { background: rgba(245,158,11,0.1); color: #f59e0b; }
+
+.om-card-title {
+    font-weight: 700; font-size: .88rem; line-height: 1.3;
+    margin: 0; flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.om-card-meta {
+    display: flex; gap: .5rem; flex-wrap: wrap;
+    font-size: .72rem; color: var(--text-muted); margin-bottom: .6rem;
+}
+.om-card-meta span {
+    display: inline-flex; align-items: center; gap: .25rem;
+}
+.om-card-actions {
+    display: flex; gap: .4rem;
+}
+.om-card-btn {
+    display: inline-flex; align-items: center; gap: .25rem;
+    padding: .35rem .6rem; border-radius: 6px; font-size: .75rem; font-weight: 600;
+    border: 1px solid var(--border-color); background: transparent;
+    color: var(--text-muted); cursor: pointer; text-decoration: none;
+    transition: all .15s;
+}
+.om-card-btn:hover { border-color: #4361ee; color: #4361ee; }
+.om-card-btn.danger:hover { border-color: #dc2626; color: #dc2626; }
+.om-card-btn.refresh:hover { border-color: #10b981; color: #10b981; }
+
+/* Empty state */
+.om-empty {
+    text-align: center; padding: 3rem 1rem;
+    color: var(--text-muted);
+}
+.om-empty i { font-size: 2.5rem; opacity: .4; margin-bottom: .75rem; display: block; }
+.om-empty p { font-size: .88rem; margin: 0; }
+.om-empty .om-empty-sub { font-size: .78rem; margin-top: .3rem; }
+
+/* Loading */
+.om-loading {
+    text-align: center; padding: 3rem 1rem;
+    color: var(--text-muted); font-size: .85rem;
+}
+
+@media (max-width: 576px) {
+    .om-grid { grid-template-columns: 1fr; }
+    .om-hero { flex-direction: column; text-align: center; }
+}
+{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<div class="om-hero">
+    <div class="om-hero-icon"><i class="bi bi-cloud-arrow-down"></i></div>
+    <div class="om-hero-body">
+        <h2>Offline Content</h2>
+        <p>Lesson plans, presentations, and exam papers saved to this device for access without internet.</p>
+        <div class="om-stats">
+            <div class="om-stat"><i class="bi bi-file-earmark"></i> <b id="omCount">—</b> items</div>
+            <div class="om-stat"><i class="bi bi-hdd"></i> <b id="omSize">—</b></div>
+        </div>
+    </div>
+</div>
+
+<!-- Toolbar -->
+<div class="om-toolbar">
+    <button class="om-filter active" data-type="all"><i class="bi bi-grid"></i> All</button>
+    <button class="om-filter" data-type="lesson"><i class="bi bi-journal-bookmark"></i> Lessons</button>
+    <button class="om-filter" data-type="deck"><i class="bi bi-easel"></i> Decks</button>
+    <button class="om-filter" data-type="paper"><i class="bi bi-file-text"></i> Papers</button>
+    <div class="om-spacer"></div>
+    <button class="om-btn-clear" id="omClearAll"><i class="bi bi-trash3"></i> Clear All</button>
+</div>
+
+<!-- Grid (populated by JS) -->
+<div id="omGrid" class="om-grid">
+    <div class="om-loading"><i class="bi bi-arrow-repeat"></i> Loading saved content&hellip;</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/offline-content.js' %}"></script>
+<script>
+(function() {
+    'use strict';
+
+    var grid      = document.getElementById('omGrid');
+    var countEl   = document.getElementById('omCount');
+    var sizeEl    = document.getElementById('omSize');
+    var clearBtn  = document.getElementById('omClearAll');
+    var filters   = document.querySelectorAll('.om-filter');
+    var activeType = 'all';
+
+    var ICONS = { lesson: 'bi-journal-bookmark', deck: 'bi-easel', paper: 'bi-file-text' };
+    var LABELS = { lesson: 'Lesson Plan', deck: 'Presentation', paper: 'Exam Paper' };
+    var LINKS = {
+        lesson: '{% url "individual:lesson_plan_detail" pk=0 %}'.replace('/0/', '/{id}/'),
+        deck:   '{% url "individual:deck_editor" pk=0 %}'.replace('/0/', '/{id}/'),
+        paper:  '{% url "individual:question_bank" %}'
+    };
+
+    function formatBytes(b) {
+        if (b < 1024) return b + ' B';
+        if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+        return (b / 1048576).toFixed(1) + ' MB';
+    }
+
+    function timeAgo(ts) {
+        var d = Date.now() - ts;
+        if (d < 60000) return 'just now';
+        if (d < 3600000) return Math.floor(d / 60000) + 'm ago';
+        if (d < 86400000) return Math.floor(d / 3600000) + 'h ago';
+        return Math.floor(d / 86400000) + 'd ago';
+    }
+
+    function renderCard(item) {
+        var type = item.type;
+        var data = item.data || {};
+        var div = document.createElement('div');
+        div.className = 'om-card';
+        div.dataset.type = type;
+
+        var link = LINKS[type] ? LINKS[type].replace('{id}', item.id) : '#';
+        var subject = data.subject || '';
+        var extra = '';
+        if (type === 'lesson' && data.duration_minutes) extra = '<span><i class="bi bi-clock"></i> ' + data.duration_minutes + 'm</span>';
+        if (type === 'deck' && data.slides) extra = '<span><i class="bi bi-layers"></i> ' + data.slides.length + ' slides</span>';
+        if (type === 'paper' && data.questions) extra = '<span><i class="bi bi-list-ol"></i> ' + data.questions.length + ' Qs</span>';
+
+        div.innerHTML =
+            '<div class="om-card-header">' +
+                '<div class="om-card-icon ' + type + '"><i class="bi ' + ICONS[type] + '"></i></div>' +
+                '<div style="flex:1;min-width:0">' +
+                    '<div class="om-card-title">' + (data.title || 'Untitled') + '</div>' +
+                    '<div style="font-size:.7rem;color:var(--text-muted);margin-top:2px;">' + LABELS[type] + '</div>' +
+                '</div>' +
+            '</div>' +
+            '<div class="om-card-meta">' +
+                (subject ? '<span><i class="bi bi-book"></i> ' + subject + '</span>' : '') +
+                extra +
+                '<span><i class="bi bi-clock-history"></i> Saved ' + timeAgo(item.saved_at) + '</span>' +
+            '</div>' +
+            '<div class="om-card-actions">' +
+                '<a href="' + link + '" class="om-card-btn"><i class="bi bi-eye"></i> Open</a>' +
+                '<button class="om-card-btn refresh" data-action="refresh" data-type="' + type + '" data-id="' + item.id + '"><i class="bi bi-arrow-clockwise"></i> Refresh</button>' +
+                '<button class="om-card-btn danger" data-action="remove" data-type="' + type + '" data-id="' + item.id + '"><i class="bi bi-trash3"></i></button>' +
+            '</div>';
+        return div;
+    }
+
+    function render(items) {
+        grid.innerHTML = '';
+        var filtered = activeType === 'all' ? items : items.filter(function(i) { return i.type === activeType; });
+        if (!filtered.length) {
+            grid.innerHTML =
+                '<div class="om-empty" style="grid-column:1/-1">' +
+                    '<i class="bi bi-cloud-slash"></i>' +
+                    '<p>No offline content saved' + (activeType !== 'all' ? ' for this type' : '') + '.</p>' +
+                    '<p class="om-empty-sub">Use the <i class="bi bi-cloud-arrow-down"></i> button on any lesson plan, presentation, or exam paper to save it.</p>' +
+                '</div>';
+            return;
+        }
+        filtered.forEach(function(item) { grid.appendChild(renderCard(item)); });
+    }
+
+    function refresh() {
+        Promise.all([AuraContent.list(), AuraContent.stats()]).then(function(res) {
+            var items = res[0], st = res[1];
+            countEl.textContent = st.count;
+            sizeEl.textContent = formatBytes(st.bytes);
+            render(items);
+        });
+    }
+
+    /* Filter tabs */
+    filters.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            filters.forEach(function(b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            activeType = btn.dataset.type;
+            refresh();
+        });
+    });
+
+    /* Card actions (delegated) */
+    grid.addEventListener('click', function(e) {
+        var btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        var action = btn.dataset.action;
+        var type = btn.dataset.type;
+        var id = Number(btn.dataset.id);
+
+        if (action === 'remove') {
+            AuraContent.remove(type, id).then(function() { refresh(); });
+        }
+
+        if (action === 'refresh') {
+            var apiMap = {
+                lesson: '{% url "individual:offline_lesson_plan" pk=0 %}'.replace('/0/', '/' + id + '/'),
+                deck:   '{% url "individual:offline_deck" pk=0 %}'.replace('/0/', '/' + id + '/'),
+                paper:  '{% url "individual:offline_exam_paper" pk=0 %}'.replace('/0/', '/' + id + '/')
+            };
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i>';
+            AuraContent.download(type, id, apiMap[type], function() {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Refresh';
+                refresh();
+            });
+        }
+    });
+
+    /* Clear all */
+    clearBtn.addEventListener('click', function() {
+        if (!confirm('Remove all offline content from this device?')) return;
+        AuraContent.clear().then(function() { refresh(); });
+    });
+
+    /* Initial load */
+    refresh();
+
+    /* Listen for external changes (e.g. save from another tab) */
+    window.addEventListener('aura:offline-changed', refresh);
+})();
+</script>
+<style>
+@keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+.spin { animation: spin .6s linear infinite; }
+</style>
+{% endblock %}

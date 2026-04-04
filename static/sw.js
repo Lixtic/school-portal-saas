@@ -1,4 +1,4 @@
-﻿const SW_VERSION = 'v11';
+﻿const SW_VERSION = 'v12';
 const STATIC_CACHE = `school-static-${SW_VERSION}`;
 const RUNTIME_CACHE = `school-runtime-${SW_VERSION}`;
 
@@ -9,6 +9,7 @@ const PRECACHE_URLS = [
   OFFLINE_URL,
   '/static/img/logo.png',
   '/static/js/offline-store.js',
+  '/static/js/offline-content.js',
   '/static/css/admin-variables.css',
   '/static/css/admin-components.css',
   '/static/css/admin-utilities.css',
@@ -93,7 +94,7 @@ function isTenantAppPage(url) {
   const segments = path.split('/').filter(Boolean);
   if (segments.length < 2) return false;
   // Exclude auth-related pages that must always be fresh
-  const authPaths = ['login', 'logout', 'signup', 'password_reset', 'register'];
+  const authPaths = ['login', 'logout', 'signup', 'signin', 'password_reset', 'register', 'verify'];
   if (authPaths.includes(segments[1])) return false;
   // Exclude public/admin paths
   if (['admin', 'public', '__debug__'].includes(segments[0])) return false;

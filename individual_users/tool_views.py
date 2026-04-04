@@ -4488,3 +4488,123 @@ def tvet_api(request):
         'content': obj.content,
         'answer_key': obj.answer_key,
     })
+
+
+# ── Offline Content API ──────────────────────────────────────────────────────
+# JSON endpoints that serialise tool content for IndexedDB storage.
+# No credit cost — read-only.
+
+@login_required
+def offline_lesson_plan(request, pk):
+    """Full lesson plan as JSON for offline storage."""
+    profile = get_object_or_404(IndividualProfile, user=request.user)
+    plan = get_object_or_404(ToolLessonPlan, pk=pk, profile=profile)
+    return JsonResponse({
+        'id': plan.pk,
+        'title': plan.title,
+        'subject': plan.subject,
+        'target_class': plan.target_class,
+        'topic': plan.topic,
+        'indicator': plan.indicator,
+        'sub_strand': plan.sub_strand,
+        'duration_minutes': plan.duration_minutes,
+        'objectives': plan.objectives,
+        'materials': plan.materials,
+        'introduction': plan.introduction,
+        'development': plan.development,
+        'assessment': plan.assessment,
+        'closure': plan.closure,
+        'notes': plan.notes,
+        'b7_meta': plan.b7_meta,
+        'created_at': plan.created_at.isoformat(),
+    })
+
+
+@login_required
+def offline_deck(request, pk):
+    """Full presentation deck + slides as JSON for offline storage."""
+    profile = get_object_or_404(IndividualProfile, user=request.user)
+    deck = get_object_or_404(
+        ToolPresentation.objects.prefetch_related('slides'),
+        pk=pk, profile=profile,
+    )
+    slides = []
+    for s in deck.slides.order_by('order'):
+        slides.append({
+            'id': s.pk,
+            'order': s.order,
+            'layout': s.layout,
+            'title': s.title,
+            'content': s.content,
+            'speaker_notes': s.speaker_notes,
+            'emoji': s.emoji,
+            'image_url': s.image_url,
+        })
+    return JsonResponse({
+        'id': deck.pk,
+        'title': deck.title,
+        'subject': deck.subject,
+        'target_class': deck.target_class,
+        'theme': deck.theme,
+        'transition': deck.transition,
+        'slides': slides,
+        'created_at': deck.created_at.isoformat(),
+    })
+
+
+@login_required
+def offline_exam_paper(request, pk):
+    """Full exam paper + questions as JSON for offline storage."""
+    profile = get_object_or_404(IndividualProfile, user=request.user)
+    paper = get_object_or_404(
+        ToolExamPaper.objects.prefetch_related('questions'),
+        pk=pk, profile=profile,
+    )
+    questions = []
+    for q in paper.questions.all():
+        questions.append({
+            'id': q.pk,
+            'question_text': q.question_text,
+            'question_format': q.question_format,
+            'difficulty': q.difficulty,
+            'options': q.options,
+            'correct_answer': q.correct_answer,
+            'explanation': q.explanation,
+            'topic': q.topic,
+        })
+    return JsonResponse({
+        'id': paper.pk,
+        'title': paper.title,
+        'subject': paper.subject,
+        'target_class': paper.target_class,
+        'duration_minutes': paper.duration_minutes,
+        'instructions': paper.instructions,
+        'school_name': paper.school_name,
+        'term': paper.term,
+        'academic_year': paper.academic_year,
+        'questions': questions,
+        'created_at': paper.created_at.isoformat(),
+    })
+
+
+@login_required
+def offline_content_list(request):
+    """Lightweight manifest of all user content for the offline manager."""
+    profile = get_object_or_404(IndividualProfile, user=request.user)
+    items = []
+    for p in ToolLessonPlan.objects.filter(profile=profile).order_by('-created_at')[:50]:
+        items.append({
+            'type': 'lesson', 'id': p.pk, 'title': p.title,
+            'subject': p.subject, 'created_at': p.created_at.isoformat(),
+        })
+    for d in ToolPresentation.objects.filter(profile=profile).order_by('-created_at')[:50]:
+        items.append({
+            'type': 'deck', 'id': d.pk, 'title': d.title,
+            'subject': d.subject, 'created_at': d.created_at.isoformat(),
+        })
+    for e in ToolExamPaper.objects.filter(profile=profile).order_by('-created_at')[:50]:
+        items.append({
+            'type': 'paper', 'id': e.pk, 'title': e.title,
+            'subject': e.subject, 'created_at': e.created_at.isoformat(),
+        })
+    return JsonResponse({'items': items})

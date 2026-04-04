@@ -1652,3 +1652,14 @@ def credit_history(request):
         'credit_balance': get_credit_balance(request.user),
         'profile': request.user.individual_profile,
     })
+
+
+@login_required
+@_individual_required
+def offline_manager(request):
+    """Page for managing offline-saved content (client-side IndexedDB)."""
+    profile = request.user.individual_profile
+    return render(request, 'individual/tools/offline_manager.html', {
+        'profile': profile,
+        'role': profile.role,
+    })

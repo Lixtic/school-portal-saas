@@ -382,6 +382,7 @@
             66%  { opacity: .4; box-shadow: 8px 0 0 -2px currentColor, 16px 0 0 0px  currentColor; }
             100% { opacity: 1; box-shadow: 8px 0 0 -1px currentColor, 16px 0 0 -2px currentColor; }
         }
+        @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
 
         {% block extra_css %}{% endblock %}
     </style>
@@ -409,6 +410,9 @@
             <div class="iu-nav-label">Tools</div>
             <a href="{% url 'individual:tools_hub' %}" class="{% if 'tools' in request.resolver_match.url_name %}active{% endif %}">
                 <i class="bi bi-tools"></i> My Tools
+            </a>
+            <a href="{% url 'individual:offline_manager' %}" class="{% if request.resolver_match.url_name == 'offline_manager' %}active{% endif %}">
+                <i class="bi bi-cloud-arrow-down"></i> Offline Content
             </a>
             {% endif %}
             <div class="iu-nav-label">{% if role == 'teacher' %}Settings{% else %}Developer{% endif %}</div>
@@ -532,6 +536,37 @@
     });
     </script>
     {% include 'individual/_insufficient_credits.html' %}
+    <script src="{% static 'js/offline-content.js' %}"></script>
+    <script>
+    /* ── Service Worker ────────────────── */
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('{% static "sw.js" %}', {scope: '/'})
+            .catch(function() {});
+    }
+    /* ── Global Save Offline helper (used by tool buttons) ── */
+    var _OFFLINE_API = {
+        lesson: '{% url "individual:offline_lesson_plan" pk=0 %}'.replace('/0/', '/'),
+        deck:   '{% url "individual:offline_deck" pk=0 %}'.replace('/0/', '/'),
+        paper:  '{% url "individual:offline_exam_paper" pk=0 %}'.replace('/0/', '/')
+    };
+    function _saveOffline(type, id, btn) {
+        if (!window.AuraContent) return;
+        var origHTML = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-arrow-repeat" style="animation:spin .6s linear infinite"></i>';
+        var url = _OFFLINE_API[type] + id + '/';
+        AuraContent.download(type, id, url, function(ok) {
+            btn.disabled = false;
+            if (ok) {
+                btn.innerHTML = '<i class="bi bi-check-lg" style="color:#10b981"></i>';
+                setTimeout(function() { btn.innerHTML = origHTML; }, 1800);
+            } else {
+                btn.innerHTML = origHTML;
+                alert('Could not save — check your connection.');
+            }
+        });
+    }
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -140,6 +140,13 @@ urlpatterns = [
     path('tools/tvet/', tool_views.tvet_dashboard, name='tvet_dashboard'),
     path('tools/tvet/<int:pk>/delete/', tool_views.tvet_delete, name='tvet_delete'),
     path('tools/tvet/api/', tool_views.tvet_api, name='tvet_api'),
+
+    # Offline content
+    path('tools/offline/', views.offline_manager, name='offline_manager'),
+    path('tools/offline/manifest/', tool_views.offline_content_list, name='offline_content_list'),
+    path('tools/lesson-plans/<int:pk>/offline/', tool_views.offline_lesson_plan, name='offline_lesson_plan'),
+    path('tools/presentations/<int:pk>/offline/', tool_views.offline_deck, name='offline_deck'),
+    path('tools/exam-papers/<int:pk>/offline/', tool_views.offline_exam_paper, name='offline_exam_paper'),
 ]
 
 # Teacher shortcut URLs (included under /t/ prefix in main urls.py)
