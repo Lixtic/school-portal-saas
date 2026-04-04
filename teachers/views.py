@@ -8,7 +8,7 @@ import django
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from tenants.decorators import require_addon, require_plan
-from teachers.addon_utils import requires_addon, requires_addon_freemium, check_freemium_limit, has_addon, get_credit_balance, CREDIT_COSTS, ADDON_FEATURE_MAP
+from teachers.addon_utils import requires_addon, requires_addon_freemium, check_freemium_limit, has_addon, get_credit_balance, CREDIT_COSTS, ADDON_FEATURE_MAP, deduct_credits
 from django.http import JsonResponse, HttpResponse
 from decimal import Decimal, InvalidOperation
 from django.utils import timezone

@@ -1472,6 +1472,8 @@ def paystack_individual_webhook(request):
         reference = data.get('reference', '')
         if reference.startswith('IU-'):
             _handle_individual_addon_payment(reference, data)
+        elif reference.startswith('IC-'):
+            _handle_individual_credit_payment(reference, data)
 
     return JsonResponse({'ok': True})
 
@@ -1519,6 +1521,46 @@ def _handle_individual_addon_payment(reference, data):
             'payment_reference': reference,
             'amount_paid': amount_paid,
         },
+    )
+
+
+def _handle_individual_credit_payment(reference, data):
+    """Add credits to user balance from a confirmed Paystack credit pack charge."""
+    _ensure_public_schema()
+    from individual_users.models import IndividualCreditPack, IndividualCreditTransaction
+    from individual_users.credit_utils import add_credits
+
+    # Parse reference: IC-{user_id}-{pack_id}-{uuid}
+    parts = reference.split('-', 3)
+    if len(parts) < 3:
+        return
+
+    try:
+        user_id = int(parts[1])
+        pack_id = int(parts[2])
+    except (ValueError, IndexError):
+        return
+
+    try:
+        user = User.objects.get(id=user_id, user_type='individual')
+    except User.DoesNotExist:
+        return
+
+    try:
+        pack = IndividualCreditPack.objects.get(id=pack_id, is_active=True)
+    except IndividualCreditPack.DoesNotExist:
+        return
+
+    # Deduplicate by payment_reference
+    if IndividualCreditTransaction.objects.filter(payment_reference=reference).exists():
+        return
+
+    add_credits(
+        user,
+        amount=pack.credits,
+        transaction_type='purchase',
+        description=f'Purchased {pack.name} ({pack.credits} credits)',
+        payment_reference=reference,
     )
 
 
