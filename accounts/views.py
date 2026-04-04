@@ -1389,7 +1389,7 @@ def session_debug(request):
             for _root, _dirs, _files in _os.walk(static_root):
                 static_files_count += len(_files)
         except Exception:
-        static_files_count = -1
+            static_files_count = -1
 
     # For signed_cookies, session_key is always None but session.keys() still works
     session_data_keys = list(request.session.keys()) if request.session else []
