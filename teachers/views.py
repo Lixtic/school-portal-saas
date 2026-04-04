@@ -6613,7 +6613,7 @@ def presentation_bulk_action(request):
 
     elif action == 'duplicate':
         count = 0
-        for deck in decks:
+        for deck in decks.prefetch_related('slides'):
             new_deck = Presentation.objects.create(
                 teacher=teacher,
                 title=deck.title + ' (copy)',

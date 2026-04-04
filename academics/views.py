@@ -3600,24 +3600,33 @@ def exam_schedule_create(request):
     teachers = Teacher.objects.select_related('user').all()
 
     if request.method == 'POST':
-        try:
-            ExamSchedule.objects.create(
-                academic_year=current_year,
-                term=request.POST.get('term', 'first'),
-                subject_id=request.POST['subject'],
-                target_class_id=request.POST['target_class'],
-                date=request.POST['date'],
-                start_time=request.POST['start_time'],
-                end_time=request.POST['end_time'],
-                room=request.POST.get('room', ''),
-                invigilator_id=request.POST.get('invigilator') or None,
-                notes=request.POST.get('notes', ''),
-                created_by=request.user,
-            )
-            messages.success(request, 'Exam scheduled successfully.')
-            return redirect('academics:exam_schedule')
-        except Exception as e:
-            messages.error(request, f'Error: {e}')
+        subject_id = request.POST.get('subject')
+        target_class_id = request.POST.get('target_class')
+        date = request.POST.get('date')
+        start_time = request.POST.get('start_time')
+        end_time = request.POST.get('end_time')
+
+        if not all([subject_id, target_class_id, date, start_time, end_time]):
+            messages.error(request, 'Please fill in all required fields.')
+        else:
+            try:
+                ExamSchedule.objects.create(
+                    academic_year=current_year,
+                    term=request.POST.get('term', 'first'),
+                    subject_id=subject_id,
+                    target_class_id=target_class_id,
+                    date=date,
+                    start_time=start_time,
+                    end_time=end_time,
+                    room=request.POST.get('room', ''),
+                    invigilator_id=request.POST.get('invigilator') or None,
+                    notes=request.POST.get('notes', ''),
+                    created_by=request.user,
+                )
+                messages.success(request, 'Exam scheduled successfully.')
+                return redirect('academics:exam_schedule')
+            except Exception as e:
+                messages.error(request, f'Error: {e}')
 
     return render(request, 'academics/exam_schedule_form.html', {
         'classes': classes,
@@ -3642,21 +3651,30 @@ def exam_schedule_edit(request, pk):
     teachers = Teacher.objects.select_related('user').all()
 
     if request.method == 'POST':
-        try:
-            exam.term = request.POST.get('term', exam.term)
-            exam.subject_id = request.POST['subject']
-            exam.target_class_id = request.POST['target_class']
-            exam.date = request.POST['date']
-            exam.start_time = request.POST['start_time']
-            exam.end_time = request.POST['end_time']
-            exam.room = request.POST.get('room', '')
-            exam.invigilator_id = request.POST.get('invigilator') or None
-            exam.notes = request.POST.get('notes', '')
-            exam.save()
-            messages.success(request, 'Exam schedule updated.')
-            return redirect('academics:exam_schedule')
-        except Exception as e:
-            messages.error(request, f'Error: {e}')
+        subject_id = request.POST.get('subject')
+        target_class_id = request.POST.get('target_class')
+        date = request.POST.get('date')
+        start_time = request.POST.get('start_time')
+        end_time = request.POST.get('end_time')
+
+        if not all([subject_id, target_class_id, date, start_time, end_time]):
+            messages.error(request, 'Please fill in all required fields.')
+        else:
+            try:
+                exam.term = request.POST.get('term', exam.term)
+                exam.subject_id = subject_id
+                exam.target_class_id = target_class_id
+                exam.date = date
+                exam.start_time = start_time
+                exam.end_time = end_time
+                exam.room = request.POST.get('room', '')
+                exam.invigilator_id = request.POST.get('invigilator') or None
+                exam.notes = request.POST.get('notes', '')
+                exam.save()
+                messages.success(request, 'Exam schedule updated.')
+                return redirect('academics:exam_schedule')
+            except Exception as e:
+                messages.error(request, f'Error: {e}')
 
     return render(request, 'academics/exam_schedule_form.html', {
         'exam': exam,
