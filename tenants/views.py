@@ -2405,3 +2405,148 @@ def addon_pricing_management(request):
         'audience_choices': IndividualAddon.AUDIENCE_CHOICES,
     }
     return render(request, 'tenants/addon_pricing.html', context)
+
+
+# ── Individual Credit Pack Pricing Management ────────────────────────────────
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser, login_url='/login/')
+def credit_pack_pricing(request):
+    """Super-admin view to manage AI credit pack prices and settings."""
+    from individual_users.models import IndividualCreditPack, IndividualCreditTransaction
+    from decimal import Decimal, InvalidOperation
+
+    packs = IndividualCreditPack.objects.all()
+
+    if request.method == 'POST':
+        action = request.POST.get('action', '')
+
+        if action == 'update_packs':
+            updated = 0
+            for pack in packs:
+                prefix = f'pack_{pack.pk}_'
+
+                # Price
+                new_price = request.POST.get(f'{prefix}price', '').strip()
+                if new_price:
+                    try:
+                        new_price = Decimal(new_price).quantize(Decimal('0.01'))
+                        if new_price != pack.price and new_price >= 0:
+                            pack.price = new_price
+                            pack.save(update_fields=['price'])
+                            updated += 1
+                    except (InvalidOperation, ValueError):
+                        pass
+
+                # Credits
+                new_credits = request.POST.get(f'{prefix}credits', '').strip()
+                if new_credits:
+                    try:
+                        new_credits = int(new_credits)
+                        if new_credits != pack.credits and new_credits > 0:
+                            pack.credits = new_credits
+                            pack.save(update_fields=['credits'])
+                            updated += 1
+                    except (ValueError, TypeError):
+                        pass
+
+                # Badge label
+                new_badge = request.POST.get(f'{prefix}badge', '').strip()
+                if new_badge != pack.badge_label:
+                    pack.badge_label = new_badge
+                    pack.save(update_fields=['badge_label'])
+                    updated += 1
+
+                # Icon
+                new_icon = request.POST.get(f'{prefix}icon', '').strip()
+                if new_icon and new_icon != pack.icon:
+                    pack.icon = new_icon
+                    pack.save(update_fields=['icon'])
+                    updated += 1
+
+                # Position
+                new_pos = request.POST.get(f'{prefix}position', '').strip()
+                if new_pos:
+                    try:
+                        new_pos = int(new_pos)
+                        if new_pos != pack.position:
+                            pack.position = new_pos
+                            pack.save(update_fields=['position'])
+                            updated += 1
+                    except (ValueError, TypeError):
+                        pass
+
+                # Active toggle
+                active_key = f'{prefix}active'
+                new_active = active_key in request.POST
+                if new_active != pack.is_active:
+                    pack.is_active = new_active
+                    pack.save(update_fields=['is_active'])
+                    updated += 1
+
+            if updated:
+                messages.success(request, f'Updated {updated} field(s) across credit packs.')
+            else:
+                messages.info(request, 'No changes detected.')
+            return redirect('tenants:credit_pack_pricing')
+
+        elif action == 'create_pack':
+            name = request.POST.get('name', '').strip()
+            slug = request.POST.get('slug', '').strip()
+            credits_val = request.POST.get('credits', '').strip()
+            price_val = request.POST.get('price', '').strip()
+            badge = request.POST.get('badge_label', '').strip()
+            icon = request.POST.get('icon', 'bi-lightning-charge').strip()
+            position = request.POST.get('position', '0').strip()
+
+            if not name or not slug:
+                messages.error(request, 'Name and slug are required.')
+            elif IndividualCreditPack.objects.filter(slug=slug).exists():
+                messages.error(request, f'Pack with slug "{slug}" already exists.')
+            else:
+                try:
+                    IndividualCreditPack.objects.create(
+                        name=name, slug=slug,
+                        credits=int(credits_val or '0'),
+                        price=Decimal(price_val or '0').quantize(Decimal('0.01')),
+                        badge_label=badge, icon=icon,
+                        position=int(position or '0'),
+                    )
+                    messages.success(request, f'Credit pack "{name}" created.')
+                except (ValueError, InvalidOperation) as e:
+                    messages.error(request, f'Invalid data: {e}')
+            return redirect('tenants:credit_pack_pricing')
+
+        elif action == 'delete_pack':
+            pack_id = request.POST.get('pack_id', '').strip()
+            if pack_id:
+                try:
+                    pack = IndividualCreditPack.objects.get(pk=int(pack_id))
+                    pack_name = pack.name
+                    pack.delete()
+                    messages.success(request, f'Deleted pack "{pack_name}".')
+                except IndividualCreditPack.DoesNotExist:
+                    messages.error(request, 'Pack not found.')
+            return redirect('tenants:credit_pack_pricing')
+
+    # Stats
+    total = packs.count()
+    active = packs.filter(is_active=True).count()
+
+    # Recent transactions (last 20)
+    recent_txns = IndividualCreditTransaction.objects.filter(
+        transaction_type='purchase'
+    ).select_related('user').order_by('-created_at')[:20]
+    total_revenue = IndividualCreditTransaction.objects.filter(
+        transaction_type='purchase'
+    ).count()
+
+    context = {
+        'packs': packs,
+        'total_packs': total,
+        'active_packs': active,
+        'inactive_packs': total - active,
+        'recent_purchases': recent_txns,
+        'total_purchases': total_revenue,
+    }
+    return render(request, 'tenants/credit_pack_pricing.html', context)

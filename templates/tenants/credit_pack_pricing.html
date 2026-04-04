@@ -1,0 +1,738 @@
+{% extends "admin/admin_base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Credit Pack Pricing — Platform Admin{% endblock %}
+
+{% block admin_content %}
+<style>
+    /* ═══ CREDIT PACK PRICING — cp- prefix ═══ */
+    .cp {
+      --bg:           #0F0F17;
+      --surface:      #16161F;
+      --surface-2:    #1E1E2A;
+      --surface-3:    #252535;
+      --border:       rgba(255,255,255,0.07);
+      --border-2:     rgba(255,255,255,0.13);
+      --violet:       #7C3AED;
+      --violet-light: #A78BFA;
+      --violet-pale:  rgba(124,58,237,0.12);
+      --violet-mid:   rgba(124,58,237,0.26);
+      --emerald:      #10B981;
+      --emerald-pale: rgba(16,185,129,0.1);
+      --emerald-mid:  rgba(16,185,129,0.26);
+      --amber:        #F59E0B;
+      --amber-pale:   rgba(245,158,11,0.1);
+      --amber-mid:    rgba(245,158,11,0.26);
+      --rose:         #F43F5E;
+      --rose-pale:    rgba(244,63,94,0.1);
+      --rose-mid:     rgba(244,63,94,0.26);
+      --sky:          #38BDF8;
+      --sky-pale:     rgba(56,189,248,0.1);
+      --sky-mid:      rgba(56,189,248,0.26);
+      --cyan:         #06B6D4;
+      --cyan-pale:    rgba(6,182,212,0.1);
+      --text-1:       #F1F0EE;
+      --text-2:       rgba(241,240,238,0.60);
+      --text-3:       rgba(241,240,238,0.35);
+      --hover-bg:     rgba(255,255,255,0.023);
+      --mono: 'JetBrains Mono', 'Consolas', monospace;
+      --sans: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text-1);
+      padding: 1.5rem 2rem 4rem;
+      min-height: 100%;
+      max-width: 1680px;
+      margin: 0 auto;
+      font-family: var(--sans);
+    }
+    [data-bs-theme="light"] .cp {
+      --bg:           #f3f4f6;
+      --surface:      #ffffff;
+      --surface-2:    #f8f9fa;
+      --surface-3:    #e9ecef;
+      --border:       rgba(0,0,0,0.08);
+      --border-2:     rgba(0,0,0,0.15);
+      --violet:       #7C3AED;
+      --violet-light: #6D28D9;
+      --violet-pale:  rgba(124,58,237,0.08);
+      --violet-mid:   rgba(124,58,237,0.18);
+      --emerald:      #059669;
+      --emerald-pale: rgba(5,150,105,0.08);
+      --emerald-mid:  rgba(5,150,105,0.18);
+      --amber:        #d97706;
+      --amber-pale:   rgba(217,119,6,0.08);
+      --amber-mid:    rgba(217,119,6,0.18);
+      --rose:         #e11d48;
+      --rose-pale:    rgba(225,29,72,0.08);
+      --rose-mid:     rgba(225,29,72,0.18);
+      --sky:          #0284c7;
+      --sky-pale:     rgba(2,132,199,0.08);
+      --sky-mid:      rgba(2,132,199,0.18);
+      --text-1:       #111827;
+      --text-2:       #4b5563;
+      --text-3:       #9ca3af;
+      --hover-bg:     rgba(0,0,0,0.025);
+    }
+
+    @keyframes cp-fade-up {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .cp-fade { opacity: 0; animation: cp-fade-up 0.48s cubic-bezier(0.22,1,0.36,1) forwards; }
+    .cp-fade:nth-child(1) { animation-delay: 0.04s; }
+    .cp-fade:nth-child(2) { animation-delay: 0.09s; }
+    .cp-fade:nth-child(3) { animation-delay: 0.14s; }
+    .cp-fade:nth-child(4) { animation-delay: 0.19s; }
+
+    .cp-back {
+      display: inline-flex; align-items: center; gap: .4rem;
+      font-size: .82rem; font-weight: 600; color: var(--text-3);
+      text-decoration: none; margin-bottom: 1.25rem; transition: color .15s;
+    }
+    .cp-back:hover { color: var(--text-1); }
+
+    .cp-header { margin-bottom: 1.5rem; }
+    .cp-header h1 {
+      font-size: 1.5rem; font-weight: 800;
+      letter-spacing: -.02em; margin: 0 0 .25rem;
+      display: flex; align-items: center; gap: .5rem;
+    }
+    .cp-header p { font-size: .85rem; color: var(--text-2); margin: 0; }
+
+    /* Stats */
+    .cp-stats {
+      display: flex; gap: .75rem; flex-wrap: wrap;
+      margin-bottom: 1.75rem;
+    }
+    .cp-stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px; padding: .9rem 1.25rem;
+      min-width: 140px; flex: 1;
+      position: relative; overflow: hidden;
+    }
+    .cp-stat::after {
+      content: ''; position: absolute; top: 0; left: 0; right: 0;
+      height: 2px; border-radius: 14px 14px 0 0;
+    }
+    .cp-stat.--violet::after  { background: var(--violet); }
+    .cp-stat.--emerald::after { background: var(--emerald); }
+    .cp-stat.--rose::after    { background: var(--rose); }
+    .cp-stat.--sky::after     { background: var(--sky); }
+    .cp-stat-val {
+      font-size: 1.75rem; font-weight: 800; line-height: 1;
+      font-family: var(--mono);
+    }
+    .cp-stat.--violet  .cp-stat-val { color: var(--violet-light); }
+    .cp-stat.--emerald .cp-stat-val { color: var(--emerald); }
+    .cp-stat.--rose    .cp-stat-val { color: var(--rose); }
+    .cp-stat.--sky     .cp-stat-val { color: var(--sky); }
+    .cp-stat-label {
+      font-size: .68rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .06em;
+      color: var(--text-3); margin-top: .3rem;
+    }
+
+    /* Card / Panel */
+    .cp-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .cp-card-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap; gap: .5rem;
+    }
+    .cp-card-head h2 {
+      font-size: .85rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .06em;
+      color: var(--text-2); margin: 0;
+      display: flex; align-items: center; gap: .4rem;
+    }
+
+    /* Pack cards grid */
+    .cp-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem; padding: 1.25rem;
+    }
+    .cp-pack {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.25rem;
+      position: relative;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .cp-pack:hover { border-color: var(--border-2); box-shadow: 0 4px 20px rgba(0,0,0,.2); }
+    .cp-pack-top {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    .cp-pack-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; flex-shrink: 0;
+      background: var(--violet-pale); color: var(--violet-light);
+      border: 1px solid var(--violet-mid);
+    }
+    .cp-pack-badge {
+      font-size: .55rem; font-weight: 800;
+      letter-spacing: .08em; text-transform: uppercase;
+      padding: .2rem .55rem; border-radius: 5px;
+      background: var(--amber-pale); color: var(--amber);
+      border: 1px solid var(--amber-mid);
+    }
+    .cp-pack-name {
+      font-size: 1rem; font-weight: 700;
+      margin-bottom: .125rem; display: flex; align-items: center; gap: .5rem;
+    }
+    .cp-pack-slug {
+      font-family: var(--mono); font-size: .68rem;
+      color: var(--text-3); margin-bottom: .875rem;
+    }
+    .cp-pack-current {
+      display: flex; gap: 1.5rem; margin-bottom: 1rem;
+      padding: .75rem; background: var(--surface);
+      border-radius: 10px; border: 1px solid var(--border);
+    }
+    .cp-pack-metric {
+      text-align: center; flex: 1;
+    }
+    .cp-pack-metric-val {
+      font-family: var(--mono); font-size: 1.25rem; font-weight: 700;
+      line-height: 1;
+    }
+    .cp-pack-metric-val.--credits { color: var(--sky); }
+    .cp-pack-metric-val.--price { color: var(--emerald); }
+    .cp-pack-metric-val.--rate { color: var(--violet-light); }
+    .cp-pack-metric-label {
+      font-size: .55rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .06em;
+      color: var(--text-3); margin-top: .2rem;
+    }
+
+    /* Edit fields */
+    .cp-fields { display: flex; flex-direction: column; gap: .75rem; }
+    .cp-field-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: .5rem;
+    }
+    .cp-field label {
+      display: block;
+      font-size: .62rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .05em;
+      color: var(--text-3); margin-bottom: .2rem;
+    }
+    .cp-input {
+      width: 100%; padding: .4rem .6rem;
+      border: 1px solid var(--border-2);
+      border-radius: 8px; font-size: .82rem; font-weight: 600;
+      font-family: var(--mono);
+      background: var(--surface);
+      color: var(--text-1);
+      transition: border-color .15s;
+    }
+    .cp-input:focus {
+      outline: none;
+      border-color: var(--violet);
+      box-shadow: 0 0 0 2px var(--violet-pale);
+    }
+    .cp-input.--sm { font-size: .75rem; }
+
+    /* Toggle */
+    .cp-toggle { position: relative; width: 38px; height: 20px; cursor: pointer; display: inline-block; }
+    .cp-toggle input { opacity: 0; width: 0; height: 0; }
+    .cp-toggle-track {
+      position: absolute; inset: 0;
+      background: var(--surface-3);
+      border-radius: 10px; transition: background .2s;
+    }
+    .cp-toggle input:checked + .cp-toggle-track { background: var(--emerald); }
+    .cp-toggle-thumb {
+      position: absolute; top: 2px; left: 2px;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: #fff; transition: transform .2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,.2);
+    }
+    .cp-toggle input:checked ~ .cp-toggle-thumb { transform: translateX(18px); }
+
+    .cp-pack-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: .75rem; padding-top: .75rem;
+      border-top: 1px solid var(--border);
+    }
+    .cp-active-label {
+      display: flex; align-items: center; gap: .5rem;
+      font-size: .75rem; color: var(--text-2);
+    }
+
+    /* Buttons */
+    .cp-btn {
+      border: none; padding: .5rem 1.1rem;
+      border-radius: 10px; font-size: .8rem; font-weight: 700;
+      cursor: pointer; transition: all .18s;
+      display: inline-flex; align-items: center; gap: .3rem;
+      font-family: var(--sans);
+    }
+    .cp-btn-primary {
+      background: var(--violet); color: #fff;
+      box-shadow: 0 3px 10px rgba(124,58,237,.3);
+    }
+    .cp-btn-primary:hover { filter: brightness(1.1); }
+    .cp-btn-secondary {
+      background: var(--surface-2);
+      border: 1px solid var(--border-2);
+      color: var(--text-2);
+    }
+    .cp-btn-secondary:hover { background: var(--surface-3); color: var(--text-1); }
+    .cp-btn-danger {
+      background: transparent;
+      border: 1px solid var(--rose-mid);
+      color: var(--rose); font-size: .72rem;
+      padding: .3rem .7rem; border-radius: 7px;
+    }
+    .cp-btn-danger:hover { background: var(--rose-pale); }
+
+    /* Empty state */
+    .cp-empty {
+      text-align: center; padding: 3rem 1rem;
+      color: var(--text-3);
+    }
+    .cp-empty-icon { font-size: 2.5rem; margin-bottom: .75rem; opacity: .3; }
+    .cp-empty h4 { font-size: .95rem; color: var(--text-2); margin-bottom: .25rem; }
+    .cp-empty p { font-size: .82rem; }
+
+    /* Create drawer */
+    .cp-drawer {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+      display: none;
+    }
+    .cp-drawer.open { display: block; }
+    .cp-drawer h3 {
+      font-size: .95rem; font-weight: 700;
+      margin: 0 0 1rem;
+      display: flex; align-items: center; gap: .4rem;
+    }
+    .cp-form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    .cp-form-field label {
+      display: block;
+      font-size: .7rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .05em;
+      color: var(--text-3); margin-bottom: .3rem;
+    }
+    .cp-form-field input {
+      width: 100%; padding: .45rem .7rem;
+      border: 1px solid var(--border-2);
+      border-radius: 8px; font-size: .82rem;
+      background: var(--surface-2);
+      color: var(--text-1);
+      font-family: var(--sans);
+    }
+    .cp-form-field input:focus {
+      outline: none;
+      border-color: var(--violet);
+      box-shadow: 0 0 0 2px var(--violet-pale);
+    }
+
+    /* Recent purchases panel */
+    .cp-two-col {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    .cp-txn-row {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .65rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      font-size: .8125rem;
+    }
+    .cp-txn-row:last-child { border-bottom: none; }
+    .cp-txn-icon {
+      width: 28px; height: 28px; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .7rem; flex-shrink: 0;
+      background: var(--emerald-pale); color: var(--emerald);
+      border: 1px solid var(--emerald-mid);
+    }
+    .cp-txn-info { flex: 1; }
+    .cp-txn-user { font-weight: 600; color: var(--text-1); font-size: .8rem; }
+    .cp-txn-desc { font-size: .7rem; color: var(--text-3); }
+    .cp-txn-amount {
+      font-family: var(--mono); font-weight: 600;
+      color: var(--emerald); font-size: .85rem;
+    }
+    .cp-txn-time {
+      font-family: var(--mono); font-size: .65rem;
+      color: var(--text-3); white-space: nowrap;
+    }
+
+    /* Preview card */
+    .cp-preview-section { padding: 1.25rem; }
+    .cp-preview-title {
+      font-size: .6rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .1em;
+      color: var(--text-3); margin-bottom: .75rem;
+    }
+    .cp-preview-cards { display: flex; gap: .75rem; flex-wrap: wrap; }
+    .cp-preview-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px; padding: .875rem;
+      min-width: 130px; flex: 1;
+      text-align: center; position: relative;
+    }
+    .cp-preview-card-badge {
+      position: absolute; top: -.375rem; right: .5rem;
+      font-size: .5rem; font-weight: 800;
+      letter-spacing: .06em; text-transform: uppercase;
+      padding: .125rem .4rem; border-radius: 4px;
+      background: var(--amber); color: #1a1100;
+    }
+    .cp-preview-card-credits {
+      font-family: var(--mono); font-size: 1.5rem; font-weight: 800;
+      color: var(--sky); line-height: 1;
+    }
+    .cp-preview-card-label {
+      font-size: .62rem; color: var(--text-3);
+      text-transform: uppercase; letter-spacing: .06em;
+      margin: .125rem 0 .5rem;
+    }
+    .cp-preview-card-price {
+      font-family: var(--mono); font-size: .95rem; font-weight: 700;
+      color: var(--text-1);
+    }
+    .cp-preview-card-rate {
+      font-size: .62rem; color: var(--text-3); margin-top: .15rem;
+    }
+    .cp-preview-card-name {
+      font-size: .7rem; font-weight: 600;
+      color: var(--text-2); margin-top: .375rem;
+      padding-top: .375rem; border-top: 1px solid var(--border);
+    }
+
+    @media (max-width: 1024px) {
+      .cp-two-col { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+      .cp { padding: 1rem .75rem 3rem; }
+      .cp-stats { flex-direction: column; }
+      .cp-grid { grid-template-columns: 1fr; }
+      .cp-field-row { grid-template-columns: 1fr; }
+      .cp-form-grid { grid-template-columns: 1fr; }
+      .cp-preview-cards { flex-direction: column; }
+    }
+</style>
+
+<div class="cp">
+  <a href="/landlord/" class="cp-back">
+    <i class="bi bi-arrow-left"></i> Back to Command Center
+  </a>
+
+  <div class="cp-header cp-fade">
+    <h1>
+      <i class="bi bi-lightning-charge-fill" style="color:var(--amber);"></i>
+      Credit Pack Pricing
+    </h1>
+    <p>Manage AI credit packs — adjust prices, credits, badges, and visibility for the individual portal store.</p>
+  </div>
+
+  {% if messages %}
+  <div class="mb-3">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert" style="font-size:.85rem;">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Stats Strip -->
+  <div class="cp-stats">
+    <div class="cp-stat --violet cp-fade">
+      <div class="cp-stat-val">{{ total_packs }}</div>
+      <div class="cp-stat-label">Total Packs</div>
+    </div>
+    <div class="cp-stat --emerald cp-fade">
+      <div class="cp-stat-val">{{ active_packs }}</div>
+      <div class="cp-stat-label">Active</div>
+    </div>
+    <div class="cp-stat --rose cp-fade">
+      <div class="cp-stat-val">{{ inactive_packs }}</div>
+      <div class="cp-stat-label">Inactive</div>
+    </div>
+    <div class="cp-stat --sky cp-fade">
+      <div class="cp-stat-val">{{ total_purchases }}</div>
+      <div class="cp-stat-label">Total Purchases</div>
+    </div>
+  </div>
+
+  <!-- Pack Editor -->
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="update_packs">
+
+    <div class="cp-card cp-fade">
+      <div class="cp-card-head">
+        <h2><i class="bi bi-collection-fill"></i> Credit Packs</h2>
+        <div class="d-flex gap-2 flex-wrap">
+          <button type="button" class="cp-btn cp-btn-secondary" onclick="toggleDrawer()">
+            <i class="bi bi-plus-lg"></i> New Pack
+          </button>
+          <button type="submit" class="cp-btn cp-btn-primary">
+            <i class="bi bi-check2"></i> Save Changes
+          </button>
+        </div>
+      </div>
+
+      {% if packs %}
+      <div class="cp-grid">
+        {% for pack in packs %}
+        <div class="cp-pack">
+          <div class="cp-pack-top">
+            <div class="cp-pack-icon">
+              <i class="bi {{ pack.icon }}"></i>
+            </div>
+            {% if pack.badge_label %}
+            <span class="cp-pack-badge">{{ pack.badge_label }}</span>
+            {% endif %}
+          </div>
+
+          <div class="cp-pack-name">{{ pack.name }}</div>
+          <div class="cp-pack-slug">{{ pack.slug }}</div>
+
+          <!-- Current values display -->
+          <div class="cp-pack-current">
+            <div class="cp-pack-metric">
+              <div class="cp-pack-metric-val --credits">{{ pack.credits }}</div>
+              <div class="cp-pack-metric-label">Credits</div>
+            </div>
+            <div class="cp-pack-metric">
+              <div class="cp-pack-metric-val --price">GH₵{{ pack.price }}</div>
+              <div class="cp-pack-metric-label">Price</div>
+            </div>
+            <div class="cp-pack-metric">
+              <div class="cp-pack-metric-val --rate">GH₵{{ pack.price_per_credit|floatformat:2 }}</div>
+              <div class="cp-pack-metric-label">Per Credit</div>
+            </div>
+          </div>
+
+          <!-- Editable fields -->
+          <div class="cp-fields">
+            <div class="cp-field-row">
+              <div class="cp-field">
+                <label>Credits</label>
+                <input type="number" name="pack_{{ pack.pk }}_credits"
+                       value="{{ pack.credits }}" min="1" class="cp-input">
+              </div>
+              <div class="cp-field">
+                <label>Price (GHS)</label>
+                <input type="number" step="0.01" min="0"
+                       name="pack_{{ pack.pk }}_price"
+                       value="{{ pack.price }}" class="cp-input">
+              </div>
+            </div>
+            <div class="cp-field-row">
+              <div class="cp-field">
+                <label>Badge Label</label>
+                <input type="text" name="pack_{{ pack.pk }}_badge"
+                       value="{{ pack.badge_label }}" class="cp-input --sm"
+                       placeholder="e.g. POPULAR">
+              </div>
+              <div class="cp-field">
+                <label>Icon (Bootstrap)</label>
+                <input type="text" name="pack_{{ pack.pk }}_icon"
+                       value="{{ pack.icon }}" class="cp-input --sm"
+                       placeholder="bi-lightning-charge">
+              </div>
+            </div>
+            <div class="cp-field">
+              <label>Position</label>
+              <input type="number" name="pack_{{ pack.pk }}_position"
+                     value="{{ pack.position }}" min="0" class="cp-input"
+                     style="width:80px;">
+            </div>
+          </div>
+
+          <div class="cp-pack-footer">
+            <label class="cp-active-label">
+              <label class="cp-toggle">
+                <input type="checkbox" name="pack_{{ pack.pk }}_active"
+                       {% if pack.is_active %}checked{% endif %}>
+                <span class="cp-toggle-track"></span>
+                <span class="cp-toggle-thumb"></span>
+              </label>
+              {% if pack.is_active %}
+              <span style="color:var(--emerald);font-weight:600;">Active</span>
+              {% else %}
+              <span style="color:var(--rose);font-weight:600;">Hidden</span>
+              {% endif %}
+            </label>
+            <button type="button" class="cp-btn-danger" onclick="confirmDelete({{ pack.pk }}, '{{ pack.name|escapejs }}')">
+              <i class="bi bi-trash3"></i> Delete
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Live preview -->
+      <div class="cp-preview-section">
+        <div class="cp-preview-title">Store Preview — How users see the packs</div>
+        <div class="cp-preview-cards">
+          {% for pack in packs %}
+          {% if pack.is_active %}
+          <div class="cp-preview-card">
+            {% if pack.badge_label %}
+            <div class="cp-preview-card-badge">{{ pack.badge_label }}</div>
+            {% endif %}
+            <div class="cp-preview-card-credits">{{ pack.credits }}</div>
+            <div class="cp-preview-card-label">credits</div>
+            <div class="cp-preview-card-price">GH₵{{ pack.price }}</div>
+            <div class="cp-preview-card-rate">GH₵{{ pack.price_per_credit|floatformat:2 }}/credit</div>
+            <div class="cp-preview-card-name">{{ pack.name }}</div>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+
+      {% else %}
+      <div class="cp-empty">
+        <div class="cp-empty-icon"><i class="bi bi-lightning-charge"></i></div>
+        <h4>No credit packs yet</h4>
+        <p>Click "New Pack" to create your first AI credit pack.</p>
+      </div>
+      {% endif %}
+    </div>
+  </form>
+
+  <!-- Delete form (hidden) -->
+  <form method="post" id="deleteForm" style="display:none;">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="delete_pack">
+    <input type="hidden" name="pack_id" id="deletePackId">
+  </form>
+
+  <!-- Create drawer -->
+  <div class="cp-drawer" id="createDrawer">
+    <h3><i class="bi bi-plus-circle"></i> Create New Credit Pack</h3>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="create_pack">
+      <div class="cp-form-grid">
+        <div class="cp-form-field">
+          <label>Name</label>
+          <input type="text" name="name" required placeholder="e.g. Mega Pack">
+        </div>
+        <div class="cp-form-field">
+          <label>Slug</label>
+          <input type="text" name="slug" required placeholder="e.g. mega-pack" pattern="[a-z0-9\-]+">
+        </div>
+        <div class="cp-form-field">
+          <label>Credits</label>
+          <input type="number" name="credits" required min="1" placeholder="100">
+        </div>
+        <div class="cp-form-field">
+          <label>Price (GHS)</label>
+          <input type="number" step="0.01" min="0" name="price" required placeholder="10.00">
+        </div>
+        <div class="cp-form-field">
+          <label>Badge Label</label>
+          <input type="text" name="badge_label" placeholder="POPULAR, BEST VALUE, etc.">
+        </div>
+        <div class="cp-form-field">
+          <label>Icon</label>
+          <input type="text" name="icon" value="bi-lightning-charge" placeholder="bi-icon-name">
+        </div>
+        <div class="cp-form-field">
+          <label>Position</label>
+          <input type="number" name="position" value="0" min="0">
+        </div>
+      </div>
+      <div class="mt-3 d-flex gap-2">
+        <button type="submit" class="cp-btn cp-btn-primary">
+          <i class="bi bi-plus-lg"></i> Create Pack
+        </button>
+        <button type="button" class="cp-btn cp-btn-secondary" onclick="toggleDrawer()">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Recent Purchases + Quick Info -->
+  <div class="cp-two-col">
+    <div class="cp-card cp-fade">
+      <div class="cp-card-head">
+        <h2><i class="bi bi-receipt-cutoff"></i> Recent Purchases</h2>
+        <span style="font-family:var(--mono);font-size:.625rem;color:var(--text-3);">{{ total_purchases }} total</span>
+      </div>
+      {% for txn in recent_purchases %}
+      <div class="cp-txn-row">
+        <div class="cp-txn-icon"><i class="bi bi-lightning-charge-fill"></i></div>
+        <div class="cp-txn-info">
+          <div class="cp-txn-user">{{ txn.user.get_full_name|default:txn.user.username }}</div>
+          <div class="cp-txn-desc">{{ txn.description }}</div>
+        </div>
+        <div class="cp-txn-amount">+{{ txn.amount }}</div>
+        <div class="cp-txn-time">{{ txn.created_at|timesince }} ago</div>
+      </div>
+      {% empty %}
+      <div style="text-align:center;padding:2rem;color:var(--text-3);font-size:.82rem;">
+        No credit purchases yet.
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="cp-card cp-fade">
+      <div class="cp-card-head">
+        <h2><i class="bi bi-info-circle"></i> Quick Reference</h2>
+      </div>
+      <div style="padding:1.25rem;font-size:.82rem;color:var(--text-2);line-height:1.6;">
+        <p style="margin:0 0 .75rem;"><strong style="color:var(--text-1);">How credit packs work:</strong></p>
+        <ul style="padding-left:1.25rem;margin:0 0 1rem;">
+          <li>Users buy packs from the <strong>Add-on Store</strong> via Paystack</li>
+          <li>Credits are added to their balance instantly after payment</li>
+          <li>Each AI action consumes a set number of credits</li>
+          <li>Lower <em>price-per-credit</em> on larger packs incentivizes bulk buys</li>
+        </ul>
+        <p style="margin:0 0 .5rem;"><strong style="color:var(--text-1);">Credit costs per action:</strong></p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.25rem .75rem;font-size:.75rem;">
+          <span>Lesson Generation</span><span style="font-family:var(--mono);color:var(--sky);">1 credit</span>
+          <span>Slide Generation</span><span style="font-family:var(--mono);color:var(--sky);">3 credits</span>
+          <span>Report Card</span><span style="font-family:var(--mono);color:var(--sky);">2 credits</span>
+          <span>Bulk Generation</span><span style="font-family:var(--mono);color:var(--sky);">5 credits</span>
+          <span>Exam Paper</span><span style="font-family:var(--mono);color:var(--sky);">3 credits</span>
+          <span>Question Bank</span><span style="font-family:var(--mono);color:var(--sky);">1 credit</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggleDrawer() {
+  document.getElementById('createDrawer').classList.toggle('open');
+}
+
+function confirmDelete(packId, packName) {
+  if (confirm('Delete "' + packName + '"? This cannot be undone.')) {
+    document.getElementById('deletePackId').value = packId;
+    document.getElementById('deleteForm').submit();
+  }
+}
+</script>
+{% endblock %}
