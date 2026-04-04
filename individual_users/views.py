@@ -642,8 +642,20 @@ def google_callback_view(request):
     # ── Verify state ──────────────────────────────────────────────
     state = request.GET.get('state', '')
     expected = request.session.pop('_google_state', '')
-    if not state or state != expected:
-        messages.error(request, 'Invalid state — please try again.')
+    
+    if not state:
+        logger.warning('Google OAuth callback missing state parameter')
+        messages.error(request, 'Authentication failed — please try again.')
+        return redirect('individual:signin')
+    
+    if not expected:
+        logger.warning('Google OAuth state not found in session (expired?)')
+        messages.error(request, 'Session expired — please try again.')
+        return redirect('individual:signin')
+    
+    if state != expected:
+        logger.warning(f'Google OAuth state mismatch: got {state[:10]}..., expected {expected[:10]}...')
+        messages.error(request, 'Authentication failed — please try again.')
         return redirect('individual:signin')
 
     error = request.GET.get('error')
