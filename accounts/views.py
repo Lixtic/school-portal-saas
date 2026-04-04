@@ -1382,12 +1382,13 @@ def session_debug(request):
             session_table_exists = f"ERROR: {e}"
 
     # Check static files
-    static_root = str(_settings.STATIC_ROOT)
+    static_root = str(_settings.STATIC_ROOT) if _settings.STATIC_ROOT else None
     static_files_count = 0
-    try:
-        for _root, _dirs, _files in _os.walk(static_root):
-            static_files_count += len(_files)
-    except Exception:
+    if static_root:
+        try:
+            for _root, _dirs, _files in _os.walk(static_root):
+                static_files_count += len(_files)
+        except Exception:
         static_files_count = -1
 
     # For signed_cookies, session_key is always None but session.keys() still works

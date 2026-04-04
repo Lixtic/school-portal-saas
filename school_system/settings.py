@@ -356,7 +356,13 @@ LOCALE_PATHS = [BASE_DIR / 'locale']
 # =====================
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# In Vercel, static files are handled by CDN, so don't set STATIC_ROOT
+# In other environments, use staticfiles directory for collectstatic
+if os.environ.get('VERCEL') != '1':
+    STATIC_ROOT = BASE_DIR / 'staticfiles'
+else:
+    STATIC_ROOT = None
 
 # WhiteNoise for serving static files in production
 # Use simple Compressed storage to avoid 500 errors if manifest is missing
@@ -369,11 +375,12 @@ if DEBUG or os.environ.get('VERCEL') == '1':
     WHITENOISE_USE_FINDERS = True
 
 # Ensure STATIC_ROOT exists so WhiteNoise doesn't warn on every cold start.
-# Vercel's /var/task/ is read-only at runtime, so silently skip if it fails.
-try:
-    STATIC_ROOT.mkdir(exist_ok=True)
-except OSError:
-    pass
+# Vercel's /var/task/ is read-only at runtime, so skip for Vercel
+if STATIC_ROOT and os.environ.get('VERCEL') != '1':
+    try:
+        STATIC_ROOT.mkdir(exist_ok=True)
+    except OSError:
+        pass
 
 
 # Media files
