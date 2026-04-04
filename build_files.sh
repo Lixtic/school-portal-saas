@@ -8,8 +8,16 @@ echo "=========================================="
 # Install dependencies
 echo ""
 echo "[1/7] Installing dependencies..."
-python3 -m pip install -r requirements.txt || {
+python3 -m pip install -r requirements.txt --upgrade || {
     echo "❌ Failed to install dependencies"
+    exit 1
+}
+
+# Explicitly ensure google-auth is installed
+echo ""
+echo "[1.5/7] Ensuring google-auth is installed..."
+python3 -m pip install google-auth==2.49.1 --upgrade || {
+    echo "❌ Failed to install google-auth"
     exit 1
 }
 
