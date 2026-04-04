@@ -6870,11 +6870,18 @@ def teacher_store_detail(request, slug):
         is_active=True, category=addon.category
     ).exclude(id=addon.id)[:3]
 
+    # Attach credit cost for AI add-ons
+    addon_credit_cost = 0
+    if addon.quota_boost:
+        gate = next((g for g in ADDON_FEATURE_MAP.get(addon.slug, {}).get('gates', []) if g in CREDIT_COSTS), '')
+        addon_credit_cost = CREDIT_COSTS.get(gate, 0)
+
     return render(request, 'teachers/teacher_store_detail.html', {
         'addon': addon,
         'is_purchased': is_purchased,
         'launch_url': launch_url,
         'related': related,
+        'addon_credit_cost': addon_credit_cost,
     })
 
 
