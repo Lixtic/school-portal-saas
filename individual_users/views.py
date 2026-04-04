@@ -607,12 +607,22 @@ def google_auth_view(request):
     """
     _ensure_public_schema()
     
-    # Check if google-auth is available
+    # Check if google-auth or fallback libraries are available
+    google_auth_available = False
     try:
         import google.auth
+        google_auth_available = True
     except ImportError:
-        messages.error(request, 'Google sign-in is not available on this server.')
-        return redirect('individual:signin')
+        pass
+    
+    if not google_auth_available:
+        try:
+            import jwt
+            import requests
+            from cryptography.hazmat.primitives.asymmetric import rsa
+        except ImportError:
+            messages.error(request, 'Google sign-in is not available on this server.')
+            return redirect('individual:signin')
     
     import secrets
     from urllib.parse import urlencode
@@ -651,9 +661,21 @@ def google_callback_view(request):
     # Check if google-auth is available
     try:
         import google.auth
+        google_auth_available = True
     except ImportError:
-        messages.error(request, 'Google sign-in is not available on this server.')
-        return redirect('individual:signin')
+        google_auth_available = False
+    
+    # If google-auth is not available, check for fallback libraries
+    if not google_auth_available:
+        try:
+            import jwt
+            import requests
+            from cryptography.hazmat.primitives import serialization
+            logger.info('Using manual JWT verification as fallback')
+        except ImportError as e:
+            logger.error(f'Neither google-auth nor fallback libraries available: {e}')
+            messages.error(request, 'Google sign-in is not available on this server.')
+            return redirect('individual:signin')
     
     import urllib.request
     import urllib.parse
@@ -698,22 +720,67 @@ def google_callback_view(request):
 
     # ── Verify ID token ───────────────────────────────────────────
     try:
-        from google.auth.transport.requests import Request as GoogleRequest
-        from google.oauth2 import id_token
-        
-        idinfo = id_token.verify_oauth2_token(
-            id_token_jwt, GoogleRequest(), audience=client_id,
-        )
-    except ImportError as e:
-        logger.error(f'Google auth library import failed: {e}')
-        messages.error(request, 'Google sign-in is misconfigured.')
-        return redirect('individual:signin')
-    except ValueError as e:
-        logger.error(f'Google token verification failed: {e}')
-        messages.error(request, 'Google sign-in failed. Please try again.')
-        return redirect('individual:signin')
+        if google_auth_available:
+            # Try google-auth first
+            from google.auth.transport.requests import Request as GoogleRequest
+            from google.oauth2 import id_token
+            
+            idinfo = id_token.verify_oauth2_token(
+                id_token_jwt, GoogleRequest(), audience=client_id,
+            )
+        else:
+            # Fallback to manual JWT verification
+            logger.warning('google-auth not available, using manual JWT verification')
+            import jwt
+            import requests
+            from cryptography.hazmat.primitives.asymmetric import rsa
+            import base64
+            
+            # Get Google's public keys
+            response = requests.get('https://www.googleapis.com/oauth2/v3/certs')
+            response.raise_for_status()
+            keys = response.json()['keys']
+            
+            # Decode JWT header to get key ID
+            header = jwt.get_unverified_header(id_token_jwt)
+            kid = header['kid']
+            
+            # Find the correct key
+            key_data = None
+            for key in keys:
+                if key['kid'] == kid:
+                    key_data = key
+                    break
+            
+            if not key_data:
+                raise ValueError('Invalid key ID')
+            
+            # Convert base64url to base64
+            e = key_data['e']
+            n = key_data['n']
+            e_bytes = base64.urlsafe_b64decode(e + '=' * (4 - len(e) % 4))
+            n_bytes = base64.urlsafe_b64decode(n + '=' * (4 - len(n) % 4))
+            
+            # Create RSA public key
+            public_key = rsa.RSAPublicNumbers(
+                e=int.from_bytes(e_bytes, 'big'),
+                n=int.from_bytes(n_bytes, 'big')
+            ).public_key()
+            
+            # Verify and decode the token
+            decoded = jwt.decode(
+                id_token_jwt, 
+                public_key, 
+                algorithms=['RS256'],
+                audience=client_id,
+                issuer='https://accounts.google.com'
+            )
+            
+            idinfo = decoded
+
+
     except Exception as e:
-        logger.exception(f'Unexpected error during Google token verification: {e}')
+        logger.exception(f'Google token verification failed: {e}')
         messages.error(request, 'Google sign-in failed. Please try again.')
         return redirect('individual:signin')
 

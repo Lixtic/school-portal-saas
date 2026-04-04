@@ -15,9 +15,9 @@ python3 -m pip install -r requirements.txt --upgrade || {
 
 # Explicitly ensure google-auth is installed
 echo ""
-echo "[1.5/7] Ensuring google-auth is installed..."
-python3 -m pip install google-auth==2.49.1 --upgrade || {
-    echo "❌ Failed to install google-auth"
+echo "[1.5/7] Ensuring google-auth and JWT libraries are installed..."
+python3 -m pip install google-auth==2.49.1 PyJWT>=2.0.0 --upgrade || {
+    echo "❌ Failed to install google-auth or PyJWT"
     exit 1
 }
 
