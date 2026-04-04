@@ -172,9 +172,15 @@ async function generateGuide(){
             body:JSON.stringify({notes,title})
         });
         const data=await r.json();
-        if(r.status===403 && data.error_code==='freemium_limit'){
-            const toast=document.getElementById('sgFreemiumToast');
-            if(toast){toast.style.display='block';setTimeout(()=>{toast.style.display='none';},8000);}
+        if(r.status===403 && data.error_code==='insufficient_credits'){
+            const toast=document.getElementById('sgCreditsToast');
+            if(toast){
+                var costEl=toast.querySelector('.sg-credits-cost');
+                var balEl=toast.querySelector('.sg-credits-bal');
+                if(costEl) costEl.textContent=data.cost||1;
+                if(balEl) balEl.textContent=data.balance||0;
+                toast.style.display='block';setTimeout(()=>{toast.style.display='none';},8000);
+            }
             else{alert(data.message);}
         }else if(data.html){document.getElementById('contentHtml').value=data.html;}
         else{alert(data.error||'AI generation failed.');}
@@ -191,10 +197,10 @@ function filterGuides(query){
 }
 </script>
 
-<!-- Freemium limit toast -->
-<div id="sgFreemiumToast" style="display:none;position:fixed;bottom:1.5rem;right:1.5rem;max-width:380px;z-index:9999;background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff;padding:1rem 1.2rem;border-radius:14px;box-shadow:0 8px 24px rgba(139,92,246,.3);font-size:.85rem;">
-  <div style="font-weight:700;margin-bottom:.3rem;"><i class="bi bi-lock-fill me-1"></i>Free Limit Reached</div>
-  <div style="opacity:.9;">You've used all {{ sg_gen_limit }} free AI study guide generations.</div>
-  <a href="{% url 'teachers:teacher_store' %}" style="display:inline-block;margin-top:.5rem;padding:.35rem .8rem;background:#fff;color:#6d28d9;border-radius:8px;font-weight:700;text-decoration:none;font-size:.8rem;">Get Study Guide Builder &rarr;</a>
+<!-- Insufficient credits toast -->
+<div id="sgCreditsToast" style="display:none;position:fixed;bottom:1.5rem;right:1.5rem;max-width:380px;z-index:9999;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;padding:1rem 1.2rem;border-radius:14px;box-shadow:0 8px 24px rgba(245,158,11,.3);font-size:.85rem;">
+  <div style="font-weight:700;margin-bottom:.3rem;"><i class="bi bi-coin me-1"></i>Not Enough Credits</div>
+  <div style="opacity:.9;">This action costs <span class="sg-credits-cost">2</span> credits but you only have <span class="sg-credits-bal">0</span>.</div>
+  <a href="{% url 'teachers:teacher_store' %}#creditPacks" style="display:inline-block;margin-top:.5rem;padding:.35rem .8rem;background:#fff;color:#d97706;border-radius:8px;font-weight:700;text-decoration:none;font-size:.8rem;">Buy Credits &rarr;</a>
 </div>
 {% endblock %}

@@ -764,7 +764,7 @@ async function generateQuestions(){
             })
         });
         const data=await r.json();
-        if(r.status===403&&data.error_code==='freemium_limit'){qbToast(data.message,'warn',6000);container.innerHTML='';return;}
+        if(r.status===403&&data.error_code==='insufficient_credits'){qbToast(data.message,'warn',6000);container.innerHTML='';return;}
         if(r.status===429){qbToast(data.error||'Quota exceeded.','error');container.innerHTML='';return;}
         if(!r.ok){container.innerHTML='<div class="qb-empty" style="color:var(--qb-danger);"><svg width="64" height="64" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="28" stroke="var(--qb-danger)" stroke-width="2" opacity=".3"/><path d="M32 20v16M32 42v2" stroke="var(--qb-danger)" stroke-width="2.5" stroke-linecap="round"/></svg>'+(data.message||data.error||'AI generation failed. Please try again.')+'</div>';qbToast('AI generation failed','error');return;}
         if(data.questions&&data.questions.length){

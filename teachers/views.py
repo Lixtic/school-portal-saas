@@ -2073,7 +2073,7 @@ def lesson_plan_pdf(request, pk):
 
 @login_required
 @require_plan('pro', 'enterprise')
-@requires_addon_freemium('smart-planner-pro')
+@requires_addon('smart-planner-pro')
 def aura_t_api(request):
     """
     Handles AJAX requests for lesson plan generation, differentiation, and assignment creation.
@@ -2111,6 +2111,9 @@ def aura_t_api(request):
                     school_class = get_object_or_404(Class, pk=class_id)
                     class_name = school_class.name
 
+                ok, err = deduct_credits(request.user, 'lesson_gen')
+                if not ok:
+                    return JsonResponse(err, status=403)
                 check_and_consume(request.tenant, request.user.id, 'lesson_gen')
                 result = AuraGenEngine.generate_lesson_plan(
                     topic=topic,
@@ -2146,6 +2149,9 @@ def aura_t_api(request):
                     school_class = get_object_or_404(Class, pk=class_id)
                     class_name = school_class.name
 
+                ok, err = deduct_credits(request.user, 'slide_gen')
+                if not ok:
+                    return JsonResponse(err, status=403)
                 check_and_consume(request.tenant, request.user.id, 'slide_gen')
                 result = AuraGenEngine.generate_slides_outline(topic, subject_name, class_name)
                 return JsonResponse({"status": "success", "data": result})
@@ -2169,6 +2175,9 @@ def aura_t_api(request):
                     school_class = get_object_or_404(Class, pk=class_id)
                     class_name = school_class.name
 
+                ok, err = deduct_credits(request.user, 'exercise_gen')
+                if not ok:
+                    return JsonResponse(err, status=403)
                 check_and_consume(request.tenant, request.user.id, 'exercise_gen')
                 result = AuraGenEngine.generate_interactive_exercises(topic, subject_name, class_name)
                 return JsonResponse({"status": "success", "data": result})
@@ -2190,6 +2199,9 @@ def aura_t_api(request):
                 school_class = get_object_or_404(Class, pk=class_id)
                 subject = get_object_or_404(Subject, pk=subject_id)
 
+                ok, err = deduct_credits(request.user, 'exercise_gen')
+                if not ok:
+                    return JsonResponse(err, status=403)
                 check_and_consume(request.tenant, request.user.id, 'exercise_gen')
                 result = AuraGenEngine.generate_interactive_exercises(topic, subject.name, school_class.name)
 
@@ -2331,6 +2343,9 @@ def aura_t_api(request):
                 lesson_id = data.get('lesson_id')
                 topic = data.get('topic')
 
+                ok, err = deduct_credits(request.user, 'assignment_gen')
+                if not ok:
+                    return JsonResponse(err, status=403)
                 check_and_consume(request.tenant, request.user.id, 'assignment_gen')
                 if lesson_id:
                     lesson_plan = get_object_or_404(LessonPlan, pk=lesson_id, teacher=teacher)
@@ -2424,6 +2439,9 @@ def aura_t_api(request):
                 subject_r = regen_plan.subject.name if regen_plan.subject else "General Studies"
                 class_r = regen_plan.school_class.name if regen_plan.school_class else "General"
 
+                ok, err = deduct_credits(request.user, 'lesson_gen')
+                if not ok:
+                    return JsonResponse(err, status=403)
                 check_and_consume(request.tenant, request.user.id, 'lesson_gen')
                 regen_result = AuraGenEngine.generate_lesson_plan(topic_r, subject_r, class_r)
                 lesson_body = (regen_result.get('lesson_plan') or '').strip()

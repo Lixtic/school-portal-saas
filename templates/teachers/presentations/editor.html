@@ -1288,10 +1288,10 @@ var DECK_ID   = {{ deck.pk }};
 var DECK_THEME= "{{ deck.theme }}";
 var csrfToken = "{{ csrf_token }}";
 
-// ── Freemium / quota error helper ───────────────────────────────
+// ── Credit / quota error helper ───────────────────────────────
 function checkAiErrors(d) {
-  if (d._freemium_limit || d.error_code === 'freemium_limit') {
-    showFreemiumLimitReached(d.used, d.limit);
+  if (d._insufficient_credits || d.error_code === 'insufficient_credits') {
+    showInsufficientCredits(d.balance, d.cost);
     return true;
   }
   if (d._quota_exceeded || d.error_code === 'quota_exceeded') {
@@ -1324,7 +1324,7 @@ function api(payload) {
   }, 90000).then(function(r) {
     return r.json().then(function(d) {
       if (r.status === 429) { d._quota_exceeded = true; }
-      if (r.status === 403 && d.error_code === 'freemium_limit') { d._freemium_limit = true; }
+      if (r.status === 403 && d.error_code === 'insufficient_credits') { d._insufficient_credits = true; }
       return d;
     });
   });
@@ -2530,7 +2530,7 @@ function generateSlideImage() {
   }, 90000)
   .then(function(r) { return r.json().then(function(d) { d._status = r.status; return d; }); })
   .then(function(d) {
-    if (d.error_code === 'freemium_limit') { showFreemiumLimitReached(d.used, d.limit); status.textContent=''; return; }
+    if (d.error_code === 'insufficient_credits') { showInsufficientCredits(d.balance, d.cost); status.textContent=''; return; }
     if (d.image_url) {
       slide.image_url = d.image_url;
       document.getElementById('imageUrlInput').value = '';

@@ -205,7 +205,7 @@ async function generateComments(){
             body:JSON.stringify({student_ids:checked,term:'{{ sel_term }}',class_id:{{ sel_class|default:"0" }}})
         });
         const data=await r.json();
-        if(r.status===403 && data.error_code==='freemium_limit'){
+        if(r.status===403 && data.error_code==='insufficient_credits'){
             alert(data.message);
         }else if(r.status===429 && data.error_code==='quota_exceeded'){
             alert(data.error||'AI quota exceeded.');

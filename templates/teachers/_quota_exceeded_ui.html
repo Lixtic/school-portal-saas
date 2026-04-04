@@ -22,26 +22,26 @@
   </div>
 </div>
 
-{# Freemium limit toast — reuses same toast element with different copy #}
-<div id="freemiumLimitToast" style="display:none;position:fixed;top:1.25rem;right:1.25rem;z-index:10001;width:360px;" role="alert" aria-live="assertive">
-  <div style="background:#1e293b;border:1.5px solid #8b5cf6;border-radius:14px;padding:1.1rem 1.25rem;box-shadow:0 12px 40px rgba(0,0,0,.5);">
+{# Insufficient credits toast — amber-themed #}
+<div id="insufficientCreditsToast" style="display:none;position:fixed;top:1.25rem;right:1.25rem;z-index:10001;width:360px;" role="alert" aria-live="assertive">
+  <div style="background:#1e293b;border:1.5px solid #f59e0b;border-radius:14px;padding:1.1rem 1.25rem;box-shadow:0 12px 40px rgba(0,0,0,.5);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;">
       <div style="display:flex;align-items:center;gap:.5rem;">
-        <span style="font-size:1.2rem;">✨</span>
-        <strong style="color:#a78bfa;font-size:.88rem;letter-spacing:.01em;">Free Generations Used Up</strong>
+        <span style="font-size:1.2rem;">🪙</span>
+        <strong style="color:#fbbf24;font-size:.88rem;letter-spacing:.01em;">Not Enough Credits</strong>
       </div>
-      <button onclick="document.getElementById('freemiumLimitToast').style.display='none'"
+      <button onclick="document.getElementById('insufficientCreditsToast').style.display='none'"
               style="background:none;border:none;color:#64748b;font-size:1rem;cursor:pointer;line-height:1;padding:0 .2rem;"
               aria-label="Dismiss">&times;</button>
     </div>
-    <p id="freemiumLimitMsg" style="color:#94a3b8;font-size:.82rem;margin:.15rem 0 .85rem;line-height:1.5;"></p>
+    <p id="insufficientCreditsMsg" style="color:#94a3b8;font-size:.82rem;margin:.15rem 0 .85rem;line-height:1.5;"></p>
     <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
-      <a href="{% url 'teachers:teacher_store' %}"
-         style="background:linear-gradient(135deg,#4361ee,#4cc9f0);color:#fff;border-radius:8px;padding:.38rem .85rem;font-size:.8rem;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:.35rem;">
+      <a href="{% url 'teachers:teacher_store' %}#creditPacks"
+         style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border-radius:8px;padding:.38rem .85rem;font-size:.8rem;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:.35rem;">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-        Visit Add-on Store
+        Buy Credits
       </a>
-      <span style="color:#475569;font-size:.75rem;">for unlimited AI access</span>
+      <span style="color:#475569;font-size:.75rem;">to continue generating</span>
     </div>
   </div>
 </div>
@@ -66,12 +66,14 @@ function showAiQuotaExceeded(used, limit, addonBoost) {
   window._aiQuotaTimer = setTimeout(function() { toast.style.display = 'none'; }, 15000);
 }
 
-function showFreemiumLimitReached(used, limit) {
-  var msg = document.getElementById('freemiumLimitMsg');
-  msg.textContent = 'You\u2019ve used all ' + (limit || 10) + ' free AI generations. Purchase the add-on from the Store to unlock unlimited access.';
-  var toast = document.getElementById('freemiumLimitToast');
+function showInsufficientCredits(balance, cost) {
+  var msg = document.getElementById('insufficientCreditsMsg');
+  var b = (balance !== null && balance !== undefined) ? balance : 0;
+  var c = (cost !== null && cost !== undefined) ? cost : 1;
+  msg.textContent = 'This action costs ' + c + ' credit' + (c !== 1 ? 's' : '') + ' but you only have ' + b + '. Purchase more credits to continue.';
+  var toast = document.getElementById('insufficientCreditsToast');
   toast.style.display = 'block';
-  clearTimeout(window._freemiumTimer);
-  window._freemiumTimer = setTimeout(function() { toast.style.display = 'none'; }, 20000);
+  clearTimeout(window._creditsTimer);
+  window._creditsTimer = setTimeout(function() { toast.style.display = 'none'; }, 20000);
 }
 </script>

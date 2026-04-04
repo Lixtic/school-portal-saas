@@ -1628,10 +1628,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const merged = `${code} ${message}`.toLowerCase();
 
-        if (code === 'freemium_limit' || merged.includes('freemium_limit')) {
-            const used = (source && source.used) ? source.used : null;
-            const limit = (source && source.limit) ? source.limit : 10;
-            return `\u2728 You\u2019ve used all ${limit} free AI lesson generations (${used}/${limit}). <a href="{% url 'teachers:teacher_store' %}" style="color:#a78bfa;font-weight:700;">Get Smart Planner Pro</a> for unlimited access.`;
+        if (code === 'insufficient_credits' || merged.includes('insufficient_credits')) {
+            const balance = (source && source.balance) ? source.balance : 0;
+            const cost = (source && source.cost) ? source.cost : 1;
+            return `🪙 Not enough credits (need ${cost}, have ${balance}). <a href="{% url 'teachers:teacher_store' %}#creditPacks" style="color:#fbbf24;font-weight:700;">Buy Credits</a> to continue.`;
         }
         if (merged.includes('quota_exceeded') || merged.includes('ai_quota_exceeded') || merged.includes('insufficient_quota') || merged.includes('openai http 429')) {
             const used = (source && source.used) ? source.used : null;
