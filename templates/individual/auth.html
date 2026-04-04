@@ -15,413 +15,504 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Instrument+Serif&display=swap" rel="stylesheet">
 
     <style>
+        /* ── Design Tokens ────────────────────────── */
         :root {
-            --brand-primary: #4361ee;
-            --brand-secondary: #4cc9f0;
-            --surface-bg: #f0f2f5;
-            --surface-card: #ffffff;
-            --text-main: #111827;
-            --text-muted: #6b7280;
-            --border-color: #e5e7eb;
+            --brand: #4361ee;
+            --brand-light: #4cc9f0;
+            --surface: #f8f9fc;
+            --card: #ffffff;
+            --text: #0f172a;
+            --text-2: #64748b;
+            --border: #e2e8f0;
+            --radius: 14px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+            --shadow-md: 0 8px 30px rgba(0,0,0,0.06);
+            --transition: 0.2s cubic-bezier(.4,0,.2,1);
         }
         [data-bs-theme="dark"] {
-            --surface-bg: #0c0f1a;
-            --surface-card: #161b2e;
-            --text-main: #f1f5f9;
-            --text-muted: #94a3b8;
-            --border-color: #1e293b;
+            --surface: #080b16;
+            --card: #111827;
+            --text: #f1f5f9;
+            --text-2: #94a3b8;
+            --border: #1e293b;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.2);
+            --shadow-md: 0 8px 30px rgba(0,0,0,0.3);
         }
-        * { font-family: 'Manrope', system-ui, sans-serif; box-sizing: border-box; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; }
         body {
-            margin: 0;
+            font-family: 'Manrope', system-ui, sans-serif;
             min-height: 100vh;
             display: flex;
-            background: var(--surface-bg);
-            color: var(--text-main);
+            background: var(--surface);
+            color: var(--text);
+            overflow-x: hidden;
         }
 
-        /* ── Left panel: brand showcase ───────────── */
-        .auth-brand {
-            flex: 0 0 44%;
-            background: linear-gradient(160deg, #0c0f1a 0%, #1a1147 40%, #4361ee 100%);
+        /* ── Brand Panel ──────────────────────────── */
+        .brand {
+            flex: 0 0 46%;
+            background: linear-gradient(160deg, #080b16 0%, #111d4a 35%, {% if role == 'teacher' %}#065f46{% else %}#3730a3{% endif %} 70%, {% if role == 'teacher' %}#059669{% else %}#4361ee{% endif %} 100%);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 3rem;
+            padding: 3.5rem;
             position: relative;
             overflow: hidden;
         }
-        .auth-brand::before {
+
+        /* Animated orbs */
+        .brand .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.35;
+            animation: orbFloat 8s ease-in-out infinite alternate;
+        }
+        .brand .orb-1 {
+            width: 350px; height: 350px;
+            background: {% if role == 'teacher' %}#34d399{% else %}#4cc9f0{% endif %};
+            top: -10%; right: -10%;
+            animation-duration: 10s;
+        }
+        .brand .orb-2 {
+            width: 280px; height: 280px;
+            background: {% if role == 'teacher' %}#059669{% else %}#4361ee{% endif %};
+            bottom: -5%; left: -8%;
+            animation-duration: 12s;
+            animation-direction: alternate-reverse;
+        }
+        .brand .orb-3 {
+            width: 120px; height: 120px;
+            background: #818cf8;
+            top: 40%; left: 60%;
+            animation-duration: 7s;
+            opacity: 0.2;
+        }
+        @keyframes orbFloat {
+            0%   { transform: translate(0, 0) scale(1); }
+            50%  { transform: translate(15px, -20px) scale(1.08); }
+            100% { transform: translate(-10px, 10px) scale(0.95); }
+        }
+
+        /* Grid dots overlay */
+        .brand::after {
             content: '';
             position: absolute;
-            width: 500px;
-            height: 500px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(76,201,240,0.15) 0%, transparent 70%);
-            top: -100px;
-            right: -150px;
+            inset: 0;
+            background-image: radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px);
+            background-size: 24px 24px;
+            pointer-events: none;
         }
-        .auth-brand::after {
-            content: '';
-            position: absolute;
-            width: 400px;
-            height: 400px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(67,97,238,0.2) 0%, transparent 70%);
-            bottom: -80px;
-            left: -100px;
-        }
-        .auth-brand-inner {
+
+        .brand-inner {
             position: relative;
-            z-index: 1;
+            z-index: 2;
             text-align: center;
-            max-width: 380px;
+            max-width: 360px;
         }
-        .auth-brand-logo {
-            width: 56px;
-            height: 56px;
+        .brand-mark {
+            width: 52px; height: 52px;
             background: rgba(255,255,255,0.12);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 14px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             color: #fff;
-            font-size: 1.4rem;
+            font-size: 1.3rem;
             font-weight: 800;
             margin-bottom: 2rem;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(12px);
         }
-        .auth-brand h1 {
+        .brand h1 {
             font-family: 'Instrument Serif', serif;
-            font-size: 2.8rem;
+            font-size: 2.6rem;
             font-weight: 400;
             color: #fff;
             line-height: 1.15;
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
         }
-        .auth-brand h1 em {
+        .brand h1 em {
             font-style: italic;
-            background: linear-gradient(90deg, #4cc9f0, #a5f3fc);
+            background: linear-gradient(90deg, {% if role == 'teacher' %}#34d399, #a7f3d0{% else %}#4cc9f0, #a5f3fc{% endif %});
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-        .auth-brand p {
-            color: rgba(255,255,255,0.6);
-            font-size: 0.95rem;
-            line-height: 1.6;
+        .brand-desc {
+            color: rgba(255,255,255,0.55);
+            font-size: 0.9rem;
+            line-height: 1.65;
+            margin: 0;
         }
-        .auth-features {
+        .features {
             margin-top: 2.5rem;
             display: flex;
             flex-direction: column;
-            gap: 0.75rem;
+            gap: 0.65rem;
         }
-        .auth-feature {
+        .feat {
             display: flex;
             align-items: center;
-            gap: 0.65rem;
-            color: rgba(255,255,255,0.75);
-            font-size: 0.85rem;
+            gap: 0.6rem;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.82rem;
+            font-weight: 500;
         }
-        .auth-feature-dot {
-            width: 6px;
-            height: 6px;
+        .feat-dot {
+            width: 5px; height: 5px;
             border-radius: 50%;
-            background: #4cc9f0;
+            background: {% if role == 'teacher' %}#34d399{% else %}#4cc9f0{% endif %};
             flex-shrink: 0;
         }
 
-        /* ── Right panel: form area ───────────────── */
-        .auth-form-panel {
+        /* ── Form Panel ───────────────────────────── */
+        .form-panel {
             flex: 1;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 2rem;
+            padding: 2.5rem;
             overflow-y: auto;
+            position: relative;
         }
-        .auth-form-wrap {
+        .form-panel::before {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 400px; height: 400px;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(67,97,238,0.04), transparent 70%);
+            pointer-events: none;
+        }
+        .form-wrap {
             width: 100%;
-            max-width: 420px;
+            max-width: 400px;
+            position: relative;
+            z-index: 1;
         }
-        .auth-form-header {
-            margin-bottom: 2rem;
-        }
-        .auth-form-header h2 {
-            font-size: 1.5rem;
+
+        /* Header */
+        .form-header { margin-bottom: 1.75rem; }
+        .form-header h2 {
+            font-size: 1.45rem;
             font-weight: 800;
-            margin-bottom: 0.35rem;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.3rem;
         }
-        .auth-form-header p {
-            color: var(--text-muted);
-            font-size: 0.88rem;
+        .form-header p {
+            color: var(--text-2);
+            font-size: 0.85rem;
             margin: 0;
         }
-        .auth-form-header p a {
-            color: var(--brand-primary);
+        .form-header a {
+            color: var(--brand);
             text-decoration: none;
             font-weight: 600;
         }
-        .auth-form-header p a:hover { text-decoration: underline; }
+        .form-header a:hover { text-decoration: underline; }
 
         /* ── Tabs ─────────────────────────────────── */
-        .auth-tabs {
+        .tabs {
             display: flex;
-            gap: 4px;
-            background: var(--surface-bg);
-            border-radius: 12px;
-            padding: 4px;
+            gap: 3px;
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 3px;
             margin-bottom: 1.5rem;
         }
-        [data-bs-theme="dark"] .auth-tabs { background: rgba(255,255,255,0.05); }
-        .auth-tab {
+        [data-bs-theme="dark"] .tabs { background: rgba(255,255,255,0.04); }
+        .tab {
             flex: 1;
             text-align: center;
             padding: 0.55rem 0;
-            font-size: 0.82rem;
+            font-size: 0.8rem;
             font-weight: 600;
-            border-radius: 9px;
+            border-radius: calc(var(--radius) - 3px);
             cursor: pointer;
             border: none;
             background: transparent;
-            color: var(--text-muted);
-            transition: all 0.15s ease;
+            color: var(--text-2);
+            transition: var(--transition);
         }
-        .auth-tab.active {
-            background: var(--surface-card);
-            color: var(--text-main);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        .tab.active {
+            background: var(--card);
+            color: var(--text);
+            box-shadow: var(--shadow-sm);
         }
-        .auth-tab i { margin-right: 4px; }
+        .tab i { margin-right: 4px; }
 
-        /* ── Form ─────────────────────────────────── */
-        .auth-pane { display: none; }
-        .auth-pane.active { display: block; }
-        .auth-field {
-            margin-bottom: 1rem;
+        /* ── Panes ────────────────────────────────── */
+        .pane { display: none; }
+        .pane.active { display: block; animation: fadeSlide 0.25s ease; }
+        @keyframes fadeSlide {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
-        .auth-field label {
+
+        /* ── Fields ───────────────────────────────── */
+        .field { margin-bottom: 0.9rem; }
+        .field label {
             display: block;
-            font-size: 0.78rem;
+            font-size: 0.76rem;
             font-weight: 600;
-            color: var(--text-muted);
-            margin-bottom: 0.35rem;
+            color: var(--text-2);
+            margin-bottom: 0.3rem;
+            letter-spacing: 0.01em;
         }
-        .auth-field input {
+        .field-input {
             width: 100%;
             padding: 0.65rem 0.85rem;
-            border: 1.5px solid var(--border-color);
+            border: 1.5px solid var(--border);
             border-radius: 10px;
-            background: var(--surface-card);
-            color: var(--text-main);
-            font-size: 0.9rem;
+            background: var(--card);
+            color: var(--text);
+            font-size: 0.88rem;
             font-family: inherit;
-            transition: border-color 0.15s;
+            transition: var(--transition);
             outline: none;
         }
-        .auth-field input:focus {
-            border-color: var(--brand-primary);
-            box-shadow: 0 0 0 3px rgba(67,97,238,0.12);
+        .field-input::placeholder { color: var(--text-2); opacity: 0.6; }
+        .field-input:focus {
+            border-color: var(--brand);
+            box-shadow: 0 0 0 3px rgba(67,97,238,0.1);
         }
-        .auth-field .error-text {
-            font-size: 0.75rem;
+        .field-input:hover:not(:focus) { border-color: #c7d0e0; }
+        [data-bs-theme="dark"] .field-input:hover:not(:focus) { border-color: #334155; }
+        .field .err {
+            font-size: 0.73rem;
             color: #ef4444;
-            margin-top: 0.25rem;
-        }
-        .auth-submit {
-            width: 100%;
-            padding: 0.7rem;
-            border: none;
-            border-radius: 10px;
-            background: linear-gradient(135deg, #4361ee 0%, #4cc9f0 100%);
-            color: #fff;
-            font-size: 0.9rem;
-            font-weight: 700;
-            font-family: inherit;
-            cursor: pointer;
-            transition: transform 0.1s, box-shadow 0.15s;
-            margin-top: 0.5rem;
-        }
-        .auth-submit:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(67,97,238,0.3);
-        }
-        .auth-submit:active { transform: translateY(0); }
-
-        /* ── Google button ────────────────────────── */
-        .auth-divider {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin: 1.25rem 0;
-            color: var(--text-muted);
-            font-size: 0.78rem;
-        }
-        .auth-divider::before,
-        .auth-divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--border-color);
-        }
-        .google-btn {
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.6rem;
-            padding: 0.65rem;
-            border: 1.5px solid var(--border-color);
-            border-radius: 10px;
-            background: var(--surface-card);
-            color: var(--text-main);
-            font-size: 0.88rem;
-            font-weight: 600;
-            font-family: inherit;
-            cursor: pointer;
-            transition: border-color 0.15s, box-shadow 0.15s;
-        }
-        .google-btn:hover {
-            border-color: var(--brand-primary);
-            box-shadow: 0 2px 8px rgba(67,97,238,0.1);
-        }
-        .google-btn svg {
-            width: 18px;
-            height: 18px;
+            margin-top: 0.2rem;
         }
 
-        /* ── Alerts ───────────────────────────────── */
-        .auth-alert {
-            padding: 0.65rem 1rem;
-            border-radius: 10px;
-            font-size: 0.82rem;
-            font-weight: 500;
-            margin-bottom: 1rem;
-            background: rgba(239,68,68,0.08);
-            color: #dc2626;
-            border: 1px solid rgba(239,68,68,0.15);
-        }
-        [data-bs-theme="dark"] .auth-alert {
-            background: rgba(239,68,68,0.15);
-            color: #fca5a5;
-        }
-
-        /* ── Theme toggle ─────────────────────────── */
-        .auth-theme-toggle {
-            position: fixed;
-            top: 1.25rem;
-            right: 1.25rem;
-            z-index: 10;
-            background: var(--surface-card);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            color: var(--text-muted);
-            transition: all 0.15s;
-        }
-        .auth-theme-toggle:hover { color: var(--brand-primary); }
-
-        /* ── Home link ────────────────────────────── */
-        .auth-home-link {
-            position: fixed;
-            top: 1.25rem;
-            left: 1.25rem;
-            z-index: 10;
-            color: rgba(255,255,255,0.6);
-            font-size: 0.82rem;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            transition: color 0.15s;
-        }
-        .auth-home-link:hover { color: #fff; }
-
-        /* ── Mobile ───────────────────────────────── */
-        @media (max-width: 768px) {
-            body { flex-direction: column; }
-            .auth-brand {
-                flex: none;
-                padding: 2rem 1.5rem 1.5rem;
-            }
-            .auth-brand h1 { font-size: 1.75rem; margin-bottom: 0.5rem; }
-            .auth-brand > .auth-brand-inner > p { display: none; }
-            .auth-features { display: none; }
-            .auth-form-panel { padding: 1.5rem; }
-            .auth-home-link {
-                position: static;
-                color: rgba(255,255,255,0.5);
-                margin-bottom: 0.75rem;
-            }
-        }
-
-        /* ── Password toggle ──────────────────────── */
-        .pw-wrap {
-            position: relative;
-        }
+        /* Password wrapper */
+        .pw-wrap { position: relative; }
         .pw-toggle {
             position: absolute;
-            right: 12px;
+            right: 10px;
             top: 50%;
             transform: translateY(-50%);
             background: none;
             border: none;
-            color: var(--text-muted);
+            color: var(--text-2);
             cursor: pointer;
-            padding: 0;
+            padding: 2px;
+            transition: color var(--transition);
+        }
+        .pw-toggle:hover { color: var(--brand); }
+
+        /* ── Submit Button ────────────────────────── */
+        .submit-btn {
+            width: 100%;
+            padding: 0.72rem;
+            border: none;
+            border-radius: 10px;
+            background: var(--brand);
+            color: #fff;
+            font-size: 0.88rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-top: 0.75rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .submit-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%);
+            opacity: 0;
+            transition: opacity var(--transition);
+        }
+        .submit-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(67,97,238,0.28);
+        }
+        .submit-btn:hover::before { opacity: 1; }
+        .submit-btn:active { transform: translateY(0); box-shadow: none; }
+
+        /* ── Divider & Google ─────────────────────── */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            margin: 1.2rem 0;
+            color: var(--text-2);
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+        .g-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.55rem;
+            padding: 0.62rem;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            background: var(--card);
+            color: var(--text);
+            font-size: 0.85rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+        .g-btn:hover {
+            border-color: var(--brand);
+            box-shadow: 0 2px 12px rgba(67,97,238,0.08);
+            color: var(--text);
+        }
+        .g-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+        /* ── Alert ────────────────────────────────── */
+        .auth-alert {
+            padding: 0.6rem 0.85rem;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 0.85rem;
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+        [data-bs-theme="dark"] .auth-alert {
+            background: rgba(239,68,68,0.12);
+            color: #fca5a5;
+            border-color: rgba(239,68,68,0.2);
+        }
+
+        /* ── Theme Toggle ─────────────────────────── */
+        .theme-toggle {
+            position: fixed;
+            top: 1.25rem; right: 1.25rem;
+            z-index: 50;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            width: 38px; height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-2);
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+        }
+        .theme-toggle:hover { color: var(--brand); }
+
+        /* ── Home Link ────────────────────────────── */
+        .home-link {
+            position: fixed;
+            top: 1.25rem; left: 1.25rem;
+            z-index: 50;
+            color: rgba(255,255,255,0.5);
+            font-size: 0.8rem;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-weight: 500;
+            transition: color var(--transition);
+        }
+        .home-link:hover { color: #fff; }
+
+        /* ── Checkbox ─────────────────────────────── */
+        .terms-label {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            cursor: pointer;
+            color: var(--text);
+            font-size: 0.76rem;
+            line-height: 1.45;
+        }
+        .terms-label input { margin-top: 2px; accent-color: var(--brand); }
+        .terms-label a { color: var(--brand); }
+
+        /* ── Entrance Animations ──────────────────── */
+        .anim { opacity: 0; animation: fadeSlide 0.4s ease forwards; }
+        .anim-d1 { animation-delay: 0.05s; }
+        .anim-d2 { animation-delay: 0.1s; }
+        .anim-d3 { animation-delay: 0.15s; }
+        .anim-d4 { animation-delay: 0.2s; }
+        .anim-d5 { animation-delay: 0.25s; }
+
+        /* ── Responsive ───────────────────────────── */
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .brand {
+                flex: none;
+                padding: 2.5rem 1.5rem 1.5rem;
+            }
+            .brand h1 { font-size: 1.6rem; margin-bottom: 0.4rem; }
+            .brand-desc { display: none; }
+            .features { display: none; }
+            .form-panel { padding: 1.5rem; }
+            .home-link {
+                position: static;
+                color: rgba(255,255,255,0.45);
+                margin-bottom: 0.75rem;
+            }
         }
     </style>
 </head>
 <body>
     <!-- Home link -->
-    <a href="{% url 'home' %}" class="auth-home-link">
-        <i class="bi bi-arrow-left"></i> Back to home
+    <a href="{% url 'home' %}" class="home-link">
+        <i class="bi bi-arrow-left"></i> Home
     </a>
 
     <!-- Theme toggle -->
-    <button class="auth-theme-toggle" id="themeToggle" title="Toggle theme">
+    <button class="theme-toggle" id="themeToggle" title="Toggle theme">
         <i class="bi bi-moon"></i>
     </button>
 
-    <!-- Left: Brand panel -->
-    <div class="auth-brand"{% if role == 'teacher' %} style="background:linear-gradient(160deg, #0c0f1a 0%, #1a2f47 40%, #059669 100%)"{% endif %}>
-        <div class="auth-brand-inner">
-            <div class="auth-brand-logo">A</div>
+    <!-- Brand Panel -->
+    <div class="brand">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+
+        <div class="brand-inner">
+            <div class="brand-mark">A</div>
             {% if role == 'teacher' %}
             <h1>Empower your<br><em>Teaching</em></h1>
-            <p>Access AI-powered tools to plan lessons, generate exams, track attendance, and analyse grades — all from one platform.</p>
-            <div class="auth-features">
-                <div class="auth-feature"><span class="auth-feature-dot" style="background:#34d399"></span> AI Lesson Planner & Exam Generator</div>
-                <div class="auth-feature"><span class="auth-feature-dot" style="background:#34d399"></span> Grade Analytics & Report Cards</div>
-                <div class="auth-feature"><span class="auth-feature-dot" style="background:#34d399"></span> Attendance Tracking & Alerts</div>
-                <div class="auth-feature"><span class="auth-feature-dot" style="background:#34d399"></span> Pay only for what you use</div>
+            <p class="brand-desc">Access AI-powered tools to plan lessons, generate exams, track attendance, and analyse grades — all from one platform.</p>
+            <div class="features">
+                <div class="feat"><span class="feat-dot"></span> AI Lesson Planner & Exam Generator</div>
+                <div class="feat"><span class="feat-dot"></span> Grade Analytics & Report Cards</div>
+                <div class="feat"><span class="feat-dot"></span> Attendance Tracking & Alerts</div>
+                <div class="feat"><span class="feat-dot"></span> Pay only for what you use</div>
             </div>
             {% else %}
             <h1>Your teaching<br><em>toolkit.</em></h1>
-            <p>AI lesson plans, exam generation, grade analytics, attendance tracking — all from one platform. Subscribe to the tools you need.</p>
-            <div class="auth-features">
-                <div class="auth-feature"><span class="auth-feature-dot"></span> AI Lesson Planner & Exam Generator</div>
-                <div class="auth-feature"><span class="auth-feature-dot"></span> Grade Analytics & Report Cards</div>
-                <div class="auth-feature"><span class="auth-feature-dot"></span> GES-aligned teaching tools</div>
-                <div class="auth-feature"><span class="auth-feature-dot"></span> Pay only for what you use</div>
+            <p class="brand-desc">AI lesson plans, exam generation, grade analytics, attendance tracking — all from one platform. Subscribe to the tools you need.</p>
+            <div class="features">
+                <div class="feat"><span class="feat-dot"></span> AI Lesson Planner & Exam Generator</div>
+                <div class="feat"><span class="feat-dot"></span> Grade Analytics & Report Cards</div>
+                <div class="feat"><span class="feat-dot"></span> GES-aligned teaching tools</div>
+                <div class="feat"><span class="feat-dot"></span> Pay only for what you use</div>
             </div>
             {% endif %}
         </div>
     </div>
 
-    <!-- Right: Auth form -->
-    <div class="auth-form-panel">
-        <div class="auth-form-wrap">
-            <div class="auth-form-header">
+    <!-- Form Panel -->
+    <div class="form-panel">
+        <div class="form-wrap">
+            <div class="form-header anim anim-d1">
                 {% if is_signin %}
                 <h2>Welcome back</h2>
                 <p>Don't have an account? <a href="{% url 'individual:signup' %}{% if role == 'teacher' %}?role=teacher{% endif %}">Create one</a></p>
@@ -430,158 +521,162 @@
                 <p>Already have one? <a href="{% url 'individual:signin' %}{% if role == 'teacher' %}?role=teacher{% endif %}">Sign in</a></p>
                 {% endif %}
                 {% if role == 'teacher' %}
-                <p style="margin-top:.5rem"><small>Looking for the educator portal? <a href="{% if is_signin %}{% url 'individual:signin' %}{% else %}{% url 'individual:signup' %}{% endif %}">Switch to Educator</a></small></p>
+                <p style="margin-top:.4rem"><small>Looking for the educator portal? <a href="{% if is_signin %}{% url 'individual:signin' %}{% else %}{% url 'individual:signup' %}{% endif %}">Switch to Educator</a></small></p>
                 {% else %}
-                <p style="margin-top:.5rem"><small>Are you a teacher? <a href="{% if is_signin %}{% url 'individual:signin' %}{% else %}{% url 'individual:signup' %}{% endif %}?role=teacher">Teacher Portal</a></small></p>
+                <p style="margin-top:.4rem"><small>Are you a teacher? <a href="{% if is_signin %}{% url 'individual:signin' %}{% else %}{% url 'individual:signup' %}{% endif %}?role=teacher">Teacher Portal</a></small></p>
                 {% endif %}
             </div>
 
             {% if messages %}
             {% for msg in messages %}
-            <div class="auth-alert">{{ msg }}</div>
+            <div class="auth-alert anim anim-d1">{{ msg }}</div>
             {% endfor %}
             {% endif %}
 
-            <!-- Google Sign-In -->
+            <!-- Google -->
             {% if google_client_id %}
-            <a href="{% url 'individual:google_auth' %}?role={{ role }}" class="google-btn">
-                <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                </svg>
-                Continue with Google
-            </a>
-            <div class="auth-divider">or</div>
+            <div class="anim anim-d2">
+                <a href="{% url 'individual:google_auth' %}?role={{ role }}" class="g-btn">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                    </svg>
+                    Continue with Google
+                </a>
+                <div class="divider">or</div>
+            </div>
             {% endif %}
 
             <!-- Tabs -->
-            <div class="auth-tabs">
-                <button class="auth-tab {% if active_tab == 'email' %}active{% endif %}" data-tab="email">
+            <div class="tabs anim anim-d3">
+                <button class="tab {% if active_tab == 'email' %}active{% endif %}" data-tab="email">
                     <i class="bi bi-envelope"></i> Email
                 </button>
-                <button class="auth-tab {% if active_tab == 'phone' %}active{% endif %}" data-tab="phone">
+                <button class="tab {% if active_tab == 'phone' %}active{% endif %}" data-tab="phone">
                     <i class="bi bi-phone"></i> Phone
                 </button>
             </div>
 
             <!-- Email pane -->
-            <div class="auth-pane {% if active_tab == 'email' %}active{% endif %}" id="pane-email">
+            <div class="pane {% if active_tab == 'email' %}active{% endif %}" id="pane-email">
                 <form method="post">
                     {% csrf_token %}
                     <input type="hidden" name="{% if is_signin %}signin_method{% else %}signup_method{% endif %}" value="email">
                     <input type="hidden" name="role" value="{{ role }}">
 
                     {% if not is_signin %}
-                    <div class="auth-field">
+                    <div class="field anim anim-d3">
                         <label for="email_name">Full name</label>
-                        <input type="text" id="email_name" name="full_name" value="{{ email_form.full_name.value|default:'' }}" placeholder="Full name" required autocomplete="name">
-                        {% if email_form.full_name.errors %}<div class="error-text">{{ email_form.full_name.errors.0 }}</div>{% endif %}
+                        <input class="field-input" type="text" id="email_name" name="full_name" value="{{ email_form.full_name.value|default:'' }}" placeholder="Full name" required autocomplete="name">
+                        {% if email_form.full_name.errors %}<div class="err">{{ email_form.full_name.errors.0 }}</div>{% endif %}
                     </div>
                     {% endif %}
 
-                    <div class="auth-field">
+                    <div class="field anim anim-d3">
                         <label for="email_input">Email address</label>
-                        <input type="email" id="email_input" name="email" value="{{ email_form.email.value|default:'' }}" placeholder="you@example.com" required autocomplete="email">
-                        {% if email_form.email.errors %}<div class="error-text">{{ email_form.email.errors.0 }}</div>{% endif %}
+                        <input class="field-input" type="email" id="email_input" name="email" value="{{ email_form.email.value|default:'' }}" placeholder="you@example.com" required autocomplete="email">
+                        {% if email_form.email.errors %}<div class="err">{{ email_form.email.errors.0 }}</div>{% endif %}
                     </div>
 
-                    <div class="auth-field">
+                    <div class="field anim anim-d4">
                         <label for="email_pw">Password</label>
                         <div class="pw-wrap">
-                            <input type="password" id="email_pw" name="password" placeholder="{% if is_signin %}Enter password{% else %}Min. 8 characters{% endif %}" required autocomplete="{% if is_signin %}current-password{% else %}new-password{% endif %}">
+                            <input class="field-input" type="password" id="email_pw" name="password" placeholder="{% if is_signin %}Enter password{% else %}Min. 8 characters{% endif %}" required autocomplete="{% if is_signin %}current-password{% else %}new-password{% endif %}">
                             <button type="button" class="pw-toggle" tabindex="-1"><i class="bi bi-eye"></i></button>
                         </div>
-                        {% if email_form.password.errors %}<div class="error-text">{{ email_form.password.errors.0 }}</div>{% endif %}
+                        {% if email_form.password.errors %}<div class="err">{{ email_form.password.errors.0 }}</div>{% endif %}
                     </div>
 
                     {% if not is_signin %}
-                    <div class="auth-field">
+                    <div class="field anim anim-d4">
                         <label for="email_pw2">Confirm password</label>
                         <div class="pw-wrap">
-                            <input type="password" id="email_pw2" name="password2" placeholder="Re-enter password" required autocomplete="new-password">
+                            <input class="field-input" type="password" id="email_pw2" name="password2" placeholder="Re-enter password" required autocomplete="new-password">
                             <button type="button" class="pw-toggle" tabindex="-1"><i class="bi bi-eye"></i></button>
                         </div>
                     </div>
 
-                    <div class="auth-field" style="margin-bottom:0.5rem">
-                        <label style="display:flex;align-items:flex-start;gap:0.5rem;cursor:pointer;color:var(--text-main)">
-                            <input type="checkbox" name="terms" required style="margin-top:2px;accent-color:var(--brand-primary)">
-                            <span style="font-size:0.78rem;line-height:1.4">I agree to the <a href="/terms/" target="_blank" style="color:var(--brand-primary)">Terms of Service</a> and <a href="/privacy/" target="_blank" style="color:var(--brand-primary)">Privacy Policy</a></span>
+                    <div class="field anim anim-d5" style="margin-bottom:0.4rem">
+                        <label class="terms-label">
+                            <input type="checkbox" name="terms" required>
+                            <span>I agree to the <a href="/terms/" target="_blank">Terms of Service</a> and <a href="/privacy/" target="_blank">Privacy Policy</a></span>
                         </label>
                     </div>
                     {% endif %}
 
-                    <button type="submit" class="auth-submit">{% if is_signin %}Sign In{% else %}Create Account{% endif %}</button>
+                    <div class="anim anim-d5">
+                        <button type="submit" class="submit-btn">{% if is_signin %}Sign In{% else %}Create Account{% endif %}</button>
+                    </div>
                 </form>
             </div>
 
             <!-- Phone pane -->
-            <div class="auth-pane {% if active_tab == 'phone' %}active{% endif %}" id="pane-phone">
+            <div class="pane {% if active_tab == 'phone' %}active{% endif %}" id="pane-phone">
                 <form method="post">
                     {% csrf_token %}
                     <input type="hidden" name="{% if is_signin %}signin_method{% else %}signup_method{% endif %}" value="phone">
                     <input type="hidden" name="role" value="{{ role }}">
 
                     {% if not is_signin %}
-                    <div class="auth-field">
+                    <div class="field">
                         <label for="phone_name">Full name</label>
-                        <input type="text" id="phone_name" name="full_name" value="{{ phone_form.full_name.value|default:'' }}" placeholder="Full name" required autocomplete="name">
-                        {% if phone_form.full_name.errors %}<div class="error-text">{{ phone_form.full_name.errors.0 }}</div>{% endif %}
+                        <input class="field-input" type="text" id="phone_name" name="full_name" value="{{ phone_form.full_name.value|default:'' }}" placeholder="Full name" required autocomplete="name">
+                        {% if phone_form.full_name.errors %}<div class="err">{{ phone_form.full_name.errors.0 }}</div>{% endif %}
                     </div>
                     {% endif %}
 
-                    <div class="auth-field">
+                    <div class="field">
                         <label for="phone_input">Phone number</label>
-                        <input type="tel" id="phone_input" name="phone" value="{{ phone_form.phone.value|default:'' }}" placeholder="+233 XX XXX XXXX" required autocomplete="tel" pattern="\+?[0-9\s]{7,20}">
-                        {% if phone_form.phone.errors %}<div class="error-text">{{ phone_form.phone.errors.0 }}</div>{% endif %}
+                        <input class="field-input" type="tel" id="phone_input" name="phone" value="{{ phone_form.phone.value|default:'' }}" placeholder="+233 XX XXX XXXX" required autocomplete="tel" pattern="\+?[0-9\s]{7,20}">
+                        {% if phone_form.phone.errors %}<div class="err">{{ phone_form.phone.errors.0 }}</div>{% endif %}
                     </div>
 
-                    <div class="auth-field">
+                    <div class="field">
                         <label for="phone_pw">Password</label>
                         <div class="pw-wrap">
-                            <input type="password" id="phone_pw" name="password" placeholder="{% if is_signin %}Enter password{% else %}Min. 8 characters{% endif %}" required autocomplete="{% if is_signin %}current-password{% else %}new-password{% endif %}">
+                            <input class="field-input" type="password" id="phone_pw" name="password" placeholder="{% if is_signin %}Enter password{% else %}Min. 8 characters{% endif %}" required autocomplete="{% if is_signin %}current-password{% else %}new-password{% endif %}">
                             <button type="button" class="pw-toggle" tabindex="-1"><i class="bi bi-eye"></i></button>
                         </div>
-                        {% if phone_form.password.errors %}<div class="error-text">{{ phone_form.password.errors.0 }}</div>{% endif %}
+                        {% if phone_form.password.errors %}<div class="err">{{ phone_form.password.errors.0 }}</div>{% endif %}
                     </div>
 
                     {% if not is_signin %}
-                    <div class="auth-field">
+                    <div class="field">
                         <label for="phone_pw2">Confirm password</label>
                         <div class="pw-wrap">
-                            <input type="password" id="phone_pw2" name="password2" placeholder="Re-enter password" required autocomplete="new-password">
+                            <input class="field-input" type="password" id="phone_pw2" name="password2" placeholder="Re-enter password" required autocomplete="new-password">
                             <button type="button" class="pw-toggle" tabindex="-1"><i class="bi bi-eye"></i></button>
                         </div>
                     </div>
 
-                    <div class="auth-field" style="margin-bottom:0.5rem">
-                        <label style="display:flex;align-items:flex-start;gap:0.5rem;cursor:pointer;color:var(--text-main)">
-                            <input type="checkbox" name="terms" required style="margin-top:2px;accent-color:var(--brand-primary)">
-                            <span style="font-size:0.78rem;line-height:1.4">I agree to the <a href="/terms/" target="_blank" style="color:var(--brand-primary)">Terms of Service</a> and <a href="/privacy/" target="_blank" style="color:var(--brand-primary)">Privacy Policy</a></span>
+                    <div class="field" style="margin-bottom:0.4rem">
+                        <label class="terms-label">
+                            <input type="checkbox" name="terms" required>
+                            <span>I agree to the <a href="/terms/" target="_blank">Terms of Service</a> and <a href="/privacy/" target="_blank">Privacy Policy</a></span>
                         </label>
                     </div>
                     {% endif %}
 
-                    <button type="submit" class="auth-submit">{% if is_signin %}Sign In{% else %}Create Account{% endif %}</button>
+                    <button type="submit" class="submit-btn">{% if is_signin %}Sign In{% else %}Create Account{% endif %}</button>
                 </form>
             </div>
         </div>
     </div>
 
     <script>
-    // Tab switching
-    document.querySelectorAll('.auth-tab').forEach(btn => {
+    /* Tab switching */
+    document.querySelectorAll('.tab').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.auth-pane').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
             btn.classList.add('active');
             document.getElementById('pane-' + btn.dataset.tab).classList.add('active');
         });
     });
 
-    // Password toggle
+    /* Password toggle */
     document.querySelectorAll('.pw-toggle').forEach(btn => {
         btn.addEventListener('click', () => {
             const inp = btn.previousElementSibling;
@@ -591,18 +686,18 @@
         });
     });
 
-    // Password confirmation validation (signup only)
-    document.querySelectorAll('.auth-pane form').forEach(form => {
+    /* Password confirmation validation */
+    document.querySelectorAll('.pane form').forEach(form => {
         form.addEventListener('submit', e => {
             const pw = form.querySelector('[name="password"]');
             const pw2 = form.querySelector('[name="password2"]');
             if (pw && pw2 && pw2.value) {
                 if (pw.value !== pw2.value) {
                     e.preventDefault();
-                    let err = pw2.parentElement.parentElement.querySelector('.error-text');
+                    let err = pw2.parentElement.parentElement.querySelector('.err');
                     if (!err) {
                         err = document.createElement('div');
-                        err.className = 'error-text';
+                        err.className = 'err';
                         pw2.parentElement.parentElement.appendChild(err);
                     }
                     err.textContent = 'Passwords do not match.';
@@ -612,7 +707,7 @@
         });
     });
 
-    // Theme
+    /* Theme */
     const html = document.documentElement;
     const themeBtn = document.getElementById('themeToggle');
     const stored = localStorage.getItem('iu_theme');
@@ -626,9 +721,6 @@
     if (html.getAttribute('data-bs-theme') === 'dark') {
         themeBtn.querySelector('i').className = 'bi bi-sun';
     }
-
-    // Google Sign-In
-
     </script>
 </body>
 </html>
