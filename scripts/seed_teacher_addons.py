@@ -361,6 +361,23 @@ ADDONS = [
             'Auto-generate questions with AI',
         ],
     },
+    {
+        'name': 'Attendance Tracker',
+        'slug': 'attendance-tracker',
+        'tagline': 'Quick daily attendance with heatmap insights',
+        'description': 'Mark attendance for any class in seconds with one-tap P/A/L/E buttons. View 30-day heatmaps and per-student term rates at a glance.',
+        'category': 'classroom',
+        'icon': 'bi bi-calendar-check',
+        'badge_label': 'NEW',
+        'price': 0.00,
+        'is_free': True,
+        'features': [
+            'One-tap present/absent/late/excused buttons',
+            'Mark All shortcut for fast entry',
+            '30-day colour-coded heatmap calendar',
+            'Per-student term attendance rates',
+        ],
+    },
 ]
 
 def seed():
