@@ -210,6 +210,7 @@ TEMPLATES = [
                 'teachers.context_processors.teacher_context',
                 'tenants.context_processors.trial_status',
                 'accounts.context_processors.onboarding_context',
+                'individual_users.context_processors.individual_credits',
             ],
             'string_if_invalid': '',  # Return empty string instead of raising errors for undefined variables
         },

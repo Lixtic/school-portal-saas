@@ -131,6 +131,48 @@
             width: 22px;
             text-align: center;
         }
+        /* ── Credit widget ──────────────── */
+        .iu-credit-widget {
+            margin: 0 0.75rem 0.5rem;
+            padding: 0.65rem 0.75rem;
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, rgba(245,158,11,0.06) 0%, rgba(249,115,22,0.04) 100%);
+            border: 1px solid rgba(245,158,11,0.15);
+            transition: border-color .2s;
+        }
+        .iu-credit-widget:hover { border-color: rgba(245,158,11,0.35); }
+        .iu-credit-row {
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .iu-credit-label {
+            display: flex; align-items: center; gap: .4rem;
+            font-size: .75rem; font-weight: 600; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: .04em;
+        }
+        .iu-credit-label i { font-size: .85rem; color: #f59e0b; }
+        .iu-credit-count {
+            font-weight: 800; font-size: 1.05rem; color: #f59e0b;
+            font-variant-numeric: tabular-nums;
+        }
+        .iu-credit-count.low { color: #ef4444; }
+        .iu-credit-bar-wrap {
+            height: 3px; border-radius: 3px; margin-top: .45rem;
+            background: rgba(245,158,11,0.1); overflow: hidden;
+        }
+        .iu-credit-bar {
+            height: 100%; border-radius: 3px;
+            background: #f59e0b; transition: width .5s;
+        }
+        .iu-credit-bar.low { background: #ef4444; }
+        .iu-credit-actions {
+            display: flex; gap: .5rem; margin-top: .45rem;
+        }
+        .iu-credit-actions a {
+            font-size: .7rem; font-weight: 600; text-decoration: none;
+            color: var(--text-muted); transition: color .15s;
+        }
+        .iu-credit-actions a:hover { color: #f59e0b; }
+
         .iu-nav-bottom {
             padding: 1rem;
             border-top: 1px solid var(--border-color);
@@ -380,6 +422,20 @@
                 <i class="bi bi-braces"></i> API Reference
             </a>
         </nav>
+        <!-- Credit balance widget -->
+        <div class="iu-credit-widget">
+            <div class="iu-credit-row">
+                <span class="iu-credit-label"><i class="bi bi-lightning-charge-fill"></i> Credits</span>
+                <span class="iu-credit-count{% if iu_credits_low %} low{% endif %}" id="iuSidebarCredits">{{ iu_credit_balance|default:0 }}</span>
+            </div>
+            <div class="iu-credit-bar-wrap">
+                <div class="iu-credit-bar{% if iu_credits_low %} low{% endif %}" style="width:{% widthratio iu_credit_balance|default:0 50 100 %}%;"></div>
+            </div>
+            <div class="iu-credit-actions">
+                <a href="{% url 'individual:credit_history' %}"><i class="bi bi-clock-history me-1"></i>History</a>
+                <a href="{% url 'individual:addons' %}" style="color:#f59e0b;"><i class="bi bi-plus-circle me-1"></i>Buy Credits</a>
+            </div>
+        </div>
         <div class="iu-nav-bottom">
             <div class="iu-user-pill">
                 <div class="iu-user-avatar">
@@ -420,6 +476,7 @@
         </header>
 
         <div class="iu-content">
+            {% include 'individual/_low_balance_warning.html' %}
             {% if messages %}
             {% for msg in messages %}
             <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show" role="alert" style="border-radius:var(--radius-md);font-size:.88rem;">
