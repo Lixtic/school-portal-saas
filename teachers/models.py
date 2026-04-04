@@ -349,6 +349,76 @@ class QuickAction(models.Model):
 
 
 # ---------------------------------------------------------------------------
+# Credit-Based Token System
+# ---------------------------------------------------------------------------
+
+class CreditPack(models.Model):
+    """A purchasable pack of AI credits."""
+    name = models.CharField(max_length=80)
+    slug = models.SlugField(unique=True)
+    credits = models.PositiveIntegerField(help_text='Number of credits in this pack')
+    price = models.DecimalField(max_digits=8, decimal_places=2, help_text='Price in school currency (GHS)')
+    badge_label = models.CharField(max_length=30, blank=True, default='')
+    icon = models.CharField(max_length=50, default='bi-lightning-charge')
+    is_active = models.BooleanField(default=True)
+    position = models.PositiveIntegerField(default=0, help_text='Display order')
+
+    class Meta:
+        ordering = ['position', 'price']
+
+    def __str__(self):
+        return f"{self.name} ({self.credits} credits — GHS {self.price})"
+
+    @property
+    def price_per_credit(self):
+        if self.credits:
+            return self.price / self.credits
+        return 0
+
+
+class TeacherCreditBalance(models.Model):
+    """Per-teacher credit balance — one row per teacher."""
+    teacher = models.OneToOneField(
+        'accounts.User', on_delete=models.CASCADE, related_name='credit_balance',
+    )
+    balance = models.IntegerField(default=0, help_text='Current available credits')
+    total_purchased = models.PositiveIntegerField(default=0, help_text='Lifetime credits purchased')
+    total_used = models.PositiveIntegerField(default=0, help_text='Lifetime credits consumed')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.teacher.get_full_name()} — {self.balance} credits"
+
+
+class CreditTransaction(models.Model):
+    """Audit log of every credit change."""
+    TRANSACTION_TYPES = [
+        ('purchase', 'Purchase'),
+        ('usage', 'AI Usage'),
+        ('bonus', 'Bonus / Welcome'),
+        ('refund', 'Refund'),
+    ]
+
+    teacher = models.ForeignKey(
+        'accounts.User', on_delete=models.CASCADE, related_name='credit_transactions',
+    )
+    amount = models.IntegerField(help_text='Positive = added, negative = deducted')
+    balance_after = models.IntegerField(help_text='Balance after this transaction')
+    transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
+    description = models.CharField(max_length=255)
+    payment_reference = models.CharField(max_length=100, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        sign = '+' if self.amount > 0 else ''
+        return f"{self.teacher.get_full_name()} {sign}{self.amount} ({self.transaction_type})"
+
+
+# ---------------------------------------------------------------------------
 # Add-on feature models
 # ---------------------------------------------------------------------------
 

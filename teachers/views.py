@@ -8,7 +8,7 @@ import django
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from tenants.decorators import require_addon, require_plan
-from teachers.addon_utils import requires_addon, requires_addon_freemium, check_freemium_limit, has_addon, get_free_generation_count, FREE_GENERATION_LIMIT
+from teachers.addon_utils import requires_addon, requires_addon_freemium, check_freemium_limit, has_addon, get_free_generation_count, FREE_GENERATION_LIMIT, get_credit_balance, CREDIT_COSTS, ADDON_FEATURE_MAP
 from django.http import JsonResponse, HttpResponse
 from decimal import Decimal, InvalidOperation
 from django.utils import timezone
@@ -6782,13 +6782,13 @@ ADDON_LAUNCH_URLS = {
 
 @login_required
 def teacher_store(request):
-    """Browse & manage personal teacher add-ons."""
+    """Browse & manage personal teacher add-ons and credit packs."""
     if request.user.user_type != 'teacher':
         messages.error(request, 'Access denied')
         return redirect('dashboard')
 
     from django.urls import reverse
-    from teachers.models import TeacherAddOn, TeacherAddOnPurchase
+    from teachers.models import TeacherAddOn, TeacherAddOnPurchase, CreditPack
 
     addons = TeacherAddOn.objects.filter(is_active=True)
     purchased_ids = set(
@@ -6810,13 +6810,24 @@ def teacher_store(request):
                     addon.launch_url = None
             else:
                 addon.launch_url = None
+        # Attach credit cost for AI add-ons
+        addon.credit_cost = CREDIT_COSTS.get(
+            next((g for g in ADDON_FEATURE_MAP.get(addon.slug, {}).get('gates', []) if g in CREDIT_COSTS), ''), 0
+        ) if addon.quota_boost else 0
         label = addon.get_category_display()
         categories.setdefault(label, []).append(addon)
+
+    # Credit packs and balance
+    credit_packs = CreditPack.objects.filter(is_active=True)
+    credit_balance = get_credit_balance(request.user)
 
     return render(request, 'teachers/teacher_store.html', {
         'categories': categories,
         'purchased_count': len(purchased_ids),
         'total_count': addons.count(),
+        'credit_packs': credit_packs,
+        'credit_balance': credit_balance,
+        'credit_costs': CREDIT_COSTS,
     })
 
 
@@ -7108,6 +7119,9 @@ def paystack_teacher_webhook(request):
         # Teacher add-on references start with "TA-"
         if reference.startswith('TA-'):
             _handle_teacher_addon_payment(reference, data)
+        # Credit pack references start with "CR-"
+        elif reference.startswith('CR-'):
+            _handle_credit_pack_payment(reference, data)
 
     return JsonResponse({'ok': True})
 
@@ -7163,6 +7177,47 @@ def _handle_teacher_addon_payment(reference, data):
         logger.info("Webhook: re-activated addon %s for user %s (ref %s)", addon.slug, user_id, reference)
     elif created:
         logger.info("Webhook: activated addon %s for user %s (ref %s)", addon.slug, user_id, reference)
+
+
+def _handle_credit_pack_payment(reference, data):
+    """Add credits from a confirmed Paystack credit pack charge."""
+    from teachers.models import CreditPack, CreditTransaction
+    from teachers.addon_utils import add_credits
+
+    # Parse reference: CR-{user_id}-{pack_id}-{uuid}
+    parts = reference.split('-')
+    if len(parts) < 3:
+        logger.warning("Webhook: bad credit pack reference format: %s", reference)
+        return
+    try:
+        user_id = int(parts[1])
+        pack_id = int(parts[2])
+    except (ValueError, IndexError):
+        logger.warning("Webhook: unparseable credit pack reference: %s", reference)
+        return
+
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    try:
+        user = User.objects.get(id=user_id, user_type='teacher')
+        pack = CreditPack.objects.get(id=pack_id, is_active=True)
+    except (User.DoesNotExist, CreditPack.DoesNotExist):
+        logger.warning("Webhook: teacher/pack not found for ref %s", reference)
+        return
+
+    # Deduplicate by payment_reference
+    if CreditTransaction.objects.filter(payment_reference=reference).exists():
+        logger.info("Webhook: duplicate credit ref %s, skipping", reference)
+        return
+
+    add_credits(
+        user,
+        amount=pack.credits,
+        transaction_type='purchase',
+        description=f'Purchased {pack.name} ({pack.credits} credits) via webhook',
+        payment_reference=reference,
+    )
+    logger.info("Webhook: added %d credits for user %s (ref %s)", pack.credits, user_id, reference)
 
 
 # ── My Add-Ons ─────────────────────────────────────────────────────
@@ -7223,6 +7278,7 @@ def my_addons(request):
         'total_spent': total_spent,
         'total_active': len(active),
         'total_boost': total_boost,
+        'credit_balance': get_credit_balance(request.user),
     })
 
 
@@ -7268,6 +7324,109 @@ def teacher_store_trial(request, addon_id):
     )
     messages.success(request, f'🎉 Free {addon.trial_days}-day trial for "{addon.name}" activated!')
     return redirect('teachers:teacher_store')
+
+
+# ---------------------------------------------------------------------------
+# Credit Pack Purchase Flow
+# ---------------------------------------------------------------------------
+
+@login_required
+def purchase_credits(request, pack_id):
+    """Purchase a credit pack — returns Paystack params for inline popup."""
+    if request.user.user_type != 'teacher':
+        return JsonResponse({'ok': False, 'error': 'Access denied'}, status=403)
+    if request.method != 'POST':
+        return redirect('teachers:teacher_store')
+
+    from teachers.models import CreditPack
+    pack = get_object_or_404(CreditPack, id=pack_id, is_active=True)
+
+    import uuid
+    ref = f"CR-{request.user.id}-{pack.id}-{uuid.uuid4().hex[:8]}"
+    return JsonResponse({
+        'paystack': True,
+        'public_key': settings.PAYSTACK_PUBLIC_KEY,
+        'email': request.user.email or f'{request.user.username}@school.local',
+        'amount': int(pack.price * 100),  # pesewas
+        'currency': settings.PAYSTACK_CURRENCY,
+        'reference': ref,
+        'pack_name': pack.name,
+        'credits': pack.credits,
+    })
+
+
+@login_required
+def verify_credit_purchase(request):
+    """POST — verify a Paystack credit pack payment and add credits."""
+    if request.user.user_type != 'teacher':
+        return JsonResponse({'ok': False, 'error': 'Access denied'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'error': 'POST only'}, status=405)
+
+    import requests as http_requests
+    from teachers.models import CreditPack, CreditTransaction
+    from teachers.addon_utils import add_credits
+
+    body = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    reference = body.get('reference', '')
+    pack_id = body.get('pack_id')
+
+    if not reference or not pack_id:
+        return JsonResponse({'ok': False, 'error': 'Missing data'}, status=400)
+
+    pack = get_object_or_404(CreditPack, id=pack_id, is_active=True)
+
+    # Prevent duplicate credit grants for same reference
+    if CreditTransaction.objects.filter(payment_reference=reference).exists():
+        return JsonResponse({'ok': False, 'error': 'Already processed'}, status=409)
+
+    # Verify with Paystack API
+    secret = settings.PAYSTACK_SECRET_KEY
+    if secret:
+        resp = http_requests.get(
+            f'https://api.paystack.co/transaction/verify/{reference}',
+            headers={'Authorization': f'Bearer {secret}'},
+            timeout=15,
+        )
+        data = resp.json()
+        if not data.get('status') or data.get('data', {}).get('status') != 'success':
+            return JsonResponse({'ok': False, 'error': 'Payment verification failed'}, status=402)
+    # else: dev mode — accept at face value
+
+    bal = add_credits(
+        request.user,
+        amount=pack.credits,
+        transaction_type='purchase',
+        description=f'Purchased {pack.name} ({pack.credits} credits)',
+        payment_reference=reference,
+    )
+
+    return JsonResponse({
+        'ok': True,
+        'credits_added': pack.credits,
+        'new_balance': bal.balance,
+        'pack_name': pack.name,
+    })
+
+
+@login_required
+def credit_history(request):
+    """View credit transaction history."""
+    if request.user.user_type != 'teacher':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    from teachers.models import CreditTransaction
+    from teachers.addon_utils import get_credit_balance
+
+    transactions = CreditTransaction.objects.filter(
+        teacher=request.user
+    ).order_by('-created_at')[:50]
+
+    return render(request, 'teachers/credit_history.html', {
+        'transactions': transactions,
+        'credit_balance': get_credit_balance(request.user),
+    })
 
 
 # ---------------------------------------------------------------------------

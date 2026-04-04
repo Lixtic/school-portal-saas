@@ -1,5 +1,5 @@
 """
-Seed the TeacherAddOn catalog with curated tools for teachers.
+Seed the TeacherAddOn catalog and CreditPack catalog.
 
 Run:  python scripts/seed_teacher_addons.py [schema_name]
 
@@ -13,7 +13,7 @@ django.setup()
 
 from django.db import connection
 from tenants.models import School
-from teachers.models import TeacherAddOn
+from teachers.models import TeacherAddOn, CreditPack
 
 ADDONS = [
     # ═══════════════════════════════════════════════════════════════════
@@ -184,78 +184,83 @@ ADDONS = [
     },
 
     # ═══════════════════════════════════════════════════════════════════
-    # TIER: PRO (GHS 12–20)  —  Moderate AI or content, 7-day trial
+    # TIER: AI TOOLS (Free to activate — uses credit tokens)
+    # Teachers activate for free, each generation costs credits
     # ═══════════════════════════════════════════════════════════════════
     {
         'name': 'Exercise Maker',
         'slug': 'exercise-maker',
         'tagline': 'Auto-create quizzes & worksheets',
-        'description': 'Generate multiple-choice, fill-in-the-blank, and short-answer exercises aligned to your curriculum indicators.',
+        'description': 'Generate multiple-choice, fill-in-the-blank, and short-answer exercises aligned to your curriculum indicators. Uses 1 credit per generation.',
         'category': 'ai_tools',
         'icon': 'bi bi-puzzle',
-        'badge_label': '',
-        'price': 12.00,
-        'trial_days': 7,
-        'quota_boost': 10,
+        'badge_label': 'AI',
+        'price': 0,
+        'is_free': True,
+        'trial_days': 0,
+        'quota_boost': 1,  # flag: this is an AI-credit add-on
         'features': [
             'Multiple question formats',
             'Aligned to GES indicators',
             'Difficulty auto-scaling',
-            'Printable answer keys',
+            '1 credit per generation',
         ],
     },
     {
         'name': 'Study Guide Builder',
         'slug': 'study-guide-builder',
         'tagline': 'Student revision packs on demand',
-        'description': 'Create concise, student-friendly study guides from your lesson plans — perfect for exam prep.',
+        'description': 'Create concise, student-friendly study guides from your lesson plans — perfect for exam prep. Uses 2 credits per guide.',
         'category': 'ai_tools',
         'icon': 'bi bi-book-half',
-        'badge_label': '',
-        'price': 12.00,
-        'trial_days': 7,
-        'quota_boost': 10,
+        'badge_label': 'AI',
+        'price': 0,
+        'is_free': True,
+        'trial_days': 0,
+        'quota_boost': 1,
         'features': [
             'Key concepts summary',
             'Practice questions per topic',
             'Visual mnemonics',
-            'Shareable PDF links',
+            '2 credits per guide',
         ],
     },
     {
         'name': 'Quick Report Writer',
         'slug': 'quick-report-writer',
         'tagline': 'Generate student reports in minutes',
-        'description': 'Craft personalised end-of-term reports using grade data plus AI-suggested remarks tailored to each student\'s performance.',
+        'description': 'Craft personalised end-of-term reports using grade data plus AI-suggested remarks tailored to each student\'s performance. Uses 1 credit per report.',
         'category': 'productivity',
         'icon': 'bi bi-file-earmark-richtext',
-        'badge_label': '',
-        'price': 15.00,
-        'trial_days': 7,
-        'quota_boost': 15,
+        'badge_label': 'AI',
+        'price': 0,
+        'is_free': True,
+        'trial_days': 0,
+        'quota_boost': 1,
         'features': [
             'Personalised AI-written remarks',
             'Pull grades & attendance automatically',
             'Bulk export as PDF',
-            'Custom report templates',
+            '1 credit per report',
         ],
     },
     {
         'name': 'Grade Insight Dashboard',
         'slug': 'grade-insight-dashboard',
         'tagline': 'Deeper analytics on student performance',
-        'description': 'Visualise grade trends, class averages, and per-student progress over multiple terms with interactive charts.',
+        'description': 'Visualise grade trends, class averages, and per-student progress over multiple terms with interactive charts. Uses 1 credit per AI insight.',
         'category': 'assessment',
         'icon': 'bi bi-graph-up-arrow',
         'badge_label': 'POPULAR',
-        'price': 15.00,
-        'trial_days': 7,
-        'quota_boost': 10,
+        'price': 0,
+        'is_free': True,
+        'trial_days': 0,
+        'quota_boost': 1,
         'features': [
             'Term-over-term trend charts',
             'Class & subject breakdowns',
             'At-risk student alerts',
-            'Export data to CSV',
+            '1 credit per AI insight',
         ],
     },
     {
@@ -266,16 +271,116 @@ ADDONS = [
         'category': 'classroom',
         'icon': 'bi bi-lightning-charge',
         'badge_label': 'HOT',
-        'price': 12.00,
-        'trial_days': 7,
-        'quota_boost': 5,
+        'price': 0,
+        'is_free': True,
+        'trial_days': 0,
+        'quota_boost': 1,
         'features': [
             'Real-time student responses',
             'Join via code — any device',
             'Leaderboard & results breakdown',
-            'Auto-generate questions with AI',
+            '1 credit per AI-generated quiz',
         ],
     },
+    {
+        'name': 'Smart Planner Pro',
+        'slug': 'smart-planner-pro',
+        'tagline': 'AI-powered weekly planning assistant',
+        'description': 'Automatically draft weekly lesson outlines from your scheme of work and syllabus. Saves hours of manual planning. Uses 1 credit per lesson plan.',
+        'category': 'productivity',
+        'icon': 'bi bi-calendar2-week',
+        'badge_label': 'POPULAR',
+        'price': 0,
+        'is_free': True,
+        'trial_days': 0,
+        'quota_boost': 1,
+        'features': [
+            'Auto-generate weekly plans from scheme',
+            'Drag-and-drop schedule builder',
+            'Export to PDF & print-ready formats',
+            '1 credit per lesson plan',
+        ],
+    },
+    {
+        'name': 'Aura Slide Generator',
+        'slug': 'aura-slide-generator',
+        'tagline': 'Turn any topic into a slide deck',
+        'description': 'Type a topic and get a polished presentation with key points, diagrams, and discussion prompts — ready to present. Uses 3 credits per deck.',
+        'category': 'ai_tools',
+        'icon': 'bi bi-easel2',
+        'badge_label': 'POPULAR',
+        'price': 0,
+        'is_free': True,
+        'trial_days': 0,
+        'quota_boost': 1,
+        'features': [
+            'AI-generated slide content',
+            'Auto-add visuals & diagrams',
+            'Export to PPTX',
+            '3 credits per slide deck',
+        ],
+    },
+    {
+        'name': 'Report Card AI Writer',
+        'slug': 'report-card-writer',
+        'tagline': 'End-of-term reports in minutes, not days',
+        'description': 'AI reads each student\'s grades, attendance, and behavior data then generates personalised, professional report card comments. Uses 2 credits per class.',
+        'category': 'ai_tools',
+        'icon': 'bi bi-card-text',
+        'badge_label': 'HOT',
+        'price': 0,
+        'is_free': True,
+        'trial_days': 0,
+        'quota_boost': 1,
+        'features': [
+            'AI-personalised comment per student',
+            'Pulls grades & attendance automatically',
+            'Bulk generate for entire class',
+            '2 credits per class report',
+        ],
+    },
+    {
+        'name': 'Exam & Question Bank Pro',
+        'slug': 'exam-question-bank',
+        'tagline': 'Build exams smarter, not harder',
+        'description': 'Create a searchable bank of questions tagged by subject, topic, and difficulty. AI generates new questions on demand. Uses 2 credits per question set.',
+        'category': 'assessment',
+        'icon': 'bi bi-database-check',
+        'badge_label': 'HOT',
+        'price': 0,
+        'is_free': True,
+        'trial_days': 0,
+        'quota_boost': 1,
+        'features': [
+            'Searchable question bank',
+            'AI-generated questions on demand',
+            'Multiple formats: MCQ, fill-in, essay',
+            '2 credits per question set',
+        ],
+    },
+    {
+        'name': 'Differentiated Lesson AI',
+        'slug': 'differentiated-lesson-ai',
+        'tagline': 'One lesson, three ability levels',
+        'description': 'Paste or pick a lesson plan and AI generates three versions: foundational (struggling), grade-level (on-track), and extension (advanced). Uses 2 credits per differentiation.',
+        'category': 'ai_tools',
+        'icon': 'bi bi-diagram-3',
+        'badge_label': 'AI',
+        'price': 0,
+        'is_free': True,
+        'trial_days': 0,
+        'quota_boost': 1,
+        'features': [
+            'Three differentiated tiers per lesson',
+            'Scaffolded activities & instructions',
+            'Works with existing lesson plans',
+            '2 credits per differentiation',
+        ],
+    },
+
+    # ═══════════════════════════════════════════════════════════════════
+    # TIER: CONTENT PACKS (GHS 12–18)  —  Non-AI curated content
+    # ═══════════════════════════════════════════════════════════════════
     {
         'name': 'STEM Activity Pack',
         'slug': 'stem-activity-pack',
@@ -310,101 +415,50 @@ ADDONS = [
             'Cross-curricular links',
         ],
     },
+]
 
-    # ═══════════════════════════════════════════════════════════════════
-    # TIER: PREMIUM (GHS 25–40)  —  Heavy AI, max value, 14-day trial
-    # ═══════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════
+# CREDIT PACKS  —  Teachers buy these to fuel AI tool usage
+# ═══════════════════════════════════════════════════════════════════════
+CREDIT_PACKS = [
     {
-        'name': 'Smart Planner Pro',
-        'slug': 'smart-planner-pro',
-        'tagline': 'AI-powered weekly planning assistant',
-        'description': 'Automatically draft weekly lesson outlines from your scheme of work and syllabus. Saves hours of manual planning.',
-        'category': 'productivity',
-        'icon': 'bi bi-calendar2-week',
-        'badge_label': 'POPULAR',
-        'price': 25.00,
-        'trial_days': 14,
-        'quota_boost': 30,
-        'features': [
-            'Auto-generate weekly plans from scheme',
-            'Drag-and-drop schedule builder',
-            'Export to PDF & print-ready formats',
-            'Sync with school timetable',
-        ],
-    },
-    {
-        'name': 'Aura Slide Generator',
-        'slug': 'aura-slide-generator',
-        'tagline': 'Turn any topic into a slide deck',
-        'description': 'Type a topic and get a polished presentation with key points, diagrams, and discussion prompts — ready to present.',
-        'category': 'ai_tools',
-        'icon': 'bi bi-easel2',
-        'badge_label': 'POPULAR',
-        'price': 30.00,
-        'trial_days': 14,
-        'quota_boost': 30,
-        'features': [
-            'AI-generated slide content',
-            'Auto-add visuals & diagrams',
-            'Export to PPTX',
-            'Live session integration',
-        ],
-    },
-    {
-        'name': 'Report Card AI Writer',
-        'slug': 'report-card-writer',
-        'tagline': 'End-of-term reports in minutes, not days',
-        'description': 'AI reads each student\'s grades, attendance, and behavior data then generates personalised, professional report card comments. Bulk-generate for an entire class in one click.',
-        'category': 'ai_tools',
-        'icon': 'bi bi-card-text',
-        'badge_label': 'HOT',
-        'price': 30.00,
-        'trial_days': 14,
-        'quota_boost': 25,
-        'features': [
-            'AI-personalised comment per student',
-            'Pulls grades & attendance automatically',
-            'Bulk generate for entire class',
-            'Edit, regenerate, or write your own',
-        ],
-    },
-    {
-        'name': 'Exam & Question Bank Pro',
-        'slug': 'exam-question-bank',
-        'tagline': 'Build exams smarter, not harder',
-        'description': 'Create a searchable bank of questions tagged by subject, topic, and difficulty. AI generates new questions on demand. Assemble exam papers with auto-shuffled variants.',
-        'category': 'assessment',
-        'icon': 'bi bi-database-check',
-        'badge_label': 'HOT',
-        'price': 35.00,
-        'trial_days': 14,
-        'quota_boost': 25,
-        'features': [
-            'Searchable question bank',
-            'AI-generated questions on demand',
-            'Multiple formats: MCQ, fill-in, essay',
-            'Assemble & print exam papers',
-        ],
-    },
-    {
-        'name': 'Differentiated Lesson AI',
-        'slug': 'differentiated-lesson-ai',
-        'tagline': 'One lesson, three ability levels',
-        'description': 'Paste or pick a lesson plan and AI generates three versions: foundational (struggling), grade-level (on-track), and extension (advanced). Inclusive teaching made easy.',
-        'category': 'ai_tools',
-        'icon': 'bi bi-diagram-3',
+        'name': 'Starter',
+        'slug': 'starter-20',
+        'credits': 20,
+        'price': 2.00,
         'badge_label': '',
-        'price': 25.00,
-        'trial_days': 14,
-        'quota_boost': 20,
-        'features': [
-            'Three differentiated tiers per lesson',
-            'Scaffolded activities & instructions',
-            'Works with existing lesson plans',
-            'Aligned to GES inclusive education policy',
-        ],
+        'icon': 'bi bi-lightning-charge',
+        'position': 1,
+    },
+    {
+        'name': 'Basic',
+        'slug': 'basic-50',
+        'credits': 50,
+        'price': 4.00,
+        'badge_label': '',
+        'icon': 'bi bi-lightning-charge-fill',
+        'position': 2,
+    },
+    {
+        'name': 'Standard',
+        'slug': 'standard-120',
+        'credits': 120,
+        'price': 8.00,
+        'badge_label': 'POPULAR',
+        'icon': 'bi bi-stars',
+        'position': 3,
+    },
+    {
+        'name': 'Power',
+        'slug': 'power-300',
+        'credits': 300,
+        'price': 15.00,
+        'badge_label': 'BEST VALUE',
+        'icon': 'bi bi-rocket-takeoff-fill',
+        'position': 4,
     },
 ]
+
 
 def seed():
     created = 0
@@ -423,6 +477,20 @@ def seed():
         else:
             updated += 1
     print(f"TeacherAddOn catalog: {created} created, {updated} updated (total {len(ADDONS)})")
+
+    # Seed credit packs
+    cp_created = 0
+    cp_updated = 0
+    for pack_data in CREDIT_PACKS:
+        obj, was_created = CreditPack.objects.update_or_create(
+            slug=pack_data['slug'],
+            defaults=pack_data,
+        )
+        if was_created:
+            cp_created += 1
+        else:
+            cp_updated += 1
+    print(f"CreditPack catalog: {cp_created} created, {cp_updated} updated (total {len(CREDIT_PACKS)})")
 
 if __name__ == '__main__':
     schema_arg = sys.argv[1] if len(sys.argv) > 1 else None

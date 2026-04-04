@@ -384,13 +384,79 @@
 .tk-boost {
     display: inline-flex; align-items: center; gap: .3rem;
     font-size: .65rem; font-weight: 700;
-    color: #8b5cf6; background: rgba(139,92,246,.08);
-    border: 1px solid rgba(139,92,246,.2);
+    color: #f59e0b; background: rgba(245,158,11,.08);
+    border: 1px solid rgba(245,158,11,.2);
     border-radius: 7px; padding: .18rem .55rem;
     margin-top: .4rem;
 }
 .tk-boost i { font-size: .7rem; }
-[data-bs-theme="dark"] .tk-boost { background: rgba(139,92,246,.15); border-color: rgba(139,92,246,.3); }
+[data-bs-theme="dark"] .tk-boost { background: rgba(245,158,11,.15); border-color: rgba(245,158,11,.3); }
+
+/* Credit balance bar */
+.tk-credit-bar {
+    background: linear-gradient(90deg, rgba(245,158,11,.08) 0%, rgba(139,92,246,.08) 100%);
+    border: 1px solid rgba(245,158,11,.22);
+    border-radius: var(--tk-radius-sm);
+    padding: .75rem 1.1rem;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+.tk-credit-info {
+    display: flex; align-items: center; gap: .5rem;
+    font-size: .82rem; font-weight: 700; color: #f59e0b;
+}
+.tk-credit-info i { font-size: 1.1rem; }
+.tk-credit-info .balance-num { font-size: 1.2rem; font-weight: 800; }
+.tk-credit-actions { display: flex; gap: .5rem; align-items: center; }
+.tk-credit-actions a {
+    font-size: .72rem; font-weight: 700; color: var(--tk-muted);
+    text-decoration: none; transition: color .15s;
+}
+.tk-credit-actions a:hover { color: var(--cat-ai); }
+
+/* Credit pack cards */
+.tk-packs-section { margin-bottom: 1.75rem; }
+.tk-packs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: .85rem;
+}
+.tk-pack-card {
+    background: var(--tk-surface);
+    border: 1.5px solid var(--tk-border);
+    border-radius: var(--tk-radius-sm);
+    padding: 1rem;
+    text-align: center;
+    transition: box-shadow .22s, transform .22s, border-color .22s;
+    position: relative;
+}
+.tk-pack-card:hover { box-shadow: var(--tk-shadow-lg); transform: translateY(-3px); }
+.tk-pack-card .pack-badge {
+    position: absolute; top: .6rem; right: .6rem;
+    font-size: .55rem; font-weight: 800; text-transform: uppercase;
+    padding: .15rem .45rem; border-radius: 5px;
+    background: #f97316; color: #fff;
+}
+.tk-pack-card .pack-icon {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto .6rem; font-size: 1.2rem; color: #fff;
+}
+.tk-pack-card .pack-credits {
+    font-size: 1.6rem; font-weight: 800; color: var(--tk-ink); line-height: 1;
+}
+.tk-pack-card .pack-label { font-size: .7rem; color: var(--tk-muted); margin: .15rem 0 .5rem; }
+.tk-pack-card .pack-price { font-size: .95rem; font-weight: 800; color: var(--tk-ink); }
+.tk-pack-card .pack-rate { font-size: .62rem; color: var(--tk-muted); margin-top: .1rem; }
+.tk-pack-card .tk-btn {
+    margin-top: .65rem; width: 100%;
+    justify-content: center;
+}
 
 .tk-btn {
     border: none; padding: .42rem .95rem;
@@ -454,6 +520,10 @@
             <p>Activate curated tools, AI assistants, and resource packs  tailored for your classroom.</p>
         </div>
         <div class="tk-hero-stats">
+            <div class="tk-stat-pill" style="border-color:rgba(245,158,11,.4);">
+                <strong style="color:#f59e0b;">{{ credit_balance }}</strong>
+                <span>Credits</span>
+            </div>
             <div class="tk-stat-pill">
                 <strong>{{ total_count }}</strong>
                 <span>Available</span>
@@ -486,6 +556,50 @@
     <div class="tk-owned-bar">
         <i class="bi bi-patch-check-fill"></i>
         You have <b>{{ purchased_count }} tool{{ purchased_count|pluralize }}</b> active  look for the green stripe on cards below.
+    </div>
+    {% endif %}
+
+    <!-- Credit balance bar -->
+    <div class="tk-credit-bar">
+        <div class="tk-credit-info">
+            <i class="bi bi-lightning-charge-fill"></i>
+            <span>AI Credits: <span class="balance-num" id="creditBalance">{{ credit_balance }}</span></span>
+        </div>
+        <div class="tk-credit-actions">
+            <a href="{% url 'teachers:credit_history' %}"><i class="bi bi-clock-history me-1"></i>History</a>
+            <a href="#creditPacks" style="color:#f59e0b;"><i class="bi bi-plus-circle me-1"></i>Buy Credits</a>
+        </div>
+    </div>
+
+    <!-- Credit Packs Section -->
+    {% if credit_packs %}
+    <div class="tk-packs-section" id="creditPacks">
+        <div class="tk-cat-row">
+            <div class="tk-cat-icon" style="background:rgba(245,158,11,.1);color:#f59e0b;">
+                <i class="bi bi-lightning-charge-fill"></i>
+            </div>
+            <span class="tk-cat-label">AI Credit Packs</span>
+            <div class="tk-cat-line"></div>
+            <span class="tk-cat-num">{{ credit_packs|length }}</span>
+        </div>
+        <div class="tk-packs-grid">
+            {% for pack in credit_packs %}
+            <div class="tk-pack-card">
+                {% if pack.badge_label %}<span class="pack-badge">{{ pack.badge_label }}</span>{% endif %}
+                <div class="pack-icon"><i class="{{ pack.icon }}"></i></div>
+                <div class="pack-credits">{{ pack.credits }}</div>
+                <div class="pack-label">credits</div>
+                <div class="pack-price">GHS {{ pack.price }}</div>
+                <div class="pack-rate">GHS {{ pack.price_per_credit|floatformat:2 }}/credit</div>
+                <button type="button" class="tk-btn tk-btn-get"
+                        data-pay-credit="{{ pack.id }}"
+                        data-pay-url="{% url 'teachers:purchase_credits' pack.id %}"
+                        data-pack-credits="{{ pack.credits }}">
+                    Buy {{ pack.credits }} Credits <i class="bi bi-lightning-charge"></i>
+                </button>
+            </div>
+            {% endfor %}
+        </div>
     </div>
     {% endif %}
 
@@ -579,7 +693,7 @@
                 {% if addon.quota_boost %}
                 <div class="tk-boost">
                     <i class="bi bi-lightning-charge-fill"></i>
-                    +{{ addon.quota_boost }} AI calls/month for your school
+                    Uses {{ addon.credit_cost|default:"1" }} credit{{ addon.credit_cost|pluralize }} per generation
                 </div>
                 {% endif %}
 
@@ -654,6 +768,7 @@
 (function () {
     const CSRF = '{{ csrf_token }}';
     const VERIFY_URL = '{% url "teachers:teacher_store_verify" %}';
+    const VERIFY_CREDIT_URL = '{% url "teachers:verify_credit_purchase" %}';
 
     /* ── Category / search filter ──────────────────────── */
     const search   = document.getElementById('tkSearch');
@@ -703,7 +818,7 @@
         });
     });
 
-    /* ── Paystack paid purchase flow ───────────────────── */
+    /* ── Paystack paid add-on purchase flow ────────────── */
     document.querySelectorAll('[data-pay-addon]').forEach(btn => {
         btn.addEventListener('click', async function () {
             const addonId = this.dataset.payAddon;
@@ -718,12 +833,10 @@
                 const data = await res.json();
 
                 if (!data.paystack) {
-                    /* Should not happen for paid add-ons, but handle gracefully */
                     location.reload();
                     return;
                 }
 
-                /* Open Paystack Inline */
                 const popup = new PaystackPop();
                 popup.newTransaction({
                     key:       data.public_key,
@@ -733,7 +846,6 @@
                     ref:       data.reference,
                     metadata:  { addon_id: addonId, addon_name: data.addon_name },
                     onSuccess: async (txn) => {
-                        /* Verify on server */
                         const vRes = await fetch(VERIFY_URL, {
                             method: 'POST',
                             headers: {
@@ -761,6 +873,74 @@
                 alert('An error occurred. Please try again.');
                 btn.disabled = false;
                 btn.innerHTML = 'Purchase <i class="bi bi-credit-card"></i>';
+            }
+        });
+    });
+
+    /* ── Paystack credit pack purchase flow ────────────── */
+    document.querySelectorAll('[data-pay-credit]').forEach(btn => {
+        btn.addEventListener('click', async function () {
+            const packId  = this.dataset.payCredit;
+            const url     = this.dataset.payUrl;
+            const credits = this.dataset.packCredits;
+            const origHTML = btn.innerHTML;
+            btn.disabled  = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Loading\u2026';
+
+            try {
+                const fd = new FormData();
+                fd.append('csrfmiddlewaretoken', CSRF);
+                const res  = await fetch(url, { method: 'POST', body: fd });
+                const data = await res.json();
+
+                if (!data.paystack) {
+                    location.reload();
+                    return;
+                }
+
+                const popup = new PaystackPop();
+                popup.newTransaction({
+                    key:       data.public_key,
+                    email:     data.email,
+                    amount:    data.amount,
+                    currency:  data.currency,
+                    ref:       data.reference,
+                    metadata:  { pack_id: packId, pack_name: data.pack_name, credits: data.credits },
+                    onSuccess: async (txn) => {
+                        const vRes = await fetch(VERIFY_CREDIT_URL, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': CSRF,
+                            },
+                            body: JSON.stringify({ reference: txn.reference, pack_id: packId }),
+                        });
+                        const vData = await vRes.json();
+                        if (vData.ok) {
+                            /* Update balance in UI */
+                            const balEl = document.getElementById('creditBalance');
+                            if (balEl) balEl.textContent = vData.new_balance;
+                            const heroBal = document.querySelector('.tk-stat-pill strong[style*="f59e0b"]');
+                            if (heroBal) heroBal.textContent = vData.new_balance;
+                            alert('\u26a1 ' + vData.credits_added + ' credits added! Balance: ' + vData.new_balance);
+                            btn.disabled = false;
+                            btn.innerHTML = origHTML;
+                        } else {
+                            alert(vData.error || 'Verification failed. Please contact support.');
+                            btn.disabled = false;
+                            btn.innerHTML = origHTML;
+                        }
+                    },
+                    onCancel: () => {
+                        btn.disabled = false;
+                        btn.innerHTML = origHTML;
+                    },
+                });
+            } catch (err) {
+                console.error('Credit purchase error:', err);
+                alert('An error occurred. Please try again.');
+                btn.disabled = false;
+                btn.innerHTML = origHTML;
             }
         });
     });

@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Credit History — {{ school_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.ch-page { padding: 1.5rem 1.25rem 3rem; max-width: 720px; margin: 0 auto; }
+.ch-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1.5rem; flex-wrap: wrap; gap: .5rem;
+}
+.ch-header h1 { font-size: 1.3rem; font-weight: 800; margin: 0; }
+.ch-balance {
+    display: inline-flex; align-items: center; gap: .4rem;
+    background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.2);
+    border-radius: 10px; padding: .4rem .85rem; font-size: .85rem; font-weight: 700; color: #f59e0b;
+}
+.ch-balance i { font-size: 1rem; }
+.ch-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.ch-table th {
+    font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+    color: #8892a4; padding: .5rem .75rem; border-bottom: 2px solid #e4e8f2;
+}
+.ch-table td {
+    font-size: .82rem; padding: .6rem .75rem; border-bottom: 1px solid #e4e8f2; vertical-align: middle;
+}
+.ch-amount-pos { color: #10b981; font-weight: 700; }
+.ch-amount-neg { color: #ef4444; font-weight: 700; }
+.ch-type {
+    display: inline-block; font-size: .65rem; font-weight: 700; padding: .12rem .45rem;
+    border-radius: 5px; text-transform: uppercase;
+}
+.ch-type-purchase { background: rgba(16,185,129,.1); color: #10b981; }
+.ch-type-usage    { background: rgba(239,68,68,.08); color: #ef4444; }
+.ch-type-bonus    { background: rgba(99,102,241,.1); color: #6366f1; }
+.ch-type-refund   { background: rgba(14,165,233,.1); color: #0ea5e9; }
+.ch-empty { text-align: center; padding: 3rem 1rem; color: #8892a4; font-size: .85rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ch-page">
+    <div class="ch-header">
+        <h1><i class="bi bi-clock-history me-2"></i>Credit History</h1>
+        <div class="ch-balance">
+            <i class="bi bi-lightning-charge-fill"></i>
+            {{ credit_balance }} credits
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <a href="{% url 'teachers:teacher_store' %}" class="text-decoration-none" style="font-size:.82rem;font-weight:700;">
+            <i class="bi bi-arrow-left me-1"></i>Back to Store
+        </a>
+    </div>
+
+    {% if transactions %}
+    <table class="ch-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th style="text-align:right;">Amount</th>
+                <th style="text-align:right;">Balance</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in transactions %}
+            <tr>
+                <td style="white-space:nowrap;">{{ t.created_at|date:"M d, H:i" }}</td>
+                <td><span class="ch-type ch-type-{{ t.transaction_type }}">{{ t.get_transaction_type_display }}</span></td>
+                <td>{{ t.description }}</td>
+                <td style="text-align:right;" class="{% if t.amount > 0 %}ch-amount-pos{% else %}ch-amount-neg{% endif %}">
+                    {% if t.amount > 0 %}+{% endif %}{{ t.amount }}
+                </td>
+                <td style="text-align:right;font-weight:600;">{{ t.balance_after }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="ch-empty">
+        <i class="bi bi-inbox" style="font-size:2rem;display:block;margin-bottom:.5rem;opacity:.3;"></i>
+        No transactions yet. AI credits are earned as a welcome bonus and purchased from the store.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

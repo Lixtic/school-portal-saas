@@ -1,9 +1,27 @@
-"""Utilities for teacher add-on feature gating."""
+"""Utilities for teacher add-on feature gating (credit-based token model)."""
 from functools import wraps
 
 from django.contrib import messages
+from django.db import transaction
 from django.shortcuts import redirect
 from django.utils import timezone
+
+
+# ── Credit costs per AI action ──────────────────────────────────
+CREDIT_COSTS = {
+    'lesson_gen':     1,
+    'exercise_gen':   1,
+    'assignment_gen': 1,
+    'study_guide':    2,
+    'slide_gen':      3,
+    'bulk_gen':       5,
+    'report_card':    2,
+    'question_gen':   2,
+    'differentiate':  2,
+    'other':          1,
+}
+
+WELCOME_BONUS_CREDITS = 10
 
 
 # ── Add-on slug → gated view names ─────────────────────────────
@@ -156,54 +174,120 @@ def requires_addon(slug):
     return decorator
 
 
-# ── Freemium gating ─────────────────────────────────────────────
+# ── Freemium gating (credit-based token model) ─────────────────
 
-FREE_GENERATION_LIMIT = 10
+FREE_GENERATION_LIMIT = WELCOME_BONUS_CREDITS  # backward compat alias
+
+
+def _get_or_create_balance(user):
+    """Return the TeacherCreditBalance for *user*, creating with welcome bonus if new."""
+    from teachers.models import TeacherCreditBalance, CreditTransaction
+    bal, created = TeacherCreditBalance.objects.get_or_create(
+        teacher=user,
+        defaults={'balance': WELCOME_BONUS_CREDITS, 'total_purchased': 0, 'total_used': 0},
+    )
+    if created:
+        CreditTransaction.objects.create(
+            teacher=user,
+            amount=WELCOME_BONUS_CREDITS,
+            balance_after=WELCOME_BONUS_CREDITS,
+            transaction_type='bonus',
+            description=f'Welcome bonus — {WELCOME_BONUS_CREDITS} free AI credits',
+        )
+    return bal
+
+
+def get_credit_balance(user):
+    """Return the current credit balance for *user*."""
+    if not user.is_authenticated or user.user_type != 'teacher':
+        return 0
+    bal = _get_or_create_balance(user)
+    return bal.balance
 
 
 def get_free_generation_count(user, action_type='lesson_gen'):
-    """Count how many AI generation calls this teacher has made (all-time)."""
+    """Backward-compat: returns how many credits have been used (for UI display)."""
     if not user.is_authenticated:
         return 0
-    try:
-        from tenants.subscription_models import AIUsageLog
-        return AIUsageLog.objects.filter(
-            user_id=user.id, action_type=action_type,
-        ).count()
-    except Exception:
-        return 0
+    bal = _get_or_create_balance(user)
+    return bal.total_used
+
+
+def deduct_credits(user, action_type, description=''):
+    """Deduct credits for an AI action. Returns (success, error_dict_or_None)."""
+    from teachers.models import TeacherCreditBalance, CreditTransaction
+    cost = CREDIT_COSTS.get(action_type, 1)
+
+    with transaction.atomic():
+        bal = TeacherCreditBalance.objects.select_for_update().get(teacher=user)
+        if bal.balance < cost:
+            return False, {
+                'status': 'error',
+                'error_code': 'insufficient_credits',
+                'message': (
+                    f'You need {cost} credit{"s" if cost != 1 else ""} for this action '
+                    f'but only have {bal.balance}. Buy more credits from the Add-on Store.'
+                ),
+                'balance': bal.balance,
+                'cost': cost,
+            }
+        bal.balance -= cost
+        bal.total_used += cost
+        bal.save(update_fields=['balance', 'total_used', 'updated_at'])
+
+        action_label = action_type.replace('_', ' ').title()
+        CreditTransaction.objects.create(
+            teacher=user,
+            amount=-cost,
+            balance_after=bal.balance,
+            transaction_type='usage',
+            description=description or f'{action_label} (-{cost} credit{"s" if cost != 1 else ""})',
+        )
+    return True, None
+
+
+def add_credits(user, amount, transaction_type='purchase', description='', payment_reference=''):
+    """Add credits to a teacher's balance."""
+    from teachers.models import TeacherCreditBalance, CreditTransaction
+
+    with transaction.atomic():
+        bal = _get_or_create_balance(user)
+        bal = TeacherCreditBalance.objects.select_for_update().get(teacher=user)
+        bal.balance += amount
+        if transaction_type == 'purchase':
+            bal.total_purchased += amount
+        bal.save(update_fields=['balance', 'total_purchased', 'updated_at'])
+
+        CreditTransaction.objects.create(
+            teacher=user,
+            amount=amount,
+            balance_after=bal.balance,
+            transaction_type=transaction_type,
+            description=description,
+            payment_reference=payment_reference,
+        )
+    return bal
 
 
 def check_freemium_limit(user, slug, action_type='lesson_gen', free_limit=FREE_GENERATION_LIMIT):
-    """Inline freemium check. Returns (allowed, error_dict_or_None).
+    """Check if teacher has enough credits for this action, then deduct.
 
-    Use inside multi-action views where a decorator can't target one branch.
-    If ``allowed`` is False, return ``JsonResponse(err, status=403)`` to the client.
+    Returns (allowed, error_dict_or_None).
     """
     if getattr(user, 'user_type', '') != 'teacher':
         return True, None
-    if has_addon(user, slug):
-        return True, None
-    used = get_free_generation_count(user, action_type)
-    if used < free_limit:
-        return True, None
-    label = ADDON_FEATURE_MAP.get(slug, {}).get('label', slug)
-    return False, {
-        'status': 'error',
-        'error_code': 'freemium_limit',
-        'message': (
-            f'You\'ve used all {free_limit} free generations. '
-            f'Purchase "{label}" from the Add-on Store to continue.'
-        ),
-        'used': used,
-        'limit': free_limit,
-    }
+
+    # Ensure balance exists (welcome bonus applied on first check)
+    _get_or_create_balance(user)
+
+    # Attempt to deduct credits
+    return deduct_credits(user, action_type)
 
 
 def requires_addon_freemium(slug, free_limit=FREE_GENERATION_LIMIT, action_type='lesson_gen'):
-    """Decorator: allow *free_limit* free generations, then require the add-on.
+    """Decorator: check teacher has enough credits, deduct on entry.
 
-    For AJAX/JSON endpoints: returns a JSON 403 with remaining/used counts.
+    For AJAX/JSON endpoints: returns a JSON 403 with balance info.
     For regular views: redirects to the store with a flash message.
     """
     def decorator(view_fn):
@@ -211,14 +295,26 @@ def requires_addon_freemium(slug, free_limit=FREE_GENERATION_LIMIT, action_type=
         def wrapper(request, *args, **kwargs):
             if request.user.user_type != 'teacher':
                 return view_fn(request, *args, **kwargs)
-            if has_addon(request.user, slug):
-                return view_fn(request, *args, **kwargs)
-            # Check free-tier budget
-            used = get_free_generation_count(request.user, action_type)
-            if used < free_limit:
-                return view_fn(request, *args, **kwargs)
-            # Over free limit — block
-            label = ADDON_FEATURE_MAP.get(slug, {}).get('label', slug)
+
+            # Ensure balance exists
+            _get_or_create_balance(request.user)
+
+            cost = CREDIT_COSTS.get(action_type, 1)
+            bal = get_credit_balance(request.user)
+
+            if bal >= cost:
+                # Deduct credits and proceed
+                ok, err = deduct_credits(request.user, action_type)
+                if ok:
+                    return view_fn(request, *args, **kwargs)
+                # Shouldn't happen (race condition), but handle
+                err_msg = err.get('message', 'Insufficient credits.')
+            else:
+                err_msg = (
+                    f'This action costs {cost} credit{"s" if cost != 1 else ""} '
+                    f'but you only have {bal}. Buy more credits from the Add-on Store.'
+                )
+
             is_ajax = (
                 request.headers.get('X-Requested-With') == 'XMLHttpRequest'
                 or request.content_type == 'application/json'
@@ -227,19 +323,12 @@ def requires_addon_freemium(slug, free_limit=FREE_GENERATION_LIMIT, action_type=
                 from django.http import JsonResponse
                 return JsonResponse({
                     'status': 'error',
-                    'error_code': 'freemium_limit',
-                    'message': (
-                        f'You\'ve used all {free_limit} free generations. '
-                        f'Purchase "{label}" from the Add-on Store to continue.'
-                    ),
-                    'used': used,
-                    'limit': free_limit,
+                    'error_code': 'insufficient_credits',
+                    'message': err_msg,
+                    'balance': get_credit_balance(request.user),
+                    'cost': cost,
                 }, status=403)
-            messages.warning(
-                request,
-                f'You\'ve used all {free_limit} free lesson generations. '
-                f'Purchase "{label}" from the Add-on Store to unlock unlimited access.',
-            )
+            messages.warning(request, err_msg)
             return redirect('teachers:teacher_store')
         return wrapper
     return decorator
