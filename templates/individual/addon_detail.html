@@ -1,0 +1,520 @@
+{% extends 'individual/base.html' %}
+{% block title %}{{ addon.name }} — Addon Store{% endblock %}
+{% block page_title %}{{ addon.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ═══ ADDON DETAIL — ad- prefix ═══ */
+:root {
+    --ad-ink:       #0b1120;
+    --ad-surface:   #ffffff;
+    --ad-border:    #e4e8f2;
+    --ad-muted:     #8892a4;
+    --ad-body:      #3d4a60;
+    --ad-shadow:    0 2px 12px rgba(11,17,32,.07);
+    --ad-shadow-lg: 0 12px 36px rgba(11,17,32,.12);
+    --ad-radius:    16px;
+}
+[data-bs-theme="dark"] {
+    --ad-ink:     #f0f4ff;
+    --ad-surface: #1a2236;
+    --ad-border:  rgba(255,255,255,.07);
+    --ad-muted:   #5a6880;
+    --ad-body:    #8fa0bc;
+    --ad-shadow:    0 2px 12px rgba(0,0,0,.25);
+    --ad-shadow-lg: 0 12px 36px rgba(0,0,0,.4);
+}
+
+.ad-back {
+    display: inline-flex; align-items: center; gap: .4rem;
+    font-size: .82rem; font-weight: 600; color: var(--ad-muted);
+    text-decoration: none; margin-bottom: 1rem; transition: color .15s;
+}
+.ad-back:hover { color: var(--ad-ink); }
+
+/* Hero */
+.ad-hero {
+    position: relative; overflow: hidden;
+    border-radius: 20px; padding: 2.5rem 2.25rem 2rem;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(140deg, #1e2f6e 0%, #3730a3 38%, #6d28d9 70%, #7c3aed 100%);
+    color: #fff; isolation: isolate;
+}
+.ad-hero::before {
+    content: ''; position: absolute; border-radius: 50%;
+    filter: blur(56px); pointer-events: none; z-index: -1;
+    width: 280px; height: 280px;
+    background: rgba(124,58,237,.55); top: -60px; right: 15%;
+}
+.ad-hero-grid {
+    position: absolute; inset: 0;
+    background-image:
+        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size: 28px 28px; pointer-events: none;
+}
+.ad-hero-inner {
+    position: relative; display: flex;
+    align-items: flex-start; gap: 1.5rem; flex-wrap: wrap;
+}
+.ad-hero-icon {
+    width: 72px; height: 72px; border-radius: 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; flex-shrink: 0;
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.18);
+    backdrop-filter: blur(12px);
+}
+.ad-hero-text { flex: 1; min-width: 200px; }
+.ad-hero-badge {
+    display: inline-block; font-size: .6rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .07em;
+    padding: .2rem .6rem; border-radius: 6px; margin-bottom: .4rem;
+}
+.ad-badge-owned { background: rgba(16,185,129,.2); color: #34d399; border: 1px solid rgba(16,185,129,.3); }
+.ad-badge-new   { background: #10b981; color: #fff; }
+.ad-badge-pop   { background: #f97316; color: #fff; }
+.ad-badge-free  { background: #6366f1; color: #fff; }
+.ad-hero-text h1 {
+    font-size: clamp(1.3rem, 3vw, 1.65rem);
+    font-weight: 800; margin: 0 0 .15rem; line-height: 1.2;
+}
+.ad-hero-tagline {
+    font-size: .88rem; color: rgba(255,255,255,.72); margin: 0 0 .6rem;
+}
+.ad-hero-cat {
+    display: inline-flex; align-items: center; gap: .35rem;
+    font-size: .68rem; font-weight: 700;
+    color: rgba(255,255,255,.55);
+    text-transform: uppercase; letter-spacing: .06em;
+}
+
+/* Grid layout */
+.ad-grid {
+    display: grid; grid-template-columns: 1fr 320px;
+    gap: 1.5rem; align-items: start;
+}
+@media (max-width: 900px) { .ad-grid { grid-template-columns: 1fr; } }
+
+/* Cards */
+.ad-card {
+    background: var(--ad-surface);
+    border: 1.5px solid var(--ad-border);
+    border-radius: var(--ad-radius);
+    box-shadow: var(--ad-shadow); padding: 1.5rem;
+}
+.ad-card h2 {
+    font-size: .82rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .06em;
+    color: var(--ad-muted); margin: 0 0 1rem;
+    display: flex; align-items: center; gap: .4rem;
+}
+.ad-desc {
+    font-size: .88rem; line-height: 1.65; color: var(--ad-body);
+}
+.ad-features {
+    list-style: none; padding: 0; margin: 0;
+}
+.ad-features li {
+    display: flex; align-items: flex-start; gap: .6rem;
+    padding: .55rem 0; border-bottom: 1px solid var(--ad-border);
+    font-size: .85rem; color: var(--ad-body); line-height: 1.5;
+}
+.ad-features li:last-child { border-bottom: none; }
+.ad-features li .bi {
+    color: #10b981; font-size: .75rem;
+    margin-top: .25rem; flex-shrink: 0;
+}
+
+/* Sidebar pricing */
+.ad-pricing { position: sticky; top: 1.5rem; }
+.ad-price-tag {
+    font-size: 2rem; font-weight: 800; color: var(--ad-ink);
+    margin: 0 0 .15rem; font-variant-numeric: tabular-nums;
+}
+.ad-price-free {
+    font-size: 1.4rem; font-weight: 800; color: #10b981;
+    display: flex; align-items: center; gap: .4rem; margin-bottom: .15rem;
+}
+.ad-price-sub {
+    font-size: .72rem; color: var(--ad-muted); margin-bottom: 1rem;
+}
+
+/* Plan selector */
+.ad-plan-row { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: .6rem; }
+.ad-plan-btn {
+    padding: .3rem .7rem; border-radius: 8px;
+    font-size: .72rem; font-weight: 700;
+    border: 1.5px solid var(--ad-border);
+    background: transparent; color: var(--ad-muted);
+    cursor: pointer; transition: all .15s;
+    text-transform: capitalize; font-family: inherit;
+}
+.ad-plan-btn:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
+.ad-plan-btn.selected {
+    border-color: var(--brand-primary);
+    background: rgba(67,97,238,.1);
+    color: var(--brand-primary);
+}
+[data-bs-theme="dark"] .ad-plan-btn.selected { background: rgba(67,97,238,.2); }
+
+.ad-cta {
+    display: block; width: 100%;
+    padding: .7rem 1rem; border-radius: 12px;
+    font-size: .88rem; font-weight: 700; border: none;
+    cursor: pointer; text-align: center; text-decoration: none;
+    transition: all .18s; font-family: inherit;
+}
+.ad-cta-buy {
+    background: linear-gradient(135deg, #4361ee, #7c3aed);
+    color: #fff; box-shadow: 0 4px 14px rgba(67,97,238,.35);
+}
+.ad-cta-buy:hover { filter: brightness(1.08); box-shadow: 0 6px 20px rgba(67,97,238,.45); transform: translateY(-1px); color: #fff; }
+.ad-cta-owned {
+    background: rgba(16,185,129,.1); color: #10b981;
+    border: 1.5px solid rgba(16,185,129,.25); cursor: default;
+}
+.ad-cta-free {
+    background: linear-gradient(135deg, #10b981, #34d399);
+    color: #fff; box-shadow: 0 4px 14px rgba(16,185,129,.3);
+}
+.ad-cta-free:hover { filter: brightness(1.08); color: #fff; }
+.ad-deactivate {
+    display: block; width: 100%;
+    padding: .5rem 1rem; border-radius: 10px;
+    font-size: .75rem; font-weight: 600;
+    border: 1.5px solid var(--ad-border);
+    background: transparent; color: var(--ad-muted);
+    cursor: pointer; text-align: center;
+    margin-top: .5rem; transition: all .15s;
+    font-family: inherit;
+}
+.ad-deactivate:hover { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,.04); }
+
+/* Includes */
+.ad-includes {
+    margin-top: 1rem; padding-top: .8rem;
+    border-top: 1px solid var(--ad-border);
+}
+.ad-includes h3 {
+    font-size: .7rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .06em;
+    color: var(--ad-muted); margin: 0 0 .5rem;
+}
+.ad-includes-list { list-style: none; padding: 0; margin: 0; }
+.ad-includes-list li {
+    font-size: .78rem; color: var(--ad-body);
+    padding: .2rem 0;
+    display: flex; align-items: center; gap: .4rem;
+}
+.ad-includes-list li i { font-size: .65rem; color: #4361ee; }
+
+/* Related addons */
+.ad-related { margin-top: 2rem; }
+.ad-related h2 {
+    font-size: .82rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .06em;
+    color: var(--ad-muted); margin: 0 0 .8rem;
+}
+.ad-related-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 1rem;
+}
+.ad-rel-card {
+    background: var(--ad-surface);
+    border: 1.5px solid var(--ad-border);
+    border-radius: 14px; padding: 1rem;
+    text-decoration: none;
+    display: flex; align-items: flex-start; gap: .75rem;
+    transition: box-shadow .2s, transform .2s;
+    box-shadow: var(--ad-shadow);
+}
+.ad-rel-card:hover { box-shadow: var(--ad-shadow-lg); transform: translateY(-2px); }
+.ad-rel-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; flex-shrink: 0;
+    background: rgba(67,97,238,.1); color: #4361ee;
+}
+.ad-rel-card h4 {
+    font-size: .85rem; font-weight: 700;
+    color: var(--ad-ink); margin: 0 0 .15rem; line-height: 1.3;
+}
+.ad-rel-card p {
+    font-size: .72rem; color: var(--ad-muted); margin: 0; line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+    .ad-hero { padding: 1.5rem 1.25rem; }
+    .ad-hero-icon { width: 56px; height: 56px; font-size: 1.4rem; border-radius: 14px; }
+    .ad-hero-text h1 { font-size: 1.2rem; }
+    .ad-card { padding: 1.1rem; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<a href="{% url 'individual:addons' %}" class="ad-back">
+    <i class="bi bi-arrow-left"></i> Back to Store
+</a>
+
+<!-- Hero -->
+<div class="ad-hero">
+    <div class="ad-hero-grid"></div>
+    <div class="ad-hero-inner">
+        <div class="ad-hero-icon">
+            <i class="bi {{ addon.icon }}"></i>
+        </div>
+        <div class="ad-hero-text">
+            {% if is_subscribed %}
+                <span class="ad-hero-badge ad-badge-owned"><i class="bi bi-check-circle-fill me-1"></i>Active</span>
+            {% elif addon.badge == 'NEW' %}
+                <span class="ad-hero-badge ad-badge-new">New</span>
+            {% elif addon.badge == 'POPULAR' %}
+                <span class="ad-hero-badge ad-badge-pop">Popular</span>
+            {% elif addon.is_free %}
+                <span class="ad-hero-badge ad-badge-free">Free</span>
+            {% elif addon.badge %}
+                <span class="ad-hero-badge ad-badge-new">{{ addon.badge }}</span>
+            {% endif %}
+            <h1>{{ addon.name }}</h1>
+            {% if addon.tagline %}<p class="ad-hero-tagline">{{ addon.tagline }}</p>{% endif %}
+            <div class="ad-hero-cat">
+                <i class="bi bi-tag-fill"></i>
+                {{ addon.category|title }}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if messages %}
+<div class="mb-3">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Content grid -->
+<div class="ad-grid">
+
+    <!-- Main column -->
+    <div>
+        <div class="ad-card" style="margin-bottom:1.25rem;">
+            <h2><i class="bi bi-info-circle"></i> About this tool</h2>
+            <div class="ad-desc">{{ addon.description|linebreaksbr }}</div>
+        </div>
+
+        {% if addon.features %}
+        <div class="ad-card">
+            <h2><i class="bi bi-check2-all"></i> What's included</h2>
+            <ul class="ad-features">
+                {% for feat in addon.features %}
+                <li><i class="bi bi-check-circle-fill"></i> {{ feat }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar — pricing + action -->
+    <div>
+        <div class="ad-card ad-pricing">
+            <!-- Plan selector -->
+            {% if addon.plans|length > 1 %}
+            <div class="ad-plan-row">
+                {% for plan in addon.plans %}
+                <button class="ad-plan-btn{% if forloop.first %} selected{% endif %}" data-plan="{{ plan }}" onclick="selectDetailPlan(this)">{{ plan }}</button>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div id="detailPriceDisplay">
+                {% if first_price == 0 %}
+                    <div class="ad-price-free"><i class="bi bi-gift-fill"></i> Free</div>
+                    <div class="ad-price-sub">No payment required</div>
+                {% else %}
+                    <div class="ad-price-tag">{{ currency }} {{ first_price }}</div>
+                    <div class="ad-price-sub">Per subscription period</div>
+                {% endif %}
+            </div>
+
+            {% if is_subscribed %}
+                <span class="ad-cta ad-cta-owned">
+                    <i class="bi bi-check-lg me-1"></i> Active ({{ active_plan }})
+                </span>
+                <button class="ad-deactivate" id="adDeactivate" data-slug="{{ addon.slug }}">
+                    Cancel subscription
+                </button>
+            {% else %}
+                <button class="ad-cta {% if first_price == 0 %}ad-cta-free{% else %}ad-cta-buy{% endif %}"
+                        id="adSubscribe" data-slug="{{ addon.slug }}">
+                    {% if first_price == 0 %}
+                        Activate Now <i class="bi bi-arrow-right ms-1"></i>
+                    {% else %}
+                        Subscribe <i class="bi bi-credit-card ms-1"></i>
+                    {% endif %}
+                </button>
+            {% endif %}
+
+            <div class="ad-includes">
+                <h3>Includes</h3>
+                <ul class="ad-includes-list">
+                    <li><i class="bi bi-check-circle"></i> Full tool access</li>
+                    <li><i class="bi bi-arrow-repeat"></i> Free updates</li>
+                    <li><i class="bi bi-shield-check"></i> Instant activation</li>
+                    {% if addon.features|length > 0 %}
+                    <li><i class="bi bi-list-check"></i> {{ addon.features|length }} feature{{ addon.features|length|pluralize }}</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Related addons -->
+{% if related %}
+<div class="ad-related">
+    <h2><i class="bi bi-grid-3x3-gap me-1"></i> Related tools</h2>
+    <div class="ad-related-grid">
+        {% for r in related %}
+        <a href="{% url 'individual:addon_detail' r.slug %}" class="ad-rel-card">
+            <div class="ad-rel-icon">
+                <i class="bi {{ r.icon }}"></i>
+            </div>
+            <div>
+                <h4>{{ r.name }}</h4>
+                <p>{{ r.tagline|default:r.description|truncatewords:12 }}</p>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://js.paystack.co/v2/inline.js"></script>
+<script>
+(function () {
+    const CSRF = '{{ csrf_token }}';
+    const SUBSCRIBE_URL = '{% url "individual:subscribe_addon" %}';
+    const VERIFY_URL = '{% url "individual:verify_addon_payment" %}';
+    const CANCEL_URL = '{% url "individual:unsubscribe_addon" %}';
+    const CURRENCY = '{{ currency }}';
+    const PRICES = JSON.parse('{{ prices_json|escapejs }}');
+    const SLUG = '{{ addon.slug }}';
+
+    function getCookie(n){const v=document.cookie.match('(^|;)\\s*'+n+'=([^;]*)');return v?decodeURIComponent(v[2]):null;}
+
+    let selectedPlan = '{{ addon.plans.0|default:"free" }}';
+
+    /* Plan selector */
+    window.selectDetailPlan = function(btn) {
+        document.querySelectorAll('.ad-plan-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedPlan = btn.dataset.plan;
+        const price = PRICES[selectedPlan] || 0;
+        const el = document.getElementById('detailPriceDisplay');
+        if (el) {
+            if (price <= 0) {
+                el.innerHTML = '<div class="ad-price-free"><i class="bi bi-gift-fill"></i> Free</div><div class="ad-price-sub">No payment required</div>';
+            } else {
+                el.innerHTML = '<div class="ad-price-tag">' + CURRENCY + ' ' + price.toFixed(2) + '</div><div class="ad-price-sub">Per subscription period</div>';
+            }
+        }
+        /* Update CTA style */
+        const cta = document.getElementById('adSubscribe');
+        if (cta) {
+            if (price <= 0) {
+                cta.className = 'ad-cta ad-cta-free';
+                cta.innerHTML = 'Activate Now <i class="bi bi-arrow-right ms-1"></i>';
+            } else {
+                cta.className = 'ad-cta ad-cta-buy';
+                cta.innerHTML = 'Subscribe <i class="bi bi-credit-card ms-1"></i>';
+            }
+        }
+    };
+
+    /* Subscribe */
+    const subBtn = document.getElementById('adSubscribe');
+    if (subBtn) {
+        subBtn.addEventListener('click', function () {
+            subBtn.disabled = true;
+            subBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>';
+
+            const fd = new FormData();
+            fd.append('addon_slug', SLUG);
+            fd.append('plan', selectedPlan);
+            fd.append('csrfmiddlewaretoken', getCookie('csrftoken') || CSRF);
+
+            fetch(SUBSCRIBE_URL, { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) {
+                    location.reload();
+                } else if (data.paystack) {
+                    openPaystack(data);
+                } else {
+                    subBtn.disabled = false;
+                    subBtn.innerHTML = 'Subscribe <i class="bi bi-credit-card ms-1"></i>';
+                    alert(data.error || 'Failed');
+                }
+            })
+            .catch(() => { subBtn.disabled = false; subBtn.innerHTML = 'Subscribe'; });
+        });
+    }
+
+    function openPaystack(data) {
+        try {
+            const popup = new PaystackPop();
+            popup.newTransaction({
+                key: data.public_key,
+                email: data.email,
+                amount: data.amount,
+                currency: data.currency,
+                ref: data.reference,
+                metadata: { addon_slug: SLUG, addon_name: data.addon_name, plan: selectedPlan },
+                onSuccess: function(txn) {
+                    fetch(VERIFY_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') || CSRF },
+                        body: JSON.stringify({ reference: txn.reference, addon_slug: SLUG, plan: selectedPlan }),
+                    })
+                    .then(r => r.json())
+                    .then(vData => {
+                        if (vData.ok) location.reload();
+                        else { alert(vData.error || 'Verification failed.'); subBtn.disabled = false; }
+                    });
+                },
+                onCancel: () => { subBtn.disabled = false; subBtn.innerHTML = 'Subscribe <i class="bi bi-credit-card ms-1"></i>'; },
+            });
+        } catch (err) {
+            console.error('Paystack error:', err);
+            subBtn.disabled = false;
+        }
+    }
+
+    /* Deactivate */
+    const deactBtn = document.getElementById('adDeactivate');
+    if (deactBtn) {
+        deactBtn.addEventListener('click', function () {
+            if (!confirm('Cancel this addon subscription?')) return;
+            const fd = new FormData();
+            fd.append('addon_slug', SLUG);
+            fd.append('csrfmiddlewaretoken', getCookie('csrftoken') || CSRF);
+            fetch(CANCEL_URL, { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(data => { if (data.ok) location.reload(); else alert('Failed to cancel'); })
+            .catch(() => alert('Network error'));
+        });
+    }
+})();
+</script>
+{% endblock %}

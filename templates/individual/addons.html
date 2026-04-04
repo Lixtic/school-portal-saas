@@ -1,353 +1,481 @@
 {% extends 'individual/base.html' %}
-{% block title %}Add-on Store — Aura {% if role == 'teacher' %}Teacher{% else %}Developer{% endif %} Portal{% endblock %}
-{% block page_title %}Add-on Store{% endblock %}
+{% block title %}Addon Store — Aura {% if role == 'teacher' %}Teacher{% else %}Developer{% endif %} Portal{% endblock %}
+{% block page_title %}Addon Store{% endblock %}
 
 {% block extra_css %}
-/* ── Hero ──────────────────────────────────── */
+<style>
+/* ═══ ADDON STORE — as- prefix design system ═══ */
+:root {
+    --as-ink:       #0b1120;
+    --as-surface:   #ffffff;
+    --as-border:    #e4e8f2;
+    --as-muted:     #8892a4;
+    --as-body:      #3d4a60;
+    --as-shadow:    0 2px 12px rgba(11,17,32,.07);
+    --as-shadow-lg: 0 12px 36px rgba(11,17,32,.12);
+    --as-radius:    16px;
+    --as-radius-sm: 10px;
+    --cat-ai:      #8b5cf6;  --cat-assess:  #f59e0b;
+    --cat-prod:    #0ea5e9;  --cat-prof:    #ef4444;
+    --cat-mgmt:    #14b8a6;  --cat-subj:    #6366f1;
+    --cat-anal:    #10b981;  --cat-fin:     #d97706;
+    --cat-comm:    #ec4899;  --cat-doc:     #3b82f6;
+}
+[data-bs-theme="dark"] {
+    --as-ink:     #f0f4ff;
+    --as-surface: #1a2236;
+    --as-border:  rgba(255,255,255,.07);
+    --as-muted:   #5a6880;
+    --as-body:    #8fa0bc;
+    --as-shadow:    0 2px 12px rgba(0,0,0,.25);
+    --as-shadow-lg: 0 12px 36px rgba(0,0,0,.4);
+}
+
+/* Hero */
 .as-hero {
-    padding: 1.5rem 1.75rem;
-    background: linear-gradient(135deg, rgba(67,97,238,0.06) 0%, rgba(76,201,240,0.04) 100%);
-    border: 1px solid rgba(67,97,238,0.12);
-    border-radius: var(--radius-lg);
-    margin-bottom: 1.75rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1.5rem;
-    flex-wrap: wrap;
+    position: relative; overflow: hidden;
+    border-radius: 20px; padding: 2rem 2.25rem;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(140deg, #1e2f6e 0%, #3730a3 38%, #6d28d9 70%, #7c3aed 100%);
+    color: #fff;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 1.25rem; isolation: isolate;
 }
-[data-bs-theme="dark"] .as-hero {
-    background: linear-gradient(135deg, rgba(67,97,238,0.12) 0%, rgba(76,201,240,0.08) 100%);
-    border-color: rgba(67,97,238,0.22);
+.as-hero::before, .as-hero::after {
+    content: ''; position: absolute; border-radius: 50%;
+    filter: blur(56px); pointer-events: none; z-index: -1;
 }
-.as-hero-text h2 { font-size: 1.25rem; font-weight: 800; margin: 0 0 0.2rem; }
-.as-hero-text p { font-size: 0.85rem; color: var(--text-muted); margin: 0; max-width: 440px; }
-.as-hero-metrics { display: flex; gap: 2rem; flex-shrink: 0; }
-.as-metric { text-align: center; }
-.as-metric-num { font-size: 1.6rem; font-weight: 800; line-height: 1.1; color: var(--brand-primary); }
-.as-metric-num.green { color: #059669; }
-.as-metric-lbl { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-top: 2px; }
+.as-hero::before { width: 280px; height: 280px; background: rgba(124,58,237,.55); top: -60px; right: 15%; }
+.as-hero::after  { width: 200px; height: 200px; background: rgba(14,165,233,.4); bottom: -50px; left: 30%; }
+.as-hero-grid {
+    position: absolute; inset: 0;
+    background-image:
+        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size: 28px 28px; pointer-events: none;
+}
+.as-hero-copy { position: relative; }
+.as-hero-copy .as-eyebrow {
+    font-size: .65rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .12em;
+    color: rgba(255,255,255,.55); margin-bottom: .35rem;
+}
+.as-hero-copy h1 {
+    font-size: clamp(1.3rem, 3vw, 1.75rem);
+    font-weight: 800; margin: 0 0 .3rem;
+    line-height: 1.2; letter-spacing: -.02em;
+}
+.as-hero-copy p { font-size: .83rem; color: rgba(255,255,255,.72); margin: 0; max-width: 380px; }
+.as-hero-stats { display: flex; gap: .65rem; flex-wrap: wrap; position: relative; }
+.as-stat-pill {
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.18);
+    backdrop-filter: blur(12px);
+    border-radius: 12px; padding: .6rem 1.1rem;
+    text-align: center; min-width: 88px;
+}
+.as-stat-pill strong { display: block; font-size: 1.5rem; font-weight: 800; line-height: 1; }
+.as-stat-pill span {
+    font-size: .62rem; text-transform: uppercase;
+    letter-spacing: .06em; color: rgba(255,255,255,.65);
+    margin-top: .2rem; display: block;
+}
 
-/* ── Filter bar ────────────────────────────── */
-.as-filters {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    margin-bottom: 1.75rem;
+/* Active banner */
+.as-owned-bar {
+    background: linear-gradient(90deg, rgba(16,185,129,.08) 0%, rgba(16,185,129,.04) 100%);
+    border: 1px solid rgba(16,185,129,.18);
+    border-radius: var(--as-radius-sm);
+    padding: .65rem 1rem; margin-bottom: 1.25rem;
+    font-size: .8rem; color: #10b981;
+    display: flex; align-items: center; gap: .5rem;
 }
+.as-owned-bar i { font-size: 1rem; }
+.as-owned-bar b { color: inherit; font-weight: 700; }
+
+/* Filter bar */
+.as-filter {
+    background: var(--as-surface);
+    border: 1px solid var(--as-border);
+    border-radius: var(--as-radius);
+    box-shadow: var(--as-shadow);
+    padding: .8rem 1.1rem; margin-bottom: 1.5rem;
+    display: flex; align-items: center; gap: .55rem; flex-wrap: wrap;
+}
+.as-search-wrap {
+    display: flex; align-items: center; gap: .45rem;
+    flex: 1; min-width: 140px;
+    background: var(--surface-bg, #f0f2f5);
+    border: 1px solid var(--as-border);
+    border-radius: 9px; padding: .35rem .75rem;
+}
+.as-search-wrap i { color: var(--as-muted); font-size: .8rem; flex-shrink: 0; }
+.as-search-wrap input {
+    border: none; background: transparent;
+    color: var(--as-ink); outline: none;
+    font-size: .83rem; width: 100%;
+}
+.as-search-wrap input::placeholder { color: var(--as-muted); }
+.as-filter-sep { width: 1px; height: 22px; background: var(--as-border); flex-shrink: 0; }
+
 .as-chip {
-    padding: 0.35rem 0.9rem;
-    border-radius: 20px;
-    font-size: 0.78rem;
-    font-weight: 600;
-    border: 1.5px solid var(--border-color);
-    background: transparent;
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: all 0.15s;
+    border: 1.5px solid var(--as-border);
+    background: transparent; color: var(--as-body);
+    padding: .28rem .7rem; border-radius: 8px;
+    font-size: .71rem; font-weight: 700;
+    cursor: pointer; transition: background .15s, border-color .15s, color .15s;
+    white-space: nowrap;
+    display: inline-flex; align-items: center; gap: .3rem;
     font-family: inherit;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
 }
-.as-chip:hover, .as-chip.active {
-    border-color: var(--brand-primary);
-    color: var(--brand-primary);
-    background: rgba(67,97,238,0.06);
+.as-chip .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    display: inline-block;
 }
-[data-bs-theme="dark"] .as-chip.active { background: rgba(67,97,238,0.15); }
+.as-chip.active { color: #fff !important; }
+.as-chip.active .dot { background: #fff !important; opacity: .7; }
+.as-chip[data-cat="all"].active { background: #6366f1; border-color: #6366f1; }
+.as-count-badge {
+    margin-left: auto; font-size: .68rem; font-weight: 700;
+    background: var(--surface-bg, #f0f2f5); border: 1px solid var(--as-border);
+    color: var(--as-muted); padding: .25rem .6rem; border-radius: 7px;
+    white-space: nowrap; flex-shrink: 0;
+}
 
-/* ── Category Section ──────────────────────── */
-.as-group { margin-bottom: 2rem; }
-.as-group-hdr {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    margin-bottom: 0.85rem;
-    padding-bottom: 0.6rem;
-    border-bottom: 1px solid var(--border-color);
+/* Category heading */
+.as-cat-row {
+    display: flex; align-items: center; gap: .6rem;
+    margin: 1.5rem 0 .8rem;
 }
-.as-group-icon {
+.as-cat-icon {
     width: 30px; height: 30px; border-radius: 8px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 0.9rem; flex-shrink: 0;
+    font-size: .85rem; flex-shrink: 0;
 }
-.as-group-title { font-size: 0.92rem; font-weight: 700; margin: 0; }
+.as-cat-label { font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--as-muted); }
+.as-cat-line { flex: 1; height: 1px; background: var(--as-border); }
+.as-cat-num { font-size: .65rem; font-weight: 700; background: var(--as-border); color: var(--as-muted); padding: .15rem .45rem; border-radius: 5px; }
 
-/* ── Grid ──────────────────────────────────── */
+/* Grid */
 .as-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 0.85rem;
+    grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
+    gap: 1.1rem;
 }
 
-/* ── Card ──────────────────────────────────── */
+/* Card */
 .as-card {
+    background: var(--as-surface);
+    border: 1.5px solid var(--as-border);
+    border-radius: var(--as-radius);
     padding: 1.2rem;
-    display: flex;
-    flex-direction: column;
-    transition: box-shadow 0.18s, transform 0.18s;
+    display: flex; flex-direction: column;
+    transition: box-shadow .22s ease, transform .22s ease, border-color .22s ease;
+    position: relative; overflow: hidden;
+    box-shadow: var(--as-shadow);
+    animation: asFadeUp .35s ease both;
 }
-.as-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+@keyframes asFadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
-.as-card-top {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.8rem;
-    margin-bottom: 0.65rem;
+.as-card:hover { box-shadow: var(--as-shadow-lg); transform: translateY(-4px); }
+.as-card.is-owned { border-color: rgba(16,185,129,.35); }
+.as-card.is-owned::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, #10b981, #34d399);
+    border-radius: var(--as-radius) var(--as-radius) 0 0;
 }
-.as-card-icon {
-    width: 42px; height: 42px; border-radius: 11px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.15rem; flex-shrink: 0;
+.as-badge {
+    position: absolute; top: .8rem; right: .8rem;
+    font-size: .58rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .07em;
+    padding: .22rem .52rem; border-radius: 6px;
+    line-height: 1.4; z-index: 1;
+    display: inline-flex; align-items: center; gap: .25rem;
 }
-.as-card-meta { flex: 1; min-width: 0; }
-.as-card-name {
-    font-weight: 700;
-    font-size: 0.92rem;
-    margin-bottom: 1px;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    flex-wrap: wrap;
-}
-.as-card-tagline {
-    font-size: 0.74rem;
-    color: var(--text-muted);
-}
-.as-card-desc {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    line-height: 1.5;
-    margin-bottom: 0.65rem;
+.as-badge-new   { background: #10b981; color: #fff; }
+.as-badge-pop   { background: #f97316; color: #fff; }
+.as-badge-free  { background: #6366f1; color: #fff; }
+.as-badge-owned {
+    background: rgba(16,185,129,.12); color: #10b981;
+    border: 1px solid rgba(16,185,129,.28);
 }
 
-/* Features list */
+.as-icon-wrap {
+    width: 48px; height: 48px; border-radius: 13px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.25rem; flex-shrink: 0; margin-bottom: .9rem;
+}
+
+.as-card h3 {
+    font-size: .95rem; font-weight: 800; color: var(--as-ink);
+    margin: 0 0 .1rem; line-height: 1.3; padding-right: 1.5rem;
+}
+.as-card h3 a { color: inherit; text-decoration: none; }
+.as-card h3 a:hover { color: var(--cat-ai); }
+.as-tagline { font-size: .75rem; color: var(--as-muted); margin: 0 0 .75rem; }
+
 .as-features {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 0.85rem;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.2rem 0.75rem;
+    list-style: none; padding: 0; margin: 0 0 .85rem; flex: 1;
 }
 .as-features li {
-    font-size: 0.72rem;
-    color: var(--text-muted);
-    display: flex;
-    align-items: flex-start;
-    gap: 0.3rem;
-    line-height: 1.35;
+    font-size: .76rem; color: var(--as-body);
+    padding: .19rem 0;
+    display: flex; align-items: flex-start; gap: .4rem;
+    line-height: 1.4;
 }
-.as-features li i {
-    color: #059669;
-    font-size: 0.6rem;
-    margin-top: 2px;
-    flex-shrink: 0;
-}
+.as-features li .bi { font-size: .62rem; color: #10b981; margin-top: .22rem; flex-shrink: 0; }
 
-/* ── Footer ────────────────────────────────── */
-.as-card-foot {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: auto;
-    padding-top: 0.65rem;
-    border-top: 1px solid var(--border-color);
+.as-desc { font-size: .78rem; color: var(--as-body); line-height: 1.55; flex: 1; margin-bottom: .85rem; }
+
+.as-details-link {
+    display: inline-flex; align-items: center; gap: .25rem;
+    font-size: .7rem; font-weight: 700; color: var(--as-muted);
+    text-decoration: none; margin-bottom: .6rem; transition: color .15s;
 }
-.as-plan-row {
-    display: flex;
-    gap: 4px;
-    flex-wrap: wrap;
+.as-details-link:hover { color: var(--cat-ai); }
+.as-details-link .bi { font-size: .6rem; transition: transform .15s; }
+.as-details-link:hover .bi { transform: translateX(2px); }
+
+.as-foot {
+    display: flex; align-items: center; justify-content: space-between;
+    border-top: 1px solid var(--as-border);
+    padding-top: .75rem; margin-top: auto; gap: .5rem;
 }
-.as-plan-btn {
-    padding: 0.22rem 0.55rem;
-    border-radius: 6px;
-    font-size: 0.68rem;
-    font-weight: 600;
-    border: 1.5px solid var(--border-color);
-    background: transparent;
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: all 0.15s;
-    text-transform: capitalize;
-    font-family: inherit;
+.as-price { font-size: 1.05rem; font-weight: 800; color: var(--as-ink); font-variant-numeric: tabular-nums; }
+.as-price-free { font-size: .82rem; font-weight: 700; color: #10b981; display: flex; align-items: center; gap: .3rem; }
+
+.as-btn {
+    border: none; padding: .42rem .95rem;
+    border-radius: 9px; font-size: .76rem; font-weight: 700;
+    cursor: pointer; transition: all .18s ease;
+    display: inline-flex; align-items: center; gap: .3rem;
+    white-space: nowrap; font-family: inherit;
 }
-.as-plan-btn:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
-.as-plan-btn.sel {
+.as-btn-get {
+    background: linear-gradient(135deg, #4361ee, #7c3aed);
+    color: #fff; box-shadow: 0 3px 10px rgba(67,97,238,.3);
+}
+.as-btn-get:hover { filter: brightness(1.08); box-shadow: 0 5px 16px rgba(67,97,238,.4); transform: translateY(-1px); }
+.as-btn-owned { background: rgba(16,185,129,.1); color: #10b981; border: 1.5px solid rgba(16,185,129,.25); cursor: default; }
+.as-btn-cancel {
+    padding: .38rem .52rem; border-radius: 8px;
+    background: transparent; border: 1.5px solid var(--as-border);
+    color: var(--as-muted); font-size: .72rem; cursor: pointer;
+    transition: all .15s; display: inline-flex; align-items: center;
+}
+.as-btn-cancel:hover { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,.05); }
+
+.as-empty { text-align: center; padding: 4rem 1rem; color: var(--as-muted); }
+.as-empty-icon {
+    width: 72px; height: 72px; border-radius: 18px;
+    background: var(--surface-bg, #f0f2f5); border: 1.5px solid var(--as-border);
+    margin: 0 auto 1rem;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; color: var(--as-muted);
+}
+.as-empty h5 { font-size: .95rem; color: var(--as-ink); margin-bottom: .35rem; }
+.as-empty p  { font-size: .82rem; max-width: 280px; margin: 0 auto; }
+.as-no-results { display: none; text-align: center; padding: 3rem 1rem; color: var(--as-muted); font-size: .85rem; }
+
+/* Plan selector inside card */
+.as-plan-selector { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: .15rem; }
+.as-plan-option {
+    padding: .2rem .5rem; border-radius: 6px;
+    font-size: .65rem; font-weight: 700;
+    border: 1.5px solid var(--as-border);
+    background: transparent; color: var(--as-muted);
+    cursor: pointer; transition: all .15s;
+    text-transform: capitalize; font-family: inherit;
+}
+.as-plan-option:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
+.as-plan-option.selected {
     border-color: var(--brand-primary);
-    background: rgba(67,97,238,0.08);
+    background: rgba(67,97,238,.1);
     color: var(--brand-primary);
 }
-[data-bs-theme="dark"] .as-plan-btn.sel { background: rgba(67,97,238,0.2); }
-.as-price {
-    font-size: 0.8rem;
-    font-weight: 800;
-    color: var(--brand-primary);
-    margin-top: 0.15rem;
-}
-.as-price .cur { font-size: 0.62rem; font-weight: 600; opacity: 0.7; }
-.as-price.free { color: #10b981; }
+[data-bs-theme="dark"] .as-plan-option.selected { background: rgba(67,97,238,.2); }
 
-.as-sub-btn {
-    padding: 0.4rem 1rem;
-    border: none;
-    border-radius: 8px;
-    font-size: 0.78rem;
-    font-weight: 600;
-    font-family: inherit;
-    cursor: pointer;
-    transition: all 0.15s;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-}
-.as-sub-btn.avail {
-    background: var(--brand-primary);
-    color: #fff;
-}
-.as-sub-btn.avail:hover { box-shadow: 0 4px 14px rgba(67,97,238,0.3); }
-.as-sub-btn.done {
-    background: rgba(16,185,129,0.1);
-    color: #059669;
-    cursor: default;
-}
-[data-bs-theme="dark"] .as-sub-btn.done { background: rgba(16,185,129,0.2); color: #34d399; }
-
-/* ── Badges ────────────────────────────────── */
-.as-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    font-size: 0.6rem;
-    font-weight: 700;
-    padding: 0.12rem 0.45rem;
-    border-radius: 5px;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-}
-.as-badge-pop { background: rgba(67,97,238,0.1); color: #4361ee; }
-.as-badge-new { background: rgba(236,72,153,0.1); color: #db2777; }
-.as-badge-rec { background: rgba(16,185,129,0.1); color: #059669; }
-[data-bs-theme="dark"] .as-badge-pop { background: rgba(67,97,238,0.2); color: #93b4ff; }
-[data-bs-theme="dark"] .as-badge-new { background: rgba(236,72,153,0.2); color: #f472b6; }
-[data-bs-theme="dark"] .as-badge-rec { background: rgba(16,185,129,0.2); color: #34d399; }
-
-/* ── Toast ─────────────────────────────────── */
+/* Toast */
 .as-toast {
-    position: fixed;
-    bottom: 1.5rem;
-    right: 1.5rem;
-    padding: 0.75rem 1.25rem;
-    border-radius: 10px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    background: #1e293b;
-    color: #f1f5f9;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    position: fixed; bottom: 1.5rem; right: 1.5rem;
+    padding: .75rem 1.25rem; border-radius: 10px;
+    font-size: .85rem; font-weight: 600;
+    background: #1e293b; color: #f1f5f9;
+    box-shadow: 0 8px 24px rgba(0,0,0,.2);
     z-index: 9999;
-    transform: translateY(20px);
-    opacity: 0;
-    transition: all 0.3s ease;
+    transform: translateY(20px); opacity: 0;
+    transition: all .3s ease;
 }
 .as-toast.show { transform: translateY(0); opacity: 1; }
 
-/* ── Responsive ────────────────────────────── */
 @media (max-width: 768px) {
-    .as-hero { flex-direction: column; align-items: flex-start; gap: 1rem; padding: 1.15rem; }
-    .as-hero-metrics { gap: 1.5rem; }
-    .as-features { grid-template-columns: 1fr; }
-}
-@media (max-width: 576px) {
+    .as-hero { padding: 1.4rem 1.25rem; }
+    .as-hero-copy h1 { font-size: 1.3rem; }
+    .as-hero-stats { gap: .5rem; }
+    .as-stat-pill { min-width: 74px; padding: .5rem .85rem; }
+    .as-stat-pill strong { font-size: 1.2rem; }
     .as-grid { grid-template-columns: 1fr; }
-    .as-hero-metrics { gap: 1rem; }
-    .as-metric-num { font-size: 1.3rem; }
+    .as-filter { padding: .65rem .85rem; }
+    .as-filter-sep { display: none; }
 }
+</style>
 {% endblock %}
 
 {% block content %}
+
 <!-- Hero -->
 <div class="as-hero">
-    <div class="as-hero-text">
-        <h2><i class="bi bi-bag me-2" style="color:var(--brand-primary)"></i>{% if role == 'teacher' %}Teacher Tools{% else %}API Add-ons{% endif %}</h2>
-        <p>{% if role == 'teacher' %}Subscribe to free and premium tools to level up your teaching workflow.{% else %}Subscribe to APIs and build powerful education tools.{% endif %}</p>
+    <div class="as-hero-grid"></div>
+    <div class="as-hero-copy">
+        <div class="as-eyebrow"><i class="bi bi-shop-window me-1"></i>Addon Store</div>
+        <h1>Power up your<br>teaching toolkit</h1>
+        <p>Activate AI assistants, resource generators, and subject-specific tools &mdash; all built for Ghanaian educators.</p>
     </div>
-    <div class="as-hero-metrics">
-        <div class="as-metric">
-            <div class="as-metric-num green">{{ subscribed_count }}</div>
-            <div class="as-metric-lbl">Subscribed</div>
+    <div class="as-hero-stats">
+        <div class="as-stat-pill" style="border-color:rgba(16,185,129,.4);">
+            <strong style="color:#10b981;">{{ subscribed_count }}</strong>
+            <span>Active</span>
         </div>
-        <div class="as-metric">
-            <div class="as-metric-num">{{ total_count }}</div>
-            <div class="as-metric-lbl">Available</div>
+        <div class="as-stat-pill">
+            <strong>{{ total_count }}</strong>
+            <span>Available</span>
         </div>
     </div>
 </div>
 
-<!-- Filters -->
-<div class="as-filters">
-    <button class="as-chip active" data-cat="all"><i class="bi bi-grid-3x3-gap"></i> All</button>
-    {% for group in groups %}
-    <button class="as-chip" data-cat="{{ group.key }}"><i class="bi {{ group.icon }}"></i> {{ group.label }}</button>
+{% if messages %}
+<div class="mb-3">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
     {% endfor %}
 </div>
+{% endif %}
 
-<!-- Grouped Add-ons -->
-{% for group in groups %}
-<div class="as-group" data-group="{{ group.key }}">
-    <div class="as-group-hdr">
-        <div class="as-group-icon" style="background:{{ group.color }}15;color:{{ group.color }}"><i class="bi {{ group.icon }}"></i></div>
-        <div class="as-group-title">{{ group.label }}</div>
+{% if subscribed_count > 0 %}
+<div class="as-owned-bar">
+    <i class="bi bi-patch-check-fill"></i>
+    You have <b>{{ subscribed_count }} addon{{ subscribed_count|pluralize }}</b> active &mdash; look for the green stripe on cards below.
+</div>
+{% endif %}
+
+<!-- Filter bar -->
+<div class="as-filter">
+    <div class="as-search-wrap">
+        <i class="bi bi-search"></i>
+        <input type="text" id="asSearch" placeholder="Search addons&hellip;" autocomplete="off">
     </div>
+    <div class="as-filter-sep"></div>
+    <button class="as-chip active" data-cat="all"><span class="dot" style="background:#6366f1;"></span>All</button>
+    {% for grp in groups %}
+    <button class="as-chip" data-cat="{{ grp.key }}" style="color:{{ grp.color }};border-color:{{ grp.color }}33;">
+        <span class="dot" style="background:{{ grp.color }};"></span>{{ grp.label }}
+    </button>
+    {% endfor %}
+    <span class="as-count-badge" id="resultCount">{{ total_count }} addon{{ total_count|pluralize }}</span>
+</div>
+
+<div class="as-no-results" id="noResults">
+    <i class="bi bi-search" style="font-size:1.75rem;opacity:.3;display:block;margin-bottom:.5rem;"></i>
+    No addons match your search.
+</div>
+
+<!-- Category sections -->
+{% for grp in groups %}
+<div class="as-cat-section" data-cat-section="{{ grp.key }}">
+    <div class="as-cat-row">
+        <div class="as-cat-icon" style="background:{{ grp.color }}15;color:{{ grp.color }};">
+            <i class="bi {{ grp.icon }}"></i>
+        </div>
+        <span class="as-cat-label">{{ grp.label }}</span>
+        <div class="as-cat-line"></div>
+        <span class="as-cat-num">{{ grp.addons|length }}</span>
+    </div>
+
     <div class="as-grid">
-        {% for addon in group.addons %}
-        <div class="iu-card as-card" data-cat="{{ addon.category }}" data-slug="{{ addon.slug }}" data-prices='{{ addon.prices_json }}'>
-            <div class="as-card-top">
-                <div class="as-card-icon" style="background:{{ group.color }}15;color:{{ group.color }}"><i class="bi {{ addon.icon }}"></i></div>
-                <div class="as-card-meta">
-                    <div class="as-card-name">
-                        {{ addon.name }}
-                        {% if addon.badge == 'POPULAR' %}<span class="as-badge as-badge-pop"><i class="bi bi-fire"></i> Popular</span>{% endif %}
-                        {% if addon.badge == 'NEW' %}<span class="as-badge as-badge-new"><i class="bi bi-lightning-fill"></i> New</span>{% endif %}
-                        {% if addon.recommended %}<span class="as-badge as-badge-rec"><i class="bi bi-star-fill"></i> For You</span>{% endif %}
-                    </div>
-                    {% if addon.tagline %}<div class="as-card-tagline">{{ addon.tagline }}</div>{% endif %}
-                </div>
+        {% for addon in grp.addons %}
+        <div class="as-card{% if addon.subscribed %} is-owned{% endif %}"
+             data-name="{{ addon.name|lower }}"
+             data-cat="{{ addon.category }}"
+             data-desc="{{ addon.description|lower }}"
+             data-slug="{{ addon.slug }}"
+             data-prices='{{ addon.prices_json }}'>
+
+            {% if addon.subscribed %}
+                <span class="as-badge as-badge-owned"><i class="bi bi-check-circle-fill"></i> Active</span>
+            {% elif addon.badge == 'NEW' %}
+                <span class="as-badge as-badge-new">New</span>
+            {% elif addon.badge == 'POPULAR' %}
+                <span class="as-badge as-badge-pop">Popular</span>
+            {% elif addon.is_free %}
+                <span class="as-badge as-badge-free">Free</span>
+            {% elif addon.badge %}
+                <span class="as-badge as-badge-new">{{ addon.badge }}</span>
+            {% endif %}
+
+            <div class="as-icon-wrap" style="background:{{ grp.color }}15;color:{{ grp.color }};">
+                <i class="bi {{ addon.icon }}"></i>
             </div>
-            <div class="as-card-desc">{{ addon.description }}</div>
+
+            <h3><a href="{% url 'individual:addon_detail' addon.slug %}">{{ addon.name }}</a></h3>
+            {% if addon.tagline %}<p class="as-tagline">{{ addon.tagline }}</p>{% endif %}
+
             {% if addon.features %}
             <ul class="as-features">
-                {% for feat in addon.features %}
-                <li><i class="bi bi-check-circle-fill"></i> {{ feat }}</li>
+                {% for feat in addon.features|slice:":4" %}
+                <li><i class="bi bi-check2-circle"></i>{{ feat }}</li>
                 {% endfor %}
+                {% if addon.features|length > 4 %}
+                <li style="color:var(--as-muted);font-size:.7rem;">+{{ addon.features|length|add:"-4" }} more&hellip;</li>
+                {% endif %}
             </ul>
+            {% else %}
+            <p class="as-desc">{{ addon.description|truncatewords:22 }}</p>
             {% endif %}
-            <div class="as-card-foot">
+
+            <a href="{% url 'individual:addon_detail' addon.slug %}" class="as-details-link">View details <i class="bi bi-arrow-right"></i></a>
+
+            <div class="as-foot">
                 <div>
-                    <div class="as-plan-row">
+                    <div class="as-plan-selector">
                         {% for plan in addon.plans %}
-                        <button class="as-plan-btn{% if forloop.first %} sel{% endif %}" data-plan="{{ plan }}" onclick="selectPlan(this)">{{ plan }}</button>
+                        <button class="as-plan-option{% if forloop.first %} selected{% endif %}" data-plan="{{ plan }}" onclick="selectPlan(this)">{{ plan }}</button>
                         {% endfor %}
                     </div>
-                    <div class="as-price" id="price-{{ addon.slug }}">
+                    <div class="as-price-display" id="price-{{ addon.slug }}">
                         {% if addon.first_price == 0 %}
-                        <span class="free">Free</span>
+                        <span class="as-price-free"><i class="bi bi-gift-fill"></i> Free</span>
                         {% else %}
-                        <span class="cur">{{ currency }}</span> {{ addon.first_price }}
+                        <span class="as-price">{{ currency }} {{ addon.first_price }}</span>
                         {% endif %}
                     </div>
                 </div>
-                {% if addon.subscribed %}
-                <button class="as-sub-btn done" disabled><i class="bi bi-check-circle"></i> Active</button>
-                {% else %}
-                <button class="as-sub-btn avail" data-slug="{{ addon.slug }}" onclick="subscribeAddon(this)">Subscribe</button>
-                {% endif %}
+                <div class="d-flex align-items-center gap-2">
+                    {% if addon.subscribed %}
+                    <span class="as-btn as-btn-owned"><i class="bi bi-check-lg"></i> Active</span>
+                    <button class="as-btn-cancel" data-slug="{{ addon.slug }}" onclick="cancelAddon(this)" title="Cancel">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                    {% else %}
+                    <button class="as-btn as-btn-get" data-slug="{{ addon.slug }}" onclick="subscribeAddon(this)">
+                        Activate <i class="bi bi-arrow-right"></i>
+                    </button>
+                    {% endif %}
+                </div>
             </div>
         </div>
         {% endfor %}
     </div>
+</div>
+{% empty %}
+<div class="as-empty">
+    <div class="as-empty-icon"><i class="bi bi-box-seam"></i></div>
+    <h5>No addons available yet</h5>
+    <p>Check back soon &mdash; new tools are being curated.</p>
 </div>
 {% endfor %}
 
@@ -357,118 +485,150 @@
 {% block extra_js %}
 <script src="https://js.paystack.co/v2/inline.js"></script>
 <script>
-const CSRF = '{{ csrf_token }}';
-const SUBSCRIBE_URL = '{% url "individual:subscribe_addon" %}';
-const VERIFY_URL = '{% url "individual:verify_addon_payment" %}';
-const CURRENCY = '{{ currency }}';
+(function () {
+    const CSRF = '{{ csrf_token }}';
+    const SUBSCRIBE_URL = '{% url "individual:subscribe_addon" %}';
+    const VERIFY_URL = '{% url "individual:verify_addon_payment" %}';
+    const CANCEL_URL = '{% url "individual:unsubscribe_addon" %}';
+    const CURRENCY = '{{ currency }}';
 
-function getCookie(n){const v=document.cookie.match('(^|;)\\s*'+n+'=([^;]*)');return v?decodeURIComponent(v[2]):null;}
+    function getCookie(n){const v=document.cookie.match('(^|;)\\s*'+n+'=([^;]*)');return v?decodeURIComponent(v[2]):null;}
 
-/* ── Filter ──────────────────────────────── */
-document.querySelectorAll('.as-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-        document.querySelectorAll('.as-chip').forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-        const cat = chip.dataset.cat;
-        document.querySelectorAll('.as-group').forEach(g => {
-            g.style.display = (cat === 'all' || g.dataset.group === cat) ? '' : 'none';
+    /* Search + filter */
+    const search   = document.getElementById('asSearch');
+    const chips    = document.querySelectorAll('.as-chip');
+    const cards    = document.querySelectorAll('.as-card');
+    const sections = document.querySelectorAll('[data-cat-section]');
+    const badge    = document.getElementById('resultCount');
+    const noRes    = document.getElementById('noResults');
+    let activeCat  = 'all';
+
+    function filter() {
+        const q = (search.value || '').toLowerCase().trim();
+        let visible = 0;
+        cards.forEach(card => {
+            const catOk  = activeCat === 'all' || card.dataset.cat === activeCat;
+            const textOk = !q || card.dataset.name.includes(q) || (card.dataset.desc || '').includes(q);
+            const show   = catOk && textOk;
+            card.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+        sections.forEach(sec => {
+            const anyVisible = [...sec.querySelectorAll('.as-card')].some(c => c.style.display !== 'none');
+            sec.style.display = anyVisible ? '' : 'none';
+        });
+        badge.textContent = visible + ' addon' + (visible !== 1 ? 's' : '');
+        noRes.style.display = visible === 0 ? 'block' : 'none';
+    }
+
+    chips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            chips.forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            activeCat = chip.dataset.cat;
+            filter();
         });
     });
-});
+    if (search) search.addEventListener('input', filter);
 
-/* ── Plan select ─────────────────────────── */
-function selectPlan(btn) {
-    const card = btn.closest('.as-card');
-    card.querySelectorAll('.as-plan-btn').forEach(b => b.classList.remove('sel'));
-    btn.classList.add('sel');
-    const slug = card.dataset.slug;
-    const prices = JSON.parse(card.dataset.prices || '{}');
-    const plan = btn.dataset.plan;
-    const price = prices[plan] || 0;
-    const el = document.getElementById('price-' + slug);
-    if (el) {
-        el.innerHTML = price <= 0
-            ? '<span class="free">Free</span>'
-            : '<span class="cur">' + CURRENCY + '</span> ' + price.toFixed(2);
-    }
-}
-
-/* ── Subscribe ───────────────────────────── */
-function subscribeAddon(btn) {
-    const card = btn.closest('.as-card');
-    const slug = card.dataset.slug;
-    const sel = card.querySelector('.as-plan-btn.sel');
-    const plan = sel ? sel.dataset.plan : 'free';
-
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-
-    const fd = new FormData();
-    fd.append('addon_slug', slug);
-    fd.append('plan', plan);
-    fd.append('csrfmiddlewaretoken', getCookie('csrftoken') || CSRF);
-
-    fetch(SUBSCRIBE_URL, { method: 'POST', body: fd })
-    .then(r => r.json())
-    .then(data => {
-        if (data.ok) {
-            btn.className = 'as-sub-btn done';
-            btn.innerHTML = '<i class="bi bi-check-circle"></i> Active';
-            toast('Subscribed to ' + data.addon);
-        } else if (data.paystack) {
-            openPaystack(data, slug, plan, btn);
-        } else {
-            btn.disabled = false;
-            btn.textContent = 'Subscribe';
-            toast(data.error || 'Failed');
+    /* Plan selection */
+    window.selectPlan = function(btn) {
+        const card = btn.closest('.as-card');
+        card.querySelectorAll('.as-plan-option').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        const slug = card.dataset.slug;
+        const prices = JSON.parse(card.dataset.prices || '{}');
+        const plan = btn.dataset.plan;
+        const price = prices[plan] || 0;
+        const el = document.getElementById('price-' + slug);
+        if (el) {
+            el.innerHTML = price <= 0
+                ? '<span class="as-price-free"><i class="bi bi-gift-fill"></i> Free</span>'
+                : '<span class="as-price">' + CURRENCY + ' ' + price.toFixed(2) + '</span>';
         }
-    })
-    .catch(() => { btn.disabled = false; btn.textContent = 'Subscribe'; });
-}
+    };
 
-function openPaystack(data, slug, plan, btn) {
-    try {
-        const popup = new PaystackPop();
-        popup.newTransaction({
-            key: data.public_key,
-            email: data.email,
-            amount: data.amount,
-            currency: data.currency,
-            ref: data.reference,
-            metadata: { addon_slug: slug, addon_name: data.addon_name, plan: plan },
-            onSuccess(txn) {
-                fetch(VERIFY_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') || CSRF },
-                    body: JSON.stringify({ reference: txn.reference, addon_slug: slug, plan: plan }),
-                })
-                .then(r => r.json())
-                .then(v => {
-                    if (v.ok) {
-                        btn.className = 'as-sub-btn done';
-                        btn.innerHTML = '<i class="bi bi-check-circle"></i> Active';
-                        toast('Payment successful! ' + v.addon + ' activated.');
-                    } else {
-                        toast(v.error || 'Verification failed.');
-                        btn.disabled = false; btn.textContent = 'Subscribe';
-                    }
-                })
-                .catch(() => { btn.disabled = false; btn.textContent = 'Subscribe'; });
-            },
-            onCancel() { btn.disabled = false; btn.textContent = 'Subscribe'; toast('Payment cancelled.'); },
-        });
-    } catch (err) {
-        console.error('Paystack:', err);
-        btn.disabled = false; btn.textContent = 'Subscribe';
-        toast('Payment error. Please try again.');
+    /* Subscribe (free -> instant, paid -> Paystack) */
+    window.subscribeAddon = function(btn) {
+        const card = btn.closest('.as-card');
+        const slug = card.dataset.slug;
+        const sel = card.querySelector('.as-plan-option.selected');
+        const plan = sel ? sel.dataset.plan : 'free';
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>';
+
+        const fd = new FormData();
+        fd.append('addon_slug', slug);
+        fd.append('plan', plan);
+        fd.append('csrfmiddlewaretoken', getCookie('csrftoken') || CSRF);
+
+        fetch(SUBSCRIBE_URL, { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                location.reload();
+            } else if (data.paystack) {
+                openPaystack(data, slug, plan, btn);
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = 'Activate <i class="bi bi-arrow-right"></i>';
+                showToast(data.error || 'Failed');
+            }
+        })
+        .catch(() => { btn.disabled = false; btn.innerHTML = 'Activate <i class="bi bi-arrow-right"></i>'; });
+    };
+
+    function openPaystack(data, slug, plan, btn) {
+        try {
+            const popup = new PaystackPop();
+            popup.newTransaction({
+                key: data.public_key,
+                email: data.email,
+                amount: data.amount,
+                currency: data.currency,
+                ref: data.reference,
+                metadata: { addon_slug: slug, addon_name: data.addon_name, plan: plan },
+                onSuccess: function(txn) {
+                    fetch(VERIFY_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') || CSRF },
+                        body: JSON.stringify({ reference: txn.reference, addon_slug: slug, plan: plan }),
+                    })
+                    .then(r => r.json())
+                    .then(vData => {
+                        if (vData.ok) location.reload();
+                        else { alert(vData.error || 'Verification failed.'); btn.disabled = false; btn.innerHTML = 'Activate <i class="bi bi-arrow-right"></i>'; }
+                    });
+                },
+                onCancel: () => { btn.disabled = false; btn.innerHTML = 'Activate <i class="bi bi-arrow-right"></i>'; },
+            });
+        } catch (err) {
+            console.error('Paystack error:', err);
+            btn.disabled = false;
+            btn.innerHTML = 'Activate <i class="bi bi-arrow-right"></i>';
+        }
     }
-}
 
-function toast(msg) {
-    const t = document.getElementById('asToast');
-    t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2800);
-}
+    /* Cancel addon */
+    window.cancelAddon = function(btn) {
+        if (!confirm('Cancel this addon subscription?')) return;
+        const slug = btn.dataset.slug;
+        const fd = new FormData();
+        fd.append('addon_slug', slug);
+        fd.append('csrfmiddlewaretoken', getCookie('csrftoken') || CSRF);
+        fetch(CANCEL_URL, { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => { if (data.ok) location.reload(); else showToast('Failed to cancel'); })
+        .catch(() => showToast('Network error'));
+    };
+
+    function showToast(msg) {
+        const t = document.getElementById('asToast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3000);
+    }
+})();
 </script>
 {% endblock %}

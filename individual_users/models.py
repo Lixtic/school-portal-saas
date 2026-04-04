@@ -5,6 +5,62 @@ from django.db import models
 from django.utils import timezone
 
 
+class IndividualAddon(models.Model):
+    """DB-stored catalog item for the individual addon store.
+    Mirrors TeacherAddOn from teachers app so super admins can manage prices."""
+
+    CATEGORY_CHOICES = [
+        ('ai', 'AI Tools'),
+        ('analytics', 'Analytics'),
+        ('management', 'Management'),
+        ('finance', 'Finance'),
+        ('communication', 'Communication'),
+        ('documents', 'Documents'),
+        ('assessment', 'Assessment'),
+        ('productivity', 'Productivity'),
+        ('professional', 'Professional Dev'),
+        ('subject_tools', 'Subject Tools'),
+    ]
+    AUDIENCE_CHOICES = [
+        ('all', 'All Users'),
+        ('teacher', 'Teachers Only'),
+        ('developer', 'Developers Only'),
+    ]
+
+    name = models.CharField(max_length=120)
+    slug = models.SlugField(unique=True)
+    tagline = models.CharField(max_length=200, blank=True, default='')
+    description = models.TextField()
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
+    audience = models.CharField(max_length=20, choices=AUDIENCE_CHOICES, default='all')
+    icon = models.CharField(max_length=50, default='bi-box-seam', help_text='Bootstrap icon class')
+    badge_label = models.CharField(max_length=30, blank=True, default='', help_text='e.g. "NEW", "POPULAR"')
+
+    # Pricing stored as JSON: {"free": 0, "pro": 59.99}
+    plans = models.JSONField(default=list, help_text='Ordered list of plan names, e.g. ["free","pro"]')
+    prices = models.JSONField(default=dict, help_text='Map plan→price, e.g. {"free":0,"pro":59.99}')
+
+    trial_days = models.PositiveIntegerField(default=0, help_text='Free trial period in days (0 = no trial)')
+    features = models.JSONField(default=list, blank=True, help_text='["Feature 1","Feature 2",…]')
+
+    is_active = models.BooleanField(default=True)
+    position = models.PositiveIntegerField(default=0, help_text='Display order within category')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['position', 'category', 'name']
+        verbose_name = 'Individual Addon'
+        verbose_name_plural = 'Individual Addons'
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def is_free(self):
+        return all(v <= 0 for v in self.prices.values())
+
+
 class IndividualProfile(models.Model):
     """Extended profile for individual (non-school) platform users."""
     ROLE_CHOICES = [
