@@ -191,6 +191,27 @@
 }
 .ad-deactivate:hover { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,.04); }
 
+.ad-trial-cta {
+    display: block; width: 100%;
+    padding: .7rem 1rem; border-radius: 12px;
+    font-size: .88rem; font-weight: 700; border: none;
+    cursor: pointer; text-align: center; text-decoration: none;
+    transition: all .18s; font-family: inherit;
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    color: #fff; box-shadow: 0 4px 14px rgba(245,158,11,.3);
+    margin-bottom: .35rem;
+}
+.ad-trial-cta:hover { filter: brightness(1.08); box-shadow: 0 6px 20px rgba(245,158,11,.45); transform: translateY(-1px); color: #fff; }
+
+.ad-expiry-info {
+    display: flex; align-items: center; gap: .35rem;
+    font-size: .72rem; font-weight: 600;
+    padding: .45rem .65rem; border-radius: 8px;
+    margin-top: .35rem;
+}
+.ad-expiry-trial { background: rgba(245,158,11,.1); color: #f59e0b; border: 1px solid rgba(245,158,11,.2); }
+.ad-expiry-date  { background: rgba(100,116,139,.08); color: var(--ad-muted); border: 1px solid var(--ad-border); }
+
 /* Includes */
 .ad-includes {
     margin-top: 1rem; padding-top: .8rem;
@@ -348,10 +369,24 @@
                 <span class="ad-cta ad-cta-owned">
                     <i class="bi bi-check-lg me-1"></i> Active ({{ active_plan }})
                 </span>
+                {% if is_trial and expires_at %}
+                <div class="ad-expiry-info ad-expiry-trial">
+                    <i class="bi bi-clock-history"></i> Trial expires in {{ expires_at|timeuntil }}
+                </div>
+                {% elif expires_at %}
+                <div class="ad-expiry-info ad-expiry-date">
+                    <i class="bi bi-calendar3"></i> Expires {{ expires_at|date:"M d, Y" }}
+                </div>
+                {% endif %}
                 <button class="ad-deactivate" id="adDeactivate" data-slug="{{ addon.slug }}">
                     Cancel subscription
                 </button>
             {% else %}
+                {% if trial_days > 0 and first_price > 0 %}
+                <button class="ad-trial-cta" id="adTrial" data-slug="{{ addon.slug }}">
+                    <i class="bi bi-play-circle me-1"></i> Start {{ trial_days }}-day free trial
+                </button>
+                {% endif %}
                 <button class="ad-cta {% if first_price == 0 %}ad-cta-free{% else %}ad-cta-buy{% endif %}"
                         id="adSubscribe" data-slug="{{ addon.slug }}">
                     {% if first_price == 0 %}
@@ -405,6 +440,7 @@
 (function () {
     const CSRF = '{{ csrf_token }}';
     const SUBSCRIBE_URL = '{% url "individual:subscribe_addon" %}';
+    const TRIAL_URL = '{% url "individual:trial_addon" %}';
     const VERIFY_URL = '{% url "individual:verify_addon_payment" %}';
     const CANCEL_URL = '{% url "individual:unsubscribe_addon" %}';
     const CURRENCY = '{{ currency }}';
@@ -513,6 +549,25 @@
             .then(r => r.json())
             .then(data => { if (data.ok) location.reload(); else alert('Failed to cancel'); })
             .catch(() => alert('Network error'));
+        });
+    }
+
+    /* Trial */
+    const trialBtn = document.getElementById('adTrial');
+    if (trialBtn) {
+        trialBtn.addEventListener('click', function () {
+            trialBtn.disabled = true;
+            trialBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Starting trial...';
+            const fd = new FormData();
+            fd.append('addon_slug', SLUG);
+            fd.append('csrfmiddlewaretoken', getCookie('csrftoken') || CSRF);
+            fetch(TRIAL_URL, { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) location.reload();
+                else { alert(data.error || 'Failed'); trialBtn.disabled = false; trialBtn.innerHTML = '<i class="bi bi-play-circle me-1"></i> Start trial'; }
+            })
+            .catch(() => { trialBtn.disabled = false; trialBtn.innerHTML = '<i class="bi bi-play-circle me-1"></i> Start trial'; });
         });
     }
 })();

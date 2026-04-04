@@ -266,6 +266,18 @@
     transition: all .15s; display: inline-flex; align-items: center;
 }
 .as-btn-cancel:hover { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,.05); }
+.as-btn-trial {
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    color: #fff; box-shadow: 0 3px 10px rgba(245,158,11,.3);
+}
+.as-btn-trial:hover { filter: brightness(1.08); box-shadow: 0 5px 16px rgba(245,158,11,.4); transform: translateY(-1px); }
+
+.as-expiry {
+    display: flex; align-items: center; gap: .3rem;
+    font-size: .65rem; font-weight: 600; margin-top: .25rem;
+}
+.as-expiry-trial { color: #f59e0b; }
+.as-expiry-date  { color: var(--as-muted); }
 
 .as-empty { text-align: center; padding: 4rem 1rem; color: var(--as-muted); }
 .as-empty-icon {
@@ -460,12 +472,24 @@
                     <button class="as-btn-cancel" data-slug="{{ addon.slug }}" onclick="cancelAddon(this)" title="Cancel">
                         <i class="bi bi-x-lg"></i>
                     </button>
+                    {% elif addon.trial_days > 0 and not addon.is_free %}
+                    <button class="as-btn as-btn-trial" data-slug="{{ addon.slug }}" onclick="trialAddon(this)">
+                        <i class="bi bi-play-circle"></i> {{ addon.trial_days }}-day trial
+                    </button>
+                    <button class="as-btn as-btn-get" data-slug="{{ addon.slug }}" onclick="subscribeAddon(this)">
+                        Buy <i class="bi bi-arrow-right"></i>
+                    </button>
                     {% else %}
                     <button class="as-btn as-btn-get" data-slug="{{ addon.slug }}" onclick="subscribeAddon(this)">
                         Activate <i class="bi bi-arrow-right"></i>
                     </button>
                     {% endif %}
                 </div>
+                {% if addon.subscribed and addon.is_trial %}
+                <div class="as-expiry as-expiry-trial"><i class="bi bi-clock-history"></i> Trial expires {{ addon.expires_at|timeuntil }}</div>
+                {% elif addon.subscribed and addon.expires_at %}
+                <div class="as-expiry as-expiry-date"><i class="bi bi-calendar3"></i> Expires {{ addon.expires_at|date:"M d, Y" }}</div>
+                {% endif %}
             </div>
         </div>
         {% endfor %}
@@ -488,6 +512,7 @@
 (function () {
     const CSRF = '{{ csrf_token }}';
     const SUBSCRIBE_URL = '{% url "individual:subscribe_addon" %}';
+    const TRIAL_URL = '{% url "individual:trial_addon" %}';
     const VERIFY_URL = '{% url "individual:verify_addon_payment" %}';
     const CANCEL_URL = '{% url "individual:unsubscribe_addon" %}';
     const CURRENCY = '{{ currency }}';
@@ -621,6 +646,23 @@
         .then(r => r.json())
         .then(data => { if (data.ok) location.reload(); else showToast('Failed to cancel'); })
         .catch(() => showToast('Network error'));
+    };
+
+    /* Start free trial */
+    window.trialAddon = function(btn) {
+        const slug = btn.dataset.slug;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>';
+        const fd = new FormData();
+        fd.append('addon_slug', slug);
+        fd.append('csrfmiddlewaretoken', getCookie('csrftoken') || CSRF);
+        fetch(TRIAL_URL, { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) { showToast('Trial started for ' + data.addon + '!'); location.reload(); }
+            else { showToast(data.error || 'Failed'); btn.disabled = false; btn.innerHTML = '<i class="bi bi-play-circle"></i> Trial'; }
+        })
+        .catch(() => { showToast('Network error'); btn.disabled = false; btn.innerHTML = '<i class="bi bi-play-circle"></i> Trial'; });
     };
 
     function showToast(msg) {

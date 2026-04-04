@@ -1106,10 +1106,14 @@ def addons_view(request):
     for addon in source_catalog:
         prices = addon.get('prices', {})
         first_plan = addon['plans'][0] if addon['plans'] else 'free'
+        sub_obj = my_subs.get(addon['slug'])
         enriched = {
             **addon,
-            'subscribed': addon['slug'] in my_subs,
-            'active_plan': my_subs[addon['slug']].plan if addon['slug'] in my_subs else None,
+            'subscribed': sub_obj is not None,
+            'active_plan': sub_obj.plan if sub_obj else None,
+            'expires_at': sub_obj.expires_at if sub_obj else None,
+            'is_trial': bool(sub_obj and sub_obj.payment_reference.startswith('TRIAL-')) if sub_obj else False,
+            'trial_days': addon.get('trial_days', 0),
             'prices_json': json.dumps(prices),
             'first_price': prices.get(first_plan, 0),
             'is_free': all(v <= 0 for v in prices.values()),
@@ -1149,6 +1153,7 @@ def addon_detail_view(request, slug):
         profile=profile, addon_slug=slug, status='active'
     ).first()
     is_subscribed = sub is not None
+    is_trial = bool(sub and sub.payment_reference.startswith('TRIAL-'))
 
     # Related addons in same category
     source = _catalog_for_role(profile.role)
@@ -1160,7 +1165,10 @@ def addon_detail_view(request, slug):
     ctx = {
         'addon': addon,
         'is_subscribed': is_subscribed,
+        'is_trial': is_trial,
         'active_plan': sub.plan if sub else None,
+        'expires_at': sub.expires_at if sub else None,
+        'trial_days': addon.get('trial_days', 0),
         'related': related,
         'profile': profile,
         'role': profile.role,
@@ -1212,6 +1220,42 @@ def subscribe_addon(request):
         'addon_slug': slug,
         'plan': plan,
     })
+
+
+@_individual_required
+@require_POST
+def trial_addon(request):
+    """Start a free trial for an addon that supports trial_days > 0."""
+    profile = request.user.individual_profile
+    slug = request.POST.get('addon_slug', '')
+    addon = _find_addon(slug)
+    if not addon:
+        return JsonResponse({'error': 'Addon not found'}, status=404)
+
+    trial_days = addon.get('trial_days', 0)
+    if trial_days <= 0:
+        return JsonResponse({'error': 'This addon does not offer a free trial.'}, status=400)
+
+    existing = AddonSubscription.objects.filter(profile=profile, addon_slug=slug).first()
+    if existing:
+        if existing.status == 'active':
+            return JsonResponse({'error': 'You already have this addon active.'}, status=400)
+        if existing.payment_reference.startswith('TRIAL-'):
+            return JsonResponse({'error': 'You have already used a trial for this addon.'}, status=400)
+
+    from datetime import timedelta
+    AddonSubscription.objects.update_or_create(
+        profile=profile, addon_slug=slug,
+        defaults={
+            'addon_name': addon['name'],
+            'plan': addon['plans'][0] if addon.get('plans') else 'free',
+            'status': 'active',
+            'expires_at': timezone.now() + timedelta(days=trial_days),
+            'payment_reference': f'TRIAL-{request.user.id}-{slug}',
+            'amount_paid': 0,
+        },
+    )
+    return JsonResponse({'ok': True, 'addon': addon['name'], 'trial_days': trial_days})
 
 
 @_individual_required
