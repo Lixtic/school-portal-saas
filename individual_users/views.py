@@ -696,7 +696,7 @@ def google_callback_view(request):
         from google.oauth2 import id_token
         
         idinfo = id_token.verify_oauth2_token(
-            id_token_jwt, GoogleRequest(), client_id,
+            id_token_jwt, GoogleRequest(), audience=client_id,
         )
     except ImportError as e:
         logger.error(f'Google auth library import failed: {e}')
