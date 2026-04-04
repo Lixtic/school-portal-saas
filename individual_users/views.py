@@ -938,11 +938,21 @@ def delete_account_view(request):
             messages.error(request, 'Incorrect password. Account was not deleted.')
             return redirect('individual:settings')
 
-    # Delete profile, then user
+    # Delete profile and related public-schema objects, then the user row.
+    # We cannot call user.delete() because Django's CASCADE collector walks
+    # ALL FK relations — including tenant-only models (students.Student etc.)
+    # whose tables don't exist in the public schema.
     IndividualProfile.objects.filter(user=user).delete()
+    VerificationCode.objects.filter(user=user).delete()
+    user_pk = user.pk
     user_email = user.email
     logout(request)
-    user.delete()
+    from django.db import connection
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "DELETE FROM %s WHERE id = %%s" % connection.ops.quote_name(User._meta.db_table),
+            [user_pk],
+        )
     logger.info(f'Individual account deleted: {user_email}')
     messages.success(request, 'Your account has been permanently deleted.')
     return redirect('individual:signin')
