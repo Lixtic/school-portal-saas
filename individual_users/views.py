@@ -705,20 +705,21 @@ def google_callback_view(request):
         return redirect('individual:signin')
 
     # ── Verify ID token ───────────────────────────────────────────
+    # Use Google's tokeninfo endpoint for server-side verification.
+    # This avoids needing cryptography/google-auth for local RSA ops.
     try:
-        import jwt
-        from jwt import PyJWKClient
+        tokeninfo_url = f'https://oauth2.googleapis.com/tokeninfo?id_token={urllib.parse.quote(id_token_jwt)}'
+        tokeninfo_req = urllib.request.Request(tokeninfo_url)
+        with urllib.request.urlopen(tokeninfo_req, timeout=10) as resp:
+            idinfo = json.loads(resp.read())
 
-        jwks_client = PyJWKClient('https://www.googleapis.com/oauth2/v3/certs')
-        signing_key = jwks_client.get_signing_key_from_jwt(id_token_jwt)
-        idinfo = jwt.decode(
-            id_token_jwt,
-            signing_key.key,
-            algorithms=['RS256'],
-            audience=client_id,
-            issuer=['https://accounts.google.com', 'accounts.google.com'],
-        )
+        # Verify audience matches our client ID
+        if idinfo.get('aud') != client_id:
+            raise ValueError(f"Token audience {idinfo.get('aud')} doesn't match client ID")
 
+        # Verify issuer
+        if idinfo.get('iss') not in ('https://accounts.google.com', 'accounts.google.com'):
+            raise ValueError(f"Invalid issuer: {idinfo.get('iss')}")
 
     except Exception as e:
         logger.exception(f'Google token verification failed: {e}')
