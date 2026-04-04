@@ -1,5 +1,8 @@
 from django.contrib import admin
-from individual_users.models import AddonSubscription, APIKey, IndividualAddon, IndividualProfile
+from individual_users.models import (
+    AddonSubscription, APIKey, IndividualAddon, IndividualProfile,
+    IndividualCreditPack, IndividualCreditBalance, IndividualCreditTransaction,
+)
 
 
 @admin.register(IndividualAddon)
@@ -33,3 +36,26 @@ class APIKeyAdmin(admin.ModelAdmin):
     list_filter = ('is_active',)
     search_fields = ('name', 'prefix', 'profile__user__username')
     readonly_fields = ('prefix', 'hashed_key', 'calls_today', 'calls_total')
+
+
+@admin.register(IndividualCreditPack)
+class IndividualCreditPackAdmin(admin.ModelAdmin):
+    list_display = ('name', 'slug', 'credits', 'price', 'badge_label', 'is_active', 'position')
+    list_editable = ('price', 'credits', 'is_active', 'position')
+    prepopulated_fields = {'slug': ('name',)}
+    ordering = ('position',)
+
+
+@admin.register(IndividualCreditBalance)
+class IndividualCreditBalanceAdmin(admin.ModelAdmin):
+    list_display = ('user', 'balance', 'updated_at')
+    search_fields = ('user__username', 'user__email')
+    readonly_fields = ('balance', 'updated_at')
+
+
+@admin.register(IndividualCreditTransaction)
+class IndividualCreditTransactionAdmin(admin.ModelAdmin):
+    list_display = ('user', 'transaction_type', 'amount', 'balance_after', 'created_at')
+    list_filter = ('transaction_type',)
+    search_fields = ('user__username', 'description')
+    readonly_fields = ('user', 'transaction_type', 'amount', 'balance_after', 'description', 'payment_reference')

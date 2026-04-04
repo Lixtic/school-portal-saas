@@ -1133,6 +1133,18 @@ def addons_view(request):
     credit_balance = get_credit_balance(request.user)
     credit_packs = IndividualCreditPack.objects.filter(is_active=True)
 
+    # Auto-seed default packs if table is empty (zero-config deploy)
+    if not credit_packs.exists():
+        _DEFAULT_PACKS = [
+            {'name': 'Starter',  'slug': 'starter-20',   'credits': 20,  'price': 2.00,  'icon': 'bi-lightning-charge', 'position': 1},
+            {'name': 'Basic',    'slug': 'basic-50',     'credits': 50,  'price': 4.00,  'icon': 'bi-lightning-charge-fill', 'position': 2},
+            {'name': 'Standard', 'slug': 'standard-120', 'credits': 120, 'price': 8.00,  'icon': 'bi-stars', 'badge_label': 'POPULAR', 'position': 3},
+            {'name': 'Power',    'slug': 'power-300',    'credits': 300, 'price': 15.00, 'icon': 'bi-rocket-takeoff', 'badge_label': 'BEST VALUE', 'position': 4},
+        ]
+        for p in _DEFAULT_PACKS:
+            IndividualCreditPack.objects.update_or_create(slug=p['slug'], defaults=p)
+        credit_packs = IndividualCreditPack.objects.filter(is_active=True)
+
     ctx = {
         'catalog': all_addons,
         'groups': list(grouped.values()),
