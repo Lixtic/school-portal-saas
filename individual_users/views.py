@@ -311,6 +311,9 @@ def _get_role(request):
 def _ensure_public_schema():
     """Ensure we're operating on the public schema for individual user queries."""
     connection.set_schema_to_public()
+    # Reset SCRIPT_NAME to ensure build_absolute_uri works correctly
+    from django.urls import set_script_prefix
+    set_script_prefix('')
 
 
 def _individual_required(view_func):
