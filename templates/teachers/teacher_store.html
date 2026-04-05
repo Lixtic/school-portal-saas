@@ -494,6 +494,93 @@
 .tk-empty p  { font-size: .82rem; max-width: 280px; margin: 0 auto; }
 .tk-no-results { display: none; text-align: center; padding: 3rem 1rem; color: var(--tk-muted); font-size: .85rem; }
 
+/* ═══ CREDIT PACK & HERO ANIMATIONS ═══ */
+
+/* Staggered pack card entrance */
+@keyframes tkPackSlideUp {
+    from { opacity: 0; transform: translateY(18px) scale(.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.tk-pack-card {
+    animation: tkPackSlideUp .45s cubic-bezier(.22,.68,0,1.1) both;
+}
+.tk-pack-card:nth-child(2) { animation-delay: .08s; }
+.tk-pack-card:nth-child(3) { animation-delay: .16s; }
+.tk-pack-card:nth-child(4) { animation-delay: .24s; }
+
+/* Pack icon soft pulse glow */
+@keyframes tkIconGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,.25); }
+    50%      { box-shadow: 0 0 14px 4px rgba(245,158,11,.18); }
+}
+.tk-pack-card .pack-icon {
+    animation: tkIconGlow 2.5s ease-in-out infinite;
+    transition: transform .22s, box-shadow .22s;
+}
+.tk-pack-card:hover .pack-icon {
+    transform: translateY(-3px) scale(1.08);
+    animation: none;
+    box-shadow: 0 6px 20px rgba(245,158,11,.3);
+}
+
+/* Badge shimmer sweep */
+@keyframes tkBadgeShimmer {
+    0%   { background-position: -100% 0; }
+    100% { background-position: 200% 0; }
+}
+.tk-pack-card .pack-badge {
+    background: linear-gradient(105deg, #f97316 0%, #f97316 40%, #fbbf24 50%, #f97316 60%, #f97316 100%);
+    background-size: 200% 100%;
+    animation: tkBadgeShimmer 3s ease-in-out infinite;
+}
+
+/* Buy button animated gradient */
+@keyframes tkGradientShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+.tk-pack-card .tk-btn-get {
+    background: linear-gradient(135deg, #4361ee, #7c3aed, #4361ee);
+    background-size: 200% 200%;
+    animation: tkGradientShift 3s ease infinite;
+}
+.tk-pack-card .tk-btn-get .bi { transition: transform .2s; display: inline-block; }
+.tk-pack-card .tk-btn-get:hover .bi { transform: rotate(20deg) scale(1.2); }
+
+/* Credit bar lightning pulse */
+@keyframes tkLightningPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50%      { transform: scale(1.18); opacity: .65; }
+}
+.tk-credit-info > i {
+    display: inline-block;
+    animation: tkLightningPulse 2s ease-in-out infinite;
+}
+
+/* Hero stat pills staggered pop-in */
+@keyframes tkStatPop {
+    from { opacity: 0; transform: scale(.85) translateY(8px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.tk-stat-pill {
+    animation: tkStatPop .4s cubic-bezier(.22,.68,0,1.1) both;
+}
+.tk-stat-pill:nth-child(1) { animation-delay: .15s; }
+.tk-stat-pill:nth-child(2) { animation-delay: .25s; }
+.tk-stat-pill:nth-child(3) { animation-delay: .35s; }
+.tk-stat-pill:nth-child(4) { animation-delay: .45s; }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .tk-pack-card,
+    .tk-stat-pill { animation: none !important; opacity: 1; transform: none; }
+    .tk-pack-card .pack-icon,
+    .tk-pack-card .pack-badge,
+    .tk-pack-card .tk-btn-get,
+    .tk-credit-info > i { animation: none !important; }
+}
+
 @media (max-width: 768px) {
     .tk-page { padding: 1rem .75rem 2.5rem; }
     .tk-hero { padding: 1.4rem 1.25rem; }

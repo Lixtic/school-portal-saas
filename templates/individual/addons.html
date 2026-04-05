@@ -379,6 +379,99 @@
 }
 .as-toast.show { transform: translateY(0); opacity: 1; }
 
+/* ═══ CREDIT PACK & HERO ANIMATIONS ═══ */
+
+/* Staggered pack card entrance */
+@keyframes asPackSlideUp {
+    from { opacity: 0; transform: translateY(18px) scale(.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.as-pack-card {
+    animation: asPackSlideUp .45s cubic-bezier(.22,.68,0,1.1) both;
+}
+.as-pack-card:nth-child(2) { animation-delay: .08s; }
+.as-pack-card:nth-child(3) { animation-delay: .16s; }
+.as-pack-card:nth-child(4) { animation-delay: .24s; }
+
+/* Pack icon soft pulse glow */
+@keyframes asIconGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,.25); }
+    50%      { box-shadow: 0 0 14px 4px rgba(245,158,11,.18); }
+}
+.as-pack-card .pack-icon {
+    animation: asIconGlow 2.5s ease-in-out infinite;
+    transition: transform .22s, box-shadow .22s;
+}
+.as-pack-card:hover .pack-icon {
+    transform: translateY(-3px) scale(1.08);
+    animation: none;
+    box-shadow: 0 6px 20px rgba(245,158,11,.3);
+}
+
+/* Badge shimmer sweep */
+@keyframes asBadgeShimmer {
+    0%   { background-position: -100% 0; }
+    100% { background-position: 200% 0; }
+}
+.as-pack-card .pack-badge {
+    background: linear-gradient(105deg, #f97316 0%, #f97316 40%, #fbbf24 50%, #f97316 60%, #f97316 100%);
+    background-size: 200% 100%;
+    animation: asBadgeShimmer 3s ease-in-out infinite;
+}
+
+/* Buy button animated gradient */
+@keyframes asGradientShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+.as-pack-card .as-btn-get {
+    background: linear-gradient(135deg, #4361ee, #7c3aed, #4361ee);
+    background-size: 200% 200%;
+    animation: asGradientShift 3s ease infinite;
+}
+.as-pack-card .as-btn-get .bi { transition: transform .2s; display: inline-block; }
+.as-pack-card .as-btn-get:hover .bi { transform: rotate(20deg) scale(1.2); }
+
+/* Credit bar lightning pulse */
+@keyframes asLightningPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50%      { transform: scale(1.18); opacity: .65; }
+}
+.as-credit-info > i {
+    display: inline-block;
+    animation: asLightningPulse 2s ease-in-out infinite;
+}
+
+/* Hero stat pills staggered pop-in */
+@keyframes asStatPop {
+    from { opacity: 0; transform: scale(.85) translateY(8px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.as-stat-pill {
+    animation: asStatPop .4s cubic-bezier(.22,.68,0,1.1) both;
+}
+.as-stat-pill:nth-child(1) { animation-delay: .15s; }
+.as-stat-pill:nth-child(2) { animation-delay: .25s; }
+.as-stat-pill:nth-child(3) { animation-delay: .35s; }
+
+/* Pack rate delayed fade */
+.as-pack-card .pack-rate { animation: asFadeUp .4s ease .3s both; }
+
+/* Plan selector click bounce */
+.as-plan-option:active { transform: scale(.93); }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .as-pack-card,
+    .as-stat-pill,
+    .as-pack-card .pack-rate { animation: none !important; opacity: 1; transform: none; }
+    .as-pack-card .pack-icon,
+    .as-pack-card .pack-badge,
+    .as-pack-card .as-btn-get,
+    .as-credit-info > i { animation: none !important; }
+}
+
 @media (max-width: 768px) {
     .as-hero { padding: 1.4rem 1.25rem; }
     .as-hero-copy h1 { font-size: 1.3rem; }
