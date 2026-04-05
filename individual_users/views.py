@@ -397,21 +397,28 @@ TEACHER_ADDON_CATALOG = [
 
 
 def _catalog_for_role(role):
-    """Return the addon catalog — prefer DB records, fall back to hardcoded."""
+    """Return the addon catalog — merge DB records with hardcoded fallbacks."""
     db_addons = list(IndividualAddon.objects.filter(is_active=True))
-    if db_addons:
-        # Filter by audience
-        filtered = [a for a in db_addons if a.audience in ('all', role)]
-        return [{
-            'slug': a.slug, 'name': a.name, 'icon': a.icon,
-            'tagline': a.tagline, 'description': a.description,
-            'plans': a.plans, 'category': a.category,
-            'prices': a.prices, 'features': a.features,
-            'badge': a.badge_label, 'trial_days': a.trial_days,
-            'audience': a.audience,
-            'db_id': a.id,
-        } for a in filtered]
-    return TEACHER_ADDON_CATALOG if role == 'teacher' else ADDON_CATALOG
+    db_slugs = {a.slug for a in db_addons}
+
+    # Start with DB-backed addons filtered by audience
+    result = [{
+        'slug': a.slug, 'name': a.name, 'icon': a.icon,
+        'tagline': a.tagline, 'description': a.description,
+        'plans': a.plans, 'category': a.category,
+        'prices': a.prices, 'features': a.features,
+        'badge': a.badge_label, 'trial_days': a.trial_days,
+        'audience': a.audience,
+        'db_id': a.id,
+    } for a in db_addons if a.audience in ('all', role)]
+
+    # Merge any hardcoded addons whose slug isn't in the DB yet
+    hardcoded = TEACHER_ADDON_CATALOG if role == 'teacher' else ADDON_CATALOG
+    for item in hardcoded:
+        if item['slug'] not in db_slugs:
+            result.append(item)
+
+    return result
 
 
 def _resolve_referrer(request):
