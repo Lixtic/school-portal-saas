@@ -2584,3 +2584,169 @@ def credit_pack_pricing(request):
         'total_purchases': total_revenue,
     }
     return render(request, 'tenants/credit_pack_pricing.html', context)
+
+
+# ── Promo Campaign Management ────────────────────────────────────────────────
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser, login_url='/login/')
+def promo_campaigns(request):
+    """List all promo campaigns and handle create / delete."""
+    from .models import PromoCampaign
+
+    if request.method == 'POST':
+        action = request.POST.get('action', '')
+
+        if action == 'create':
+            title = request.POST.get('title', '').strip()
+            subject = request.POST.get('subject', '').strip()
+            body_html = request.POST.get('body_html', '').strip()
+            audience = request.POST.get('audience', 'all_schools')
+            if not title or not subject or not body_html:
+                messages.error(request, 'Title, subject, and body are required.')
+            else:
+                PromoCampaign.objects.create(
+                    title=title, subject=subject, body_html=body_html,
+                    audience=audience, created_by=request.user,
+                )
+                messages.success(request, f'Campaign "{title}" created as draft.')
+            return redirect('tenants:promo_campaigns')
+
+        if action == 'delete':
+            pk = request.POST.get('campaign_id')
+            camp = PromoCampaign.objects.filter(pk=pk, status='draft').first()
+            if camp:
+                camp.delete()
+                messages.success(request, 'Draft campaign deleted.')
+            else:
+                messages.error(request, 'Only draft campaigns can be deleted.')
+            return redirect('tenants:promo_campaigns')
+
+    campaigns = PromoCampaign.objects.all()
+    stats = {
+        'total': campaigns.count(),
+        'drafts': campaigns.filter(status='draft').count(),
+        'sent': campaigns.filter(status='sent').count(),
+        'total_sent': sum(c.sent_count for c in campaigns.filter(status='sent')),
+    }
+    return render(request, 'tenants/promo_campaigns.html', {
+        'campaigns': campaigns,
+        'stats': stats,
+        'audience_choices': PromoCampaign.AUDIENCE_CHOICES,
+    })
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser, login_url='/login/')
+def promo_campaign_edit(request, pk):
+    """Edit a draft campaign."""
+    from .models import PromoCampaign
+    campaign = get_object_or_404(PromoCampaign, pk=pk)
+
+    if campaign.status != 'draft':
+        messages.error(request, 'Only draft campaigns can be edited.')
+        return redirect('tenants:promo_campaigns')
+
+    if request.method == 'POST':
+        campaign.title = request.POST.get('title', campaign.title).strip()
+        campaign.subject = request.POST.get('subject', campaign.subject).strip()
+        campaign.body_html = request.POST.get('body_html', campaign.body_html).strip()
+        campaign.audience = request.POST.get('audience', campaign.audience)
+        campaign.save()
+        messages.success(request, 'Campaign updated.')
+        return redirect('tenants:promo_campaigns')
+
+    return render(request, 'tenants/promo_campaign_edit.html', {
+        'campaign': campaign,
+        'audience_choices': PromoCampaign.AUDIENCE_CHOICES,
+    })
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser, login_url='/login/')
+def promo_campaign_send(request, pk):
+    """Send a promo campaign to its target audience."""
+    from .models import PromoCampaign
+    from django.core.mail import send_mail
+    from django.template.loader import render_to_string
+
+    campaign = get_object_or_404(PromoCampaign, pk=pk)
+
+    if campaign.status == 'sent':
+        messages.warning(request, 'This campaign has already been sent.')
+        return redirect('tenants:promo_campaigns')
+
+    if request.method != 'POST':
+        # Build recipient preview
+        recipients = _get_campaign_recipients(campaign.audience)
+        return render(request, 'tenants/promo_campaign_confirm.html', {
+            'campaign': campaign,
+            'recipients': recipients,
+            'recipient_count': len(recipients),
+        })
+
+    # Actually send
+    recipients = _get_campaign_recipients(campaign.audience)
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@schoolpadi.com')
+    sent = 0
+    failed = 0
+
+    for recip in recipients:
+        try:
+            html_body = render_to_string('tenants/emails/promo_email.html', {
+                'subject': campaign.subject,
+                'body_html': campaign.body_html,
+                'recipient_name': recip['name'],
+            })
+            send_mail(
+                subject=campaign.subject,
+                message='',
+                from_email=from_email,
+                recipient_list=[recip['email']],
+                html_message=html_body,
+                fail_silently=True,
+            )
+            sent += 1
+        except Exception:
+            failed += 1
+
+    campaign.status = 'sent'
+    campaign.sent_count = sent
+    campaign.failed_count = failed
+    campaign.sent_at = timezone.now()
+    campaign.save()
+
+    messages.success(request, f'Campaign sent to {sent} recipient(s). {failed} failed.')
+    return redirect('tenants:promo_campaigns')
+
+
+def _get_campaign_recipients(audience):
+    """Return list of {'name': ..., 'email': ...} for campaign audience."""
+    recipients = []
+
+    if audience in ('all_schools', 'trial_schools', 'approved_schools'):
+        qs = School.objects.filter(is_active=True)
+        if audience == 'trial_schools':
+            qs = qs.filter(on_trial=True)
+        elif audience == 'approved_schools':
+            qs = qs.filter(approval_status='approved')
+        for s in qs.exclude(contact_person_email=''):
+            recipients.append({
+                'name': s.contact_person_name or s.name,
+                'email': s.contact_person_email,
+            })
+
+    elif audience in ('individual_teachers', 'individual_all'):
+        from individual_users.models import IndividualProfile
+        qs = IndividualProfile.objects.select_related('user').filter(
+            user__is_active=True,
+        ).exclude(user__email='')
+        if audience == 'individual_teachers':
+            qs = qs.filter(role='teacher')
+        for p in qs:
+            recipients.append({
+                'name': p.user.get_full_name() or p.user.username,
+                'email': p.user.email,
+            })
+
+    return recipients

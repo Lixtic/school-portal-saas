@@ -1,0 +1,253 @@
+{% extends "admin/admin_base.html" %}
+{% load static %}
+
+{% block title %}Send Campaign — Platform Admin{% endblock %}
+
+{% block admin_content %}
+<style>
+    .ps {
+      --bg:           #0F0F17;
+      --surface:      #16161F;
+      --surface-2:    #1E1E2A;
+      --surface-3:    #252535;
+      --border:       rgba(255,255,255,0.07);
+      --border-2:     rgba(255,255,255,0.13);
+      --violet:       #7C3AED;
+      --violet-pale:  rgba(124,58,237,0.12);
+      --emerald:      #10B981;
+      --emerald-pale: rgba(16,185,129,0.1);
+      --amber:        #F59E0B;
+      --amber-pale:   rgba(245,158,11,0.1);
+      --rose:         #F43F5E;
+      --rose-pale:    rgba(244,63,94,0.1);
+      --sky:          #38BDF8;
+      --sky-pale:     rgba(56,189,248,0.1);
+      --text-1:       #F1F0EE;
+      --text-2:       rgba(241,240,238,0.60);
+      --text-3:       rgba(241,240,238,0.35);
+      --mono: 'JetBrains Mono', 'Consolas', monospace;
+      --sans: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text-1);
+      padding: 1.5rem 2rem 4rem;
+      min-height: 100%;
+      max-width: 1000px;
+      margin: 0 auto;
+      font-family: var(--sans);
+    }
+    [data-bs-theme="light"] .ps {
+      --bg:           #f3f4f6;
+      --surface:      #ffffff;
+      --surface-2:    #f8f9fa;
+      --surface-3:    #e9ecef;
+      --border:       rgba(0,0,0,0.08);
+      --border-2:     rgba(0,0,0,0.15);
+      --text-1:       #111827;
+      --text-2:       #4b5563;
+      --text-3:       #9ca3af;
+    }
+
+    .ps-back {
+        display: inline-flex; align-items: center; gap: .4rem;
+        font-size: .82rem; font-weight: 600; color: var(--text-3);
+        text-decoration: none; margin-bottom: 1.25rem; transition: color .15s;
+    }
+    .ps-back:hover { color: var(--text-1); }
+
+    .ps-header { margin-bottom: 1.5rem; }
+    .ps-header h1 {
+        font-size: 1.5rem; font-weight: 800;
+        letter-spacing: -.02em; margin: 0 0 .25rem;
+    }
+    .ps-header p { font-size: .85rem; color: var(--text-2); margin: 0; }
+
+    .ps-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+    .ps-card-head {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border);
+    }
+    .ps-card-head h2 {
+        font-size: .85rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .06em;
+        color: var(--text-2); margin: 0;
+        display: flex; align-items: center; gap: .4rem;
+    }
+    .ps-card-body { padding: 1.25rem; }
+
+    .ps-detail { margin-bottom: .75rem; }
+    .ps-detail-label {
+        font-size: .68rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .05em;
+        color: var(--text-3); margin-bottom: .15rem;
+    }
+    .ps-detail-val { font-size: .85rem; color: var(--text-1); }
+
+    .ps-preview {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 1rem;
+        max-height: 200px;
+        overflow-y: auto;
+        font-size: .82rem;
+        line-height: 1.5;
+    }
+
+    .ps-table {
+        width: 100%; border-collapse: collapse;
+        font-size: .82rem;
+    }
+    .ps-table thead th {
+        padding: .55rem 1rem;
+        font-size: .68rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .06em;
+        color: var(--text-3);
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+    }
+    .ps-table tbody tr {
+        border-bottom: 1px solid var(--border);
+    }
+    .ps-table tbody td {
+        padding: .5rem 1rem;
+        vertical-align: middle;
+    }
+
+    .ps-warning {
+        background: var(--amber-pale);
+        border: 1px solid rgba(245,158,11,0.25);
+        border-radius: 10px;
+        padding: .75rem 1rem;
+        font-size: .82rem;
+        color: var(--amber);
+        display: flex; align-items: center; gap: .5rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .ps-count {
+        font-size: 1.5rem; font-weight: 800;
+        font-family: var(--mono); color: var(--emerald);
+    }
+
+    .ps-btn {
+        display: inline-flex; align-items: center; gap: .35rem;
+        font-size: .78rem; font-weight: 700;
+        padding: .5rem 1rem; border-radius: 8px;
+        border: none; cursor: pointer; text-decoration: none;
+        transition: opacity .15s;
+    }
+    .ps-btn:hover { opacity: .85; }
+    .ps-btn-send { background: var(--emerald); color: #fff; }
+    .ps-btn-ghost {
+        background: transparent; color: var(--text-2);
+        border: 1px solid var(--border-2);
+    }
+
+    .ps-footer {
+        display: flex; gap: .5rem; justify-content: flex-end;
+        margin-top: 1rem;
+    }
+
+    .ps-empty {
+        text-align: center; padding: 2rem;
+        color: var(--text-3); font-size: .85rem;
+    }
+</style>
+
+<div class="ps">
+    <a href="{% url 'tenants:promo_campaigns' %}" class="ps-back">
+        <i class="bi bi-arrow-left"></i> Back to Campaigns
+    </a>
+
+    <div class="ps-header">
+        <h1><i class="bi bi-send" style="color:var(--emerald)"></i> Send Campaign</h1>
+        <p>Review and confirm before sending.</p>
+    </div>
+
+    <!-- Campaign details -->
+    <div class="ps-card">
+        <div class="ps-card-head">
+            <h2><i class="bi bi-info-circle"></i> Campaign Details</h2>
+        </div>
+        <div class="ps-card-body">
+            <div class="ps-detail">
+                <div class="ps-detail-label">Title</div>
+                <div class="ps-detail-val" style="font-weight:700">{{ campaign.title }}</div>
+            </div>
+            <div class="ps-detail">
+                <div class="ps-detail-label">Subject Line</div>
+                <div class="ps-detail-val">{{ campaign.subject }}</div>
+            </div>
+            <div class="ps-detail">
+                <div class="ps-detail-label">Audience</div>
+                <div class="ps-detail-val">{{ campaign.get_audience_display }}</div>
+            </div>
+            <div class="ps-detail">
+                <div class="ps-detail-label">Body Preview</div>
+                <div class="ps-preview">{{ campaign.body_html|safe }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recipient list -->
+    <div class="ps-card">
+        <div class="ps-card-head">
+            <h2><i class="bi bi-people"></i> Recipients</h2>
+            <span class="ps-count">{{ recipient_count }}</span>
+        </div>
+        {% if recipients %}
+        <table class="ps-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in recipients %}
+                <tr>
+                    <td style="color:var(--text-3);font-family:var(--mono)">{{ forloop.counter }}</td>
+                    <td style="font-weight:600">{{ r.name }}</td>
+                    <td style="font-family:var(--mono);font-size:.78rem">{{ r.email }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="ps-empty">
+            <i class="bi bi-exclamation-triangle" style="color:var(--amber)"></i>
+            No recipients found for this audience. Check that contacts have email addresses.
+        </div>
+        {% endif %}
+    </div>
+
+    {% if recipients %}
+    <div class="ps-warning">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        This will send <strong>{{ recipient_count }}</strong> email(s) immediately. This action cannot be undone.
+    </div>
+
+    <div class="ps-footer">
+        <a href="{% url 'tenants:promo_campaigns' %}" class="ps-btn ps-btn-ghost">Cancel</a>
+        <form method="post" style="display:inline" onsubmit="this.querySelector('button').disabled=true; this.querySelector('button').innerHTML='<i class=\'bi bi-hourglass-split\'></i> Sending...';">
+            {% csrf_token %}
+            <button type="submit" class="ps-btn ps-btn-send">
+                <i class="bi bi-send-fill"></i> Confirm &amp; Send
+            </button>
+        </form>
+    </div>
+    {% else %}
+    <div class="ps-footer">
+        <a href="{% url 'tenants:promo_campaigns' %}" class="ps-btn ps-btn-ghost">Back</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

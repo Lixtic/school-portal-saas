@@ -191,6 +191,43 @@ class PlatformSettings(models.Model):
         }
 
 
+class PromoCampaign(models.Model):
+    """Landlord promotional email / in-app campaign."""
+
+    AUDIENCE_CHOICES = [
+        ('all_schools', 'All Active Schools'),
+        ('trial_schools', 'Trial Schools Only'),
+        ('approved_schools', 'Approved Schools Only'),
+        ('individual_teachers', 'Individual Portal Teachers'),
+        ('individual_all', 'All Individual Portal Users'),
+    ]
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('sent', 'Sent'),
+    ]
+
+    title = models.CharField(max_length=200)
+    subject = models.CharField(max_length=200, help_text='Email subject line')
+    body_html = models.TextField(help_text='HTML email body')
+    audience = models.CharField(max_length=30, choices=AUDIENCE_CHOICES, default='all_schools')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='draft')
+    sent_count = models.PositiveIntegerField(default=0)
+    failed_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    created_by = models.ForeignKey(
+        get_user_model(), on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='promo_campaigns',
+    )
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Promo Campaign'
+
+    def __str__(self):
+        return f'{self.title} ({self.status})'
+
+
 # Import subscription models
 from .subscription_models import (
     SubscriptionPlan, AddOn, SchoolSubscription,

@@ -11,6 +11,9 @@ urlpatterns = [
     path('landlord/ai-models/', views.ai_model_settings, name='ai_model_settings'),
     path('landlord/addon-pricing/', views.addon_pricing_management, name='addon_pricing'),
     path('landlord/credit-packs/', views.credit_pack_pricing, name='credit_pack_pricing'),
+    path('landlord/promos/', views.promo_campaigns, name='promo_campaigns'),
+    path('landlord/promos/<int:pk>/edit/', views.promo_campaign_edit, name='promo_campaign_edit'),
+    path('landlord/promos/<int:pk>/send/', views.promo_campaign_send, name='promo_campaign_send'),
     
     # Super Admin: Direct school creation
     path('superadmin/create-school/', views.superadmin_create_school, name='superadmin_create_school'),

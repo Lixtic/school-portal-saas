@@ -1,0 +1,366 @@
+{% extends "admin/admin_base.html" %}
+{% load static %}
+
+{% block title %}Promo Campaigns — Platform Admin{% endblock %}
+
+{% block admin_content %}
+<style>
+    /* ═══ PROMO CAMPAIGNS — pc- prefix ═══ */
+    .pc {
+      --bg:           #0F0F17;
+      --surface:      #16161F;
+      --surface-2:    #1E1E2A;
+      --surface-3:    #252535;
+      --border:       rgba(255,255,255,0.07);
+      --border-2:     rgba(255,255,255,0.13);
+      --violet:       #7C3AED;
+      --violet-light: #A78BFA;
+      --violet-pale:  rgba(124,58,237,0.12);
+      --emerald:      #10B981;
+      --emerald-pale: rgba(16,185,129,0.1);
+      --amber:        #F59E0B;
+      --amber-pale:   rgba(245,158,11,0.1);
+      --rose:         #F43F5E;
+      --rose-pale:    rgba(244,63,94,0.1);
+      --sky:          #38BDF8;
+      --sky-pale:     rgba(56,189,248,0.1);
+      --text-1:       #F1F0EE;
+      --text-2:       rgba(241,240,238,0.60);
+      --text-3:       rgba(241,240,238,0.35);
+      --mono: 'JetBrains Mono', 'Consolas', monospace;
+      --sans: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text-1);
+      padding: 1.5rem 2rem 4rem;
+      min-height: 100%;
+      max-width: 1680px;
+      margin: 0 auto;
+      font-family: var(--sans);
+    }
+    [data-bs-theme="light"] .pc {
+      --bg:           #f3f4f6;
+      --surface:      #ffffff;
+      --surface-2:    #f8f9fa;
+      --surface-3:    #e9ecef;
+      --border:       rgba(0,0,0,0.08);
+      --border-2:     rgba(0,0,0,0.15);
+      --text-1:       #111827;
+      --text-2:       #4b5563;
+      --text-3:       #9ca3af;
+    }
+
+    .pc-back {
+        display: inline-flex; align-items: center; gap: .4rem;
+        font-size: .82rem; font-weight: 600; color: var(--text-3);
+        text-decoration: none; margin-bottom: 1.25rem; transition: color .15s;
+    }
+    .pc-back:hover { color: var(--text-1); }
+
+    .pc-header { margin-bottom: 1.5rem; }
+    .pc-header h1 {
+        font-size: 1.5rem; font-weight: 800;
+        letter-spacing: -.02em; margin: 0 0 .25rem;
+    }
+    .pc-header p { font-size: .85rem; color: var(--text-2); margin: 0; }
+
+    .pc-stats {
+        display: flex; gap: .75rem; flex-wrap: wrap;
+        margin-bottom: 1.75rem;
+    }
+    .pc-stat {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px; padding: .9rem 1.25rem;
+        min-width: 130px; flex: 1;
+    }
+    .pc-stat-val {
+        font-size: 1.75rem; font-weight: 800; line-height: 1;
+        font-family: var(--mono);
+    }
+    .pc-stat-label {
+        font-size: .68rem; font-weight: 600;
+        text-transform: uppercase; letter-spacing: .06em;
+        color: var(--text-3); margin-top: .3rem;
+    }
+
+    .pc-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+    .pc-card-head {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border);
+    }
+    .pc-card-head h2 {
+        font-size: .85rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .06em;
+        color: var(--text-2); margin: 0;
+        display: flex; align-items: center; gap: .4rem;
+    }
+
+    .pc-table {
+        width: 100%; border-collapse: collapse;
+        font-size: .82rem;
+    }
+    .pc-table thead th {
+        padding: .6rem 1rem;
+        font-size: .68rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .06em;
+        color: var(--text-3);
+        border-bottom: 1px solid var(--border);
+        text-align: left; white-space: nowrap;
+    }
+    .pc-table tbody tr {
+        border-bottom: 1px solid var(--border);
+        transition: background .15s;
+    }
+    .pc-table tbody tr:hover { background: var(--surface-2); }
+    .pc-table tbody td {
+        padding: .65rem 1rem;
+        vertical-align: middle;
+    }
+
+    .pc-badge {
+        display: inline-block;
+        font-size: .62rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .05em;
+        padding: .18rem .5rem; border-radius: 5px;
+    }
+    .pc-badge.draft { background: var(--amber-pale); color: var(--amber); }
+    .pc-badge.sent  { background: var(--emerald-pale); color: var(--emerald); }
+
+    .pc-audience-tag {
+        font-size: .72rem; font-weight: 600;
+        color: var(--sky); background: var(--sky-pale);
+        padding: .15rem .45rem; border-radius: 5px;
+    }
+
+    .pc-btn {
+        display: inline-flex; align-items: center; gap: .35rem;
+        font-size: .72rem; font-weight: 700;
+        padding: .35rem .7rem; border-radius: 8px;
+        border: none; cursor: pointer; text-decoration: none;
+        transition: opacity .15s;
+    }
+    .pc-btn:hover { opacity: .85; }
+    .pc-btn-primary { background: var(--violet); color: #fff; }
+    .pc-btn-success { background: var(--emerald); color: #fff; }
+    .pc-btn-danger  { background: var(--rose); color: #fff; }
+    .pc-btn-ghost {
+        background: transparent; color: var(--text-2);
+        border: 1px solid var(--border-2);
+    }
+
+    .pc-form-group { margin-bottom: 1rem; }
+    .pc-form-group label {
+        display: block; font-size: .72rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .05em;
+        color: var(--text-3); margin-bottom: .3rem;
+    }
+    .pc-input, .pc-select, .pc-textarea {
+        width: 100%; padding: .5rem .75rem;
+        border: 1px solid var(--border-2);
+        border-radius: 8px; font-size: .82rem;
+        background: var(--surface-2); color: var(--text-1);
+        font-family: var(--sans);
+    }
+    .pc-input:focus, .pc-select:focus, .pc-textarea:focus {
+        outline: none; border-color: var(--violet);
+    }
+    .pc-textarea { min-height: 120px; resize: vertical; }
+    .pc-select { cursor: pointer; }
+
+    .pc-empty {
+        text-align: center; padding: 2.5rem 1rem;
+        color: var(--text-3); font-size: .85rem;
+    }
+    .pc-empty i { font-size: 2rem; display: block; margin-bottom: .5rem; }
+
+    .pc-actions { display: flex; gap: .4rem; }
+
+    .pc-modal-bg {
+        display: none; position: fixed; inset: 0;
+        background: rgba(0,0,0,.6); z-index: 1050;
+        align-items: center; justify-content: center;
+    }
+    .pc-modal-bg.open { display: flex; }
+    .pc-modal {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.5rem; width: 90%; max-width: 600px;
+        max-height: 90vh; overflow-y: auto;
+    }
+    .pc-modal h3 {
+        font-size: 1rem; font-weight: 800; margin: 0 0 1rem;
+    }
+    .pc-modal-footer {
+        display: flex; gap: .5rem; justify-content: flex-end;
+        margin-top: 1.25rem;
+    }
+
+    @media (max-width: 768px) {
+        .pc { padding: 1rem; }
+        .pc-stats { flex-direction: column; }
+        .pc-table { font-size: .75rem; }
+        .pc-table thead { display: none; }
+        .pc-table tbody tr {
+            display: flex; flex-direction: column;
+            padding: .75rem 1rem;
+        }
+        .pc-table tbody td { padding: .15rem 0; border: none; }
+    }
+</style>
+
+<div class="pc">
+    <a href="{% url 'tenants:landlord_dashboard' %}" class="pc-back">
+        <i class="bi bi-arrow-left"></i> Back to Dashboard
+    </a>
+
+    <div class="pc-header">
+        <h1><i class="bi bi-megaphone" style="color:var(--violet)"></i> Promo Campaigns</h1>
+        <p>Create and send promotional emails to schools and individual portal users.</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="pc-stats">
+        <div class="pc-stat">
+            <div class="pc-stat-val" style="color:var(--violet)">{{ stats.total }}</div>
+            <div class="pc-stat-label">Total Campaigns</div>
+        </div>
+        <div class="pc-stat">
+            <div class="pc-stat-val" style="color:var(--amber)">{{ stats.drafts }}</div>
+            <div class="pc-stat-label">Drafts</div>
+        </div>
+        <div class="pc-stat">
+            <div class="pc-stat-val" style="color:var(--emerald)">{{ stats.sent }}</div>
+            <div class="pc-stat-label">Sent</div>
+        </div>
+        <div class="pc-stat">
+            <div class="pc-stat-val" style="color:var(--sky)">{{ stats.total_sent }}</div>
+            <div class="pc-stat-label">Emails Delivered</div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div style="margin-bottom:1rem;">
+        <button class="pc-btn pc-btn-primary" onclick="document.getElementById('createModal').classList.add('open')">
+            <i class="bi bi-plus-lg"></i> New Campaign
+        </button>
+    </div>
+
+    <!-- Campaigns table -->
+    <div class="pc-card">
+        <div class="pc-card-head">
+            <h2><i class="bi bi-envelope-paper"></i> All Campaigns</h2>
+        </div>
+        {% if campaigns %}
+        <table class="pc-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Audience</th>
+                    <th>Status</th>
+                    <th>Sent</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in campaigns %}
+                <tr>
+                    <td>
+                        <div style="font-weight:700">{{ c.title }}</div>
+                        <div style="font-size:.72rem;color:var(--text-3)">{{ c.subject }}</div>
+                    </td>
+                    <td><span class="pc-audience-tag">{{ c.get_audience_display }}</span></td>
+                    <td><span class="pc-badge {{ c.status }}">{{ c.status }}</span></td>
+                    <td style="font-family:var(--mono)">
+                        {% if c.status == 'sent' %}
+                            {{ c.sent_count }}
+                            {% if c.failed_count %}<span style="color:var(--rose);font-size:.7rem"> / {{ c.failed_count }} failed</span>{% endif %}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td style="font-size:.72rem;color:var(--text-3)">{{ c.created_at|date:"M d, Y H:i" }}</td>
+                    <td>
+                        <div class="pc-actions">
+                            {% if c.status == 'draft' %}
+                                <a href="{% url 'tenants:promo_campaign_edit' c.pk %}" class="pc-btn pc-btn-ghost" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'tenants:promo_campaign_send' c.pk %}" class="pc-btn pc-btn-success" title="Send">
+                                    <i class="bi bi-send"></i> Send
+                                </a>
+                                <form method="post" style="display:inline" onsubmit="return confirm('Delete this draft?')">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="campaign_id" value="{{ c.pk }}">
+                                    <button class="pc-btn pc-btn-danger" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            {% else %}
+                                <span style="font-size:.72rem;color:var(--text-3)">
+                                    Sent {{ c.sent_at|date:"M d, Y" }}
+                                </span>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="pc-empty">
+            <i class="bi bi-megaphone"></i>
+            No campaigns yet. Create your first promo campaign.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Create Campaign Modal -->
+<div class="pc-modal-bg" id="createModal">
+    <div class="pc-modal">
+        <h3><i class="bi bi-plus-circle" style="color:var(--violet)"></i> New Campaign</h3>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create">
+            <div class="pc-form-group">
+                <label>Campaign Title</label>
+                <input type="text" name="title" class="pc-input" placeholder="e.g. End of Year Special" required>
+            </div>
+            <div class="pc-form-group">
+                <label>Email Subject Line</label>
+                <input type="text" name="subject" class="pc-input" placeholder="e.g. 🎉 50% Off All Plans This Week!" required>
+            </div>
+            <div class="pc-form-group">
+                <label>Target Audience</label>
+                <select name="audience" class="pc-select">
+                    {% for val, label in audience_choices %}
+                    <option value="{{ val }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="pc-form-group">
+                <label>Email Body (HTML supported)</label>
+                <textarea name="body_html" class="pc-textarea" placeholder="Write your promo message here. HTML tags are supported." required></textarea>
+            </div>
+            <div class="pc-modal-footer">
+                <button type="button" class="pc-btn pc-btn-ghost" onclick="document.getElementById('createModal').classList.remove('open')">Cancel</button>
+                <button type="submit" class="pc-btn pc-btn-primary"><i class="bi bi-check-lg"></i> Create Draft</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.getElementById('createModal').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+});
+</script>
+{% endblock %}
