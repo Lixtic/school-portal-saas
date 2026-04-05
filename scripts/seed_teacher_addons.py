@@ -302,7 +302,7 @@ ADDONS = [
         ],
     },
     {
-        'name': 'Aura Slide Generator',
+        'name': 'SchoolPadi Slide Generator',
         'slug': 'aura-slide-generator',
         'tagline': 'Turn any topic into a slide deck',
         'description': 'Type a topic and get a polished presentation with key points, diagrams, and discussion prompts — ready to present. Uses 3 credits per deck.',

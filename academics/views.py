@@ -874,7 +874,7 @@ def admissions_assistant(request):
             
             # Build context from school info
             school_context = f"""
-You are Aura, a helpful School Portals platform assistant for {school_info.name if school_info else 'our school'}.
+You are SchoolPadi, a helpful School Portals platform assistant for {school_info.name if school_info else 'our school'}.
 
 School Information:
 - Name: {school_info.name if school_info else 'N/A'}
@@ -2046,7 +2046,7 @@ def _check_and_send_review_reminders(student):
 
         Notification.objects.create(
             recipient=student.user,
-            message=f'⏰ Time to review: {topic_list}. Open Aura to continue!',
+            message=f'⏰ Time to review: {topic_list}. Open SchoolPadi to continue!',
             alert_type='general',
             link='../../academics/ai-tutor/',
         )
@@ -2303,7 +2303,7 @@ def _process_xp_awards(student, full_text):
                     from announcements.models import Notification
                     Notification.objects.create(
                         recipient=student.user,
-                        message=f'⭐ Level Up! You reached Level {profile.level} — keep learning with Aura!',
+                        message=f'⭐ Level Up! You reached Level {profile.level} — keep learning with SchoolPadi!',
                         alert_type='general',
                         link='../../students/aura-portfolio/',
                     )
@@ -3192,7 +3192,7 @@ HELP_ROLE_PROMPTS = {
         "- Announcements: post notices to all or specific roles\n"
         "- Analytics: enrollment, fee collection, attendance heatmap, grade averages\n"
         "- Settings: school name, logo, term dates, academic year\n"
-        "- AI Tools: Aura AI tutor for students, teacher AI lesson assistant\n"
+        "- AI Tools: SchoolPadi AI tutor for students, teacher AI lesson assistant\n"
     ),
     'teacher': (
         "You help teachers use the Portals.\n"
@@ -3201,7 +3201,7 @@ HELP_ROLE_PROMPTS = {
         "- My Classes: see assigned subjects and classes\n"
         "- Attendance: mark daily attendance for your classes\n"
         "- Lesson Plans: create, edit, print and AI-generate lesson plans\n"
-        "- AI Command Centre: Aura T – AI that helps plan lessons and generate assignments\n"
+        "- AI Command Centre: Padi-T – AI that helps plan lessons and generate assignments\n"
         "- Homework: create homework with AI-generated questions for students\n"
         "- Timetable: view the school timetable\n"
         "- Schedule: view your personal teaching schedule\n"
@@ -3215,9 +3215,9 @@ HELP_ROLE_PROMPTS = {
         "- Dashboard: quick overview of grades, attendance, upcoming homework\n"
         "- Report Card: view term report cards\n"
         "- Schedule: view your personal class timetable\n"
-        "- AI Tutor (Aura): chat with an AI tutor for help with subjects\n"
-        "- Aura Arena: competitive AI quiz battle with classmates\n"
-        "- Aura Voice: voice-based AI learning assistant\n"
+        "- AI Tutor (SchoolPadi): chat with an AI tutor for help with subjects\n"
+        "- SchoolPadi Arena: competitive AI quiz battle with classmates\n"
+        "- SchoolPadi Voice: voice-based AI learning assistant\n"
         "- Homework: view and submit assigned homework\n"
         "- Announcements: read school notices\n"
         "- Messages: communicate with teachers and staff\n"
@@ -3403,7 +3403,7 @@ def assign_practice_as_homework(request, practice_set_id):
         homework = Homework.objects.create(
             title=title[:200],
             description=(
-                f"AI-generated practice set from Aura Tutor.\n"
+                f"AI-generated practice set from SchoolPadi Tutor.\n"
                 f"Subject: {practice_set.subject.name}\n"
                 f"Topic: {practice_set.topic}\n"
                 f"Difficulty: {practice_set.get_difficulty_display() if hasattr(practice_set, 'get_difficulty_display') else practice_set.difficulty.title()}"

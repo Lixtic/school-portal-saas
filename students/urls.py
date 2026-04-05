@@ -45,7 +45,7 @@ urlpatterns = [
     path('aura/voice/board/', views_ai.voice_board_generate, name='voice_board_generate'),
     path('aura/voice/vision/', views_ai.voice_vision_analyze, name='voice_vision_analyze'),
     
-    # Aura Arena
+    # SchoolPadi Arena
     path('aura/arena/', views_ai.aura_arena_view, name='aura_arena'),
     path('aura/arena/api/', views_ai.aura_arena_api, name='aura_arena_api'),
 
@@ -55,10 +55,10 @@ urlpatterns = [
     # Voice XP Award
     path('aura/voice/award-xp/', views_ai.voice_award_xp, name='voice_award_xp'),
 
-    # Aura Portfolio (student + teacher/parent view)
+    # SchoolPadi Portfolio (student + teacher/parent view)
     path('aura/portfolio/', views.aura_portfolio, name='aura_portfolio'),
 
-    # Aura Preferences (student self-service)
+    # SchoolPadi Preferences (student self-service)
     path('aura/preferences/', views.update_aura_preferences, name='update_aura_preferences'),
 
     # Power Words history (student view)

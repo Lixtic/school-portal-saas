@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}AI Tutor - Aura 2.0{% endblock %}
+{% block title %}AI Tutor - SchoolPadi{% endblock %}
 {% block body_class %}has-skeleton-loader skeleton-soft skeleton-delay-medium skeleton-timeout-long{% endblock %}
 
 {% block content %}
@@ -994,7 +994,7 @@
     .send-btn-round:hover { transform: scale(1.05); background: #4f46e5; }
     .send-btn-round:disabled { background: #cbd5e1; cursor: not-allowed; box-shadow: none; }
 
-    .aura-model-chip {
+    .padi-model-chip {
         display: inline-flex;
         align-items: center;
         gap: 6px;
@@ -1011,13 +1011,13 @@
         user-select: none;
         transition: background 0.15s, border-color 0.15s;
     }
-    .aura-model-chip:hover {
+    .padi-model-chip:hover {
         background: #dbeafe;
         border-color: #93c5fd;
     }
-    .aura-model-chip .bi-chevron-down { font-size: 0.6rem; }
+    .padi-model-chip .bi-chevron-down { font-size: 0.6rem; }
 
-    [data-bs-theme="dark"] .aura-model-chip {
+    [data-bs-theme="dark"] .padi-model-chip {
         border-color: rgba(59, 130, 246, 0.35);
         background: rgba(37, 99, 235, 0.2);
         color: #bfdbfe;
@@ -1063,7 +1063,7 @@
         border-color: rgba(167,139,250,.3); background: rgba(91,33,182,.25); color: #c4b5fd;
     }
 
-    .aura-provider-chip {
+    .padi-provider-chip {
         display: inline-flex;
         align-items: center;
         gap: 6px;
@@ -1076,66 +1076,66 @@
         text-transform: capitalize;
     }
 
-    .aura-provider-chip.provider-openai {
+    .padi-provider-chip.provider-openai {
         border: 1px solid #dbeafe;
         background: #eff6ff;
         color: #1d4ed8;
     }
 
-    .aura-provider-chip.provider-huggingface {
+    .padi-provider-chip.provider-huggingface {
         border: 1px solid #d1fae5;
         background: #ecfdf5;
         color: #065f46;
     }
 
-    .aura-provider-chip.provider-gemini {
+    .padi-provider-chip.provider-gemini {
         border: 1px solid #d2e3fc;
         background: #e8f0fe;
         color: #1967d2;
     }
 
-    .aura-provider-chip.provider-error {
+    .padi-provider-chip.provider-error {
         border: 1px solid #fecaca;
         background: #fef2f2;
         color: #b91c1c;
     }
 
-    .aura-provider-chip.provider-unknown {
+    .padi-provider-chip.provider-unknown {
         border: 1px solid #e5e7eb;
         background: #f9fafb;
         color: #374151;
     }
 
-    [data-bs-theme="dark"] .aura-provider-chip {
+    [data-bs-theme="dark"] .padi-provider-chip {
         border-width: 1px;
         border-style: solid;
     }
 
-    [data-bs-theme="dark"] .aura-provider-chip.provider-openai {
+    [data-bs-theme="dark"] .padi-provider-chip.provider-openai {
         border-color: rgba(59, 130, 246, 0.35);
         background: rgba(37, 99, 235, 0.2);
         color: #bfdbfe;
     }
 
-    [data-bs-theme="dark"] .aura-provider-chip.provider-huggingface {
+    [data-bs-theme="dark"] .padi-provider-chip.provider-huggingface {
         border-color: rgba(16, 185, 129, 0.35);
         background: rgba(5, 150, 105, 0.2);
         color: #a7f3d0;
     }
 
-    [data-bs-theme="dark"] .aura-provider-chip.provider-gemini {
+    [data-bs-theme="dark"] .padi-provider-chip.provider-gemini {
         border-color: rgba(66, 133, 244, 0.35);
         background: rgba(66, 133, 244, 0.18);
         color: #a8c7fa;
     }
 
-    [data-bs-theme="dark"] .aura-provider-chip.provider-error {
+    [data-bs-theme="dark"] .padi-provider-chip.provider-error {
         border-color: rgba(248, 113, 113, 0.35);
         background: rgba(220, 38, 38, 0.18);
         color: #fecaca;
     }
 
-    [data-bs-theme="dark"] .aura-provider-chip.provider-unknown {
+    [data-bs-theme="dark"] .padi-provider-chip.provider-unknown {
         border-color: rgba(156, 163, 175, 0.35);
         background: rgba(107, 114, 128, 0.15);
         color: #e5e7eb;
@@ -1588,7 +1588,7 @@
             <div class="xp-bar-fill" id="xpBar" style="width: 0%"></div>
         </div>
     </div>
-    <span class="vocab-badge vocab-tier-3 ms-1" id="vocabBadge" title="Aura's current vocabulary level for you">
+    <span class="vocab-badge vocab-tier-3 ms-1" id="vocabBadge" title="SchoolPadi's current vocabulary level for you">
         <i class="bi bi-book-half"></i> L<span id="vocabLevelDisplay">3</span>
     </span>
 
@@ -1680,12 +1680,12 @@
                         <img src="{% static 'img/ai-avatar.png' %}" onerror="this.src='https://ui-avatars.com/api/?name=AI+Tutor&background=6366f1&color=fff'" alt="AI" class="rounded-circle" width="32" height="32">
                         <span class="position-absolute bottom-0 end-0 bg-success border border-white rounded-circle" style="width: 10px; height: 10px;"></span>
                     </div>
-                    <span class="fw-bold" style="font-size: 0.95rem;">Aura 2.0</span>
+                    <span class="fw-bold" style="font-size: 0.95rem;">SchoolPadi</span>
                     <div class="dropdown" id="modelPickerDropdown">
-                        <span class="aura-model-chip" id="auraModelChip"
+                        <span class="padi-model-chip" id="padiModelChip"
                               data-bs-toggle="dropdown" aria-expanded="false"
                               title="Click to change AI model">
-                            <span id="auraModelChipLabel">{{ active_ai_model }}</span>
+                            <span id="padiModelChipLabel">{{ active_ai_model }}</span>
                             <i class="bi bi-chevron-down"></i>
                         </span>
                         <ul class="dropdown-menu dropdown-menu-start shadow-sm border-0 py-1" id="modelPickerMenu" style="min-width:170px;">
@@ -1699,7 +1699,7 @@
                             <li><button class="dropdown-item model-pick-btn" data-model="gemini-2.5-pro"><i class="bi bi-gem me-2" style="color:#1967d2"></i>Gemini 2.5 Pro <small class="text-muted ms-1">latest capable</small></button></li>
                         </ul>
                     </div>
-                    <span class="aura-provider-chip" id="auraProviderChip" title="Active AI provider: {{ active_ai_provider }}">{{ active_ai_provider }}</span>
+                    <span class="padi-provider-chip" id="padiProviderChip" title="Active AI provider: {{ active_ai_provider }}">{{ active_ai_provider }}</span>
                     <button class="btn btn-sm btn-light border ms-2" data-bs-toggle="offcanvas" data-bs-target="#sessionsSidebar" aria-controls="sessionsSidebar">
                         <i class="bi bi-list-ul"></i> Sessions
                     </button>
@@ -2077,9 +2077,9 @@
     const voiceBtn = document.getElementById('voiceBtn');
     const insightBadge = document.getElementById('insightBadge');
     const typingIndicator = document.getElementById('typingIndicator');
-    const auraModelChip = document.getElementById('auraModelChip');
-    const auraModelChipLabel = document.getElementById('auraModelChipLabel');
-    const auraProviderChip = document.getElementById('auraProviderChip');
+    const padiModelChip = document.getElementById('padiModelChip');
+    const padiModelChipLabel = document.getElementById('padiModelChipLabel');
+    const padiProviderChip = document.getElementById('padiProviderChip');
 
     // ── Model Picker ────────────────────────────────────────────
     // Seed from what the backend resolved (env / default)
@@ -2092,7 +2092,7 @@
         btn.addEventListener('click', () => {
             selectedModel = btn.dataset.model;
             _userPickedModel = true;
-            setAuraModelLabel(selectedModel);
+            setPadiModelLabel(selectedModel);
         });
     });
     // Mark the currently-active item
@@ -2102,53 +2102,53 @@
         });
     }
 
-        function updateAuraAiTooltips() {
-            if (!auraModelChip || !auraProviderChip) return;
-            const modelText = (auraModelChipLabel ? auraModelChipLabel.textContent : (auraModelChip.textContent || '')).trim();
-            const providerText = (auraProviderChip.textContent || '').trim();
-            auraModelChip.title = providerText ? `Active AI model: ${modelText} via ${providerText}` : `Active AI model: ${modelText}`;
-            auraProviderChip.title = modelText ? `Active AI provider: ${providerText} (${modelText})` : `Active AI provider: ${providerText}`;
+        function updatePadiAiTooltips() {
+            if (!padiModelChip || !padiProviderChip) return;
+            const modelText = (padiModelChipLabel ? padiModelChipLabel.textContent : (padiModelChip.textContent || '')).trim();
+            const providerText = (padiProviderChip.textContent || '').trim();
+            padiModelChip.title = providerText ? `Active AI model: ${modelText} via ${providerText}` : `Active AI model: ${modelText}`;
+            padiProviderChip.title = modelText ? `Active AI provider: ${providerText} (${modelText})` : `Active AI provider: ${providerText}`;
         }
 
-        function setAuraModelLabel(model) {
-            if (!auraModelChipLabel || !model) return;
+        function setPadiModelLabel(model) {
+            if (!padiModelChipLabel || !model) return;
             const normalized = String(model).trim();
             if (!normalized) return;
-            auraModelChipLabel.textContent = normalized;
+            padiModelChipLabel.textContent = normalized;
             selectedModel = normalized;
             _highlightActiveModel(normalized);
-            updateAuraAiTooltips();
+            updatePadiAiTooltips();
         }
 
-        function setAuraProviderLabel(provider) {
-            if (!auraProviderChip || !provider) return;
+        function setPadiProviderLabel(provider) {
+            if (!padiProviderChip || !provider) return;
             const normalized = String(provider).trim().toLowerCase();
             if (!normalized) return;
 
-            auraProviderChip.classList.remove('provider-openai', 'provider-huggingface', 'provider-gemini', 'provider-error', 'provider-unknown');
+            padiProviderChip.classList.remove('provider-openai', 'provider-huggingface', 'provider-gemini', 'provider-error', 'provider-unknown');
             if (normalized.includes('openai')) {
-                auraProviderChip.classList.add('provider-openai');
+                padiProviderChip.classList.add('provider-openai');
             } else if (normalized.includes('gemini')) {
-                auraProviderChip.classList.add('provider-gemini');
+                padiProviderChip.classList.add('provider-gemini');
             } else if (normalized.includes('huggingface')) {
-                auraProviderChip.classList.add('provider-huggingface');
+                padiProviderChip.classList.add('provider-huggingface');
             } else if (normalized.includes('error') || normalized.includes('fail')) {
-                auraProviderChip.classList.add('provider-error');
+                padiProviderChip.classList.add('provider-error');
             } else {
-                auraProviderChip.classList.add('provider-unknown');
+                padiProviderChip.classList.add('provider-unknown');
             }
 
-            auraProviderChip.textContent = normalized;
-            updateAuraAiTooltips();
+            padiProviderChip.textContent = normalized;
+            updatePadiAiTooltips();
         }
 
         if (aiTutorBootstrap.active_ai_model) {
-            setAuraModelLabel(aiTutorBootstrap.active_ai_model);
+            setPadiModelLabel(aiTutorBootstrap.active_ai_model);
         }
         if (aiTutorBootstrap.active_ai_provider) {
-            setAuraProviderLabel(aiTutorBootstrap.active_ai_provider);
+            setPadiProviderLabel(aiTutorBootstrap.active_ai_provider);
         }
-        updateAuraAiTooltips();
+        updatePadiAiTooltips();
 
     
     const xpBar = document.getElementById('xpBar');
@@ -2164,7 +2164,7 @@
             vocabBadge.className = vocabBadge.className.replace(/vocab-tier-\d/, '');
             vocabBadge.classList.add('vocab-tier-' + n);
             const labels = ['', 'Simplest', 'Simple', 'Intermediate', 'Advanced', 'Expert', 'Expert+'];
-            vocabBadge.title = `Vocabulary level ${n}/6 — ${labels[n] || ''}. Aura adjusts language based on how you respond.`;
+            vocabBadge.title = `Vocabulary level ${n}/6 — ${labels[n] || ''}. Padi adjusts language based on how you respond.`;
         }
     }
 
@@ -2244,7 +2244,7 @@
         
         initCanvas();
         updateXPDisplay();
-        _fetchAuraState();   // Shared State Manager: restore cross-session lesson context
+        _fetchPadiState();   // Shared State Manager: restore cross-session lesson context
     };
 
     window.addEventListener('resize', function () {
@@ -2265,7 +2265,7 @@
     }
 
     // ── Shared State Manager helpers (text-chat side) ──────────────────────────
-    function _fetchAuraState() {
+    function _fetchPadiState() {
         fetch('{% url "academics:aura_session_state" %}')
             .then(r => r.json())
             .then(data => {
@@ -2277,7 +2277,7 @@
             .catch(() => {});
     }
 
-    function _patchAuraState(updates) {
+    function _patchPadiState(updates) {
         fetch('{% url "academics:aura_session_state" %}', {
             method: 'PATCH',
             headers: {
@@ -2639,7 +2639,7 @@
             messageDiv.innerHTML = `<div class="message-bubble">
                 <div class="thinking-indicator" id="thinkingAnim">
                     <div class="thinking-dots"><span></span><span></span><span></span></div>
-                    <span>Aura is thinking…</span>
+                    <span>Padi is thinking…</span>
                 </div>
             </div>`;
             chatMessages.insertBefore(messageDiv, typingIndicator);
@@ -2664,12 +2664,12 @@
                         try {
                             const data = JSON.parse(line.slice(6));
                             if (data.provider) {
-                                setAuraProviderLabel(data.provider);
+                                setPadiProviderLabel(data.provider);
                             }
                             // Only update the model chip from the stream if the user
                             // has not manually selected one themselves.
                             if (data.model && !_userPickedModel) {
-                                setAuraModelLabel(data.model);
+                                setPadiModelLabel(data.model);
                             }
                             if (data.error) {
                                 fullText += `\n${data.error}`;
@@ -2836,7 +2836,7 @@
         generateTutorImage(prompt);
     }
 
-    // 4.1 Image Generation Function (Aura LTS)
+    // 4.1 Image Generation Function (SchoolPadi LTS)
     async function generateTutorImage(prompt) {
         const modelSelectEl = document.getElementById('wbImageModel');
         const selectedImageModel = modelSelectEl ? modelSelectEl.value : 'flux-schnell';
@@ -3086,7 +3086,7 @@
         if (_lsM) {
             const _lsVal = _lsM[1].trim().toUpperCase();
             updateLessonState(_lsVal);
-            _patchAuraState({ lesson_state: _lsVal });  // Shared State Manager write-back
+            _patchPadiState({ lesson_state: _lsVal });  // Shared State Manager write-back
             fullText = fullText.replace(/\[LESSON_STATE:\s*[^\]]*\]/gi, '');
         }
 
@@ -3096,7 +3096,7 @@
         if (_vlM) {
             const _vlVal = parseInt(_vlM[1], 10);
             updateVocabBadge(_vlVal);
-            _patchAuraState({ vocab_level: _vlVal });   // Shared State Manager write-back
+            _patchPadiState({ vocab_level: _vlVal });   // Shared State Manager write-back
             fullText = fullText.replace(/\[VOCAB_LEVEL:\s*\d\]/gi, '');
         }
 
@@ -3104,7 +3104,7 @@
         const _mdRe = /\[MOOD:\s*(\w+)\]/i;
         const _mdM = fullText.match(_mdRe);
         if (_mdM) {
-            _patchAuraState({ mood: _mdM[1].trim().toLowerCase() });
+            _patchPadiState({ mood: _mdM[1].trim().toLowerCase() });
             fullText = fullText.replace(/\[MOOD:\s*\w+\]/gi, '');
         }
 
@@ -3875,7 +3875,7 @@
         }
     }
 
-    // Digital Pulse polling for students in Aura chat
+    // Digital Pulse polling for students in SchoolPadi chat
     (function () {
         const POLL_URL = "{% url 'students:pulse_poll' %}";
         const SUBMIT_BASE = "{% url 'students:pulse_submit' 0 %}".replace('0/submit/', '');

@@ -313,9 +313,9 @@ def _get_interest_anchors(interests):
 
 def _build_student_context(student):
     """
-    Build a rich Aura Linguistic Profile for this student.
+    Build a rich SchoolPadi Linguistic Profile for this student.
     This is injected into the Realtime API system instructions to prime
-    Aura's vocabulary, cultural references, and pedagogical approach.
+    SchoolPadi's vocabulary, cultural references, and pedagogical approach.
     """
     lines = []
 
@@ -419,7 +419,7 @@ def _build_student_context(student):
         "and any structured multi-step explanation."
     )
 
-    # ── 14. Teacher Notes for Aura ───────────────────────────────────
+    # ── 14. Teacher Notes for SchoolPadi ───────────────────────────────────
     aura_notes = getattr(student, 'aura_notes', '').strip()
     if aura_notes:
         lines.append(f"TEACHER NOTES: {aura_notes}")
@@ -432,7 +432,7 @@ def _build_student_context(student):
 def aura_voice_view(request):
     """Render the voice interface — students only."""
     if request.user.user_type != 'student':
-        messages.error(request, "Aura Voice is only available to students.")
+        messages.error(request, "SchoolPadi Voice is only available to students.")
         return redirect('dashboard')
     
     return render(request, 'students/aura_voice.html')
@@ -590,7 +590,7 @@ def create_realtime_session(request):
             except Exception:
                 system_instructions = (
                     voice_prefix +
-                    "You are Aura, an intelligent AI tutor. Be warm and conversational. "
+                    "You are SchoolPadi, an intelligent AI tutor. Be warm and conversational. "
                     "Never lecture — ask one question per turn and wait for the student's response. "
                     + ("\n\n─── STUDENT PROFILE ───\n" + student_context if student_context else "")
                 )
@@ -617,7 +617,7 @@ def create_realtime_session(request):
         else:
             system_instructions = (
                 voice_prefix +
-                "You are Aura, an intelligent AI tutor. Be warm and conversational. "
+                "You are SchoolPadi, an intelligent AI tutor. Be warm and conversational. "
                 "Never lecture — ask one question per turn and wait for the student's response."
             )
         
@@ -691,7 +691,7 @@ from academics.models import StudyGroupRoom, StudyGroupMessage, StudentXP
 @login_required
 def aura_arena_view(request):
     if request.user.user_type != 'student':
-        messages.error(request, "Only students can enter the Aura Arena.")
+        messages.error(request, "Only students can enter the SchoolPadi Arena.")
         return redirect('dashboard')
     
     from students.models import Student
@@ -718,7 +718,7 @@ def aura_arena_view(request):
             )
         except Exception as mig_err:
             logger.error(f"Auto-migration failed: {mig_err}")
-            messages.error(request, "Aura Arena is being set up. Please try again in a moment.")
+            messages.error(request, "SchoolPadi Arena is being set up. Please try again in a moment.")
             return redirect('dashboard')
 
     try:
@@ -903,9 +903,9 @@ def aura_arena_api(request):
             }, newly_unlocked
 
         # ── Check active battle answer ──────────────────────────────────
-        # Skip answer-check if the message itself is an @aura command so
-        # that typing "@aura true or false" never accidentally wins a T/F battle.
-        _is_aura_cmd = bool(re.search(r'@aura\s+\w', content, re.IGNORECASE))
+        # Skip answer-check if the message itself is an @padi command so
+        # that typing "@padi true or false" never accidentally wins a T/F battle.
+        _is_aura_cmd = bool(re.search(r'@padi\s+\w', content, re.IGNORECASE))
         if active_battle and active_battle.battle_answer and not _is_aura_cmd:
             ans = (active_battle.battle_answer or '').strip().lower()
             msg_lower = content.lower()
@@ -995,7 +995,7 @@ def aura_arena_api(request):
             StudyGroupMessage.objects.create(
                 room=room,
                 is_aura=True,
-                content="⌛ That challenge expired. Start a fresh one with @aura battle, @aura riddle, @aura math, @aura scrabble, or @aura true or false."
+                content="⌛ That challenge expired. Start a fresh one with @padi battle, @padi riddle, @padi math, @padi scrabble, or @padi true or false."
             )
             return JsonResponse({
                 'status': 'expired',
@@ -1023,7 +1023,7 @@ def aura_arena_api(request):
 
         # ── Cooldown: prevent game-command spam ─────────────────────────
         COOLDOWN_SECS = 90
-        _is_game_cmd = bool(re.search(r'@aura\s+(battle|riddle|math|scrabble|true|tf\b)', cmd))
+        _is_game_cmd = bool(re.search(r'@padi\s+(battle|riddle|math|scrabble|true|tf\b)', cmd))
         if _is_game_cmd and not active_battle:
             last_q = (
                 StudyGroupMessage.objects
@@ -1040,8 +1040,8 @@ def aura_arena_api(request):
                     )
                     return JsonResponse({'status': 'cooldown', 'xp_earned': 0, 'is_winner': False, 'new_achievements': []})
 
-        # ── @aura skip ──────────────────────────────────────────────
-        if re.search(r'@aura\s+skip', cmd):
+        # ── @padi skip ──────────────────────────────────────────────
+        if re.search(r'@padi\s+skip', cmd):
             # Find any unanswered battle (no time limit) and mark it closed
             stale = StudyGroupMessage.objects.filter(
                 room=room, is_battle_question=True, battle_answered=False
@@ -1059,12 +1059,12 @@ def aura_arena_api(request):
                     content="ℹ️ No active challenge to skip."
                 )
 
-        # ── @aura hint ──────────────────────────────────────────────
-        elif re.search(r'@aura\s+hint', cmd):
+        # ── @padi hint ──────────────────────────────────────────────
+        elif re.search(r'@padi\s+hint', cmd):
             if not active_battle:
                 StudyGroupMessage.objects.create(
                     room=room, is_aura=True,
-                    content="💡 No active challenge right now. Start one with `@aura battle`, `@aura riddle`, `@aura math`, `@aura scrabble`, or `@aura true or false`."
+                    content="💡 No active challenge right now. Start one with `@padi battle`, `@padi riddle`, `@padi math`, `@padi scrabble`, or `@padi true or false`."
                 )
             else:
                 client = _gpt_client()
@@ -1086,20 +1086,20 @@ def aura_arena_api(request):
                             content=f"💡 **Hint:** {res.choices[0].message.content.strip()}"
                         )
                     except Exception as e:
-                        logger.error(f"Aura Hint Error: {e}")
+                        logger.error(f"Padi Hint Error: {e}")
 
-        # ── @aura battle ───────────────────────────────────────────────
-        elif re.search(r'@aura\s+battle', cmd):
+        # ── @padi battle ───────────────────────────────────────────────
+        elif re.search(r'@padi\s+battle', cmd):
             if active_battle:
                 StudyGroupMessage.objects.create(
                     room=room, is_aura=True,
-                    content="⏳ A challenge is already active! Answer it first, or type `@aura skip` to skip it."
+                    content="⏳ A challenge is already active! Answer it first, or type `@padi skip` to skip it."
                 )
             else:
                 client = _gpt_client()
                 if not client:
                     StudyGroupMessage.objects.create(room=room, is_aura=True,
-                        content="⚠️ Aura-T isn't connected right now. Ask your teacher to set up the AI key.")
+                        content="⚠️ Padi-T isn't connected right now. Ask your teacher to set up the AI key.")
                 else:
                     try:
                         class_name, region = _class_ctx()
@@ -1120,23 +1120,23 @@ def aura_arena_api(request):
                             room=room, is_aura=True, is_battle_question=True,
                             battle_type='battle', battle_xp=20,
                             battle_answer=q.get('answer', ''),
-                            content=f"🔴 **AURA BATTLE!** First to answer wins **+20 XP!**\n\n**Question:** {q.get('question', '')}"
+                            content=f"🔴 **PADI BATTLE!** First to answer wins **+20 XP!**\n\n**Question:** {q.get('question', '')}"
                         )
                     except Exception as e:
-                        logger.exception(f"Aura Battle Error: {e}")
+                        logger.exception(f"Padi Battle Error: {e}")
                         StudyGroupMessage.objects.create(room=room, is_aura=True,
                             content="⚠️ Couldn't generate a question right now. Try again in a moment!")
 
-        # ── @aura riddle ───────────────────────────────────────────────
-        elif re.search(r'@aura\s+riddle', cmd):
+        # ── @padi riddle ───────────────────────────────────────────────
+        elif re.search(r'@padi\s+riddle', cmd):
             if active_battle:
                 StudyGroupMessage.objects.create(room=room, is_aura=True,
-                    content="⏳ There's already a challenge active! Answer it first, or type `@aura skip`.")
+                    content="⏳ There's already a challenge active! Answer it first, or type `@padi skip`.")
             else:
                 client = _gpt_client()
                 if not client:
                     StudyGroupMessage.objects.create(room=room, is_aura=True,
-                        content="⚠️ Aura-T isn't connected right now.")
+                        content="⚠️ Padi-T isn't connected right now.")
                 else:
                     try:
                         class_name, region = _class_ctx()
@@ -1159,20 +1159,20 @@ def aura_arena_api(request):
                             content=f"🧩 **RIDDLE TIME!** First to crack it wins **+15 XP!**\n\n*{q.get('riddle', '')}*"
                         )
                     except Exception as e:
-                        logger.exception(f"Aura Riddle Error: {e}")
+                        logger.exception(f"Padi Riddle Error: {e}")
                         StudyGroupMessage.objects.create(room=room, is_aura=True,
                             content="⚠️ Couldn't generate a riddle right now. Try again!")
 
-        # ── @aura math ─────────────────────────────────────────────────
-        elif re.search(r'@aura\s+math', cmd):
+        # ── @padi math ─────────────────────────────────────────────────
+        elif re.search(r'@padi\s+math', cmd):
             if active_battle:
                 StudyGroupMessage.objects.create(room=room, is_aura=True,
-                    content="⏳ There's already a challenge active! Answer it first, or type `@aura skip`.")
+                    content="⏳ There's already a challenge active! Answer it first, or type `@padi skip`.")
             else:
                 client = _gpt_client()
                 if not client:
                     StudyGroupMessage.objects.create(room=room, is_aura=True,
-                        content="⚠️ Aura-T isn't connected right now.")
+                        content="⚠️ Padi-T isn't connected right now.")
                 else:
                     try:
                         class_name, _ = _class_ctx()
@@ -1196,20 +1196,20 @@ def aura_arena_api(request):
                             content=f"🔢 **MATH CHALLENGE!** First correct answer wins **+10 XP!**\n\n**{q.get('question', '')}**"
                         )
                     except Exception as e:
-                        logger.exception(f"Aura Math Error: {e}")
+                        logger.exception(f"Padi Math Error: {e}")
                         StudyGroupMessage.objects.create(room=room, is_aura=True,
                             content="⚠️ Couldn't generate a math problem right now. Try again!")
 
-        # ── @aura scrabble ─────────────────────────────────────────────
-        elif re.search(r'@aura\s+scrabble', cmd):
+        # ── @padi scrabble ─────────────────────────────────────────────
+        elif re.search(r'@padi\s+scrabble', cmd):
             if active_battle:
                 StudyGroupMessage.objects.create(room=room, is_aura=True,
-                    content="⏳ There's already a challenge active! Answer it first, or type `@aura skip`.")
+                    content="⏳ There's already a challenge active! Answer it first, or type `@padi skip`.")
             else:
                 client = _gpt_client()
                 if not client:
                     StudyGroupMessage.objects.create(room=room, is_aura=True,
-                        content="⚠️ Aura-T isn't connected right now.")
+                        content="⚠️ Padi-T isn't connected right now.")
                 else:
                     try:
                         class_name, _ = _class_ctx()
@@ -1247,20 +1247,20 @@ def aura_arena_api(request):
                             )
                         )
                     except Exception as e:
-                        logger.exception(f"Aura Scrabble Error: {e}")
+                        logger.exception(f"Padi Scrabble Error: {e}")
                         StudyGroupMessage.objects.create(room=room, is_aura=True,
                             content="⚠️ Couldn't generate a scrabble challenge right now. Try again!")
 
-        # ── @aura true or false  (also: @aura tf / @aura t/f) ─────────
-        elif re.search(r'@aura\s+(true\s*(or|\/)\s*false|tf\b)', cmd):
+        # ── @padi true or false  (also: @padi tf / @padi t/f) ─────────
+        elif re.search(r'@padi\s+(true\s*(or|\/)\s*false|tf\b)', cmd):
             if active_battle:
                 StudyGroupMessage.objects.create(room=room, is_aura=True,
-                    content="⏳ There's already a challenge active! Answer it first, or type `@aura skip`.")
+                    content="⏳ There's already a challenge active! Answer it first, or type `@padi skip`.")
             else:
                 client = _gpt_client()
                 if not client:
                     StudyGroupMessage.objects.create(room=room, is_aura=True,
-                        content="⚠️ Aura-T isn't connected right now.")
+                        content="⚠️ Padi-T isn't connected right now.")
                 else:
                     try:
                         class_name, region = _class_ctx()
@@ -1288,20 +1288,20 @@ def aura_arena_api(request):
                             )
                         )
                     except Exception as e:
-                        logger.exception(f"Aura TrueFalse Error: {e}")
+                        logger.exception(f"Padi TrueFalse Error: {e}")
                         StudyGroupMessage.objects.create(room=room, is_aura=True,
                             content="⚠️ Couldn't generate a T/F question right now. Try again!")
 
-        # ── @aura (general AI tutor) ───────────────────────────────────
-        # Only fires if NO other @aura sub-command matched above
-        elif re.search(r'@aura', cmd) and not is_winner:
+        # ── @padi (general AI tutor) ───────────────────────────────────
+        # Only fires if NO other @padi sub-command matched above
+        elif re.search(r'@padi', cmd) and not is_winner:
             client = _gpt_client()
             if client:
-                user_msg = re.sub(r'@aura', '', content, flags=re.IGNORECASE).strip()
+                user_msg = re.sub(r'@padi', '', content, flags=re.IGNORECASE).strip()
                 try:
                     student_profile = _build_student_context(student)
                     system_prompt = (
-                        f"You are Aura-T, a helpful AI tutor. {student_profile}\n"
+                        f"You are Padi-T, a helpful AI tutor. {student_profile}\n"
                         "Do NOT use headings, phases, or labels like 'Phase A', 'Hook', or 'Nugget'. "
                         "Use 'tiny scaffolds' (very short, single-step conversational hints). "
                         "Keep answers fun, extremely concise, and under 3 sentences."
@@ -1320,7 +1320,7 @@ def aura_arena_api(request):
                         content=res.choices[0].message.content.strip()
                     )
                 except Exception as e:
-                    logger.error(f"Aura LLM Error: {e}")
+                    logger.error(f"SchoolPadi LLM Error: {e}")
 
         return JsonResponse({'status': 'success', 'xp_earned': xp_earned, 'is_winner': is_winner, 'new_achievements': []})
 
@@ -1477,7 +1477,7 @@ def voice_vision_analyze(request):
         return JsonResponse({'error': 'AI service unavailable'}, status=503)
 
     system_prompt = (
-        "You are Aura, a friendly AI tutor for school students in Ghana. "
+        "You are SchoolPadi, a friendly AI tutor for school students in Ghana. "
         "The student has just taken a photo of something — it could be a maths problem, "
         "a science diagram, a page of text, or anything school-related. "
         "Analyse the image and give a concise, encouraging explanation that helps the student understand it. "

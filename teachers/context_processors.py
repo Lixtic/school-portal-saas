@@ -7,7 +7,7 @@ from django.db import transaction
 
 def teacher_context(request):
     """
-    Provides teacher-specific context for Aura-T panel.
+    Provides teacher-specific context for Padi-T panel.
     Returns empty dict if user is not authenticated or not a teacher.
     """
     context = {

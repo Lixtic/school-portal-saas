@@ -1,7 +1,7 @@
 /**
- * Aura Offline Content — save structured tool content for offline access.
+ * SchoolPadi Offline Content — save structured tool content for offline access.
  *
- * Uses IndexedDB (`aura-content`, v1) with one object store keyed by
+ * Uses IndexedDB (`padi-content`, v1) with one object store keyed by
  * "{type}:{id}" (e.g. "lesson:42", "deck:7", "paper:15").
  *
  * Depends on nothing — fully self-contained.
@@ -9,7 +9,7 @@
 (function () {
   'use strict';
 
-  const DB_NAME = 'aura-content';
+  const DB_NAME = 'padi-content';
   const DB_VERSION = 1;
   const STORE = 'items';
 
@@ -166,7 +166,7 @@
       .then(function (json) {
         return save(type, id, json).then(function () {
           if (onDone) onDone(true, json);
-          window.dispatchEvent(new CustomEvent('aura:offline-changed'));
+          window.dispatchEvent(new CustomEvent('padi:offline-changed'));
         });
       })
       .catch(function () {
@@ -175,7 +175,7 @@
   }
 
   /* ── Expose ──────────────────────────────────────────────────── */
-  window.AuraContent = {
+  window.PadiContent = {
     save: save,
     get: get,
     remove: remove,

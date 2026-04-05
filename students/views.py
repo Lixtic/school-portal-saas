@@ -771,7 +771,7 @@ def student_dashboard_view(request):
     except Exception:
         student_xp = None
 
-    # Aura Resume card data
+    # SchoolPadi Resume card data
     try:
         from academics.gamification_models import AuraSessionState
         from academics.tutor_models import TutorSession
@@ -1620,7 +1620,7 @@ def update_aura_preferences(request):
             )
             return JsonResponse({
                 'success': True,
-                'message': f'Aura preferences updated. Language set to {lang_display}.',
+                'message': f'SchoolPadi preferences updated. Language set to {lang_display}.',
             })
         return JsonResponse({'success': False, 'message': 'Invalid data.', 'errors': form.errors}, status=400)
 

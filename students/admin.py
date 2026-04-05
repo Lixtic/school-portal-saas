@@ -22,7 +22,7 @@ class StudentAdmin(admin.ModelAdmin):
         ('Aura AI Profile', {
             'description': (
                 'These fields personalise Aura\'s vocabulary, accent style, and teaching approach '
-                'for this student. The more detail you provide, the more tailored Aura becomes.'
+                'for this student. The more detail you provide, the more tailored SchoolPadi becomes.'
             ),
             'fields': ('preferred_language', 'aura_notes', 'aura_voice_link'),
         }),
@@ -36,12 +36,12 @@ class StudentAdmin(admin.ModelAdmin):
         return format_html(
             '<a href="{}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;'
             'padding:6px 14px;background:#6c47ff;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;">'
-            '🎙&nbsp;Open Aura Voice</a>'
+            '🎙&nbsp;Open SchoolPadi Voice</a>'
             '<span style="margin-left:10px;color:#888;font-size:0.85em;">'
             '(Student must be logged in — link opens in their browser context)</span>',
             url,
         )
-    aura_voice_link.short_description = 'Aura Voice Session'
+    aura_voice_link.short_description = 'SchoolPadi Voice Session'
 
     def get_form(self, request, obj=None, **kwargs):
         # For new students, present a minimal quick-add form

@@ -30,7 +30,7 @@ ADDONS = [
     },
     {
         'slug': 'ai-lesson-planner',
-        'name': 'AI Lesson Planner (Aura-T)',
+        'name': 'AI Lesson Planner (Padi-T)',
         'category': 'ai',
         'description': (
             'Generate full lesson plans, activity ideas, and assessment '

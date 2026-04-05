@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 class AuraGenEngine:
     """
-    Aura-T Generative Pedagogical Engine.
+    Padi-T Generative Pedagogical Engine.
     Uses AI service to generate educational content.
     """
 
@@ -25,14 +25,14 @@ class AuraGenEngine:
     def generate_assignment_package(lesson_plan: LessonPlan, topic_prompt: Optional[str] = None) -> Dict:
         """
         Generates a complete differentiated assignment package grounded in the
-        Aura-T lesson plan. Applies Ghana cultural contexts, GES CBC alignment,
+        Padi-T lesson plan. Applies Ghana cultural contexts, GES CBC alignment,
         Support/Extension split, and device-equity rules.
         """
         topic       = topic_prompt if topic_prompt else lesson_plan.topic
         subject     = lesson_plan.subject.name
         grade_level = lesson_plan.school_class.name
 
-        # Extract Aura-T plan context for richer prompting
+        # Extract Padi-T plan context for richer prompting
         intro_text  = lesson_plan.introduction  or ""
         present_text = lesson_plan.presentation or ""
         eval_text   = lesson_plan.evaluation    or ""
@@ -54,11 +54,11 @@ class AuraGenEngine:
             dt_start = eval_text.find("DATA-TRIGGER")
             dt_snippet = eval_text[dt_start: dt_start + 500].strip()[:400]
 
-        system_prompt = f"""You are Aura-T, an advanced pedagogical AI for Ghanaian teachers.
+        system_prompt = f"""You are Padi-T, an advanced pedagogical AI for Ghanaian teachers.
 Generate a DIFFERENTIATED assignment package for {grade_level} {subject} on \"{topic}\".
 
 ═══════════════════════════════════════════════════════
-LESSON CONTEXT (from the Aura-T lesson plan)
+LESSON CONTEXT (from the Padi-T lesson plan)
 ═══════════════════════════════════════════════════════
 GES Indicator / Objectives: {obj_text[:300]}
 Ghanaian Hook used in this lesson: {hook_snippet}
@@ -175,7 +175,7 @@ JSON SCHEMA — return EXACTLY this structure
     @staticmethod
     def generate_lesson_plan(topic: str, subject: str, grade_level: str, sub_strand: str = '', indicator: str = '') -> Dict:
         """
-        Generate a full structured lesson plan in the Aura-T format.
+        Generate a full structured lesson plan in the Padi-T format.
         Every plan MUST include: Localized Hook, AI Pulse Check, two Learning Paths,
         and a Data-Trigger. These are non-negotiable.
         """
@@ -183,7 +183,7 @@ JSON SCHEMA — return EXACTLY this structure
         sub_strand_ctx = f'\nSub-strand: "{sub_strand}"' if sub_strand else ''
         indicator_ctx = f'\nTarget Indicator: {indicator}' if indicator else ''
 
-        system_prompt = f"""You are Aura-T, an advanced pedagogical AI for Ghanaian teachers trained on the GES Competency-Based Curriculum.
+        system_prompt = f"""You are Padi-T, an advanced pedagogical AI for Ghanaian teachers trained on the GES Competency-Based Curriculum.
 Generate a rigorous, dynamic lesson plan for {grade_level} {subject} on "{topic}".{sub_strand_ctx}{indicator_ctx}
 The lesson MUST be tailored specifically to the sub-strand and indicator provided — every activity, assessment, and homework must directly address and measure the target indicator.
 
@@ -651,7 +651,7 @@ If any cultural reference (proverb, symbol) is used, include its English meaning
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": (
-                        f"Generate the full Aura-T lesson plan for '{topic}' "
+                        f"Generate the full Padi-T lesson plan for '{topic}' "
                         f"({grade_level}, {subject}). "
                         + (f"Sub-strand: '{sub_strand}'. " if sub_strand else '')
                         + (f"Target Indicator: {indicator}. " if indicator else '')
@@ -699,7 +699,7 @@ If any cultural reference (proverb, symbol) is used, include its English meaning
         Generate a full, presentation-ready slide deck with rich content:
         definitions, examples, scenarios, key terms, and assessment.
         """
-        system_prompt = f"""You are Aura-T, an expert Ghanaian classroom teaching assistant who creates rich, presentation-ready slide decks.
+        system_prompt = f"""You are Padi-T, an expert Ghanaian classroom teaching assistant who creates rich, presentation-ready slide decks.
 
 Generate a complete teaching slide deck for {grade_level} {subject} on the topic: "{topic}".
 
@@ -851,7 +851,7 @@ CONTENT QUALITY RULES
         ) if filename else 'Document'
 
         system_prompt = (
-            "You are Aura-T, an expert teaching assistant.\n"
+            "You are Padi-T, an expert teaching assistant.\n"
             "Given the content of an educational document, create a PRESENTATION-READY teaching slide deck.\n"
             "Return a JSON object with EXACTLY this structure:\n"
             "{\n"
@@ -948,7 +948,7 @@ CONTENT QUALITY RULES
         demographic_context = str(plan.get('demographic_context') or '').strip()
 
         system_prompt = (
-            "You are Aura-T, an expert Ghanaian classroom teaching assistant.\n"
+            "You are Padi-T, an expert Ghanaian classroom teaching assistant.\n"
             "Create a PRESENTATION-READY learning-guide slide deck from a lesson plan.\n"
             "The deck must be anchored in TOPIC + INDICATOR + OBJECTIVES.\n\n"
             "Return JSON with EXACT structure:\n"
@@ -1183,7 +1183,7 @@ CONTENT QUALITY RULES
             return {'updates': [], 'summary': 'No slides to harmonize.'}
 
         system_prompt = (
-            'You are Aura-T, an expert teaching assistant and content editor.\n'
+            'You are Padi-T, an expert teaching assistant and content editor.\n'
             'Review the slide deck below for these inconsistencies:\n'
             '  - Mixed capitalisation in parallel headings\n'
             '  - Inconsistent verb tenses\n'
@@ -1329,7 +1329,7 @@ CONTENT QUALITY RULES
         deck_text = '\n'.join(lines)[:9000]
 
         system_prompt = (
-            "You are Aura-T, an expert teaching assistant.\n"
+            "You are Padi-T, an expert teaching assistant.\n"
             "Given a teaching presentation outline, create a structured student revision guide.\n"
             "Return a JSON object with EXACTLY this structure:\n"
             "{\n"
@@ -1569,7 +1569,7 @@ CONTENT QUALITY RULES
         gaps_line    = f"Pulse Check gaps to target: {pulse_check_gaps}" if pulse_check_gaps else ""
         ges_line     = f"GES CBC Indicator: {ges_indicator}" if ges_indicator else ""
 
-        system_prompt = f"""You are Aura-T, an advanced pedagogical AI for Ghanaian teachers.
+        system_prompt = f"""You are Padi-T, an advanced pedagogical AI for Ghanaian teachers.
 Generate a TIERED set of interactive exercises for {grade_level} {subject} on \"{topic}\".
 
 {context_line}

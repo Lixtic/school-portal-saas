@@ -162,7 +162,7 @@ def child_details(request, student_id):
             'max_pts': max_pts,
         })
 
-    # Aura AI Learning Profile
+    # SchoolPadi AI Learning Profile
     try:
         from academics.gamification_models import StudentXP, AuraSessionState
         from academics.tutor_models import LearnerMemory

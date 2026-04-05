@@ -17,7 +17,7 @@ _GES_CODE_RE = re.compile(r'^[A-Z]{1,3}\d{1,2}(?:\.\d+){2,5}\s*$')
 class GESLessonEngine:
     """
     Generates GES weekly lesson notes format (table-friendly structure).
-    This is intentionally separate from Aura-T lesson generation.
+    This is intentionally separate from Padi-T lesson generation.
     """
 
     _ACTION_VERBS = (

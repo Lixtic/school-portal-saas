@@ -331,7 +331,7 @@ class Resource(models.Model):
 
 
 class SchemeOfWork(models.Model):
-    """Teacher-uploaded termly scheme of work screenshot. Aura uses the extracted topics to guide lessons."""
+    """Teacher-uploaded termly scheme of work screenshot. SchoolPadi uses the extracted topics to guide lessons."""
     TERM_CHOICES = (
         ('first', 'First Term'),
         ('second', 'Second Term'),

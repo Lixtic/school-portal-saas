@@ -233,7 +233,7 @@ class AuraSessionState(models.Model):
 
     def as_prompt_injection(self):
         """
-        Return a text block injected into the system prompt so Aura knows
+        Return a text block injected into the system prompt so SchoolPadi knows
         where the student left off regardless of which interface they used.
         """
         if self.lesson_state in ('IDLE', ''):

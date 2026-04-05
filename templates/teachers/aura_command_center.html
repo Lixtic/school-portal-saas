@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Teacher Tools — Aura-T{% endblock %}
+{% block title %}Teacher Tools — Padi-T{% endblock %}
 
 {% block content %}
 <style>
@@ -47,7 +47,7 @@
     [data-bs-theme="dark"] .plan-topic { color: #f9fafb; }
     .plan-detail { font-size: .76rem; color: #6b7280; }
 
-    .aura-badges { display: flex; gap: .3rem; flex-wrap: wrap; flex-shrink: 0; }
+    .padi-badges { display: flex; gap: .3rem; flex-wrap: wrap; flex-shrink: 0; }
     .ab { display: inline-flex; align-items: center; gap: .2rem;
         font-size: .68rem; font-weight: 700; border-radius: 6px;
         padding: .15rem .45rem; white-space: nowrap; border: 1px solid; }
@@ -150,7 +150,7 @@
             -webkit-box-orient: vertical; overflow: hidden; font-size: .88rem; }
         .plan-detail { font-size: .72rem; }
         .score-ring { margin-left: auto; flex-shrink: 0; }
-        .aura-badges { display: none !important; }
+        .padi-badges { display: none !important; }
 
         /* Actions collapse to a full-width strip below the main row */
         .plan-actions {
@@ -262,15 +262,15 @@
         font-size: .75rem; font-weight: 800; color: #fff; flex-shrink: 0;
     }
 
-    /* ── Mobile aura score pill ─────────────────────────────────────────── */
-    .mobile-aura-pill {
+    /* ── Mobile padi score pill ─────────────────────────────────────────── */
+    .mobile-padi-pill {
         display: none;
         font-size: .65rem; font-weight: 800;
         border-radius: 20px; padding: .1rem .42rem;
         border: 1px solid; margin-left: .2rem;
     }
     @media(max-width:575px) {
-        .mobile-aura-pill { display: inline-flex; align-items: center; gap: .18rem; }
+        .mobile-padi-pill { display: inline-flex; align-items: center; gap: .18rem; }
     }
 
     /* hide plan-row when filtered out */
@@ -339,7 +339,7 @@
     <div class="acc-header">
         <div class="d-flex align-items-start justify-content-between flex-wrap gap-2">
             <div>
-                <div class="acc-title">🤖 Aura-T Command Center</div>
+                <div class="acc-title">🤖 Padi-T Command Center</div>
                 <p class="acc-sub">
                     Lesson plan upgrade status &mdash;
                     {% if is_teacher %}{{ teacher.user.get_full_name }}{% else %}All Teachers{% endif %}
@@ -395,7 +395,7 @@
             <div class="acc-stat">
                 <div class="acc-stat-icon" style="background:#f3f4f6;color:#6b7280;">⬜</div>
                 <div>
-                    <div class="acc-stat-lbl">No Aura-T</div>
+                    <div class="acc-stat-lbl">No Padi-T</div>
                     <div class="acc-stat-val" style="color:#6b7280;">{{ no_aura_count }}</div>
                 </div>
             </div>
@@ -453,7 +453,7 @@
             <i class="bi bi-chevron-down ms-auto" style="font-size:.7rem;color:#a78bfa;"></i>
         </button>
         <div id="pulseInfoBody" class="collapse px-3 pb-3" style="font-size:.78rem;color:#cbd5e1;">
-            <p class="mb-2" style="color:#a5b4fc;">Connected to the <strong>GES Standard-Based Curriculum</strong>, Aura&#8209;T&rsquo;s 30&#8209;second Pulse bursts can steer any phase of your lesson:</p>
+            <p class="mb-2" style="color:#a5b4fc;">Connected to the <strong>GES Standard-Based Curriculum</strong>, SchoolPadi&#8209;T&rsquo;s 30&#8209;second Pulse bursts can steer any phase of your lesson:</p>
             <div class="row g-2">
                 <div class="col-12 col-sm-6">
                     <div class="d-flex gap-2 align-items-start p-2 rounded-2" style="background:rgba(255,255,255,.04);">
@@ -553,8 +553,8 @@
                     📡 {{ p.pulse_count }}
                 </span>
                 {% endif %}
-                {# Mobile aura score pill #}
-                <span class="mobile-aura-pill ring-{{ p.aura_score }}">{{ p.aura_score }}/4</span>
+                {# Mobile padi score pill #}
+                <span class="mobile-padi-pill ring-{{ p.aura_score }}">{{ p.aura_score }}/4</span>
             </div>
             <div class="plan-detail">
                 {{ p.subject.name }} &middot; {{ p.school_class.name }}
@@ -562,7 +562,7 @@
             </div>
         </div>
 
-        <div class="aura-badges d-none d-md-flex">
+        <div class="padi-badges d-none d-md-flex">
             <span class="ab {% if p.has_pulse %}ab-on{% else %}ab-off{% endif %}">🔍 Pulse</span>
             <span class="ab {% if p.has_checkpoints %}ab-on{% else %}ab-off{% endif %}">🔲 CQ</span>
             <span class="ab {% if p.has_sprint %}ab-on{% else %}ab-off{% endif %}">🏁 Sprint</span>
@@ -581,7 +581,7 @@
     </div>
 
     {# ═══════════════════════════════════════════════════════════════════ #}
-    {# TEACHER VIEW: grouped by aura score                                 #}
+    {# TEACHER VIEW: grouped by padi score                                 #}
     {# ═══════════════════════════════════════════════════════════════════ #}
     {% else %}
 
@@ -597,7 +597,7 @@
         {% elif sc >= 1 %}
         <div class="mb-1"><span class="section-label lbl-amber">⚡ Partially Upgraded ({{ group.list|length }})<span class="d-none d-sm-inline"> — Regenerate to complete</span></span></div>
         {% else %}
-        <div class="mb-1"><span class="section-label lbl-gray">⬜ No Aura-T ({{ group.list|length }})<span class="d-none d-sm-inline"> — Click Regenerate to upgrade</span></span></div>
+        <div class="mb-1"><span class="section-label lbl-gray">⬜ No Padi-T ({{ group.list|length }})<span class="d-none d-sm-inline"> — Click Regenerate to upgrade</span></span></div>
         {% endif %}
 
         {% for p in group.list %}
@@ -621,15 +621,15 @@
                         📡 {{ p.pulse_count }}
                     </span>
                     {% endif %}
-                    {# Mobile aura score pill #}
-                    <span class="mobile-aura-pill ring-{{ p.aura_score }}">{{ p.aura_score }}/4</span>
+                    {# Mobile padi score pill #}
+                    <span class="mobile-padi-pill ring-{{ p.aura_score }}">{{ p.aura_score }}/4</span>
                 </div>
                 <div class="plan-detail">
                     {{ p.subject.name }} &middot; {{ p.school_class.name }}
                 </div>
             </div>
 
-            <div class="aura-badges d-none d-md-flex">
+            <div class="padi-badges d-none d-md-flex">
                 <span class="ab {% if p.has_pulse %}ab-on{% else %}ab-off{% endif %}">🔍 Pulse</span>
                 <span class="ab {% if p.has_checkpoints %}ab-on{% else %}ab-off{% endif %}">🔲 CQ</span>
                 <span class="ab {% if p.has_sprint %}ab-on{% else %}ab-off{% endif %}">🏁 Sprint</span>

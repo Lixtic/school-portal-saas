@@ -35,11 +35,11 @@ class Student(models.Model):
     )
     preferred_language = models.CharField(
         max_length=20, choices=LANGUAGE_CHOICES, default='english', blank=True,
-        help_text="Student's primary spoken language (informs Aura's vocabulary style)"
+        help_text="Student's primary spoken language (informs SchoolPadi's vocabulary style)"
     )
     aura_notes = models.TextField(
         blank=True, default='',
-        help_text="Teacher/admin notes for Aura — e.g. 'struggles with fractions', 'preparing for BECE', 'gifted in science'"
+        help_text="Teacher/admin notes for SchoolPadi — e.g. 'struggles with fractions', 'preparing for BECE', 'gifted in science'"
     )
     
     def __str__(self):

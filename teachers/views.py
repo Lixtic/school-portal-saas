@@ -46,7 +46,7 @@ def _classify_ai_error(exception):
     ):
         return {
             'error_code': 'ai_quota_exceeded',
-            'message': 'Aura is temporarily unavailable. Please try again later or contact your administrator.',
+            'message': 'SchoolPadi is temporarily unavailable. Please try again later or contact your administrator.',
             'http_status': 503,
             'retryable': False,
         }
@@ -58,7 +58,7 @@ def _classify_ai_error(exception):
     ):
         return {
             'error_code': 'ai_not_configured',
-            'message': 'Aura AI is currently unavailable due to configuration. Please contact your administrator.',
+            'message': 'SchoolPadi AI is currently unavailable due to configuration. Please contact your administrator.',
             'http_status': 503,
             'retryable': False,
         }
@@ -66,7 +66,7 @@ def _classify_ai_error(exception):
     if 'network error' in message_lower or 'timed out' in message_lower:
         return {
             'error_code': 'ai_network_error',
-            'message': 'Aura AI is temporarily unreachable. Please check your connection and try again shortly.',
+            'message': 'SchoolPadi AI is temporarily unreachable. Please check your connection and try again shortly.',
             'http_status': 503,
             'retryable': True,
         }
@@ -74,14 +74,14 @@ def _classify_ai_error(exception):
     if 'openai http 5' in message_lower:
         return {
             'error_code': 'ai_upstream_error',
-            'message': 'Aura is temporarily unavailable. Please try again shortly.',
+            'message': 'SchoolPadi is temporarily unavailable. Please try again shortly.',
             'http_status': 503,
             'retryable': True,
         }
 
     return {
         'error_code': 'ai_generation_failed',
-        'message': raw_message or 'Aura could not complete this request right now.',
+        'message': raw_message or 'SchoolPadi could not complete this request right now.',
         'http_status': 500,
         'retryable': True,
     }
@@ -1749,7 +1749,7 @@ def lesson_plan_create(request):
     
     # CASE 1: Full AI Content passed via POST (from Chat) or huge GET
     # Ideally we'd use POST for large content, but if coming from a link, it's GET.
-    # We might need to parse the unstructured text from Aura-T.
+    # We might need to parse the unstructured text from Padi-T.
     
     ai_content = request.POST.get('ai_content') or request.GET.get('ai_content')
     topic = request.GET.get('topic') # Legacy/Simple Fallback
@@ -1759,7 +1759,7 @@ def lesson_plan_create(request):
     prefill_class_id   = request.GET.get('class_id')
 
     if ai_content:
-        # PARSING LOGIC: Extract fields from the Aura-T standardized format
+        # PARSING LOGIC: Extract fields from the Padi-T standardized format
         import re
         
         def extract_section(header, text):
@@ -1779,7 +1779,7 @@ def lesson_plan_create(request):
             m = pat.search(text)
             return m.group(1).strip() if m else ""
 
-        # Attempt to map Aura-T output format to LessonPlan model fields
+        # Attempt to map Padi-T output format to LessonPlan model fields
         parsed_topic = extract_section("Strand", ai_content)
         parsed_sub_strand = extract_section("Sub Strand", ai_content)
         if not parsed_topic:
@@ -1797,7 +1797,7 @@ def lesson_plan_create(request):
             'homework': extract_section("Homework", ai_content) or "Refer to textbook exercises.",
             'core_competencies': extract_section("Core Competencies", ai_content), # If you add this field to model later
         }
-        messages.success(request, "Lesson plan draft populated from Aura-T session.")
+        messages.success(request, "Lesson plan draft populated from Padi-T session.")
 
     elif topic:
         # CASE 2: Pre-fill from topic chip (with indicator when available)
@@ -2490,7 +2490,7 @@ def aura_t_api(request):
 
                 return JsonResponse({
                     "status": "success",
-                    "message": "Lesson plan upgraded to Aura-T v3.",
+                    "message": "Lesson plan upgraded to Padi-T v3.",
                     "plan_id": regen_plan.pk,
                 })
 
@@ -2507,7 +2507,7 @@ def aura_t_api(request):
 def ges_lesson_api(request):
     """
     Separate GES Weekly Notes generator endpoint.
-    This flow does not use Aura-T formatting/parsing.
+    This flow does not use Padi-T formatting/parsing.
     """
     if request.method != 'POST':
         return JsonResponse({"status": "error", "message": "Invalid method"}, status=405)
@@ -2583,7 +2583,7 @@ def ges_lesson_api(request):
 @require_plan('basic', 'pro', 'enterprise')
 def aura_command_center(request):
     """
-    Aura-T Command Center - teachers go to the unified AI sessions page,
+    Padi-T Command Center - teachers go to the unified AI sessions page,
     admins get the full multi-teacher plan overview.
     """
     if request.user.user_type == 'teacher':
@@ -2665,7 +2665,7 @@ def aura_command_center(request):
 @require_plan('basic', 'pro', 'enterprise')
 def aura_flight_manual(request):
     """
-    Aura-T Teacher Flight Manual - quick-start guide for the AI-integrated lesson.
+    Padi-T Teacher Flight Manual - quick-start guide for the AI-integrated lesson.
     """
     is_teacher = request.user.user_type == 'teacher'
     is_admin   = request.user.user_type == 'admin'
@@ -2885,7 +2885,7 @@ from parents.models import Parent
 def power_words_dashboard(request):
     """
     Teacher Command Center: per-student Power Word clouds, weekly growth,
-    Aura-T academic verb trend insights, and one-click action buttons.
+    Padi-T academic verb trend insights, and one-click action buttons.
 
     Access: teacher (own classes) or admin (all classes).
     """
@@ -2971,7 +2971,7 @@ def power_words_dashboard(request):
             verb_pct_last = verb_pct(last_week_words)
             verb_delta = verb_pct_this - verb_pct_last
 
-            # Aura-T insight string
+            # Padi-T insight string
             aura_insight = None
             all_historical_verbs = sum(1 for w in student_words if w.word.lower() in ACADEMIC_VERBS)
             total = len(student_words)
@@ -3204,7 +3204,7 @@ import json
 @require_addon('ai-lesson-planner')
 def ai_sessions_list(request):
     """
-    Aura-T Command Centre (combined):
+    Padi-T Command Centre (combined):
     AI Copilot sessions, student matrix, lesson plan upgrade tracker,
     and live Pulse monitoring — all in one bento-grid interface.
     """
@@ -3526,7 +3526,7 @@ def ai_session_delete(request, session_id):
 @require_plan('basic', 'pro', 'enterprise')
 def assignment_creator(request):
     """
-    View for Aura-T Assignment Creator Interface.
+    View for Padi-T Assignment Creator Interface.
     Allows teachers to generate assignments, differentiation, and rubrics.
     """
     if request.user.user_type != 'teacher':
@@ -3638,9 +3638,9 @@ def scheme_of_work_upload(request):
                 scheme.save(update_fields=['extracted_topics', 'extracted_indicators'])
                 topic_count = len(topics)
                 if topic_count > 0:
-                    messages.success(request, f'Scheme of work uploaded! {topic_count} topics extracted for Aura.')
+                    messages.success(request, f'Scheme of work uploaded! {topic_count} topics extracted for SchoolPadi.')
                 else:
-                    messages.warning(request, 'Scheme uploaded but Aura could not extract topics from the image. You can re-upload a clearer image.')
+                    messages.warning(request, 'Scheme uploaded but SchoolPadi could not extract topics from the image. You can re-upload a clearer image.')
             except Exception as exc:
                 messages.warning(request, f'Scheme saved but topic extraction failed: {exc}')
 
@@ -3816,7 +3816,7 @@ def scheme_of_work_reextract(request, pk):
 @require_POST
 def scheme_of_work_bulk_generate(request, pk):
     """
-    Bulk-generate Aura-T lesson plans for all topics in a scheme of work.
+    Bulk-generate Padi-T lesson plans for all topics in a scheme of work.
     Skips topics that already have a matching lesson plan.
     Returns JSON: {ok, created, skipped, errors: [...], total}
     """
@@ -4141,7 +4141,7 @@ def submit_to_hod(request):
 
 @login_required
 def save_aura_t_plan(request):
-    """Save the Aura-T command centre lesson plan preview as a LessonPlan record."""
+    """Save the Padi-T command centre lesson plan preview as a LessonPlan record."""
     if request.method != 'POST':
         return JsonResponse({'ok': False, 'error': 'POST required'}, status=405)
     if request.user.user_type != 'teacher':
@@ -4152,7 +4152,7 @@ def save_aura_t_plan(request):
     except Teacher.DoesNotExist:
         return JsonResponse({'ok': False, 'error': 'Teacher profile not found'}, status=404)
 
-    lesson_title = request.POST.get('lesson_title', '').strip() or 'Aura-T Lesson Plan'
+    lesson_title = request.POST.get('lesson_title', '').strip() or 'Padi-T Lesson Plan'
     lesson_body = request.POST.get('lesson_body', '').strip()
 
     # Parse from body using the same section extractor as lesson_plan_create

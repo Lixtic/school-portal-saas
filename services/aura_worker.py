@@ -1,5 +1,5 @@
 """
-Dedicated GPU Worker for Aura-T (Teacher Assistant)
+Dedicated GPU Worker for Padi-T (Teacher Assistant)
 ---------------------------------------------------
 This script is intended to run on a separate GPU-enabled server (e.g., RunPod, Lambda Labs, local RTX 3090/4090).
 It implements the full Speech-to-Speech (S2S) pipeline locally using Hugging Face Transformers,
@@ -28,7 +28,7 @@ try:
     from transformers import pipeline
 except ImportError:
     torch = None
-    logger.warning("GPU dependencies not found. Aura Worker will not function properly.")
+    logger.warning("GPU dependencies not found. SchoolPadi Worker will not function properly.")
 
 class AuraPipeline:
     def __init__(self, device="cuda:0"):
@@ -36,7 +36,7 @@ class AuraPipeline:
             raise RuntimeError("CUDA GPU is required for this worker.")
         
         self.device = device
-        logger.info(f"Initializing Aura Pipeline on {device}...")
+        logger.info(f"Initializing SchoolPadi Pipeline on {device}...")
 
         # 1. LOAD THE EARS (ASR)
         logger.info("Loading ASR (Whisper)...")
@@ -69,7 +69,7 @@ class AuraPipeline:
             model="parler-tts/parler-tts-mini-v1",
             device=device
         )
-        logger.info("Aura Pipeline Ready.")
+        logger.info("SchoolPadi Pipeline Ready.")
 
     def talk_to_aura(self, audio_file):
         """
@@ -91,7 +91,7 @@ class AuraPipeline:
 
         # Step B: Think (Prompt for brevity)
         messages = [
-            {"role": "system", "content": "You are Aura. Reply in 1 sentence."},
+            {"role": "system", "content": "You are SchoolPadi. Reply in 1 sentence."},
             {"role": "user", "content": user_text},
         ]
         
@@ -109,7 +109,7 @@ class AuraPipeline:
             else:
                  aura_text = str(llm_out)
                  
-            logger.info(f"Aura Reply: {aura_text}")
+            logger.info(f"SchoolPadi Reply: {aura_text}")
         except Exception as e:
             logger.error(f"LLM Failed: {e}")
             return None
@@ -127,7 +127,7 @@ if __name__ == "__main__":
     try:
         # Check for GPU
         if torch and torch.cuda.is_available():
-            print("Starting Aura Pipeline...")
+            print("Starting SchoolPadi Pipeline...")
             aura = AuraPipeline()
             print("Pipeline Ready. (Mocking input for demo)")
             # In real usage: aura.talk_to_aura("path/to/audio.wav")

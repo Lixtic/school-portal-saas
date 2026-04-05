@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Aura Portfolio – {{ portfolio_student.user.get_full_name }}{% endblock %}
+{% block title %}SchoolPadi Portfolio – {{ portfolio_student.user.get_full_name }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -331,7 +331,7 @@
                     {% endfor %}
                 </div>
             {% else %}
-                <div class="ap-empty"><i class="bi bi-stars"></i>Strengths will appear as Aura gets to know you.</div>
+                <div class="ap-empty"><i class="bi bi-stars"></i>Strengths will appear as SchoolPadi gets to know you.</div>
             {% endif %}
         </div>
 
@@ -356,7 +356,7 @@
         </div>
         <p class="text-muted mt-2 mb-0" style="font-size:.7rem;">Word size reflects frequency of use. Larger = used more often.</p>
         {% else %}
-        <div class="ap-empty"><i class="bi bi-alphabet"></i>No vocabulary words logged yet. Start a chat session with Aura!</div>
+        <div class="ap-empty"><i class="bi bi-alphabet"></i>No vocabulary words logged yet. Start a chat session with SchoolPadi!</div>
         {% endif %}
     </div>
 
@@ -378,7 +378,7 @@
     {% if heatmap_json %}
     <div class="ap-card">
         <div class="ap-card-title"><i class="bi bi-calendar3 text-primary"></i> Learning Activity – Past Year</div>
-        <div id="aura-heatmap" style="overflow-x:auto;padding-bottom:.25rem;"></div>
+        <div id="padi-heatmap" style="overflow-x:auto;padding-bottom:.25rem;"></div>
         <div class="d-flex justify-content-between mt-2" style="font-size:.65rem;color:#9ca3af;">
             <span>Less</span>
             <span style="display:flex;align-items:center;gap:3px;">
@@ -394,7 +394,7 @@
     (function(){
         const data = {{ heatmap_json|safe }};
         const startDate = new Date("{{ heatmap_start }}");
-        const container = document.getElementById('aura-heatmap');
+        const container = document.getElementById('padi-heatmap');
         if(!container) return;
 
         const WEEKS = 53;
@@ -461,7 +461,7 @@
 
     <!-- ── Recent Sessions ── -->
     <div class="ap-card">
-        <div class="ap-card-title"><i class="fa-solid fa-comments" style="color:#6366f1;"></i> Recent Aura Sessions</div>
+        <div class="ap-card-title"><i class="fa-solid fa-comments" style="color:#6366f1;"></i> Recent SchoolPadi Sessions</div>
         {% if sessions %}
         {% for session in sessions %}
         <div class="ap-session-item">
@@ -482,7 +482,7 @@
             </a>
             {% else %}
             <a href="{% url 'homework:homework_create' %}?topic={{ session.get_display_title|urlencode }}{% if student.current_class_id %}&class_id={{ student.current_class_id }}{% endif %}{% if session.subject_id %}&subject_id={{ session.subject_id }}{% endif %}"
-               class="btn btn-sm" style="background:#ecfdf5; color:#059669; border:none; font-size:.72rem; white-space:nowrap;" title="Create homework from this Aura session topic">
+               class="btn btn-sm" style="background:#ecfdf5; color:#059669; border:none; font-size:.72rem; white-space:nowrap;" title="Create homework from this SchoolPadi session topic">
                 📚 Assign HW
             </a>
             {% endif %}

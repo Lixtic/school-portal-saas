@@ -193,7 +193,7 @@ class APIKey(models.Model):
     def generate():
         """Generate a new API key. Returns (raw_key, prefix, hashed_key)."""
         import hashlib
-        raw = 'aura_' + secrets.token_hex(24)  # 53-char key
+        raw = 'padi_' + secrets.token_hex(24)  # 53-char key
         prefix = raw[:8]
         hashed = hashlib.sha256(raw.encode()).hexdigest()
         return raw, prefix, hashed

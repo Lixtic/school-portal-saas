@@ -1,5 +1,5 @@
 /**
- * Aura Offline Store — IndexedDB-backed offline data layer
+ * SchoolPadi Offline Store — IndexedDB-backed offline data layer
  *
  * Stores page snapshots, queued form submissions, and key data
  * so the app remains usable without network connectivity.
@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const DB_NAME = 'aura-offline';
+  const DB_NAME = 'padi-offline';
   const DB_VERSION = 1;
   const STORES = {
     pages: 'offline-pages',       // cached page snapshots (title, url, html excerpt, timestamp)
@@ -384,12 +384,12 @@
     window.addEventListener('online', async () => {
       const result = await replayQueue();
       if (result.sent > 0) {
-        window.dispatchEvent(new CustomEvent('aura:queue-synced', { detail: result }));
+        window.dispatchEvent(new CustomEvent('padi:queue-synced', { detail: result }));
       }
     });
 
     // Expose count for UI badge updates
-    window.addEventListener('aura:queue-changed', async () => {
+    window.addEventListener('padi:queue-changed', async () => {
       const items = await getQueuedSubmissions();
       const badge = document.getElementById('offlineQueueBadge');
       if (badge) {
@@ -401,7 +401,7 @@
 
   // ── Public API ───────────────────────────────────────────────────────────
 
-  window.AuraOffline = {
+  window.PadiOffline = {
     savePageSnapshot,
     getPageSnapshot,
     getAllPages,

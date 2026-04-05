@@ -27,7 +27,7 @@ WELCOME_BONUS_CREDITS = 10
 # ── Add-on slug → gated view names ─────────────────────────────
 ADDON_FEATURE_MAP = {
     'aura-slide-generator': {
-        'label': 'Aura Slide Generator',
+        'label': 'SchoolPadi Slide Generator',
         'gates': [
             'presentation_api',
             'presentation_generate_from_doc', 'presentation_from_youtube',

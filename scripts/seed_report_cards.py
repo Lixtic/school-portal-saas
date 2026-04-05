@@ -104,21 +104,21 @@ SETS = [
         "class_name": "Basic 7A",
         "term": "first",
         "academic_year": "2025/2026",
-        "school_name": "Aura International School",
+        "school_name": "SchoolPadi Demo School",
     },
     {
         "title": "Basic 7A — Second Term Report Cards 2025/2026",
         "class_name": "Basic 7A",
         "term": "second",
         "academic_year": "2025/2026",
-        "school_name": "Aura International School",
+        "school_name": "SchoolPadi Demo School",
     },
     {
         "title": "Basic 8B — First Term Report Cards 2025/2026",
         "class_name": "Basic 8B",
         "term": "first",
         "academic_year": "2025/2026",
-        "school_name": "Aura International School",
+        "school_name": "SchoolPadi Demo School",
     },
 ]
 

@@ -151,7 +151,7 @@ class CSVImportForm(forms.Form):
 
 
 class AuraPreferencesForm(forms.ModelForm):
-    """Student self-service form to update Aura AI preferences."""
+    """Student self-service form to update SchoolPadi AI preferences."""
 
     interests = forms.CharField(
         required=False,

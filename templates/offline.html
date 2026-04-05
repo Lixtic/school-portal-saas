@@ -1,10 +1,10 @@
-﻿{% load static %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Offline | Aura</title>
+    <title>Offline | SchoolPadi</title>
     <meta name="theme-color" content="#026e56">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
@@ -244,8 +244,8 @@
 <body>
     <main class="card" role="main">
         <div class="brand">
-            <img src="{% static 'img/logo.png' %}" alt="Aura logo">
-            <h1>Aura</h1>
+            <img src="{% static 'img/logo.png' %}" alt="SchoolPadi logo">
+            <h1>SchoolPadi</h1>
         </div>
 
         <h2><i class="bi bi-wifi-off" style="opacity:0.5"></i> You are offline right now.</h2>
@@ -331,10 +331,10 @@
             }
 
             async function loadCachedPages() {
-                if (!window.AuraOffline) return;
+                if (!window.PadiOffline) return;
 
                 try {
-                    var pages = await window.AuraOffline.getAllPages();
+                    var pages = await window.PadiOffline.getAllPages();
                     if (!pages || !pages.length) {
                         // Also try the Cache API via SW
                         if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
@@ -371,8 +371,8 @@
                 unique.forEach(function (page) {
                     var icon = PAGE_ICONS[page.pageType] || PAGE_ICONS.page;
                     var title = page.title || page.url || page.fullUrl;
-                    // Clean title — remove " | Aura" suffix
-                    title = title.replace(/\s*\|\s*Aura$/i, '').trim();
+                    // Clean title — remove " | SchoolPadi" suffix
+                    title = title.replace(/\s*\|\s*SchoolPadi$/i, '').trim();
                     var url = page.url || new URL(page.fullUrl).pathname;
 
                     var li = document.createElement('li');
@@ -402,9 +402,9 @@
             // ── Render queued actions ──
 
             async function loadQueuedActions() {
-                if (!window.AuraOffline) return;
+                if (!window.PadiOffline) return;
                 try {
-                    var items = await window.AuraOffline.getQueuedSubmissions();
+                    var items = await window.PadiOffline.getQueuedSubmissions();
                     if (!items || !items.length) return;
 
                     var section = document.getElementById('queueSection');

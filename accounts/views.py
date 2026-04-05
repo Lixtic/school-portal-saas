@@ -831,7 +831,7 @@ def dashboard(request):
         for p in todays_classes:
             p.is_ongoing = p.start_time <= current_time <= p.end_time
 
-        # === Aura-T Lesson Reminders ===
+        # === Padi-T Lesson Reminders ===
         # Match today's timetable entries with lesson plans for the current week
         next_class_reminder = None
         try:
@@ -867,7 +867,7 @@ def dashboard(request):
                         p.lesson_topic = None
                         p.lesson_objectives = None
 
-                # Find the next upcoming class (or ongoing) for the Aura-T banner
+                # Find the next upcoming class (or ongoing) for the Padi-T banner
                 for p in todays_classes:
                     if p.is_ongoing or p.start_time > current_time:
                         if p.lesson_topic:
@@ -1844,7 +1844,7 @@ def school_analytics(request):
             'student_fee__student__user'
         ).order_by('-date')[:10])
 
-        # --- Aura AI activity ---
+        # --- SchoolPadi AI activity ---
         from academics.tutor_models import TutorSession as _TS
         from academics.gamification_models import StudentXP as _SXPA
         from django.db.models import Avg as _AvgA
@@ -1880,7 +1880,7 @@ def school_analytics(request):
         'attendance_rate': attendance_rate,
         'recent_payments': recent_payments,
         'current_year': current_year,
-        # Aura AI
+        # SchoolPadi AI
         'aura_total_sessions': locals().get('aura_total_sessions', 0),
         'aura_active_30d': locals().get('aura_active_30d', 0),
         'aura_avg_streak': locals().get('aura_avg_streak', 0),

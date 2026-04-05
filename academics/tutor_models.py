@@ -60,7 +60,7 @@ class TutorMessage(models.Model):
 
 class LearnerMemory(models.Model):
     """
-    Persistent cross-session memory for Aura's continuous context awareness.
+    Persistent cross-session memory for SchoolPadi's continuous context awareness.
 
     Stores cumulative learning insights so every new session can pick up
     where the last one left off — misconceptions, mastered topics,
@@ -302,7 +302,7 @@ class PowerWord(models.Model):
     Tracks academic vocabulary words that Aura has successfully taught a student.
 
     Every time the student correctly uses a Power Word (a domain-specific academic term
-    they learned during an Aura session), this record is updated. Teachers see a clean
+    they learned during a SchoolPadi session), this record is updated. Teachers see a clean
     word-cloud / list per student in the Command Center showing weekly vocabulary growth.
     """
 
@@ -389,7 +389,7 @@ class PowerWord(models.Model):
 
 
 class CopilotConversation(models.Model):
-    """Conversation thread for the global Aura assistant."""
+    """Conversation thread for the global SchoolPadi assistant."""
     user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='copilot_conversations')
     title = models.CharField(max_length=120, blank=True)
     user_role = models.CharField(max_length=20, blank=True)

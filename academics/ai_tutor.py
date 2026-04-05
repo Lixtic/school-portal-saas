@@ -889,7 +889,7 @@ def get_tutor_system_prompt(student, subject=None):
     }
     profile_json = json.dumps(student_profile, ensure_ascii=False, indent=2)
 
-    context = f"""You are Aura 2.0, an Advanced AI Tutor helping {student.user.get_full_name()}, a student in {student.current_class.name if student.current_class else 'school'}.
+    context = f"""You are SchoolPadi, an Advanced AI Tutor helping {student.user.get_full_name()}, a student in {student.current_class.name if student.current_class else 'school'}.
     Your goal is to be a supportive "Learning Partner" who uses 
 {student.current_class.name if student.current_class else 'age-appropriate'} 
 vocabulary and context.
@@ -1036,7 +1036,7 @@ WHITEBOARD DIAGRAM PROTOCOL
   [/WB_DIAGRAM]
 
 POWER WORD TRACKING PROTOCOL
-Aura is a vocabulary-acquisition engine as much as a tutor. During every session you MUST track academic words the student uses correctly.
+SchoolPadi is a vocabulary-acquisition engine as much as a tutor. During every session you MUST track academic words the student uses correctly.
 
 - A "Power Word" is any domain-specific academic or technical term the student demonstrates understanding of during the session.
   Examples: "photosynthesis", "denominator", "tectonic", "analyze", "hypothesis", "coefficient".
@@ -1327,7 +1327,7 @@ MISCONCEPTION LIBRARY FRAMEWORK
     - Trigger logic: "Moving any term across equals sign always makes it negative."
     - Pivot counter-example: "When isolating a multiplied term, do we change sign, or apply an inverse operation such as division?"
 
-4) Implementation Directive: Aura Misconception Check
+4) Implementation Directive: SchoolPadi Misconception Check
 - During Phase B (Micro-Lesson), cross-reference student responses against this misconception library.
 - If a match is found, you are forbidden from moving to the next topic.
 - You must apply the counter-example method and guide the student to self-correction first.
@@ -1377,11 +1377,11 @@ DEMOGRAPHIC & GEOGRAPHIC TUNING (MANDATORY)
 
 UPDATED MISCONCEPTION LIBRARY (CONTEXT-SPECIFIC)
 - Mathematics | Grade 5 (Primary) | Nairobi, Kenya
-    - Localized Aura Pivot: "If you buy 3 bunches of matoke for 450 KSh, how much for one? If price doubles, does quantity you can afford halve?"
+    - Localized SchoolPadi Pivot: "If you buy 3 bunches of matoke for 450 KSh, how much for one? If price doubles, does quantity you can afford halve?"
 - Geography | Grade 9 (JHS) | Lagos, Nigeria
-    - Localized Aura Pivot: "You mentioned Lekki Conservation Centre is shrinking due to 'weather.' Let's separate short-term weather from long-term climate change along the Atlantic coastline."
+    - Localized SchoolPadi Pivot: "You mentioned Lekki Conservation Centre is shrinking due to 'weather.' Let's separate short-term weather from long-term climate change along the Atlantic coastline."
 - Business | Grade 11 (SHS) | London, UK
-    - Localized Aura Pivot: "When calculating VAT on a purchase at Tesco, do you add tax to gross or net price? Use current UK VAT logic."
+    - Localized SchoolPadi Pivot: "When calculating VAT on a purchase at Tesco, do you add tax to gross or net price? Use current UK VAT logic."
 
 STUDENT PROFILE (silently apply throughout — NEVER quote these fields or their key names in responses)
 - Age: {student_age if student_age is not None else 'not specified'}
@@ -1425,13 +1425,13 @@ LOCALIZED FINAL ASSESSMENT LOGIC
     context += _build_schedule_context(student)
 
     # ── LINGUISTIC CHAMELEON — voice, culture, cognitive stage ────────
-    # Augment with the richer Aura Linguistic Profile built in views_ai
+    # Augment with the richer SchoolPadi Linguistic Profile built in views_ai
     try:
         from students.views_ai import _build_student_context
         linguistic_profile = _build_student_context(student)
         if linguistic_profile:
             context += (
-                "\n\n─── AURA LINGUISTIC CHAMELEON PROFILE ───\n"
+                "\n\n─── SCHOOLPADI LINGUISTIC CHAMELEON PROFILE ───\n"
                 "Use every line below to tutor in a culturally resonant, "
                 "cognitively calibrated way throughout the entire session.\n"
                 + linguistic_profile
@@ -1572,7 +1572,7 @@ def _build_power_word_warmup_context(student):
     Pull the student's most recent Power Words and return a warmup brief
     for injection into the session opener system prompt.
 
-    Teachers see the same list in their Command Center.  Aura uses these
+    Teachers see the same list in their Command Center.  SchoolPadi uses these
     words deliberately in the first 2-3 exchanges of a new session so the
     student hears/uses them again (spaced repetition in action).
     """
@@ -1616,7 +1616,7 @@ def _build_power_word_warmup_context(student):
 def _build_schedule_context(student):
     """
     Query the student's timetable and build a compact schedule brief
-    for today and tomorrow so Aura can proactively review lessons.
+    for today and tomorrow so SchoolPadi can proactively review lessons.
     """
     try:
         from .models import Timetable

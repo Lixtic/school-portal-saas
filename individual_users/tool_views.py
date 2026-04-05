@@ -1397,7 +1397,7 @@ def lesson_plan_ai_generate(request):
 
     # ── Build prompt ──────────────────────────────────────────
     _sys = (
-        'You are Aura-T, an expert Ghanaian GES curriculum specialist. '
+        'You are Padi-T, an expert Ghanaian GES curriculum specialist. '
         'You create lesson plans following the 3-phase pedagogy: '
         'Phase 1 (Starter), Phase 2 (Main/New Learning), Phase 3 (Reflection). '
         'Always include practical activities, formative assessment checkpoints, '

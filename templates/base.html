@@ -1,11 +1,11 @@
-﻿{% load static %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{{ school_name|default:"Aura" }}{% endblock %}</title>
-    <meta property="og:title" content="{{ school_name|default:'Aura' }} — School Management">
+    <title>{% block title %}{{ school_name|default:"SchoolPadi" }}{% endblock %}</title>
+    <meta property="og:title" content="{{ school_name|default:'SchoolPadi' }} — School Management">
     <meta property="og:description" content="AI-powered school management for academics, finance, attendance, and more.">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary">
@@ -16,7 +16,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Aura">
+    <meta name="apple-mobile-web-app-title" content="SchoolPadi">
     <!-- Favicon & Apple Touch Icons -->
     <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
     <link rel="apple-touch-icon" href="{% static 'img/logo.png' %}">
@@ -39,7 +39,7 @@
     <link rel="stylesheet" href="{% static 'css/admin-mobile-utilities.css' %}">
     
     <style>
-        /* ── Aura Expressive Loader ─────────────────────────────── */
+        /* ── SchoolPadi Expressive Loader ─────────────────────────────── */
 
         /* 1. TOP EDGE BAR - Mobile Optimized */
         #pageLoader {
@@ -82,17 +82,17 @@
             opacity: 1;
         }
         #pageLoader.loading::after {
-            animation: auraExpressiveShimmer 1.6s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+            animation: padiExpressiveShimmer 1.6s cubic-bezier(0.37, 0, 0.63, 1) infinite;
         }
         /* Completion sweep — bar races to end then fades */
         #pageLoader.done::after {
-            animation: auraExpressiveDone 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            animation: padiExpressiveDone 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
-        @keyframes auraExpressiveShimmer {
+        @keyframes padiExpressiveShimmer {
             0%   { left: -38%; }
             100% { left: 100%; }
         }
-        @keyframes auraExpressiveDone {
+        @keyframes padiExpressiveDone {
             0%   { left: -38%; width: 38%; opacity: 1; }
             65%  { left: 62%;  width: 38%; opacity: 1; }
             100% { left: 100%; width: 38%; opacity: 0; }
@@ -111,7 +111,7 @@
         }
         .loading-overlay.active { opacity: 1; visibility: visible; }
 
-        .aura-loader-card {
+        .padi-loader-card {
             background: rgba(255, 255, 255, 0.95);
             border: 1px solid rgba(255, 255, 255, 0.7);
             border-radius: 20px;
@@ -121,25 +121,25 @@
             min-width: 240px;
             max-width: 90vw;
         }
-        [data-bs-theme="dark"] .aura-loader-card {
+        [data-bs-theme="dark"] .padi-loader-card {
             background: rgba(15, 23, 42, 0.92);
             border-color: rgba(255,255,255,.15);
         }
         /* Mobile: Smaller, centered card */
         @media (max-width: 768px) {
-            .aura-loader-card {
+            .padi-loader-card {
                 padding: 1.5rem 2rem;
                 min-width: 200px;
                 border-radius: 16px;
             }
         }
         /* Mini shimmer bar inside the card - Mobile Optimized */
-        .aura-loader-mini-bar {
+        .padi-loader-mini-bar {
             width: 100%; height: 4px; border-radius: 4px;
             background: rgba(67, 97, 238, 0.15);
             overflow: hidden; margin-bottom: 1.25rem; position: relative;
         }
-        .aura-loader-mini-bar::after {
+        .padi-loader-mini-bar::after {
             content: '';
             position: absolute; top: 0; left: -38%; width: 38%; height: 100%;
             background: linear-gradient(
@@ -150,40 +150,40 @@
                 rgba(76,201,240,1) 72%,
                 transparent 100%
             );
-            animation: auraExpressiveShimmer 1.6s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+            animation: padiExpressiveShimmer 1.6s cubic-bezier(0.37, 0, 0.63, 1) infinite;
         }
-        .aura-loader-text {
+        .padi-loader-text {
             font-size: .9rem; font-weight: 600;
             color: #374151; letter-spacing: .01em;
         }
-        [data-bs-theme="dark"] .aura-loader-text { color: #94a3b8; }
+        [data-bs-theme="dark"] .padi-loader-text { color: #94a3b8; }
         /* Three rhythmic dots - Larger for mobile */
-        .aura-loader-dots {
+        .padi-loader-dots {
             display: flex; justify-content: center; gap: 6px; margin-top: .75rem;
         }
-        .aura-loader-dots span {
+        .padi-loader-dots span {
             width: 6px; height: 6px; border-radius: 50%;
             background: #4361ee; opacity: .3;
-            animation: auraDotPulse 1.2s ease-in-out infinite;
+            animation: padiDotPulse 1.2s ease-in-out infinite;
         }
-        .aura-loader-dots span:nth-child(2) { animation-delay: .2s; }
-        .aura-loader-dots span:nth-child(3) { animation-delay: .4s; }
-        @keyframes auraDotPulse {
+        .padi-loader-dots span:nth-child(2) { animation-delay: .2s; }
+        .padi-loader-dots span:nth-child(3) { animation-delay: .4s; }
+        @keyframes padiDotPulse {
             0%, 100% { opacity: .25; transform: scale(.85); }
             50%       { opacity: 1;  transform: scale(1.1); }
         }
         /* Mobile: Larger dots for better visibility */
         @media (max-width: 768px) {
-            .aura-loader-text {
+            .padi-loader-text {
                 font-size: 1rem;
             }
-            .aura-loader-dots span {
+            .padi-loader-dots span {
                 width: 8px;
                 height: 8px;
             }
         }
 
-        /* 3. BUTTON LOADING — Aura dot-pulse (no spinning circles) */
+        /* 3. BUTTON LOADING — SchoolPadi dot-pulse (no spinning circles) */
         .btn-loading { position: relative; color: transparent !important; pointer-events: none; }
         .btn-loading::after {
             content: ''; position: absolute;
@@ -192,9 +192,9 @@
             background: #fff;
             border-radius: 50%;
             box-shadow: 8px 0 0 -1px rgba(255,255,255,.45), 16px 0 0 -1px rgba(255,255,255,.25);
-            animation: auraDotPulse 1s ease-in-out infinite;
+            animation: padiDotPulse 1s ease-in-out infinite;
         }
-        @keyframes auraDotPulse {
+        @keyframes padiDotPulse {
             0%   { box-shadow: 8px 0 0 -1px rgba(255,255,255,.45), 16px 0 0 -1px rgba(255,255,255,.25); }
             33%  { box-shadow: 8px 0 0 0px  #fff,                  16px 0 0 -1px rgba(255,255,255,.45); background: rgba(255,255,255,.45); }
             66%  { box-shadow: 8px 0 0 -1px rgba(255,255,255,.25), 16px 0 0 0px  #fff;                 background: rgba(255,255,255,.25); }
@@ -210,11 +210,11 @@
             background: currentColor;
             border-radius: 50%;
             vertical-align: middle;
-            animation: auraBtnDots 1s ease-in-out infinite;
+            animation: padiBtnDots 1s ease-in-out infinite;
             box-shadow: 8px 0 0 -1px currentColor, 16px 0 0 -1px currentColor;
             margin-right: 10px;
         }
-        @keyframes auraBtnDots {
+        @keyframes padiBtnDots {
             0%   { opacity: 1; box-shadow: 8px 0 0 -1px currentColor, 16px 0 0 -2px currentColor; }
             33%  { opacity: .4; box-shadow: 8px 0 0 0px  currentColor, 16px 0 0 -1px currentColor; }
             66%  { opacity: .4; box-shadow: 8px 0 0 -2px currentColor, 16px 0 0 0px  currentColor; }
@@ -1890,7 +1890,7 @@
 
     <!-- iOS Splash Screen Generator ──────────────────────────────────
          Dynamically generates apple-touch-startup-image tags via Canvas
-         so iOS shows the branded Aura splash during PWA cold launch
+         so iOS shows the branded SchoolPadi splash during PWA cold launch
          instead of a blank white/black screen.                          -->
     <script>
     (function(){
@@ -1975,12 +1975,12 @@
             ctx.drawImage(logo, lx, ly, logoSize, logoSize);
             ctx.restore();
 
-            // "Aura" text
+            // "SchoolPadi" text
             var titleSize = Math.round(26 * r);
             ctx.font = '800 ' + titleSize + 'px Manrope, -apple-system, sans-serif';
             ctx.textAlign = 'center';
             ctx.fillStyle = '#ffffff';
-            ctx.fillText('Aura', cW / 2, ly + logoSize + 44 * r);
+            ctx.fillText('SchoolPadi', cW / 2, ly + logoSize + 44 * r);
 
             // "School Management" subtitle
             var subSize = Math.round(10 * r);
@@ -2014,13 +2014,13 @@
     <!-- ── PWA Splash Screen ─────────────────────────────────────────
          Shown on cold launch / first load. Dismisses once DOM is interactive.
          Only visible in standalone PWA mode or first page load.            -->
-    <div id="auraSplash" aria-hidden="true">
+    <div id="padiSplash" aria-hidden="true">
         <div class="splash-glow"></div>
         <div class="splash-content">
             <div class="splash-logo-ring">
                 <img src="{% static 'img/logo.png' %}" alt="" class="splash-logo" width="72" height="72">
             </div>
-            <div class="splash-wordmark">Aura</div>
+            <div class="splash-wordmark">SchoolPadi</div>
             <div class="splash-tagline">School Management</div>
             <div class="splash-dots">
                 <span></span><span></span><span></span>
@@ -2029,7 +2029,7 @@
     </div>
     <style>
         /* ── Splash Screen ────────────────────────────────────────── */
-        #auraSplash {
+        #padiSplash {
             position: fixed;
             inset: 0;
             z-index: 99999;
@@ -2042,12 +2042,12 @@
             transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
                         transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        #auraSplash.splash-dismiss {
+        #padiSplash.splash-dismiss {
             opacity: 0;
             transform: scale(1.04);
             pointer-events: none;
         }
-        #auraSplash.splash-gone { display: none; }
+        #padiSplash.splash-gone { display: none; }
 
         /* Ambient glow */
         .splash-glow {
@@ -2151,14 +2151,14 @@
             .splash-logo-ring { animation: none; opacity: 1; }
             .splash-wordmark, .splash-tagline, .splash-dots { animation: none; opacity: 1; }
             .splash-dots span { animation: none; opacity: 0.6; }
-            #auraSplash { transition: opacity 0.2s ease; }
+            #padiSplash { transition: opacity 0.2s ease; }
         }
     </style>
     <script>
         // Dismiss splash once DOM content is ready + minimum display time.
         // On repeat navigations (BFCache) splash is already hidden.
         (function() {
-            var splash = document.getElementById('auraSplash');
+            var splash = document.getElementById('padiSplash');
             if (!splash) return;
 
             // Skip splash on back/forward cache restore
@@ -2172,11 +2172,11 @@
                      || window.navigator.standalone === true;
             if (!isPWA) {
                 try {
-                    if (sessionStorage.getItem('_auraSplashShown')) {
+                    if (sessionStorage.getItem('_padiSplashShown')) {
                         splash.classList.add('splash-gone');
                         return;
                     }
-                    sessionStorage.setItem('_auraSplashShown', '1');
+                    sessionStorage.setItem('_padiSplashShown', '1');
                 } catch(e) {}
             }
 
@@ -2218,7 +2218,7 @@
     </div>
     {% endif %}
 
-    <!-- Aura Expressive Loader: Top Bar -->
+    <!-- SchoolPadi Expressive Loader: Top Bar -->
     <div id="pageLoader" aria-hidden="true"></div>
 
     <!-- Instant Navigation Overlay: skeleton shell covering content area only -->
@@ -2237,12 +2237,12 @@
         </div>
     </div>
 
-    <!-- Aura Expressive Loader: Form-Submit Overlay -->
+    <!-- SchoolPadi Expressive Loader: Form-Submit Overlay -->
     <div class="loading-overlay" id="globalLoader" aria-live="polite" aria-label="Loading">
-        <div class="aura-loader-card">
-            <div class="aura-loader-mini-bar"></div>
-            <div class="aura-loader-text" id="globalLoaderText">Processing&hellip;</div>
-            <div class="aura-loader-dots">
+        <div class="padi-loader-card">
+            <div class="padi-loader-mini-bar"></div>
+            <div class="padi-loader-text" id="globalLoaderText">Processing&hellip;</div>
+            <div class="padi-loader-dots">
                 <span></span><span></span><span></span>
             </div>
         </div>
@@ -2310,7 +2310,7 @@
                                 {% endif %}
                             </div>
                             <div class="header-brand-text">
-                                <div class="header-brand-name">{{ school_name|default:"Aura" }}</div>
+                                <div class="header-brand-name">{{ school_name|default:"SchoolPadi" }}</div>
                                 <div class="header-brand-sub">{{ user.user_type|capfirst }} Portal</div>
                             </div>
                         </a>
@@ -3065,7 +3065,7 @@
                 <a href="{% url 'teachers:presentation_list' %}" class="nav-link {% if 'presentation' in request.resolver_match.url_name %}active{% endif %}" title="Slide Decks">
                     <i class="bi bi-easel2-fill"></i>
                     <span>Slide Decks</span>
-                    {% if 'aura-slide-generator' not in purchased_addon_slugs %}<i class="bi bi-lock-fill ms-auto" style="font-size:.65rem;opacity:.45"></i>{% endif %}
+                    {% if 'padi-slide-generator' not in purchased_addon_slugs %}<i class="bi bi-lock-fill ms-auto" style="font-size:.65rem;opacity:.45"></i>{% endif %}
                 </a>
             </div>
 
@@ -3129,9 +3129,9 @@
                 </a>
             </div>
             <div class="nav-item">
-                <a href="{% url 'students:aura_arena' %}" class="nav-link text-warning {% if request.resolver_match.url_name == 'aura_arena' %}active{% endif %}" title="Aura Arena">
+                <a href="{% url 'students:aura_arena' %}" class="nav-link text-warning {% if request.resolver_match.url_name == 'aura_arena' %}active{% endif %}" title="SchoolPadi Arena">
                     <i class="bi bi-controller"></i>
-                    <span class="fw-bold">Aura Arena ⚡</span>
+                    <span class="fw-bold">SchoolPadi Arena ⚡</span>
                 </a>
             </div>
             <div class="nav-item">
@@ -3642,7 +3642,7 @@
     <div class="copilot-launcher">
         <button type="button" id="copilotToggle">
             <i class="bi bi-stars"></i>
-            <span>Aura</span>
+            <span>SchoolPadi</span>
         </button>
     </div>
     <button type="button" id="copilotRecall" class="copilot-recall" aria-label="Open help chat" title="Open help (Alt+H)">
@@ -3653,7 +3653,7 @@
             <div class="d-flex align-items-center gap-2">
                 <i class="bi bi-robot"></i>
                 <div>
-                    <div class="fw-bold">Aura</div>
+                    <div class="fw-bold">SchoolPadi</div>
                     <small class="opacity-75">AI assistant for your portal</small>
                 </div>
             </div>
@@ -3661,9 +3661,9 @@
         </div>
         <div class="copilot-body" id="copilotBody">
             {% if request.user.is_authenticated %}
-            <div class="copilot-bubble bot">Hi {{ request.user.first_name|default:"there" }}! I’m Aura AI Assistant for {{ school_info.name|default_if_none:'your school' }}. I can help with your {{ request.user.user_type|default:"account" }} tasks—ask about classes, attendance, grades, fees, or events.</div>
+            <div class="copilot-bubble bot">Hi {{ request.user.first_name|default:"there" }}! I’m SchoolPadi AI Assistant for {{ school_info.name|default_if_none:'your school' }}. I can help with your {{ request.user.user_type|default:"account" }} tasks—ask about classes, attendance, grades, fees, or events.</div>
             {% else %}
-            <div class="copilot-bubble bot">Hi! I’m Aura AI Assistant for {{ school_info.name|default_if_none:'our school' }}. Ask me about admissions, programs, schedules, or fees.</div>
+            <div class="copilot-bubble bot">Hi! I’m SchoolPadi AI Assistant for {{ school_info.name|default_if_none:'our school' }}. Ask me about admissions, programs, schedules, or fees.</div>
             {% endif %}
             <div class="copilot-suggestions" id="copilotSuggestions" aria-label="Quick help suggestions"></div>
         </div>
@@ -4736,14 +4736,14 @@
     </script>
     {% endif %}
 {% if user.is_authenticated and user.user_type == 'teacher' %}
-<!-- Global Aura-T Co-pilot -->
+<!-- Global Padi-T Co-pilot -->
 <style>
-    html[data-aura-page] #aura-copilot-container,
-    html[data-aura-page] .copilot-launcher {
+    html[data-padi-page] #padi-copilot-container,
+    html[data-padi-page] .copilot-launcher {
         display: none !important;
     }
 
-    #aura-copilot-container {
+    #padi-copilot-container {
         position: fixed;
         right: 20px;
         bottom: 20px;
@@ -4754,13 +4754,13 @@
         pointer-events: none; /* Prevent blocking clicks on elements below */
     }
     @media (max-width: 768px) {
-        /* Lift the Aura orb above the mobile bottom nav bar (~76px tall + 14px offset) */
-        #aura-copilot-container {
+        /* Lift the SchoolPadi orb above the mobile bottom nav bar (~76px tall + 14px offset) */
+        #padi-copilot-container {
             bottom: calc(90px + env(safe-area-inset-bottom, 0px));
             right: 12px;
         }
     }
-    .aura-orb-btn {
+    .padi-orb-btn {
         width: 60px;
         height: 60px;
         border-radius: 50%;
@@ -4776,7 +4776,7 @@
         transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         border: 2px solid white;
     }
-    .aura-orb-btn:hover {
+    .padi-orb-btn:hover {
         transform: scale(1.1);
     }
     /* Pulse Animation based on class status */
@@ -4788,7 +4788,7 @@
         100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
     }
     
-    .aura-panel {
+    .padi-panel {
         width: 350px;
         max-height: 80vh;
         background: rgba(255, 255, 255, 0.95);
@@ -4807,14 +4807,14 @@
         overflow: hidden;
     }
     
-    .aura-panel.show {
+    .padi-panel.show {
         transform: translateY(0);
         opacity: 1;
         visibility: visible;
         pointer-events: auto; /* Allow clicks when panel is open */
     }
     
-    .aura-header {
+    .padi-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         padding: 15px 20px;
@@ -4823,13 +4823,13 @@
         justify-content: space-between;
     }
     
-    .aura-body {
+    .padi-body {
         padding: 20px;
         overflow-y: auto;
         flex-grow: 1;
     }
     
-    .aura-insight-card {
+    .padi-insight-card {
         background: #fff;
         border-left: 4px solid #ffc107;
         border-radius: 8px;
@@ -4837,13 +4837,13 @@
         margin-bottom: 15px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
-    .aura-scaffold {
+    .padi-scaffold {
         display: flex;
         flex-wrap: wrap;
         gap: 6px;
         margin-bottom: 10px;
     }
-    .aura-chip {
+    .padi-chip {
         border: 1px solid rgba(0,0,0,0.08);
         background: #fff;
         color: #4b5563;
@@ -4853,52 +4853,52 @@
         cursor: pointer;
         transition: all 0.2s ease;
     }
-    .aura-chip:hover {
+    .padi-chip:hover {
         border-color: rgba(102, 126, 234, 0.5);
         color: #667eea;
         box-shadow: 0 2px 6px rgba(0,0,0,0.08);
     }
-    [data-bs-theme="dark"] .aura-chip {
+    [data-bs-theme="dark"] .padi-chip {
         background: rgba(255,255,255,0.04);
         border-color: rgba(255,255,255,0.12);
         color: #cbd5e1;
     }
 
-    /* Aura Dark Mode Overrides */
-    [data-bs-theme="dark"] .aura-panel {
+    /* SchoolPadi Dark Mode Overrides */
+    [data-bs-theme="dark"] .padi-panel {
         background: rgba(15, 23, 42, 0.95);
         border-color: rgba(255,255,255,0.1);
         box-shadow: 0 10px 40px rgba(0,0,0,0.5);
     }
-    [data-bs-theme="dark"] .aura-body {
+    [data-bs-theme="dark"] .padi-body {
         color: #f8fafc;
     }
-    [data-bs-theme="dark"] .aura-insight-card {
+    [data-bs-theme="dark"] .padi-insight-card {
         background: rgba(30, 41, 59, 0.7);
         box-shadow: none;
         border: 1px solid rgba(255,255,255,0.05);
         /* Keep border-left color from inline style */
     }
-    [data-bs-theme="dark"] .aura-insight-card .text-muted {
+    [data-bs-theme="dark"] .padi-insight-card .text-muted {
         color: #94a3b8 !important;
     }
-    [data-bs-theme="dark"] .aura-insight-card .small.fw-bold {
+    [data-bs-theme="dark"] .padi-insight-card .small.fw-bold {
         color: #e2e8f0;
     }
-    [data-bs-theme="dark"] #auraChatMessages .bg-light {
+    [data-bs-theme="dark"] #padiChatMessages .bg-light {
         background-color: rgba(255,255,255,0.1) !important;
         color: #f8fafc;
     }
-    [data-bs-theme="dark"] #auraChatInput {
+    [data-bs-theme="dark"] #padiChatInput {
         background-color: rgba(255,255,255,0.05);
         border-color: rgba(255,255,255,0.1);
         color: #fff;
     }
-    [data-bs-theme="dark"] #auraChatInput::placeholder { color: rgba(255,255,255,0.4); }
-    [data-bs-theme="dark"] .aura-panel .border-top {
+    [data-bs-theme="dark"] #padiChatInput::placeholder { color: rgba(255,255,255,0.4); }
+    [data-bs-theme="dark"] .padi-panel .border-top {
         border-color: rgba(255,255,255,0.1) !important;
     }
-    [data-bs-theme="dark"] .aura-panel .bg-light {
+    [data-bs-theme="dark"] .padi-panel .bg-light {
         background-color: rgba(15, 23, 42, 0.95) !important;
         color: #94a3b8 !important;
     }
@@ -4930,23 +4930,23 @@
     }
 </style>
 
-<div id="aura-copilot-container">
-    <div id="auraPanel" class="aura-panel">
-        <div class="aura-header d-flex justify-content-between align-items-center">
+<div id="padi-copilot-container">
+    <div id="padiPanel" class="padi-panel">
+        <div class="padi-header d-flex justify-content-between align-items-center">
             <div>
-                <h6 class="mb-0 fw-bold"><i class="fas fa-brain me-2"></i>Aura-T</h6>
+                <h6 class="mb-0 fw-bold"><i class="fas fa-brain me-2"></i>Padi-T</h6>
                 <small class="opacity-75">{% if aura_teacher_classes %}{{ aura_teacher_classes|join:", " }}{% else %}Your Classes{% endif %}</small>
             </div>
-            <button class="btn-close btn-close-white" onclick="document.getElementById('auraPanel').classList.remove('show');"></button>
+            <button class="btn-close btn-close-white" onclick="document.getElementById('padiPanel').classList.remove('show');"></button>
         </div>
-        <div class="aura-body" id="auraBody">
+        <div class="padi-body" id="padiBody">
             <h6 class="text-uppercase text-muted small fw-bold mb-3">
                 <i class="fas fa-chalkboard-teacher me-1"></i> 
                 {% if aura_teacher_subjects %}Teaching: {{ aura_teacher_subjects|join:", " }}{% else %}Your Subjects{% endif %}
             </h6>
 
             {% if aura_class_summary %}
-            <div class="aura-insight-card" {% if aura_class_summary.struggling_count > 0 %}style="border-left-color: #ffc107;"{% else %}style="border-left-color: #28a745;"{% endif %}>
+            <div class="padi-insight-card" {% if aura_class_summary.struggling_count > 0 %}style="border-left-color: #ffc107;"{% else %}style="border-left-color: #28a745;"{% endif %}>
                 <div class="d-flex align-items-center mb-2">
                     {% if aura_class_summary.struggling_count > 0 %}
                     <span class="badge bg-warning text-dark me-2">Alert</span>
@@ -4966,51 +4966,51 @@
                 {% endif %}
             </div>
             {% else %}
-            <div class="aura-insight-card">
+            <div class="padi-insight-card">
                 <p class="small mb-2 text-muted">No class data available yet.</p>
             </div>
             {% endif %}
 
-            <div class="aura-insight-card" style="border-left-color: #667eea;">
+            <div class="padi-insight-card" style="border-left-color: #667eea;">
                 <a href="{% url 'teachers:ai_sessions_list' %}" class="btn btn-sm btn-outline-primary w-100" style="font-size: 0.75rem;"><i class="fas fa-rocket me-1"></i> Open Command Centre</a>
             </div>
 
-            <div class="aura-insight-card" style="border-left-color: #a855f7;">
+            <div class="padi-insight-card" style="border-left-color: #a855f7;">
                 <div class="small fw-bold mb-2 text-muted">Quick scaffolds</div>
-                <div class="aura-scaffold">
-                    <button type="button" class="aura-chip" data-aura-prompt="Summarize class progress in 4 bullets.">Class summary</button>
-                    <button type="button" class="aura-chip" data-aura-prompt="Create a 10-minute lesson starter with 3 guiding questions.">Lesson starter</button>
-                    <button type="button" class="aura-chip" data-aura-prompt="Generate a 4-criteria rubric with simple descriptors.">Rubric</button>
-                    <button type="button" class="aura-chip" data-aura-prompt="Draft a 5-question exit ticket and answers.">Exit ticket</button>
+                <div class="padi-scaffold">
+                    <button type="button" class="padi-chip" data-padi-prompt="Summarize class progress in 4 bullets.">Class summary</button>
+                    <button type="button" class="padi-chip" data-padi-prompt="Create a 10-minute lesson starter with 3 guiding questions.">Lesson starter</button>
+                    <button type="button" class="padi-chip" data-padi-prompt="Generate a 4-criteria rubric with simple descriptors.">Rubric</button>
+                    <button type="button" class="padi-chip" data-padi-prompt="Draft a 5-question exit ticket and answers.">Exit ticket</button>
                 </div>
             </div>
 
-            <!-- Aura Chat Messages -->
-            <div id="auraChatMessages" class="mt-3" style="max-height: 200px; overflow-y: auto;"></div>
+            <!-- SchoolPadi Chat Messages -->
+            <div id="padiChatMessages" class="mt-3" style="max-height: 200px; overflow-y: auto;"></div>
         </div>
         <!-- Chat Input -->
         <div class="border-top p-2">
-            <form id="auraChatForm" class="d-flex gap-2" data-no-loader>
-                <input type="text" id="auraChatInput" class="form-control form-control-sm" placeholder="Ask Aura about your classes..." autocomplete="off" required style="font-size: 0.8rem;">
+            <form id="padiChatForm" class="d-flex gap-2" data-no-loader>
+                <input type="text" id="padiChatInput" class="form-control form-control-sm" placeholder="Ask SchoolPadi about your classes..." autocomplete="off" required style="font-size: 0.8rem;">
                 <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-paper-plane"></i></button>
             </form>
         </div>
         <div class="bg-light p-2 text-center border-top">
-            <small class="text-muted"><i class="fas fa-bolt text-warning me-1"></i> Powered by Aura-T</small>
+            <small class="text-muted"><i class="fas fa-bolt text-warning me-1"></i> Powered by Padi-T</small>
         </div>
     </div>
-    <div class="aura-orb-btn pulse-amber" onclick="document.getElementById('auraPanel').classList.toggle('show');" title="Open Aura Co-Pilot">
+    <div class="padi-orb-btn pulse-amber" onclick="document.getElementById('padiPanel').classList.toggle('show');" title="Open SchoolPadi Co-Pilot">
         <i class="fas fa-robot"></i>
     </div>
 </div>
 
-<!-- Aura-T Chat Script -->
+<!-- Padi-T Chat Script -->
 <script>
 (function() {
-    const form = document.getElementById('auraChatForm');
-    const input = document.getElementById('auraChatInput');
-    const messagesContainer = document.getElementById('auraChatMessages');
-    const scaffoldButtons = document.querySelectorAll('[data-aura-prompt]');
+    const form = document.getElementById('padiChatForm');
+    const input = document.getElementById('padiChatInput');
+    const messagesContainer = document.getElementById('padiChatMessages');
+    const scaffoldButtons = document.querySelectorAll('[data-padi-prompt]');
     if (!form || !input || !messagesContainer) return;
 
     let isProcessing = false;
@@ -5034,7 +5034,7 @@
 
     scaffoldButtons.forEach((button) => {
         button.addEventListener('click', () => {
-            const prompt = button.getAttribute('data-aura-prompt') || '';
+            const prompt = button.getAttribute('data-padi-prompt') || '';
             if (!prompt.trim()) return;
             input.value = prompt;
             input.focus();
@@ -5344,7 +5344,7 @@
             // Register periodic background sync for cache refresh (if available)
             if ('periodicSync' in reg) {
                 try {
-                    await reg.periodicSync.register('aura-refresh-cache', {
+                    await reg.periodicSync.register('padi-refresh-cache', {
                         minInterval: 12 * 60 * 60 * 1000, // 12 hours
                     });
                 } catch (err) {
@@ -5401,8 +5401,8 @@
         badge.title = 'Pending offline submissions — click to sync now';
         badge.textContent = '0';
         badge.addEventListener('click', function () {
-            if (navigator.onLine && window.AuraOffline) {
-                window.AuraOffline.replayQueue().then(function (r) {
+            if (navigator.onLine && window.PadiOffline) {
+                window.PadiOffline.replayQueue().then(function (r) {
                     if (r.sent > 0) showSyncedToast(r.sent + ' action' + (r.sent > 1 ? 's' : '') + ' synced');
                     updateQueueBadge();
                 });
@@ -5440,8 +5440,8 @@
         var badge = document.getElementById('offlineQueueBadge');
         if (!badge) return;
         try {
-            if (window.AuraOffline) {
-                var items = await window.AuraOffline.getQueuedSubmissions();
+            if (window.PadiOffline) {
+                var items = await window.PadiOffline.getQueuedSubmissions();
                 badge.textContent = items.length;
                 badge.style.display = items.length > 0 ? 'inline-flex' : 'none';
             }
@@ -5463,7 +5463,7 @@
             // Queue the form submission for later sync
             event.preventDefault();
 
-            if (window.AuraOffline) {
+            if (window.PadiOffline) {
                 var fd = new FormData(form);
                 var data = {};
                 for (var pair of fd.entries()) {
@@ -5472,7 +5472,7 @@
                     }
                 }
                 var action = form.action || window.location.href;
-                await window.AuraOffline.queueFormSubmission(data, action, method);
+                await window.PadiOffline.queueFormSubmission(data, action, method);
                 updateQueueBadge();
 
                 // Show user feedback
@@ -5528,8 +5528,8 @@
         window.addEventListener('online', function () {
             syncBanner();
             // Auto-replay queue when back online
-            if (window.AuraOffline) {
-                window.AuraOffline.replayQueue().then(function (r) {
+            if (window.PadiOffline) {
+                window.PadiOffline.replayQueue().then(function (r) {
                     if (r.sent > 0) showSyncedToast(r.sent + ' action' + (r.sent > 1 ? 's' : '') + ' synced');
                     updateQueueBadge();
                 });

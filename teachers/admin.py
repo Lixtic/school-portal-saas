@@ -21,7 +21,7 @@ class TeacherAdmin(admin.ModelAdmin):
         }),
         ('Location & Demographics', {
             'fields': ('region', 'city', 'hometown', 'preferred_language'),
-            'description': 'Used for Aura-T cultural grounding and school demographic reporting.',
+            'description': 'Used for Padi-T cultural grounding and school demographic reporting.',
         }),
     )
 
