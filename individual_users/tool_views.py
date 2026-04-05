@@ -5,6 +5,7 @@ teacher tools (Question Bank, Exam Paper, Lesson Planner).
 """
 import json
 import logging
+import os
 from collections import OrderedDict, defaultdict
 from functools import wraps
 
@@ -449,6 +450,27 @@ def _require_tool(tool_slug):
     return decorator
 
 
+def _rate_limit_ai(max_per_minute=10):
+    """Decorator: per-user rate limit for AI generation endpoints."""
+
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapper(request, *args, **kwargs):
+            from django.core.cache import cache
+            profile = request.user.individual_profile
+            key = f'ai_rl:{profile.pk}:{view_func.__name__}'
+            hits = cache.get(key, 0)
+            if hits >= max_per_minute:
+                return JsonResponse(
+                    {'error': 'Rate limit exceeded. Please wait a moment and try again.'},
+                    status=429,
+                )
+            cache.set(key, hits + 1, 60)
+            return view_func(request, *args, **kwargs)
+        return wrapper
+    return decorator
+
+
 # ── Group metadata for categories ─────────────────────────────────────────────
 
 TOOL_GROUPS = [
@@ -731,6 +753,7 @@ def question_delete(request, pk):
 @_tool_required
 @_require_tool('exam-generator')
 @require_POST
+@_rate_limit_ai()
 def question_ai_generate(request):
     """AI-generate questions from a topic/subject/difficulty."""
     profile = request.user.individual_profile
@@ -939,7 +962,10 @@ def lesson_plan_create(request):
 
     if request.method == 'POST':
         b7_meta_raw = request.POST.get('b7_meta', '').strip()
-        b7_meta = json.loads(b7_meta_raw) if b7_meta_raw else None
+        try:
+            b7_meta = json.loads(b7_meta_raw) if b7_meta_raw else None
+        except (json.JSONDecodeError, ValueError):
+            b7_meta = None
         plan = ToolLessonPlan.objects.create(
             profile=profile,
             title=request.POST.get('title', 'Untitled Lesson').strip(),
@@ -1008,7 +1034,10 @@ def lesson_plan_edit(request, pk):
         plan.notes = request.POST.get('notes', plan.notes).strip()
         b7_meta_raw = request.POST.get('b7_meta', '').strip()
         if b7_meta_raw:
-            plan.b7_meta = json.loads(b7_meta_raw)
+            try:
+                plan.b7_meta = json.loads(b7_meta_raw)
+            except (json.JSONDecodeError, ValueError):
+                pass
         plan.save()
         messages.success(request, 'Lesson plan updated.')
         return redirect('individual:lesson_plan_detail', pk=plan.pk)
@@ -1386,6 +1415,7 @@ def lesson_plan_word(request, pk):
 @_tool_required
 @_require_tool('lesson-planner')
 @require_POST
+@_rate_limit_ai()
 def lesson_plan_ai_generate(request):
     """AI-generate a lesson plan from topic + subject.
 
@@ -1506,6 +1536,7 @@ _GES_CODE_RE = _re.compile(r'^[A-Z]{1,3}\d{1,2}(?:\.\d+){2,5}\s*$')
 @_tool_required
 @_require_tool('lesson-planner')
 @require_POST
+@_rate_limit_ai()
 def lesson_plan_ges_generate(request):
     """Generate a GES Weekly Lesson Notes draft (B5-style table format).
 
@@ -1890,6 +1921,7 @@ def deck_editor(request, pk):
 @_tool_required
 @_require_tool('slide-generator')
 @require_POST
+@_rate_limit_ai()
 def deck_api(request):
     """AJAX API for the slide editor: save, add, delete, reorder, ai_generate."""
     from django.db import transaction
@@ -2527,6 +2559,7 @@ def licensure_quiz_take(request, pk):
 
 @_tool_required
 @_require_tool('licensure-prep')
+@_rate_limit_ai()
 def licensure_api(request):
     """AJAX API for licensure quiz actions."""
     if request.method != 'POST':
@@ -2837,6 +2870,7 @@ def ai_tutor_dashboard(request):
 
 @_tool_required
 @_require_tool('ai-tutor')
+@_rate_limit_ai()
 def ai_tutor_api(request):
     """AJAX endpoint for AI Tutor chat."""
     if request.method != 'POST':
@@ -2899,8 +2933,12 @@ def ai_tutor_api(request):
 
         # Call OpenAI
         import openai
+        from django.conf import settings as _s
+        _oai_key = getattr(_s, 'OPENAI_API_KEY', '') or os.environ.get('OPENAI_API_KEY', '')
+        if not _oai_key:
+            return JsonResponse({'error': 'AI service not configured. Please contact support.'}, status=503)
         try:
-            client = openai.OpenAI()
+            client = openai.OpenAI(api_key=_oai_key)
             response = client.chat.completions.create(
                 model='gpt-4o-mini',
                 messages=oai_messages,
@@ -3107,6 +3145,7 @@ def letter_print(request, pk):
 
 @_tool_required
 @_require_tool('letter-writer')
+@_rate_limit_ai()
 def letter_api(request):
     """AJAX endpoint for AI letter generation and sample seeding."""
     if request.method != 'POST':
@@ -3635,6 +3674,7 @@ def marker_delete(request, pk):
 
 @_tool_required
 @_require_tool('paper-marker')
+@_rate_limit_ai()
 def marker_api(request):
     """AJAX API for Paper Marker operations."""
     if request.method != 'POST':
@@ -4046,6 +4086,7 @@ def report_card_print_all(request, pk):
 
 @_tool_required
 @_require_tool('report-card')
+@_rate_limit_ai()
 def report_card_api(request):
     """AJAX API for report card operations: add/delete entries, AI comments."""
     if request.method != 'POST':
@@ -4270,10 +4311,14 @@ def computhink_delete(request, pk):
 @_tool_required
 @_require_tool('computhink-lab')
 @require_POST
+@_rate_limit_ai()
 def computhink_api(request):
     """AI-generate a computing activity."""
     profile = request.user.individual_profile
-    data = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    try:
+        data = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
     action = data.get('action', '')
 
     if action != 'generate':
@@ -4388,10 +4433,14 @@ def literacy_delete(request, pk):
 @_tool_required
 @_require_tool('literacy-toolkit')
 @require_POST
+@_rate_limit_ai()
 def literacy_api(request):
     """AI-generate a literacy exercise."""
     profile = request.user.individual_profile
-    data = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    try:
+        data = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
     action = data.get('action', '')
 
     if action != 'generate':
@@ -4522,10 +4571,14 @@ def citizen_ed_delete(request, pk):
 @_tool_required
 @_require_tool('citizen-ed')
 @require_POST
+@_rate_limit_ai()
 def citizen_ed_api(request):
     """AI-generate a social studies activity."""
     profile = request.user.individual_profile
-    data = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    try:
+        data = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
     action = data.get('action', '')
 
     if action != 'generate':
@@ -4645,10 +4698,14 @@ def tvet_delete(request, pk):
 @_tool_required
 @_require_tool('tvet-workshop')
 @require_POST
+@_rate_limit_ai()
 def tvet_api(request):
     """AI-generate a TVET project/activity."""
     profile = request.user.individual_profile
-    data = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    try:
+        data = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
     action = data.get('action', '')
 
     if action != 'generate':

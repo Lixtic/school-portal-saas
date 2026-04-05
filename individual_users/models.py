@@ -154,6 +154,10 @@ class AddonSubscription(models.Model):
     class Meta:
         unique_together = ('profile', 'addon_slug')
         ordering = ['-started_at']
+        indexes = [
+            models.Index(fields=['profile', 'status']),
+            models.Index(fields=['addon_slug', 'status']),
+        ]
 
     def __str__(self):
         return f"{self.addon_name} ({self.plan}) — {self.profile}"
@@ -185,6 +189,9 @@ class APIKey(models.Model):
         verbose_name = 'API Key'
         verbose_name_plural = 'API Keys'
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['profile', 'is_active']),
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.prefix}…)"
