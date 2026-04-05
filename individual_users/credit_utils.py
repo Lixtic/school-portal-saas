@@ -17,6 +17,7 @@ CREDIT_COSTS = {
 }
 
 WELCOME_BONUS_CREDITS = 10
+REFERRAL_BONUS_CREDITS = 5
 
 
 def _get_or_create_balance(user):
@@ -99,3 +100,23 @@ def add_credits(user, amount, transaction_type='purchase', description='', payme
             payment_reference=payment_reference,
         )
     return bal
+
+
+def credit_referral_bonus(referrer_user, referred_user):
+    """Award referral bonus credits to the referrer. Safe to call multiple times — only credits once."""
+    from individual_users.models import IndividualCreditTransaction
+    # Guard: don't double-credit for the same referred user
+    already = IndividualCreditTransaction.objects.filter(
+        user=referrer_user,
+        transaction_type='referral',
+        description__contains=f'#{referred_user.pk}',
+    ).exists()
+    if already:
+        return None
+    referred_name = referred_user.get_full_name() or referred_user.username
+    return add_credits(
+        referrer_user,
+        REFERRAL_BONUS_CREDITS,
+        transaction_type='referral',
+        description=f'Referral bonus — {referred_name} joined (#{referred_user.pk})',
+    )

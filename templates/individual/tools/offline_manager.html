@@ -1,7 +1,7 @@
 {% extends 'individual/base.html' %}
 {% load static %}
 
-{% block title %}Offline Content — Aura{% endblock %}
+{% block title %}Offline Content — SchoolPadi{% endblock %}
 {% block page_title %}Offline Content{% endblock %}
 
 {% block extra_css %}
@@ -248,7 +248,7 @@
     }
 
     function refresh() {
-        Promise.all([AuraContent.list(), AuraContent.stats()]).then(function(res) {
+        Promise.all([PadiContent.list(), PadiContent.stats()]).then(function(res) {
             var items = res[0], st = res[1];
             countEl.textContent = st.count;
             sizeEl.textContent = formatBytes(st.bytes);
@@ -275,7 +275,7 @@
         var id = Number(btn.dataset.id);
 
         if (action === 'remove') {
-            AuraContent.remove(type, id).then(function() { refresh(); });
+            PadiContent.remove(type, id).then(function() { refresh(); });
         }
 
         if (action === 'refresh') {
@@ -286,7 +286,7 @@
             };
             btn.disabled = true;
             btn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i>';
-            AuraContent.download(type, id, apiMap[type], function() {
+            PadiContent.download(type, id, apiMap[type], function() {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Refresh';
                 refresh();
@@ -297,14 +297,14 @@
     /* Clear all */
     clearBtn.addEventListener('click', function() {
         if (!confirm('Remove all offline content from this device?')) return;
-        AuraContent.clear().then(function() { refresh(); });
+        PadiContent.clear().then(function() { refresh(); });
     });
 
     /* Initial load */
     refresh();
 
     /* Listen for external changes (e.g. save from another tab) */
-    window.addEventListener('aura:offline-changed', refresh);
+    window.addEventListener('padi:offline-changed', refresh);
 })();
 </script>
 <style>

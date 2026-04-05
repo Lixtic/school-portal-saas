@@ -1,5 +1,5 @@
 {% extends 'individual/base.html' %}
-{% block title %}Create Lesson Plan — Aura Teacher Portal{% endblock %}
+{% block title %}Create Lesson Plan — SchoolPadi Teacher Portal{% endblock %}
 {% block page_title %}Create Lesson Plan{% endblock %}
 
 {% block extra_css %}
@@ -22,7 +22,7 @@
 .lpc-form { max-width: 800px; }
 .lpc-card { padding: 1.75rem; margin-bottom: 1.25rem; }
 
-/* ── Section Labels (from tenant Aura-T) ──────────────────── */
+/* ── Section Labels (from tenant Padi-T) ──────────────────── */
 .sl {
     display: flex; align-items: center; gap: 0.5rem;
     font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em;
@@ -300,7 +300,7 @@
     <!-- Actions -->
     <div class="lpc-actions">
         <button type="submit" class="lpc-btn lpc-btn-green"><i class="bi bi-save"></i> Save Lesson Plan</button>
-        <button type="button" class="lpc-btn lpc-btn-ai" id="aiDraftBtn"><i class="bi bi-stars"></i> Aura-T Draft</button>
+        <button type="button" class="lpc-btn lpc-btn-ai" id="aiDraftBtn"><i class="bi bi-stars"></i> Padi-T Draft</button>
         <button type="button" class="lpc-btn lpc-btn-ges" id="gesDraftBtn"><i class="bi bi-table"></i> GES B5 Draft</button>
         <a href="{% url 'individual:lesson_plans' %}" class="lpc-btn lpc-btn-outline">Cancel</a>
     </div>
@@ -310,7 +310,7 @@
 <div class="ai-overlay" id="aiOverlay">
     <div class="ai-overlay-card">
         <div class="ai-spinner"></div>
-        <div style="font-weight:700;font-size:1.05rem;color:var(--text-main)">Aura-T is thinking…</div>
+        <div style="font-weight:700;font-size:1.05rem;color:var(--text-main)">Padi-T is thinking…</div>
         <div class="ai-status" id="aiStatus">Generating a GES-aligned lesson plan with 3-phase structure</div>
     </div>
 </div>
@@ -329,7 +329,7 @@
         if (el) { el.value = value; el.dispatchEvent(new Event('input', {bubbles:true})); }
     }
 
-    // ── Aura-T Draft Button ──────────────────────────────
+    // ── Padi-T Draft Button ──────────────────────────────
     const aiBtn = document.getElementById('aiDraftBtn');
     const overlay = document.getElementById('aiOverlay');
     const statusEl = document.getElementById('aiStatus');
@@ -404,7 +404,7 @@
                 const toast = document.createElement('div');
                 toast.className = 'alert alert-success alert-dismissible fade show';
                 toast.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:9998;max-width:420px;font-size:.88rem;border-radius:12px;';
-                toast.innerHTML = '<i class="bi bi-stars me-2"></i><strong>Aura-T</strong> — Lesson drafted with 3-phase structure. Review and save.' +
+                toast.innerHTML = '<i class="bi bi-stars me-2"></i><strong>Padi-T</strong> — Lesson drafted with 3-phase structure. Review and save.' +
                     '<button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>';
                 document.body.appendChild(toast);
                 setTimeout(() => toast.remove(), 6000);
@@ -418,7 +418,7 @@
             const errToast = document.createElement('div');
             errToast.className = 'alert alert-danger alert-dismissible fade show';
             errToast.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:9998;max-width:380px;font-size:.88rem;border-radius:12px;';
-            errToast.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i><strong>Aura-T error:</strong> ' +
+            errToast.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i><strong>Padi-T error:</strong> ' +
                 (err.message || 'Request failed') +
                 '<button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>';
             document.body.appendChild(errToast);
@@ -439,7 +439,7 @@
             const oldText = this.textContent;
             this.textContent = 'Regenerating…';
 
-            // Use GES endpoint if indicator is set, otherwise Aura-T
+            // Use GES endpoint if indicator is set, otherwise Padi-T
             const useGes = !!indicator;
             const url = useGes ? GES_URL : AI_URL;
 

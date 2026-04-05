@@ -34,6 +34,9 @@ urlpatterns = [
     path('credits/verify/', views.verify_credit_purchase, name='verify_credit_purchase'),
     path('credits/history/', views.credit_history, name='credit_history'),
 
+    # Referrals
+    path('referrals/', views.referral_view, name='referrals'),
+
     # Paystack webhook (no auth required, HMAC-verified)
     path('webhook/paystack/', views.paystack_individual_webhook, name='paystack_individual_webhook'),
 

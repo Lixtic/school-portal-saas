@@ -1,0 +1,295 @@
+{% extends 'individual/base.html' %}
+{% block title %}Referrals — SchoolPadi Portal{% endblock %}
+{% block page_title %}Referrals{% endblock %}
+
+{% block extra_css %}
+<style>
+.ref-hero {
+    background: linear-gradient(135deg, rgba(67,97,238,.06), rgba(139,92,246,.08));
+    border: 1px solid rgba(67,97,238,.18);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+.ref-hero::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 140px; height: 140px;
+    background: radial-gradient(circle, rgba(245,158,11,.12) 0%, transparent 70%);
+    border-radius: 50%;
+}
+.ref-hero-title {
+    font-size: 1.3rem;
+    font-weight: 800;
+    margin: 0 0 .35rem;
+    background: linear-gradient(135deg, #4361ee, #7c3aed);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.ref-hero-sub {
+    font-size: .88rem;
+    color: var(--text-muted, #64748b);
+    margin: 0 0 1.2rem;
+    max-width: 480px;
+}
+.ref-link-box {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    max-width: 520px;
+    border: 2px solid rgba(67,97,238,.25);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--surface-card, #fff);
+}
+.ref-link-input {
+    flex: 1;
+    padding: .6rem .85rem;
+    font-size: .82rem;
+    font-family: 'SF Mono', 'Cascadia Code', monospace;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text-main, #1e293b);
+    min-width: 0;
+}
+.ref-copy-btn {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .6rem 1rem;
+    background: linear-gradient(135deg, #4361ee, #3a0ca3);
+    color: #fff;
+    border: none;
+    font-size: .78rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity .15s;
+    white-space: nowrap;
+}
+.ref-copy-btn:hover { opacity: .88; }
+.ref-copy-btn.copied {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.ref-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+.ref-stat {
+    background: var(--surface-card, #fff);
+    border: 1px solid var(--border-color, #e4e8f2);
+    border-radius: 12px;
+    padding: 1.1rem 1.2rem;
+    text-align: center;
+}
+.ref-stat-value {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-bottom: .15rem;
+}
+.ref-stat-value.purple { color: #7c3aed; }
+.ref-stat-value.amber  { color: #f59e0b; }
+.ref-stat-value.blue   { color: #4361ee; }
+.ref-stat-label {
+    font-size: .72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--text-muted, #64748b);
+}
+
+.ref-code-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    background: rgba(245,158,11,.1);
+    border: 1px solid rgba(245,158,11,.22);
+    color: #f59e0b;
+    font-size: .78rem;
+    font-weight: 700;
+    padding: .35rem .75rem;
+    border-radius: 8px;
+    margin-top: .6rem;
+    font-family: 'SF Mono', 'Cascadia Code', monospace;
+    letter-spacing: .06em;
+}
+
+.ref-table {
+    width: 100%; border-collapse: collapse;
+    background: var(--surface-card, #fff);
+    border: 1px solid var(--border-color, #e4e8f2);
+    border-radius: 12px; overflow: hidden;
+}
+.ref-table th, .ref-table td {
+    padding: .65rem .85rem; text-align: left; font-size: .82rem;
+}
+.ref-table th {
+    background: var(--surface-bg, #f0f2f5); font-weight: 700;
+    font-size: .7rem; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--text-muted, #8892a4);
+}
+.ref-table tr + tr td { border-top: 1px solid var(--border-color, #e4e8f2); }
+.ref-user-cell {
+    display: flex; align-items: center; gap: .55rem;
+}
+.ref-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, #4361ee, #7c3aed);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: .7rem; flex-shrink: 0;
+}
+.ref-status {
+    display: inline-flex; align-items: center; gap: .3rem;
+    font-size: .7rem; font-weight: 700; padding: .18rem .5rem;
+    border-radius: 6px;
+}
+.ref-status-verified { background: rgba(16,185,129,.1); color: #10b981; }
+.ref-status-pending  { background: rgba(245,158,11,.1); color: #f59e0b; }
+.ref-empty {
+    text-align: center; padding: 3rem;
+    color: var(--text-muted, #8892a4); font-size: .88rem;
+}
+.ref-empty i { font-size: 2rem; display: block; margin-bottom: .6rem; opacity: .4; }
+
+.ref-share-row {
+    display: flex; gap: .5rem; margin-top: .8rem; flex-wrap: wrap;
+}
+.ref-share-btn {
+    display: inline-flex; align-items: center; gap: .3rem;
+    font-size: .72rem; font-weight: 600; padding: .38rem .7rem;
+    border-radius: 8px; border: 1px solid var(--border-color, #e4e8f2);
+    background: var(--surface-card, #fff); color: var(--text-main, #1e293b);
+    cursor: pointer; text-decoration: none; transition: all .15s;
+}
+.ref-share-btn:hover {
+    border-color: #4361ee; color: #4361ee;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero / Share Section -->
+<div class="ref-hero">
+    <h2 class="ref-hero-title"><i class="bi bi-gift me-2"></i>Refer &amp; Earn Credits</h2>
+    <p class="ref-hero-sub">
+        Share your unique link with colleagues. When they join SchoolPadi, you earn <strong>{{ bonus_credits }} free AI credits</strong> — and they get the standard welcome bonus too!
+    </p>
+    <div class="ref-link-box">
+        <input type="text" class="ref-link-input" id="refLink" value="{{ referral_url }}" readonly>
+        <button class="ref-copy-btn" id="refCopyBtn" onclick="copyRefLink()">
+            <i class="bi bi-clipboard" id="refCopyIcon"></i> <span id="refCopyText">Copy Link</span>
+        </button>
+    </div>
+    <div class="ref-code-badge">
+        <i class="bi bi-hash"></i> Your code: {{ referral_code }}
+    </div>
+    <div class="ref-share-row">
+        <a class="ref-share-btn" href="https://wa.me/?text=Join%20me%20on%20SchoolPadi%20Teacher%20Portal!%20Sign%20up%20and%20we%20both%20get%20AI%20credits%3A%20{{ referral_url|urlencode }}" target="_blank" rel="noopener">
+            <i class="bi bi-whatsapp"></i> WhatsApp
+        </a>
+        <a class="ref-share-btn" href="https://twitter.com/intent/tweet?text=Join%20me%20on%20SchoolPadi%20Teacher%20Portal%20and%20get%20free%20AI%20credits!&url={{ referral_url|urlencode }}" target="_blank" rel="noopener">
+            <i class="bi bi-twitter-x"></i> Twitter
+        </a>
+        <button class="ref-share-btn" onclick="shareEmail()">
+            <i class="bi bi-envelope"></i> Email
+        </button>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="ref-stats">
+    <div class="ref-stat">
+        <div class="ref-stat-value purple">{{ referral_count }}</div>
+        <div class="ref-stat-label">Colleagues Referred</div>
+    </div>
+    <div class="ref-stat">
+        <div class="ref-stat-value amber">{{ total_earned }}</div>
+        <div class="ref-stat-label">Credits Earned</div>
+    </div>
+    <div class="ref-stat">
+        <div class="ref-stat-value blue">{{ bonus_credits }}</div>
+        <div class="ref-stat-label">Credits Per Referral</div>
+    </div>
+</div>
+
+<!-- Referral History -->
+{% if referrals %}
+<h6 style="font-weight:700;margin-bottom:.75rem;">Referral History</h6>
+<table class="ref-table">
+    <thead>
+        <tr>
+            <th>Colleague</th>
+            <th>Date Joined</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for ref in referrals %}
+        <tr>
+            <td>
+                <div class="ref-user-cell">
+                    <div class="ref-avatar">{{ ref.user.first_name|default:ref.user.username|slice:":1"|upper }}</div>
+                    <div>
+                        <div style="font-weight:600;">{{ ref.user.get_full_name|default:ref.user.username }}</div>
+                        <div style="font-size:.7rem;color:var(--text-muted,#8892a4);">{{ ref.user.email|default:"—" }}</div>
+                    </div>
+                </div>
+            </td>
+            <td>{{ ref.created_at|date:"M d, Y" }}</td>
+            <td>
+                {% if ref.is_verified %}
+                <span class="ref-status ref-status-verified"><i class="bi bi-check-circle-fill"></i> Verified</span>
+                {% else %}
+                <span class="ref-status ref-status-pending"><i class="bi bi-clock"></i> Pending</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="ref-empty">
+    <i class="bi bi-people"></i>
+    No referrals yet. Share your link to start earning credits!
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyRefLink() {
+    const input = document.getElementById('refLink');
+    const btn = document.getElementById('refCopyBtn');
+    const icon = document.getElementById('refCopyIcon');
+    const text = document.getElementById('refCopyText');
+
+    navigator.clipboard.writeText(input.value).then(() => {
+        btn.classList.add('copied');
+        icon.className = 'bi bi-check-lg';
+        text.textContent = 'Copied!';
+        setTimeout(() => {
+            btn.classList.remove('copied');
+            icon.className = 'bi bi-clipboard';
+            text.textContent = 'Copy Link';
+        }, 2000);
+    });
+}
+
+function shareEmail() {
+    const url = document.getElementById('refLink').value;
+    const subject = encodeURIComponent('Join me on SchoolPadi Teacher Portal!');
+    const body = encodeURIComponent(
+        'Hey! I\'ve been using SchoolPadi to create lessons, exams, and more with AI.\n\n' +
+        'Sign up with my link and we both get free AI credits:\n' + url
+    );
+    window.location.href = 'mailto:?subject=' + subject + '&body=' + body;
+}
+</script>
+{% endblock %}

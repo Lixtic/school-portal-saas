@@ -403,6 +403,14 @@ def _catalog_for_role(role):
     return TEACHER_ADDON_CATALOG if role == 'teacher' else ADDON_CATALOG
 
 
+def _resolve_referrer(request):
+    """Return the IndividualProfile that referred this signup, or None."""
+    code = request.session.pop('referral_code', '')
+    if not code:
+        return None
+    return IndividualProfile.objects.filter(referral_code__iexact=code).first()
+
+
 def _find_addon(slug):
     """Lookup an addon by slug — prefer DB, fall back to hardcoded catalogs."""
     try:
@@ -486,6 +494,11 @@ def signup_view(request):
     active_tab = 'email'
     method = request.POST.get('signup_method', '')
 
+    # Capture referral code from URL (?ref=CODE) into session
+    ref_code = request.GET.get('ref', '').strip()
+    if ref_code:
+        request.session['referral_code'] = ref_code
+
     if request.method == 'POST':
         role = request.POST.get('role', 'developer')
         if role not in ('developer', 'teacher'):
@@ -515,7 +528,8 @@ def signup_view(request):
                         last_name=last,
                         user_type='individual',
                     )
-                    IndividualProfile.objects.create(user=user, role=role)
+                    referrer = _resolve_referrer(request)
+                    IndividualProfile.objects.create(user=user, role=role, referred_by=referrer)
                     _send_verification_code(user, 'email')
                     request.session['pending_verification_user_id'] = user.pk
                     request.session['pending_verification_method'] = 'email'
@@ -543,7 +557,8 @@ def signup_view(request):
                         user_type='individual',
                         phone=phone,
                     )
-                    IndividualProfile.objects.create(user=user, phone_number=phone, role=role)
+                    referrer = _resolve_referrer(request)
+                    IndividualProfile.objects.create(user=user, phone_number=phone, role=role, referred_by=referrer)
                     _send_verification_code(user, 'phone')
                     request.session['pending_verification_user_id'] = user.pk
                     request.session['pending_verification_method'] = 'phone'
@@ -613,6 +628,12 @@ def verify_view(request):
                 else:
                     profile.phone_verified = True
                 profile.save(update_fields=['email_verified', 'phone_verified'])
+
+                # Credit referrer if this user was referred
+                if profile.referred_by:
+                    from individual_users.credit_utils import credit_referral_bonus
+                    credit_referral_bonus(profile.referred_by.user, user)
+
             vc.delete()
 
             request.session.pop('pending_verification_user_id', None)
@@ -749,6 +770,11 @@ def google_auth_view(request):
     # Preserve role for the callback
     role = request.GET.get('role', 'developer')
     request.session['_google_role'] = role
+
+    # Preserve referral code through OAuth flow
+    ref_code = request.GET.get('ref', '').strip()
+    if ref_code:
+        request.session['referral_code'] = ref_code
 
     # CSRF state token
     state = secrets.token_urlsafe(32)
@@ -899,12 +925,18 @@ def google_callback_view(request):
             user.set_unusable_password()
             user.save()
 
+            referrer = _resolve_referrer(request)
             IndividualProfile.objects.create(
                 user=user, google_id=google_id, avatar_url=picture,
                 email_verified=True,
                 role=desired_role,
+                referred_by=referrer,
             )
             _send_welcome_email(user)
+            # Google users are verified immediately — credit referrer now
+            if referrer:
+                from individual_users.credit_utils import credit_referral_bonus
+                credit_referral_bonus(referrer.user, user)
 
     login(request, user, backend='django.contrib.auth.backends.ModelBackend')
     request.session.pop('auth_tenant_schema', None)
@@ -1037,6 +1069,33 @@ def dashboard_view(request):
         'my_addons': my_addons,
     }
     return render(request, 'individual/dashboard.html', ctx)
+
+
+# ── Referrals ────────────────────────────────────────────────────────────────
+
+@_individual_required
+def referral_view(request):
+    """Referral dashboard: share link, see stats and history."""
+    profile, _ = IndividualProfile.objects.get_or_create(user=request.user)
+    referrals = IndividualProfile.objects.filter(
+        referred_by=profile,
+    ).select_related('user').order_by('-created_at')
+
+    from individual_users.credit_utils import REFERRAL_BONUS_CREDITS
+    total_earned = referrals.count() * REFERRAL_BONUS_CREDITS
+    referral_url = request.build_absolute_uri(f'/u/signup/?ref={profile.referral_code}')
+
+    ctx = {
+        'profile': profile,
+        'role': profile.role,
+        'referral_url': referral_url,
+        'referral_code': profile.referral_code,
+        'referrals': referrals,
+        'referral_count': referrals.count(),
+        'total_earned': total_earned,
+        'bonus_credits': REFERRAL_BONUS_CREDITS,
+    }
+    return render(request, 'individual/referrals.html', ctx)
 
 
 # ── Settings ─────────────────────────────────────────────────────────────────

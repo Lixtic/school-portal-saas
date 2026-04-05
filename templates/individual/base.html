@@ -4,8 +4,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Aura {% if role == 'teacher' %}Teacher{% else %}Educator{% endif %} Portal{% endblock %}</title>
-    <meta property="og:title" content="Aura {% if role == 'teacher' %}Teacher{% else %}Educator{% endif %} Portal">
+    <title>{% block title %}SchoolPadi {% if role == 'teacher' %}Teacher{% else %}Educator{% endif %} Portal{% endblock %}</title>
+    <meta property="og:title" content="SchoolPadi {% if role == 'teacher' %}Teacher{% else %}Educator{% endif %} Portal">
     <meta property="og:description" content="{% if role == 'teacher' %}AI-powered tools for GES teachers — lesson plans, exams, grade analytics.{% else %}AI-powered education tools — lesson plans, exams, grade analytics, and more.{% endif %}">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary">
@@ -141,6 +141,43 @@
             transition: border-color .2s;
         }
         .iu-credit-widget:hover { border-color: rgba(245,158,11,0.35); }
+        /* ── Referral link widget ──────────────── */
+        .iu-referral-link {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            margin: .5rem .75rem;
+            padding: .55rem .8rem;
+            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(67,97,238,.06), rgba(139,92,246,.08));
+            border: 1px solid rgba(67,97,238,.18);
+            color: var(--text-main);
+            font-size: .78rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all .15s;
+        }
+        .iu-referral-link:hover {
+            background: linear-gradient(135deg, rgba(67,97,238,.12), rgba(139,92,246,.14));
+            border-color: rgba(67,97,238,.3);
+        }
+        .iu-referral-link.active {
+            background: linear-gradient(135deg, rgba(67,97,238,.14), rgba(139,92,246,.16));
+            border-color: #4361ee;
+        }
+        .iu-referral-link i { color: #7c3aed; font-size: .9rem; }
+        .iu-referral-badge {
+            margin-left: auto;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #fff;
+            font-size: .62rem;
+            font-weight: 800;
+            padding: .12rem .4rem;
+            border-radius: 5px;
+            letter-spacing: .02em;
+        }
+
+        /* ── Credit widget ────────────────────────── */
         .iu-credit-row {
             display: flex; align-items: center; justify-content: space-between;
         }
@@ -342,7 +379,7 @@
             color: #dc2626;
         }
 
-        /* ── Button Loader — Aura dot-pulse ──────── */
+        /* ── Button Loader — SchoolPadi dot-pulse ──────── */
         .btn-loading {
             position: relative;
             color: transparent !important;
@@ -356,9 +393,9 @@
             background: #fff;
             border-radius: 50%;
             box-shadow: 8px 0 0 -1px rgba(255,255,255,.45), 16px 0 0 -1px rgba(255,255,255,.25);
-            animation: auraDotPulse 1s ease-in-out infinite;
+            animation: padiDotPulse 1s ease-in-out infinite;
         }
-        @keyframes auraDotPulse {
+        @keyframes padiDotPulse {
             0%   { box-shadow: 8px 0 0 -1px rgba(255,255,255,.45), 16px 0 0 -1px rgba(255,255,255,.25); }
             33%  { box-shadow: 8px 0 0 0px  #fff,                  16px 0 0 -1px rgba(255,255,255,.45); background: rgba(255,255,255,.45); }
             66%  { box-shadow: 8px 0 0 -1px rgba(255,255,255,.25), 16px 0 0 0px  #fff;                 background: rgba(255,255,255,.25); }
@@ -372,11 +409,11 @@
             background: currentColor;
             border-radius: 50%;
             vertical-align: middle;
-            animation: auraBtnDots 1s ease-in-out infinite;
+            animation: padiBtnDots 1s ease-in-out infinite;
             box-shadow: 8px 0 0 -1px currentColor, 16px 0 0 -1px currentColor;
             margin-right: 10px;
         }
-        @keyframes auraBtnDots {
+        @keyframes padiBtnDots {
             0%   { opacity: 1; box-shadow: 8px 0 0 -1px currentColor, 16px 0 0 -2px currentColor; }
             33%  { opacity: .4; box-shadow: 8px 0 0 0px  currentColor, 16px 0 0 -1px currentColor; }
             66%  { opacity: .4; box-shadow: 8px 0 0 -2px currentColor, 16px 0 0 0px  currentColor; }
@@ -393,7 +430,7 @@
         <div class="iu-sidebar-brand">
             <div class="iu-brand-icon">A</div>
             <div class="iu-brand-text">
-                Aura
+                SchoolPadi
                 <small>{% if role == 'teacher' %}Teacher Portal{% else %}Developer Portal{% endif %}</small>
             </div>
         </div>
@@ -428,6 +465,12 @@
             </a>
             {% endif %}
         </nav>
+        <!-- Referral invite widget -->
+        <a href="{% url 'individual:referrals' %}" class="iu-referral-link{% if request.resolver_match.url_name == 'referrals' %} active{% endif %}">
+            <i class="bi bi-gift-fill"></i>
+            <span>Refer &amp; Earn</span>
+            <span class="iu-referral-badge">+5</span>
+        </a>
         <!-- Credit balance widget -->
         <div class="iu-credit-widget">
             <div class="iu-credit-row">
@@ -554,12 +597,12 @@
         report: '{% url "individual:offline_report_card" pk=0 %}'
     };
     function _saveOffline(type, id, btn) {
-        if (!window.AuraContent) return;
+        if (!window.PadiContent) return;
         var origHTML = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<i class="bi bi-arrow-repeat" style="animation:spin .6s linear infinite"></i>';
         var url = _OFFLINE_API[type].replace('/0/', '/' + id + '/');
-        AuraContent.download(type, id, url, function(ok) {
+        PadiContent.download(type, id, url, function(ok) {
             btn.disabled = false;
             if (ok) {
                 btn.innerHTML = '<i class="bi bi-check-lg" style="color:#10b981"></i>';

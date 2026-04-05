@@ -1,5 +1,5 @@
 {% extends 'individual/base.html' %}
-{% block title %}Edit: {{ plan.title }} — Aura Teacher Portal{% endblock %}
+{% block title %}Edit: {{ plan.title }} — SchoolPadi Teacher Portal{% endblock %}
 {% block page_title %}Edit Lesson Plan{% endblock %}
 
 {% block extra_css %}
@@ -286,7 +286,7 @@
     <!-- Actions -->
     <div class="lpc-actions">
         <button type="submit" class="lpc-btn lpc-btn-green"><i class="bi bi-check-lg"></i> Save Changes</button>
-        <button type="button" class="lpc-btn lpc-btn-ai" id="aiDraftBtn"><i class="bi bi-stars"></i> Aura-T Redraft</button>
+        <button type="button" class="lpc-btn lpc-btn-ai" id="aiDraftBtn"><i class="bi bi-stars"></i> Padi-T Redraft</button>
         <button type="button" class="lpc-btn lpc-btn-ges" id="gesDraftBtn"><i class="bi bi-table"></i> GES B5 Draft</button>
         <a href="{% url 'individual:lesson_plan_detail' pk=plan.pk %}" class="lpc-btn lpc-btn-outline">Cancel</a>
     </div>
@@ -296,7 +296,7 @@
 <div class="ai-overlay" id="aiOverlay">
     <div class="ai-overlay-card">
         <div class="ai-spinner"></div>
-        <div style="font-weight:700;font-size:1.05rem;color:var(--text-main)">Aura-T is thinking…</div>
+        <div style="font-weight:700;font-size:1.05rem;color:var(--text-main)">Padi-T is thinking…</div>
         <div class="ai-status" id="aiStatus">Regenerating lesson content…</div>
     </div>
 </div>
@@ -333,7 +333,7 @@
         'Polishing the full plan…'
     ];
 
-    /* ── Aura-T Redraft ───────────────────────────────── */
+    /* ── Padi-T Redraft ───────────────────────────────── */
     aiBtn.addEventListener('click', async function() {
         const topic = document.querySelector('[name="topic"]').value.trim();
         const subject = document.querySelector('[name="subject"]').value;
@@ -348,7 +348,7 @@
             return;
         }
 
-        if (!confirm('Aura-T will redraft all lesson sections based on the current topic. Continue?')) return;
+        if (!confirm('Padi-T will redraft all lesson sections based on the current topic. Continue?')) return;
 
         overlay.classList.add('open');
         aiBtn.disabled = true;
@@ -384,7 +384,7 @@
             clearInterval(ticker);
             overlay.classList.remove('open');
             aiBtn.disabled = false;
-            alert('Aura-T error: ' + (err.message || 'Request failed'));
+            alert('Padi-T error: ' + (err.message || 'Request failed'));
         }
     });
 

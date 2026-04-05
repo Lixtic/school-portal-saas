@@ -80,11 +80,21 @@ class IndividualProfile(models.Model):
     bio = models.TextField(blank=True)
     email_verified = models.BooleanField(default=False)
     phone_verified = models.BooleanField(default=False)
+    referral_code = models.CharField(max_length=12, unique=True, blank=True)
+    referred_by = models.ForeignKey(
+        'self', null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='referrals',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = 'Individual Profile'
         verbose_name_plural = 'Individual Profiles'
+
+    def save(self, *args, **kwargs):
+        if not self.referral_code:
+            self.referral_code = secrets.token_urlsafe(8)[:8].upper()
+        super().save(*args, **kwargs)
 
     @property
     def is_verified(self):
@@ -248,6 +258,7 @@ class IndividualCreditTransaction(models.Model):
         ('purchase', 'Purchase'),
         ('usage', 'AI Usage'),
         ('bonus', 'Bonus / Welcome'),
+        ('referral', 'Referral Bonus'),
         ('refund', 'Refund'),
     ]
 
