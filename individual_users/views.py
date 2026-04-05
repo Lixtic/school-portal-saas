@@ -634,6 +634,10 @@ def verify_view(request):
                     from individual_users.credit_utils import credit_referral_bonus
                     credit_referral_bonus(profile.referred_by.user, user)
 
+                # Seed starter content for new teachers
+                from individual_users.seed_content import seed_starter_content
+                seed_starter_content(profile)
+
             vc.delete()
 
             request.session.pop('pending_verification_user_id', None)
@@ -926,13 +930,17 @@ def google_callback_view(request):
             user.save()
 
             referrer = _resolve_referrer(request)
-            IndividualProfile.objects.create(
+            profile = IndividualProfile.objects.create(
                 user=user, google_id=google_id, avatar_url=picture,
                 email_verified=True,
                 role=desired_role,
                 referred_by=referrer,
             )
             _send_welcome_email(user)
+
+            # Seed starter content for new teachers
+            from individual_users.seed_content import seed_starter_content
+            seed_starter_content(profile)
             # Google users are verified immediately — credit referrer now
             if referrer:
                 from individual_users.credit_utils import credit_referral_bonus
