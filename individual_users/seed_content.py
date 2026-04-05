@@ -2406,18 +2406,26 @@ _LITERACY_SAMPLES = [
         'passage': '',
         'content': {
             'prompts': [
+                'Write a descriptive essay (200–250 words) about your favourite place. '
+                'Use at least 3 of the 5 senses (sight, sound, smell, taste, touch) to make '
+                'your reader FEEL like they are there.',
+            ],
+            'exercises': [
                 {
-                    'prompt': (
-                        'Write a descriptive essay (200–250 words) about your favourite place. '
-                        'Use at least 3 of the 5 senses (sight, sound, smell, taste, touch) to make '
-                        'your reader FEEL like they are there.'
-                    ),
-                    'planning_guide': [
+                    'instruction': 'Planning Guide',
+                    'sentences': [
                         'Paragraph 1: Introduce the place — where is it? Why is it special?',
                         'Paragraph 2: Describe what you SEE and HEAR when you are there.',
                         'Paragraph 3: Describe smells, textures, or tastes you associate with the place.',
                         'Paragraph 4: Conclude — how does the place make you feel? Would you recommend it?',
                     ],
+                },
+                {
+                    'instruction': (
+                        'Example Opening: "The beach at Busua stretches like a golden ribbon '
+                        'between the green forest and the endless blue sea. Every Saturday morning, '
+                        'I walk there barefoot, feeling the cool, damp sand push between my toes…"'
+                    ),
                 },
             ],
             'rubric': {
@@ -2426,11 +2434,6 @@ _LITERACY_SAMPLES = [
                 'Organisation (5)': 'Logical paragraph structure with introduction and conclusion.',
                 'Language & Grammar (5)': 'Correct spelling, punctuation, and tense consistency.',
             },
-            'example_opening': (
-                'The beach at Busua stretches like a golden ribbon between the green forest and '
-                'the endless blue sea. Every Saturday morning, I walk there barefoot, feeling the '
-                'cool, damp sand push between my toes…'
-            ),
         },
         'answer_key': 'Teacher-assessed using rubric. Total: 30 marks.',
     },
