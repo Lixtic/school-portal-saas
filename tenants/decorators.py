@@ -34,8 +34,10 @@ def _school_has_addon(request, slug):
 
     try:
         tenant = getattr(request, 'tenant', None)
-        if tenant is None or tenant.schema_name == 'public':
+        if tenant is None:
             return False
+        if tenant.schema_name == 'public':
+            return True  # Public landing page features are always available
 
         from tenants.subscription_models import SchoolSubscription, SchoolAddOn
         from django.db.models import Q

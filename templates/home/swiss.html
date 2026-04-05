@@ -1459,9 +1459,9 @@ document.getElementById('auraForm').addEventListener('submit', async e => {
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
       body: JSON.stringify({ message: msg })
     });
-    const data = await res.json();
+    const text = await res.text();
     typing.remove();
-    addMsg(data.reply || data.message || 'No response received.', 'bot');
+    addMsg(res.ok ? (text || 'No response received.') : 'Something went wrong.', 'bot');
   } catch {
     typing.remove();
     addMsg('Connection error. Please try again.', 'bot');

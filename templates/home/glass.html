@@ -1684,6 +1684,38 @@ const auraMsgs  = document.getElementById('auraMsgs');
 auraFab.addEventListener('click', () => auraPan.classList.toggle('open'));
 auraClose.addEventListener('click', () => auraPan.classList.remove('open'));
 
+/* ─── Inline chat (body section) ─── */
+document.getElementById('auraInlineForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const input = e.target.querySelector('input[name="message"]');
+  const msg = input.value.trim();
+  if (!msg) return;
+  const body = e.target.closest('.ai-chat').querySelector('.ch-body');
+  const uB = document.createElement('div');
+  uB.className = 'bubble usr'; uB.textContent = msg;
+  body.appendChild(uB);
+  input.value = '';
+  const bot = document.createElement('div');
+  bot.className = 'bubble bot';
+  bot.innerHTML = '<i class="bi bi-three-dots" style="opacity:.5"></i>';
+  body.appendChild(bot);
+  body.scrollTop = body.scrollHeight;
+  try {
+    const fd = new FormData(e.target);
+    fd.set('message', msg);
+    const res = await fetch(e.target.action, {
+      method: 'POST', body: fd,
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    });
+    const text = await res.text();
+    bot.innerHTML = res.ok ? (text || 'No response.') : 'Something went wrong.';
+  } catch {
+    bot.innerHTML = 'Connection error — please try again.';
+  }
+  body.scrollTop = body.scrollHeight;
+});
+
+/* ─── Floating widget chat ─── */
 document.getElementById('auraWidgetForm').addEventListener('submit', async e => {
   e.preventDefault();
   const input = document.getElementById('auraWidgetMsg');
@@ -1709,8 +1741,8 @@ document.getElementById('auraWidgetForm').addEventListener('submit', async e => 
       method: 'POST', body: fd,
       headers: { 'X-Requested-With': 'XMLHttpRequest' }
     });
-    const data = await res.json();
-    bot.innerHTML = data.response || 'Sorry, I could not process that request.';
+    const text = await res.text();
+    bot.innerHTML = res.ok ? (text || 'Sorry, I could not process that request.') : 'Sorry, something went wrong.';
   } catch {
     bot.innerHTML = 'Connection error — please try again.';
   }

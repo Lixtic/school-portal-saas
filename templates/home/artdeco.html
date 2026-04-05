@@ -1303,8 +1303,8 @@ async function sendMsg() {
       headers:{'Content-Type':'application/json','X-CSRFToken':getCsrf()},
       body:JSON.stringify({message:text})
     });
-    const data = await res.json();
-    addMsg(data.reply || "My apologies — I am unable to respond at this moment.", 'bot');
+    const text = await res.text();
+    addMsg(res.ok ? (text || 'My apologies — I am unable to respond at this moment.') : 'My apologies — I am unable to respond at this moment.', 'bot');
   } catch {
     addMsg("A momentary disruption in service. Please enquire again shortly.", 'bot');
   } finally {

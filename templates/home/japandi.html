@@ -1386,8 +1386,8 @@ async function send() {
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
       body: JSON.stringify({ message: text })
     });
-    const data = await r.json();
-    thinking.textContent = data.reply || 'Aura is unavailable right now. Please try again shortly.';
+    const text = await r.text();
+    thinking.textContent = r.ok ? (text || 'Aura is unavailable right now. Please try again shortly.') : 'Aura is unavailable right now. Please try again shortly.';
   } catch {
     thinking.textContent = 'Could not connect to Aura. Please check your connection and try again.';
   }

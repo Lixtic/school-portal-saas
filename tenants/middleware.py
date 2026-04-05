@@ -117,8 +117,11 @@ class TenantPathMiddleware(TenantMainMiddleware):
         all_reserved = get_all_reserved()
 
         # Recover bare app-root hits (e.g. /finance/) to the correct tenant.
+        # Only redirect browser navigation (GET, non-AJAX); POST/AJAX calls
+        # may be legitimate API requests from the public landing page (e.g. chat).
         if slug in get_tenant_app_roots():
-            return self._recover_tenant_redirect(request, slug, all_reserved)
+            if request.method == 'GET' and not _is_ajax(request):
+                return self._recover_tenant_redirect(request, slug, all_reserved)
 
         tenant = self._resolve_tenant(slug, all_reserved)
 
