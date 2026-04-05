@@ -1206,36 +1206,66 @@ def lesson_plan_pdf(request, pk):
     reflect_text = esc(plan.notes or '')
     closure_text = esc(plan.closure or '')
 
-    ped_data = [
-        [Paragraph('<b>Phase / Duration</b>', s_hdr),
-         Paragraph('<b>Learner Activities</b>', s_hdr),
-         Paragraph('<b>Resources</b>', s_hdr)],
-        [Paragraph('<b>PHASE 1: STARTER</b><br/><font size="8">(10 Mins)</font>', s_phase),
-         Paragraph(intro_text, s_cell),
-         Paragraph(materials_text, s_cell)],
-        [Paragraph('<b>PHASE 2: NEW LEARNING</b><br/><font size="8">(40 Mins)</font>', s_phase),
-         Paragraph(f'{dev_text}<br/><br/><b>Assessment:</b><br/>{assess_text}', s_cell),
-         ''],
-        [Paragraph('<b>PHASE 3: REFLECTION</b><br/><font size="8">(10 Mins)</font>', s_phase),
-         Paragraph(f'{reflect_text}<br/><br/><b>Homework:</b><br/>{closure_text}', s_cell),
-         ''],
-    ]
+    # Build each phase as a separate table so long content can split across pages
+    ped_hdr = Table(
+        [[Paragraph('<b>Phase / Duration</b>', s_hdr),
+          Paragraph('<b>Learner Activities</b>', s_hdr),
+          Paragraph('<b>Resources</b>', s_hdr)]],
+        colWidths=[avail_w * 0.20, avail_w * 0.50, avail_w * 0.30],
+    )
+    ped_hdr.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 1, black),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, black),
+        ('BACKGROUND', (0, 0), (-1, 0), header_bg),
+        ('FONTNAME', (0, 0), (-1, -1), 'Times-Roman'),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING', (0, 0), (-1, -1), 5),
+    ]))
+
     cw3 = [avail_w * 0.20, avail_w * 0.50, avail_w * 0.30]
-    ped_table = Table(ped_data, colWidths=cw3)
-    ped_style = [
+    phase_style = TableStyle([
         ('BOX', (0, 0), (-1, -1), 1, black),
         ('INNERGRID', (0, 0), (-1, -1), 0.5, black),
         ('FONTNAME', (0, 0), (-1, -1), 'Times-Roman'),
         ('TOPPADDING', (0, 0), (-1, -1), 4),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
         ('LEFTPADDING', (0, 0), (-1, -1), 5),
-        ('BACKGROUND', (0, 0), (-1, 0), header_bg),
-        ('SPAN', (2, 1), (2, 3)),  # Resources column spans all 3 phase rows
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ]
-    ped_table.setStyle(TableStyle(ped_style))
+    ])
+
+    phase1 = Table(
+        [[Paragraph('<b>PHASE 1: STARTER</b><br/><font size="8">(10 Mins)</font>', s_phase),
+          Paragraph(intro_text, s_cell),
+          Paragraph(materials_text, s_cell)]],
+        colWidths=cw3,
+    )
+    phase1.setStyle(phase_style)
+
+    phase2 = Table(
+        [[Paragraph('<b>PHASE 2: NEW LEARNING</b><br/><font size="8">(40 Mins)</font>', s_phase),
+          Paragraph(f'{dev_text}<br/><br/><b>Assessment:</b><br/>{assess_text}', s_cell),
+          Paragraph('', s_cell)]],
+        colWidths=cw3,
+    )
+    phase2.setStyle(phase_style)
+
+    phase3 = Table(
+        [[Paragraph('<b>PHASE 3: REFLECTION</b><br/><font size="8">(10 Mins)</font>', s_phase),
+          Paragraph(f'{reflect_text}<br/><br/><b>Homework:</b><br/>{closure_text}', s_cell),
+          Paragraph('', s_cell)]],
+        colWidths=cw3,
+    )
+    phase3.setStyle(phase_style)
+
     story.append(Spacer(1, 2))
-    story.append(ped_table)
+    story.append(ped_hdr)
+    story.append(Spacer(1, -1))
+    story.append(phase1)
+    story.append(Spacer(1, -1))
+    story.append(phase2)
+    story.append(Spacer(1, -1))
+    story.append(phase3)
 
     doc.build(story)
     buf.seek(0)

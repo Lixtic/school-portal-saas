@@ -278,10 +278,14 @@ def push_subscribe(request):
     if not endpoint:
         return JsonResponse({'ok': False, 'error': 'Missing endpoint'}, status=400)
 
-    PushSubscription.objects.update_or_create(
-        endpoint=endpoint,
-        defaults={'user': request.user, 'p256dh': p256dh, 'auth': auth_key},
-    )
+    try:
+        PushSubscription.objects.update_or_create(
+            endpoint=endpoint,
+            defaults={'user': request.user, 'p256dh': p256dh, 'auth': auth_key},
+        )
+    except Exception:
+        # Table may not exist in public schema (announcements is tenant-only)
+        return JsonResponse({'ok': False, 'error': 'Push not available'}, status=200)
     return JsonResponse({'ok': True, 'public_key': settings.VAPID_PUBLIC_KEY})
 
 
@@ -295,7 +299,10 @@ def push_unsubscribe(request):
     except (ValueError, KeyError):
         return JsonResponse({'ok': False, 'error': 'Invalid JSON'}, status=400)
 
-    PushSubscription.objects.filter(user=request.user, endpoint=endpoint).delete()
+    try:
+        PushSubscription.objects.filter(user=request.user, endpoint=endpoint).delete()
+    except Exception:
+        pass
     return JsonResponse({'ok': True})
 
 
