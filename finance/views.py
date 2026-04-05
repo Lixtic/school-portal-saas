@@ -6,7 +6,7 @@ from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
-from django.db.models import Sum, Q, Count, Max, F, Value, CharField
+from django.db.models import Sum, Q, Count, Max
 from django.db.models.functions import Coalesce
 from django.conf import settings
 from .models import FeeHead, FeeStructure, StudentFee, Payment, TERM_CHOICES

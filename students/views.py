@@ -192,8 +192,8 @@ def student_list(request):
     # Statistics
     total_students = Student.objects.count()
     active_students = Student.objects.filter(user__is_active=True).count()
-    total_classes = Class.objects.filter(academic_year__is_current=True).count()
     classes = Class.objects.filter(academic_year__is_current=True)
+    total_classes = classes.count()
     
     context = {
         'students': students,
@@ -266,25 +266,29 @@ def student_details_ajax(request, student_id):
     """Return student details as JSON for modal"""
     if request.user.user_type not in ['admin', 'teacher']:
         return JsonResponse({'error': 'Access denied'}, status=403)
-    student = get_object_or_404(Student, id=student_id)
+    student = get_object_or_404(Student.objects.select_related('user', 'current_class'), id=student_id)
     
-    # Attendance stats
-    total_attendance = Attendance.objects.filter(student=student).count()
-    present_count = Attendance.objects.filter(student=student, status='present').count()
-    absent_count = Attendance.objects.filter(student=student, status='absent').count()
+    # Attendance stats (single aggregate query instead of 3 separate ones)
+    att_agg = Attendance.objects.filter(student=student).aggregate(
+        total=Count('id'),
+        present=Count('id', filter=Q(status='present')),
+        absent=Count('id', filter=Q(status='absent')),
+    )
+    total_attendance = att_agg['total']
+    present_count = att_agg['present']
+    absent_count = att_agg['absent']
     
     attendance_percentage = 0
     if total_attendance > 0:
         attendance_percentage = round((present_count / total_attendance) * 100, 2)
     
-    # Grade stats
-    grades = Grade.objects.filter(student=student)
-    grades_count = grades.count()
-    
-    average_percentage = 0
-    if grades.exists():
-        total_percentage = sum([g.percentage() for g in grades])
-        average_percentage = round(total_percentage / grades_count, 2)
+    # Grade stats (use DB aggregate instead of loading all rows into Python)
+    grade_agg = Grade.objects.filter(student=student).aggregate(
+        count=Count('id'),
+        avg_pct=Avg('total_score'),
+    )
+    grades_count = grade_agg['count']
+    average_percentage = round(grade_agg['avg_pct'], 2) if grade_agg['avg_pct'] else 0
     
     data = {
         'name': student.user.get_full_name(),
@@ -310,7 +314,7 @@ def student_details_ajax(request, student_id):
 @login_required
 def student_detail_page(request, student_id):
     """Full student detail page with attendance calendar"""
-    student = get_object_or_404(Student, id=student_id)
+    student = get_object_or_404(Student.objects.select_related('user', 'current_class'), id=student_id)
     
     # Access control
     if request.user.user_type == 'student':

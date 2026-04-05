@@ -29,7 +29,6 @@ from .models import LessonGenerationSession
 logger = logging.getLogger(__name__)
 from accounts.models import User
 from academics.tutor_models import generate_teacher_id_card, export_id_card_to_pdf, export_multiple_id_cards_to_pdf, TutorSession, TutorMessage
-from parents.models import Parent
 from communication.models import Conversation, Message
 from django.views.decorators.http import require_POST
 # from parents.models import Homework
