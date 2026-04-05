@@ -64,6 +64,15 @@
 }
 .ed-thumb:hover { border-color: rgba(124,58,237,0.3); }
 .ed-thumb.active { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.12); }
+.ed-thumb.dragging { opacity: 0.4; }
+.ed-thumb.drag-over { border-color: #7c3aed; box-shadow: 0 -2px 0 0 #7c3aed; }
+.ed-thumb .ed-drag-handle {
+    position: absolute; top: 50%; left: -2px; transform: translateY(-50%);
+    color: var(--text-muted); opacity: 0; font-size: 0.7rem;
+    cursor: grab; transition: opacity 0.15s; z-index: 2;
+}
+.ed-thumb:hover .ed-drag-handle { opacity: 0.5; }
+.ed-thumb .ed-drag-handle:active { cursor: grabbing; }
 .ed-thumb-num {
     position: absolute; top: 4px; left: 6px; font-size: 0.6rem;
     font-weight: 700; color: var(--text-muted); opacity: 0.6;
@@ -390,10 +399,13 @@
     }
 
     /* ── Render Sorter ──────────────────────────────────── */
+    let dragSrcIdx = null;
+
     function renderSorter() {
         const container = document.getElementById('slideSorter');
         container.innerHTML = slides.map((s, i) => `
-            <div class="ed-thumb ${i === currentIdx ? 'active' : ''}" data-idx="${i}" onclick="ED.select(${i})">
+            <div class="ed-thumb ${i === currentIdx ? 'active' : ''}" data-idx="${i}" draggable="true" onclick="ED.select(${i})">
+                <span class="ed-drag-handle"><i class="bi bi-grip-vertical"></i></span>
                 <span class="ed-thumb-num">${i + 1}</span>
                 <div class="ed-thumb-emoji">${s.emoji || '📄'}</div>
                 <div class="ed-thumb-title">${s.title || 'Untitled'}</div>
@@ -405,6 +417,40 @@
             </div>
         `).join('') + `<button class="ed-add-slide" onclick="ED.addSlide()"><i class="bi bi-plus"></i> Add Slide</button>`;
         document.getElementById('slideCounter').textContent = slides.length + ' slides';
+
+        /* Drag-to-reorder */
+        container.querySelectorAll('.ed-thumb[draggable]').forEach(thumb => {
+            thumb.addEventListener('dragstart', function(e) {
+                dragSrcIdx = parseInt(this.dataset.idx);
+                this.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+            thumb.addEventListener('dragend', function() {
+                this.classList.remove('dragging');
+                container.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            });
+            thumb.addEventListener('dragover', function(e) {
+                e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+                container.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                this.classList.add('drag-over');
+            });
+            thumb.addEventListener('dragleave', function() { this.classList.remove('drag-over'); });
+            thumb.addEventListener('drop', function(e) {
+                e.preventDefault();
+                const destIdx = parseInt(this.dataset.idx);
+                if (dragSrcIdx === null || dragSrcIdx === destIdx) return;
+                const moved = slides.splice(dragSrcIdx, 1)[0];
+                slides.splice(destIdx, 0, moved);
+                /* update currentIdx to follow selected slide */
+                if (currentIdx === dragSrcIdx) currentIdx = destIdx;
+                else if (dragSrcIdx < currentIdx && destIdx >= currentIdx) currentIdx--;
+                else if (dragSrcIdx > currentIdx && destIdx <= currentIdx) currentIdx++;
+                dragSrcIdx = null;
+                /* persist new order */
+                slides.forEach((s, i) => { s.order = i; saveSlide(i); });
+                renderSorter(); renderPreview(); renderInspector();
+            });
+        });
     }
 
     /* ── Render Preview ─────────────────────────────────── */

@@ -78,9 +78,62 @@
 .sd-empty i { font-size: 3rem; color: var(--text-muted); opacity: 0.3; margin-bottom: 1rem; }
 .sd-empty p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem; }
 
+/* ── Toolbar ───────────────────────────────────────────── */
+.sd-toolbar {
+    display: flex; align-items: center; gap: 0.6rem;
+    margin-bottom: 1rem; flex-wrap: wrap;
+}
+.sd-search-wrap {
+    position: relative; flex: 1; min-width: 200px;
+}
+.sd-search-wrap i.bi-search {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--text-muted); font-size: 0.82rem;
+}
+.sd-search {
+    width: 100%; padding: 0.55rem 0.75rem 0.55rem 2.2rem;
+    border: 1px solid var(--border-color); border-radius: 10px;
+    background: var(--card-bg); color: var(--text-primary);
+    font-size: 0.82rem; outline: none; transition: border-color 0.15s;
+}
+.sd-search:focus { border-color: #7c3aed; }
+.sd-sort-pills {
+    display: flex; gap: 4px;
+}
+.sd-sort-pill {
+    padding: 0.4rem 0.75rem; border-radius: 8px; border: 1px solid var(--border-color);
+    background: transparent; color: var(--text-muted);
+    font-size: 0.72rem; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    white-space: nowrap;
+}
+.sd-sort-pill:hover { border-color: #7c3aed; color: #7c3aed; }
+.sd-sort-pill.active { background: #7c3aed; border-color: #7c3aed; color: #fff; }
+
+/* ── Card entrance stagger ─────────────────────────────── */
+@keyframes sdCardIn {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: none; }
+}
+.sd-card {
+    animation: sdCardIn 0.4s ease both;
+}
+.sd-card:nth-child(1)  { animation-delay: 0s; }
+.sd-card:nth-child(2)  { animation-delay: .06s; }
+.sd-card:nth-child(3)  { animation-delay: .12s; }
+.sd-card:nth-child(4)  { animation-delay: .18s; }
+.sd-card:nth-child(5)  { animation-delay: .24s; }
+.sd-card:nth-child(6)  { animation-delay: .30s; }
+.sd-card:nth-child(7)  { animation-delay: .36s; }
+.sd-card:nth-child(8)  { animation-delay: .42s; }
+.sd-card:nth-child(n+9){ animation-delay: .48s; }
+
 @media (max-width: 576px) {
     .sd-grid { grid-template-columns: 1fr; }
     .sd-hero-stats { flex-direction: column; gap: 0.75rem; }
+    .sd-toolbar { flex-direction: column; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .sd-card { animation: none !important; }
 }
 {% endblock %}
 
@@ -109,8 +162,21 @@
     </div>
 </div>
 
+<!-- Toolbar -->
+<div class="sd-toolbar">
+    <div class="sd-search-wrap">
+        <i class="bi bi-search"></i>
+        <input class="sd-search" id="deckSearch" type="text" placeholder="Search presentations…">
+    </div>
+    <div class="sd-sort-pills">
+        <button class="sd-sort-pill active" data-sort="newest">Newest</button>
+        <button class="sd-sort-pill" data-sort="az">A–Z</button>
+        <button class="sd-sort-pill" data-sort="slides">Most Slides</button>
+    </div>
+</div>
+
 <!-- Deck Grid -->
-<div class="sd-grid">
+<div class="sd-grid" id="deckGrid">
 {% for deck in decks %}
     <div class="iu-card sd-card">
         <div class="sd-card-top">
@@ -153,4 +219,45 @@
     </div>
 {% endfor %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const search = document.getElementById('deckSearch');
+    const grid   = document.getElementById('deckGrid');
+    const cards  = Array.from(grid.querySelectorAll('.sd-card'));
+    const pills  = document.querySelectorAll('.sd-sort-pill');
+
+    /* Search filter */
+    search.addEventListener('input', function() {
+        const q = this.value.toLowerCase();
+        cards.forEach(c => {
+            const title = (c.querySelector('.sd-card-title') || {}).textContent || '';
+            c.style.display = title.toLowerCase().includes(q) ? '' : 'none';
+        });
+    });
+
+    /* Sort */
+    pills.forEach(pill => pill.addEventListener('click', function() {
+        pills.forEach(p => p.classList.remove('active'));
+        this.classList.add('active');
+        const mode = this.dataset.sort;
+        const sorted = [...cards].sort((a, b) => {
+            if (mode === 'az') {
+                const tA = (a.querySelector('.sd-card-title') || {}).textContent || '';
+                const tB = (b.querySelector('.sd-card-title') || {}).textContent || '';
+                return tA.localeCompare(tB);
+            }
+            if (mode === 'slides') {
+                const sA = parseInt((a.querySelector('.sd-card-meta span') || {}).textContent) || 0;
+                const sB = parseInt((b.querySelector('.sd-card-meta span') || {}).textContent) || 0;
+                return sB - sA;
+            }
+            return 0; /* newest = original order */
+        });
+        sorted.forEach(c => grid.appendChild(c));
+    }));
+})();
+</script>
 {% endblock %}

@@ -424,6 +424,8 @@ class ToolPresentation(models.Model):
         ('fade',  'Fade'),
         ('zoom',  'Zoom'),
         ('flip',  'Flip'),
+        ('swirl', 'Swirl'),
+        ('drop',  'Drop'),
     ]
 
     profile = models.ForeignKey(

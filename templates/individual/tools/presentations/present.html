@@ -6,118 +6,375 @@
     <title>{{ deck.title }} — Presentation</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
-        body { background: #000; color: #fff; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
 
-        /* ── Theme backgrounds ──────────────────────────── */
-        .theme-aurora   { background: linear-gradient(135deg, #4c1d95, #2563eb); color: #fff; }
-        .theme-midnight { background: linear-gradient(135deg, #0f172a, #1e1b4b); color: #e2e8f0; }
-        .theme-forest   { background: linear-gradient(135deg, #065f46, #0d9488); color: #fff; }
-        .theme-coral    { background: linear-gradient(135deg, #be123c, #f97316); color: #fff; }
-        .theme-slate    { background: linear-gradient(135deg, #1e293b, #64748b); color: #f1f5f9; }
-        .theme-ocean    { background: linear-gradient(135deg, #0c2d4e, #0e6088); color: #e0f2fe; }
-        .theme-amber    { background: linear-gradient(135deg, #431407, #92400e); color: #fef3c7; }
-        .theme-rose     { background: linear-gradient(135deg, #4c0519, #9d174d); color: #ffe4e6; }
+        /* ── Theme gradients (dark) ─────────────────────── */
+        .theme-aurora   { background: linear-gradient(135deg, #1e0a40 0%, #0c1a4a 100%); }
+        .theme-midnight { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); }
+        .theme-forest   { background: linear-gradient(135deg, #021d11 0%, #052e22 60%, #0a2e2b 100%); }
+        .theme-coral    { background: linear-gradient(135deg, #3b0012 0%, #5a1200 60%, #7c1e00 100%); }
+        .theme-slate    { background: linear-gradient(135deg, #0f1824 0%, #1e2d3d 100%); }
+        .theme-ocean    { background: linear-gradient(135deg, #0c2d4e 0%, #0a4a6e 60%, #0e6088 100%); }
+        .theme-amber    { background: linear-gradient(135deg, #431407 0%, #7c2d12 60%, #92400e 100%); }
+        .theme-rose     { background: linear-gradient(135deg, #4c0519 0%, #831843 60%, #9d174d 100%); }
 
-        /* ── Slide viewport ─────────────────────────────── */
-        .p-viewport {
-            position: fixed; inset: 0;
+        /* ── Light mode backgrounds ─────────────────────── */
+        .light-mode.theme-aurora   { background: linear-gradient(135deg, #f0ecff 0%, #e8eeff 100%); }
+        .light-mode.theme-midnight { background: linear-gradient(135deg, #eef0f8 0%, #e8e6f4 100%); }
+        .light-mode.theme-forest   { background: linear-gradient(135deg, #ecfdf5 0%, #e6f7f0 60%, #e8f5f3 100%); }
+        .light-mode.theme-coral    { background: linear-gradient(135deg, #fff1f2 0%, #fff0e6 60%, #ffecdb 100%); }
+        .light-mode.theme-slate    { background: linear-gradient(135deg, #f1f5f9 0%, #e9edf2 100%); }
+        .light-mode.theme-ocean    { background: linear-gradient(135deg, #ecf6ff 0%, #e0f2fe 60%, #dbeffe 100%); }
+        .light-mode.theme-amber    { background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 60%, rgba(253,230,138,.25) 100%); }
+        .light-mode.theme-rose     { background: linear-gradient(135deg, #fff1f2 0%, #fce7f3 60%, #fce7f3 100%); }
+
+        /* ── Slide stage ────────────────────────────────── */
+        .ps-stage {
+            width: 100vw; height: 100vh;
+            position: relative; overflow: hidden;
+        }
+        .ps-stage::before {
+            content: ''; position: absolute; inset: 0;
+            z-index: 0; pointer-events: none;
+        }
+        /* Per-theme ambient blobs */
+        .ps-stage.theme-aurora::before   { background: radial-gradient(ellipse 60% 40% at 10% 20%, rgba(167,139,250,.22) 0%, transparent 65%), radial-gradient(ellipse 50% 60% at 90% 80%, rgba(96,165,250,.14) 0%, transparent 65%); }
+        .ps-stage.theme-midnight::before { background: radial-gradient(ellipse 60% 40% at 12% 20%, rgba(99,102,241,.18) 0%, transparent 65%), radial-gradient(ellipse 50% 60% at 88% 80%, rgba(139,92,246,.10) 0%, transparent 65%); }
+        .ps-stage.theme-forest::before   { background: radial-gradient(ellipse 60% 45% at 10% 20%, rgba(52,211,153,.16) 0%, transparent 65%), radial-gradient(ellipse 45% 55% at 90% 80%, rgba(16,185,129,.08) 0%, transparent 65%); }
+        .ps-stage.theme-coral::before    { background: radial-gradient(ellipse 60% 45% at 8% 15%, rgba(251,113,133,.20) 0%, transparent 65%), radial-gradient(ellipse 50% 60% at 92% 85%, rgba(245,158,11,.10) 0%, transparent 65%); }
+        .ps-stage.theme-slate::before    { background: radial-gradient(ellipse 60% 40% at 10% 18%, rgba(148,163,184,.12) 0%, transparent 65%), radial-gradient(ellipse 50% 55% at 90% 82%, rgba(100,116,139,.08) 0%, transparent 65%); }
+        .ps-stage.theme-ocean::before    { background: radial-gradient(ellipse 60% 45% at 8% 18%, rgba(56,189,248,.20) 0%, transparent 65%), radial-gradient(ellipse 50% 55% at 92% 82%, rgba(14,165,233,.12) 0%, transparent 65%); }
+        .ps-stage.theme-amber::before    { background: radial-gradient(ellipse 60% 45% at 8% 15%, rgba(251,191,36,.18) 0%, transparent 65%), radial-gradient(ellipse 50% 60% at 92% 85%, rgba(245,158,11,.10) 0%, transparent 65%); }
+        .ps-stage.theme-rose::before     { background: radial-gradient(ellipse 60% 45% at 8% 15%, rgba(251,113,133,.24) 0%, transparent 65%), radial-gradient(ellipse 50% 60% at 92% 85%, rgba(244,63,94,.14) 0%, transparent 65%); }
+
+        /* Light-mode ambient blobs */
+        .light-mode.ps-stage.theme-aurora::before   { background: radial-gradient(ellipse 60% 40% at 10% 20%, rgba(124,58,237,.08) 0%, transparent 65%), radial-gradient(ellipse 50% 60% at 90% 80%, rgba(59,130,246,.06) 0%, transparent 65%); }
+        .light-mode.ps-stage.theme-midnight::before { background: radial-gradient(ellipse 60% 40% at 12% 20%, rgba(99,102,241,.08) 0%, transparent 65%), radial-gradient(ellipse 50% 60% at 88% 80%, rgba(139,92,246,.06) 0%, transparent 65%); }
+        .light-mode.ps-stage.theme-forest::before   { background: radial-gradient(ellipse 60% 45% at 10% 20%, rgba(16,185,129,.08) 0%, transparent 65%), radial-gradient(ellipse 45% 55% at 90% 80%, rgba(52,211,153,.05) 0%, transparent 65%); }
+        .light-mode.ps-stage.theme-coral::before    { background: radial-gradient(ellipse 60% 45% at 8% 15%, rgba(244,63,94,.08) 0%, transparent 65%), radial-gradient(ellipse 50% 60% at 92% 85%, rgba(245,158,11,.06) 0%, transparent 65%); }
+        .light-mode.ps-stage.theme-slate::before    { background: radial-gradient(ellipse 60% 40% at 10% 18%, rgba(100,116,139,.08) 0%, transparent 65%), radial-gradient(ellipse 50% 55% at 90% 82%, rgba(148,163,184,.05) 0%, transparent 65%); }
+        .light-mode.ps-stage.theme-ocean::before    { background: radial-gradient(ellipse 60% 45% at 8% 18%, rgba(14,165,233,.10) 0%, transparent 65%), radial-gradient(ellipse 50% 55% at 92% 82%, rgba(56,189,248,.06) 0%, transparent 65%); }
+        .light-mode.ps-stage.theme-amber::before    { background: radial-gradient(ellipse 60% 45% at 8% 15%, rgba(217,119,6,.08) 0%, transparent 65%), radial-gradient(ellipse 50% 60% at 92% 85%, rgba(245,158,11,.06) 0%, transparent 65%); }
+        .light-mode.ps-stage.theme-rose::before     { background: radial-gradient(ellipse 60% 45% at 8% 15%, rgba(244,63,94,.10) 0%, transparent 65%), radial-gradient(ellipse 50% 60% at 92% 85%, rgba(251,113,133,.06) 0%, transparent 65%); }
+
+        /* ── Slides ─────────────────────────────────────── */
+        .ps-slide {
+            position: absolute; inset: 0; z-index: 1;
+            display: none; flex-direction: column;
+        }
+        .ps-slide.active { display: flex; }
+        .ps-slide.exit { pointer-events: none; display: flex; z-index: 0; }
+
+        /* ── Transitions (animation-based) ──────────────── */
+        #stage.trans-slide .ps-slide.active { animation: slideIn  .35s cubic-bezier(.25,.46,.45,.94); }
+        #stage.trans-slide .ps-slide.exit   { animation: slideOut .25s ease forwards; }
+        #stage.trans-fade  .ps-slide.active { animation: fadeIn   .4s  ease; }
+        #stage.trans-fade  .ps-slide.exit   { animation: fadeOut  .3s  ease forwards; }
+        #stage.trans-zoom  .ps-slide.active { animation: zoomIn   .35s cubic-bezier(.25,.46,.45,.94); }
+        #stage.trans-zoom  .ps-slide.exit   { animation: zoomOut  .25s ease forwards; }
+        #stage.trans-flip  .ps-slide.active { animation: flipIn   .4s  cubic-bezier(.25,.46,.45,.94); }
+        #stage.trans-flip  .ps-slide.exit   { animation: flipOut  .3s  ease forwards; }
+        #stage.trans-swirl .ps-slide.active { animation: swirlIn  .45s cubic-bezier(.25,.46,.45,.94); }
+        #stage.trans-swirl .ps-slide.exit   { animation: swirlOut .3s  ease forwards; }
+        #stage.trans-drop  .ps-slide.active { animation: dropIn   .4s  cubic-bezier(.34,1.56,.64,1); }
+        #stage.trans-drop  .ps-slide.exit   { animation: dropOut  .25s ease forwards; }
+
+        @keyframes slideIn  { from { opacity: 0; transform: translateX(40px); }                   to { opacity: 1; transform: none; } }
+        @keyframes slideOut { from { opacity: 1; transform: none; }                                to { opacity: 0; transform: translateX(-40px); } }
+        @keyframes fadeIn   { from { opacity: 0; }                                                 to { opacity: 1; } }
+        @keyframes fadeOut  { from { opacity: 1; }                                                 to { opacity: 0; } }
+        @keyframes zoomIn   { from { opacity: 0; transform: scale(.88); }                         to { opacity: 1; transform: none; } }
+        @keyframes zoomOut  { from { opacity: 1; transform: none; }                               to { opacity: 0; transform: scale(1.1); } }
+        @keyframes flipIn   { from { opacity: 0; transform: perspective(900px) rotateY(-18deg); } to { opacity: 1; transform: none; } }
+        @keyframes flipOut  { from { opacity: 1; transform: none; }                               to { opacity: 0; transform: perspective(900px) rotateY(18deg); } }
+        @keyframes swirlIn  { from { opacity: 0; transform: scale(.7) rotate(-8deg); }            to { opacity: 1; transform: none; } }
+        @keyframes swirlOut { from { opacity: 1; transform: none; }                               to { opacity: 0; transform: scale(.7) rotate(8deg); } }
+        @keyframes dropIn   { from { opacity: 0; transform: translateY(-50px) scale(.9); }        to { opacity: 1; transform: none; } }
+        @keyframes dropOut  { from { opacity: 1; transform: none; }                               to { opacity: 0; transform: translateY(50px) scale(.9); } }
+
+        /* ── Content entrance animations ────────────────── */
+        .ps-slide.active .sl-emoji    { animation: elFadeUp .5s  ease both .1s; }
+        .ps-slide.active .sl-title    { animation: elFadeUp .5s  ease both .15s; }
+        .ps-slide.active .sl-sub      { animation: elFadeUp .45s ease both .25s; }
+        .ps-slide.active .sl-stat     { animation: elPop    .5s  cubic-bezier(.34,1.56,.64,1) both .2s; }
+        .ps-slide.active .sl-quote    { animation: elFadeUp .55s ease both .15s; }
+        .ps-slide.active .sl-author   { animation: elFadeUp .4s  ease both .35s; }
+        .ps-slide.active .sl-image-wrap { animation: elFadeUp .5s ease both .2s; }
+        .ps-slide.active .sl-caption  { animation: elFadeUp .4s  ease both .35s; }
+        .ps-slide.active .sl-cols     { animation: elFadeUp .5s  ease both .2s; }
+
+        @keyframes elFadeUp  { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+        @keyframes elPop     { from { opacity: 0; transform: scale(.6); }        to { opacity: 1; transform: none; } }
+        @keyframes elSlideIn { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
+
+        /* ── Bullet-by-bullet reveal ────────────────────── */
+        .ps-stage.bullet-reveal .sl-bullets li,
+        .ps-stage.bullet-reveal .sl-col-item {
+            opacity: 0; transform: translateY(16px);
+            transition: opacity .4s ease, transform .4s ease;
+        }
+        .ps-stage.bullet-reveal .sl-bullets li.revealed,
+        .ps-stage.bullet-reveal .sl-col-item.revealed {
+            opacity: 1; transform: none;
+        }
+        .ps-stage.bullet-reveal .sl-bullets li.dimmed,
+        .ps-stage.bullet-reveal .sl-col-item.dimmed {
+            opacity: .35;
+        }
+
+        /* ── Layout styles (full-screen responsive) ─────── */
+        .layout-title { align-items: center; justify-content: center; text-align: center; padding: 5vw; }
+        .layout-title .sl-emoji { font-size: clamp(3rem, 8vw, 6rem); margin-bottom: .5rem; }
+        .layout-title .sl-title { font-size: clamp(2.5rem, 6vw, 5rem); font-weight: 900; color: #f1f5f9; line-height: 1.1; letter-spacing: -.02em; }
+        .layout-title .sl-sub   { margin-top: 1rem; font-size: clamp(.9rem, 2.3vw, 1.6rem); color: rgba(255,255,255,.55); max-width: 60%; }
+
+        .layout-bullets { padding: 5vw 6vw 4vw; position: relative; overflow: hidden; }
+        .layout-bullets .sl-title { font-size: clamp(2rem, 4.5vw, 3.5rem); font-weight: 800; color: #f1f5f9; margin-bottom: .6em; }
+        .layout-bullets .sl-emoji-hd { font-size: clamp(1.8rem, 4vw, 3rem); line-height: 1; margin-bottom: .2em; display: block; }
+        .layout-bullets .sl-emoji-bg {
+            position: absolute; bottom: -4%; right: 2%;
+            font-size: clamp(8rem, 22vw, 16rem); opacity: .055;
+            pointer-events: none; z-index: 0; line-height: 1;
+            transform: rotate(12deg); user-select: none;
+        }
+        .layout-bullets .sl-title, .layout-bullets .sl-bullets { position: relative; z-index: 1; }
+        .layout-bullets .sl-bullets { list-style: none; display: flex; flex-direction: column; gap: .6em; flex: 1; }
+        .layout-bullets .sl-bullets li { display: flex; align-items: flex-start; gap: .6em; font-size: clamp(1rem, 2.3vw, 1.7rem); color: rgba(255,255,255,.85); line-height: 1.4; padding: 0; }
+        .layout-bullets .sl-bullets li::before { content: '\25B8'; color: #a78bfa; flex-shrink: 0; margin-top: .15em; position: static; font-size: inherit; font-weight: normal; }
+
+        .layout-summary { padding: 5vw 6vw 4vw; }
+        .layout-summary .sl-title { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 800; color: #f1f5f9; margin-bottom: .6em; }
+        .layout-summary .sl-bullets { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: .7em; flex: 1; }
+        .layout-summary .sl-bullets li { display: flex; align-items: flex-start; gap: .5em; font-size: clamp(.9rem, 2vw, 1.4rem); color: rgba(255,255,255,.85); padding: .7em 1em; background: rgba(255,255,255,.07); border-radius: 12px; line-height: 1.35; }
+        .layout-summary .sl-bullets li::before { content: '\2713'; color: #34d399; flex-shrink: 0; position: static; font-size: inherit; font-weight: bold; }
+
+        .layout-big_stat { align-items: center; justify-content: center; text-align: center; padding: 5vw; }
+        .layout-big_stat .sl-title { font-size: clamp(1.2rem, 3vw, 2rem); color: rgba(255,255,255,.55); text-transform: uppercase; letter-spacing: .12em; font-weight: 700; }
+        .sl-stat { font-size: clamp(5rem, 18vw, 13rem); font-weight: 900; line-height: 1; background: linear-gradient(135deg, #a78bfa, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .layout-big_stat .sl-sub { margin-top: .6rem; font-size: clamp(.8rem, 2vw, 1.3rem); color: rgba(255,255,255,.45); }
+
+        .layout-quote { align-items: center; justify-content: center; text-align: center; padding: 8vw; }
+        .layout-quote .sl-quote { font-size: clamp(1.4rem, 4vw, 3rem); color: #e0e7ff; font-style: italic; line-height: 1.5; position: relative; }
+        .layout-quote .sl-quote::before { content: '\201C'; font-size: 6em; color: rgba(139,92,246,.25); position: absolute; top: -.3em; left: -.15em; font-style: normal; line-height: 1; }
+        .sl-author { margin-top: 1.5rem; font-size: clamp(.8rem, 1.8vw, 1.1rem); color: rgba(255,255,255,.4); font-style: normal; }
+
+        .layout-two_col { padding: 4vw 5vw 3vw; }
+        .layout-two_col .sl-title { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 800; color: #f1f5f9; margin-bottom: .5em; }
+        .sl-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 2em; flex: 1; }
+        .sl-col { background: rgba(255,255,255,.06); border-radius: 16px; padding: 1.2em; }
+        .sl-col-item { font-size: clamp(.9rem, 2vw, 1.4rem); color: rgba(255,255,255,.85); padding: .3em 0; display: flex; align-items: flex-start; gap: .5em; }
+        .sl-col-item::before { content: '\2022'; color: #a78bfa; flex-shrink: 0; }
+
+        .layout-image { padding: 4vw 5vw 3vw; }
+        .layout-image .sl-title { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 800; color: #f1f5f9; margin-bottom: .5em; }
+        .sl-image-wrap { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; overflow: hidden; }
+        .sl-image { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,.35); display: block; }
+        .sl-caption { font-size: clamp(.8rem, 1.8vw, 1.2rem); color: rgba(255,255,255,.45); margin-top: .5em; text-align: center; }
+        .sl-emoji-bg { position: absolute; bottom: 3vh; right: 5vw; font-size: clamp(8rem,20vw,14rem); opacity: 0.055; pointer-events: none; user-select: none; }
+
+        /* ── Light mode text overrides ──────────────────── */
+        .light-mode .layout-title .sl-title { color: #1e293b; }
+        .light-mode .layout-title .sl-sub   { color: rgba(30,41,59,.55); }
+        .light-mode .layout-bullets .sl-title { color: #1e293b; }
+        .light-mode .layout-bullets .sl-bullets li { color: rgba(30,41,59,.85); }
+        .light-mode .layout-bullets .sl-bullets li::before { color: #7c3aed; }
+        .light-mode .layout-summary .sl-title { color: #1e293b; }
+        .light-mode .layout-summary .sl-bullets li { color: rgba(30,41,59,.85); background: rgba(0,0,0,.04); }
+        .light-mode .layout-summary .sl-bullets li::before { color: #059669; }
+        .light-mode .layout-big_stat .sl-title { color: rgba(30,41,59,.55); }
+        .light-mode .layout-big_stat .sl-stat  { background: linear-gradient(135deg,#7c3aed,#2563eb); -webkit-background-clip: text; background-clip: text; }
+        .light-mode .layout-big_stat .sl-sub   { color: rgba(30,41,59,.45); }
+        .light-mode .layout-quote .sl-quote { color: #334155; }
+        .light-mode .layout-quote .sl-quote::before { color: rgba(124,58,237,.15); }
+        .light-mode .sl-author { color: rgba(30,41,59,.4); }
+        .light-mode .layout-two_col .sl-title { color: #1e293b; }
+        .light-mode .sl-col { background: rgba(0,0,0,.04); }
+        .light-mode .sl-col-item { color: rgba(30,41,59,.85); }
+        .light-mode .sl-col-item::before { color: #7c3aed; }
+        .light-mode .layout-image .sl-title { color: #1e293b; }
+        .light-mode .sl-caption { color: rgba(30,41,59,.45); }
+        .light-mode .sl-image { box-shadow: 0 8px 32px rgba(0,0,0,.12); }
+
+        /* ── Glass HUD controls ─────────────────────────── */
+        .ps-controls {
+            position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+            display: flex; align-items: center; gap: 4px;
+            padding: 6px 12px; z-index: 200;
+            background: rgba(15,23,42,.85); border: 1px solid rgba(255,255,255,.1);
+            border-radius: 16px; backdrop-filter: blur(16px);
+            box-shadow: 0 4px 24px rgba(0,0,0,.4);
+            opacity: 0; transition: opacity .3s ease;
+        }
+        body:hover .ps-controls, .ps-controls:hover { opacity: 1; }
+        .ps-ctrl-btn {
+            width: 36px; height: 36px; border-radius: 10px; border: none;
+            background: transparent; color: #94a3b8;
             display: flex; align-items: center; justify-content: center;
+            font-size: .95rem; cursor: pointer; transition: all .15s;
         }
-        .p-slide {
-            position: absolute; inset: 0;
-            display: none; flex-direction: column; justify-content: center;
-            padding: 6vh 8vw;
+        .ps-ctrl-btn:hover { background: rgba(255,255,255,.1); color: #f1f5f9; }
+        .ps-ctrl-btn.active { background: rgba(124,58,237,.25); color: #c4b5fd; }
+        .ps-counter {
+            font-size: .78rem; font-weight: 700; color: rgba(255,255,255,.55);
+            font-variant-numeric: tabular-nums; min-width: 50px; text-align: center;
+            padding: 0 6px;
         }
-        .p-slide.active { display: flex; }
+        .ps-sep { width: 1px; height: 20px; background: rgba(255,255,255,.1); margin: 0 2px; flex-shrink: 0; }
 
-        /* ── Transitions ────────────────────────────────── */
-        .trans-slide .p-slide { transition: transform 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.5s; }
-        .trans-slide .p-slide.enter-next { display: flex; transform: translateX(100%); opacity: 0; }
-        .trans-slide .p-slide.enter-prev { display: flex; transform: translateX(-100%); opacity: 0; }
-        .trans-slide .p-slide.exit-next { display: flex; transform: translateX(-100%); opacity: 0; }
-        .trans-slide .p-slide.exit-prev { display: flex; transform: translateX(100%); opacity: 0; }
-        .trans-slide .p-slide.active { transform: translateX(0); opacity: 1; }
-
-        .trans-fade .p-slide { transition: opacity 0.5s ease; }
-        .trans-fade .p-slide.enter-next,
-        .trans-fade .p-slide.enter-prev { display: flex; opacity: 0; }
-        .trans-fade .p-slide.exit-next,
-        .trans-fade .p-slide.exit-prev { display: flex; opacity: 0; }
-        .trans-fade .p-slide.active { opacity: 1; }
-
-        .trans-zoom .p-slide { transition: transform 0.5s ease, opacity 0.5s ease; }
-        .trans-zoom .p-slide.enter-next { display: flex; transform: scale(0.5); opacity: 0; }
-        .trans-zoom .p-slide.enter-prev { display: flex; transform: scale(1.5); opacity: 0; }
-        .trans-zoom .p-slide.exit-next { display: flex; transform: scale(1.5); opacity: 0; }
-        .trans-zoom .p-slide.exit-prev { display: flex; transform: scale(0.5); opacity: 0; }
-        .trans-zoom .p-slide.active { transform: scale(1); opacity: 1; }
-
-        .trans-flip .p-slide { transition: transform 0.6s ease, opacity 0.3s ease; backface-visibility: hidden; }
-        .trans-flip .p-slide.enter-next { display: flex; transform: rotateY(-90deg); opacity: 0; }
-        .trans-flip .p-slide.enter-prev { display: flex; transform: rotateY(90deg); opacity: 0; }
-        .trans-flip .p-slide.exit-next { display: flex; transform: rotateY(90deg); opacity: 0; }
-        .trans-flip .p-slide.exit-prev { display: flex; transform: rotateY(-90deg); opacity: 0; }
-        .trans-flip .p-slide.active { transform: rotateY(0); opacity: 1; }
-
-        /* ── Slide layout styles ────────────────────────── */
-        .sl-emoji { font-size: 4rem; margin-bottom: 0.75rem; }
-        .sl-title { font-size: 2.8rem; font-weight: 800; line-height: 1.15; margin-bottom: 0.5rem; }
-        .sl-sub { font-size: 1.4rem; opacity: 0.75; margin-top: 0.25rem; }
-        .sl-bullets { list-style: none; padding: 0; margin-top: 0.75rem; }
-        .sl-bullets li { padding: 0.5rem 0 0.5rem 2rem; font-size: 1.5rem; line-height: 1.5; position: relative; }
-        .sl-bullets li::before { content: '•'; position: absolute; left: 0; color: rgba(255,255,255,0.35); font-weight: 700; font-size: 1.5rem; }
-        .sl-emoji-bg { position: absolute; bottom: 3vh; right: 5vw; font-size: 12rem; opacity: 0.05; pointer-events: none; }
-
-        /* title */
-        .layout-title { text-align: center; align-items: center; }
-        .layout-title .sl-title { font-size: 3.6rem; }
-        .layout-title .sl-sub { font-size: 1.6rem; }
-
-        /* big_stat */
-        .layout-big_stat { text-align: center; align-items: center; }
-        .sl-stat { font-size: 7rem; font-weight: 900; line-height: 1; margin: 0.5rem 0; }
-
-        /* quote */
-        .layout-quote { text-align: center; align-items: center; padding: 8vh 12vw; }
-        .sl-quote { font-size: 2.2rem; font-style: italic; font-weight: 500; line-height: 1.5; }
-        .sl-author { margin-top: 1.5rem; font-size: 1.2rem; opacity: 0.65; }
-
-        /* two_col */
-        .sl-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; margin-top: 1rem; width: 100%; }
-        .sl-col-item { font-size: 1.3rem; padding: 0.4rem 0; line-height: 1.5; }
-
-        /* image */
-        .sl-image-wrap { max-height: 50vh; overflow: hidden; border-radius: 12px; margin: 1rem 0; }
-        .sl-image { width: 100%; display: block; }
-        .sl-caption { font-size: 1.1rem; opacity: 0.65; text-align: center; margin-top: 0.5rem; }
-
-        /* ── HUD Overlay ────────────────────────────────── */
-        .p-hud {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            display: flex; align-items: center; justify-content: center; gap: 1rem;
-            padding: 0.75rem 1.5rem; z-index: 100;
-            background: linear-gradient(transparent, rgba(0,0,0,0.6));
-            opacity: 0; transition: opacity 0.3s ease;
+        /* Light mode HUD */
+        .light-mode .ps-controls {
+            background: rgba(255,255,255,.82); border-color: rgba(0,0,0,.1);
+            box-shadow: 0 2px 12px rgba(0,0,0,.08);
         }
-        body:hover .p-hud, .p-hud:hover { opacity: 1; }
-        .p-hud-btn {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 40px; height: 40px; border-radius: 8px; border: none;
-            background: rgba(255,255,255,0.12); color: #fff;
-            font-size: 1.1rem; cursor: pointer; transition: background 0.15s;
-            backdrop-filter: blur(8px);
+        .light-mode .ps-ctrl-btn { color: #64748b; }
+        .light-mode .ps-ctrl-btn:hover { background: rgba(0,0,0,.06); color: #1e293b; }
+        .light-mode .ps-ctrl-btn.active { background: rgba(124,58,237,.12); color: #7c3aed; }
+        .light-mode .ps-counter { color: #94a3b8; }
+        .light-mode .ps-sep { background: rgba(0,0,0,.1); }
+
+        .ps-exit-btn {
+            position: fixed; top: 12px; left: 12px; z-index: 200;
+            width: 36px; height: 36px; border-radius: 10px; border: none;
+            background: rgba(255,255,255,.08); color: rgba(255,255,255,.5);
+            display: flex; align-items: center; justify-content: center;
+            font-size: .9rem; cursor: pointer; transition: all .15s;
+            opacity: 0; backdrop-filter: blur(8px);
         }
-        .p-hud-btn:hover { background: rgba(255,255,255,0.25); }
-        .p-counter {
-            font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.8);
-            font-variant-numeric: tabular-nums; min-width: 60px; text-align: center;
+        body:hover .ps-exit-btn { opacity: 1; }
+        .ps-exit-btn:hover { background: rgba(255,255,255,.15); color: #fff; }
+        .light-mode .ps-exit-btn { background: rgba(0,0,0,.05); color: #64748b; }
+
+        /* ── Progress bar ───────────────────────────────── */
+        .ps-progress {
+            position: fixed; top: 0; left: 0; height: 3px; z-index: 201;
+            background: #7c3aed; transition: width .3s ease;
         }
-        .p-progress {
-            position: fixed; top: 0; left: 0; height: 3px; z-index: 101;
-            background: #7c3aed; transition: width 0.3s ease;
+        .light-mode .ps-progress { background: rgba(0,0,0,.08); }
+
+        /* ── Timer ──────────────────────────────────────── */
+        .ps-timer {
+            position: fixed; top: 12px; right: 12px; z-index: 200;
+            background: rgba(15,23,42,.7); border: 1px solid rgba(255,255,255,.08);
+            border-radius: 12px; padding: 4px 14px;
+            color: rgba(255,255,255,.6); font-size: .78rem; font-weight: 700;
+            font-variant-numeric: tabular-nums; backdrop-filter: blur(8px);
+            display: none; opacity: 0; transition: opacity .3s;
         }
+        body:hover .ps-timer.visible { opacity: 1; }
+        .ps-timer.visible { display: block; }
+        .light-mode .ps-timer { background: rgba(255,255,255,.8); border-color: rgba(0,0,0,.1); color: #64748b; }
+
+        /* ── Speaker notes strip ────────────────────────── */
+        .ps-notes-strip {
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 190;
+            background: rgba(15,23,42,.95); border-top: 1px solid rgba(255,255,255,.08);
+            backdrop-filter: blur(12px); padding: .8rem 1.5rem;
+            display: none; max-height: 25vh; overflow-y: auto;
+        }
+        .ps-notes-strip.open { display: block; }
+        .ps-notes-strip-label {
+            font-size: .65rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .08em; color: #a78bfa; margin-bottom: .4rem;
+        }
+        .ps-notes-strip-text { font-size: .85rem; color: rgba(255,255,255,.7); line-height: 1.6; white-space: pre-wrap; }
+        .ps-notes-strip-close {
+            position: absolute; top: 8px; right: 12px;
+            background: none; border: none; color: rgba(255,255,255,.3);
+            font-size: .9rem; cursor: pointer;
+        }
+        .light-mode .ps-notes-strip { background: rgba(255,255,255,.97); border-top-color: rgba(0,0,0,.08); }
+        .light-mode .ps-notes-strip-text { color: #475569; }
+        .light-mode .ps-notes-strip-label { color: #7c3aed; }
+        .light-mode .ps-notes-strip-close { color: #94a3b8; }
+
+        /* ── Slide overview grid ────────────────────────── */
+        .ps-overview {
+            position: fixed; inset: 0; z-index: 300;
+            background: rgba(0,0,0,.92); backdrop-filter: blur(12px);
+            display: none; overflow-y: auto; padding: 2rem;
+        }
+        .ps-overview.open { display: block; }
+        .ps-ov-header {
+            text-align: center; font-size: .7rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .1em;
+            color: rgba(255,255,255,.35); margin-bottom: 1.5rem;
+        }
+        .ps-ov-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 1rem; max-width: 1200px; margin: 0 auto;
+        }
+        .ps-ov-wrap {
+            border: 2px solid rgba(255,255,255,.1); border-radius: 12px;
+            overflow: hidden; cursor: pointer; transition: all .15s; position: relative;
+        }
+        .ps-ov-wrap:hover { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,.15); }
+        .ps-ov-wrap.active { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,.25); }
+        .ps-ov-inner { aspect-ratio: 16/10; display: flex; flex-direction: column; pointer-events: none; transform: scale(.35); transform-origin: top left; width: 285.7%; height: 285.7%; }
+        .ps-ov-num {
+            position: absolute; bottom: 6px; right: 8px; font-size: .65rem;
+            font-weight: 700; color: rgba(255,255,255,.5);
+        }
+        .ps-ov-close {
+            position: fixed; top: 1rem; right: 1rem; z-index: 301;
+            background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1);
+            border-radius: 10px; padding: 8px 14px; color: #94a3b8;
+            font-size: .8rem; font-weight: 700; cursor: pointer;
+        }
+        .light-mode .ps-overview { background: rgba(255,255,255,.95); }
+        .light-mode .ps-ov-wrap { border-color: rgba(0,0,0,.1); }
+        .light-mode .ps-ov-wrap:hover { border-color: #7c3aed; }
+        .light-mode .ps-ov-num { color: rgba(30,41,59,.5); }
+        .light-mode .ps-ov-close { background: rgba(0,0,0,.04); border-color: rgba(0,0,0,.08); color: #64748b; }
+
+        /* ── Go-to-slide overlay ────────────────────────── */
+        .ps-goto-overlay {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            z-index: 400; background: rgba(15,23,42,.92); border: 1px solid rgba(255,255,255,.12);
+            border-radius: 20px; padding: 1.5rem 2rem; text-align: center;
+            backdrop-filter: blur(16px); display: none; min-width: 180px;
+        }
+        .ps-goto-overlay.open { display: block; }
+        .ps-goto-label { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: rgba(255,255,255,.4); margin-bottom: .5rem; }
+        .ps-goto-num { font-size: 3rem; font-weight: 900; color: #f1f5f9; font-variant-numeric: tabular-nums; line-height: 1; }
+        .ps-goto-hint { font-size: .65rem; color: rgba(255,255,255,.3); margin-top: .5rem; }
+        .light-mode .ps-goto-overlay { background: rgba(255,255,255,.92); border-color: rgba(0,0,0,.1); }
+        .light-mode .ps-goto-num { color: #1e293b; }
+        .light-mode .ps-goto-label, .light-mode .ps-goto-hint { color: #94a3b8; }
+
+        /* ── Keyboard shortcuts help ────────────────────── */
+        .ps-shortcuts-overlay {
+            position: fixed; inset: 0; z-index: 500;
+            background: rgba(0,0,0,.75); backdrop-filter: blur(6px);
+            display: none; align-items: center; justify-content: center;
+        }
+        .ps-shortcuts-overlay.open { display: flex; }
+        .ps-shortcuts-inner {
+            background: #1e293b; border: 1px solid rgba(255,255,255,.1);
+            border-radius: 20px; padding: 2rem 2.5rem; max-width: 420px; width: 90%;
+            box-shadow: 0 24px 60px rgba(0,0,0,.5);
+        }
+        .ps-shortcuts-inner h4 { color: #f1f5f9; font-size: 1rem; font-weight: 800; margin-bottom: 1.2rem; text-align: center; }
+        .ps-shortcuts-inner table { width: 100%; border-collapse: collapse; }
+        .ps-shortcuts-inner td { padding: .4rem .5rem; font-size: .82rem; color: #94a3b8; }
+        .ps-shortcuts-inner td:first-child {
+            font-family: monospace; font-weight: 700; font-size: .75rem;
+            background: rgba(255,255,255,.06); border-radius: 6px; padding: .3rem .6rem;
+            color: #c4b5fd; text-align: center; width: 80px;
+        }
+        .ps-sc-close {
+            display: block; margin: 1.2rem auto 0; padding: .5rem 1.5rem;
+            background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1);
+            border-radius: 10px; color: #94a3b8; font-size: .82rem; font-weight: 600;
+            cursor: pointer;
+        }
+        .light-mode .ps-shortcuts-overlay { background: rgba(255,255,255,.8); }
+        .light-mode .ps-shortcuts-inner { background: #fff; border-color: rgba(0,0,0,.1); box-shadow: 0 24px 60px rgba(0,0,0,.12); }
+        .light-mode .ps-shortcuts-inner h4 { color: #1e293b; }
+        .light-mode .ps-shortcuts-inner td { color: #475569; }
+        .light-mode .ps-shortcuts-inner td:first-child { background: rgba(0,0,0,.04); color: #7c3aed; }
+        .light-mode .ps-sc-close { background: rgba(0,0,0,.04); border-color: rgba(0,0,0,.08); color: #64748b; }
 
         /* ── Touch zones ────────────────────────────────── */
         .touch-prev, .touch-next {
@@ -125,13 +382,40 @@
         }
         .touch-prev { left: 0; }
         .touch-next { right: 0; }
+
+        /* ── Reduced motion ─────────────────────────────── */
+        @media (prefers-reduced-motion: reduce) {
+            .ps-slide.active, .ps-slide.exit,
+            .ps-slide.active .sl-emoji, .ps-slide.active .sl-title,
+            .ps-slide.active .sl-sub, .ps-slide.active .sl-stat,
+            .ps-slide.active .sl-quote, .ps-slide.active .sl-author,
+            .ps-slide.active .sl-image-wrap, .ps-slide.active .sl-caption,
+            .ps-slide.active .sl-cols {
+                animation: none !important;
+                transition: none !important;
+            }
+            .ps-stage.bullet-reveal .sl-bullets li,
+            .ps-stage.bullet-reveal .sl-col-item { transition: none !important; }
+        }
     </style>
 </head>
 <body>
-    <div class="p-progress" id="progress"></div>
-    <div class="p-viewport trans-{{ deck.transition }}" id="viewport">
+    <div class="ps-progress" id="progress"></div>
+
+    <!-- Exit -->
+    {% if not is_shared_view %}
+    <a href="{% url 'individual:deck_editor' pk=deck.pk %}" class="ps-exit-btn" title="Back to editor"><i class="bi bi-arrow-left"></i></a>
+    {% endif %}
+
+    <!-- Timer -->
+    <div class="ps-timer" id="timer">00:00</div>
+
+    <!-- Stage -->
+    <div class="ps-stage theme-{{ deck.theme }} trans-{{ deck.transition }}" id="stage">
         {% for slide in slides %}
-        <div class="p-slide theme-{{ deck.theme }} {% if forloop.first %}active{% endif %}" data-idx="{{ forloop.counter0 }}">
+        <div class="ps-slide theme-{{ deck.theme }} {% if forloop.first %}active{% endif %}"
+             data-idx="{{ forloop.counter0 }}"
+             data-notes="{{ slide.speaker_notes|default:''|escapejs }}">
             {% if slide.layout == 'title' %}
             <div class="layout-title" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%">
                 {% if slide.emoji %}<div class="sl-emoji">{{ slide.emoji }}</div>{% endif %}
@@ -147,30 +431,34 @@
             {% elif slide.layout == 'quote' %}
             <div class="layout-quote" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%">
                 <div class="sl-quote">"{{ slide.title }}"</div>
-                {% with lines=slide.bullets %}{% if lines %}<div class="sl-author">— {{ lines.0 }}</div>{% endif %}{% endwith %}
+                {% with lines=slide.bullets %}{% if lines %}<div class="sl-author">&mdash; {{ lines.0 }}</div>{% endif %}{% endwith %}
             </div>
             {% elif slide.layout == 'two_col' %}
-            <div>
+            <div class="layout-two_col" style="display:flex;flex-direction:column;height:100%;padding:5vw 6vw">
                 {% if slide.emoji %}<span class="sl-emoji-bg">{{ slide.emoji }}</span>{% endif %}
-                <div class="sl-title" style="font-size:2.2rem">{{ slide.title }}</div>
-                <div style="column-count:2;column-gap:3rem;margin-top:1rem">{% for b in slide.bullets %}<div class="sl-col-item">{{ b }}</div>{% endfor %}</div>
+                <div class="sl-title">{{ slide.title }}</div>
+                <div class="sl-cols">
+                  <div class="sl-col">{% for b in slide.bullets %}{% if forloop.counter <= 4 %}<div class="sl-col-item">{{ b }}</div>{% endif %}{% endfor %}</div>
+                  <div class="sl-col">{% for b in slide.bullets %}{% if forloop.counter > 4 %}<div class="sl-col-item">{{ b }}</div>{% endif %}{% endfor %}</div>
+                </div>
             </div>
             {% elif slide.layout == 'image' %}
-            <div>
-                <div class="sl-title" style="font-size:2.2rem">{{ slide.title }}</div>
+            <div class="layout-image" style="display:flex;flex-direction:column;height:100%">
+                <div class="sl-title">{{ slide.title }}</div>
                 {% if slide.image_url %}<div class="sl-image-wrap"><img class="sl-image" src="{{ slide.image_url }}" alt="{{ slide.title }}"></div>{% endif %}
                 {% with lines=slide.bullets %}{% if lines %}<div class="sl-caption">{{ lines.0 }}</div>{% endif %}{% endwith %}
             </div>
             {% elif slide.layout == 'summary' %}
-            <div>
-                <div class="sl-title" style="font-size:2.2rem">{{ slide.title }}</div>
+            <div class="layout-summary" style="display:flex;flex-direction:column;height:100%;padding:5vw 6vw">
+                <div class="sl-title">{{ slide.title }}</div>
                 <ul class="sl-bullets">{% for b in slide.bullets %}<li>{{ b }}</li>{% endfor %}</ul>
             </div>
             {% else %}
             <!-- bullets (default) -->
-            <div>
+            <div class="layout-bullets" style="display:flex;flex-direction:column;height:100%">
                 {% if slide.emoji %}<span class="sl-emoji-bg">{{ slide.emoji }}</span>{% endif %}
-                <div class="sl-title" style="font-size:2.2rem">{% if slide.emoji %}<span style="font-size:1.8rem;margin-right:0.3rem">{{ slide.emoji }}</span>{% endif %}{{ slide.title }}</div>
+                {% if slide.emoji %}<span class="sl-emoji-hd">{{ slide.emoji }}</span>{% endif %}
+                <div class="sl-title">{{ slide.title }}</div>
                 <ul class="sl-bullets">{% for b in slide.bullets %}<li>{{ b }}</li>{% endfor %}</ul>
             </div>
             {% endif %}
@@ -179,92 +467,308 @@
     </div>
 
     <!-- Touch zones -->
-    <div class="touch-prev" onclick="go(-1)"></div>
-    <div class="touch-next" onclick="go(1)"></div>
+    <div class="touch-prev" onclick="PS.go(-1)"></div>
+    <div class="touch-next" onclick="PS.go(1)"></div>
 
-    <!-- HUD -->
-    <div class="p-hud">
-        {% if not is_shared_view %}
-        <a href="{% url 'individual:deck_editor' pk=deck.pk %}" class="p-hud-btn" title="Back to editor"><i class="bi bi-pencil"></i></a>
-        {% endif %}
-        <button class="p-hud-btn" onclick="go(-1)" title="Previous"><i class="bi bi-chevron-left"></i></button>
-        <span class="p-counter" id="counter">1 / {{ slides|length }}</span>
-        <button class="p-hud-btn" onclick="go(1)" title="Next"><i class="bi bi-chevron-right"></i></button>
-        <button class="p-hud-btn" onclick="toggleFS()" title="Fullscreen"><i class="bi bi-arrows-fullscreen"></i></button>
+    <!-- HUD Controls -->
+    <div class="ps-controls" id="controls">
+        <button class="ps-ctrl-btn" onclick="PS.go(-1)" title="Previous (←)"><i class="bi bi-chevron-left"></i></button>
+        <span class="ps-counter" id="counter">1 / {{ slides|length }}</span>
+        <button class="ps-ctrl-btn" onclick="PS.go(1)" title="Next (→)"><i class="bi bi-chevron-right"></i></button>
+        <div class="ps-sep"></div>
+        <button class="ps-ctrl-btn" id="btnBullet" onclick="PS.toggleBulletReveal()" title="Bullet reveal (B)"><i class="bi bi-list-ol"></i></button>
+        <button class="ps-ctrl-btn" id="btnNotes" onclick="PS.toggleNotes()" title="Speaker notes (N)"><i class="bi bi-sticky"></i></button>
+        <button class="ps-ctrl-btn" id="btnOverview" onclick="PS.toggleOverview()" title="Overview (O)"><i class="bi bi-grid-3x3-gap"></i></button>
+        <button class="ps-ctrl-btn" id="btnTimer" onclick="PS.toggleTimer()" title="Timer (T)"><i class="bi bi-stopwatch"></i></button>
+        <div class="ps-sep"></div>
+        <button class="ps-ctrl-btn" id="btnLight" onclick="PS.toggleLight()" title="Light mode (L)"><i class="bi bi-sun"></i></button>
+        <button class="ps-ctrl-btn" onclick="PS.toggleFS()" title="Fullscreen (F)"><i class="bi bi-arrows-fullscreen"></i></button>
+        <button class="ps-ctrl-btn" onclick="PS.showShortcuts()" title="Shortcuts (?)"><i class="bi bi-keyboard"></i></button>
+    </div>
+
+    <!-- Speaker notes strip -->
+    <div class="ps-notes-strip" id="notesStrip">
+        <button class="ps-notes-strip-close" onclick="PS.toggleNotes()"><i class="bi bi-x-lg"></i></button>
+        <div class="ps-notes-strip-label"><i class="bi bi-sticky me-1"></i>Speaker Notes</div>
+        <div class="ps-notes-strip-text" id="notesText"></div>
+    </div>
+
+    <!-- Slide overview -->
+    <div class="ps-overview" id="overview">
+        <button class="ps-ov-close" onclick="PS.toggleOverview()"><i class="bi bi-x-lg me-1"></i>Close</button>
+        <div class="ps-ov-header">Slide Overview &mdash; click to jump</div>
+        <div class="ps-ov-grid" id="ovGrid"></div>
+    </div>
+
+    <!-- Go-to-slide -->
+    <div class="ps-goto-overlay" id="gotoOverlay">
+        <div class="ps-goto-label">Go to slide</div>
+        <div class="ps-goto-num" id="gotoNum">0</div>
+        <div class="ps-goto-hint">Type number, press Enter</div>
+    </div>
+
+    <!-- Shortcuts -->
+    <div class="ps-shortcuts-overlay" id="shortcutsOverlay">
+        <div class="ps-shortcuts-inner">
+            <h4><i class="bi bi-keyboard me-2"></i>Keyboard Shortcuts</h4>
+            <table>
+                <tr><td>&rarr; / Space</td><td>Next slide</td></tr>
+                <tr><td>&larr; / Bksp</td><td>Previous slide</td></tr>
+                <tr><td>B</td><td>Toggle bullet reveal</td></tr>
+                <tr><td>N</td><td>Toggle speaker notes</td></tr>
+                <tr><td>O</td><td>Slide overview grid</td></tr>
+                <tr><td>G</td><td>Go to slide number</td></tr>
+                <tr><td>T</td><td>Toggle timer</td></tr>
+                <tr><td>L</td><td>Toggle light/dark mode</td></tr>
+                <tr><td>F</td><td>Toggle fullscreen</td></tr>
+                <tr><td>Esc</td><td>Exit fullscreen / overlays</td></tr>
+                <tr><td>?</td><td>Show this help</td></tr>
+            </table>
+            <button class="ps-sc-close" onclick="PS.hideShortcuts()">Close</button>
+        </div>
     </div>
 
     <script>
-    (function() {
+    const PS = (function() {
         const total = {{ slides|length }};
         let cur = 0;
-        const slides = document.querySelectorAll('.p-slide');
-        const counter = document.getElementById('counter');
-        const progress = document.getElementById('progress');
+        const allSlides = document.querySelectorAll('.ps-slide');
+        const stage     = document.getElementById('stage');
+        const counter   = document.getElementById('counter');
+        const progress  = document.getElementById('progress');
+        const timerEl   = document.getElementById('timer');
+        const notesStrip = document.getElementById('notesStrip');
+        const notesText  = document.getElementById('notesText');
 
+        /* ── State ── */
+        let bulletReveal = false;
+        let bulletIdx    = -1;   /* index of last-revealed bullet on current slide */
+        let notesOpen    = false;
+        let overviewOpen = false;
+        let gotoOpen     = false;
+        let gotoBuffer   = '';
+        let timerOn      = false;
+        let timerStart   = null;
+        let timerRAF     = null;
+        let lightMode    = false;
+
+        /* ── Helpers ── */
         function updateUI() {
             counter.textContent = (cur + 1) + ' / ' + total;
             progress.style.width = ((cur + 1) / total * 100) + '%';
+            if (notesOpen) syncNotes();
+            if (bulletReveal) resetBullets();
         }
 
-        window.go = function(dir) {
+        function syncNotes() {
+            const notes = allSlides[cur].dataset.notes || '';
+            notesText.textContent = notes || '(no notes for this slide)';
+        }
+
+        /* ── Bullet reveal ── */
+        function getBullets() {
+            const slide = allSlides[cur];
+            return Array.from(slide.querySelectorAll('.sl-bullets li, .sl-col-item'));
+        }
+
+        function resetBullets() {
+            bulletIdx = -1;
+            const items = getBullets();
+            items.forEach(el => el.classList.remove('revealed', 'dimmed'));
+        }
+
+        function revealNextBullet() {
+            const items = getBullets();
+            if (!items.length) return false;  /* no bullets on this slide */
+            if (bulletIdx >= items.length - 1) return false;  /* all revealed */
+
+            bulletIdx++;
+            items.forEach((el, i) => {
+                if (i <= bulletIdx) {
+                    el.classList.add('revealed');
+                    el.classList.toggle('dimmed', i < bulletIdx);
+                }
+            });
+            return true;
+        }
+
+        /* ── Navigate ── */
+        function go(dir) {
+            /* In bullet-reveal mode, right-arrow reveals next bullet first */
+            if (bulletReveal && dir === 1 && revealNextBullet()) return;
+
             const next = cur + dir;
             if (next < 0 || next >= total) return;
 
-            const prev = slides[cur];
-            const nxt = slides[next];
+            const prev = allSlides[cur];
+            const nxt  = allSlides[next];
 
-            // Remove all transition classes
-            slides.forEach(s => s.classList.remove('active', 'enter-next', 'enter-prev', 'exit-next', 'exit-prev'));
-
-            if (dir > 0) {
-                nxt.classList.add('enter-next');
-                requestAnimationFrame(() => requestAnimationFrame(() => {
-                    prev.classList.add('exit-next');
-                    nxt.classList.remove('enter-next');
-                    nxt.classList.add('active');
-                }));
-            } else {
-                nxt.classList.add('enter-prev');
-                requestAnimationFrame(() => requestAnimationFrame(() => {
-                    prev.classList.add('exit-prev');
-                    nxt.classList.remove('enter-prev');
-                    nxt.classList.add('active');
-                }));
-            }
+            allSlides.forEach(s => { s.classList.remove('active', 'exit'); s.style.display = ''; });
+            prev.classList.add('exit');
+            nxt.classList.add('active');
+            setTimeout(() => { prev.classList.remove('exit'); prev.style.display = 'none'; }, 500);
 
             cur = next;
             updateUI();
-        };
+        }
 
-        window.toggleFS = function() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(() => {});
-            } else {
-                document.exitFullscreen();
+        function jumpTo(idx) {
+            if (idx < 0 || idx >= total || idx === cur) return;
+            allSlides.forEach(s => { s.classList.remove('active', 'exit'); s.style.display = 'none'; });
+            allSlides[idx].classList.add('active');
+            allSlides[idx].style.display = '';
+            cur = idx;
+            updateUI();
+        }
+
+        /* ── Toggles ── */
+        function toggleBulletReveal() {
+            bulletReveal = !bulletReveal;
+            stage.classList.toggle('bullet-reveal', bulletReveal);
+            document.getElementById('btnBullet').classList.toggle('active', bulletReveal);
+            if (bulletReveal) resetBullets();
+            else getBullets().forEach(el => { el.classList.remove('dimmed'); el.classList.add('revealed'); });
+        }
+
+        function toggleNotes() {
+            notesOpen = !notesOpen;
+            notesStrip.classList.toggle('open', notesOpen);
+            document.getElementById('btnNotes').classList.toggle('active', notesOpen);
+            if (notesOpen) syncNotes();
+        }
+
+        function toggleOverview() {
+            overviewOpen = !overviewOpen;
+            const ov = document.getElementById('overview');
+            ov.classList.toggle('open', overviewOpen);
+            document.getElementById('btnOverview').classList.toggle('active', overviewOpen);
+            if (overviewOpen) buildOverview();
+        }
+
+        function buildOverview() {
+            const grid = document.getElementById('ovGrid');
+            grid.innerHTML = '';
+            allSlides.forEach((slide, i) => {
+                const wrap = document.createElement('div');
+                wrap.className = 'ps-ov-wrap' + (i === cur ? ' active' : '');
+                /* Miniature clone of the slide content */
+                const inner = document.createElement('div');
+                inner.className = 'ps-ov-inner theme-' + '{{ deck.theme }}';
+                inner.innerHTML = slide.innerHTML;
+                wrap.appendChild(inner);
+                const num = document.createElement('div');
+                num.className = 'ps-ov-num';
+                num.textContent = (i + 1);
+                wrap.appendChild(num);
+                wrap.addEventListener('click', () => { jumpTo(i); toggleOverview(); });
+                grid.appendChild(wrap);
+            });
+        }
+
+        function toggleTimer() {
+            timerOn = !timerOn;
+            timerEl.classList.toggle('visible', timerOn);
+            document.getElementById('btnTimer').classList.toggle('active', timerOn);
+            if (timerOn && !timerStart) {
+                timerStart = Date.now();
+                tickTimer();
             }
-        };
+        }
 
+        function tickTimer() {
+            if (!timerOn) return;
+            const elapsed = Math.floor((Date.now() - timerStart) / 1000);
+            const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+            const s = String(elapsed % 60).padStart(2, '0');
+            timerEl.textContent = m + ':' + s;
+            timerRAF = requestAnimationFrame(tickTimer);
+        }
+
+        function toggleLight() {
+            lightMode = !lightMode;
+            stage.classList.toggle('light-mode', lightMode);
+            document.getElementById('btnLight').classList.toggle('active', lightMode);
+        }
+
+        function toggleFS() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+            else document.exitFullscreen();
+        }
+
+        function showShortcuts() {
+            document.getElementById('shortcutsOverlay').classList.add('open');
+        }
+        function hideShortcuts() {
+            document.getElementById('shortcutsOverlay').classList.remove('open');
+        }
+
+        /* ── Go-to-slide ── */
+        function openGoto() {
+            gotoOpen = true; gotoBuffer = '';
+            document.getElementById('gotoNum').textContent = '_';
+            document.getElementById('gotoOverlay').classList.add('open');
+        }
+        function closeGoto() {
+            gotoOpen = false;
+            document.getElementById('gotoOverlay').classList.remove('open');
+        }
+        function gotoKeyHandler(e) {
+            if (e.key === 'Escape') { closeGoto(); return; }
+            if (e.key === 'Backspace') { gotoBuffer = gotoBuffer.slice(0, -1); }
+            else if (e.key === 'Enter') {
+                const n = parseInt(gotoBuffer, 10);
+                if (n >= 1 && n <= total) jumpTo(n - 1);
+                closeGoto(); return;
+            } else if (/^\d$/.test(e.key)) {
+                gotoBuffer += e.key;
+            } else return;
+            document.getElementById('gotoNum').textContent = gotoBuffer || '_';
+        }
+
+        /* ── Keyboard ── */
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ' || e.key === 'Enter') {
-                e.preventDefault(); go(1);
-            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'Backspace') {
-                e.preventDefault(); go(-1);
-            } else if (e.key === 'Escape') {
-                if (document.fullscreenElement) document.exitFullscreen();
-                {% if not is_shared_view %}
-                else window.location.href = '{% url "individual:deck_editor" pk=deck.pk %}';
-                {% endif %}
-            } else if (e.key === 'f' || e.key === 'F') {
-                toggleFS();
+            if (gotoOpen) { e.preventDefault(); gotoKeyHandler(e); return; }
+            if (e.key === '/' || e.key === '?') { e.preventDefault(); showShortcuts(); return; }
+            if (document.getElementById('shortcutsOverlay').classList.contains('open')) {
+                if (e.key === 'Escape') hideShortcuts();
+                return;
+            }
+            if (overviewOpen) { if (e.key === 'Escape' || e.key === 'o') toggleOverview(); return; }
+
+            switch (e.key) {
+                case 'ArrowRight': case 'ArrowDown': case ' ': case 'Enter':
+                    e.preventDefault(); go(1); break;
+                case 'ArrowLeft': case 'ArrowUp': case 'Backspace':
+                    e.preventDefault(); go(-1); break;
+                case 'b': case 'B': toggleBulletReveal(); break;
+                case 'n': case 'N': toggleNotes(); break;
+                case 'o': case 'O': toggleOverview(); break;
+                case 'g': case 'G': e.preventDefault(); openGoto(); break;
+                case 't': case 'T': toggleTimer(); break;
+                case 'l': case 'L': toggleLight(); break;
+                case 'f': case 'F': toggleFS(); break;
+                case 'Escape':
+                    if (document.fullscreenElement) document.exitFullscreen();
+                    {% if not is_shared_view %}
+                    else window.location.href = '{% url "individual:deck_editor" pk=deck.pk %}';
+                    {% endif %}
+                    break;
             }
         });
 
-        updateUI();
+        /* ── Touch swipe ── */
+        let touchX = 0;
+        document.addEventListener('touchstart', e => { touchX = e.changedTouches[0].clientX; }, { passive: true });
+        document.addEventListener('touchend', e => {
+            const dx = e.changedTouches[0].clientX - touchX;
+            if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1);
+        }, { passive: true });
 
-        // Auto-enter fullscreen on load
-        setTimeout(() => {
-            document.documentElement.requestFullscreen().catch(() => {});
-        }, 300);
+        /* ── Init ── */
+        updateUI();
+        setTimeout(() => { document.documentElement.requestFullscreen().catch(() => {}); }, 300);
+
+        return { go, jumpTo, toggleBulletReveal, toggleNotes, toggleOverview, toggleTimer, toggleLight, toggleFS, showShortcuts, hideShortcuts };
     })();
     </script>
 </body>
