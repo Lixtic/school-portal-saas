@@ -787,10 +787,6 @@ def question_ai_generate(request):
     return JsonResponse({'ok': True, 'count': len(created), 'questions': created})
 
 
-# Import settings for AI key
-from django.conf import settings
-
-
 # ── Exam Paper ───────────────────────────────────────────────────────────────
 
 @_tool_required
@@ -859,7 +855,10 @@ def exam_paper_create(request):
 def exam_paper_detail(request, pk):
     """View / preview an exam paper."""
     profile = request.user.individual_profile
-    paper = get_object_or_404(ToolExamPaper, pk=pk, profile=profile)
+    paper = get_object_or_404(
+        ToolExamPaper.objects.prefetch_related('questions'),
+        pk=pk, profile=profile,
+    )
     questions = paper.questions.all().order_by('question_format', 'difficulty')
 
     # Group by format for nice rendering
