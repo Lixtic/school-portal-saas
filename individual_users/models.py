@@ -1035,3 +1035,164 @@ class TVETProject(models.Model):
 
     def __str__(self):
         return self.title
+
+
+# ── Grade Analytics ──────────────────────────────────────────────────────────
+
+class GradeBook(models.Model):
+    """A grade book for a class/subject — container for student grade entries."""
+    TERM_CHOICES = [
+        ('term_1', 'Term 1'),
+        ('term_2', 'Term 2'),
+        ('term_3', 'Term 3'),
+    ]
+
+    profile = models.ForeignKey(
+        IndividualProfile, on_delete=models.CASCADE,
+        related_name='grade_books',
+    )
+    title = models.CharField(max_length=250)
+    subject = models.CharField(max_length=100, blank=True, default='')
+    target_class = models.CharField(max_length=50, blank=True, default='')
+    term = models.CharField(max_length=10, choices=TERM_CHOICES, default='term_1')
+    academic_year = models.CharField(max_length=20, blank=True, default='')
+    max_score = models.PositiveIntegerField(default=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        verbose_name = 'Grade Book'
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def entry_count(self):
+        return self.entries.count()
+
+    @property
+    def class_average(self):
+        from django.db.models import Avg
+        result = self.entries.aggregate(avg=Avg('score'))
+        return round(result['avg'], 1) if result['avg'] is not None else 0
+
+
+class GradeEntry(models.Model):
+    """A single student's score in a grade book."""
+    GRADE_CHOICES = [
+        ('A', 'A — Excellent'),
+        ('B', 'B — Very Good'),
+        ('C', 'C — Good'),
+        ('D', 'D — Satisfactory'),
+        ('E', 'E — Below Average'),
+        ('F', 'F — Fail'),
+    ]
+
+    grade_book = models.ForeignKey(
+        GradeBook, on_delete=models.CASCADE, related_name='entries',
+    )
+    student_name = models.CharField(max_length=200)
+    score = models.DecimalField(max_digits=5, decimal_places=1)
+    grade = models.CharField(max_length=2, choices=GRADE_CHOICES, blank=True, default='')
+    remarks = models.CharField(max_length=200, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['student_name']
+        verbose_name = 'Grade Entry'
+        verbose_name_plural = 'Grade Entries'
+
+    def __str__(self):
+        return f'{self.student_name} — {self.score}'
+
+    def save(self, *args, **kwargs):
+        # Auto-assign letter grade from score (percentage of max_score)
+        if self.grade_book_id:
+            max_s = self.grade_book.max_score or 100
+            pct = (float(self.score) / max_s) * 100
+            if pct >= 80:
+                self.grade = 'A'
+            elif pct >= 70:
+                self.grade = 'B'
+            elif pct >= 60:
+                self.grade = 'C'
+            elif pct >= 50:
+                self.grade = 'D'
+            elif pct >= 40:
+                self.grade = 'E'
+            else:
+                self.grade = 'F'
+        super().save(*args, **kwargs)
+
+
+# ── Attendance Tracker ───────────────────────────────────────────────────────
+
+class AttendanceRegister(models.Model):
+    """A register for tracking attendance for a class."""
+
+    profile = models.ForeignKey(
+        IndividualProfile, on_delete=models.CASCADE,
+        related_name='attendance_registers',
+    )
+    title = models.CharField(max_length=250)
+    target_class = models.CharField(max_length=50, blank=True, default='')
+    academic_year = models.CharField(max_length=20, blank=True, default='')
+    students = models.JSONField(
+        default=list, blank=True,
+        help_text='List of student names: ["Ama Mensah", "Kofi Asare", ...]',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        verbose_name = 'Attendance Register'
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def student_count(self):
+        return len(self.students) if self.students else 0
+
+    @property
+    def session_count(self):
+        return self.sessions.count()
+
+
+class AttendanceSession(models.Model):
+    """A single day's attendance record."""
+    STATUS_CHOICES = [
+        ('present', 'Present'),
+        ('absent', 'Absent'),
+        ('late', 'Late'),
+        ('excused', 'Excused'),
+    ]
+
+    register = models.ForeignKey(
+        AttendanceRegister, on_delete=models.CASCADE, related_name='sessions',
+    )
+    date = models.DateField()
+    records = models.JSONField(
+        default=dict, blank=True,
+        help_text='{"student_name": "present"|"absent"|"late"|"excused", ...}',
+    )
+    notes = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date']
+        unique_together = ['register', 'date']
+        verbose_name = 'Attendance Session'
+
+    def __str__(self):
+        return f'{self.register.title} — {self.date}'
+
+    @property
+    def present_count(self):
+        return sum(1 for v in (self.records or {}).values() if v == 'present')
+
+    @property
+    def absent_count(self):
+        return sum(1 for v in (self.records or {}).values() if v == 'absent')

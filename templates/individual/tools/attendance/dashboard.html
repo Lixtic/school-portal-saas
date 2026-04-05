@@ -1,0 +1,168 @@
+{% extends 'individual/base.html' %}
+{% block title %}Attendance Tracker — SchoolPadi Teacher Portal{% endblock %}
+{% block page_title %}Attendance Tracker{% endblock %}
+
+{% block extra_css %}
+.at-hero {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 60%, #991b1b 100%);
+    border-radius: var(--radius-lg); color: #fff;
+    padding: 1.5rem 2rem; margin-bottom: 1.5rem;
+    position: relative; overflow: hidden;
+}
+.at-hero::after {
+    content: ''; position: absolute; top: -30px; right: -30px;
+    width: 140px; height: 140px; border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+}
+.at-hero-title { font-size: 1.2rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; }
+.at-hero-sub { font-size: 0.84rem; opacity: 0.85; margin-top: 0.2rem; max-width: 500px; }
+.at-hero-stats { display: flex; gap: 1.5rem; margin-top: 1rem; flex-wrap: wrap; }
+.at-hero-stat-value { font-size: 1.5rem; font-weight: 800; }
+.at-hero-stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.8; }
+.at-hero-actions { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+.at-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.55rem 1rem; border-radius: 8px;
+    font-size: 0.82rem; font-weight: 600;
+    text-decoration: none; border: none; cursor: pointer;
+    transition: all 0.15s ease;
+}
+.at-btn-white { background: #fff; color: #dc2626; }
+.at-btn-white:hover { background: #fef2f2; color: #b91c1c; }
+.at-btn-glass { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
+.at-btn-glass:hover { background: rgba(255,255,255,0.25); color: #fff; }
+
+.at-toolbar {
+    display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap; align-items: center;
+}
+.at-search-wrap { flex: 1; min-width: 200px; position: relative; }
+.at-search-wrap i { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.9rem; pointer-events: none; }
+.at-search {
+    width: 100%; padding: 0.5rem 0.85rem 0.5rem 2.2rem;
+    border: 1px solid var(--border-color); border-radius: 8px;
+    background: var(--surface-card); color: var(--text-main);
+    font-family: inherit; font-size: 0.85rem;
+}
+.at-search:focus { outline: none; border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.1); }
+
+.at-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1.25rem;
+}
+.at-card {
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    border-radius: 12px; padding: 1.25rem; transition: transform 0.15s ease;
+}
+.at-card:hover { transform: translateY(-2px); }
+.at-card-head { display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.75rem; }
+.at-card-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; flex-shrink: 0;
+    background: rgba(220,38,38,0.1); color: #dc2626;
+}
+.at-card-title { font-size: 0.95rem; font-weight: 700; }
+.at-card-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem; }
+.at-card-stats { display: flex; gap: 1rem; margin-bottom: 0.75rem; }
+.at-card-stat { font-size: 0.78rem; color: var(--text-muted); }
+.at-card-stat strong { color: var(--text-main); }
+.at-pill {
+    display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px;
+    font-size: 0.7rem; font-weight: 600; margin-right: 0.3rem;
+    background: rgba(220,38,38,0.08); color: #dc2626;
+}
+.at-card-actions { display: flex; gap: 0.4rem; margin-top: 0.5rem; }
+.at-btn-sm {
+    padding: 0.35rem 0.7rem; border-radius: 6px; font-size: 0.78rem; font-weight: 600;
+    border: 1px solid var(--border-color); background: var(--surface-card); color: var(--text-muted);
+    text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem;
+    transition: all 0.15s ease;
+}
+.at-btn-sm:hover { border-color: #dc2626; color: #dc2626; }
+.at-empty { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
+.at-empty i { font-size: 2.5rem; opacity: 0.3; display: block; margin-bottom: 0.75rem; }
+
+@media (max-width: 576px) {
+    .at-grid { grid-template-columns: 1fr; }
+    .at-hero { padding: 1.25rem; }
+    .at-hero-stats { flex-direction: column; gap: 0.5rem; }
+}
+{% endblock %}
+
+{% block content %}
+<div class="at-hero">
+    <div class="at-hero-title"><i class="bi bi-calendar-check"></i> Attendance Tracker</div>
+    <div class="at-hero-sub">Log daily attendance, track patterns, and generate absence reports for your classes.</div>
+    <div class="at-hero-stats">
+        <div><div class="at-hero-stat-value">{{ total_registers }}</div><div class="at-hero-stat-label">Registers</div></div>
+        <div><div class="at-hero-stat-value">{{ total_sessions }}</div><div class="at-hero-stat-label">Sessions Logged</div></div>
+    </div>
+    <div class="at-hero-actions">
+        <a href="{% url 'individual:attendance_register_create' %}" class="at-btn at-btn-white"><i class="bi bi-plus-lg"></i> New Register</a>
+        <a href="{% url 'individual:tools_hub' %}" class="at-btn at-btn-glass"><i class="bi bi-arrow-left"></i> Tools</a>
+    </div>
+</div>
+
+<!-- Toolbar -->
+<div class="at-toolbar">
+    <div class="at-search-wrap">
+        <i class="bi bi-search"></i>
+        <form method="get" style="display:contents">
+            <input type="text" name="q" class="at-search" placeholder="Search registers..." value="{{ search }}">
+        </form>
+    </div>
+</div>
+
+<!-- Grid -->
+{% if registers %}
+<div class="at-grid">
+    {% for reg in registers %}
+    <div class="at-card">
+        <div class="at-card-head">
+            <div class="at-card-icon"><i class="bi bi-calendar-check"></i></div>
+            <div>
+                <div class="at-card-title">{{ reg.title }}</div>
+                <div class="at-card-meta">
+                    {% if reg.target_class %}{{ reg.target_class }} · {% endif %}
+                    {{ reg.student_count }} students
+                </div>
+            </div>
+        </div>
+        <div class="at-card-stats">
+            <div class="at-card-stat"><strong>{{ reg.session_count }}</strong> sessions</div>
+        </div>
+        {% if reg.academic_year %}<span class="at-pill">{{ reg.academic_year }}</span>{% endif %}
+        <div class="at-card-actions">
+            <a href="{% url 'individual:attendance_register_detail' pk=reg.pk %}" class="at-btn-sm"><i class="bi bi-eye"></i> View</a>
+            <a href="{% url 'individual:attendance_take' pk=reg.pk %}" class="at-btn-sm"><i class="bi bi-check2-square"></i> Take</a>
+            <form method="post" action="{% url 'individual:attendance_register_delete' pk=reg.pk %}" style="display:inline" onsubmit="return confirm('Delete this register?')">
+                {% csrf_token %}
+                <button type="submit" class="at-btn-sm" style="color:#ef4444"><i class="bi bi-trash"></i></button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if registers.has_other_pages %}
+<nav class="mt-4 d-flex justify-content-center">
+    <ul class="pagination pagination-sm">
+        {% if registers.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ registers.previous_page_number }}&q={{ search }}">&laquo;</a></li>{% endif %}
+        {% for p in registers.paginator.page_range %}
+        <li class="page-item {% if p == registers.number %}active{% endif %}"><a class="page-link" href="?page={{ p }}&q={{ search }}">{{ p }}</a></li>
+        {% endfor %}
+        {% if registers.has_next %}<li class="page-item"><a class="page-link" href="?page={{ registers.next_page_number }}&q={{ search }}">&raquo;</a></li>{% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<div class="at-empty">
+    <i class="bi bi-calendar-check"></i>
+    <p><strong>No registers yet</strong></p>
+    <p>Create a register for your class to start tracking attendance.</p>
+    <a href="{% url 'individual:attendance_register_create' %}" class="at-btn at-btn-white" style="background:#dc2626;color:#fff;margin-top:0.5rem"><i class="bi bi-plus-lg"></i> Create Register</a>
+</div>
+{% endif %}
+{% endblock %}

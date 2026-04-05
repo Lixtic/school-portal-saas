@@ -1,0 +1,266 @@
+{% extends 'individual/base.html' %}
+{% block title %}{{ book.title }} — Grade Analytics{% endblock %}
+{% block page_title %}{{ book.title }}{% endblock %}
+
+{% block extra_css %}
+.gd-back { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.82rem; font-weight: 600; color: var(--text-muted); text-decoration: none; margin-bottom: 1rem; }
+.gd-back:hover { color: #7c3aed; }
+.gd-header {
+    background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+    border-radius: var(--radius-lg); color: #fff;
+    padding: 1.5rem 2rem; margin-bottom: 1.5rem;
+    position: relative; overflow: hidden;
+}
+.gd-header::after {
+    content: ''; position: absolute; top: -30px; right: -30px;
+    width: 140px; height: 140px; border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+}
+.gd-title { font-size: 1.15rem; font-weight: 800; }
+.gd-meta { font-size: 0.82rem; opacity: 0.85; margin-top: 0.2rem; }
+.gd-stats { display: flex; gap: 1.5rem; margin-top: 1rem; flex-wrap: wrap; }
+.gd-stat-val { font-size: 1.4rem; font-weight: 800; }
+.gd-stat-lbl { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.8; }
+
+.gd-section { margin-bottom: 1.5rem; }
+.gd-section-title { font-size: 0.92rem; font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem; }
+
+/* Chart */
+.gd-chart-wrap {
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem;
+}
+.gd-bar-chart { display: flex; gap: 0.5rem; align-items: flex-end; height: 120px; padding-top: 0.5rem; }
+.gd-bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; }
+.gd-bar {
+    width: 100%; max-width: 48px; border-radius: 6px 6px 0 0;
+    min-height: 4px; transition: height 0.3s ease;
+}
+.gd-bar-label { font-size: 0.72rem; font-weight: 700; margin-top: 0.3rem; }
+.gd-bar-count { font-size: 0.68rem; color: var(--text-muted); }
+
+/* Table */
+.gd-table-wrap { overflow-x: auto; }
+.gd-table {
+    width: 100%; border-collapse: collapse; font-size: 0.84rem;
+    background: var(--surface-card); border-radius: 10px; overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+.gd-table th {
+    background: rgba(124,58,237,0.06); text-align: left;
+    padding: 0.6rem 0.85rem; font-weight: 700; font-size: 0.78rem;
+    text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted);
+    border-bottom: 1px solid var(--border-color);
+}
+.gd-table td {
+    padding: 0.55rem 0.85rem; border-bottom: 1px solid var(--border-color);
+}
+.gd-table tr:last-child td { border-bottom: none; }
+.gd-grade-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 8px;
+    font-size: 0.78rem; font-weight: 800;
+}
+.gd-grade-A { background: rgba(16,185,129,0.12); color: #059669; }
+.gd-grade-B { background: rgba(59,130,246,0.12); color: #2563eb; }
+.gd-grade-C { background: rgba(245,158,11,0.12); color: #d97706; }
+.gd-grade-D { background: rgba(249,115,22,0.12); color: #ea580c; }
+.gd-grade-E { background: rgba(239,68,68,0.12); color: #dc2626; }
+.gd-grade-F { background: rgba(239,68,68,0.2); color: #b91c1c; }
+
+/* Add form */
+.gd-add-form {
+    display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: flex-end;
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    border-radius: 10px; padding: 1rem; margin-bottom: 1rem;
+}
+.gd-add-form label { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.2rem; display: block; }
+.gd-add-form input {
+    padding: 0.45rem 0.7rem; border: 1px solid var(--border-color);
+    border-radius: 6px; background: var(--surface-card); color: var(--text-main);
+    font-family: inherit; font-size: 0.83rem;
+}
+.gd-add-form input:focus { outline: none; border-color: #7c3aed; }
+.gd-add-btn {
+    padding: 0.45rem 0.85rem; border-radius: 6px; font-size: 0.82rem; font-weight: 600;
+    background: #7c3aed; color: #fff; border: none; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 0.3rem;
+}
+.gd-add-btn:hover { background: #6d28d9; }
+
+.gd-empty { text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.85rem; }
+
+/* Bulk paste */
+.gd-bulk-area {
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    border-radius: 10px; padding: 1rem; margin-bottom: 1rem;
+}
+.gd-bulk-area textarea {
+    width: 100%; min-height: 80px; padding: 0.5rem; border: 1px solid var(--border-color);
+    border-radius: 6px; font-family: monospace; font-size: 0.82rem;
+    background: var(--surface-card); color: var(--text-main); resize: vertical;
+}
+.gd-bulk-area textarea:focus { outline: none; border-color: #7c3aed; }
+.gd-bulk-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem; }
+
+@media (max-width: 576px) {
+    .gd-header { padding: 1.25rem; }
+    .gd-stats { flex-direction: column; gap: 0.5rem; }
+    .gd-add-form { flex-direction: column; }
+}
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'individual:grade_analytics_dashboard' %}" class="gd-back"><i class="bi bi-arrow-left"></i> All Grade Books</a>
+
+<div class="gd-header">
+    <div class="gd-title">{{ book.title }}</div>
+    <div class="gd-meta">
+        {% if book.subject %}{{ book.subject }} · {% endif %}
+        {% if book.target_class %}{{ book.target_class }} · {% endif %}
+        {{ book.get_term_display }}
+        {% if book.academic_year %} · {{ book.academic_year }}{% endif %}
+    </div>
+    <div class="gd-stats">
+        <div><div class="gd-stat-val">{{ entries|length }}</div><div class="gd-stat-lbl">Students</div></div>
+        <div><div class="gd-stat-val">{{ book.class_average }}%</div><div class="gd-stat-lbl">Class Average</div></div>
+        <div><div class="gd-stat-val">{{ book.max_score }}</div><div class="gd-stat-lbl">Max Score</div></div>
+    </div>
+</div>
+
+<!-- Grade Distribution Chart -->
+{% if entries %}
+<div class="gd-section">
+    <div class="gd-section-title"><i class="bi bi-bar-chart" style="color:#7c3aed"></i> Grade Distribution</div>
+    <div class="gd-chart-wrap">
+        <div class="gd-bar-chart" id="gradeChart"></div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Add Entry -->
+<div class="gd-section">
+    <div class="gd-section-title"><i class="bi bi-plus-circle" style="color:#7c3aed"></i> Add Student Grade</div>
+    <form method="post" action="{% url 'individual:grade_entry_add' pk=book.pk %}" class="gd-add-form">
+        {% csrf_token %}
+        <div style="flex:2;min-width:160px">
+            <label for="student_name">Student Name</label>
+            <input type="text" name="student_name" id="student_name" placeholder="e.g. Ama Mensah" required style="width:100%">
+        </div>
+        <div style="flex:1;min-width:80px">
+            <label for="score">Score</label>
+            <input type="number" name="score" id="score" placeholder="0" min="0" max="{{ book.max_score }}" step="0.5" required style="width:100%">
+        </div>
+        <div style="flex:2;min-width:120px">
+            <label for="remarks">Remarks</label>
+            <input type="text" name="remarks" id="remarks" placeholder="Optional" style="width:100%">
+        </div>
+        <button type="submit" class="gd-add-btn"><i class="bi bi-plus-lg"></i> Add</button>
+    </form>
+
+    <!-- Bulk paste -->
+    <details class="gd-bulk-area">
+        <summary style="font-size:0.82rem;font-weight:600;cursor:pointer;color:var(--text-muted)"><i class="bi bi-clipboard-data"></i> Bulk Paste from Spreadsheet</summary>
+        <div style="margin-top:0.75rem">
+            <textarea id="bulkPaste" placeholder="Paste rows: Student Name[TAB]Score[TAB]Remarks (one per line)"></textarea>
+            <div class="gd-bulk-hint">Copy rows from Excel or Google Sheets. Format: Name → Score → Remarks (tab-separated).</div>
+            <button type="button" class="gd-add-btn" style="margin-top:0.5rem" onclick="bulkUpload()"><i class="bi bi-upload"></i> Upload All</button>
+        </div>
+    </details>
+</div>
+
+<!-- Entries Table -->
+<div class="gd-section">
+    <div class="gd-section-title"><i class="bi bi-table" style="color:#7c3aed"></i> Student Grades ({{ entries|length }})</div>
+    {% if entries %}
+    <div class="gd-table-wrap">
+        <table class="gd-table">
+            <thead><tr><th>#</th><th>Student</th><th>Score</th><th>Grade</th><th>Remarks</th><th></th></tr></thead>
+            <tbody>
+            {% for e in entries %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td style="font-weight:600">{{ e.student_name }}</td>
+                <td>{{ e.score }} / {{ book.max_score }}</td>
+                <td><span class="gd-grade-badge gd-grade-{{ e.grade }}">{{ e.grade }}</span></td>
+                <td style="color:var(--text-muted);font-size:0.8rem">{{ e.remarks }}</td>
+                <td>
+                    <form method="post" action="{% url 'individual:grade_entry_delete' pk=book.pk entry_pk=e.pk %}" style="display:inline" onsubmit="return confirm('Delete?')">
+                        {% csrf_token %}
+                        <button type="submit" class="gd-add-btn" style="background:transparent;color:#ef4444;padding:0.25rem 0.5rem;font-size:0.78rem"><i class="bi bi-trash"></i></button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="gd-empty">
+        <i class="bi bi-table" style="font-size:2rem;opacity:0.3;display:block;margin-bottom:0.5rem"></i>
+        No entries yet. Add students above or paste from a spreadsheet.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Grade distribution chart
+const dist = JSON.parse('{{ grade_distribution|escapejs }}');
+const grades = ['A', 'B', 'C', 'D', 'E', 'F'];
+const colors = {A:'#10b981', B:'#3b82f6', C:'#f59e0b', D:'#f97316', E:'#ef4444', F:'#b91c1c'};
+const chart = document.getElementById('gradeChart');
+if (chart) {
+    const maxCount = Math.max(1, ...grades.map(g => dist[g] || 0));
+    grades.forEach(g => {
+        const count = dist[g] || 0;
+        const pct = (count / maxCount) * 100;
+        const col = document.createElement('div');
+        col.className = 'gd-bar-col';
+        col.innerHTML = `
+            <div class="gd-bar" style="height:${Math.max(4, pct)}%;background:${colors[g]}"></div>
+            <div class="gd-bar-label" style="color:${colors[g]}">${g}</div>
+            <div class="gd-bar-count">${count}</div>
+        `;
+        chart.appendChild(col);
+    });
+}
+
+// Bulk paste upload
+function bulkUpload() {
+    const text = document.getElementById('bulkPaste').value.trim();
+    if (!text) return;
+    const lines = text.split('\n').filter(l => l.trim());
+    const entries = lines.map(line => {
+        const parts = line.split('\t');
+        return {
+            student_name: (parts[0] || '').trim(),
+            score: parseFloat(parts[1]) || 0,
+            remarks: (parts[2] || '').trim(),
+        };
+    }).filter(e => e.student_name);
+
+    if (!entries.length) { alert('No valid rows found.'); return; }
+
+    fetch("{% url 'individual:grade_bulk_upload' pk=book.pk %}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: JSON.stringify({entries}),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) {
+            alert(`${data.created} entries added.`);
+            location.reload();
+        } else {
+            alert(data.error || 'Upload failed.');
+        }
+    })
+    .catch(() => alert('Upload failed.'));
+}
+</script>
+{% endblock %}

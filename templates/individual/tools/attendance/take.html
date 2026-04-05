@@ -1,0 +1,171 @@
+{% extends 'individual/base.html' %}
+{% block title %}Take Attendance — {{ register.title }} — SchoolPadi Teacher Portal{% endblock %}
+{% block page_title %}Take Attendance{% endblock %}
+
+{% block extra_css %}
+.ta-back { font-size: 0.82rem; color: var(--text-muted); text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem; margin-bottom: 1rem; }
+.ta-back:hover { color: #dc2626; }
+.ta-card {
+    max-width: 700px; margin: 0 auto;
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    border-radius: 14px; padding: 1.5rem 2rem;
+}
+.ta-header {
+    display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;
+}
+.ta-icon {
+    width: 44px; height: 44px; border-radius: 10px;
+    background: linear-gradient(135deg, #dc2626, #f87171);
+    display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.2rem;
+}
+.ta-header h2 { font-size: 1.1rem; font-weight: 800; margin: 0; }
+.ta-header-sub { font-size: 0.78rem; color: var(--text-muted); }
+
+.ta-date-row { margin-bottom: 1.5rem; }
+.ta-date-row label { font-size: 0.82rem; font-weight: 600; margin-bottom: 0.25rem; display: block; }
+.ta-date-row input {
+    padding: 0.55rem 0.85rem; border: 1px solid var(--border-color); border-radius: 8px;
+    background: var(--surface-card); color: var(--text-main); font-family: inherit; font-size: 0.85rem;
+}
+.ta-date-row input:focus { outline: none; border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.1); }
+
+/* Bulk actions */
+.ta-bulk { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.ta-bulk-btn {
+    padding: 0.3rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600;
+    border: 1px solid var(--border-color); background: var(--surface-card); color: var(--text-muted);
+    cursor: pointer; transition: all 0.15s ease;
+}
+.ta-bulk-btn:hover { border-color: #dc2626; color: #dc2626; }
+
+/* Student rows */
+.ta-students { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem; }
+.ta-row {
+    display: flex; align-items: center; gap: 0.75rem; padding: 0.65rem 0.85rem;
+    border: 1px solid var(--border-color); border-radius: 10px;
+    background: var(--surface-card); transition: border-color 0.15s ease;
+}
+.ta-row:hover { border-color: #dc2626; }
+.ta-row-num { width: 24px; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-align: center; }
+.ta-row-name { flex: 1; font-size: 0.85rem; font-weight: 600; }
+.ta-row-options { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+.ta-opt { display: none; }
+.ta-opt-label {
+    padding: 0.3rem 0.65rem; border-radius: 6px; font-size: 0.72rem; font-weight: 600;
+    border: 1.5px solid var(--border-color); cursor: pointer;
+    transition: all 0.15s ease; user-select: none;
+    color: var(--text-muted); background: var(--surface-card);
+}
+.ta-opt:checked + .ta-opt-label[data-status="present"] { background: #dcfce7; border-color: #16a34a; color: #15803d; }
+.ta-opt:checked + .ta-opt-label[data-status="absent"] { background: #fee2e2; border-color: #dc2626; color: #dc2626; }
+.ta-opt:checked + .ta-opt-label[data-status="late"] { background: #fef9c3; border-color: #eab308; color: #a16207; }
+.ta-opt:checked + .ta-opt-label[data-status="excused"] { background: #e0e7ff; border-color: #6366f1; color: #4338ca; }
+
+.ta-notes { margin-bottom: 1.5rem; }
+.ta-notes label { font-size: 0.82rem; font-weight: 600; margin-bottom: 0.25rem; display: block; }
+.ta-notes textarea {
+    width: 100%; padding: 0.55rem 0.85rem; min-height: 60px; resize: vertical;
+    border: 1px solid var(--border-color); border-radius: 8px;
+    background: var(--surface-card); color: var(--text-main); font-family: inherit; font-size: 0.82rem;
+}
+.ta-notes textarea:focus { outline: none; border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.1); }
+
+.ta-actions { display: flex; gap: 0.5rem; }
+.ta-btn {
+    padding: 0.6rem 1.25rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+    border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;
+    transition: all 0.15s ease; text-decoration: none;
+}
+.ta-btn-primary { background: #dc2626; color: #fff; }
+.ta-btn-primary:hover { background: #b91c1c; color: #fff; }
+.ta-btn-secondary { background: var(--surface-card); color: var(--text-muted); border: 1px solid var(--border-color); }
+.ta-btn-secondary:hover { border-color: #dc2626; color: #dc2626; }
+
+.ta-empty { text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: 0.85rem; }
+
+@media (max-width: 576px) {
+    .ta-card { padding: 1rem; }
+    .ta-row { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+    .ta-row-options { margin-left: 0; }
+}
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'individual:attendance_register_detail' register.pk %}" class="ta-back"><i class="bi bi-arrow-left"></i> Back to Register</a>
+
+<div class="ta-card">
+    <div class="ta-header">
+        <div class="ta-icon"><i class="bi bi-clipboard-check"></i></div>
+        <div>
+            <h2>{{ register.title }}</h2>
+            <div class="ta-header-sub">
+                {% if register.target_class %}{{ register.target_class }}{% endif %}
+                {% if register.academic_year %}&middot; {{ register.academic_year }}{% endif %}
+                &middot; {{ register.student_count }} student{{ register.student_count|pluralize }}
+            </div>
+        </div>
+    </div>
+
+    {% if register.students %}
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="ta-date-row">
+            <label for="date">Date</label>
+            <input type="date" name="date" id="date" value="{{ today }}" required>
+        </div>
+
+        <!-- Bulk actions -->
+        <div class="ta-bulk">
+            <button type="button" class="ta-bulk-btn" onclick="setAll('present')">All Present</button>
+            <button type="button" class="ta-bulk-btn" onclick="setAll('absent')">All Absent</button>
+        </div>
+
+        <div class="ta-students">
+            {% for student in register.students %}
+            <div class="ta-row">
+                <div class="ta-row-num">{{ forloop.counter }}</div>
+                <div class="ta-row-name">{{ student }}</div>
+                <div class="ta-row-options">
+                    <input type="radio" name="status_{{ student }}" value="present" id="s_{{ forloop.counter }}_p" class="ta-opt status-radio" checked>
+                    <label for="s_{{ forloop.counter }}_p" class="ta-opt-label" data-status="present">Present</label>
+
+                    <input type="radio" name="status_{{ student }}" value="absent" id="s_{{ forloop.counter }}_a" class="ta-opt status-radio">
+                    <label for="s_{{ forloop.counter }}_a" class="ta-opt-label" data-status="absent">Absent</label>
+
+                    <input type="radio" name="status_{{ student }}" value="late" id="s_{{ forloop.counter }}_l" class="ta-opt status-radio">
+                    <label for="s_{{ forloop.counter }}_l" class="ta-opt-label" data-status="late">Late</label>
+
+                    <input type="radio" name="status_{{ student }}" value="excused" id="s_{{ forloop.counter }}_e" class="ta-opt status-radio">
+                    <label for="s_{{ forloop.counter }}_e" class="ta-opt-label" data-status="excused">Excused</label>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="ta-notes">
+            <label for="notes">Notes (optional)</label>
+            <textarea name="notes" id="notes" placeholder="e.g. Field trip day, 5 students late due to rain..."></textarea>
+        </div>
+
+        <div class="ta-actions">
+            <button type="submit" class="ta-btn ta-btn-primary"><i class="bi bi-check-lg"></i> Save Attendance</button>
+            <a href="{% url 'individual:attendance_register_detail' register.pk %}" class="ta-btn ta-btn-secondary"><i class="bi bi-x-lg"></i> Cancel</a>
+        </div>
+    </form>
+    {% else %}
+    <div class="ta-empty">
+        <i class="bi bi-person-plus" style="font-size:1.5rem; display:block; margin-bottom:0.5rem;"></i>
+        No students in this register yet. <a href="{% url 'individual:attendance_register_detail' register.pk %}" style="color:#dc2626;">Go back</a> and add students first.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function setAll(status) {
+    document.querySelectorAll(`.ta-opt.status-radio[value="${status}"]`).forEach(r => { r.checked = true; });
+}
+</script>
+{% endblock %}

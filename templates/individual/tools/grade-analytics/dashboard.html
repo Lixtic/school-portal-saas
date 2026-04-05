@@ -1,0 +1,171 @@
+{% extends 'individual/base.html' %}
+{% block title %}Grade Analytics — SchoolPadi Teacher Portal{% endblock %}
+{% block page_title %}Grade Analytics{% endblock %}
+
+{% block extra_css %}
+.ga-hero {
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 60%, #5b21b6 100%);
+    border-radius: var(--radius-lg); color: #fff;
+    padding: 1.5rem 2rem; margin-bottom: 1.5rem;
+    position: relative; overflow: hidden;
+}
+.ga-hero::after {
+    content: ''; position: absolute; top: -30px; right: -30px;
+    width: 140px; height: 140px; border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+}
+.ga-hero-title { font-size: 1.2rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; }
+.ga-hero-sub { font-size: 0.84rem; opacity: 0.85; margin-top: 0.2rem; max-width: 500px; }
+.ga-hero-stats { display: flex; gap: 1.5rem; margin-top: 1rem; flex-wrap: wrap; }
+.ga-hero-stat-value { font-size: 1.5rem; font-weight: 800; }
+.ga-hero-stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.8; }
+.ga-hero-actions { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+.ga-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.55rem 1rem; border-radius: 8px;
+    font-size: 0.82rem; font-weight: 600;
+    text-decoration: none; border: none; cursor: pointer;
+    transition: all 0.15s ease;
+}
+.ga-btn-white { background: #fff; color: #7c3aed; }
+.ga-btn-white:hover { background: #f5f3ff; color: #6d28d9; }
+.ga-btn-glass { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
+.ga-btn-glass:hover { background: rgba(255,255,255,0.25); color: #fff; }
+
+.ga-toolbar {
+    display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap; align-items: center;
+}
+.ga-search-wrap { flex: 1; min-width: 200px; position: relative; }
+.ga-search-wrap i { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.9rem; pointer-events: none; }
+.ga-search {
+    width: 100%; padding: 0.5rem 0.85rem 0.5rem 2.2rem;
+    border: 1px solid var(--border-color); border-radius: 8px;
+    background: var(--surface-card); color: var(--text-main);
+    font-family: inherit; font-size: 0.85rem;
+}
+.ga-search:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.1); }
+
+.ga-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1.25rem;
+}
+.ga-card {
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    border-radius: 12px; padding: 1.25rem; transition: transform 0.15s ease;
+}
+.ga-card:hover { transform: translateY(-2px); }
+.ga-card-head { display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.75rem; }
+.ga-card-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; flex-shrink: 0;
+    background: rgba(124,58,237,0.1); color: #7c3aed;
+}
+.ga-card-title { font-size: 0.95rem; font-weight: 700; }
+.ga-card-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem; }
+.ga-card-stats { display: flex; gap: 1rem; margin-bottom: 0.75rem; }
+.ga-card-stat { font-size: 0.78rem; color: var(--text-muted); }
+.ga-card-stat strong { color: var(--text-main); }
+.ga-pill {
+    display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px;
+    font-size: 0.7rem; font-weight: 600; margin-right: 0.3rem;
+    background: rgba(124,58,237,0.08); color: #7c3aed;
+}
+.ga-card-actions { display: flex; gap: 0.4rem; margin-top: 0.5rem; }
+.ga-btn-sm {
+    padding: 0.35rem 0.7rem; border-radius: 6px; font-size: 0.78rem; font-weight: 600;
+    border: 1px solid var(--border-color); background: var(--surface-card); color: var(--text-muted);
+    text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem;
+    transition: all 0.15s ease;
+}
+.ga-btn-sm:hover { border-color: #7c3aed; color: #7c3aed; }
+.ga-empty { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
+.ga-empty i { font-size: 2.5rem; opacity: 0.3; display: block; margin-bottom: 0.75rem; }
+
+@media (max-width: 576px) {
+    .ga-grid { grid-template-columns: 1fr; }
+    .ga-hero { padding: 1.25rem; }
+    .ga-hero-stats { flex-direction: column; gap: 0.5rem; }
+}
+{% endblock %}
+
+{% block content %}
+<div class="ga-hero">
+    <div class="ga-hero-title"><i class="bi bi-graph-up-arrow"></i> Grade Analytics</div>
+    <div class="ga-hero-sub">Track student performance, view grade distributions, and identify trends across your classes.</div>
+    <div class="ga-hero-stats">
+        <div><div class="ga-hero-stat-value">{{ total_books }}</div><div class="ga-hero-stat-label">Grade Books</div></div>
+        <div><div class="ga-hero-stat-value">{{ total_entries }}</div><div class="ga-hero-stat-label">Total Entries</div></div>
+        <div><div class="ga-hero-stat-value">{{ overall_avg }}%</div><div class="ga-hero-stat-label">Overall Average</div></div>
+    </div>
+    <div class="ga-hero-actions">
+        <a href="{% url 'individual:grade_book_create' %}" class="ga-btn ga-btn-white"><i class="bi bi-plus-lg"></i> New Grade Book</a>
+        <a href="{% url 'individual:tools_hub' %}" class="ga-btn ga-btn-glass"><i class="bi bi-arrow-left"></i> Tools</a>
+    </div>
+</div>
+
+<!-- Toolbar -->
+<div class="ga-toolbar">
+    <div class="ga-search-wrap">
+        <i class="bi bi-search"></i>
+        <form method="get" style="display:contents">
+            <input type="text" name="q" class="ga-search" placeholder="Search grade books..." value="{{ search }}">
+        </form>
+    </div>
+</div>
+
+<!-- Grid -->
+{% if books %}
+<div class="ga-grid">
+    {% for book in books %}
+    <div class="ga-card">
+        <div class="ga-card-head">
+            <div class="ga-card-icon"><i class="bi bi-graph-up-arrow"></i></div>
+            <div>
+                <div class="ga-card-title">{{ book.title }}</div>
+                <div class="ga-card-meta">
+                    {% if book.subject %}{{ book.subject }} · {% endif %}
+                    {% if book.target_class %}{{ book.target_class }} · {% endif %}
+                    {{ book.get_term_display }}
+                </div>
+            </div>
+        </div>
+        <div class="ga-card-stats">
+            <div class="ga-card-stat"><strong>{{ book.entry_count }}</strong> students</div>
+            <div class="ga-card-stat">Avg: <strong>{{ book.class_average }}%</strong></div>
+            <div class="ga-card-stat">Max: <strong>{{ book.max_score }}</strong></div>
+        </div>
+        {% if book.academic_year %}<span class="ga-pill">{{ book.academic_year }}</span>{% endif %}
+        <div class="ga-card-actions">
+            <a href="{% url 'individual:grade_book_detail' pk=book.pk %}" class="ga-btn-sm"><i class="bi bi-eye"></i> View</a>
+            <form method="post" action="{% url 'individual:grade_book_delete' pk=book.pk %}" style="display:inline" onsubmit="return confirm('Delete this grade book?')">
+                {% csrf_token %}
+                <button type="submit" class="ga-btn-sm" style="color:#ef4444"><i class="bi bi-trash"></i> Delete</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if books.has_other_pages %}
+<nav class="mt-4 d-flex justify-content-center">
+    <ul class="pagination pagination-sm">
+        {% if books.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ books.previous_page_number }}&q={{ search }}">&laquo;</a></li>{% endif %}
+        {% for p in books.paginator.page_range %}
+        <li class="page-item {% if p == books.number %}active{% endif %}"><a class="page-link" href="?page={{ p }}&q={{ search }}">{{ p }}</a></li>
+        {% endfor %}
+        {% if books.has_next %}<li class="page-item"><a class="page-link" href="?page={{ books.next_page_number }}&q={{ search }}">&raquo;</a></li>{% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<div class="ga-empty">
+    <i class="bi bi-graph-up-arrow"></i>
+    <p><strong>No grade books yet</strong></p>
+    <p>Create your first grade book to start tracking student performance.</p>
+    <a href="{% url 'individual:grade_book_create' %}" class="ga-btn ga-btn-white" style="background:#7c3aed;color:#fff;margin-top:0.5rem"><i class="bi bi-plus-lg"></i> Create Grade Book</a>
+</div>
+{% endif %}
+{% endblock %}

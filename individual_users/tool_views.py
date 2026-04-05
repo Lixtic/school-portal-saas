@@ -24,9 +24,13 @@ from individual_users.models import (
     AddonSubscription,
     AITutorConversation,
     AITutorMessage,
+    AttendanceRegister,
+    AttendanceSession,
     CitizenEdActivity,
     CompuThinkActivity,
     GESLetter,
+    GradeBook,
+    GradeEntry,
     IndividualProfile,
     LicensureAnswer,
     LicensureQuestion,
@@ -234,9 +238,9 @@ TOOLS_CATALOG = [
             'Export to CSV / PDF',
         ],
         'category': 'analytics',
-        'group': 'soon',
-        'tools': [],
-        'coming_soon': True,
+        'group': 'assess',
+        'tools': ['grade_analytics'],
+        'url_name': 'individual:grade_analytics_dashboard',
     },
     {
         'slug': 'ai-tutor',
@@ -297,9 +301,9 @@ TOOLS_CATALOG = [
             'SMS/email absence alerts',
         ],
         'category': 'management',
-        'group': 'soon',
-        'tools': [],
-        'coming_soon': True,
+        'group': 'assess',
+        'tools': ['attendance'],
+        'url_name': 'individual:attendance_dashboard',
     },
     {
         'slug': 'letter-writer',
@@ -517,16 +521,24 @@ def tools_hub(request):
         if gkey in grouped:
             grouped[gkey]['tools'].append(tool)
 
-    # Aggregate counts — dict comprehension avoids 13 separate statements
-    _count_models = [
-        ('questions', ToolQuestion), ('exams', ToolExamPaper),
-        ('lessons', ToolLessonPlan), ('slides', ToolPresentation),
-        ('chats', AITutorConversation), ('letters', GESLetter),
-        ('marked', MarkingSession), ('reports', ReportCardSet),
-        ('computing', CompuThinkActivity), ('literacy', LiteracyExercise),
-        ('social', CitizenEdActivity), ('tvet', TVETProject),
-    ]
-    counts = {key: mdl.objects.filter(profile=profile).count() for key, mdl in _count_models}
+    # Aggregate counts — single raw-SQL query via UNION ALL
+    from individual_users.views import _batch_tool_counts
+    _raw = _batch_tool_counts(profile)
+    # Map the standard keys to the names this template uses
+    counts = {
+        'questions': _raw.get('questions', 0),
+        'exams': _raw.get('exams', 0),
+        'lessons': _raw.get('lessons', 0),
+        'slides': _raw.get('slides', 0),
+        'chats': _raw.get('tutor', 0),
+        'letters': _raw.get('letters', 0),
+        'marked': _raw.get('marking', 0),
+        'reports': _raw.get('reports', 0),
+        'computing': _raw.get('computhink', 0),
+        'literacy': _raw.get('literacy', 0),
+        'social': _raw.get('citizen_ed', 0),
+        'tvet': _raw.get('tvet', 0),
+    }
     counts['gtle'] = LicensureQuizAttempt.objects.filter(profile=profile, completed=True).count()
     total_items = sum(counts.values())
     active_tools = sum(1 for t in tools if t['subscribed'] and not t['coming_soon'])
@@ -4709,6 +4721,354 @@ def tvet_api(request):
         'content': obj.content,
         'answer_key': obj.answer_key,
     })
+
+
+# ── Grade Analytics ──────────────────────────────────────────────────────────
+
+@_tool_required
+@_require_tool('grade-analytics')
+def grade_analytics_dashboard(request):
+    """Dashboard listing all grade books with summary stats."""
+    profile = request.user.individual_profile
+    qs = GradeBook.objects.filter(profile=profile).prefetch_related('entries')
+
+    search = request.GET.get('q', '')
+    if search:
+        qs = qs.filter(Q(title__icontains=search) | Q(subject__icontains=search))
+
+    from django.core.paginator import Paginator
+    paginator = Paginator(qs, 24)
+    page = paginator.get_page(request.GET.get('page', 1))
+
+    # Overall stats
+    from django.db.models import Avg, Count
+    total_books = GradeBook.objects.filter(profile=profile).count()
+    total_entries = GradeEntry.objects.filter(grade_book__profile=profile).count()
+    overall_avg = GradeEntry.objects.filter(
+        grade_book__profile=profile,
+    ).aggregate(avg=Avg('score'))['avg']
+
+    ctx = {
+        'books': page,
+        'total_books': total_books,
+        'total_entries': total_entries,
+        'overall_avg': round(overall_avg, 1) if overall_avg else 0,
+        'search': search,
+        'role': 'teacher',
+    }
+    return render(request, 'individual/tools/grade-analytics/dashboard.html', ctx)
+
+
+@_tool_required
+@_require_tool('grade-analytics')
+def grade_book_create(request):
+    """Create or view a grade book with inline entry editing."""
+    profile = request.user.individual_profile
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        if not title:
+            messages.error(request, 'Title is required.')
+            return redirect('individual:grade_analytics_dashboard')
+
+        book = GradeBook.objects.create(
+            profile=profile,
+            title=title,
+            subject=request.POST.get('subject', ''),
+            target_class=request.POST.get('target_class', ''),
+            term=request.POST.get('term', 'term_1'),
+            academic_year=request.POST.get('academic_year', ''),
+            max_score=int(request.POST.get('max_score', 100) or 100),
+        )
+        messages.success(request, f'Grade book "{book.title}" created.')
+        return redirect('individual:grade_book_detail', pk=book.pk)
+
+    return render(request, 'individual/tools/grade-analytics/create.html', {
+        'term_choices': GradeBook.TERM_CHOICES,
+        'role': 'teacher',
+    })
+
+
+@_tool_required
+@_require_tool('grade-analytics')
+def grade_book_detail(request, pk):
+    """View & edit entries in a grade book."""
+    profile = request.user.individual_profile
+    book = get_object_or_404(GradeBook, pk=pk, profile=profile)
+    entries = book.entries.all()
+
+    from django.db.models import Count
+    grade_dist = dict(entries.values_list('grade').annotate(c=Count('id')).values_list('grade', 'c'))
+
+    ctx = {
+        'book': book,
+        'entries': entries,
+        'grade_distribution': json.dumps(grade_dist),
+        'role': 'teacher',
+    }
+    return render(request, 'individual/tools/grade-analytics/detail.html', ctx)
+
+
+@_tool_required
+@_require_tool('grade-analytics')
+@require_POST
+def grade_entry_add(request, pk):
+    """Add a grade entry to a book."""
+    profile = request.user.individual_profile
+    book = get_object_or_404(GradeBook, pk=pk, profile=profile)
+
+    student_name = request.POST.get('student_name', '').strip()
+    score = request.POST.get('score', '').strip()
+
+    if not student_name or not score:
+        messages.error(request, 'Student name and score are required.')
+        return redirect('individual:grade_book_detail', pk=pk)
+
+    try:
+        score_val = float(score)
+    except ValueError:
+        messages.error(request, 'Score must be a number.')
+        return redirect('individual:grade_book_detail', pk=pk)
+
+    GradeEntry.objects.create(
+        grade_book=book,
+        student_name=student_name,
+        score=score_val,
+        remarks=request.POST.get('remarks', ''),
+    )
+    messages.success(request, f'Grade for {student_name} added.')
+    return redirect('individual:grade_book_detail', pk=pk)
+
+
+@_tool_required
+@_require_tool('grade-analytics')
+@require_POST
+def grade_entry_delete(request, pk, entry_pk):
+    """Delete a grade entry."""
+    profile = request.user.individual_profile
+    book = get_object_or_404(GradeBook, pk=pk, profile=profile)
+    entry = get_object_or_404(GradeEntry, pk=entry_pk, grade_book=book)
+    entry.delete()
+    messages.success(request, 'Entry deleted.')
+    return redirect('individual:grade_book_detail', pk=pk)
+
+
+@_tool_required
+@_require_tool('grade-analytics')
+@require_POST
+def grade_book_delete(request, pk):
+    """Delete an entire grade book."""
+    profile = request.user.individual_profile
+    book = get_object_or_404(GradeBook, pk=pk, profile=profile)
+    title = book.title
+    book.delete()
+    messages.success(request, f'Grade book "{title}" deleted.')
+    return redirect('individual:grade_analytics_dashboard')
+
+
+@_tool_required
+@_require_tool('grade-analytics')
+@require_POST
+def grade_bulk_upload(request, pk):
+    """Bulk-add entries via JSON API (for paste-from-spreadsheet)."""
+    profile = request.user.individual_profile
+    book = get_object_or_404(GradeBook, pk=pk, profile=profile)
+
+    try:
+        data = json.loads(request.body)
+        rows = data.get('entries', [])
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    created = 0
+    for row in rows:
+        name = str(row.get('student_name', '')).strip()
+        try:
+            score = float(row.get('score', 0))
+        except (ValueError, TypeError):
+            continue
+        if name:
+            GradeEntry.objects.create(
+                grade_book=book,
+                student_name=name,
+                score=score,
+                remarks=str(row.get('remarks', '')),
+            )
+            created += 1
+
+    return JsonResponse({'ok': True, 'created': created})
+
+
+# ── Attendance Tracker ───────────────────────────────────────────────────────
+
+@_tool_required
+@_require_tool('attendance-tracker')
+def attendance_dashboard(request):
+    """Dashboard listing all attendance registers."""
+    profile = request.user.individual_profile
+    qs = AttendanceRegister.objects.filter(profile=profile).prefetch_related('sessions')
+
+    search = request.GET.get('q', '')
+    if search:
+        qs = qs.filter(Q(title__icontains=search) | Q(target_class__icontains=search))
+
+    from django.core.paginator import Paginator
+    paginator = Paginator(qs, 24)
+    page = paginator.get_page(request.GET.get('page', 1))
+
+    total_registers = AttendanceRegister.objects.filter(profile=profile).count()
+    total_sessions = AttendanceSession.objects.filter(register__profile=profile).count()
+
+    ctx = {
+        'registers': page,
+        'total_registers': total_registers,
+        'total_sessions': total_sessions,
+        'search': search,
+        'role': 'teacher',
+    }
+    return render(request, 'individual/tools/attendance/dashboard.html', ctx)
+
+
+@_tool_required
+@_require_tool('attendance-tracker')
+def attendance_register_create(request):
+    """Create a new attendance register."""
+    profile = request.user.individual_profile
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        if not title:
+            messages.error(request, 'Title is required.')
+            return redirect('individual:attendance_dashboard')
+
+        students_raw = request.POST.get('students', '').strip()
+        students = [s.strip() for s in students_raw.split('\n') if s.strip()] if students_raw else []
+
+        register = AttendanceRegister.objects.create(
+            profile=profile,
+            title=title,
+            target_class=request.POST.get('target_class', ''),
+            academic_year=request.POST.get('academic_year', ''),
+            students=students,
+        )
+        messages.success(request, f'Register "{register.title}" created with {len(students)} students.')
+        return redirect('individual:attendance_register_detail', pk=register.pk)
+
+    return render(request, 'individual/tools/attendance/create.html', {'role': 'teacher'})
+
+
+@_tool_required
+@_require_tool('attendance-tracker')
+def attendance_register_detail(request, pk):
+    """View register: list sessions, take attendance."""
+    profile = request.user.individual_profile
+    register = get_object_or_404(AttendanceRegister, pk=pk, profile=profile)
+    sessions = register.sessions.all()[:30]
+
+    # Attendance rate per student
+    all_sessions = register.sessions.all()
+    student_stats = {}
+    for student in (register.students or []):
+        total = 0
+        present = 0
+        for sess in all_sessions:
+            status = (sess.records or {}).get(student)
+            if status:
+                total += 1
+                if status in ('present', 'late'):
+                    present += 1
+        student_stats[student] = {
+            'total': total,
+            'present': present,
+            'rate': round((present / total) * 100) if total else 0,
+        }
+
+    ctx = {
+        'register': register,
+        'sessions': sessions,
+        'student_stats': student_stats,
+        'role': 'teacher',
+    }
+    return render(request, 'individual/tools/attendance/detail.html', ctx)
+
+
+@_tool_required
+@_require_tool('attendance-tracker')
+def attendance_take(request, pk):
+    """Take attendance for a specific date."""
+    profile = request.user.individual_profile
+    register = get_object_or_404(AttendanceRegister, pk=pk, profile=profile)
+
+    if request.method == 'POST':
+        date_str = request.POST.get('date', '')
+        if not date_str:
+            messages.error(request, 'Date is required.')
+            return redirect('individual:attendance_register_detail', pk=pk)
+
+        from datetime import date as dt_date
+        try:
+            parts = date_str.split('-')
+            att_date = dt_date(int(parts[0]), int(parts[1]), int(parts[2]))
+        except (ValueError, IndexError):
+            messages.error(request, 'Invalid date format.')
+            return redirect('individual:attendance_register_detail', pk=pk)
+
+        records = {}
+        for student in (register.students or []):
+            status = request.POST.get(f'status_{student}', 'present')
+            if status in ('present', 'absent', 'late', 'excused'):
+                records[student] = status
+
+        session, created = AttendanceSession.objects.update_or_create(
+            register=register,
+            date=att_date,
+            defaults={
+                'records': records,
+                'notes': request.POST.get('notes', ''),
+            },
+        )
+        action = 'recorded' if created else 'updated'
+        messages.success(request, f'Attendance {action} for {att_date}.')
+        return redirect('individual:attendance_register_detail', pk=pk)
+
+    from django.utils import timezone
+    ctx = {
+        'register': register,
+        'today': timezone.localdate().isoformat(),
+        'role': 'teacher',
+    }
+    return render(request, 'individual/tools/attendance/take.html', ctx)
+
+
+@_tool_required
+@_require_tool('attendance-tracker')
+@require_POST
+def attendance_register_delete(request, pk):
+    """Delete an attendance register."""
+    profile = request.user.individual_profile
+    register = get_object_or_404(AttendanceRegister, pk=pk, profile=profile)
+    title = register.title
+    register.delete()
+    messages.success(request, f'Register "{title}" deleted.')
+    return redirect('individual:attendance_dashboard')
+
+
+@_tool_required
+@_require_tool('attendance-tracker')
+@require_POST
+def attendance_add_student(request, pk):
+    """Add a student to the register."""
+    profile = request.user.individual_profile
+    register = get_object_or_404(AttendanceRegister, pk=pk, profile=profile)
+
+    name = request.POST.get('student_name', '').strip()
+    if name and name not in (register.students or []):
+        students = list(register.students or [])
+        students.append(name)
+        register.students = students
+        register.save(update_fields=['students'])
+        messages.success(request, f'{name} added.')
+    return redirect('individual:attendance_register_detail', pk=pk)
 
 
 # ── Offline Content API ──────────────────────────────────────────────────────

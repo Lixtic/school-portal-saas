@@ -968,6 +968,60 @@ def teacher_signin_redirect(request):
     return redirect('/u/signin/?role=teacher')
 
 
+# ── Batch tool counts (single query) ────────────────────────────────────────
+
+def _batch_tool_counts(profile):
+    """Count records across all 12 tool models in ONE round-trip.
+
+    Uses a UNION ALL of 12 sub-selects, each returning a label + count.
+    Falls back to individual COUNT queries if the raw SQL fails.
+    """
+    from django.db import connection
+
+    _TABLE_MAP = [
+        ('questions',  'individual_users_toolquestion'),
+        ('exams',      'individual_users_toolexampaper'),
+        ('lessons',    'individual_users_toollessonplan'),
+        ('slides',     'individual_users_toolpresentation'),
+        ('computhink', 'individual_users_computhinkactivity'),
+        ('literacy',   'individual_users_literacyexercise'),
+        ('citizen_ed', 'individual_users_citizenedactivity'),
+        ('tvet',       'individual_users_tvetproject'),
+        ('tutor',      'individual_users_aitutorconversation'),
+        ('letters',    'individual_users_gesletter'),
+        ('marking',    'individual_users_markingsession'),
+        ('reports',    'individual_users_reportcardset'),
+    ]
+    defaults = {key: 0 for key, _ in _TABLE_MAP}
+    try:
+        unions = ' UNION ALL '.join(
+            f"SELECT '{key}' AS lbl, COUNT(*) AS c FROM {tbl} WHERE profile_id = %s"
+            for key, tbl in _TABLE_MAP
+        )
+        params = [profile.pk] * len(_TABLE_MAP)
+        with connection.cursor() as cur:
+            cur.execute(unions, params)
+            for lbl, cnt in cur.fetchall():
+                defaults[lbl] = cnt
+    except Exception:
+        # Fallback: 12 individual queries (safe but slower)
+        from individual_users.models import (
+            ToolQuestion, ToolExamPaper, ToolLessonPlan, ToolPresentation,
+            CompuThinkActivity, LiteracyExercise, CitizenEdActivity, TVETProject,
+            AITutorConversation, GESLetter, MarkingSession, ReportCardSet,
+        )
+        _models = [
+            ('questions', ToolQuestion), ('exams', ToolExamPaper),
+            ('lessons', ToolLessonPlan), ('slides', ToolPresentation),
+            ('computhink', CompuThinkActivity), ('literacy', LiteracyExercise),
+            ('citizen_ed', CitizenEdActivity), ('tvet', TVETProject),
+            ('tutor', AITutorConversation), ('letters', GESLetter),
+            ('marking', MarkingSession), ('reports', ReportCardSet),
+        ]
+        defaults = {key: mdl.objects.filter(profile=profile).count() for key, mdl in _models}
+    return defaults
+
+
 # ── Dashboard ────────────────────────────────────────────────────────────────
 
 @_individual_required
@@ -986,24 +1040,8 @@ def dashboard_view(request):
         my_slugs = set(subscriptions.values_list('addon_slug', flat=True))
         recommended = [a for a in TEACHER_ADDON_CATALOG if a['slug'] not in my_slugs][:4]
 
-        # Single query per model via .count(), batched into dict
-        # Models are in different tables so we can't aggregate across them,
-        # but we use a helper to avoid boilerplate:
-        _models = [
-            ('questions', ToolQuestion),
-            ('exams', ToolExamPaper),
-            ('lessons', ToolLessonPlan),
-            ('slides', ToolPresentation),
-            ('computhink', CompuThinkActivity),
-            ('literacy', LiteracyExercise),
-            ('citizen_ed', CitizenEdActivity),
-            ('tvet', TVETProject),
-            ('tutor', AITutorConversation),
-            ('letters', GESLetter),
-            ('marking', MarkingSession),
-            ('reports', ReportCardSet),
-        ]
-        tool_stats = {key: mdl.objects.filter(profile=profile).count() for key, mdl in _models}
+        # Batch-count all tool models in ONE query via UNION ALL / raw SQL
+        tool_stats = _batch_tool_counts(profile)
         # Build subscribed addons with icons and URL names for the dashboard
         _ADDON_URL_MAP = {
             'exam-generator': 'individual:question_bank',
@@ -1015,6 +1053,8 @@ def dashboard_view(request):
             'paper-marker': 'individual:marker_dashboard',
             'report-card': 'individual:report_card_dashboard',
             'computhink-lab': 'individual:computhink_dashboard',
+            'grade-analytics': 'individual:grade_analytics_dashboard',
+            'attendance-tracker': 'individual:attendance_dashboard',
             'literacy-toolkit': 'individual:literacy_dashboard',
             'citizen-ed': 'individual:citizen_ed_dashboard',
             'tvet-workshop': 'individual:tvet_dashboard',

@@ -1,0 +1,174 @@
+{% extends 'individual/base.html' %}
+{% block title %}{{ register.title }} — Attendance — SchoolPadi Teacher Portal{% endblock %}
+{% block page_title %}{{ register.title }}{% endblock %}
+
+{% block extra_css %}
+.at-back { font-size: 0.82rem; color: var(--text-muted); text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem; margin-bottom: 1rem; }
+.at-back:hover { color: #dc2626; }
+.at-hero {
+    border-radius: 14px; padding: 1.5rem 2rem; color: #fff; margin-bottom: 2rem;
+    background: linear-gradient(135deg, #dc2626 0%, #f87171 100%);
+    display: flex; align-items: center; gap: 2rem; flex-wrap: wrap;
+}
+.at-hero h1 { font-size: 1.35rem; font-weight: 800; margin: 0; }
+.at-hero-sub { font-size: 0.82rem; opacity: 0.9; }
+.at-hero-stats { display: flex; gap: 1.5rem; margin-left: auto; }
+.at-stat { text-align: center; }
+.at-stat-val { font-size: 1.5rem; font-weight: 800; line-height: 1.1; }
+.at-stat-lbl { font-size: 0.7rem; text-transform: uppercase; opacity: 0.85; letter-spacing: 0.04em; }
+.at-actions { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.at-btn {
+    padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600;
+    border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;
+    transition: all 0.15s ease; text-decoration: none;
+}
+.at-btn-primary { background: #dc2626; color: #fff; }
+.at-btn-primary:hover { background: #b91c1c; color: #fff; }
+.at-btn-outline { background: var(--surface-card); color: #dc2626; border: 1px solid #dc2626; }
+.at-btn-outline:hover { background: #dc2626; color: #fff; }
+.at-btn-danger { background: transparent; color: #dc2626; border: 1px solid var(--border-color); }
+.at-btn-danger:hover { background: #dc2626; color: #fff; border-color: #dc2626; }
+
+.at-section-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.4rem; }
+
+/* Students Table */
+.at-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.at-table th, .at-table td { padding: 0.6rem 0.75rem; font-size: 0.82rem; text-align: left; border-bottom: 1px solid var(--border-color); }
+.at-table th { font-weight: 600; background: var(--surface-raised); color: var(--text-muted); text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.04em; }
+.at-table tr:hover td { background: rgba(220,38,38,0.04); }
+.at-rate { display: inline-flex; align-items: center; gap: 0.35rem; }
+.at-rate-bar { width: 60px; height: 6px; border-radius: 3px; background: var(--border-color); overflow: hidden; }
+.at-rate-fill { height: 100%; border-radius: 3px; }
+
+/* Sessions */
+.at-session-card {
+    background: var(--surface-card); border: 1px solid var(--border-color); border-radius: 10px;
+    padding: 0.75rem 1rem; margin-bottom: 0.5rem;
+    display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+}
+.at-session-date { font-weight: 700; font-size: 0.85rem; min-width: 100px; }
+.at-session-badges { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.at-badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+.at-badge-p { background: #dcfce7; color: #15803d; }
+.at-badge-a { background: #fee2e2; color: #dc2626; }
+.at-badge-l { background: #fef9c3; color: #a16207; }
+.at-badge-e { background: #e0e7ff; color: #4338ca; }
+.at-session-notes { font-size: 0.78rem; color: var(--text-muted); margin-left: auto; }
+
+/* Add Student Form */
+.at-add-row {
+    display: flex; gap: 0.5rem; align-items: center; margin-top: 1rem;
+    padding: 0.75rem 1rem; background: var(--surface-card); border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+.at-add-row input {
+    flex: 1; border: 1px solid var(--border-color); border-radius: 6px; padding: 0.45rem 0.75rem;
+    font-size: 0.82rem; background: var(--surface-card); color: var(--text-main);
+}
+.at-add-row input:focus { outline: none; border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.1); }
+
+.at-empty { text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: 0.85rem; }
+
+@media (max-width: 576px) {
+    .at-hero { flex-direction: column; align-items: flex-start; gap: 1rem; }
+    .at-hero-stats { margin-left: 0; }
+}
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'individual:attendance_dashboard' %}" class="at-back"><i class="bi bi-arrow-left"></i> All Registers</a>
+
+<!-- Hero -->
+<div class="at-hero">
+    <div>
+        <h1>{{ register.title }}</h1>
+        <div class="at-hero-sub">
+            {% if register.target_class %}{{ register.target_class }}{% endif %}
+            {% if register.academic_year %}&middot; {{ register.academic_year }}{% endif %}
+        </div>
+    </div>
+    <div class="at-hero-stats">
+        <div class="at-stat">
+            <div class="at-stat-val">{{ register.student_count }}</div>
+            <div class="at-stat-lbl">Students</div>
+        </div>
+        <div class="at-stat">
+            <div class="at-stat-val">{{ register.session_count }}</div>
+            <div class="at-stat-lbl">Sessions</div>
+        </div>
+    </div>
+</div>
+
+<!-- Actions -->
+<div class="at-actions">
+    <a href="{% url 'individual:attendance_take' register.pk %}" class="at-btn at-btn-primary"><i class="bi bi-clipboard-check"></i> Take Attendance</a>
+    <form method="post" action="{% url 'individual:attendance_register_delete' register.pk %}" onsubmit="return confirm('Delete this register and all sessions?');" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="at-btn at-btn-danger"><i class="bi bi-trash3"></i> Delete</button>
+    </form>
+</div>
+
+<!-- Student Stats -->
+<div class="at-section-title"><i class="bi bi-people" style="color:#dc2626"></i> Student Attendance</div>
+{% if student_stats %}
+<div style="overflow-x:auto; margin-bottom:2rem;">
+    <table class="at-table">
+        <thead>
+            <tr><th>#</th><th>Student Name</th><th>Sessions</th><th>Present</th><th>Rate</th></tr>
+        </thead>
+        <tbody>
+        {% for name, stat in student_stats.items %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td style="font-weight:600">{{ name }}</td>
+                <td>{{ stat.total }}</td>
+                <td>{{ stat.present }}</td>
+                <td>
+                    <div class="at-rate">
+                        <div class="at-rate-bar">
+                            <div class="at-rate-fill" style="width:{{ stat.rate }}%; background:{% if stat.rate >= 80 %}#16a34a{% elif stat.rate >= 60 %}#eab308{% else %}#dc2626{% endif %};"></div>
+                        </div>
+                        <span style="font-weight:600; font-size:0.78rem;">{{ stat.rate }}%</span>
+                    </div>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="at-empty">
+    <i class="bi bi-people" style="font-size:1.5rem; display:block; margin-bottom:0.5rem;"></i>
+    No students in this register yet.
+</div>
+{% endif %}
+
+<!-- Add Student -->
+<form method="post" action="{% url 'individual:attendance_add_student' register.pk %}" class="at-add-row">
+    {% csrf_token %}
+    <input type="text" name="student_name" placeholder="Add a student name..." required>
+    <button type="submit" class="at-btn at-btn-outline" style="white-space:nowrap;"><i class="bi bi-plus-lg"></i> Add</button>
+</form>
+
+<!-- Recent Sessions -->
+<div class="at-section-title" style="margin-top:2rem;"><i class="bi bi-calendar3" style="color:#dc2626"></i> Recent Sessions</div>
+{% if sessions %}
+    {% for sess in sessions %}
+    <div class="at-session-card">
+        <div class="at-session-date">{{ sess.date|date:"d M Y" }}</div>
+        <div class="at-session-badges">
+            {% if sess.present_count %}<span class="at-badge at-badge-p">{{ sess.present_count }} Present</span>{% endif %}
+            {% if sess.absent_count %}<span class="at-badge at-badge-a">{{ sess.absent_count }} Absent</span>{% endif %}
+        </div>
+        {% if sess.notes %}
+        <div class="at-session-notes">{{ sess.notes|truncatewords:8 }}</div>
+        {% endif %}
+    </div>
+    {% endfor %}
+{% else %}
+<div class="at-empty">
+    <i class="bi bi-calendar3" style="font-size:1.5rem; display:block; margin-bottom:0.5rem;"></i>
+    No sessions recorded yet. Take your first attendance above!
+</div>
+{% endif %}
+{% endblock %}

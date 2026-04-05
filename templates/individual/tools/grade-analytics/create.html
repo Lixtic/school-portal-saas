@@ -1,0 +1,89 @@
+{% extends 'individual/base.html' %}
+{% block title %}New Grade Book — SchoolPadi Teacher Portal{% endblock %}
+{% block page_title %}New Grade Book{% endblock %}
+
+{% block extra_css %}
+.gb-form {
+    max-width: 600px;
+    margin: 0 auto;
+    background: var(--surface-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 2rem;
+}
+.gb-form h2 {
+    font-size: 1.15rem; font-weight: 800; margin-bottom: 1.5rem;
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.gb-form label {
+    font-size: 0.82rem; font-weight: 600; color: var(--text-main);
+    margin-bottom: 0.25rem; display: block;
+}
+.gb-form input, .gb-form select {
+    width: 100%; padding: 0.55rem 0.85rem;
+    border: 1px solid var(--border-color); border-radius: 8px;
+    background: var(--surface-card); color: var(--text-main);
+    font-family: inherit; font-size: 0.85rem;
+    margin-bottom: 1rem;
+}
+.gb-form input:focus, .gb-form select:focus {
+    outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.1);
+}
+.gb-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 576px) { .gb-row { grid-template-columns: 1fr; } }
+.gb-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+.gb-btn {
+    padding: 0.6rem 1.25rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+    border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;
+    transition: all 0.15s ease; text-decoration: none;
+}
+.gb-btn-primary { background: #7c3aed; color: #fff; }
+.gb-btn-primary:hover { background: #6d28d9; color: #fff; }
+.gb-btn-secondary { background: var(--surface-card); color: var(--text-muted); border: 1px solid var(--border-color); }
+.gb-btn-secondary:hover { border-color: #7c3aed; color: #7c3aed; }
+{% endblock %}
+
+{% block content %}
+<div class="gb-form">
+    <h2><i class="bi bi-graph-up-arrow" style="color:#7c3aed"></i> New Grade Book</h2>
+    <form method="post">
+        {% csrf_token %}
+        <label for="title">Title *</label>
+        <input type="text" name="title" id="title" placeholder="e.g. Maths Mid-Term — Basic 7A" required>
+
+        <div class="gb-row">
+            <div>
+                <label for="subject">Subject</label>
+                <input type="text" name="subject" id="subject" placeholder="e.g. Mathematics">
+            </div>
+            <div>
+                <label for="target_class">Class</label>
+                <input type="text" name="target_class" id="target_class" placeholder="e.g. Basic 7">
+            </div>
+        </div>
+
+        <div class="gb-row">
+            <div>
+                <label for="term">Term</label>
+                <select name="term" id="term">
+                    {% for val, label in term_choices %}
+                    <option value="{{ val }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="academic_year">Academic Year</label>
+                <input type="text" name="academic_year" id="academic_year" placeholder="e.g. 2025/2026">
+            </div>
+        </div>
+
+        <label for="max_score">Maximum Score</label>
+        <input type="number" name="max_score" id="max_score" value="100" min="1" max="1000">
+
+        <div class="gb-actions">
+            <button type="submit" class="gb-btn gb-btn-primary"><i class="bi bi-check-lg"></i> Create</button>
+            <a href="{% url 'individual:grade_analytics_dashboard' %}" class="gb-btn gb-btn-secondary"><i class="bi bi-arrow-left"></i> Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

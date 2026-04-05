@@ -146,6 +146,23 @@ urlpatterns = [
     path('tools/tvet/<int:pk>/delete/', tool_views.tvet_delete, name='tvet_delete'),
     path('tools/tvet/api/', tool_views.tvet_api, name='tvet_api'),
 
+    # Grade Analytics
+    path('tools/grades/', tool_views.grade_analytics_dashboard, name='grade_analytics_dashboard'),
+    path('tools/grades/new/', tool_views.grade_book_create, name='grade_book_create'),
+    path('tools/grades/<int:pk>/', tool_views.grade_book_detail, name='grade_book_detail'),
+    path('tools/grades/<int:pk>/delete/', tool_views.grade_book_delete, name='grade_book_delete'),
+    path('tools/grades/<int:pk>/entry/add/', tool_views.grade_entry_add, name='grade_entry_add'),
+    path('tools/grades/<int:pk>/entry/<int:entry_pk>/delete/', tool_views.grade_entry_delete, name='grade_entry_delete'),
+    path('tools/grades/<int:pk>/bulk-upload/', tool_views.grade_bulk_upload, name='grade_bulk_upload'),
+
+    # Attendance Tracker
+    path('tools/attendance/', tool_views.attendance_dashboard, name='attendance_dashboard'),
+    path('tools/attendance/new/', tool_views.attendance_register_create, name='attendance_register_create'),
+    path('tools/attendance/<int:pk>/', tool_views.attendance_register_detail, name='attendance_register_detail'),
+    path('tools/attendance/<int:pk>/take/', tool_views.attendance_take, name='attendance_take'),
+    path('tools/attendance/<int:pk>/delete/', tool_views.attendance_register_delete, name='attendance_register_delete'),
+    path('tools/attendance/<int:pk>/add-student/', tool_views.attendance_add_student, name='attendance_add_student'),
+
     # Offline content
     path('tools/offline/', views.offline_manager, name='offline_manager'),
     path('tools/offline/manifest/', tool_views.offline_content_list, name='offline_content_list'),

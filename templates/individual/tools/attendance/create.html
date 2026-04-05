@@ -1,0 +1,74 @@
+{% extends 'individual/base.html' %}
+{% block title %}New Attendance Register — SchoolPadi Teacher Portal{% endblock %}
+{% block page_title %}New Register{% endblock %}
+
+{% block extra_css %}
+.ar-form {
+    max-width: 600px; margin: 0 auto;
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    border-radius: 12px; padding: 2rem;
+}
+.ar-form h2 {
+    font-size: 1.15rem; font-weight: 800; margin-bottom: 1.5rem;
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.ar-form label {
+    font-size: 0.82rem; font-weight: 600; color: var(--text-main);
+    margin-bottom: 0.25rem; display: block;
+}
+.ar-form input, .ar-form textarea {
+    width: 100%; padding: 0.55rem 0.85rem;
+    border: 1px solid var(--border-color); border-radius: 8px;
+    background: var(--surface-card); color: var(--text-main);
+    font-family: inherit; font-size: 0.85rem;
+    margin-bottom: 1rem;
+}
+.ar-form textarea { min-height: 120px; resize: vertical; }
+.ar-form input:focus, .ar-form textarea:focus {
+    outline: none; border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.1);
+}
+.ar-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 576px) { .ar-row { grid-template-columns: 1fr; } }
+.ar-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: -0.75rem; margin-bottom: 1rem; }
+.ar-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+.ar-btn {
+    padding: 0.6rem 1.25rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+    border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;
+    transition: all 0.15s ease; text-decoration: none;
+}
+.ar-btn-primary { background: #dc2626; color: #fff; }
+.ar-btn-primary:hover { background: #b91c1c; color: #fff; }
+.ar-btn-secondary { background: var(--surface-card); color: var(--text-muted); border: 1px solid var(--border-color); }
+.ar-btn-secondary:hover { border-color: #dc2626; color: #dc2626; }
+{% endblock %}
+
+{% block content %}
+<div class="ar-form">
+    <h2><i class="bi bi-calendar-check" style="color:#dc2626"></i> New Attendance Register</h2>
+    <form method="post">
+        {% csrf_token %}
+        <label for="title">Register Title *</label>
+        <input type="text" name="title" id="title" placeholder="e.g. Basic 7A — Term 1" required>
+
+        <div class="ar-row">
+            <div>
+                <label for="target_class">Class</label>
+                <input type="text" name="target_class" id="target_class" placeholder="e.g. Basic 7">
+            </div>
+            <div>
+                <label for="academic_year">Academic Year</label>
+                <input type="text" name="academic_year" id="academic_year" placeholder="e.g. 2025/2026">
+            </div>
+        </div>
+
+        <label for="students">Student Names</label>
+        <textarea name="students" id="students" placeholder="Ama Mensah&#10;Kofi Asare&#10;Abena Owusu&#10;Kwame Nkrumah"></textarea>
+        <div class="ar-hint">Enter one student name per line. You can add more later.</div>
+
+        <div class="ar-actions">
+            <button type="submit" class="ar-btn ar-btn-primary"><i class="bi bi-check-lg"></i> Create Register</button>
+            <a href="{% url 'individual:attendance_dashboard' %}" class="ar-btn ar-btn-secondary"><i class="bi bi-arrow-left"></i> Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
