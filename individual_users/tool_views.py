@@ -3518,17 +3518,12 @@ def _get_sample_letters():
 @_require_tool('paper-marker')
 def marker_dashboard(request):
     """List all marking sessions for the current user."""
-    from django.db.models import Avg
-
     _ensure_public_schema()
     profile = request.user.individual_profile
     if not MarkingSession.objects.filter(profile=profile).exists():
         from individual_users.seed_content import seed_tool_content
         seed_tool_content(profile, 'paper-marker')
-    sessions = MarkingSession.objects.filter(profile=profile).annotate(
-        student_count=Count('marks'),
-        class_average=Avg('marks__percentage'),
-    )
+    sessions = MarkingSession.objects.filter(profile=profile).prefetch_related('marks')
 
     ctx = {
         'sessions': sessions,
