@@ -244,6 +244,91 @@
     color: #fbbf24;
 }
 
+/* ═══ TOOLS HUB ANIMATIONS ═══ */
+
+/* Hero entrance */
+@keyframes thHeroFade {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.th-hero {
+    animation: thHeroFade .45s cubic-bezier(.22,.68,0,1.1) both;
+}
+
+/* Metric numbers glow pulse on load */
+@keyframes thMetricReveal {
+    from { opacity: 0; transform: scale(.85); }
+    to   { opacity: 1; transform: scale(1); }
+}
+.th-metric {
+    animation: thMetricReveal .4s cubic-bezier(.22,.68,0,1.1) both;
+}
+.th-metric:nth-child(1) { animation-delay: .15s; }
+.th-metric:nth-child(2) { animation-delay: .25s; }
+@keyframes thMetricGlow {
+    0%, 100% { text-shadow: 0 0 0 transparent; }
+    50%      { text-shadow: 0 0 12px rgba(5,150,105,.25); }
+}
+.th-metric-num {
+    animation: thMetricGlow 2.5s ease-in-out 1s infinite;
+}
+
+/* Stat pills staggered entrance from left */
+@keyframes thPillSlide {
+    from { opacity: 0; transform: translateX(-10px) scale(.92); }
+    to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+.th-pill {
+    animation: thPillSlide .3s ease both;
+}
+.th-pill:nth-child(1) { animation-delay: .06s; }
+.th-pill:nth-child(2) { animation-delay: .12s; }
+.th-pill:nth-child(3) { animation-delay: .18s; }
+.th-pill:nth-child(4) { animation-delay: .24s; }
+.th-pill:nth-child(5) { animation-delay: .30s; }
+.th-pill:nth-child(6) { animation-delay: .36s; }
+.th-pill:nth-child(n+7) { animation-delay: .40s; }
+
+/* Tool cards staggered cascade */
+@keyframes thCardReveal {
+    from { opacity: 0; transform: translateY(18px) scale(.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.th-card {
+    animation: thCardReveal .4s cubic-bezier(.22,.68,0,1.1) both;
+}
+.th-card:nth-child(1) { animation-delay: .05s; }
+.th-card:nth-child(2) { animation-delay: .10s; }
+.th-card:nth-child(3) { animation-delay: .15s; }
+.th-card:nth-child(4) { animation-delay: .20s; }
+.th-card:nth-child(5) { animation-delay: .25s; }
+.th-card:nth-child(6) { animation-delay: .30s; }
+.th-card:nth-child(n+7) { animation-delay: .35s; }
+
+/* Card icon bounce on hover */
+.th-card:hover .th-card-icon {
+    transform: translateY(-2px) scale(1.08);
+    transition: transform .2s;
+}
+
+/* Active badge pulse */
+@keyframes thBadgePulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(5,150,105,0); }
+    50%      { box-shadow: 0 0 8px 2px rgba(5,150,105,.15); }
+}
+.th-badge-active {
+    animation: thBadgePulse 2.5s ease-in-out infinite;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .th-hero, .th-metric, .th-metric-num,
+    .th-pill, .th-card, .th-badge-active {
+        animation: none !important;
+        opacity: 1; transform: none;
+    }
+}
+
 @media (max-width: 768px) {
     .th-hero { flex-direction: column; align-items: flex-start; gap: 1.25rem; padding: 1.25rem; }
     .th-hero-metrics { gap: 1.5rem; }

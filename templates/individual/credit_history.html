@@ -42,6 +42,90 @@
 .ch-type-bonus { background: rgba(16,185,129,.1); color: #10b981; }
 .ch-type-refund { background: rgba(245,158,11,.1); color: #f59e0b; }
 .ch-empty { text-align: center; padding: 3rem; color: var(--as-muted, #8892a4); font-size: .88rem; }
+
+/* ═══ CREDIT HISTORY ANIMATIONS ═══ */
+
+/* Header entrance */
+@keyframes chFadeSlide {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.ch-header {
+    animation: chFadeSlide .4s cubic-bezier(.22,.68,0,1.1) both;
+}
+
+/* Balance chip lightning pulse */
+@keyframes chLightningPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50%      { transform: scale(1.18); opacity: .65; }
+}
+.ch-balance i {
+    display: inline-block;
+    animation: chLightningPulse 2s ease-in-out infinite;
+}
+
+/* Balance gradient shimmer */
+@keyframes chBalanceShimmer {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+.ch-balance {
+    background: linear-gradient(90deg, rgba(245,158,11,.08), rgba(139,92,246,.12), rgba(245,158,11,.08));
+    background-size: 200% 100%;
+    animation: chBalanceShimmer 4s ease infinite;
+}
+
+/* Table rows staggered entrance */
+@keyframes chRowSlide {
+    from { opacity: 0; transform: translateX(-10px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+.ch-table tbody tr {
+    animation: chRowSlide .3s ease both;
+}
+.ch-table tbody tr:nth-child(1)  { animation-delay: .04s; }
+.ch-table tbody tr:nth-child(2)  { animation-delay: .08s; }
+.ch-table tbody tr:nth-child(3)  { animation-delay: .12s; }
+.ch-table tbody tr:nth-child(4)  { animation-delay: .16s; }
+.ch-table tbody tr:nth-child(5)  { animation-delay: .20s; }
+.ch-table tbody tr:nth-child(6)  { animation-delay: .24s; }
+.ch-table tbody tr:nth-child(7)  { animation-delay: .28s; }
+.ch-table tbody tr:nth-child(8)  { animation-delay: .32s; }
+.ch-table tbody tr:nth-child(9)  { animation-delay: .36s; }
+.ch-table tbody tr:nth-child(10) { animation-delay: .40s; }
+.ch-table tbody tr:nth-child(n+11) { animation-delay: .44s; }
+
+/* Amount pop on appear */
+@keyframes chAmountPop {
+    from { transform: scale(.8); opacity: 0; }
+    60%  { transform: scale(1.08); }
+    to   { transform: scale(1); opacity: 1; }
+}
+.ch-amount-pos, .ch-amount-neg {
+    display: inline-block;
+    animation: chAmountPop .35s ease .2s both;
+}
+
+/* Empty state bounce */
+@keyframes chEmptyBounce {
+    from { opacity: 0; transform: translateY(20px); }
+    60%  { transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.ch-empty {
+    animation: chEmptyBounce .5s ease .1s both;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .ch-header, .ch-balance, .ch-balance i,
+    .ch-table tbody tr, .ch-amount-pos,
+    .ch-amount-neg, .ch-empty {
+        animation: none !important;
+        opacity: 1; transform: none;
+    }
+}
 </style>
 {% endblock %}
 

@@ -266,6 +266,110 @@
     font-size: .72rem; color: var(--ad-muted); margin: 0; line-height: 1.4;
 }
 
+/* ═══ ADDON DETAIL ANIMATIONS ═══ */
+
+/* Hero entrance — icon scales, text slides */
+@keyframes adHeroIconPop {
+    from { opacity: 0; transform: scale(.7) rotate(-8deg); }
+    to   { opacity: 1; transform: scale(1) rotate(0); }
+}
+@keyframes adHeroTextSlide {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.ad-hero-icon {
+    animation: adHeroIconPop .45s cubic-bezier(.22,.68,0,1.1) .1s both;
+}
+.ad-hero-text {
+    animation: adHeroTextSlide .4s ease .2s both;
+}
+
+/* Hero badge pop */
+@keyframes adBadgePop {
+    from { opacity: 0; transform: scale(.6); }
+    60%  { transform: scale(1.1); }
+    to   { opacity: 1; transform: scale(1); }
+}
+.ad-hero-badge {
+    display: inline-block;
+    animation: adBadgePop .35s cubic-bezier(.22,.68,0,1.1) .35s both;
+}
+
+/* Content cards staggered entrance */
+@keyframes adCardFade {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.ad-card {
+    animation: adCardFade .4s ease both;
+}
+.ad-grid > :nth-child(1) .ad-card,
+.ad-grid > :nth-child(1) { animation-delay: .15s; }
+.ad-grid > :nth-child(2) .ad-card,
+.ad-grid > :nth-child(2) { animation-delay: .25s; }
+
+/* Feature list items staggered */
+@keyframes adFeatureSlide {
+    from { opacity: 0; transform: translateX(-8px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+.ad-features li {
+    animation: adFeatureSlide .3s ease both;
+}
+.ad-features li:nth-child(1) { animation-delay: .2s; }
+.ad-features li:nth-child(2) { animation-delay: .26s; }
+.ad-features li:nth-child(3) { animation-delay: .32s; }
+.ad-features li:nth-child(4) { animation-delay: .38s; }
+.ad-features li:nth-child(5) { animation-delay: .44s; }
+.ad-features li:nth-child(n+6) { animation-delay: .50s; }
+
+/* Feature checkmark draw */
+.ad-features li .bi {
+    display: inline-block;
+    animation: adBadgePop .3s ease both;
+}
+.ad-features li:nth-child(1) .bi { animation-delay: .22s; }
+.ad-features li:nth-child(2) .bi { animation-delay: .28s; }
+.ad-features li:nth-child(3) .bi { animation-delay: .34s; }
+.ad-features li:nth-child(4) .bi { animation-delay: .40s; }
+.ad-features li:nth-child(5) .bi { animation-delay: .46s; }
+
+/* CTA button glow pulse */
+@keyframes adCtaGlow {
+    0%, 100% { box-shadow: 0 4px 14px rgba(67,97,238,.35); }
+    50%      { box-shadow: 0 4px 22px rgba(67,97,238,.55); }
+}
+.ad-cta-buy {
+    animation: adCtaGlow 2.5s ease-in-out infinite;
+}
+.ad-cta-free {
+    animation: adCtaGlow 2.5s ease-in-out infinite;
+}
+
+/* Related addon cards cascade */
+@keyframes adRelCardPop {
+    from { opacity: 0; transform: translateY(12px) scale(.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.ad-rel-card {
+    animation: adRelCardPop .35s cubic-bezier(.22,.68,0,1.1) both;
+}
+.ad-rel-card:nth-child(1) { animation-delay: .08s; }
+.ad-rel-card:nth-child(2) { animation-delay: .14s; }
+.ad-rel-card:nth-child(3) { animation-delay: .20s; }
+.ad-rel-card:nth-child(4) { animation-delay: .26s; }
+.ad-rel-card:nth-child(n+5) { animation-delay: .32s; }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .ad-hero-icon, .ad-hero-text, .ad-hero-badge,
+    .ad-card, .ad-features li, .ad-features li .bi,
+    .ad-cta-buy, .ad-cta-free, .ad-rel-card {
+        animation: none !important;
+        opacity: 1; transform: none;
+    }
+}
+
 @media (max-width: 768px) {
     .ad-hero { padding: 1.5rem 1.25rem; }
     .ad-hero-icon { width: 56px; height: 56px; font-size: 1.4rem; border-radius: 14px; }
