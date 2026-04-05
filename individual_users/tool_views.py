@@ -6,7 +6,7 @@ teacher tools (Question Bank, Exam Paper, Lesson Planner).
 import json
 import logging
 import os
-from collections import OrderedDict, defaultdict
+from collections import defaultdict
 from functools import wraps
 
 from django.contrib import messages
@@ -599,11 +599,18 @@ def tools_hub(request):
 def question_bank_list(request):
     """List all questions in the teacher's bank with filtering."""
     profile = request.user.individual_profile
-    qs = ToolQuestion.objects.filter(profile=profile)
-    if not qs.exists():
+    base_qs = ToolQuestion.objects.filter(profile=profile)
+    if not base_qs.exists():
         from individual_users.seed_content import seed_tool_content
         seed_tool_content(profile, 'exam-generator')
-        qs = ToolQuestion.objects.filter(profile=profile)
+        base_qs = ToolQuestion.objects.filter(profile=profile)
+
+    # Stats (from unfiltered base queryset)
+    stats = base_qs.aggregate(
+        total=Count('id'),
+        mcq=Count('id', filter=Q(question_format='mcq')),
+        essay=Count('id', filter=Q(question_format='essay')),
+    )
 
     # Filters
     subject = request.GET.get('subject', '')
@@ -611,6 +618,7 @@ def question_bank_list(request):
     difficulty = request.GET.get('difficulty', '')
     search = request.GET.get('q', '')
 
+    qs = base_qs
     if subject:
         qs = qs.filter(subject=subject)
     if fmt:
@@ -622,13 +630,6 @@ def question_bank_list(request):
             Q(question_text__icontains=search) |
             Q(topic__icontains=search)
         )
-
-    # Stats
-    stats = ToolQuestion.objects.filter(profile=profile).aggregate(
-        total=Count('id'),
-        mcq=Count('id', filter=Q(question_format='mcq')),
-        essay=Count('id', filter=Q(question_format='essay')),
-    )
 
     from django.core.paginator import Paginator
     paginator = Paginator(qs, 50)
@@ -803,9 +804,8 @@ def question_ai_generate(request):
         return JsonResponse({'error': 'AI generation failed. Please try again.'}, status=500)
 
     # Save generated questions
-    created = []
-    for item in items[:count]:
-        q = ToolQuestion.objects.create(
+    objs = [
+        ToolQuestion(
             profile=profile,
             subject=subject,
             target_class=target_class,
@@ -817,11 +817,13 @@ def question_ai_generate(request):
             correct_answer=item.get('correct_answer', ''),
             explanation=item.get('explanation', ''),
         )
-        created.append({
-            'id': q.id,
-            'question_text': q.question_text[:120],
-            'correct_answer': q.correct_answer,
-        })
+        for item in items[:count]
+    ]
+    saved = ToolQuestion.objects.bulk_create(objs)
+    created = [
+        {'id': q.id, 'question_text': q.question_text[:120], 'correct_answer': q.correct_answer}
+        for q in saved
+    ]
 
     return JsonResponse({'ok': True, 'count': len(created), 'questions': created})
 
@@ -839,7 +841,7 @@ def exam_paper_list(request):
     if not papers.exists():
         from individual_users.seed_content import seed_tool_content
         seed_tool_content(profile, 'exam-generator')
-    papers = ToolExamPaper.objects.filter(profile=profile).annotate(
+    papers = papers.annotate(
         q_count=Count('questions'),
     ).order_by('-pk')
 
@@ -1846,24 +1848,26 @@ def deck_create(request):
                 .first()
             )
             if last_plan:
-                ToolSlide.objects.create(
-                    presentation=deck, order=0, layout='title',
-                    title=last_plan.title,
-                    content=f'{last_plan.topic}\n{last_plan.target_class}',
-                    emoji='\U0001F3AF',
-                )
-                ToolSlide.objects.create(
-                    presentation=deck, order=1, layout='bullets',
-                    title='Learning Objectives',
-                    content=last_plan.objectives or '',
-                    emoji='\U0001F4CB',
-                )
-                ToolSlide.objects.create(
-                    presentation=deck, order=2, layout='bullets',
-                    title='Lesson Flow',
-                    content=last_plan.development or '',
-                    emoji='\U0001F4D6',
-                )
+                ToolSlide.objects.bulk_create([
+                    ToolSlide(
+                        presentation=deck, order=0, layout='title',
+                        title=last_plan.title,
+                        content=f'{last_plan.topic}\n{last_plan.target_class}',
+                        emoji='\U0001F3AF',
+                    ),
+                    ToolSlide(
+                        presentation=deck, order=1, layout='bullets',
+                        title='Learning Objectives',
+                        content=last_plan.objectives or '',
+                        emoji='\U0001F4CB',
+                    ),
+                    ToolSlide(
+                        presentation=deck, order=2, layout='bullets',
+                        title='Lesson Flow',
+                        content=last_plan.development or '',
+                        emoji='\U0001F4D6',
+                    ),
+                ])
             else:
                 ToolSlide.objects.create(
                     presentation=deck, order=0, layout='title',
@@ -2963,6 +2967,8 @@ def ai_tutor_api(request):
                 temperature=0.7,
                 max_tokens=2000,
             )
+            if not response.choices:
+                raise ValueError('AI returned no response choices')
             assistant_content = response.choices[0].message.content.strip()
         except Exception as e:
             logger.error('AI Tutor API error: %s', e)
