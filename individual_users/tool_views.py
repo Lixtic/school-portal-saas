@@ -14,6 +14,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+from individual_users.ai_cache import call_and_cache, get_cached
 from individual_users.credit_utils import deduct_credits
 from individual_users.models import (
     AddonSubscription,
@@ -733,15 +734,11 @@ def question_ai_generate(request):
     if not topic:
         return JsonResponse({'error': 'Topic is required'}, status=400)
 
-    # Deduct credits before AI generation
-    ok, err = deduct_credits(request.user, 'question_gen')
-    if not ok:
-        return JsonResponse(err, status=403)
-
     # Build AI prompt
     format_label = dict(ToolQuestion.FORMAT_CHOICES).get(question_format, question_format)
     subject_label = dict(ToolQuestion.SUBJECT_CHOICES).get(subject, subject)
 
+    _sys = 'You are a Ghanaian school teacher creating exam questions.'
     prompt = (
         f"Generate {count} {difficulty} {format_label} questions on "
         f"'{topic}' for {subject_label}"
@@ -754,26 +751,15 @@ def question_ai_generate(request):
         "No markdown, no extra text."
     )
 
-    try:
-        import openai
-        client = openai.OpenAI(api_key=getattr(settings, 'OPENAI_API_KEY', ''))
-        resp = client.chat.completions.create(
-            model='gpt-4o-mini',
-            messages=[
-                {'role': 'system', 'content': 'You are a Ghanaian school teacher creating exam questions.'},
-                {'role': 'user', 'content': prompt},
-            ],
-            temperature=0.7,
-            max_tokens=3000,
-        )
-        raw_text = resp.choices[0].message.content.strip()
-        # Strip markdown fences if present
-        if raw_text.startswith('```'):
-            raw_text = raw_text.split('\n', 1)[1] if '\n' in raw_text else raw_text[3:]
-        if raw_text.endswith('```'):
-            raw_text = raw_text[:-3]
-        raw_text = raw_text.strip()
+    cached = get_cached(system=_sys, prompt=prompt)
+    if cached is None:
+        # Deduct credits before AI generation
+        ok, err = deduct_credits(request.user, 'question_gen')
+        if not ok:
+            return JsonResponse(err, status=403)
 
+    try:
+        raw_text = cached if cached is not None else call_and_cache(system=_sys, prompt=prompt, max_tokens=3000)
         items = json.loads(raw_text)
     except Exception as exc:
         logger.warning('AI question generation failed: %s', exc)
@@ -1088,14 +1074,16 @@ def lesson_plan_ai_generate(request):
     if not topic:
         return JsonResponse({'error': 'Topic is required'}, status=400)
 
-    # Deduct credits before AI generation
-    ok, err = deduct_credits(request.user, 'lesson_gen')
-    if not ok:
-        return JsonResponse(err, status=403)
-
     subject_label = dict(ToolQuestion.SUBJECT_CHOICES).get(subject, subject)
 
     # ── Build prompt ──────────────────────────────────────────
+    _sys = (
+        'You are Aura-T, an expert Ghanaian GES curriculum specialist. '
+        'You create lesson plans following the 3-phase pedagogy: '
+        'Phase 1 (Starter), Phase 2 (Main/New Learning), Phase 3 (Reflection). '
+        'Always include practical activities, formative assessment checkpoints, '
+        'and differentiation tips.'
+    )
     if section:
         section_map = {
             'objectives': 'learning objectives (numbered, measurable, GES-aligned)',
@@ -1136,31 +1124,14 @@ def lesson_plan_ai_generate(request):
             "No markdown fences, no extra text."
         )
 
-    try:
-        import openai
-        client = openai.OpenAI(api_key=getattr(settings, 'OPENAI_API_KEY', ''))
-        resp = client.chat.completions.create(
-            model='gpt-4o-mini',
-            messages=[
-                {'role': 'system', 'content': (
-                    'You are Aura-T, an expert Ghanaian GES curriculum specialist. '
-                    'You create lesson plans following the 3-phase pedagogy: '
-                    'Phase 1 (Starter), Phase 2 (Main/New Learning), Phase 3 (Reflection). '
-                    'Always include practical activities, formative assessment checkpoints, '
-                    'and differentiation tips.'
-                )},
-                {'role': 'user', 'content': prompt},
-            ],
-            temperature=0.7,
-            max_tokens=2000,
-        )
-        raw_text = resp.choices[0].message.content.strip()
-        if raw_text.startswith('```'):
-            raw_text = raw_text.split('\n', 1)[1] if '\n' in raw_text else raw_text[3:]
-        if raw_text.endswith('```'):
-            raw_text = raw_text[:-3]
-        raw_text = raw_text.strip()
+    cached = get_cached(system=_sys, prompt=prompt)
+    if cached is None:
+        ok, err = deduct_credits(request.user, 'lesson_gen')
+        if not ok:
+            return JsonResponse(err, status=403)
 
+    try:
+        raw_text = cached if cached is not None else call_and_cache(system=_sys, prompt=prompt, max_tokens=2000)
         data = json.loads(raw_text)
     except Exception as exc:
         logger.warning('AI lesson plan generation failed: %s', exc)
@@ -1228,11 +1199,6 @@ def lesson_plan_ges_generate(request):
     if not indicator:
         return JsonResponse({'error': 'Indicator is required for GES draft'}, status=400)
 
-    # Deduct credits before AI generation
-    ok, err = deduct_credits(request.user, 'lesson_gen')
-    if not ok:
-        return JsonResponse(err, status=403)
-
     subject_label = dict(ToolQuestion.SUBJECT_CHOICES).get(subject, subject)
     code_only = bool(_GES_CODE_RE.match(indicator))
 
@@ -1283,24 +1249,17 @@ Return ONLY valid JSON: {{"content": "new section text"}}"""
             + (f"Current draft to improve: {current_text[:900]}" if current_text else '')
         )
 
+        cached = get_cached(system=sys_prompt, prompt=user_prompt, temperature=0.5)
+        if cached is None:
+            ok, err = deduct_credits(request.user, 'lesson_gen')
+            if not ok:
+                return JsonResponse(err, status=403)
+
         try:
-            import openai
-            client = openai.OpenAI(api_key=getattr(settings, 'OPENAI_API_KEY', ''))
-            resp = client.chat.completions.create(
-                model='gpt-4o-mini',
-                messages=[
-                    {'role': 'system', 'content': sys_prompt},
-                    {'role': 'user', 'content': user_prompt},
-                ],
-                temperature=0.5,
-                max_tokens=700,
+            raw = cached if cached is not None else call_and_cache(
+                system=sys_prompt, prompt=user_prompt, temperature=0.5, max_tokens=700,
             )
-            raw = resp.choices[0].message.content.strip()
-            if raw.startswith('```'):
-                raw = raw.split('\n', 1)[1] if '\n' in raw else raw[3:]
-            if raw.endswith('```'):
-                raw = raw[:-3]
-            data = json.loads(raw.strip())
+            data = json.loads(raw)
             content = data.get('content', '')
         except Exception as exc:
             logger.warning('GES section regen failed (%s): %s', section, exc)
@@ -1363,24 +1322,17 @@ Return ONLY valid JSON with this schema:
             'Use clear teacher actions, learner actions, and assessment steps.'
         )
 
+    cached = get_cached(system=sys_prompt, prompt=user_prompt, temperature=0.5)
+    if cached is None:
+        ok, err = deduct_credits(request.user, 'lesson_gen')
+        if not ok:
+            return JsonResponse(err, status=403)
+
     try:
-        import openai
-        client = openai.OpenAI(api_key=getattr(settings, 'OPENAI_API_KEY', ''))
-        resp = client.chat.completions.create(
-            model='gpt-4o-mini',
-            messages=[
-                {'role': 'system', 'content': sys_prompt},
-                {'role': 'user', 'content': user_prompt},
-            ],
-            temperature=0.5,
-            max_tokens=2000,
+        raw = cached if cached is not None else call_and_cache(
+            system=sys_prompt, prompt=user_prompt, temperature=0.5, max_tokens=2000,
         )
-        raw = resp.choices[0].message.content.strip()
-        if raw.startswith('```'):
-            raw = raw.split('\n', 1)[1] if '\n' in raw else raw[3:]
-        if raw.endswith('```'):
-            raw = raw[:-3]
-        parsed = json.loads(raw.strip())
+        parsed = json.loads(raw)
     except Exception as exc:
         logger.warning('GES lesson generation failed: %s', exc)
         return JsonResponse({'error': 'GES draft generation failed. Please try again.'}, status=500)
@@ -1703,11 +1655,6 @@ def deck_api(request):
         if not topic:
             return JsonResponse({'error': 'Topic is required'}, status=400)
 
-        # Deduct credits before AI generation
-        ok, err = deduct_credits(request.user, 'slide_gen')
-        if not ok:
-            return JsonResponse(err, status=403)
-
         subject_label = dict(ToolQuestion.SUBJECT_CHOICES).get(
             deck.subject, deck.subject or 'General Studies',
         )
@@ -1748,27 +1695,17 @@ def deck_api(request):
             "Fill every slide with real content ready to present."
         )
 
+        cached = get_cached(system=system_prompt, prompt=user_prompt)
+        if cached is None:
+            ok, err = deduct_credits(request.user, 'slide_gen')
+            if not ok:
+                return JsonResponse(err, status=403)
+
         try:
-            import openai
-            from django.conf import settings as django_settings
-            client = openai.OpenAI(
-                api_key=getattr(django_settings, 'OPENAI_API_KEY', ''),
+            raw_text = cached if cached is not None else call_and_cache(
+                system=system_prompt, prompt=user_prompt, max_tokens=3000,
             )
-            resp = client.chat.completions.create(
-                model='gpt-4o-mini',
-                messages=[
-                    {'role': 'system', 'content': system_prompt},
-                    {'role': 'user', 'content': user_prompt},
-                ],
-                temperature=0.7,
-                max_tokens=3000,
-            )
-            raw_text = resp.choices[0].message.content.strip()
-            if raw_text.startswith('```'):
-                raw_text = raw_text.split('\n', 1)[1] if '\n' in raw_text else raw_text[3:]
-            if raw_text.endswith('```'):
-                raw_text = raw_text[:-3]
-            result = json.loads(raw_text.strip())
+            result = json.loads(raw_text)
         except Exception as exc:
             logger.warning('AI slide generation failed: %s', exc)
             return JsonResponse(
@@ -1889,27 +1826,17 @@ def deck_api(request):
             "Every slide must directly support achieving this indicator."
         )
 
+        cached = get_cached(system=system_prompt, prompt=user_prompt, temperature=0.6)
+        if cached is None:
+            ok, err = deduct_credits(request.user, 'slide_gen')
+            if not ok:
+                return JsonResponse(err, status=403)
+
         try:
-            import openai
-            from django.conf import settings as django_settings
-            client = openai.OpenAI(
-                api_key=getattr(django_settings, 'OPENAI_API_KEY', ''),
+            raw_text = cached if cached is not None else call_and_cache(
+                system=system_prompt, prompt=user_prompt, temperature=0.6, max_tokens=3000,
             )
-            resp = client.chat.completions.create(
-                model='gpt-4o-mini',
-                messages=[
-                    {'role': 'system', 'content': system_prompt},
-                    {'role': 'user', 'content': user_prompt},
-                ],
-                temperature=0.6,
-                max_tokens=3000,
-            )
-            raw_text = resp.choices[0].message.content.strip()
-            if raw_text.startswith('```'):
-                raw_text = raw_text.split('\n', 1)[1] if '\n' in raw_text else raw_text[3:]
-            if raw_text.endswith('```'):
-                raw_text = raw_text[:-3]
-            result = json.loads(raw_text.strip())
+            result = json.loads(raw_text)
         except Exception as exc:
             logger.warning('GES slide generation failed: %s', exc)
             return JsonResponse(
@@ -2312,16 +2239,8 @@ def licensure_api(request):
         difficulty = data.get('difficulty', 'medium')
         count = min(int(data.get('count', 10)), 20)
 
-        # Deduct credits before AI generation
-        ok, err = deduct_credits(request.user, 'question_gen')
-        if not ok:
-            return JsonResponse(err, status=403)
-
         domain_labels = dict(LicensureQuestion.DOMAIN_CHOICES)
         domain_label = domain_labels.get(domain, domain)
-
-        import openai
-        client = openai.OpenAI()
 
         system_prompt = f"""You are a Ghana Teacher Licensure Examination (GTLE) question writer.
 Generate {count} multiple-choice questions for the "{domain_label}" domain at {difficulty} difficulty.
@@ -2344,21 +2263,17 @@ Domain details:
 Make questions realistic and aligned with Ghana's NTC licensure standards. Vary the difficulty.
 Return ONLY the JSON array, no explanation or markdown."""
 
+        _user_prompt = f'Generate {count} {difficulty} {domain_label} questions for the GTLE exam.'
+        cached = get_cached(system=system_prompt, prompt=_user_prompt, temperature=0.8)
+        if cached is None:
+            ok, err = deduct_credits(request.user, 'question_gen')
+            if not ok:
+                return JsonResponse(err, status=403)
+
         try:
-            response = client.chat.completions.create(
-                model='gpt-4o-mini',
-                messages=[
-                    {'role': 'system', 'content': system_prompt},
-                    {'role': 'user', 'content': f'Generate {count} {difficulty} {domain_label} questions for the GTLE exam.'},
-                ],
-                temperature=0.8,
+            raw = cached if cached is not None else call_and_cache(
+                system=system_prompt, prompt=_user_prompt, temperature=0.8,
             )
-            raw = response.choices[0].message.content.strip()
-            # Strip markdown fences if present
-            if raw.startswith('```'):
-                raw = raw.split('\n', 1)[1]
-                if raw.endswith('```'):
-                    raw = raw[:-3]
             items = json.loads(raw)
         except Exception as e:
             logger.error('GTLE AI generation failed: %s', e)
@@ -3932,19 +3847,12 @@ Guidelines:
 
 Return ONLY the comment text."""
 
+    _sys = 'You are a Ghanaian class teacher writing report card comments.'
+    cached = get_cached(system=_sys, prompt=prompt, temperature=0.8)
     try:
-        import openai
-        client = openai.OpenAI()
-        response = client.chat.completions.create(
-            model='gpt-4o-mini',
-            messages=[
-                {'role': 'system', 'content': 'You are a Ghanaian class teacher writing report card comments.'},
-                {'role': 'user', 'content': prompt},
-            ],
-            temperature=0.8,
-            max_tokens=200,
+        return cached if cached is not None else call_and_cache(
+            system=_sys, prompt=prompt, temperature=0.8, max_tokens=200,
         )
-        return response.choices[0].message.content.strip()
     except Exception as e:
         logger.error('Report card AI comment failed: %s', e)
         return None
@@ -4005,11 +3913,6 @@ def computhink_api(request):
     if action != 'generate':
         return JsonResponse({'error': 'Invalid action'}, status=400)
 
-    # Deduct credits before AI generation
-    ok, err = deduct_credits(request.user, 'exercise_gen')
-    if not ok:
-        return JsonResponse(err, status=403)
-
     activity_type = data.get('activity_type', 'algorithm')
     level = data.get('level', 'b7')
     topic = data.get('topic', '')
@@ -4021,6 +3924,7 @@ def computhink_api(request):
     type_label = dict(CompuThinkActivity.TYPE_CHOICES).get(activity_type, activity_type)
     level_label = dict(CompuThinkActivity.LEVEL_CHOICES).get(level, level)
 
+    _sys = 'You are a Ghanaian Computing teacher creating computational thinking activities.'
     prompt = (
         f"Create a {type_label} activity for {level_label} Computing students on the topic: '{topic}'."
         f"{(' Strand: ' + strand + '.') if strand else ''}\n\n"
@@ -4033,24 +3937,15 @@ def computhink_api(request):
         "Focus on computational thinking, not just computer usage."
     )
 
+    cached = get_cached(system=_sys, prompt=prompt)
+    if cached is None:
+        ok, err = deduct_credits(request.user, 'exercise_gen')
+        if not ok:
+            return JsonResponse(err, status=403)
+
     try:
-        import openai
-        client = openai.OpenAI(api_key=getattr(settings, 'OPENAI_API_KEY', ''))
-        resp = client.chat.completions.create(
-            model='gpt-4o-mini',
-            messages=[
-                {'role': 'system', 'content': 'You are a Ghanaian Computing teacher creating computational thinking activities.'},
-                {'role': 'user', 'content': prompt},
-            ],
-            temperature=0.7,
-            max_tokens=2000,
-        )
-        raw = resp.choices[0].message.content.strip()
-        if raw.startswith('```'):
-            raw = raw.split('\n', 1)[1] if '\n' in raw else raw[3:]
-        if raw.endswith('```'):
-            raw = raw[:-3]
-        result = json.loads(raw.strip())
+        raw = cached if cached is not None else call_and_cache(system=_sys, prompt=prompt, max_tokens=2000)
+        result = json.loads(raw)
     except Exception as exc:
         logger.warning('CompuThink AI generation failed: %s', exc)
         return JsonResponse({'error': 'AI generation failed. Please try again.'}, status=500)
@@ -4132,11 +4027,6 @@ def literacy_api(request):
     if action != 'generate':
         return JsonResponse({'error': 'Invalid action'}, status=400)
 
-    # Deduct credits before AI generation
-    ok, err = deduct_credits(request.user, 'exercise_gen')
-    if not ok:
-        return JsonResponse(err, status=403)
-
     exercise_type = data.get('exercise_type', 'comprehension')
     level = data.get('level', 'b7')
     topic = data.get('topic', '')
@@ -4159,6 +4049,7 @@ def literacy_api(request):
     else:
         content_keys = '{exercises (array of {instruction, content, answer}), tips}'
 
+    _sys = 'You are a Ghanaian English teacher creating literacy exercises for foundational skill building.'
     prompt = (
         f"Create a {type_label} exercise for {level_label} English & Language students on: '{topic}'."
         f"{(' Strand: ' + strand + '.') if strand else ''}\n\n"
@@ -4171,24 +4062,15 @@ def literacy_api(request):
         "Focus on foundational literacy. Suitable for Ghanaian schools."
     )
 
+    cached = get_cached(system=_sys, prompt=prompt)
+    if cached is None:
+        ok, err = deduct_credits(request.user, 'exercise_gen')
+        if not ok:
+            return JsonResponse(err, status=403)
+
     try:
-        import openai
-        client = openai.OpenAI(api_key=getattr(settings, 'OPENAI_API_KEY', ''))
-        resp = client.chat.completions.create(
-            model='gpt-4o-mini',
-            messages=[
-                {'role': 'system', 'content': 'You are a Ghanaian English teacher creating literacy exercises for foundational skill building.'},
-                {'role': 'user', 'content': prompt},
-            ],
-            temperature=0.7,
-            max_tokens=3000,
-        )
-        raw = resp.choices[0].message.content.strip()
-        if raw.startswith('```'):
-            raw = raw.split('\n', 1)[1] if '\n' in raw else raw[3:]
-        if raw.endswith('```'):
-            raw = raw[:-3]
-        result = json.loads(raw.strip())
+        raw = cached if cached is not None else call_and_cache(system=_sys, prompt=prompt, max_tokens=3000)
+        result = json.loads(raw)
     except Exception as exc:
         logger.warning('Literacy AI generation failed: %s', exc)
         return JsonResponse({'error': 'AI generation failed. Please try again.'}, status=500)
@@ -4275,11 +4157,6 @@ def citizen_ed_api(request):
     if action != 'generate':
         return JsonResponse({'error': 'Invalid action'}, status=400)
 
-    # Deduct credits before AI generation
-    ok, err = deduct_credits(request.user, 'exercise_gen')
-    if not ok:
-        return JsonResponse(err, status=403)
-
     activity_type = data.get('activity_type', 'case_study')
     strand = data.get('strand', 'citizenship')
     level = data.get('level', 'b7')
@@ -4292,6 +4169,7 @@ def citizen_ed_api(request):
     strand_label = dict(CitizenEdActivity.STRAND_CHOICES).get(strand, strand)
     level_label = dict(CitizenEdActivity.LEVEL_CHOICES).get(level, level)
 
+    _sys = 'You are a Ghanaian Social Studies teacher creating citizenship education activities.'
     prompt = (
         f"Create a {type_label} for {level_label} Social Studies students.\n"
         f"Topic: '{topic}'. Strand: {strand_label}.\n\n"
@@ -4304,24 +4182,15 @@ def citizen_ed_api(request):
         "Use Ghana-relevant examples and context."
     )
 
+    cached = get_cached(system=_sys, prompt=prompt)
+    if cached is None:
+        ok, err = deduct_credits(request.user, 'exercise_gen')
+        if not ok:
+            return JsonResponse(err, status=403)
+
     try:
-        import openai
-        client = openai.OpenAI(api_key=getattr(settings, 'OPENAI_API_KEY', ''))
-        resp = client.chat.completions.create(
-            model='gpt-4o-mini',
-            messages=[
-                {'role': 'system', 'content': 'You are a Ghanaian Social Studies teacher creating citizenship education activities.'},
-                {'role': 'user', 'content': prompt},
-            ],
-            temperature=0.7,
-            max_tokens=2500,
-        )
-        raw = resp.choices[0].message.content.strip()
-        if raw.startswith('```'):
-            raw = raw.split('\n', 1)[1] if '\n' in raw else raw[3:]
-        if raw.endswith('```'):
-            raw = raw[:-3]
-        result = json.loads(raw.strip())
+        raw = cached if cached is not None else call_and_cache(system=_sys, prompt=prompt, max_tokens=2500)
+        result = json.loads(raw)
     except Exception as exc:
         logger.warning('CitizenEd AI generation failed: %s', exc)
         return JsonResponse({'error': 'AI generation failed. Please try again.'}, status=500)
@@ -4408,11 +4277,6 @@ def tvet_api(request):
     if action != 'generate':
         return JsonResponse({'error': 'Invalid action'}, status=400)
 
-    # Deduct credits before AI generation
-    ok, err = deduct_credits(request.user, 'exercise_gen')
-    if not ok:
-        return JsonResponse(err, status=403)
-
     project_type = data.get('project_type', 'project_plan')
     strand = data.get('strand', 'tools')
     level = data.get('level', 'b7')
@@ -4434,6 +4298,7 @@ def tvet_api(request):
     else:
         content_keys = '{objectives (array), materials (array), steps (array), safety_notes (array), assessment, extension}'
 
+    _sys = 'You are a Ghanaian Career Technology teacher creating TVET-linked practical activities.'
     prompt = (
         f"Create a {type_label} for {level_label} Career Technology students.\n"
         f"Topic: '{topic}'. Strand: {strand_label}.\n\n"
@@ -4446,24 +4311,15 @@ def tvet_api(request):
         "Include practical, hands-on elements suitable for Ghanaian schools."
     )
 
+    cached = get_cached(system=_sys, prompt=prompt)
+    if cached is None:
+        ok, err = deduct_credits(request.user, 'exercise_gen')
+        if not ok:
+            return JsonResponse(err, status=403)
+
     try:
-        import openai
-        client = openai.OpenAI(api_key=getattr(settings, 'OPENAI_API_KEY', ''))
-        resp = client.chat.completions.create(
-            model='gpt-4o-mini',
-            messages=[
-                {'role': 'system', 'content': 'You are a Ghanaian Career Technology teacher creating TVET-linked practical activities.'},
-                {'role': 'user', 'content': prompt},
-            ],
-            temperature=0.7,
-            max_tokens=2500,
-        )
-        raw = resp.choices[0].message.content.strip()
-        if raw.startswith('```'):
-            raw = raw.split('\n', 1)[1] if '\n' in raw else raw[3:]
-        if raw.endswith('```'):
-            raw = raw[:-3]
-        result = json.loads(raw.strip())
+        raw = cached if cached is not None else call_and_cache(system=_sys, prompt=prompt, max_tokens=2500)
+        result = json.loads(raw)
     except Exception as exc:
         logger.warning('TVET AI generation failed: %s', exc)
         return JsonResponse({'error': 'AI generation failed. Please try again.'}, status=500)

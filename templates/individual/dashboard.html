@@ -334,6 +334,51 @@
     .db-o-steps { flex-direction: column; }
     .db-workspace { grid-template-columns: repeat(2, 1fr); }
 }
+/* ── Discover Banner ──────────────────────────────────── */
+.db-discover {
+    position: relative;
+    background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 55%, #4cc9f0 100%);
+    border-radius: var(--radius-lg, 16px);
+    padding: 1.35rem 1.5rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    overflow: hidden;
+    color: #fff;
+}
+.db-discover::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='30' cy='30' r='1.5' fill='rgba(255,255,255,0.07)'/%3E%3C/svg%3E");
+    pointer-events: none;
+}
+.db-discover-icon {
+    flex-shrink: 0;
+    width: 48px; height: 48px;
+    display: grid; place-items: center;
+    border-radius: 14px;
+    background: rgba(255,255,255,.15);
+    backdrop-filter: blur(8px);
+    font-size: 1.4rem;
+}
+.db-discover-body { flex: 1; position: relative; }
+.db-discover-body strong { display: block; font-size: 1rem; margin-bottom: 2px; }
+.db-discover-body span { opacity: .82; font-size: .82rem; }
+.db-discover-actions { display: flex; gap: .5rem; flex-shrink: 0; position: relative; }
+.db-discover-actions .db-btn { font-size: .8rem; padding: .45rem 1rem; }
+.db-discover-actions .db-btn-white { background: #fff; color: #4361ee; border: none; font-weight: 600; border-radius: 999px; }
+.db-discover-actions .db-btn-white:hover { background: #eef; }
+.db-discover-close {
+    position: absolute; top: 8px; right: 10px;
+    background: none; border: none; color: rgba(255,255,255,.5);
+    font-size: 1.1rem; cursor: pointer; padding: 2px 6px; line-height: 1;
+}
+.db-discover-close:hover { color: #fff; }
+@media (max-width: 576px) {
+    .db-discover { flex-direction: column; text-align: center; gap: .75rem; padding: 1.1rem 1rem; }
+    .db-discover-actions { justify-content: center; }
+}
 {% endblock %}
 
 {% block content %}
@@ -353,6 +398,22 @@
         {% endif %}
     </div>
 </div>
+
+<!-- ═══ Tool Discovery Banner ═══ -->
+{% if role == 'teacher' %}
+<div class="db-discover" id="dbDiscover" style="display:none">
+    <button class="db-discover-close" onclick="document.getElementById('dbDiscover').remove();localStorage.setItem('aura_dismiss_discover','1')" aria-label="Dismiss">&times;</button>
+    <div class="db-discover-icon"><i class="bi bi-stars"></i></div>
+    <div class="db-discover-body">
+        <strong>15 AI-Powered Tools at Your Fingertips</strong>
+        <span>Lesson plans, slide decks, exam papers, report cards &mdash; generate in seconds with Aura credits.</span>
+    </div>
+    <div class="db-discover-actions">
+        <a href="{% url 'individual:tools_hub' %}" class="db-btn db-btn-white"><i class="bi bi-grid-3x3-gap me-1"></i>Explore Tools</a>
+    </div>
+</div>
+<script>if(!localStorage.getItem('aura_dismiss_discover'))document.getElementById('dbDiscover').style.display='';</script>
+{% endif %}
 
 <!-- ═══ Profile Nudge ═══ -->
 {% if not profile.phone_number or not profile.user.email %}
