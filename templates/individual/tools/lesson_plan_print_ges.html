@@ -146,13 +146,25 @@
 
 /* ── Print ─────────────────────────────────────────────── */
 @media print {
-    @page { size: landscape; margin: 0.8cm; }
-    body { background: #fff !important; }
+    @page { size: landscape; margin: 0; }
+    html, body {
+        background: #fff !important; color: #000 !important;
+        color-scheme: light !important;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        padding: 8mm !important; margin: 0 !important;
+    }
+    /* Force light mode */
+    [data-bs-theme="dark"] .ges-paper,
+    [data-bs-theme="dark"] .ges-paper .card-body { background: #fff !important; color: #000 !important; }
+    [data-bs-theme="dark"] .ges-print-table { color: #000 !important; background: #fff !important; }
+    [data-bs-theme="dark"] .ges-print-table th,
+    [data-bs-theme="dark"] .ges-print-table td { border-color: #000 !important; }
+    /* Hide chrome */
     .iu-sidebar, .iu-topbar, .iu-overlay, .ges-actions { display: none !important; }
-    .iu-main { margin-left: 0 !important; }
+    .iu-main { margin-left: 0 !important; padding: 0 !important; }
     .iu-content { padding: 0 !important; max-width: 100% !important; }
-    .ges-paper { border: none !important; box-shadow: none !important; border-radius: 0 !important; }
-    .ges-paper .card-body { background: #fff !important; color: #000 !important; }
+    .ges-paper { border: none !important; box-shadow: none !important; border-radius: 0 !important; margin: 0 !important; }
+    .ges-paper .card-body { background: #fff !important; color: #000 !important; padding: 0 !important; }
     .ges-print-table {
         border-color: #000 !important;
         background-color: transparent !important;
@@ -184,6 +196,7 @@
         resize: none !important;
         overflow: hidden !important;
         white-space: pre-wrap;
+        color: #000 !important;
     }
     .print-hide { display: none !important; }
     tr { page-break-inside: avoid; }

@@ -64,18 +64,32 @@
 
 /* ── Print ─────────────────────────────────────────────── */
 @media print {
-    @page { size: portrait; margin: 1cm; }
-    body { background: #fff !important; }
+    @page { size: A4 portrait; margin: 0; }
+    html, body {
+        background: #fff !important; color: #000 !important;
+        color-scheme: light !important;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        padding: 10mm !important; margin: 0 !important;
+    }
+    /* Force light mode — override all dark theme styles */
+    [data-bs-theme="dark"] .b7-paper,
+    [data-bs-theme="dark"] .b7-paper .card-body { background: #fff !important; color: #000 !important; }
+    [data-bs-theme="dark"] .b7-table { color: #000 !important; background: #fff !important; }
+    [data-bs-theme="dark"] .b7-table th,
+    [data-bs-theme="dark"] .b7-table td { border-color: #000 !important; }
+    [data-bs-theme="dark"] .bg-header { background-color: #faeadd !important; }
+    [data-bs-theme="dark"] .b7-table textarea { color: #000 !important; }
+    /* Hide chrome */
     .iu-sidebar, .iu-topbar, .iu-overlay, .b7-actions { display: none !important; }
-    .iu-main { margin-left: 0 !important; }
+    .iu-main { margin-left: 0 !important; padding: 0 !important; }
     .iu-content { padding: 0 !important; max-width: 100% !important; }
-    .b7-paper { border: none !important; box-shadow: none !important; border-radius: 0 !important; }
-    .b7-paper .card-body { background: #fff !important; color: #000 !important; }
+    .b7-paper { border: none !important; box-shadow: none !important; border-radius: 0 !important; margin: 0 !important; }
+    .b7-paper .card-body { background: #fff !important; color: #000 !important; padding: 0 !important; }
     .b7-table { border-color: #000 !important; background-color: transparent !important; color: #000 !important; }
     .b7-table th, .b7-table td { border-color: #000 !important; }
     .bg-header { background-color: #faeadd !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .b7-save-float { display: none !important; }
-    textarea { border: none !important; resize: none !important; overflow: hidden !important; white-space: pre-wrap; }
+    textarea { border: none !important; resize: none !important; overflow: hidden !important; white-space: pre-wrap; color: #000 !important; }
     .print-hide { display: none !important; }
     tr { page-break-inside: avoid; }
 }
@@ -102,6 +116,8 @@
         </ul>
     </div>
     <button onclick="window.print()" class="b7-btn b7-btn-dark"><i class="bi bi-printer"></i> Print</button>
+    <a href="{% url 'individual:lesson_plan_pdf' pk=plan.pk %}" class="b7-btn b7-btn-outline" title="Download PDF"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
+    <a href="{% url 'individual:lesson_plan_word' pk=plan.pk %}" class="b7-btn b7-btn-outline" title="Export Word"><i class="bi bi-file-earmark-word"></i> Word</a>
     <a href="{% url 'individual:lesson_plan_edit' pk=plan.pk %}" class="b7-btn b7-btn-green"><i class="bi bi-pencil"></i> Edit</a>
 </div>
 

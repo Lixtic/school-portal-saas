@@ -1055,6 +1055,414 @@ def lesson_plan_print(request, pk):
 
 @_tool_required
 @_require_tool('lesson-planner')
+def lesson_plan_pdf(request, pk):
+    """Download the lesson plan as a B7 Weekly PDF (ReportLab)."""
+    import io
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import cm, mm
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.colors import HexColor, black
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    from reportlab.platypus import (
+        SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
+    )
+
+    from django.http import HttpResponse
+
+    profile = request.user.individual_profile
+    plan = get_object_or_404(
+        ToolLessonPlan.objects.select_related('profile__user'),
+        pk=pk, profile=profile,
+    )
+    b7 = plan.b7_meta or {}
+
+    def esc(text):
+        return (str(text).replace('&', '&amp;').replace('<', '&lt;')
+                .replace('>', '&gt;').replace('\n', '<br/>'))
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        topMargin=1.2 * cm, bottomMargin=1.2 * cm,
+        leftMargin=1.5 * cm, rightMargin=1.5 * cm,
+    )
+    avail_w = A4[0] - 3 * cm
+
+    styles = getSampleStyleSheet()
+    header_bg = HexColor('#faeadd')
+
+    s_title = ParagraphStyle('B7Title', parent=styles['Title'], fontSize=13,
+        fontName='Times-Bold', alignment=TA_CENTER, spaceAfter=2, textColor=black)
+    s_sub = ParagraphStyle('B7Sub', parent=styles['Normal'], fontSize=11,
+        fontName='Times-Bold', alignment=TA_CENTER, spaceAfter=6, textColor=black)
+    s_cell = ParagraphStyle('Cell', parent=styles['Normal'], fontSize=10,
+        fontName='Times-Roman', leading=13, spaceAfter=0, spaceBefore=0)
+    s_cell_b = ParagraphStyle('CellB', parent=s_cell, fontName='Times-Bold')
+    s_hdr = ParagraphStyle('Hdr', parent=s_cell, fontName='Times-Bold', fontSize=10)
+    s_phase = ParagraphStyle('Phase', parent=s_cell, fontName='Times-Bold', fontSize=10)
+
+    story = []
+    story.append(Paragraph(
+        f'WEEKLY LESSON PLAN &ndash; {esc(plan.target_class or "Class")}', s_title))
+    story.append(Paragraph(esc(plan.title), s_sub))
+
+    # ── Table 1: Metadata ──
+    meta_data = [
+        [Paragraph('<b>Date:</b>', s_cell_b),
+         Paragraph(plan.created_at.strftime('%d/%m/%Y') if plan.created_at else '', s_cell),
+         Paragraph('<b>Period:</b>', s_cell_b),
+         Paragraph(esc(b7.get('period', '1')), s_cell)],
+        [Paragraph('<b>Duration:</b>', s_cell_b),
+         Paragraph(f'{plan.duration_minutes} Mins', s_cell),
+         Paragraph('<b>Strand:</b>', s_cell_b),
+         Paragraph(esc(b7.get('strand', plan.topic or '')), s_cell)],
+        [Paragraph('<b>Class:</b>', s_cell_b),
+         Paragraph(esc(plan.target_class or ''), s_cell),
+         Paragraph('<b>Class Size:</b>', s_cell_b),
+         Paragraph(esc(b7.get('class_size', '')), s_cell)],
+        [Paragraph('<b>Subject:</b>', s_cell_b),
+         Paragraph(esc(plan.get_subject_display()), s_cell),
+         Paragraph('<b>Sub Strand:</b>', s_cell_b),
+         Paragraph(esc(plan.sub_strand or plan.topic or ''), s_cell)],
+    ]
+    cw = [avail_w * 0.15, avail_w * 0.35, avail_w * 0.15, avail_w * 0.35]
+    meta_table = Table(meta_data, colWidths=cw)
+    meta_style = [
+        ('BOX', (0, 0), (-1, -1), 1, black),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, black),
+        ('FONTNAME', (0, 0), (-1, -1), 'Times-Roman'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING', (0, 0), (-1, -1), 5),
+    ]
+    for r in range(4):
+        meta_style.append(('BACKGROUND', (0, r), (0, r), header_bg))
+        meta_style.append(('BACKGROUND', (2, r), (2, r), header_bg))
+    meta_table.setStyle(TableStyle(meta_style))
+    story.append(meta_table)
+
+    # ── Table 2: Curriculum Standards ──
+    ind_text = b7.get('indicator', plan.indicator or 'See Content Standard')
+    lesson_of = b7.get('lesson_of', '1 of 3')
+    perf_ind = b7.get('perf_indicator', b7.get('performance_indicator', ''))
+    core_comp = b7.get('core_competencies', 'CP 5.1, CC 8.1')
+    refs = b7.get('references', f"National {plan.get_subject_display()} Curriculum")
+    keywords = b7.get('keywords', plan.topic or '')
+
+    cur_data = [
+        [Paragraph('<b>Content Standard:</b>', s_hdr),
+         Paragraph('<b>Indicator:</b>', s_hdr),
+         Paragraph('<b>Lesson:</b>', s_hdr)],
+        [Paragraph(esc(plan.objectives or ''), s_cell),
+         Paragraph(esc(ind_text), s_cell),
+         Paragraph(esc(lesson_of), s_cell)],
+        [Paragraph('<b>Performance Indicator:</b>', s_hdr),
+         '', Paragraph('<b>Core Competencies:</b>', s_hdr)],
+        [Paragraph(esc(perf_ind), s_cell),
+         '', Paragraph(esc(core_comp), s_cell)],
+        [Paragraph(f'<b>References:</b> {esc(refs)}', s_cell), '', ''],
+        [Paragraph(f'<b>Keywords:</b> {esc(keywords)}', s_cell), '', ''],
+    ]
+    cw2 = [avail_w * 0.50, avail_w * 0.30, avail_w * 0.20]
+    cur_table = Table(cur_data, colWidths=cw2)
+    cur_style = [
+        ('BOX', (0, 0), (-1, -1), 1, black),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, black),
+        ('FONTNAME', (0, 0), (-1, -1), 'Times-Roman'),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING', (0, 0), (-1, -1), 5),
+        ('BACKGROUND', (0, 0), (-1, 0), header_bg),
+        ('BACKGROUND', (0, 2), (0, 2), header_bg),
+        ('BACKGROUND', (2, 2), (2, 2), header_bg),
+        ('SPAN', (0, 2), (1, 2)),  # Perf Indicator header spans 2 cols
+        ('SPAN', (0, 3), (1, 3)),  # Perf Indicator value spans 2 cols
+        ('SPAN', (0, 4), (2, 4)),  # References full width
+        ('SPAN', (0, 5), (2, 5)),  # Keywords full width
+        ('BACKGROUND', (0, 4), (0, 4), header_bg),
+        ('BACKGROUND', (0, 5), (0, 5), header_bg),
+    ]
+    cur_table.setStyle(TableStyle(cur_style))
+    story.append(Spacer(1, -1))
+    story.append(cur_table)
+
+    # ── Table 3: Three-Phase Pedagogy ──
+    materials_text = esc(plan.materials or '')
+    intro_text = esc(plan.introduction or '')
+    dev_text = esc(plan.development or '')
+    assess_text = esc(plan.assessment or '')
+    reflect_text = esc(plan.notes or '')
+    closure_text = esc(plan.closure or '')
+
+    ped_data = [
+        [Paragraph('<b>Phase / Duration</b>', s_hdr),
+         Paragraph('<b>Learner Activities</b>', s_hdr),
+         Paragraph('<b>Resources</b>', s_hdr)],
+        [Paragraph('<b>PHASE 1: STARTER</b><br/><font size="8">(10 Mins)</font>', s_phase),
+         Paragraph(intro_text, s_cell),
+         Paragraph(materials_text, s_cell)],
+        [Paragraph('<b>PHASE 2: NEW LEARNING</b><br/><font size="8">(40 Mins)</font>', s_phase),
+         Paragraph(f'{dev_text}<br/><br/><b>Assessment:</b><br/>{assess_text}', s_cell),
+         ''],
+        [Paragraph('<b>PHASE 3: REFLECTION</b><br/><font size="8">(10 Mins)</font>', s_phase),
+         Paragraph(f'{reflect_text}<br/><br/><b>Homework:</b><br/>{closure_text}', s_cell),
+         ''],
+    ]
+    cw3 = [avail_w * 0.20, avail_w * 0.50, avail_w * 0.30]
+    ped_table = Table(ped_data, colWidths=cw3)
+    ped_style = [
+        ('BOX', (0, 0), (-1, -1), 1, black),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, black),
+        ('FONTNAME', (0, 0), (-1, -1), 'Times-Roman'),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING', (0, 0), (-1, -1), 5),
+        ('BACKGROUND', (0, 0), (-1, 0), header_bg),
+        ('SPAN', (2, 1), (2, 3)),  # Resources column spans all 3 phase rows
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]
+    ped_table.setStyle(TableStyle(ped_style))
+    story.append(Spacer(1, 2))
+    story.append(ped_table)
+
+    doc.build(story)
+    buf.seek(0)
+
+    safe_title = ''.join(
+        c for c in plan.title if c.isalnum() or c in ' _-'
+    ).strip()[:80] or 'Lesson_Plan'
+    filename = f'{safe_title}_B7.pdf'
+
+    response = HttpResponse(buf.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@_tool_required
+@_require_tool('lesson-planner')
+def lesson_plan_word(request, pk):
+    """Download the lesson plan as a B7 Weekly Word document (.docx)."""
+    import io
+    from docx import Document
+    from docx.shared import Inches, Pt, Cm, RGBColor
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.enum.table import WD_TABLE_ALIGNMENT
+    from docx.oxml.ns import qn
+
+    from django.http import HttpResponse
+
+    profile = request.user.individual_profile
+    plan = get_object_or_404(
+        ToolLessonPlan.objects.select_related('profile__user'),
+        pk=pk, profile=profile,
+    )
+    b7 = plan.b7_meta or {}
+
+    doc = Document()
+    style = doc.styles['Normal']
+    font = style.font
+    font.name = 'Times New Roman'
+    font.size = Pt(11)
+    style.element.rPr.rFonts.set(qn('w:eastAsia'), 'Times New Roman')
+
+    # Page margins
+    for section in doc.sections:
+        section.top_margin = Cm(1.5)
+        section.bottom_margin = Cm(1.5)
+        section.left_margin = Cm(2)
+        section.right_margin = Cm(2)
+
+    header_color = RGBColor(0xFA, 0xEA, 0xDD)
+
+    def set_cell_shading(cell, color_hex):
+        """Apply background shading to a cell."""
+        shading = cell._element.get_or_add_tcPr()
+        shd = shading.makeelement(qn('w:shd'), {
+            qn('w:fill'): color_hex,
+            qn('w:val'): 'clear',
+        })
+        shading.append(shd)
+
+    def cell_text(cell, text, bold=False, size=11):
+        cell.text = ''
+        p = cell.paragraphs[0]
+        run = p.add_run(str(text))
+        run.font.name = 'Times New Roman'
+        run.font.size = Pt(size)
+        run.bold = bold
+
+    # Title
+    title_p = doc.add_paragraph()
+    title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = title_p.add_run(f'WEEKLY LESSON PLAN – {plan.target_class or "Class"}')
+    run.bold = True
+    run.font.size = Pt(14)
+    run.font.name = 'Times New Roman'
+
+    sub_p = doc.add_paragraph()
+    sub_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = sub_p.add_run(plan.title)
+    run.bold = True
+    run.font.size = Pt(12)
+    run.font.name = 'Times New Roman'
+
+    # ── Table 1: Metadata ──
+    t1 = doc.add_table(rows=4, cols=4)
+    t1.style = 'Table Grid'
+    t1.alignment = WD_TABLE_ALIGNMENT.CENTER
+    meta_rows = [
+        ('Date:', plan.created_at.strftime('%d/%m/%Y') if plan.created_at else '',
+         'Period:', b7.get('period', '1')),
+        ('Duration:', f'{plan.duration_minutes} Mins',
+         'Strand:', b7.get('strand', plan.topic or '')),
+        ('Class:', plan.target_class or '',
+         'Class Size:', b7.get('class_size', '')),
+        ('Subject:', plan.get_subject_display(),
+         'Sub Strand:', plan.sub_strand or plan.topic or ''),
+    ]
+    for r, row_data in enumerate(meta_rows):
+        for c, val in enumerate(row_data):
+            cell = t1.cell(r, c)
+            cell_text(cell, val, bold=(c in (0, 2)))
+            if c in (0, 2):
+                set_cell_shading(cell, 'FAEADD')
+
+    doc.add_paragraph('')  # spacer
+
+    # ── Table 2: Curriculum Standards ──
+    ind_text = b7.get('indicator', plan.indicator or 'See Content Standard')
+    lesson_of = b7.get('lesson_of', '1 of 3')
+    perf_ind = b7.get('perf_indicator', b7.get('performance_indicator', ''))
+    core_comp = b7.get('core_competencies', 'CP 5.1, CC 8.1')
+
+    t2 = doc.add_table(rows=6, cols=3)
+    t2.style = 'Table Grid'
+    t2.alignment = WD_TABLE_ALIGNMENT.CENTER
+
+    # Row 0: headers
+    cell_text(t2.cell(0, 0), 'Content Standard:', bold=True)
+    cell_text(t2.cell(0, 1), 'Indicator:', bold=True)
+    cell_text(t2.cell(0, 2), 'Lesson:', bold=True)
+    for c in range(3):
+        set_cell_shading(t2.cell(0, c), 'FAEADD')
+
+    # Row 1: values
+    cell_text(t2.cell(1, 0), plan.objectives or '')
+    cell_text(t2.cell(1, 1), ind_text)
+    cell_text(t2.cell(1, 2), lesson_of)
+
+    # Row 2: Perf Indicator header + Core Competencies header
+    t2.cell(2, 0).merge(t2.cell(2, 1))
+    cell_text(t2.cell(2, 0), 'Performance Indicator:', bold=True)
+    set_cell_shading(t2.cell(2, 0), 'FAEADD')
+    cell_text(t2.cell(2, 2), 'Core Competencies:', bold=True)
+    set_cell_shading(t2.cell(2, 2), 'FAEADD')
+
+    # Row 3: values
+    t2.cell(3, 0).merge(t2.cell(3, 1))
+    cell_text(t2.cell(3, 0), perf_ind)
+    cell_text(t2.cell(3, 2), core_comp)
+
+    # Row 4: References (full width)
+    t2.cell(4, 0).merge(t2.cell(4, 2))
+    refs = b7.get('references', f"National {plan.get_subject_display()} Curriculum")
+    p = t2.cell(4, 0).paragraphs[0]
+    run_b = p.add_run('References: ')
+    run_b.bold = True
+    run_b.font.name = 'Times New Roman'
+    run_b.font.size = Pt(11)
+    run_v = p.add_run(refs)
+    run_v.font.name = 'Times New Roman'
+    run_v.font.size = Pt(11)
+    set_cell_shading(t2.cell(4, 0), 'FAEADD')
+
+    # Row 5: Keywords (full width)
+    t2.cell(5, 0).merge(t2.cell(5, 2))
+    keywords = b7.get('keywords', plan.topic or '')
+    p = t2.cell(5, 0).paragraphs[0]
+    run_b = p.add_run('Keywords: ')
+    run_b.bold = True
+    run_b.font.name = 'Times New Roman'
+    run_b.font.size = Pt(11)
+    run_v = p.add_run(keywords)
+    run_v.font.name = 'Times New Roman'
+    run_v.font.size = Pt(11)
+    set_cell_shading(t2.cell(5, 0), 'FAEADD')
+
+    doc.add_paragraph('')  # spacer
+
+    # ── Table 3: Three-Phase Pedagogy ──
+    t3 = doc.add_table(rows=4, cols=3)
+    t3.style = 'Table Grid'
+    t3.alignment = WD_TABLE_ALIGNMENT.CENTER
+
+    # Header
+    cell_text(t3.cell(0, 0), 'Phase / Duration', bold=True)
+    cell_text(t3.cell(0, 1), 'Learner Activities', bold=True)
+    cell_text(t3.cell(0, 2), 'Resources', bold=True)
+    for c in range(3):
+        set_cell_shading(t3.cell(0, c), 'FAEADD')
+
+    # Merge resources column across rows 1-3
+    t3.cell(1, 2).merge(t3.cell(3, 2))
+    cell_text(t3.cell(1, 2), plan.materials or '')
+
+    # Phase 1
+    cell_text(t3.cell(1, 0), 'PHASE 1: STARTER\n(10 Mins)', bold=True)
+    cell_text(t3.cell(1, 1), plan.introduction or '')
+
+    # Phase 2
+    cell_text(t3.cell(2, 0), 'PHASE 2: NEW LEARNING\n(40 Mins)', bold=True)
+    p = t3.cell(2, 1).paragraphs[0]
+    run = p.add_run(plan.development or '')
+    run.font.name = 'Times New Roman'
+    run.font.size = Pt(11)
+    if plan.assessment:
+        p.add_run('\n\n')
+        run_b = p.add_run('Assessment:\n')
+        run_b.bold = True
+        run_b.font.name = 'Times New Roman'
+        run_b.font.size = Pt(11)
+        run_v = p.add_run(plan.assessment)
+        run_v.font.name = 'Times New Roman'
+        run_v.font.size = Pt(11)
+
+    # Phase 3
+    cell_text(t3.cell(3, 0), 'PHASE 3: REFLECTION\n(10 Mins)', bold=True)
+    p = t3.cell(3, 1).paragraphs[0]
+    run = p.add_run(plan.notes or '')
+    run.font.name = 'Times New Roman'
+    run.font.size = Pt(11)
+    if plan.closure:
+        p.add_run('\n\n')
+        run_b = p.add_run('Homework:\n')
+        run_b.bold = True
+        run_b.font.name = 'Times New Roman'
+        run_b.font.size = Pt(11)
+        run_v = p.add_run(plan.closure)
+        run_v.font.name = 'Times New Roman'
+        run_v.font.size = Pt(11)
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+
+    safe_title = ''.join(
+        c for c in plan.title if c.isalnum() or c in ' _-'
+    ).strip()[:80] or 'Lesson_Plan'
+    filename = f'{safe_title}_B7.docx'
+
+    response = HttpResponse(
+        buf.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@_tool_required
+@_require_tool('lesson-planner')
 @require_POST
 def lesson_plan_ai_generate(request):
     """AI-generate a lesson plan from topic + subject.

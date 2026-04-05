@@ -101,7 +101,15 @@
             <li><a class="dropdown-item" href="#" onclick="window.print()"><i class="bi bi-printer me-2"></i>Print Current View</a></li>
         </ul>
     </div>
-    <button class="lpd-btn lpd-btn-outline" onclick="_saveOffline('lesson',{{ plan.pk }},this)" title="Save for offline access"><i class="bi bi-cloud-arrow-down"></i> Offline</button>
+    <div class="dropdown">
+        <button class="lpd-btn lpd-btn-outline dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <i class="bi bi-download"></i> Export
+        </button>
+        <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="{% url 'individual:lesson_plan_pdf' pk=plan.pk %}"><i class="bi bi-file-earmark-pdf me-2"></i>Download PDF</a></li>
+            <li><a class="dropdown-item" href="{% url 'individual:lesson_plan_word' pk=plan.pk %}"><i class="bi bi-file-earmark-word me-2"></i>Download Word</a></li>
+        </ul>
+    </div>
     <form method="post" action="{% url 'individual:lesson_plan_delete' pk=plan.pk %}" style="margin:0"
           onsubmit="return confirm('Delete this lesson plan?')">
         {% csrf_token %}
