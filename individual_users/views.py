@@ -1421,6 +1421,9 @@ def subscribe_addon(request):
                 'expires_at': None,
             },
         )
+        # Seed sample content for the newly activated tool
+        from individual_users.seed_content import seed_tool_content
+        seed_tool_content(profile, slug)
         return JsonResponse({'ok': True, 'created': created, 'addon': addon['name']})
 
     # Paid plan: return Paystack params for inline popup
@@ -1476,6 +1479,9 @@ def trial_addon(request):
             'amount_paid': 0,
         },
     )
+    # Seed sample content for the trial tool
+    from individual_users.seed_content import seed_tool_content
+    seed_tool_content(profile, slug)
     return JsonResponse({'ok': True, 'addon': addon['name'], 'trial_days': trial_days})
 
 
@@ -1640,6 +1646,9 @@ def verify_addon_payment(request):
             'amount_paid': amount_paid,
         },
     )
+    # Seed sample content for the paid tool
+    from individual_users.seed_content import seed_tool_content
+    seed_tool_content(profile, slug)
     return JsonResponse({'ok': True, 'addon': addon['name']})
 
 
@@ -1717,6 +1726,9 @@ def _handle_individual_addon_payment(reference, data):
             'amount_paid': amount_paid,
         },
     )
+    # Seed sample content for the webhook-activated tool
+    from individual_users.seed_content import seed_tool_content
+    seed_tool_content(profile, slug)
 
 
 def _handle_individual_credit_payment(reference, data):
