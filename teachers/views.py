@@ -2873,12 +2873,6 @@ def bulk_teacher_id_cards_pdf(request):
         return redirect('teachers:teacher_list')
 
 
-import json
-from django.views.decorators.http import require_POST
-from communication.models import Conversation, Message
-from parents.models import Parent
-
-
 # --- Power Words - Teacher Command Center ---
 
 @login_required
@@ -3195,11 +3189,8 @@ def boost_intervention(request):
 # AI Chat Sessions
 # ==========================================
 
-from django.http import JsonResponse
 from django.conf import settings
-import json
 
-@login_required
 @login_required
 @require_addon('ai-lesson-planner')
 def ai_sessions_list(request):

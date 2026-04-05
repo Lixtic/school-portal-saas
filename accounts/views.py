@@ -813,11 +813,6 @@ def dashboard(request):
                 week__end_date__gte=current_date_val
             ).select_related('week').order_by('week__start_date').first()
             
-            # Debugging (visible in server logs) - REMOVE IN PROD
-            # print(f"DEBUG: Teacher={teacher_profile}, Year={current_year}, Date={current_date_val}")
-            # print(f"DEBUG: Next Duty Found: {next_duty}")
-
-
         # Get Today's Timetable
         today_weekday = timezone.now().weekday()
         current_time = timezone.localtime().time()
