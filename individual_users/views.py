@@ -126,7 +126,7 @@ def _send_welcome_email(user):
         'role': role,
         'role_label': role_label,
         'welcome_credits': WELCOME_BONUS_CREDITS,
-        'dashboard_url': f"{settings.SITE_URL}/u/dashboard/" if hasattr(settings, 'SITE_URL') else '/u/dashboard/',
+        'dashboard_url': f"{settings.SITE_URL}/u/dashboard/",
     }
     html = render_to_string('individual/emails/welcome.html', ctx)
     text = strip_tags(html)
