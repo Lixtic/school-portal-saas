@@ -535,7 +535,7 @@ def tools_hub(request):
         tools.append(entry)
 
     # Group tools by group key
-    grouped = OrderedDict()
+    grouped = {}
     for g in TOOL_GROUPS:
         grouped[g['key']] = {**g, 'tools': []}
     for tool in tools:
