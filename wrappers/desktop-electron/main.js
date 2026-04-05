@@ -16,7 +16,7 @@ function createWindow() {
     height: 840,
     minWidth: 1024,
     minHeight: 680,
-    title: 'Portals',
+    title: 'SchoolPadi',
     backgroundColor: '#f4f8f7',
     autoHideMenuBar: true,
     webPreferences: {

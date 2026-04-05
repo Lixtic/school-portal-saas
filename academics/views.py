@@ -42,7 +42,7 @@ def about_us(request):
     return render(request, 'academics/about_us.html', context)
 
 def system_about(request):
-    """About the Portals system"""
+    """About the SchoolPadi system"""
     return render(request, 'academics/system_about.html')
 
 def apply_admission(request):
@@ -818,7 +818,7 @@ def admissions_assistant(request):
     logger.debug("Chatbot question received: %s", question[:120])
     
     if not question:
-        return JsonResponse({'answer': 'Ask me what School Portals does for students, parents, teachers, and administrators.'})
+        return JsonResponse({'answer': 'Ask me what SchoolPadi does for students, parents, teachers, and administrators.'})
 
     # Safely get school info
     try:
@@ -830,7 +830,7 @@ def admissions_assistant(request):
 
     def fallback_answer():
         faq = [
-            (('feature', 'module', 'what can', 'capabilities', 'do'), "School Portals includes student records, attendance, grading, finance, timetables, announcements, parent access, and AI-assisted teaching workflows."),
+            (('feature', 'module', 'what can', 'capabilities', 'do'), "SchoolPadi includes student records, attendance, grading, finance, timetables, announcements, parent access, and AI-assisted teaching workflows."),
             (('teacher', 'staff', 'lesson', 'homework'), "Teachers can create lesson plans, manage attendance, grade students, assign homework, and use AI support for instructional planning."),
             (('parent', 'guardian'), "Parents can monitor attendance, grades, announcements, and fee status from their portal in real time."),
             (('student', 'learner'), "Students can view class information, assignments, progress, and key school updates in one place."),
@@ -840,7 +840,7 @@ def admissions_assistant(request):
             (('contact', 'phone', 'email'), f"You can reach us at {school_info.phone if school_info else 'the school office phone'} or {school_info.email if school_info else 'our email'} for more details."),
         ]
 
-        answer_text = "I can walk you through what School Portals does and which modules are most useful for your school."
+        answer_text = "I can walk you through what SchoolPadi does and which modules are most useful for your school."
         question_lower = question.lower()
         for keywords, response in faq:
             if any(k in question_lower for k in keywords):
@@ -874,7 +874,7 @@ def admissions_assistant(request):
             
             # Build context from school info
             school_context = f"""
-You are SchoolPadi, a helpful School Portals platform assistant for {school_info.name if school_info else 'our school'}.
+You are SchoolPadi, a helpful platform assistant for {school_info.name if school_info else 'our school'}.
 
 School Information:
 - Name: {school_info.name if school_info else 'N/A'}
@@ -1315,9 +1315,9 @@ Current User Role: {user_role}
             "- Avoid long introductions or filler.\n"
         )
 
-    system_prompt = f"""portals AI Copilot 2026
+    system_prompt = f"""SchoolPadi AI Copilot 2026
 Role & Objective:
-You are the School-Portals AI Copilot, the central intelligence layer for a comprehensive K-12/Higher-Ed SaaS application. Your goal is to provide proactive, role-specific assistance to Students, Parents, Teachers, and Administrators while maintaining strict FERPA/GDPR data privacy standards.
+You are the SchoolPadi AI Copilot, the central intelligence layer for a comprehensive K-12/Higher-Ed SaaS application. Your goal is to provide proactive, role-specific assistance to Students, Parents, Teachers, and Administrators while maintaining strict FERPA/GDPR data privacy standards.
 
 Persona Adaptation:
 - Students: Act as a Socratic Tutor. Do not just give answers; explain concepts, provide practice problems, and offer encouragement.
@@ -3180,7 +3180,7 @@ def timetable_conflicts(request):
 
 HELP_ROLE_PROMPTS = {
     'admin': (
-        "You help school admins use the Portals.\n"
+        "You help school admins use SchoolPadi.\n"
         "Key sections they manage:\n"
         "- Students: enroll, edit, import via CSV, promote, view report cards\n"
         "- Teachers: add, edit, assign classes\n"
@@ -3195,7 +3195,7 @@ HELP_ROLE_PROMPTS = {
         "- AI Tools: SchoolPadi AI tutor for students, teacher AI lesson assistant\n"
     ),
     'teacher': (
-        "You help teachers use the Portals.\n"
+        "You help teachers use SchoolPadi.\n"
         "Key features available:\n"
         "- Enter Grades: input class scores and exam scores; system auto-calculates totals\n"
         "- My Classes: see assigned subjects and classes\n"
@@ -3210,7 +3210,7 @@ HELP_ROLE_PROMPTS = {
         "- Analytics: view class performance insights and at-risk students\n"
     ),
     'student': (
-        "You help students use the Portals.\n"
+        "You help students use SchoolPadi.\n"
         "Key features available:\n"
         "- Dashboard: quick overview of grades, attendance, upcoming homework\n"
         "- Report Card: view term report cards\n"
@@ -3223,7 +3223,7 @@ HELP_ROLE_PROMPTS = {
         "- Messages: communicate with teachers and staff\n"
     ),
     'parent': (
-        "You help parents use the Portals.\n"
+        "You help parents use SchoolPadi.\n"
         "Key features available:\n"
         "- My Children: view profile, attendance, and grades for each child\n"
         "- Fees: check fee balances, payment history, and download receipts\n"
@@ -3290,7 +3290,7 @@ def help_chat_api(request):
         school_name = 'your school'
 
     system_prompt = (
-        f"You are the friendly help assistant for {school_name}'s Portals. "
+        f"You are the friendly help assistant for {school_name}'s SchoolPadi platform. "
         f"Your job is to guide users step-by-step.\n\n"
         f"{role_context}\n"
         "Rules:\n"

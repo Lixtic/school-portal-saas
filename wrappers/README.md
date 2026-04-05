@@ -1,6 +1,6 @@
 ﻿# Wrappers
 
-This directory contains native wrappers for packaging the Portals web application:
+This directory contains native wrappers for packaging the SchoolPadi web application:
 
 - `mobile-capacitor`: Android and iOS wrapper (Capacitor)
 - `desktop-electron`: Desktop wrapper (Electron)

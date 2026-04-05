@@ -1,6 +1,6 @@
 ﻿# Desktop Wrapper (Electron)
 
-This is a lightweight desktop shell for the Portals web app.
+This is a lightweight desktop shell for the SchoolPadi web app.
 
 ## Quick start
 

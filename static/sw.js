@@ -369,7 +369,7 @@ async function getCachedPageList() {
 // ── Web Push Handlers ──────────────────────────────────────────────────────
 
 self.addEventListener('push', (event) => {
-  let data = { title: 'Portals', body: 'You have a new notification.', url: '/' };
+  let data = { title: 'SchoolPadi', body: 'You have a new notification.', url: '/' };
   if (event.data) {
     try {
       data = Object.assign(data, JSON.parse(event.data.text()));

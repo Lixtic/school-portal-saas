@@ -1,5 +1,5 @@
 ﻿"""
-Error handler views for Portals
+Error handler views for SchoolPadi
 Handles custom 400, 403, 404, and 500 error pages
 """
 
