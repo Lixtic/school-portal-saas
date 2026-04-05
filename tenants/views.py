@@ -1207,6 +1207,7 @@ def purchase_addon(request, addon_id):
                 'amount': int(addon.monthly_price * 100),
                 'currency': getattr(settings, 'PAYSTACK_CURRENCY', 'GHS'),
                 'reference': ref,
+                'phone': request.user.phone,
                 'addon_name': addon.name,
                 'addon_id': addon.id,
             })

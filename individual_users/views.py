@@ -1233,6 +1233,8 @@ def subscribe_addon(request):
 
     # Paid plan: return Paystack params for inline popup
     ref = f"IU-{request.user.id}-{slug}-{plan}-{uuid.uuid4().hex[:8]}"
+    phone = getattr(request.user, 'individual_profile', None)
+    phone = (phone.phone_number if phone else '') or request.user.phone
     return JsonResponse({
         'paystack': True,
         'public_key': settings.PAYSTACK_PUBLIC_KEY,
@@ -1240,6 +1242,7 @@ def subscribe_addon(request):
         'amount': int(Decimal(str(price)) * 100),  # pesewas/kobo
         'currency': getattr(settings, 'PAYSTACK_CURRENCY', 'GHS'),
         'reference': ref,
+        'phone': phone,
         'addon_name': addon['name'],
         'addon_slug': slug,
         'plan': plan,
@@ -1575,6 +1578,8 @@ def purchase_credits(request, pack_id):
 
     pack = _get(IndividualCreditPack, id=pack_id, is_active=True)
     ref = f"IC-{request.user.id}-{pack.id}-{uuid.uuid4().hex[:8]}"
+    phone = getattr(request.user, 'individual_profile', None)
+    phone = (phone.phone_number if phone else '') or request.user.phone
     return JsonResponse({
         'paystack': True,
         'public_key': settings.PAYSTACK_PUBLIC_KEY,
@@ -1582,6 +1587,7 @@ def purchase_credits(request, pack_id):
         'amount': int(pack.price * 100),  # pesewas
         'currency': getattr(settings, 'PAYSTACK_CURRENCY', 'GHS'),
         'reference': ref,
+        'phone': phone,
         'pack_name': pack.name,
         'credits': pack.credits,
     })

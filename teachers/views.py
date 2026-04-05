@@ -6923,6 +6923,7 @@ def teacher_store_purchase(request, addon_id):
         'amount': int(addon.price * 100),  # kobo/pesewas
         'currency': settings.PAYSTACK_CURRENCY,
         'reference': ref,
+        'phone': request.user.phone,
         'addon_name': addon.name,
     })
 
@@ -7367,6 +7368,7 @@ def purchase_credits(request, pack_id):
         'amount': int(pack.price * 100),  # pesewas
         'currency': settings.PAYSTACK_CURRENCY,
         'reference': ref,
+        'phone': request.user.phone,
         'pack_name': pack.name,
         'credits': pack.credits,
     })
