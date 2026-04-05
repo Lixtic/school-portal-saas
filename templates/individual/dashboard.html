@@ -209,6 +209,60 @@
 .db-addon-name { font-weight: 600; font-size: 0.84rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .db-addon-desc { font-size: 0.7rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* ── Addon Drag & Reorder ─────────────────────────────── */
+.db-addon-chips.reorder-active .db-addon-row {
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+}
+.db-addon-chips.reorder-active .db-addon-row:active { cursor: grabbing; }
+.db-addon-row.dragging {
+    opacity: 0.45;
+    transform: scale(0.97);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    z-index: 10;
+    transition: opacity .15s, transform .15s;
+}
+.db-addon-row.drag-over {
+    border-top: 2.5px solid var(--brand-primary, #4361ee);
+}
+.db-addon-grip {
+    display: none;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    opacity: 0.45;
+    flex-shrink: 0;
+    touch-action: none;
+}
+.db-addon-chips.reorder-active .db-addon-grip { display: flex; }
+.db-addon-chips.reorder-active .db-addon-row .bi-chevron-right { display: none; }
+.db-reorder-bar {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.75rem;
+    margin-bottom: 0.5rem;
+    border-radius: 8px;
+    background: rgba(67,97,238,0.08);
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--brand-primary, #4361ee);
+}
+[data-bs-theme="dark"] .db-reorder-bar { background: rgba(67,97,238,0.15); }
+.db-reorder-bar.visible { display: flex; }
+.db-reorder-done {
+    margin-left: auto;
+    background: var(--brand-primary, #4361ee);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 0.3rem 0.75rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.db-reorder-done:active { transform: scale(0.96); }
+
 /* ── Onboarding ───────────────────────────────────────── */
 .db-onboard {
     padding: 1.25rem;
@@ -685,9 +739,14 @@
             <h3><i class="bi bi-pin-angle-fill" style="color:var(--brand-primary)"></i> My Add-ons</h3>
             <a href="{% url 'individual:addons' %}">Manage</a>
         </div>
-        <div class="db-addon-chips">
+        <div class="db-reorder-bar" id="dbReorderBar">
+            <i class="bi bi-arrows-move"></i> Drag to reorder
+            <button class="db-reorder-done" id="dbReorderDone">Done</button>
+        </div>
+        <div class="db-addon-chips" id="dbAddonChips">
             {% for addon in my_addons %}
-            <a href="{% if addon.url_name %}{% url addon.url_name %}{% else %}{% url 'individual:tools_hub' %}{% endif %}" class="iu-card db-addon-row">
+            <a href="{% if addon.url_name %}{% url addon.url_name %}{% else %}{% url 'individual:tools_hub' %}{% endif %}" class="iu-card db-addon-row" data-slug="{{ addon.slug }}">
+                <i class="bi bi-grip-vertical db-addon-grip"></i>
                 <div class="db-addon-dot" style="background:{{ addon.color }}15;color:{{ addon.color }}">
                     <i class="bi {{ addon.icon }}"></i>
                 </div>
@@ -768,5 +827,183 @@
 {% endif %}
 
 
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if my_addons %}
+<script>
+(function(){
+  const chips = document.getElementById('dbAddonChips');
+  const bar   = document.getElementById('dbReorderBar');
+  const done  = document.getElementById('dbReorderDone');
+  if (!chips || !bar) return;
+
+  let reorderMode = false;
+  let longPressTimer = null;
+  const LONG_PRESS_MS = 500;
+  let dragEl = null;
+  let touchStartY = 0;
+  let placeholder = null;
+
+  /* ── Enter reorder mode via long-press ──────────────── */
+  function enterReorder() {
+    if (reorderMode) return;
+    reorderMode = true;
+    chips.classList.add('reorder-active');
+    bar.classList.add('visible');
+    // Prevent link navigation in reorder mode
+    chips.querySelectorAll('.db-addon-row').forEach(function(r) {
+      r.dataset.href = r.getAttribute('href');
+      r.removeAttribute('href');
+      r.setAttribute('draggable', 'true');
+    });
+    if (navigator.vibrate) navigator.vibrate(30);
+  }
+
+  function exitReorder() {
+    reorderMode = false;
+    chips.classList.remove('reorder-active');
+    bar.classList.remove('visible');
+    chips.querySelectorAll('.db-addon-row').forEach(function(r) {
+      if (r.dataset.href) r.setAttribute('href', r.dataset.href);
+      r.removeAttribute('draggable');
+      r.classList.remove('dragging', 'drag-over');
+    });
+    saveOrder();
+  }
+
+  if (done) done.addEventListener('click', exitReorder);
+
+  /* ── Long-press detection (touch) ───────────────────── */
+  chips.addEventListener('touchstart', function(e) {
+    var row = e.target.closest('.db-addon-row');
+    if (!row) return;
+    longPressTimer = setTimeout(function() {
+      enterReorder();
+      startTouchDrag(row, e);
+    }, LONG_PRESS_MS);
+  }, {passive: true});
+
+  chips.addEventListener('touchend', cancelLongPress);
+  chips.addEventListener('touchmove', function(e) {
+    // Cancel long-press if finger moves too much before activation
+    if (!reorderMode && longPressTimer) {
+      var touch = e.touches[0];
+      if (Math.abs(touch.clientY - touchStartY) > 10) cancelLongPress();
+    }
+    if (reorderMode && dragEl) handleTouchMove(e);
+  }, {passive: false});
+  chips.addEventListener('touchcancel', cancelLongPress);
+
+  function cancelLongPress() { clearTimeout(longPressTimer); longPressTimer = null; }
+
+  /* ── Touch start tracking ───────────────────────────── */
+  chips.addEventListener('touchstart', function(e) {
+    touchStartY = e.touches[0].clientY;
+  }, {passive: true});
+
+  /* ── Touch drag ─────────────────────────────────────── */
+  function startTouchDrag(el, e) {
+    dragEl = el;
+    el.classList.add('dragging');
+  }
+
+  function handleTouchMove(e) {
+    e.preventDefault();
+    var touch = e.touches[0];
+    var rows = Array.from(chips.querySelectorAll('.db-addon-row:not(.dragging)'));
+    rows.forEach(function(r) { r.classList.remove('drag-over'); });
+    var target = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (target) target = target.closest('.db-addon-row');
+    if (target && target !== dragEl) {
+      var rect = target.getBoundingClientRect();
+      var after = touch.clientY > rect.top + rect.height / 2;
+      if (after) {
+        chips.insertBefore(dragEl, target.nextSibling);
+      } else {
+        chips.insertBefore(dragEl, target);
+      }
+    }
+  }
+
+  chips.addEventListener('touchend', function() {
+    if (dragEl) {
+      dragEl.classList.remove('dragging');
+      dragEl = null;
+    }
+  });
+
+  /* ── Desktop drag & drop (also activated by long-press or right-click context) ── */
+  let mouseTimer = null;
+  chips.addEventListener('mousedown', function(e) {
+    var row = e.target.closest('.db-addon-row');
+    if (!row) return;
+    if (!reorderMode) {
+      mouseTimer = setTimeout(function() { enterReorder(); }, LONG_PRESS_MS);
+    }
+  });
+  chips.addEventListener('mouseup', function() { clearTimeout(mouseTimer); });
+  chips.addEventListener('mouseleave', function() { clearTimeout(mouseTimer); });
+
+  chips.addEventListener('dragstart', function(e) {
+    if (!reorderMode) { e.preventDefault(); return; }
+    dragEl = e.target.closest('.db-addon-row');
+    if (dragEl) {
+      dragEl.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    }
+  });
+
+  chips.addEventListener('dragover', function(e) {
+    if (!reorderMode) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    var target = e.target.closest('.db-addon-row');
+    chips.querySelectorAll('.db-addon-row').forEach(function(r) { r.classList.remove('drag-over'); });
+    if (target && target !== dragEl) target.classList.add('drag-over');
+  });
+
+  chips.addEventListener('drop', function(e) {
+    e.preventDefault();
+    if (!reorderMode || !dragEl) return;
+    var target = e.target.closest('.db-addon-row');
+    if (target && target !== dragEl) {
+      var rect = target.getBoundingClientRect();
+      if (e.clientY > rect.top + rect.height / 2) {
+        chips.insertBefore(dragEl, target.nextSibling);
+      } else {
+        chips.insertBefore(dragEl, target);
+      }
+    }
+    dragEl.classList.remove('dragging');
+    chips.querySelectorAll('.db-addon-row').forEach(function(r) { r.classList.remove('drag-over'); });
+    dragEl = null;
+  });
+
+  chips.addEventListener('dragend', function() {
+    if (dragEl) dragEl.classList.remove('dragging');
+    chips.querySelectorAll('.db-addon-row').forEach(function(r) { r.classList.remove('drag-over'); });
+    dragEl = null;
+  });
+
+  /* ── Persist order ──────────────────────────────────── */
+  function saveOrder() {
+    var order = Array.from(chips.querySelectorAll('.db-addon-row')).map(function(r) {
+      return r.dataset.slug;
+    });
+    fetch("{% url 'individual:reorder_addons' %}", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')
+          ? document.querySelector('[name=csrfmiddlewaretoken]').value
+          : document.cookie.match(/csrftoken=([^;]+)/)?.[1] || ''
+      },
+      body: JSON.stringify({order: order})
+    });
+  }
+})();
+</script>
 {% endif %}
 {% endblock %}

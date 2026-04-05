@@ -1096,7 +1096,8 @@ def dashboard_view(request):
             'tvet-workshop': '#d97706',
         }
         catalog_map = {a['slug']: a for a in TEACHER_ADDON_CATALOG}
-        for sub in subscriptions:
+        sub_list_ordered = list(subscriptions)  # already ordered by display_order, -started_at
+        for sub in sub_list_ordered:
             cat = catalog_map.get(sub.addon_slug)
             if cat:
                 my_addons.append({
@@ -1517,6 +1518,28 @@ def unsubscribe_addon(request):
     ).update(status='cancelled')
     if not updated:
         return JsonResponse({'ok': False, 'error': 'No active subscription found'}, status=404)
+    return JsonResponse({'ok': True})
+
+
+@_individual_required
+@require_POST
+def reorder_addons(request):
+    """Accept a JSON list of addon slugs in the desired display order."""
+    profile = request.user.individual_profile
+    try:
+        slugs = json.loads(request.body).get('order', [])
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    if not isinstance(slugs, list):
+        return JsonResponse({'error': 'order must be a list'}, status=400)
+    subs = {s.addon_slug: s for s in AddonSubscription.objects.filter(profile=profile, status='active')}
+    for idx, slug in enumerate(slugs):
+        sub = subs.get(slug)
+        if sub:
+            sub.display_order = idx
+    AddonSubscription.objects.bulk_update(
+        [s for s in subs.values() if s.addon_slug in slugs], ['display_order'],
+    )
     return JsonResponse({'ok': True})
 
 

@@ -26,6 +26,7 @@ urlpatterns = [
     path('addons/subscribe/', views.subscribe_addon, name='subscribe_addon'),
     path('addons/trial/', views.trial_addon, name='trial_addon'),
     path('addons/unsubscribe/', views.unsubscribe_addon, name='unsubscribe_addon'),
+    path('addons/reorder/', views.reorder_addons, name='reorder_addons'),
     path('addons/verify/', views.verify_addon_payment, name='verify_addon_payment'),
     path('addons/<slug:slug>/', views.addon_detail_view, name='addon_detail'),
 
