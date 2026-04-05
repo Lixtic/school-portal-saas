@@ -25,7 +25,7 @@ def get_reserved_paths():
         'apple-touch-icon-precomposed.png', 'favicon.svg', 'robots.txt',
         'sitemap.xml', 'dashboard', 'tenants', 'find-school', 'sw.js',
         'offline', 'about', 'contact', 'privacy', 'terms', 'health', 'landlord',
-        'public', 'password', 'reset', 'i18n', 'get-started',
+        'public', 'password', 'password_reset', 'reset', 'i18n', 'get-started',
     })
 
 

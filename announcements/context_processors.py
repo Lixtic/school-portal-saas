@@ -2,6 +2,8 @@ from django.db.utils import OperationalError, ProgrammingError
 from django.db import transaction
 
 def user_notifications(request):
+    if not hasattr(request, 'user') or request.user is None:
+        return {}
     if request.user.is_authenticated:
         try:
             # Fetch one extra to detect "more than 5" without a separate COUNT query.
