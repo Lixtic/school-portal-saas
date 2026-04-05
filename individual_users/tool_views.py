@@ -600,6 +600,10 @@ def question_bank_list(request):
     """List all questions in the teacher's bank with filtering."""
     profile = request.user.individual_profile
     qs = ToolQuestion.objects.filter(profile=profile)
+    if not qs.exists():
+        from individual_users.seed_content import seed_tool_content
+        seed_tool_content(profile, 'exam-generator')
+        qs = ToolQuestion.objects.filter(profile=profile)
 
     # Filters
     subject = request.GET.get('subject', '')
@@ -831,6 +835,10 @@ def exam_paper_list(request):
     from django.core.paginator import Paginator
 
     profile = request.user.individual_profile
+    papers = ToolExamPaper.objects.filter(profile=profile)
+    if not papers.exists():
+        from individual_users.seed_content import seed_tool_content
+        seed_tool_content(profile, 'exam-generator')
     papers = ToolExamPaper.objects.filter(profile=profile).annotate(
         q_count=Count('questions'),
     ).order_by('-pk')
@@ -940,6 +948,11 @@ def lesson_plan_list(request):
     profile = request.user.individual_profile
     plans = ToolLessonPlan.objects.filter(profile=profile).order_by('-pk')
     total_count = plans.count()
+    if total_count == 0:
+        from individual_users.seed_content import seed_tool_content
+        seed_tool_content(profile, 'lesson-planner')
+        plans = ToolLessonPlan.objects.filter(profile=profile).order_by('-pk')
+        total_count = plans.count()
 
     paginator = Paginator(plans, 50)
     page = paginator.get_page(request.GET.get('page', 1))
@@ -1773,6 +1786,9 @@ def deck_list(request):
     from django.db.models import Subquery, OuterRef
 
     profile = request.user.individual_profile
+    if not ToolPresentation.objects.filter(profile=profile).exists():
+        from individual_users.seed_content import seed_tool_content
+        seed_tool_content(profile, 'slide-generator')
     decks = (
         ToolPresentation.objects.filter(profile=profile)
         .annotate(
@@ -2986,6 +3002,10 @@ def letter_dashboard(request):
     _ensure_public_schema()
     profile = request.user.individual_profile
 
+    if not GESLetter.objects.filter(profile=profile).exists():
+        from individual_users.seed_content import seed_tool_content
+        seed_tool_content(profile, 'letter-writer')
+
     letters = GESLetter.objects.filter(profile=profile, is_sample=False)
     samples = GESLetter.objects.filter(profile=profile, is_sample=True)
 
@@ -3502,6 +3522,9 @@ def marker_dashboard(request):
 
     _ensure_public_schema()
     profile = request.user.individual_profile
+    if not MarkingSession.objects.filter(profile=profile).exists():
+        from individual_users.seed_content import seed_tool_content
+        seed_tool_content(profile, 'paper-marker')
     sessions = MarkingSession.objects.filter(profile=profile).annotate(
         _student_count=Count('marks'),
         _class_average=Avg('marks__percentage'),
@@ -3917,6 +3940,9 @@ def report_card_dashboard(request):
     """List all report card sets with stats."""
     _ensure_public_schema()
     profile = request.user.individual_profile
+    if not ReportCardSet.objects.filter(profile=profile).exists():
+        from individual_users.seed_content import seed_tool_content
+        seed_tool_content(profile, 'report-card')
     sets = ReportCardSet.objects.filter(profile=profile).annotate(
         entry_count=Count('entries'),
         comment_count=Count('entries', filter=Q(entries__class_teacher_comment__gt='')),
@@ -4269,6 +4295,10 @@ def computhink_dashboard(request):
     """Dashboard listing all computing activities."""
     profile = request.user.individual_profile
     qs = CompuThinkActivity.objects.filter(profile=profile)
+    if not qs.exists():
+        from individual_users.seed_content import seed_tool_content
+        seed_tool_content(profile, 'computhink-lab')
+        qs = CompuThinkActivity.objects.filter(profile=profile)
 
     activity_type = request.GET.get('type', '')
     level = request.GET.get('level', '')
@@ -4391,6 +4421,10 @@ def literacy_dashboard(request):
     """Dashboard listing all literacy exercises."""
     profile = request.user.individual_profile
     qs = LiteracyExercise.objects.filter(profile=profile)
+    if not qs.exists():
+        from individual_users.seed_content import seed_tool_content
+        seed_tool_content(profile, 'literacy-toolkit')
+        qs = LiteracyExercise.objects.filter(profile=profile)
 
     exercise_type = request.GET.get('type', '')
     level = request.GET.get('level', '')
@@ -4524,6 +4558,10 @@ def citizen_ed_dashboard(request):
     """Dashboard listing all social studies activities."""
     profile = request.user.individual_profile
     qs = CitizenEdActivity.objects.filter(profile=profile)
+    if not qs.exists():
+        from individual_users.seed_content import seed_tool_content
+        seed_tool_content(profile, 'citizen-ed')
+        qs = CitizenEdActivity.objects.filter(profile=profile)
 
     activity_type = request.GET.get('type', '')
     strand = request.GET.get('strand', '')
@@ -4652,6 +4690,10 @@ def tvet_dashboard(request):
     """Dashboard listing all TVET projects."""
     profile = request.user.individual_profile
     qs = TVETProject.objects.filter(profile=profile)
+    if not qs.exists():
+        from individual_users.seed_content import seed_tool_content
+        seed_tool_content(profile, 'tvet-workshop')
+        qs = TVETProject.objects.filter(profile=profile)
 
     project_type = request.GET.get('type', '')
     strand = request.GET.get('strand', '')
