@@ -25,8 +25,9 @@ from individual_users.forms import (
 )
 from individual_users.models import (
     AddonSubscription, APIKey, IndividualAddon, IndividualProfile, VerificationCode,
-    ToolExamPaper, ToolLessonPlan, ToolQuestion,
+    ToolExamPaper, ToolLessonPlan, ToolQuestion, ToolPresentation,
     CompuThinkActivity, LiteracyExercise, CitizenEdActivity, TVETProject,
+    AITutorConversation, GESLetter, MarkingSession, ReportCardSet,
 )
 
 logger = logging.getLogger(__name__)
@@ -906,10 +907,15 @@ def dashboard_view(request):
             'questions': ToolQuestion.objects.filter(profile=profile).count(),
             'exams': ToolExamPaper.objects.filter(profile=profile).count(),
             'lessons': ToolLessonPlan.objects.filter(profile=profile).count(),
+            'slides': ToolPresentation.objects.filter(profile=profile).count(),
             'computhink': CompuThinkActivity.objects.filter(profile=profile).count(),
             'literacy': LiteracyExercise.objects.filter(profile=profile).count(),
             'citizen_ed': CitizenEdActivity.objects.filter(profile=profile).count(),
             'tvet': TVETProject.objects.filter(profile=profile).count(),
+            'tutor': AITutorConversation.objects.filter(profile=profile).count(),
+            'letters': GESLetter.objects.filter(profile=profile).count(),
+            'marking': MarkingSession.objects.filter(profile=profile).count(),
+            'reports': ReportCardSet.objects.filter(profile=profile).count(),
         }
         # Build subscribed addons with icons and URL names for the dashboard
         _ADDON_URL_MAP = {
