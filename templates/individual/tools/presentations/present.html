@@ -383,6 +383,149 @@
         .touch-prev { left: 0; }
         .touch-next { right: 0; }
 
+        /* ── Draw overlay ───────────────────────────────── */
+        .ps-draw-canvas {
+            position: fixed; inset: 0; z-index: 8000;
+            cursor: crosshair; display: none;
+        }
+        .ps-draw-canvas.active { display: block; }
+        .ps-draw-label {
+            position: fixed; top: 50px; left: 50%; transform: translateX(-50%);
+            background: rgba(124,58,237,.85); color: #fff; padding: 4px 14px;
+            border-radius: 30px; font-size: .72rem; font-weight: 700;
+            z-index: 8001; pointer-events: none; display: none;
+        }
+        .ps-draw-label.active { display: block; }
+        .ps-draw-toolbar {
+            position: fixed; bottom: 52px; left: 50%; transform: translateX(-50%);
+            z-index: 8002; display: none;
+            background: rgba(15,23,42,.85); backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,.12); border-radius: 30px;
+            padding: 5px 12px; gap: 6px; align-items: center;
+        }
+        .ps-draw-toolbar.active { display: flex; }
+        .ps-col-btn {
+            width: 20px; height: 20px; border-radius: 50%; cursor: pointer;
+            border: 2px solid rgba(255,255,255,.3); transition: transform .15s; flex-shrink: 0;
+        }
+        .ps-col-btn:hover { transform: scale(1.2); }
+        .ps-col-btn.sel { border-color: #fff; transform: scale(1.15); }
+        .ps-sz-btn {
+            background: none; border: 1px solid rgba(255,255,255,.2); border-radius: 6px;
+            color: #94a3b8; font-size: .65rem; font-weight: 700; padding: 2px 7px;
+            cursor: pointer; transition: background .12s;
+        }
+        .ps-sz-btn:hover { background: rgba(255,255,255,.1); color: #f1f5f9; }
+        .ps-clear-btn {
+            background: rgba(239,68,68,.15); border: 1px solid rgba(239,68,68,.25);
+            color: #f87171; border-radius: 6px; font-size: .65rem; font-weight: 700;
+            padding: 2px 9px; cursor: pointer; transition: background .12s;
+        }
+        .ps-clear-btn:hover { background: rgba(239,68,68,.3); }
+        .ps-eraser-btn {
+            background: rgba(148,163,184,.15); border: 1px solid rgba(148,163,184,.25);
+            color: #94a3b8; border-radius: 6px; font-size: .65rem; font-weight: 700;
+            padding: 2px 9px; cursor: pointer; transition: background .12s;
+        }
+        .ps-eraser-btn:hover { background: rgba(148,163,184,.3); color: #f1f5f9; }
+        .ps-eraser-btn.active { background: rgba(148,163,184,.35); color: #fff; border-color: rgba(148,163,184,.5); }
+        .ps-undo-btn {
+            background: rgba(99,102,241,.15); border: 1px solid rgba(99,102,241,.25);
+            color: #818cf8; border-radius: 6px; font-size: .65rem; font-weight: 700;
+            padding: 2px 9px; cursor: pointer; transition: background .12s;
+        }
+        .ps-undo-btn:hover { background: rgba(99,102,241,.3); color: #f1f5f9; }
+        .light-mode .ps-draw-label { background: rgba(124,58,237,.9); }
+        .light-mode .ps-draw-toolbar { background: rgba(255,255,255,.9); border-color: rgba(0,0,0,.1); }
+        .light-mode .ps-sz-btn { border-color: rgba(0,0,0,.15); color: #64748b; }
+        .light-mode .ps-sz-btn:hover { background: rgba(0,0,0,.06); color: #1e293b; }
+        .light-mode .ps-eraser-btn { background: rgba(0,0,0,.04); border-color: rgba(0,0,0,.1); color: #64748b; }
+        .light-mode .ps-clear-btn { background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.2); }
+        .light-mode .ps-undo-btn { background: rgba(99,102,241,.08); border-color: rgba(99,102,241,.2); color: #6366f1; }
+
+        /* ── Laser pointer ──────────────────────────────── */
+        .ps-laser {
+            width: 18px; height: 18px; border-radius: 50%;
+            background: radial-gradient(circle, #ff4040 30%, rgba(255,64,64,.4) 70%, transparent 100%);
+            box-shadow: 0 0 8px 4px rgba(255,64,64,.35), 0 0 20px 8px rgba(255,64,64,.15);
+            position: fixed; pointer-events: none; z-index: 9000;
+            transform: translate(-50%,-50%); display: none;
+        }
+        .ps-laser.active { display: block; }
+
+        /* ── Spotlight overlay ───────────────────────────── */
+        .ps-spotlight-overlay {
+            position: fixed; inset: 0; z-index: 7500;
+            pointer-events: none; display: none;
+            background: rgba(0,0,0,.78);
+            -webkit-mask-image: radial-gradient(circle 120px at var(--sx, 50%) var(--sy, 50%), transparent 0%, transparent 100%, black 100%);
+            mask-image: radial-gradient(circle 120px at var(--sx, 50%) var(--sy, 50%), transparent 0%, transparent 100%, black 100%);
+        }
+        .ps-spotlight-overlay.active { display: block; }
+
+        /* ── Auto-advance ───────────────────────────────── */
+        .ps-ctrl-interval {
+            font-size: .62rem; font-weight: 800; color: #64748b; cursor: pointer;
+            padding: 2px 6px; border-radius: 5px;
+            background: rgba(255,255,255,.05); user-select: none;
+            transition: color .15s, background .15s; border: 1px solid transparent;
+            white-space: nowrap;
+        }
+        .ps-ctrl-interval:hover { color: #94a3b8; background: rgba(255,255,255,.1); }
+        .ps-ctrl-interval.active { color: #60a5fa; border-color: rgba(96,165,250,.3); background: rgba(96,165,250,.1); }
+        .ps-auto-bar {
+            position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
+            z-index: 300; display: none; align-items: center; gap: 8px;
+            background: rgba(15,23,42,.82); backdrop-filter: blur(6px);
+            border: 1px solid rgba(96,165,250,.25); border-radius: 24px;
+            padding: 4px 12px 4px 10px;
+        }
+        .ps-auto-bar.active { display: flex; }
+        .ps-auto-bar .ps-auto-label { font-size: .72rem; font-weight: 700; color: #60a5fa; }
+        .ps-auto-ring { width: 56px; height: 4px; background: rgba(255,255,255,.1); border-radius: 2px; }
+        .ps-auto-ring-fill { height: 100%; background: linear-gradient(90deg,#60a5fa,#7c3aed); border-radius: 2px; transition: width 1s linear; }
+        .ps-auto-bar .ps-auto-n { font-size: .72rem; font-weight: 700; color: #60a5fa; min-width: 24px; }
+        .light-mode .ps-ctrl-interval { color: #94a3b8; background: rgba(0,0,0,.04); }
+        .light-mode .ps-ctrl-interval:hover { color: #475569; background: rgba(0,0,0,.06); }
+        .light-mode .ps-ctrl-interval.active { color: #2563eb; border-color: rgba(37,99,235,.25); background: rgba(37,99,235,.06); }
+        .light-mode .ps-auto-bar { background: rgba(255,255,255,.82); border-color: rgba(37,99,235,.2); }
+        .light-mode .ps-auto-bar .ps-auto-label { color: #2563eb; }
+        .light-mode .ps-auto-ring { background: rgba(0,0,0,.06); }
+        .light-mode .ps-auto-bar .ps-auto-n { color: #2563eb; }
+
+        /* ── QR Modal ───────────────────────────────────── */
+        .ps-qr-modal {
+            position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,.85);
+            backdrop-filter: blur(10px); display: none;
+            align-items: center; justify-content: center;
+        }
+        .ps-qr-modal.open { display: flex; }
+        .ps-qr-inner {
+            background: #1e293b; border: 1px solid rgba(255,255,255,.12);
+            border-radius: 20px; padding: 2rem 2.5rem; text-align: center;
+            max-width: 300px; width: 90%; box-shadow: 0 24px 60px rgba(0,0,0,.5);
+        }
+        .ps-qr-inner h4 { color: #f1f5f9; font-size: 1rem; font-weight: 800; margin-bottom: 1.2rem; }
+        .ps-qr-canvas { display: inline-block; background: #fff; padding: 8px; border-radius: 8px; }
+        .ps-qr-url { color: rgba(255,255,255,.55); font-size: .65rem; margin-top: .8rem; word-break: break-all; line-height: 1.5; max-width: 240px; }
+        .ps-qr-copy {
+            margin-top: .7rem; width: 100%; padding: .5em; border-radius: 9px;
+            background: rgba(96,165,250,.15); border: 1px solid rgba(96,165,250,.3);
+            color: #93c5fd; cursor: pointer; font-size: .82rem; font-weight: 600; transition: background .15s;
+        }
+        .ps-qr-copy:hover { background: rgba(96,165,250,.25); color: #bfdbfe; }
+        .ps-qr-close {
+            margin-top: .4rem; width: 100%; padding: .5em; border-radius: 9px;
+            background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1);
+            color: #94a3b8; cursor: pointer; font-size: .82rem; font-weight: 600;
+        }
+        .ps-qr-close:hover { background: rgba(255,255,255,.14); color: #f1f5f9; }
+        .light-mode .ps-qr-inner { background: #fff; border-color: rgba(0,0,0,.1); box-shadow: 0 24px 60px rgba(0,0,0,.12); }
+        .light-mode .ps-qr-inner h4 { color: #1e293b; }
+        .light-mode .ps-qr-url { color: rgba(30,41,59,.4); }
+        .light-mode .ps-qr-copy { background: rgba(37,99,235,.08); border-color: rgba(37,99,235,.2); color: #2563eb; }
+        .light-mode .ps-qr-close { background: rgba(0,0,0,.04); border-color: rgba(0,0,0,.08); color: #64748b; }
+
         /* ── Reduced motion ─────────────────────────────── */
         @media (prefers-reduced-motion: reduce) {
             .ps-slide.active, .ps-slide.exit,
@@ -409,6 +552,36 @@
 
     <!-- Timer -->
     <div class="ps-timer" id="timer">00:00</div>
+
+    <!-- Auto-advance bar -->
+    <div class="ps-auto-bar" id="psAutoBar">
+        <span class="ps-auto-label">&#9654; Auto</span>
+        <div class="ps-auto-ring"><div class="ps-auto-ring-fill" id="psAutoFill" style="width:100%"></div></div>
+        <span class="ps-auto-n" id="psAutoN">30s</span>
+    </div>
+
+    <!-- Drawing canvas -->
+    <canvas class="ps-draw-canvas" id="drawCanvas"></canvas>
+    <div class="ps-draw-label" id="drawLabel">&#9998; Drawing mode &mdash; D exit, E eraser, C clear, Ctrl+Z undo</div>
+    <div class="ps-draw-toolbar" id="drawToolbar">
+        <button class="ps-col-btn sel" data-color="#ef4444" style="background:#ef4444;" onclick="PS.setDrawColor(this,'#ef4444')" title="Red"></button>
+        <button class="ps-col-btn" data-color="#f59e0b" style="background:#f59e0b;" onclick="PS.setDrawColor(this,'#f59e0b')" title="Amber"></button>
+        <button class="ps-col-btn" data-color="#22c55e" style="background:#22c55e;" onclick="PS.setDrawColor(this,'#22c55e')" title="Green"></button>
+        <button class="ps-col-btn" data-color="#60a5fa" style="background:#60a5fa;" onclick="PS.setDrawColor(this,'#60a5fa')" title="Blue"></button>
+        <button class="ps-col-btn" data-color="#ffffff" style="background:#fff;" onclick="PS.setDrawColor(this,'#ffffff')" title="White"></button>
+        <button class="ps-sz-btn" onclick="PS.setDrawSize(4)">S</button>
+        <button class="ps-sz-btn" onclick="PS.setDrawSize(7)">M</button>
+        <button class="ps-sz-btn" onclick="PS.setDrawSize(12)">L</button>
+        <button class="ps-eraser-btn" id="eraserBtn" onclick="PS.toggleEraser()">&#9986; Eraser</button>
+        <button class="ps-undo-btn" onclick="PS.undoDraw()" title="Undo (Ctrl+Z)">&#8617; Undo</button>
+        <button class="ps-clear-btn" onclick="PS.clearDraw()">&#10005; Clear</button>
+    </div>
+
+    <!-- Laser pointer dot -->
+    <div class="ps-laser" id="laserDot"></div>
+
+    <!-- Spotlight overlay -->
+    <div class="ps-spotlight-overlay" id="spotlightOverlay"></div>
 
     <!-- Stage -->
     <div class="ps-stage theme-{{ deck.theme }} trans-{{ deck.transition }}" id="stage">
@@ -481,7 +654,15 @@
         <button class="ps-ctrl-btn" id="btnOverview" onclick="PS.toggleOverview()" title="Overview (O)"><i class="bi bi-grid-3x3-gap"></i></button>
         <button class="ps-ctrl-btn" id="btnTimer" onclick="PS.toggleTimer()" title="Timer (T)"><i class="bi bi-stopwatch"></i></button>
         <div class="ps-sep"></div>
+        <button class="ps-ctrl-btn" id="drawBtn" onclick="PS.toggleDraw()" title="Draw (D)"><i class="bi bi-pencil"></i></button>
+        <button class="ps-ctrl-btn" id="laserBtn" onclick="PS.toggleLaser()" title="Laser pointer (P)"><i class="bi bi-circle-fill" style="color:#ff4040;font-size:.5rem"></i></button>
+        <button class="ps-ctrl-btn" id="spotlightBtn" onclick="PS.toggleSpotlight()" title="Spotlight (S)"><i class="bi bi-lightbulb"></i></button>
+        <div class="ps-sep"></div>
+        <button class="ps-ctrl-btn" id="autoBtn" onclick="PS.toggleAutoAdvance()" title="Auto-advance (A)"><i class="bi bi-play-fill" style="font-size:.6rem"></i></button>
+        <span class="ps-ctrl-interval" id="autoIntervalDisplay" onclick="PS.cycleAutoInterval()" title="Click to change interval">30s</span>
+        <div class="ps-sep"></div>
         <button class="ps-ctrl-btn" id="btnLight" onclick="PS.toggleLight()" title="Light mode (L)"><i class="bi bi-sun"></i></button>
+        {% if share_url %}<button class="ps-ctrl-btn" onclick="PS.showQRCode()" title="QR code share (Q)"><i class="bi bi-qr-code"></i></button>{% endif %}
         <button class="ps-ctrl-btn" onclick="PS.toggleFS()" title="Fullscreen (F)"><i class="bi bi-arrows-fullscreen"></i></button>
         <button class="ps-ctrl-btn" onclick="PS.showShortcuts()" title="Shortcuts (?)"><i class="bi bi-keyboard"></i></button>
     </div>
@@ -519,6 +700,14 @@
                 <tr><td>O</td><td>Slide overview grid</td></tr>
                 <tr><td>G</td><td>Go to slide number</td></tr>
                 <tr><td>T</td><td>Toggle timer</td></tr>
+                <tr><td>D</td><td>Toggle drawing mode</td></tr>
+                <tr><td>P</td><td>Laser pointer</td></tr>
+                <tr><td>S</td><td>Spotlight focus</td></tr>
+                <tr><td>A</td><td>Auto-advance</td></tr>
+                <tr><td>E</td><td>Toggle eraser (while drawing)</td></tr>
+                <tr><td>C</td><td>Clear drawings</td></tr>
+                <tr><td>Ctrl+Z</td><td>Undo drawing</td></tr>
+                <tr><td>Q</td><td>QR code share</td></tr>
                 <tr><td>L</td><td>Toggle light/dark mode</td></tr>
                 <tr><td>F</td><td>Toggle fullscreen</td></tr>
                 <tr><td>Esc</td><td>Exit fullscreen / overlays</td></tr>
@@ -527,6 +716,20 @@
             <button class="ps-sc-close" onclick="PS.hideShortcuts()">Close</button>
         </div>
     </div>
+
+    {% if share_url %}
+    <!-- QR Code Modal -->
+    <div class="ps-qr-modal" id="qrModal" onclick="PS.closeQRCode()">
+        <div class="ps-qr-inner" onclick="event.stopPropagation()">
+            <h4><i class="bi bi-qr-code me-2"></i>Share Presentation</h4>
+            <div class="ps-qr-canvas" id="qrCodeDiv"></div>
+            <div class="ps-qr-url" id="qrShareUrl">{{ share_url }}</div>
+            <button class="ps-qr-copy" id="qrCopyBtn" onclick="PS.copyQRLink()"><i class="bi bi-clipboard me-1"></i> Copy Link</button>
+            <button class="ps-qr-close" onclick="PS.closeQRCode()">Close</button>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    {% endif %}
 
     <script>
     const PS = (function() {
@@ -551,6 +754,27 @@
         let timerStart   = null;
         let timerRAF     = null;
         let lightMode    = false;
+
+        /* ── Drawing state ── */
+        let drawMode    = false;
+        let drawColor   = '#ef4444';
+        let drawSize    = 4;
+        let isPainting  = false;
+        let eraserMode  = false;
+        const drawUndoStack = [];
+        const DRAW_UNDO_LIMIT = 30;
+        const drawCanvas = document.getElementById('drawCanvas');
+        const drawCtx    = drawCanvas.getContext('2d');
+
+        /* ── Laser / Spotlight / Auto state ── */
+        let laserMode     = false;
+        let spotlightMode = false;
+        let autoMode      = false;
+        let AUTO_SEC      = 30;
+        let autoCountdown = AUTO_SEC;
+        let autoTimer     = null;
+        {% if share_url %}const SHARE_URL = '{{ share_url|escapejs }}';{% endif %}
+        let _qrInstance   = null;
 
         /* ── Helpers ── */
         function updateUI() {
@@ -725,6 +949,177 @@
             document.getElementById('gotoNum').textContent = gotoBuffer || '_';
         }
 
+        /* ── Drawing canvas ── */
+        function resizeCanvas() {
+            const img = drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height);
+            drawCanvas.width  = window.innerWidth;
+            drawCanvas.height = window.innerHeight;
+            drawCtx.putImageData(img, 0, 0);
+            drawCtx.lineCap = 'round'; drawCtx.lineJoin = 'round';
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function toggleDraw() {
+            drawMode = !drawMode;
+            drawCanvas.classList.toggle('active', drawMode);
+            document.getElementById('drawLabel').classList.toggle('active', drawMode);
+            document.getElementById('drawToolbar').classList.toggle('active', drawMode);
+            document.getElementById('drawBtn').classList.toggle('active', drawMode);
+            if (laserMode && drawMode) toggleLaser();
+            if (spotlightMode && drawMode) toggleSpotlight();
+            if (!drawMode && eraserMode) toggleEraser();
+        }
+
+        function setDrawColor(btn, c) {
+            drawColor = c;
+            document.querySelectorAll('.ps-col-btn').forEach(b => b.classList.remove('sel'));
+            btn.classList.add('sel');
+            if (eraserMode) toggleEraser();
+        }
+
+        function setDrawSize(sz) { drawSize = sz; }
+
+        function clearDraw() {
+            drawUndoStack.push(drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height));
+            if (drawUndoStack.length > DRAW_UNDO_LIMIT) drawUndoStack.shift();
+            drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+        }
+
+        function toggleEraser() {
+            eraserMode = !eraserMode;
+            document.getElementById('eraserBtn').classList.toggle('active', eraserMode);
+            drawCanvas.style.cursor = eraserMode ? 'cell' : 'crosshair';
+        }
+
+        function undoDraw() {
+            if (!drawUndoStack.length) return;
+            const snap = drawUndoStack.pop();
+            drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+            drawCtx.putImageData(snap, 0, 0);
+        }
+
+        function _saveDrawSnapshot() {
+            drawUndoStack.push(drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height));
+            if (drawUndoStack.length > DRAW_UNDO_LIMIT) drawUndoStack.shift();
+        }
+
+        drawCanvas.addEventListener('mousedown', e => {
+            _saveDrawSnapshot(); isPainting = true;
+            drawCtx.beginPath(); drawCtx.moveTo(e.clientX, e.clientY);
+        });
+        drawCanvas.addEventListener('mousemove', e => {
+            if (!isPainting) return;
+            if (eraserMode) {
+                drawCtx.globalCompositeOperation = 'destination-out';
+                drawCtx.lineWidth = drawSize * 4;
+            } else {
+                drawCtx.globalCompositeOperation = 'source-over';
+                drawCtx.strokeStyle = drawColor; drawCtx.lineWidth = drawSize;
+            }
+            drawCtx.lineTo(e.clientX, e.clientY);
+            drawCtx.lineCap = 'round'; drawCtx.lineJoin = 'round';
+            drawCtx.stroke();
+        });
+        drawCanvas.addEventListener('mouseup',   () => { isPainting = false; drawCtx.globalCompositeOperation = 'source-over'; });
+        drawCanvas.addEventListener('mouseleave', () => { isPainting = false; drawCtx.globalCompositeOperation = 'source-over'; });
+
+        drawCanvas.addEventListener('touchstart', e => {
+            e.preventDefault(); _saveDrawSnapshot();
+            const t = e.touches[0]; isPainting = true;
+            drawCtx.beginPath(); drawCtx.moveTo(t.clientX, t.clientY);
+        }, { passive: false });
+        drawCanvas.addEventListener('touchmove', e => {
+            e.preventDefault(); if (!isPainting) return;
+            const t = e.touches[0];
+            if (eraserMode) { drawCtx.globalCompositeOperation = 'destination-out'; drawCtx.lineWidth = drawSize * 4; }
+            else { drawCtx.globalCompositeOperation = 'source-over'; drawCtx.strokeStyle = drawColor; drawCtx.lineWidth = drawSize; }
+            drawCtx.lineTo(t.clientX, t.clientY); drawCtx.lineCap = 'round'; drawCtx.lineJoin = 'round'; drawCtx.stroke();
+        }, { passive: false });
+        drawCanvas.addEventListener('touchend', () => { isPainting = false; drawCtx.globalCompositeOperation = 'source-over'; });
+
+        /* ── Laser pointer ── */
+        const laserDot = document.getElementById('laserDot');
+        function toggleLaser() {
+            laserMode = !laserMode;
+            laserDot.classList.toggle('active', laserMode);
+            document.getElementById('laserBtn').classList.toggle('active', laserMode);
+            document.body.style.cursor = laserMode ? 'none' : '';
+            if (drawMode && laserMode) toggleDraw();
+            if (spotlightMode && laserMode) toggleSpotlight();
+        }
+        document.addEventListener('mousemove', e => {
+            if (laserMode) { laserDot.style.left = e.clientX + 'px'; laserDot.style.top = e.clientY + 'px'; }
+            if (spotlightMode) { spotlightOverlay.style.setProperty('--sx', e.clientX + 'px'); spotlightOverlay.style.setProperty('--sy', e.clientY + 'px'); }
+        });
+
+        /* ── Spotlight ── */
+        const spotlightOverlay = document.getElementById('spotlightOverlay');
+        function toggleSpotlight() {
+            spotlightMode = !spotlightMode;
+            spotlightOverlay.classList.toggle('active', spotlightMode);
+            document.getElementById('spotlightBtn').classList.toggle('active', spotlightMode);
+            if (spotlightMode && laserMode) toggleLaser();
+            if (spotlightMode && drawMode) toggleDraw();
+        }
+
+        /* ── Auto-advance ── */
+        function tickAuto() {
+            autoCountdown--;
+            document.getElementById('psAutoN').textContent = autoCountdown + 's';
+            document.getElementById('psAutoFill').style.width = (autoCountdown / AUTO_SEC * 100) + '%';
+            if (autoCountdown <= 0) {
+                autoCountdown = AUTO_SEC;
+                if (cur < total - 1) go(1);
+                else toggleAutoAdvance();
+            }
+        }
+
+        function toggleAutoAdvance() {
+            autoMode = !autoMode;
+            document.getElementById('psAutoBar').classList.toggle('active', autoMode);
+            document.getElementById('autoBtn').classList.toggle('active', autoMode);
+            if (autoMode) {
+                autoCountdown = AUTO_SEC;
+                document.getElementById('psAutoN').textContent = autoCountdown + 's';
+                document.getElementById('psAutoFill').style.width = '100%';
+                autoTimer = setInterval(tickAuto, 1000);
+            } else { clearInterval(autoTimer); autoTimer = null; }
+        }
+
+        function cycleAutoInterval() {
+            const intervals = [10, 15, 20, 30, 45, 60];
+            const idx = intervals.indexOf(AUTO_SEC);
+            AUTO_SEC = intervals[(idx + 1) % intervals.length];
+            autoCountdown = AUTO_SEC;
+            document.getElementById('autoIntervalDisplay').textContent = AUTO_SEC + 's';
+            document.getElementById('psAutoN').textContent = autoCountdown + 's';
+            document.getElementById('psAutoFill').style.width = '100%';
+        }
+
+        /* ── QR Code ── */
+        function showQRCode() {
+            {% if share_url %}
+            document.getElementById('qrModal').classList.add('open');
+            if (!_qrInstance && typeof QRCode !== 'undefined') {
+                const div = document.getElementById('qrCodeDiv');
+                div.innerHTML = '';
+                _qrInstance = new QRCode(div, { text: SHARE_URL, width: 200, height: 200, colorDark: '#000', colorLight: '#fff' });
+            }
+            {% endif %}
+        }
+        function closeQRCode() { {% if share_url %}document.getElementById('qrModal').classList.remove('open');{% endif %} }
+        function copyQRLink() {
+            {% if share_url %}
+            navigator.clipboard.writeText(SHARE_URL).then(() => {
+                const btn = document.getElementById('qrCopyBtn');
+                btn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Copied!';
+                btn.style.cssText = 'background:rgba(52,211,153,.18);border-color:rgba(52,211,153,.3);color:#6ee7b7;';
+                setTimeout(() => { btn.innerHTML = '<i class="bi bi-clipboard me-1"></i> Copy Link'; btn.style.cssText = ''; }, 2200);
+            });
+            {% endif %}
+        }
+
         /* ── Keyboard ── */
         document.addEventListener('keydown', function(e) {
             if (gotoOpen) { e.preventDefault(); gotoKeyHandler(e); return; }
@@ -734,6 +1129,15 @@
                 return;
             }
             if (overviewOpen) { if (e.key === 'Escape' || e.key === 'o') toggleOverview(); return; }
+
+            /* Drawing-mode keys */
+            if (drawMode) {
+                if (e.key === 'd' || e.key === 'D') { toggleDraw(); return; }
+                if (e.key === 'e' || e.key === 'E') { toggleEraser(); return; }
+                if (e.key === 'c' || e.key === 'C') { clearDraw(); return; }
+                if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undoDraw(); return; }
+                return; /* swallow other keys while drawing */
+            }
 
             switch (e.key) {
                 case 'ArrowRight': case 'ArrowDown': case ' ': case 'Enter':
@@ -745,6 +1149,11 @@
                 case 'o': case 'O': toggleOverview(); break;
                 case 'g': case 'G': e.preventDefault(); openGoto(); break;
                 case 't': case 'T': toggleTimer(); break;
+                case 'd': case 'D': toggleDraw(); break;
+                case 'p': case 'P': toggleLaser(); break;
+                case 's': case 'S': toggleSpotlight(); break;
+                case 'a': case 'A': toggleAutoAdvance(); break;
+                case 'q': case 'Q': showQRCode(); break;
                 case 'l': case 'L': toggleLight(); break;
                 case 'f': case 'F': toggleFS(); break;
                 case 'Escape':
@@ -768,7 +1177,7 @@
         updateUI();
         setTimeout(() => { document.documentElement.requestFullscreen().catch(() => {}); }, 300);
 
-        return { go, jumpTo, toggleBulletReveal, toggleNotes, toggleOverview, toggleTimer, toggleLight, toggleFS, showShortcuts, hideShortcuts };
+        return { go, jumpTo, toggleBulletReveal, toggleNotes, toggleOverview, toggleTimer, toggleLight, toggleFS, showShortcuts, hideShortcuts, toggleDraw, setDrawColor, setDrawSize, toggleEraser, undoDraw, clearDraw, toggleLaser, toggleSpotlight, toggleAutoAdvance, cycleAutoInterval, showQRCode, closeQRCode, copyQRLink };
     })();
     </script>
 </body>

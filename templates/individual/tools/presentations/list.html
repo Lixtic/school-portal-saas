@@ -61,7 +61,61 @@
     width: 10px; height: 10px; border-radius: 50%; display: inline-block;
     margin-right: 0.15rem; vertical-align: middle;
 }
-.sd-card-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.sd-card-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
+
+/* ── Inline rename ─────────────────────────────────────── */
+.sd-card-title { display: flex; align-items: center; gap: 6px; }
+.sd-card-title-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.95rem; font-weight: 700; }
+.sd-rename-icon { opacity: 0; color: #7c3aed; font-size: 0.72rem; flex-shrink: 0; cursor: pointer; transition: opacity 0.15s; }
+.sd-card-top:hover .sd-rename-icon { opacity: 0.5; }
+.sd-rename-icon:hover { opacity: 1 !important; }
+.sd-rename-input {
+    flex: 1; background: rgba(124,58,237,.08); border: 1.5px solid #7c3aed;
+    border-radius: 6px; padding: 2px 8px; color: var(--text-primary);
+    font-weight: 700; font-size: 0.95rem; outline: none; min-width: 0;
+    font-family: inherit;
+}
+.sd-rename-input:focus { background: rgba(124,58,237,.12); }
+
+/* ── Kebab / More dropdown ─────────────────────────────── */
+.sd-more-wrap { position: relative; flex-shrink: 0; margin-left: auto; }
+.sd-more-btn {
+    width: 30px; height: 30px; border-radius: 8px;
+    border: 1px solid var(--border-color); background: none;
+    color: var(--text-muted); cursor: pointer; font-size: 0.8rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, color 0.15s;
+}
+.sd-more-btn:hover { background: rgba(124,58,237,.1); color: #7c3aed; border-color: #7c3aed; }
+.sd-more-menu {
+    position: absolute; bottom: calc(100% + 6px); right: 0;
+    background: var(--card-bg); border: 1px solid var(--border-color);
+    border-radius: 12px; padding: 5px;
+    min-width: 170px; z-index: 500;
+    box-shadow: 0 8px 30px rgba(0,0,0,.18);
+    display: none; flex-direction: column; gap: 2px;
+}
+.sd-more-menu.open { display: flex; }
+.sd-more-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 7px 11px; border-radius: 8px;
+    font-size: 0.8rem; font-weight: 600;
+    color: var(--text-muted); text-decoration: none;
+    background: none; border: none; cursor: pointer; width: 100%; text-align: left;
+    transition: background 0.12s, color 0.12s;
+}
+.sd-more-item:hover { background: rgba(124,58,237,.1); color: var(--text-primary); }
+.sd-more-item.danger:hover { background: rgba(239,68,68,.08); color: #ef4444; }
+.sd-more-item i { width: 14px; text-align: center; flex-shrink: 0; }
+.sd-more-sep { height: 1px; background: var(--border-color); margin: 3px 5px; }
+
+/* ── Share toast ───────────────────────────────────────── */
+.sd-share-toast {
+    position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+    background: #059669; color: #fff; padding: 0.6rem 1.2rem;
+    border-radius: 10px; font-size: 0.82rem; font-weight: 600;
+    box-shadow: 0 4px 20px rgba(0,0,0,.2); z-index: 9999; display: none;
+}
 
 /* ── Theme Colors ──────────────────────────────────────── */
 .sd-theme-aurora   { background: #7c3aed; }
@@ -178,11 +232,14 @@
 <!-- Deck Grid -->
 <div class="sd-grid" id="deckGrid">
 {% for deck in decks %}
-    <div class="iu-card sd-card">
+    <div class="iu-card sd-card" data-pk="{{ deck.pk }}">
         <div class="sd-card-top">
             <div class="sd-card-emoji">{{ deck.cover_emoji|default:"✨" }}</div>
-            <div>
-                <div class="sd-card-title">{{ deck.title }}</div>
+            <div style="flex:1;min-width:0">
+                <div class="sd-card-title">
+                    <span class="sd-card-title-text">{{ deck.title }}</span>
+                    <i class="bi bi-pencil sd-rename-icon" title="Rename" onclick="startRename(event, this, {{ deck.pk }})"></i>
+                </div>
                 <div class="sd-card-meta">
                     <span><i class="bi bi-layers"></i> {{ deck.annotated_slide_count }} slides</span>
                     <span><span class="sd-theme-dot sd-theme-{{ deck.theme }}"></span> {{ deck.get_theme_display }}</span>
@@ -198,15 +255,22 @@
             <a href="{% url 'individual:deck_present' pk=deck.pk %}" class="sd-btn-outline">
                 <i class="bi bi-play-fill"></i> Present
             </a>
-            <button class="sd-btn-outline" onclick="_saveOffline('deck',{{ deck.pk }},this)" title="Save for offline access"><i class="bi bi-cloud-arrow-down"></i></button>
-            <form method="post" action="{% url 'individual:deck_duplicate' pk=deck.pk %}" style="display:inline">
-                {% csrf_token %}
-                <button type="submit" class="sd-btn-outline"><i class="bi bi-copy"></i></button>
-            </form>
-            <form method="post" action="{% url 'individual:deck_delete' pk=deck.pk %}" onsubmit="return confirm('Delete this presentation?')" style="display:inline">
-                {% csrf_token %}
-                <button type="submit" class="sd-btn-outline sd-btn-danger"><i class="bi bi-trash"></i></button>
-            </form>
+            <div class="sd-more-wrap">
+                <button class="sd-more-btn" title="More actions" onclick="toggleMore(event, this)"><i class="bi bi-three-dots-vertical"></i></button>
+                <div class="sd-more-menu">
+                    <a href="{% url 'individual:deck_present' pk=deck.pk %}" class="sd-more-item" target="_blank"><i class="bi bi-play"></i> Present</a>
+                    <a href="{% url 'individual:deck_print' pk=deck.pk %}" class="sd-more-item" target="_blank"><i class="bi bi-printer"></i> Print</a>
+                    <form method="post" action="{% url 'individual:deck_duplicate' pk=deck.pk %}" style="display:contents">{% csrf_token %}
+                        <button type="submit" class="sd-more-item"><i class="bi bi-copy"></i> Duplicate</button>
+                    </form>
+                    <button type="button" class="sd-more-item" onclick="copyShareLink('{{ request.scheme }}://{{ request.get_host }}{% url 'individual:deck_share' token=deck.share_token %}')"><i class="bi bi-share"></i> Share Link</button>
+                    <button type="button" class="sd-more-item" onclick="_saveOffline('deck',{{ deck.pk }},this)"><i class="bi bi-cloud-arrow-down"></i> Save Offline</button>
+                    <div class="sd-more-sep"></div>
+                    <form method="post" action="{% url 'individual:deck_delete' pk=deck.pk %}" onsubmit="return confirm('Delete this presentation?')" style="display:contents">{% csrf_token %}
+                        <button type="submit" class="sd-more-item danger"><i class="bi bi-trash"></i> Delete</button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 {% empty %}
@@ -219,6 +283,9 @@
     </div>
 {% endfor %}
 </div>
+
+<!-- Share toast -->
+<div class="sd-share-toast" id="shareToast"><i class="bi bi-check-circle me-1"></i> Share link copied!</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -233,7 +300,7 @@
     search.addEventListener('input', function() {
         const q = this.value.toLowerCase();
         cards.forEach(c => {
-            const title = (c.querySelector('.sd-card-title') || {}).textContent || '';
+            const title = (c.querySelector('.sd-card-title-text') || {}).textContent || '';
             c.style.display = title.toLowerCase().includes(q) ? '' : 'none';
         });
     });
@@ -245,8 +312,8 @@
         const mode = this.dataset.sort;
         const sorted = [...cards].sort((a, b) => {
             if (mode === 'az') {
-                const tA = (a.querySelector('.sd-card-title') || {}).textContent || '';
-                const tB = (b.querySelector('.sd-card-title') || {}).textContent || '';
+                const tA = (a.querySelector('.sd-card-title-text') || {}).textContent || '';
+                const tB = (b.querySelector('.sd-card-title-text') || {}).textContent || '';
                 return tA.localeCompare(tB);
             }
             if (mode === 'slides') {
@@ -258,6 +325,69 @@
         });
         sorted.forEach(c => grid.appendChild(c));
     }));
+
+    /* ── Kebab more dropdown ── */
+    window.toggleMore = function(e, btn) {
+        e.stopPropagation();
+        const menu = btn.nextElementSibling;
+        const wasOpen = menu.classList.contains('open');
+        document.querySelectorAll('.sd-more-menu.open').forEach(m => m.classList.remove('open'));
+        if (!wasOpen) menu.classList.add('open');
+    };
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.sd-more-menu.open').forEach(m => m.classList.remove('open'));
+    });
+
+    /* ── Share link copy ── */
+    window.copyShareLink = function(url) {
+        navigator.clipboard.writeText(url).then(() => {
+            const t = document.getElementById('shareToast');
+            t.style.display = 'block';
+            setTimeout(() => { t.style.display = 'none'; }, 2200);
+        });
+    };
+
+    /* ── Inline rename ── */
+    const API_URL = "{% url 'individual:deck_api' %}";
+    function getCsrf() {
+        return (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '';
+    }
+    window.startRename = function(e, iconEl, pk) {
+        e.stopPropagation();
+        e.preventDefault();
+        const titleDiv = iconEl.closest('.sd-card-title');
+        if (!titleDiv) return;
+        const span = titleDiv.querySelector('.sd-card-title-text');
+        if (!span || titleDiv.querySelector('.sd-rename-input')) return;
+        const oldVal = span.textContent.trim();
+        const input = document.createElement('input');
+        input.type = 'text'; input.value = oldVal;
+        input.className = 'sd-rename-input';
+        span.replaceWith(input);
+        iconEl.style.display = 'none';
+        input.focus(); input.select();
+        function commit() {
+            const newVal = input.value.trim() || oldVal;
+            const restoredSpan = document.createElement('span');
+            restoredSpan.className = 'sd-card-title-text';
+            restoredSpan.textContent = newVal;
+            input.replaceWith(restoredSpan);
+            iconEl.style.display = '';
+            if (newVal !== oldVal) {
+                fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ action: 'update_deck', deck_id: pk, title: newVal })
+                }).catch(() => {});
+            }
+        }
+        input.addEventListener('blur', commit);
+        input.addEventListener('keydown', ev => {
+            if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
+            if (ev.key === 'Escape') { input.value = oldVal; input.blur(); }
+        });
+    };
 })();
 </script>
 {% endblock %}
