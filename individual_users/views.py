@@ -108,6 +108,42 @@ def _verification_email_html(code, first_name):
     )
 
 
+def _send_welcome_email(user):
+    """Send a branded welcome email after successful registration."""
+    if not user.email:
+        return
+    from django.core.mail import EmailMultiAlternatives
+    from django.template.loader import render_to_string
+    from django.utils.html import strip_tags
+    from individual_users.credit_utils import WELCOME_BONUS_CREDITS
+
+    profile = IndividualProfile.objects.filter(user=user).first()
+    role = profile.role if profile else 'developer'
+    role_label = ' for Teachers' if role == 'teacher' else ''
+
+    ctx = {
+        'first_name': user.first_name or 'there',
+        'role': role,
+        'role_label': role_label,
+        'welcome_credits': WELCOME_BONUS_CREDITS,
+        'dashboard_url': f"{settings.SITE_URL}/u/dashboard/" if hasattr(settings, 'SITE_URL') else '/u/dashboard/',
+    }
+    html = render_to_string('individual/emails/welcome.html', ctx)
+    text = strip_tags(html)
+
+    email = EmailMultiAlternatives(
+        subject=f'Welcome to Aura{role_label}, {user.first_name or "there"}!',
+        body=text,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[user.email],
+    )
+    email.attach_alternative(html, 'text/html')
+    try:
+        email.send(fail_silently=True)
+    except Exception:
+        logger.exception('Failed to send welcome email to user %s', user.pk)
+
+
 # ── Available Addons Catalog ─────────────────────────────────────────────────
 
 ADDON_CATALOG = [
@@ -584,6 +620,7 @@ def verify_view(request):
 
             login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             request.session.pop('auth_tenant_schema', None)
+            _send_welcome_email(user)
             messages.success(request, f'Welcome, {user.first_name}! Your account is verified.')
             return redirect('individual:dashboard')
 
@@ -863,6 +900,7 @@ def google_callback_view(request):
                 email_verified=True,
                 role=role if role in ('teacher', 'developer') else 'developer',
             )
+            _send_welcome_email(user)
 
     login(request, user, backend='django.contrib.auth.backends.ModelBackend')
     request.session.pop('auth_tenant_schema', None)

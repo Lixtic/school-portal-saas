@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f0f2f5; margin: 0; padding: 0; }
+        .container { max-width: 540px; margin: 30px auto; background: #fff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #0c0f1a 0%, #4361ee 100%); color: #fff; padding: 36px 28px; text-align: center; }
+        .header h1 { margin: 12px 0 0; font-size: 22px; font-weight: 700; }
+        .logo { display: inline-block; width: 52px; height: 52px; background: rgba(255,255,255,0.12); border-radius: 14px; line-height: 52px; color: #fff; font-weight: 800; font-size: 1.3rem; }
+        .content { padding: 32px 28px; }
+        .content p { color: #374151; font-size: 15px; margin: 0 0 16px; }
+        .feature-list { list-style: none; padding: 0; margin: 20px 0; }
+        .feature-list li { padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 14px; color: #374151; }
+        .feature-list li:last-child { border-bottom: none; }
+        .feature-list li strong { color: #4361ee; }
+        .cta-btn { display: inline-block; background: linear-gradient(135deg, #4361ee, #4cc9f0); color: #fff; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 15px; margin: 8px 0 16px; }
+        .tip-box { background: #f0f4ff; border-left: 4px solid #4361ee; padding: 14px 16px; border-radius: 0 8px 8px 0; margin: 20px 0; font-size: 13px; color: #374151; }
+        .footer { background: #f9fafb; padding: 20px 28px; text-align: center; }
+        .footer p { color: #9ca3af; font-size: 12px; margin: 4px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <span class="logo">A</span>
+            <h1>Welcome to Aura{{ role_label }}!</h1>
+        </div>
+        <div class="content">
+            <p>Hi {{ first_name }},</p>
+            <p>Your account is verified and ready to go. Here's what you can explore:</p>
+
+            <ul class="feature-list">
+                {% if role == 'teacher' %}
+                <li><strong>AI Lesson Planner</strong> — Generate full lesson plans in seconds</li>
+                <li><strong>Exam Paper Builder</strong> — Create papers with auto-marking</li>
+                <li><strong>Slide Deck Creator</strong> — Presentation-ready teaching decks</li>
+                <li><strong>Literacy Toolkit</strong> — Reading exercises customised to your class</li>
+                <li><strong>GES Letter Writer</strong> — Official letters formatted to standard</li>
+                {% else %}
+                <li><strong>AI Tutor API</strong> — Intelligent tutoring with adaptive learning</li>
+                <li><strong>15+ AI Tools</strong> — Assessment, planning, subject labs & more</li>
+                <li><strong>API Keys</strong> — Integrate Aura into your own applications</li>
+                <li><strong>Credit System</strong> — Pay only for what you use</li>
+                {% endif %}
+            </ul>
+
+            <div style="text-align: center;">
+                <a href="{{ dashboard_url }}" class="cta-btn">Go to Dashboard →</a>
+            </div>
+
+            <div class="tip-box">
+                <strong>🎁 Welcome bonus:</strong> You start with <strong>{{ welcome_credits }} free credits</strong> to try any AI tool — no payment needed.
+            </div>
+        </div>
+        <div class="footer">
+            <p>Aura — School Management Platform</p>
+            <p>You're receiving this because you created an Aura account.</p>
+        </div>
+    </div>
+</body>
+</html>
