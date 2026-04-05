@@ -172,6 +172,10 @@
         .sl-image-wrap { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; overflow: hidden; }
         .sl-image { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,.35); display: block; }
         .sl-caption { font-size: clamp(.8rem, 1.8vw, 1.2rem); color: rgba(255,255,255,.45); margin-top: .5em; text-align: center; }
+
+        /* ── Video embed ────────────────────────────────── */
+        .sl-video-wrap { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; overflow: hidden; margin: .5em 0; }
+        .sl-video-wrap iframe { width: 80%; aspect-ratio: 16/9; max-height: 100%; border: none; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,.35); }
         .sl-emoji-bg { position: absolute; bottom: 3vh; right: 5vw; font-size: clamp(8rem,20vw,14rem); opacity: 0.055; pointer-events: none; user-select: none; }
 
         /* ── Light mode text overrides ──────────────────── */
@@ -676,7 +680,8 @@
         {% for slide in slides %}
         <div class="ps-slide theme-{{ deck.theme }} {% if forloop.first %}active{% endif %}"
              data-idx="{{ forloop.counter0 }}"
-             data-notes="{{ slide.speaker_notes|default:''|escapejs }}">
+             data-notes="{{ slide.speaker_notes|default:''|escapejs }}"
+             data-transition="{{ slide.transition|default:'' }}">
             {% if slide.layout == 'title' %}
             <div class="layout-title" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%">
                 {% if slide.emoji %}<div class="sl-emoji">{{ slide.emoji }}</div>{% endif %}
@@ -706,7 +711,8 @@
             {% elif slide.layout == 'image' %}
             <div class="layout-image" style="display:flex;flex-direction:column;height:100%">
                 <div class="sl-title">{{ slide.title }}</div>
-                {% if slide.image_url %}<div class="sl-image-wrap"><img class="sl-image" src="{{ slide.image_url }}" alt="{{ slide.title }}"></div>{% endif %}
+                {% if slide.video_url %}<div class="sl-video-wrap"><iframe src="" data-video-src="{{ slide.video_url|escapejs }}" allowfullscreen></iframe></div>
+                {% elif slide.image_url %}<div class="sl-image-wrap"><img class="sl-image" src="{{ slide.image_url }}" alt="{{ slide.title }}"></div>{% endif %}
                 {% with lines=slide.bullets %}{% if lines %}<div class="sl-caption">{{ lines.0 }}</div>{% endif %}{% endwith %}
             </div>
             {% elif slide.layout == 'summary' %}
@@ -957,7 +963,7 @@
             return true;
         }
 
-        /* ── Navigate ── */
+        const DECK_TRANSITION = '{{ deck.transition }}';
         function go(dir) {
             /* In bullet-reveal mode, right-arrow reveals next bullet first */
             if (bulletReveal && dir === 1 && revealNextBullet()) return;
@@ -966,6 +972,11 @@
             if (next < 0 || next >= total) return;
 
             const prev = allSlides[cur];
+            const nxt  = allSlides[next];
+
+            /* Per-slide transition override */
+            const slideTrans = nxt.dataset.transition || DECK_TRANSITION;
+            stage.className = stage.className.replace(/\btrans-\w+/g, '') + ' trans-' + slideTrans
             const nxt  = allSlides[next];
 
             allSlides.forEach(s => { s.classList.remove('active', 'exit'); s.style.display = ''; });
@@ -1369,11 +1380,30 @@
         let touchX = 0;
         document.addEventListener('touchstart', e => { touchX = e.changedTouches[0].clientX; }, { passive: true });
         document.addEventListener('touchend', e => {
-            const dx = e.changedTouches[0].clientX - touchX;
-            if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1);
-        }, { passive: true });
+        /* Convert YouTube/Vimeo URLs to embed URLs */
+        document.querySelectorAll('[data-video-src]').forEach(iframe => {
+            let url = iframe.dataset.videoSrc;
+            const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+            if (yt) url = 'https://www.youtube-nocookie.com/embed/' + yt[1];
+            const vm = url.match(/vimeo\.com\/(\d+)/);
+            if (vm) url = 'https://player.vimeo.com/video/' + vm[1];
+            iframe.src = url;
+        });
 
-        /* ── Init ── */
+        /* ?slide=N deep link */
+        const _startSlide = parseInt(new URLSearchParams(location.search).get('slide'));
+        if (_startSlide > 0 && _startSlide <= total) {
+            allSlides.forEach(s => { s.classList.remove('active'); s.style.display = 'none'; });
+            allSlides[_startSlide - 1].classList.add('active');
+            allSlides[_startSlide - 1].style.display = '';
+            cur = _startSlide - 1;
+        }
+
+        updateUI();
+        if (PRESENTER_MODE) { toggleTimer(); updatePresenterPanel(); }
+        setTimeout(() => { document.documentElement.requestFullscreen().catch(() => {}); }, 300);
+
+        return { go, jumpTo, toggleBulletReveal, toggleNotes, toggleOverview, toggleTimer, toggleLight, toggleFS, showShortcuts, hideShortcuts, toggleDraw, setDrawColor, setDrawSize, toggleEraser, undoDraw, clearDraw, toggleLaser, toggleSpotlight, toggleAutoAdvance, cycleAutoInterval, showQRCode, closeQRCode, copyQRLink, openPresenterWindow
         updateUI();
         if (PRESENTER_MODE) { toggleTimer(); updatePresenterPanel(); }
         setTimeout(() => { document.documentElement.requestFullscreen().catch(() => {}); }, 300);

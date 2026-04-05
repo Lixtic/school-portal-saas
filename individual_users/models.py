@@ -477,6 +477,12 @@ class ToolSlide(models.Model):
     speaker_notes = models.TextField(blank=True)
     emoji = models.CharField(max_length=10, blank=True)
     image_url = models.TextField(blank=True)
+    video_url = models.TextField(blank=True)
+    transition = models.CharField(
+        max_length=20,
+        choices=[('', 'Deck Default')] + ToolPresentation.TRANSITION_CHOICES,
+        default='', blank=True,
+    )
 
     class Meta:
         ordering = ['order']

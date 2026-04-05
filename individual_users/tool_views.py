@@ -1937,6 +1937,8 @@ def deck_editor(request, pk):
             'speaker_notes': s.speaker_notes,
             'emoji': s.emoji,
             'image_url': s.image_url,
+            'video_url': s.video_url,
+            'transition': s.transition,
         }
         for s in slides
     ])
@@ -1994,6 +1996,9 @@ def deck_api(request):
         slide.layout = data.get('layout', slide.layout)
         slide.emoji = data.get('emoji', slide.emoji)
         slide.image_url = data.get('image_url', slide.image_url)
+        slide.video_url = data.get('video_url', slide.video_url)
+        if 'transition' in data:
+            slide.transition = data['transition']
         slide.save()
         deck.save()  # bump updated_at
         return JsonResponse({'ok': True})
@@ -2020,6 +2025,8 @@ def deck_api(request):
             'emoji': slide.emoji,
             'speaker_notes': slide.speaker_notes,
             'image_url': slide.image_url,
+            'video_url': slide.video_url,
+            'transition': slide.transition,
         })
 
     # ── delete_slide ────────────────────────────────────────
@@ -2152,6 +2159,8 @@ def deck_api(request):
                     'emoji': slide.emoji,
                     'speaker_notes': slide.speaker_notes,
                     'image_url': '',
+                    'video_url': '',
+                    'transition': '',
                 })
             if data.get('update_title') and topic:
                 deck.title = topic
@@ -2291,6 +2300,8 @@ def deck_api(request):
                     'emoji': slide.emoji,
                     'speaker_notes': slide.speaker_notes,
                     'image_url': '',
+                    'video_url': '',
+                    'transition': '',
                 })
             if data.get('update_title') and topic:
                 deck.title = topic
@@ -2317,6 +2328,8 @@ def deck_api(request):
             speaker_notes=source.speaker_notes,
             emoji=source.emoji,
             image_url=source.image_url,
+            video_url=source.video_url,
+            transition=source.transition,
         )
         deck.save()
         return JsonResponse({
@@ -2329,6 +2342,8 @@ def deck_api(request):
             'emoji': new_slide.emoji,
             'speaker_notes': new_slide.speaker_notes,
             'image_url': new_slide.image_url,
+            'video_url': new_slide.video_url,
+            'transition': new_slide.transition,
         })
 
     return JsonResponse({'error': f'Unknown action: {action}'}, status=400)
