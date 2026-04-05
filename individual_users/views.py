@@ -9,7 +9,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
-from django.db import connection
+from django.db import connection, transaction
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
@@ -52,7 +52,7 @@ def _send_verification_code(user, method):
 
     if method == 'email' and user.email:
         send_mail(
-            subject='Your Aura verification code',
+            subject='Your SchoolPadi verification code',
             message=f'Your verification code is: {code}\n\nThis code expires in 10 minutes.',
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
@@ -69,9 +69,9 @@ def _send_verification_code(user, method):
             try:
                 from announcements.sms_service import send_whatsapp
                 msg = (
-                    f"Your Aura verification code is: *{code}*\n\n"
+                    f"Your SchoolPadi verification code is: *{code}*\n\n"
                     f"This code expires in 10 minutes. "
-                    f"If you didn't create an Aura account, ignore this message."
+                    f"If you didn't create a SchoolPadi account, ignore this message."
                 )
                 result = send_whatsapp([phone], msg)
                 if result.get('error'):
@@ -95,15 +95,15 @@ def _verification_email_html(code, first_name):
         f'<tr><td style="padding:32px">'
         f'<p style="color:#111827;font-size:.95rem;margin:0 0 8px">Hi {first_name},</p>'
         '<p style="color:#6b7280;font-size:.88rem;line-height:1.6;margin:0 0 24px">'
-        'Enter this code to complete your Aura account setup:</p>'
+        'Enter this code to complete your SchoolPadi account setup:</p>'
         '<div style="text-align:center;margin:0 0 24px">'
         f'<span style="display:inline-block;letter-spacing:8px;font-size:2rem;font-weight:800;color:#4361ee;'
         f'background:#f0f2f5;padding:14px 28px;border-radius:12px">{code}</span></div>'
         '<p style="color:#6b7280;font-size:.82rem;margin:0">This code expires in <strong>10 minutes</strong>. '
-        'If you didn\'t create an Aura account, you can safely ignore this email.</p>'
+        'If you didn\'t create a SchoolPadi account, you can safely ignore this email.</p>'
         '</td></tr>'
         '<tr><td style="padding:20px 32px;border-top:1px solid #e5e7eb;text-align:center">'
-        '<p style="color:#9ca3af;font-size:.75rem;margin:0">Aura &mdash; School Management Platform</p>'
+        '<p style="color:#9ca3af;font-size:.75rem;margin:0">SchoolPadi &mdash; School Management Platform</p>'
         '</td></tr></table></td></tr></table></body></html>'
     )
 
@@ -132,7 +132,7 @@ def _send_welcome_email(user):
     text = strip_tags(html)
 
     email = EmailMultiAlternatives(
-        subject=f'Welcome to Aura{role_label}, {user.first_name or "there"}!',
+        subject=f'Welcome to SchoolPadi{role_label}, {user.first_name or "there"}!',
         body=text,
         from_email=settings.DEFAULT_FROM_EMAIL,
         to=[user.email],
@@ -1186,7 +1186,6 @@ def delete_account_view(request):
     user_pk = user.pk
     user_email = user.email
     logout(request)
-    from django.db import connection
     with connection.cursor() as cursor:
         cursor.execute(
             "DELETE FROM %s WHERE id = %%s" % connection.ops.quote_name(User._meta.db_table),
@@ -1358,7 +1357,7 @@ def subscribe_addon(request):
     return JsonResponse({
         'paystack': True,
         'public_key': settings.PAYSTACK_PUBLIC_KEY,
-        'email': request.user.email or f'{request.user.username}@aura.local',
+        'email': request.user.email or f'{request.user.username}@schoolpadi.local',
         'amount': int(Decimal(str(price)) * 100),  # pesewas/kobo
         'currency': getattr(settings, 'PAYSTACK_CURRENCY', 'GHS'),
         'reference': ref,
@@ -1705,7 +1704,7 @@ def purchase_credits(request, pack_id):
     return JsonResponse({
         'paystack': True,
         'public_key': settings.PAYSTACK_PUBLIC_KEY,
-        'email': request.user.email or f'{request.user.username}@aura.local',
+        'email': request.user.email or f'{request.user.username}@schoolpadi.local',
         'amount': int(pack.price * 100),  # pesewas
         'currency': getattr(settings, 'PAYSTACK_CURRENCY', 'GHS'),
         'reference': ref,

@@ -68,10 +68,9 @@ VAPID_PUBLIC_KEY = os.environ.get(
     'VAPID_PUBLIC_KEY',
     'BKuDGCc0mEhuW5kDr-xnrZ2CLSMHv6po1vhtrbFnMEBhJNJhiqsHYWkNsrEDmlXsJNQ_4fbjX8gewbwfqconYVo'
 )
-VAPID_PRIVATE_KEY_PEM = os.environ.get(
-    'VAPID_PRIVATE_KEY_PEM',
-    '-----BEGIN PRIVATE KEY-----\nMIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgPjsGsJ/jLvM00vUZ\nYvsTepEUiwFt+2UpV+q9RLg43mOhRANCAASrgxgnNJhIbluZA6/sZ62dgi0jB7+q\naNb4ba2xZzBAYSTSYYqrB2FpDbKxA5pV7CTUP+H241/IHsG8H6nKJ2Fa\n-----END PRIVATE KEY-----'
-).replace('\\n', '\n')  # env vars store literal \n — convert to real newlines
+VAPID_PRIVATE_KEY_PEM = os.environ.get('VAPID_PRIVATE_KEY_PEM', '')
+if VAPID_PRIVATE_KEY_PEM:
+    VAPID_PRIVATE_KEY_PEM = VAPID_PRIVATE_KEY_PEM.replace('\\n', '\n')  # env vars store literal \n — convert to real newlines
 VAPID_CLAIMS = {'sub': os.environ.get('VAPID_ADMIN_EMAIL', 'mailto:admin@schoolportal.app')}
 
 # =====================
@@ -293,14 +292,14 @@ if _REDIS_URL:
             'BACKEND': 'django.core.cache.backends.redis.RedisCache',
             'LOCATION': _REDIS_URL,
             'TIMEOUT': 300,
-            'KEY_PREFIX': 'aura',
+            'KEY_PREFIX': 'padi',
         }
     }
 else:
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            'LOCATION': 'aura-cache',
+            'LOCATION': 'padi-cache',
             'TIMEOUT': 300,
         }
     }
