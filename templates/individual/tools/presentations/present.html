@@ -526,6 +526,94 @@
         .light-mode .ps-qr-copy { background: rgba(37,99,235,.08); border-color: rgba(37,99,235,.2); color: #2563eb; }
         .light-mode .ps-qr-close { background: rgba(0,0,0,.04); border-color: rgba(0,0,0,.08); color: #64748b; }
 
+        /* ── Presenter View panel ───────────────────────── */
+        body.presenter-mode { display: flex; flex-direction: row; overflow: hidden; }
+        body.presenter-mode #stage { width: 65vw; height: 100vh; flex-shrink: 0; min-width: 0; }
+        body.presenter-mode .ps-controls,
+        body.presenter-mode .ps-auto-bar { opacity: 0 !important; pointer-events: none; }
+        .pv-panel {
+            display: none; flex-direction: column;
+            width: 35vw; height: 100vh; overflow: hidden; flex-shrink: 0;
+            background: #0d1117; border-left: 1px solid rgba(255,255,255,.08);
+        }
+        body.presenter-mode .pv-panel { display: flex; }
+        .pv-pane-header {
+            padding: .5rem 1rem; font-size: .58rem; font-weight: 800;
+            letter-spacing: .15em; color: rgba(255,255,255,.2);
+            border-bottom: 1px solid rgba(255,255,255,.06);
+            text-transform: uppercase; flex-shrink: 0;
+        }
+        .pv-section { padding: .8rem 1rem; border-bottom: 1px solid rgba(255,255,255,.06); flex-shrink: 0; }
+        .pv-label { font-size: .58rem; font-weight: 800; letter-spacing: .1em; color: #7c3aed; text-transform: uppercase; margin-bottom: .4rem; }
+        .pv-notes { font-size: .78rem; color: #94a3b8; line-height: 1.55; max-height: 22vh; overflow-y: auto; }
+        .pv-notes.empty { color: rgba(255,255,255,.18); font-style: italic; font-size: .74rem; }
+        .pv-next-wrap {
+            width: 100%; aspect-ratio: 16/9; position: relative;
+            background: rgba(0,0,0,.3); border-radius: 8px; overflow: hidden;
+            border: 1px solid rgba(255,255,255,.08);
+        }
+        .pv-next-inner { position: absolute; top: 0; left: 0; transform-origin: top left; pointer-events: none; }
+        .pv-next-empty { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.2); font-size: .7rem; font-style: italic; }
+        .pv-footer { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .35rem; padding: 1rem; }
+        .pv-big-timer { font-size: 4.5rem; font-weight: 900; letter-spacing: -.02em; color: #f1f5f9; line-height: 1; font-variant-numeric: tabular-nums; }
+        .pv-big-timer.warn { color: #f59e0b; }
+        .pv-big-timer.over  { color: #ef4444; }
+        .pv-timer-label { font-size: .6rem; font-weight: 700; letter-spacing: .1em; color: rgba(255,255,255,.25); text-transform: uppercase; margin-top: -.2rem; }
+        .pv-slide-counter { font-size: 1.3rem; font-weight: 800; color: #475569; font-variant-numeric: tabular-nums; margin-top: .5rem; }
+        .pv-ctrl-row { display: flex; gap: 8px; margin-top: .7rem; }
+        .pv-ctrl-btn {
+            background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1);
+            color: #94a3b8; border-radius: 9px; padding: 7px 16px;
+            font-size: .78rem; font-weight: 700; cursor: pointer;
+            transition: background .15s; display: flex; align-items: center; gap: 5px;
+        }
+        .pv-ctrl-btn:hover { background: rgba(255,255,255,.14); color: #f1f5f9; }
+        .pv-exit-link { font-size: .66rem; color: rgba(255,255,255,.15); text-decoration: none; margin-top: .4rem; }
+        .pv-exit-link:hover { color: rgba(255,255,255,.4); }
+
+        /* Light mode presenter panel */
+        .light-mode ~ .pv-panel { background: #f8fafc; border-left-color: rgba(0,0,0,.06); }
+        .light-mode ~ .pv-panel .pv-pane-header { color: rgba(30,41,59,.2); border-bottom-color: rgba(0,0,0,.04); }
+        .light-mode ~ .pv-panel .pv-label { color: #7c3aed; }
+        .light-mode ~ .pv-panel .pv-notes { color: #475569; }
+        .light-mode ~ .pv-panel .pv-notes.empty { color: rgba(30,41,59,.18); }
+        .light-mode ~ .pv-panel .pv-section { border-bottom-color: rgba(0,0,0,.04); }
+        .light-mode ~ .pv-panel .pv-next-wrap { background: rgba(0,0,0,.03); border-color: rgba(0,0,0,.06); }
+        .light-mode ~ .pv-panel .pv-next-empty { color: rgba(30,41,59,.2); }
+        .light-mode ~ .pv-panel .pv-big-timer { color: #1e293b; }
+        .light-mode ~ .pv-panel .pv-slide-counter { color: #94a3b8; }
+        .light-mode ~ .pv-panel .pv-timer-label { color: rgba(30,41,59,.25); }
+        .light-mode ~ .pv-panel .pv-ctrl-btn { background: rgba(0,0,0,.04); border-color: rgba(0,0,0,.08); color: #64748b; }
+        .light-mode ~ .pv-panel .pv-ctrl-btn:hover { background: rgba(0,0,0,.07); color: #1e293b; }
+        .light-mode ~ .pv-panel .pv-exit-link { color: rgba(30,41,59,.15); }
+
+        /* ── Pace indicator ring ────────────────────────── */
+        .ps-pace-ring {
+            width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,.15);
+            display: inline-flex; align-items: center; justify-content: center;
+            position: relative; margin-left: 6px; vertical-align: middle;
+        }
+        .ps-pace-ring svg { width: 22px; height: 22px; transform: rotate(-90deg); }
+        .ps-pace-ring circle { fill: none; stroke-width: 2.5; }
+        .ps-pace-ring .track { stroke: rgba(255,255,255,.1); }
+        .ps-pace-ring .fill  { stroke: #34d399; stroke-dasharray: 62.83; stroke-dashoffset: 62.83; transition: stroke-dashoffset .8s ease, stroke .3s; }
+        .ps-pace-ring .fill.warn  { stroke: #fbbf24; }
+        .ps-pace-ring .fill.over  { stroke: #ef4444; }
+
+        /* ── Print / PDF export ─────────────────────────── */
+        @media print {
+            html, body { overflow: visible !important; background: #000 !important; }
+            .ps-controls, .ps-exit-btn, .ps-timer, .ps-progress, .ps-notes-strip,
+            .ps-shortcuts-overlay, .ps-overview, .ps-auto-bar,
+            .ps-draw-canvas, .ps-draw-label, .ps-draw-toolbar, .ps-laser,
+            .ps-spotlight-overlay, .ps-qr-modal, .ps-goto-overlay,
+            .pv-panel, .touch-prev, .touch-next { display: none !important; }
+            #stage { width: 100% !important; height: auto !important; overflow: visible !important; position: relative !important; }
+            .ps-slide { display: flex !important; position: relative !important; width: 100%; height: auto; min-height: 56.25vw; page-break-after: always; break-after: page; }
+            .ps-stage::before { display: none; }
+            @page { size: A4 landscape; margin: 0; }
+        }
+
         /* ── Reduced motion ─────────────────────────────── */
         @media (prefers-reduced-motion: reduce) {
             .ps-slide.active, .ps-slide.exit,
@@ -663,8 +751,13 @@
         <div class="ps-sep"></div>
         <button class="ps-ctrl-btn" id="btnLight" onclick="PS.toggleLight()" title="Light mode (L)"><i class="bi bi-sun"></i></button>
         {% if share_url %}<button class="ps-ctrl-btn" onclick="PS.showQRCode()" title="QR code share (Q)"><i class="bi bi-qr-code"></i></button>{% endif %}
+        <button class="ps-ctrl-btn" onclick="PS.openPresenterWindow()" title="Presenter View (V)" id="presenterBtn"><i class="bi bi-layout-sidebar-reverse"></i></button>
+        <button class="ps-ctrl-btn" onclick="window.print()" title="Print / Save as PDF"><i class="bi bi-file-pdf"></i></button>
         <button class="ps-ctrl-btn" onclick="PS.toggleFS()" title="Fullscreen (F)"><i class="bi bi-arrows-fullscreen"></i></button>
         <button class="ps-ctrl-btn" onclick="PS.showShortcuts()" title="Shortcuts (?)"><i class="bi bi-keyboard"></i></button>
+        <span class="ps-pace-ring" id="paceRing" title="Slide pace (60s target)">
+            <svg viewBox="0 0 22 22"><circle class="track" cx="11" cy="11" r="10"/><circle class="fill" id="paceFill" cx="11" cy="11" r="10"/></svg>
+        </span>
     </div>
 
     <!-- Speaker notes strip -->
@@ -708,6 +801,7 @@
                 <tr><td>C</td><td>Clear drawings</td></tr>
                 <tr><td>Ctrl+Z</td><td>Undo drawing</td></tr>
                 <tr><td>Q</td><td>QR code share</td></tr>
+                <tr><td>V</td><td>Open presenter view window</td></tr>
                 <tr><td>L</td><td>Toggle light/dark mode</td></tr>
                 <tr><td>F</td><td>Toggle fullscreen</td></tr>
                 <tr><td>Esc</td><td>Exit fullscreen / overlays</td></tr>
@@ -730,6 +824,33 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     {% endif %}
+
+    <!-- ── Presenter Panel (visible when ?presenter=1) ── -->
+    <div class="pv-panel" id="pvPanel">
+        <div class="pv-pane-header">&#9670; Presenter View &mdash; {{ deck.title|truncatechars:40 }}</div>
+        <div class="pv-section">
+            <div class="pv-label">Speaker Notes</div>
+            <div class="pv-notes empty" id="pvNotes">No speaker notes for this slide.</div>
+        </div>
+        <div class="pv-section">
+            <div class="pv-label">Next Slide</div>
+            <div class="pv-next-wrap" id="pvNextWrap">
+                <div class="pv-next-empty">Last slide</div>
+            </div>
+        </div>
+        <div class="pv-footer">
+            <div class="pv-big-timer" id="pvBigTimer">0:00</div>
+            <div class="pv-timer-label">Elapsed</div>
+            <div class="pv-slide-counter"><span id="pvCur">1</span>&nbsp;/&nbsp;{{ slides|length }}</div>
+            <div class="pv-ctrl-row">
+                <button class="pv-ctrl-btn" onclick="PS.go(-1)"><i class="bi bi-chevron-left"></i> Prev</button>
+                <button class="pv-ctrl-btn" onclick="PS.go(1)">Next <i class="bi bi-chevron-right"></i></button>
+            </div>
+            {% if not is_shared_view %}
+            <a href="{% url 'individual:deck_editor' pk=deck.pk %}" class="pv-exit-link">&#x2715; Exit to editor</a>
+            {% endif %}
+        </div>
+    </div>
 
     <script>
     const PS = (function() {
@@ -776,12 +897,32 @@
         {% if share_url %}const SHARE_URL = '{{ share_url|escapejs }}';{% endif %}
         let _qrInstance   = null;
 
+        /* ── Presenter mode ── */
+        const PRESENTER_MODE = new URLSearchParams(location.search).get('presenter') === '1';
+        const PACE_SECONDS = 60;
+        let slideTimerStart = Date.now();
+        let _syncChannel = null;
+        if (PRESENTER_MODE) document.body.classList.add('presenter-mode');
+        if (typeof BroadcastChannel !== 'undefined') {
+            _syncChannel = new BroadcastChannel('preso-{{ deck.pk }}');
+            if (!PRESENTER_MODE) {
+                _syncChannel.onmessage = function(e) {
+                    if (e.data && e.data.action === 'goto') jumpTo(e.data.slide);
+                };
+            }
+        }
+
         /* ── Helpers ── */
         function updateUI() {
             counter.textContent = (cur + 1) + ' / ' + total;
             progress.style.width = ((cur + 1) / total * 100) + '%';
             if (notesOpen) syncNotes();
             if (bulletReveal) resetBullets();
+            slideTimerStart = Date.now();
+            updatePresenterPanel();
+            if (_syncChannel && PRESENTER_MODE) {
+                _syncChannel.postMessage({ action: 'goto', slide: cur });
+            }
         }
 
         function syncNotes() {
@@ -904,7 +1045,27 @@
             const elapsed = Math.floor((Date.now() - timerStart) / 1000);
             const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
             const s = String(elapsed % 60).padStart(2, '0');
-            timerEl.textContent = m + ':' + s;
+            const disp = m + ':' + s;
+            timerEl.textContent = disp;
+
+            /* Pace ring */
+            const slideElapsed = Math.floor((Date.now() - slideTimerStart) / 1000);
+            const paceFill = document.getElementById('paceFill');
+            if (paceFill && PACE_SECONDS > 0) {
+                const pct = Math.min(slideElapsed / PACE_SECONDS, 1);
+                paceFill.style.strokeDashoffset = 62.83 * (1 - pct);
+                paceFill.classList.toggle('warn', pct >= 0.75 && pct < 1);
+                paceFill.classList.toggle('over', pct >= 1);
+            }
+
+            /* Presenter panel sync */
+            const pvBig = document.getElementById('pvBigTimer');
+            if (pvBig) {
+                pvBig.textContent = disp;
+                pvBig.classList.toggle('warn', elapsed >= 120 && elapsed < 300);
+                pvBig.classList.toggle('over', elapsed >= 300);
+            }
+
             timerRAF = requestAnimationFrame(tickTimer);
         }
 
@@ -947,6 +1108,44 @@
                 gotoBuffer += e.key;
             } else return;
             document.getElementById('gotoNum').textContent = gotoBuffer || '_';
+        }
+
+        /* ── Presenter View ── */
+        function openPresenterWindow() {
+            window.open(location.href.split('?')[0] + '?presenter=1', 'preso',
+                'width=1920,height=1080,menubar=0,toolbar=0,location=0,status=0');
+        }
+
+        function updatePresenterPanel() {
+            if (!PRESENTER_MODE) return;
+            const notes = (allSlides[cur] ? allSlides[cur].dataset.notes || '' : '').trim();
+            const pvNotes = document.getElementById('pvNotes');
+            if (notes) {
+                pvNotes.textContent = notes;
+                pvNotes.classList.remove('empty');
+            } else {
+                pvNotes.textContent = 'No speaker notes for this slide.';
+                pvNotes.classList.add('empty');
+            }
+            document.getElementById('pvCur').textContent = cur + 1;
+            /* Next slide preview */
+            const nextIdx = cur + 1;
+            const wrap = document.getElementById('pvNextWrap');
+            wrap.innerHTML = '';
+            if (nextIdx >= total) {
+                wrap.innerHTML = '<div class="pv-next-empty">Last slide</div>';
+                return;
+            }
+            const stageW = window.innerWidth * 0.65;
+            const wrapW  = wrap.offsetWidth || Math.round(window.innerWidth * 0.35 - 32);
+            const scale  = wrapW / stageW;
+            const inner  = document.createElement('div');
+            inner.className       = 'pv-next-inner';
+            inner.style.width     = stageW + 'px';
+            inner.style.height    = window.innerHeight + 'px';
+            inner.style.transform = 'scale(' + scale + ')';
+            inner.innerHTML       = allSlides[nextIdx].innerHTML;
+            wrap.appendChild(inner);
         }
 
         /* ── Drawing canvas ── */
@@ -1115,7 +1314,8 @@
                 const btn = document.getElementById('qrCopyBtn');
                 btn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Copied!';
                 btn.style.cssText = 'background:rgba(52,211,153,.18);border-color:rgba(52,211,153,.3);color:#6ee7b7;';
-                setTimeout(() => { btn.innerHTML = '<i class="bi bi-clipboard me-1"></i> Copy Link'; btn.style.cssText = ''; }, 2200);
+                setTimeout(() => { btn.innerHTML = '<i c
+                case 'v': case 'V': openPresenterWindow(); break;lass="bi bi-clipboard me-1"></i> Copy Link'; btn.style.cssText = ''; }, 2200);
             });
             {% endif %}
         }
@@ -1175,8 +1375,9 @@
 
         /* ── Init ── */
         updateUI();
+        if (PRESENTER_MODE) { toggleTimer(); updatePresenterPanel(); }
         setTimeout(() => { document.documentElement.requestFullscreen().catch(() => {}); }, 300);
-
+, openPresenterWindow
         return { go, jumpTo, toggleBulletReveal, toggleNotes, toggleOverview, toggleTimer, toggleLight, toggleFS, showShortcuts, hideShortcuts, toggleDraw, setDrawColor, setDrawSize, toggleEraser, undoDraw, clearDraw, toggleLaser, toggleSpotlight, toggleAutoAdvance, cycleAutoInterval, showQRCode, closeQRCode, copyQRLink };
     })();
     </script>

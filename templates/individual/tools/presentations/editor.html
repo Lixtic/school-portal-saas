@@ -110,6 +110,42 @@
 }
 .ed-add-slide:hover { border-color: #7c3aed; color: #7c3aed; }
 
+/* ── Slide search ────────────────────────────────────────── */
+.ed-search-wrap { position: relative; width: 100%; margin-bottom: 0.5rem; }
+.ed-search-wrap i { position: absolute; left: 7px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.6rem; pointer-events: none; }
+.ed-search-input {
+    width: 100%; padding: 4px 7px 4px 24px;
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    border-radius: 6px; color: var(--text-main); font-size: 0.7rem;
+    outline: none; transition: border-color 0.15s;
+}
+.ed-search-input:focus { border-color: rgba(124,58,237,.4); }
+.ed-search-input::placeholder { color: var(--text-muted); }
+
+/* ── Duplicate button in inspector ───────────────────────── */
+.ed-dup-btn {
+    width: 100%; padding: 7px; border-radius: 8px; margin-bottom: 6px;
+    background: rgba(99,102,241,.1); border: 1px solid rgba(99,102,241,.2);
+    color: #818cf8; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+    transition: background 0.15s;
+}
+.ed-dup-btn:hover { background: rgba(99,102,241,.2); }
+
+/* ── Zoom bar ────────────────────────────────────────────── */
+.ed-zoom-bar {
+    display: flex; align-items: center; gap: 0.4rem; margin-top: 0.75rem;
+    justify-content: center;
+}
+.ed-zoom-btn {
+    width: 28px; height: 28px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--border-color); background: var(--surface-card);
+    color: var(--text-muted); cursor: pointer; font-size: 0.7rem;
+    transition: all 0.15s;
+}
+.ed-zoom-btn:hover { border-color: #7c3aed; color: #7c3aed; }
+.ed-zoom-label { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); min-width: 36px; text-align: center; }
+
 /* ── Centre: Preview ─────────────────────────────────────── */
 .ed-preview {
     overflow-y: auto; padding: 2rem;
@@ -297,12 +333,26 @@
 <!-- 3-Pane Layout -->
 <div class="ed-shell">
     <!-- Left: Sorter -->
-    <div class="ed-sorter" id="slideSorter"></div>
+    <div style="background:var(--surface-bg);border-right:1px solid var(--border-color);display:flex;flex-direction:column;overflow:hidden">
+        <div style="padding:0.5rem 0.75rem 0;flex-shrink:0">
+            <div class="ed-search-wrap">
+                <i class="bi bi-search"></i>
+                <input type="text" class="ed-search-input" id="slideSearchInput" placeholder="Search slides…" oninput="ED.filterSlides(this.value)">
+            </div>
+        </div>
+        <div class="ed-sorter" id="slideSorter" style="border-right:none"></div>
+    </div>
 
     <!-- Centre: Preview -->
     <div class="ed-preview">
-        <div class="ed-preview-card theme-{{ deck.theme }}" id="slidePreview">
+        <div class="ed-preview-card theme-{{ deck.theme }}" id="slidePreview" style="transition:transform 0.2s ease">
             <div id="slidePreviewInner"></div>
+        </div>
+        <div class="ed-zoom-bar">
+            <button class="ed-zoom-btn" onclick="ED.zoom(-1)" title="Zoom out"><i class="bi bi-dash"></i></button>
+            <span class="ed-zoom-label" id="zoomLabel">100%</span>
+            <button class="ed-zoom-btn" onclick="ED.zoom(1)" title="Zoom in"><i class="bi bi-plus-lg"></i></button>
+            <button class="ed-zoom-btn" onclick="ED.zoom(0)" title="Reset zoom"><i class="bi bi-arrows-angle-contract"></i></button>
         </div>
     </div>
 
@@ -558,6 +608,7 @@
         ).join('');
 
         wrap.innerHTML = `
+            <button class="ed-dup-btn" onclick="ED.dupSlide(ED.currentIdx())"><i class="bi bi-copy me-1"></i> Duplicate Slide</button>
             <div class="ed-insp-section">
                 <div class="ed-insp-label">Title</div>
                 <input class="ed-insp-input" id="inspTitle" value="${(s.title || '').replace(/"/g, '&quot;')}">
@@ -685,8 +736,30 @@
                 renderSorter(); renderPreview(); renderInspector();
             }
         },
+
+        currentIdx() { return currentIdx; },
+
+        filterSlides(q) {
+            q = (q || '').toLowerCase().trim();
+            document.querySelectorAll('#slideSorter .ed-thumb').forEach(th => {
+                const idx = parseInt(th.dataset.idx);
+                const s = slides[idx];
+                if (!q || !s) { th.style.display = ''; return; }
+                const hay = ((s.title || '') + ' ' + (s.content || '') + ' ' + (s.emoji || '')).toLowerCase();
+                th.style.display = hay.includes(q) ? '' : 'none';
+            });
+        },
+
+        zoom(dir) {
+            const preview = document.getElementById('slidePreview');
+            if (dir === 0) { zoomLevel = 100; }
+            else { zoomLevel = Math.max(50, Math.min(200, zoomLevel + dir * 10)); }
+            preview.style.transform = zoomLevel === 100 ? '' : 'scale(' + (zoomLevel / 100) + ')';
+            document.getElementById('zoomLabel').textContent = zoomLevel + '%';
+        },
     };
     window.ED = ED;
+    let zoomLevel = 100;
 
     /* ── Theme / Transition selects ─────────────────────── */
     document.getElementById('themeSelect').addEventListener('change', async function() {
@@ -826,6 +899,11 @@
     /* ── Keyboard navigation ────────────────────────────── */
     document.addEventListener('keydown', function(e) {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+        if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+            e.preventDefault();
+            if (currentIdx >= 0) ED.dupSlide(currentIdx);
+            return;
+        }
         if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
             e.preventDefault();
             if (currentIdx > 0) ED.select(currentIdx - 1);
