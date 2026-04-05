@@ -1566,17 +1566,19 @@ def _handle_individual_credit_payment(reference, data):
     except IndividualCreditPack.DoesNotExist:
         return
 
-    # Deduplicate by payment_reference
-    if IndividualCreditTransaction.objects.filter(payment_reference=reference).exists():
-        return
-
-    add_credits(
-        user,
-        amount=pack.credits,
-        transaction_type='purchase',
-        description=f'Purchased {pack.name} ({pack.credits} credits)',
-        payment_reference=reference,
-    )
+    # Deduplicate — atomic + select_for_update prevents double-grant race
+    with transaction.atomic():
+        if IndividualCreditTransaction.objects.select_for_update().filter(
+            payment_reference=reference
+        ).exists():
+            return
+        add_credits(
+            user,
+            amount=pack.credits,
+            transaction_type='purchase',
+            description=f'Purchased {pack.name} ({pack.credits} credits)',
+            payment_reference=reference,
+        )
 
 
 # ── Credit System Views ─────────────────────────────────────────────────────
@@ -1639,13 +1641,19 @@ def verify_credit_purchase(request):
         if not data.get('status') or data.get('data', {}).get('status') != 'success':
             return JsonResponse({'ok': False, 'error': 'Payment verification failed'}, status=402)
 
-    bal = add_credits(
-        request.user,
-        amount=pack.credits,
-        transaction_type='purchase',
-        description=f'Purchased {pack.name} ({pack.credits} credits)',
-        payment_reference=reference,
-    )
+    # Atomic duplicate check + credit grant to prevent race condition
+    with transaction.atomic():
+        if IndividualCreditTransaction.objects.select_for_update().filter(
+            payment_reference=reference
+        ).exists():
+            return JsonResponse({'ok': False, 'error': 'Already processed'}, status=409)
+        bal = add_credits(
+            request.user,
+            amount=pack.credits,
+            transaction_type='purchase',
+            description=f'Purchased {pack.name} ({pack.credits} credits)',
+            payment_reference=reference,
+        )
 
     return JsonResponse({
         'ok': True,

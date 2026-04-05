@@ -593,8 +593,12 @@ def question_bank_list(request):
         essay=Count('id', filter=Q(question_format='essay')),
     )
 
+    from django.core.paginator import Paginator
+    paginator = Paginator(qs, 50)
+    page = paginator.get_page(request.GET.get('page', 1))
+
     ctx = {
-        'questions': qs[:100],
+        'questions': page,
         'stats': stats,
         'profile': profile,
         'role': 'teacher',
@@ -2342,8 +2346,12 @@ def licensure_history(request):
         profile=profile, completed=True,
     ).order_by('-completed_at')
 
+    from django.core.paginator import Paginator
+    paginator = Paginator(attempts, 30)
+    page = paginator.get_page(request.GET.get('page', 1))
+
     ctx = {
-        'attempts': attempts[:50],
+        'attempts': page,
         'domains': LicensureQuestion.DOMAIN_CHOICES,
     }
     return render(request, 'individual/tools/licensure/history.html', ctx)
@@ -3157,7 +3165,10 @@ def marker_session(request, pk):
     """View / manage a marking session — enter student responses."""
     _ensure_public_schema()
     profile = request.user.individual_profile
-    session = get_object_or_404(MarkingSession, pk=pk, profile=profile)
+    session = get_object_or_404(
+        MarkingSession.objects.prefetch_related('marks'),
+        pk=pk, profile=profile,
+    )
     marks = session.marks.all()
 
     # Per-question stats
@@ -3862,9 +3873,13 @@ def computhink_dashboard(request):
     if search:
         qs = qs.filter(Q(title__icontains=search) | Q(topic__icontains=search))
 
+    from django.core.paginator import Paginator
+    paginator = Paginator(qs, 24)
+    page = paginator.get_page(request.GET.get('page', 1))
+
     ctx = {
-        'activities': qs[:60],
-        'total': qs.count(),
+        'activities': page,
+        'total': paginator.count,
         'type_choices': CompuThinkActivity.TYPE_CHOICES,
         'level_choices': CompuThinkActivity.LEVEL_CHOICES,
         'current_type': activity_type,
@@ -3976,9 +3991,13 @@ def literacy_dashboard(request):
     if search:
         qs = qs.filter(Q(title__icontains=search) | Q(topic__icontains=search))
 
+    from django.core.paginator import Paginator
+    paginator = Paginator(qs, 24)
+    page = paginator.get_page(request.GET.get('page', 1))
+
     ctx = {
-        'exercises': qs[:60],
-        'total': qs.count(),
+        'exercises': page,
+        'total': paginator.count,
         'type_choices': LiteracyExercise.TYPE_CHOICES,
         'level_choices': LiteracyExercise.LEVEL_CHOICES,
         'current_type': exercise_type,
@@ -4104,9 +4123,13 @@ def citizen_ed_dashboard(request):
     if search:
         qs = qs.filter(Q(title__icontains=search) | Q(topic__icontains=search))
 
+    from django.core.paginator import Paginator
+    paginator = Paginator(qs, 24)
+    page = paginator.get_page(request.GET.get('page', 1))
+
     ctx = {
-        'activities': qs[:60],
-        'total': qs.count(),
+        'activities': page,
+        'total': paginator.count,
         'type_choices': CitizenEdActivity.TYPE_CHOICES,
         'strand_choices': CitizenEdActivity.STRAND_CHOICES,
         'level_choices': CitizenEdActivity.LEVEL_CHOICES,

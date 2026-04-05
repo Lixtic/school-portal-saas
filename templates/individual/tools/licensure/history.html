@@ -89,6 +89,22 @@
             <div class="history-arrow"><i class="bi bi-chevron-right"></i></div>
         </a>
         {% endfor %}
+
+        {% if attempts.has_other_pages %}
+        <nav class="d-flex justify-content-center mt-4">
+            <ul class="pagination pagination-sm">
+                {% if attempts.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ attempts.previous_page_number }}">&laquo;</a></li>
+                {% endif %}
+                {% for num in attempts.paginator.page_range %}
+                <li class="page-item {% if attempts.number == num %}active{% endif %}"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                {% endfor %}
+                {% if attempts.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ attempts.next_page_number }}">&raquo;</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
     {% else %}
         <div class="history-empty">
             <i class="bi bi-clock-history"></i>

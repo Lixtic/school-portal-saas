@@ -171,6 +171,22 @@
 {% endfor %}
 </div>
 
+{% if activities.has_other_pages %}
+<nav class="d-flex justify-content-center mt-4">
+    <ul class="pagination pagination-sm">
+        {% if activities.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ activities.previous_page_number }}{% if current_type %}&type={{ current_type }}{% endif %}{% if current_level %}&level={{ current_level }}{% endif %}{% if search %}&q={{ search }}{% endif %}">&laquo;</a></li>
+        {% endif %}
+        {% for num in activities.paginator.page_range %}
+        <li class="page-item {% if activities.number == num %}active{% endif %}"><a class="page-link" href="?page={{ num }}{% if current_type %}&type={{ current_type }}{% endif %}{% if current_level %}&level={{ current_level }}{% endif %}{% if search %}&q={{ search }}{% endif %}">{{ num }}</a></li>
+        {% endfor %}
+        {% if activities.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ activities.next_page_number }}{% if current_type %}&type={{ current_type }}{% endif %}{% if current_level %}&level={{ current_level }}{% endif %}{% if search %}&q={{ search }}{% endif %}">&raquo;</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
 <!-- Generate Modal -->
 <div class="modal fade" id="generateModal" tabindex="-1">
   <div class="modal-dialog">
