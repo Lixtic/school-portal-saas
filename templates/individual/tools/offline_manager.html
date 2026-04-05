@@ -146,6 +146,8 @@
     <button class="om-filter" data-type="lesson"><i class="bi bi-journal-bookmark"></i> Lessons</button>
     <button class="om-filter" data-type="deck"><i class="bi bi-easel"></i> Decks</button>
     <button class="om-filter" data-type="paper"><i class="bi bi-file-text"></i> Papers</button>
+    <button class="om-filter" data-type="letter"><i class="bi bi-envelope-paper"></i> Letters</button>
+    <button class="om-filter" data-type="report"><i class="bi bi-file-earmark-bar-graph"></i> Reports</button>
     <div class="om-spacer"></div>
     <button class="om-btn-clear" id="omClearAll"><i class="bi bi-trash3"></i> Clear All</button>
 </div>
@@ -169,12 +171,14 @@
     var filters   = document.querySelectorAll('.om-filter');
     var activeType = 'all';
 
-    var ICONS = { lesson: 'bi-journal-bookmark', deck: 'bi-easel', paper: 'bi-file-text' };
-    var LABELS = { lesson: 'Lesson Plan', deck: 'Presentation', paper: 'Exam Paper' };
+    var ICONS = { lesson: 'bi-journal-bookmark', deck: 'bi-easel', paper: 'bi-file-text', letter: 'bi-envelope-paper', report: 'bi-file-earmark-bar-graph' };
+    var LABELS = { lesson: 'Lesson Plan', deck: 'Presentation', paper: 'Exam Paper', letter: 'GES Letter', report: 'Report Card' };
     var LINKS = {
         lesson: '{% url "individual:lesson_plan_detail" pk=0 %}'.replace('/0/', '/{id}/'),
         deck:   '{% url "individual:deck_editor" pk=0 %}'.replace('/0/', '/{id}/'),
-        paper:  '{% url "individual:question_bank" %}'
+        paper:  '{% url "individual:question_bank" %}',
+        letter: '{% url "individual:letter_edit" pk=0 %}'.replace('/0/', '/{id}/'),
+        report: '{% url "individual:report_card_edit" pk=0 %}'.replace('/0/', '/{id}/')
     };
 
     function formatBytes(b) {
@@ -204,6 +208,8 @@
         if (type === 'lesson' && data.duration_minutes) extra = '<span><i class="bi bi-clock"></i> ' + data.duration_minutes + 'm</span>';
         if (type === 'deck' && data.slides) extra = '<span><i class="bi bi-layers"></i> ' + data.slides.length + ' slides</span>';
         if (type === 'paper' && data.questions) extra = '<span><i class="bi bi-list-ol"></i> ' + data.questions.length + ' Qs</span>';
+        if (type === 'letter' && data.category) extra = '<span><i class="bi bi-tag"></i> ' + data.category + '</span>';
+        if (type === 'report' && data.entries) extra = '<span><i class="bi bi-people"></i> ' + data.entries.length + ' students</span>';
 
         div.innerHTML =
             '<div class="om-card-header">' +
@@ -234,7 +240,7 @@
                 '<div class="om-empty" style="grid-column:1/-1">' +
                     '<i class="bi bi-cloud-slash"></i>' +
                     '<p>No offline content saved' + (activeType !== 'all' ? ' for this type' : '') + '.</p>' +
-                    '<p class="om-empty-sub">Use the <i class="bi bi-cloud-arrow-down"></i> button on any lesson plan, presentation, or exam paper to save it.</p>' +
+                    '<p class="om-empty-sub">Use the <i class="bi bi-cloud-arrow-down"></i> button on any lesson plan, presentation, exam paper, letter, or report card to save it.</p>' +
                 '</div>';
             return;
         }

@@ -903,20 +903,25 @@ def dashboard_view(request):
     if profile.role == 'teacher':
         my_slugs = set(subscriptions.values_list('addon_slug', flat=True))
         recommended = [a for a in TEACHER_ADDON_CATALOG if a['slug'] not in my_slugs][:4]
-        tool_stats = {
-            'questions': ToolQuestion.objects.filter(profile=profile).count(),
-            'exams': ToolExamPaper.objects.filter(profile=profile).count(),
-            'lessons': ToolLessonPlan.objects.filter(profile=profile).count(),
-            'slides': ToolPresentation.objects.filter(profile=profile).count(),
-            'computhink': CompuThinkActivity.objects.filter(profile=profile).count(),
-            'literacy': LiteracyExercise.objects.filter(profile=profile).count(),
-            'citizen_ed': CitizenEdActivity.objects.filter(profile=profile).count(),
-            'tvet': TVETProject.objects.filter(profile=profile).count(),
-            'tutor': AITutorConversation.objects.filter(profile=profile).count(),
-            'letters': GESLetter.objects.filter(profile=profile).count(),
-            'marking': MarkingSession.objects.filter(profile=profile).count(),
-            'reports': ReportCardSet.objects.filter(profile=profile).count(),
-        }
+
+        # Single query per model via .count(), batched into dict
+        # Models are in different tables so we can't aggregate across them,
+        # but we use a helper to avoid boilerplate:
+        _models = [
+            ('questions', ToolQuestion),
+            ('exams', ToolExamPaper),
+            ('lessons', ToolLessonPlan),
+            ('slides', ToolPresentation),
+            ('computhink', CompuThinkActivity),
+            ('literacy', LiteracyExercise),
+            ('citizen_ed', CitizenEdActivity),
+            ('tvet', TVETProject),
+            ('tutor', AITutorConversation),
+            ('letters', GESLetter),
+            ('marking', MarkingSession),
+            ('reports', ReportCardSet),
+        ]
+        tool_stats = {key: mdl.objects.filter(profile=profile).count() for key, mdl in _models}
         # Build subscribed addons with icons and URL names for the dashboard
         _ADDON_URL_MAP = {
             'exam-generator': 'individual:question_bank',
@@ -971,19 +976,20 @@ def dashboard_view(request):
         greeting = 'Good evening'
 
     total_content = sum(tool_stats.values()) if tool_stats else 0
+    sub_list = list(subscriptions)          # evaluate once; reused in template + count
 
     ctx = {
         'profile': profile,
         'role': profile.role,
         'greeting': greeting,
-        'subscriptions': subscriptions,
-        'subscription_count': subscriptions.count(),
+        'subscriptions': sub_list,
+        'subscription_count': len(sub_list),
         'api_keys': api_keys,
         'api_key_count': active_keys,
         'total_api_calls': total_calls,
         'total_content': total_content,
-        'addon_catalog': _catalog_for_role(profile.role),
-        'catalog_count': len(_catalog_for_role(profile.role)),
+        'addon_catalog': (_cat := _catalog_for_role(profile.role)),
+        'catalog_count': len(_cat),
         'recommended_addons': recommended,
         'tool_stats': tool_stats,
         'my_addons': my_addons,

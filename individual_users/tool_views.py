@@ -4431,6 +4431,70 @@ def offline_exam_paper(request, pk):
 
 
 @login_required
+def offline_letter(request, pk):
+    """Full GES letter as JSON for offline storage."""
+    profile = get_object_or_404(IndividualProfile, user=request.user)
+    letter = get_object_or_404(GESLetter, pk=pk, profile=profile)
+    return JsonResponse({
+        'id': letter.pk,
+        'title': letter.title,
+        'category': letter.category,
+        'status': letter.status,
+        'recipient_name': letter.recipient_name,
+        'recipient_title': letter.recipient_title,
+        'sender_name': letter.sender_name,
+        'sender_title': letter.sender_title,
+        'school_name': letter.school_name,
+        'district': letter.district,
+        'region': letter.region,
+        'reference_number': letter.reference_number,
+        'date_written': letter.date_written.isoformat() if letter.date_written else None,
+        'body': letter.body,
+        'created_at': letter.created_at.isoformat(),
+    })
+
+
+@login_required
+def offline_report_card(request, pk):
+    """Full report card set + entries as JSON for offline storage."""
+    profile = get_object_or_404(IndividualProfile, user=request.user)
+    card_set = get_object_or_404(
+        ReportCardSet.objects.prefetch_related('entries'),
+        pk=pk, profile=profile,
+    )
+    entries = []
+    for e in card_set.entries.all():
+        entries.append({
+            'id': e.pk,
+            'student_name': e.student_name,
+            'subjects': e.subjects,
+            'overall_score': str(e.overall_score) if e.overall_score else None,
+            'overall_grade': e.overall_grade,
+            'position': e.position,
+            'total_students': e.total_students,
+            'conduct': e.conduct,
+            'attitude': e.attitude,
+            'interest': e.interest,
+            'attendance': e.attendance,
+            'class_teacher_comment': e.class_teacher_comment,
+            'head_teacher_comment': e.head_teacher_comment,
+            'promoted': e.promoted,
+            'next_class': e.next_class,
+        })
+    return JsonResponse({
+        'id': card_set.pk,
+        'title': card_set.title,
+        'class_name': card_set.class_name,
+        'term': card_set.term,
+        'academic_year': card_set.academic_year,
+        'school_name': card_set.school_name,
+        'next_term_begins': card_set.next_term_begins.isoformat() if card_set.next_term_begins else None,
+        'entries': entries,
+        'created_at': card_set.created_at.isoformat(),
+    })
+
+
+@login_required
 def offline_content_list(request):
     """Lightweight manifest of all user content for the offline manager."""
     profile = get_object_or_404(IndividualProfile, user=request.user)
@@ -4449,5 +4513,15 @@ def offline_content_list(request):
         items.append({
             'type': 'paper', 'id': e.pk, 'title': e.title,
             'subject': e.subject, 'created_at': e.created_at.isoformat(),
+        })
+    for lt in GESLetter.objects.filter(profile=profile, is_sample=False).order_by('-created_at')[:50]:
+        items.append({
+            'type': 'letter', 'id': lt.pk, 'title': lt.title,
+            'subject': lt.get_category_display(), 'created_at': lt.created_at.isoformat(),
+        })
+    for rc in ReportCardSet.objects.filter(profile=profile).order_by('-created_at')[:50]:
+        items.append({
+            'type': 'report', 'id': rc.pk, 'title': rc.title,
+            'subject': rc.class_name, 'created_at': rc.created_at.isoformat(),
         })
     return JsonResponse({'items': items})

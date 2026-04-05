@@ -147,6 +147,8 @@ urlpatterns = [
     path('tools/lesson-plans/<int:pk>/offline/', tool_views.offline_lesson_plan, name='offline_lesson_plan'),
     path('tools/presentations/<int:pk>/offline/', tool_views.offline_deck, name='offline_deck'),
     path('tools/exam-papers/<int:pk>/offline/', tool_views.offline_exam_paper, name='offline_exam_paper'),
+    path('tools/letters/<int:pk>/offline/', tool_views.offline_letter, name='offline_letter'),
+    path('tools/report-cards/<int:pk>/offline/', tool_views.offline_report_card, name='offline_report_card'),
 ]
 
 # Teacher shortcut URLs (included under /t/ prefix in main urls.py)
