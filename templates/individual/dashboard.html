@@ -272,24 +272,7 @@
 .db-rec-name { font-weight: 600; font-size: 0.84rem; }
 .db-rec-desc { font-size: 0.72rem; color: var(--text-muted); }
 
-/* ── Subscriptions ────────────────────────────────────── */
-.db-sub-list { display: flex; flex-direction: column; gap: 0.5rem; }
-.db-sub-row {
-    padding: 0.75rem 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-.db-sub-icon {
-    width: 36px; height: 36px; border-radius: 9px;
-    background: rgba(67,97,238,0.1); color: var(--brand-primary);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1rem; flex-shrink: 0;
-}
-[data-bs-theme="dark"] .db-sub-icon { background: rgba(67,97,238,0.18); }
-.db-sub-meta { flex: 1; min-width: 0; }
-.db-sub-name { font-weight: 600; font-size: 0.84rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.db-sub-plan { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.03em; }
+
 
 /* ── Empty State ──────────────────────────────────────── */
 .db-empty {
@@ -576,21 +559,7 @@
             <div class="db-stat-lbl">Exam Papers</div>
         </div>
     </div>
-    <div class="iu-card db-stat">
-        <div class="db-stat-icon db-c-amber"><i class="bi bi-box-seam"></i></div>
-        <div class="db-stat-body">
-            <div class="db-stat-val">{{ subscription_count }}</div>
-            <div class="db-stat-lbl">Active Add-ons</div>
-        </div>
-    </div>
     {% else %}
-    <div class="iu-card db-stat">
-        <div class="db-stat-icon db-c-blue"><i class="bi bi-box-seam"></i></div>
-        <div class="db-stat-body">
-            <div class="db-stat-val">{{ subscription_count }}</div>
-            <div class="db-stat-lbl">Active Add-ons</div>
-        </div>
-    </div>
     <div class="iu-card db-stat">
         <div class="db-stat-icon db-c-cyan"><i class="bi bi-key"></i></div>
         <div class="db-stat-body">
@@ -731,33 +700,7 @@
         </div>
         {% endif %}
 
-        <!-- Active Subscriptions -->
-        <div class="db-section-hdr">
-            <h3>Subscriptions</h3>
-            <a href="{% url 'individual:addons' %}">Browse</a>
-        </div>
-        {% if subscriptions %}
-        <div class="db-sub-list">
-            {% for sub in subscriptions %}
-            <div class="iu-card db-sub-row">
-                <div class="db-sub-icon"><i class="bi bi-box-seam"></i></div>
-                <div class="db-sub-meta">
-                    <div class="db-sub-name">{{ sub.addon_name }}</div>
-                    <div class="db-sub-plan">{{ sub.get_plan_display }} plan</div>
-                </div>
-                <span class="iu-badge iu-badge-active">Active</span>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <div class="iu-card">
-            <div class="db-empty">
-                <i class="bi bi-box-seam"></i>
-                <p>No active subscriptions</p>
-                <a href="{% url 'individual:addons' %}">Explore Add-ons</a>
-            </div>
-        </div>
-        {% endif %}
+
     </div>
 </div>
 
@@ -824,32 +767,6 @@
 <script>if(!localStorage.getItem('padi_dismiss_onboard_dev'))document.getElementById('dbOnboardDev').style.display='';</script>
 {% endif %}
 
-<!-- Active Subscriptions -->
-<div class="db-section-hdr">
-    <h3>Active Subscriptions</h3>
-    <a href="{% url 'individual:addons' %}">Browse addons <i class="bi bi-arrow-right"></i></a>
-</div>
-{% if subscriptions %}
-<div class="db-sub-list">
-    {% for sub in subscriptions %}
-    <div class="iu-card db-sub-row">
-        <div class="db-sub-icon"><i class="bi bi-box-seam"></i></div>
-        <div class="db-sub-meta">
-            <div class="db-sub-name">{{ sub.addon_name }}</div>
-            <div class="db-sub-plan">{{ sub.get_plan_display }} plan</div>
-        </div>
-        <span class="iu-badge iu-badge-active">Active</span>
-    </div>
-    {% endfor %}
-</div>
-{% else %}
-<div class="iu-card">
-    <div class="db-empty">
-        <i class="bi bi-box-seam"></i>
-        <p>No active subscriptions yet</p>
-        <a href="{% url 'individual:addons' %}">Explore the Addon Store</a>
-    </div>
-</div>
-{% endif %}
+
 {% endif %}
 {% endblock %}
