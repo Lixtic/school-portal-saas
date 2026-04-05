@@ -3,6 +3,47 @@
 {% block page_title %}Dashboard{% endblock %}
 
 {% block extra_css %}
+/* ── Skeleton Loading ─────────────────────────────────── */
+@keyframes dbShimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+.db-skeleton {
+    pointer-events: none;
+}
+.db-skeleton .db-stat-val,
+.db-skeleton .db-stat-lbl,
+.db-skeleton .db-tool-name,
+.db-skeleton .db-tool-count,
+.db-skeleton .db-addon-name {
+    color: transparent !important;
+    background: linear-gradient(90deg, var(--border-color) 30%, rgba(67,97,238,0.08) 50%, var(--border-color) 70%);
+    background-size: 200% 100%;
+    animation: dbShimmer 1.5s ease infinite;
+    border-radius: 4px;
+    min-height: 1em;
+    min-width: 3ch;
+}
+.db-skeleton .db-stat-icon,
+.db-skeleton .db-tool-icon,
+.db-skeleton .db-addon-dot {
+    background: var(--border-color) !important;
+    color: transparent !important;
+}
+.db-skeleton .db-stat-icon i,
+.db-skeleton .db-tool-icon i,
+.db-skeleton .db-addon-dot i { visibility: hidden; }
+@media (prefers-reduced-motion: reduce) {
+    .db-skeleton .db-stat-val,
+    .db-skeleton .db-stat-lbl,
+    .db-skeleton .db-tool-name,
+    .db-skeleton .db-tool-count,
+    .db-skeleton .db-addon-name {
+        animation: none;
+        background: var(--border-color);
+    }
+}
+
 /* ── Welcome ──────────────────────────────────────────── */
 .db-welcome {
     display: flex;
@@ -590,7 +631,7 @@
 {% endif %}
 
 <!-- ═══ Stats ═══ -->
-<div class="db-stats">
+<div class="db-stats db-skeleton" id="dbStats">
     {% if role == 'teacher' %}
     <div class="iu-card db-stat">
         <div class="db-stat-icon db-c-green"><i class="bi bi-journal-bookmark"></i></div>
@@ -648,7 +689,7 @@
             <h3><i class="bi bi-grid-3x3-gap" style="color:var(--brand-primary)"></i> Your Workspace</h3>
             <a href="{% url 'individual:tools_hub' %}">All tools <i class="bi bi-arrow-right"></i></a>
         </div>
-        <div class="db-workspace">
+        <div class="db-workspace db-skeleton" id="dbWorkspace">
             <a href="{% url 'individual:lesson_plans' %}" class="iu-card db-tool">
                 <div class="db-tool-icon" style="background:rgba(5,150,105,0.1);color:#059669"><i class="bi bi-journal-bookmark"></i></div>
                 <div class="db-tool-name">Lesson Planner</div>
@@ -831,6 +872,14 @@
 {% endblock %}
 
 {% block extra_js %}
+<script>
+// Skeleton removal: strip placeholder shimmer once paint is ready
+requestAnimationFrame(function(){
+    document.querySelectorAll('.db-skeleton').forEach(function(el) {
+        el.classList.remove('db-skeleton');
+    });
+});
+</script>
 {% if my_addons %}
 <script>
 (function(){

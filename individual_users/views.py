@@ -1045,7 +1045,10 @@ def _batch_tool_counts(profile):
 @_individual_required
 def dashboard_view(request):
     profile, _ = IndividualProfile.objects.get_or_create(user=request.user)
-    subscriptions = AddonSubscription.objects.filter(profile=profile, status='active')
+    subscriptions = list(
+        AddonSubscription.objects.filter(profile=profile, status='active')
+        .only('addon_slug', 'addon_name', 'plan', 'status', 'display_order', 'started_at')
+    )
     api_keys = APIKey.objects.filter(profile=profile)
     total_calls = sum(k.calls_total for k in api_keys)
     active_keys = api_keys.filter(is_active=True).count()
@@ -1055,7 +1058,7 @@ def dashboard_view(request):
     tool_stats = {}
     my_addons = []
     if profile.role == 'teacher':
-        my_slugs = set(subscriptions.values_list('addon_slug', flat=True))
+        my_slugs = {s.addon_slug for s in subscriptions}
         recommended = [a for a in TEACHER_ADDON_CATALOG if a['slug'] not in my_slugs][:4]
 
         # Batch-count all tool models in ONE query via UNION ALL / raw SQL
@@ -1096,8 +1099,7 @@ def dashboard_view(request):
             'tvet-workshop': '#d97706',
         }
         catalog_map = {a['slug']: a for a in TEACHER_ADDON_CATALOG}
-        sub_list_ordered = list(subscriptions)  # already ordered by display_order, -started_at
-        for sub in sub_list_ordered:
+        for sub in subscriptions:  # already evaluated & ordered by display_order, -started_at
             cat = catalog_map.get(sub.addon_slug)
             if cat:
                 my_addons.append({
@@ -1119,7 +1121,7 @@ def dashboard_view(request):
         greeting = 'Good evening'
 
     total_content = sum(tool_stats.values()) if tool_stats else 0
-    sub_list = list(subscriptions)          # evaluate once; reused in template + count
+    sub_list = subscriptions                 # already evaluated above
 
     # ── Onboarding Checklist (auto-detected) ─────────────────────
     has_name = bool(request.user.first_name and request.user.last_name)

@@ -163,6 +163,59 @@
     .st-section { padding: 1.25rem; }
     .st-avatar-row { flex-direction: column; text-align: center; }
 }
+
+/* ── Entrance Animations ─────────────────────────────── */
+@keyframes stFadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes stIconPop {
+    from  { opacity: 0; transform: scale(0.6); }
+    60%   { transform: scale(1.1); }
+    to    { opacity: 1; transform: scale(1); }
+}
+@keyframes stAvatarReveal {
+    from { opacity: 0; transform: scale(0.85); }
+    to   { opacity: 1; transform: scale(1); }
+}
+@keyframes stInputSlide {
+    from { opacity: 0; transform: translateX(-8px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+.st-section {
+    animation: stFadeUp .4s ease both;
+}
+.st-section:nth-child(1) { animation-delay: 0s; }
+.st-section:nth-child(2) { animation-delay: .1s; }
+.st-section:nth-child(3) { animation-delay: .2s; }
+.st-section-icon {
+    animation: stIconPop .35s cubic-bezier(.22,.68,0,1.1) .15s both;
+}
+.st-avatar {
+    animation: stAvatarReveal .4s ease .1s both;
+}
+.st-form-group {
+    animation: stInputSlide .3s ease both;
+}
+.st-form-group:nth-child(1) { animation-delay: .08s; }
+.st-form-group:nth-child(2) { animation-delay: .14s; }
+.st-form-group:nth-child(3) { animation-delay: .20s; }
+.st-form-group:nth-child(4) { animation-delay: .26s; }
+.st-form-group:nth-child(5) { animation-delay: .32s; }
+.st-form-group:nth-child(n+6) { animation-delay: .38s; }
+.st-btn {
+    transition: all .15s ease, transform .2s;
+}
+.st-btn:active {
+    transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+    .st-section, .st-section-icon, .st-avatar,
+    .st-form-group {
+        animation: none !important;
+        opacity: 1; transform: none;
+    }
+}
 {% endblock %}
 
 {% block content %}
