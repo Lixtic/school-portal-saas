@@ -1,6 +1,7 @@
 """
 AI Tutor Assistant - Personalized learning chatbot for students
 """
+import logging
 import os
 import json
 from datetime import date
@@ -10,6 +11,7 @@ from django.conf import settings
 from django.utils import timezone
 from tenants.ai_model_config import get_platform_ai_provider, get_platform_model_config
 
+logger = logging.getLogger(__name__)
 
 OPENAI_CHAT_COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions"
 OPENAI_VISION_MODEL = "gpt-4o"  # supports vision
@@ -148,7 +150,7 @@ def extract_scheme_of_work_data(image_path_or_url: str) -> dict:
                                 indicators[t] = ind
                 return {'topics': topics, 'indicators': indicators}
     except Exception:
-        pass
+        logger.warning('extract_scheme_of_work_data failed for %s', image_path_or_url, exc_info=True)
     return {'topics': [], 'indicators': {}}
 
 

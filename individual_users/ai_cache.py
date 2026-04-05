@@ -62,16 +62,20 @@ def call_and_cache(*, system: str, prompt: str, model: str = 'gpt-4o-mini',
 
     key = _make_key(system, prompt, model, temperature)
 
-    client = openai.OpenAI(api_key=getattr(settings, 'OPENAI_API_KEY', ''))
-    resp = client.chat.completions.create(
-        model=model,
-        messages=[
-            {'role': 'system', 'content': system},
-            {'role': 'user', 'content': prompt},
-        ],
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
+    try:
+        client = openai.OpenAI(api_key=getattr(settings, 'OPENAI_API_KEY', ''))
+        resp = client.chat.completions.create(
+            model=model,
+            messages=[
+                {'role': 'system', 'content': system},
+                {'role': 'user', 'content': prompt},
+            ],
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+    except openai.OpenAIError as exc:
+        logger.error('OpenAI API error (model=%s): %s', model, exc)
+        raise
     raw_text = _strip_fences(resp.choices[0].message.content.strip())
 
     cache.set(key, raw_text, CACHE_TTL)
