@@ -11,10 +11,10 @@ def teacher_context(request):
     Returns empty dict if user is not authenticated or not a teacher.
     """
     context = {
-        'aura_teacher_subjects': [],
-        'aura_teacher_classes': [],
-        'aura_class_summary': None,
-        'aura_struggling_students': [],
+        'padi_teacher_subjects': [],
+        'padi_teacher_classes': [],
+        'padi_class_summary': None,
+        'padi_struggling_students': [],
     }
     
     if not request.user.is_authenticated:
@@ -55,8 +55,8 @@ def teacher_context(request):
                 if assignment.class_name.name not in classes:
                     classes.append(assignment.class_name.name)
         
-        context['aura_teacher_subjects'] = subjects[:5]  # Limit to 5
-        context['aura_teacher_classes'] = classes[:5]
+        context['padi_teacher_subjects'] = subjects[:5]  # Limit to 5
+        context['padi_teacher_classes'] = classes[:5]
         
         # Get summary stats
         if class_ids:
@@ -83,16 +83,16 @@ def teacher_context(request):
                                 'avg_score': round(avg, 1),
                             })
             
-            context['aura_class_summary'] = {
+            context['padi_class_summary'] = {
                 'total_students': total_students,
                 'struggling_count': len(struggling),
             }
-            context['aura_struggling_students'] = struggling[:3]  # Top 3 struggling
+            context['padi_struggling_students'] = struggling[:3]  # Top 3 struggling
             
     except Exception as e:
         # Fail silently - don't break page rendering
         import logging
-        logging.getLogger(__name__).debug(f"Aura context error: {e}")
+        logging.getLogger(__name__).debug(f"SchoolPadi context error: {e}")
     
     # Purchased add-on slugs (set) for sidebar gating
     try:

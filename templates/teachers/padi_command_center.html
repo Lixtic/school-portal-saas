@@ -352,7 +352,7 @@
                 <a href="{% url 'teachers:lesson_plan_create' %}" class="btn btn-light rounded-pill fw-semibold px-3 btn-sm">
                     <i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline ms-1">New Plan</span>
                 </a>
-                <a href="{% url 'teachers:aura_flight_manual' %}" class="btn btn-warning rounded-pill fw-semibold px-3 btn-sm text-dark">
+                <a href="{% url 'teachers:padi_flight_manual' %}" class="btn btn-warning rounded-pill fw-semibold px-3 btn-sm text-dark">
                     <i class="bi bi-book me-1"></i><span class="d-none d-sm-inline">Flight Manual</span><span class="d-sm-none">Manual</span>
                 </a>
                 <a href="{% url 'teachers:pulse_history' %}" class="btn btn-light rounded-pill fw-semibold px-3 btn-sm">
@@ -396,7 +396,7 @@
                 <div class="acc-stat-icon" style="background:#f3f4f6;color:#6b7280;">⬜</div>
                 <div>
                     <div class="acc-stat-lbl">No Padi-T</div>
-                    <div class="acc-stat-val" style="color:#6b7280;">{{ no_aura_count }}</div>
+                    <div class="acc-stat-val" style="color:#6b7280;">{{ no_padi_count }}</div>
                 </div>
             </div>
         </div>
@@ -554,7 +554,7 @@
                 </span>
                 {% endif %}
                 {# Mobile padi score pill #}
-                <span class="mobile-padi-pill ring-{{ p.aura_score }}">{{ p.aura_score }}/4</span>
+                <span class="mobile-padi-pill ring-{{ p.padi_score }}">{{ p.padi_score }}/4</span>
             </div>
             <div class="plan-detail">
                 {{ p.subject.name }} &middot; {{ p.school_class.name }}
@@ -569,7 +569,7 @@
             <span class="ab {% if p.has_insight %}ab-on{% else %}ab-off{% endif %}">🤖 Insight</span>
         </div>
 
-        <div class="score-ring ring-{{ p.aura_score }}">{{ p.aura_score }}/4</div>
+        <div class="score-ring ring-{{ p.padi_score }}">{{ p.padi_score }}/4</div>
 
         <div class="plan-actions">
             <a href="{% url 'teachers:lesson_plan_detail' p.pk %}" class="action-btn btn-view">
@@ -585,7 +585,7 @@
     {# ═══════════════════════════════════════════════════════════════════ #}
     {% else %}
 
-    {% regroup plans by aura_score as score_groups %}
+    {% regroup plans by padi_score as score_groups %}
 
     <div id="planList">
     {% for group in score_groups %}
@@ -622,7 +622,7 @@
                     </span>
                     {% endif %}
                     {# Mobile padi score pill #}
-                    <span class="mobile-padi-pill ring-{{ p.aura_score }}">{{ p.aura_score }}/4</span>
+                    <span class="mobile-padi-pill ring-{{ p.padi_score }}">{{ p.padi_score }}/4</span>
                 </div>
                 <div class="plan-detail">
                     {{ p.subject.name }} &middot; {{ p.school_class.name }}
@@ -636,7 +636,7 @@
                 <span class="ab {% if p.has_insight %}ab-on{% else %}ab-off{% endif %}">🤖 Insight</span>
             </div>
 
-            <div class="score-ring ring-{{ p.aura_score }}">{{ p.aura_score }}/4</div>
+            <div class="score-ring ring-{{ p.padi_score }}">{{ p.padi_score }}/4</div>
 
             <div class="plan-actions">
                 <a href="{% url 'teachers:lesson_plan_detail' p.pk %}" class="action-btn btn-view">
@@ -647,7 +647,7 @@
                    title="Open plan and click Regenerate to upgrade to v3">
                     <i class="bi bi-arrow-clockwise"></i><span class="d-none d-sm-inline"> Regen</span>
                 </a>
-                {% if p.aura_score >= 1 %}
+                {% if p.padi_score >= 1 %}
                 <a href="{% url 'teachers:lesson_plan_cards_print' p.pk %}" class="action-btn btn-cards" target="_blank">
                     <i class="bi bi-scissors"></i><span class="d-none d-sm-inline"> Cards</span>
                 </a>

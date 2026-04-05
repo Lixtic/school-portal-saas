@@ -636,72 +636,67 @@
     </div>
 </div>
 
-<!-- Onboarding (only for new users) -->
-{% if total_content == 0 %}
-<div class="iu-card db-onboard">
-    <h4><i class="bi bi-mortarboard"></i> Getting Started</h4>
-    <div class="db-o-steps">
-        <div class="db-o-step">
-            <div class="db-o-num">1</div>
-            <div class="db-o-text">
-                <strong>Subscribe to tools</strong>
-                <span>Get the <a href="{% url 'individual:addons' %}">Lesson Planner</a> or Exam Generator</span>
-            </div>
-        </div>
-        <div class="db-o-step">
-            <div class="db-o-num">2</div>
-            <div class="db-o-text">
-                <strong>Create with AI</strong>
-                <span>Open <a href="{% url 'individual:tools_hub' %}">My Tools</a> and use AI to draft</span>
-            </div>
-        </div>
-        <div class="db-o-step">
-            <div class="db-o-num">3</div>
-            <div class="db-o-text">
-                <strong>Review &amp; print</strong>
-                <span>Edit AI output, then print or export</span>
-            </div>
+<!-- Onboarding Checklist -->
+{% if not onboarding_complete %}
+<div class="iu-card db-onboard" id="dbOnboard" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem">
+        <h4 style="margin:0"><i class="bi bi-rocket-takeoff"></i> Getting Started</h4>
+        <div style="display:flex;align-items:center;gap:.75rem">
+            <span style="font-size:.75rem;color:var(--text-muted);font-weight:600">{{ onboarding_done }}/{{ onboarding_total }}</span>
+            <button onclick="document.getElementById('dbOnboard').remove();localStorage.setItem('padi_dismiss_onboard','1')" style="background:none;border:none;color:var(--text-muted);font-size:1rem;cursor:pointer;padding:0;line-height:1" title="Dismiss">&times;</button>
         </div>
     </div>
+    <div style="height:4px;border-radius:2px;background:var(--border-color);margin-bottom:1rem;overflow:hidden">
+        <div style="height:100%;width:{% widthratio onboarding_done onboarding_total 100 %}%;background:var(--brand-primary);border-radius:2px;transition:width .4s ease"></div>
+    </div>
+    <div class="db-o-steps" style="flex-direction:column;gap:.55rem">
+        {% for step in onboarding_steps %}
+        <{% if step.done %}div{% else %}a href="{% url step.url %}"{% endif %} class="db-o-step" style="padding:.65rem .85rem;border-radius:10px;{% if step.done %}opacity:.6{% else %}background:var(--surface-card);border:1px solid var(--border-color);text-decoration:none;color:inherit{% endif %}">
+            <div class="db-o-num" style="{% if step.done %}background:#059669{% endif %}">
+                {% if step.done %}<i class="bi bi-check-lg" style="font-size:.7rem"></i>{% else %}<i class="bi {{ step.icon }}" style="font-size:.65rem"></i>{% endif %}
+            </div>
+            <div class="db-o-text">
+                <strong style="{% if step.done %}text-decoration:line-through{% endif %}">{{ step.label }}</strong>
+            </div>
+            {% if not step.done %}<i class="bi bi-chevron-right" style="margin-left:auto;color:var(--text-muted);font-size:.7rem"></i>{% endif %}
+        </{% if step.done %}div{% else %}a{% endif %}>
+        {% endfor %}
+    </div>
 </div>
+<script>if(!localStorage.getItem('padi_dismiss_onboard'))document.getElementById('dbOnboard').style.display='';</script>
 {% endif %}
 
 {% else %}
 <!-- ═══ Developer Dashboard ═══ -->
 
-<!-- Onboarding for devs -->
-{% if subscription_count == 0 %}
-<div class="iu-card db-onboard">
-    <h4><i class="bi bi-lightning-charge"></i> Quick Start</h4>
-    <div class="db-o-steps">
-        <div class="db-o-step">
-            <div class="db-o-num">1</div>
-            <div class="db-o-text">
-                <strong>Subscribe to an addon</strong>
-                <span>Browse the <a href="{% url 'individual:addons' %}">Addon Store</a></span>
-            </div>
-        </div>
-        <div class="db-o-step">
-            <div class="db-o-num">2</div>
-            <div class="db-o-text">
-                <strong>Generate an API key</strong>
-                <span>Go to <a href="{% url 'individual:api_keys' %}">API Keys</a></span>
-            </div>
-        </div>
-        <div class="db-o-step">
-            <div class="db-o-num">3</div>
-            <div class="db-o-text">
-                <strong>Make your first call</strong>
-                <span>Use the code sample below</span>
-            </div>
+<!-- Onboarding Checklist (Devs) -->
+{% if not onboarding_complete %}
+<div class="iu-card db-onboard" id="dbOnboardDev" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem">
+        <h4 style="margin:0"><i class="bi bi-lightning-charge"></i> Quick Start</h4>
+        <div style="display:flex;align-items:center;gap:.75rem">
+            <span style="font-size:.75rem;color:var(--text-muted);font-weight:600">{{ onboarding_done }}/{{ onboarding_total }}</span>
+            <button onclick="document.getElementById('dbOnboardDev').remove();localStorage.setItem('padi_dismiss_onboard_dev','1')" style="background:none;border:none;color:var(--text-muted);font-size:1rem;cursor:pointer;padding:0;line-height:1" title="Dismiss">&times;</button>
         </div>
     </div>
-    <div class="db-code">
-        <span class="cm"># Verify your API key</span><br>
-        <span class="kw">curl</span> -H <span class="str">"Authorization: Bearer YOUR_API_KEY"</span> \<br>
-        &nbsp;&nbsp;&nbsp;&nbsp; {{ request.scheme }}://{{ request.get_host }}/u/api/status/
+    <div style="height:4px;border-radius:2px;background:var(--border-color);margin-bottom:1rem;overflow:hidden">
+        <div style="height:100%;width:{% widthratio onboarding_done onboarding_total 100 %}%;background:var(--brand-primary);border-radius:2px;transition:width .4s ease"></div>
+    </div>
+    <div class="db-o-steps" style="flex-direction:column;gap:.55rem">
+        {% for step in onboarding_steps %}
+        <{% if step.done %}div{% else %}a href="{% url step.url %}"{% endif %} class="db-o-step" style="padding:.65rem .85rem;border-radius:10px;{% if step.done %}opacity:.6{% else %}background:var(--surface-card);border:1px solid var(--border-color);text-decoration:none;color:inherit{% endif %}">
+            <div class="db-o-num" style="{% if step.done %}background:#059669{% endif %}">
+                {% if step.done %}<i class="bi bi-check-lg" style="font-size:.7rem"></i>{% else %}<i class="bi {{ step.icon }}" style="font-size:.65rem"></i>{% endif %}
+            </div>
+            <div class="db-o-text">
+                <strong style="{% if step.done %}text-decoration:line-through{% endif %}">{{ step.label }}</strong>
+            </div>
+            {% if not step.done %}<i class="bi bi-chevron-right" style="margin-left:auto;color:var(--text-muted);font-size:.7rem"></i>{% endif %}
+        </{% if step.done %}div{% else %}a{% endif %}>
+        {% endfor %}
     </div>
 </div>
+<script>if(!localStorage.getItem('padi_dismiss_onboard_dev'))document.getElementById('dbOnboardDev').style.display='';</script>
 {% endif %}
 
 <!-- Active Subscriptions -->

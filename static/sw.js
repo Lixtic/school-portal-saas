@@ -4,7 +4,7 @@ const STATIC_CACHE = `school-static-${SW_VERSION}`;
 const RUNTIME_CACHE = `school-runtime-${SW_VERSION}`;
 
 const OFFLINE_URL = '/offline/';
-const SYNC_TAG = 'aura-form-sync';
+const SYNC_TAG = 'padi-form-sync';
 const PRECACHE_URLS = [
   '/',
   OFFLINE_URL,
@@ -238,7 +238,7 @@ self.addEventListener('message', (event) => {
 
 function openSyncDB() {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open('aura-sync', 1);
+    const req = indexedDB.open('padi-sync', 1);
     req.onupgradeneeded = (e) => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains('sync-queue')) {
@@ -316,7 +316,7 @@ self.addEventListener('sync', (event) => {
 // Auto-refresh cached pages in the background so offline data stays fresh
 
 self.addEventListener('periodicsync', (event) => {
-  if (event.tag === 'aura-refresh-cache') {
+  if (event.tag === 'padi-refresh-cache') {
     event.waitUntil(refreshCachedPages());
   }
 });

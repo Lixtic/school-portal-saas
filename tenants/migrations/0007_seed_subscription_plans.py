@@ -40,7 +40,7 @@ def seed_plans(apps, schema_editor):
         {
             'name': 'Professional',
             'plan_type': 'pro',
-            'description': 'For growing schools. All Basic features plus AI lesson planner (Aura-T), parent portal, advanced analytics, and priority support.',
+            'description': 'For growing schools. All Basic features plus AI lesson planner (Padi-T), parent portal, advanced analytics, and priority support.',
             'monthly_price': 199,
             'quarterly_price': 529,
             'annual_price': 1899,

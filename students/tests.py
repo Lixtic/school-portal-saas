@@ -23,7 +23,7 @@ from teachers.models import Teacher
 	os.getenv('RUN_TENANT_INTEGRATION_TESTS') == '1',
 	'Tenant integration tests are opt-in; set RUN_TENANT_INTEGRATION_TESTS=1 to execute.',
 )
-class AuraStudentSecurityTests(TenantTestCase):
+class PadiStudentSecurityTests(TenantTestCase):
 	@classmethod
 	def setup_tenant(cls, tenant):
 		tenant.name = 'Test School'
@@ -96,20 +96,20 @@ class AuraStudentSecurityTests(TenantTestCase):
 		)
 		self.assertEqual(response.status_code, 403)
 
-	def test_aura_arena_get_handles_invalid_last_id(self):
+	def test_padi_arena_get_handles_invalid_last_id(self):
 		StudyGroupRoom.objects.create(name='Arena A', student_class=self.class_a)
 
 		self.client.force_login(self.student_user)
-		response = self.client.get(self.turl('students:aura_arena_api') + '?last_id=bad-value')
+		response = self.client.get(self.turl('students:padi_arena_api') + '?last_id=bad-value')
 		self.assertEqual(response.status_code, 200)
 		self.assertIn('messages', response.json())
 
-	def test_aura_arena_post_rejects_invalid_json(self):
+	def test_padi_arena_post_rejects_invalid_json(self):
 		StudyGroupRoom.objects.create(name='Arena A', student_class=self.class_a)
 
 		self.client.force_login(self.student_user)
 		response = self.client.post(
-			self.turl('students:aura_arena_api'),
+			self.turl('students:padi_arena_api'),
 			data='{not-valid-json',
 			content_type='application/json',
 		)

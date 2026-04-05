@@ -12,7 +12,7 @@ Architecture:
 
 Usage:
     Do NOT run this on Vercel or standard web servers (CPU-only).
-    Run: `python -m services.aura_worker`
+    Run: `python -m services.padi_worker`
     Dependencies: `pip install torch transformers accelerate bitsandbytes scipy soundfile`
 """
 
@@ -30,7 +30,7 @@ except ImportError:
     torch = None
     logger.warning("GPU dependencies not found. SchoolPadi Worker will not function properly.")
 
-class AuraPipeline:
+class PadiPipeline:
     def __init__(self, device="cuda:0"):
         if not torch or not torch.cuda.is_available():
             raise RuntimeError("CUDA GPU is required for this worker.")
@@ -71,7 +71,7 @@ class AuraPipeline:
         )
         logger.info("SchoolPadi Pipeline Ready.")
 
-    def talk_to_aura(self, audio_file):
+    def talk_to_padi(self, audio_file):
         """
         Full S2S pipeline:
         Audio input -> ASR -> Text -> LLM -> Text -> TTS -> Audio output
@@ -95,7 +95,7 @@ class AuraPipeline:
             {"role": "user", "content": user_text},
         ]
         
-        aura_text = ""
+        padi_text = ""
         try:
             llm_out = self.llm_pipe(
                 messages, 
@@ -105,18 +105,18 @@ class AuraPipeline:
             # Depending on pipeline output format, extract text
             # Usually: [{'generated_text': '...'}] if return_full_text=False
             if isinstance(llm_out, list) and len(llm_out) > 0:
-                 aura_text = llm_out[0]["generated_text"]
+                 padi_text = llm_out[0]["generated_text"]
             else:
-                 aura_text = str(llm_out)
+                 padi_text = str(llm_out)
                  
-            logger.info(f"SchoolPadi Reply: {aura_text}")
+            logger.info(f"SchoolPadi Reply: {padi_text}")
         except Exception as e:
             logger.error(f"LLM Failed: {e}")
             return None
 
         # Step C: Speak
         try:
-            audio_out = self.tts_pipe(aura_text)
+            audio_out = self.tts_pipe(padi_text)
             return audio_out
         except Exception as e:
             logger.error(f"TTS Failed: {e}")
@@ -128,9 +128,9 @@ if __name__ == "__main__":
         # Check for GPU
         if torch and torch.cuda.is_available():
             print("Starting SchoolPadi Pipeline...")
-            aura = AuraPipeline()
+            padi = PadiPipeline()
             print("Pipeline Ready. (Mocking input for demo)")
-            # In real usage: aura.talk_to_aura("path/to/audio.wav")
+            # In real usage: padi.talk_to_padi("path/to/audio.wav")
         else:
             print("Skipping initialization: No GPU detected.")
     except Exception as e:

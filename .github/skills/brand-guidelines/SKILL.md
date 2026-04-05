@@ -1,18 +1,18 @@
 ---
 name: brand-guidelines
-description: Applies Aura's official brand colors, typography, and design tokens to any UI artifact in this school management SaaS. Use it when brand colors, style guidelines, visual formatting, or design standards apply to new or existing components, pages, emails, or templates.
+description: Applies SchoolPadi's official brand colors, typography, and design tokens to any UI artifact in this school management SaaS. Use it when brand colors, style guidelines, visual formatting, or design standards apply to new or existing components, pages, emails, or templates.
 ---
 
-# Aura — Brand & Design System
+# SchoolPadi — Brand & Design System
 
 ## Overview
 
-Aura is a multi-tenant SaaS school management platform. Its visual identity operates on **two layers**:
+SchoolPadi is a multi-tenant SaaS school management platform. Its visual identity operates on **two layers**:
 
 1. **Platform brand** — fixed system-wide chrome (admin UI, auth pages, emails, error pages)
 2. **School brand** — per-tenant customizable primary/secondary color pair injected from `SchoolInfo`
 
-Always respect both layers. Platform chrome uses the Aura system tokens. School-facing public pages may override via CSS variables driven by the tenant's saved colors.
+Always respect both layers. Platform chrome uses the SchoolPadi system tokens. School-facing public pages may override via CSS variables driven by the tenant's saved colors.
 
 ---
 
@@ -164,7 +164,7 @@ box-shadow: 0 10px 25px rgba(201,169,97,0.3)
 
 ## 5. Motion & Animation Tokens
 
-Aura uses a single signature loader pattern — a running-light shimmer bar — not spinning circles.
+SchoolPadi uses a single signature loader pattern — a running-light shimmer bar — not spinning circles.
 
 ```css
 /* Top-edge navigation progress bar */
@@ -176,7 +176,7 @@ background: linear-gradient(
   rgba(76,201,240,.9) 72%,
   transparent          100%
 );
-animation: auraExpressiveShimmer 1.6s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+animation: padiExpressiveShimmer 1.6s cubic-bezier(0.37, 0, 0.63, 1) infinite;
 ```
 
 Skeleton loaders:
@@ -188,7 +188,7 @@ Skeleton loaders:
 
 Dot pulse (loading cards):
 ```css
-animation: auraDotPulse 1.2s ease-in-out infinite;
+animation: padiDotPulse 1.2s ease-in-out infinite;
 /* delay: 0s, 0.2s, 0.4s for three dots */
 ```
 
@@ -228,7 +228,7 @@ General motion principles:
 2. **Admin chrome uses violet** (`#7c3aed`) not the school's primary color.
 3. **Dark mode is mandatory** — every new component must define `[data-bs-theme="dark"]` overrides.
 4. **Font on internal pages = Manrope only**. Landing pages may use their template-specific pairing.
-5. **The loader bar is Aura's signature motion** — do not use spinner circles on page transitions.
+5. **The loader bar is SchoolPadi's signature motion** — do not use spinner circles on page transitions.
 6. **Japandi tone = calm and slow** — use long easing curves and generous whitespace.
 7. **Art Deco tone = sharp and ceremonial** — high contrast gold on near-black, tight grid lines.
 8. **Buttons**: primary CTA uses the `linear-gradient(135deg, #4361ee, #4cc9f0)` gradient with `border-radius: 10px–12px` and `font-weight: 600–700`.

@@ -13,7 +13,7 @@ import csv
 import random
 import string
 from .models import Student, Attendance, Grade, ExamType
-from .forms import StudentForm, CSVImportForm, AuraPreferencesForm, ExamTypeForm
+from .forms import StudentForm, CSVImportForm, PadiPreferencesForm, ExamTypeForm
 from accounts.models import User
 
 from .utils import calculate_class_position, normalize_term, term_filter_values
@@ -1602,7 +1602,7 @@ def bulk_student_id_cards_pdf(request):
         return redirect('students:student_list')
 
 @login_required
-def update_aura_preferences(request):
+def update_padi_preferences(request):
     """Student self-service endpoint to update preferred language and interests."""
     if request.user.user_type != 'student':
         return JsonResponse({'success': False, 'message': 'Access denied.'}, status=403)
@@ -1612,7 +1612,7 @@ def update_aura_preferences(request):
         return JsonResponse({'success': False, 'message': 'Student profile not found.'}, status=404)
 
     if request.method == 'POST':
-        form = AuraPreferencesForm(request.POST, instance=student)
+        form = PadiPreferencesForm(request.POST, instance=student)
         if form.is_valid():
             form.save()
             lang_display = dict(student._meta.get_field('preferred_language').choices).get(
@@ -1767,7 +1767,7 @@ def student_power_words(request):
 @login_required
 def class_leaderboard_json(request):
     """
-    Returns top-20 classmates ranked by Aura XP for the logged-in student.
+    Returns top-20 classmates ranked by SchoolPadi XP for the logged-in student.
     The student's own entry is included and marked with `is_me: true`.
     """
     from academics.gamification_models import StudentXP
@@ -2304,13 +2304,13 @@ def manage_exam_types(request):
     })
 
 
-# ─── Aura Portfolio ─────────────────────────────────────────────────────────
+# ─── SchoolPadi Portfolio ─────────────────────────────────────────────────────────
 
 
 @login_required
-def aura_portfolio(request):
+def padi_portfolio(request):
     """
-    Student Aura Portfolio — motivational showcase of a student's AI learning journey.
+    Student SchoolPadi Portfolio — motivational showcase of a student's AI learning journey.
     Accessible by the student (own portfolio) and by teachers/admins (?student_id=N).
     Parents access via ?student_id=N after verifying ownership.
     """
@@ -2422,7 +2422,7 @@ def aura_portfolio(request):
         'heatmap_json': heatmap_json,
         'heatmap_start': heatmap_start,
     }
-    return render(request, 'students/aura_portfolio.html', context)
+    return render(request, 'students/padi_portfolio.html', context)
 
 
 @login_required

@@ -26,7 +26,7 @@ WELCOME_BONUS_CREDITS = 10
 
 # ── Add-on slug → gated view names ─────────────────────────────
 ADDON_FEATURE_MAP = {
-    'aura-slide-generator': {
+    'padi-slide-generator': {
         'label': 'SchoolPadi Slide Generator',
         'gates': [
             'presentation_api',
@@ -37,7 +37,7 @@ ADDON_FEATURE_MAP = {
     'smart-planner-pro': {
         'label': 'Smart Planner Pro',
         'gates': [
-            'aura_t_api', 'ges_lesson_api',
+            'padi_t_api', 'ges_lesson_api',
         ],
     },
     'exercise-maker': {

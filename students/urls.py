@@ -39,39 +39,39 @@ urlpatterns = [
     path('exam-types/', views.manage_exam_types, name='manage_exam_types'),
     
     # AI Voice Interface
-    path('aura/voice/', views_ai.aura_voice_view, name='aura_voice'),
-    path('aura/realtime-session/', views_ai.create_realtime_session, name='create_realtime_session'),
-    path('aura/voice/end-session/', views_ai.voice_end_session, name='voice_end_session'),
-    path('aura/voice/board/', views_ai.voice_board_generate, name='voice_board_generate'),
-    path('aura/voice/vision/', views_ai.voice_vision_analyze, name='voice_vision_analyze'),
+    path('padi/voice/', views_ai.padi_voice_view, name='padi_voice'),
+    path('padi/realtime-session/', views_ai.create_realtime_session, name='create_realtime_session'),
+    path('padi/voice/end-session/', views_ai.voice_end_session, name='voice_end_session'),
+    path('padi/voice/board/', views_ai.voice_board_generate, name='voice_board_generate'),
+    path('padi/voice/vision/', views_ai.voice_vision_analyze, name='voice_vision_analyze'),
     
     # SchoolPadi Arena
-    path('aura/arena/', views_ai.aura_arena_view, name='aura_arena'),
-    path('aura/arena/api/', views_ai.aura_arena_api, name='aura_arena_api'),
+    path('padi/arena/', views_ai.padi_arena_view, name='padi_arena'),
+    path('padi/arena/api/', views_ai.padi_arena_api, name='padi_arena_api'),
 
     # Power Word tracking
-    path('aura/log-power-words/', views_ai.log_power_words, name='log_power_words'),
+    path('padi/log-power-words/', views_ai.log_power_words, name='log_power_words'),
 
     # Voice XP Award
-    path('aura/voice/award-xp/', views_ai.voice_award_xp, name='voice_award_xp'),
+    path('padi/voice/award-xp/', views_ai.voice_award_xp, name='voice_award_xp'),
 
     # SchoolPadi Portfolio (student + teacher/parent view)
-    path('aura/portfolio/', views.aura_portfolio, name='aura_portfolio'),
+    path('padi/portfolio/', views.padi_portfolio, name='padi_portfolio'),
 
     # SchoolPadi Preferences (student self-service)
-    path('aura/preferences/', views.update_aura_preferences, name='update_aura_preferences'),
+    path('padi/preferences/', views.update_padi_preferences, name='update_padi_preferences'),
 
     # Power Words history (student view)
     path('power-words/', views.student_power_words, name='power_words_history'),
 
     # XP Leaderboard API
-    path('aura/leaderboard/', views.class_leaderboard_json, name='class_leaderboard_json'),
+    path('padi/leaderboard/', views.class_leaderboard_json, name='class_leaderboard_json'),
 
     # Class Analytics
     path('class-analytics/', views.class_analytics, name='class_analytics'),
 
     # XP Leaderboard full page
-    path('aura/leaderboard-page/', views.xp_leaderboard, name='xp_leaderboard'),
+    path('padi/leaderboard-page/', views.xp_leaderboard, name='xp_leaderboard'),
 
     # Digital Pulse (student side)
     path('pulse/poll/', views.pulse_poll, name='pulse_poll'),

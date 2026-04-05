@@ -574,6 +574,39 @@ def landlord_dashboard(request):
         'signups_chart': signups_chart,
     }
 
+    # === Individual User / Referral Stats ===
+    try:
+        from individual_users.models import IndividualProfile, IndividualCreditTransaction
+        from django.db.models import Sum as _Sum
+
+        total_individuals = IndividualProfile.objects.count()
+        verified_individuals = IndividualProfile.objects.filter(email_verified=True).count()
+        total_referrals = IndividualProfile.objects.filter(referred_by__isnull=False).count()
+        referral_credits_awarded = (
+            IndividualCreditTransaction.objects
+            .filter(transaction_type='referral', amount__gt=0)
+            .aggregate(total=_Sum('amount'))['total'] or 0
+        )
+        # Top 5 referrers
+        from django.db.models import Count as _RefCount
+        top_referrers = (
+            IndividualProfile.objects
+            .filter(referrals__isnull=False)
+            .annotate(ref_count=_RefCount('referrals'))
+            .order_by('-ref_count')
+            .select_related('user')[:5]
+        )
+
+        context.update({
+            'total_individuals': total_individuals,
+            'verified_individuals': verified_individuals,
+            'total_referrals': total_referrals,
+            'referral_credits_awarded': referral_credits_awarded,
+            'top_referrers': top_referrers,
+        })
+    except Exception:
+        pass  # Don't crash if individual_users tables aren't available
+
     # === AI Usage This Month ===
     try:
         from .models import AIUsageLog, SchoolSubscription

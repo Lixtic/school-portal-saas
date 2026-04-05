@@ -123,7 +123,7 @@ class LearnerMemory(models.Model):
     def ingest_session_summary(self, summary: dict):
         """
         Merge a single session_summary dict into the cumulative memory.
-        Called at the end of every Aura session that emits a summary.
+        Called at the end of every SchoolPadi session that emits a summary.
         """
         ss = summary.get('session_summary', summary)
 
@@ -299,7 +299,7 @@ class LearnerMemory(models.Model):
 
 class PowerWord(models.Model):
     """
-    Tracks academic vocabulary words that Aura has successfully taught a student.
+    Tracks academic vocabulary words that SchoolPadi has successfully taught a student.
 
     Every time the student correctly uses a Power Word (a domain-specific academic term
     they learned during a SchoolPadi session), this record is updated. Teachers see a clean
@@ -309,7 +309,7 @@ class PowerWord(models.Model):
     SESSION_VOICE = 'voice'
     SESSION_TEXT = 'text'
     SESSION_CHOICES = [
-        (SESSION_VOICE, 'Aura Voice'),
+        (SESSION_VOICE, 'SchoolPadi Voice'),
         (SESSION_TEXT, 'Text Chat'),
     ]
 

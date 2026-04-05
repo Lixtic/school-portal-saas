@@ -39,4 +39,4 @@ class StudyGroupMessage(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.sender or 'Aura'} in {self.room.name}: {self.content[:30]}"
+        return f"{self.sender or 'SchoolPadi'} in {self.room.name}: {self.content[:30]}"

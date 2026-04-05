@@ -15,7 +15,7 @@ from academics.ai_tutor import (
 
 logger = logging.getLogger(__name__)
 
-class AuraGenEngine:
+class PadiGenEngine:
     """
     Padi-T Generative Pedagogical Engine.
     Uses AI service to generate educational content.
@@ -156,7 +156,7 @@ JSON SCHEMA — return EXACTLY this structure
 
             response = _post_chat_completion(payload, _get_openai_api_key())
             content = response['choices'][0]['message']['content']
-            data = AuraGenEngine._extract_json_object(content)
+            data = PadiGenEngine._extract_json_object(content)
 
             return {
                 "meta": {
@@ -170,7 +170,7 @@ JSON SCHEMA — return EXACTLY this structure
 
         except Exception as e:
             logger.error("AI assignment generation failed: %s", e)
-            return AuraGenEngine._generate_mock_fallback(topic, subject, grade_level)
+            return PadiGenEngine._generate_mock_fallback(topic, subject, grade_level)
 
     @staticmethod
     def generate_lesson_plan(topic: str, subject: str, grade_level: str, sub_strand: str = '', indicator: str = '') -> Dict:
@@ -803,15 +803,15 @@ CONTENT QUALITY RULES
             }
             response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
             content = response['choices'][0]['message']['content']
-            data = AuraGenEngine._extract_json_object(content)
+            data = PadiGenEngine._extract_json_object(content)
 
-            slides = AuraGenEngine._normalize_slides(data.get("slides"), topic)
-            activities = AuraGenEngine._normalize_activities(data.get("activities"))
+            slides = PadiGenEngine._normalize_slides(data.get("slides"), topic)
+            activities = PadiGenEngine._normalize_activities(data.get("activities"))
 
             if not slides:
-                slides = AuraGenEngine._fallback_slides_outline(topic, subject, grade_level).get("slides", [])
+                slides = PadiGenEngine._fallback_slides_outline(topic, subject, grade_level).get("slides", [])
             if not activities:
-                activities = AuraGenEngine._fallback_slides_outline(topic, subject, grade_level).get("activities", [])
+                activities = PadiGenEngine._fallback_slides_outline(topic, subject, grade_level).get("activities", [])
 
             return {
                 "meta": {
@@ -832,7 +832,7 @@ CONTENT QUALITY RULES
                     "grade": grade_level,
                     "generated_at": timezone.now().isoformat()
                 },
-                **AuraGenEngine._fallback_slides_outline(topic, subject, grade_level)
+                **PadiGenEngine._fallback_slides_outline(topic, subject, grade_level)
             }
 
     @staticmethod
@@ -843,7 +843,7 @@ CONTENT QUALITY RULES
         """
         text_excerpt = document_text.strip()[:12000]
         if not text_excerpt:
-            return AuraGenEngine._fallback_slides_outline(filename or 'Document', 'General', 'General')
+            return PadiGenEngine._fallback_slides_outline(filename or 'Document', 'General', 'General')
 
         title_hint = (
             filename.rsplit('.', 1)[0]
@@ -899,13 +899,13 @@ CONTENT QUALITY RULES
             }
             response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
             content = response['choices'][0]['message']['content']
-            data = AuraGenEngine._extract_json_object(content)
+            data = PadiGenEngine._extract_json_object(content)
 
-            slides = AuraGenEngine._normalize_slides(data.get("slides"), title_hint)
-            activities = AuraGenEngine._normalize_activities(data.get("activities"))
+            slides = PadiGenEngine._normalize_slides(data.get("slides"), title_hint)
+            activities = PadiGenEngine._normalize_activities(data.get("activities"))
 
             if not slides:
-                slides = AuraGenEngine._fallback_slides_outline(title_hint, 'General', 'General').get("slides", [])
+                slides = PadiGenEngine._fallback_slides_outline(title_hint, 'General', 'General').get("slides", [])
             if not activities:
                 activities = []
 
@@ -926,7 +926,7 @@ CONTENT QUALITY RULES
                     "source": "document",
                     "generated_at": timezone.now().isoformat(),
                 },
-                **AuraGenEngine._fallback_slides_outline(title_hint, 'General', 'General'),
+                **PadiGenEngine._fallback_slides_outline(title_hint, 'General', 'General'),
             }
 
     @staticmethod
@@ -1045,10 +1045,10 @@ CONTENT QUALITY RULES
             }
             response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
             content = response['choices'][0]['message']['content']
-            data = AuraGenEngine._extract_json_object(content)
+            data = PadiGenEngine._extract_json_object(content)
 
-            slides = AuraGenEngine._normalize_slides(data.get("slides"), topic)
-            activities = AuraGenEngine._normalize_activities(data.get("activities"))
+            slides = PadiGenEngine._normalize_slides(data.get("slides"), topic)
+            activities = PadiGenEngine._normalize_activities(data.get("activities"))
 
             normalized_with_split_notes = []
             for slide in slides:
@@ -1086,7 +1086,7 @@ CONTENT QUALITY RULES
             if slides:
                 slides = slides[:10]
             if not slides:
-                slides = AuraGenEngine._fallback_slides_outline(topic, subject, class_name).get("slides", [])
+                slides = PadiGenEngine._fallback_slides_outline(topic, subject, class_name).get("slides", [])
             if not activities:
                 activities = [
                     "Pair-share: explain the indicator in your own words.",
@@ -1115,7 +1115,7 @@ CONTENT QUALITY RULES
                     "indicator": indicator,
                     "generated_at": timezone.now().isoformat(),
                 },
-                **AuraGenEngine._fallback_slides_outline(topic, subject, class_name),
+                **PadiGenEngine._fallback_slides_outline(topic, subject, class_name),
             }
 
     @staticmethod
@@ -1164,7 +1164,7 @@ CONTENT QUALITY RULES
                 'max_tokens': 400,
             }
             response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
-            data = AuraGenEngine._extract_json_object(
+            data = PadiGenEngine._extract_json_object(
                 response['choices'][0]['message']['content']
             )
             return {'updates': data.get('updates', [])}
@@ -1217,7 +1217,7 @@ CONTENT QUALITY RULES
                 'max_tokens': 1400,
             }
             response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
-            data = AuraGenEngine._extract_json_object(
+            data = PadiGenEngine._extract_json_object(
                 response['choices'][0]['message']['content']
             )
             return {
@@ -1252,7 +1252,7 @@ CONTENT QUALITY RULES
                 'max_tokens': 300,
             }
             response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
-            data = AuraGenEngine._extract_json_object(
+            data = PadiGenEngine._extract_json_object(
                 response['choices'][0]['message']['content']
             )
             return {'bullets': data.get('bullets', [])}
@@ -1296,7 +1296,7 @@ CONTENT QUALITY RULES
                 'max_tokens': 500,
             }
             response = _post_chat_completion(payload, settings.OPENAI_API_KEY)
-            data = AuraGenEngine._extract_json_object(
+            data = PadiGenEngine._extract_json_object(
                 response['choices'][0]['message']['content']
             )
             return {
@@ -1367,7 +1367,7 @@ CONTENT QUALITY RULES
             }
             response = _post_chat_completion(payload, _get_openai_api_key())
             content_raw = response['choices'][0]['message']['content']
-            data = AuraGenEngine._extract_json_object(content_raw)
+            data = PadiGenEngine._extract_json_object(content_raw)
             return {
                 'ok':                True,
                 'summary':           data.get('summary', ''),
@@ -1659,7 +1659,7 @@ JSON SCHEMA
             data = json.loads(content)
             exercises = data.get("exercises") or []
             if not exercises:
-                exercises = AuraGenEngine._mock_exercises(topic)
+                exercises = PadiGenEngine._mock_exercises(topic)
             return {
                 "meta": {
                     "topic": topic,
@@ -1678,7 +1678,7 @@ JSON SCHEMA
                     "grade": grade_level,
                     "generated_at": timezone.now().isoformat()
                 },
-                "exercises": AuraGenEngine._mock_exercises(topic)
+                "exercises": PadiGenEngine._mock_exercises(topic)
             }
 
     @staticmethod
@@ -1753,10 +1753,10 @@ JSON SCHEMA
         }
 
         # 2. Adaptive Differentiation
-        differentiation = AuraGenEngine._generate_differentiation(topic, content)
+        differentiation = PadiGenEngine._generate_differentiation(topic, content)
 
         # 3. Rubric Co-Design
-        rubric = AuraGenEngine._generate_rubric(topic)
+        rubric = PadiGenEngine._generate_rubric(topic)
 
         return {
             "meta": {

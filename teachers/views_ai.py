@@ -3,8 +3,8 @@ from django.contrib.auth.decorators import login_required
 
 
 @login_required
-def aura_interaction_view(request):
+def padi_interaction_view(request):
     """
-    Render the Aura command center page.
+    Render the SchoolPadi command center page.
     """
     return render(request, 'teachers/ai_sessions_list.html')

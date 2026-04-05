@@ -1661,7 +1661,7 @@ def lesson_plan_list(request):
     subject_id = request.GET.get('subject', '').strip()
     class_id = request.GET.get('school_class', '').strip()
     query = request.GET.get('q', '').strip()
-    aura_only = request.GET.get('aura_only', '').strip()
+    padi_only = request.GET.get('padi_only', '').strip()
 
     teacher_subjects = []
     teacher_classes = []
@@ -1706,27 +1706,27 @@ def lesson_plan_list(request):
                 Q(objectives__icontains=query) |
                 Q(presentation__icontains=query)
             )
-        if aura_only:
+        if padi_only:
             lesson_plans_qs = lesson_plans_qs.filter(introduction__icontains='PULSE CHECK')
         lesson_plans_qs = lesson_plans_qs.order_by('school_class__name', '-date_added')
         lesson_plans = list(lesson_plans_qs)
-        aura_drafted_count = sum(1 for p in lesson_plans if 'PULSE CHECK' in (p.introduction or ''))
+        padi_drafted_count = sum(1 for p in lesson_plans if 'PULSE CHECK' in (p.introduction or ''))
     except (OperationalError, ProgrammingError):
         lesson_plans = []
         teacher_subjects = []
         teacher_classes = []
-        aura_drafted_count = 0
+        padi_drafted_count = 0
         messages.warning(request, "Lesson Plan system is initializing. Please try again later.")
         
     return render(request, 'teachers/lesson_plan_list.html', {
         'lesson_plans': lesson_plans,
-        'aura_drafted_count': aura_drafted_count,
+        'padi_drafted_count': padi_drafted_count,
         'selected_week': week,
         'selected_subject': subject_id,
         'selected_class': class_id,
         'selected_teacher': selected_teacher,
         'selected_query': query,
-        'selected_aura_only': aura_only,
+        'selected_padi_only': padi_only,
         'teacher_subjects': teacher_subjects,
         'teacher_classes': teacher_classes,
         'teacher_list': teacher_list,
@@ -1942,7 +1942,7 @@ def lesson_plan_detail(request, pk):
     has_checkpoints = 'CHECKPOINT QUESTIONS' in pres or 'CQ1:' in pres
     has_sprint      = 'MASTERY SPRINT' in evl or 'MS1:' in evl
     has_insight     = 'TEACHER INSIGHT' in evl
-    aura_score      = sum([has_pulse, has_checkpoints, has_sprint, has_insight])
+    padi_score      = sum([has_pulse, has_checkpoints, has_sprint, has_insight])
 
     return render(request, 'teachers/lesson_plan_detail.html', {
         'lesson_plan': lesson_plan,
@@ -1951,7 +1951,7 @@ def lesson_plan_detail(request, pk):
         'has_checkpoints': has_checkpoints,
         'has_sprint': has_sprint,
         'has_insight': has_insight,
-        'aura_score': aura_score,
+        'padi_score': padi_score,
     })
 
 
@@ -2074,14 +2074,14 @@ def lesson_plan_pdf(request, pk):
 @login_required
 @require_plan('pro', 'enterprise')
 @requires_addon('smart-planner-pro')
-def aura_t_api(request):
+def padi_t_api(request):
     """
     Handles AJAX requests for lesson plan generation, differentiation, and assignment creation.
     """
     if request.method == "POST":
         try:
             import json
-            from teachers.services.aura_gen_engine import AuraGenEngine
+            from teachers.services.padi_gen_engine import PadiGenEngine
             
             data = json.loads(request.body)
             action = data.get('action')
@@ -2115,7 +2115,7 @@ def aura_t_api(request):
                 if not ok:
                     return JsonResponse(err, status=403)
                 check_and_consume(request.tenant, request.user.id, 'lesson_gen')
-                result = AuraGenEngine.generate_lesson_plan(
+                result = PadiGenEngine.generate_lesson_plan(
                     topic=topic,
                     subject=subject_name,
                     grade_level=class_name,
@@ -2153,7 +2153,7 @@ def aura_t_api(request):
                 if not ok:
                     return JsonResponse(err, status=403)
                 check_and_consume(request.tenant, request.user.id, 'slide_gen')
-                result = AuraGenEngine.generate_slides_outline(topic, subject_name, class_name)
+                result = PadiGenEngine.generate_slides_outline(topic, subject_name, class_name)
                 return JsonResponse({"status": "success", "data": result})
 
             elif action == 'generate_exercises':
@@ -2179,7 +2179,7 @@ def aura_t_api(request):
                 if not ok:
                     return JsonResponse(err, status=403)
                 check_and_consume(request.tenant, request.user.id, 'exercise_gen')
-                result = AuraGenEngine.generate_interactive_exercises(topic, subject_name, class_name)
+                result = PadiGenEngine.generate_interactive_exercises(topic, subject_name, class_name)
                 return JsonResponse({"status": "success", "data": result})
 
             elif action == 'generate_exercises_and_assign':
@@ -2203,7 +2203,7 @@ def aura_t_api(request):
                 if not ok:
                     return JsonResponse(err, status=403)
                 check_and_consume(request.tenant, request.user.id, 'exercise_gen')
-                result = AuraGenEngine.generate_interactive_exercises(topic, subject.name, school_class.name)
+                result = PadiGenEngine.generate_interactive_exercises(topic, subject.name, school_class.name)
 
                 try:
                     if due_date:
@@ -2224,7 +2224,7 @@ def aura_t_api(request):
 
                 exercises = result.get('exercises', [])
                 if not exercises:
-                    exercises = AuraGenEngine.generate_interactive_exercises(topic, subject.name, school_class.name).get('exercises', [])
+                    exercises = PadiGenEngine.generate_interactive_exercises(topic, subject.name, school_class.name).get('exercises', [])
 
                 if isinstance(exercises, dict):
                     exercises = exercises.get('items', [])
@@ -2239,7 +2239,7 @@ def aura_t_api(request):
                 exercises = normalized_exercises
 
                 if len(exercises) < 5:
-                    fallback = AuraGenEngine._mock_exercises(topic)
+                    fallback = PadiGenEngine._mock_exercises(topic)
                     exercises = (exercises + fallback)[:5]
                 elif len(exercises) > 10:
                     exercises = exercises[:10]
@@ -2349,7 +2349,7 @@ def aura_t_api(request):
                 check_and_consume(request.tenant, request.user.id, 'assignment_gen')
                 if lesson_id:
                     lesson_plan = get_object_or_404(LessonPlan, pk=lesson_id, teacher=teacher)
-                    result = AuraGenEngine.generate_assignment_package(lesson_plan)
+                    result = PadiGenEngine.generate_assignment_package(lesson_plan)
                 elif topic and data.get('class_id'):
                     # Create a temporary lesson object for the engine if topic is provided manually
                     # This is a simplified path
@@ -2366,7 +2366,7 @@ def aura_t_api(request):
                         objectives=f"Understand {topic}",
                         week_number=1 # Dummy
                     )
-                    result = AuraGenEngine.generate_assignment_package(mock_lesson, topic_prompt=topic)
+                    result = PadiGenEngine.generate_assignment_package(mock_lesson, topic_prompt=topic)
                 else:
                     return JsonResponse({"status": "error", "message": "Missing lesson_id or topic/class_id"}, status=400)
                 
@@ -2443,7 +2443,7 @@ def aura_t_api(request):
                 if not ok:
                     return JsonResponse(err, status=403)
                 check_and_consume(request.tenant, request.user.id, 'lesson_gen')
-                regen_result = AuraGenEngine.generate_lesson_plan(topic_r, subject_r, class_r)
+                regen_result = PadiGenEngine.generate_lesson_plan(topic_r, subject_r, class_r)
                 lesson_body = (regen_result.get('lesson_plan') or '').strip()
                 if not lesson_body:
                     return JsonResponse({"status": "error",
@@ -2581,7 +2581,7 @@ def ges_lesson_api(request):
 
 @login_required
 @require_plan('basic', 'pro', 'enterprise')
-def aura_command_center(request):
+def padi_command_center(request):
     """
     Padi-T Command Center - teachers go to the unified AI sessions page,
     admins get the full multi-teacher plan overview.
@@ -2608,7 +2608,7 @@ def aura_command_center(request):
         p.has_checkpoints = 'CHECKPOINT QUESTIONS' in pres or 'CQ1:' in pres
         p.has_sprint      = 'MASTERY SPRINT' in evl or 'MS1:' in evl
         p.has_insight     = 'TEACHER INSIGHT' in evl
-        p.aura_score      = sum([p.has_pulse, p.has_checkpoints, p.has_sprint, p.has_insight])
+        p.padi_score      = sum([p.has_pulse, p.has_checkpoints, p.has_sprint, p.has_insight])
         p.teacher_name    = p.teacher.user.get_full_name() if p.teacher and p.teacher.user else 'Unknown'
         p.pulse_count     = 0
         p.has_active_pulse = False
@@ -2631,28 +2631,28 @@ def aura_command_center(request):
         pass
 
     total         = len(plans)
-    v3_ready      = sum(1 for p in plans if p.aura_score == 4)
-    partial_count = sum(1 for p in plans if 0 < p.aura_score < 4)
-    no_aura_count = sum(1 for p in plans if p.aura_score == 0)
+    v3_ready      = sum(1 for p in plans if p.padi_score == 4)
+    partial_count = sum(1 for p in plans if 0 < p.padi_score < 4)
+    no_padi_count = sum(1 for p in plans if p.padi_score == 0)
     v3_pct        = round(v3_ready / total * 100) if total else 0
 
     subjects = sorted(set(p.subject.name for p in plans if p.subject))
     classes  = sorted(set(p.school_class.name for p in plans if p.school_class))
 
     # Admin: sort by teacher name then score
-    plans.sort(key=lambda p: (p.teacher_name, -p.aura_score, -p.pk))
+    plans.sort(key=lambda p: (p.teacher_name, -p.padi_score, -p.pk))
     prev_tname = None
     for p in plans:
         p.teacher_changed = p.teacher_name != prev_tname
         prev_tname = p.teacher_name
 
-    return render(request, 'teachers/aura_command_center.html', {
+    return render(request, 'teachers/padi_command_center.html', {
         'plans':         plans,
         'total':         total,
         'v3_ready':      v3_ready,
         'v3_pct':        v3_pct,
         'partial_count': partial_count,
-        'no_aura_count': no_aura_count,
+        'no_padi_count': no_padi_count,
         'is_teacher':    False,
         'is_admin':      True,
         'teacher':       None,
@@ -2663,7 +2663,7 @@ def aura_command_center(request):
 
 @login_required
 @require_plan('basic', 'pro', 'enterprise')
-def aura_flight_manual(request):
+def padi_flight_manual(request):
     """
     Padi-T Teacher Flight Manual - quick-start guide for the AI-integrated lesson.
     """
@@ -2672,7 +2672,7 @@ def aura_flight_manual(request):
     if not is_teacher and not is_admin:
         messages.error(request, 'Access denied')
         return redirect('dashboard')
-    return render(request, 'teachers/aura_flight_manual.html', {
+    return render(request, 'teachers/padi_flight_manual.html', {
         'is_teacher': is_teacher,
         'is_admin': is_admin,
     })
@@ -2972,23 +2972,23 @@ def power_words_dashboard(request):
             verb_delta = verb_pct_this - verb_pct_last
 
             # Padi-T insight string
-            aura_insight = None
+            padi_insight = None
             all_historical_verbs = sum(1 for w in student_words if w.word.lower() in ACADEMIC_VERBS)
             total = len(student_words)
             if total >= 3:
                 overall_verb_pct = round(all_historical_verbs / total * 100)
                 if verb_delta > 10:
-                    aura_insight = (
+                    padi_insight = (
                         f"{student.user.first_name} is using academic verbs (Analyze, Compare) "
                         f"{verb_delta}% more often than last week."
                     )
                 elif verb_delta < -10:
-                    aura_insight = (
+                    padi_insight = (
                         f"{student.user.first_name}'s academic verb usage dropped {abs(verb_delta)}% "
                         "this week — may need a vocabulary review."
                     )
                 elif overall_verb_pct >= 30:
-                    aura_insight = (
+                    padi_insight = (
                         f"{student.user.first_name} consistently uses academic verbs in {overall_verb_pct}% "
                         "of Power Words — strong academic language command!"
                     )
@@ -3014,7 +3014,7 @@ def power_words_dashboard(request):
                 'new_this_week_list': [w.word.title() for w in this_week_words[:8]],
                 'verb_pct_this': verb_pct_this,
                 'verb_delta': verb_delta,
-                'aura_insight': aura_insight,
+                'padi_insight': padi_insight,
                 'word_cloud': word_cloud,
             })
 
@@ -3318,7 +3318,7 @@ def ai_sessions_list(request):
         p.has_checkpoints = 'CHECKPOINT QUESTIONS' in pres or 'CQ1:' in pres
         p.has_sprint      = 'MASTERY SPRINT' in evl or 'MS1:' in evl
         p.has_insight     = 'TEACHER INSIGHT' in evl
-        p.aura_score      = sum([p.has_pulse, p.has_checkpoints, p.has_sprint, p.has_insight])
+        p.padi_score      = sum([p.has_pulse, p.has_checkpoints, p.has_sprint, p.has_insight])
         p.pulse_count     = 0
         p.has_active_pulse = False
 
@@ -3340,13 +3340,13 @@ def ai_sessions_list(request):
         pass
 
     total_plans   = len(plans)
-    v3_ready      = sum(1 for p in plans if p.aura_score == 4)
-    partial_count = sum(1 for p in plans if 0 < p.aura_score < 4)
-    no_aura_count = sum(1 for p in plans if p.aura_score == 0)
+    v3_ready      = sum(1 for p in plans if p.padi_score == 4)
+    partial_count = sum(1 for p in plans if 0 < p.padi_score < 4)
+    no_padi_count = sum(1 for p in plans if p.padi_score == 0)
     v3_pct        = round(v3_ready / total_plans * 100) if total_plans else 0
     plan_subjects = sorted(set(p.subject.name for p in plans if p.subject))
     plan_classes  = sorted(set(p.school_class.name for p in plans if p.school_class))
-    plans.sort(key=lambda p: (-p.aura_score, -p.pk))
+    plans.sort(key=lambda p: (-p.padi_score, -p.pk))
 
     from academics.ai_tutor import get_openai_chat_model
     active_ai_model = get_openai_chat_model()
@@ -3366,7 +3366,7 @@ def ai_sessions_list(request):
         'v3_ready': v3_ready,
         'v3_pct': v3_pct,
         'partial_count': partial_count,
-        'no_aura_count': no_aura_count,
+        'no_padi_count': no_padi_count,
         'plan_subjects': plan_subjects,
         'plan_classes': plan_classes,
     }
@@ -3852,7 +3852,7 @@ def scheme_of_work_bulk_generate(request, pk):
                 'addon_boost': e.addon_boost,
             }, status=429)
 
-    from teachers.services.aura_gen_engine import AuraGenEngine
+    from teachers.services.padi_gen_engine import PadiGenEngine
     import re as _re
 
     subject     = scheme.class_subject.subject
@@ -3887,7 +3887,7 @@ def scheme_of_work_bulk_generate(request, pk):
             continue
 
         try:
-            result      = AuraGenEngine.generate_lesson_plan(topic, subject_name, class_name)
+            result      = PadiGenEngine.generate_lesson_plan(topic, subject_name, class_name)
             lesson_body = (result.get('lesson_plan') or '').strip()
             if not lesson_body:
                 errors.append({'topic': topic, 'error': result.get('error', 'Empty response')})
@@ -4140,7 +4140,7 @@ def submit_to_hod(request):
 
 
 @login_required
-def save_aura_t_plan(request):
+def save_padi_t_plan(request):
     """Save the Padi-T command centre lesson plan preview as a LessonPlan record."""
     if request.method != 'POST':
         return JsonResponse({'ok': False, 'error': 'POST required'}, status=405)
@@ -4448,7 +4448,7 @@ def pulse_history(request):
         from academics.pulse_models import PulseSession
     except ImportError:
         messages.error(request, 'Pulse feature not available.')
-        return redirect('teachers:aura_command_center')
+        return redirect('teachers:padi_command_center')
 
     is_admin = request.user.user_type == 'admin'
 
@@ -4733,7 +4733,7 @@ def presentation_editor(request, pk):
     _share_path = _reverse('teachers:presentation_share', kwargs={'token': deck.share_token})
     _share_url  = request.build_absolute_uri(_share_path)
 
-    has_slide_addon = has_addon(request.user, 'aura-slide-generator')
+    has_slide_addon = has_addon(request.user, 'padi-slide-generator')
 
     return render(request, 'teachers/presentations/editor.html', {
         'deck':     deck,
@@ -5077,7 +5077,7 @@ def presentation_api(request):
       add_slide     — append a new blank slide
       delete_slide  — remove a slide, renumber
       reorder       — save new slide order
-      ai_generate   — generate slides from topic via AuraGenEngine
+      ai_generate   — generate slides from topic via PadiGenEngine
       update_deck   — rename / retheme deck
     """
     import json
@@ -5169,7 +5169,7 @@ def presentation_api(request):
 
     # ── ai_generate ─────────────────────────────────────────────────────────
     elif action == 'ai_generate':
-        ok, err = check_freemium_limit(request.user, 'aura-slide-generator', 'slide_gen')
+        ok, err = check_freemium_limit(request.user, 'padi-slide-generator', 'slide_gen')
         if not ok:
             return JsonResponse(err, status=403)
         topic      = data.get('topic', '').strip()
@@ -5193,8 +5193,8 @@ def presentation_api(request):
             check_and_consume(request.tenant, request.user.id, 'slide_gen')
         except QuotaExceeded as e:
             return JsonResponse({'error': e.user_message, 'error_code': 'quota_exceeded', 'used': e.used, 'limit': e.limit, 'addon_boost': e.addon_boost}, status=429)
-        from teachers.services.aura_gen_engine import AuraGenEngine
-        result = AuraGenEngine.generate_slides_outline(topic, subject_name, class_name)
+        from teachers.services.padi_gen_engine import PadiGenEngine
+        result = PadiGenEngine.generate_slides_outline(topic, subject_name, class_name)
         raw_slides = result.get('slides', [])
 
         # Replace all existing slides with AI-generated ones
@@ -5236,7 +5236,7 @@ def presentation_api(request):
 
     # ── ges_generate ────────────────────────────────────────────────────────
     elif action == 'ges_generate':
-        ok, err = check_freemium_limit(request.user, 'aura-slide-generator', 'slide_gen')
+        ok, err = check_freemium_limit(request.user, 'padi-slide-generator', 'slide_gen')
         if not ok:
             return JsonResponse(err, status=403)
         indicator  = data.get('indicator', '').strip()
@@ -5418,7 +5418,7 @@ def presentation_api(request):
 
     # ── from_lesson_plan ─────────────────────────────────────────────────────────
     elif action == 'from_lesson_plan':
-        ok, err = check_freemium_limit(request.user, 'aura-slide-generator', 'slide_gen')
+        ok, err = check_freemium_limit(request.user, 'padi-slide-generator', 'slide_gen')
         if not ok:
             return JsonResponse(err, status=403)
         plan_id = data.get('plan_id')
@@ -5463,13 +5463,13 @@ def presentation_api(request):
             'homework':     plan.homework,
             'demographic_context': '; '.join([x for x in demographic_bits if x]),
         }
-        from teachers.services.aura_gen_engine import AuraGenEngine
+        from teachers.services.padi_gen_engine import PadiGenEngine
         from tenants.ai_quota import check_and_consume, QuotaExceeded
         try:
             check_and_consume(request.tenant, request.user.id, 'slide_gen')
         except QuotaExceeded as e:
             return JsonResponse({'error': e.user_message, 'error_code': 'quota_exceeded', 'used': e.used, 'limit': e.limit, 'addon_boost': e.addon_boost}, status=429)
-        result = AuraGenEngine.generate_slides_from_lesson_plan(plan_dict)
+        result = PadiGenEngine.generate_slides_from_lesson_plan(plan_dict)
         raw_slides = result.get('slides', [])
         with transaction.atomic():
             deck.slides.all().delete()
@@ -5498,7 +5498,7 @@ def presentation_api(request):
 
     # ── suggest_bullets ──────────────────────────────────────────────────────
     elif action == 'suggest_bullets':
-        ok, err = check_freemium_limit(request.user, 'aura-slide-generator', 'slide_gen')
+        ok, err = check_freemium_limit(request.user, 'padi-slide-generator', 'slide_gen')
         if not ok:
             return JsonResponse(err, status=403)
         title = data.get('title', '').strip()
@@ -5510,13 +5510,13 @@ def presentation_api(request):
             check_and_consume(request.tenant, request.user.id, 'slide_gen')
         except QuotaExceeded as e:
             return JsonResponse({'error': e.user_message, 'error_code': 'quota_exceeded', 'used': e.used, 'limit': e.limit, 'addon_boost': e.addon_boost}, status=429)
-        from teachers.services.aura_gen_engine import AuraGenEngine
-        result = AuraGenEngine.suggest_slide_bullets(title, subject_name)
+        from teachers.services.padi_gen_engine import PadiGenEngine
+        result = PadiGenEngine.suggest_slide_bullets(title, subject_name)
         return JsonResponse({'ok': True, 'bullets': result.get('bullets', [])})
 
     # ── suggest_layouts ──────────────────────────────────────────────────────
     elif action == 'suggest_layouts':
-        ok, err = check_freemium_limit(request.user, 'aura-slide-generator', 'slide_gen')
+        ok, err = check_freemium_limit(request.user, 'padi-slide-generator', 'slide_gen')
         if not ok:
             return JsonResponse(err, status=403)
         slides_qs = deck.slides.order_by('order')
@@ -5531,8 +5531,8 @@ def presentation_api(request):
             check_and_consume(request.tenant, request.user.id, 'slide_gen')
         except QuotaExceeded as e:
             return JsonResponse({'error': e.user_message, 'error_code': 'quota_exceeded', 'used': e.used, 'limit': e.limit, 'addon_boost': e.addon_boost}, status=429)
-        from teachers.services.aura_gen_engine import AuraGenEngine
-        result = AuraGenEngine.suggest_slide_layouts(slides_data)
+        from teachers.services.padi_gen_engine import PadiGenEngine
+        result = PadiGenEngine.suggest_slide_layouts(slides_data)
         updates = result.get('updates', [])
         with transaction.atomic():
             for upd in updates:
@@ -5545,7 +5545,7 @@ def presentation_api(request):
 
     # ── harmonize_deck ──────────────────────────────────────────────────────
     elif action == 'harmonize_deck':
-        ok, err = check_freemium_limit(request.user, 'aura-slide-generator', 'slide_gen')
+        ok, err = check_freemium_limit(request.user, 'padi-slide-generator', 'slide_gen')
         if not ok:
             return JsonResponse(err, status=403)
         slides_qs = deck.slides.order_by('order')
@@ -5555,8 +5555,8 @@ def presentation_api(request):
         ]
         if not slides_data:
             return JsonResponse({'error': 'No slides in deck.'}, status=400)
-        from teachers.services.aura_gen_engine import AuraGenEngine
-        result = AuraGenEngine.harmonize_deck(slides_data)
+        from teachers.services.padi_gen_engine import PadiGenEngine
+        result = PadiGenEngine.harmonize_deck(slides_data)
         # Return updates for frontend preview/confirmation — user applies explicitly
         return JsonResponse({
             'ok':      True,
@@ -5665,15 +5665,15 @@ def presentation_api(request):
 
     # ── refine_slide ─────────────────────────────────────────────────────────
     elif action == 'refine_slide':
-        ok, err = check_freemium_limit(request.user, 'aura-slide-generator', 'slide_gen')
+        ok, err = check_freemium_limit(request.user, 'padi-slide-generator', 'slide_gen')
         if not ok:
             return JsonResponse(err, status=403)
         slide_id    = data.get('slide_id')
         instruction = data.get('instruction', '').strip()
         slide       = get_object_or_404(Slide, pk=slide_id, presentation=deck)
-        from teachers.services.aura_gen_engine import AuraGenEngine
+        from teachers.services.padi_gen_engine import PadiGenEngine
         subject_name = deck.subject.name if deck.subject else 'General'
-        result = AuraGenEngine.refine_slide(
+        result = PadiGenEngine.refine_slide(
             {'title': slide.title, 'content': slide.content, 'layout': slide.layout},
             instruction,
             subject_name,
@@ -5688,13 +5688,13 @@ def presentation_api(request):
 
 
 @login_required
-@requires_addon_freemium('aura-slide-generator', action_type='slide_gen')
+@requires_addon_freemium('padi-slide-generator', action_type='slide_gen')
 def presentation_generate_from_doc(request):
     """
     Accepts a multipart POST with:
       deck_id   — int
       document  — .pdf or .docx file
-    Extracts the text, calls AuraGenEngine, replaces deck slides, returns JSON.
+    Extracts the text, calls PadiGenEngine, replaces deck slides, returns JSON.
     """
     from .models import Presentation, Slide
 
@@ -5738,10 +5738,10 @@ def presentation_generate_from_doc(request):
         return JsonResponse({'error': 'The document appears to be empty or unreadable. Please try a different file.'}, status=400)
 
     # ── Generate slides ──────────────────────────────────────────────────────
-    from teachers.services.aura_gen_engine import AuraGenEngine
+    from teachers.services.padi_gen_engine import PadiGenEngine
     from django.db import transaction
 
-    result = AuraGenEngine.generate_slides_from_document(document_text, uploaded.name)
+    result = PadiGenEngine.generate_slides_from_document(document_text, uploaded.name)
     raw_slides = result.get('slides', [])
 
     with transaction.atomic():
@@ -5780,11 +5780,11 @@ def presentation_generate_from_doc(request):
 
 
 @login_required
-@requires_addon_freemium('aura-slide-generator', action_type='slide_gen')
+@requires_addon_freemium('padi-slide-generator', action_type='slide_gen')
 def presentation_from_youtube(request):
     """
     POST JSON: {deck_id: int, youtube_url: str}
-    Extracts a YouTube transcript, then generates a slide deck via AuraGenEngine.
+    Extracts a YouTube transcript, then generates a slide deck via PadiGenEngine.
     """
     import json as _json
     import re
@@ -5858,9 +5858,9 @@ def presentation_from_youtube(request):
         pass
 
     # Generate slides from transcript
-    from teachers.services.aura_gen_engine import AuraGenEngine
+    from teachers.services.padi_gen_engine import PadiGenEngine
     from django.db import transaction
-    result     = AuraGenEngine.generate_slides_from_document(transcript_text, video_title)
+    result     = PadiGenEngine.generate_slides_from_document(transcript_text, video_title)
     raw_slides = result.get('slides', [])
 
     with transaction.atomic():
@@ -6053,7 +6053,7 @@ def presentation_slide_image_upload(request):
 
 @login_required
 @require_POST
-@requires_addon_freemium('aura-slide-generator', action_type='slide_gen')
+@requires_addon_freemium('padi-slide-generator', action_type='slide_gen')
 def generate_slide_image(request):
     """Generate an AI image for a slide using OpenAI DALL\u00b7E."""
     if request.user.user_type != 'teacher':
@@ -6112,17 +6112,17 @@ def presentation_study_guide(request, pk):
         import json as _json
         action = request.POST.get('action') or ''
         if action == 'generate_ai':
-            ok, err = check_freemium_limit(request.user, 'aura-slide-generator', 'study_guide')
+            ok, err = check_freemium_limit(request.user, 'padi-slide-generator', 'study_guide')
             if not ok:
                 return JsonResponse(err, status=403)
             slides = list(deck.slides.values('title', 'content', 'layout', 'speaker_notes', 'emoji'))
-            from teachers.services.aura_gen_engine import AuraGenEngine
+            from teachers.services.padi_gen_engine import PadiGenEngine
             from tenants.ai_quota import check_and_consume, QuotaExceeded
             try:
                 check_and_consume(request.tenant, request.user.id, 'study_guide')
             except QuotaExceeded as e:
                 return JsonResponse({'error': e.user_message, 'error_code': 'quota_exceeded', 'used': e.used, 'limit': e.limit, 'addon_boost': e.addon_boost}, status=429)
-            result = AuraGenEngine.generate_study_guide(slides)
+            result = PadiGenEngine.generate_study_guide(slides)
             return JsonResponse(result)
         return JsonResponse({'error': 'Unknown action'}, status=400)
 
@@ -6776,8 +6776,8 @@ ADDON_LAUNCH_URLS = {
     'noise-meter': 'teachers:addon_noise_meter',
     'stem-activity-pack': 'teachers:addon_stem_pack',
     'creative-arts-kit': 'teachers:addon_creative_arts',
-    'aura-slide-generator': 'teachers:presentation_list',
-    'smart-planner-pro': 'teachers:aura_command_center',
+    'padi-slide-generator': 'teachers:presentation_list',
+    'smart-planner-pro': 'teachers:padi_command_center',
     'exercise-maker': 'teachers:my_classes',
     'grade-insight-dashboard': 'teachers:analytics_dashboard',
     'quick-report-writer': 'teachers:lesson_plan_list',

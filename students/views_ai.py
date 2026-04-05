@@ -429,13 +429,13 @@ def _build_student_context(student):
 
 @login_required
 @require_plan('pro', 'enterprise')
-def aura_voice_view(request):
+def padi_voice_view(request):
     """Render the voice interface — students only."""
     if request.user.user_type != 'student':
         messages.error(request, "SchoolPadi Voice is only available to students.")
         return redirect('dashboard')
     
-    return render(request, 'students/aura_voice.html')
+    return render(request, 'students/padi_voice.html')
 
 
 @login_required
@@ -468,7 +468,7 @@ def voice_board_generate(request):
         return JsonResponse({'diagram': None})
 
     system_prompt = (
-        "You are a diagram generator for an AI tutoring assistant called Aura. "
+        "You are a diagram generator for an AI tutoring assistant called SchoolPadi. "
         "Given a short tutor-student conversation, decide if a visual diagram would SIGNIFICANTLY "
         "help understanding. Only generate a diagram if it genuinely adds value — don't create one "
         "for casual chitchat, greetings, or simple factual answers.\n\n"
@@ -562,7 +562,7 @@ def create_realtime_session(request):
             pass  # gracefully degrade — generic instructions still work
 
         # Build the full system instructions for the Realtime API
-        # Voice-mode rules prepended to the full Aura 2.0 State-Machine prompt
+        # Voice-mode rules prepended to the full SchoolPadi State-Machine prompt
         voice_prefix = (
             "VOICE MODE ADAPTATIONS (strictly apply these on top of all other rules):\n"
             "- This is a VOICE session. Keep EVERY spoken response to 2-3 sentences maximum.\n"
@@ -689,7 +689,7 @@ def create_realtime_session(request):
 from academics.models import StudyGroupRoom, StudyGroupMessage, StudentXP
 
 @login_required
-def aura_arena_view(request):
+def padi_arena_view(request):
     if request.user.user_type != 'student':
         messages.error(request, "Only students can enter the SchoolPadi Arena.")
         return redirect('dashboard')
@@ -743,17 +743,17 @@ def aura_arena_view(request):
         'xp': xp_profile,
         'top_students': top_students,
     }
-    return render(request, 'students/aura_arena.html', context)
+    return render(request, 'students/padi_arena.html', context)
 
 
 @login_required
-def aura_arena_api(request):
+def padi_arena_api(request):
     if request.user.user_type != 'student':
         return JsonResponse({'error': 'Unauthorized'}, status=403)
 
-    if request.method == 'GET' and _rate_limit(request, 'aura_arena_api_get', limit=120, window_seconds=60):
+    if request.method == 'GET' and _rate_limit(request, 'padi_arena_api_get', limit=120, window_seconds=60):
         return JsonResponse({'error': 'Too many requests'}, status=429)
-    if request.method == 'POST' and _rate_limit(request, 'aura_arena_api_post', limit=40, window_seconds=60):
+    if request.method == 'POST' and _rate_limit(request, 'padi_arena_api_post', limit=40, window_seconds=60):
         return JsonResponse({'error': 'Too many requests'}, status=429)
         
     from students.models import Student
@@ -781,13 +781,13 @@ def aura_arena_api(request):
                 if rt:
                     reply_data = {
                         'id': rt.id,
-                        'sender': rt.sender.get_full_name() if rt.sender else 'Aura',
+                        'sender': rt.sender.get_full_name() if rt.sender else 'SchoolPadi',
                         'content': rt.content[:120],
                     }
             data.append({
                 'id': m.id,
                 'content': m.content,
-                'sender': m.sender.get_full_name() if m.sender else 'Aura',
+                'sender': m.sender.get_full_name() if m.sender else 'SchoolPadi',
                 'is_aura': m.is_aura,
                 'is_battle': m.is_battle_question,
                 'battle_type': m.battle_type if m.is_battle_question else None,
@@ -905,8 +905,8 @@ def aura_arena_api(request):
         # ── Check active battle answer ──────────────────────────────────
         # Skip answer-check if the message itself is an @padi command so
         # that typing "@padi true or false" never accidentally wins a T/F battle.
-        _is_aura_cmd = bool(re.search(r'@padi\s+\w', content, re.IGNORECASE))
-        if active_battle and active_battle.battle_answer and not _is_aura_cmd:
+        _is_padi_cmd = bool(re.search(r'@padi\s+\w', content, re.IGNORECASE))
+        if active_battle and active_battle.battle_answer and not _is_padi_cmd:
             ans = (active_battle.battle_answer or '').strip().lower()
             msg_lower = content.lower()
 
@@ -989,7 +989,7 @@ def aura_arena_api(request):
 
         # If user answers but the unresolved challenge has expired, close it
         # explicitly so the client does not appear stuck.
-        if stale_battle and not _is_aura_cmd:
+        if stale_battle and not _is_padi_cmd:
             stale_battle.battle_answered = True
             stale_battle.save(update_fields=['battle_answered'])
             StudyGroupMessage.objects.create(
@@ -1332,7 +1332,7 @@ def aura_arena_api(request):
 @login_required
 def voice_award_xp(request):
     """
-    POST endpoint: award XP earned during an Aura Voice session.
+    POST endpoint: award XP earned during a SchoolPadi Voice session.
     Called by the frontend when it detects a [AWARD_XP: N] token.
 
     Expected JSON:  { "amount": <int> }
@@ -1428,9 +1428,9 @@ def voice_award_xp(request):
             from announcements.models import Notification
             Notification.objects.create(
                 recipient=request.user,
-                message=f'⭐ Level Up! You reached Level {xp_profile.level} — your Aura voice sessions are paying off!',
+                message=f'⭐ Level Up! You reached Level {xp_profile.level} — your SchoolPadi voice sessions are paying off!',
                 alert_type='general',
-                link='../../students/aura-portfolio/',
+                link='../../students/padi-portfolio/',
             )
         except Exception:
             pass
@@ -1575,7 +1575,7 @@ def voice_end_session(request):
 @login_required
 def log_power_words(request):
     """
-    POST endpoint: record academic Power Words that Aura taught during a session.
+    POST endpoint: record academic Power Words that SchoolPadi taught during a session.
 
     Expected JSON payload:
         {

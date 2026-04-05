@@ -1052,6 +1052,27 @@ def dashboard_view(request):
     total_content = sum(tool_stats.values()) if tool_stats else 0
     sub_list = list(subscriptions)          # evaluate once; reused in template + count
 
+    # ── Onboarding Checklist (auto-detected) ─────────────────────
+    has_name = bool(request.user.first_name and request.user.last_name)
+    has_phone = bool(profile.phone_number)
+    has_addon = len(sub_list) > 0
+    has_content = total_content > 0
+    has_referral = IndividualProfile.objects.filter(referred_by=profile).exists()
+
+    onboarding_steps = [
+        {'id': 'profile', 'label': 'Complete your profile', 'done': has_name and has_phone,
+         'url': 'individual:settings', 'icon': 'bi-person-check'},
+        {'id': 'addon', 'label': 'Subscribe to a tool', 'done': has_addon,
+         'url': 'individual:addons', 'icon': 'bi-bag-plus'},
+        {'id': 'content', 'label': 'Generate your first content', 'done': has_content,
+         'url': 'individual:tools_hub', 'icon': 'bi-magic'},
+        {'id': 'referral', 'label': 'Invite a colleague', 'done': has_referral,
+         'url': 'individual:referrals', 'icon': 'bi-share'},
+    ]
+    onboarding_done = sum(1 for s in onboarding_steps if s['done'])
+    onboarding_total = len(onboarding_steps)
+    onboarding_complete = onboarding_done == onboarding_total
+
     ctx = {
         'profile': profile,
         'role': profile.role,
@@ -1067,6 +1088,10 @@ def dashboard_view(request):
         'recommended_addons': recommended,
         'tool_stats': tool_stats,
         'my_addons': my_addons,
+        'onboarding_steps': onboarding_steps,
+        'onboarding_done': onboarding_done,
+        'onboarding_total': onboarding_total,
+        'onboarding_complete': onboarding_complete,
     }
     return render(request, 'individual/dashboard.html', ctx)
 

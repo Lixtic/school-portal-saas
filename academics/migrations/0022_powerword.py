@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('word', models.CharField(max_length=120)),
                 ('session_type', models.CharField(
-                    choices=[('voice', 'Aura Voice'), ('text', 'Text Chat')],
+                    choices=[('voice', 'SchoolPadi Voice'), ('text', 'Text Chat')],
                     default='text',
                     max_length=10,
                 )),

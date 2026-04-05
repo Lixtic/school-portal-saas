@@ -713,6 +713,57 @@
 
   </div><!-- /mc-bottom -->
 
+  <!-- INDIVIDUAL USERS & REFERRALS -->
+  {% if total_individuals is not None %}
+  <div class="mc-heading">
+    <div class="mc-heading-label">Individual Users &amp; Referrals</div>
+    <span class="mc-heading-meta">{{ total_individuals|default:0 }} users</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.875rem;margin-bottom:1.75rem;">
+    <div class="mc-kpi --violet mc-fade">
+      <div class="mc-kpi-icon"><i class="bi bi-people-fill"></i></div>
+      <div class="mc-kpi-label">Total Individuals</div>
+      <div class="mc-kpi-value">{{ total_individuals|intcomma }}</div>
+      <div class="mc-kpi-note">{{ verified_individuals|intcomma }} verified</div>
+    </div>
+    <div class="mc-kpi --emerald mc-fade">
+      <div class="mc-kpi-icon"><i class="bi bi-share-fill"></i></div>
+      <div class="mc-kpi-label">Referral Signups</div>
+      <div class="mc-kpi-value">{{ total_referrals|intcomma }}</div>
+      <div class="mc-kpi-note">Via referral links</div>
+    </div>
+    <div class="mc-kpi --amber mc-fade">
+      <div class="mc-kpi-icon"><i class="bi bi-lightning-charge-fill"></i></div>
+      <div class="mc-kpi-label">Referral Credits</div>
+      <div class="mc-kpi-value">{{ referral_credits_awarded|intcomma }}</div>
+      <div class="mc-kpi-note">Credits awarded to referrers</div>
+    </div>
+    <div class="mc-kpi --sky mc-fade">
+      <div class="mc-kpi-icon"><i class="bi bi-percent"></i></div>
+      <div class="mc-kpi-label">Referral Rate</div>
+      <div class="mc-kpi-value">{% if total_individuals %}{% widthratio total_referrals total_individuals 100 %}%{% else %}&mdash;{% endif %}</div>
+      <div class="mc-kpi-note">Signups via referral</div>
+    </div>
+  </div>
+
+  {% if top_referrers %}
+  <div style="display:grid;grid-template-columns:1fr;gap:1rem;margin-bottom:1.75rem;max-width:600px;">
+    <div class="mc-panel mc-fade">
+      <div class="mc-panel-head">
+        <div class="mc-panel-title"><i class="bi bi-trophy-fill"></i> Top Referrers</div>
+      </div>
+      {% for profile in top_referrers %}
+      <div class="mc-fleet-item">
+        <div class="mc-fleet-name">{{ profile.user.get_full_name|default:profile.user.username }}</div>
+        <div class="mc-fleet-track"><div class="mc-fleet-fill is-live" style="width:{% widthratio profile.ref_count top_referrers.0.ref_count 100 %}%;"></div></div>
+        <div class="mc-fleet-count">{{ profile.ref_count }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+  {% endif %}
+
   <!-- NAV GRID -->
   <div class="mc-heading"><div class="mc-heading-label">Navigation</div></div>
   <div class="mc-nav-grid">

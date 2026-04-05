@@ -70,7 +70,7 @@ urlpatterns = [
     path('ai-tutor/sessions/', views.tutor_sessions, name='tutor_sessions'),
 
     # Shared State Manager (cross-session: text ↔ voice)
-    path('aura/state/', views.aura_session_state, name='aura_session_state'),
+    path('padi/state/', views.padi_session_state, name='padi_session_state'),
     # Session rename (inline edit in sidebar)
     path('ai-tutor/sessions/<int:session_id>/rename/', views.rename_tutor_session, name='rename_session'),
     # Session delete (single and bulk)

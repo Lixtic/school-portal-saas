@@ -102,7 +102,7 @@ class StudentAchievement(models.Model):
 
 ACHIEVEMENT_CATALOG = [
     # slug, name, description, icon, xp_reward, category, condition_field, threshold
-    ('first-steps',   'First Steps',        'Complete your first Aura session',         '🌱', 10,  'General',  'total_xp',       1),
+    ('first-steps',   'First Steps',        'Complete your first SchoolPadi session',         '🌱', 10,  'General',  'total_xp',       1),
     ('homework-ace',  'Homework Ace',        'Score 90%+ on a homework assignment',      '🎯', 25,  'Homework', None,             None),
     ('streak-3',      '3-Day Streak',        'Log in and learn 3 days in a row',         '🔥', 15,  'Streaks',  'current_streak', 3),
     ('streak-7',      'Week Warrior',        'Maintain a 7-day learning streak',         '⚡', 30,  'Streaks',  'current_streak', 7),
@@ -176,7 +176,7 @@ def check_and_unlock_achievements(student, profile, extra_slugs=None):
                         recipient=student.user,
                         message=f'{achievement.icon} Achievement unlocked: {achievement.name} — {achievement.description} (+{achievement.xp_reward} XP)',
                         alert_type='general',
-                        link='../../students/aura-portfolio/',
+                        link='../../students/padi-portfolio/',
                     )
             except Achievement.DoesNotExist:
                 pass
@@ -187,7 +187,7 @@ def check_and_unlock_achievements(student, profile, extra_slugs=None):
 class AuraSessionState(models.Model):
     """
     Shared State Manager — the Redux-style single source of truth for all
-    Aura sessions (text chat + voice).  Persisted in PostgreSQL so lesson
+    SchoolPadi sessions (text chat + voice).  Persisted in PostgreSQL so lesson
     progress, vocabulary level, and student mood are never lost when the
     student switches between modes.
     """
@@ -217,7 +217,7 @@ class AuraSessionState(models.Model):
     updated_at   = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = 'Aura Session State'
+        verbose_name = 'SchoolPadi Session State'
 
     def __str__(self):
         return f"{self.student} | {self.lesson_state} | L{self.vocab_level} | {self.mood}"

@@ -2305,7 +2305,7 @@ def _process_xp_awards(student, full_text):
                         recipient=student.user,
                         message=f'⭐ Level Up! You reached Level {profile.level} — keep learning with SchoolPadi!',
                         alert_type='general',
-                        link='../../students/aura-portfolio/',
+                        link='../../students/padi-portfolio/',
                     )
                 except Exception:
                     pass
@@ -2333,10 +2333,10 @@ def _save_lesson_state(student, lesson_state, updated_by='text'):
 
 
 @login_required
-def aura_session_state(request):
+def padi_session_state(request):
     """
     Shared State Manager endpoint — Redux-style single source of truth.
-    Both text-chat (ai_tutor.html) and voice (aura_voice.html) read/write here.
+    Both text-chat (ai_tutor.html) and voice (padi_voice.html) read/write here.
 
     GET  → returns the student's current state as JSON
     PATCH → updates one or more fields and returns the updated state

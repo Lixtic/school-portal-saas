@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
                 ('student', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='aura_state', to='students.student')),
             ],
             options={
-                'verbose_name': 'Aura Session State',
+                'verbose_name': 'SchoolPadi Session State',
             },
         ),
     ]

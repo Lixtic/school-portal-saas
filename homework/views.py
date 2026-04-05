@@ -701,7 +701,7 @@ def homework_solve(request, pk):
                             recipient=student.user,
                             message=f'⭐ Level Up! You reached Level {_xp_profile.level} — keep it up!',
                             alert_type='general',
-                            link='../../students/aura-portfolio/',
+                            link='../../students/padi-portfolio/',
                         )
         except Exception:
             pass  # Gamification must never break homework submission
