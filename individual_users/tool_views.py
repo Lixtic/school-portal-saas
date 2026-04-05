@@ -1762,11 +1762,6 @@ def deck_api(request):
         if not indicator:
             return JsonResponse({'error': 'Indicator is required for GES generation'}, status=400)
 
-        # Deduct credits before AI generation
-        ok, err = deduct_credits(request.user, 'slide_gen')
-        if not ok:
-            return JsonResponse(err, status=403)
-
         subject_label = dict(ToolQuestion.SUBJECT_CHOICES).get(
             deck.subject, deck.subject or 'General Studies',
         )
@@ -2774,18 +2769,10 @@ def letter_api(request):
         district = data.get('district', '').strip()
         region = data.get('region', '').strip()
 
-        # Deduct credits before AI generation
-        ok, err = deduct_credits(request.user, 'other')
-        if not ok:
-            return JsonResponse(err, status=403)
-
         category_label = dict(GESLetter.CATEGORY_CHOICES).get(category, category)
 
         if not details:
             return JsonResponse({'error': 'Please provide details about the letter you need.'}, status=400)
-
-        import openai
-        client = openai.OpenAI()
 
         system_prompt = f"""You are an expert at writing official Ghana Education Service (GES) letters.
 Write a professional {category_label} letter following GES conventions.
@@ -2812,17 +2799,17 @@ Return ONLY the letter body text (no JSON, no markdown fences). Start from the s
 Do not include the letterhead, date, or reference number — they are handled separately.
 End with the closing (e.g., "Yours faithfully,") and leave space for signature."""
 
+        _user_prompt = f'Write a {category_label} letter. Details: {details}'
+        cached = get_cached(system=system_prompt, prompt=_user_prompt)
+        if cached is None:
+            ok, err = deduct_credits(request.user, 'other')
+            if not ok:
+                return JsonResponse(err, status=403)
+
         try:
-            response = client.chat.completions.create(
-                model='gpt-4o-mini',
-                messages=[
-                    {'role': 'system', 'content': system_prompt},
-                    {'role': 'user', 'content': f'Write a {category_label} letter. Details: {details}'},
-                ],
-                temperature=0.7,
-                max_tokens=1500,
+            body = cached if cached is not None else call_and_cache(
+                system=system_prompt, prompt=_user_prompt, max_tokens=1500,
             )
-            body = response.choices[0].message.content.strip()
         except Exception as e:
             logger.error('Letter AI generation failed: %s', e)
             return JsonResponse({'error': 'AI generation failed. Please try again.'}, status=500)
