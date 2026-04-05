@@ -547,16 +547,16 @@
     }
     /* ── Global Save Offline helper (used by tool buttons) ── */
     var _OFFLINE_API = {
-        lesson: '{% url "individual:offline_lesson_plan" pk=0 %}'.replace('/0/', '/'),
-        deck:   '{% url "individual:offline_deck" pk=0 %}'.replace('/0/', '/'),
-        paper:  '{% url "individual:offline_exam_paper" pk=0 %}'.replace('/0/', '/')
+        lesson: '{% url "individual:offline_lesson_plan" pk=0 %}',
+        deck:   '{% url "individual:offline_deck" pk=0 %}',
+        paper:  '{% url "individual:offline_exam_paper" pk=0 %}'
     };
     function _saveOffline(type, id, btn) {
         if (!window.AuraContent) return;
         var origHTML = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<i class="bi bi-arrow-repeat" style="animation:spin .6s linear infinite"></i>';
-        var url = _OFFLINE_API[type] + id + '/';
+        var url = _OFFLINE_API[type].replace('/0/', '/' + id + '/');
         AuraContent.download(type, id, url, function(ok) {
             btn.disabled = false;
             if (ok) {
