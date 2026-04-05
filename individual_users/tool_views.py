@@ -3526,8 +3526,8 @@ def marker_dashboard(request):
         from individual_users.seed_content import seed_tool_content
         seed_tool_content(profile, 'paper-marker')
     sessions = MarkingSession.objects.filter(profile=profile).annotate(
-        _student_count=Count('marks'),
-        _class_average=Avg('marks__percentage'),
+        student_count=Count('marks'),
+        class_average=Avg('marks__percentage'),
     )
 
     ctx = {
