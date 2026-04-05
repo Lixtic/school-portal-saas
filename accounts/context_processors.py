@@ -7,7 +7,7 @@ def onboarding_context(request):
     Injects onboarding progress into every authenticated page.
     Uses a session flag to short-circuit after completion/dismissal.
     """
-    if not request.user.is_authenticated:
+    if not hasattr(request, 'user') or not request.user.is_authenticated:
         return {}
 
     if request.session.get('onboarding_done'):

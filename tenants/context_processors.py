@@ -4,7 +4,7 @@ from django.db import transaction
 
 def trial_status(request):
     """Inject trial subscription + AI quota info for the current tenant into every template."""
-    if not hasattr(request, 'tenant') or not request.user.is_authenticated:
+    if not hasattr(request, 'tenant') or not hasattr(request, 'user') or not request.user.is_authenticated:
         return {}
 
     # Use request-level cache set by TenantPathMiddleware.process_view() to avoid

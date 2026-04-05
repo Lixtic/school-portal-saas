@@ -17,7 +17,7 @@ def teacher_context(request):
         'padi_struggling_students': [],
     }
     
-    if not request.user.is_authenticated:
+    if not hasattr(request, 'user') or not request.user.is_authenticated:
         return context
     
     if getattr(request.user, 'user_type', None) != 'teacher':

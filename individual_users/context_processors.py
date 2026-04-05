@@ -3,7 +3,7 @@
 
 def individual_credits(request):
     """Return credit balance for authenticated individual-portal users."""
-    if not request.user.is_authenticated:
+    if not hasattr(request, 'user') or not request.user.is_authenticated:
         return {}
 
     # Only run for individual portal requests (avoid overhead on tenant pages)
