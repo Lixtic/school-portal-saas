@@ -1176,6 +1176,13 @@ def delete_account_view(request):
     # whose tables don't exist in the public schema.
     IndividualProfile.objects.filter(user=user).delete()
     VerificationCode.objects.filter(user=user).delete()
+    # Clean up any other shared-schema FK references to the user
+    from accounts.models import OnboardingProgress, UserSettings
+    from individual_users.models import IndividualCreditTransaction, IndividualCreditBalance
+    IndividualCreditTransaction.objects.filter(user=user).delete()
+    IndividualCreditBalance.objects.filter(user=user).delete()
+    OnboardingProgress.objects.filter(user=user).delete()
+    UserSettings.objects.filter(user=user).delete()
     user_pk = user.pk
     user_email = user.email
     logout(request)
