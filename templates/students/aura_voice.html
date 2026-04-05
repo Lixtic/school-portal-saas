@@ -10,10 +10,9 @@
    Full-screen immersive voice interface
    ═══════════════════════════════════════════════════════ */
 
-/* Raise universe above mobile bottom nav (z-index: 1062) and any sidebar */
+/* Raise universe above any sidebar */
 #padi-universe { z-index: 1070 !important; }
 /* Hide base-layout chrome that bleeds through on mobile */
-.mobile-bottom-nav,
 #sidebar,
 .sidebar,
 #topbar,
@@ -919,7 +918,7 @@
             <button id="exitBtn" class="hud-btn icon-only" title="Exit SchoolPadi Voice">
                 <i class="fa-solid fa-arrow-left"></i>
             </button>
-            <a href="{% url 'students:aura_arena' %}" class="hud-btn">
+            <a href="{% url 'students:padi_arena' %}" class="hud-btn">
                 <i class="fa-solid fa-keyboard"></i> <span class="d-none d-sm-inline">Text</span>
             </a>
         </div>
@@ -2646,7 +2645,7 @@ function exitSchoolPadiVoice() {
     if (document.referrer && document.referrer.includes(window.location.hostname)) {
         window.history.back();
     } else {
-        window.location.href = window.location.pathname.replace(/students\/aura\/voice\/$/, '') + 'dashboard/';
+        window.location.href = window.location.pathname.replace(/students\/padi\/voice\/$/, '') + 'dashboard/';
     }
 }
 
@@ -2682,7 +2681,7 @@ _loadSchoolPadiState();  // Shared State Manager: resume cross-session lesson co
 
 // ── Shared State Manager helpers (voice side) ─────────────────────────
 function _loadSchoolPadiState() {
-    fetch('{% url "academics:aura_session_state" %}')
+    fetch('{% url "academics:padi_session_state" %}')
         .then(r => r.json())
         .then(data => {
             if (data.lesson_state && data.lesson_state !== 'IDLE') {
@@ -2744,7 +2743,7 @@ function _syncSchoolPadiState(diagramText, sentimentValue) {
         }
     }
 
-    fetch('{% url "academics:aura_session_state" %}', {
+    fetch('{% url "academics:padi_session_state" %}', {
         method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
